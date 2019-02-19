@@ -2,16 +2,16 @@ from __future__ import absolute_import
 
 import logging
 
-from pony import orm
 from pony.orm import db_session
 from twisted.web import http, resource
 
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.MetadataStore.serialization import REGULAR_TORRENT, CHANNEL_TORRENT
+from Tribler.Core.Modules.restapi.metadata_endpoint import BaseMetadataEndpoint
 from Tribler.util import cast_to_unicode_utf8
 
 
-class SearchEndpoint(resource.Resource):
+class SearchEndpoint(BaseMetadataEndpoint):
     """
     This endpoint is responsible for searching in channels and torrents present in the local Tribler database. It also
     fires a remote search in the Dispersy communities.
@@ -26,39 +26,17 @@ class SearchEndpoint(resource.Resource):
         self.putChild("completions", SearchCompletionsEndpoint(session))
 
     @staticmethod
-    def convert_sort_param_to_pony_col(sort_param):
-        """
-        Convert an incoming sort parameter to a pony column in the database.
-        :return a string with the right column. None if there exists no value for the given key.
-        """
-        json2pony_columns = {
-            u'category': "tags",
-            u'id': "rowid",
-            u'name': "title",
-            u'health': "health",
-        }
-
-        if sort_param not in json2pony_columns:
-            return None
-        return json2pony_columns[sort_param]
+    def convert_datatype_param_to_search_scope(data_type):
+        return {'': [REGULAR_TORRENT, CHANNEL_TORRENT],
+                "channel": CHANNEL_TORRENT,
+                "torrent": REGULAR_TORRENT}.get(data_type)
 
     @staticmethod
     def sanitize_parameters(parameters):
-        """
-        Sanitize the parameters and check whether they exist
-        """
-        #TODO: unify this wit MetadataEndpoint
-        first = 1 if 'first' not in parameters else int(parameters['first'][0])
-        last = 50 if 'last' not in parameters else int(parameters['last'][0])
-        sort_by = None if 'sort_by' not in parameters else parameters['sort_by'][0]
-        sort_asc = True if 'sort_asc' not in parameters else bool(int(parameters['sort_asc'][0]))
-        data_type = None if 'type' not in parameters else parameters['type'][0]
-        hide_xxx = False if 'hide_xxx' not in parameters else bool(int(parameters['hide_xxx'][0]) > 0)
-
-        if sort_by:
-            sort_by = SearchEndpoint.convert_sort_param_to_pony_col(sort_by)
-
-        return first, last, sort_by, sort_asc, data_type, hide_xxx
+        sanitized = BaseMetadataEndpoint.sanitize_parameters(parameters)
+        sanitized['metadata_type'] = SearchEndpoint.convert_datatype_param_to_search_scope(
+            parameters['metadata_type'][0] if 'metadata_type' in parameters else '')
+        return sanitized
 
     def render_GET(self, request):
         """
@@ -105,37 +83,28 @@ class SearchEndpoint(resource.Resource):
                    "chant_dirty":false
                 }
         """
-        if 'q' not in request.args or not request.args['q'] or not request.args['q'][0]:
+
+        sanitized = SearchEndpoint.sanitize_parameters(request.args)
+
+        if not sanitized["query_filter"]:
             request.setResponseCode(http.BAD_REQUEST)
-            return json.dumps({"error": "q parameter missing"})
+            return json.dumps({"error": "filter parameter missing"})
 
-        first, last, sort_by, sort_asc, data_type, hide_xxx = SearchEndpoint.sanitize_parameters(request.args)
-        query = cast_to_unicode_utf8(request.args['q'][0])
-
-        if not data_type:
-            search_scope = lambda g: (g.metadata_type == REGULAR_TORRENT or g.metadata_type == CHANNEL_TORRENT)
-        elif data_type == 'channel':
-            search_scope = lambda g: g.metadata_type == CHANNEL_TORRENT
-        elif data_type == 'torrent':
-            search_scope = lambda g: g.metadata_type == REGULAR_TORRENT
-        else:
+        if not sanitized["metadata_type"]:
+            request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "Trying to query for unknown type of metadata"})
 
         with db_session:
-            pony_query= self.session.lm.mds.TorrentMetadata.get_entries_query(
-                sort_by, sort_asc, query_filter=query).where(search_scope)
-            if hide_xxx:
-                pony_query = pony_query.where(lambda g: g.xxx == 0)
-            total = orm.count(pony_query)
+            pony_query, total = self.session.lm.mds.TorrentMetadata.get_entries(**sanitized)
             search_results = [(dict(type={REGULAR_TORRENT: 'torrent', CHANNEL_TORRENT: 'channel'}[r.metadata_type],
                                     **(r.to_simple_dict()))) for r in pony_query]
 
         return json.dumps({
-            "results": search_results[first - 1:last],
-            "first": first,
-            "last": last,
-            "sort_by": sort_by,
-            "sort_asc": sort_asc,
+            "results": search_results,
+            "first": sanitized["first"],
+            "last": sanitized["last"],
+            "sort_by": sanitized["sort_by"],
+            "sort_asc": sanitized["sort_asc"],
             "total": total
         })
 

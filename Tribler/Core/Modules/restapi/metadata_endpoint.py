@@ -30,20 +30,6 @@ class BaseMetadataEndpoint(resource.Resource):
 
         return sanitized
 
-
-class MetadataEndpoint(BaseMetadataEndpoint):
-
-    def __init__(self, session):
-        BaseMetadataEndpoint.__init__(self)
-
-        child_handler_dict = {
-            "channels": ChannelsEndpoint,
-            "torrents": TorrentsEndpoint
-        }
-
-        for path, child_cls in child_handler_dict.items():
-            self.putChild(path, child_cls(session))
-
     @staticmethod
     def convert_sort_param_to_pony_col(sort_param):
         """
@@ -62,9 +48,21 @@ class MetadataEndpoint(BaseMetadataEndpoint):
             u'health': 'HEALTH'
         }
 
-        if sort_param not in json2pony_columns:
-            return None
-        return json2pony_columns[sort_param]
+        return json2pony_columns[sort_param] if sort_param in json2pony_columns else None
+
+
+class MetadataEndpoint(BaseMetadataEndpoint):
+
+    def __init__(self, session):
+        BaseMetadataEndpoint.__init__(self)
+
+        child_handler_dict = {
+            "channels": ChannelsEndpoint,
+            "torrents": TorrentsEndpoint
+        }
+
+        for path, child_cls in child_handler_dict.items():
+            self.putChild(path, child_cls(session))
 
 
 class BaseChannelsEndpoint(resource.Resource):

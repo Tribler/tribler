@@ -44,23 +44,23 @@ class TestSearchEndpoint(AbstractApiTest):
 
         self.should_check_equality = False
 
-        result = yield self.do_request('search?q=needle', expected_code=200)
+        result = yield self.do_request('search?filter=needle', expected_code=200)
         parsed = json.loads(result)
         self.assertEqual(len(parsed["results"]), 1)
 
-        result = yield self.do_request('search?q=hay', expected_code=200)
+        result = yield self.do_request('search?filter=hay', expected_code=200)
         parsed = json.loads(result)
         self.assertEqual(len(parsed["results"]), 50)
 
-        result = yield self.do_request('search?q=test&type=channel', expected_code=200)
+        result = yield self.do_request('search?filter=test&type=channel', expected_code=200)
         parsed = json.loads(result)
         self.assertEqual(len(parsed["results"]), 1)
 
-        result = yield self.do_request('search?q=needle&type=torrent', expected_code=200)
+        result = yield self.do_request('search?filter=needle&type=torrent', expected_code=200)
         parsed = json.loads(result)
         self.assertEqual(parsed["results"][0][u'name'], 'needle')
 
-        result = yield self.do_request('search?q=needle&sort_by=name', expected_code=200)
+        result = yield self.do_request('search?filter=needle&sort_by=name', expected_code=200)
         parsed = json.loads(result)
         self.assertEqual(len(parsed["results"]), 1)
 
