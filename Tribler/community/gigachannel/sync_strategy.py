@@ -12,7 +12,7 @@ class SyncChannels(DiscoveryStrategy):
      2. Check if we have any pending channels to download.
     """
 
-    def take_step(self, service_id=None):
+    def take_step(self):
         with self.walk_lock:
             # Share my random channels
             peers = self.overlay.get_peers()
