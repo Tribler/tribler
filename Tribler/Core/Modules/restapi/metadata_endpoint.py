@@ -96,12 +96,12 @@ class ChannelsEndpoint(BaseChannelsEndpoint):
 
     def render_GET(self, request):
         sanitized = ChannelsEndpoint.sanitize_parameters(request.args)
-        channels, total = self.session.lm.mds.ChannelMetadata.get_entries(**sanitized)
-
-        channels = [channel.to_simple_dict() for channel in channels]
+        with db_session:
+            channels, total = self.session.lm.mds.ChannelMetadata.get_entries(**sanitized)
+            channels_list = [channel.to_simple_dict() for channel in channels]
 
         return json.dumps({
-            "channels": channels,
+            "channels": channels_list,
             "first": sanitized["first"],
             "last": sanitized["last"],
             "sort_by": sanitized["sort_by"],
@@ -180,10 +180,10 @@ class SpecificChannelTorrentsEndpoint(BaseTorrentsEndpoint):
         sanitized = SpecificChannelTorrentsEndpoint.sanitize_parameters(request.args)
         with db_session:
             torrents, total = self.session.lm.mds.TorrentMetadata.get_entries(channel_pk=self.channel_pk, **sanitized)
-            torrents = [torrent.to_simple_dict() for torrent in torrents]
+            torrents_list = [torrent.to_simple_dict() for torrent in torrents]
 
         return json.dumps({
-            "torrents": torrents,
+            "torrents": torrents_list,
             "first": sanitized['first'],
             "last": sanitized['last'],
             "sort_by": sanitized['sort_by'],

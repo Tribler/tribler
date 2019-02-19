@@ -57,6 +57,7 @@ class TestMetadataStore(TriblerCoreTest):
         mds2.shutdown()
         mds2 = MetadataStore(os.path.join(self.session_base_dir, 'test.db'), self.session_base_dir, my_key)
         self.assertEqual(mds2.clock.clock, tick)
+        mds2.shutdown()
 
     @db_session
     def test_process_channel_dir_file(self):
