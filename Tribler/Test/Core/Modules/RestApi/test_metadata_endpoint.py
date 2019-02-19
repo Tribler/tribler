@@ -277,3 +277,10 @@ class TestTorrentHealthEndpoint(AbstractApiTest):
         self.udp_tracker.start()
         self.http_tracker.start()
         yield self.do_request(url, expected_code=200, request_type='GET').addCallback(verify_response_no_trackers)
+
+        def verify_response_nowait(response):
+            json_response = json.loads(response)
+            self.assertDictEqual(json_response, {u'checking': u'1'})
+
+        yield self.do_request(url + '&nowait=1', expected_code=200, request_type='GET').addCallback(
+            verify_response_nowait)
