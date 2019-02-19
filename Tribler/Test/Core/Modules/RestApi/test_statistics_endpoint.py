@@ -1,10 +1,12 @@
-from Tribler.Test.tools import trial_timeout
+from __future__ import absolute_import
+
 from twisted.internet.defer import inlineCallbacks
 
 import Tribler.Core.Utilities.json_util as json
+from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
+from Tribler.Test.tools import trial_timeout
 from Tribler.pyipv8.ipv8.attestation.trustchain.community import TrustChainCommunity
 from Tribler.pyipv8.ipv8.test.mocking.ipv8 import MockIPv8
-from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 
 
 class TestStatisticsEndpoint(AbstractApiTest):
@@ -78,16 +80,3 @@ class TestStatisticsEndpoint(AbstractApiTest):
 
         self.should_check_equality = False
         return self.do_request('statistics/ipv8', expected_code=200).addCallback(verify_dict)
-
-    @trial_timeout(10)
-    def test_get_community_statistics(self):
-        """
-        Testing whether the API returns a correct community statistics dictionary when requested
-        """
-        def verify_dict(data):
-            json_data = json.loads(data)
-            self.assertTrue(json_data["dispersy_community_statistics"])
-            self.assertTrue(json_data["ipv8_overlay_statistics"])
-
-        self.should_check_equality = False
-        return self.do_request('statistics/communities', expected_code=200).addCallback(verify_dict)
