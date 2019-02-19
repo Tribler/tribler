@@ -27,6 +27,14 @@ class TestSearchEndpoint(AbstractApiTest):
         return self.do_request('search', expected_code=400)
 
     @trial_timeout(10)
+    def test_search_wrong_mdtype(self):
+        """
+        Testing whether the API returns an error 400 if wrong metadata type is passed in the query
+        """
+        self.should_check_equality = False
+        return self.do_request('search?filter=bla&metadata_type=ddd', expected_code=400)
+
+    @trial_timeout(10)
     @inlineCallbacks
     def test_search(self):
         """

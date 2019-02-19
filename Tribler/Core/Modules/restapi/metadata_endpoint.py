@@ -151,22 +151,12 @@ class SpecificChannelEndpoint(BaseChannelsEndpoint):
         return json.dumps({"success": True, "subscribed": to_subscribe})
 
 
-class BaseTorrentsEndpoint(resource.Resource):
+# TODO: make the inheritance straightforward and unified for all endpoints here
+class BaseTorrentsEndpoint(resource.Resource, BaseMetadataEndpoint):
 
     def __init__(self, session):
         resource.Resource.__init__(self)
         self.session = session
-
-    @staticmethod
-    def sanitize_parameters(parameters):
-        """
-        Sanitize the parameters for a request that fetches channels.
-        """
-        sanitized = BaseMetadataEndpoint.sanitize_parameters(parameters)
-        if 'channel' in parameters:
-            sanitized['channel'] = unhexlify(parameters['channel'][0])
-        return sanitized
-
 
 class SpecificChannelTorrentsEndpoint(BaseTorrentsEndpoint):
 
