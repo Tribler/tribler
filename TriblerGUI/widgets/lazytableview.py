@@ -87,8 +87,8 @@ class SubscribeButtonMixin(TriblerContentTableView):
         public_key = index.model().data_items[index.row()][u'public_key']
         request_mgr = TriblerRequestManager()
         request_mgr.perform_request("metadata/channels/%s" % public_key,
-                                    lambda _: self.on_unsubscribed_channel.emit(index) if status else
-                                    lambda _: self.on_subscribed_channel.emit(index),
+                                    (lambda _: self.on_unsubscribed_channel.emit(index)) if status else
+                                    (lambda _: self.on_subscribed_channel.emit(index)),
                                     data={"subscribe": int(not status)}, method='POST')
         index.model().data_items[index.row()][u'subscribed'] = int(not status)
 
