@@ -53,6 +53,7 @@ class TestUpgradeDB72ToPony(TriblerCoreTest):
         self.assertTrue(my_channel.has_valid_signature())
         self.assertEqual(self.m.personal_channel_title[:200], my_channel.title)
 
+    @db_session
     def test_convert_all_channels(self):
         self.m.initialize()
         self.m.convert_discovered_torrents()
