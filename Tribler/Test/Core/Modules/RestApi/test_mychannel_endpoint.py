@@ -278,7 +278,7 @@ class TestMyChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
     @trial_timeout(10)
     def test_add_invalid_torrent(self):
         """
-        Test whether an error is returned when adding an invalid torrent file to yoru channel
+        Test whether an error is returned when adding an invalid torrent file to your channel
         """
         self.create_my_channel()
         self.should_check_equality = False
@@ -310,7 +310,7 @@ class TestMyChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
         """
         self.create_my_channel()
 
-        with open(TORRENT_UBUNTU_FILE, "r") as torrent_file:
+        with open(TORRENT_UBUNTU_FILE, "rb") as torrent_file:
             base64_content = base64.b64encode(torrent_file.read())
 
             self.should_check_equality = False
