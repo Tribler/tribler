@@ -13,6 +13,7 @@ from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import NEW, TOD
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.common import TORRENT_UBUNTU_FILE
+from Tribler.Test.tools import trial_timeout
 
 
 class BaseTestMyChannelEndpoint(AbstractApiTest):
@@ -39,6 +40,7 @@ class BaseTestMyChannelEndpoint(AbstractApiTest):
 
 class TestMyChannelEndpoint(BaseTestMyChannelEndpoint):
 
+    @trial_timeout(10)
     def test_get_channel_no_channel(self):
         """
         Test whether receiving information from your uncreated channel results in an error
@@ -46,6 +48,7 @@ class TestMyChannelEndpoint(BaseTestMyChannelEndpoint):
         self.should_check_equality = False
         return self.do_request('mychannel', expected_code=404)
 
+    @trial_timeout(10)
     def test_get_channel(self):
         """
         Test whether receiving information from your channel with the REST API works
@@ -54,6 +57,7 @@ class TestMyChannelEndpoint(BaseTestMyChannelEndpoint):
         self.should_check_equality = False
         return self.do_request('mychannel', expected_code=200)
 
+    @trial_timeout(10)
     def test_edit_channel_missing_params(self):
         """
         Test whether updating your uncreated channel with missing parameters results in an error
@@ -61,6 +65,7 @@ class TestMyChannelEndpoint(BaseTestMyChannelEndpoint):
         self.should_check_equality = False
         return self.do_request('mychannel', request_type='POST', expected_code=400)
 
+    @trial_timeout(10)
     def test_edit_channel_no_channel(self):
         """
         Test whether updating your uncreated channel results in an error
@@ -69,6 +74,7 @@ class TestMyChannelEndpoint(BaseTestMyChannelEndpoint):
         post_params = {'name': 'bla', 'description': 'bla'}
         return self.do_request('mychannel', request_type='POST', post_data=post_params, expected_code=404)
 
+    @trial_timeout(10)
     def test_edit_channel(self):
         """
         Test editing your channel with the REST API works
@@ -84,6 +90,7 @@ class TestMyChannelEndpoint(BaseTestMyChannelEndpoint):
         return self.do_request('mychannel', request_type='POST', post_data=post_params, expected_code=200)\
             .addCallback(on_response)
 
+    @trial_timeout(10)
     def test_create_channel_missing_name(self):
         """
         Test whether creating a channel with a missing name parameter results in an error
@@ -91,6 +98,7 @@ class TestMyChannelEndpoint(BaseTestMyChannelEndpoint):
         self.should_check_equality = False
         return self.do_request('mychannel', request_type='PUT', expected_code=400)
 
+    @trial_timeout(10)
     def test_create_channel_exists(self):
         """
         Test whether creating a channel again results in an error
@@ -100,6 +108,7 @@ class TestMyChannelEndpoint(BaseTestMyChannelEndpoint):
         post_params = {'name': 'bla', 'description': 'bla'}
         return self.do_request('mychannel', request_type='PUT', post_data=post_params, expected_code=409)
 
+    @trial_timeout(10)
     def test_create_channel(self):
         """
         Test editing your channel with the REST API works
@@ -118,6 +127,7 @@ class TestMyChannelEndpoint(BaseTestMyChannelEndpoint):
 
 class TestMyChannelCommitEndpoint(BaseTestMyChannelEndpoint):
 
+    @trial_timeout(10)
     def test_commit_no_channel(self):
         """
         Test whether we get an error if we try to commit a channel without it being created
@@ -125,6 +135,7 @@ class TestMyChannelCommitEndpoint(BaseTestMyChannelEndpoint):
         self.should_check_equality = False
         return self.do_request('mychannel/commit', expected_code=404, request_type='POST')
 
+    @trial_timeout(10)
     def test_commit(self):
         """
         Test whether we can successfully commit changes to your channel with the REST API
@@ -136,6 +147,7 @@ class TestMyChannelCommitEndpoint(BaseTestMyChannelEndpoint):
 
 class TestMyChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
 
+    @trial_timeout(10)
     def test_get_my_torrents_no_channel(self):
         """
         Test whether we get an error if we try to get torrents from your channel without it being created
@@ -143,6 +155,7 @@ class TestMyChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
         self.should_check_equality = False
         return self.do_request('mychannel/torrents', expected_code=404)
 
+    @trial_timeout(10)
     def test_get_my_torrents(self):
         """
         Test whether we can query torrents from your channel
@@ -156,6 +169,7 @@ class TestMyChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
         self.should_check_equality = False
         return self.do_request('mychannel/torrents', expected_code=200).addCallback(on_response)
 
+    @trial_timeout(10)
     def test_delete_all_torrents_no_channel(self):
         """
         Test whether we get an error if we remove all torrents from your uncreated channel
@@ -163,6 +177,7 @@ class TestMyChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
         self.should_check_equality = False
         return self.do_request('mychannel/torrents', request_type='DELETE', expected_code=404)
 
+    @trial_timeout(10)
     def test_delete_all_torrents(self):
         """
         Test whether we can remove all torrents from your channel
@@ -178,6 +193,7 @@ class TestMyChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
         self.create_my_channel()
         return self.do_request('mychannel/torrents', request_type='DELETE', expected_code=200).addCallback(on_response)
 
+    @trial_timeout(10)
     def test_update_my_torrents_invalid_params(self):
         """
         Test whether we get an error if we pass invalid parameters when updating multiple torrents in your channel
@@ -185,6 +201,7 @@ class TestMyChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
         self.should_check_equality = False
         return self.do_request('mychannel/torrents', request_type='POST', expected_code=400)
 
+    @trial_timeout(10)
     def test_update_my_torrents_no_channel(self):
         """
         Test whether we get an error if we update multiple torrents in your uncreated channel
@@ -193,6 +210,7 @@ class TestMyChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
         post_params = {'status': TODELETE, 'infohashes': '0' * 20}
         return self.do_request('mychannel/torrents', request_type='POST', post_data=post_params, expected_code=404)
 
+    @trial_timeout(10)
     def test_update_my_torrents(self):
         """
         Test whether we get an error if we update multiple torrents in your uncreated channel
@@ -209,6 +227,7 @@ class TestMyChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
         return self.do_request('mychannel/torrents', request_type='POST', post_data=post_params, expected_code=200)\
             .addCallback(on_response)
 
+    @trial_timeout(10)
     def test_add_torrents_no_channel(self):
         """
         Test whether an error is returned when we try to add a torrent to your unexisting channel
@@ -216,6 +235,7 @@ class TestMyChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
         self.should_check_equality = False
         return self.do_request('mychannel/torrents', request_type='PUT', expected_code=404)
 
+    @trial_timeout(10)
     def test_add_torrents_no_dir(self):
         """
         Test whether an error is returned when pointing to a file instead of a directory when adding torrents
@@ -225,6 +245,7 @@ class TestMyChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
         post_params = {'torrents_dir': 'nonexisting'}
         return self.do_request('mychannel/torrents', request_type='PUT', post_data=post_params, expected_code=400)
 
+    @trial_timeout(10)
     def test_add_torrents_recursive_no_dir(self):
         """
         Test whether an error is returned when recursively adding torrents without a specified directory
@@ -234,6 +255,7 @@ class TestMyChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
         post_params = {'recursive': True}
         return self.do_request('mychannel/torrents', request_type='PUT', post_data=post_params, expected_code=400)
 
+    @trial_timeout(10)
     def test_add_torrents_from_dir(self):
         """
         Test whether adding torrents from a directory to your channels works
@@ -243,6 +265,7 @@ class TestMyChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
         post_params = {'torrents_dir': self.session_base_dir, 'recursive': True}
         return self.do_request('mychannel/torrents', request_type='PUT', post_data=post_params, expected_code=200)
 
+    @trial_timeout(10)
     def test_add_torrent_missing_torrent(self):
         """
         Test whether an error is returned when adding a torrent to your channel but with a missing torrent parameter
@@ -252,6 +275,7 @@ class TestMyChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
         post_params = {}
         return self.do_request('mychannel/torrents', request_type='PUT', post_data=post_params, expected_code=400)
 
+    @trial_timeout(10)
     def test_add_invalid_torrent(self):
         """
         Test whether an error is returned when adding an invalid torrent file to yoru channel
@@ -261,6 +285,7 @@ class TestMyChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
         post_params = {'torrent': 'bla'}
         return self.do_request('mychannel/torrents', request_type='PUT', post_data=post_params, expected_code=500)
 
+    @trial_timeout(10)
     @db_session
     def test_add_torrent_duplicate(self):
         """
@@ -278,6 +303,7 @@ class TestMyChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
             post_params = {'torrent': base64_content}
             return self.do_request('mychannel/torrents', request_type='PUT', post_data=post_params, expected_code=500)
 
+    @trial_timeout(10)
     def test_add_torrent(self):
         """
         Test adding a torrent to your channel
@@ -294,6 +320,7 @@ class TestMyChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
 
 class TestMyChannelSpecificTorrentEndpoint(BaseTestMyChannelEndpoint):
 
+    @trial_timeout(10)
     def test_update_my_torrent_no_status(self):
         """
         Test whether an error is returned if we do not pass the status parameter
@@ -301,6 +328,7 @@ class TestMyChannelSpecificTorrentEndpoint(BaseTestMyChannelEndpoint):
         self.should_check_equality = False
         return self.do_request('mychannel/torrents/abcd', request_type='PATCH', expected_code=400)
 
+    @trial_timeout(10)
     def test_update_my_torrent_no_channel(self):
         """
         Test whether an error is returned if your channel is not created when updating your torrents
@@ -310,6 +338,7 @@ class TestMyChannelSpecificTorrentEndpoint(BaseTestMyChannelEndpoint):
         return self.do_request('mychannel/torrents/abcd',
                                post_data=post_params, request_type='PATCH', expected_code=404)
 
+    @trial_timeout(10)
     def test_update_my_torrent_no_torrent(self):
         """
         Test whether an error is returned when updating an unknown torrent in your channel
@@ -320,6 +349,7 @@ class TestMyChannelSpecificTorrentEndpoint(BaseTestMyChannelEndpoint):
         return self.do_request('mychannel/torrents/abcd',
                                post_data=post_params, request_type='PATCH', expected_code=404)
 
+    @trial_timeout(10)
     def test_update_my_torrent(self):
         """
         Test whether you are able to update a torrent in your channel with the REST API
