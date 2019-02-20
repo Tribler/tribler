@@ -3,13 +3,8 @@ from __future__ import absolute_import
 from pony.orm import db_session
 from twisted.internet.defer import inlineCallbacks
 
-from Tribler.Core.simpledefs import SIGNAL_ON_SEARCH_RESULTS, SIGNAL_SEARCH_COMMUNITY
 from Tribler.community.popularity.constants import MSG_TORRENT_HEALTH_RESPONSE, \
     ERROR_UNKNOWN_RESPONSE, ERROR_UNKNOWN_PEER
-from Tribler.community.popularity.constants import (SEARCH_TORRENT_REQUEST,
-                                                    SEARCH_TORRENT_RESPONSE)
-from Tribler.community.popularity.payload import (ContentInfoRequest, ContentInfoResponse, TorrentInfoRequestPayload,
-                                                  TorrentInfoResponsePayload, unpack_responses)
 from Tribler.community.popularity.payload import TorrentHealthPayload, ContentSubscription
 from Tribler.community.popularity.pubsub import PubSubCommunity
 from Tribler.community.popularity.repository import ContentRepository
@@ -78,76 +73,6 @@ class PopularityCommunity(PubSubCommunity):
 
         peer_trust = self.trustchain.get_trust(peer) if self.trustchain else 0
         self.content_repository.update_torrent_health(payload, peer_trust)
-
-    def on_channel_health_response(self, source_address, data):
-        """
-        Message handler for channel health response. Currently, not sure how to handle it.
-        """
-
-    def on_torrent_info_request(self, source_address, data):
-        """
-        Message handler for torrent info request.
-        """
-        self.logger.debug("Got torrent info request from %s", source_address)
-        auth, _, payload = self._ez_unpack_auth(TorrentInfoRequestPayload, data)
-        peer = self.get_peer_from_auth(auth, source_address)
-
-        if peer not in self.subscribers:
-            self.logger.error(ERROR_UNKNOWN_RESPONSE)
-            return
-
-        self.send_torrent_info_response(payload.infohash, peer=peer)
-
-    def on_torrent_info_response(self, source_address, data):
-        """
-        Message handler for torrent info response.
-        """
-        self.logger.debug("Got torrent info response from %s", source_address)
-        auth, _, payload = self._ez_unpack_auth(TorrentInfoResponsePayload, data)
-        peer = self.get_peer_from_auth(auth, source_address)
-
-        if peer not in self.publishers:
-            self.logger.error(ERROR_UNKNOWN_RESPONSE)
-            return
-
-        self.content_repository.update_torrent_info(payload)
-
-    def on_content_info_request(self, source_address, data):
-        auth, _, payload = self._ez_unpack_auth(ContentInfoRequest, data)
-        peer = self.get_peer_from_auth(auth, source_address)
-
-        if payload.content_type == SEARCH_TORRENT_REQUEST:
-            db_results = self.content_repository.search_torrent(payload.query_list)
-            self.send_content_info_response(peer, payload.identifier, SEARCH_TORRENT_RESPONSE, db_results)
-
-    def on_content_info_response(self, source_address, data):
-        _, _, payload = self._ez_unpack_auth(ContentInfoResponse, data)
-
-        identifier = int(payload.identifier)
-        if not self.request_cache.has(u'request', identifier):
-            return
-        cache = self.request_cache.get(u'request', identifier)
-
-        if payload.content_type == SEARCH_TORRENT_RESPONSE:
-            self.process_torrent_search_response(cache.query, payload)
-
-        if not payload.pagination.more:
-            cache = self.request_cache.pop(u'request', identifier)
-            cache.finish()
-
-    def process_torrent_search_response(self, query, payload):
-        response = unpack_responses(payload.response)
-
-        self.content_repository.update_from_torrent_search_results(response)
-
-        result_dict = dict()
-        result_dict['keywords'] = query
-        result_dict['results'] = response
-        result_dict['candidate'] = None
-
-        if self.tribler_session:
-            self.tribler_session.notifier.notify(SIGNAL_SEARCH_COMMUNITY, SIGNAL_ON_SEARCH_RESULTS, None,
-                                                 result_dict)
 
     # MESSAGE SENDING FUNCTIONS
 
