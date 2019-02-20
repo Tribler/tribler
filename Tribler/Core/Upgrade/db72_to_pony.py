@@ -1,5 +1,6 @@
 import base64
 import datetime
+import logging
 import os
 import sqlite3
 from binascii import unhexlify
@@ -53,6 +54,7 @@ class DispersyToPonyMigration(object):
                           " AND t.torrent_id == ct.torrent_id AND t.infohash NOT NULL "
 
     def __init__(self, tribler_db, metadata_store, notifier_callback=None):
+        self._logger = logging.getLogger(self.__class__.__name__)
         self.notifier_callback = notifier_callback
         self.tribler_db = tribler_db
         self.mds = metadata_store
@@ -65,7 +67,7 @@ class DispersyToPonyMigration(object):
             self.personal_channel_id, self.personal_channel_title = self.get_personal_channel_id_title()
             self.personal_channel_title = self.personal_channel_title[:200]  # limit the title size
         except:
-            print ("No personal channel found")
+            self._logger.info("No personal channel found")
 
     def get_old_channels(self):
         connection = sqlite3.connect(self.tribler_db)
