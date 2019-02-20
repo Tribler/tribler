@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import base64
 import json
 from binascii import hexlify
 
@@ -7,9 +8,11 @@ from pony.orm import db_session
 from six.moves import xrange
 from twisted.internet.defer import inlineCallbacks
 
+from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import NEW, TODELETE
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.Core.base_test import MockObject
+from Tribler.Test.common import TORRENT_UBUNTU_FILE
 
 
 class BaseTestMyChannelEndpoint(AbstractApiTest):
@@ -205,6 +208,88 @@ class TestMyChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
         post_params = {'status': TODELETE, 'infohashes': hexlify('0' * 20)}
         return self.do_request('mychannel/torrents', request_type='POST', post_data=post_params, expected_code=200)\
             .addCallback(on_response)
+
+    def test_add_torrents_no_channel(self):
+        """
+        Test whether an error is returned when we try to add a torrent to your unexisting channel
+        """
+        self.should_check_equality = False
+        return self.do_request('mychannel/torrents', request_type='PUT', expected_code=404)
+
+    def test_add_torrents_no_dir(self):
+        """
+        Test whether an error is returned when pointing to a file instead of a directory when adding torrents
+        """
+        self.create_my_channel()
+        self.should_check_equality = False
+        post_params = {'torrents_dir': 'nonexisting'}
+        return self.do_request('mychannel/torrents', request_type='PUT', post_data=post_params, expected_code=400)
+
+    def test_add_torrents_recursive_no_dir(self):
+        """
+        Test whether an error is returned when recursively adding torrents without a specified directory
+        """
+        self.create_my_channel()
+        self.should_check_equality = False
+        post_params = {'recursive': True}
+        return self.do_request('mychannel/torrents', request_type='PUT', post_data=post_params, expected_code=400)
+
+    def test_add_torrents_from_dir(self):
+        """
+        Test whether adding torrents from a directory to your channels works
+        """
+        self.create_my_channel()
+        self.should_check_equality = False
+        post_params = {'torrents_dir': self.session_base_dir, 'recursive': True}
+        return self.do_request('mychannel/torrents', request_type='PUT', post_data=post_params, expected_code=200)
+
+    def test_add_torrent_missing_torrent(self):
+        """
+        Test whether an error is returned when adding a torrent to your channel but with a missing torrent parameter
+        """
+        self.create_my_channel()
+        self.should_check_equality = False
+        post_params = {}
+        return self.do_request('mychannel/torrents', request_type='PUT', post_data=post_params, expected_code=400)
+
+    def test_add_invalid_torrent(self):
+        """
+        Test whether an error is returned when adding an invalid torrent file to yoru channel
+        """
+        self.create_my_channel()
+        self.should_check_equality = False
+        post_params = {'torrent': 'bla'}
+        return self.do_request('mychannel/torrents', request_type='PUT', post_data=post_params, expected_code=500)
+
+    @db_session
+    def test_add_torrent_duplicate(self):
+        """
+        Test whether adding a duplicate torrent to you channel results in an error
+        """
+        self.create_my_channel()
+        my_channel = self.session.lm.mds.ChannelMetadata.get_my_channel()
+        tdef = TorrentDef.load(TORRENT_UBUNTU_FILE)
+        my_channel.add_torrent_to_channel(tdef, {'description': 'blabla'})
+
+        with open(TORRENT_UBUNTU_FILE, "r") as torrent_file:
+            base64_content = base64.b64encode(torrent_file.read())
+
+            self.should_check_equality = False
+            post_params = {'torrent': base64_content}
+            return self.do_request('mychannel/torrents', request_type='PUT', post_data=post_params, expected_code=500)
+
+    def test_add_torrent(self):
+        """
+        Test adding a torrent to your channel
+        """
+        self.create_my_channel()
+
+        with open(TORRENT_UBUNTU_FILE, "r") as torrent_file:
+            base64_content = base64.b64encode(torrent_file.read())
+
+            self.should_check_equality = False
+            post_params = {'torrent': base64_content}
+            return self.do_request('mychannel/torrents', request_type='PUT', post_data=post_params, expected_code=200)
 
 
 class TestMyChannelSpecificTorrentEndpoint(BaseTestMyChannelEndpoint):

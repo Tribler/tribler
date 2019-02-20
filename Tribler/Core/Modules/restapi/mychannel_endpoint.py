@@ -218,7 +218,8 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
             recursive = parameters['recursive'][0]
             if not torrents_dir:
                 request.setResponseCode(http.BAD_REQUEST)
-                return json.dumps({"the torrents_dir parameter should be provided when the rec"})
+                return json.dumps({"error": "the torrents_dir parameter should be provided when the recursive "
+                                            "parameter is set"})
 
         if torrents_dir:
             torrents_list, errors_list = my_channel.add_torrents_from_dir(torrents_dir, recursive)
@@ -237,7 +238,7 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
         try:
             torrent = base64.b64decode(parameters['torrent'][0])
             torrent_def = TorrentDef.load_from_memory(torrent)
-        except ValueError:
+        except (TypeError, ValueError):
             request.setResponseCode(http.INTERNAL_SERVER_ERROR)
             return json.dumps({"error": "invalid torrent file"})
 
