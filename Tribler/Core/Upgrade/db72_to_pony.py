@@ -383,7 +383,7 @@ class DispersyToPonyMigration(object):
             finally:
                 connection.close()
 
-            return True
+        return True
 
     def do_migration(self):
         self.convert_discovered_torrents()
