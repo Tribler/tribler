@@ -90,9 +90,3 @@ class InvalidConfigException(TriblerException):
     """The config file doesn't adhere to the config specification."""
     def __init__(self, msg=None):
         TriblerException.__init__(self, msg)
-
-
-class LevelDBKeyDeletionException(TriblerException):
-    """This error is used to indicate failure to delete a key from LevelDB. """
-    def __init__(self, msg=None):
-        TriblerException.__init__(self, msg)

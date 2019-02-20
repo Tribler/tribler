@@ -48,10 +48,6 @@ if sys.platform.startswith('darwin'):
 
 excluded_libs = ['wx', 'bitcoinlib', 'PyQt4']
 
-# We use plyvel on Windows since leveldb is unable to deal with unicode paths
-if sys.platform == 'win32':
-    excluded_libs.append('leveldb')
-
 # Pony dependencies; each packages need to be added separatedly; added as hidden import
 pony_deps = ['pony', 'pony.orm', 'pony.orm.dbproviders', 'pony.orm.dbproviders.sqlite']
 
