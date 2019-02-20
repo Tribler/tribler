@@ -53,16 +53,17 @@ class DispersyToPonyMigration(object):
                           "ct.name NOT NULL and t.length>0 AND t.category NOT NULL AND ct.deleted_at IS NULL " + \
                           " AND t.torrent_id == ct.torrent_id AND t.infohash NOT NULL "
 
-    def __init__(self, tribler_db, metadata_store, notifier_callback=None):
-        self._logger = logging.getLogger(self.__class__.__name__)
+    def __init__(self, tribler_db, notifier_callback=None, logger=None):
+        self._logger = logger or logging.getLogger(self.__class__.__name__)
         self.notifier_callback = notifier_callback
         self.tribler_db = tribler_db
-        self.mds = metadata_store
+        self.mds = None
 
         self.personal_channel_id = None
         self.personal_channel_title = None
 
-    def initialize(self):
+    def initialize(self, mds):
+        self.mds = mds
         try:
             self.personal_channel_id, self.personal_channel_title = self.get_personal_channel_id_title()
             self.personal_channel_title = self.personal_channel_title[:200]  # limit the title size
@@ -315,3 +316,76 @@ class DispersyToPonyMigration(object):
                 v.set(value=CONVERSION_FINISHED)
             else:
                 self.mds.MiscData(name=CONVERSION_FROM_72, value=CONVERSION_FINISHED)
+
+    def should_upgrade(self, old_database_path, new_database_path):
+        old_database_exists = os.path.exists(old_database_path)
+
+        if not old_database_exists:
+            # no old DB to upgrade
+            return
+
+        # Check the old DB version
+        try:
+            connection = sqlite3.connect(old_database_path)
+            cursor = connection.cursor()
+            cursor.execute('SELECT value FROM MyInfo WHERE entry == "version"')
+            version = int(cursor.fetchone()[0])
+            if version != 29:
+                return False
+        except:
+            self._logger.error("Can't open the old tribler.sdb file")
+            return False
+
+        new_database_exists = os.path.exists(new_database_path)
+        state = None  # Previous conversion state
+        if new_database_exists:
+            # Check for the old experimental version database
+            # ACHTUNG!!! NUCLEAR OPTION!!! DO NOT MESS WITH IT!!!
+            delete_old_db = False
+            try:
+                connection = sqlite3.connect(new_database_path)
+                cursor = connection.cursor()
+                cursor.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'MiscData'")
+                result = cursor.fetchone()
+                delete_old_db = not bool(result[0] if result else False)
+            except:
+                return False
+            finally:
+                try:
+                    connection.close()
+                except:
+                    pass
+            if delete_old_db:
+                # We're looking at the old experimental version database. Delete it.
+                os.unlink(new_database_path)
+                new_database_exists = False
+
+        if new_database_exists:
+            # Let's check if we converted all/some entries
+            try:
+                cursor.execute('SELECT value FROM MiscData WHERE name == "db_version"')
+                version = int(cursor.fetchone()[0])
+                if version != 0:
+                    connection.close()
+                    return False
+                cursor.execute('SELECT value FROM MiscData WHERE name == "%s"' % CONVERSION_FROM_72)
+                result = cursor.fetchone()
+                if result:
+                    state = result[0]
+                    if state == CONVERSION_FINISHED:
+                        connection.close()
+                        return
+            except:
+                self._logger.error("Can't open the new metadata.db file")
+                return False
+            finally:
+                connection.close()
+
+            return True
+
+    def do_migration(self):
+        self.convert_discovered_torrents()
+        self.convert_discovered_channels()
+        self.convert_personal_channel()
+        self.update_trackers_info()
+        self.mark_conversion_finished()

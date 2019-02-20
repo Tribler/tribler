@@ -23,7 +23,8 @@ class TestUpgradeDB72ToPony(TriblerCoreTest):
         mds_channels_dir = self.session_base_dir
 
         self.mds = MetadataStore(mds_db, mds_channels_dir, self.my_key)
-        self.m = DispersyToPonyMigration(self.OLD_DB_SAMPLE, self.mds)
+        self.m = DispersyToPonyMigration(self.OLD_DB_SAMPLE)
+        self.m.initialize(self.mds)
 
     @inlineCallbacks
     def tearDown(self):
@@ -31,19 +32,15 @@ class TestUpgradeDB72ToPony(TriblerCoreTest):
         yield super(TestUpgradeDB72ToPony, self).tearDown()
 
     def test_get_personal_channel_title(self):
-        self.m.initialize()
         self.assertTrue(self.m.personal_channel_title)
 
     def test_get_old_torrents_count(self):
-        self.m.initialize()
         self.assertEqual(self.m.get_old_torrents_count(), 19)
 
     def test_get_personal_torrents_count(self):
-        self.m.initialize()
         self.assertEqual(self.m.get_personal_channel_torrents_count(), 2)
 
     def test_convert_personal_channel(self):
-        self.m.initialize()
         self.m.convert_personal_channel()
         my_channel = self.mds.ChannelMetadata.get_my_channel()
         self.assertEqual(len(my_channel.contents_list), 2)
@@ -55,7 +52,6 @@ class TestUpgradeDB72ToPony(TriblerCoreTest):
 
     @db_session
     def test_convert_all_channels(self):
-        self.m.initialize()
         self.m.convert_discovered_torrents()
         self.m.convert_discovered_channels()
         chans = self.mds.ChannelMetadata.get_entries()
@@ -70,7 +66,6 @@ class TestUpgradeDB72ToPony(TriblerCoreTest):
 
     @db_session
     def test_update_trackers(self):
-        self.m.initialize()
         tr = self.mds.TrackerState(url="http://ipv6.torrent.ubuntu.com:6969/announce")
         self.m.update_trackers_info()
         self.assertEqual(tr.failures, 2)
