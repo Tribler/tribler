@@ -1,15 +1,20 @@
+from __future__ import absolute_import
+
 import logging
 from collections import deque, namedtuple
 from threading import RLock
 from time import time
 from urllib import quote_plus
 
-from PyQt5.QtCore import QUrl, pyqtSignal, QIODevice, QBuffer, QObject
+from PyQt5.QtCore import QBuffer, QIODevice, QObject, QUrl, pyqtSignal
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
-from six import text_type
+
+from six import string_types, text_type
+from six.moves import xrange
 
 import Tribler.Core.Utilities.json_util as json
-from TriblerGUI.defs import BUTTON_TYPE_NORMAL, DEFAULT_API_PORT, DEFAULT_API_PROTOCOL, DEFAULT_API_HOST
+
+from TriblerGUI.defs import BUTTON_TYPE_NORMAL, DEFAULT_API_HOST, DEFAULT_API_PORT, DEFAULT_API_PROTOCOL
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 
 
@@ -295,7 +300,7 @@ class TriblerRequestManager(QObject):
     @staticmethod
     def get_message_from_error(error):
         return_error = None
-        if isinstance(error['error'], (str, unicode)):
+        if isinstance(error['error'], string_types):
             return_error = error['error']
         elif 'message' in error['error']:
             return_error = error['error']['message']

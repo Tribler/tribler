@@ -1,14 +1,15 @@
-import os
-import sys
-import logging.config
+from __future__ import absolute_import
 
+import logging.config
+import os
 import signal
+import sys
+
+from check_os import check_and_enable_code_tracing, check_environment, check_free_space, enable_fault_handler, \
+    error_and_exit, set_process_priority, setup_gui_logging, should_kill_other_tribler_instances
 
 from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.exceptions import TriblerException
-from check_os import check_environment, check_free_space, error_and_exit, setup_gui_logging, \
-    should_kill_other_tribler_instances, enable_fault_handler, set_process_priority, \
-    check_and_enable_code_tracing
 
 
 # https://github.com/Tribler/tribler/issues/3702

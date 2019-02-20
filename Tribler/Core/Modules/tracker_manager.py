@@ -38,8 +38,7 @@ class TrackerManager(object):
                     u'failures': tracker[0].failures,
                     u'is_alive': tracker[0].alive
                 }
-            else:
-                return None
+            return None
 
     def add_tracker(self, tracker_url):
         """

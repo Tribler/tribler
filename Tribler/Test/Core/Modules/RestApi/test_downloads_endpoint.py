@@ -5,6 +5,7 @@ from binascii import hexlify, unhexlify
 from urllib import pathname2url
 
 from pony.orm import db_session
+
 from twisted.internet.defer import fail
 
 import Tribler.Core.Utilities.json_util as json
@@ -14,7 +15,7 @@ from Tribler.Core.DownloadState import DownloadState
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.Core.base_test import MockObject
-from Tribler.Test.common import UBUNTU_1504_INFOHASH, TESTS_DATA_DIR, TESTS_DIR
+from Tribler.Test.common import TESTS_DATA_DIR, TESTS_DIR, UBUNTU_1504_INFOHASH
 from Tribler.Test.tools import trial_timeout
 
 

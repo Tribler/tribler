@@ -4,11 +4,11 @@ from binascii import hexlify
 from datetime import datetime
 
 from pony import orm
-from pony.orm import db_session, raw_sql, select, desc
+from pony.orm import db_session, desc, raw_sql, select
 
 from Tribler.Core.Category.FamilyFilter import default_xxx_filter
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import LEGACY_ENTRY, TODELETE
-from Tribler.Core.Modules.MetadataStore.serialization import TorrentMetadataPayload, REGULAR_TORRENT
+from Tribler.Core.Modules.MetadataStore.serialization import REGULAR_TORRENT, TorrentMetadataPayload
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
 from Tribler.pyipv8.ipv8.database import database_blob
 
@@ -138,7 +138,7 @@ def define_binding(db):
             """
             pony_query = cls.get_entries_query(**kwargs)
 
-            if type(metadata_type) == list:
+            if isinstance(metadata_type, list):
                 pony_query = pony_query.where(lambda g: g.metadata_type in metadata_type)
             else:
                 pony_query = pony_query.where(metadata_type=metadata_type)

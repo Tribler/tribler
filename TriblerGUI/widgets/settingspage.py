@@ -1,9 +1,19 @@
-import sys
-from PIL.ImageQt import ImageQt
-from PyQt5 import QtGui, QtCore
+from __future__ import absolute_import, division
 
-from PyQt5.QtWidgets import QSizePolicy
-from PyQt5.QtWidgets import QWidget, QLabel, QFileDialog
+import sys
+
+from PIL.ImageQt import ImageQt
+
+from PyQt5 import QtCore, QtGui
+from PyQt5.QtWidgets import QFileDialog, QLabel, QSizePolicy, QWidget
+
+import Tribler.Core.Utilities.json_util as json
+
+from TriblerGUI.defs import BUTTON_TYPE_CONFIRM, BUTTON_TYPE_NORMAL, DEFAULT_API_PORT, PAGE_SETTINGS_ANONYMITY, \
+    PAGE_SETTINGS_BANDWIDTH, PAGE_SETTINGS_CONNECTION, PAGE_SETTINGS_DEBUG, PAGE_SETTINGS_GENERAL, PAGE_SETTINGS_SEEDING
+from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
+from TriblerGUI.tribler_request_manager import TriblerRequestManager
+from TriblerGUI.utilities import get_gui_setting, is_dir_writable, seconds_to_hhmm_string, string_to_seconds
 
 try:
     import qrcode
@@ -11,14 +21,6 @@ try:
     has_qr = True
 except ImportError:
     has_qr = False
-
-import Tribler.Core.Utilities.json_util as json
-from TriblerGUI.defs import PAGE_SETTINGS_GENERAL, PAGE_SETTINGS_CONNECTION, PAGE_SETTINGS_BANDWIDTH, \
-    PAGE_SETTINGS_SEEDING, PAGE_SETTINGS_ANONYMITY, BUTTON_TYPE_NORMAL, BUTTON_TYPE_CONFIRM, DEFAULT_API_PORT, \
-    PAGE_SETTINGS_DEBUG
-from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
-from TriblerGUI.tribler_request_manager import TriblerRequestManager
-from TriblerGUI.utilities import string_to_seconds, get_gui_setting, seconds_to_hhmm_string, is_dir_writable
 
 DEPENDENCY_ERROR_TITLE = "Dependency missing"
 DEPENDENCY_ERROR_MESSAGE = "'qrcode' module is missing. This module can be installed through apt-get or pip"
@@ -362,8 +364,7 @@ class SettingsPage(QWidget):
         else:
             settings_data['libtorrent']['proxy_server'] = ":"
 
-        if len(self.window().lt_proxy_username_input.text()) > 0 and \
-                len(self.window().lt_proxy_password_input.text()) > 0:
+        if self.window().lt_proxy_username_input.text() and self.window().lt_proxy_password_input.text():
             settings_data['libtorrent']['proxy_auth'] = "%s:%s" % (self.window().lt_proxy_username_input.text(),
                                                                    self.window().lt_proxy_password_input.text())
         else:

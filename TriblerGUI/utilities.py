@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import hashlib
 import os
 import re
@@ -6,7 +8,7 @@ from datetime import datetime, timedelta
 from urllib import quote_plus
 
 import TriblerGUI
-from TriblerGUI.defs import VIDEO_EXTS, HEALTH_GOOD, HEALTH_UNCHECKED, HEALTH_MOOT, HEALTH_DEAD
+from TriblerGUI.defs import HEALTH_DEAD, HEALTH_GOOD, HEALTH_MOOT, HEALTH_UNCHECKED, VIDEO_EXTS
 
 
 def index2uri(index):

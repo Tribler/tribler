@@ -24,18 +24,6 @@ One other DLL that was missing was ``MSVCR110.DLL``, which belongs to the `Visua
 After installing these two packages, there should be no more import errors.
 It may be required to enable Visual C++ Toolset on the Command Line if Native Command Line tool is not available. You can do that by following article `here <https://msdn.microsoft.com/en-us/library/x4d2c09s.aspx>`__.
 
-M2Crypto
---------
-
-The first package to be installed is M2Crypto which can be installed using pip (the M2Crypto binary is precompiled):
-
-.. code-block:: none
-
-    pip install M2CryptoWin64 # use M2CryptoWin32 for the 32-bit version of M2Crypto
-    python -c "import M2Crypto" # test whether M2Crypto can be successfully imported
-
-If the second statement does not raise an error, M2Crypto is successfully installed.
-
 PyQt5
 -----
 
@@ -79,14 +67,6 @@ pyWin32 Tools
 
 In order to access some of the Windows API functions, pywin32 should be installed. The pywin32 installer can be downloaded from `Sourceforge <http://sourceforge.net/projects/pywin32/files/pywin32/>`__ and make sure to select the amd64 version and the version compatible with Python 2.7.
 
-apsw
-----
-The apsw (Another Python SQLite Wrapper) installer can be downloaded from `GitHub <https://github.com/rogerbinns/apsw/releases>`__. Again, make sure to select the amd64 version that is compatible with Python 2.7. You can test whether it is installed correctly by running:
-
-.. code-block:: none
-
-    python -c "import apsw"
-
 libtorrent
 ----------
 
@@ -121,33 +101,6 @@ Libsodium can be download as precompiled binary from `their website <https://dow
 
     python -c "import ctypes; ctypes.cdll.LoadLibrary('libsodium')"
 
-LevelDB
--------
-The next dependency to be installed is levelDB. LevelDB is a fast key-value storage written by Google. LevelDB itself is written in C++ but there are several Python wrappers available.
-
-
-To install LevelDB, you can simply copy the ``leveldb.pyd`` file from the Github repository `here <https://github.com/Tribler/libtorrent-binaries>`__ and place it inside your python site-packages directory. Then, check check if installation was successful:
-
-.. code-block:: none
-
-    python -c "import leveldb" # this should work without any error
-
-**Alternatively,**
-you will compile leveldb from source. First, download the source code from `GitHub <https://github.com/happynear/py-leveldb-windows>`__ (either clone the repository or download the source code as zip). The readme on this repo contains some basic instructions on how to compile leveldb.
-
-Next, open the ``levedb_ext.sln`` file in Visual Studio. This guide is based on the ``x64 release`` configuration. If you want to build a 32-bit leveldb project, change the configuration to ``win32 release``.
-
-You should edit the file paths of the include directories and the linker directories. These can be edited by right clicking on the project and selecting ``properties``. You will need to update ``additional include directories`` (under C/C++ -> general) to point to your Python include directory (often located in ``C:\\Python27\\include``). This is needed for the compilation of the Python bindings. Also, make sure that the following ``preprocessor definitions`` (found under C/C++ -> preprocessor) are defined: ``WIN32`` and ``LEVELDB_PLATFORM_WINDOWS``.
-
-Next, ``additional library directories`` should be adjusted, found under Linker -> General. You should add the directory where your Python libraries are residing, often in ``C:\\Python27\\libs``.
-
-Compile by pressing the ``build leveldb_ext`` in the build menu. If any errors are showing up during compilation, please refer to the Visual Studio log file and check what's going wrong. Often, this should be a missing include/linker directory. If compilation is successful, a ``leveldb_ext.pyd`` file should have been created in the project directory. Copy this file to your site-packages location and rename it to ``leveldb.pyd`` so Python is able to find it. You can test whether your binary is working by using the following command which should execute without any errors:
-
-.. code-block:: none
-
-    python -c "import leveldb"
-
-
 VLC
 ---
 
@@ -172,7 +125,7 @@ There are some additional packages which should be installed. They can easily be
 .. code-block:: none
 
     pip install cython  # Needs to be installed first for meliae
-    pip install bitcoinlib cherrypy chardet configobj cryptography decorator feedparser meliae netifaces networkx pillow psutil twisted libnacl
+    pip install bitcoinlib cherrypy chardet configobj cryptography decorator meliae netifaces networkx pillow psutil twisted libnacl
 
 Running Tribler
 ---------------

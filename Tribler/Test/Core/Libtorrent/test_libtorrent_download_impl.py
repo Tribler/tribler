@@ -31,7 +31,6 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         super(TestLibtorrentDownloadImpl, self).setUpPreSession()
         self.config.set_torrent_checking_enabled(False)
         self.config.set_tunnel_community_enabled(False)
-        self.config.set_mainline_dht_enabled(False)
         self.config.set_libtorrent_enabled(True)
         self.config.set_video_server_enabled(False)
 

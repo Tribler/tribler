@@ -6,13 +6,14 @@ import time
 from binascii import hexlify
 
 from pony.orm import db_session
+
 from twisted.internet import reactor
-from twisted.internet.defer import DeferredList, CancelledError, fail, succeed, maybeDeferred
+from twisted.internet.defer import CancelledError, DeferredList, fail, maybeDeferred, succeed
 from twisted.internet.error import ConnectingCancelledError, ConnectionLost
 from twisted.python.failure import Failure
 from twisted.web.client import HTTPConnectionPool
 
-from Tribler.Core.TorrentChecker.session import create_tracker_session, FakeDHTSession, UdpSocketManager
+from Tribler.Core.TorrentChecker.session import FakeDHTSession, UdpSocketManager, create_tracker_session
 from Tribler.Core.Utilities.tracker_utils import MalformedTrackerURLException
 from Tribler.Core.Utilities.utilities import is_valid_url
 from Tribler.Core.simpledefs import NTFY_TORRENT, NTFY_UPDATE

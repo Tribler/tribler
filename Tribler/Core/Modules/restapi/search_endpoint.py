@@ -3,10 +3,11 @@ from __future__ import absolute_import
 import logging
 
 from pony.orm import db_session
+
 from twisted.web import http, resource
 
 import Tribler.Core.Utilities.json_util as json
-from Tribler.Core.Modules.MetadataStore.serialization import REGULAR_TORRENT, CHANNEL_TORRENT
+from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, REGULAR_TORRENT
 from Tribler.Core.Modules.restapi.metadata_endpoint import BaseMetadataEndpoint
 from Tribler.util import cast_to_unicode_utf8
 

@@ -2,18 +2,18 @@ from __future__ import absolute_import
 
 import json
 import os
-from PyQt5 import uic
-from PyQt5.QtWidgets import QApplication
-from PyQt5.QtWidgets import QDialog, QTreeWidgetItem, QAction
-import sys
 import platform
+import sys
 import time
 
+from PyQt5 import uic
+from PyQt5.QtWidgets import QAction, QApplication, QDialog, QMessageBox, QTreeWidgetItem
+
 from six.moves import xrange
-from PyQt5.QtWidgets import QMessageBox
+
 from TriblerGUI.event_request_manager import received_events
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
-from TriblerGUI.tribler_request_manager import performed_requests as tribler_performed_requests, TriblerRequestManager
+from TriblerGUI.tribler_request_manager import TriblerRequestManager, performed_requests as tribler_performed_requests
 from TriblerGUI.utilities import get_ui_file_path
 
 

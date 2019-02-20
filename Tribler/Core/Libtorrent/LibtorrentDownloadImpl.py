@@ -14,8 +14,10 @@ from binascii import hexlify
 from threading import RLock
 
 import libtorrent as lt
+
 import six
 from six.moves import xrange
+
 from twisted.internet import reactor
 from twisted.internet.defer import CancelledError, Deferred, succeed
 from twisted.internet.task import LoopingCall
@@ -62,9 +64,8 @@ class VODFile(object):
 
         self._logger.debug('VODFile: get bytes %s - %s', oldpos, oldpos + args[0])
 
-        while not self._file.closed \
-                and self._download.get_byte_progress(
-            [(self._download.get_vod_fileindex(), oldpos, oldpos + args[0])]) < 1 \
+        while not self._file.closed and self._download.get_byte_progress([
+            (self._download.get_vod_fileindex(), oldpos, oldpos + args[0])]) < 1 \
                 and self._download.vod_seekpos is not None:
             time.sleep(1)
 

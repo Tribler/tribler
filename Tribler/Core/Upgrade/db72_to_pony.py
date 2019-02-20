@@ -1,19 +1,21 @@
+from __future__ import absolute_import, division
+
 import base64
 import datetime
+import logging
 import os
+import sqlite3
 from binascii import unhexlify
 
-import apsw
 from pony import orm
 from pony.orm import db_session
+
 from six import text_type
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import LEGACY_ENTRY, NEW
 from Tribler.Core.Modules.MetadataStore.serialization import REGULAR_TORRENT
-from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
 from Tribler.pyipv8.ipv8.database import database_blob
-from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto
 
 BATCH_SIZE = 10000
 
@@ -38,39 +40,46 @@ def final_timestamp():
 
 
 class DispersyToPonyMigration(object):
-    select_channels_sql = "Select id, name, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam " \
+    select_channels_sql = "SELECT id, name, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam " \
                           + "FROM Channels " \
                           + "WHERE nr_torrents >= 3 " \
                           + "AND name not NULL;"
 
-    select_trackers_sql = "select tracker_id, tracker, last_check, failures, is_alive from TrackerInfo"
+    select_trackers_sql = "SELECT tracker_id, tracker, last_check, failures, is_alive FROM TrackerInfo"
 
     select_full = "SELECT" \
-                  " (select ti.tracker from TorrentTrackerMapping ttm, TrackerInfo ti where ttm.torrent_id == t.torrent_id and ttm.tracker_id == ti.tracker_id and ti.tracker != 'DHT' and ti.tracker != 'http://retracker.local/announce' order by ti.is_alive asc, ti.failures desc, ti.last_check asc), " \
-                  " ct.channel_id, ct.name, t.infohash, t.length, t.creation_date, t.torrent_id, t.category, t.num_seeders, t.num_leechers, t.last_tracker_check " \
-                  "FROM _ChannelTorrents ct, Torrent t WHERE ct.name NOT NULL and t.length > 0 AND t.category NOT NULL AND ct.deleted_at IS NULL AND t.torrent_id == ct.torrent_id AND t.infohash NOT NULL "
+                  " (SELECT ti.tracker FROM TorrentTrackerMapping ttm, TrackerInfo ti WHERE " \
+                  "ttm.torrent_id == t.torrent_id AND ttm.tracker_id == ti.tracker_id AND ti.tracker != 'DHT' " \
+                  "AND ti.tracker != 'http://retracker.local/announce' ORDER BY ti.is_alive ASC, ti.failures DESC, " \
+                  "ti.last_check ASC), ct.channel_id, ct.name, t.infohash, t.length, t.creation_date, t.torrent_id, " \
+                  "t.category, t.num_seeders, t.num_leechers, t.last_tracker_check " \
+                  "FROM _ChannelTorrents ct, Torrent t WHERE ct.name NOT NULL and t.length > 0 AND " \
+                  "t.category NOT NULL AND ct.deleted_at IS NULL AND t.torrent_id == ct.torrent_id AND " \
+                  "t.infohash NOT NULL "
 
     select_torrents_sql = " FROM _ChannelTorrents ct, Torrent t WHERE " + \
                           "ct.name NOT NULL and t.length>0 AND t.category NOT NULL AND ct.deleted_at IS NULL " + \
                           " AND t.torrent_id == ct.torrent_id AND t.infohash NOT NULL "
 
-    def __init__(self, tribler_db, metadata_store, notifier_callback=None):
+    def __init__(self, tribler_db, notifier_callback=None, logger=None):
+        self._logger = logger or logging.getLogger(self.__class__.__name__)
         self.notifier_callback = notifier_callback
         self.tribler_db = tribler_db
-        self.mds = metadata_store
+        self.mds = None
 
         self.personal_channel_id = None
         self.personal_channel_title = None
 
-    def initialize(self):
+    def initialize(self, mds):
+        self.mds = mds
         try:
             self.personal_channel_id, self.personal_channel_title = self.get_personal_channel_id_title()
             self.personal_channel_title = self.personal_channel_title[:200]  # limit the title size
         except:
-            print ("No personal channel found")
+            self._logger.info("No personal channel found")
 
     def get_old_channels(self):
-        connection = apsw.Connection(self.tribler_db)
+        connection = sqlite3.connect(self.tribler_db)
         cursor = connection.cursor()
 
         channels = []
@@ -95,13 +104,13 @@ class DispersyToPonyMigration(object):
         return channels
 
     def get_personal_channel_id_title(self):
-        connection = apsw.Connection(self.tribler_db)
+        connection = sqlite3.connect(self.tribler_db)
         cursor = connection.cursor()
         cursor.execute('SELECT id,name FROM Channels WHERE peer_id ISNULL LIMIT 1')
         return cursor.fetchone()
 
     def get_old_trackers(self):
-        connection = apsw.Connection(self.tribler_db)
+        connection = sqlite3.connect(self.tribler_db)
         cursor = connection.cursor()
 
         trackers = {}
@@ -126,14 +135,14 @@ class DispersyToPonyMigration(object):
                                       (" == " if personal_channel_only else " != ") + \
                                       (" %i " % self.personal_channel_id)
 
-        connection = apsw.Connection(self.tribler_db)
+        connection = sqlite3.connect(self.tribler_db)
         cursor = connection.cursor()
         cursor.execute("SELECT COUNT(*) FROM (SELECT t.torrent_id " + self.select_torrents_sql + \
                        personal_channel_filter + "group by infohash )")
         return cursor.fetchone()[0]
 
     def get_personal_channel_torrents_count(self):
-        connection = apsw.Connection(self.tribler_db)
+        connection = sqlite3.connect(self.tribler_db)
         cursor = connection.cursor()
         cursor.execute("SELECT COUNT(*) FROM (SELECT t.torrent_id " + self.select_torrents_sql + \
                        (" AND ct.channel_id == %s " % self.personal_channel_id) + \
@@ -142,7 +151,7 @@ class DispersyToPonyMigration(object):
 
     def get_old_torrents(self, personal_channel_only=False, batch_size=BATCH_SIZE, offset=0,
                          sign=False):
-        connection = apsw.Connection(self.tribler_db)
+        connection = sqlite3.connect(self.tribler_db)
         cursor = connection.cursor()
 
         personal_channel_filter = ""
@@ -152,9 +161,11 @@ class DispersyToPonyMigration(object):
                                       (" %i " % self.personal_channel_id)
 
         torrents = []
-        for tracker_url, channel_id, name, infohash, length, creation_date, torrent_id, category, num_seeders, num_leechers, last_tracker_check in cursor.execute(
-                self.select_full + personal_channel_filter + " group by infohash" + (
-                        " LIMIT " + str(batch_size) + " OFFSET " + str(offset))):
+        for tracker_url, channel_id, name, infohash, length, creation_date, torrent_id, category, num_seeders,\
+            num_leechers, last_tracker_check in \
+                cursor.execute(
+                    self.select_full + personal_channel_filter + " group by infohash" +
+                    (" LIMIT " + str(batch_size) + " OFFSET " + str(offset))):
             # check if name is valid unicode data
             try:
                 name = text_type(name)
@@ -225,16 +236,15 @@ class DispersyToPonyMigration(object):
         old_torrents = self.get_old_torrents(personal_channel_only=True, sign=True)
         with db_session:
             my_channel = self.mds.ChannelMetadata.create_channel(title=self.personal_channel_title, description='')
-            for (t, h) in old_torrents:
+            for (torrent, _) in old_torrents:
                 try:
-                    md = self.mds.TorrentMetadata(**t)
+                    md = self.mds.TorrentMetadata(**torrent)
                     md.parents.add(my_channel)
                 except:
                     continue
             my_channel.commit_channel_torrent()
 
     def convert_discovered_torrents(self):
-
         offset = 0
         # Reflect conversion state
         with db_session:
@@ -257,7 +267,7 @@ class DispersyToPonyMigration(object):
             if not old_torrents:
                 break
             with db_session:
-                for (t, h) in old_torrents:
+                for (t, _) in old_torrents:
                     try:
                         self.mds.TorrentMetadata(**t)
                     except:
@@ -315,3 +325,76 @@ class DispersyToPonyMigration(object):
                 v.set(value=CONVERSION_FINISHED)
             else:
                 self.mds.MiscData(name=CONVERSION_FROM_72, value=CONVERSION_FINISHED)
+
+    def should_upgrade(self, old_database_path, new_database_path):
+        old_database_exists = os.path.exists(old_database_path)
+
+        if not old_database_exists:
+            # no old DB to upgrade
+            return
+
+        # Check the old DB version
+        try:
+            connection = sqlite3.connect(old_database_path)
+            cursor = connection.cursor()
+            cursor.execute('SELECT value FROM MyInfo WHERE entry == "version"')
+            version = int(cursor.fetchone()[0])
+            if version != 29:
+                return False
+        except:
+            self._logger.error("Can't open the old tribler.sdb file")
+            return False
+
+        new_database_exists = os.path.exists(new_database_path)
+        state = None  # Previous conversion state
+        if new_database_exists:
+            # Check for the old experimental version database
+            # ACHTUNG!!! NUCLEAR OPTION!!! DO NOT MESS WITH IT!!!
+            delete_old_db = False
+            try:
+                connection = sqlite3.connect(new_database_path)
+                cursor = connection.cursor()
+                cursor.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'MiscData'")
+                result = cursor.fetchone()
+                delete_old_db = not bool(result[0] if result else False)
+            except:
+                return False
+            finally:
+                try:
+                    connection.close()
+                except:
+                    pass
+            if delete_old_db:
+                # We're looking at the old experimental version database. Delete it.
+                os.unlink(new_database_path)
+                new_database_exists = False
+
+        if new_database_exists:
+            # Let's check if we converted all/some entries
+            try:
+                cursor.execute('SELECT value FROM MiscData WHERE name == "db_version"')
+                version = int(cursor.fetchone()[0])
+                if version != 0:
+                    connection.close()
+                    return False
+                cursor.execute('SELECT value FROM MiscData WHERE name == "%s"' % CONVERSION_FROM_72)
+                result = cursor.fetchone()
+                if result:
+                    state = result[0]
+                    if state == CONVERSION_FINISHED:
+                        connection.close()
+                        return
+            except:
+                self._logger.error("Can't open the new metadata.db file")
+                return False
+            finally:
+                connection.close()
+
+        return True
+
+    def do_migration(self):
+        self.convert_discovered_torrents()
+        self.convert_discovered_channels()
+        self.convert_personal_channel()
+        self.update_trackers_info()
+        self.mark_conversion_finished()

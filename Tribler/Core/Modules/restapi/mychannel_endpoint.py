@@ -4,10 +4,11 @@ import base64
 import json
 import os
 import urllib
-from binascii import unhexlify, hexlify
+from binascii import hexlify, unhexlify
 
 from pony.orm import db_session
-from twisted.web import resource, http
+
+from twisted.web import http, resource
 
 from Tribler.Core.Modules.restapi.metadata_endpoint import SpecificChannelTorrentsEndpoint
 from Tribler.Core.TorrentDef import TorrentDef
@@ -218,17 +219,18 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
             recursive = parameters['recursive'][0]
             if not torrents_dir:
                 request.setResponseCode(http.BAD_REQUEST)
-                return json.dumps({"the torrents_dir parameter should be provided when the rec"})
+                return json.dumps({"error": "the torrents_dir parameter should be provided when the recursive "
+                                            "parameter is set"})
 
         if torrents_dir:
             torrents_list, errors_list = my_channel.add_torrents_from_dir(torrents_dir, recursive)
             return json.dumps({"added": len(torrents_list), "errors": errors_list})
 
-        if 'torrent' not in parameters or len(parameters['torrent']) == 0:
+        if 'torrent' not in parameters or not parameters['torrent']:
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "torrent parameter missing"})
 
-        if 'description' not in parameters or len(parameters['description']) == 0:
+        if 'description' not in parameters or not parameters['description']:
             extra_info = {}
         else:
             extra_info = {'description': parameters['description'][0]}
@@ -237,7 +239,7 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
         try:
             torrent = base64.b64decode(parameters['torrent'][0])
             torrent_def = TorrentDef.load_from_memory(torrent)
-        except ValueError:
+        except (TypeError, ValueError):
             request.setResponseCode(http.INTERNAL_SERVER_ERROR)
             return json.dumps({"error": "invalid torrent file"})
 

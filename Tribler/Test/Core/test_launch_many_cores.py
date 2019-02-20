@@ -13,7 +13,11 @@ from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_STOPPED_ON_ERROR
 from Tribler.Test.Core.base_test import MockObject, TriblerCoreTest
+from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.tools import trial_timeout
+from Tribler.community.gigachannel.community import GigaChannelCommunity
+from Tribler.community.market.community import MarketCommunity
+from Tribler.pyipv8.ipv8.attestation.trustchain.community import TrustChainCommunity
 
 
 class TestLaunchManyCore(TriblerCoreTest):
@@ -147,3 +151,35 @@ class TestLaunchManyCore(TriblerCoreTest):
         self.lm.resume_download = mocked_resume_download
         self.lm.load_checkpoint()
         self.assertTrue(mocked_resume_download.called)
+
+
+class TestLaunchManyCoreFullSession(TestAsServer):
+    """
+    This class contains tests that tests methods in LaunchManyCore when a full session is started.
+    """
+
+    def setUpPreSession(self):
+        TestAsServer.setUpPreSession(self)
+
+        # Enable all communities
+        config_sections = ['trustchain', 'tunnel_community', 'ipv8', 'dht', 'chant', 'market_community']
+
+        for section in config_sections:
+            self.config.config[section]['enabled'] = True
+
+        self.config.set_tunnel_community_socks5_listen_ports(self.get_socks5_ports())
+        self.config.set_ipv8_bootstrap_override("127.0.0.1:12345")  # So we do not contact the real trackers
+
+    def get_community(self, overlay_cls):
+        for overlay in self.session.get_ipv8_instance().overlays:
+            if isinstance(overlay, overlay_cls):
+                return overlay
+
+    def test_load_communities(self):
+        """
+        Testing whether all IPv8 communities can be succesfully loaded
+        """
+        self.assertTrue(self.session.lm.initComplete)
+        self.assertTrue(self.get_community(GigaChannelCommunity))
+        self.assertTrue(self.get_community(MarketCommunity))
+        self.assertTrue(self.get_community(TrustChainCommunity))

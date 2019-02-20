@@ -1,10 +1,7 @@
-from __future__ import absolute_import
-
-from binascii import hexlify
-
 """
 This file contains some utility methods that are used by the API.
 """
+from __future__ import absolute_import
 
 from six import string_types
 from six.moves import xrange

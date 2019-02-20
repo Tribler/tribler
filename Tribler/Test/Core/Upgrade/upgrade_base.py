@@ -1,10 +1,12 @@
+from __future__ import absolute_import
+
 import os
-import shutil
 
 from configobj import ConfigObj
+
 from twisted.internet.defer import inlineCallbacks
 
-from Tribler.Core.Config.tribler_config import TriblerConfig, CONFIG_SPEC_PATH
+from Tribler.Core.Config.tribler_config import CONFIG_SPEC_PATH, TriblerConfig
 from Tribler.Core.Session import Session
 from Tribler.Test.Core.base_test import TriblerCoreTest
 

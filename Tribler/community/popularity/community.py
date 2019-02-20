@@ -1,11 +1,12 @@
 from __future__ import absolute_import
 
 from pony.orm import db_session
+
 from twisted.internet.defer import inlineCallbacks
 
-from Tribler.community.popularity.constants import MSG_TORRENT_HEALTH_RESPONSE, \
-    ERROR_UNKNOWN_RESPONSE, ERROR_UNKNOWN_PEER
-from Tribler.community.popularity.payload import TorrentHealthPayload, ContentSubscription
+from Tribler.community.popularity.constants import ERROR_UNKNOWN_PEER, ERROR_UNKNOWN_RESPONSE, \
+    MSG_TORRENT_HEALTH_RESPONSE
+from Tribler.community.popularity.payload import ContentSubscription, TorrentHealthPayload
 from Tribler.community.popularity.pubsub import PubSubCommunity
 from Tribler.community.popularity.repository import ContentRepository
 from Tribler.pyipv8.ipv8.peer import Peer

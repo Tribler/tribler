@@ -1,19 +1,17 @@
 from __future__ import absolute_import
 
 import time
+from binascii import hexlify
 
 from twisted.web import resource, server
 
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.restapi.util import fix_unicode_dict
-from Tribler.Core.simpledefs import NTFY_REMOVE, NTFY_TUNNEL
-from Tribler.Core.simpledefs import (NTFY_UPGRADER, NTFY_STARTED, NTFY_WATCH_FOLDER_CORRUPT_TORRENT, NTFY_INSERT,
-                                     NTFY_NEW_VERSION, NTFY_FINISHED, NTFY_TRIBLER, NTFY_UPGRADER_TICK, NTFY_CHANNEL,
-                                     NTFY_DISCOVERED, NTFY_TORRENT, NTFY_ERROR, NTFY_MARKET_ON_ASK,
-                                     NTFY_UPDATE, NTFY_MARKET_ON_BID, NTFY_MARKET_ON_TRANSACTION_COMPLETE,
-                                     NTFY_MARKET_ON_ASK_TIMEOUT, NTFY_MARKET_ON_BID_TIMEOUT,
-                                     NTFY_MARKET_ON_PAYMENT_RECEIVED, NTFY_MARKET_ON_PAYMENT_SENT,
-                                     SIGNAL_RESOURCE_CHECK, SIGNAL_LOW_SPACE, NTFY_CREDIT_MINING, STATE_SHUTDOWN)
+from Tribler.Core.simpledefs import NTFY_CHANNEL, NTFY_CREDIT_MINING, NTFY_DISCOVERED, NTFY_ERROR, NTFY_FINISHED, \
+    NTFY_INSERT, NTFY_MARKET_ON_ASK, NTFY_MARKET_ON_ASK_TIMEOUT, NTFY_MARKET_ON_BID, NTFY_MARKET_ON_BID_TIMEOUT, \
+    NTFY_MARKET_ON_PAYMENT_RECEIVED, NTFY_MARKET_ON_PAYMENT_SENT, NTFY_MARKET_ON_TRANSACTION_COMPLETE, \
+    NTFY_NEW_VERSION, NTFY_REMOVE, NTFY_STARTED, NTFY_TORRENT, NTFY_TRIBLER, NTFY_TUNNEL, NTFY_UPDATE, NTFY_UPGRADER, \
+    NTFY_UPGRADER_TICK, NTFY_WATCH_FOLDER_CORRUPT_TORRENT, SIGNAL_LOW_SPACE, SIGNAL_RESOURCE_CHECK, STATE_SHUTDOWN
 from Tribler.Core.version import version_id
 from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import Circuit
 
@@ -134,13 +132,13 @@ class EventsEndpoint(resource.Resource):
         self.write_data({"type": "torrent_discovered", "event": args[0]})
 
     def on_torrent_finished(self, subject, changetype, objectID, *args):
-        self.write_data({"type": "torrent_finished", "event": {"infohash": objectID.encode('hex'), "name": args[0]}})
+        self.write_data({"type": "torrent_finished", "event": {"infohash": hexlify(objectID), "name": args[0]}})
 
     def on_torrent_error(self, subject, changetype, objectID, *args):
-        self.write_data({"type": "torrent_error", "event": {"infohash": objectID.encode('hex'), "error": args[0]}})
+        self.write_data({"type": "torrent_error", "event": {"infohash": hexlify(objectID), "error": args[0]}})
 
     def on_torrent_info_updated(self, subject, changetype, objectID, *args):
-        self.write_data({"type": "torrent_info_updated", "event": dict(infohash=objectID.encode('hex'), **args[0])})
+        self.write_data({"type": "torrent_info_updated", "event": dict(infohash=hexlify(objectID), **args[0])})
 
     def on_tribler_exception(self, exception_text):
         self.write_data({"type": "tribler_exception", "event": {"text": exception_text}})

@@ -3,11 +3,9 @@ from __future__ import absolute_import
 import logging
 import os
 
-import apsw
-
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.Upgrade.config_converter import convert_config_to_tribler71
-from Tribler.Core.Upgrade.db72_to_pony import DispersyToPonyMigration, CONVERSION_FROM_72, CONVERSION_FINISHED
+from Tribler.Core.Upgrade.db72_to_pony import DispersyToPonyMigration
 from Tribler.Core.simpledefs import NTFY_FINISHED, NTFY_STARTED, NTFY_UPGRADER, NTFY_UPGRADER_TICK
 
 
@@ -42,88 +40,16 @@ class TriblerUpgrader(object):
 
     def upgrade_72_to_pony(self):
         old_database_path = os.path.join(self.session.config.get_state_dir(), 'sqlite', 'tribler.sdb')
-        old_database_exists = os.path.exists(old_database_path)
-
-        if not old_database_exists:
-            # no old DB to upgrade
-            return
-
-        # Check the old DB version
-        try:
-            connection = apsw.Connection(old_database_path)
-            cursor = connection.cursor()
-            cursor.execute('SELECT value FROM MyInfo WHERE entry == "version"')
-            version = int(cursor.fetchone()[0])
-            if version != 29:
-                return
-        except:
-            self._logger.error("Can't open the old tribler.sdb file")
-            return
-
         new_database_path = os.path.join(self.session.config.get_state_dir(), 'sqlite', 'metadata.db')
-        new_database_exists = os.path.exists(new_database_path)
-        state = None  # Previous conversion state
-        if new_database_exists:
-            # Check for the old experimental version database
-            # ACHTUNG!!! NUCLEAR OPTION!!! DO NOT MESS WITH IT!!!
-            delete_old_db = False
-            try:
-                connection = apsw.Connection(new_database_path)
-                cursor = connection.cursor()
-                cursor.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'MiscData'")
-                result = cursor.fetchone()
-                delete_old_db = not bool(result[0] if result else False)
-            except:
-                return
-            finally:
-                try:
-                    connection.close()
-                except:
-                    pass
-            if delete_old_db:
-                # We're looking at the old experimental version database. Delete it.
-                os.unlink(new_database_path)
-                new_database_exists = False
-
-        if new_database_exists:
-            # Let's check if we converted all/some entries
-            try:
-                cursor.execute('SELECT value FROM MiscData WHERE name == "db_version"')
-                version = int(cursor.fetchone()[0])
-                if version != 0:
-                    connection.close()
-                    return
-                cursor.execute('SELECT value FROM MiscData WHERE name == "%s"' % CONVERSION_FROM_72)
-                result = cursor.fetchone()
-                if result:
-                    state = result[0]
-                    if state == CONVERSION_FINISHED:
-                        connection.close()
-                        return
-            except:
-                self._logger.error("Can't open the new metadata.db file")
-                return
-            finally:
-                connection.close()
-
         channels_dir = os.path.join(self.session.config.get_chant_channels_dir())
+
+        d = DispersyToPonyMigration(old_database_path, self.update_status, logger=self._logger)
+        if not d.should_upgrade(old_database_path, new_database_path):
+            return
         # We have to create the Metadata Store object because the LaunchManyCore has not been started yet
         mds = MetadataStore(new_database_path, channels_dir, self.session.trustchain_keypair)
-        d = DispersyToPonyMigration(old_database_path, mds, self.update_status)
-
-        d.initialize()
-
-        d.convert_discovered_torrents()
-
-        d.convert_discovered_channels()
-
-        d.convert_personal_channel()
-
-        d.update_trackers_info()
-
-        d.mark_conversion_finished()
-        # Notify GigaChannel Manager?
-
+        d.initialize(mds)
+        d.do_migration()
         mds.shutdown()
 
     def upgrade_config_to_71(self):

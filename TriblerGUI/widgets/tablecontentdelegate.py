@@ -8,8 +8,8 @@ from PyQt5.QtWidgets import QStyle, QStyledItemDelegate
 
 from TriblerGUI.defs import ACTION_BUTTONS, COMMIT_STATUS_COMMITTED, COMMIT_STATUS_NEW, COMMIT_STATUS_TODELETE, \
     HEALTH_CHECKING, HEALTH_DEAD, HEALTH_ERROR, HEALTH_GOOD, HEALTH_MOOT, HEALTH_UNCHECKED
-from TriblerGUI.utilities import get_image_path, get_health
-from TriblerGUI.widgets.tableiconbuttons import DownloadIconButton, PlayIconButton, DeleteIconButton
+from TriblerGUI.utilities import get_health, get_image_path
+from TriblerGUI.widgets.tableiconbuttons import DeleteIconButton, DownloadIconButton, PlayIconButton
 
 
 class TriblerButtonsDelegate(QStyledItemDelegate):
@@ -271,7 +271,7 @@ class CategoryLabel(QObject):
         QObject.__init__(self, parent=parent)
         self.category = category
 
-    def paint(self, painter, option, index):
+    def paint(self, painter, option, _):
         painter.save()
 
         lines = QPen(QColor("#B5B5B5"), 1, Qt.SolidLine, Qt.RoundCap)
@@ -314,7 +314,7 @@ class ToggleControl(QObject):
         self.column_name = column_name
         self.last_index = QModelIndex()
 
-    def paint(self, painter, rect, index, toggled=False):
+    def paint(self, painter, rect, _, toggled=False):
         icon = self.on_icon if toggled else self.off_icon
         x = rect.left() + (rect.width() - self.w) / 2
         y = rect.top() + (rect.height() - self.h) / 2
@@ -322,7 +322,7 @@ class ToggleControl(QObject):
 
         icon.paint(painter, icon_rect)
 
-    def paint_hover(self, painter, rect, index):
+    def paint_hover(self, painter, rect, _):
         icon = self.hover_icon
         x = rect.left() + (rect.width() - self.w) / 2
         y = rect.top() + (rect.height() - self.h) / 2
@@ -330,14 +330,14 @@ class ToggleControl(QObject):
 
         icon.paint(painter, icon_rect)
 
-    def check_clicked(self, event, model, option, index):
+    def check_clicked(self, event, _, __, index):
         if event.type() == QEvent.MouseButtonRelease and \
                 index.model().column_position[self.column_name] == index.column():
             self.clicked.emit(index)
             return True
         return False
 
-    def size_hint(self, option, index):
+    def size_hint(self, _, __):
         return self.size
 
     def on_mouse_moved(self, pos, index):
@@ -423,7 +423,7 @@ class CommitStatusControl(QObject):
         icon.paint(painter, icon_rect)
         self.rect = rect
 
-    def check_clicked(self, event, model, option, index):
+    def check_clicked(self, event, _, __, index):
         data_item = index.model().data_items[index.row()]
         if event.type() == QEvent.MouseButtonRelease and \
                 index.model().column_position[self.column_name] == index.column() and \
@@ -432,10 +432,10 @@ class CommitStatusControl(QObject):
             return True
         return False
 
-    def size_hint(self, option, index):
+    def size_hint(self, _, __):
         return self.size
 
-    def on_mouse_moved(self, pos, index):
+    def on_mouse_moved(self, _, index):
         if self.last_index != index:
             # Handle the case when the cursor leaves the table
             if not index.model():

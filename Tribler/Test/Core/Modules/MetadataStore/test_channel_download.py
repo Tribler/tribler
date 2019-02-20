@@ -1,6 +1,7 @@
 import os
 
 from pony.orm import db_session
+
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Modules.MetadataStore.serialization import ChannelMetadataPayload

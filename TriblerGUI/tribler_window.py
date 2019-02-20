@@ -8,21 +8,19 @@ import sys
 import time
 import traceback
 import urlparse
-from PyQt5 import uic
 from urllib import pathname2url, unquote
 
-import six
-from PyQt5.QtCore import QCoreApplication, QObject, QPoint, QSettings, QStringListModel, QTimer, QUrl, Qt, pyqtSignal, \
-    pyqtSlot
-from PyQt5.QtCore import QDir
-from PyQt5.QtGui import QDesktopServices, QIcon
-from PyQt5.QtGui import QKeySequence
-from PyQt5.QtGui import QPixmap
+from PyQt5 import uic
+from PyQt5.QtCore import QCoreApplication, QDir, QObject, QPoint, QSettings, QStringListModel, QTimer, QUrl, Qt, \
+    pyqtSignal, pyqtSlot
+from PyQt5.QtGui import QDesktopServices, QIcon, QKeySequence, QPixmap
 from PyQt5.QtWidgets import QAction, QApplication, QCompleter, QFileDialog, QLineEdit, QListWidget, QMainWindow, \
-    QStyledItemDelegate, QSystemTrayIcon, QTreeWidget
-from PyQt5.QtWidgets import QShortcut
+    QShortcut, QStyledItemDelegate, QSystemTrayIcon, QTreeWidget
+
+import six
 
 from Tribler.Core.Modules.process_checker import ProcessChecker
+
 from TriblerGUI.core_manager import CoreManager
 from TriblerGUI.debug_window import DebugWindow
 from TriblerGUI.defs import BUTTON_TYPE_CONFIRM, BUTTON_TYPE_NORMAL, DEFAULT_API_PORT, PAGE_CHANNEL_DETAILS, \
@@ -34,9 +32,9 @@ from TriblerGUI.dialogs.startdownloaddialog import StartDownloadDialog
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
 from TriblerGUI.tribler_request_manager import TriblerRequestManager, dispatcher, request_queue
 from TriblerGUI.utilities import get_gui_setting, get_image_path, get_ui_file_path, is_dir_writable
+from TriblerGUI.widgets.triblertablecontrollers import sanitize_for_fts
 
 # Pre-load form UI classes
-from TriblerGUI.widgets.triblertablecontrollers import to_fts_query, sanitize_for_fts
 
 fc_home_recommended_item, _ = uic.loadUiType(get_ui_file_path('home_recommended_item.ui'))
 fc_loading_list_item, _ = uic.loadUiType(get_ui_file_path('loading_list_item.ui'))
@@ -445,7 +443,7 @@ class TriblerWindow(QMainWindow):
     def on_search_text_change(self, text):
         self.search_suggestion_mgr = TriblerRequestManager()
         self.search_suggestion_mgr.perform_request(
-            "search/completions", self.on_received_search_completions, url_params={'q': sanitize_for_fts(text) })
+            "search/completions", self.on_received_search_completions, url_params={'q': sanitize_for_fts(text)})
 
     def on_received_search_completions(self, completions):
         if completions is None:

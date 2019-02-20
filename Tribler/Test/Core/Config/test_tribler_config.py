@@ -107,11 +107,6 @@ class TestTriblerConfig(TriblerCoreTest):
         self.tribler_config.set_state_dir("TEST")
         self.assertEqual(self.tribler_config.get_state_dir(), "TEST")
 
-        self.tribler_config.set_permid_keypair_filename(None)
-        self.assertEqual(self.tribler_config.get_permid_keypair_filename(), os.path.join("TEST", "ec.pem"))
-        self.tribler_config.set_permid_keypair_filename("TEST")
-        self.assertEqual(self.tribler_config.get_permid_keypair_filename(), "TEST")
-
         self.tribler_config.set_trustchain_keypair_filename(None)
         self.assertEqual(self.tribler_config.get_trustchain_keypair_filename(),
                          os.path.join("TEST", "ec_multichain.pem"))
@@ -200,15 +195,6 @@ class TestTriblerConfig(TriblerCoreTest):
         self.assertEqual(self.tribler_config.get_libtorrent_max_download_rate(), True)
         self.tribler_config.set_libtorrent_dht_enabled(False)
         self.assertFalse(self.tribler_config.get_libtorrent_dht_enabled())
-
-    def test_get_set_methods_mainline_dht(self):
-        """
-        Check whether mainline dht get and set methods are working as expected.
-        """
-        self.tribler_config.set_mainline_dht_enabled(True)
-        self.assertEqual(self.tribler_config.get_mainline_dht_enabled(), True)
-        self.tribler_config.set_mainline_dht_port(True)
-        self.assertEqual(self.tribler_config.get_mainline_dht_port(), True)
 
     def test_get_set_methods_video_server(self):
         """

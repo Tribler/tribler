@@ -1,11 +1,13 @@
 from __future__ import absolute_import
+
 from six import unichr
+
 from twisted.internet.defer import inlineCallbacks
 
 import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.DownloadConfig import DownloadConfigInterface
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.tools import trial_timeout
-from Tribler.Core.DownloadConfig import DownloadConfigInterface
 
 
 class TestSettingsEndpoint(AbstractApiTest):
@@ -18,7 +20,7 @@ class TestSettingsEndpoint(AbstractApiTest):
         """
         Verify that the expected sections are present.
         """
-        check_section = ['libtorrent', 'mainline_dht', 'general', 'torrent_checking',
+        check_section = ['libtorrent', 'general', 'torrent_checking',
                          'tunnel_community', 'http_api', 'trustchain', 'watch_folder']
 
         settings_json = json.loads(settings)

@@ -6,7 +6,7 @@ import time
 from PyQt5.QtCore import QModelIndex
 from PyQt5.QtWidgets import QLabel, QTabWidget, QTreeWidget, QTreeWidgetItem
 
-from TriblerGUI.defs import HEALTH_CHECKING, HEALTH_UNCHECKED, HEALTH_GOOD, HEALTH_MOOT
+from TriblerGUI.defs import HEALTH_CHECKING, HEALTH_GOOD, HEALTH_MOOT, HEALTH_UNCHECKED
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.utilities import format_size, get_health
 from TriblerGUI.widgets.ellipsebutton import EllipseButton
@@ -115,7 +115,6 @@ class TorrentDetailsTabWidget(QTabWidget):
             self._logger.error("The underlying GUI widget has already been removed.")
 
     def check_torrent_health(self):
-        timeout = 15
         infohash = self.torrent_info[u'infohash']
 
         def on_cancel_health_check():

@@ -12,12 +12,14 @@ from PyQt5.QtGui import QPixmap, QRegion
 from PyQt5.QtTest import QTest
 from PyQt5.QtWidgets import QApplication, QListWidget, QTextEdit, QTreeWidget
 from PyQt5.QtWidgets import QTableView
+
 from six.moves import xrange
+
+from Tribler.Core.Utilities.network_utils import get_random_port
 
 import TriblerGUI
 import TriblerGUI.core_manager as core_manager
 import TriblerGUI.defs
-from Tribler.Core.Utilities.network_utils import get_random_port
 from TriblerGUI.dialogs.feedbackdialog import FeedbackDialog
 from TriblerGUI.tribler_window import TriblerWindow
 from TriblerGUI.widgets.home_recommended_item import HomeRecommendedItem

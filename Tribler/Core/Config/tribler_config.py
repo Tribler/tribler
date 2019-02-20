@@ -6,16 +6,17 @@ from __future__ import absolute_import
 import logging
 import os
 
+from configobj import ConfigObj
+
 from six import text_type
 
-from configobj import ConfigObj
 from validate import Validator
 
+from Tribler.Core.DownloadConfig import get_default_dest_dir
 from Tribler.Core.Utilities.install_dir import get_lib_path
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.exceptions import InvalidConfigException
 from Tribler.Core.osutils import get_appstate_dir
-from Tribler.Core.DownloadConfig import get_default_dest_dir
 
 FILENAME = 'triblerd.conf'
 SPEC_FILENAME = 'config.spec'
@@ -146,16 +147,6 @@ class TriblerConfig(object):
             self.set_state_dir(TriblerConfig.get_default_state_dir())
 
         return self.config["general"]["state_dir"]
-
-    def set_permid_keypair_filename(self, keypair_filename):
-        self.config['general']['ec_keypair_filename'] = keypair_filename
-
-    def get_permid_keypair_filename(self):
-        file_name = self.config["general"]["ec_keypair_filename"]
-        if not file_name:
-            file_name = os.path.join(self.get_state_dir(), 'ec.pem')
-            self.set_permid_keypair_filename(file_name)
-        return file_name
 
     def set_trustchain_keypair_filename(self, keypairfilename):
         self.config['trustchain']['ec_keypair_filename'] = keypairfilename
@@ -419,20 +410,6 @@ class TriblerConfig(object):
 
     def get_libtorrent_dht_enabled(self):
         return self.config['libtorrent']['dht']
-
-    # Mainline DHT
-
-    def set_mainline_dht_enabled(self, value):
-        self.config['mainline_dht']['enabled'] = value
-
-    def get_mainline_dht_enabled(self):
-        return self.config['mainline_dht']['enabled']
-
-    def set_mainline_dht_port(self, port):
-        self.config['mainline_dht']['port'] = port
-
-    def get_mainline_dht_port(self):
-        return self._obtain_port('mainline_dht', 'port')
 
     # Video server
 

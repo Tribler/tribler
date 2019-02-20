@@ -1,10 +1,13 @@
+from __future__ import absolute_import
+
 import os
 
 from pony import orm
 from pony.orm import db_session
+
 from twisted.internet.defer import inlineCallbacks
 
-from Tribler.Core.Modules.MetadataStore.serialization import KeysMismatchException, ChannelNodePayload
+from Tribler.Core.Modules.MetadataStore.serialization import ChannelNodePayload, KeysMismatchException
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.exceptions import InvalidSignatureException
 from Tribler.Test.Core.base_test import TriblerCoreTest

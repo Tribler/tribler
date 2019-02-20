@@ -27,10 +27,9 @@ Inside the ``build`` folder, put the following items:
 
 1. A folder ``certs`` containing a ``.pfx`` key. In our case it's named ``swarmplayerprivatekey.pfx``. Make sure to rename paths in ``makedist_win.bat`` to match your file name.
 2. A folder ``vlc`` that contains ``libvlc.dll``, ``libvlccore.dll`` and a directory ``plugins`` that contain the VLC plugins.
-3. ``vc_redist_90.exe`` (Microsoft Visual C++ 2008 Redistributable Package), which is available `here <https://www.microsoft.com/en-us/download/details.aspx?id=15336>`_. In case you build 32 bit, get the x86 version `here <https://www.microsoft.com/en-us/download/details.aspx?id=29>`_. Don't forget to rename the file.
-4. ``vc_redist_110.exe`` (Visual C++ Redistributable for Visual Studio 2012), which is available `here <https://www.microsoft.com/en-us/download/details.aspx?id=30679>`_. In case you build 32 bit, get the x86 version. Once more, don't forget to rename the file.
-5. ``libsodium.dll`` which can be downloaded from `libsodium.org <https://download.libsodium.org/libsodium/releases/>`_ (as of writing version 1.0.8).
-6. The openssl dll files ``libeay32.dll``, ``libssl32.dll`` and ``ssleay32.dll`` (place them in a directory named ``openssl``).
+3. ``vc_redist_110.exe`` (Visual C++ Redistributable for Visual Studio 2012), which is available `here <https://www.microsoft.com/en-us/download/details.aspx?id=30679>`_. In case you build 32 bit, get the x86 version. Once more, don't forget to rename the file.
+4. ``libsodium.dll`` which can be downloaded from `libsodium.org <https://download.libsodium.org/libsodium/releases/>`_ (as of writing version 1.0.8).
+5. The openssl dll files ``libeay32.dll``, ``libssl32.dll`` and ``ssleay32.dll`` (place them in a directory named ``openssl``).
 
 Then, set a ``PASSWORD`` `environment variable <https://www.microsoft.com/resources/documentation/windows/xp/all/proddocs/en-us/sysdm_advancd_environmnt_addchange_variable.mspx?mfr=true>`_ with its value set to the password matching the one set in your ``.pfx`` file.
 

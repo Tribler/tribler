@@ -69,7 +69,6 @@ class MarketServiceMaker(object):
 
         config = TriblerConfig()
         config.set_torrent_checking_enabled(False)
-        config.set_mainline_dht_enabled(True)
         config.set_libtorrent_enabled(False)
         config.set_http_api_enabled(True)
         config.set_video_server_enabled(False)

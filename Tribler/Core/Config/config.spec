@@ -1,6 +1,5 @@
 [general]
 state_dir = string(default='')
-ec_keypair_filename = string(default='')
 log_dir = string(default=None)
 testnet = boolean(default=False)
 
@@ -14,7 +13,6 @@ competing_slots = integer(default=15)
 [market_community]
 enabled = boolean(default=True)
 matchmaker = boolean(default=True)
-ec_keypair_filename = string(default='')
 record_transactions = boolean(default=False)
 
 [dht]
@@ -34,10 +32,6 @@ dummy_wallets_enabled = boolean(default=False)
 enabled = boolean(default=True)
 channel_edit = boolean(default=False)
 channels_dir = string(default='channels')
-
-[mainline_dht]
-enabled = boolean(default=True)
-port = integer(min=-1, max=65536, default=-1)
 
 [torrent_checking]
 enabled = boolean(default=True)

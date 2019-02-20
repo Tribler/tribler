@@ -1,13 +1,17 @@
 from __future__ import absolute_import
 
 import logging
+from binascii import hexlify
+
 from libtorrent import bencode, create_torrent
 
-import six
 from pony.orm import db_session
+
+import six
 from six import unichr  # pylint: disable=redefined-builtin
 from six.moves.urllib.parse import unquote_plus
 from six.moves.urllib.request import url2pathname
+
 from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
 
@@ -226,39 +230,43 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
             num_seeds, num_peers = state.get_num_seeds_peers()
             num_connected_seeds, num_connected_peers = download.get_num_connected_seeds_peers()
 
-            download_json = {"name": self.session.lm.mds.ChannelMetadata.get_channel_name(
-                             tdef.get_name_utf8(), tdef.get_infohash()) if download.get_channel_download() else tdef.get_name_utf8(),
-                             "progress": state.get_progress(),
-                             "infohash": tdef.get_infohash().encode('hex'),
-                             "speed_down": state.get_current_payload_speed(DOWNLOAD),
-                             "speed_up": state.get_current_payload_speed(UPLOAD),
-                             "status": dlstatus_strings[state.get_status()],
-                             "size": tdef.get_length(),
-                             "eta": state.get_eta(),
-                             "num_peers": num_peers,
-                             "num_seeds": num_seeds,
-                             "num_connected_peers": num_connected_peers,
-                             "num_connected_seeds": num_connected_seeds,
-                             "total_up": state.get_total_transferred(UPLOAD),
-                             "total_down": state.get_total_transferred(DOWNLOAD),
-                             "ratio": state.get_seeding_ratio(),
-                             "trackers": tracker_info,
-                             "hops": download.get_hops(),
-                             "anon_download": download.get_anon_mode(),
-                             "safe_seeding": download.get_safe_seeding(),
-                             # Maximum upload/download rates are set for entire sessions
-                             "max_upload_speed": self.session.config.get_libtorrent_max_upload_rate(),
-                             "max_download_speed": self.session.config.get_libtorrent_max_download_rate(),
-                             "destination": download.get_dest_dir(),
-                             "availability": state.get_availability(),
-                             "total_pieces": tdef.get_nr_pieces(),
-                             "vod_mode": download.get_mode() == DLMODE_VOD,
-                             "vod_prebuffering_progress": state.get_vod_prebuffering_progress(),
-                             "vod_prebuffering_progress_consec": state.get_vod_prebuffering_progress_consec(),
-                             "error": repr(state.get_error()) if state.get_error() else "",
-                             "time_added": download.get_time_added(),
-                             "credit_mining": download.get_credit_mining(),
-                             "channel_download": download.get_channel_download()}
+            download_name = self.session.lm.mds.ChannelMetadata.get_channel_name(
+                tdef.get_name_utf8(), tdef.get_infohash()) if download.get_channel_download() else tdef.get_name_utf8()
+
+            download_json = {
+                "name": download_name,
+                "progress": state.get_progress(),
+                "infohash": hexlify(tdef.get_infohash()),
+                "speed_down": state.get_current_payload_speed(DOWNLOAD),
+                "speed_up": state.get_current_payload_speed(UPLOAD),
+                "status": dlstatus_strings[state.get_status()],
+                "size": tdef.get_length(),
+                "eta": state.get_eta(),
+                "num_peers": num_peers,
+                "num_seeds": num_seeds,
+                "num_connected_peers": num_connected_peers,
+                "num_connected_seeds": num_connected_seeds,
+                "total_up": state.get_total_transferred(UPLOAD),
+                "total_down": state.get_total_transferred(DOWNLOAD),
+                "ratio": state.get_seeding_ratio(),
+                "trackers": tracker_info,
+                "hops": download.get_hops(),
+                "anon_download": download.get_anon_mode(),
+                "safe_seeding": download.get_safe_seeding(),
+                # Maximum upload/download rates are set for entire sessions
+                "max_upload_speed": self.session.config.get_libtorrent_max_upload_rate(),
+                "max_download_speed": self.session.config.get_libtorrent_max_download_rate(),
+                "destination": download.get_dest_dir(),
+                "availability": state.get_availability(),
+                "total_pieces": tdef.get_nr_pieces(),
+                "vod_mode": download.get_mode() == DLMODE_VOD,
+                "vod_prebuffering_progress": state.get_vod_prebuffering_progress(),
+                "vod_prebuffering_progress_consec": state.get_vod_prebuffering_progress_consec(),
+                "error": repr(state.get_error()) if state.get_error() else "",
+                "time_added": download.get_time_added(),
+                "credit_mining": download.get_credit_mining(),
+                "channel_download": download.get_channel_download()
+            }
 
             # Add peers information if requested
             if get_peers:

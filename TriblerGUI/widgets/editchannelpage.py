@@ -4,7 +4,7 @@ import os
 import urllib
 from base64 import b64encode
 
-from PyQt5.QtCore import QDir, pyqtSignal, QTimer
+from PyQt5.QtCore import QDir, QTimer, pyqtSignal
 from PyQt5.QtGui import QCursor
 from PyQt5.QtWidgets import QAction, QFileDialog, QWidget
 
@@ -41,8 +41,6 @@ class EditChannelPage(QWidget):
         self.gui_settings = None
         self.commit_timer = None
         self.autocommit_enabled = None
-        get_gui_setting(self.gui_settings, "autocommit_enabled", True,
-                                                  is_bool=True) if self.gui_settings else True
 
     def initialize_edit_channel_page(self, gui_settings):
         self.gui_settings = gui_settings
@@ -79,7 +77,7 @@ class EditChannelPage(QWidget):
                                                         self.window().edit_channel_torrents_filter)
         self.window().edit_channel_torrents_container.details_container.hide()
         self.autocommit_enabled = get_gui_setting(self.gui_settings, "autocommit_enabled", True,
-                        is_bool=True) if self.gui_settings else True
+                                                  is_bool=True) if self.gui_settings else True
 
         # Commit the channel just in case there are uncommitted changes left since the last time (e.g. Tribler crashed)
         # The timer thing here is a workaround for race condition with the core startup

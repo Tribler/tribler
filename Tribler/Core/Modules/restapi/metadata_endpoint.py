@@ -5,7 +5,8 @@ import logging
 from binascii import unhexlify
 
 from pony.orm import db_session
-from twisted.web import resource, http
+
+from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
 
 from Tribler.pyipv8.ipv8.database import database_blob

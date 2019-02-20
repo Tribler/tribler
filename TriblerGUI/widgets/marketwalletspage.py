@@ -1,13 +1,11 @@
+from __future__ import absolute_import
+
 from PIL.ImageQt import ImageQt
-from PyQt5 import QtGui, QtCore
 
-from PyQt5.QtGui import QCursor
-from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QAction, QPushButton, QSizePolicy
-from PyQt5.QtWidgets import QTreeWidgetItem
-from PyQt5.QtWidgets import QWidget
+from PyQt5 import QtCore, QtGui
+from PyQt5.QtGui import QCursor, QIcon
+from PyQt5.QtWidgets import QAction, QPushButton, QTreeWidgetItem, QWidget
 
-from TriblerGUI.defs import BUTTON_TYPE_NORMAL, BUTTON_TYPE_CONFIRM
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
 from TriblerGUI.tribler_request_manager import TriblerRequestManager

@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from pony import orm
 
 # This binding is used to store all kinds of values, like DB version, counters, etc.

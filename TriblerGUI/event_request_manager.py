@@ -1,7 +1,10 @@
+from __future__ import absolute_import
+
 import logging
-from PyQt5.QtCore import QUrl, pyqtSignal, QTimer
-from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest, QNetworkReply
 import time
+
+from PyQt5.QtCore import QTimer, QUrl, pyqtSignal
+from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequest
 
 import Tribler.Core.Utilities.json_util as json
 

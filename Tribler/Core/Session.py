@@ -25,13 +25,11 @@ from Tribler.Core.Notifier import Notifier
 from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
 from Tribler.Core.Utilities import torrent_utils
 from Tribler.Core.Utilities.crypto_patcher import patch_crypto_be_discovery
-from Tribler.Core.exceptions import DuplicateTorrentFileError, NotYetImplementedException, \
-    OperationNotEnabledByConfigurationException
-from Tribler.Core.simpledefs import (NTFY_CHANNELCAST, NTFY_DELETE, NTFY_INSERT, STATEDIR_CHANNELS_DIR, NTFY_TRIBLER,
-                                     NTFY_UPDATE, STATEDIR_DLPSTATE_DIR,
-                                     STATEDIR_WALLET_DIR, STATE_LOAD_CHECKPOINTS, STATE_READABLE_STARTED,
-                                     STATE_SHUTDOWN, STATE_START_API, STATE_UPGRADING_READABLE)
-from Tribler.Core.simpledefs import (STATEDIR_DB_DIR)
+from Tribler.Core.exceptions import NotYetImplementedException, OperationNotEnabledByConfigurationException
+from Tribler.Core.simpledefs import NTFY_DELETE, NTFY_INSERT, NTFY_TRIBLER, NTFY_UPDATE, STATEDIR_CHANNELS_DIR, \
+    STATEDIR_DLPSTATE_DIR, STATEDIR_WALLET_DIR, STATE_LOAD_CHECKPOINTS, STATE_READABLE_STARTED, STATE_SHUTDOWN, \
+    STATE_START_API, STATE_UPGRADING_READABLE
+from Tribler.Core.simpledefs import STATEDIR_DB_DIR
 from Tribler.Core.statistics import TriblerStatistics
 
 try:
@@ -109,7 +107,6 @@ class Session(object):
     def get_ports_in_config(self):
         """Claim all required random ports."""
         self.config.get_libtorrent_port()
-        self.config.get_mainline_dht_port()
         self.config.get_video_server_port()
 
         self.config.get_anon_listen_port()
@@ -369,10 +366,6 @@ class Session(object):
     def get_ipv8_statistics(self):
         """Return a dictionary with IPv8 statistics."""
         return TriblerStatistics(self).get_ipv8_statistics()
-
-    def get_ipv8_overlay_statistics(self):
-        """Return a dictionary with IPv8 overlay statistics."""
-        return TriblerStatistics(self).get_ipv8_overlays_statistics()
 
     #
     # Persistence and shutdown

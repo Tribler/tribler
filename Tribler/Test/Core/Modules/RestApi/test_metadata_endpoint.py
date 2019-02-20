@@ -5,9 +5,11 @@ import sys
 from binascii import hexlify
 from unittest import skipIf
 
-import six
 from pony.orm import db_session
+
+import six
 from six.moves import xrange
+
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.TorrentChecker.torrent_checker import TorrentChecker

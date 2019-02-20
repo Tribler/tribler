@@ -122,11 +122,7 @@ Section "!Main EXE" SecMain
     ; Install MSVCR 2008, 2012 and 2015
     SetOutPath "$INSTDIR"
 
-    ; Libraries dependant on 2008 are: APSW
-    File vc_redist_90.exe
-    ExecWait "$INSTDIR\vc_redist_90.exe /q /norestart"
-
-    ; Libraries dependant on 2012 are: LevelDB, LibTorrent
+    ; Libraries dependant on 2012 are: LibTorrent
     File vc_redist_110.exe
     ExecWait "$INSTDIR\vc_redist_110.exe /q /norestart"
 
