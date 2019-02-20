@@ -4,7 +4,7 @@ import os
 import urllib
 from base64 import b64encode
 
-from PyQt5.QtCore import QDir, pyqtSignal, QTimer
+from PyQt5.QtCore import QDir, QTimer, pyqtSignal
 from PyQt5.QtGui import QCursor
 from PyQt5.QtWidgets import QAction, QFileDialog, QWidget
 

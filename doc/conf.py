@@ -18,9 +18,10 @@
 #
 import os
 import sys
-sys.path.append(os.path.join(os.path.dirname(__name__), '..'))
+
 from mock import Mock as MagicMock
 
+sys.path.append(os.path.join(os.path.dirname(__name__), '..'))
 
 # Mock various libraries
 _classnames = {

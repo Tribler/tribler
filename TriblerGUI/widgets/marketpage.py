@@ -1,14 +1,14 @@
-import datetime
-from PyQt5.QtCore import Qt
-from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtGui import QCursor
-from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QAction
-from PyQt5.QtWidgets import QSizePolicy
-from PyQt5.QtWidgets import QSpacerItem
-from PyQt5.QtWidgets import QWidget
+from __future__ import absolute_import
 
-from TriblerGUI.defs import PAGE_MARKET_TRANSACTIONS, PAGE_MARKET_WALLETS, PAGE_MARKET_ORDERS
+import datetime
+
+from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtGui import QCursor, QIcon
+from PyQt5.QtWidgets import QAction, QSizePolicy, QSpacerItem, QWidget
+
+from six.moves import xrange
+
+from TriblerGUI.defs import PAGE_MARKET_ORDERS, PAGE_MARKET_TRANSACTIONS, PAGE_MARKET_WALLETS
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.dialogs.newmarketorderdialog import NewMarketOrderDialog
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
