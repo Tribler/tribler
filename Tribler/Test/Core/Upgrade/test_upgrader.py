@@ -56,3 +56,4 @@ class TestUpgrader(AbstractUpgrader):
         mds = MetadataStore(new_database_path, channels_dir, self.session.trustchain_keypair)
         with db_session:
             self.assertEqual(mds.TorrentMetadata.select().count(), 24)
+        mds.shutdown()
