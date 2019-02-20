@@ -1,4 +1,4 @@
-from __future__ import absolute_import, division
+from __future__ import absolute_import
 
 from binascii import unhexlify
 
@@ -15,7 +15,7 @@ from Tribler.pyipv8.ipv8.peer import Peer
 
 minimal_blob_size = 200
 maximum_payload_size = 1024
-max_entries = maximum_payload_size / minimal_blob_size
+max_entries = maximum_payload_size // minimal_blob_size
 
 
 class RawBlobPayload(Payload):
