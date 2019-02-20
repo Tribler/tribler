@@ -1,19 +1,17 @@
 import base64
 import datetime
 import os
+import sqlite3
 from binascii import unhexlify
 
-import apsw
 from pony import orm
 from pony.orm import db_session
 from six import text_type
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import LEGACY_ENTRY, NEW
 from Tribler.Core.Modules.MetadataStore.serialization import REGULAR_TORRENT
-from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
 from Tribler.pyipv8.ipv8.database import database_blob
-from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto
 
 BATCH_SIZE = 10000
 
@@ -70,7 +68,7 @@ class DispersyToPonyMigration(object):
             print ("No personal channel found")
 
     def get_old_channels(self):
-        connection = apsw.Connection(self.tribler_db)
+        connection = sqlite3.connect(self.tribler_db)
         cursor = connection.cursor()
 
         channels = []
@@ -95,13 +93,13 @@ class DispersyToPonyMigration(object):
         return channels
 
     def get_personal_channel_id_title(self):
-        connection = apsw.Connection(self.tribler_db)
+        connection = sqlite3.connect(self.tribler_db)
         cursor = connection.cursor()
         cursor.execute('SELECT id,name FROM Channels WHERE peer_id ISNULL LIMIT 1')
         return cursor.fetchone()
 
     def get_old_trackers(self):
-        connection = apsw.Connection(self.tribler_db)
+        connection = sqlite3.connect(self.tribler_db)
         cursor = connection.cursor()
 
         trackers = {}
@@ -126,14 +124,14 @@ class DispersyToPonyMigration(object):
                                       (" == " if personal_channel_only else " != ") + \
                                       (" %i " % self.personal_channel_id)
 
-        connection = apsw.Connection(self.tribler_db)
+        connection = sqlite3.connect(self.tribler_db)
         cursor = connection.cursor()
         cursor.execute("SELECT COUNT(*) FROM (SELECT t.torrent_id " + self.select_torrents_sql + \
                        personal_channel_filter + "group by infohash )")
         return cursor.fetchone()[0]
 
     def get_personal_channel_torrents_count(self):
-        connection = apsw.Connection(self.tribler_db)
+        connection = sqlite3.connect(self.tribler_db)
         cursor = connection.cursor()
         cursor.execute("SELECT COUNT(*) FROM (SELECT t.torrent_id " + self.select_torrents_sql + \
                        (" AND ct.channel_id == %s " % self.personal_channel_id) + \
@@ -142,7 +140,7 @@ class DispersyToPonyMigration(object):
 
     def get_old_torrents(self, personal_channel_only=False, batch_size=BATCH_SIZE, offset=0,
                          sign=False):
-        connection = apsw.Connection(self.tribler_db)
+        connection = sqlite3.connect(self.tribler_db)
         cursor = connection.cursor()
 
         personal_channel_filter = ""

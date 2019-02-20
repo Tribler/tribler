@@ -79,14 +79,6 @@ pyWin32 Tools
 
 In order to access some of the Windows API functions, pywin32 should be installed. The pywin32 installer can be downloaded from `Sourceforge <http://sourceforge.net/projects/pywin32/files/pywin32/>`__ and make sure to select the amd64 version and the version compatible with Python 2.7.
 
-apsw
-----
-The apsw (Another Python SQLite Wrapper) installer can be downloaded from `GitHub <https://github.com/rogerbinns/apsw/releases>`__. Again, make sure to select the amd64 version that is compatible with Python 2.7. You can test whether it is installed correctly by running:
-
-.. code-block:: none
-
-    python -c "import apsw"
-
 libtorrent
 ----------
 

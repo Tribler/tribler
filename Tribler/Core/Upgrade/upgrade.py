@@ -2,8 +2,7 @@ from __future__ import absolute_import
 
 import logging
 import os
-
-import apsw
+import sqlite3
 
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.Upgrade.config_converter import convert_config_to_tribler71
@@ -50,7 +49,7 @@ class TriblerUpgrader(object):
 
         # Check the old DB version
         try:
-            connection = apsw.Connection(old_database_path)
+            connection = sqlite3.connect(old_database_path)
             cursor = connection.cursor()
             cursor.execute('SELECT value FROM MyInfo WHERE entry == "version"')
             version = int(cursor.fetchone()[0])
@@ -68,7 +67,7 @@ class TriblerUpgrader(object):
             # ACHTUNG!!! NUCLEAR OPTION!!! DO NOT MESS WITH IT!!!
             delete_old_db = False
             try:
-                connection = apsw.Connection(new_database_path)
+                connection = sqlite3.connect(new_database_path)
                 cursor = connection.cursor()
                 cursor.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'MiscData'")
                 result = cursor.fetchone()

@@ -37,7 +37,7 @@ class Mock(MagicMock):
 MOCK_MODULES = ['twisted', 'twisted.web', 'twisted.web.server', 'twisted.web.client', 'twisted.web.http_headers',
                 'twisted.internet', 'twisted.internet.defer', 'twisted.internet.interfaces', 'twisted.internet.task',
                 'twisted.python', 'twisted.python.failure', 'twisted.python.threadable', 'twisted.internet.base',
-                'twisted.internet.error', 'twisted.internet.protocol', 'apsw', 'libtorrent', 'treq',
+                'twisted.internet.error', 'twisted.internet.protocol', 'libtorrent', 'treq',
                 'Tribler.community.tunnel.crypto.cryptowrapper', 'Tribler.community.market.core.orderbook',
                 'M2Crypto', 'M2Crypto.EC', 'M2Crypto.BIO', 'Tribler.dispersy.crypto', 'psutil', 'meliae', 'libnacl',
                 'decorator', 'libnacl.dual', 'libnacl.sign', 'libnacl.encode', 'libnacl.public', 'networkx',

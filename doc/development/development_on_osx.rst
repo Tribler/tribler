@@ -13,7 +13,7 @@ To install the Tribler dependencies using MacPorts, please run the following com
 
 .. code-block:: bash
 
-    sudo port -N install git ffmpeg qt5-qtcreator libtorrent-rasterbar gmp mpfr libmpc libsodium py27-m2crypto py27-apsw py27-Pillow py27-twisted py27-cherrypy3 py27-cffi py27-chardet py27-configobj py27-gmpy2 py27-pycparser py27-numpy py27-idna py27-leveldb py27-cryptography py27-decorator py27-feedparser py27-netifaces py27-service_identity py27-asn1-modules py27-pyinstaller py27-pyqt5 py27-sqlite py27-matplotlib py27-libnacl
+    sudo port -N install git ffmpeg qt5-qtcreator libtorrent-rasterbar gmp mpfr libmpc libsodium py27-m2crypto py27-Pillow py27-twisted py27-cherrypy3 py27-cffi py27-chardet py27-configobj py27-gmpy2 py27-pycparser py27-numpy py27-idna py27-leveldb py27-cryptography py27-decorator py27-feedparser py27-netifaces py27-service_identity py27-asn1-modules py27-pyinstaller py27-pyqt5 py27-sqlite py27-matplotlib py27-libnacl
     
 HomeBrew
 --------
@@ -90,15 +90,6 @@ Reopen your terminal window and test it out by executing:
 
     python -c "import M2Crypto"
 
-Apsw
-~~~~
-
-Apsw can be installed by brew but this does not seem to work to compile the last version (the Clang compiler uses the ``sqlite.h`` include shipped with Xcode which is outdated). Instead, the source should be downloaded from their `Github repository <https://github.com/rogerbinns/apsw>`_ (make sure to download a release version) and compiled using:
-
-.. code-block:: none
-
-    sudo python setup.py fetch --all build --enable-all-extensions install test
-    python -c "import apsw" # verify whether apsw is successfully installed
 
 Libtorrent
 ~~~~~~~~~~
