@@ -255,6 +255,7 @@ class MyChannelSpecificTorrentEndpoint(BaseMyChannelEndpoint):
     def __init__(self, session, infohash):
         BaseMyChannelEndpoint.__init__(self, session)
         self.infohash = unhexlify(infohash)
+
     @db_session
     def render_PATCH(self, request):
         parameters = http.parse_qs(request.content.read(), 1)

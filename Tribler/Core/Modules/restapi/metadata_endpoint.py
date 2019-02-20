@@ -14,6 +14,10 @@ from Tribler.util import cast_to_unicode_utf8
 
 class BaseMetadataEndpoint(resource.Resource):
 
+    def __init__(self, session):
+        resource.Resource.__init__(self)
+        self.session = session
+
     @staticmethod
     def sanitize_parameters(parameters):
         """
@@ -22,7 +26,7 @@ class BaseMetadataEndpoint(resource.Resource):
         sanitized = {
             "first": 1 if 'first' not in parameters else int(parameters['first'][0]),
             "last": 50 if 'last' not in parameters else int(parameters['last'][0]),
-            "sort_by": None if 'sort_by' not in parameters else MetadataEndpoint.convert_sort_param_to_pony_col(
+            "sort_by": None if 'sort_by' not in parameters else BaseMetadataEndpoint.convert_sort_param_to_pony_col(
                 parameters['sort_by'][0]),
             "sort_asc": True if 'sort_asc' not in parameters else bool(int(parameters['sort_asc'][0])),
             "query_filter": None if 'filter' not in parameters else cast_to_unicode_utf8(parameters['filter'][0]),
@@ -51,10 +55,10 @@ class BaseMetadataEndpoint(resource.Resource):
         return json2pony_columns[sort_param] if sort_param in json2pony_columns else None
 
 
-class MetadataEndpoint(BaseMetadataEndpoint):
+class MetadataEndpoint(resource.Resource):
 
     def __init__(self, session):
-        BaseMetadataEndpoint.__init__(self)
+        resource.Resource.__init__(self)
 
         child_handler_dict = {
             "channels": ChannelsEndpoint,
@@ -65,12 +69,7 @@ class MetadataEndpoint(BaseMetadataEndpoint):
             self.putChild(path, child_cls(session))
 
 
-class BaseChannelsEndpoint(resource.Resource):
-
-    def __init__(self, session):
-        resource.Resource.__init__(self)
-        self.session = session
-
+class BaseChannelsEndpoint(BaseMetadataEndpoint):
     @staticmethod
     def sanitize_parameters(parameters):
         """
@@ -151,17 +150,10 @@ class SpecificChannelEndpoint(BaseChannelsEndpoint):
         return json.dumps({"success": True, "subscribed": to_subscribe})
 
 
-# TODO: make the inheritance straightforward and unified for all endpoints here
-class BaseTorrentsEndpoint(resource.Resource, BaseMetadataEndpoint):
-
-    def __init__(self, session):
-        resource.Resource.__init__(self)
-        self.session = session
-
-class SpecificChannelTorrentsEndpoint(BaseTorrentsEndpoint):
+class SpecificChannelTorrentsEndpoint(BaseMetadataEndpoint):
 
     def __init__(self, session, channel_pk):
-        BaseTorrentsEndpoint.__init__(self, session)
+        BaseMetadataEndpoint.__init__(self, session)
         self.channel_pk = channel_pk
 
     def render_GET(self, request):
@@ -180,10 +172,10 @@ class SpecificChannelTorrentsEndpoint(BaseTorrentsEndpoint):
         })
 
 
-class TorrentsEndpoint(BaseTorrentsEndpoint):
+class TorrentsEndpoint(BaseMetadataEndpoint):
 
     def __init__(self, session):
-        BaseTorrentsEndpoint.__init__(self, session)
+        BaseMetadataEndpoint.__init__(self, session)
         self.putChild("random", TorrentsRandomEndpoint(session))
 
     def getChild(self, path, request):
@@ -215,7 +207,7 @@ class SpecificTorrentEndpoint(resource.Resource):
         return json.dumps({"torrent": torrent_dict})
 
 
-class TorrentsRandomEndpoint(BaseTorrentsEndpoint):
+class TorrentsRandomEndpoint(BaseMetadataEndpoint):
 
     def render_GET(self, request):
         limit_torrents = 10
