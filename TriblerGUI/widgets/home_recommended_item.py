@@ -86,7 +86,7 @@ class HomeRecommendedItem(QWidget, fc_home_recommended_item):
         self.category_label.adjustSize()
         self.category_label.setHidden(False)
         self.setCursor(Qt.ArrowCursor)
-        self.detail_label.setText("Size: " + format_size(torrent["size"]))
+        self.detail_label.setText("Size: " + format_size(torrent.get("size", 0)))
 
     def update_with_channel(self, channel):
         if not channel:

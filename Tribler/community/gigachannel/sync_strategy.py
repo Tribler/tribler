@@ -10,7 +10,7 @@ class SyncChannels(DiscoveryStrategy):
     On each tick we send a random peer some of our random subscribed channels.
     """
 
-    def take_step(self, service_id=None):
+    def take_step(self):
         with self.walk_lock:
             # Share my random channels
             peers = self.overlay.get_peers()

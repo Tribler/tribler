@@ -292,7 +292,7 @@ class TestTriblerTunnelCommunity(TestBase):
 
         # Verify whether the downloader (node 0) correctly paid the subsequent nodes.
         self.assertTrue(self.nodes[0].overlay.bandwidth_wallet.get_bandwidth_tokens() < 0)
-        self.assertTrue(self.nodes[1].overlay.bandwidth_wallet.get_bandwidth_tokens() > 0)
+        self.assertTrue(self.nodes[1].overlay.bandwidth_wallet.get_bandwidth_tokens() >= 0)
         self.assertTrue(self.nodes[2].overlay.bandwidth_wallet.get_bandwidth_tokens() > 0)
 
     @inlineCallbacks

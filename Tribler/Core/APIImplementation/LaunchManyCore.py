@@ -41,6 +41,7 @@ from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLS
                                      STATE_START_API_ENDPOINTS, STATE_START_CREDIT_MINING,
                                      STATE_START_LIBTORRENT, STATE_START_TORRENT_CHECKER, STATE_START_WATCH_FOLDER)
 from Tribler.pyipv8.ipv8.dht.provider import DHTCommunityProvider
+from Tribler.pyipv8.ipv8.messaging.anonymization.community import TunnelSettings
 from Tribler.pyipv8.ipv8.peer import Peer
 from Tribler.pyipv8.ipv8.peerdiscovery.churn import RandomChurn
 from Tribler.pyipv8.ipv8.peerdiscovery.community import DiscoveryCommunity, PeriodicSimilarity
@@ -203,12 +204,16 @@ class TriblerLaunchMany(TaskManager):
             competing_slots = self.session.config.get_tunnel_community_competing_slots()
 
             dht_provider = DHTCommunityProvider(self.dht_community, self.session.config.get_ipv8_port())
+            settings = TunnelSettings()
+            settings.min_circuits = 3
+            settings.max_circuits = 10
             self.tunnel_community = community_cls(peer, self.ipv8.endpoint, self.ipv8.network,
                                                   tribler_session=self.session,
                                                   dht_provider=dht_provider,
                                                   bandwidth_wallet=self.wallets["MB"],
                                                   random_slots=random_slots,
-                                                  competing_slots=competing_slots)
+                                                  competing_slots=competing_slots,
+                                                  settings=settings)
             self.ipv8.overlays.append(self.tunnel_community)
             self.ipv8.strategies.append((RandomWalk(self.tunnel_community), 20))
 

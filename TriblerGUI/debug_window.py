@@ -327,7 +327,7 @@ class DebugWindow(QMainWindow):
 
     def load_ipv8_communities_tab(self):
         self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("statistics/communities", self.on_ipv8_community_stats)
+        self.request_mgr.perform_request("ipv8/overlays", self.on_ipv8_community_stats)
 
     def _colored_peer_count(self, peer_count, overlay_count, master_peer):
         is_discovery = (master_peer == "3081a7301006072a8648ce3d020106052b81040027038192000403b3ab059ced9b20646ab5e01"
@@ -343,14 +343,14 @@ class DebugWindow(QMainWindow):
         if not data:
             return
         self.window().communities_tree_widget.clear()
-        for overlay in data["ipv8_overlay_statistics"]:
+        for overlay in data["overlays"]:
             item = QTreeWidgetItem(self.window().communities_tree_widget)
             item.setText(0, overlay["overlay_name"])
             item.setText(1, overlay["master_peer"][-12:])
             item.setText(2, overlay["my_peer"][-12:])
             peer_count = len(overlay["peers"])
             item.setText(3, "%s" % peer_count)
-            item.setForeground(3, self._colored_peer_count(peer_count, len(data["ipv8_overlay_statistics"]),
+            item.setForeground(3, self._colored_peer_count(peer_count, len(data["overlays"]),
                                                            overlay["master_peer"]))
 
             if "statistics" in overlay and overlay["statistics"]:

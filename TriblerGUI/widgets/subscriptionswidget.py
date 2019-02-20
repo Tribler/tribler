@@ -83,7 +83,7 @@ class SubscriptionsWidget(QWidget):
                                              self.on_channel_subscribed, data={"subscribe": 1}, method='POST')
 
     def on_channel_unsubscribed(self, json_result):
-        if not json_result:
+        if not json_result or not self:
             return
         if json_result["success"]:
             self.unsubscribed_channel.emit(self.channel_info)
