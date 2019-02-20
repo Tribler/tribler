@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import os
 import time
+from binascii import hexlify
 
 from Tribler.Core.exceptions import OperationNotEnabledByConfigurationException
 from Tribler.pyipv8.ipv8.messaging.interfaces.statistics_endpoint import StatisticsEndpoint
@@ -59,8 +60,8 @@ class TriblerStatistics(object):
             statistics = ipv8.endpoint.get_aggregate_statistics(overlay.get_prefix()) \
                 if isinstance(ipv8.endpoint, StatisticsEndpoint) else {}
             communities_stats.append({
-                "master_peer": overlay.master_peer.public_key.key_to_bin().encode('hex'),
-                "my_peer": overlay.my_peer.public_key.key_to_bin().encode('hex'),
+                "master_peer": hexlify(overlay.master_peer.public_key.key_to_bin()),
+                "my_peer": hexlify(overlay.my_peer.public_key.key_to_bin()),
                 "global_time": overlay.global_time,
                 "peers": [str(peer) for peer in peers],
                 "overlay_name": overlay.__class__.__name__,

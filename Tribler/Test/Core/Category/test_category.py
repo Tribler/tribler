@@ -1,5 +1,8 @@
+from __future__ import absolute_import
+
 from twisted.internet.defer import inlineCallbacks
-from Tribler.Core.Category.Category import Category, cmp_rank, default_category_filter
+
+from Tribler.Core.Category.Category import cmp_rank, default_category_filter
 from Tribler.Core.Category.FamilyFilter import default_xxx_filter
 from Tribler.Test.test_as_server import AbstractServer
 

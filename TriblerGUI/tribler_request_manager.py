@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import logging
 from collections import deque, namedtuple
 from threading import RLock
@@ -6,6 +8,7 @@ from urllib import quote_plus
 
 from PyQt5.QtCore import QUrl, pyqtSignal, QIODevice, QBuffer, QObject
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
+
 from six import text_type
 
 import Tribler.Core.Utilities.json_util as json

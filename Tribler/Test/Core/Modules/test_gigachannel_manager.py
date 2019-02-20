@@ -1,7 +1,9 @@
-import os
+from __future__ import absolute_import
+
 from datetime import datetime
 
 from pony.orm import db_session
+
 from twisted.internet.defer import inlineCallbacks, Deferred
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import NEW
@@ -19,7 +21,6 @@ class TestGigaChannelManager(TriblerCoreTest):
     @db_session
     def generate_personal_channel(self):
         chan = self.mock_session.lm.mds.ChannelMetadata.create_channel(title="my test chan", description="test")
-        my_dir = os.path.abspath(os.path.join(self.mock_session.lm.mds.channels_dir, chan.dir_name))
         tdef = TorrentDef.load(TORRENT_UBUNTU_FILE)
         chan.add_torrent_to_channel(tdef, None)
         return chan

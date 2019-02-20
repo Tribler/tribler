@@ -1,3 +1,5 @@
+from __future__ import absolute_import, division
+
 import sys
 from PIL.ImageQt import ImageQt
 from PyQt5 import QtGui, QtCore

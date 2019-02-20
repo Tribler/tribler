@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from pony import orm
 
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url, MalformedTrackerURLException

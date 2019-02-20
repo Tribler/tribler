@@ -1,8 +1,10 @@
+from __future__ import absolute_import
+
 import os
 from binascii import hexlify
 
 from pony.orm import db_session
-from twisted.internet import task, reactor
+
 from twisted.internet.defer import Deferred
 from twisted.internet.task import LoopingCall
 

@@ -1,3 +1,5 @@
+from __future__ import absolute_import, division
+
 from binascii import unhexlify
 
 from pony.orm import db_session
