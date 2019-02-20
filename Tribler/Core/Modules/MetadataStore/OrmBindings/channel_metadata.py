@@ -403,15 +403,16 @@ def define_binding(db):
             :rtype: list
             """
             if only_subscribed:
-                select_lambda = lambda g: g.subscribed and g.status != LEGACY_ENTRY and g.num_entries > 0
+                select_lambda = lambda g: g.subscribed and g.status not in [LEGACY_ENTRY, NEW,
+                                                                            TODELETE] and g.num_entries > 0
             else:
-                select_lambda = lambda g: g.status != LEGACY_ENTRY and g.num_entries > 0
+                select_lambda = lambda g: g.status not in [LEGACY_ENTRY, NEW, TODELETE] and g.num_entries > 0
 
             return db.ChannelMetadata.select(select_lambda).random(limit)
 
         @db_session
         def get_random_torrents(self, limit):
-            return self.contents.random(limit)
+            return self.contents.where(lambda g: g.status not in [NEW, TODELETE]).random(limit)
 
         @classmethod
         @db_session
