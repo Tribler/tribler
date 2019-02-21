@@ -148,16 +148,6 @@ class TriblerConfig(object):
 
         return self.config["general"]["state_dir"]
 
-    def set_permid_keypair_filename(self, keypair_filename):
-        self.config['general']['ec_keypair_filename'] = keypair_filename
-
-    def get_permid_keypair_filename(self):
-        file_name = self.config["general"]["ec_keypair_filename"]
-        if not file_name:
-            file_name = os.path.join(self.get_state_dir(), 'ec.pem')
-            self.set_permid_keypair_filename(file_name)
-        return file_name
-
     def set_trustchain_keypair_filename(self, keypairfilename):
         self.config['trustchain']['ec_keypair_filename'] = keypairfilename
 

@@ -107,11 +107,6 @@ class TestTriblerConfig(TriblerCoreTest):
         self.tribler_config.set_state_dir("TEST")
         self.assertEqual(self.tribler_config.get_state_dir(), "TEST")
 
-        self.tribler_config.set_permid_keypair_filename(None)
-        self.assertEqual(self.tribler_config.get_permid_keypair_filename(), os.path.join("TEST", "ec.pem"))
-        self.tribler_config.set_permid_keypair_filename("TEST")
-        self.assertEqual(self.tribler_config.get_permid_keypair_filename(), "TEST")
-
         self.tribler_config.set_trustchain_keypair_filename(None)
         self.assertEqual(self.tribler_config.get_trustchain_keypair_filename(),
                          os.path.join("TEST", "ec_multichain.pem"))
