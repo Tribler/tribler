@@ -5,7 +5,7 @@ import os
 
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.Upgrade.config_converter import convert_config_to_tribler71
-from Tribler.Core.Upgrade.db72_to_pony import DispersyToPonyMigration
+from Tribler.Core.Upgrade.db72_to_pony import DispersyToPonyMigration, should_upgrade
 from Tribler.Core.simpledefs import NTFY_FINISHED, NTFY_STARTED, NTFY_UPGRADER, NTFY_UPGRADER_TICK
 
 
@@ -44,7 +44,7 @@ class TriblerUpgrader(object):
         channels_dir = os.path.join(self.session.config.get_chant_channels_dir())
 
         d = DispersyToPonyMigration(old_database_path, self.update_status, logger=self._logger)
-        if not d.should_upgrade(old_database_path, new_database_path):
+        if not should_upgrade(old_database_path, new_database_path, logger=self._logger):
             return
         # We have to create the Metadata Store object because the LaunchManyCore has not been started yet
         mds = MetadataStore(new_database_path, channels_dir, self.session.trustchain_keypair)
