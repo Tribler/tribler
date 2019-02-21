@@ -9,7 +9,8 @@ import lz4.frame
 from pony import orm
 from pony.orm import db_session
 
-from Tribler.Core.Modules.MetadataStore.OrmBindings import channel_metadata, channel_node, misc, torrent_metadata, torrent_state, tracker_state
+from Tribler.Core.Modules.MetadataStore.OrmBindings import channel_metadata, channel_node, misc, torrent_metadata, \
+    torrent_state, tracker_state
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import BLOB_EXTENSION
 from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, ChannelMetadataPayload, DELETED, \
     REGULAR_TORRENT, read_payload_with_offset, time2int

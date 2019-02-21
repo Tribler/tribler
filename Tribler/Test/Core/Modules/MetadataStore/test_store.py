@@ -102,9 +102,8 @@ class TestMetadataStore(TriblerCoreTest):
 
     @db_session
     def test_squash_mdblobs_multiple_chunks(self):
-        md_list = [self.mds.TorrentMetadata(
-            title=''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(20))) for _ in
-            range(0, 10)]
+        md_list = [self.mds.TorrentMetadata(title=''.join(random.choice(string.ascii_uppercase + string.digits)
+                                                          for _ in range(20))) for _ in range(0, 10)]
         # Test splitting into multiple chunks
         chunk, index = entries_to_chunk(md_list, chunk_size=900)
         chunk2, _ = entries_to_chunk(md_list, chunk_size=900, start_index=index)

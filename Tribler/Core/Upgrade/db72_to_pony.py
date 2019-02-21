@@ -162,9 +162,10 @@ class DispersyToPonyMigration(object):
 
         torrents = []
         for tracker_url, channel_id, name, infohash, length, creation_date, torrent_id, category, num_seeders,\
-            num_leechers, last_tracker_check in cursor.execute(
-                self.select_full + personal_channel_filter + " group by infohash" + (
-                        " LIMIT " + str(batch_size) + " OFFSET " + str(offset))):
+            num_leechers, last_tracker_check in \
+                cursor.execute(
+                    self.select_full + personal_channel_filter + " group by infohash" +
+                    (" LIMIT " + str(batch_size) + " OFFSET " + str(offset))):
             # check if name is valid unicode data
             try:
                 name = text_type(name)

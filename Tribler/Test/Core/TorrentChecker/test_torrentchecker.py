@@ -37,7 +37,7 @@ class TestTorrentChecker(TestAsServer):
         self.torrent_checker = self.session.lm.torrent_checker
         self.torrent_checker.listen_on_udp = lambda: None
 
-        def get_metainfo(infohash, callback, **_):
+        def get_metainfo(_, callback, **__):
             callback({"seeders": 1, "leechers": 2})
 
         self.session.lm.ltmgr = MockObject()

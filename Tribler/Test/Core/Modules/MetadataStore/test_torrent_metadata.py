@@ -197,7 +197,8 @@ class TestTorrentMetadata(TriblerCoreTest):
         self.assertEqual(5, len(torrents))
         self.assertEqual(5, count)
 
-        torrents, count = self.mds.TorrentMetadata.get_entries(channel_pk=channel_pk, hide_xxx=True, exclude_deleted=True)[:]
+        torrents, count = self.mds.TorrentMetadata.get_entries(
+            channel_pk=channel_pk, hide_xxx=True, exclude_deleted=True)[:]
 
         self.assertListEqual(tlist[-5:-2], list(torrents))
         self.assertEqual(count, 3)
