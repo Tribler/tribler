@@ -107,6 +107,7 @@ class TestUpgradePreconditionChecker(TriblerCoreTest):
         with connection:
             cursor = connection.cursor()
             cursor.execute("DROP TABLE MiscData")
+        connection.close()
 
         # Assert older experimental version is deleted
         self.assertFalse(cleanup_pony_experimental_db(pony_db))
