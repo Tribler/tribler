@@ -5,8 +5,7 @@ import sys
 from PIL.ImageQt import ImageQt
 
 from PyQt5 import QtCore, QtGui
-from PyQt5.QtWidgets import QSizePolicy
-from PyQt5.QtWidgets import QFileDialog, QLabel, QWidget
+from PyQt5.QtWidgets import QFileDialog, QLabel, QSizePolicy, QWidget
 
 import Tribler.Core.Utilities.json_util as json
 

@@ -6,10 +6,10 @@ import platform
 import sys
 import time
 
-from six.moves import xrange
-
 from PyQt5 import uic
 from PyQt5.QtWidgets import QAction, QApplication, QDialog, QMessageBox, QTreeWidgetItem
+
+from six.moves import xrange
 
 from TriblerGUI.event_request_manager import received_events
 from TriblerGUI.tribler_action_menu import TriblerActionMenu

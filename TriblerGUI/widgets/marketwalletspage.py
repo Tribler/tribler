@@ -1,6 +1,6 @@
 from PIL.ImageQt import ImageQt
 
-from PyQt5 import QtGui, QtCore
+from PyQt5 import QtCore, QtGui
 from PyQt5.QtGui import QCursor, QIcon
 from PyQt5.QtWidgets import QAction, QPushButton, QTreeWidgetItem, QWidget
 
