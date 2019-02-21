@@ -14,7 +14,6 @@ class StatisticsEndpoint(resource.Resource):
         child_handler_dict = {
             "tribler": StatisticsTriblerEndpoint,
             "ipv8": StatisticsIPv8Endpoint,
-            "communities": StatisticsCommunitiesEndpoint
         }
 
         for path, child_cls in child_handler_dict.iteritems():

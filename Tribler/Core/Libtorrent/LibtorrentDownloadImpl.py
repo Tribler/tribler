@@ -480,7 +480,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
 
         alert_types = ('tracker_reply_alert', 'tracker_error_alert', 'tracker_warning_alert', 'metadata_received_alert',
                        'file_renamed_alert', 'performance_alert', 'torrent_checked_alert', 'torrent_finished_alert',
-                       'save_resume_data_alert', 'save_resume_data_failed_alert', 'state_update_alert')
+                       'save_resume_data_alert', 'save_resume_data_failed_alert')
 
         if alert_type in alert_types:
             getattr(self, 'on_' + alert_type)(alert)
@@ -916,7 +916,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
 
         result = self.tracker_status.copy()
         result['[DHT]'] = [dht_peers, 'Working' if ltsession.is_dht_running() and public else 'Disabled']
-        result['[PeX]'] = [pex_peers, 'Working' if not self.get_anon_mode() else 'Disabled']
+        result['[PeX]'] = [pex_peers, 'Working']
         return result
 
     def set_state_callback(self, usercallback):
