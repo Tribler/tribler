@@ -1,8 +1,8 @@
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QTabWidget, QTreeWidgetItem, QAction
+from PyQt5.QtWidgets import QAction, QTabWidget, QTreeWidgetItem
 
-from TriblerGUI.tribler_action_menu import TriblerActionMenu
 from TriblerGUI.defs import *
+from TriblerGUI.tribler_action_menu import TriblerActionMenu
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.utilities import format_size, format_speed, is_video_file
 from TriblerGUI.widgets.downloadfilewidgetitem import DownloadFileWidgetItem

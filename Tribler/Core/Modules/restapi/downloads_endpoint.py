@@ -4,12 +4,12 @@ import logging
 
 from libtorrent import bencode, create_torrent
 
+from pony.orm import db_session
+
 import six
 from six import unichr  # pylint: disable=redefined-builtin
 from six.moves.urllib.parse import unquote_plus
 from six.moves.urllib.request import url2pathname
-
-from pony.orm import db_session
 
 from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET

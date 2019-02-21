@@ -1,14 +1,15 @@
-from __future__ import absolute_import
-from __future__ import division
+from __future__ import absolute_import, division
 
 import logging
 import os
-import psutil
 import time
 from binascii import hexlify, unhexlify
 from glob import glob
 
+import psutil
+
 from six import string_types
+
 from twisted.internet.defer import Deferred, DeferredList, succeed
 from twisted.internet.task import LoopingCall
 

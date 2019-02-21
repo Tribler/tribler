@@ -8,14 +8,13 @@ import sys
 import time
 import traceback
 import urlparse
-from PyQt5 import uic
 from urllib import pathname2url, unquote
 
 import six
 
-from PyQt5.QtCore import QCoreApplication, QObject, QPoint, QSettings, QStringListModel, QTimer, QUrl, Qt, pyqtSignal, \
-    pyqtSlot
-from PyQt5.QtCore import QDir
+from PyQt5 import uic
+from PyQt5.QtCore import QCoreApplication, QDir, QObject, QPoint, QSettings, QStringListModel, QTimer, QUrl, Qt, \
+    pyqtSignal
 from PyQt5.QtGui import QDesktopServices, QIcon, QKeySequence, QPixmap
 from PyQt5.QtWidgets import QAction, QApplication, QCompleter, QFileDialog, QLineEdit, QListWidget, QMainWindow, \
     QShortcut, QStyledItemDelegate, QSystemTrayIcon, QTreeWidget

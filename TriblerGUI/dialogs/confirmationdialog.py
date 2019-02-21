@@ -1,6 +1,5 @@
 from PyQt5 import uic
-
-from PyQt5.QtCore import pyqtSignal, Qt
+from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QCursor
 from PyQt5.QtWidgets import QSizePolicy, QSpacerItem
 

@@ -12,9 +12,9 @@ from twisted.web.iweb import IBodyProducer
 from zope.interface import implements
 
 import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.Modules.restapi import get_param
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.version import version_id
-from Tribler.Core.Modules.restapi import get_param
 from Tribler.Test.test_as_server import TestAsServer
 
 

@@ -5,17 +5,14 @@ import os
 from datetime import datetime
 
 import lz4.frame
+
 from pony import orm
 from pony.orm import db_session
 
-from Tribler.Core.Modules.MetadataStore.OrmBindings import torrent_metadata, channel_metadata, \
-    torrent_state, tracker_state, channel_node, misc
+from Tribler.Core.Modules.MetadataStore.OrmBindings import channel_metadata, channel_node, misc, torrent_metadata, torrent_state, tracker_state
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import BLOB_EXTENSION
-from Tribler.Core.Modules.MetadataStore.serialization import read_payload_with_offset, REGULAR_TORRENT, \
-    CHANNEL_TORRENT, DELETED, ChannelMetadataPayload, time2int
-# This table should never be used from ORM directly.
-# It is created as a VIRTUAL table by raw SQL and
-# maintained by SQL triggers.
+from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, ChannelMetadataPayload, DELETED, \
+    REGULAR_TORRENT, read_payload_with_offset, time2int
 from Tribler.Core.exceptions import InvalidSignatureException
 
 CLOCK_STATE_FILE = "clock.state"
@@ -28,6 +25,9 @@ UNKNOWN_TORRENT = 5
 NO_ACTION = 6
 DELETED_METADATA = 7
 
+# This table should never be used from ORM directly.
+# It is created as a VIRTUAL table by raw SQL and
+# maintained by SQL triggers.
 sql_create_fts_table = """
     CREATE VIRTUAL TABLE IF NOT EXISTS FtsIndex USING FTS5
         (title, tags, content='ChannelNode', prefix = '2 3 4 5',

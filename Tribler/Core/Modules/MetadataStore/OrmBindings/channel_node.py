@@ -6,8 +6,8 @@ from datetime import datetime
 from pony import orm
 from pony.orm.core import DEFAULT
 
-from Tribler.Core.Modules.MetadataStore.serialization import DeletedMetadataPayload, DELETED, \
-    ChannelNodePayload, CHANNEL_NODE
+from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_NODE, ChannelNodePayload, DELETED, \
+    DeletedMetadataPayload
 from Tribler.Core.exceptions import InvalidSignatureException
 from Tribler.pyipv8.ipv8.database import database_blob
 from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto

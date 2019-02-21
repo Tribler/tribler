@@ -4,15 +4,17 @@ import os
 import sys
 from binascii import hexlify
 from datetime import datetime
+
 from libtorrent import add_files, bencode, create_torrent, file_storage, set_piece_hashes, torrent_info
 
 import lz4.frame
+
 from pony import orm
 from pony.orm import db_session, raw_sql, select
 
 from Tribler.Core.Category.Category import default_category_filter
-from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import COMMITTED, NEW, PUBLIC_KEY_LEN, TODELETE, \
-    LEGACY_ENTRY
+from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import COMMITTED, LEGACY_ENTRY, NEW, PUBLIC_KEY_LEN, \
+    TODELETE
 from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, ChannelMetadataPayload
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url

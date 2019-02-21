@@ -4,13 +4,13 @@ from datetime import datetime
 
 from pony.orm import db_session
 
-from twisted.internet.defer import inlineCallbacks, Deferred
+from twisted.internet.defer import Deferred, inlineCallbacks
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import NEW
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.Modules.gigachannel_manager import GigaChannelManager
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
+from Tribler.Test.Core.base_test import MockObject, TriblerCoreTest
 from Tribler.Test.common import TORRENT_UBUNTU_FILE
 from Tribler.pyipv8.ipv8.database import database_blob
 from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto

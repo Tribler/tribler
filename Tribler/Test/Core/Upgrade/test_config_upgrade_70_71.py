@@ -3,9 +3,9 @@ from __future__ import absolute_import
 import os
 import shutil
 
-from six.moves.configparser import RawConfigParser
-
 from configobj import ConfigObj
+
+from six.moves.configparser import RawConfigParser
 
 from Tribler.Core.Config.tribler_config import CONFIG_SPEC_PATH, TriblerConfig
 from Tribler.Core.Upgrade.config_converter import add_libtribler_config, add_tribler_config, convert_config_to_tribler71

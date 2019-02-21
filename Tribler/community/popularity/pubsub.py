@@ -3,11 +3,12 @@ from __future__ import absolute_import
 import logging
 from binascii import unhexlify
 from copy import copy
+
 from twisted.internet.defer import inlineCallbacks
 from twisted.internet.task import LoopingCall
 
-from Tribler.community.popularity.constants import MSG_SUBSCRIPTION, ERROR_UNKNOWN_PEER, MAX_SUBSCRIBERS, \
-    MSG_SUBSCRIBE, MAX_PUBLISHERS, PUBLISH_INTERVAL
+from Tribler.community.popularity.constants import ERROR_UNKNOWN_PEER, MAX_PUBLISHERS, MAX_SUBSCRIBERS, MSG_SUBSCRIBE, \
+    MSG_SUBSCRIPTION, PUBLISH_INTERVAL
 from Tribler.community.popularity.payload import ContentSubscription
 from Tribler.community.popularity.request import ContentRequest
 from Tribler.pyipv8.ipv8.community import Community

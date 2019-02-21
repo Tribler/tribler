@@ -9,7 +9,7 @@ from urllib import quote_plus
 from PyQt5.QtCore import QBuffer, QIODevice, QObject, QUrl, pyqtSignal
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 
-from six import text_type, string_types
+from six import string_types, text_type
 from six.moves import xrange
 
 import Tribler.Core.Utilities.json_util as json

@@ -4,6 +4,7 @@ import os
 import shutil
 
 from pony.orm import db_session
+
 from twisted.internet.defer import Deferred, inlineCallbacks
 
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore

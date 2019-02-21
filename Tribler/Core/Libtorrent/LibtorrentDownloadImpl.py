@@ -14,8 +14,10 @@ from binascii import hexlify
 from threading import RLock
 
 import libtorrent as lt
+
 import six
 from six.moves import xrange
+
 from twisted.internet import reactor
 from twisted.internet.defer import CancelledError, Deferred, succeed
 from twisted.internet.task import LoopingCall

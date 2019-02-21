@@ -6,16 +6,17 @@ from __future__ import absolute_import
 import logging
 import os
 
+from configobj import ConfigObj
+
 from six import text_type
 
-from configobj import ConfigObj
 from validate import Validator
 
+from Tribler.Core.DownloadConfig import get_default_dest_dir
 from Tribler.Core.Utilities.install_dir import get_lib_path
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.exceptions import InvalidConfigException
 from Tribler.Core.osutils import get_appstate_dir
-from Tribler.Core.DownloadConfig import get_default_dest_dir
 
 FILENAME = 'triblerd.conf'
 SPEC_FILENAME = 'config.spec'

@@ -1,11 +1,11 @@
 from __future__ import absolute_import
 
 import ast
-import os
 import logging
+import os
 from glob import iglob
-from six.moves.configparser import DuplicateSectionError, MissingSectionHeaderError, NoSectionError, ParsingError, \
-    RawConfigParser
+
+from six.moves.configparser import DuplicateSectionError, MissingSectionHeaderError, NoSectionError, RawConfigParser
 
 from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.exceptions import InvalidConfigException

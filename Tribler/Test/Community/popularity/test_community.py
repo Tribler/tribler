@@ -4,11 +4,13 @@ import os
 import random
 
 from pony.orm import db_session
+
 from six.moves import xrange
+
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
-from Tribler.community.popularity.community import PopularityCommunity, MSG_TORRENT_HEALTH_RESPONSE
+from Tribler.community.popularity.community import MSG_TORRENT_HEALTH_RESPONSE, PopularityCommunity
 from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto
 from Tribler.pyipv8.ipv8.test.base import TestBase
 from Tribler.pyipv8.ipv8.test.mocking.ipv8 import MockIPv8

@@ -4,10 +4,11 @@ import base64
 import json
 import os
 import urllib
-from binascii import unhexlify, hexlify
+from binascii import hexlify, unhexlify
 
 from pony.orm import db_session
-from twisted.web import resource, http
+
+from twisted.web import http, resource
 
 from Tribler.Core.Modules.restapi.metadata_endpoint import SpecificChannelTorrentsEndpoint
 from Tribler.Core.TorrentDef import TorrentDef

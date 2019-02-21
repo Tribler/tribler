@@ -6,13 +6,14 @@ import shutil
 import tempfile
 
 from libtorrent import bencode
+
 from twisted.internet import reactor
-from twisted.internet.defer import inlineCallbacks, Deferred
+from twisted.internet.defer import Deferred, inlineCallbacks
 from twisted.internet.task import deferLater
 
-from Tribler.Core.Notifier import Notifier
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
 from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
+from Tribler.Core.Notifier import Notifier
 from Tribler.Core.exceptions import TorrentFileException
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.test_as_server import AbstractServer

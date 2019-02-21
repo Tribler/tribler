@@ -9,6 +9,7 @@ from binascii import unhexlify
 
 from pony import orm
 from pony.orm import db_session
+
 from six import text_type
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import LEGACY_ENTRY, NEW

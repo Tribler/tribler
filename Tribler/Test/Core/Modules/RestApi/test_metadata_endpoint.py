@@ -5,10 +5,10 @@ import sys
 from binascii import hexlify
 from unittest import skipIf
 
+from pony.orm import db_session
+
 import six
 from six.moves import xrange
-
-from pony.orm import db_session
 
 from twisted.internet.defer import inlineCallbacks
 

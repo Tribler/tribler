@@ -8,9 +8,11 @@ import sys
 import time
 from abc import ABCMeta, abstractmethod, abstractproperty
 from binascii import hexlify
+
 from libtorrent import bdecode
 
 from six import text_type
+
 from twisted.internet import defer, reactor
 from twisted.internet.defer import Deferred, inlineCallbacks
 from twisted.internet.protocol import DatagramProtocol

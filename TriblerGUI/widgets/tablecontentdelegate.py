@@ -8,8 +8,8 @@ from PyQt5.QtWidgets import QStyle, QStyledItemDelegate
 
 from TriblerGUI.defs import ACTION_BUTTONS, COMMIT_STATUS_COMMITTED, COMMIT_STATUS_NEW, COMMIT_STATUS_TODELETE, \
     HEALTH_CHECKING, HEALTH_DEAD, HEALTH_ERROR, HEALTH_GOOD, HEALTH_MOOT, HEALTH_UNCHECKED
-from TriblerGUI.utilities import get_image_path, get_health
-from TriblerGUI.widgets.tableiconbuttons import DownloadIconButton, PlayIconButton, DeleteIconButton
+from TriblerGUI.utilities import get_health, get_image_path
+from TriblerGUI.widgets.tableiconbuttons import DeleteIconButton, DownloadIconButton, PlayIconButton
 
 
 class TriblerButtonsDelegate(QStyledItemDelegate):

@@ -1,10 +1,11 @@
 from __future__ import absolute_import
 
-import os
 import time
 
 from pony.orm import db_session
+
 from six.moves import xrange
+
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore

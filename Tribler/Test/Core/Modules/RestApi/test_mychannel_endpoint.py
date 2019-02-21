@@ -5,11 +5,13 @@ import json
 from binascii import hexlify
 
 from pony.orm import db_session
+
 from six.moves import xrange
+
 from twisted.internet.defer import inlineCallbacks
 
-from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import NEW, TODELETE
+from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.common import TORRENT_UBUNTU_FILE
