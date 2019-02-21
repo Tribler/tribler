@@ -2,10 +2,8 @@ from __future__ import absolute_import
 
 import os
 import time
-from binascii import hexlify
 
 from Tribler.Core.exceptions import OperationNotEnabledByConfigurationException
-from Tribler.pyipv8.ipv8.messaging.interfaces.statistics_endpoint import StatisticsEndpoint
 
 DATA_NONE = u"None"
 
@@ -44,28 +42,3 @@ class TriblerStatistics(object):
             "total_down": ipv8.endpoint.bytes_down,
             "session_uptime": time.time() - self.session.lm.ipv8_start_time
         }
-
-    def get_ipv8_overlays_statistics(self):
-        """
-        Return a dictionary with IPv8 overlay statistics.
-        """
-        communities_stats = []
-        try:
-            ipv8 = self.session.get_ipv8_instance()
-        except OperationNotEnabledByConfigurationException:
-            return []
-
-        for overlay in ipv8.overlays:
-            peers = overlay.get_peers()
-            statistics = ipv8.endpoint.get_aggregate_statistics(overlay.get_prefix()) \
-                if isinstance(ipv8.endpoint, StatisticsEndpoint) else {}
-            communities_stats.append({
-                "master_peer": hexlify(overlay.master_peer.public_key.key_to_bin()),
-                "my_peer": hexlify(overlay.my_peer.public_key.key_to_bin()),
-                "global_time": overlay.global_time,
-                "peers": [str(peer) for peer in peers],
-                "overlay_name": overlay.__class__.__name__,
-                "statistics": statistics
-            })
-
-        return communities_stats
