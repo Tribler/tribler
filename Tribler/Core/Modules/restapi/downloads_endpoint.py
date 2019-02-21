@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import logging
+from binascii import hexlify
 
 from libtorrent import bencode, create_torrent
 
@@ -235,7 +236,7 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
             download_json = {
                 "name": download_name,
                 "progress": state.get_progress(),
-                "infohash": tdef.get_infohash().encode('hex'),
+                "infohash": hexlify(tdef.get_infohash()),
                 "speed_down": state.get_current_payload_speed(DOWNLOAD),
                 "speed_up": state.get_current_payload_speed(UPLOAD),
                 "status": dlstatus_strings[state.get_status()],
