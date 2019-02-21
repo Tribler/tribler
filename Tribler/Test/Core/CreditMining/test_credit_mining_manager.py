@@ -15,6 +15,7 @@ from twisted.internet.defer import inlineCallbacks, succeed
 
 from Tribler.Core.CreditMining.CreditMiningManager import CreditMiningTorrent
 from Tribler.Core.CreditMining.CreditMiningPolicy import BasePolicy, MB
+from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
 from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_STOPPED, DOWNLOAD, \
     NTFY_CREDIT_MINING, NTFY_ERROR
 from Tribler.Test.Core.base_test import MockObject
@@ -32,8 +33,11 @@ class FakeTorrent(object):
         self.download.running = None
         self.download.restart = lambda: setattr(self.download, 'running', True)
         self.download.stop = lambda: setattr(self.download, 'running', False)
-        self.download.get_credit_mining = lambda: True
+        self.download.credit_mining = True
+        self.download.get_credit_mining = lambda dl=self.download: dl.credit_mining
         self.download.get_handle = lambda: succeed(self.handle)
+        self.download.checkpoint = lambda: None
+        self.download.move_storage = lambda _: None
 
         self.tdef = MockObject()
         self.tdef.get_infohash = lambda: self.infohash
@@ -413,24 +417,44 @@ class TestCreditMiningManager(TestAsServer):
         infohash_bin = '\00' * 20
         magnet = 'magnet:?xt=urn:btih:' + infohash_str
 
+        def fake_move_storage(dl, dest_dir):
+            dl.dest_dir = dest_dir
+            dl.move_storage_called = True
+
+        def fake_checkpoint(dl):
+            dl.checkpoint_called = True
+
+        def set_credit_mining(dl, value):
+            dl.credit_mining = value
+
+        # Default download directory
+        default_dl_config = DefaultDownloadStartupConfig.getInstance()
+        download_dir = default_dl_config.get_dest_dir()
+
         torrent = FakeTorrent(infohash_bin, self.name)
+        torrent.download.move_storage_called = False
+        torrent.download.checkpoint_called = False
+        torrent.download.set_credit_mining = lambda value, dl=torrent.download: set_credit_mining(dl, value)
+        torrent.download.move_storage = lambda dest_dir, dl=torrent.download: fake_move_storage(dl, dest_dir)
+        torrent.download.checkpoint = lambda dl=torrent.download: fake_checkpoint(dl)
+
         self.credit_mining_manager.torrents[infohash_str] = torrent
 
-        # Credit mining downloads should get removed
-        torrent.download.removed = False
+        # Credit mining downloads should get moved to download directory and be checkpointed
         self.session.get_download = lambda _: torrent.download
-        self.session.remove_download = lambda d: setattr(d, 'removed', True) or \
-                                                 setattr(self.session, 'get_download', lambda _: None) or \
-                                                 succeed(None)
         self.session.start_download_from_uri(magnet)
         self.assertNotIn(infohash_str, self.credit_mining_manager.torrents)
-        self.assertTrue(torrent.download.removed)
+        self.assertTrue(torrent.download.checkpoint_called)
+        self.assertTrue(torrent.download.move_storage_called)
+        self.assertEqual(torrent.download.dest_dir, download_dir)
 
         # Non credit mining downloads should not get removed
-        torrent.download.removed = False
+        torrent.download.move_storage_called = False
+        torrent.download.checkpoint_called = False
         torrent.download.get_credit_mining = lambda: False
         self.session.get_download = lambda _: torrent.download
-        self.assertFalse(torrent.download.removed)
+        self.assertFalse(torrent.download.move_storage_called)
+        self.assertFalse(torrent.download.checkpoint_called)
 
     def test_shutdown(self):
         self.credit_mining_manager.add_source(self.cid)

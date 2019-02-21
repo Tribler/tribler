@@ -1,8 +1,13 @@
 from __future__ import absolute_import
+from __future__ import absolute_import
 
-from twisted.web import server, resource
+import time
 
+from twisted.web import resource, server
+
+import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.restapi.util import fix_unicode_dict
+from Tribler.Core.simpledefs import NTFY_REMOVE, NTFY_TUNNEL
 from Tribler.Core.simpledefs import (NTFY_UPGRADER, NTFY_STARTED, NTFY_WATCH_FOLDER_CORRUPT_TORRENT, NTFY_INSERT,
                                      NTFY_NEW_VERSION, NTFY_FINISHED, NTFY_TRIBLER, NTFY_UPGRADER_TICK, NTFY_CHANNEL,
                                      NTFY_DISCOVERED, NTFY_TORRENT, NTFY_ERROR, NTFY_MARKET_ON_ASK,
@@ -10,8 +15,8 @@ from Tribler.Core.simpledefs import (NTFY_UPGRADER, NTFY_STARTED, NTFY_WATCH_FOL
                                      NTFY_MARKET_ON_ASK_TIMEOUT, NTFY_MARKET_ON_BID_TIMEOUT,
                                      NTFY_MARKET_ON_PAYMENT_RECEIVED, NTFY_MARKET_ON_PAYMENT_SENT,
                                      SIGNAL_RESOURCE_CHECK, SIGNAL_LOW_SPACE, NTFY_CREDIT_MINING, STATE_SHUTDOWN)
-import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.version import version_id
+from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import Circuit
 
 
 class EventsEndpoint(resource.Resource):
@@ -87,6 +92,7 @@ class EventsEndpoint(resource.Resource):
         self.session.add_observer(self.on_resource_event, SIGNAL_RESOURCE_CHECK, [SIGNAL_LOW_SPACE])
         self.session.add_observer(self.on_credit_minig_error, NTFY_CREDIT_MINING, [NTFY_ERROR])
         self.session.add_observer(self.on_shutdown, NTFY_TRIBLER, [STATE_SHUTDOWN])
+        self.session.add_observer(self.on_circuit_removed, NTFY_TUNNEL, [NTFY_REMOVE])
 
     def write_data(self, message):
         """
@@ -166,6 +172,16 @@ class EventsEndpoint(resource.Resource):
     def on_shutdown(self, subject, changetype, objectID, *args):
         self.write_data({"type": "shutdown", "event": args[0]})
 
+    def on_circuit_removed(self, subject, changetype, circuit, *args):
+        if isinstance(circuit, Circuit):
+            event = {
+                "circuit_id": circuit.circuit_id,
+                "bytes_up": circuit.bytes_up,
+                "bytes_down": circuit.bytes_down,
+                "uptime": time.time() - circuit.creation_time
+            }
+            self.write_data({"type": "circuit_removed", "event": event})
+
     def render_GET(self, request):
         """
         .. http:get:: /events
@@ -178,6 +194,7 @@ class EventsEndpoint(resource.Resource):
 
                     curl -X GET http://localhost:8085/events
         """
+
         def on_request_finished(_):
             self.events_requests.remove(request)
 
