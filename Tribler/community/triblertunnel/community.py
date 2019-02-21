@@ -13,6 +13,7 @@ from Tribler.Core.Socks5.server import Socks5Server
 from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_METADATA, DLSTATUS_SEEDING, DLSTATUS_STOPPED, \
                                     NTFY_CREATED, NTFY_EXTENDED, NTFY_IP_RECREATE, NTFY_JOINED, NTFY_REMOVE, NTFY_TUNNEL
 from Tribler.community.triblertunnel.caches import BalanceRequestCache
+from Tribler.community.triblertunnel.discovery import GoldenRatioStrategy
 from Tribler.community.triblertunnel.dispatcher import TunnelDispatcher
 from Tribler.community.triblertunnel.payload import BalanceRequestPayload, BalanceResponsePayload, PayoutPayload
 from Tribler.pyipv8.ipv8.attestation.trustchain.block import EMPTY_PK
@@ -93,6 +94,10 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         if self.exitnode_cache:
             self.restore_exitnodes_from_disk()
+
+    def get_available_strategies(self):
+        return super(TriblerTunnelCommunity, self).get_available_strategies().update({'GoldenRatioStrategy':
+                                                                                          GoldenRatioStrategy})
 
     def cache_exitnodes_to_disk(self):
         """

@@ -307,6 +307,7 @@ class TriblerLaunchMany(TaskManager):
         # Tunnel Community
         if self.session.config.get_tunnel_community_enabled():
             from Tribler.community.triblertunnel.community import TriblerTunnelCommunity, TriblerTunnelTestnetCommunity
+            from Tribler.community.triblertunnel.discovery import GoldenRatioStrategy
             community_cls = TriblerTunnelTestnetCommunity if self.session.config.get_testnet() else \
                 TriblerTunnelCommunity
 
@@ -326,6 +327,7 @@ class TriblerLaunchMany(TaskManager):
                                                   settings=settings)
             self.ipv8.overlays.append(self.tunnel_community)
             self.ipv8.strategies.append((RandomWalk(self.tunnel_community), 20))
+            self.ipv8.strategies.append((GoldenRatioStrategy(self.tunnel_community), -1))
 
         # Market Community
         if self.session.config.get_market_community_enabled() and self.session.config.get_dht_enabled():
