@@ -35,12 +35,12 @@ def gen_random_entry():
 def gen_sample_channel(mds):
     my_channel = mds.ChannelMetadata.create_channel('test_channel', 'test description')
 
-    t1 = my_channel.add_torrent_to_channel(TorrentDef.load(TORRENT_UBUNTU_FILE), None)
+    _ = my_channel.add_torrent_to_channel(TorrentDef.load(TORRENT_UBUNTU_FILE), None)
     my_channel.commit_channel_torrent()
 
     t2 = my_channel.add_torrent_to_channel(TorrentDef.load(TORRENT_VIDEO_FILE), None)
-    t3 = mds.TorrentMetadata.from_dict(gen_random_entry())
-    t4 = mds.TorrentMetadata.from_dict(gen_random_entry())
+    _ = mds.TorrentMetadata.from_dict(gen_random_entry())
+    _ = mds.TorrentMetadata.from_dict(gen_random_entry())
     my_channel.commit_channel_torrent()
 
     my_channel.delete_torrent(t2.infohash)
@@ -54,7 +54,7 @@ def gen_sample_channel(mds):
     os.rename(torrent_name, CHANNEL_TORRENT)
 
     # Update channel
-    t5 = mds.TorrentMetadata.from_dict(gen_random_entry())
+    _ = mds.TorrentMetadata.from_dict(gen_random_entry())
     my_channel.commit_channel_torrent()
 
     # Rename updated files to stable names

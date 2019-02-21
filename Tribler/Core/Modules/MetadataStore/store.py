@@ -262,10 +262,7 @@ class MetadataStore(object):
             # Add new channel object to DB
             channel = self.ChannelMetadata.from_payload(payload)
 
-        """
-        if channel.version > channel.local_version:
         #TODO: handle the case where the local version is the same as the new one and is not seeded
-        """
         return channel, status
 
     @db_session

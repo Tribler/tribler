@@ -24,6 +24,7 @@ class GigaChannelManager(TaskManager):
     def __init__(self, session):
         super(GigaChannelManager, self).__init__()
         self.session = session
+        self.channels_lc = None
 
     def start(self):
         """
@@ -43,14 +44,8 @@ class GigaChannelManager(TaskManager):
             pass
 
         channels_check_interval = 5.0  # seconds
-        lcall = LoopingCall(self.service_channels)
-        d = self.register_task("Process channels download queue and remove cruft", lcall).start(channels_check_interval)
-
-        # def handle(f):
-        #    print "errback"
-        #    print "we got an exception: %s" % (f.getTraceback(),)
-        #    f.trap(RuntimeError)
-        # d.addErrback(handle)
+        self.channels_lc = self.register_task("Process channels download queue and remove cruft",
+                                              LoopingCall(self.service_channels)).start(channels_check_interval)
 
     def shutdown(self):
         """
@@ -158,14 +153,12 @@ class GigaChannelManager(TaskManager):
         def _on_remove_failure(failure):
             self._logger.error("Error when removing the channel download: %s", failure)
 
-        # removed_list = []
         for i, dl_tuple in enumerate(to_remove_list):
             d, remove_content = dl_tuple
             deferred = self.session.remove_download(d, remove_content=remove_content)
             deferred.addErrback(_on_remove_failure)
             self.register_task(u'remove_channel' + d.tdef.get_name_utf8() + u'-' + hexlify(d.tdef.get_infohash()) +
                                u'-' + str(i), deferred)
-            # removed_list.append(deferred)
 
         """
         def _on_torrents_removed(torrent):

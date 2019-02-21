@@ -364,8 +364,7 @@ class SettingsPage(QWidget):
         else:
             settings_data['libtorrent']['proxy_server'] = ":"
 
-        if len(self.window().lt_proxy_username_input.text()) > 0 and \
-                len(self.window().lt_proxy_password_input.text()) > 0:
+        if self.window().lt_proxy_username_input.text() and self.window().lt_proxy_password_input.text():
             settings_data['libtorrent']['proxy_auth'] = "%s:%s" % (self.window().lt_proxy_username_input.text(),
                                                                    self.window().lt_proxy_password_input.text())
         else:

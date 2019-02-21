@@ -14,7 +14,6 @@ class SearchResultsPage(QWidget):
 
     def __init__(self):
         QWidget.__init__(self)
-        self.health_timer = None
         self.query = None
         self.controller = None
         self.model = None
@@ -25,7 +24,7 @@ class SearchResultsPage(QWidget):
         self.window().search_results_tab.initialize()
         self.window().search_results_tab.clicked_tab_button.connect(self.clicked_tab_button)
         self.model = SearchResultsContentModel(hide_xxx=get_gui_setting(self.gui_settings, "family_filter", True,
-                                                  is_bool=True) if self.gui_settings else True)
+                                                                        is_bool=True) if self.gui_settings else True)
         self.controller = SearchResultsTableViewController(self.model, self.window().search_results_list,
                                                            self.window().search_details_container,
                                                            self.window().num_search_results_label)
@@ -42,21 +41,6 @@ class SearchResultsPage(QWidget):
         self.window().search_results_header_label.setText("Search results for: %s" % trimmed_query)
 
         self.controller.load_search_results(query, 1, 50)
-
-        # Start the health timer that checks the health of the first five results
-        """
-        if self.health_timer:
-            self.health_timer.stop()
-
-        self.health_timer = QTimer()
-        self.health_timer.setSingleShot(True)
-        self.health_timer.timeout.connect(self.check_health_of_results)
-        self.health_timer.start(2000)
-    def check_health_of_results(self):
-        first_torrents = self.window().search_results_list.get_first_items(5, cls=ChannelTorrentListItem)
-        for torrent_item in first_torrents:
-            torrent_item.check_health()
-        """
 
     def set_columns_visibility(self, column_names, hide=True):
         for column_name in column_names:

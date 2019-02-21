@@ -6,8 +6,10 @@ from binascii import hexlify
 from unittest import skipIf
 
 import six
-from pony.orm import db_session
 from six.moves import xrange
+
+from pony.orm import db_session
+
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.TorrentChecker.torrent_checker import TorrentChecker

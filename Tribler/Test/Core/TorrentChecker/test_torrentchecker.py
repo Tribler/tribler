@@ -225,10 +225,23 @@ class TestTorrentChecker(TestAsServer):
             (True, {'DHT': [{'leechers': 12, 'seeders': 13, 'infohash': infohash_hex}]})
         ]
         # Check that everything works fine even if the database contains no proper infohash
+        res_dict = {
+            'DHT': {
+                'leechers': 12,
+                'seeders': 13,
+                'infohash': infohash_hex
+            },
+            'http://badtracker.org/announce': {
+                'error': ''
+            },
+            'udp://localhost:2801': {
+                'leechers': 1,
+                'seeders': 2,
+                'infohash': infohash_hex
+            }
+        }
         self.torrent_checker.on_gui_request_completed(infohash_bin, result)
-        self.assertDictEqual(self.torrent_checker.on_gui_request_completed(infohash_bin, result),
-                         {'DHT': {'leechers': 12, 'seeders': 13, 'infohash': infohash_hex},
-                          'http://badtracker.org/announce': {'error': ''}, 'udp://localhost:2801': {'leechers': 1, 'seeders': 2, 'infohash': infohash_hex}})
+        self.assertDictEqual(self.torrent_checker.on_gui_request_completed(infohash_bin, result), res_dict)
 
         with db_session:
             ts = self.session.lm.mds.TorrentState(infohash=infohash_bin)

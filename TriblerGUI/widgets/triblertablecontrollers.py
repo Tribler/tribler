@@ -135,7 +135,7 @@ class ChannelsTableViewController(TriblerTableViewController):
         if self.filter_input:
             self.filter_input.textChanged.connect(self._on_filter_input_change)
 
-    def _on_filter_input_change(self, text):
+    def _on_filter_input_change(self, _):
         self.model.reset()
         self.load_channels(1, 50)
 

@@ -1,8 +1,7 @@
 from __future__ import absolute_import
 
-import os
-
 from pony.orm import db_session
+
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore

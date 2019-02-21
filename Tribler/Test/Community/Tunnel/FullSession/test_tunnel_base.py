@@ -100,10 +100,9 @@ class TestTunnelBase(TestAsServer):
         self.tunnel_communities.append(self.tunnel_community)
 
         self._logger.info("Introducing all nodes to each other in tests")
-        for community_introduce in self.tunnel_communities + ([self.tunnel_community_seeder] if
-        self.tunnel_community_seeder else []):
-            for community in self.tunnel_communities + ([self.tunnel_community_seeder] if
-            self.tunnel_community_seeder else []):
+        other_tunnel_communities = [self.tunnel_community_seeder] if self.tunnel_community_seeder else []
+        for community_introduce in self.tunnel_communities + other_tunnel_communities:
+            for community in self.tunnel_communities + other_tunnel_communities:
                 if community != community_introduce:
                     community.walk_to(community_introduce.endpoint.get_address())
 

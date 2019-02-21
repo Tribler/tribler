@@ -74,10 +74,10 @@ class TriblerContentModel(RemoteTableModel):
     def _set_remote_data(self):
         pass
 
-    def rowCount(self, parent=QModelIndex()):
+    def rowCount(self, _):
         return len(self.data_items)
 
-    def columnCount(self, parent=QModelIndex()):
+    def columnCount(self, _):
         return len(self.columns)
 
     def flags(self, index):

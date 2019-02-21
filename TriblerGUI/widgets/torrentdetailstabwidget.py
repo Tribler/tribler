@@ -115,7 +115,6 @@ class TorrentDetailsTabWidget(QTabWidget):
             self._logger.error("The underlying GUI widget has already been removed.")
 
     def check_torrent_health(self):
-        timeout = 15
         infohash = self.torrent_info[u'infohash']
 
         def on_cancel_health_check():

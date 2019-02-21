@@ -6,13 +6,13 @@ import string
 from binascii import unhexlify
 
 from pony.orm import db_session
+
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import entries_to_chunk, CHANNEL_DIR_NAME_LENGTH
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import NEW
 from Tribler.Core.Modules.MetadataStore.serialization import (ChannelMetadataPayload, SignedPayload,
-                                                              UnknownBlobTypeException, ChannelNodePayload,
-                                                              DeletedMetadataPayload)
+                                                              UnknownBlobTypeException, DeletedMetadataPayload)
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore, GOT_SAME_VERSION, NO_ACTION, DELETED_METADATA, \
     UNKNOWN_TORRENT, UNKNOWN_CHANNEL
 from Tribler.Test.Core.base_test import TriblerCoreTest
@@ -22,7 +22,8 @@ from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto
 
 def make_wrong_payload(filename):
     key = default_eccrypto.generate_key(u"curve25519")
-    metadata_payload = SignedPayload(666, 0, database_blob(key.pub().key_to_bin()[10:]), signature='\x00'*64, skip_key_check=True)
+    metadata_payload = SignedPayload(666, 0, database_blob(key.pub().key_to_bin()[10:]),
+                                     signature='\x00'*64, skip_key_check=True)
     with open(filename, 'wb') as output_file:
         output_file.write(''.join(metadata_payload.serialized()))
 
@@ -90,17 +91,17 @@ class TestMetadataStore(TriblerCoreTest):
     def test_squash_mdblobs(self):
         chunk_size = self.mds.ChannelMetadata._CHUNK_SIZE_LIMIT
         md_list = [self.mds.TorrentMetadata(
-            title=''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(20))) for _ in
-            range(0, 10)]
+            title=''.join(random.choice(string.ascii_uppercase + string.digits)
+                          for _ in range(20))) for _ in range(0, 10)]
         chunk, _ = entries_to_chunk(md_list, chunk_size=chunk_size)
         dict_list = [d.to_dict()["signature"] for d in md_list]
         for d in md_list:
             d.delete()
-        self.assertListEqual(dict_list, [d[0].to_dict()["signature"] for d in self.mds.process_compressed_mdblob(chunk)])
+        self.assertListEqual(dict_list, [d[0].to_dict()["signature"]
+                                         for d in self.mds.process_compressed_mdblob(chunk)])
 
     @db_session
     def test_squash_mdblobs_multiple_chunks(self):
-        chunk_size = self.mds.ChannelMetadata._CHUNK_SIZE_LIMIT
         md_list = [self.mds.TorrentMetadata(
             title=''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(20))) for _ in
             range(0, 10)]
@@ -110,8 +111,10 @@ class TestMetadataStore(TriblerCoreTest):
         dict_list = [d.to_dict()["signature"] for d in md_list]
         for d in md_list:
             d.delete()
-        self.assertListEqual(dict_list[:index], [d[0].to_dict()["signature"] for d in self.mds.process_compressed_mdblob(chunk)])
-        self.assertListEqual(dict_list[index:], [d[0].to_dict()["signature"] for d in self.mds.process_compressed_mdblob(chunk2)])
+        self.assertListEqual(dict_list[:index], [d[0].to_dict()["signature"]
+                                                 for d in self.mds.process_compressed_mdblob(chunk)])
+        self.assertListEqual(dict_list[index:], [d[0].to_dict()["signature"]
+                                                 for d in self.mds.process_compressed_mdblob(chunk2)])
 
     @db_session
     def test_multiple_squashed_commit_and_read(self):
@@ -180,19 +183,16 @@ class TestMetadataStore(TriblerCoreTest):
         self.assertEqual(UNKNOWN_CHANNEL, result[1])
         self.assertEqual(node_dict['metadata_type'], result[0].to_dict()['metadata_type'])
 
-
-
-
     @db_session
     def test_get_num_channels_nodes(self):
         self.mds.ChannelMetadata(title='testchan', id_=0)
         self.mds.ChannelMetadata(title='testchan', id_=123)
-        self.mds.ChannelMetadata(title='testchan', id_=0, public_key=unhexlify('0'*20), signature=unhexlify('0'*64), skip_key_check=True)
-        self.mds.ChannelMetadata(title='testchan', id_=0, public_key=unhexlify('1'*20), signature=unhexlify('1'*64), skip_key_check=True)
+        self.mds.ChannelMetadata(title='testchan', id_=0, public_key=unhexlify('0'*20),
+                                 signature=unhexlify('0'*64), skip_key_check=True)
+        self.mds.ChannelMetadata(title='testchan', id_=0, public_key=unhexlify('1'*20),
+                                 signature=unhexlify('1'*64), skip_key_check=True)
 
-        md_list = [self.mds.TorrentMetadata(title='test' + str(x), status=NEW) for x in range(0, 3)]
+        _ = [self.mds.TorrentMetadata(title='test' + str(x), status=NEW) for x in range(0, 3)]
 
         self.assertEqual(4, self.mds.get_num_channels())
         self.assertEqual(3, self.mds.get_num_torrents())
-
-

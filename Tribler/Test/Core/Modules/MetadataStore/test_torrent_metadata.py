@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
-import os
 from datetime import datetime
 
 from pony import orm
 from pony.orm import db_session
+
 from six.moves import xrange
+
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import TODELETE
@@ -209,4 +210,3 @@ class TestTorrentMetadata(TriblerCoreTest):
         self.assertTrue(md.metadata_conflicting(dict(tdict, title="bla")))
         tdict.pop('title')
         self.assertFalse(md.metadata_conflicting(tdict))
-

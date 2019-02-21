@@ -138,7 +138,7 @@ def define_binding(db):
             """
             pony_query = cls.get_entries_query(**kwargs)
 
-            if type(metadata_type) == list:
+            if isinstance(metadata_type, list):
                 pony_query = pony_query.where(lambda g: g.metadata_type in metadata_type)
             else:
                 pony_query = pony_query.where(metadata_type=metadata_type)

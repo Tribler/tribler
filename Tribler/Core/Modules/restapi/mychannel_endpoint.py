@@ -225,11 +225,11 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
             torrents_list, errors_list = my_channel.add_torrents_from_dir(torrents_dir, recursive)
             return json.dumps({"added": len(torrents_list), "errors": errors_list})
 
-        if 'torrent' not in parameters or len(parameters['torrent']) == 0:
+        if 'torrent' not in parameters or not parameters['torrent']:
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "torrent parameter missing"})
 
-        if 'description' not in parameters or len(parameters['description']) == 0:
+        if 'description' not in parameters or not parameters['description']:
             extra_info = {}
         else:
             extra_info = {'description': parameters['description'][0]}

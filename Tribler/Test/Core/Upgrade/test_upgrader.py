@@ -46,8 +46,8 @@ class TestUpgrader(AbstractUpgrader):
         return test_deferred
 
     def test_upgrade_72_to_pony(self):
-        OLD_DB_SAMPLE = os.path.abspath(os.path.join(os.path.abspath(os.path.dirname(os.path.realpath(__file__))), '..', 'data',
-                                     'upgrade_databases', 'tribler_v29.sdb'))
+        OLD_DB_SAMPLE = os.path.abspath(os.path.join(os.path.abspath(
+            os.path.dirname(os.path.realpath(__file__))), '..', 'data', 'upgrade_databases', 'tribler_v29.sdb'))
         old_database_path = os.path.join(self.session.config.get_state_dir(), 'sqlite', 'tribler.sdb')
         new_database_path = os.path.join(self.session.config.get_state_dir(), 'sqlite', 'metadata.db')
         channels_dir = os.path.join(self.session.config.get_chant_channels_dir())

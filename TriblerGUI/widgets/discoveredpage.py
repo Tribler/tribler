@@ -25,10 +25,11 @@ class DiscoveredPage(QWidget):
             self.initialized = True
             self.gui_settings = gui_settings
             self.model = ChannelsContentModel(hide_xxx=get_gui_setting(self.gui_settings, "family_filter", True,
-                                                  is_bool=True) if self.gui_settings else True)
+                                                                       is_bool=True) if self.gui_settings else True)
             # Set the default sorting column/order to num_torrents/descending
             default_sort_column = self.model.columns.index(u'torrents')
-            self.window().discovered_channels_list.horizontalHeader().setSortIndicator(default_sort_column, Qt.AscendingOrder)
+            self.window().discovered_channels_list.horizontalHeader().setSortIndicator(
+                default_sort_column, Qt.AscendingOrder)
             self.controller = ChannelsTableViewController(self.model, self.window().discovered_channels_list,
                                                           self.window().num_discovered_channels_label,
                                                           self.window().discovered_channels_filter_input)

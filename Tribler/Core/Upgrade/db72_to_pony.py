@@ -39,17 +39,22 @@ def final_timestamp():
 
 
 class DispersyToPonyMigration(object):
-    select_channels_sql = "Select id, name, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam " \
+    select_channels_sql = "SELECT id, name, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam " \
                           + "FROM Channels " \
                           + "WHERE nr_torrents >= 3 " \
                           + "AND name not NULL;"
 
-    select_trackers_sql = "select tracker_id, tracker, last_check, failures, is_alive from TrackerInfo"
+    select_trackers_sql = "SELECT tracker_id, tracker, last_check, failures, is_alive FROM TrackerInfo"
 
     select_full = "SELECT" \
-                  " (select ti.tracker from TorrentTrackerMapping ttm, TrackerInfo ti where ttm.torrent_id == t.torrent_id and ttm.tracker_id == ti.tracker_id and ti.tracker != 'DHT' and ti.tracker != 'http://retracker.local/announce' order by ti.is_alive asc, ti.failures desc, ti.last_check asc), " \
-                  " ct.channel_id, ct.name, t.infohash, t.length, t.creation_date, t.torrent_id, t.category, t.num_seeders, t.num_leechers, t.last_tracker_check " \
-                  "FROM _ChannelTorrents ct, Torrent t WHERE ct.name NOT NULL and t.length > 0 AND t.category NOT NULL AND ct.deleted_at IS NULL AND t.torrent_id == ct.torrent_id AND t.infohash NOT NULL "
+                  " (SELECT ti.tracker FROM TorrentTrackerMapping ttm, TrackerInfo ti WHERE " \
+                  "ttm.torrent_id == t.torrent_id AND ttm.tracker_id == ti.tracker_id AND ti.tracker != 'DHT' " \
+                  "AND ti.tracker != 'http://retracker.local/announce' ORDER BY ti.is_alive ASC, ti.failures DESC, " \
+                  "ti.last_check ASC), ct.channel_id, ct.name, t.infohash, t.length, t.creation_date, t.torrent_id, " \
+                  "t.category, t.num_seeders, t.num_leechers, t.last_tracker_check " \
+                  "FROM _ChannelTorrents ct, Torrent t WHERE ct.name NOT NULL and t.length > 0 AND " \
+                  "t.category NOT NULL AND ct.deleted_at IS NULL AND t.torrent_id == ct.torrent_id AND " \
+                  "t.infohash NOT NULL "
 
     select_torrents_sql = " FROM _ChannelTorrents ct, Torrent t WHERE " + \
                           "ct.name NOT NULL and t.length>0 AND t.category NOT NULL AND ct.deleted_at IS NULL " + \
@@ -155,7 +160,8 @@ class DispersyToPonyMigration(object):
                                       (" %i " % self.personal_channel_id)
 
         torrents = []
-        for tracker_url, channel_id, name, infohash, length, creation_date, torrent_id, category, num_seeders, num_leechers, last_tracker_check in cursor.execute(
+        for tracker_url, channel_id, name, infohash, length, creation_date, torrent_id, category, num_seeders,\
+            num_leechers, last_tracker_check in cursor.execute(
                 self.select_full + personal_channel_filter + " group by infohash" + (
                         " LIMIT " + str(batch_size) + " OFFSET " + str(offset))):
             # check if name is valid unicode data
@@ -228,16 +234,15 @@ class DispersyToPonyMigration(object):
         old_torrents = self.get_old_torrents(personal_channel_only=True, sign=True)
         with db_session:
             my_channel = self.mds.ChannelMetadata.create_channel(title=self.personal_channel_title, description='')
-            for (t, h) in old_torrents:
+            for (torrent, _) in old_torrents:
                 try:
-                    md = self.mds.TorrentMetadata(**t)
+                    md = self.mds.TorrentMetadata(**torrent)
                     md.parents.add(my_channel)
                 except:
                     continue
             my_channel.commit_channel_torrent()
 
     def convert_discovered_torrents(self):
-
         offset = 0
         # Reflect conversion state
         with db_session:
@@ -260,7 +265,7 @@ class DispersyToPonyMigration(object):
             if not old_torrents:
                 break
             with db_session:
-                for (t, h) in old_torrents:
+                for (t, _) in old_torrents:
                     try:
                         self.mds.TorrentMetadata(**t)
                     except:

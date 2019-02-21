@@ -24,10 +24,10 @@ class IconButton(QObject):
         self.icon_rect = QRect()
         self.icon_mode = QIcon.Normal
 
-    def should_draw(self, index):
+    def should_draw(self, _):
         return True
 
-    def paint(self, painter, rect, index):
+    def paint(self, painter, rect, _):
         # Update button activation rect from the drawing call
         self.rect = rect
 
@@ -37,13 +37,13 @@ class IconButton(QObject):
 
         self.icon.paint(painter, icon_rect, mode=self.icon_mode)
 
-    def check_clicked(self, event, model, option, index):
+    def check_clicked(self, event, _, __, index):
         if event.type() == QEvent.MouseButtonRelease and self.rect.contains(event.pos()):
             self.clicked.emit(index)
             return True
         return False
 
-    def on_mouse_moved(self, pos, index):
+    def on_mouse_moved(self, pos, _):
         old_icon_mode = self.icon_mode
         if self.rect.contains(pos):
             self.icon_mode = QIcon.Selected
@@ -51,7 +51,7 @@ class IconButton(QObject):
             self.icon_mode = QIcon.Normal
         return old_icon_mode != self.icon_mode
 
-    def size_hint(self, option, index):
+    def size_hint(self, _, __):
         return self.size
 
 
