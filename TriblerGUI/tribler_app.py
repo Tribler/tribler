@@ -14,7 +14,7 @@ class TriblerApplication(QtSingleApplication):
     This class represents the main Tribler application.
     """
     def __init__(self, app_name, args):
-        QtSingleApplication.__init__(self, args)
+        QtSingleApplication.__init__(self, app_name, args)
         self.code_executor = None
         self.messageReceived.connect(self.on_app_message)
 
