@@ -275,6 +275,7 @@ class DispersyToPonyMigration(object):
             x += batch_size
             if self.notifier_callback:
                 self.notifier_callback("%i/%i" % (x, total_to_convert))
+                self._logger.info("Converted old torrents: %i/%i" % (x, total_to_convert))
 
         stop = datetime.datetime.utcnow()
         elapsed = (stop - start).total_seconds()
