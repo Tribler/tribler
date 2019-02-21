@@ -123,6 +123,7 @@ class TriblerWindow(QMainWindow):
         self.start_time = time.time()
         self.exception_handler_called = False
         self.token_refresh_timer = None
+        self.shutdown_timer = None
 
         sys.excepthook = self.on_exception
 

@@ -23,7 +23,7 @@ class ChannelPage(QWidget):
     def initialize_channel_page(self, gui_settings):
         self.gui_settings = gui_settings
         self.model = TorrentsContentModel(hide_xxx=get_gui_setting(self.gui_settings, "family_filter", True,
-                                                  is_bool=True) if self.gui_settings else True)
+                                                                   is_bool=True) if self.gui_settings else True)
         self.controller = TorrentsTableViewController(self.model, self.window().channel_page_container,
                                                       None, self.window().channel_torrents_filter_input)
 
