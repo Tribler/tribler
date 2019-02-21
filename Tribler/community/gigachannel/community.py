@@ -1,32 +1,36 @@
-from time import time
+from __future__ import absolute_import
+
+from binascii import unhexlify
 
 from pony.orm import db_session
 
-from Tribler.community.gigachannel.payload import TruncatedChannelPayload, TruncatedChannelPlayloadBlob
-from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH
+from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import entries_to_chunk
+from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT
+from Tribler.Core.Modules.MetadataStore.store import GOT_NEWER_VERSION
 from Tribler.pyipv8.ipv8.community import Community
 from Tribler.pyipv8.ipv8.lazy_community import lazy_wrapper
+from Tribler.pyipv8.ipv8.messaging.payload import Payload
 from Tribler.pyipv8.ipv8.messaging.payload_headers import BinMemberAuthenticationPayload
 from Tribler.pyipv8.ipv8.peer import Peer
-from Tribler.pyipv8.ipv8.requestcache import NumberCache, RequestCache
+
+minimal_blob_size = 200
+maximum_payload_size = 1024
+max_entries = maximum_payload_size // minimal_blob_size
 
 
-class ChannelDownloadCache(NumberCache):
-    """
-    Token for channel downloads.
+class RawBlobPayload(Payload):
+    format_list = ['raw']
 
-    This token is held for a maximum of 10 seconds or until the current download finishes.
-    """
+    def __init__(self, raw_blob):
+        super(RawBlobPayload, self).__init__()
+        self.raw_blob = raw_blob
 
-    def __init__(self, request_cache):
-        super(ChannelDownloadCache, self).__init__(request_cache, u"channel-download-cache", 0)
+    def to_pack_list(self):
+        return [('raw', self.raw_blob)]
 
-    @property
-    def timeout_delay(self):
-        return 10.0
-
-    def on_timeout(self):
-        pass
+    @classmethod
+    def from_unpack_list(cls, raw_blob):
+        return RawBlobPayload(raw_blob)
 
 
 class GigaChannelCommunity(Community):
@@ -34,34 +38,22 @@ class GigaChannelCommunity(Community):
     Community to gossip around gigachannels.
     """
 
-    master_peer = Peer("3081a7301006072a8648ce3d020106052b81040027038192000400118911f5102bac4fca2d6ee5c3cb41978a4b657"
-                       "e9707ce2031685c7face02bb3bf42b74a47c1d2c5f936ea2fa2324af12de216abffe01f10f97680e8fe548b82dedf"
-                       "362eb29d3b074187bcfbce6869acb35d8bcef3bb8713c9e9c3b3329f59ff3546c3cd560518f03009ca57895a5421b"
-                       "4afc5b90a59d2096b43eb22becfacded111e84d605a01e91a600e2b55a79d".decode('hex'))
+    master_peer = Peer(unhexlify("3081a7301006072a8648ce3d020106052b8104002703819200040448a078b597b62d3761a061872cd86"
+                                 "10f58cb513f1dc21e66dd59f1e01d582f633b182d9ca6e5859a9a34e61eb77b768e5e9202f642fd50c6"
+                                 "0b89d8d8b0bdc355cdf8caac262f6707c80da00b1bcbe7bf91ed5015e5163a76a2b2e630afac96925f5"
+                                 "daa8556605043c6da4db7d26113cba9f9cbe63fddf74625117598317e05cb5b8cbd606d0911683570ad"
+                                 "bb921c91"))
 
-    def __init__(self, my_peer, endpoint, network, tribler_session):
+    NEWS_PUSH_MESSAGE = 1
+
+    def __init__(self, my_peer, endpoint, network, metadata_store):
         super(GigaChannelCommunity, self).__init__(my_peer, endpoint, network)
-        self.tribler_session = tribler_session
-        self.download_queue = []
-        self.request_cache = RequestCache()
+        self.metadata_store = metadata_store
+        self.auth = BinMemberAuthenticationPayload(self.my_peer.public_key.key_to_bin()).to_pack_list()
 
         self.decode_map.update({
-            chr(1): self.on_truncated_blob
+            chr(self.NEWS_PUSH_MESSAGE): self.on_blob
         })
-
-    def get_random_entries(self):
-        """
-        Fetch some random entries from our subscribed channels.
-
-        :return: the truncated payloads to share with other peers
-        :rtype: [TruncatedChannelPayload]
-        """
-        out = []
-        with db_session:
-            for channel in self.tribler_session.lm.mds.ChannelMetadata.get_random_channels(7):
-                out.append(TruncatedChannelPayload(str(channel.infohash), str(channel.title),
-                                                   str(channel.public_key[10:]), int(channel.version)))
-        return out
 
     def send_random_to(self, peer):
         """
@@ -69,120 +61,50 @@ class GigaChannelCommunity(Community):
 
         :param peer: the peer to send to
         :type peer: Peer
-        :returs: None
+        :returns: None
         """
-        entries = self.get_random_entries()
-        if entries:
-            payload = TruncatedChannelPlayloadBlob(entries).to_pack_list()
-            auth = BinMemberAuthenticationPayload(self.my_peer.public_key.key_to_bin()).to_pack_list()
-            self.endpoint.send(peer.address, self._ez_pack(self._prefix, 1, [auth, payload]))
+        # Choose some random entries and try to pack them into maximum_payload_size bytes
+        md_list = []
+        with db_session:
+            # TODO: when the health table will be there, send popular torrents instead
+            channel_l = self.metadata_store.ChannelMetadata.get_random_channels(1, only_subscribed=True)[:]
+            if not channel_l:
+                return
+            channel = channel_l[0]
+            md_list.append(channel)
+            md_list.extend(list(channel.get_random_torrents(max_entries - 1)))
+            blob = entries_to_chunk(md_list, maximum_payload_size)[0] if md_list else None
+        self.endpoint.send(peer.address, self._ez_pack(self._prefix, self.NEWS_PUSH_MESSAGE,
+                                                       [self.auth, RawBlobPayload(blob).to_pack_list()]))
 
-    @lazy_wrapper(TruncatedChannelPlayloadBlob)
-    def on_truncated_blob(self, peer, blob):
+    @lazy_wrapper(RawBlobPayload)
+    def on_blob(self, peer, blob):
         """
-        Callback for when a TruncatedChannelPlayloadBlob message comes in.
+        Callback for when a MetadataBlob message comes in.
 
         :param peer: the peer that sent us the blob
-        :type peer: Peer
-        :param blob: the truncated channel message
-        :type blob: TruncatedChannelPlayloadBlob
-        :returns: None
+        :param data: payload raw data
         """
-        for truncated_channel in blob.payload_list:
-            # The database stores the long format of the keys
-            longpk = "LibNaCLPK:" + truncated_channel.public_key
-            if truncated_channel.infohash not in self.download_queue:
-                with db_session:
-                    channel = self.tribler_session.lm.mds.ChannelMetadata.get_channel_with_id(longpk)
-                    if not channel:
-                        # Insert a new channel entry into the database.
-                        # We set the version to 0 so that we receive the up-to-date information later.
-                        self.tribler_session.lm.mds.ChannelMetadata.from_dict({
-                            'infohash': truncated_channel.infohash,
-                            'public_key': longpk,
-                            'title': truncated_channel.title,
-                            'version': 0
-                        })
-                        self.download_queue.append(truncated_channel.infohash)
-                    elif truncated_channel.version > channel.local_version:
-                        # The sent version is newer than the one we have, queue the download.
-                        channel.infohash = truncated_channel.infohash
-                        self.download_queue.append(truncated_channel.infohash)
-                    # We don't update anything if the channel version is older than the one we know.
 
-    def update_from_download(self, download):
-        """
-        Given a channel download, update the amount of votes.
-
-        :param download: the channel download to inspect
-        :type download: LibtorrentDownloadImpl
-        :returns: None
-        """
-        infohash = download.tdef.get_infohash()
         with db_session:
-            channel = self.tribler_session.lm.mds.ChannelMetadata.get_channel_with_infohash(infohash)
-            if channel:
-                channel.votes = download.get_num_connected_seeds_peers()[0]
-            else:
-                # We have an older version in our list, decide what to do with it
-                my_key_hex = str(self.tribler_session.lm.mds.my_key.pub().key_to_bin()).encode('hex')
-                dirname = my_key_hex[-CHANNEL_DIR_NAME_LENGTH:]
-                if download.tdef.get_name() != dirname or time() - download.tdef.get_creation_date() > 604800:
-                    # This is not our channel or more than a week old version of our channel: delete it
-                    self.logger.debug("Removing old channel version %s", infohash.encode('hex'))
-                    self.tribler_session.remove_download(download)
+            md_list = self.metadata_store.process_compressed_mdblob(blob.raw_blob)
+            # Check if the guy who send us this metadata actually has an older version of this md than
+            # we do, and queue to send it back.
 
-    def download_completed(self, download):
-        """
-        Callback for when a channel download finished.
-
-        :param download: the channel download which completed
-        :type download: LibtorrentDownloadImpl
-        :returns: None
-        """
-        if self.request_cache.has(u"channel-download-cache", 0):
-            self.request_cache.pop(u"channel-download-cache", 0)
-        self.update_from_download(download)
-
-    def update_states(self, states_list):
-        """
-        Callback for when the download states are updated in Tribler.
-        We still need to filter out the channel downloads from this list.
-
-        :param states_list: the list of download states
-        :type states_list: [DownloadState]
-        :returns: None
-        """
-        for ds in states_list:
-            if ds.get_download().dlconfig.get('download_defaults', 'channel_download'):
-                self.update_from_download(ds.get_download())
-
-    def fetch_next(self):
-        """
-        If we have nothing to process right now, start downloading a new channel.
-
-        :returns: None
-        """
-        if self.request_cache.has(u"channel-download-cache", 0):
-            return
-        if self.download_queue:
-            infohash = self.download_queue.pop(0)
-            if not self.tribler_session.has_download(infohash):
-                self._logger.info("Starting channel download with infohash %s", infohash.encode('hex'))
-                # Reserve the token
-                self.request_cache.add(ChannelDownloadCache(self.request_cache))
-                # Start downloading this channel
-                with db_session:
-                    channel = self.tribler_session.lm.mds.ChannelMetadata.get_channel_with_infohash(infohash)
-                finished_deferred = self.tribler_session.lm.download_channel(channel)[1]
-                finished_deferred.addCallback(self.download_completed)
+            reply_list = [md for md, result in md_list if
+                          (md and (md.metadata_type == CHANNEL_TORRENT)) and (result == GOT_NEWER_VERSION)]
+            reply_blob = entries_to_chunk(reply_list, maximum_payload_size)[0] if reply_list else None
+        if reply_blob:
+            self.endpoint.send(peer.address,
+                               self._ez_pack(self._prefix, 1, [self.auth, RawBlobPayload(reply_blob).to_pack_list()]))
 
 
 class GigaChannelTestnetCommunity(GigaChannelCommunity):
     """
     This community defines a testnet for the giga channels, used for testing purposes.
     """
-    master_peer = Peer("3081a7301006072a8648ce3d020106052b8104002703819200040726f5b6558151e1b82c3d30c08175c446f5f696b"
-                       "e9b005ee23050fe55f7e4f73c1b84bf30eb0a254c350705f89369ba2c6b6795a50f0aa562b3095bfa8aa069747221"
-                       "c0fb92e207052b7d03fa8a76e0b236d74ac650de37e5dfa02cbd6b9fe2146147f3555bfa7410b9c499a8ec49a80ac"
-                       "84b433fb2bf1740a15e96a5bad2b90b0488bdc791633ee7d829dcd583ee5f".decode('hex'))
+    master_peer = Peer(unhexlify("3081a7301006072a8648ce3d020106052b81040027038192000401b9f303778e7727b35a4c26487481f"
+                                 "a7011e252cc4a6f885f3756bd8898c9620cf1c32e79dd5e75ae277a56702a47428ce47676d005e262fa"
+                                 "fd1a131a2cb66be744d52cb1e0fca503658cb3368e9ebe232e7b8c01e3172ebfdb0620b316467e5b2c4"
+                                 "c6809565cf2142e8d4322f66a3d13a8c4bb18059c9ed97975a97716a085a93e3e62b0387e63f0bf389a"
+                                 "0e9bffe6"))

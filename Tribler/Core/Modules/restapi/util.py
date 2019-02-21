@@ -9,8 +9,6 @@ from six.moves import xrange
 from twisted.web import http
 
 import Tribler.Core.Utilities.json_util as json
-from Tribler.Core.Modules.MetadataStore.serialization import time2float
-from Tribler.Core.Modules.restapi import VOTE_SUBSCRIBE
 
 
 def return_handled_exception(request, exception):
@@ -27,109 +25,6 @@ def return_handled_exception(request, exception):
             u"message": exception.message
         }
     })
-
-
-def convert_channel_metadata_to_tuple(metadata):
-    """
-    Convert some given channel metadata to a tuple, similar to returned channels from the database.
-    :param metadata: The metadata to convert.
-    :return: A tuple with information about the torrent.
-    """
-    # TODO: the values here are totally random temporary placeholders, and should be removed eventually.
-    votes = 1
-    my_vote = 2
-    spam = 0
-    relevance = 0.9
-    unix_timestamp = time2float(metadata.timestamp)
-    return (metadata.rowid, str(metadata.public_key), metadata.title, metadata.tags, int(metadata.size), votes, spam,
-            my_vote, unix_timestamp, relevance)
-
-
-def convert_torrent_metadata_to_tuple(metadata, commit_status=None):
-    """
-    Convert some given torrent metadata to a tuple, similar to returned torrents from the database.
-    :param metadata: The metadata to convert.
-    :return: A tuple with information about the torrent.
-    """
-    seeders = 0
-    leechers = 0
-    last_tracker_check = 0
-    category = 'unknown'
-    infohash = str(metadata.infohash)
-    relevance = 0.9
-
-    return (metadata.rowid, infohash, metadata.title, int(metadata.size), category, seeders, leechers,
-            last_tracker_check, None, relevance, commit_status)
-
-
-def convert_search_torrent_to_json(torrent):
-    """
-    Converts a given torrent to a JSON dictionary. Note that the torrent might be either a result from the local
-    database in which case it is a tuple or a remote search result in which case it is a dictionary.
-    """
-    if isinstance(torrent, dict):
-        return convert_remote_torrent_to_json(torrent)
-    return convert_db_torrent_to_json(torrent, include_rel_score=True)
-
-
-def convert_db_channel_to_json(channel, include_rel_score=False):
-    """
-    This method converts a channel in the database to a JSON dictionary.
-    """
-    res_json = {"id": channel[0], "dispersy_cid": channel[1].encode('hex'), "name": channel[2],
-                "description": channel[3], "votes": channel[5], "torrents": channel[4], "spam": channel[6],
-                "modified": channel[8], "subscribed": (channel[7] == VOTE_SUBSCRIBE)}
-
-    if include_rel_score:
-        res_json["relevance_score"] = channel[9]
-
-    return res_json
-
-
-def convert_chant_channel_to_json(channel):
-    """
-    This method converts a chant channel entry to a JSON dictionary.
-    """
-    # TODO: this stuff is mostly placeholder, especially 'modified' field. Should be changed when Dispersy is out.
-    res_json = {"id": 0, "dispersy_cid": str(channel.public_key).encode('hex'), "name": channel.title,
-                "description": channel.tags, "votes": channel.votes, "torrents": channel.size, "spam": 0,
-                "modified": channel.version, "subscribed": channel.subscribed}
-
-    return res_json
-
-
-def convert_db_torrent_to_json(torrent, include_rel_score=False):
-    """
-    This method converts a torrent in the database to a JSON dictionary.
-    """
-    torrent_name = torrent[2]
-    if torrent_name is None or len(torrent_name.strip()) == 0:
-        torrent_name = "Unnamed torrent"
-
-    res_json = {"id": torrent[0], "infohash": torrent[1].encode('hex'), "name": torrent_name, "size": torrent[3],
-                "category": torrent[4], "num_seeders": torrent[5] or 0, "num_leechers": torrent[6] or 0,
-                "last_tracker_check": torrent[7] or 0}
-
-    if len(torrent) >= 11:
-        res_json["commit_status"] = torrent[10]
-
-    if include_rel_score:
-        res_json["relevance_score"] = torrent[9]
-
-    return res_json
-
-
-def convert_remote_torrent_to_json(torrent):
-    """
-    This method converts a torrent that has been received by remote peers in the network to a JSON dictionary.
-    """
-    torrent_name = torrent['name']
-    if torrent_name is None or len(torrent_name.strip()) == 0:
-        torrent_name = "Unnamed torrent"
-
-    return {'id': torrent['torrent_id'], "infohash": torrent['infohash'].encode('hex'), "name": torrent_name,
-            'size': torrent['length'], 'category': torrent['category'], 'num_seeders': torrent['num_seeders'],
-            'num_leechers': torrent['num_leechers'], 'last_tracker_check': 0}
 
 
 def get_parameter(parameters, name):

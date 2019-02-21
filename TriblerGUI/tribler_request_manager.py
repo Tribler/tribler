@@ -1,14 +1,45 @@
-from collections import deque, namedtuple
+from __future__ import absolute_import
+
 import logging
+from collections import deque, namedtuple
 from threading import RLock
 from time import time
+from urllib import quote_plus
 
-from PyQt5.QtCore import QUrl, pyqtSignal, QIODevice, QBuffer, QObject
+from PyQt5.QtCore import QBuffer, QIODevice, QObject, QUrl, pyqtSignal
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 
+from six import string_types, text_type
+from six.moves import xrange
+
 import Tribler.Core.Utilities.json_util as json
-from TriblerGUI.defs import BUTTON_TYPE_NORMAL, DEFAULT_API_PORT, DEFAULT_API_PROTOCOL, DEFAULT_API_HOST
+
+from TriblerGUI.defs import BUTTON_TYPE_NORMAL, DEFAULT_API_HOST, DEFAULT_API_PORT, DEFAULT_API_PROTOCOL
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
+
+
+def tribler_urlencode(data):
+    # Convert all values that are an array to uri-encoded values
+    for key in data.keys():
+        value = data[key]
+        if isinstance(value, list):
+            if value:
+                data[key + "[]"] = "&".join(value)
+            else:
+                del data[key]
+
+    # Convert all keys and values in the data to utf-8 unicode strings
+    utf8_items = []
+    for key, value in data.items():
+        utf8_key = quote_plus(text_type(key).encode('utf-8'))
+        # Convert bool values to ints
+        if isinstance(value, bool):
+            value = int(value)
+        utf8_value = quote_plus(text_type(value).encode('utf-8'))
+        utf8_items.append("%s=%s" % (utf8_key, utf8_value))
+
+    data = "&".join(utf8_items)
+    return data
 
 
 class QueuePriorityEnum(object):
@@ -45,7 +76,7 @@ class RequestQueue(object):
         self.medium_queue = []
         self.low_queue = []
 
-        self.lock = RLock() # Don't allow asynchronous access to the queue
+        self.lock = RLock()  # Don't allow asynchronous access to the queue
 
     def parse_queue(self):
         """
@@ -115,7 +146,7 @@ class RequestQueue(object):
                 self.high_queue.append(queue_item)
             else:
                 # Get the last item of the queue
-                last_item = self.high_queue.pop(self.max_outstanding -1)
+                last_item = self.high_queue.pop(self.max_outstanding - 1)
                 # Add the original queue_item to the front of the queue
                 self.high_queue.insert(0, queue_item)
                 # reduce the priority of last_item and try to put in medium queue
@@ -234,31 +265,42 @@ class TriblerRequestManager(QObject):
     def set_reply_handle(self, reply):
         self.reply = reply
 
-    def perform_request(self, endpoint, read_callback, data="", method='GET', capture_errors=True,
-                        priority=QueuePriorityEnum.CRITICAL, on_cancel=lambda: None):
+    def perform_request(self, endpoint, read_callback, url_params=None, data=None, raw_data="", method='GET',
+                        capture_errors=True, priority=QueuePriorityEnum.CRITICAL, on_cancel=lambda: None):
         """
         Perform a HTTP request.
         :param endpoint: the endpoint to call (i.e. "statistics")
         :param read_callback: the callback to be called with result info when we have the data
+        :param url_params: an optional dictionary with parameters that should be included in the URL
         :param data: optional POST data to be sent with the request
+        :param raw_data: optional raw data to include in the request, will get priority over data if defined
         :param method: the HTTP verb (GET/POST/PUT/PATCH)
         :param capture_errors: whether errors should be handled by this class (defaults to True)
+        :param priority: the priority of this request
+        :param on_cancel: optional callback to invoke when the request has been cancelled
         """
         self.on_cancel = on_cancel
 
         if read_callback:
             self.received_json.connect(read_callback)
 
+        url = endpoint + (("?" + tribler_urlencode(url_params)) if url_params else "")
+
+        if data and not raw_data:
+            data = tribler_urlencode(data)
+        elif raw_data:
+            data = raw_data.encode('utf-8')
+
         def reply_callback(reply, log):
             log[-1] = reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)
             self.on_finished(reply, capture_errors)
 
-        request_queue.enqueue(self, method, endpoint, data, reply_callback, priority)
+        request_queue.enqueue(self, method, url, data, reply_callback, priority)
 
     @staticmethod
     def get_message_from_error(error):
         return_error = None
-        if isinstance(error['error'], (str, unicode)):
+        if isinstance(error['error'], string_types):
             return_error = error['error']
         elif 'message' in error['error']:
             return_error = error['error']['message']

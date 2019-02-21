@@ -40,7 +40,7 @@ If a valid request of a client caused a recoverable error the response will have
     {
         "error": {
             "handled": True,
-            "code": "DuplicateChannelNameError",
+            "code": "DuplicateChannelIdError",
             "message": "Channel name already exists: foo"
         }
     }

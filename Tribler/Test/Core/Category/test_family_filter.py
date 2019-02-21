@@ -11,11 +11,6 @@ class TriblerCategoryTestFamilyFilter(AbstractServer):
         self.family_filter.xxx_terms.add("term2")
         self.family_filter.xxx_searchterms.add("term3")
 
-    def test_filter_torrent(self):
-        self.assertFalse(self.family_filter.isXXXTorrent(["file1.txt"], "mytorrent", "http://tracker.org"))
-        self.assertFalse(self.family_filter.isXXXTorrent(["file1.txt"], "mytorrent", ""))
-        self.assertTrue(self.family_filter.isXXXTorrent(["term1.txt"], "term2", ""))
-
     def test_is_xxx(self):
         self.assertFalse(self.family_filter.isXXX(None))
         self.assertTrue(self.family_filter.isXXX("term1"))
@@ -28,8 +23,10 @@ class TriblerCategoryTestFamilyFilter(AbstractServer):
         self.assertTrue(self.family_filter.isXXXTerm("term1s"))
         self.assertFalse(self.family_filter.isXXXTerm("term0n"))
 
-    def test_invalid_filename_exception(self):
-        terms, searchterms = self.family_filter.initTerms("thisfiledoesnotexist.txt")
-        self.assertEqual(len(terms), 0)
-        self.assertEqual(len(searchterms), 0)
-
+    def test_xxx_torrent_metadata_dict(self):
+        d = {
+            "title": "XXX",
+            "tags": "",
+            "tracker": "http://sooo.dfd/announce"
+        }
+        self.assertTrue(self.family_filter.isXXXTorrentMetadataDict(d))

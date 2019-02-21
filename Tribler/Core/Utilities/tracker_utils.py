@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import re
+
 from six import string_types, text_type
 from six.moves.http_client import HTTP_PORT
 from six.moves.urllib.parse import urlparse
@@ -7,6 +9,21 @@ from six.moves.urllib.parse import urlparse
 
 class MalformedTrackerURLException(Exception):
     pass
+
+
+delimiters_regex = re.compile(r'[\r\n\x00\s\t;]*(%20)*')
+
+
+url_regex = re.compile(
+    r'^(?:http|udp|wss)s?://'  # http:// or https://
+    r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|'  # domain...
+    r'localhost|'  # localhost...
+    r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'  # ...or ip
+    r'(?::\d+)?'  # optional port
+    r'(?:/?|[/?]\S+)$', re.IGNORECASE)
+
+remove_trailing_junk = re.compile(r'[,*.:]+\Z')
+truncated_url_detector = re.compile(r'\.\.\.')
 
 
 def get_uniformed_tracker_url(tracker_url):
@@ -37,45 +54,56 @@ def get_uniformed_tracker_url(tracker_url):
     except UnicodeDecodeError:
         return None
 
-    url = urlparse(tracker_url)
+    # Search the string for delimiters and try to get the first correct URL
+    for tracker_url in re.split(delimiters_regex, tracker_url):
+        # Rule out truncated URLs
+        if re.search(truncated_url_detector, tracker_url):
+            continue
+        # Try to match it against a simple regexp
+        if not re.match(url_regex, tracker_url):
+            continue
 
-    # accessing urlparse attributes may throw UnicodeError's or ValueError's
-    try:
-        # scheme must be either UDP or HTTP
-        if url.scheme == 'udp' or url.scheme == 'http':
-            uniformed_scheme = url.scheme
-        else:
-            return None
+        tracker_url = re.sub(remove_trailing_junk, '', tracker_url)
+        url = urlparse(tracker_url)
 
-        uniformed_hostname = url.hostname
+        # accessing urlparse attributes may throw UnicodeError's or ValueError's
+        try:
+            # scheme must be either UDP or HTTP
+            if url.scheme == 'udp' or url.scheme == 'http':
+                uniformed_scheme = url.scheme
+            else:
+                continue
 
-        if not url.port:
-            # UDP trackers must have a port
+            uniformed_hostname = url.hostname
+
+            if not url.port:
+                # UDP trackers must have a port
+                if url.scheme == 'udp':
+                    continue
+                # HTTP trackers default to port HTTP_PORT
+                elif url.scheme == 'http':
+                    uniformed_port = HTTP_PORT
+            else:
+                uniformed_port = url.port
+
+            # UDP trackers have no path
             if url.scheme == 'udp':
-                return None
-            # HTTP trackers default to port HTTP_PORT
-            elif url.scheme == 'http':
-                uniformed_port = HTTP_PORT
-        else:
-            uniformed_port = url.port
+                uniformed_path = ''
+            else:
+                uniformed_path = url.path.rstrip('/')
+            # HTTP trackers must have a path
+            if url.scheme == 'http' and not uniformed_path:
+                continue
 
-        # UDP trackers have no path
-        if url.scheme == 'udp':
-            uniformed_path = ''
+            if url.scheme == 'http' and uniformed_port == HTTP_PORT:
+                uniformed_url = u'%s://%s%s' % (uniformed_scheme, uniformed_hostname, uniformed_path)
+            else:
+                uniformed_url = u'%s://%s:%d%s' % (uniformed_scheme, uniformed_hostname, uniformed_port, uniformed_path)
+        except ValueError:
+            continue
         else:
-            uniformed_path = url.path.rstrip('/')
-        # HTTP trackers must have a path
-        if url.scheme == 'http' and not url.path:
-            return None
-
-        if url.scheme == 'http' and uniformed_port == HTTP_PORT:
-            uniformed_url = u'%s://%s%s' % (uniformed_scheme, uniformed_hostname, uniformed_path)
-        else:
-            uniformed_url = u'%s://%s:%d%s' % (uniformed_scheme, uniformed_hostname, uniformed_port, uniformed_path)
-    except (UnicodeError, ValueError):
-        return None
-
-    return uniformed_url
+            return uniformed_url
+    return None
 
 
 def parse_tracker_url(tracker_url):

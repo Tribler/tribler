@@ -1,14 +1,16 @@
+from __future__ import absolute_import
+
 import os
-import urllib
 
 from PyQt5.QtCore import QDir
 from PyQt5.QtGui import QIcon
+from PyQt5.QtWidgets import QAction, QFileDialog, QWidget
 
-from PyQt5.QtWidgets import QWidget, QFileDialog, QAction
+from six.moves import xrange
 
-from TriblerGUI.tribler_action_menu import TriblerActionMenu
-from TriblerGUI.defs import PAGE_EDIT_CHANNEL_TORRENTS, BUTTON_TYPE_NORMAL
+from TriblerGUI.defs import BUTTON_TYPE_NORMAL, PAGE_EDIT_CHANNEL_TORRENTS
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
+from TriblerGUI.tribler_action_menu import TriblerActionMenu
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.utilities import get_image_path
 
@@ -27,8 +29,7 @@ class CreateTorrentPage(QWidget):
         self.selected_item_index = -1
         self.initialized = False
 
-    def initialize(self, identifier):
-        self.channel_identifier = identifier
+    def initialize(self):
         self.window().create_torrent_name_field.setText('')
         self.window().create_torrent_description_field.setText('')
         self.window().create_torrent_files_list.clear()
@@ -81,14 +82,18 @@ class CreateTorrentPage(QWidget):
 
         self.window().edit_channel_create_torrent_button.setEnabled(False)
 
-        files_str = u""
+        files_list = []
         for ind in xrange(self.window().create_torrent_files_list.count()):
-            files_str += u"files[]=%s&" % urllib.quote_plus(
-                self.window().create_torrent_files_list.item(ind).text().encode('utf-8'))
+            file_str = self.window().create_torrent_files_list.item(ind).text()
+            files_list.append(file_str)
 
-        name = urllib.quote_plus(self.window().create_torrent_name_field.text().encode('utf-8'))
-        description = urllib.quote_plus(self.window().create_torrent_description_field.toPlainText().encode('utf-8'))
-        post_data = (u"%s&name=%s&description=%s" % (files_str[:-1], name, description)).encode('utf-8')
+        name = self.window().create_torrent_name_field.text()
+        description = self.window().create_torrent_description_field.toPlainText()
+        post_data = {
+            "name": name,
+            "description": description,
+            "files": files_list
+        }
         url = "createtorrent?download=1" if self.window().seed_after_adding_checkbox.isChecked() else "createtorrent"
         self.request_mgr = TriblerRequestManager()
         self.request_mgr.perform_request(url, self.on_torrent_created, data=post_data, method='POST')
@@ -107,11 +112,9 @@ class CreateTorrentPage(QWidget):
             self.add_torrent_to_channel(result['torrent'])
 
     def add_torrent_to_channel(self, torrent):
-        post_data = str("torrent=%s" % urllib.quote_plus(torrent))
         self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("channels/discovered/%s/torrents" %
-                                         self.channel_identifier, self.on_torrent_to_channel_added,
-                                         data=post_data, method='PUT')
+        self.request_mgr.perform_request("mychannel/torrents", self.on_torrent_to_channel_added,
+                                         data={"torrent": torrent}, method='PUT')
 
     def on_torrent_to_channel_added(self, result):
         if not result:
@@ -119,7 +122,7 @@ class CreateTorrentPage(QWidget):
         self.window().edit_channel_create_torrent_progress_label.hide()
         if 'added' in result:
             self.window().edit_channel_details_stacked_widget.setCurrentIndex(PAGE_EDIT_CHANNEL_TORRENTS)
-            self.window().edit_channel_page.load_channel_torrents()
+            self.window().edit_channel_page.load_my_torrents()
 
     def on_remove_entry(self):
         self.window().create_torrent_files_list.takeItem(self.selected_item_index)

@@ -2,12 +2,14 @@ from __future__ import absolute_import
 
 import hashlib
 import logging
+
 from libtorrent import bdecode, bencode
 
 from six import text_type
 from six.moves.urllib.request import url2pathname
+
 from twisted.internet.defer import Deferred
-from twisted.internet.error import DNSLookupError, ConnectError, ConnectionLost
+from twisted.internet.error import ConnectError, ConnectionLost, DNSLookupError
 from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
 
@@ -15,9 +17,9 @@ import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import BLOB_EXTENSION
 from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, \
     REGULAR_TORRENT, read_payload
-from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.utilities import fix_torrent, http_get, parse_magnetlink, unichar_string
 from Tribler.Core.exceptions import HttpError, InvalidSignatureException
+from Tribler.util import cast_to_unicode_utf8
 
 
 class TorrentInfoEndpoint(resource.Resource):
@@ -65,22 +67,11 @@ class TorrentInfoEndpoint(resource.Resource):
                 self.finish_request(request)
                 return
 
+            # TODO(Martijn): store the stuff in a database!!!
             infohash = hashlib.sha1(bencode(metainfo['info'])).digest()
 
             # Check if the torrent is already in the downloads
             metainfo['download_exists'] = infohash in self.session.lm.downloads
-
-            # Update the torrent database with metainfo if it is an unnamed torrent
-            if self.session.lm.torrent_db:
-                self.session.lm.torrent_db.update_torrent_with_metainfo(infohash, metainfo)
-                self.session.lm.torrent_db._db.commit_now()
-
-            # Save the torrent to our store
-            try:
-                self.session.save_collected_torrent(infohash, bencode(metainfo))
-            except TypeError:
-                # Note: in libtorrent 1.1.1, bencode throws a TypeError which is a known bug
-                pass
 
             request.write(json.dumps({"metainfo": metainfo}, ensure_ascii=False))
             self.finish_request(request)
@@ -140,15 +131,6 @@ class TorrentInfoEndpoint(resource.Resource):
                 request.setResponseCode(http.BAD_REQUEST)
                 return json.dumps({"error": "missing infohash"})
 
-            if self.session.has_collected_torrent(infohash):
-                try:
-                    tdef = TorrentDef.load_from_memory(self.session.get_collected_torrent(infohash))
-                except ValueError as exc:
-                    request.setResponseCode(http.INTERNAL_SERVER_ERROR)
-                    return json.dumps({"error": "invalid torrent file: %s" % str(exc)})
-                on_got_metainfo(tdef.get_metainfo())
-                return NOT_DONE_YET
-
             self.session.lm.ltmgr.get_metainfo(mlink or uri, callback=metainfo_deferred.callback, timeout=20,
                                                timeout_callback=on_metainfo_timeout, notify=True)
             return NOT_DONE_YET
@@ -160,7 +142,7 @@ class TorrentInfoEndpoint(resource.Resource):
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "uri parameter missing"})
 
-        uri = unicode(request.args['uri'][0], 'utf-8')
+        uri = cast_to_unicode_utf8(request.args['uri'][0])
 
         if uri.startswith('file:'):
             return on_file()

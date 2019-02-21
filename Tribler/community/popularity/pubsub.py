@@ -1,13 +1,14 @@
 from __future__ import absolute_import
 
 import logging
-from abc import abstractmethod
+from binascii import unhexlify
 from copy import copy
+
 from twisted.internet.defer import inlineCallbacks
 from twisted.internet.task import LoopingCall
 
-from Tribler.community.popularity.constants import MSG_SUBSCRIPTION, ERROR_UNKNOWN_PEER, MAX_SUBSCRIBERS, \
-    MSG_SUBSCRIBE, MAX_PUBLISHERS, PUBLISH_INTERVAL
+from Tribler.community.popularity.constants import ERROR_UNKNOWN_PEER, MAX_PUBLISHERS, MAX_SUBSCRIBERS, MSG_SUBSCRIBE, \
+    MSG_SUBSCRIPTION, PUBLISH_INTERVAL
 from Tribler.community.popularity.payload import ContentSubscription
 from Tribler.community.popularity.request import ContentRequest
 from Tribler.pyipv8.ipv8.community import Community
@@ -25,9 +26,16 @@ class PubSubCommunity(Community):
     All the derived community should implement publish_next_content() method which is responsible for publishing the
     next available content to all the subscribers.
     """
+    MASTER_PUBLIC_KEY = "3081a7301006072a8648ce3d020106052b8104002703819200040504278d20d6776ce7081ad57d99fe066bb2a93" \
+                        "ce7cc92405a534ef7175bab702be557d8c7d3b725ea0eb09c686e798f6c7ad85e8781a4c3b20e54c15ede38077c" \
+                        "8f5c801b71d13105f261da7ddcaa94ae14bd177bf1a05a66f595b9bb99117d11f73b4c8d3dcdcdc2b3f838b8ba3" \
+                        "5a9f600d2c543e8b3ba646083307b917bbbccfc53fc5ab6ded90b711d7eeda46f5f"
+
+    master_peer = Peer(unhexlify(MASTER_PUBLIC_KEY))
 
     def __init__(self, *args, **kwargs):
         super(PubSubCommunity, self).__init__(*args, **kwargs)
+        self.trustchain = kwargs.pop('trustchain_community', None)
         self.logger = logging.getLogger(self.__class__.__name__)
         self.request_cache = RequestCache()
 
@@ -233,7 +241,6 @@ class PubSubCommunity(Community):
             current_index += 1
         return serialized_results, current_index, current_index - start_index
 
-    @abstractmethod
     def publish_next_content(self):
         """ Method responsible for publishing content during periodic push """
         pass

@@ -1,17 +1,18 @@
+from __future__ import absolute_import
+
 import logging
 
 from pony.orm import db_session
+
 from twisted.web import http, resource
 
-from Tribler.Core.Modules.restapi.util import convert_channel_metadata_to_tuple, convert_torrent_metadata_to_tuple
-from Tribler.Core.Utilities.search_utils import split_into_keywords
-from Tribler.Core.exceptions import OperationNotEnabledByConfigurationException
-from Tribler.Core.simpledefs import NTFY_CHANNELCAST, NTFY_TORRENTS, SIGNAL_TORRENT, SIGNAL_ON_SEARCH_RESULTS, \
-    SIGNAL_CHANNEL
 import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, REGULAR_TORRENT
+from Tribler.Core.Modules.restapi.metadata_endpoint import BaseMetadataEndpoint
+from Tribler.util import cast_to_unicode_utf8
 
 
-class SearchEndpoint(resource.Resource):
+class SearchEndpoint(BaseMetadataEndpoint):
     """
     This endpoint is responsible for searching in channels and torrents present in the local Tribler database. It also
     fires a remote search in the Dispersy communities.
@@ -21,83 +22,92 @@ class SearchEndpoint(resource.Resource):
         resource.Resource.__init__(self)
         self.session = session
         self.events_endpoint = None
-        self.channel_db_handler = self.session.open_dbhandler(NTFY_CHANNELCAST)
-        self.torrent_db_handler = self.session.open_dbhandler(NTFY_TORRENTS)
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.putChild("completions", SearchCompletionsEndpoint(session))
+
+    @staticmethod
+    def convert_datatype_param_to_search_scope(data_type):
+        return {'': [REGULAR_TORRENT, CHANNEL_TORRENT],
+                "channel": CHANNEL_TORRENT,
+                "torrent": REGULAR_TORRENT}.get(data_type)
+
+    @staticmethod
+    def sanitize_parameters(parameters):
+        sanitized = BaseMetadataEndpoint.sanitize_parameters(parameters)
+        sanitized['metadata_type'] = SearchEndpoint.convert_datatype_param_to_search_scope(
+            parameters['metadata_type'][0] if 'metadata_type' in parameters else '')
+        return sanitized
 
     def render_GET(self, request):
         """
         .. http:get:: /search?q=(string:query)
 
-        A GET request to this endpoint will create a search. Results are returned over the events endpoint, one by one.
-        First, the results available in the local database will be pushed. After that, incoming Dispersy results are
-        pushed. The query to this endpoint is passed using the url, i.e. /search?q=pioneer.
+        A GET request to this endpoint will create a search.
+
+        first and last options limit the range of the query.
+        xxx_filter option disables xxx filter
+        channel option limits search to a certain channel
+        sort_by option sorts results in forward or backward, based on column name (e.g. "id" vs "-id")
+        txt option uses FTS search on the chosen word* terms
+        type option limits query to certain metadata types (e.g. "torrent" or "channel")
 
             **Example request**:
 
             .. sourcecode:: none
 
-                curl -X GET http://localhost:8085/search?q=tribler
+                curl -X GET 'http://localhost:8085/search?txt=ubuntu&first=0&last=30&type=torrent&sort_by=size'
 
             **Example response**:
 
             .. sourcecode:: javascript
 
                 {
-                    "type": "search_result_channel",
-                    "query": "test",
-                    "result": {
-                        "id": 3,
-                        "dispersy_cid": "da69aaad39ccf468aba2ab9177d5f8d8160135e6",
-                        "name": "My fancy channel",
-                        "description": "A description of this fancy channel",
-                        "subscribed": True,
-                        "votes": 23,
-                        "torrents": 3,
-                        "spam": 5,
-                        "modified": 14598395,
-                        "can_edit": False
-                    }
+                   "torrents":[
+                      {
+                         "commit_status":1,
+                         "num_leechers":0,
+                         "date":"1539867830.0",
+                         "relevance_score":0,
+                         "id":21,
+                         "size":923795456,
+                         "category":"unknown",
+                         "public_key":"4c69624e...",
+                         "name":"ubuntu-18.10-live-server-amd64.iso",
+                         "last_tracker_check":0,
+                         "infohash":"8c4adbf9ebe66f1d804fb6a4fb9b74966c3ab609",
+                         "num_seeders":0,
+                         "type":"torrent"
+                      },
+                      ...
+                   ],
+                   "chant_dirty":false
                 }
         """
-        if 'q' not in request.args:
+
+        sanitized = SearchEndpoint.sanitize_parameters(request.args)
+
+        if not sanitized["query_filter"]:
             request.setResponseCode(http.BAD_REQUEST)
-            return json.dumps({"error": "query parameter missing"})
+            return json.dumps({"error": "filter parameter missing"})
 
-        # Notify the events endpoint that we are starting a new search query
-        self.events_endpoint.start_new_query()
+        if not sanitized["metadata_type"]:
+            request.setResponseCode(http.BAD_REQUEST)
+            return json.dumps({"error": "Trying to query for unknown type of metadata"})
 
-        # We first search the local database for torrents and channels
-        query = unicode(request.args['q'][0], 'utf-8')
-        keywords = split_into_keywords(query)
-
-        results_local_channels = self.channel_db_handler.search_in_local_channels_db(query)
         with db_session:
-            results_local_channels.extend(map(convert_channel_metadata_to_tuple,
-                                              self.session.lm.mds.ChannelMetadata.search_keyword(query)))
+            pony_query, total = self.session.lm.mds.TorrentMetadata.get_entries(**sanitized)
+            search_results = [(dict(type={REGULAR_TORRENT: 'torrent', CHANNEL_TORRENT: 'channel'}[r.metadata_type],
+                                    **(r.to_simple_dict()))) for r in pony_query]
 
-        results_dict = {"keywords": keywords, "result_list": results_local_channels}
-        self.session.notifier.notify(SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, None, results_dict)
-
-        torrent_db_columns = ['T.torrent_id', 'infohash', 'T.name', 'length', 'category',
-                              'num_seeders', 'num_leechers', 'last_tracker_check']
-        results_local_torrents = self.torrent_db_handler.search_in_local_torrents_db(query, keys=torrent_db_columns)
-        with db_session:
-            results_local_torrents.extend(map(convert_torrent_metadata_to_tuple,
-                                              self.session.lm.mds.TorrentMetadata.search_keyword(query)))
-        results_dict = {"keywords": keywords, "result_list": results_local_torrents}
-        self.session.notifier.notify(SIGNAL_TORRENT, SIGNAL_ON_SEARCH_RESULTS, None, results_dict)
-
-        # Create remote searches
-        try:
-            self.session.search_remote_torrents(keywords)
-            self.session.search_remote_channels(keywords)
-        except OperationNotEnabledByConfigurationException as exc:
-            self._logger.error(exc)
-
-        return json.dumps({"queried": True})
+        return json.dumps({
+            "results": search_results,
+            "first": sanitized["first"],
+            "last": sanitized["last"],
+            "sort_by": sanitized["sort_by"],
+            "sort_asc": sanitized["sort_asc"],
+            "total": total
+        })
 
 
 class SearchCompletionsEndpoint(resource.Resource):
@@ -108,7 +118,6 @@ class SearchCompletionsEndpoint(resource.Resource):
     def __init__(self, session):
         resource.Resource.__init__(self)
         self.session = session
-        self.torrent_db_handler = self.session.open_dbhandler(NTFY_TORRENTS)
 
     def render_GET(self, request):
         """
@@ -136,7 +145,7 @@ class SearchCompletionsEndpoint(resource.Resource):
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "query parameter missing"})
 
-        keywords = unicode(request.args['q'][0], 'utf-8').lower()
-        results = self.torrent_db_handler.getAutoCompleteTerms(keywords, max_terms=5)
-        results.extend(self.session.lm.mds.TorrentMetadata.get_auto_complete_terms(keywords, max_terms=5))
+        keywords = cast_to_unicode_utf8(request.args['q'][0]).lower()
+        # TODO: add XXX filtering for completion terms
+        results = self.session.lm.mds.TorrentMetadata.get_auto_complete_terms(keywords, max_terms=5)
         return json.dumps({"completions": results})

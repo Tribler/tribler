@@ -1,10 +1,10 @@
-from urllib import quote_plus
+from __future__ import absolute_import
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QTabWidget, QTreeWidgetItem, QAction
+from PyQt5.QtWidgets import QAction, QTabWidget, QTreeWidgetItem
 
-from TriblerGUI.tribler_action_menu import TriblerActionMenu
 from TriblerGUI.defs import *
+from TriblerGUI.tribler_action_menu import TriblerActionMenu
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.utilities import format_size, format_speed, is_video_file
 from TriblerGUI.widgets.downloadfilewidgetitem import DownloadFileWidgetItem
@@ -225,7 +225,7 @@ class DownloadsDetailsTabWidget(QTabWidget):
                                                         self.get_video_file_index(file_info["index"]))
 
     def set_included_files(self, files):
-        data_str = ''.join("selected_files[]=%s&" % ind for ind in files)[:-1]
+        post_data = {"selected_files": [ind for ind in files]}
         self.request_mgr = TriblerRequestManager()
         self.request_mgr.perform_request("downloads/%s" % self.current_download['infohash'], lambda _: None,
-                                         method='PATCH', data=data_str)
+                                         method='PATCH', data=post_data)

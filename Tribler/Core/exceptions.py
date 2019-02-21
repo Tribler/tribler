@@ -47,7 +47,7 @@ class InvalidSignatureException(TriblerException):
     pass
 
 
-class DuplicateChannelNameError(TriblerException):
+class DuplicateChannelIdError(TriblerException):
     """
     The Channel name already exists in the ChannelManager channel list,
     i.e., one of your own Channels with the same name already exists.
@@ -88,11 +88,5 @@ class TorrentFileException(TriblerException):
 
 class InvalidConfigException(TriblerException):
     """The config file doesn't adhere to the config specification."""
-    def __init__(self, msg=None):
-        TriblerException.__init__(self, msg)
-
-
-class LevelDBKeyDeletionException(TriblerException):
-    """This error is used to indicate failure to delete a key from LevelDB. """
     def __init__(self, msg=None):
         TriblerException.__init__(self, msg)

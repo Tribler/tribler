@@ -8,41 +8,40 @@ from __future__ import absolute_import
 import logging
 import os
 import re
+
 from six.moves import xrange
 
 from Tribler.Core.Utilities.install_dir import get_lib_path
 
 WORDS_REGEXP = re.compile('[a-zA-Z0-9]+')
 
+termfilename = os.path.join(get_lib_path(), 'Core', 'Category', 'filter_terms.filter')
+
+
+def initTerms(filename):
+    terms = set()
+    searchterms = set()
+
+    try:
+        f = open(filename, 'r')
+        lines = f.read().lower().splitlines()
+
+        for line in lines:
+            if line.startswith('*'):
+                searchterms.add(line[1:])
+            else:
+                terms.add(line)
+        f.close()
+    except IOError:
+        raise IOError(u"Could not open %s, initTerms failed.", filename)
+
+    return terms, searchterms
+
 
 class XXXFilter(object):
+    _logger = logging.getLogger("XXXFilter")
 
-    def __init__(self):
-        super(XXXFilter, self).__init__()
-        self._logger = logging.getLogger(self.__class__.__name__)
-
-        termfilename = os.path.join(get_lib_path(), 'Core', 'Category', 'filter_terms.filter')
-        self.xxx_terms, self.xxx_searchterms = self.initTerms(termfilename)
-
-    def initTerms(self, filename):
-        terms = set()
-        searchterms = set()
-
-        try:
-            f = open(filename, 'r')
-            lines = f.read().lower().splitlines()
-
-            for line in lines:
-                if line.startswith('*'):
-                    searchterms.add(line[1:])
-                else:
-                    terms.add(line)
-            f.close()
-        except IOError:
-            self._logger.exception(u"Could not open %s, initTerms failed.", filename)
-
-        self._logger.debug('Read %d XXX terms from file %s', len(terms) + len(searchterms), filename)
-        return terms, searchterms
+    xxx_terms, xxx_searchterms = initTerms(termfilename)
 
     def _getWords(self, string):
         return [a.lower() for a in WORDS_REGEXP.findall(string)]
@@ -52,12 +51,11 @@ class XXXFilter(object):
             tracker = tracker.lower().replace('http://', '').replace('announce', '')
         else:
             tracker = ''
-        terms = [a[0].lower() for a in files_list]
+        terms = [a["path"][0] for a in files_list] if files_list else []
         is_xxx = (self.isXXX(torrent_name, False) or
                   self.isXXX(tracker, False) or
                   any(self.isXXX(term) for term in terms) or
-                  (comment and self.isXXX(comment, False))
-                  )
+                  (comment and self.isXXX(comment, False)))
         tracker = repr(tracker)
         if is_xxx:
             self._logger.debug(u"Torrent is XXX: %s %s", torrent_name, tracker)
@@ -65,7 +63,13 @@ class XXXFilter(object):
             self._logger.debug(u"Torrent is NOT XXX: %s %s", torrent_name, tracker)
         return is_xxx
 
-    def isXXX(self, s, isFilename=True):
+    def isXXXTorrentMetadataDict(self, md_dict):
+        terms_combined = " ".join([md_dict[f] for f in ["title", "tags", "tracker"] if f in md_dict])
+        non_xxx = "tags" in md_dict and \
+                  (md_dict["tags"].startswith(u"audio") or md_dict["tags"].startswith(u"CD/DVD/BD"))
+        return self.isXXX(terms_combined, nonXXXFormat=non_xxx)
+
+    def isXXX(self, s, isFilename=True, nonXXXFormat=False):
         if not s:
             return False
 
@@ -77,10 +81,9 @@ class XXXFilter(object):
         words = self._getWords(s)
         words2 = [' '.join(words[i:i + 2]) for i in xrange(0, len(words) - 1)]
         num_xxx = len([w for w in words + words2 if self.isXXXTerm(w, s)])
-        if isFilename and self.isAudio(s):
+        if nonXXXFormat or (isFilename and self.isAudio(s)):
             return num_xxx > 2  # almost never classify mp3 as porn
-        else:
-            return num_xxx > 0
+        return num_xxx > 0
 
     def foundXXXTerm(self, s):
         for term in self.xxx_searchterms:
@@ -110,3 +113,7 @@ class XXXFilter(object):
 
     def isAudio(self, s):
         return s[s.rfind('.') + 1:] in self.audio_extensions
+
+
+# XXX filter should be stateless
+default_xxx_filter = XXXFilter()

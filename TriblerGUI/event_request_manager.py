@@ -1,7 +1,10 @@
+from __future__ import absolute_import
+
 import logging
-from PyQt5.QtCore import QUrl, pyqtSignal, QTimer
-from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest, QNetworkReply
 import time
+
+from PyQt5.QtCore import QTimer, QUrl, pyqtSignal
+from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequest
 
 import Tribler.Core.Utilities.json_util as json
 
@@ -13,6 +16,7 @@ class EventRequestManager(QNetworkAccessManager):
     The EventRequestManager class handles the events connection over which important events in Tribler are pushed.
     """
 
+    torrent_info_updated = pyqtSignal(object)
     received_search_result_channel = pyqtSignal(object)
     received_search_result_torrent = pyqtSignal(object)
     tribler_started = pyqtSignal()
@@ -80,10 +84,8 @@ class EventRequestManager(QNetworkAccessManager):
                 if len(received_events) > 100:  # Only buffer the last 100 events
                     received_events.pop()
 
-                if json_dict["type"] == "search_result_channel":
-                    self.received_search_result_channel.emit(json_dict["event"]["result"])
-                elif json_dict["type"] == "search_result_torrent":
-                    self.received_search_result_torrent.emit(json_dict["event"]["result"])
+                if json_dict["type"] == "torrent_info_updated":
+                    self.torrent_info_updated.emit(json_dict["event"])
                 elif json_dict["type"] == "tribler_started" and not self.emitted_tribler_started:
                     self.tribler_started.emit()
                     self.emitted_tribler_started = True

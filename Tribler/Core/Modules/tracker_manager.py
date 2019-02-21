@@ -1,5 +1,9 @@
+from __future__ import absolute_import
+
 import logging
 import time
+
+from pony.orm import count, db_session
 
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
 
@@ -13,6 +17,10 @@ class TrackerManager(object):
         self._logger = logging.getLogger(self.__class__.__name__)
         self._session = session
 
+    @property
+    def tracker_store(self):
+        return self._session.lm.mds.TrackerState
+
     def get_tracker_info(self, tracker_url):
         """
         Gets the tracker information with the given tracker URL.
@@ -20,13 +28,17 @@ class TrackerManager(object):
         :return: The tracker info dict if exists, None otherwise.
         """
         sanitized_tracker_url = get_uniformed_tracker_url(tracker_url) if tracker_url != u"DHT" else tracker_url
-        try:
-            sql_stmt = u"SELECT tracker_id, tracker, last_check, failures, is_alive FROM TrackerInfo WHERE tracker = ?"
-            result = self._session.sqlite_db.execute(sql_stmt, (sanitized_tracker_url,)).next()
-        except StopIteration:
-            return None
 
-        return {u'id': result[0], u'last_check': result[2], u'failures': result[3], u'is_alive': bool(result[4])}
+        with db_session:
+            tracker = list(self.tracker_store.select(lambda g: g.url == sanitized_tracker_url))
+            if tracker:
+                return {
+                    u'id': tracker[0].url,
+                    u'last_check': tracker[0].last_check,
+                    u'failures': tracker[0].failures,
+                    u'is_alive': tracker[0].alive
+                }
+            return None
 
     def add_tracker(self, tracker_url):
         """
@@ -38,24 +50,18 @@ class TrackerManager(object):
             self._logger.warn(u"skip invalid tracker: %s", repr(tracker_url))
             return
 
-        sql_stmt = u"SELECT COUNT() FROM TrackerInfo WHERE tracker = ?"
-        num = self._session.sqlite_db.execute(sql_stmt, (sanitized_tracker_url,)).next()[0]
-        if num > 0:
-            self._logger.debug(u"skip existing tracker: %s", repr(tracker_url))
-            return
+        with db_session:
+            num = count(g for g in self.tracker_store if g.url == sanitized_tracker_url)
+            if num > 0:
+                self._logger.debug(u"skip existing tracker: %s", repr(tracker_url))
+                return
 
-        # add the tracker into dict and database
-        tracker_info = {u'last_check': 0,
-                        u'failures': 0,
-                        u'is_alive': True}
-
-        # insert into database
-        sql_stmt = u"""INSERT INTO TrackerInfo(tracker, last_check, failures, is_alive) VALUES(?,?,?,?);
-                       SELECT tracker_id FROM TrackerInfo WHERE tracker = ?;
-                    """
-        value_tuple = (sanitized_tracker_url, tracker_info[u'last_check'], tracker_info[u'failures'],
-                       tracker_info[u'is_alive'], sanitized_tracker_url)
-        self._session.sqlite_db.execute(sql_stmt, value_tuple).next()
+            # insert into database
+            self.tracker_store(url=sanitized_tracker_url,
+                               last_check=0,
+                               failures=0,
+                               alive=True,
+                               torrents={})
 
     def remove_tracker(self, tracker_url):
         """
@@ -65,48 +71,50 @@ class TrackerManager(object):
         :param tracker_url: The URL of the tracker to be deleted.
         """
         sanitized_tracker_url = get_uniformed_tracker_url(tracker_url)
-        sql_stmt = u"DELETE FROM TrackerInfo WHERE tracker = ?;"
-        if sanitized_tracker_url:
-            self._session.sqlite_db.execute(sql_stmt, (sanitized_tracker_url,))
-        else:
-            self._session.sqlite_db.execute(sql_stmt, (tracker_url,))
 
+        with db_session:
+            options = self.tracker_store.select(lambda g: g.url in [tracker_url, sanitized_tracker_url])
+            for option in options[:]:
+                option.delete()
+
+    @db_session
     def update_tracker_info(self, tracker_url, is_successful):
         """
         Updates a tracker information.
         :param tracker_url: The given tracker_url.
         :param is_successful: If the check was successful.
         """
-        tracker_info = self.get_tracker_info(tracker_url)
-        if not tracker_info:
+
+        if tracker_url == u"DHT":
+            return
+
+        sanitized_tracker_url = get_uniformed_tracker_url(tracker_url)
+        tracker = self.tracker_store.get(lambda g: g.url == sanitized_tracker_url)
+
+        if not tracker:
             self._logger.error("Trying to update the tracker info of an unknown tracker URL")
             return
 
         current_time = int(time.time())
-        failures = 0 if is_successful else tracker_info[u'failures'] + 1
-        is_alive = tracker_info[u'failures'] < MAX_TRACKER_FAILURES
+        failures = 0 if is_successful else tracker.failures + 1
+        is_alive = tracker.alive < MAX_TRACKER_FAILURES
 
         # update the dict
-        tracker_info[u'last_check'] = current_time
-        tracker_info[u'failures'] = failures
-        tracker_info[u'is_alive'] = is_alive
+        tracker.last_check = current_time
+        tracker.failures = failures
+        tracker.alive = is_alive
 
-        # update the database
-        sql_stmt = u"UPDATE TrackerInfo SET last_check = ?, failures = ?, is_alive = ? WHERE tracker_id = ?"
-        value_tuple = (tracker_info[u'last_check'], tracker_info[u'failures'], tracker_info[u'is_alive'],
-                       tracker_info[u'id'])
-        self._session.sqlite_db.execute(sql_stmt, value_tuple)
-
+    @db_session
     def get_next_tracker_for_auto_check(self):
         """
         Gets the next tracker for automatic tracker-checking.
         :return: The next tracker for automatic tracker-checking.
         """
-        try:
-            sql_stmt = u"SELECT tracker FROM TrackerInfo WHERE tracker != 'no-DHT' AND tracker != 'DHT' AND " \
-                       u"last_check + ? <= strftime('%s','now') AND is_alive = 1 ORDER BY last_check LIMIT 1;"
-            result = self._session.sqlite_db.execute(sql_stmt, (TRACKER_RETRY_INTERVAL,)).next()
-        except StopIteration:
-            return None
+        tracker = self.tracker_store.select(lambda g: g.url not in ['no-DHT', 'DHT']
+                                            and g.alive
+                                            and g.last_check + TRACKER_RETRY_INTERVAL <= int(time.time()))\
+            .order_by(self.tracker_store.last_check).limit(1)
 
-        return result[0]
+        if not tracker:
+            return None
+        return tracker[0].url

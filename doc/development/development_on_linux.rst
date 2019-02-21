@@ -7,7 +7,7 @@ First, install the required dependencies by executing the following command in y
 
 .. code-block:: none
 
-    sudo apt-get install libav-tools libsodium18 libx11-6 python-apsw python-cherrypy3 python-cryptography python-decorator python-feedparser python-leveldb python-libtorrent python-matplotlib python-meliae python-m2crypto python-netifaces python-pil python-psutil python-pyasn1 python-scipy python-twisted python2.7 vlc python-chardet python-configobj python-pyqt5 python-pyqt5.qtsvg python-libnacl
+    sudo apt-get install libav-tools libsodium18 libx11-6 python-cherrypy3 python-cryptography python-decorator python-libtorrent python-matplotlib python-meliae python-netifaces python-pil python-psutil python-pyasn1 python-scipy python-twisted python2.7 vlc python-chardet python-configobj python-pyqt5 python-pyqt5.qtsvg python-libnacl
 
 Next, download the latest .deb file from `here <https://jenkins-ci.tribler.org/job/Build-Tribler_Ubuntu-64_devel/lastStableBuild/>`_.
 
@@ -71,4 +71,4 @@ Execute the following command in your terminal:
 
 .. code-block:: none
 
-    pacman -S libsodium libtorrent-rasterbar python2-pyqt5 qt5-svg phonon-qt5-vlc python2-apsw python2-cherrypy python2-cryptography python2-decorator python2-feedparser python2-chardet python2-m2crypto python2-netifaces python2-plyvel python2-twisted python2-configobj python2-matplotlib python2-networkx python2-psutil python2-scipy python2-libnacl
+    pacman -S libsodium libtorrent-rasterbar python2-pyqt5 qt5-svg phonon-qt5-vlc python2-cherrypy python2-cryptography python2-decorator python2-chardet python2-netifaces python2-twisted python2-configobj python2-matplotlib python2-networkx python2-psutil python2-scipy python2-libnacl

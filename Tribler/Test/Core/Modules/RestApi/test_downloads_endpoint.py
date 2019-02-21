@@ -1,17 +1,21 @@
+from __future__ import absolute_import
+
 import os
-from binascii import hexlify
+from binascii import hexlify, unhexlify
 from urllib import pathname2url
 
 from pony.orm import db_session
+
 from twisted.internet.defer import fail
 
 import Tribler.Core.Utilities.json_util as json
+from Tribler.Core import TorrentDef
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.DownloadState import DownloadState
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.Core.base_test import MockObject
-from Tribler.Test.common import UBUNTU_1504_INFOHASH, TESTS_DATA_DIR, TESTS_DIR
+from Tribler.Test.common import TESTS_DATA_DIR, TESTS_DIR, UBUNTU_1504_INFOHASH
 from Tribler.Test.tools import trial_timeout
 
 
@@ -20,8 +24,6 @@ class TestDownloadsEndpoint(AbstractApiTest):
     def setUpPreSession(self):
         super(TestDownloadsEndpoint, self).setUpPreSession()
         self.config.set_libtorrent_enabled(True)
-        self.config.set_megacache_enabled(True)
-        self.config.set_torrent_store_enabled(True)
 
     @trial_timeout(10)
     def test_get_downloads_no_downloads(self):
@@ -483,18 +485,17 @@ class TestDownloadsEndpoint(AbstractApiTest):
         Testing whether the API returns the contents of the torrent file if a download is exported
         """
         video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
-        self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
-
-        with open(os.path.join(TESTS_DATA_DIR, 'bak_single.torrent')) as torrent_file:
-            raw_data = torrent_file.read()
-        self.session.get_collected_torrent = lambda _: raw_data
+        download = self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
 
         def verify_exported_data(result):
-            self.assertEqual(raw_data, result)
+            self.assertTrue(result)
 
-        self.should_check_equality = False
-        return self.do_request('downloads/%s/torrent' % video_tdef.get_infohash().encode('hex'),
-                               expected_code=200, request_type='GET').addCallback(verify_exported_data)
+        def on_handle_available(_):
+            self.should_check_equality = False
+            return self.do_request('downloads/%s/torrent' % video_tdef.get_infohash().encode('hex'),
+                                   expected_code=200, request_type='GET').addCallback(verify_exported_data)
+
+        return download.get_handle().addCallback(on_handle_available)
 
     @trial_timeout(10)
     def test_get_files_unknown_download(self):
@@ -578,9 +579,21 @@ class TestMetadataDownloadEndpoint(AbstractApiTest):
             self.assertGreaterEqual(len(self.session.get_downloads()), 1)
 
         post_data = {'uri': 'file:%s' % os.path.join(TESTS_DIR, 'Core/data/sample_channel/channel.mdblob')}
-        expected_json = {'started': True, 'infohash': '24eb2ff24c3a738eb1257a2fb4575db064848e25'}
+        expected_json = {'started': True, 'infohash': '6853d25535a1c7593e716dd6a69fc3dd7a7bfcc8'}
         return self.do_request('downloads', expected_code=200, request_type='PUT', post_data=post_data,
                                expected_json=expected_json).addCallback(verify_download)
+
+    @trial_timeout(10)
+    def test_add_metadata_download_already_added(self):
+        """
+        Test adding a channel metadata download to the Tribler core
+        """
+        with db_session:
+            self.session.lm.mds.process_mdblob_file(os.path.join(TESTS_DIR, 'Core/data/sample_channel/channel.mdblob'))
+        post_data = {'uri': 'file:%s' % os.path.join(TESTS_DIR, 'Core/data/sample_channel/channel.mdblob')}
+        expected_json = {u'error': u'Already subscribed'}
+        return self.do_request('downloads', expected_code=200, request_type='PUT', post_data=post_data,
+                               expected_json=expected_json)
 
     @trial_timeout(10)
     def test_add_metadata_download_invalid_sig(self):
@@ -591,8 +604,9 @@ class TestMetadataDownloadEndpoint(AbstractApiTest):
         with open(file_path, "wb") as out_file:
             with db_session:
                 my_channel = self.session.lm.mds.ChannelMetadata.create_channel('test', 'test')
-                my_channel.signature = "lalala"
-            out_file.write(my_channel.serialized())
+
+            hexed = hexlify(my_channel.serialized())[:-5] + "aaaaa"
+            out_file.write(unhexlify(hexed))
 
         post_data = {'uri': 'file:%s' % file_path, 'metadata_download': '1'}
         expected_json = {'error': "Metadata has invalid signature"}
@@ -608,3 +622,32 @@ class TestMetadataDownloadEndpoint(AbstractApiTest):
         post_data = {'uri': 'file:%s' % os.path.join(TESTS_DATA_DIR, 'notexisting.mdblob'), 'metadata_download': '1'}
         self.should_check_equality = False
         return self.do_request('downloads', expected_code=400, request_type='PUT', post_data=post_data)
+
+    @trial_timeout(20)
+    def test_get_downloads_with_channels(self):
+        """
+        Testing whether the API returns the right download when a download is added
+        """
+
+        test_channel_name = 'testchan'
+
+        def verify_download(downloads):
+            downloads_json = json.loads(downloads)
+            self.assertEqual(len(downloads_json['downloads']), 3)
+            self.assertEqual(test_channel_name,
+                             [d for d in downloads_json["downloads"] if d["channel_download"]][0]["name"])
+
+        video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
+        self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
+        self.session.start_download_from_uri("file:" + pathname2url(
+            os.path.join(TESTS_DATA_DIR, "bak_single.torrent")))
+
+        with db_session:
+            my_channel = self.session.lm.mds.ChannelMetadata.create_channel(test_channel_name, 'test')
+            my_channel.add_torrent_to_channel(video_tdef)
+            torrent_dict = my_channel.commit_channel_torrent()
+            self.session.lm.gigachannel_manager.updated_my_channel(TorrentDef.TorrentDef.load_from_dict(torrent_dict))
+
+        self.should_check_equality = False
+        return self.do_request('downloads?get_peers=1&get_pieces=1',
+                               expected_code=200).addCallback(verify_download)

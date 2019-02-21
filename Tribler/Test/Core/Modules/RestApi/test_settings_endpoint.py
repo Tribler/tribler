@@ -1,11 +1,13 @@
 from __future__ import absolute_import
+
 from six import unichr
+
 from twisted.internet.defer import inlineCallbacks
 
 import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.DownloadConfig import DownloadConfigInterface
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.tools import trial_timeout
-from Tribler.Core.DownloadConfig import DownloadConfigInterface
 
 
 class TestSettingsEndpoint(AbstractApiTest):
@@ -18,9 +20,8 @@ class TestSettingsEndpoint(AbstractApiTest):
         """
         Verify that the expected sections are present.
         """
-        check_section = ['libtorrent', 'mainline_dht', 'torrent_store', 'general', 'torrent_checking',
-                         'allchannel_community', 'tunnel_community', 'http_api', 'torrent_collecting', 'dispersy',
-                         'trustchain', 'watch_folder', 'search_community', 'metadata']
+        check_section = ['libtorrent', 'general', 'torrent_checking',
+                         'tunnel_community', 'http_api', 'trustchain', 'watch_folder']
 
         settings_json = json.loads(settings)
         self.assertTrue(settings_json['settings'])
@@ -99,16 +100,12 @@ class TestSettingsEndpoint(AbstractApiTest):
         download.get_credit_mining = lambda: False
         self.session.get_downloads = lambda: [download]
 
-        old_filter_setting = self.session.config.get_family_filter_enabled()
-
         def verify_response1(_):
-            self.assertNotEqual(self.session.config.get_family_filter_enabled(), old_filter_setting)
             self.assertEqual(download.get_seeding_mode(), 'time')
             self.assertEqual(download.get_seeding_time(), 100)
 
         self.should_check_equality = False
-        post_data = json.dumps({'general': {'family_filter': not old_filter_setting},
-                                'libtorrent': {'utp': False, 'max_download_rate': 50},
+        post_data = json.dumps({'libtorrent': {'utp': False, 'max_download_rate': 50},
                                 'download_defaults': {'seeding_mode': 'time', 'seeding_time': 100}})
         yield self.do_request('settings', expected_code=200, request_type='POST', post_data=post_data, raw_data=True) \
             .addCallback(verify_response1)

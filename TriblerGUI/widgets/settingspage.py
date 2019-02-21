@@ -1,10 +1,19 @@
+from __future__ import absolute_import, division
+
 import sys
 
 from PIL.ImageQt import ImageQt
 
-from PyQt5 import QtGui, QtCore
-from PyQt5.QtWidgets import QSizePolicy
-from PyQt5.QtWidgets import QWidget, QLabel, QFileDialog
+from PyQt5 import QtCore, QtGui
+from PyQt5.QtWidgets import QFileDialog, QLabel, QSizePolicy, QWidget
+
+import Tribler.Core.Utilities.json_util as json
+
+from TriblerGUI.defs import BUTTON_TYPE_CONFIRM, BUTTON_TYPE_NORMAL, DEFAULT_API_PORT, PAGE_SETTINGS_ANONYMITY, \
+    PAGE_SETTINGS_BANDWIDTH, PAGE_SETTINGS_CONNECTION, PAGE_SETTINGS_DEBUG, PAGE_SETTINGS_GENERAL, PAGE_SETTINGS_SEEDING
+from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
+from TriblerGUI.tribler_request_manager import TriblerRequestManager
+from TriblerGUI.utilities import get_gui_setting, is_dir_writable, seconds_to_hhmm_string, string_to_seconds
 
 try:
     import qrcode
@@ -12,14 +21,6 @@ try:
     has_qr = True
 except ImportError:
     has_qr = False
-
-import Tribler.Core.Utilities.json_util as json
-from TriblerGUI.defs import PAGE_SETTINGS_GENERAL, PAGE_SETTINGS_CONNECTION, PAGE_SETTINGS_BANDWIDTH, \
-    PAGE_SETTINGS_SEEDING, PAGE_SETTINGS_ANONYMITY, BUTTON_TYPE_NORMAL, BUTTON_TYPE_CONFIRM, DEFAULT_API_PORT, \
-    PAGE_SETTINGS_DEBUG
-from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
-from TriblerGUI.tribler_request_manager import TriblerRequestManager
-from TriblerGUI.utilities import string_to_seconds, get_gui_setting, seconds_to_hhmm_string, is_dir_writable
 
 DEPENDENCY_ERROR_TITLE = "Dependency missing"
 DEPENDENCY_ERROR_MESSAGE = "'qrcode' module is missing. This module can be installed through apt-get or pip"
@@ -50,6 +51,8 @@ class SettingsPage(QWidget):
         self.window().download_location_chooser_button.clicked.connect(self.on_choose_download_dir_clicked)
         self.window().watch_folder_chooser_button.clicked.connect(self.on_choose_watch_dir_clicked)
 
+        self.window().channel_autocommit_checkbox.stateChanged.connect(self.on_channel_autocommit_checkbox_changed)
+        self.window().family_filter_checkbox.stateChanged.connect(self.on_family_filter_checkbox_changed)
         self.window().developer_mode_enabled_checkbox.stateChanged.connect(self.on_developer_mode_checkbox_changed)
         self.window().use_monochrome_icon_checkbox.stateChanged.connect(self.on_use_monochrome_icon_checkbox_changed)
         self.window().download_settings_anon_checkbox.stateChanged.connect(self.on_anon_download_state_changed)
@@ -155,6 +158,12 @@ class SettingsPage(QWidget):
         else:
             ConfirmationDialog.show_error(self.window(), DEPENDENCY_ERROR_TITLE, DEPENDENCY_ERROR_MESSAGE)
 
+    def on_channel_autocommit_checkbox_changed(self, _):
+        self.window().gui_settings.setValue("autocommit_enabled", self.window().channel_autocommit_checkbox.isChecked())
+
+    def on_family_filter_checkbox_changed(self, _):
+        self.window().gui_settings.setValue("family_filter", self.window().family_filter_checkbox.isChecked())
+
     def on_developer_mode_checkbox_changed(self, _):
         self.window().gui_settings.setValue("debug", self.window().developer_mode_enabled_checkbox.isChecked())
         self.window().left_menu_button_debug.setHidden(not self.window().developer_mode_enabled_checkbox.isChecked())
@@ -214,7 +223,8 @@ class SettingsPage(QWidget):
         gui_settings = self.window().gui_settings
 
         # General settings
-        self.window().family_filter_checkbox.setChecked(settings['general']['family_filter'])
+        self.window().family_filter_checkbox.setChecked(get_gui_setting(gui_settings, 'family_filter',
+                                                                        True, is_bool=True))
         self.window().use_monochrome_icon_checkbox.setChecked(get_gui_setting(gui_settings, "use_monochrome_icon",
                                                                               False, is_bool=True))
         self.window().download_location_input.setText(settings['download_defaults']['saveas'])
@@ -225,6 +235,10 @@ class SettingsPage(QWidget):
                                                                              'safeseeding_enabled'])
         self.window().watchfolder_enabled_checkbox.setChecked(settings['watch_folder']['enabled'])
         self.window().watchfolder_location_input.setText(settings['watch_folder']['directory'])
+
+        # Channel settings
+        self.window().channel_autocommit_checkbox.setChecked(
+            get_gui_setting(gui_settings, "autocommit_enabled", True, is_bool=True))
 
         # Log directory
         self.window().log_location_input.setText(settings['general']['log_dir'])
@@ -267,13 +281,11 @@ class SettingsPage(QWidget):
         self.window().credit_mining_enabled_checkbox.setChecked(settings['credit_mining']['enabled'])
         self.window().max_disk_space_input.setText(str(settings['credit_mining']['max_disk_space']))
 
-        # chant settings
-        self.window().chant_channel_edit.setChecked(settings['chant']['channel_edit'])
-
         # Debug
         self.window().developer_mode_enabled_checkbox.setChecked(get_gui_setting(gui_settings, "debug",
                                                                                  False, is_bool=True))
         self.window().checkbox_enable_resource_log.setChecked(settings['resource_monitor']['enabled'])
+
         cpu_priority = 1
         if 'cpu_priority' in settings['resource_monitor']:
             cpu_priority = int(settings['resource_monitor']['cpu_priority'])
@@ -330,10 +342,8 @@ class SettingsPage(QWidget):
         settings_data = {'general': {}, 'Tribler': {}, 'download_defaults': {}, 'libtorrent': {}, 'watch_folder': {},
                          'tunnel_community': {}, 'trustchain': {}, 'credit_mining': {}, 'resource_monitor': {},
                          'ipv8': {}, 'chant': {}}
-        settings_data['general']['family_filter'] = self.window().family_filter_checkbox.isChecked()
         settings_data['download_defaults']['saveas'] = self.window().download_location_input.text().encode('utf-8')
         settings_data['general']['log_dir'] = self.window().log_location_input.text()
-        settings_data['chant']['channel_edit'] = self.window().chant_channel_edit.isChecked()
 
         settings_data['watch_folder']['enabled'] = self.window().watchfolder_enabled_checkbox.isChecked()
         if settings_data['watch_folder']['enabled']:
@@ -354,8 +364,7 @@ class SettingsPage(QWidget):
         else:
             settings_data['libtorrent']['proxy_server'] = ":"
 
-        if len(self.window().lt_proxy_username_input.text()) > 0 and \
-                        len(self.window().lt_proxy_password_input.text()) > 0:
+        if self.window().lt_proxy_username_input.text() and self.window().lt_proxy_password_input.text():
             settings_data['libtorrent']['proxy_auth'] = "%s:%s" % (self.window().lt_proxy_username_input.text(),
                                                                    self.window().lt_proxy_password_input.text())
         else:
@@ -390,7 +399,7 @@ class SettingsPage(QWidget):
         except ValueError:
             ConfirmationDialog.show_error(self.window(), "Invalid value for bandwidth limit",
                                           "You've entered an invalid value for the maximum upload/download rate. "
-                                          "Please enter a whole number (max: %d)" % (sys.maxsize/1000))
+                                          "Please enter a whole number (max: %d)" % (sys.maxsize / 1000))
             return
 
         try:
@@ -446,12 +455,16 @@ class SettingsPage(QWidget):
 
         self.settings_request_mgr = TriblerRequestManager()
         self.settings_request_mgr.perform_request("settings", self.on_settings_saved,
-                                                  method='POST', data=json.dumps(settings_data))
+                                                  method='POST', raw_data=json.dumps(settings_data))
 
     def on_settings_saved(self, data):
         if not data:
             return
         # Now save the GUI settings
+        self.window().gui_settings.setValue("family_filter",
+                                            self.window().family_filter_checkbox.isChecked())
+        self.window().gui_settings.setValue("autocommit_enabled",
+                                            self.window().channel_autocommit_checkbox.isChecked())
         self.window().gui_settings.setValue("ask_download_settings",
                                             self.window().always_ask_location_checkbox.isChecked())
         self.window().gui_settings.setValue("use_monochrome_icon",

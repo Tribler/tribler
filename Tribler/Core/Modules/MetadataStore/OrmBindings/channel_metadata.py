@@ -1,18 +1,36 @@
 from __future__ import absolute_import
 
 import os
+import sys
+from binascii import hexlify
 from datetime import datetime
-from libtorrent import file_storage, add_files, create_torrent, set_piece_hashes, bencode, torrent_info
+
+from libtorrent import add_files, bencode, create_torrent, file_storage, set_piece_hashes, torrent_info
+
+import lz4.frame
 
 from pony import orm
-from pony.orm import db_session
+from pony.orm import db_session, raw_sql, select
 
-from Tribler.Core.Modules.MetadataStore.serialization import ChannelMetadataPayload, CHANNEL_TORRENT
-from Tribler.Core.exceptions import DuplicateTorrentFileError, DuplicateChannelNameError
+from Tribler.Core.Category.Category import default_category_filter
+from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import COMMITTED, LEGACY_ENTRY, NEW, PUBLIC_KEY_LEN, \
+    TODELETE
+from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, ChannelMetadataPayload
+from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
+from Tribler.Core.exceptions import DuplicateChannelIdError, DuplicateTorrentFileError
 from Tribler.pyipv8.ipv8.database import database_blob
 
-CHANNEL_DIR_NAME_LENGTH = 60  # Its not 40 so it could be distinguished from infohash
+CHANNEL_DIR_NAME_LENGTH = 32  # Its not 40 so it could be distinguished from infohash
 BLOB_EXTENSION = '.mdblob'
+LZ4_END_MARK_SIZE = 4  # in bytes, from original specification. We don't use CRC
+ROOT_CHANNEL_ID = 0
+
+
+def chunks(l, n):
+    """Yield successive n-sized chunks from l."""
+    for i in range(0, len(l), n):
+        yield l[i:i + n]
 
 
 def create_torrent_from_dir(directory, torrent_filename):
@@ -34,26 +52,30 @@ def entries_to_chunk(metadata_list, chunk_size, start_index=0):
     """
     For efficiency reasons, this is deliberately written in C style
     :param metadata_list: the list of metadata to process.
-    :param limit: maximum size of a resulting chunk, in bytes.
+    :param chunk_size: the desired chunk size limit, in bytes. The produced chunk's size will never exceed this value.
     :param start_index: the index of the element of metadata_list from which the processing should start.
     :return: (chunk, last_entry_index) tuple, where chunk is the resulting chunk in string form and
         last_entry_index is the index of the element of the input list that was put into the chunk the last.
     """
     # Try to fit as many blobs into this chunk as permitted by chunk_size and
     # calculate their ends' offsets in the blob
-    out_list = []
 
-    offset = 0
     last_entry_index = None
-    for index, metadata in enumerate(metadata_list[start_index:], start_index):
-        blob = ''.join(metadata.serialized_delete() if metadata.deleted else metadata.serialized())
-        # Chunk size limit reached?
-        if offset + len(blob) > chunk_size:
-            break
-        # Now that we now it will fit in, we can safely append it
-        offset += len(blob)
-        last_entry_index = index
-        out_list.append(blob)
+    with lz4.frame.LZ4FrameCompressor(auto_flush=True) as c:
+        header = c.begin()
+        offset = len(header)
+        out_list = [header]  # LZ4 header
+        for index, metadata in enumerate(metadata_list[start_index:], start_index):
+            blob = c.compress(
+                ''.join(metadata.serialized_delete() if metadata.status == TODELETE else metadata.serialized()))
+            # Chunk size limit reached?
+            if offset + len(blob) > (chunk_size - LZ4_END_MARK_SIZE):
+                break
+            # Now that we now it will fit in, we can safely append it
+            offset += len(blob)
+            last_entry_index = index
+            out_list.append(blob)
+        out_list.append(c.flush())  # LZ4 end mark
 
     chunk = ''.join(out_list)
     if last_entry_index is None:
@@ -65,23 +87,25 @@ def entries_to_chunk(metadata_list, chunk_size, start_index=0):
 def define_binding(db):
     class ChannelMetadata(db.TorrentMetadata):
         _discriminator_ = CHANNEL_TORRENT
-        version = orm.Optional(int, size=64, default=0)
+
+        # Serializable
+        num_entries = orm.Optional(int, size=64, default=0)
+        start_timestamp = orm.Optional(int, size=64, default=0)
+
+        # Local
         subscribed = orm.Optional(bool, default=False)
         votes = orm.Optional(int, size=64, default=0)
         local_version = orm.Optional(int, size=64, default=0)
+
         _payload_class = ChannelMetadataPayload
         _channels_dir = None
+        _category_filter = None
         _CHUNK_SIZE_LIMIT = 1 * 1024 * 1024  # We use 1MB chunks as a workaround for Python's lack of string pointers
 
         @db_session
         def update_metadata(self, update_dict=None):
-            now = datetime.utcnow()
             channel_dict = self.to_dict()
             channel_dict.update(update_dict or {})
-            channel_dict.update({
-                "size": self.contents_len,
-                "timestamp": now,
-            })
             self.set(**channel_dict)
             self.sign()
 
@@ -97,24 +121,29 @@ def define_binding(db):
             if not channel:
                 return ChannelMetadata.from_payload(payload)
 
-            if payload.version > channel.version:
+            if payload.timestamp > channel.timestamp:
                 channel.set(**payload.to_dict())
             return channel
 
         @classmethod
         @db_session
-        def create_channel(cls, title, description):
+        def get_my_channel(cls):
+            return ChannelMetadata.get_channel_with_id(cls._my_key.pub().key_to_bin()[10:])
+
+        @classmethod
+        @db_session
+        def create_channel(cls, title, description=""):
             """
             Create a channel and sign it with a given key.
             :param title: The title of the channel
             :param description: The description of the channel
             :return: The channel metadata
             """
-            if ChannelMetadata.get_channel_with_id(cls._my_key.pub().key_to_bin()):
-                raise DuplicateChannelNameError()
+            if ChannelMetadata.get_channel_with_id(cls._my_key.pub().key_to_bin()[10:]):
+                raise DuplicateChannelIdError()
 
-            my_channel = cls(public_key=database_blob(cls._my_key.pub().key_to_bin()), title=title,
-                             tags=description, subscribed=True)
+            my_channel = cls(id_=ROOT_CHANNEL_ID, public_key=database_blob(cls._my_key.pub().key_to_bin()[10:]),
+                             title=title, tags=description, subscribed=True)
             my_channel.sign()
             return my_channel
 
@@ -131,9 +160,18 @@ def define_binding(db):
             for filename in os.listdir(folder):
                 file_path = os.path.join(folder, filename)
                 # We only remove mdblobs and leave the rest as it is
-                if filename.endswith(BLOB_EXTENSION):
+                if filename.endswith(BLOB_EXTENSION) or filename.endswith(BLOB_EXTENSION + '.lz4'):
                     os.unlink(file_path)
-            self.update_channel_torrent(self.contents_list)
+
+            # Channel should get a new starting timestamp and its contents should get higher timestamps
+            start_timestamp = self._clock.tick()
+            for g in self.contents:
+                if g.status == COMMITTED:
+                    g.status = NEW
+                    g.timestamp = self._clock.tick()
+                    g.sign()
+
+            self.commit_channel_torrent(new_start_timestamp=start_timestamp)
 
         def update_channel_torrent(self, metadata_list):
             """
@@ -147,93 +185,121 @@ def define_binding(db):
             if not os.path.isdir(channel_dir):
                 os.makedirs(channel_dir)
 
-            # Basically, a channel's version represents the count of unique entries it ever had.
-            # For a channel that never had deleted anything, it's version = len(contents)
-            old_version = self.version
             index = 0
+            new_timestamp = self.timestamp
             while index < len(metadata_list):
                 # Squash several serialized and signed metadata entries into a single file
                 data, index = entries_to_chunk(metadata_list, self._CHUNK_SIZE_LIMIT, start_index=index)
-                blob_filename = str(old_version + index).zfill(12) + BLOB_EXTENSION
+                new_timestamp = self._clock.tick()
+                blob_filename = str(new_timestamp).zfill(12) + BLOB_EXTENSION + '.lz4'
                 with open(os.path.join(channel_dir, blob_filename), 'wb') as f:
                     f.write(data)
 
-            new_version = self.version + len(metadata_list)
-
+            # TODO: add error-handling routines to make sure the timestamp is not messed up in case of an error
 
             # Make torrent out of dir with metadata files
-            start_ts = datetime.utcnow()
             torrent, infohash = create_torrent_from_dir(channel_dir,
                                                         os.path.join(self._channels_dir, self.dir_name + ".torrent"))
-
-            # Torrent files have time resolution of 1 second. If a channel torrent is created in the same second as
-            # a new metadata entry, the latter would still be listened as a staged entry. To account for this,
-            # we store torrent_date with higher resolution. As libtorrent uses the moment of beginning of the torrent
-            # creation as a source for 'creation date' for torrent, we sample it just before calling it. Then we select
-            # the larger of two timestamps.
             torrent_date = datetime.utcfromtimestamp(torrent['creation date'])
-            torrent_date_corrected = start_ts if start_ts > torrent_date else torrent_date
 
-            self.update_metadata(update_dict={"infohash": infohash, "version": new_version,
-                                              "torrent_date": torrent_date_corrected})
+            return {"infohash": infohash, "num_entries": self.contents_len,
+                    "timestamp": new_timestamp, "torrent_date": torrent_date}, torrent
 
-            self.local_version = new_version
-            # Write the channel mdblob away
-            with open(os.path.join(self._channels_dir, self.dir_name + BLOB_EXTENSION), 'wb') as out_file:
-                out_file.write(''.join(self.serialized()))
-
-            self._logger.info("Channel %s committed with %i new entries. New version is %i",
-                              str(self.public_key).encode("hex"), len(metadata_list), new_version)
-            return infohash
-
-        def commit_channel_torrent(self):
+        def commit_channel_torrent(self, new_start_timestamp=None):
             """
             Collect new/uncommitted and marked for deletion metadata entries, commit them to a channel torrent and
             remove the obsolete entries if the commit succeeds.
             :return The new infohash, should be used to update the downloads
             """
             new_infohash = None
+            torrent = None
+            md_list = self.staged_entries_list
+            if not md_list:
+                return None
+
             try:
-                new_infohash = self.update_channel_torrent(self.staged_entries_list)
+                update_dict, torrent = self.update_channel_torrent(md_list)
             except IOError:
                 self._logger.error(
                     "Error during channel torrent commit, not going to garbage collect the channel. Channel %s",
                     str(self.public_key).encode("hex"))
             else:
-                # Clean up obsolete entries
-                self.garbage_collect()
-            return new_infohash
+                if new_start_timestamp:
+                    update_dict['start_timestamp'] = new_start_timestamp
+                new_infohash = update_dict['infohash'] if self.infohash != update_dict['infohash'] else None
+                self.update_metadata(update_dict)
+                self.local_version = self.timestamp
+                # Change status of committed metadata and clean up obsolete TODELETE entries
+                for g in md_list:
+                    if g.status == NEW:
+                        g.status = COMMITTED
+                    elif g.status == TODELETE:
+                        g.delete()
+
+                # Write the channel mdblob to disk
+                self.to_file(os.path.join(self._channels_dir, self.dir_name + BLOB_EXTENSION))
+
+                self._logger.info("Channel %s committed with %i new entries. New version is %i",
+                                  str(self.public_key).encode("hex"), len(md_list), update_dict['timestamp'])
+            return torrent
 
         @db_session
-        def has_torrent(self, infohash):
+        def get_torrent(self, infohash):
             """
-            Check whether this channel contains the torrent with a provided infohash.
+            Return the torrent with a provided infohash.
             :param infohash: The infohash of the torrent to search for
-            :return: True if the torrent exists in the channel, else False
+            :return: TorrentMetadata if the torrent exists in the channel, else None
             """
-            return db.TorrentMetadata.get(public_key=self.public_key, infohash=infohash) is not None
+            return db.TorrentMetadata.get(public_key=self.public_key, infohash=infohash)
 
         @db_session
-        def add_torrent_to_channel(self, tdef, extra_info):
+        def add_torrent_to_channel(self, tdef, extra_info=None):
             """
             Add a torrent to your channel.
             :param tdef: The torrent definition file of the torrent to add
             :param extra_info: Optional extra info to add to the torrent
             """
-            if self.has_torrent(tdef.get_infohash()):
-                raise DuplicateTorrentFileError()
+            if extra_info:
+                tags = extra_info.get('description', '')
+            else:
+                # We only want to determine the type of the data. XXX filtering is done by the receiving side
+                tags = default_category_filter.calculateCategory(tdef.metainfo, tdef.get_name_as_unicode())
 
-            torrent_metadata = db.TorrentMetadata.from_dict({
+            new_entry_dict = {
                 "infohash": tdef.get_infohash(),
-                "title": tdef.get_name_as_unicode(),
-                "tags": extra_info.get('description', '') if extra_info else '',
+                "title": tdef.get_name_as_unicode()[:300],  # TODO: do proper size checking based on bytes
+                "tags": tags[:200],  # TODO: do proper size checking based on bytes
                 "size": tdef.get_length(),
                 "torrent_date": datetime.fromtimestamp(tdef.get_creation_date()),
-                "tc_pointer": 0,
-                "tracker_info": tdef.get_tracker() or '',
-                "public_key": self._my_key.pub().key_to_bin()
-            })
-            torrent_metadata.sign()
+                "tracker_info": get_uniformed_tracker_url(tdef.get_tracker() or '') or '',
+                "status": NEW}
+
+            # See if the torrent is already in the channel
+            old_torrent = self.get_torrent(tdef.get_infohash())
+            if old_torrent:
+                # If it is there, check if we were going to delete it
+                if old_torrent.status == TODELETE:
+                    if old_torrent.metadata_conflicting(new_entry_dict):
+                        # Metadata from torrent we're trying to add is conflicting with the
+                        # deleted old torrent's metadata. We will replace the old metadata.
+                        new_timestamp = self._clock.tick()
+                        old_torrent.set(timestamp=new_timestamp, **new_entry_dict)
+                        old_torrent.sign()
+                    else:
+                        # No conflict. This means the user is trying to replace the deleted torrent
+                        # with the same one. Just recover the old one.
+                        old_torrent.status = COMMITTED
+                    torrent_metadata = old_torrent
+                else:
+                    raise DuplicateTorrentFileError()
+            else:
+                torrent_metadata = db.TorrentMetadata.from_dict(new_entry_dict)
+                torrent_metadata.parents.add(self)
+            return torrent_metadata
+
+        @property
+        def dirty(self):
+            return self.contents.where(lambda g: g.status == NEW or g.status == TODELETE).exists()
 
         @property
         def contents(self):
@@ -241,39 +307,21 @@ def define_binding(db):
 
         @property
         def uncommitted_contents(self):
-            return (g for g in self.newer_entries if not g.deleted)
-
-        @property
-        def committed_contents(self):
-            return (g for g in self.older_entries if not g.deleted)
+            return self.contents.where(lambda g: g.status == NEW)
 
         @property
         def deleted_contents(self):
-            return (g for g in self.contents if g.deleted)
+            return self.contents.where(lambda g: g.status == TODELETE)
 
         @property
         def dir_name(self):
             # Have to limit this to support Windows file path length limit
-            return str(self.public_key).encode('hex')[-CHANNEL_DIR_NAME_LENGTH:]
-
-        @property
-        def newer_entries(self):
-            return db.Metadata.select(
-                lambda g: g.timestamp > self.torrent_date and g.public_key == self.public_key and g != self)
-
-        @property
-        def older_entries(self):
-            return db.Metadata.select(
-                lambda g: g.timestamp < self.torrent_date and g.public_key == self.public_key and g != self)
-
-        @db_session
-        def garbage_collect(self):
-            orm.delete(g for g in self.older_entries if g.deleted)
+            return hexlify(self.public_key)[:CHANNEL_DIR_NAME_LENGTH]
 
         @property
         @db_session
         def staged_entries_list(self):
-            return list(self.deleted_contents) + list(self.newer_entries)
+            return list(self.deleted_contents) + list(self.uncommitted_contents)
 
         @property
         @db_session
@@ -285,22 +333,23 @@ def define_binding(db):
             return orm.count(self.contents)
 
         @db_session
-        def delete_torrent_from_channel(self, infohash):
+        def delete_torrent(self, infohash):
             """
             Remove a torrent from this channel.
             Obsolete blob files are never deleted except on defragmentation of the channel.
             :param infohash: The infohash of the torrent to remove
             :return True if deleted, False if no MD with the given infohash found
             """
-            if self.has_torrent(infohash):
-                torrent_metadata = db.TorrentMetadata.get(public_key=self.public_key, infohash=infohash)
-            else:
+            torrent_metadata = db.TorrentMetadata.get(public_key=self.public_key, infohash=infohash)
+            if not torrent_metadata:
                 return False
-            if torrent_metadata.timestamp > self.torrent_date:
+
+            if torrent_metadata.status == NEW:
                 # Uncommited metadata. Delete immediately
                 torrent_metadata.delete()
             else:
-                torrent_metadata.deleted = True
+                torrent_metadata.status = TODELETE
+
             return True
 
         @classmethod
@@ -313,6 +362,17 @@ def define_binding(db):
             """
             return cls.get(public_key=database_blob(channel_id))
 
+        @db_session
+        def drop_channel_contents(self):
+            """
+            Remove all torrents from the channel
+            """
+            # Immediately delete uncommitted metadata
+            self.uncommitted_contents.delete()
+            # Mark the rest as deleted
+            for g in self.contents:
+                g.status = TODELETE
+
         @classmethod
         @db_session
         def get_channel_with_infohash(cls, infohash):
@@ -320,14 +380,136 @@ def define_binding(db):
 
         @classmethod
         @db_session
-        def get_random_channels(cls, limit):
-            """
-            Fetch up to some limit of channels we are subscribed to.
+        def get_channel_with_dirname(cls, dirname):
+            # It is impossible to use LIKE queries on BLOBs, so we have to use comparisons
+            def extend_to_bitmask(txt):
+                return txt + "0" * (PUBLIC_KEY_LEN * 2 - CHANNEL_DIR_NAME_LENGTH)
 
-            :param limit: the maximum amount of channels to fetch
+            dirname_binmask_start = "x'" + extend_to_bitmask(dirname) + "'"
+
+            binmask_plus_one = ("%X" % (int(dirname, 16) + 1)).zfill(len(dirname))
+            dirname_binmask_end = "x'" + extend_to_bitmask(binmask_plus_one) + "'"
+
+            sql = "g.public_key >= " + dirname_binmask_start + " AND g.public_key < " + dirname_binmask_end
+            return orm.get(g for g in cls if raw_sql(sql))
+
+        @classmethod
+        @db_session
+        def get_random_channels(cls, limit, only_subscribed=False):
+            """
+            Fetch up to some limit of torrents from this channel
+
+            :param limit: the maximum amount of torrents to fetch
+            :param only_subscribed: whether we only want random channels we are subscribed to
             :return: the subset of random channels we are subscribed to
             :rtype: list
             """
-            return db.ChannelMetadata.select(lambda g: g.subscribed).random(limit)
+            if only_subscribed:
+                select_lambda = lambda g: g.subscribed and g.status not in [LEGACY_ENTRY, NEW,
+                                                                            TODELETE] and g.num_entries > 0
+            else:
+                select_lambda = lambda g: g.status not in [LEGACY_ENTRY, NEW, TODELETE] and g.num_entries > 0
+
+            return db.ChannelMetadata.select(select_lambda).random(limit)
+
+        @db_session
+        def get_random_torrents(self, limit):
+            return self.contents.where(lambda g: g.status not in [NEW, TODELETE]).random(limit)
+
+        @classmethod
+        @db_session
+        def get_updated_channels(cls):
+            return select(g for g in cls if g.subscribed and (g.local_version < g.timestamp))
+
+        @classmethod
+        @db_session
+        def get_entries(cls, first=None, last=None, subscribed=False, metadata_type=CHANNEL_TORRENT, **kwargs):
+            """
+            Get some channels. Optionally sort the results by a specific field, or filter the channels based
+            on a keyword/whether you are subscribed to it.
+            :return: A tuple. The first entry is a list of ChannelMetadata entries. The second entry indicates
+                     the total number of results, regardless the passed first/last parameter.
+            """
+            pony_query, count = super(ChannelMetadata, cls).get_entries(metadata_type=metadata_type, **kwargs)
+            if subscribed:
+                pony_query = pony_query.where(subscribed=subscribed)
+
+            return pony_query[(first or 1) - 1:last] if first or last else pony_query, count
+
+        @db_session
+        def to_simple_dict(self):
+            """
+            Return a basic dictionary with information about the channel.
+            """
+            return {
+                "id": self.rowid,
+                "public_key": hexlify(self.public_key),
+                "name": self.title,
+                "torrents": self.contents_len,
+                "subscribed": self.subscribed,
+                "votes": self.votes,
+                "status": self.status,
+
+                # TODO: optimize this?
+                "my_channel": database_blob(self._my_key.pub().key_to_bin()[10:]) == database_blob(self.public_key)
+            }
+
+        @classmethod
+        @db_session
+        def get_channel_name(cls, name, infohash):
+            """
+            Try to translate a Tribler download name into matching channel name. By searching for a channel with the
+            given dirname and/or infohash. Try do determine if infohash belongs to an older version of
+            some channel we already have.
+            :param name - name of the download. Should match the directory name of the channel.
+            :param infohash - infohash of the download.
+            :return: Channel title as a string, prefixed with 'OLD:' for older versions
+            """
+            try:
+                channel = cls.get_channel_with_dirname(name)
+            except UnicodeEncodeError:
+                channel = cls.get_channel_with_infohash(infohash)
+
+            if not channel:
+                return name
+            if channel.infohash == database_blob(infohash):
+                return channel.title
+            else:
+                return u'OLD:' + channel.title
+
+        @db_session
+        def add_torrents_from_dir(self, torrents_dir, recursive=False):
+            # TODO: Optimize this properly!!!!
+            torrents_list = []
+            errors_list = []
+
+            if recursive:
+                def rec_gen():
+                    for root, _, filenames in os.walk(torrents_dir):
+                        for fn in filenames:
+                            yield os.path.join(root, fn)
+
+                filename_generator = rec_gen()
+            else:
+                filename_generator = os.listdir(torrents_dir)
+
+            # Build list of .torrents to process
+            for f in filename_generator:
+                filepath = os.path.join(torrents_dir, f)
+                filename = str(filepath) if sys.platform == 'win32' else filepath.decode('utf-8')
+                if os.path.isfile(filepath) and filename.endswith(u'.torrent'):
+                    torrents_list.append(filepath)
+
+            for chunk in chunks(torrents_list, 100):  # 100 is a reasonable chunk size for commits
+                for f in chunk:
+                    try:
+                        self.add_torrent_to_channel(TorrentDef.load(f))
+                    except DuplicateTorrentFileError:
+                        pass
+                    except:
+                        errors_list.append(f)
+                orm.commit()  # Kinda optimization to drop excess cache?
+
+            return torrents_list, errors_list
 
     return ChannelMetadata

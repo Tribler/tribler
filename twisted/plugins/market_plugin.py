@@ -1,24 +1,23 @@
 """
 This twistd plugin enables to start Tribler headless using the twistd command.
 """
+from __future__ import absolute_import
+
 import os
 import signal
 
-from Tribler.Core.Config.tribler_config import TriblerConfig
-from twisted.application.service import MultiService, IServiceMaker
+from twisted.application.service import IServiceMaker, MultiService
 from twisted.conch import manhole_tap
 from twisted.internet import reactor
 from twisted.plugin import IPlugin
 from twisted.python import usage
 from twisted.python.log import msg
+
 from zope.interface import implements
 
+from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.Modules.process_checker import ProcessChecker
 from Tribler.Core.Session import Session
-
-# Register yappi profiler
-from Tribler.community.market.community import MarketCommunity
-from Tribler.dispersy.utils import twistd_yappi
 
 
 class Options(usage.Options):
@@ -70,15 +69,9 @@ class MarketServiceMaker(object):
 
         config = TriblerConfig()
         config.set_torrent_checking_enabled(False)
-        config.set_megacache_enabled(True)
-        config.set_dispersy_enabled(False)
-        config.set_mainline_dht_enabled(True)
-        config.set_torrent_collecting_enabled(False)
         config.set_libtorrent_enabled(False)
         config.set_http_api_enabled(True)
         config.set_video_server_enabled(False)
-        config.set_torrent_search_enabled(False)
-        config.set_channel_search_enabled(False)
         config.set_credit_mining_enabled(False)
         config.set_dummy_wallets_enabled(True)
         config.set_popularity_community_enabled(False)

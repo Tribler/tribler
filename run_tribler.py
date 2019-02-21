@@ -1,14 +1,16 @@
-import os
-import sys
-import logging.config
+from __future__ import absolute_import
 
+import logging.config
+import os
 import signal
+import sys
+
+from check_os import check_and_enable_code_tracing, check_environment, check_free_space, enable_fault_handler, \
+    error_and_exit, set_process_priority, setup_gui_logging, should_kill_other_tribler_instances
 
 from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.exceptions import TriblerException
-from check_os import check_environment, check_free_space, error_and_exit, setup_gui_logging, \
-    should_kill_other_tribler_instances, enable_fault_handler, set_process_priority, \
-    check_and_enable_code_tracing
+
 
 # https://github.com/Tribler/tribler/issues/3702
 # We need to make sure that anyone running cp65001 can print to the stdout before we print anything.
@@ -114,13 +116,6 @@ if __name__ == "__main__":
 
             app = TriblerApplication("triblerapp", sys.argv)
 
-            if app.is_running():
-                for arg in sys.argv[1:]:
-                    if os.path.exists(arg) and arg.endswith(".torrent"):
-                        app.send_message("file:%s" % arg)
-                    elif arg.startswith('magnet'):
-                        app.send_message(arg)
-                sys.exit(1)
 
             window = TriblerWindow()
             window.setWindowTitle("Tribler")

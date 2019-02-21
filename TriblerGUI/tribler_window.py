@@ -11,15 +11,11 @@ import urlparse
 from urllib import pathname2url, unquote
 
 from PyQt5 import uic
-from PyQt5.QtCore import QCoreApplication, QObject, QPoint, QSettings, QStringListModel, QTimer, QUrl, Qt, \
+from PyQt5.QtCore import QCoreApplication, QDir, QObject, QPoint, QSettings, QStringListModel, QTimer, QUrl, Qt, \
     pyqtSignal, pyqtSlot
-from PyQt5.QtCore import QDir
-from PyQt5.QtGui import QDesktopServices, QIcon
-from PyQt5.QtGui import QKeySequence
-from PyQt5.QtGui import QPixmap
+from PyQt5.QtGui import QDesktopServices, QIcon, QKeySequence, QPixmap
 from PyQt5.QtWidgets import QAction, QApplication, QCompleter, QFileDialog, QLineEdit, QListWidget, QMainWindow, \
-    QStyledItemDelegate, QSystemTrayIcon, QTreeWidget
-from PyQt5.QtWidgets import QShortcut
+    QShortcut, QStyledItemDelegate, QSystemTrayIcon, QTreeWidget
 
 import six
 
@@ -29,19 +25,17 @@ from TriblerGUI.core_manager import CoreManager
 from TriblerGUI.debug_window import DebugWindow
 from TriblerGUI.defs import BUTTON_TYPE_CONFIRM, BUTTON_TYPE_NORMAL, DEFAULT_API_PORT, PAGE_CHANNEL_DETAILS, \
     PAGE_DISCOVERED, PAGE_DISCOVERING, PAGE_DOWNLOADS, PAGE_EDIT_CHANNEL, PAGE_HOME, PAGE_LOADING, \
-    PAGE_PLAYLIST_DETAILS, PAGE_SEARCH_RESULTS, PAGE_SETTINGS, PAGE_SUBSCRIBED_CHANNELS, PAGE_TRUST, \
-    PAGE_VIDEO_PLAYER, SHUTDOWN_WAITING_PERIOD
+    PAGE_SEARCH_RESULTS, PAGE_SETTINGS, PAGE_SUBSCRIBED_CHANNELS, PAGE_TRUST, PAGE_VIDEO_PLAYER, SHUTDOWN_WAITING_PERIOD
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.dialogs.feedbackdialog import FeedbackDialog
 from TriblerGUI.dialogs.startdownloaddialog import StartDownloadDialog
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
 from TriblerGUI.tribler_request_manager import TriblerRequestManager, dispatcher, request_queue
-from TriblerGUI.utilities import get_gui_setting, get_image_path, get_ui_file_path, is_dir_writable, quote_plus_unicode
+from TriblerGUI.utilities import get_gui_setting, get_image_path, get_ui_file_path, is_dir_writable
+from TriblerGUI.widgets.triblertablecontrollers import sanitize_for_fts
 
 # Pre-load form UI classes
-fc_channel_torrent_list_item, _ = uic.loadUiType(get_ui_file_path('channel_torrent_list_item.ui'))
-fc_channel_list_item, _ = uic.loadUiType(get_ui_file_path('channel_list_item.ui'))
-fc_playlist_list_item, _ = uic.loadUiType(get_ui_file_path('playlist_list_item.ui'))
+
 fc_home_recommended_item, _ = uic.loadUiType(get_ui_file_path('home_recommended_item.ui'))
 fc_loading_list_item, _ = uic.loadUiType(get_ui_file_path('loading_list_item.ui'))
 
@@ -135,19 +129,6 @@ class TriblerWindow(QMainWindow):
         TriblerRequestManager.window = self
         self.tribler_status_bar.hide()
 
-        # Load dynamic widgets
-        uic.loadUi(get_ui_file_path('torrent_channel_list_container.ui'), self.channel_page_container)
-        self.channel_torrents_list = self.channel_page_container.items_list
-        self.channel_torrents_detail_widget = self.channel_page_container.details_tab_widget
-        self.channel_torrents_detail_widget.initialize_details_widget()
-        self.channel_torrents_list.itemSelectionChanged.connect(self.channel_page.clicked_item)
-
-        uic.loadUi(get_ui_file_path('torrent_channel_list_container.ui'), self.search_page_container)
-        self.search_results_list = self.search_page_container.items_list
-        self.search_torrents_detail_widget = self.search_page_container.details_tab_widget
-        self.search_torrents_detail_widget.initialize_details_widget()
-        self.search_results_list.itemClicked.connect(self.on_channel_item_click)
-        self.search_results_list.itemSelectionChanged.connect(self.search_results_page.clicked_item)
         self.token_balance_widget.mouseReleaseEvent = self.on_token_balance_click
 
         def on_state_update(new_state):
@@ -170,15 +151,16 @@ class TriblerWindow(QMainWindow):
                              self.left_menu_button_downloads, self.left_menu_button_discovered]
 
         self.video_player_page.initialize_player()
-        self.search_results_page.initialize_search_results_page()
+        self.search_results_page.initialize_search_results_page(self.gui_settings)
         self.settings_page.initialize_settings_page()
         self.subscribed_channels_page.initialize()
-        self.edit_channel_page.initialize_edit_channel_page()
+        self.edit_channel_page.initialize_edit_channel_page(self.gui_settings)
         self.downloads_page.initialize_downloads_page()
         self.home_page.initialize_home_page()
         self.loading_page.initialize_loading_page()
         self.discovering_page.initialize_discovering_page()
-        self.discovered_page.initialize_discovered_page()
+        self.discovered_page.initialize_discovered_page(self.gui_settings)
+        self.channel_page.initialize_channel_page(self.gui_settings)
         self.trust_page.initialize_trust_page()
         self.token_mining_page.initialize_token_mining_page()
 
@@ -249,10 +231,6 @@ class TriblerWindow(QMainWindow):
         # Start Tribler
         self.core_manager.start(core_args=core_args, core_env=core_env)
 
-        self.core_manager.events_manager.received_search_result_channel.connect(
-            self.search_results_page.received_search_result_channel)
-        self.core_manager.events_manager.received_search_result_torrent.connect(
-            self.search_results_page.received_search_result_torrent)
         self.core_manager.events_manager.torrent_finished.connect(self.on_torrent_finished)
         self.core_manager.events_manager.new_version_available.connect(self.on_new_version_available)
         self.core_manager.events_manager.tribler_started.connect(self.on_tribler_started)
@@ -408,18 +386,19 @@ class TriblerWindow(QMainWindow):
             ConfirmationDialog.show_message(self.window(), "Download error <i>%s</i>" % uri, gui_error_message, "OK")
             return
 
-        selected_files_uri = ""
+        selected_files_list = []
         if len(selected_files) != total_files:  # Not all files included
-            selected_files_uri = u'&' + u''.join(u"selected_files[]=%s&" %
-                                                 quote_plus_unicode(filename) for filename in selected_files)[:-1]
+            selected_files_list = [filename for filename in selected_files]
 
         anon_hops = int(self.tribler_settings['download_defaults']['number_hops']) if anon_download else 0
         safe_seeding = 1 if safe_seeding else 0
-        post_data = "uri=%s&anon_hops=%d&safe_seeding=%d&destination=%s%s" % (quote_plus_unicode(uri), anon_hops,
-                                                                              safe_seeding, destination,
-                                                                              selected_files_uri)
-        post_data = post_data.encode('utf-8')  # We need to send bytes in the request, not unicode
-
+        post_data = {
+            "uri": uri,
+            "anon_hops": anon_hops,
+            "safe_seeding": safe_seeding,
+            "destination": destination,
+            "selected_files": selected_files_list
+        }
         request_mgr = TriblerRequestManager()
         request_mgr.perform_request("downloads", callback if callback else self.on_download_added,
                                     method='PUT', data=post_data)
@@ -464,7 +443,7 @@ class TriblerWindow(QMainWindow):
     def on_search_text_change(self, text):
         self.search_suggestion_mgr = TriblerRequestManager()
         self.search_suggestion_mgr.perform_request(
-            "search/completions?q=%s" % text, self.on_received_search_completions)
+            "search/completions", self.on_received_search_completions, url_params={'q': sanitize_for_fts(text)})
 
     def on_received_search_completions(self, completions):
         if completions is None:
@@ -489,8 +468,6 @@ class TriblerWindow(QMainWindow):
         self.video_player_page.video_player_port = settings["ports"]["video_server~port"]
 
         # Disable various components based on the settings
-        if not self.tribler_settings['search_community']['enabled']:
-            self.window().top_search_bar.setHidden(True)
         if not self.tribler_settings['video_server']['enabled']:
             self.left_menu_button_video_player.setHidden(True)
         self.downloads_creditmining_button.setHidden(not self.tribler_settings["credit_mining"]["enabled"])
@@ -521,8 +498,6 @@ class TriblerWindow(QMainWindow):
         self.has_search_results = True
         self.clicked_menu_button_search()
         self.search_results_page.perform_search(current_search_query)
-        self.search_request_mgr = TriblerRequestManager()
-        self.search_request_mgr.perform_request("search?q=%s" % current_search_query, None)
         self.last_search_query = current_search_query
         self.last_search_time = current_ts
 
@@ -566,7 +541,7 @@ class TriblerWindow(QMainWindow):
             self.trust_page.load_blocks()
 
     def set_token_balance(self, balance):
-        if abs(balance) > 1024 ** 4:    # Balance is over a TB
+        if abs(balance) > 1024 ** 4:  # Balance is over a TB
             balance /= 1024.0 ** 4
             self.token_balance_label.setText("%.1f TB" % balance)
         elif abs(balance) > 1024 ** 3:  # Balance is over a GB
@@ -704,9 +679,9 @@ class TriblerWindow(QMainWindow):
                 escaped_uri = u"file:%s" % pathname2url(torrent_file.encode('utf-8'))
                 self.perform_start_download_request(escaped_uri,
                                                     self.window().tribler_settings['download_defaults'][
-                                                         'anonymity_enabled'],
+                                                        'anonymity_enabled'],
                                                     self.window().tribler_settings['download_defaults'][
-                                                         'safeseeding_enabled'],
+                                                        'safeseeding_enabled'],
                                                     self.tribler_settings['download_defaults']['saveas'], [], 0)
 
         if self.dialog:
@@ -801,9 +776,9 @@ class TriblerWindow(QMainWindow):
         self.show_left_menu_playlist()
 
     def clicked_menu_button_downloads(self):
+        self.deselect_all_menu_buttons(self.left_menu_button_downloads)
         self.raise_window()
         self.left_menu_button_downloads.setChecked(True)
-        self.deselect_all_menu_buttons(self.left_menu_button_downloads)
         self.stackedWidget.setCurrentIndex(PAGE_DOWNLOADS)
         self.navigation_stack = []
         self.hide_left_menu_playlist()
@@ -815,8 +790,8 @@ class TriblerWindow(QMainWindow):
 
     def clicked_menu_button_subscriptions(self):
         self.deselect_all_menu_buttons(self.left_menu_button_subscriptions)
-        self.subscribed_channels_page.load_subscribed_channels()
         self.stackedWidget.setCurrentIndex(PAGE_SUBSCRIBED_CHANNELS)
+        self.subscribed_channels_page.load_subscribed_channels()
         self.navigation_stack = []
         self.hide_left_menu_playlist()
 
@@ -830,34 +805,15 @@ class TriblerWindow(QMainWindow):
         self.left_menu_playlist_label.setHidden(False)
         self.left_menu_playlist.setHidden(False)
 
-    def on_channel_item_click(self, channel_list_item):
-        list_widget = channel_list_item.listWidget()
-        from TriblerGUI.widgets.channel_list_item import ChannelListItem
-        if isinstance(list_widget.itemWidget(channel_list_item), ChannelListItem):
-            channel_info = channel_list_item.data(Qt.UserRole)
-            self.channel_page.initialize_with_channel(channel_info)
-            self.navigation_stack.append(self.stackedWidget.currentIndex())
-            self.stackedWidget.setCurrentIndex(PAGE_CHANNEL_DETAILS)
-
-    def on_playlist_item_click(self, playlist_list_item):
-        list_widget = playlist_list_item.listWidget()
-        from TriblerGUI.widgets.playlist_list_item import PlaylistListItem
-        if isinstance(list_widget.itemWidget(playlist_list_item), PlaylistListItem):
-            playlist_info = playlist_list_item.data(Qt.UserRole)
-            self.playlist_page.initialize_with_playlist(playlist_info)
-            self.navigation_stack.append(self.stackedWidget.currentIndex())
-            self.stackedWidget.setCurrentIndex(PAGE_PLAYLIST_DETAILS)
+    def on_channel_clicked(self, channel_info):
+        self.channel_page.initialize_with_channel(channel_info)
+        self.navigation_stack.append(self.stackedWidget.currentIndex())
+        self.stackedWidget.setCurrentIndex(PAGE_CHANNEL_DETAILS)
 
     def on_page_back_clicked(self):
         try:
             prev_page = self.navigation_stack.pop()
             self.stackedWidget.setCurrentIndex(prev_page)
-            if prev_page == PAGE_SEARCH_RESULTS:
-                self.stackedWidget.widget(prev_page).load_search_results_in_list()
-            if prev_page == PAGE_SUBSCRIBED_CHANNELS:
-                self.stackedWidget.widget(prev_page).load_subscribed_channels()
-            if prev_page == PAGE_DISCOVERED:
-                self.stackedWidget.widget(prev_page).load_discovered_channels()
         except IndexError:
             logging.exception("Unknown page found in stack")
 
@@ -895,7 +851,6 @@ class TriblerWindow(QMainWindow):
             self.show_loading_screen()
             self.hide_status_bar()
             self.loading_text_label.setText("Shutting down...")
-
             if self.debug_window:
                 self.debug_window.setHidden(True)
 

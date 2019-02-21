@@ -10,12 +10,11 @@ from twisted.web.client import Agent, HTTPConnectionPool
 from twisted.web.http_headers import Headers
 
 import Tribler.Core.Utilities.json_util as json
-from Tribler.Core.simpledefs import NTFY_CHANNEL, NTFY_CREDIT_MINING, NTFY_DELETE, NTFY_DISCOVERED, NTFY_ERROR,\
-    NTFY_FINISHED, NTFY_INSERT, NTFY_MARKET_ON_ASK, NTFY_MARKET_ON_ASK_TIMEOUT, NTFY_MARKET_ON_BID,\
-    NTFY_MARKET_ON_BID_TIMEOUT, NTFY_MARKET_ON_PAYMENT_RECEIVED, NTFY_MARKET_ON_PAYMENT_SENT,\
-    NTFY_MARKET_ON_TRANSACTION_COMPLETE, NTFY_NEW_VERSION, NTFY_REMOVE, NTFY_STARTED, NTFY_TORRENT, NTFY_TUNNEL,\
-    NTFY_UPDATE, NTFY_UPGRADER, NTFY_UPGRADER_TICK, NTFY_WATCH_FOLDER_CORRUPT_TORRENT, SIGNAL_CHANNEL,\
-    SIGNAL_LOW_SPACE, SIGNAL_ON_SEARCH_RESULTS, SIGNAL_RESOURCE_CHECK, SIGNAL_TORRENT
+from Tribler.Core.simpledefs import NTFY_CHANNEL, NTFY_CREDIT_MINING, NTFY_DISCOVERED, NTFY_ERROR, NTFY_FINISHED,\
+    NTFY_INSERT, NTFY_MARKET_ON_ASK, NTFY_MARKET_ON_ASK_TIMEOUT, NTFY_MARKET_ON_BID, NTFY_MARKET_ON_BID_TIMEOUT,\
+    NTFY_MARKET_ON_PAYMENT_RECEIVED, NTFY_MARKET_ON_PAYMENT_SENT, NTFY_MARKET_ON_TRANSACTION_COMPLETE,\
+    NTFY_NEW_VERSION, NTFY_REMOVE, NTFY_STARTED, NTFY_TORRENT, NTFY_TUNNEL, NTFY_UPDATE, NTFY_UPGRADER,\
+    NTFY_UPGRADER_TICK, NTFY_WATCH_FOLDER_CORRUPT_TORRENT, SIGNAL_LOW_SPACE, SIGNAL_RESOURCE_CHECK
 from Tribler.Core.version import version_id
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.tools import trial_timeout
@@ -26,6 +25,7 @@ class EventDataProtocol(Protocol):
     """
     This class is responsible for reading the data received over the event socket.
     """
+
     def __init__(self, messages_to_wait_for, finished, response):
         self.json_buffer = []
         self._logger = logging.getLogger(self.__class__.__name__)
@@ -69,45 +69,20 @@ class TestEventsEndpoint(AbstractApiTest):
     def open_events_socket(self, _):
         agent = Agent(reactor, pool=self.connection_pool)
         return agent.request('GET', 'http://localhost:%s/events' % self.session.config.get_http_api_port(),
-                             Headers({'User-Agent': ['Tribler ' + version_id]}), None)\
+                             Headers({'User-Agent': ['Tribler ' + version_id]}), None) \
             .addCallback(self.on_event_socket_opened)
 
     def close_connections(self):
         return self.connection_pool.closeCachedConnections()
 
     @trial_timeout(20)
-    def test_search_results(self):
-        """
-        Testing whether the event endpoint returns search results when we have search results available
-        """
-        def verify_search_results(results):
-            self.assertEqual(len(results), 2)
-
-        self.messages_to_wait_for = 2
-
-        def send_notifications(_):
-            self.session.lm.api_manager.root_endpoint.events_endpoint.start_new_query()
-
-            results_dict = {"keywords": ["test"], "result_list": [('a',) * 10]}
-            self.session.notifier.notify(SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, None, results_dict)
-            self.session.notifier.notify(SIGNAL_TORRENT, SIGNAL_ON_SEARCH_RESULTS, None, results_dict)
-
-        self.socket_open_deferred.addCallback(send_notifications)
-
-        return self.events_deferred.addCallback(verify_search_results)
-
-    @trial_timeout(20)
     def test_events(self):
         """
         Testing whether various events are coming through the events endpoints
         """
-        self.messages_to_wait_for = 22
+        self.messages_to_wait_for = 20
 
         def send_notifications(_):
-            self.session.lm.api_manager.root_endpoint.events_endpoint.start_new_query()
-            results_dict = {"keywords": ["test"], "result_list": [('a',) * 10]}
-            self.session.notifier.notify(SIGNAL_TORRENT, SIGNAL_ON_SEARCH_RESULTS, None, results_dict)
-            self.session.notifier.notify(SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, None, results_dict)
             self.session.notifier.notify(NTFY_UPGRADER, NTFY_STARTED, None, None)
             self.session.notifier.notify(NTFY_UPGRADER_TICK, NTFY_STARTED, None, None)
             self.session.notifier.notify(NTFY_UPGRADER, NTFY_FINISHED, None, None)
@@ -115,7 +90,6 @@ class TestEventsEndpoint(AbstractApiTest):
             self.session.notifier.notify(NTFY_NEW_VERSION, NTFY_INSERT, None, None)
             self.session.notifier.notify(NTFY_CHANNEL, NTFY_DISCOVERED, None, None)
             self.session.notifier.notify(NTFY_TORRENT, NTFY_DISCOVERED, None, {'a': 'Invalid character \xa1'})
-            self.session.notifier.notify(NTFY_TORRENT, NTFY_DELETE, None, {'a': 'b'})
             self.session.notifier.notify(NTFY_TORRENT, NTFY_FINISHED, 'a' * 10, None)
             self.session.notifier.notify(NTFY_TORRENT, NTFY_ERROR, 'a' * 10, 'This is an error message')
             self.session.notifier.notify(NTFY_MARKET_ON_ASK, NTFY_UPDATE, None, {'a': 'b'})
@@ -131,31 +105,5 @@ class TestEventsEndpoint(AbstractApiTest):
             self.session.lm.api_manager.root_endpoint.events_endpoint.on_tribler_exception("hi")
 
         self.socket_open_deferred.addCallback(send_notifications)
-
-        return self.events_deferred
-
-    @trial_timeout(20)
-    def test_family_filter_search(self):
-        """
-        Testing the family filter when searching for torrents and channels
-        """
-        self.messages_to_wait_for = 2
-
-        def send_searches(_):
-            events_endpoint = self.session.lm.api_manager.root_endpoint.events_endpoint
-
-            channels = [['a', ] * 10, ['a', ] * 10]
-            channels[0][2] = 'badterm'
-            events_endpoint.on_search_results_channels(None, None, None, {"keywords": ["test"],
-                                                                          "result_list": channels})
-            self.assertEqual(len(events_endpoint.channel_cids_sent), 1)
-
-            torrents = [['a', ] * 10, ['a', ] * 10]
-            torrents[0][4] = 'xxx'
-            events_endpoint.on_search_results_torrents(None, None, None, {"keywords": ["test"],
-                                                                          "result_list": torrents})
-            self.assertEqual(len(events_endpoint.infohashes_sent), 1)
-
-        self.socket_open_deferred.addCallback(send_searches)
 
         return self.events_deferred

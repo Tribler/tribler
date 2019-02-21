@@ -3,15 +3,16 @@ from __future__ import absolute_import
 import logging
 import os
 from traceback import format_tb
+
 from twisted.internet import reactor
 from twisted.internet.defer import maybeDeferred
 from twisted.internet.error import CannotListenError
 from twisted.python.compat import intToBytes
 from twisted.python.failure import Failure
-from twisted.web import server, http
+from twisted.web import http, server
 
-from Tribler.Core.Modules.restapi.root_endpoint import RootEndpoint
 import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.Modules.restapi.root_endpoint import RootEndpoint
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
 
@@ -47,6 +48,8 @@ class RESTManager(TaskManager):
                     break
                 except CannotListenError:
                     bind_attempts += 1
+
+        self._logger.info("Starting REST API on port %d", self.site.port)
 
         # REST Manager does not accept any new requests if Tribler is shutting down.
         # Note that environment variable 'TRIBLER_SHUTTING_DOWN' is set to 'TRUE' (string)

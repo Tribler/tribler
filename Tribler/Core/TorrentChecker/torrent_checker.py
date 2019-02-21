@@ -1,19 +1,23 @@
+from __future__ import absolute_import
+
 import logging
 import socket
 import time
-from Tribler.Core.Utilities.utilities import is_valid_url
 from binascii import hexlify
 
+from pony.orm import db_session
+
 from twisted.internet import reactor
-from twisted.internet.defer import DeferredList, CancelledError, fail, succeed, maybeDeferred
+from twisted.internet.defer import CancelledError, DeferredList, fail, maybeDeferred, succeed
 from twisted.internet.error import ConnectingCancelledError, ConnectionLost
 from twisted.python.failure import Failure
 from twisted.web.client import HTTPConnectionPool
 
-from Tribler.Core.TorrentChecker.session import create_tracker_session, FakeDHTSession, UdpSocketManager
+from Tribler.Core.TorrentChecker.session import FakeDHTSession, UdpSocketManager, create_tracker_session
 from Tribler.Core.Utilities.tracker_utils import MalformedTrackerURLException
-from Tribler.Core.simpledefs import NTFY_TORRENTS
-from Tribler.community.popularity.repository import TYPE_TORRENT_HEALTH
+from Tribler.Core.Utilities.utilities import is_valid_url
+from Tribler.Core.simpledefs import NTFY_TORRENT, NTFY_UPDATE
+from Tribler.pyipv8.ipv8.database import database_blob
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
 # some settings
@@ -31,8 +35,6 @@ class TorrentChecker(TaskManager):
         self._logger = logging.getLogger(self.__class__.__name__)
         self.tribler_session = session
 
-        self._torrent_db = None
-
         self._should_stop = False
 
         self._torrent_check_interval = DEFAULT_TORRENT_CHECK_INTERVAL
@@ -49,7 +51,6 @@ class TorrentChecker(TaskManager):
         self.connection_pool = None
 
     def initialize(self):
-        self._torrent_db = self.tribler_session.open_dbhandler(NTFY_TORRENTS)
         self._reschedule_tracker_select()
         self.connection_pool = HTTPConnectionPool(reactor, False)
         self.socket_mgr = UdpSocketManager()
@@ -99,16 +100,8 @@ class TorrentChecker(TaskManager):
         """
         Changes the tracker selection interval dynamically and schedules the task.
         """
-        # dynamically change the interval: update at least every 2h
-        num_torrents = self._torrent_db.getNumberCollectedTorrents()
-
-        tracker_select_interval = min(max(7200 / num_torrents, 10), 100) if num_torrents \
-            else DEFAULT_TORRENT_SELECTION_INTERVAL
-
-        self._logger.debug(u"tracker selection interval changed to %s", tracker_select_interval)
-
         self.register_task(u"torrent_checker_tracker_selection",
-                           reactor.callLater(tracker_select_interval, self._task_select_tracker))
+                           reactor.callLater(DEFAULT_TORRENT_SELECTION_INTERVAL, self._task_select_tracker))
 
     def _task_select_tracker(self):
         """
@@ -127,10 +120,18 @@ class TorrentChecker(TaskManager):
         self._logger.debug(u"Start selecting torrents on tracker %s.", tracker_url)
 
         # get the torrents that should be checked
-        infohashes = self._torrent_db.getTorrentsOnTracker(tracker_url, int(time.time()))
+        infohashes = []
+        with db_session:
+            tracker = self.tribler_session.lm.mds.TrackerState.get(url=tracker_url)
+            if tracker:
+                torrents = tracker.torrents
+                for torrent in torrents:
+                    dynamic_interval = self._torrent_check_retry_interval * (2 ** tracker.failures)
+                    if torrent.last_check + dynamic_interval < int(time.time()):
+                        infohashes.append(torrent.infohash)
 
         if len(infohashes) == 0:
-            # We have not torrent to recheck for this tracker. Still update the last_check for this tracker.
+            # We have no torrent to recheck for this tracker. Still update the last_check for this tracker.
             self._logger.info("No torrent to check for tracker %s", tracker_url)
             self.update_tracker_info(tracker_url, True)
             return succeed(None)
@@ -147,7 +148,7 @@ class TorrentChecker(TaskManager):
                 session.add_infohash(infohash)
 
             self._logger.info(u"Selected %d new torrents to check on tracker: %s", len(infohashes), tracker_url)
-            return session.connect_to_tracker().addCallbacks(*self.get_callbacks_for_session(session))\
+            return session.connect_to_tracker().addCallbacks(*self.get_callbacks_for_session(session)) \
                 .addErrback(lambda _: None)
 
     def get_callbacks_for_session(self, session):
@@ -171,78 +172,81 @@ class TorrentChecker(TaskManager):
     def update_tracker_info(self, tracker_url, value):
         self.tribler_session.lm.tracker_manager.update_tracker_info(tracker_url, value)
 
+    @db_session
     def get_valid_trackers_of_torrent(self, torrent_id):
         """ Get a set of valid trackers for torrent. Also remove any invalid torrent."""
-        db_tracker_list = self._torrent_db.getTrackerListByTorrentID(torrent_id)
-        return set([tracker for tracker in db_tracker_list if is_valid_url(tracker) or tracker == u'DHT'])
+        db_tracker_list = self.tribler_session.lm.mds.TorrentState.get(infohash=database_blob(torrent_id)).trackers
+        return set([str(tracker.url) for tracker in db_tracker_list if is_valid_url(str(tracker.url))])
 
     def on_gui_request_completed(self, infohash, result):
         final_response = {}
 
-        torrent_update_dict = {'infohash': infohash, 'seeders': 0, 'leechers': 0, 'last_check': time.time()}
-        for success, response in result:
+        torrent_update_dict = {'infohash': infohash, 'seeders': 0, 'leechers': 0, 'last_check': int(time.time())}
+        for success, response in reversed(result):
             if not success and isinstance(response, Failure):
                 final_response[response.tracker_url] = {'error': response.getErrorMessage()}
                 continue
-
-            response_seeders = response[response.keys()[0]][0]['seeders']
-            response_leechers = response[response.keys()[0]][0]['leechers']
-            if response_seeders > torrent_update_dict['seeders'] or \
-                    (response_seeders == torrent_update_dict['seeders']
-                     and response_leechers < torrent_update_dict['leechers']):
-                torrent_update_dict['seeders'] = response_seeders
-                torrent_update_dict['leechers'] = response_leechers
-
             final_response[response.keys()[0]] = response[response.keys()[0]][0]
+
+            s = response[response.keys()[0]][0]['seeders']
+            l = response[response.keys()[0]][0]['leechers']
+
+            # More leeches is better, because undefined peers are marked as leeches in DHT
+            if s > torrent_update_dict['seeders'] or \
+                    (s == torrent_update_dict['seeders'] and l > torrent_update_dict['leechers']):
+                torrent_update_dict['seeders'] = s
+                torrent_update_dict['leechers'] = l
 
         self._update_torrent_result(torrent_update_dict)
 
         # Add this result to popularity community to publish to subscribers
         self.publish_torrent_result(torrent_update_dict)
 
+        # TODO: DRY! Stop doing lots of formats, just make REST endpoint automatically encode binary data to hex!
+        self.tribler_session.notifier.notify(NTFY_TORRENT, NTFY_UPDATE, infohash,
+                                             {"num_seeders": torrent_update_dict["seeders"],
+                                              "num_leechers": torrent_update_dict["leechers"],
+                                              "last_tracker_check": torrent_update_dict["last_check"],
+                                              "health": "updated"})
         return final_response
 
-    def add_gui_request(self, infohash, timeout=20, scrape_now=False):
+    def add_gui_request(self, infohash, timeout=20, scrape_now=False, notify=False):
         """
         Public API for adding a GUI request.
         :param infohash: Torrent infohash.
         :param timeout: The timeout to use in the performed requests
         :param scrape_now: Flag whether we want to force scraping immediately
         """
-        result = self._torrent_db.getTorrent(infohash, (u'torrent_id', u'last_tracker_check',
-                                                        u'num_seeders', u'num_leechers'), False)
-        if result is None:
-            self._logger.warn(u"torrent info not found, skip. infohash: %s", hexlify(infohash))
-            return fail(Failure(RuntimeError("Torrent not found")))
+        with db_session:
+            result = self.tribler_session.lm.mds.TorrentState.get(infohash=database_blob(infohash))
+            if not result:
+                self._logger.warn(u"torrent info not found, skip. infohash: %s", hexlify(infohash))
+                return fail(Failure(RuntimeError("Torrent not found")))
 
-        torrent_id = result[u'torrent_id']
-        last_check = result[u'last_tracker_check']
-        time_diff = time.time() - last_check
-        if time_diff < self._torrent_check_interval and not scrape_now:
-            self._logger.debug(u"time interval too short, skip GUI request. infohash: %s", hexlify(infohash))
-            return succeed({"db": {"seeders": result[u'num_seeders'],
-                                   "leechers": result[u'num_leechers'], "infohash": infohash.encode('hex')}})
+            torrent_id = str(result.infohash)
+            last_check = result.last_check
+            time_diff = time.time() - last_check
+            if time_diff < self._torrent_check_interval and not scrape_now:
+                self._logger.debug(u"time interval too short, skip GUI request. infohash: %s", hexlify(infohash))
+                return succeed({"db": {"seeders": result.seeders,
+                                       "leechers": result.leechers,
+                                       "infohash": hexlify(infohash)}})
 
-        # get torrent's tracker list from DB
-        tracker_set = self.get_valid_trackers_of_torrent(torrent_id)
-        if not tracker_set:
-            self._logger.warn(u"no trackers, skip GUI request. infohash: %s", hexlify(infohash))
-            # TODO: add code to handle torrents with no tracker
-            return fail(Failure(RuntimeError("No trackers available for this torrent")))
+            # get torrent's tracker list from DB
+            tracker_set = self.get_valid_trackers_of_torrent(torrent_id)
 
         deferred_list = []
         for tracker_url in tracker_set:
-            if tracker_url == u'DHT':
-                # Create a (fake) DHT session for the lookup
-                session = FakeDHTSession(self.tribler_session, infohash, timeout)
-                self._session_list['DHT'].append(session)
-                deferred_list.append(session.connect_to_tracker().
-                                     addCallbacks(*self.get_callbacks_for_session(session)))
-            elif tracker_url != u'no-DHT':
-                session = self._create_session_for_request(tracker_url, timeout=timeout)
-                session.add_infohash(infohash)
-                deferred_list.append(session.connect_to_tracker().
-                                     addCallbacks(*self.get_callbacks_for_session(session)))
+            session = self._create_session_for_request(tracker_url, timeout=timeout)
+            session.add_infohash(infohash)
+            deferred_list.append(session.connect_to_tracker().
+                                 addCallbacks(*self.get_callbacks_for_session(session)))
+
+        # Create a (fake) DHT session for the lookup
+        session = FakeDHTSession(self.tribler_session, infohash, timeout)
+        self._session_list['DHT'].append(session)
+        deferred_list.append(session.connect_to_tracker().
+                             addCallbacks(*self.get_callbacks_for_session(session)))
 
         return DeferredList(deferred_list, consumeErrors=True).addCallback(
             lambda res: self.on_gui_request_completed(infohash, res))
@@ -301,32 +305,17 @@ class TorrentChecker(TaskManager):
         leechers = response['leechers']
         last_check = response['last_check']
 
-        # the torrent status logic, TODO: do it in other way
         self._logger.debug(u"Update result %s/%s for %s", seeders, leechers, hexlify(infohash))
 
-        result = self._torrent_db.getTorrent(infohash, (u'torrent_id', u'tracker_check_retries'), include_mypref=False)
-        torrent_id = result[u'torrent_id']
-        retries = result[u'tracker_check_retries']
-
-        # the status logic
-        if seeders > 0:
-            retries = 0
-            status = u'good'
-        else:
-            retries += 1
-            if retries < self._max_torrent_check_retries:
-                status = u'unknown'
-            else:
-                status = u'dead'
-                # prevent retries from exceeding the maximum
-                retries = self._max_torrent_check_retries
-
-        # calculate next check time: <last-time> + <interval> * (2 ^ <retries>)
-        next_check = last_check + self._torrent_check_retry_interval * (2 ** retries)
-
-        self._torrent_db.updateTorrentCheckResult(torrent_id,
-                                                  infohash, seeders, leechers, last_check, next_check,
-                                                  status, retries)
+        with db_session:
+            # Update torrent state
+            torrent = self.tribler_session.lm.mds.TorrentState.get(infohash=database_blob(infohash))
+            if not torrent:
+                # Something is wrong, there should exist a corresponding TorrentState entry in the DB.
+                return
+            torrent.seeders = seeders
+            torrent.leechers = leechers
+            torrent.last_check = last_check
 
     def publish_torrent_result(self, response):
         if response['seeders'] == 0:
@@ -334,6 +323,6 @@ class TorrentChecker(TaskManager):
             return
         content = (response['infohash'], response['seeders'], response['leechers'], response['last_check'])
         if self.tribler_session.lm.popularity_community:
-            self.tribler_session.lm.popularity_community.queue_content(TYPE_TORRENT_HEALTH, content)
+            self.tribler_session.lm.popularity_community.queue_content(content)
         else:
             self._logger.info("Popular community not available to publish torrent checker result")

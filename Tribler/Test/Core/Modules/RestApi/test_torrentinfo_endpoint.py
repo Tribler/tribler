@@ -1,25 +1,25 @@
+from __future__ import absolute_import
+
 import os
 import shutil
 from binascii import hexlify
 from urllib import pathname2url, quote_plus
 
-from Tribler.Test.tools import trial_timeout
 from twisted.internet.defer import inlineCallbacks
 
-from Tribler.Core.TorrentDef import TorrentDef
 import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.Core.base_test import MockObject
-from Tribler.Test.common import UBUNTU_1504_INFOHASH, TORRENT_UBUNTU_FILE
-from Tribler.Test.test_as_server import TESTS_DATA_DIR
+from Tribler.Test.common import TORRENT_UBUNTU_FILE, UBUNTU_1504_INFOHASH
+from Tribler.Test.test_as_server import TESTS_DATA_DIR, TESTS_DIR
+from Tribler.Test.tools import trial_timeout
+
+SAMPLE_CHANNEL_FILES_DIR = os.path.join(TESTS_DIR, "Core", "data", "sample_channel")
 
 
 class TestTorrentInfoEndpoint(AbstractApiTest):
-
-    def setUpPreSession(self):
-        super(TestTorrentInfoEndpoint, self).setUpPreSession()
-        self.config.set_torrent_store_enabled(True)
 
     @inlineCallbacks
     def test_get_torrentinfo(self):
@@ -70,23 +70,10 @@ class TestTorrentInfoEndpoint(AbstractApiTest):
         self.session.lm.ltmgr.get_metainfo = get_metainfo
         self.session.lm.ltmgr.shutdown = lambda: None
         yield self.do_request('torrentinfo?uri=%s' % path, expected_code=200).addCallback(verify_valid_dict)
-        yield self.do_request('torrentinfo?uri=%s' % path, expected_code=200).addCallback(verify_valid_dict)  # Cached
-        yield self.do_request('torrentinfo?uri=%s' % path, expected_code=200).addCallback(verify_valid_dict)  # Cached
 
         # mdblob file
-        path_blob = "file:" + pathname2url(os.path.join(TESTS_DATA_DIR, "channel.mdblob")).encode('utf-8')
+        path_blob = "file:" + pathname2url(os.path.join(SAMPLE_CHANNEL_FILES_DIR, "channel.mdblob")).encode('utf-8')
         yield self.do_request('torrentinfo?uri=%s' % path_blob, expected_code=200).addCallback(verify_valid_dict)
-
-        # invalid mdblob file
-        path_blob = "file:" + pathname2url(os.path.join(TESTS_DATA_DIR, "bad.mdblob")).encode('utf-8')
-        yield self.do_request('torrentinfo?uri=%s' % path_blob, expected_code=500)
-
-        # non-torrent mdblob file
-        path_blob = "file:" + pathname2url(os.path.join(TESTS_DATA_DIR, "delete.mdblob")).encode('utf-8')
-        yield self.do_request('torrentinfo?uri=%s' % path_blob, expected_code=500)
-
-        self.session.get_collected_torrent = lambda _: 'a8fdsafsdjlfdsafs{}{{{[][]]['  # invalid torrent file
-        yield self.do_request('torrentinfo?uri=%s' % path, expected_code=500)
 
         path = 'magnet:?xt=urn:ed2k:354B15E68FB8F36D7CD88FF94116CDC1'  # No infohash
         yield self.do_request('torrentinfo?uri=%s' % path, expected_code=400)
@@ -95,11 +82,7 @@ class TestTorrentInfoEndpoint(AbstractApiTest):
         self.session.lm.ltmgr.get_metainfo = get_metainfo_timeout
         yield self.do_request('torrentinfo?uri=%s' % path, expected_code=408)
 
-        def mocked_save_torrent(*_):
-            raise TypeError()
-
         self.session.lm.ltmgr.get_metainfo = get_metainfo
-        self.session.save_collected_torrent = mocked_save_torrent
         yield self.do_request('torrentinfo?uri=%s' % path, expected_code=200).addCallback(verify_valid_dict)
 
         path = 'http://fdsafksdlafdslkdksdlfjs9fsafasdf7lkdzz32.n38/324.torrent'

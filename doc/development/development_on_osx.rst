@@ -13,7 +13,7 @@ To install the Tribler dependencies using MacPorts, please run the following com
 
 .. code-block:: bash
 
-    sudo port -N install git ffmpeg qt5-qtcreator libtorrent-rasterbar gmp mpfr libmpc libsodium py27-m2crypto py27-apsw py27-Pillow py27-twisted py27-cherrypy3 py27-cffi py27-chardet py27-configobj py27-gmpy2 py27-pycparser py27-numpy py27-idna py27-leveldb py27-cryptography py27-decorator py27-feedparser py27-netifaces py27-service_identity py27-asn1-modules py27-pyinstaller py27-pyqt5 py27-sqlite py27-matplotlib py27-libnacl
+    sudo port -N install git ffmpeg qt5-qtcreator libtorrent-rasterbar gmp mpfr libmpc libsodium py27-Pillow py27-twisted py27-cherrypy3 py27-cffi py27-chardet py27-configobj py27-gmpy2 py27-pycparser py27-numpy py27-idna py27-cryptography py27-decorator py27-netifaces py27-service_identity py27-asn1-modules py27-pyinstaller py27-pyqt5 py27-sqlite py27-matplotlib py27-libnacl
     
 HomeBrew
 --------
@@ -55,51 +55,6 @@ Next, download PyQt5 from `here <https://sourceforge.net/projects/pyqt/files/PyQ
 
 Note that the installation can take a while. After it has finished, the PyQt5 library is installed correctly.
 
-M2Crypto
-~~~~~~~~
-
-To install M2Crypto, Openssl has to be installed first. The shipped version of openssl by Apple gives errors when compiling M2Crypto so a self-compiled version should be used. Start by downloading openssl 0.98 from `here <https://www.openssl.org/source/>`_, extract it and install it:
-
-.. code-block:: none
-
-    ./config --prefix=/usr/local
-    make && make test
-    sudo make install
-    openssl version # this should be 0.98
-
-Also Swig 3.0.4 is required for the compilation of the M2Crypto library. The easiest way to install it, it to download Swig 3.0.4 from source `here <http://www.swig.org/download.html>`_ and compile it using:
-
-.. code-block:: none
-
-    ./configure
-    make
-    sudo make install
-
-Note: if you get an error about a missing PCRE library, install it with brew using ``brew install pcre``.
-
-Now we can install M2Crypto. First download the `source <http://chandlerproject.org/Projects/MeTooCrypto>`_ (version 0.22.3 is confirmed to work on El Capitan and Yosemite) and install it:
-
-.. code-block:: none
-
-    python setup.py build build_ext --openssl=/usr/local
-    sudo python setup.py install build_ext --openssl=/usr/local
-
-Reopen your terminal window and test it out by executing:
-
-.. code-block:: none
-
-    python -c "import M2Crypto"
-
-Apsw
-~~~~
-
-Apsw can be installed by brew but this does not seem to work to compile the last version (the Clang compiler uses the ``sqlite.h`` include shipped with Xcode which is outdated). Instead, the source should be downloaded from their `Github repository <https://github.com/rogerbinns/apsw>`_ (make sure to download a release version) and compiled using:
-
-.. code-block:: none
-
-    sudo python setup.py fetch --all build --enable-all-extensions install test
-    python -c "import apsw" # verify whether apsw is successfully installed
-
 Libtorrent
 ~~~~~~~~~~
 
@@ -139,7 +94,7 @@ There are a bunch of other packages that can easily be installed using pip and b
     brew install homebrew/python/pillow gmp mpfr libmpc libsodium
     sudo easy_install pip
     pip install --user cython  # Needs to be installed first for meliae
-    pip install --user cherrypy cffi chardet configobj cryptography decorator feedparser gmpy2 idna leveldb meliae netifaces numpy pillow psutil pyasn1 pycparser scipy twisted service_identity libnacl bitcoinlib
+    pip install --user cherrypy cffi chardet configobj cryptography decorator gmpy2 idna meliae netifaces numpy pillow psutil pyasn1 pycparser scipy twisted service_identity libnacl bitcoinlib
 
 If you encounter any error during the installation of Pillow, make sure that libjpeg and zlib are installed. They can be installed using:
 

@@ -6,16 +6,17 @@ from __future__ import absolute_import
 import logging
 import os
 
+from configobj import ConfigObj
+
 from six import text_type
 
-from configobj import ConfigObj
 from validate import Validator
 
+from Tribler.Core.DownloadConfig import get_default_dest_dir
 from Tribler.Core.Utilities.install_dir import get_lib_path
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.exceptions import InvalidConfigException
 from Tribler.Core.osutils import get_appstate_dir
-from Tribler.Core.DownloadConfig import get_default_dest_dir
 
 FILENAME = 'triblerd.conf'
 SPEC_FILENAME = 'config.spec'
@@ -138,19 +139,6 @@ class TriblerConfig(object):
         path = self.config['chant']['channels_dir']
         return path if os.path.isabs(path) else os.path.join(self.get_state_dir(), path)
 
-    def set_chant_channel_edit(self, value):
-        self.config['chant']['channel_edit'] = bool(value)
-
-    def get_chant_channel_edit(self):
-        return self.config['chant']['channel_edit']
-
-    # General
-    def set_family_filter_enabled(self, value):
-        self.config['general']['family_filter'] = bool(value)
-
-    def get_family_filter_enabled(self):
-        return self.config['general'].as_bool('family_filter')
-
     def set_state_dir(self, state_dir):
         self.config["general"]["state_dir"] = state_dir
 
@@ -159,16 +147,6 @@ class TriblerConfig(object):
             self.set_state_dir(TriblerConfig.get_default_state_dir())
 
         return self.config["general"]["state_dir"]
-
-    def set_permid_keypair_filename(self, keypair_filename):
-        self.config['general']['ec_keypair_filename'] = keypair_filename
-
-    def get_permid_keypair_filename(self):
-        file_name = self.config["general"]["ec_keypair_filename"]
-        if not file_name:
-            file_name = os.path.join(self.get_state_dir(), 'ec.pem')
-            self.set_permid_keypair_filename(file_name)
-        return file_name
 
     def set_trustchain_keypair_filename(self, keypairfilename):
         self.config['trustchain']['ec_keypair_filename'] = keypairfilename
@@ -201,12 +179,6 @@ class TriblerConfig(object):
 
     def get_trustchain_live_edges_enabled(self):
         return self.config['trustchain']['live_edges_enabled']
-
-    def set_megacache_enabled(self, value):
-        self.config['general']['megacache'] = value
-
-    def get_megacache_enabled(self):
-        return self.config['general']['megacache']
 
     def set_log_dir(self, value):
         self.config['general']['log_dir'] = value
@@ -258,20 +230,6 @@ class TriblerConfig(object):
     def get_http_api_retry_port(self):
         return self.config['http_api']['retry_port']
 
-    # Dispersy
-
-    def set_dispersy_enabled(self, value):
-        self.config['dispersy']['enabled'] = value
-
-    def get_dispersy_enabled(self):
-        return self.config['dispersy']['enabled']
-
-    def set_dispersy_port(self, value):
-        self.config['dispersy']['port'] = value
-
-    def get_dispersy_port(self):
-        return self._obtain_port('dispersy', 'port')
-
     # IPv8
 
     def set_ipv8_enabled(self, value):
@@ -279,6 +237,12 @@ class TriblerConfig(object):
 
     def get_ipv8_enabled(self):
         return self.config['ipv8']['enabled']
+
+    def set_ipv8_port(self, value):
+        self.config['ipv8']['port'] = value
+
+    def get_ipv8_port(self):
+        return self._obtain_port('ipv8', 'port')
 
     def set_ipv8_bootstrap_override(self, value):
         self.config['ipv8']['bootstrap_override'] = value
@@ -447,20 +411,6 @@ class TriblerConfig(object):
     def get_libtorrent_dht_enabled(self):
         return self.config['libtorrent']['dht']
 
-    # Mainline DHT
-
-    def set_mainline_dht_enabled(self, value):
-        self.config['mainline_dht']['enabled'] = value
-
-    def get_mainline_dht_enabled(self):
-        return self.config['mainline_dht']['enabled']
-
-    def set_mainline_dht_port(self, port):
-        self.config['mainline_dht']['port'] = port
-
-    def get_mainline_dht_port(self):
-        return self._obtain_port('mainline_dht', 'port')
-
     # Video server
 
     def set_video_server_enabled(self, value):
@@ -583,86 +533,6 @@ class TriblerConfig(object):
 
     def set_popularity_community_enabled(self, value):
         self.config['popularity_community']['enabled'] = value
-
-    # Torrent store
-
-    def get_torrent_store_enabled(self):
-        return self.config['torrent_store']['enabled']
-
-    def set_torrent_store_enabled(self, value):
-        self.config['torrent_store']['enabled'] = value
-
-    def get_torrent_store_dir(self):
-        return os.path.join(self.get_state_dir(), self.config['torrent_store']['store_dir'])
-
-    def set_torrent_store_dir(self, value):
-        self.config['torrent_store']['store_dir'] = value
-
-    # Metadata
-
-    def get_metadata_enabled(self):
-        return self.config['metadata']['enabled']
-
-    def set_metadata_enabled(self, mode):
-        self.config['metadata']['enabled'] = mode
-
-    def get_metadata_store_dir(self):
-        return os.path.join(self.get_state_dir(), self.config['metadata']['store_dir'])
-
-    def set_metadata_store_dir(self, value):
-        self.config['metadata']['store_dir'] = value
-
-    # Torrent collecting
-
-    def set_torrent_collecting_enabled(self, value):
-        self.config['torrent_collecting']['enabled'] = value
-
-    def get_torrent_collecting_enabled(self):
-        return self.config['torrent_collecting']['enabled']
-
-    def set_torrent_collecting_max_torrents(self, value):
-        self.config['torrent_collecting']['max_torrents'] = value
-
-    def get_torrent_collecting_max_torrents(self):
-        return self.config['torrent_collecting']['max_torrents']
-
-    def set_torrent_collecting_dir(self, value):
-        self.config['torrent_collecting']['directory'] = value
-
-    def get_torrent_collecting_dir(self):
-        return self.config['torrent_collecting']['directory']
-
-    # Search Community
-
-    def set_torrent_search_enabled(self, mode):
-        self.config['search_community']['enabled'] = mode
-
-    def get_torrent_search_enabled(self):
-        return self.config['search_community']['enabled']
-
-    # AllChannel Community
-
-    def set_channel_search_enabled(self, mode):
-        self.config['allchannel_community']['enabled'] = mode
-
-    def get_channel_search_enabled(self):
-        return self.config['allchannel_community']['enabled']
-
-    # Channel Community
-
-    def set_channel_community_enabled(self, value):
-        self.config['channel_community']['enabled'] = value
-
-    def get_channel_community_enabled(self):
-        return self.config['channel_community']['enabled']
-
-    # PreviewChannel Community
-
-    def set_preview_channel_community_enabled(self, value):
-        self.config['preview_channel_community']['enabled'] = value
-
-    def get_preview_channel_community_enabled(self):
-        return self.config['preview_channel_community']['enabled']
 
     # Watch folder
 

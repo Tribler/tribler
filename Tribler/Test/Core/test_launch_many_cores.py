@@ -1,21 +1,23 @@
+from __future__ import absolute_import
+
 import os
+from threading import RLock
 
 from nose.tools import raises
-from Tribler.Test.tools import trial_timeout
+
 from twisted.internet.defer import Deferred
 
-from Tribler.Core import NoDispersyRLock
 from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
 from Tribler.Core.Modules.payout_manager import PayoutManager
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
-from Tribler.Core.simpledefs import DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_SEEDING, DLSTATUS_DOWNLOADING
-from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
-from Tribler.Test.common import TESTS_DATA_DIR
+from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_STOPPED_ON_ERROR
+from Tribler.Test.Core.base_test import MockObject, TriblerCoreTest
 from Tribler.Test.test_as_server import TestAsServer
-from Tribler.community.allchannel.community import AllChannelCommunity
-from Tribler.community.search.community import SearchCommunity
-from Tribler.dispersy.discovery.community import DiscoveryCommunity
+from Tribler.Test.tools import trial_timeout
+from Tribler.community.gigachannel.community import GigaChannelCommunity
+from Tribler.community.market.community import MarketCommunity
+from Tribler.pyipv8.ipv8.attestation.trustchain.community import TrustChainCommunity
 
 
 class TestLaunchManyCore(TriblerCoreTest):
@@ -27,7 +29,7 @@ class TestLaunchManyCore(TriblerCoreTest):
     def setUp(self):
         TriblerCoreTest.setUp(self)
         self.lm = TriblerLaunchMany()
-        self.lm.session_lock = NoDispersyRLock()
+        self.lm.session_lock = RLock()
         self.lm.session = MockObject()
         self.lm.session.config = MockObject()
         self.lm.session.config.get_max_upload_rate = lambda: 100
@@ -150,29 +152,6 @@ class TestLaunchManyCore(TriblerCoreTest):
         self.lm.load_checkpoint()
         self.assertTrue(mocked_resume_download.called)
 
-    def test_resume_download(self):
-        with open(os.path.join(TESTS_DATA_DIR, "bak_single.torrent"), mode='rb') as torrent_file:
-            torrent_data = torrent_file.read()
-
-        def mocked_load_download_pstate(_):
-            raise ValueError()
-
-        def mocked_add(tdef, dscfg, pstate, **_):
-            self.assertTrue(tdef)
-            self.assertTrue(dscfg)
-            self.assertIsNone(pstate)
-            mocked_add.called = True
-        mocked_add.called = False
-
-        self.lm.load_download_pstate = mocked_load_download_pstate
-        self.lm.torrent_store = MockObject()
-        self.lm.torrent_store.get = lambda _: torrent_data
-        self.lm.add = mocked_add
-        self.lm.mypref_db = MockObject()
-        self.lm.mypref_db.getMyPrefStatsInfohash = lambda _: TESTS_DATA_DIR
-        self.lm.resume_download('%s.state' % ('a' * 20))
-        self.assertTrue(mocked_add.called)
-
 
 class TestLaunchManyCoreFullSession(TestAsServer):
     """
@@ -183,26 +162,24 @@ class TestLaunchManyCoreFullSession(TestAsServer):
         TestAsServer.setUpPreSession(self)
 
         # Enable all communities
-        config_sections = ['search_community', 'trustchain', 'allchannel_community', 'channel_community',
-                           'preview_channel_community', 'tunnel_community', 'dispersy', 'ipv8', 'dht']
+        config_sections = ['trustchain', 'tunnel_community', 'ipv8', 'dht', 'chant', 'market_community']
 
         for section in config_sections:
             self.config.config[section]['enabled'] = True
 
-        self.config.set_megacache_enabled(True)
         self.config.set_tunnel_community_socks5_listen_ports(self.get_socks5_ports())
-        self.config.set_ipv8_bootstrap_override("127.0.0.1:12345")
+        self.config.set_ipv8_bootstrap_override("127.0.0.1:12345")  # So we do not contact the real trackers
 
-    def get_community(self, community_cls):
-        for community in self.session.get_dispersy_instance().get_communities():
-            if isinstance(community, community_cls):
-                return community
+    def get_community(self, overlay_cls):
+        for overlay in self.session.get_ipv8_instance().overlays:
+            if isinstance(overlay, overlay_cls):
+                return overlay
 
     def test_load_communities(self):
         """
-        Testing whether all Dispersy/IPv8 communities can be succesfully loaded
+        Testing whether all IPv8 communities can be succesfully loaded
         """
-        self.assertTrue(self.get_community(DiscoveryCommunity))
         self.assertTrue(self.session.lm.initComplete)
-        self.assertTrue(self.get_community(SearchCommunity))
-        self.assertTrue(self.get_community(AllChannelCommunity))
+        self.assertTrue(self.get_community(GigaChannelCommunity))
+        self.assertTrue(self.get_community(MarketCommunity))
+        self.assertTrue(self.get_community(TrustChainCommunity))

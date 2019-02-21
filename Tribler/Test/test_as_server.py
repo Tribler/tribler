@@ -4,6 +4,7 @@ Testing as server.
 Author(s): Arno Bakker, Jie Yang, Niels Zeilemaker
 """
 from __future__ import absolute_import
+
 import functools
 import inspect
 import logging
@@ -16,13 +17,15 @@ import time
 from threading import enumerate as enumerate_threads
 
 from configobj import ConfigObj
+
 import six
 from six.moves import xrange
+
 import twisted
 from twisted.internet import interfaces
 from twisted.internet import reactor
 from twisted.internet.base import BasePort
-from twisted.internet.defer import maybeDeferred, inlineCallbacks, Deferred, succeed
+from twisted.internet.defer import Deferred, inlineCallbacks, maybeDeferred, succeed
 from twisted.internet.task import deferLater
 from twisted.internet.tcp import Client
 from twisted.trial import unittest
@@ -30,13 +33,13 @@ from twisted.web.http import HTTPChannel
 from twisted.web.server import Site
 from twisted.web.static import File
 
-from Tribler.Core.Config.tribler_config import TriblerConfig, CONFIG_SPEC_PATH
+from Tribler.Core.Config.tribler_config import CONFIG_SPEC_PATH, TriblerConfig
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Session import Session
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.instrumentation import WatchDog
 from Tribler.Core.Utilities.network_utils import get_random_port
-from Tribler.Core.simpledefs import dlstatus_strings, DLSTATUS_SEEDING
+from Tribler.Core.simpledefs import DLSTATUS_SEEDING, dlstatus_strings
 from Tribler.Test.util.util import process_unhandled_exceptions, process_unhandled_twisted_exceptions
 
 TESTS_DIR = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
@@ -286,17 +289,9 @@ class TestAsServer(AbstractServer):
         self.config.set_default_destination_dir(self.dest_dir)
         self.config.set_state_dir(self.getStateDir())
         self.config.set_torrent_checking_enabled(False)
-        self.config.set_megacache_enabled(False)
-        self.config.set_dispersy_enabled(False)
         self.config.set_ipv8_enabled(False)
-        self.config.set_mainline_dht_enabled(False)
-        self.config.set_torrent_store_enabled(False)
-        self.config.set_torrent_search_enabled(False)
-        self.config.set_channel_search_enabled(False)
-        self.config.set_torrent_collecting_enabled(False)
         self.config.set_libtorrent_enabled(False)
         self.config.set_video_server_enabled(False)
-        self.config.set_metadata_enabled(False)
         self.config.set_http_api_enabled(False)
         self.config.set_tunnel_community_enabled(False)
         self.config.set_credit_mining_enabled(False)
@@ -349,18 +344,10 @@ class TestAsServer(AbstractServer):
     def setup_seeder(self, tdef, seed_dir, port=None):
         self.seed_config = TriblerConfig()
         self.seed_config.set_torrent_checking_enabled(False)
-        self.seed_config.set_megacache_enabled(False)
-        self.seed_config.set_dispersy_enabled(False)
         self.seed_config.set_ipv8_enabled(False)
-        self.seed_config.set_mainline_dht_enabled(False)
-        self.seed_config.set_torrent_store_enabled(False)
-        self.seed_config.set_torrent_search_enabled(False)
-        self.seed_config.set_channel_search_enabled(False)
         self.seed_config.set_http_api_enabled(False)
-        self.seed_config.set_torrent_collecting_enabled(False)
         self.seed_config.set_libtorrent_enabled(True)
         self.seed_config.set_video_server_enabled(False)
-        self.seed_config.set_metadata_enabled(False)
         self.seed_config.set_tunnel_community_enabled(False)
         self.seed_config.set_market_community_enabled(False)
         self.seed_config.set_dht_enabled(False)

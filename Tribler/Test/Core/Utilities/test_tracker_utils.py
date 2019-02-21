@@ -1,7 +1,9 @@
+from __future__ import absolute_import
+
 from nose.tools import raises
 
-from Tribler.Core.Utilities.tracker_utils import parse_tracker_url, get_uniformed_tracker_url, \
-    MalformedTrackerURLException
+from Tribler.Core.Utilities.tracker_utils import MalformedTrackerURLException, get_uniformed_tracker_url,\
+    parse_tracker_url
 from Tribler.Test.Core.base_test import TriblerCoreTest
 
 
@@ -50,9 +52,34 @@ class TestGetUniformedTrackerUrl(TriblerCoreTest):
         result = get_uniformed_tracker_url("http://torrent.ubuntu.com:80/announce")
         self.assertEqual(result, u'http://torrent.ubuntu.com/announce')
 
-    def test_uniform_trailing_hex(self):
+    def test_uniform_trailing_zero_hex(self):
         result = get_uniformed_tracker_url("udp://tracker.1337x.org:80\x00")
+        self.assertEqual(result, u'udp://tracker.1337x.org:80')
+
+    def test_uniform_trailing_hex(self):
+        result = get_uniformed_tracker_url("udp://tracker.1337x.org:80\xff")
         self.assertIsNone(result)
+
+    def test_uniform_bad_urlenc(self):
+        result = get_uniformed_tracker_url(u'http://btjunkie.org/?do=upload')
+        self.assertIsNone(result)
+
+    def test_uniform_empty(self):
+        result = get_uniformed_tracker_url(u'')
+        self.assertIsNone(result)
+
+    def test_skip_truncated_url(self):
+        result = get_uniformed_tracker_url(u'http://tracker.1337x.org:80/anno...')
+        self.assertIsNone(result)
+
+    def test_skip_wrong_url_scheme(self):
+        result = get_uniformed_tracker_url(u'wss://tracker.1337x.org:80/announce')
+        self.assertIsNone(result)
+
+    def test_skip_value_error(self):
+        result = get_uniformed_tracker_url("ftp://tracker.1337\xffx.org:80/announce")
+        self.assertIsNone(result)
+
 
 
 class TestParseTrackerUrl(TriblerCoreTest):

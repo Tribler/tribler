@@ -1,7 +1,9 @@
-from twisted.internet.defer import inlineCallbacks, Deferred
+from __future__ import absolute_import
 
-from Tribler.Core.CacheDB.Notifier import Notifier
-from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_STARTED, NTFY_FINISHED
+from twisted.internet.defer import Deferred, inlineCallbacks
+
+from Tribler.Core.Notifier import Notifier
+from Tribler.Core.simpledefs import NTFY_FINISHED, NTFY_STARTED, NTFY_TORRENTS
 from Tribler.Test.Core.base_test import TriblerCoreTest
 from Tribler.Test.tools import trial_timeout
 

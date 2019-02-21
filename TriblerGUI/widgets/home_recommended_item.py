@@ -5,7 +5,7 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QLabel, QSizePolicy, QToolButton, QWidget
 
 from TriblerGUI.tribler_window import fc_home_recommended_item
-from TriblerGUI.utilities import format_size, get_image_path, pretty_date
+from TriblerGUI.utilities import format_size, get_image_path
 
 HOME_ITEM_FONT_SIZE = 44
 
@@ -96,7 +96,7 @@ class HomeRecommendedItem(QWidget, fc_home_recommended_item):
         self.thumbnail_widget.initialize(channel["name"], HOME_ITEM_FONT_SIZE)
 
         self.main_label.setText(channel["name"])
-        self.detail_label.setText("Updated " + pretty_date(channel["modified"]))
+        self.detail_label.setText("%d torrents" % channel["torrents"])
         self.category_label.setHidden(True)
         self.setCursor(Qt.PointingHandCursor)
 
