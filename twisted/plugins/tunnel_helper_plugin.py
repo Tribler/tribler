@@ -187,7 +187,6 @@ class Tunnel(object):
         config.set_trustchain_enabled(True)
         config.set_credit_mining_enabled(False)
         config.set_market_community_enabled(False)
-        config.set_mainline_dht_enabled(False)
         config.set_dht_enabled(True)
         config.set_tunnel_community_exitnode_enabled(bool(self.options["exit"]))
         config.set_popularity_community_enabled(False)

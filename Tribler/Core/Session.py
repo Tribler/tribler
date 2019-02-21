@@ -107,7 +107,6 @@ class Session(object):
     def get_ports_in_config(self):
         """Claim all required random ports."""
         self.config.get_libtorrent_port()
-        self.config.get_mainline_dht_port()
         self.config.get_video_server_port()
 
         self.config.get_anon_listen_port()

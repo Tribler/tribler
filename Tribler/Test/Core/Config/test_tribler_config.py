@@ -201,15 +201,6 @@ class TestTriblerConfig(TriblerCoreTest):
         self.tribler_config.set_libtorrent_dht_enabled(False)
         self.assertFalse(self.tribler_config.get_libtorrent_dht_enabled())
 
-    def test_get_set_methods_mainline_dht(self):
-        """
-        Check whether mainline dht get and set methods are working as expected.
-        """
-        self.tribler_config.set_mainline_dht_enabled(True)
-        self.assertEqual(self.tribler_config.get_mainline_dht_enabled(), True)
-        self.tribler_config.set_mainline_dht_port(True)
-        self.assertEqual(self.tribler_config.get_mainline_dht_port(), True)
-
     def test_get_set_methods_video_server(self):
         """
         Check whether video server get and set methods are working as expected.

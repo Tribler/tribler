@@ -144,10 +144,6 @@ def add_libtribler_config(new_config, old_config):
                 temp_config.set_tunnel_community_exitnode_enabled(value)
             elif section == "general" and name == "ec_keypair_filename_multichain":
                 temp_config.set_trustchain_keypair_filename(value)
-            elif section == "mainline_dht" and name == "enabled":
-                temp_config.set_mainline_dht_enabled(value)
-            elif section == "mainline_dht" and name == "mainline_dht_port":
-                temp_config.set_mainline_dht_port(value)
             elif section == "torrent_checking" and name == "enabled":
                 temp_config.set_torrent_checking_enabled(value)
             elif section == "libtorrent" and name == "lt_proxytype":

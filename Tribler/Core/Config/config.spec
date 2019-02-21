@@ -35,10 +35,6 @@ enabled = boolean(default=True)
 channel_edit = boolean(default=False)
 channels_dir = string(default='channels')
 
-[mainline_dht]
-enabled = boolean(default=True)
-port = integer(min=-1, max=65536, default=-1)
-
 [torrent_checking]
 enabled = boolean(default=True)
 

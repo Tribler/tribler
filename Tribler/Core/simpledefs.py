@@ -149,7 +149,6 @@ STATE_SHUTDOWN = "SHUTDOWN"
 STATE_START_API = 'Starting HTTP API...'
 STATE_UPGRADING_READABLE = 'Upgrading Tribler...'
 STATE_LOAD_CHECKPOINTS = 'Loading download checkpoints...'
-STATE_START_MAINLINE_DHT = 'Starting mainline DHT...'
 STATE_START_LIBTORRENT = 'Starting libtorrent...'
 STATE_START_TORRENT_CHECKER = 'Starting torrent checker...'
 STATE_START_API_ENDPOINTS = 'Starting API endpoints...'

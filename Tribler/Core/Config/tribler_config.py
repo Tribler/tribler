@@ -421,20 +421,6 @@ class TriblerConfig(object):
     def get_libtorrent_dht_enabled(self):
         return self.config['libtorrent']['dht']
 
-    # Mainline DHT
-
-    def set_mainline_dht_enabled(self, value):
-        self.config['mainline_dht']['enabled'] = value
-
-    def get_mainline_dht_enabled(self):
-        return self.config['mainline_dht']['enabled']
-
-    def set_mainline_dht_port(self, port):
-        self.config['mainline_dht']['port'] = port
-
-    def get_mainline_dht_port(self):
-        return self._obtain_port('mainline_dht', 'port')
-
     # Video server
 
     def set_video_server_enabled(self, value):
