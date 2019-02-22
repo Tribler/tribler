@@ -19,7 +19,6 @@ data_dirs = [
     'Tribler.Test.Core.data',
     'Tribler.Test.Core.data.config_files',
     'Tribler.Test.Core.data.libtorrent',
-    'Tribler.Test.Core.data.sqlite_scripts',
     'Tribler.Test.Core.data.torrent_creation_files',
     'Tribler.Test.Core.data.upgrade_databases',
 ]
