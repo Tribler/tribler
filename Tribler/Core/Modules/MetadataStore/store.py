@@ -228,6 +228,16 @@ class MetadataStore(object):
                     return None, DELETED_METADATA
                 else:
                     return None, NO_ACTION
+
+            # Get the corresponding channel from local database to see if we really need to update our
+            # local copy of the channel by comparing local version number with payload's timestamp
+            # This check is necessary to prevent other peers pushing deleted entries into the
+            # channels we subscribed to
+            # If local channel version is 0, we are still in preview mode and willing to collect everything.
+            channel = self.ChannelMetadata.get(public_key=payload.public_key, id_=payload.origin_id)
+            if channel and (channel.local_version != 0) and payload.timestamp <= channel.local_version:
+                return None, NO_ACTION
+
             elif payload.metadata_type == REGULAR_TORRENT:
                 return self.TorrentMetadata.from_payload(payload), UNKNOWN_TORRENT
             elif payload.metadata_type == CHANNEL_TORRENT:

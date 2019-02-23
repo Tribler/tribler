@@ -93,6 +93,9 @@ def define_binding(db, logger=None, key=None, clock=None):
             if "id_" not in kwargs:
                 kwargs["id_"] = self._clock.tick()
 
+            if "timestamp" not in kwargs:
+                kwargs["timestamp"] = kwargs["id_"]
+
             if not private_key_override and not skip_key_check:
                 # No key/signature given, sign with our own key.
                 if ("signature" not in kwargs) and \
