@@ -9,8 +9,7 @@ from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT
 from Tribler.Core.Modules.MetadataStore.store import GOT_NEWER_VERSION
 from Tribler.pyipv8.ipv8.community import Community
 from Tribler.pyipv8.ipv8.lazy_community import lazy_wrapper
-from Tribler.pyipv8.ipv8.messaging.payload import Payload
-from Tribler.pyipv8.ipv8.messaging.payload_headers import BinMemberAuthenticationPayload
+from Tribler.pyipv8.ipv8.messaging.lazy_payload import VariablePayload
 from Tribler.pyipv8.ipv8.peer import Peer
 
 minimal_blob_size = 200
@@ -18,19 +17,9 @@ maximum_payload_size = 1024
 max_entries = maximum_payload_size // minimal_blob_size
 
 
-class RawBlobPayload(Payload):
+class RawBlobPayload(VariablePayload):
     format_list = ['raw']
-
-    def __init__(self, raw_blob):
-        super(RawBlobPayload, self).__init__()
-        self.raw_blob = raw_blob
-
-    def to_pack_list(self):
-        return [('raw', self.raw_blob)]
-
-    @classmethod
-    def from_unpack_list(cls, raw_blob):
-        return RawBlobPayload(raw_blob)
+    names = ['raw_blob']
 
 
 class GigaChannelCommunity(Community):
@@ -49,11 +38,7 @@ class GigaChannelCommunity(Community):
     def __init__(self, my_peer, endpoint, network, metadata_store):
         super(GigaChannelCommunity, self).__init__(my_peer, endpoint, network)
         self.metadata_store = metadata_store
-        self.auth = BinMemberAuthenticationPayload(self.my_peer.public_key.key_to_bin()).to_pack_list()
-
-        self.decode_map.update({
-            chr(self.NEWS_PUSH_MESSAGE): self.on_blob
-        })
+        self.add_message_handler(self.NEWS_PUSH_MESSAGE, self.on_blob)
 
     def send_random_to(self, peer):
         """
@@ -67,15 +52,12 @@ class GigaChannelCommunity(Community):
         md_list = []
         with db_session:
             # TODO: when the health table will be there, send popular torrents instead
-            channel_l = self.metadata_store.ChannelMetadata.get_random_channels(1, only_subscribed=True)[:]
+            channel_l = list(self.metadata_store.ChannelMetadata.get_random_channels(1, only_subscribed=True))
             if not channel_l:
                 return
-            channel = channel_l[0]
-            md_list.append(channel)
-            md_list.extend(list(channel.get_random_torrents(max_entries - 1)))
+            md_list.extend(channel_l + list(channel_l[0].get_random_torrents(max_entries - 1)))
             blob = entries_to_chunk(md_list, maximum_payload_size)[0] if md_list else None
-        self.endpoint.send(peer.address, self._ez_pack(self._prefix, self.NEWS_PUSH_MESSAGE,
-                                                       [self.auth, RawBlobPayload(blob).to_pack_list()]))
+        self.endpoint.send(peer.address, self.ezr_pack(self.NEWS_PUSH_MESSAGE, RawBlobPayload(blob)))
 
     @lazy_wrapper(RawBlobPayload)
     def on_blob(self, peer, blob):
@@ -95,8 +77,7 @@ class GigaChannelCommunity(Community):
                           (md and (md.metadata_type == CHANNEL_TORRENT)) and (result == GOT_NEWER_VERSION)]
             reply_blob = entries_to_chunk(reply_list, maximum_payload_size)[0] if reply_list else None
         if reply_blob:
-            self.endpoint.send(peer.address,
-                               self._ez_pack(self._prefix, 1, [self.auth, RawBlobPayload(reply_blob).to_pack_list()]))
+            self.endpoint.send(peer.address, self.ezr_pack(self.NEWS_PUSH_MESSAGE, RawBlobPayload(reply_blob)))
 
 
 class GigaChannelTestnetCommunity(GigaChannelCommunity):
