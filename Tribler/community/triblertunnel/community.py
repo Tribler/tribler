@@ -219,12 +219,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         # Send the next payout
         if payload.circuit_id in self.relay_from_to and block.transaction['down'] > payload.base_amount:
             relay = self.relay_from_to[payload.circuit_id]
-            circuit_peer = self.get_peer_from_address(relay.peer.address)
-            if not circuit_peer:
-                self.logger.warning("%s Unable to find next peer %s for payout!", self.my_peer, relay.peer)
-                return
-
-            self.do_payout(circuit_peer, relay.circuit_id, block.transaction['down'] - payload.base_amount * 2,
+            self.do_payout(relay.peer, relay.circuit_id, block.transaction['down'] - payload.base_amount * 2,
                            payload.base_amount)
 
     def on_balance_request_cell(self, source_address, data, _):
@@ -316,15 +311,6 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             if self.active_data_circuits():
                 self.readd_bittorrent_peers()
 
-    def get_peer_from_address(self, address):
-        circuit_peer = None
-        for peer in self.get_peers():
-            if peer.address == address:
-                circuit_peer = peer
-                break
-
-        return circuit_peer
-
     def do_payout(self, peer, circuit_id, amount, base_amount):
         """
         Perform a payout to a specific peer.
@@ -371,19 +357,18 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         if self.tribler_session:
             self.tribler_session.notifier.notify(NTFY_TUNNEL, NTFY_REMOVE, circuit, additional_info)
 
-        circuit_peer = self.get_peer_from_address(circuit.peer.address)
-        if circuit.bytes_down >= 1024 * 1024 and self.bandwidth_wallet and circuit_peer:
+        if circuit.bytes_down >= 1024 * 1024 and self.bandwidth_wallet:
             # We should perform a payout of the removed circuit.
             if circuit.ctype == CIRCUIT_TYPE_RENDEZVOUS:
                 # We remove an e2e circuit as downloader. We pay the subsequent nodes in the downloader part of the e2e
                 # circuit. In addition, we pay for one hop seeder anonymity since we don't know the circuit length at
                 # the seeder side.
-                self.do_payout(circuit_peer, circuit_id, circuit.bytes_down * ((circuit.goal_hops * 2) + 1),
+                self.do_payout(circuit.peer, circuit_id, circuit.bytes_down * ((circuit.goal_hops * 2) + 1),
                                circuit.bytes_down)
 
             if circuit.ctype == CIRCUIT_TYPE_DATA:
                 # We remove a regular data circuit as downloader. Pay the relay nodes and the exit nodes.
-                self.do_payout(circuit_peer, circuit_id, circuit.bytes_down * (circuit.goal_hops * 2 - 1),
+                self.do_payout(circuit.peer, circuit_id, circuit.bytes_down * (circuit.goal_hops * 2 - 1),
                                circuit.bytes_down)
 
             # Reset the circuit byte counters so we do not payout again if we receive a destroy message.
