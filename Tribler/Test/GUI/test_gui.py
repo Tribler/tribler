@@ -455,8 +455,7 @@ class TriblerGUITest(AbstractTriblerGUITest):
         download_dir = os.path.join(os.path.expanduser("~"), "downloads")
         window.dialog.dialog_widget.destination_input.setCurrentText(download_dir)
 
-        if not window.dialog.has_metainfo:  # It could be that the metainfo is already loaded by now
-            self.wait_for_signal(window.dialog.received_metainfo)
+        self.wait_for_list_populated(window.dialog.dialog_widget.files_list_view)
 
         self.screenshot(window, name="add_torrent_url_startdownload_dialog_files")
         QTest.mouseClick(window.dialog.dialog_widget.download_button, Qt.LeftButton)
