@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
-from Tribler.pyipv8.ipv8.attestation.trustchain.block import TrustChainBlock, EMPTY_SIG, ValidationResult,\
-    GENESIS_SEQ, GENESIS_HASH
+from Tribler.pyipv8.ipv8.attestation.trustchain.block import EMPTY_SIG, GENESIS_HASH, GENESIS_SEQ, TrustChainBlock, \
+    ValidationResult
 from Tribler.pyipv8.ipv8.messaging.deprecated.encoding import encode
 
 
@@ -60,7 +60,6 @@ class TriblerBandwidthBlock(TrustChainBlock):
     def validate_transaction(self, database):
         """
         Validates this transaction
-        :param transaction the transaction to validate
         :param database: the database to check against
         :return: A tuple consisting of a ValidationResult and a list of user string errors
         """
