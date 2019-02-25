@@ -8,6 +8,9 @@ grade: devel
 confinement: classic
 base: core18
 
+architectures:
+  - build-on: amd64
+
 parts:
   tribler-deps:
     plugin: nil
