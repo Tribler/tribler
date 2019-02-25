@@ -263,8 +263,8 @@ class SettingsPage(QWidget):
         self.window().api_port_input.setText("%s" % get_gui_setting(gui_settings, "api_port", DEFAULT_API_PORT))
 
         # Bandwidth settings
-        self.window().upload_rate_limit_input.setText(str(settings['libtorrent']['max_upload_rate'] / 1024))
-        self.window().download_rate_limit_input.setText(str(settings['libtorrent']['max_download_rate'] / 1024))
+        self.window().upload_rate_limit_input.setText(str(settings['libtorrent']['max_upload_rate'] // 1024))
+        self.window().download_rate_limit_input.setText(str(settings['libtorrent']['max_download_rate'] // 1024))
 
         # Seeding settings
         getattr(self.window(), "seeding_" + settings['download_defaults']['seeding_mode'] + "_radio").setChecked(True)
