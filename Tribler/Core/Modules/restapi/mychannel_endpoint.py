@@ -2,16 +2,21 @@ from __future__ import absolute_import
 
 import base64
 import json
+import logging
 import os
 import urllib
 from binascii import hexlify, unhexlify
 
 from pony.orm import db_session
 
+from twisted.internet.defer import Deferred
 from twisted.web import http, resource
+from twisted.web.error import SchemeNotSupported
+from twisted.web.server import NOT_DONE_YET
 
 from Tribler.Core.Modules.restapi.metadata_endpoint import SpecificChannelTorrentsEndpoint
 from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.Utilities.utilities import http_get
 from Tribler.Core.exceptions import DuplicateTorrentFileError
 from Tribler.pyipv8.ipv8.database import database_blob
 
@@ -21,6 +26,18 @@ class BaseMyChannelEndpoint(resource.Resource):
     def __init__(self, session):
         resource.Resource.__init__(self)
         self.session = session
+        self._logger = logging.getLogger(self.__class__.__name__)
+
+    def return_500(self, request, exception):
+        self._logger.exception(exception)
+        request.setResponseCode(http.INTERNAL_SERVER_ERROR)
+        return json.dumps({
+            u"error": {
+                u"handled": True,
+                u"code": exception.__class__.__name__,
+                u"message": exception.message
+            }
+        })
 
 
 class MyChannelEndpoint(BaseMyChannelEndpoint):
@@ -207,6 +224,61 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
 
         parameters = http.parse_qs(request.content.read(), 1)
 
+        if 'description' not in parameters or not parameters['description']:
+            extra_info = {}
+        else:
+            extra_info = {'description': parameters['description'][0]}
+
+        def _on_url_fetched(data):
+            return TorrentDef.load_from_memory(data)
+
+        def _on_magnet_fetched(meta_info):
+            return TorrentDef.load_from_dict(meta_info)
+
+        def _on_torrent_def_loaded(torrent_def):
+            with db_session:
+                channel = self.session.lm.mds.get_my_channel()
+                channel.add_torrent_to_channel(torrent_def, extra_info)
+            return 1
+
+        def _on_added(added):
+            request.write(json.dumps({"added": added}))
+            request.finish()
+
+        def _on_add_failed(failure):
+            failure.trap(ValueError, DuplicateTorrentFileError, SchemeNotSupported)
+            self._logger.exception(failure.value)
+            request.write(self.return_500(request, failure.value))
+            request.finish()
+
+        def _on_timeout(_):
+            request.write(self.return_500(request, RuntimeError("Metainfo timeout")))
+            request.finish()
+
+        # First, check whether we did upload a magnet link or URL
+        if 'uri' in parameters and parameters['uri']:
+            deferred = Deferred()
+            uri = parameters['uri'][0]
+            if uri.startswith("http:") or uri.startswith("https:"):
+                deferred = http_get(uri)
+                deferred.addCallback(_on_url_fetched)
+            elif uri.startswith("magnet:"):
+                try:
+                    self.session.lm.ltmgr.get_metainfo(uri, callback=deferred.callback,
+                                                       timeout=30, timeout_callback=_on_timeout, notify=True)
+                except Exception as ex:
+                    deferred.errback(ex)
+
+                deferred.addCallback(_on_magnet_fetched)
+            else:
+                request.setResponseCode(http.BAD_REQUEST)
+                return json.dumps({"error": "unknown uri type"})
+
+            deferred.addCallback(_on_torrent_def_loaded)
+            deferred.addCallback(_on_added)
+            deferred.addErrback(_on_add_failed)
+            return NOT_DONE_YET
+
         torrents_dir = None
         if 'torrents_dir' in parameters and parameters['torrents_dir'] > 0:
             torrents_dir = parameters['torrents_dir'][0]
@@ -229,11 +301,6 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
         if 'torrent' not in parameters or not parameters['torrent']:
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "torrent parameter missing"})
-
-        if 'description' not in parameters or not parameters['description']:
-            extra_info = {}
-        else:
-            extra_info = {'description': parameters['description'][0]}
 
         # Try to parse the torrent data
         try:
