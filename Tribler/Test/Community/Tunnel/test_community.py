@@ -296,6 +296,30 @@ class TestTriblerTunnelCommunity(TestBase):
         self.assertTrue(self.nodes[2].overlay.bandwidth_wallet.get_bandwidth_tokens() > 0)
 
     @inlineCallbacks
+    def test_payouts_invalid_block(self):
+        """
+        Test whether we do not payout if we received an invalid payout block
+        """
+        self.add_node_to_experiment(self.create_node())
+
+        # Build a tunnel
+        self.nodes[1].overlay.settings.become_exitnode = True
+        yield self.introduce_nodes()
+        self.nodes[0].overlay.build_tunnels(1)
+        yield self.deliver_messages(timeout=.5)
+
+        self.assertEqual(self.nodes[0].overlay.tunnels_ready(1), 1.0)
+
+        # Perform an invalid payout
+        payout_amount = -250 * 1024 * 1024
+        self.nodes[0].overlay.do_payout(self.nodes[1].my_peer, 1234, payout_amount, 1)
+
+        yield self.deliver_messages(timeout=.5)
+
+        # Node 1 should not have counter-signed this block and thus not received tokens
+        self.assertFalse(self.nodes[1].overlay.bandwidth_wallet.get_bandwidth_tokens())
+
+    @inlineCallbacks
     def test_decline_competing_slot(self):
         """
         Test whether a circuit is not created when a node does not have enough balance for a competing slot

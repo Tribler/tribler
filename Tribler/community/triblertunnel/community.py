@@ -211,6 +211,11 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         block = TriblerBandwidthBlock.from_payload(payload, self.serializer)
         self.bandwidth_wallet.trustchain.process_half_block(block, peer)
 
+        # Check whether the block has been added to the database and has been verified
+        if not self.bandwidth_wallet.trustchain.persistence.contains(block):
+            self.logger.warning("Not proceeding with payout - received payout block is not valid")
+            return
+
         # Send the next payout
         if payload.circuit_id in self.relay_from_to and block.transaction['down'] > payload.base_amount:
             relay = self.relay_from_to[payload.circuit_id]
