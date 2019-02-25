@@ -338,7 +338,7 @@ class EditChannelPage(QWidget):
 
         browse_files_action = QAction('Import torrent from file', self)
         browse_dir_action = QAction('Import torrent(s) from dir', self)
-        add_url_action = QAction('Add URL', self)
+        add_url_action = QAction('Add torrent from URL/magnet link', self)
         create_torrent_action = QAction('Create torrent from file(s)', self)
 
         browse_files_action.triggered.connect(self.on_add_torrent_browse_file)
@@ -374,8 +374,7 @@ class EditChannelPage(QWidget):
 
     def on_torrent_from_url_dialog_done(self, action):
         if action == 0:
-            url = urllib.quote_plus(self.dialog.dialog_widget.dialog_input.text())
-            self.add_torrent_url_to_channel(url)
+            self.add_torrent_url_to_channel(self.dialog.dialog_widget.dialog_input.text())
         self.dialog.close_dialog()
         self.dialog = None
 
@@ -427,9 +426,10 @@ class EditChannelPage(QWidget):
                                     self.on_torrent_to_channel_added, method='PUT', data=post_data)
 
     def add_torrent_url_to_channel(self, url):
+        post_data = {"uri": url}
         request_mgr = TriblerRequestManager()
-        request_mgr.perform_request("mychannel/torrents/%s" % url,
-                                    self.on_torrent_to_channel_added, method='PUT')
+        request_mgr.perform_request("mychannel/torrents",
+                                    self.on_torrent_to_channel_added, method='PUT', data=post_data)
 
     def on_torrent_to_channel_added(self, result):
         if not result:

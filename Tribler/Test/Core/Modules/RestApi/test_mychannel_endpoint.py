@@ -2,6 +2,8 @@ from __future__ import absolute_import
 
 import base64
 import json
+import os
+import shutil
 from binascii import hexlify
 
 from pony.orm import db_session
@@ -12,6 +14,7 @@ from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import NEW, TODELETE
 from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.common import TORRENT_UBUNTU_FILE
@@ -148,6 +151,12 @@ class TestMyChannelCommitEndpoint(BaseTestMyChannelEndpoint):
 
 
 class TestMyChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
+
+    @inlineCallbacks
+    def setUp(self):
+        yield super(TestMyChannelTorrentsEndpoint, self).setUp()
+        self.session.lm.ltmgr = MockObject()
+        self.session.lm.ltmgr.shutdown = lambda: True
 
     @trial_timeout(10)
     def test_get_my_torrents_no_channel(self):
@@ -318,6 +327,68 @@ class TestMyChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
             self.should_check_equality = False
             post_params = {'torrent': base64_content}
             return self.do_request('mychannel/torrents', request_type='PUT', post_data=post_params, expected_code=200)
+
+    @trial_timeout(10)
+    def test_add_torrent_invalid_uri(self):
+        """
+        Test whether adding a torrent to your channel with an invalid URI results in an error
+        """
+        self.create_my_channel()
+
+        self.should_check_equality = False
+        post_params = {'uri': 'thisisinvalid'}
+        return self.do_request('mychannel/torrents', request_type='PUT', post_data=post_params, expected_code=400)
+
+    @trial_timeout(10)
+    def test_add_torrent_from_url(self):
+        """
+        Test whether we can add a torrent to your channel from an URL
+        """
+        self.create_my_channel()
+
+        # Setup file server to serve torrent file
+        files_path = os.path.join(self.session_base_dir, 'http_torrent_files')
+        os.mkdir(files_path)
+        shutil.copyfile(TORRENT_UBUNTU_FILE, os.path.join(files_path, 'ubuntu.torrent'))
+        file_server_port = get_random_port()
+        self.setUpFileServer(file_server_port, files_path)
+
+        self.should_check_equality = False
+        post_params = {'uri': 'http://localhost:%d/ubuntu.torrent' % file_server_port}
+        return self.do_request('mychannel/torrents', request_type='PUT', post_data=post_params, expected_code=200)
+
+    @trial_timeout(10)
+    def test_add_torrent_from_magnet(self):
+        """
+        Test whether we can add a torrent to your channel from a magnet link
+        """
+        self.create_my_channel()
+
+        def fake_get_metainfo(_, callback, **__):
+            meta_info = TorrentDef.load(TORRENT_UBUNTU_FILE).get_metainfo()
+            callback(meta_info)
+
+        self.session.lm.ltmgr.get_metainfo = fake_get_metainfo
+
+        self.should_check_equality = False
+        post_params = {'uri': 'magnet:?fake'}
+        return self.do_request('mychannel/torrents', request_type='PUT', post_data=post_params, expected_code=200)
+
+    @trial_timeout(10)
+    def test_add_torrent_from_magnet_error(self):
+        """
+        Test whether a ValueError while adding magnets to your channel results in a proper 500 error
+        """
+        self.create_my_channel()
+
+        def fake_get_metainfo(*_, **__):
+            raise ValueError(u"Test error")
+
+        self.session.lm.ltmgr.get_metainfo = fake_get_metainfo
+
+        self.should_check_equality = False
+        post_params = {'uri': 'magnet:?fake'}
+        return self.do_request('mychannel/torrents', request_type='PUT', post_data=post_params, expected_code=500)
 
 
 class TestMyChannelSpecificTorrentEndpoint(BaseTestMyChannelEndpoint):
