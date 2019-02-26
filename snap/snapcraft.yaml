@@ -1,12 +1,12 @@
 name: tribler-bittorrent
-version: git
-summary: Tribler
+version: latest
+version-script: cat $SNAPCRAFT_STAGE/version
+summary: Decentralized BitTorrent client
 description: >
   Open source decentralized BitTorrent client which allows anonymous peer-to-peer downloads by default.
 
 grade: devel
 confinement: classic
-base: core18
 
 architectures:
   - build-on: amd64
@@ -105,6 +105,9 @@ parts:
     source-branch: devel
     source-depth: 1
     override-build: |
+      VERSION=$(git describe --tags|cut -d- -f1,2)
+      echo $VERSION > $SNAPCRAFT_STAGE/version
+
       cp -r ./ ${SNAPCRAFT_PART_INSTALL}/usr/share/tribler
       set -ex
       for dir in $SNAPCRAFT_PART_INSTALL/usr/lib/*/; do
