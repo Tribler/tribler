@@ -137,9 +137,9 @@ class TestChannelMetadata(TriblerCoreTest):
 
         # Check that we always take the latest version
         channel_metadata.timestamp -= 1
-        self.assertEqual(channel_metadata.timestamp, 6)
+        self.assertEqual(channel_metadata.timestamp, 1551110113006)
         channel_metadata = self.mds.ChannelMetadata.process_channel_metadata_payload(payload)
-        self.assertEqual(channel_metadata.timestamp, 7)
+        self.assertEqual(channel_metadata.timestamp, 1551110113007)
         self.assertEqual(len(self.mds.ChannelMetadata.select()), 1)
 
     @db_session

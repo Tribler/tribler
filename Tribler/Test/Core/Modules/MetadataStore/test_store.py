@@ -50,7 +50,6 @@ class TestMetadataStore(TriblerCoreTest):
         self.mds.shutdown()
         yield super(TestMetadataStore, self).tearDown()
 
-
     def test_store_clock(self):
         my_key = default_eccrypto.generate_key(u"curve25519")
         mds2 = MetadataStore(os.path.join(self.session_base_dir, 'test.db'), self.session_base_dir, my_key)
@@ -146,7 +145,7 @@ class TestMetadataStore(TriblerCoreTest):
         self.assertFalse(channel.contents_list)
         self.mds.process_channel_dir(self.CHANNEL_DIR, channel.public_key)
         self.assertEqual(len(channel.contents_list), 3)
-        self.assertEqual(channel.timestamp, 7)
+        self.assertEqual(channel.timestamp, 1551110113007)
         self.assertEqual(channel.local_version, channel.timestamp)
 
     @db_session
@@ -159,7 +158,7 @@ class TestMetadataStore(TriblerCoreTest):
 
         _, node_payload, node_deleted_payload = get_payloads(self.mds.ChannelNode)
 
-        self.assertEqual((None, GOT_SAME_VERSION), self.mds.process_payload(node_payload))
+        self.assertEqual((self.mds.ChannelNode[1], GOT_SAME_VERSION), self.mds.process_payload(node_payload))
         self.assertEqual((None, DELETED_METADATA), self.mds.process_payload(node_deleted_payload))
         # Do nothing in case it is unknown/abstract payload type, like ChannelNode
         self.assertEqual((None, NO_ACTION), self.mds.process_payload(node_payload))
@@ -181,6 +180,16 @@ class TestMetadataStore(TriblerCoreTest):
         result = self.mds.process_payload(node_payload)
         self.assertEqual(UNKNOWN_CHANNEL, result[1])
         self.assertEqual(node_dict['metadata_type'], result[0].to_dict()['metadata_type'])
+
+    @db_session
+    def test_process_payload_reject_old(self):
+        # Check there is no action if the processed payload has a timestamp that is less than the
+        # local_version of the corresponding local channel. (I.e. remote peer trying to push back a deleted entry)
+        channel = self.mds.ChannelMetadata(title='bla', version=123, local_version=12)
+        torrent = self.mds.TorrentMetadata(title='blabla', timestamp=11, origin_id=channel.id_)
+        payload = torrent._payload_class(**torrent.to_dict())
+        torrent.delete()
+        self.assertEqual((None, NO_ACTION), self.mds.process_payload(payload))
 
     @db_session
     def test_get_num_channels_nodes(self):
