@@ -69,7 +69,10 @@ class GigaChannelCommunity(Community):
         """
 
         with db_session:
-            md_list = self.metadata_store.process_compressed_mdblob(blob.raw_blob)
+            try:
+                md_list = self.metadata_store.process_compressed_mdblob(blob.raw_blob)
+            except RuntimeError:
+                return
             # Check if the guy who send us this metadata actually has an older version of this md than
             # we do, and queue to send it back.
 
