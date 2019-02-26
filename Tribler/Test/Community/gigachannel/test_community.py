@@ -96,6 +96,7 @@ class TestGigaChannelUnits(TestBase):
                 self.add_random_torrent(self.nodes[0].overlay.metadata_store.TorrentMetadata)
             channel.commit_channel_torrent()
             channel_v1_dict = channel.to_dict()
+            channel_v1_dict.pop("health")
             self.add_random_torrent(self.nodes[0].overlay.metadata_store.TorrentMetadata)
             channel.commit_channel_torrent()
 

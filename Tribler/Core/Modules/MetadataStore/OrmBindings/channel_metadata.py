@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import os
+import random
 import sys
 from binascii import hexlify
 from datetime import datetime
@@ -143,7 +144,7 @@ def define_binding(db):
                 raise DuplicateChannelIdError()
 
             my_channel = cls(id_=ROOT_CHANNEL_ID, public_key=database_blob(cls._my_key.pub().key_to_bin()[10:]),
-                             title=title, tags=description, subscribed=True)
+                             title=title, tags=description, subscribed=True, infohash=str(random.getrandbits(160)))
             my_channel.sign()
             return my_channel
 

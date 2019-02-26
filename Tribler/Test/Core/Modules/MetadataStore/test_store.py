@@ -6,7 +6,6 @@ import string
 from binascii import unhexlify
 
 from pony.orm import db_session
-
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH, entries_to_chunk
@@ -23,7 +22,7 @@ from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto
 def make_wrong_payload(filename):
     key = default_eccrypto.generate_key(u"curve25519")
     metadata_payload = SignedPayload(666, 0, database_blob(key.pub().key_to_bin()[10:]),
-                                     signature='\x00'*64, skip_key_check=True)
+                                     signature='\x00' * 64, skip_key_check=True)
     with open(filename, 'wb') as output_file:
         output_file.write(''.join(metadata_payload.serialized()))
 
@@ -65,7 +64,7 @@ class TestMetadataStore(TriblerCoreTest):
         Test whether we are able to process files in a directory containing node metadata
         """
 
-        test_node_metadata = self.mds.TorrentMetadata(title='test')
+        test_node_metadata = self.mds.TorrentMetadata(title='test', infohash=str(random.getrandbits(160)))
         metadata_path = os.path.join(self.session_base_dir, 'metadata.data')
         test_node_metadata.to_file(metadata_path)
         # We delete this TorrentMeta info now, it should be added again to the database when loading it
@@ -91,7 +90,7 @@ class TestMetadataStore(TriblerCoreTest):
         chunk_size = self.mds.ChannelMetadata._CHUNK_SIZE_LIMIT
         md_list = [self.mds.TorrentMetadata(
             title=''.join(random.choice(string.ascii_uppercase + string.digits)
-                          for _ in range(20))) for _ in range(0, 10)]
+                          for _ in range(20)), infohash=str(random.getrandbits(160))) for _ in range(0, 10)]
         chunk, _ = entries_to_chunk(md_list, chunk_size=chunk_size)
         dict_list = [d.to_dict()["signature"] for d in md_list]
         for d in md_list:
@@ -102,7 +101,9 @@ class TestMetadataStore(TriblerCoreTest):
     @db_session
     def test_squash_mdblobs_multiple_chunks(self):
         md_list = [self.mds.TorrentMetadata(title=''.join(random.choice(string.ascii_uppercase + string.digits)
-                                                          for _ in range(20))) for _ in range(0, 10)]
+                                                          for _ in range(20)),
+                                            infohash=str(random.getrandbits(160)))
+                   for _ in range(0, 10)]
         # Test splitting into multiple chunks
         chunk, index = entries_to_chunk(md_list, chunk_size=900)
         chunk2, _ = entries_to_chunk(md_list, chunk_size=900, start_index=index)
@@ -122,8 +123,9 @@ class TestMetadataStore(TriblerCoreTest):
         self.mds.ChannelMetadata._CHUNK_SIZE_LIMIT = 500
 
         num_entries = 10
-        channel = self.mds.ChannelMetadata(title='testchan')
-        md_list = [self.mds.TorrentMetadata(title='test' + str(x), status=NEW) for x in range(0, num_entries)]
+        channel = self.mds.ChannelMetadata(title='testchan', infohash=str(random.getrandbits(160)))
+        md_list = [self.mds.TorrentMetadata(title='test' + str(x), status=NEW, infohash=str(random.getrandbits(160)))
+                   for x in range(0, num_entries)]
         channel.commit_channel_torrent()
 
         channel.local_version = 0
@@ -151,7 +153,7 @@ class TestMetadataStore(TriblerCoreTest):
     @db_session
     def test_process_payload(self):
         def get_payloads(entity_class):
-            c = entity_class()
+            c = entity_class(infohash=str(random.getrandbits(160)))
             payload = c._payload_class.from_signed_blob(c.serialized())
             deleted_payload = DeletedMetadataPayload.from_signed_blob(c.serialized_delete())
             return c, payload, deleted_payload
@@ -185,22 +187,27 @@ class TestMetadataStore(TriblerCoreTest):
     def test_process_payload_reject_old(self):
         # Check there is no action if the processed payload has a timestamp that is less than the
         # local_version of the corresponding local channel. (I.e. remote peer trying to push back a deleted entry)
-        channel = self.mds.ChannelMetadata(title='bla', version=123, local_version=12)
-        torrent = self.mds.TorrentMetadata(title='blabla', timestamp=11, origin_id=channel.id_)
+        channel = self.mds.ChannelMetadata(title='bla', version=123, local_version=12,
+                                           infohash=str(random.getrandbits(160)))
+        torrent = self.mds.TorrentMetadata(title='blabla', timestamp=11, origin_id=channel.id_,
+                                           infohash=str(random.getrandbits(160)))
         payload = torrent._payload_class(**torrent.to_dict())
         torrent.delete()
         self.assertEqual((None, NO_ACTION), self.mds.process_payload(payload))
 
     @db_session
     def test_get_num_channels_nodes(self):
-        self.mds.ChannelMetadata(title='testchan', id_=0)
-        self.mds.ChannelMetadata(title='testchan', id_=123)
-        self.mds.ChannelMetadata(title='testchan', id_=0, public_key=unhexlify('0'*20),
-                                 signature=unhexlify('0'*64), skip_key_check=True)
-        self.mds.ChannelMetadata(title='testchan', id_=0, public_key=unhexlify('1'*20),
-                                 signature=unhexlify('1'*64), skip_key_check=True)
+        self.mds.ChannelMetadata(title='testchan', id_=0, infohash=str(random.getrandbits(160)))
+        self.mds.ChannelMetadata(title='testchan', id_=123, infohash=str(random.getrandbits(160)))
+        self.mds.ChannelMetadata(title='testchan', id_=0, public_key=unhexlify('0' * 20),
+                                 signature=unhexlify('0' * 64), skip_key_check=True,
+                                 infohash=str(random.getrandbits(160)))
+        self.mds.ChannelMetadata(title='testchan', id_=0, public_key=unhexlify('1' * 20),
+                                 signature=unhexlify('1' * 64), skip_key_check=True,
+                                 infohash=str(random.getrandbits(160)))
 
-        _ = [self.mds.TorrentMetadata(title='test' + str(x), status=NEW) for x in range(0, 3)]
+        _ = [self.mds.TorrentMetadata(title='test' + str(x), status=NEW, infohash=str(random.getrandbits(160))) for x in
+             range(0, 3)]
 
         self.assertEqual(4, self.mds.get_num_channels())
         self.assertEqual(3, self.mds.get_num_torrents())
