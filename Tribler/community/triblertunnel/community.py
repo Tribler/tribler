@@ -208,19 +208,23 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         payload = self._ez_unpack_noauth(PayoutPayload, data, global_time=False)
         peer = Peer(payload.public_key, source_address)
+
+        def on_transaction_completed(blocks):
+            # Send the next payout
+            if blocks and payload.circuit_id in self.relay_from_to and block.transaction['down'] > payload.base_amount:
+                relay = self.relay_from_to[payload.circuit_id]
+                self._logger.info("Sending next payout to peer %s", relay.peer)
+                self.do_payout(relay.peer, relay.circuit_id, block.transaction['down'] - payload.base_amount * 2,
+                               payload.base_amount)
+
         block = TriblerBandwidthBlock.from_payload(payload, self.serializer)
-        self.bandwidth_wallet.trustchain.process_half_block(block, peer)
+        self.bandwidth_wallet.trustchain.process_half_block(block, peer)\
+            .addCallbacks(on_transaction_completed, lambda _: None)
 
         # Check whether the block has been added to the database and has been verified
         if not self.bandwidth_wallet.trustchain.persistence.contains(block):
             self.logger.warning("Not proceeding with payout - received payout block is not valid")
             return
-
-        # Send the next payout
-        if payload.circuit_id in self.relay_from_to and block.transaction['down'] > payload.base_amount:
-            relay = self.relay_from_to[payload.circuit_id]
-            self.do_payout(relay.peer, relay.circuit_id, block.transaction['down'] - payload.base_amount * 2,
-                           payload.base_amount)
 
     def on_balance_request_cell(self, source_address, data, _):
         payload = self._ez_unpack_noauth(BalanceRequestPayload, data, global_time=False)
