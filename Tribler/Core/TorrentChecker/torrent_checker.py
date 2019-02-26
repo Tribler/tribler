@@ -210,30 +210,34 @@ class TorrentChecker(TaskManager):
                                               "health": "updated"})
         return final_response
 
-    def add_gui_request(self, infohash, timeout=20, scrape_now=False, notify=False):
+    def add_gui_request(self, infohash, timeout=20, scrape_now=False):
         """
         Public API for adding a GUI request.
         :param infohash: Torrent infohash.
         :param timeout: The timeout to use in the performed requests
         :param scrape_now: Flag whether we want to force scraping immediately
         """
+        tracker_set = []
+
+        # We first check whether the torrent is already in the database and checked before
         with db_session:
             result = self.tribler_session.lm.mds.TorrentState.get(infohash=database_blob(infohash))
-            if not result:
-                self._logger.warn(u"torrent info not found, skip. infohash: %s", hexlify(infohash))
-                return fail(Failure(RuntimeError("Torrent not found")))
+            if result:
+                torrent_id = str(result.infohash)
+                last_check = result.last_check
+                time_diff = time.time() - last_check
+                if time_diff < self._torrent_check_interval and not scrape_now:
+                    self._logger.debug(u"time interval too short, skip GUI request. infohash: %s", hexlify(infohash))
+                    return succeed({
+                        "db": {
+                            "seeders": result.seeders,
+                            "leechers": result.leechers,
+                            "infohash": hexlify(infohash)
+                        }
+                    })
 
-            torrent_id = str(result.infohash)
-            last_check = result.last_check
-            time_diff = time.time() - last_check
-            if time_diff < self._torrent_check_interval and not scrape_now:
-                self._logger.debug(u"time interval too short, skip GUI request. infohash: %s", hexlify(infohash))
-                return succeed({"db": {"seeders": result.seeders,
-                                       "leechers": result.leechers,
-                                       "infohash": hexlify(infohash)}})
-
-            # get torrent's tracker list from DB
-            tracker_set = self.get_valid_trackers_of_torrent(torrent_id)
+                # get torrent's tracker list from DB
+                tracker_set = self.get_valid_trackers_of_torrent(torrent_id)
 
         deferred_list = []
         for tracker_url in tracker_set:
