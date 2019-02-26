@@ -216,8 +216,6 @@ class MetadataStore(object):
     # Can't use db_session wrapper here, performance drops 10 times! Pony bug!
     def process_payload(self, payload):
         with db_session:
-            if self.ChannelNode.exists(signature=payload.signature):
-                return None, GOT_SAME_VERSION
 
             if payload.metadata_type == DELETED:
                 # We only allow people to delete their own entries, thus PKs must match
@@ -229,52 +227,31 @@ class MetadataStore(object):
                 else:
                     return None, NO_ACTION
 
+            # Check if we already got an older version of the same node that we can update
+            # TODO: optimize this with a single UPSERT-style query
+            local_node = self.ChannelNode.get(public_key=payload.public_key, id_=payload.id_)
+            if local_node:
+                if local_node.timestamp < payload.timestamp:
+                    local_node.set(**payload.to_dict())
+                    return local_node, UPDATED_OUR_VERSION
+                elif local_node.timestamp > payload.timestamp:
+                    return local_node, GOT_NEWER_VERSION
+                return local_node, GOT_SAME_VERSION
+
             # Get the corresponding channel from local database to see if we really need to update our
-            # local copy of the channel by comparing local version number with payload's timestamp
+            # local contents of the channel by comparing the channel's local_version with the payload's timestamp.
             # This check is necessary to prevent other peers pushing deleted entries into the
-            # channels we subscribed to
+            # channels we are subscribed to.
             # If local channel version is 0, we are still in preview mode and willing to collect everything.
             channel = self.ChannelMetadata.get(public_key=payload.public_key, id_=payload.origin_id)
-            if channel and (channel.local_version != 0) and payload.timestamp <= channel.local_version:
+            if channel and (channel.local_version != 0) and (payload.timestamp <= channel.local_version):
                 return None, NO_ACTION
-
             elif payload.metadata_type == REGULAR_TORRENT:
                 return self.TorrentMetadata.from_payload(payload), UNKNOWN_TORRENT
             elif payload.metadata_type == CHANNEL_TORRENT:
-                return self.update_channel_info(payload)
+                return self.ChannelMetadata.from_payload(payload), UNKNOWN_CHANNEL
 
             return None, NO_ACTION
-
-    @db_session
-    def update_channel_info(self, payload):
-        """
-        We received some channel metadata, possibly over the network.
-        Validate the signature, update the local metadata store and put in at the beginning of the download queue
-        if necessary.
-        :param payload: The channel metadata, in serialized form.
-        :returns (metadata, status): tuple consisting of possibly newer metadata and result status
-        """
-
-        channel = self.ChannelMetadata.get_channel_with_id(payload.public_key)
-        if channel:
-            if payload.timestamp > channel.timestamp:
-                # Update the channel that is already there.
-                self._logger.info("Updating channel metadata %s ts %s->%s", str(channel.public_key).encode("hex"),
-                                  str(channel.timestamp), str(payload.timestamp))
-                channel.set(**ChannelMetadataPayload.to_dict(payload))
-                status = UPDATED_OUR_VERSION
-            elif payload.timestamp == channel.timestamp:
-                status = GOT_SAME_VERSION
-            else:
-                status = GOT_NEWER_VERSION
-
-        else:
-            status = UNKNOWN_CHANNEL
-            # Add new channel object to DB
-            channel = self.ChannelMetadata.from_payload(payload)
-
-        #TODO: handle the case where the local version is the same as the new one and is not seeded
-        return channel, status
 
     @db_session
     def get_my_channel(self):

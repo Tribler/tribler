@@ -158,7 +158,7 @@ class TestMetadataStore(TriblerCoreTest):
 
         _, node_payload, node_deleted_payload = get_payloads(self.mds.ChannelNode)
 
-        self.assertEqual((None, GOT_SAME_VERSION), self.mds.process_payload(node_payload))
+        self.assertEqual((self.mds.ChannelNode[1], GOT_SAME_VERSION), self.mds.process_payload(node_payload))
         self.assertEqual((None, DELETED_METADATA), self.mds.process_payload(node_deleted_payload))
         # Do nothing in case it is unknown/abstract payload type, like ChannelNode
         self.assertEqual((None, NO_ACTION), self.mds.process_payload(node_payload))
