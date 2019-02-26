@@ -214,45 +214,43 @@ class MetadataStore(object):
             results_list.append(self.process_payload(payload))
         return results_list
 
-    # Can't use db_session wrapper here, performance drops 10 times! Pony bug!
+    @db_session
     def process_payload(self, payload):
-        with db_session:
-
-            if payload.metadata_type == DELETED:
-                # We only allow people to delete their own entries, thus PKs must match
-                existing_metadata = self.ChannelNode.get(signature=payload.delete_signature,
-                                                         public_key=payload.public_key)
-                if existing_metadata:
-                    existing_metadata.delete()
-                    return None, DELETED_METADATA
-                else:
-                    return None, NO_ACTION
-
-            # Check if we already got an older version of the same node that we can update
-            # TODO: optimize this with a single UPSERT-style query
-            local_node = self.ChannelNode.get(public_key=payload.public_key, id_=payload.id_)
-            if local_node:
-                if local_node.timestamp < payload.timestamp:
-                    local_node.set(**payload.to_dict())
-                    return local_node, UPDATED_OUR_VERSION
-                elif local_node.timestamp > payload.timestamp:
-                    return local_node, GOT_NEWER_VERSION
-                return local_node, GOT_SAME_VERSION
-
-            # Get the corresponding channel from local database to see if we really need to update our
-            # local contents of the channel by comparing the channel's local_version with the payload's timestamp.
-            # This check is necessary to prevent other peers pushing deleted entries into the
-            # channels we are subscribed to.
-            # If local channel version is 0, we are still in preview mode and willing to collect everything.
-            channel = self.ChannelMetadata.get(public_key=payload.public_key, id_=payload.origin_id)
-            if channel and (channel.local_version != 0) and (payload.timestamp <= channel.local_version):
+        if payload.metadata_type == DELETED:
+            # We only allow people to delete their own entries, thus PKs must match
+            existing_metadata = self.ChannelNode.get(signature=payload.delete_signature,
+                                                     public_key=payload.public_key)
+            if existing_metadata:
+                existing_metadata.delete()
+                return None, DELETED_METADATA
+            else:
                 return None, NO_ACTION
-            elif payload.metadata_type == REGULAR_TORRENT:
-                return self.TorrentMetadata.from_payload(payload), UNKNOWN_TORRENT
-            elif payload.metadata_type == CHANNEL_TORRENT:
-                return self.ChannelMetadata.from_payload(payload), UNKNOWN_CHANNEL
 
+        # Check if we already got an older version of the same node that we can update
+        # TODO: optimize this with a single UPSERT-style query
+        local_node = self.ChannelNode.get(public_key=payload.public_key, id_=payload.id_)
+        if local_node:
+            if local_node.timestamp < payload.timestamp:
+                local_node.set(**payload.to_dict())
+                return local_node, UPDATED_OUR_VERSION
+            elif local_node.timestamp > payload.timestamp:
+                return local_node, GOT_NEWER_VERSION
+            return local_node, GOT_SAME_VERSION
+
+        # Get the corresponding channel from local database to see if we really need to update our
+        # local contents of the channel by comparing the channel's local_version with the payload's timestamp.
+        # This check is necessary to prevent other peers pushing deleted entries into the
+        # channels we are subscribed to.
+        # If local channel version is 0, we are still in preview mode and willing to collect everything.
+        channel = self.ChannelMetadata.get(public_key=payload.public_key, id_=payload.origin_id)
+        if channel and (channel.local_version != 0) and (payload.timestamp <= channel.local_version):
             return None, NO_ACTION
+        elif payload.metadata_type == REGULAR_TORRENT:
+            return self.TorrentMetadata.from_payload(payload), UNKNOWN_TORRENT
+        elif payload.metadata_type == CHANNEL_TORRENT:
+            return self.ChannelMetadata.from_payload(payload), UNKNOWN_CHANNEL
+
+        return None, NO_ACTION
 
     @db_session
     def get_my_channel(self):
