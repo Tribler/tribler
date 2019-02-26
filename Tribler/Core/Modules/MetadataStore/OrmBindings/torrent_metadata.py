@@ -25,6 +25,8 @@ def define_binding(db):
         tags = orm.Optional(str, default='')
         tracker_info = orm.Optional(str, default='')
 
+        orm.composite_key(db.ChannelNode.public_key, infohash)
+
         # Local
         xxx = orm.Optional(float, default=0)
         health = orm.Optional('TorrentState', reverse='metadata')
