@@ -260,11 +260,10 @@ class TriblerGUITest(AbstractTriblerGUITest):
         # Unsubscribe and subscribe again
         index = self.get_index_of_row(window.subscribed_channels_list, 0)
         window.subscribed_channels_list.on_subscribe_control_clicked(index)
-        self.wait_for_signal(window.subscribed_channels_list.on_unsubscribed_channel)
+        QTest.qWait(200)
         self.screenshot(window, name="unsubscribed")
-
         window.subscribed_channels_list.on_subscribe_control_clicked(index)
-        self.wait_for_signal(window.subscribed_channels_list.on_subscribed_channel)
+        QTest.qWait(200)
 
     def test_discovered_page(self):
         QTest.mouseClick(window.left_menu_button_discovered, Qt.LeftButton)
