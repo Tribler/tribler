@@ -440,6 +440,7 @@ class TriblerGUITest(AbstractTriblerGUITest):
         self.wait_for_list_populated(window.search_results_list)
         self.screenshot(window, name="search_results_torrents")
 
+    @skipIf(sys.platform == "win32", "This test is unreliable on Windows")
     def test_add_download_url(self):
         window.on_add_torrent_from_url()
         self.go_to_and_wait_for_downloads()
