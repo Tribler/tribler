@@ -131,7 +131,7 @@ def define_binding(db):
         @classmethod
         @db_session
         def get_entries(cls, first=None, last=None, metadata_type=REGULAR_TORRENT, channel_pk=False,
-                        exclude_deleted=False, hide_xxx=False, **kwargs):
+                        exclude_deleted=False, hide_xxx=False, exclude_legacy=False, **kwargs):
             """
             Get some torrents. Optionally sort the results by a specific field, or filter the channels based
             on a keyword/whether you are subscribed to it.
@@ -149,6 +149,8 @@ def define_binding(db):
                 pony_query = pony_query.where(lambda g: g.status != TODELETE)
             if hide_xxx:
                 pony_query = pony_query.where(lambda g: g.xxx == 0)
+            if exclude_legacy:
+                pony_query = pony_query.where(lambda g: g.status != LEGACY_ENTRY)
 
             # Filter on channel
             if channel_pk:

@@ -96,7 +96,7 @@ class TriblerContentModel(RemoteTableModel):
         items_len = len(self.data_items)
         new_items_len = len(new_data_items)
         for i, item in enumerate(new_data_items):
-            if "infohash" in item:
+            if "infohash" in item and item['infohash'] not in self.infohashes:
                 self.infohashes[item["infohash"]] = items_len - new_items_len + i
 
     def reset(self):
@@ -126,6 +126,29 @@ class SearchResultsContentModel(TriblerContentModel):
     def __init__(self, **kwargs):
         TriblerContentModel.__init__(self, **kwargs)
         self.type_filter = None
+
+    def add_remote_items(self, remote_items):
+        new_infohash_map = {}
+
+        # Add new unique items to the top
+        insert_index = 0
+        unique_items = []
+        for item in remote_items:
+            if "infohash" in item and item["infohash"] not in self.infohashes:
+                new_infohash_map[item["infohash"]] = insert_index
+                unique_items.append(item)
+                insert_index += 1
+
+        # Shift the rest of the items
+        for item in self.data_items:
+            if "infohash" in item and item["infohash"] in self.infohashes:
+                new_infohash_map[item['infohash']] = insert_index + self.infohashes[item["infohash"]]
+
+        # Update the table
+        self.beginInsertRows(QModelIndex(), 0, len(self.data_items) + len(unique_items)-1)
+        self.data_items = unique_items + self.data_items
+        self.infohashes = new_infohash_map
+        self.endInsertRows()
 
 
 class ChannelsContentModel(TriblerContentModel):

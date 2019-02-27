@@ -84,7 +84,6 @@ class SearchEndpoint(BaseMetadataEndpoint):
                    "chant_dirty":false
                 }
         """
-
         sanitized = SearchEndpoint.sanitize_parameters(request.args)
 
         if not sanitized["query_filter"]:
@@ -99,6 +98,16 @@ class SearchEndpoint(BaseMetadataEndpoint):
             pony_query, total = self.session.lm.mds.TorrentMetadata.get_entries(**sanitized)
             search_results = [(dict(type={REGULAR_TORRENT: 'torrent', CHANNEL_TORRENT: 'channel'}[r.metadata_type],
                                     **(r.to_simple_dict()))) for r in pony_query]
+
+        # Apart from the local search results, we also do remote search to get search results from peers in the
+        # Giga channel community.
+        if self.session.lm.gigachannel_community and sanitized["first"] == 1:
+            raw_metadata_type = request.args['metadata_type'][0] if 'metadata_type' in request.args else ''
+            self.session.lm.gigachannel_community.send_search_request(sanitized['query_filter'],
+                                                                      metadata_type=raw_metadata_type,
+                                                                      sort_by=sanitized['sort_by'],
+                                                                      sort_asc=sanitized['sort_asc'],
+                                                                      hide_xxx=sanitized['hide_xxx'])
 
         return json.dumps({
             "results": search_results,

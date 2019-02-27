@@ -11,6 +11,7 @@ from twisted.internet.defer import inlineCallbacks
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import NEW
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.Utilities.random_utils import random_infohash
+from Tribler.Test.Core.base_test import MockObject
 from Tribler.community.gigachannel.community import GigaChannelCommunity
 from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto
 from Tribler.pyipv8.ipv8.peer import Peer
@@ -35,10 +36,10 @@ class TestGigaChannelUnits(TestBase):
         self.count += 1
         return node
 
-    def add_random_torrent(self, metadata_cls):
+    def add_random_torrent(self, metadata_cls, name="test"):
         torrent_metadata = metadata_cls.from_dict({
             "infohash": random_infohash(),
-            "title": "test",
+            "title": name,
             "tags": "",
             "size": 1234,
             "status": NEW
@@ -111,3 +112,97 @@ class TestGigaChannelUnits(TestBase):
         with db_session:
             self.assertEqual(self.nodes[1].overlay.metadata_store.ChannelMetadata.select()[:][0].timestamp,
                              self.nodes[0].overlay.metadata_store.ChannelMetadata.select()[:][0].timestamp)
+
+    @inlineCallbacks
+    def test_gigachannel_search(self):
+        """
+        Scenario: Node 0 is setup with a channel with 20 ubuntu related torrents. Node 1 searches for 'ubuntu' and
+        expects to receive some results. The search results are processed by node 1 when it receives and adds to its
+        database. Max number of results is 5, so we expect 5 torrents are added the database.
+        """
+        def mock_notify(overlay, args):
+            overlay.notified_results = True
+            self.assertTrue("results" in args[0])
+
+        self.nodes[1].overlay.notifier = MockObject()
+        self.nodes[1].overlay.notifier.notify = lambda sub, _type, _obj, args: mock_notify(self.nodes[1].overlay, args)
+
+        yield self.introduce_nodes()
+
+        with db_session:
+            channel = self.nodes[0].overlay.metadata_store.ChannelMetadata.create_channel("ubuntu", "ubuntu")
+            for i in xrange(20):
+                self.add_random_torrent(self.nodes[0].overlay.metadata_store.TorrentMetadata, name="ubuntu %s" % i)
+            channel.commit_channel_torrent()
+
+        # Node 1 has no torrents and searches for 'ubuntu'
+        with db_session:
+            torrents = self.nodes[1].overlay.metadata_store.TorrentMetadata.select()[:]
+            self.assertEqual(len(torrents), 0)
+        self.nodes[1].overlay.send_search_request(u'"ubuntu"*')
+
+        yield self.deliver_messages()
+
+        with db_session:
+            torrents = self.nodes[1].overlay.metadata_store.TorrentMetadata.select()[:]
+            self.assertEqual(len(torrents), 5)
+        self.assertTrue(self.nodes[1].overlay.notified_results)
+
+    @inlineCallbacks
+    def test_gigachannel_search_reject_stale_result(self):
+        """
+        Scenario: If two search requests are sent one after another, the response for the first query becomes stale and
+        is rejected.
+        """
+        yield self.introduce_nodes()
+
+        with db_session:
+            channel = self.nodes[0].overlay.metadata_store.ChannelMetadata.create_channel("linux", "ubuntu")
+            for i in xrange(10):
+                self.add_random_torrent(self.nodes[0].overlay.metadata_store.TorrentMetadata, name="ubuntu %s" % i)
+            for i in xrange(10):
+                self.add_random_torrent(self.nodes[0].overlay.metadata_store.TorrentMetadata, name="debian %s" % i)
+            channel.commit_channel_torrent()
+
+        # Assert Node 1 has no previous torrents in the database
+        with db_session:
+            torrents = self.nodes[1].overlay.metadata_store.TorrentMetadata.select()[:]
+            self.assertEqual(len(torrents), 0)
+
+        # Node 1 sent two consecutive queries
+        self.nodes[1].overlay.send_search_request(u'"ubuntu"*')
+        self.nodes[1].overlay.send_search_request(u'"debian"*')
+
+        yield self.deliver_messages()
+
+        # Assert that only the last result is accepted
+        with db_session:
+            torrents = self.nodes[1].overlay.metadata_store.TorrentMetadata.select()[:]
+            self.assertEqual(len(torrents), 5)
+            for torrent in torrents:
+                self.assertIn("debian", torrent.to_simple_dict()['name'])
+
+    @inlineCallbacks
+    def test_gigachannel_search_with_no_result(self):
+        """
+        Test giga channel search which yields no result
+        """
+        yield self.introduce_nodes()
+
+        # Both node 0 and node 1 have no torrents in the database
+        with db_session:
+            torrents = self.nodes[1].overlay.metadata_store.TorrentMetadata.select()[:]
+            torrents2 = self.nodes[1].overlay.metadata_store.TorrentMetadata.select()[:]
+            self.assertEqual(len(torrents), 0)
+            self.assertEqual(len(torrents2), 0)
+
+        # Node 1 searches for 'A ubuntu'
+        query = u'"\xc1 ubuntu"*'
+        self.nodes[1].overlay.send_search_request(query)
+
+        yield self.deliver_messages()
+
+        # Expect no data received in search and nothing processed to the database
+        with db_session:
+            torrents = self.nodes[1].overlay.metadata_store.TorrentMetadata.select()[:]
+            self.assertEqual(len(torrents), 0)

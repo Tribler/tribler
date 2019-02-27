@@ -6,7 +6,7 @@ from twisted.web.server import Site
 from twisted.web.util import Redirect
 
 from Tribler.Core.Utilities.network_utils import get_random_port
-from Tribler.Core.Utilities.utilities import http_get, is_valid_url, parse_magnetlink
+from Tribler.Core.Utilities.utilities import http_get, is_simple_match_query, is_valid_url, parse_magnetlink
 from Tribler.Test.test_as_server import AbstractServer
 from Tribler.Test.tools import trial_timeout
 
@@ -75,3 +75,10 @@ class TestMakeTorrent(AbstractServer):
         http_deferred = http_get(test_url).addCallback(on_callback)
 
         return http_deferred
+
+    def test_simple_search_query(self):
+        query = '"\xc1ubuntu"* AND "debian"*'
+        self.assertTrue(is_simple_match_query(query))
+
+        query2 = '"\xc1ubuntu"* OR "debian"*'
+        self.assertFalse(is_simple_match_query(query2))

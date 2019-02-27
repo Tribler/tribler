@@ -56,3 +56,6 @@ class SearchResultsPage(QWidget):
             self.model.type_filter = 'torrent'
 
         self.perform_search(self.query)
+
+    def received_search_result(self, response):
+        self.controller.load_remote_results(response)
