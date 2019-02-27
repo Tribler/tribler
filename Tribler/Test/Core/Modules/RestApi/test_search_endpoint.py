@@ -4,9 +4,7 @@ import json
 import random
 
 from pony.orm import db_session
-
 from six.moves import xrange
-
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
@@ -44,7 +42,8 @@ class TestSearchEndpoint(AbstractApiTest):
         """
         num_hay = 100
         with db_session:
-            _ = self.session.lm.mds.ChannelMetadata(title='test', tags='test', subscribed=True, infohash=str(random.getrandbits(160)))
+            _ = self.session.lm.mds.ChannelMetadata(title='test', tags='test', subscribed=True,
+                                                    infohash=str(random.getrandbits(160)))
             for x in xrange(0, num_hay):
                 self.session.lm.mds.TorrentMetadata(title='hay ' + str(x), infohash=str(random.getrandbits(160)))
             self.session.lm.mds.TorrentMetadata(title='needle',
@@ -86,6 +85,7 @@ class TestSearchEndpoint(AbstractApiTest):
         """
         Testing whether the API returns the right terms when getting search completion terms
         """
+
         def on_response(response):
             json_response = json.loads(response)
             self.assertEqual(json_response['completions'], [])

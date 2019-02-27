@@ -5,7 +5,6 @@ import os
 from datetime import datetime
 
 import lz4.frame
-
 from pony import orm
 from pony.orm import db_session
 
@@ -13,18 +12,19 @@ from Tribler.Core.Modules.MetadataStore.OrmBindings import channel_metadata, cha
     torrent_state, tracker_state
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import BLOB_EXTENSION
 from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, DELETED, \
-    REGULAR_TORRENT, read_payload_with_offset, time2int
+    REGULAR_TORRENT, read_payload_with_offset, time2int, CHANNEL_NODE
 from Tribler.Core.exceptions import InvalidSignatureException
+from Tribler.pyipv8.ipv8.database import database_blob
 
 CLOCK_STATE_FILE = "clock.state"
 
+NO_ACTION = 0
 UNKNOWN_CHANNEL = 1
 UPDATED_OUR_VERSION = 2
 GOT_SAME_VERSION = 3
 GOT_NEWER_VERSION = 4
 UNKNOWN_TORRENT = 5
-NO_ACTION = 6
-DELETED_METADATA = 7
+DELETED_METADATA = 6
 
 # This table should never be used from ORM directly.
 # It is created as a VIRTUAL table by raw SQL and
@@ -223,19 +223,43 @@ class MetadataStore(object):
             if existing_metadata:
                 existing_metadata.delete()
                 return None, DELETED_METADATA
-            else:
-                return None, NO_ACTION
+            return None, NO_ACTION
 
-        # Check if we already got an older version of the same node that we can update
+        # Check the payload timestamp<->id_ correctness
+        if payload.timestamp < payload.id_:
+            return None, NO_ACTION
+
+        # Check if we already got an older version of the same node that we can update, and
+        # check the uniqueness constraint on public_key+infohash tuple. If the received entry
+        # has the same tuple as the entry we already have, update our entry if necessary.
+        # This procedure is necessary to handle the case when the original author of the payload
+        # had created another entry with the same infohash earlier, deleted it, and sent
+        # the different versions to two different peers.
+        # There is a corner case where there already exist 2 entries in our database that match both
+        # update conditions:
+        # A: (pk, id1, ih1)
+        # B: (pk, id2, ih2)
+        # Now, when we receive the payload C1:(pk, id1, ih2) or C2:(pk, id2, ih1), we have to
+        # replace _both_ entries with a single one, to honor the DB uniqueness constraints.
+        # Get 0-2 entries that match the update condition
         # TODO: optimize this with a single UPSERT-style query
-        local_node = self.ChannelNode.get(public_key=payload.public_key, id_=payload.id_)
-        if local_node:
+        pk_lambda = lambda g: g.public_key == database_blob(payload.public_key)
+        if payload.metadata_type == CHANNEL_NODE:
+            local_entries = self.ChannelNode.select(pk_lambda)
+        else:
+            local_entries = self.TorrentMetadata.select(pk_lambda).where(
+                lambda g: (g.infohash == database_blob(payload.infohash) or g.id_ == payload.id_)).sort_by(
+                lambda g: g.timestamp)
+
+        deleted_something = False
+        for local_node in list(local_entries):
             if local_node.timestamp < payload.timestamp:
-                local_node.set(**payload.to_dict())
-                return local_node, UPDATED_OUR_VERSION
+                local_node.delete()
+                deleted_something = True
             elif local_node.timestamp > payload.timestamp:
                 return local_node, GOT_NEWER_VERSION
-            return local_node, GOT_SAME_VERSION
+            else:
+                return local_node, GOT_SAME_VERSION
 
         # Get the corresponding channel from local database to see if we really need to update our
         # local contents of the channel by comparing the channel's local_version with the payload's timestamp.
@@ -245,10 +269,13 @@ class MetadataStore(object):
         channel = self.ChannelMetadata.get(public_key=payload.public_key, id_=payload.origin_id)
         if channel and (channel.local_version != 0) and (payload.timestamp <= channel.local_version):
             return None, NO_ACTION
-        elif payload.metadata_type == REGULAR_TORRENT:
-            return self.TorrentMetadata.from_payload(payload), UNKNOWN_TORRENT
-        elif payload.metadata_type == CHANNEL_TORRENT:
-            return self.ChannelMetadata.from_payload(payload), UNKNOWN_CHANNEL
+
+        if payload.metadata_type == REGULAR_TORRENT:
+            return self.TorrentMetadata.from_payload(
+                payload), UPDATED_OUR_VERSION if deleted_something else UNKNOWN_TORRENT
+        if payload.metadata_type == CHANNEL_TORRENT:
+            return self.ChannelMetadata.from_payload(
+                payload), UPDATED_OUR_VERSION if deleted_something else UNKNOWN_CHANNEL
 
         return None, NO_ACTION
 

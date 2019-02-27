@@ -77,7 +77,7 @@ class TestMetadataStore(TriblerCoreTest):
         metadata.to_delete_file(metadata_path)
         loaded_metadata = self.mds.process_mdblob_file(metadata_path)
         # Make sure the original metadata is deleted
-        self.assertEqual(loaded_metadata[0], (None, 7))
+        self.assertEqual(loaded_metadata[0], (None, 6))
         self.assertIsNone(self.mds.TorrentMetadata.get(infohash='1' * 20))
 
         # Test an unknown metadata type, this should raise an exception
