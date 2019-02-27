@@ -6,14 +6,15 @@ import string
 from binascii import unhexlify
 
 from pony.orm import db_session
+
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH, entries_to_chunk
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import NEW
-from Tribler.Core.Modules.MetadataStore.serialization import ChannelMetadataPayload, DeletedMetadataPayload, \
-    SignedPayload, UnknownBlobTypeException
-from Tribler.Core.Modules.MetadataStore.store import DELETED_METADATA, GOT_SAME_VERSION, MetadataStore, NO_ACTION, \
-    UNKNOWN_CHANNEL, UNKNOWN_TORRENT
+from Tribler.Core.Modules.MetadataStore.serialization import (
+    ChannelMetadataPayload, DeletedMetadataPayload, SignedPayload, UnknownBlobTypeException)
+from Tribler.Core.Modules.MetadataStore.store import (
+    DELETED_METADATA, GOT_SAME_VERSION, MetadataStore, NO_ACTION, UNKNOWN_CHANNEL, UNKNOWN_TORRENT)
 from Tribler.Test.Core.base_test import TriblerCoreTest
 from Tribler.pyipv8.ipv8.database import database_blob
 from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto

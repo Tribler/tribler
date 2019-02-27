@@ -4,7 +4,9 @@ import json
 import random
 
 from pony.orm import db_session
+
 from six.moves import xrange
+
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest

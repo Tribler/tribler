@@ -6,11 +6,13 @@ from binascii import unhexlify
 from datetime import datetime
 
 from pony.orm import db_session
+
 from six.moves import xrange
+
 from twisted.internet.defer import inlineCallbacks
 
-from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH, ROOT_CHANNEL_ID, \
-    entries_to_chunk
+from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import (
+    CHANNEL_DIR_NAME_LENGTH, ROOT_CHANNEL_ID, entries_to_chunk)
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import COMMITTED, NEW, TODELETE
 from Tribler.Core.Modules.MetadataStore.serialization import ChannelMetadataPayload, REGULAR_TORRENT
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore

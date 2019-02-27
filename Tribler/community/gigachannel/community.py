@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from binascii import unhexlify
 
-from pony.orm import db_session, TransactionIntegrityError, CacheIndexError
+from pony.orm import CacheIndexError, TransactionIntegrityError, db_session
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import entries_to_chunk
 from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT

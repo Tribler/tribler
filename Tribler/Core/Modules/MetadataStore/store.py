@@ -5,14 +5,15 @@ import os
 from datetime import datetime
 
 import lz4.frame
+
 from pony import orm
 from pony.orm import db_session
 
-from Tribler.Core.Modules.MetadataStore.OrmBindings import channel_metadata, channel_node, misc, torrent_metadata, \
-    torrent_state, tracker_state
+from Tribler.Core.Modules.MetadataStore.OrmBindings import (
+    channel_metadata, channel_node, misc, torrent_metadata, torrent_state, tracker_state)
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import BLOB_EXTENSION
-from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, DELETED, \
-    REGULAR_TORRENT, read_payload_with_offset, time2int, CHANNEL_NODE
+from Tribler.Core.Modules.MetadataStore.serialization import (
+    CHANNEL_NODE, CHANNEL_TORRENT, DELETED, REGULAR_TORRENT, read_payload_with_offset, time2int)
 from Tribler.Core.exceptions import InvalidSignatureException
 from Tribler.pyipv8.ipv8.database import database_blob
 
@@ -248,8 +249,8 @@ class MetadataStore(object):
             local_entries = self.ChannelNode.select(pk_lambda)
         else:
             local_entries = self.TorrentMetadata.select(pk_lambda).where(
-                lambda g: (g.infohash == database_blob(payload.infohash) or g.id_ == payload.id_)).sort_by(
-                lambda g: g.timestamp)
+                lambda g: (g.infohash == database_blob(payload.infohash) or g.id_ == payload.id_)) \
+                .sort_by(lambda g: g.timestamp)
 
         deleted_something = False
         for local_node in list(local_entries):

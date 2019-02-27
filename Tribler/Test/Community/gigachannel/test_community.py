@@ -106,7 +106,7 @@ class TestGigaChannelUnits(TestBase):
         # node1 --outdated_channel--> node0
         self.nodes[1].overlay.send_random_to(Peer(self.nodes[0].my_peer.public_key, self.nodes[0].endpoint.wan_address))
 
-        yield self.deliver_messages()
+        yield self.deliver_messages(0.5)
 
         with db_session:
             self.assertEqual(self.nodes[1].overlay.metadata_store.ChannelMetadata.select()[:][0].timestamp,
