@@ -12,7 +12,7 @@ from pony.orm import db_session
 from Tribler.Core.Modules.MetadataStore.OrmBindings import channel_metadata, channel_node, misc, torrent_metadata, \
     torrent_state, tracker_state
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import BLOB_EXTENSION
-from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, ChannelMetadataPayload, DELETED, \
+from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, DELETED, \
     REGULAR_TORRENT, read_payload_with_offset, time2int
 from Tribler.Core.exceptions import InvalidSignatureException
 
@@ -200,6 +200,7 @@ class MetadataStore(object):
 
         return (self.process_compressed_mdblob(serialized_data) if filepath.endswith('.lz4') else
                 self.process_squashed_mdblob(serialized_data))
+
     @db_session
     def process_compressed_mdblob(self, compressed_data):
         return self.process_squashed_mdblob(lz4.frame.decompress(compressed_data))
