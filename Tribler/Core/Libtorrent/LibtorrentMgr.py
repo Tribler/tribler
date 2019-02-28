@@ -18,6 +18,7 @@ from shutil import rmtree
 from urllib import url2pathname
 
 import libtorrent as lt
+from libtorrent import torrent_handle
 
 from six import text_type
 
@@ -401,7 +402,7 @@ class LibtorrentMgr(TaskManager):
                 self.torrents[infohash][0].update_lt_status(status)
 
         handle = getattr(alert, 'handle', None)
-        if handle and handle.is_valid():
+        if handle and isinstance(handle, torrent_handle) and handle.is_valid():
             infohash = str(handle.info_hash())
             if infohash in self.torrents:
                 self.torrents[infohash][0].process_alert(alert, alert_type)
