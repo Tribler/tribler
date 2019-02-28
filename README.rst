@@ -2,7 +2,7 @@
 Tribler
 *******
 
-|jenkins_build| |contributors| |pr_closed| |issues_closed| |downloads_7_0| |downloads_7_1| |doi| |openhub|
+|jenkins_build| |contributors| |pr_closed| |issues_closed| |downloads_7_0| |downloads_7_1| |downloads_7_2| |doi| |openhub|
 
 *Towards making Bittorrent anonymous and impossible to shut down.*
 
@@ -104,7 +104,11 @@ Submodule notes
 
 .. |downloads_7_1| image:: https://img.shields.io/github/downloads/tribler/tribler/v7.1.3/total.svg?style=flat
     :target: https://github.com/Tribler/tribler/releases
-    :alt: Downloads(7.1.0)
+    :alt: Downloads(7.1.3)
+    
+.. |downloads_7_2| image:: https://img.shields.io/github/downloads/tribler/tribler/v7.2.2/total.svg?style=flat
+    :target: https://github.com/Tribler/tribler/releases
+    :alt: Downloads(7.2.2)
 
 .. |contributors| image:: https://img.shields.io/github/contributors/tribler/tribler.svg?style=flat
     :target: https://github.com/Tribler/tribler/graphs/contributors
