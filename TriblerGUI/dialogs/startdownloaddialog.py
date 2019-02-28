@@ -1,17 +1,20 @@
 from __future__ import absolute_import
 
+from binascii import unhexlify
 from urllib import unquote_plus
+
+from PyQt5 import uic
+from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtWidgets import QFileDialog, QSizePolicy, QTreeWidgetItem
 
 from six.moves import xrange
 
-from PyQt5 import uic
-from PyQt5.QtCore import pyqtSignal, Qt
-from PyQt5.QtWidgets import QSizePolicy, QFileDialog, QTreeWidgetItem
+import Tribler.Core.Utilities.json_util as json
 
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.dialogs.dialogcontainer import DialogContainer
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
-from TriblerGUI.utilities import get_ui_file_path, format_size, get_gui_setting, get_image_path, is_dir_writable,\
+from TriblerGUI.utilities import format_size, get_gui_setting, get_image_path, get_ui_file_path, is_dir_writable, \
     quote_plus_unicode
 
 
@@ -134,7 +137,7 @@ class StartDownloadDialog(DialogContainer):
                 self.dialog_widget.loading_files_label.setText("Error: %s" % metainfo['error'])
             return
 
-        metainfo = metainfo['metainfo']
+        metainfo = json.loads(unhexlify(metainfo['metainfo']), encoding='latin-1')
         if 'files' in metainfo['info']:  # Multi-file torrent
             files = metainfo['info']['files']
         else:
@@ -148,7 +151,7 @@ class StartDownloadDialog(DialogContainer):
 
         for filename in files:
             item = DownloadFileTreeWidgetItem(self.dialog_widget.files_list_view)
-            item.setText(0, '/'.join(filename['path']))
+            item.setText(0, '/'.join(filename['path']).encode('raw_unicode_escape'))
             item.setText(1, format_size(float(filename['length'])))
             item.setData(0, Qt.UserRole, filename)
             item.setCheckState(2, Qt.Checked)

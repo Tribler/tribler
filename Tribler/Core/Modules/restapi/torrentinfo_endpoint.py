@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import hashlib
 import logging
+from binascii import hexlify
 
 from libtorrent import bdecode, bencode
 
@@ -72,8 +73,9 @@ class TorrentInfoEndpoint(resource.Resource):
 
             # Check if the torrent is already in the downloads
             metainfo['download_exists'] = infohash in self.session.lm.downloads
+            encoded_metainfo = hexlify(json.dumps(metainfo, ensure_ascii=False))
 
-            request.write(json.dumps({"metainfo": metainfo}, ensure_ascii=False))
+            request.write(json.dumps({"metainfo": encoded_metainfo}))
             self.finish_request(request)
 
         def on_metainfo_timeout(_):

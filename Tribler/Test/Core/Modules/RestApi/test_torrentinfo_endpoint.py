@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import os
 import shutil
-from binascii import hexlify
+from binascii import hexlify, unhexlify
 from urllib import pathname2url, quote_plus
 
 from twisted.internet.defer import inlineCallbacks
@@ -37,9 +37,9 @@ class TestTorrentInfoEndpoint(AbstractApiTest):
         self.setUpFileServer(file_server_port, files_path)
 
         def verify_valid_dict(data):
-            metainfo_dict = json.loads(data, encoding='latin_1')
-            self.assertTrue('metainfo' in metainfo_dict)
-            self.assertTrue('info' in metainfo_dict['metainfo'])
+            json_data = json.loads(data)
+            metainfo_dict = json.loads(unhexlify(json_data['metainfo']), encoding='latin-1')
+            self.assertTrue('info' in metainfo_dict)
 
         self.should_check_equality = False
         yield self.do_request('torrentinfo', expected_code=400)
