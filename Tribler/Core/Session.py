@@ -170,6 +170,10 @@ class Session(object):
                 self._logger.error("Could not send data: socket is busy.")
                 return
 
+            if 'socket.error' in text and '[Errno 11001]' in text:
+                self._logger.error("Unable to perform DNS lookup.")
+                return
+
             if 'socket.error' in text and '[Errno 10053]' in text:
                 self._logger.error("An established connection was aborted by the software in your host machine.")
                 return
