@@ -263,7 +263,6 @@ class HttpTrackerSession(TrackerSession):
         Handles the case of an error during the request.
         :param failure: The failure object that is thrown by a deferred.
         """
-        self._logger.info("Error when querying http tracker: %s %s", str(failure), self.tracker_url)
         self.failed(msg=failure.getErrorMessage())
 
     def on_response(self, response):
@@ -425,7 +424,6 @@ class UdpTrackerSession(TrackerSession):
         Handles the case when resolving an ip address fails.
         :param failure: The failure object thrown by the deferred.
         """
-        self._logger.info("Error when querying UDP tracker: %s %s", str(failure), self.tracker_url)
         self.failed(msg=failure.getErrorMessage())
 
     def _on_cancel(self, _):

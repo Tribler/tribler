@@ -8,7 +8,7 @@ from binascii import hexlify
 from pony.orm import db_session
 
 from twisted.internet import reactor
-from twisted.internet.defer import CancelledError, DeferredList, fail, maybeDeferred, succeed
+from twisted.internet.defer import CancelledError, DeferredList, maybeDeferred, succeed
 from twisted.internet.error import ConnectingCancelledError, ConnectionLost
 from twisted.python.failure import Failure
 from twisted.web.client import HTTPConnectionPool
@@ -264,7 +264,8 @@ class TorrentChecker(TaskManager):
         :param failure: The failure object raised by Twisted.
         """
         failure.trap(ValueError, CancelledError, ConnectingCancelledError, ConnectionLost, RuntimeError)
-        self._logger.warning(u"Got session error for URL %s: %s", session.tracker_url, failure)
+        self._logger.warning(u"Got session error for URL %s: %s", session.tracker_url,
+                             str(failure).replace(u'\n]', u']'))
 
         self.clean_session(session)
 
