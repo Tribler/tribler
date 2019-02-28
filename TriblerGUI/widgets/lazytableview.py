@@ -195,11 +195,16 @@ class TorrentsTableView(ItemClickedMixin, DeleteButtonMixin, DownloadButtonMixin
 
     def resizeEvent(self, _):
         if isinstance(self.model(), MyTorrentsContentModel):
+            fixed_column_widths = 204  # Few pixels offset so the horizontal scrollbar does not appear
             self.setColumnWidth(0, 100)
             self.setColumnWidth(2, 100)
-            self.setColumnWidth(3, 100)
-            self.setColumnWidth(4, 100)
-            self.setColumnWidth(1, self.width() - 404)  # Few pixels offset so the horizontal scrollbar does not appear
+            if not self.isColumnHidden(3):
+                self.setColumnWidth(3, 100)
+                fixed_column_widths += 100
+            if not self.isColumnHidden(4):
+                self.setColumnWidth(4, 100)
+                fixed_column_widths += 100
+            self.setColumnWidth(1, self.width() - fixed_column_widths)
         else:
             self.setColumnWidth(0, 100)
             self.setColumnWidth(2, 100)
