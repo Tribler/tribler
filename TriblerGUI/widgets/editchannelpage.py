@@ -358,10 +358,13 @@ class EditChannelPage(QWidget):
         self.window().edit_channel_details_stacked_widget.setCurrentIndex(PAGE_EDIT_CHANNEL_CREATE_TORRENT)
 
     def on_add_torrent_browse_file(self):
-        filename = QFileDialog.getOpenFileName(self, "Please select the .torrent file", "", "Torrent files (*.torrent)")
-        if not filename[0]:
+        filenames = QFileDialog.getOpenFileNames(
+            self, "Please select the .torrent file", "", "Torrent files (*.torrent)")
+        if not filenames[0]:
             return
-        self.add_torrent_to_channel(filename[0])
+
+        for filename in filenames[0]:
+            self.add_torrent_to_channel(filename)
 
     def on_add_torrent_from_url(self):
         self.dialog = ConfirmationDialog(self, "Add torrent from URL/magnet link",
