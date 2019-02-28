@@ -141,6 +141,8 @@ class TriblerWindow(QMainWindow):
 
         self.debug_pane_shortcut = QShortcut(QKeySequence("Ctrl+d"), self)
         self.debug_pane_shortcut.activated.connect(self.clicked_menu_button_debug)
+        self.import_torrent_shortcut = QShortcut(QKeySequence("Ctrl+o"), self)
+        self.import_torrent_shortcut.activated.connect(self.on_add_torrent_browse_file)
 
         # Remove the focus rect on OS X
         for widget in self.findChildren(QLineEdit) + self.findChildren(QListWidget) + self.findChildren(QTreeWidget):
