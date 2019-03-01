@@ -168,28 +168,28 @@ class TestMetadataStore(TriblerCoreTest):
 
         _, node_payload, node_deleted_payload = get_payloads(self.mds.ChannelNode)
 
-        self.assertEqual((self.mds.ChannelNode[1], GOT_SAME_VERSION), self.mds.process_payload(node_payload))
-        self.assertEqual((None, DELETED_METADATA), self.mds.process_payload(node_deleted_payload))
+        self.assertFalse(self.mds.process_payload(node_payload))
+        self.assertEqual([(None, DELETED_METADATA)], self.mds.process_payload(node_deleted_payload))
         # Do nothing in case it is unknown/abstract payload type, like ChannelNode
-        self.assertEqual((None, NO_ACTION), self.mds.process_payload(node_payload))
+        self.assertFalse(self.mds.process_payload(node_payload))
 
         # Check if node metadata object is properly created on payload processing
         node, node_payload, node_deleted_payload = get_payloads(self.mds.TorrentMetadata)
         node_dict = node.to_dict()
         node.delete()
         result = self.mds.process_payload(node_payload)
-        self.assertEqual(UNKNOWN_TORRENT, result[1])
-        self.assertEqual(node_dict['metadata_type'], result[0].to_dict()['metadata_type'])
+        self.assertEqual(UNKNOWN_TORRENT, result[0][1])
+        self.assertEqual(node_dict['metadata_type'], result[0][0].to_dict()['metadata_type'])
 
         # Check the same for a channel
         node, node_payload, node_deleted_payload = get_payloads(self.mds.ChannelMetadata)
         node_dict = node.to_dict()
         node.delete()
         # Check there is no action if the signature on the delete object is unknown
-        self.assertEqual((None, NO_ACTION), self.mds.process_payload(node_deleted_payload))
+        self.assertFalse(self.mds.process_payload(node_deleted_payload))
         result = self.mds.process_payload(node_payload)
-        self.assertEqual(UNKNOWN_CHANNEL, result[1])
-        self.assertEqual(node_dict['metadata_type'], result[0].to_dict()['metadata_type'])
+        self.assertEqual(UNKNOWN_CHANNEL, result[0][1])
+        self.assertEqual(node_dict['metadata_type'], result[0][0].to_dict()['metadata_type'])
 
     @db_session
     def test_process_payload_reject_old(self):
@@ -201,7 +201,7 @@ class TestMetadataStore(TriblerCoreTest):
                                            infohash=str(random.getrandbits(160)))
         payload = torrent._payload_class(**torrent.to_dict())
         torrent.delete()
-        self.assertEqual((None, NO_ACTION), self.mds.process_payload(payload))
+        self.assertFalse(self.mds.process_payload(payload))
 
     @db_session
     def test_get_num_channels_nodes(self):

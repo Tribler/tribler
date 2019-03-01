@@ -4,14 +4,12 @@ import os
 from binascii import hexlify
 
 from pony.orm import db_session
-
-from twisted.internet.defer import Deferred
 from twisted.internet.task import LoopingCall
+from twisted.internet.threads import deferToThread
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import COMMITTED
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
-from Tribler.Core.simpledefs import DLSTATUS_SEEDING
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
 
@@ -102,19 +100,6 @@ class GigaChannelManager(TaskManager):
             except:
                 pass
 
-    def on_channel_download_finished(self, download, channel_id, finished_deferred=None):
-        """
-        We have finished with downloading a channel.
-        :param download: The channel download itself.
-        :param channel_id: The ID of the channel.
-        :param finished_deferred: An optional deferred that should fire if the channel download has finished.
-        """
-        if download.finished_callback_already_called:
-            return
-        channel_dirname = os.path.join(self.session.lm.mds.channels_dir, download.get_def().get_name())
-        self.session.lm.mds.process_channel_dir(channel_dirname, channel_id)
-        if finished_deferred:
-            finished_deferred.callback(download)
 
     # TODO: finish this routine
     # This thing should check if the files in the torrent we're going to delete are used in another torrent for
@@ -173,19 +158,24 @@ class GigaChannelManager(TaskManager):
         Download a channel with a given infohash and title.
         :param channel: The channel metadata ORM object.
         """
-        finished_deferred = Deferred()
-
         dcfg = DownloadStartupConfig()
         dcfg.set_dest_dir(self.session.lm.mds.channels_dir)
         dcfg.set_channel_download(True)
         tdef = TorrentDefNoMetainfo(infohash=str(channel.infohash), name=channel.dir_name)
         download = self.session.start_download_from_tdef(tdef, dcfg)
-        channel_id = channel.public_key
-        # TODO: add errbacks here!
-        download.finished_callback = lambda dl: self.on_channel_download_finished(dl, channel_id, finished_deferred)
-        if download.get_state().get_status() == DLSTATUS_SEEDING and not download.finished_callback_already_called:
-            download.finished_callback_already_called = True
-            download.finished_callback(download)
+
+        def on_channel_download_finished(dl):
+            channel_dirname = os.path.join(self.session.lm.mds.channels_dir, dl.get_def().get_name())
+            self.session.lm.mds.process_channel_dir(channel_dirname, channel.public_key, external_thread=True)
+            self.session.lm.mds._db.disconnect()
+
+
+        def _on_failure(failure):
+            self._logger.error("Error when processing channel dir download: %s", failure)
+
+        finished_deferred = download.finished_deferred.addCallback(lambda dl: deferToThread(on_channel_download_finished, dl))
+        finished_deferred.addErrback(_on_failure)
+
         return download, finished_deferred
 
     def updated_my_channel(self, tdef):

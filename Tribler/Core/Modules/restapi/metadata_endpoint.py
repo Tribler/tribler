@@ -5,6 +5,7 @@ import logging
 from binascii import unhexlify
 
 from pony.orm import db_session
+from twisted.internet import reactor
 
 from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
@@ -141,13 +142,20 @@ class SpecificChannelEndpoint(BaseChannelsEndpoint):
 
         to_subscribe = bool(int(parameters['subscribe'][0]))
         with db_session:
-            channel = self.session.lm.mds.ChannelMetadata.get(public_key=database_blob(self.channel_pk))
+            channel = self.session.lm.mds.ChannelMetadata.get_for_update(public_key=database_blob(self.channel_pk))
             if not channel:
                 request.setResponseCode(http.NOT_FOUND)
                 return json.dumps({"error": "this channel cannot be found"})
 
             channel.subscribed = to_subscribe
-            channel.local_version = 0
+
+        def delete_channel():
+            with db_session:
+                c = self.session.lm.mds.ChannelMetadata.get_for_update(public_key=database_blob(self.channel_pk))
+                c.local_version = 0
+                c.contents.delete(bulk=True)
+        if not to_subscribe:
+            reactor.callInThread(delete_channel)
 
         return json.dumps({"success": True, "subscribed": to_subscribe})
 

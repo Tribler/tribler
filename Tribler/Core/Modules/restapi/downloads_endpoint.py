@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import logging
 from binascii import hexlify, unhexlify
-
 from libtorrent import bencode, create_torrent
 
 from pony.orm import db_session
@@ -17,8 +16,8 @@ from twisted.web.server import NOT_DONE_YET
 
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
-from Tribler.Core.Modules.MetadataStore.serialization import ChannelMetadataPayload
-from Tribler.Core.Modules.MetadataStore.store import UNKNOWN_CHANNEL
+from Tribler.Core.Modules.MetadataStore.serialization import ChannelMetadataPayload, CHANNEL_TORRENT
+from Tribler.Core.Modules.MetadataStore.store import UNKNOWN_CHANNEL, UPDATED_OUR_VERSION
 from Tribler.Core.Modules.restapi.util import return_handled_exception
 from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
 from Tribler.Core.Utilities.utilities import unichar_string
@@ -349,14 +348,17 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                     return json.dumps({"error": "Metadata has invalid signature"})
 
                 with db_session:
-                    channel, status = self.session.lm.mds.process_payload(payload)
-                    if channel and not channel.subscribed and status == UNKNOWN_CHANNEL:
-                        channel.subscribed = True
-                        download, _ = self.session.lm.gigachannel_manager.download_channel(channel)
-                    else:
-                        return json.dumps({"error": "Already subscribed"})
-
-                return json.dumps({"started": True, "infohash": hexlify(str(download.get_def().get_infohash()))})
+                    # TODO: move this to MetadataEndpoint
+                    result = self.session.lm.mds.process_payload(payload)
+                    if result:
+                        (node, status) = result[0]
+                        if (status == UNKNOWN_CHANNEL or
+                                (status == UPDATED_OUR_VERSION and node.metadata_type == CHANNEL_TORRENT)):
+                            node.subscribed = True
+                            download, _ = self.session.lm.gigachannel_manager.download_channel(node)
+                            return json.dumps(
+                                {"started": True, "infohash": hexlify(str(download.get_def().get_infohash()))})
+                    return json.dumps({"error": "Already subscribed"})
             else:
                 download_uri = u"file:%s" % url2pathname(uri[5:]).decode('utf-8')
         else:

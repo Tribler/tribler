@@ -3,7 +3,8 @@ from __future__ import absolute_import
 import logging
 import os
 from binascii import hexlify
-from datetime import datetime
+from datetime import datetime, timedelta
+from time import sleep
 
 import lz4.frame
 
@@ -14,7 +15,7 @@ from Tribler.Core.Modules.MetadataStore.OrmBindings import (
     channel_metadata, channel_node, misc, torrent_metadata, torrent_state, tracker_state)
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import BLOB_EXTENSION
 from Tribler.Core.Modules.MetadataStore.serialization import (
-    CHANNEL_NODE, CHANNEL_TORRENT, DELETED, REGULAR_TORRENT, read_payload_with_offset, time2int)
+    CHANNEL_TORRENT, DELETED, REGULAR_TORRENT, read_payload_with_offset, time2int)
 from Tribler.Core.exceptions import InvalidSignatureException
 from Tribler.pyipv8.ipv8.database import database_blob
 
@@ -81,7 +82,7 @@ class DiscreteClock(object):
     def init_clock(self):
         if self.datastore:
             with db_session:
-                store_object = self.datastore.get(name=self.store_value_name, )
+                store_object = self.datastore.get_for_update(name=self.store_value_name, )
                 if not store_object:
                     self.datastore(name=self.store_value_name, value=str(self.clock))
                 else:
@@ -101,6 +102,11 @@ class MetadataStore(object):
         self.channels_dir = channels_dir
         self.my_key = my_key
         self._logger = logging.getLogger(self.__class__.__name__)
+
+        self._shutting_down = False
+        self.batch_size = 10  # reasonable number, a little bit more than typically fits in a single UDP packet
+        self.reference_timedelta = timedelta(milliseconds=100)
+        self.sleep_on_external_thread = 0.05  # sleep this amount of seconds between batches executed on external thread
 
         create_db = (db_filename == ":memory:" or not os.path.isfile(self.db_filename))
 
@@ -143,98 +149,160 @@ class MetadataStore(object):
         self.clock.init_clock()
 
     def shutdown(self):
+        self._shutting_down = True
         self._db.disconnect()
 
-    def process_channel_dir(self, dirname, channel_id):
+    def process_channel_dir(self, dirname, channel_id, external_thread=True):
         """
         Load all metadata blobs in a given directory.
         :param dirname: The directory containing the metadata blobs.
+        :param external_thread: indicate to lower levels that this is running on a background thread
         :param channel_id: public_key of the channel.
         """
-        # We use multiple separate db_sessions here to limit memory usage when reading big channels
+        # We use multiple separate db_sessions here to limit the memory and reactor time impact,
+        # but we must check the existence of the channel every time to avoid race conditions
         with db_session:
             channel = self.ChannelMetadata.get(public_key=channel_id)
+            if not channel:
+                return
             self._logger.debug("Starting processing channel dir %s. Channel %s local/max version %i/%i",
                                dirname, hexlify(str(channel.public_key)), channel.local_version,
                                channel.timestamp)
 
         for filename in sorted(os.listdir(dirname)):
-            with db_session:
-                channel = self.ChannelMetadata.get(public_key=channel_id)
-                full_filename = os.path.join(dirname, filename)
+            full_filename = os.path.join(dirname, filename)
 
-                blob_sequence_number = None
-                if filename.endswith(BLOB_EXTENSION):
-                    blob_sequence_number = int(filename[:-len(BLOB_EXTENSION)])
-                elif filename.endswith(BLOB_EXTENSION + '.lz4'):
-                    blob_sequence_number = int(filename[:-len(BLOB_EXTENSION + '.lz4')])
+            if self._shutting_down:
+                return
 
-                if blob_sequence_number is not None:
-                    # Skip blobs containing data we already have and those that are
-                    # ahead of the channel version known to us
-                    # ==================|          channel data       |===
-                    # ===start_timestamp|---local_version----timestamp|===
-                    # local_version is essentially a cursor pointing into the current state of update process
+            blob_sequence_number = None
+            if filename.endswith(BLOB_EXTENSION):
+                blob_sequence_number = int(filename[:-len(BLOB_EXTENSION)])
+            elif filename.endswith(BLOB_EXTENSION + '.lz4'):
+                blob_sequence_number = int(filename[:-len(BLOB_EXTENSION + '.lz4')])
+
+            if blob_sequence_number is not None:
+                # Skip blobs containing data we already have and those that are
+                # ahead of the channel version known to us
+                # ==================|          channel data       |===
+                # ===start_timestamp|---local_version----timestamp|===
+                # local_version is essentially a cursor pointing into the current state of update process
+                with db_session:
+                    channel = self.ChannelMetadata.get(public_key=channel_id)
+                    if not channel:
+                        return
                     if blob_sequence_number <= channel.start_timestamp or \
                             blob_sequence_number <= channel.local_version or \
                             blob_sequence_number > channel.timestamp:
                         continue
-                    try:
-                        self.process_mdblob_file(full_filename)
-                        # We track the local version of the channel while reading blobs
-                        channel.local_version = blob_sequence_number
-                    except InvalidSignatureException:
-                        self._logger.error("Not processing metadata located at %s: invalid signature", full_filename)
+                try:
+                    self.process_mdblob_file(full_filename, external_thread)
+                    # We track the local version of the channel while reading blobs
+                    with db_session:
+                        channel = self.ChannelMetadata.get_for_update(public_key=channel_id)
+                        if channel:
+                            channel.local_version = blob_sequence_number
+                        else:
+                            return
+                except InvalidSignatureException:
+                    self._logger.error("Not processing metadata located at %s: invalid signature", full_filename)
 
-        self._logger.debug("Finished processing channel dir %s. Channel %s local/max version %i/%i",
+        with db_session:
+            channel = self.ChannelMetadata.get(public_key=channel_id)
+            if not channel:
+                return
+            self._logger.debug("Finished processing channel dir %s. Channel %s local/max version %i/%i",
                            dirname, hexlify(str(channel.public_key)), channel.local_version,
-                           channel.timestamp)
+                               channel.timestamp)
 
-    @db_session
-    def process_mdblob_file(self, filepath):
+    def process_mdblob_file(self, filepath, external_thread=False):
         """
         Process a file with metadata in a channel directory.
         :param filepath: The path to the file
+        :param external_thread: indicate to the lower lever that we're running in the backround thread,
+            to possibly pace down the upload process
         :return ChannelNode objects list if we can correctly load the metadata
         """
         with open(filepath, 'rb') as f:
             serialized_data = f.read()
 
-        return (self.process_compressed_mdblob(serialized_data) if filepath.endswith('.lz4') else
-                self.process_squashed_mdblob(serialized_data))
+        return (self.process_compressed_mdblob(serialized_data, external_thread) if filepath.endswith('.lz4') else
+                self.process_squashed_mdblob(serialized_data, external_thread))
 
-    def process_compressed_mdblob(self, compressed_data):
+    def process_compressed_mdblob(self, compressed_data, external_thread=False):
         try:
             decompressed_data = lz4.frame.decompress(compressed_data)
         except RuntimeError:
             self._logger.warning("Unable to decompress mdblob")
             return []
+        return self.process_squashed_mdblob(decompressed_data, external_thread)
 
-        return self.process_squashed_mdblob(decompressed_data)
+    def process_squashed_mdblob(self, chunk_data, external_thread=False):
+        """
+        Process raw concatenated payloads blob. This routine breaks the database access into smaller batches.
+        It uses a congestion-control like algorithm to determine the optimal batch size, targeting the
+        batch processing time value of self.reference_timedelta.
 
-    @db_session
-    def process_squashed_mdblob(self, chunk_data):
-        results_list = []
+        :param chunk_data: the blob itself, consists of one or more GigaChannel payloads concatenated together
+        :param external_thread: if this is set to True, we add some sleep between batches to allow other threads
+        to get the database lock. This is an ugly workaround for Python and Twisted asynchronous programming (locking)
+        imperfections. It only makes sense to use it when this routine runs on a non-reactor thread.
+        :return ChannelNode objects list if we can correctly load the metadata
+        """
+
         offset = 0
+        payload_list = []
         while offset < len(chunk_data):
             payload, offset = read_payload_with_offset(chunk_data, offset)
-            results_list.append(self.process_payload(payload))
-        return results_list
+            payload_list.append(payload)
+
+        result = []
+        total_size = len(payload_list)
+        start = 0
+        while start < total_size:
+            end = start + self.batch_size
+            batch = payload_list[start:end]
+            batch_start_time = datetime.now()
+
+            # We separate the sessions to minimize database locking.
+            with db_session:
+                for payload in batch:
+                    result.extend(self.process_payload(payload))
+            if external_thread:
+                sleep(self.sleep_on_external_thread)
+
+            # Batch size adjustment
+            batch_end_time = datetime.now() - batch_start_time
+            target_coeff = (batch_end_time.total_seconds() / self.reference_timedelta.total_seconds())
+            if len(batch) == self.batch_size:
+                # Adjust batch size only for full batches
+                if target_coeff < 0.8:
+                    self.batch_size += self.batch_size
+                elif target_coeff > 1.0:
+                    self.batch_size = int(float(self.batch_size) / target_coeff)
+                self.batch_size += 1  # we want to guarantee that at least something will go through
+            self._logger.debug(("Added payload batch to DB (entries, seconds): %i %f", self.batch_size, batch_end_time))
+            start = end
+        return result
 
     @db_session
     def process_payload(self, payload):
+        """
+        This routine decides what to do with a given payload and executes the necessary actions.
+        To do so, it looks into the database, compares version numbers, etc.
+        It returns a list of tuples each of which contain the corresponding new/old object and the actions
+        that were performed on that object.
+        :param payload: payload to work on
+        :return: a list of tuples of (<metadata or payload>, <action type>)
+        """
+
         if payload.metadata_type == DELETED:
             # We only allow people to delete their own entries, thus PKs must match
-            existing_metadata = self.ChannelNode.get(signature=payload.delete_signature,
-                                                     public_key=payload.public_key)
-            if existing_metadata:
-                existing_metadata.delete()
-                return None, DELETED_METADATA
-            return None, NO_ACTION
-
-        # Check the payload timestamp<->id_ correctness
-        if payload.timestamp < payload.id_:
-            return None, NO_ACTION
+            node = self.ChannelNode.get_for_update(signature=payload.delete_signature,
+                                                   public_key=payload.public_key)
+            if node:
+                node.delete()
+                return [(None, DELETED_METADATA)]
 
         # Check if we already got an older version of the same node that we can update, and
         # check the uniqueness constraint on public_key+infohash tuple. If the received entry
@@ -248,43 +316,44 @@ class MetadataStore(object):
         # B: (pk, id2, ih2)
         # Now, when we receive the payload C1:(pk, id1, ih2) or C2:(pk, id2, ih1), we have to
         # replace _both_ entries with a single one, to honor the DB uniqueness constraints.
-        # Get 0-2 entries that match the update condition
-        # TODO: optimize this with a single UPSERT-style query
-        pk_lambda = lambda g: g.public_key == database_blob(payload.public_key)
-        if payload.metadata_type == CHANNEL_NODE:
-            local_entries = self.ChannelNode.select(pk_lambda)
-        else:
-            local_entries = self.TorrentMetadata.select(pk_lambda).where(
-                lambda g: (g.infohash == database_blob(payload.infohash) or g.id_ == payload.id_)) \
-                .sort_by(lambda g: g.timestamp)
 
-        deleted_something = False
-        for local_node in list(local_entries):
-            if local_node.timestamp < payload.timestamp:
-                local_node.delete()
-                deleted_something = True
-            elif local_node.timestamp > payload.timestamp:
-                return local_node, GOT_NEWER_VERSION
-            else:
-                return local_node, GOT_SAME_VERSION
+        if payload.metadata_type not in [CHANNEL_TORRENT, REGULAR_TORRENT]:
+            return []
 
-        # Get the corresponding channel from local database to see if we really need to update our
-        # local contents of the channel by comparing the channel's local_version with the payload's timestamp.
-        # This check is necessary to prevent other peers pushing deleted entries into the
-        # channels we are subscribed to.
-        # If local channel version is 0, we are still in preview mode and willing to collect everything.
-        channel = self.ChannelMetadata.get(public_key=payload.public_key, id_=payload.origin_id)
-        if channel and (channel.local_version != 0) and (payload.timestamp <= channel.local_version):
-            return None, NO_ACTION
+        # Check the payload timestamp<->id_ correctness
+        if payload.timestamp < payload.id_:
+            return []
+
+        # Check for a node with the same infohash
+        result = []
+        node = self.TorrentMetadata.get_for_update(public_key=database_blob(payload.public_key),
+                                                   infohash=database_blob(payload.infohash))
+        if node and node.timestamp < payload.timestamp:
+            node.delete()
+            result.append((node, DELETED_METADATA))
+
+        # Check for the older version of the same node
+        node = self.TorrentMetadata.get_for_update(public_key=database_blob(payload.public_key), id_=payload.id_)
+        if node:
+            if node.timestamp < payload.timestamp:
+                node.set(**payload.to_dict())
+                result.append((node, UPDATED_OUR_VERSION))
+            elif node.timestamp > payload.timestamp:
+                result.append((node, GOT_NEWER_VERSION))
+            # Otherwise, we got the same version locally and do nothing.
+            # The situation when something was marked for deletion, and then we got here (i.e. we have the same
+            # version) should never happen, because this version should have removed the above mentioned thing earlier
+            if result:
+                self._logger.warning("Broken DB state!")
+            return result
 
         if payload.metadata_type == REGULAR_TORRENT:
-            return self.TorrentMetadata.from_payload(
-                payload), UPDATED_OUR_VERSION if deleted_something else UNKNOWN_TORRENT
-        if payload.metadata_type == CHANNEL_TORRENT:
-            return self.ChannelMetadata.from_payload(
-                payload), UPDATED_OUR_VERSION if deleted_something else UNKNOWN_CHANNEL
+            result.append((self.TorrentMetadata.from_payload(payload), UNKNOWN_TORRENT))
+        elif payload.metadata_type == CHANNEL_TORRENT:
+            result.append((self.ChannelMetadata.from_payload(payload), UNKNOWN_CHANNEL))
+            return result
 
-        return None, NO_ACTION
+        return result
 
     @db_session
     def get_my_channel(self):
