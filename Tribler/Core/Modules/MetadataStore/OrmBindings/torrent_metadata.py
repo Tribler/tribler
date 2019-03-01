@@ -18,12 +18,14 @@ def define_binding(db):
         _discriminator_ = REGULAR_TORRENT
 
         # Serializable
-        infohash = orm.Optional(database_blob, default='\x00' * 20)
+        infohash = orm.Required(database_blob)
         size = orm.Optional(int, size=64, default=0)
         torrent_date = orm.Optional(datetime, default=datetime.utcnow)
         title = orm.Optional(str, default='')
         tags = orm.Optional(str, default='')
         tracker_info = orm.Optional(str, default='')
+
+        orm.composite_key(db.ChannelNode.public_key, infohash)
 
         # Local
         xxx = orm.Optional(float, default=0)

@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import random
 from datetime import datetime
 
 from pony.orm import db_session
@@ -81,10 +82,12 @@ class TestGigaChannelManager(TriblerCoreTest):
             chan.local_version -= 1
             _ = self.mock_session.lm.mds.ChannelMetadata(title="bla", public_key=database_blob(str(123)),
                                                          signature=database_blob(str(345)), skip_key_check=True,
-                                                         timestamp=123, local_version=123, subscribed=True)
+                                                         timestamp=123, local_version=123, subscribed=True,
+                                                         infohash=str(random.getrandbits(160)))
             _ = self.mock_session.lm.mds.ChannelMetadata(title="bla", public_key=database_blob(str(124)),
                                                          signature=database_blob(str(346)), skip_key_check=True,
-                                                         timestamp=123, local_version=122, subscribed=False)
+                                                         timestamp=123, local_version=122, subscribed=False,
+                                                         infohash=str(random.getrandbits(160)))
         self.mock_session.has_download = lambda _: False
         self.torrents_added = 0
 

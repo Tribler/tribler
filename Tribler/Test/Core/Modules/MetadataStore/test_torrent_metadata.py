@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
+import random
 from datetime import datetime
 
 from pony import orm
@@ -16,6 +17,13 @@ from Tribler.Test.Core.base_test import TriblerCoreTest
 from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto
 
 
+def rnd_torrent():
+    return {"title": "",
+            "infohash": str(random.getrandbits(160)),
+            "torrent_date": datetime(1970, 1, 1),
+            "tags": "video"}
+
+
 class TestTorrentMetadata(TriblerCoreTest):
     """
     Contains various tests for the torrent metadata type.
@@ -24,12 +32,6 @@ class TestTorrentMetadata(TriblerCoreTest):
     @inlineCallbacks
     def setUp(self):
         yield super(TestTorrentMetadata, self).setUp()
-        self.torrent_template = {
-            "title": "",
-            "infohash": "",
-            "torrent_date": datetime(1970, 1, 1),
-            "tags": "video"
-        }
         self.my_key = default_eccrypto.generate_key(u"curve25519")
         self.mds = MetadataStore(':memory:', self.session_base_dir, self.my_key)
 
@@ -43,7 +45,7 @@ class TestTorrentMetadata(TriblerCoreTest):
         """
         Test converting torrent metadata to serialized data
         """
-        torrent_metadata = self.mds.TorrentMetadata.from_dict({})
+        torrent_metadata = self.mds.TorrentMetadata.from_dict({"infohash": str(random.getrandbits(160))})
         self.assertTrue(torrent_metadata.serialized())
 
     @db_session
@@ -51,9 +53,10 @@ class TestTorrentMetadata(TriblerCoreTest):
         """
         Test converting torrent metadata to a magnet link
         """
-        torrent_metadata = self.mds.TorrentMetadata.from_dict({})
+        torrent_metadata = self.mds.TorrentMetadata.from_dict({"infohash": str(random.getrandbits(160))})
         self.assertTrue(torrent_metadata.get_magnet())
-        torrent_metadata2 = self.mds.TorrentMetadata.from_dict({'title': u'\U0001f4a9'})
+        torrent_metadata2 = self.mds.TorrentMetadata.from_dict(
+            {'title': u'\U0001f4a9', "infohash": str(random.getrandbits(160))})
         self.assertTrue(torrent_metadata2.get_magnet())
 
     @db_session
@@ -62,17 +65,17 @@ class TestTorrentMetadata(TriblerCoreTest):
         Test searching in a database with some torrent metadata inserted
         """
         torrent1 = self.mds.TorrentMetadata.from_dict(
-            dict(self.torrent_template, title="foo bar 123", tags="video"))
+            dict(rnd_torrent(), title="foo bar 123", tags="video"))
         torrent2 = self.mds.TorrentMetadata.from_dict(
-            dict(self.torrent_template, title="eee 123", tags="video"))
+            dict(rnd_torrent(), title="eee 123", tags="video"))
         self.mds.TorrentMetadata.from_dict(
-            dict(self.torrent_template, title="xoxoxo bar", tags="video"))
+            dict(rnd_torrent(), title="xoxoxo bar", tags="video"))
         self.mds.TorrentMetadata.from_dict(
-            dict(self.torrent_template, title="xoxoxo bar", tags="audio"))
+            dict(rnd_torrent(), title="xoxoxo bar", tags="audio"))
         self.mds.TorrentMetadata.from_dict(
-            dict(self.torrent_template, title=u"\"", tags="audio"))
+            dict(rnd_torrent(), title=u"\"", tags="audio"))
         self.mds.TorrentMetadata.from_dict(
-            dict(self.torrent_template, title=u"\'", tags="audio"))
+            dict(rnd_torrent(), title=u"\'", tags="audio"))
         orm.flush()
 
         # Search for torrents with the keyword 'foo', it should return one result
@@ -104,7 +107,7 @@ class TestTorrentMetadata(TriblerCoreTest):
         """
         Test searching in the database with unicode characters
         """
-        self.mds.TorrentMetadata.from_dict(dict(self.torrent_template, title=u"я маленький апельсин"))
+        self.mds.TorrentMetadata.from_dict(dict(rnd_torrent(), title=u"я маленький апельсин"))
         results = self.mds.TorrentMetadata.search_keyword(u"маленький")[:]
         self.assertEqual(1, len(results))
 
@@ -113,8 +116,8 @@ class TestTorrentMetadata(TriblerCoreTest):
         """
         Test searching in the database with a wildcard
         """
-        self.mds.TorrentMetadata.from_dict(dict(self.torrent_template, title="foobar 123"))
-        self.mds.TorrentMetadata.from_dict(dict(self.torrent_template, title="foobla 123"))
+        self.mds.TorrentMetadata.from_dict(dict(rnd_torrent(), title="foobar 123"))
+        self.mds.TorrentMetadata.from_dict(dict(rnd_torrent(), title="foobla 123"))
         self.assertEqual(0, len(self.mds.TorrentMetadata.search_keyword("*")[:]))
         self.assertEqual(1, len(self.mds.TorrentMetadata.search_keyword("foobl*")[:]))
         self.assertEqual(2, len(self.mds.TorrentMetadata.search_keyword("foo*")[:]))
@@ -126,7 +129,7 @@ class TestTorrentMetadata(TriblerCoreTest):
         Test searching in the database with stemmed words
         """
         torrent = self.mds.TorrentMetadata.from_dict(
-            dict(self.torrent_template, title="mountains sheep", tags="video"))
+            dict(rnd_torrent(), title="mountains sheep", tags="video"))
 
         # Search with the word 'mountain' should return the torrent with 'mountains' in the title
         results = self.mds.TorrentMetadata.search_keyword("mountain")[:]
@@ -142,9 +145,9 @@ class TestTorrentMetadata(TriblerCoreTest):
         Test fetching autocompletion terms from the database
         """
         self.mds.TorrentMetadata.from_dict(
-            dict(self.torrent_template, title="mountains sheep", tags="video"))
+            dict(rnd_torrent(), title="mountains sheep", tags="video"))
         self.mds.TorrentMetadata.from_dict(
-            dict(self.torrent_template, title="regular sheepish guy", tags="video"))
+            dict(rnd_torrent(), title="regular sheepish guy", tags="video"))
 
         autocomplete_terms = self.mds.TorrentMetadata.get_auto_complete_terms("shee", 10)
         self.assertIn('sheep', autocomplete_terms)
@@ -161,11 +164,11 @@ class TestTorrentMetadata(TriblerCoreTest):
         Test fetching autocompletion terms from the database with a maximum number of terms
         """
         self.mds.TorrentMetadata.from_dict(
-            dict(self.torrent_template, title="mountains sheeps wolf", tags="video"))
+            dict(rnd_torrent(), title="mountains sheeps wolf", tags="video"))
         self.mds.TorrentMetadata.from_dict(
-            dict(self.torrent_template, title="lakes sheep", tags="video"))
+            dict(rnd_torrent(), title="lakes sheep", tags="video"))
         self.mds.TorrentMetadata.from_dict(
-            dict(self.torrent_template, title="regular sheepish guy", tags="video"))
+            dict(rnd_torrent(), title="regular sheepish guy", tags="video"))
 
         autocomplete_terms = self.mds.TorrentMetadata.get_auto_complete_terms("sheep", 2)
         self.assertEqual(len(autocomplete_terms), 2)
@@ -182,8 +185,11 @@ class TestTorrentMetadata(TriblerCoreTest):
         tlist = []
         for ind in xrange(5):
             self.mds.ChannelNode._my_key = default_eccrypto.generate_key('curve25519')
-            _ = self.mds.ChannelMetadata(title='channel%d' % ind, subscribed=(ind % 2 == 0))
-            tlist.extend([self.mds.TorrentMetadata(title='torrent%d' % torrent_ind) for torrent_ind in xrange(5)])
+            _ = self.mds.ChannelMetadata(title='channel%d' % ind, subscribed=(ind % 2 == 0),
+                                         infohash=str(random.getrandbits(160)))
+            tlist.extend(
+                [self.mds.TorrentMetadata(title='torrent%d' % torrent_ind, infohash=str(random.getrandbits(160))) for
+                 torrent_ind in xrange(5)])
         tlist[-1].xxx = 1
         tlist[-2].status = TODELETE
 
@@ -205,7 +211,7 @@ class TestTorrentMetadata(TriblerCoreTest):
 
     @db_session
     def test_metadata_conflicting(self):
-        tdict = dict(self.torrent_template, title="lakes sheep", tags="video", infohash='\x00\xff')
+        tdict = dict(rnd_torrent(), title="lakes sheep", tags="video", infohash='\x00\xff')
         md = self.mds.TorrentMetadata.from_dict(tdict)
         self.assertFalse(md.metadata_conflicting(tdict))
         self.assertTrue(md.metadata_conflicting(dict(tdict, title="bla")))

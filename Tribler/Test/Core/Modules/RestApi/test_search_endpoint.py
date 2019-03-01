@@ -44,10 +44,10 @@ class TestSearchEndpoint(AbstractApiTest):
         """
         num_hay = 100
         with db_session:
-            _ = self.session.lm.mds.ChannelMetadata(title='test', tags='test', subscribed=True)
+            _ = self.session.lm.mds.ChannelMetadata(title='test', tags='test', subscribed=True,
+                                                    infohash=str(random.getrandbits(160)))
             for x in xrange(0, num_hay):
-                self.session.lm.mds.TorrentMetadata(title='hay ' + str(x), infohash=database_blob(
-                    bytearray(random.getrandbits(8) for _ in xrange(20))))
+                self.session.lm.mds.TorrentMetadata(title='hay ' + str(x), infohash=str(random.getrandbits(160)))
             self.session.lm.mds.TorrentMetadata(title='needle',
                                                 infohash=database_blob(
                                                     bytearray(random.getrandbits(8) for _ in xrange(20))))
@@ -87,6 +87,7 @@ class TestSearchEndpoint(AbstractApiTest):
         """
         Testing whether the API returns the right terms when getting search completion terms
         """
+
         def on_response(response):
             json_response = json.loads(response)
             self.assertEqual(json_response['completions'], [])

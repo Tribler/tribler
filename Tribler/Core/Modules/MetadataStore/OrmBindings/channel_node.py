@@ -52,7 +52,7 @@ def define_binding(db, logger=None, key=None, clock=None):
 
         public_key = orm.Required(database_blob)
         id_ = orm.Required(int, size=64)
-        orm.composite_index(public_key, id_)
+        orm.composite_key(public_key, id_)
 
         timestamp = orm.Required(int, size=64, default=0)
         signature = orm.Required(database_blob, unique=True)
