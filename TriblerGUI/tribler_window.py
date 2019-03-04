@@ -767,6 +767,7 @@ class TriblerWindow(QMainWindow):
         self.deselect_all_menu_buttons(self.left_menu_button_discovered)
         self.stackedWidget.setCurrentIndex(PAGE_DISCOVERED)
         self.discovered_page.load_discovered_channels()
+        self.discovered_channels_list.setFocus()
         self.navigation_stack = []
         self.hide_left_menu_playlist()
 
