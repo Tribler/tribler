@@ -2,12 +2,12 @@ from __future__ import absolute_import
 
 import binascii
 import os
+import shutil
 
 import libtorrent as lt
 
 from six.moves import xrange
 
-from twisted.internet import reactor
 from twisted.internet.defer import Deferred, succeed
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
@@ -17,7 +17,7 @@ from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
 from Tribler.Core.simpledefs import DLMODE_VOD, DLSTATUS_DOWNLOADING
 from Tribler.Test.Core.base_test import MockObject, TriblerCoreTest
-from Tribler.Test.common import TESTS_DATA_DIR
+from Tribler.Test.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.tools import trial_timeout
 
@@ -492,6 +492,7 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         """
         unwanted_dir = os.path.join(self.getStateDir(), '.unwanted')
         os.mkdir(unwanted_dir)
+        shutil.copyfile(TORRENT_UBUNTU_FILE, os.path.join(unwanted_dir, "test.txt"))
         self.libtorrent_download_impl.handle.save_path = lambda: self.getStateDir()
         self.libtorrent_download_impl.handle.file_priorities = lambda: [1]
         self.libtorrent_download_impl.orig_files = ['test']
@@ -509,7 +510,6 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         self.libtorrent_download_impl.checkpoint = mocked_checkpoint
         self.libtorrent_download_impl.handle.get_torrent_info = lambda: None
         self.libtorrent_download_impl.on_metadata_received_alert(None)
-
 
     def test_metadata_received_invalid_torrent_with_value_error(self):
         """
