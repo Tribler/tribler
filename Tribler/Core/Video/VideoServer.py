@@ -11,15 +11,18 @@ import os
 import socket
 import time
 from binascii import unhexlify
-from cherrypy.lib.httputil import get_ranges
 from collections import defaultdict
-from six.moves.BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
-from six.moves.socketserver import ThreadingMixIn
-from threading import Event, Thread, RLock
+from threading import Event, RLock, Thread
 from traceback import print_exc
 
+from cherrypy.lib.httputil import get_ranges
+
+from six.moves import xrange
+from six.moves.BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
+from six.moves.socketserver import ThreadingMixIn
+
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import VODFile
-from Tribler.Core.simpledefs import DLMODE_VOD, DLMODE_NORMAL
+from Tribler.Core.simpledefs import DLMODE_NORMAL, DLMODE_VOD
 
 
 class VideoServer(ThreadingMixIn, HTTPServer):
@@ -33,7 +36,15 @@ class VideoServer(ThreadingMixIn, HTTPServer):
         self.vod_download = None
         self.vod_info = defaultdict(dict)  # A dictionary containing info about the requested VOD streams.
 
-        HTTPServer.__init__(self, ("127.0.0.1", self.port), VideoRequestHandler)
+        for _ in xrange(10000):
+            try:
+                HTTPServer.__init__(self, ("127.0.0.1", self.port), VideoRequestHandler)
+                self._logger.debug("Listening at %d", self.port)
+                break
+            except socket.error:
+                self._logger.debug("Listening failed at %d", self.port)
+                self.port += 1
+                continue
 
         self.server_thread = None
 
