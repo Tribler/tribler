@@ -7,9 +7,9 @@ import logging
 from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
 
+import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Modules.restapi.util import return_handled_exception
-import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Utilities.unicode import ensure_text
 from Tribler.Core.exceptions import DuplicateDownloadException
 
