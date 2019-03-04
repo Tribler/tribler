@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import QWidget
 from six import text_type
 
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
-from TriblerGUI.utilities import get_image_path, is_video_file, seconds_to_string
+from TriblerGUI.utilities import get_image_path, seconds_to_string
 
 
 class VideoPlayerPage(QWidget):
