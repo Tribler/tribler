@@ -255,9 +255,8 @@ class TriblerRequestManager(QObject):
     received_json = pyqtSignal(object, int)
     received_file = pyqtSignal(object)
 
-    def __init__(self, window=None):
+    def __init__(self):
         QObject.__init__(self)
-        self.window = window
         self.reply = None
         self.status_code = -1
         self.on_cancel = lambda: None
@@ -332,7 +331,8 @@ class TriblerRequestManager(QObject):
         try:
             json_result = json.loads(str(data), encoding='latin_1')
 
-            if 'error' in json_result and capture_errors and not self.window.core_manager.shutting_down:
+            if 'error' in json_result and capture_errors \
+                    and not TriblerRequestManager.window.core_manager.shutting_down:
                 self.show_error(TriblerRequestManager.get_message_from_error(json_result))
             else:
                 self.received_json.emit(json_result, reply.error())
