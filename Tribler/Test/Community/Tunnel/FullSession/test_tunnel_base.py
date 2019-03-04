@@ -64,6 +64,7 @@ class TestTunnelBase(TestAsServer):
     def setUpPreSession(self):
         TestAsServer.setUpPreSession(self)
         self.config.set_ipv8_enabled(True)
+        self.config.set_ipv8_port(-1)
         self.config.set_libtorrent_enabled(True)
         self.config.set_trustchain_enabled(False)
         self.config.set_resource_monitor_enabled(False)
