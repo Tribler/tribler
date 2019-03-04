@@ -1,10 +1,10 @@
-from __future__ import print_function
+from __future__ import absolute_import
 
 import os
 import subprocess
 import sys
 
-from PyQt5.QtCore import pyqtSignal, QObject, QTimer
+from PyQt5.QtCore import QObject, QTimer, pyqtSignal
 from PyQt5.QtWidgets import QApplication
 
 from six import text_type
