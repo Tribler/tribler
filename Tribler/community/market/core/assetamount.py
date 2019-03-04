@@ -1,4 +1,4 @@
-# pylint: disable=long-builtin
+# pylint: disable=long-builtin,redefined-builtin
 try:
     long
 except NameError:

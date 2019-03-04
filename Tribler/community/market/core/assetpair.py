@@ -1,4 +1,4 @@
-# pylint: disable=long-builtin
+# pylint: disable=long-builtin,redefined-builtin
 
 from __future__ import absolute_import
 
