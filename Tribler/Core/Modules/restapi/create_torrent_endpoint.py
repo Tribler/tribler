@@ -6,6 +6,7 @@ from twisted.web.server import NOT_DONE_YET
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Modules.restapi.util import return_handled_exception
+from Tribler.Core.Utilities.unicode import ensure_text
 from Tribler.Core.exceptions import DuplicateDownloadException
 import Tribler.Core.Utilities.json_util as json
 
@@ -57,7 +58,7 @@ class CreateTorrentEndpoint(resource.Resource):
         params = {}
 
         if 'files[]' in parameters and len(parameters['files[]']) > 0:
-            file_path_list = [unicode(f, 'utf-8') for f in parameters['files[]']]
+            file_path_list = [ensure_text(f, 'utf-8') for f in parameters['files[]']]
         else:
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "files parameter missing"})
