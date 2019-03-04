@@ -5,7 +5,7 @@ from six import text_type
 
 from Tribler.community.market.core.assetamount import AssetAmount
 from Tribler.community.market.core.assetpair import AssetPair
-from Tribler.community.market.core.message import TraderId, Message
+from Tribler.community.market.core.message import Message, TraderId
 from Tribler.community.market.core.order import OrderId, OrderNumber
 from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.community.market.core.trade import ProposedTrade
