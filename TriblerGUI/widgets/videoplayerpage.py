@@ -3,14 +3,14 @@ from __future__ import absolute_import
 import os
 import sys
 
-from PyQt5.QtCore import QTimer, QEvent, Qt
-from PyQt5.QtGui import QPixmap, QIcon
+from PyQt5.QtCore import QEvent, QTimer, Qt
+from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.QtWidgets import QWidget
 
 from six import text_type
 
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
-from TriblerGUI.utilities import is_video_file, seconds_to_string, get_image_path
+from TriblerGUI.utilities import get_image_path, is_video_file, seconds_to_string
 
 
 class VideoPlayerPage(QWidget):
