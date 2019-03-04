@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from six import text_type
 
 from Tribler.community.market.core.assetamount import AssetAmount
