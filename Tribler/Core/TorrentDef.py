@@ -4,23 +4,23 @@ Definition of a torrent, that is, a collection of files or a live stream
 Author(s): Arno Bakker
 """
 from __future__ import absolute_import
+
 import logging
 import os
-import six
 import sys
 from hashlib import sha1
 
-from libtorrent import bencode, bdecode
+from libtorrent import bdecode, bencode
 
+import six
 from six import text_type
 
-from Tribler.Core.Utilities import maketorrent
-from Tribler.Core.Utilities.utilities import create_valid_metainfo, is_valid_url
-from Tribler.Core.Utilities.unicode import dunno2unicode
-from Tribler.Core.Utilities.utilities import parse_magnetlink, http_get
 from Tribler.Core.defaults import TDEF_DEFAULTS
-from Tribler.Core.exceptions import TorrentDefNotFinalizedException, NotYetImplementedException
+from Tribler.Core.exceptions import NotYetImplementedException, TorrentDefNotFinalizedException
 from Tribler.Core.simpledefs import INFOHASH_LENGTH
+from Tribler.Core.Utilities import maketorrent
+from Tribler.Core.Utilities.unicode import dunno2unicode
+from Tribler.Core.Utilities.utilities import create_valid_metainfo, http_get, is_valid_url, parse_magnetlink
 
 
 def escape_as_utf8(string, encoding='utf8'):
