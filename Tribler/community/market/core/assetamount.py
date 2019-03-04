@@ -1,3 +1,4 @@
+# pylint: disable=long-builtin
 try:
     long
 except NameError:
