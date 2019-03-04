@@ -5,8 +5,8 @@ from __future__ import absolute_import
 import logging
 import sys
 
-from PyQt5.QtCore import pyqtSignal, QTextStream, Qt
-from PyQt5.QtNetwork import QLocalSocket, QLocalServer
+from PyQt5.QtCore import QTextStream, Qt, pyqtSignal
+from PyQt5.QtNetwork import QLocalServer, QLocalSocket
 from PyQt5.QtWidgets import QApplication
 
 from six import text_type
