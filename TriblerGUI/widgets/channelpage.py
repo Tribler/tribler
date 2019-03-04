@@ -37,6 +37,7 @@ class ChannelPage(QWidget):
 
         self.window().channel_preview_label.setHidden(channel_info['subscribed'])
         self.window().channel_back_button.setIcon(QIcon(get_image_path('page_back.png')))
+        self.window().channel_page_container.content_table.setFocus()
 
         # initialize the page about a channel
         self.window().channel_name_label.setText(channel_info['name'])
