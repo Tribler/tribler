@@ -29,7 +29,7 @@ class MatchingStrategy(object):
         :return: A random matching ID
         :rtype: str
         """
-        return ''.join(random.choice('0123456789abcdef') for _ in xrange(20))
+        return ''.join(random.choice('0123456789abcdef') for _ in range(20))
 
     def get_unique_match_id(self):
         """

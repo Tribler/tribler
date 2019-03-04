@@ -1,8 +1,10 @@
 import base64
+import math
+
+from six.moves import xrange
 from PyQt5.QtCore import QRect
 from PyQt5.QtGui import QPainter, QColor
 from PyQt5.QtWidgets import QWidget, QStyleOption, QStyle
-import math
 
 
 class DownloadProgressBar(QWidget):
