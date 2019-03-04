@@ -13,7 +13,7 @@ from hashlib import sha1
 from libtorrent import bdecode, bencode
 
 import six
-from six import ensure_text, text_type
+from six import binary_type, text_type  # ensure_text
 
 from Tribler.Core.Utilities import maketorrent
 from Tribler.Core.Utilities.unicode import dunno2unicode
@@ -21,6 +21,17 @@ from Tribler.Core.Utilities.utilities import create_valid_metainfo, http_get, is
 from Tribler.Core.defaults import TDEF_DEFAULTS
 from Tribler.Core.exceptions import NotYetImplementedException, TorrentDefNotFinalizedException
 from Tribler.Core.simpledefs import INFOHASH_LENGTH
+
+
+def ensure_text(s, encoding='utf-8', errors='strict'):
+    """Copied from https://github.com/benjaminp/six/blob/master/six.py
+    """
+    if isinstance(s, binary_type):
+        return s.decode(encoding, errors)
+    elif isinstance(s, text_type):
+        return s
+    else:
+        raise TypeError("not expecting type '%s'" % type(s))
 
 
 def escape_as_utf8(string, encoding='utf8'):
