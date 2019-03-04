@@ -66,7 +66,7 @@ channel_download = boolean(default=False)
 
 [ipv8]
 enabled = boolean(default=True)
-port = integer(min=-1, max=65536, default=-1)
+port = integer(min=-1, max=65536, default=7759)
 address = string(default='0.0.0.0')
 bootstrap_override = string(default='')
 statistics = boolean(default=False)
