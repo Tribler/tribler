@@ -1,3 +1,9 @@
+try:
+    long
+except NameError:
+    long = int
+
+
 class AssetAmount(object):
     """
     This class represents a specific number of assets. It contains various utility methods to add/substract asset
