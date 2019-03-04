@@ -1,8 +1,13 @@
+from __future__ import absolute_import
+
 import base64
-from PyQt5.QtCore import QRect
-from PyQt5.QtGui import QPainter, QColor
-from PyQt5.QtWidgets import QWidget, QStyleOption, QStyle
 import math
+
+from PyQt5.QtCore import QRect
+from PyQt5.QtGui import QColor, QPainter
+from PyQt5.QtWidgets import QStyle, QStyleOption, QWidget
+
+from six.moves import xrange
 
 
 class DownloadProgressBar(QWidget):
