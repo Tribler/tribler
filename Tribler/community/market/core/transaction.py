@@ -1,9 +1,13 @@
+from __future__ import absolute_import
+
 import logging
 from decimal import Decimal
 
+from six import text_type
+
 from Tribler.community.market.core.assetamount import AssetAmount
 from Tribler.community.market.core.assetpair import AssetPair
-from Tribler.community.market.core.message import TraderId, Message
+from Tribler.community.market.core.message import Message, TraderId
 from Tribler.community.market.core.order import OrderId, OrderNumber
 from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.community.market.core.trade import ProposedTrade
@@ -141,10 +145,10 @@ class Transaction(object):
         """
         Create a Transaction object based on information in the database.
         """
-        trader_id, transaction_number, order_trader_id, order_number, partner_trader_id, partner_order_number,\
-        asset1_amount, asset1_type, asset1_transferred, asset2_amount, asset2_type, asset2_transferred,\
-        transaction_timestamp, sent_wallet_info, received_wallet_info, incoming_address, outgoing_address,\
-        partner_incoming_address, partner_outgoing_address, match_id = data
+        (trader_id, transaction_number, order_trader_id, order_number, partner_trader_id, partner_order_number,
+         asset1_amount, asset1_type, asset1_transferred, asset2_amount, asset2_type, asset2_transferred,
+         transaction_timestamp, sent_wallet_info, received_wallet_info, incoming_address, outgoing_address,
+         partner_incoming_address, partner_outgoing_address, match_id) = data
 
         transaction_id = TransactionId(TraderId(str(trader_id)), TransactionNumber(transaction_number))
         transaction = cls(transaction_id,
@@ -218,14 +222,15 @@ class Transaction(object):
         Returns a database representation of a Transaction object.
         :rtype: tuple
         """
-        return (unicode(self.transaction_id.trader_id), int(self.transaction_id.transaction_number),
-                unicode(self.order_id.trader_id), int(self.order_id.order_number),
-                unicode(self.partner_order_id.trader_id), int(self.partner_order_id.order_number),
-                self.assets.first.amount, unicode(self.assets.first.asset_id), self.transferred_assets.first.amount,
-                self.assets.second.amount, unicode(self.assets.second.asset_id), self.transferred_assets.second.amount,
-                float(self.timestamp), self.sent_wallet_info, self.received_wallet_info, unicode(self.incoming_address),
-                unicode(self.outgoing_address), unicode(self.partner_incoming_address),
-                unicode(self.partner_outgoing_address), unicode(self.match_id))
+        return (text_type(self.transaction_id.trader_id), int(self.transaction_id.transaction_number),
+                text_type(self.order_id.trader_id), int(self.order_id.order_number),
+                text_type(self.partner_order_id.trader_id), int(self.partner_order_id.order_number),
+                self.assets.first.amount, text_type(self.assets.first.asset_id), self.transferred_assets.first.amount,
+                self.assets.second.amount, text_type(self.assets.second.asset_id),
+                self.transferred_assets.second.amount, float(self.timestamp), self.sent_wallet_info,
+                self.received_wallet_info, text_type(self.incoming_address), text_type(self.outgoing_address),
+                text_type(self.partner_incoming_address), text_type(self.partner_outgoing_address),
+                text_type(self.match_id))
 
     @classmethod
     def from_proposed_trade(cls, proposed_trade, transaction_id):
