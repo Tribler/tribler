@@ -15,12 +15,12 @@ from libtorrent import bdecode, bencode
 import six
 from six import text_type
 
-from Tribler.Core.defaults import TDEF_DEFAULTS
-from Tribler.Core.exceptions import NotYetImplementedException, TorrentDefNotFinalizedException
-from Tribler.Core.simpledefs import INFOHASH_LENGTH
 from Tribler.Core.Utilities import maketorrent
 from Tribler.Core.Utilities.unicode import dunno2unicode
 from Tribler.Core.Utilities.utilities import create_valid_metainfo, http_get, is_valid_url, parse_magnetlink
+from Tribler.Core.defaults import TDEF_DEFAULTS
+from Tribler.Core.exceptions import NotYetImplementedException, TorrentDefNotFinalizedException
+from Tribler.Core.simpledefs import INFOHASH_LENGTH
 
 
 def escape_as_utf8(string, encoding='utf8'):
