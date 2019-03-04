@@ -122,6 +122,7 @@ class TriblerWindow(QMainWindow):
         self.exception_handler_called = False
         self.token_refresh_timer = None
         self.shutdown_timer = None
+        self.add_torrent_url_dialog_active = False
 
         sys.excepthook = self.on_exception
 
@@ -143,6 +144,8 @@ class TriblerWindow(QMainWindow):
         self.debug_pane_shortcut.activated.connect(self.clicked_menu_button_debug)
         self.import_torrent_shortcut = QShortcut(QKeySequence("Ctrl+o"), self)
         self.import_torrent_shortcut.activated.connect(self.on_add_torrent_browse_file)
+        self.add_torrent_url_shortcut = QShortcut(QKeySequence("Ctrl+i"), self)
+        self.add_torrent_url_shortcut.activated.connect(self.on_add_torrent_from_url)
 
         # Remove the focus rect on OS X
         for widget in self.findChildren(QLineEdit) + self.findChildren(QListWidget) + self.findChildren(QTreeWidget):
@@ -699,16 +702,19 @@ class TriblerWindow(QMainWindow):
             # This is necessary since VLC takes the screen and the popup becomes invisible.
             self.clicked_menu_button_home()
 
-        self.dialog = ConfirmationDialog(self, "Add torrent from URL/magnet link",
-                                         "Please enter the URL/magnet link in the field below:",
-                                         [('ADD', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
-                                         show_input=True)
-        self.dialog.dialog_widget.dialog_input.setPlaceholderText('URL/magnet link')
-        self.dialog.dialog_widget.dialog_input.setFocus()
-        self.dialog.button_clicked.connect(self.on_torrent_from_url_dialog_done)
-        self.dialog.show()
+        if not self.add_torrent_url_dialog_active:
+            self.dialog = ConfirmationDialog(self, "Add torrent from URL/magnet link",
+                                             "Please enter the URL/magnet link in the field below:",
+                                             [('ADD', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
+                                             show_input=True)
+            self.dialog.dialog_widget.dialog_input.setPlaceholderText('URL/magnet link')
+            self.dialog.dialog_widget.dialog_input.setFocus()
+            self.dialog.button_clicked.connect(self.on_torrent_from_url_dialog_done)
+            self.dialog.show()
+            self.add_torrent_url_dialog_active = True
 
     def on_torrent_from_url_dialog_done(self, action):
+        self.add_torrent_url_dialog_active = False
         if self.dialog and self.dialog.dialog_widget:
             uri = self.dialog.dialog_widget.dialog_input.text()
 
