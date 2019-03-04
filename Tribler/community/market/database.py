@@ -3,9 +3,9 @@ This file contains everything related to persistence for the market community.
 """
 from __future__ import absolute_import
 
-import six
 from os import path
 
+from six import text_type
 
 from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.order import Order, OrderId, OrderNumber
@@ -145,7 +145,7 @@ class MarketDB(TrustChainDB):
         """
         try:
             db_result = self.execute(u"SELECT * FROM orders WHERE trader_id = ? AND order_number = ?",
-                                     (unicode(order_id.trader_id), unicode(order_id.order_number))).next()
+                                     (text_type(order_id.trader_id), text_type(order_id.order_number))).next()
         except StopIteration:
             return None
         return Order.from_database(db_result, self.get_reserved_ticks(order_id))
@@ -170,7 +170,7 @@ class MarketDB(TrustChainDB):
         Delete a specific order from the database
         """
         self.execute(u"DELETE FROM orders WHERE trader_id = ? AND order_number = ?",
-                     (unicode(order_id.trader_id), unicode(order_id.order_number)))
+                     (text_type(order_id.trader_id), text_type(order_id.order_number)))
         self.delete_reserved_ticks(order_id)
 
     def get_next_order_number(self):
@@ -187,7 +187,7 @@ class MarketDB(TrustChainDB):
         Delete all reserved ticks from a specific order
         """
         self.execute(u"DELETE FROM orders_reserved_ticks WHERE trader_id = ? AND order_number = ?",
-                     (unicode(order_id.trader_id), unicode(order_id.order_number)))
+                     (text_type(order_id.trader_id), text_type(order_id.order_number)))
 
     def add_reserved_tick(self, order_id, reserved_order_id, amount):
         """
@@ -196,8 +196,8 @@ class MarketDB(TrustChainDB):
         self.execute(
             u"INSERT INTO orders_reserved_ticks (trader_id, order_number, reserved_trader_id, reserved_order_number,"
             u"quantity) VALUES(?,?,?,?,?)",
-            (unicode(order_id.trader_id), unicode(order_id.order_number),
-             unicode(reserved_order_id.trader_id), unicode(reserved_order_id.order_number), amount))
+            (text_type(order_id.trader_id), text_type(order_id.order_number),
+             text_type(reserved_order_id.trader_id), text_type(reserved_order_id.order_number), amount))
         self.commit()
 
     def get_reserved_ticks(self, order_id):
@@ -205,7 +205,7 @@ class MarketDB(TrustChainDB):
         Get all reserved ticks for a specific order.
         """
         db_results = self.execute(u"SELECT * FROM orders_reserved_ticks WHERE trader_id = ? AND order_number = ?",
-                                  (unicode(order_id.trader_id), unicode(order_id.order_number)))
+                                  (text_type(order_id.trader_id), text_type(order_id.order_number)))
         return [(OrderId(TraderId(str(data[2])), OrderNumber(data[3])), data[4]) for data in db_results]
 
     def get_all_transactions(self):
@@ -224,8 +224,8 @@ class MarketDB(TrustChainDB):
         """
         try:
             db_result = self.execute(u"SELECT * FROM transactions WHERE trader_id = ? AND transaction_number = ?",
-                                     (unicode(transaction_id.trader_id),
-                                      unicode(transaction_id.transaction_number))).next()
+                                     (text_type(transaction_id.trader_id),
+                                      text_type(transaction_id.transaction_number))).next()
         except StopIteration:
             return None
         return Transaction.from_database(db_result, self.get_payments(transaction_id))
@@ -266,7 +266,7 @@ class MarketDB(TrustChainDB):
                                                transaction.assets.second.amount,
                                                transaction.transferred_assets.second.amount,
                                                float(transaction.timestamp),
-                                               six.text_type(transaction.transaction_id.trader_id),
+                                               text_type(transaction.transaction_id.trader_id),
                                                int(transaction.transaction_id.transaction_number),
                                                float(transaction.timestamp))
         )
@@ -278,7 +278,7 @@ class MarketDB(TrustChainDB):
         Delete a specific transaction from the database
         """
         self.execute(u"DELETE FROM transactions WHERE trader_id = ? AND transaction_number = ?",
-                     (unicode(transaction_id.trader_id), unicode(transaction_id.transaction_number)))
+                     (text_type(transaction_id.trader_id), text_type(transaction_id.transaction_number)))
         self.delete_payments(transaction_id)
 
     def get_next_transaction_number(self):
@@ -306,8 +306,8 @@ class MarketDB(TrustChainDB):
         """
         db_result = self.execute(u"SELECT * FROM payments WHERE transaction_trader_id = ? AND transaction_number = ?"
                                  u"ORDER BY timestamp ASC",
-                                 (unicode(transaction_id.trader_id),
-                                  unicode(transaction_id.transaction_number)))
+                                 (text_type(transaction_id.trader_id),
+                                  text_type(transaction_id.transaction_number)))
         return [Payment.from_database(db_item) for db_item in db_result]
 
     def delete_payments(self, transaction_id):
@@ -315,7 +315,7 @@ class MarketDB(TrustChainDB):
         Delete all payments that are associated with a specific transaction
         """
         self.execute(u"DELETE FROM payments WHERE transaction_trader_id = ? AND transaction_number = ?",
-                     (unicode(transaction_id.trader_id), unicode(transaction_id.transaction_number)))
+                     (text_type(transaction_id.trader_id), text_type(transaction_id.transaction_number)))
 
     def add_tick(self, tick):
         """
@@ -340,7 +340,7 @@ class MarketDB(TrustChainDB):
         return [Tick.from_database(db_tick) for db_tick in self.execute(u"SELECT * FROM ticks")]
 
     def add_trader_identity(self, trader_id, ip, port):
-        self.execute(u"INSERT OR REPLACE INTO traders VALUES(?,?,?)", (unicode(trader_id), unicode(ip), port))
+        self.execute(u"INSERT OR REPLACE INTO traders VALUES(?,?,?)", (text_type(trader_id), text_type(ip), port))
         self.commit()
 
     def get_traders(self):
@@ -364,7 +364,7 @@ class MarketDB(TrustChainDB):
         :param database_version: Current version of the database.
         :return:
         """
-        assert isinstance(database_version, unicode)
+        assert isinstance(database_version, text_type)
         assert database_version.isdigit()
         assert int(database_version) >= 0
         database_version = int(database_version)
