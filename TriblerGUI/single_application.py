@@ -1,10 +1,15 @@
 # Copied and modified from http://stackoverflow.com/a/12712362/605356
 
-import logging, sys
+from __future__ import absolute_import
+
+import logging
+import sys
 
 from PyQt5.QtCore import pyqtSignal, QTextStream, Qt
 from PyQt5.QtNetwork import QLocalSocket, QLocalServer
 from PyQt5.QtWidgets import QApplication
+
+from six import text_type
 
 LOGVARSTR = "%25s = '%s'"
 
@@ -15,7 +20,7 @@ class QtSingleApplication(QApplication):
     When a user tries to open a second Tribler instance, the current active one will be brought to front.
     """
 
-    messageReceived = pyqtSignal(unicode)
+    messageReceived = pyqtSignal(text_type)
 
     def __init__(self, win_id, *argv):
 
@@ -48,8 +53,7 @@ class QtSingleApplication(QApplication):
             error = self._outSocket.error()
             logfunc(LOGVARSTR % ('self._outSocket.error()', error))
             if error == QLocalSocket.ConnectionRefusedError:
-                logfunc('received QLocalSocket.ConnectionRefusedError; ' + \
-                        'removing server.')
+                logfunc('received QLocalSocket.ConnectionRefusedError; removing server.')
                 self.close()
                 QLocalServer.removeServer(self._id)
             self._outSocket = None
