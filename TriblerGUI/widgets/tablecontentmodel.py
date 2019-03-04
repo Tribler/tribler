@@ -1,11 +1,11 @@
-from __future__ import absolute_import
+from __future__ import absolute_import, division
 
 from abc import abstractmethod
 
 from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt, pyqtSignal
 
 from TriblerGUI.defs import ACTION_BUTTONS
-from TriblerGUI.utilities import format_size
+from TriblerGUI.utilities import format_size, pretty_date
 
 
 class RemoteTableModel(QAbstractTableModel):
@@ -132,13 +132,17 @@ class ChannelsContentModel(TriblerContentModel):
     """
     This model represents a list of channels that can be displayed in a table view.
     """
-    columns = [u'name', u'torrents', u'subscribed']
-    column_headers = [u'Channel name', u'Torrents', u'']
+    columns = [u'name', u'torrents', u'updated', u'subscribed']
+    column_headers = [u'Channel name', u'Torrents', u'Updated', u'']
     column_flags = {
         u'name': Qt.ItemIsEnabled,
         u'torrents': Qt.ItemIsEnabled,
+        u'updated': Qt.ItemIsEnabled,
         u'subscribed': Qt.ItemIsEnabled,
         ACTION_BUTTONS: Qt.ItemIsEnabled
+    }
+    column_display_filters = {
+        u'updated': lambda date: pretty_date(date // 1000),
     }
 
     def __init__(self, subscribed=False, **kwargs):
