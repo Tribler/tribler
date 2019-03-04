@@ -226,10 +226,11 @@ class Transaction(object):
                 text_type(self.order_id.trader_id), int(self.order_id.order_number),
                 text_type(self.partner_order_id.trader_id), int(self.partner_order_id.order_number),
                 self.assets.first.amount, text_type(self.assets.first.asset_id), self.transferred_assets.first.amount,
-                self.assets.second.amount, text_type(self.assets.second.asset_id), self.transferred_assets.second.amount,
-                float(self.timestamp), self.sent_wallet_info, self.received_wallet_info, text_type(self.incoming_address),
-                text_type(self.outgoing_address), text_type(self.partner_incoming_address),
-                text_type(self.partner_outgoing_address), text_type(self.match_id))
+                self.assets.second.amount, text_type(self.assets.second.asset_id),
+                self.transferred_assets.second.amount, float(self.timestamp), self.sent_wallet_info,
+                self.received_wallet_info, text_type(self.incoming_address), text_type(self.outgoing_address),
+                text_type(self.partner_incoming_address), text_type(self.partner_outgoing_address),
+                text_type(self.match_id))
 
     @classmethod
     def from_proposed_trade(cls, proposed_trade, transaction_id):
