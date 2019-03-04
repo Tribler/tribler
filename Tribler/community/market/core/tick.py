@@ -62,8 +62,9 @@ class Tick(object):
 
     def to_database(self):
         return (text_type(self.order_id.trader_id), int(self.order_id.order_number), self.assets.first.amount,
-                text_type(self.assets.first.asset_id), self.assets.second.amount, text_type(self.assets.second.asset_id),
-                int(self.timeout), float(self.timestamp), self.is_ask(), self.traded, database_blob(self.block_hash))
+                text_type(self.assets.first.asset_id), self.assets.second.amount,
+                text_type(self.assets.second.asset_id), int(self.timeout), float(self.timestamp), self.is_ask(), self.traded,
+                database_blob(self.block_hash))
 
     @classmethod
     def from_order(cls, order):
