@@ -2,6 +2,8 @@ from __future__ import absolute_import
 
 import time
 
+from six import text_type
+
 from Tribler.community.market import MAX_ORDER_TIMEOUT
 from Tribler.community.market.core.assetamount import AssetAmount
 from Tribler.community.market.core.assetpair import AssetPair
@@ -10,6 +12,7 @@ from Tribler.community.market.core.order import OrderId, OrderNumber
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.pyipv8.ipv8.attestation.trustchain.block import GENESIS_HASH
+from Tribler.pyipv8.ipv8.database import database_blob
 
 
 class Tick(object):
@@ -58,9 +61,10 @@ class Tick(object):
                         Timeout(timeout), Timestamp(timestamp), traded=traded, block_hash=str(block_hash))
 
     def to_database(self):
-        return (unicode(self.order_id.trader_id), int(self.order_id.order_number), self.assets.first.amount,
-                unicode(self.assets.first.asset_id), self.assets.second.amount, unicode(self.assets.second.asset_id),
-                int(self.timeout), float(self.timestamp), self.is_ask(), self.traded, buffer(self.block_hash))
+        return (text_type(self.order_id.trader_id), int(self.order_id.order_number), self.assets.first.amount,
+                text_type(self.assets.first.asset_id), self.assets.second.amount,
+                text_type(self.assets.second.asset_id), int(self.timeout), float(self.timestamp), self.is_ask(),
+                self.traded, database_blob(self.block_hash))
 
     @classmethod
     def from_order(cls, order):
