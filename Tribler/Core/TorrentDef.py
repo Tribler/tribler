@@ -4,20 +4,22 @@ Definition of a torrent, that is, a collection of files or a live stream
 Author(s): Arno Bakker
 """
 from __future__ import absolute_import
+
 import logging
 import os
-import six
 import sys
 from hashlib import sha1
 
-from libtorrent import bencode, bdecode
+from libtorrent import bdecode, bencode
+
+import six
+from six import text_type
 
 from Tribler.Core.Utilities import maketorrent
-from Tribler.Core.Utilities.utilities import create_valid_metainfo, is_valid_url
 from Tribler.Core.Utilities.unicode import dunno2unicode
-from Tribler.Core.Utilities.utilities import parse_magnetlink, http_get
+from Tribler.Core.Utilities.utilities import create_valid_metainfo, http_get, is_valid_url, parse_magnetlink
 from Tribler.Core.defaults import TDEF_DEFAULTS
-from Tribler.Core.exceptions import TorrentDefNotFinalizedException, NotYetImplementedException
+from Tribler.Core.exceptions import NotYetImplementedException, TorrentDefNotFinalizedException
 from Tribler.Core.simpledefs import INFOHASH_LENGTH
 
 
@@ -568,7 +570,7 @@ class TorrentDef(object):
             # Try to convert the names in path to unicode, without
             # specifying the encoding
             try:
-                return unicode(self.metainfo["info"]["name"])
+                return text_type(self.metainfo["info"]["name"])
             except UnicodeError:
                 pass
 
@@ -591,7 +593,7 @@ class TorrentDef(object):
                             self._logger.debug("Bad character filter %s, isalnum? %s", ord(char), char.isalnum())
                             return u"?"
                     return u"".join([filter_character(char) for char in name])
-                return unicode(filter_characters(self.metainfo["info"]["name"]))
+                return text_type(filter_characters(self.metainfo["info"]["name"]))
             except UnicodeError:
                 pass
 
@@ -671,7 +673,7 @@ class TorrentDef(object):
                     # Try to convert the names in path to unicode,
                     # without specifying the encoding
                     try:
-                        yield join(*[unicode(element) for element in file_dict["path"]]), file_dict["length"]
+                        yield join(*[text_type(element) for element in file_dict["path"]]), file_dict["length"]
                         continue
                     except UnicodeError:
                         pass
@@ -697,7 +699,8 @@ class TorrentDef(object):
                                         "Bad character filter %s, isalnum? %s", ord(char), char.isalnum())
                                     return u"?"
                             return u"".join([filter_character(char) for char in name])
-                        yield join(*[unicode(filter_characters(element)) for element in file_dict["path"]]), file_dict["length"]
+                        yield (join(*[text_type(filter_characters(element)) for element in file_dict["path"]]),
+                               file_dict["length"])
                         continue
                     except UnicodeError:
                         pass
@@ -829,7 +832,7 @@ class TorrentDefNoMetainfo(object):
         return escape_as_utf8(self.get_name())
 
     def get_name_as_unicode(self):
-        return unicode(self.name) if self.name else u''
+        return text_type(self.name) if self.name else u''
 
     def get_files(self, exts=None):
         return []
