@@ -1,11 +1,14 @@
+from __future__ import absolute_import
+
 import logging
 import os
+
 from twisted.internet.task import LoopingCall
 
 from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.utilities import fix_torrent
-from Tribler.Core.simpledefs import NTFY_WATCH_FOLDER_CORRUPT_TORRENT, NTFY_INSERT
+from Tribler.Core.simpledefs import NTFY_INSERT, NTFY_WATCH_FOLDER_CORRUPT_TORRENT
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
 WATCH_FOLDER_CHECK_INTERVAL = 10
@@ -39,9 +42,12 @@ class WatchFolder(TaskManager):
         if not os.path.isdir(self.session.config.get_watch_folder_path()):
             return
 
-        for root, _, files in os.walk(self.session.config.get_watch_folder_path()):
+        # Make sure that we pass a str to os.walk
+        watch_dir = self.session.config.get_watch_folder_path().encode('raw_unicode_escape')
+
+        for root, _, files in os.walk(watch_dir):
             for name in files:
-                if not name.endswith(u".torrent"):
+                if not name.endswith(".torrent"):
                     continue
 
                 try:
