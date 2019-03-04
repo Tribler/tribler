@@ -699,8 +699,8 @@ class TorrentDef(object):
                                         "Bad character filter %s, isalnum? %s", ord(char), char.isalnum())
                                     return u"?"
                             return u"".join([filter_character(char) for char in name])
-                        yield join(*[text_type(filter_characters(element))
-                                   for element in file_dict["path"]]), file_dict["length"]
+                        yield (join(*[text_type(filter_characters(element)) for element in file_dict["path"]]),
+                              file_dict["length"])
                         continue
                     except UnicodeError:
                         pass
