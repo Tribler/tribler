@@ -700,7 +700,7 @@ class TorrentDef(object):
                                     return u"?"
                             return u"".join([filter_character(char) for char in name])
                         yield (join(*[text_type(filter_characters(element)) for element in file_dict["path"]]),
-                              file_dict["length"])
+                               file_dict["length"])
                         continue
                     except UnicodeError:
                         pass
