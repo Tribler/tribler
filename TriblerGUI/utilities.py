@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+from __future__ import absolute_import, division
 
 import hashlib
 import os
@@ -30,15 +30,15 @@ def format_speed(num):
 
 
 def seconds_to_string(seconds):
-    minutes = seconds / 60
+    minutes = seconds // 60
     seconds_left = seconds % 60
     return "%d:%02d" % (minutes, seconds_left)
 
 
 def seconds_to_hhmm_string(seconds):
-    hours = int(seconds) / 3600
+    hours = int(seconds) // 3600
     seconds -= hours * 3600
-    return "%d:%02d" % (hours, seconds / 60)
+    return "%d:%02d" % (hours, seconds // 60)
 
 
 def string_to_seconds(time_str):
@@ -110,30 +110,37 @@ def pretty_date(time=False):
         if second_diff < 120:
             return "a minute ago"
         if second_diff < 3600:
-            return str(second_diff / 60) + " minutes ago"
+            return str(second_diff // 60) + " minutes ago"
         if second_diff < 7200:
             return "an hour ago"
         if second_diff < 86400:
-            return str(second_diff / 3600) + " hours ago"
+            return str(second_diff // 3600) + " hours ago"
     if day_diff == 1:
         return "yesterday"
     if day_diff < 7:
         return str(day_diff) + " days ago"
     if day_diff < 31:
-        return str(day_diff / 7) + " weeks ago"
+        weeks = day_diff // 7
+        word = "week" if weeks == 1 else "weeks"
+        return str(weeks) + " " + word + " ago"
     if day_diff < 365:
-        return str(day_diff / 30) + " months ago"
-    return str(day_diff / 365) + " years ago"
+        months = day_diff // 30
+        word = "month" if months == 1 else "months"
+        return str(months) + " " + word + " ago"
+
+    years = day_diff // 365
+    word = "year" if years == 1 else "years"
+    return str(years) + " " + word + " ago"
 
 
 def duration_to_string(seconds):
-    weeks = int(seconds / (60 * 60 * 24 * 7))
+    weeks = int(seconds // (60 * 60 * 24 * 7))
     seconds -= weeks * (60 * 60 * 24 * 7)
-    days = int(seconds / (60 * 60 * 24))
+    days = int(seconds // (60 * 60 * 24))
     seconds -= days * (60 * 60 * 24)
-    hours = int(seconds / (60 * 60))
+    hours = int(seconds // (60 * 60))
     seconds -= hours * (60 * 60)
-    minutes = int(seconds / 60)
+    minutes = int(seconds // 60)
     seconds -= minutes * 60
     seconds = int(seconds)
 

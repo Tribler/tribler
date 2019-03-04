@@ -235,4 +235,5 @@ class ChannelsTableView(ItemClickedMixin, SubscribeButtonMixin,
     def resizeEvent(self, _):
         self.setColumnWidth(1, 150)
         self.setColumnWidth(2, 100)
-        self.setColumnWidth(0, self.width() - 254)  # Few pixels offset so the horizontal scrollbar does not appear
+        self.setColumnWidth(3, 100)
+        self.setColumnWidth(0, self.width() - 354)  # Few pixels offset so the horizontal scrollbar does not appear

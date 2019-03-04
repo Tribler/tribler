@@ -450,6 +450,7 @@ def define_binding(db):
                 "subscribed": self.subscribed,
                 "votes": self.votes,
                 "status": self.status,
+                "updated": self.timestamp,
 
                 # TODO: optimize this?
                 "my_channel": database_blob(self._my_key.pub().key_to_bin()[10:]) == database_blob(self.public_key)
