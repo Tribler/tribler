@@ -1,12 +1,16 @@
+from __future__ import absolute_import
+
 import os
 import sys
 
-from PyQt5.QtCore import QTimer, QEvent, Qt
-from PyQt5.QtGui import QPixmap, QIcon
+from PyQt5.QtCore import QEvent, QTimer, Qt
+from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.QtWidgets import QWidget
 
+from six import text_type
+
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
-from TriblerGUI.utilities import is_video_file, seconds_to_string, get_image_path
+from TriblerGUI.utilities import get_image_path, seconds_to_string
 
 
 class VideoPlayerPage(QWidget):
@@ -190,8 +194,8 @@ class VideoPlayerPage(QWidget):
         self.window().video_player_play_pause_button.setIcon(self.play_icon)
         self.window().video_player_position_slider.setValue(0)
 
-        media_filename = u"http://127.0.0.1:" + unicode(self.video_player_port) + "/" + \
-                         self.active_infohash + "/" + unicode(file_index)
+        media_filename = u"http://127.0.0.1:{}/{}/{}".format(text_type(self.video_player_port), self.active_infohash,
+                                                             text_type(file_index))
         self.media = self.instance.media_new(media_filename)
         self.mediaplayer.set_media(self.media)
         self.media.parse()
