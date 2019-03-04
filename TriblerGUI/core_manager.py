@@ -1,6 +1,14 @@
-import subprocess
+from __future__ import absolute_import
 
+import os
+import subprocess
 import sys
+
+from PyQt5.QtCore import QObject, QTimer, pyqtSignal
+from PyQt5.QtWidgets import QApplication
+
+from six import text_type
+
 from twisted.internet.error import ReactorAlreadyInstalledError
 
 # We always use a selectreactor
@@ -10,12 +18,8 @@ try:
 except ReactorAlreadyInstalledError:
     pass
 
-import os
-from PyQt5.QtCore import QTimer, pyqtSignal, QObject
-from PyQt5.QtWidgets import QApplication
-
 from TriblerGUI.event_request_manager import EventRequestManager
-from TriblerGUI.tribler_request_manager import TriblerRequestManager, QueuePriorityEnum
+from TriblerGUI.tribler_request_manager import QueuePriorityEnum, TriblerRequestManager
 from TriblerGUI.utilities import get_base_path, is_frozen
 
 START_FAKE_API = False
@@ -81,8 +85,8 @@ class CoreManager(QObject):
         if not START_FAKE_API:
             if not core_env:
                 system_encoding = sys.getfilesystemencoding()
-                core_env = {(k.encode(system_encoding) if isinstance(k, unicode) else str(k))
-                            : (v.encode(system_encoding) if isinstance(v, unicode) else str(v))
+                core_env = {(k.encode(system_encoding) if isinstance(k, text_type) else str(k))
+                            : (v.encode(system_encoding) if isinstance(v, text_type) else str(v))
                             for k, v in os.environ.copy().iteritems()}
                 core_env["CORE_PROCESS"] = "1"
                 core_env["CORE_BASE_PATH"] = self.base_path
