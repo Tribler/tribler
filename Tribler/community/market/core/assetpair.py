@@ -1,5 +1,14 @@
+# pylint: disable=long-builtin,redefined-builtin
+
+from __future__ import absolute_import
+
 from Tribler.community.market.core.assetamount import AssetAmount
 from Tribler.community.market.core.price import Price
+
+try:
+    long
+except NameError:
+    long = int
 
 
 class AssetPair(object):
