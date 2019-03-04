@@ -89,6 +89,24 @@ class TestTorrentChecker(TestAsServer):
         self.torrent_checker.add_gui_request('a' * 20).addErrback(lambda _: test_deferred.callback(None))
         return test_deferred
 
+    def test_add_gui_request_blacklisted_trackers(self):
+        """
+        Test whether only cached results of a torrent are returned with only blacklisted trackers
+        """
+        with db_session:
+            tracker = self.session.lm.mds.TrackerState(url="http://localhost/tracker")
+            self.session.lm.mds.TorrentState(infohash='a' * 20, seeders=5, leechers=10, trackers={tracker},
+                                             last_check=int(time.time()))
+
+        def verify_response(result):
+            self.assertSetEqual({'db'}, set(result.keys()))
+            self.assertEqual(result['db']['seeders'], 5)
+            self.assertEqual(result['db']['leechers'], 10)
+
+        self.session.lm.tracker_manager.blacklist.append("http://localhost/tracker")
+
+        return self.torrent_checker.add_gui_request('a' * 20).addCallback(verify_response)
+
     def test_add_gui_request_cached(self):
         """
         Test whether cached results of a torrent are returned when fetching the health of a torrent

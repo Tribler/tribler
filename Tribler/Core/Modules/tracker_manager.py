@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import logging
+import os
 import time
 
 from pony.orm import count, db_session
@@ -17,9 +18,26 @@ class TrackerManager(object):
         self._logger = logging.getLogger(self.__class__.__name__)
         self._session = session
 
+        self.blacklist = []
+        self.load_blacklist()
+
     @property
     def tracker_store(self):
         return self._session.lm.mds.TrackerState
+
+    def load_blacklist(self):
+        """
+        Load the tracker blacklist from tracker_blacklist.txt in the session state directory.
+
+        Entries are newline separated and are supposed to be sanitized.
+        """
+        blacklist_file = os.path.abspath(os.path.join(self._session.config.get_state_dir(), "tracker_blacklist.txt"))
+        if os.path.exists(blacklist_file):
+            with open(blacklist_file, 'r') as blacklist_file_handle:
+                # Note that get_uniformed_tracker_url will strip the newline at the end of .readlines()
+                self.blacklist.extend([get_uniformed_tracker_url(url) for url in blacklist_file_handle.readlines()])
+        else:
+            self._logger.info("No tracker blacklist file found at %s.", blacklist_file)
 
     def get_tracker_info(self, tracker_url):
         """
@@ -110,9 +128,10 @@ class TrackerManager(object):
         Gets the next tracker for automatic tracker-checking.
         :return: The next tracker for automatic tracker-checking.
         """
-        tracker = self.tracker_store.select(lambda g: g.url not in ['no-DHT', 'DHT']
+        tracker = self.tracker_store.select(lambda g: str(g.url) not in [u'no-DHT', u'DHT']
                                             and g.alive
-                                            and g.last_check + TRACKER_RETRY_INTERVAL <= int(time.time()))\
+                                            and g.last_check + TRACKER_RETRY_INTERVAL <= int(time.time())
+                                            and str(g.url) not in self.blacklist)\
             .order_by(self.tracker_store.last_check).limit(1)
 
         if not tracker:
