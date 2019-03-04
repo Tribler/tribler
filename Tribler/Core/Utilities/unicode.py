@@ -7,7 +7,18 @@ from __future__ import absolute_import
 
 import sys
 
-from six import text_type
+from six import binary_type, text_type
+
+
+def ensure_text(s, encoding='utf-8', errors='strict'):
+    """Copied from https://github.com/benjaminp/six/blob/master/six.py
+    """
+    if isinstance(s, binary_type):
+        return s.decode(encoding, errors)
+    elif isinstance(s, text_type):
+        return s
+    else:
+        raise TypeError("not expecting type '%s'" % type(s))
 
 
 def bin2unicode(bin, possible_encoding='utf_8'):
@@ -40,7 +51,7 @@ def str2unicode(s):
     except UnicodeDecodeError:
         for encoding in [sys.getfilesystemencoding(), 'utf_8', 'iso-8859-1']:
             try:
-                return unicode(s, encoding)
+                return ensure_text(s, encoding)
             except UnicodeDecodeError:
                 pass
     return None
