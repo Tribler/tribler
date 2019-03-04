@@ -332,7 +332,7 @@ class TriblerRequestManager(QObject):
         try:
             json_result = json.loads(str(data), encoding='latin_1')
 
-            if 'error' in json_result and capture_errors:
+            if 'error' in json_result and capture_errors and not self.window.core_manager.shutting_down:
                 self.show_error(TriblerRequestManager.get_message_from_error(json_result))
             else:
                 self.received_json.emit(json_result, reply.error())
