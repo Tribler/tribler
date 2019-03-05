@@ -16,7 +16,7 @@ class TrustchainEndpoint(resource.Resource):
             "bootstrap": TrustchainBootstrapEndpoint
         }
 
-        for path, child_cls in child_handler_dict.iteritems():
+        for path, child_cls in child_handler_dict.items():
             self.putChild(path, child_cls(session))
 
 

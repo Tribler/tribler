@@ -66,7 +66,7 @@ class OrderSpecificEndpoint(BaseMarketEndpoint):
         self.order_number = order_number
 
         child_handler_dict = {"cancel": OrderCancelEndpoint}
-        for path, child_cls in child_handler_dict.iteritems():
+        for path, child_cls in child_handler_dict.items():
             self.putChild(path, child_cls(self.session, self.order_number))
 
 

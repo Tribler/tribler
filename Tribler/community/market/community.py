@@ -330,7 +330,7 @@ class MarketCommunity(Community, BlockListener):
         self.request_cache.clear()
 
         # Store all traders to the database
-        for trader_id, sock_addr in self.mid_register.iteritems():
+        for trader_id, sock_addr in self.mid_register.items():
             self.market_database.add_trader_identity(trader_id, sock_addr[0], sock_addr[1])
 
         # Save the ticks to the database
@@ -1057,7 +1057,7 @@ class MarketCommunity(Community, BlockListener):
         return True, ''
 
     def get_outstanding_proposals(self, order_id, partner_order_id):
-        return [(proposal_id, cache) for proposal_id, cache in self.request_cache._identifiers.iteritems()
+        return [(proposal_id, cache) for proposal_id, cache in self.request_cache._identifiers.items()
                 if isinstance(cache, ProposedTradeRequestCache)
                 and cache.proposed_trade.order_id == order_id
                 and cache.proposed_trade.recipient_order_id == partner_order_id]

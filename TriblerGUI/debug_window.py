@@ -9,8 +9,8 @@ from time import localtime, strftime
 from PyQt5 import QtGui, uic
 from PyQt5.QtCore import QTimer, Qt, pyqtSignal
 from PyQt5.QtGui import QBrush, QColor, QTextCursor
-from PyQt5.QtWidgets import QDesktopWidget, QFileDialog, QHeaderView, QMainWindow, QMessageBox, QSizePolicy, \
-    QTreeWidgetItem
+from PyQt5.QtWidgets import (QDesktopWidget, QFileDialog, QHeaderView, QMainWindow, QMessageBox, QSizePolicy,
+                             QTreeWidgetItem)
 
 import matplotlib
 matplotlib.use('Qt5Agg')
@@ -307,7 +307,7 @@ class DebugWindow(QMainWindow):
         if not data:
             return
         self.window().trustchain_tree_widget.clear()
-        for key, value in data["statistics"].iteritems():
+        for key, value in data["statistics"].items():
             self.create_and_add_widget_item(key, value, self.window().trustchain_tree_widget)
 
     def load_ipv8_general_tab(self):
@@ -318,10 +318,10 @@ class DebugWindow(QMainWindow):
         if not data:
             return
         self.window().ipv8_general_tree_widget.clear()
-        for key, value in data["ipv8_statistics"].iteritems():
-            if key == 'total_up' or key == 'total_down':
+        for key, value in data["ipv8_statistics"].items():
+            if key in ('total_up', 'total_down'):
                 value = "%.2f MB" % (value / (1024.0 * 1024.0))
-            if key == 'session_uptime':
+            elif key == 'session_uptime':
                 value = "%s" % str(datetime.timedelta(seconds=int(value)))
             self.create_and_add_widget_item(key, value, self.window().ipv8_general_tree_widget)
 
@@ -388,14 +388,14 @@ class DebugWindow(QMainWindow):
         for overlay in data["statistics"]:
             self.window().ipv8_communities_details_widget.setColumnWidth(0, 250)
 
-            for key, stats in overlay.iteritems():
+            for key, stats in overlay.items():
                 header_item = QTreeWidgetItem(self.window().ipv8_communities_details_widget)
                 header_item.setFirstColumnSpanned(True)
                 header_item.setBackground(0, QtGui.QColor('#CCCCCC'))
                 header_item.setText(0, key)
                 self.window().ipv8_communities_details_widget.addTopLevelItem(header_item)
 
-                for request_id, stat in stats.iteritems():
+                for request_id, stat in stats.items():
                     stat_item = QTreeWidgetItem(self.window().ipv8_communities_details_widget)
                     stat_item.setText(0, request_id)
                     stat_item.setText(1, "%.3f" % (stat["bytes_up"] / (1024.0 * 1024.0)))
@@ -449,7 +449,7 @@ class DebugWindow(QMainWindow):
         if not data:
             return
         self.window().dht_tree_widget.clear()
-        for key, value in data["statistics"].iteritems():
+        for key, value in data["statistics"].items():
             self.create_and_add_widget_item(key, value, self.window().dht_tree_widget)
 
     def on_event_clicked(self, item):
@@ -746,7 +746,7 @@ class DebugWindow(QMainWindow):
     def on_libtorrent_settings_received(self, data, export=False):
         if not data:
             return
-        for key, value in data["settings"].iteritems():
+        for key, value in data["settings"].items():
             item = QTreeWidgetItem(self.window().libtorrent_settings_tree_widget)
             item.setText(0, key)
             item.setText(1, str(value))
@@ -763,7 +763,7 @@ class DebugWindow(QMainWindow):
     def on_libtorrent_session_received(self, data, export=False):
         if not data:
             return
-        for key, value in data["session"].iteritems():
+        for key, value in data["session"].items():
             item = QTreeWidgetItem(self.window().libtorrent_session_tree_widget)
             item.setText(0, key)
             item.setText(1, str(value))

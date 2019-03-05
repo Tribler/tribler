@@ -39,7 +39,7 @@ class TestReputationPagerank(TestReputationBase):
         self.insert_transaction(b'b', b'e', AssetPair(AssetAmount(100, 'BTC'), AssetAmount(10000, 'MB')))
         rep_dict = self.compute_reputations()
         self.assertEqual(len(rep_dict.keys()), 5)
-        for _, rep in rep_dict.iteritems():
+        for rep in rep_dict.values():
             self.assertGreater(rep, 0)
 
     def test_pagerank_4(self):

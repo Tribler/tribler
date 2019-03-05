@@ -87,7 +87,7 @@ class CoreManager(QObject):
                 system_encoding = sys.getfilesystemencoding()
                 core_env = {(k.encode(system_encoding) if isinstance(k, text_type) else str(k))
                             : (v.encode(system_encoding) if isinstance(v, text_type) else str(v))
-                            for k, v in os.environ.copy().iteritems()}
+                            for k, v in os.environ.copy().items()}
                 core_env["CORE_PROCESS"] = "1"
                 core_env["CORE_BASE_PATH"] = self.base_path
                 core_env["CORE_API_PORT"] = "%s" % self.api_port

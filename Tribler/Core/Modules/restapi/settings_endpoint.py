@@ -124,7 +124,7 @@ class SettingsEndpoint(resource.Resource):
         """
         Parse the settings dictionary.
         """
-        for key, value in settings_dict.iteritems():
+        for key, value in settings_dict.items():
             if isinstance(value, dict):
                 self.parse_settings_dict(value, depth=depth+1, root_key=key)
             else:

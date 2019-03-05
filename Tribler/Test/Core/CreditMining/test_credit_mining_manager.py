@@ -132,7 +132,7 @@ class TestCreditMiningManager(TestAsServer):
 
         torrents = {i: FakeTorrent(i, self.name + str(i)) for i in range(5)}
         self.credit_mining_manager.add_source(self.cid)
-        for infohash, torrent in torrents.iteritems():
+        for infohash, torrent in torrents.items():
             self.credit_mining_manager.torrents[infohash] = torrent
             torrent.sources = set([self.cid])
         self.credit_mining_manager.remove_source(self.cid)

@@ -44,7 +44,7 @@ class DebugEndpoint(resource.Resource):
                               "cpu": DebugCPUEndpoint, "memory": DebugMemoryEndpoint,
                               "log": DebugLogEndpoint, "profiler": DebugProfilerEndpoint}
 
-        for path, child_cls in child_handler_dict.iteritems():
+        for path, child_cls in child_handler_dict.items():
             self.putChild(path, child_cls(session))
 
 

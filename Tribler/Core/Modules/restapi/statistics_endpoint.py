@@ -16,7 +16,7 @@ class StatisticsEndpoint(resource.Resource):
             "ipv8": StatisticsIPv8Endpoint,
         }
 
-        for path, child_cls in child_handler_dict.iteritems():
+        for path, child_cls in child_handler_dict.items():
             self.putChild(path, child_cls(session))
 
 

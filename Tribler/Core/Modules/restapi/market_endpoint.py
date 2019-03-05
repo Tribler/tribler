@@ -17,5 +17,5 @@ class MarketEndpoint(resource.Resource):
 
         child_handler_dict = {"asks": AsksEndpoint, "bids": BidsEndpoint, "transactions": TransactionsEndpoint,
                               "orders": OrdersEndpoint, "matchmakers": MatchmakersEndpoint}
-        for path, child_cls in child_handler_dict.iteritems():
+        for path, child_cls in child_handler_dict.items():
             self.putChild(path, child_cls(self.session))
