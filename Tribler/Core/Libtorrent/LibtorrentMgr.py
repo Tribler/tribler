@@ -15,12 +15,12 @@ from binascii import hexlify
 from copy import deepcopy
 from distutils.version import LooseVersion
 from shutil import rmtree
-from urllib import url2pathname
 
 import libtorrent as lt
 from libtorrent import torrent_handle
 
 from six import text_type
+from six.moves.urllib.request import url2pathname
 
 from twisted.internet import reactor, threads
 from twisted.internet.defer import Deferred, fail, succeed
