@@ -199,8 +199,8 @@ def validate_files(info):
             if not isinstance(path, list):
                 raise ValueError('info files path is not list, but ' + repr(type(path)))
 
-            if not all(isinstance(dir_path, str) for dir_path in path):
-                raise ValueError('info files path is not string')
+            if not all(isinstance(dir_path, six.binary_type) for dir_path in path):
+                raise ValueError('info files path is not a string')
 
             length = file_desc['length']
             if not isinstance(length, six.integer_types):

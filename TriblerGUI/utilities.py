@@ -5,9 +5,9 @@ import os
 import re
 import sys
 from datetime import datetime, timedelta
-from urllib import quote_plus
 
 from six import integer_types
+from six.moves.urllib.parse import quote_plus
 
 import TriblerGUI
 from TriblerGUI.defs import HEALTH_DEAD, HEALTH_GOOD, HEALTH_MOOT, HEALTH_UNCHECKED, VIDEO_EXTS
