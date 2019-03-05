@@ -35,9 +35,9 @@ class MemoryTransactionRepositoryTestSuite(unittest.TestCase):
 
     def test_find_all(self):
         # Test for find all
-        self.assertEquals([], self.memory_transaction_repository.find_all())
+        self.assertEquals([], list(self.memory_transaction_repository.find_all()))
         self.memory_transaction_repository.add(self.transaction)
-        self.assertEquals([self.transaction], self.memory_transaction_repository.find_all())
+        self.assertEquals([self.transaction], list(self.memory_transaction_repository.find_all()))
 
     def test_next_identity(self):
         # Test for next identity

@@ -51,9 +51,9 @@ class TransactionManagerTestSuite(unittest.TestCase):
 
     def test_find_all(self):
         # Test for find all
-        self.assertEquals([], self.transaction_manager.find_all())
+        self.assertEquals([], list(self.transaction_manager.find_all()))
         self.memory_transaction_repository.add(self.transaction)
-        self.assertEquals([self.transaction], self.transaction_manager.find_all())
+        self.assertEquals([self.transaction], list(self.transaction_manager.find_all()))
 
     def test_create_from_start_transaction(self):
         # Test for create from start transaction
