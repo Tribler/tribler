@@ -67,7 +67,6 @@ class TestTunnelBase(TestAsServer):
         self.config.set_ipv8_port(-1)
         self.config.set_libtorrent_enabled(True)
         self.config.set_trustchain_enabled(False)
-        self.config.set_resource_monitor_enabled(False)
         self.config.set_tunnel_community_socks5_listen_ports(self.get_socks5_ports())
 
     @inlineCallbacks
