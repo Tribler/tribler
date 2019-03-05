@@ -5,13 +5,15 @@ Author(s): Jie Yang
 """
 from __future__ import absolute_import
 
-from base64 import b32decode
 import binascii
 import logging
-import six
+from base64 import b32decode
 
-from libtorrent import bencode, bdecode
-from six.moves.urllib.parse import urlsplit, parse_qsl
+from libtorrent import bdecode, bencode
+
+import six
+from six.moves.urllib.parse import parse_qsl, urlsplit
+
 from twisted.internet import reactor
 from twisted.internet.defer import fail, succeed
 from twisted.internet.ssl import ClientContextFactory
