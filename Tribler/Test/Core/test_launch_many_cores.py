@@ -145,7 +145,7 @@ class TestLaunchManyCore(TriblerCoreTest):
         self.lm.session.get_downloads_pstate_dir = lambda: self.session_base_dir
 
         with open(os.path.join(self.lm.session.get_downloads_pstate_dir(), 'abcd.state'), 'wb') as state_file:
-            state_file.write("hi")
+            state_file.write(b"hi")
 
         self.lm.initComplete = True
         self.lm.resume_download = mocked_resume_download
