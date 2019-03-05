@@ -3,6 +3,8 @@ instrumentation.
 
 Author(s): Elric Milon
 """
+from __future__ import print_function
+
 import threading
 from decorator import decorator
 from os import sys
@@ -97,7 +99,7 @@ class WatchDog(Thread):
         self._registered_events.pop(name, None)
 
     def printe(self, line):
-            print >> sys.stderr, line
+            print(line, file=sys.stderr)
 
     def run(self):
         events_to_unregister = []
