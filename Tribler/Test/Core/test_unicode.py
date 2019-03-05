@@ -3,11 +3,11 @@ from __future__ import absolute_import
 import binascii
 import sys
 
+from nose.tools import raises
+
 import six
 
-from nose.tools import raises
-from Tribler.Core.Utilities.unicode import (bin2unicode, dunno2unicode,
-                                            str2unicode)
+from Tribler.Core.Utilities.unicode import bin2unicode, dunno2unicode, str2unicode
 from Tribler.Test.Core.base_test import TriblerCoreTest
 
 
@@ -26,7 +26,7 @@ class TriblerCoreTestUnicode(TriblerCoreTest):
         self.assertIsInstance(data, six.text_type)
 
     def test_unicode_binary_3(self):
-        data = binascii.b2a_uu("test")
+        data = binascii.b2a_uu(b"test")
         data = bin2unicode(data, 'bla')
         self.assertIsInstance(data, six.text_type)
 
