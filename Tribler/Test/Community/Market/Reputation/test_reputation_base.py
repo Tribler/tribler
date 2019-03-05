@@ -24,9 +24,9 @@ class TestReputationBase(AbstractServer):
                 "transferred": assets_traded.to_dictionary()
             },
         }
-        block = TrustChainBlock.create('tx_done', transaction, self.market_db, pubkey1,
+        block = TrustChainBlock.create(b'tx_done', transaction, self.market_db, pubkey1,
                                        link=None, link_pk=pubkey2)
-        link_block = TrustChainBlock.create('tx_done', transaction, self.market_db, pubkey2,
+        link_block = TrustChainBlock.create(b'tx_done', transaction, self.market_db, pubkey2,
                                             link=block, link_pk=pubkey1)
 
         self.market_db.add_block(block)
