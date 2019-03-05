@@ -22,7 +22,7 @@ class PayoutManager(object):
         if mid not in self.tribler_peers:
             return
 
-        total_bytes = sum(self.tribler_peers[mid].values()) 
+        total_bytes = sum(self.tribler_peers[mid].values())
 
         def on_nodes(nodes):
             self.logger.debug("Received %d nodes for DHT lookup", len(nodes))
