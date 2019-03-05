@@ -103,7 +103,7 @@ class TestTorrentDef(BaseTestCase):
         metainfo = t.get_metainfo()
         self.general_check(metainfo)
 
-        self.assertEqual(metainfo['info']['name'], 'dirintorrent')
+        self.assertEqual(metainfo['info']['name'], b'dirintorrent')
         reals = 0
         for file in metainfo['info']['files']:
             s = file['length']
@@ -137,7 +137,7 @@ class TestTorrentDef(BaseTestCase):
 
         metainfo = t.get_metainfo()
         self.general_check(metainfo)
-        self.assertEqual(metainfo['info']['name'], 'dirintorrent')
+        self.assertEqual(metainfo['info']['name'], b'dirintorrent')
 
         reals = 0
         for file in metainfo['info']['files']:
