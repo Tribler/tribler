@@ -51,7 +51,7 @@ def str2unicode(s):
     except UnicodeDecodeError:
         for encoding in [sys.getfilesystemencoding(), 'utf_8', 'iso-8859-1']:
             try:
-                return ensure_text(s, encoding)
+                return ensure_unicode(s, encoding)
             except UnicodeDecodeError:
                 pass
     return None
