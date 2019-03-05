@@ -23,7 +23,7 @@ class PayoutManager(object):
             return
 
         total_bytes = 0
-        for balance in self.tribler_peers[mid].itervalues():
+        for balance in self.tribler_peers[mid].values():
             total_bytes += balance
 
         def on_nodes(nodes):
