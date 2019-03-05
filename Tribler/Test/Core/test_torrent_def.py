@@ -5,11 +5,11 @@ import os
 import shutil
 from tempfile import mkdtemp
 
-import six
-
 from libtorrent import bdecode
 
 from nose.tools import raises
+
+import six
 
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
