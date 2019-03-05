@@ -12,6 +12,10 @@ from Tribler.Test.tools import trial_timeout
 
 class TestCircuitDebugEndpoint(AbstractApiTest):
 
+    def setUpPreSession(self):
+        super(TestCircuitDebugEndpoint, self).setUpPreSession()
+        self.config.set_resource_monitor_enabled(True)
+
     @trial_timeout(10)
     def test_get_slots(self):
         """
