@@ -1,13 +1,13 @@
 from __future__ import absolute_import
 
 from binascii import unhexlify
-from urllib import unquote_plus
 
 from PyQt5 import uic
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import QFileDialog, QSizePolicy, QTreeWidgetItem
 
 from six.moves import xrange
+from six.moves.urllib.parse import unquote_plus
 
 import Tribler.Core.Utilities.json_util as json
 
