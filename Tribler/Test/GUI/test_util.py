@@ -1,8 +1,10 @@
+from __future__ import absolute_import
+
 import unittest
 
 from six.moves.urllib.parse import unquote_plus
 
-from TriblerGUI.utilities import unicode_quoter, quote_plus_unicode
+from TriblerGUI.utilities import quote_plus_unicode, unicode_quoter
 
 
 class TestGUIUtilities(unittest.TestCase):
