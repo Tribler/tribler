@@ -11,8 +11,10 @@ from copy import copy
 from hashlib import sha1
 from time import time
 
-from libtorrent import bencode
 import chardet
+
+from libtorrent import bencode
+
 from six import text_type
 from six.moves import xrange
 
@@ -207,7 +209,7 @@ def makeinfo(input, userabortflag, userprogresscallback):
                 'name': uniconvert(name, encoding),
                 'name.utf-8': uniconvert(name, 'utf-8')}
 
-    infodict.update({'pieces': ''.join(pieces)})
+    infodict.update({'pieces': b''.join(pieces)})
 
     return infodict, piece_length
 
