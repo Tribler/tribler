@@ -63,7 +63,8 @@ class TorrentDef(object):
     def __init__(self, input=None, metainfo=None, infohash=None):
         """ Normal constructor for TorrentDef (The input, metainfo and infohash
         parameters are used internally to make this a copy constructor) """
-        assert infohash is None or isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
+        assert infohash is None or isinstance(infohash, six.binary_type), \
+            "INFOHASH has invalid type: %s" % type(infohash)
         assert infohash is None or len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
 
         self._logger = logging.getLogger(self.__class__.__name__)
@@ -155,7 +156,7 @@ class TorrentDef(object):
         # Elsewhere: must use TorrentDef.get_infohash() to allow P2PURLs.
         t.infohash = sha1(bencode(metainfo['info'])).digest()
 
-        assert isinstance(t.infohash, str), "INFOHASH has invalid type: %s" % type(t.infohash)
+        assert isinstance(t.infohash, six.binary_type), "INFOHASH has invalid type: %s" % type(t.infohash)
         assert len(t.infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(t.infohash)
 
         return t
@@ -486,7 +487,7 @@ class TorrentDef(object):
             self.metainfo_valid = True
 
         assert self.infohash is None or isinstance(
-            self.infohash, str), "INFOHASH has invalid type: %s" % type(self.infohash)
+            self.infohash, six.binary_type), "INFOHASH has invalid type: %s" % type(self.infohash)
         assert self.infohash is None or len(
             self.infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(self.infohash)
 
@@ -804,7 +805,7 @@ class TorrentDefNoMetainfo(object):
     """
 
     def __init__(self, infohash, name, url=None):
-        assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
+        assert isinstance(infohash, six.binary_type), "INFOHASH has invalid type: %s" % type(infohash)
         assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
         self.infohash = infohash
         self.name = name
