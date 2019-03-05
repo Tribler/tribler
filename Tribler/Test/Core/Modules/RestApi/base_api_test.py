@@ -1,7 +1,8 @@
 from __future__ import absolute_import
 
 import os
-import urllib
+
+from six.moves.urllib.parse import urlencode
 
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, succeed
@@ -27,7 +28,7 @@ class POSTDataProducer(object):
     def __init__(self, data_dict, raw_data):
         self.body = data_dict
         if not raw_data:
-            self.body = urllib.urlencode(data_dict)
+            self.body = urlencode(data_dict)
         self.length = len(self.body)
 
     def startProducing(self, consumer):

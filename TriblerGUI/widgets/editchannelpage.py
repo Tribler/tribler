@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import os
-import urllib
 from base64 import b64encode
 
 from PyQt5.QtCore import QDir, QTimer, pyqtSignal
