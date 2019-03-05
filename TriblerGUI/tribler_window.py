@@ -16,7 +16,7 @@ from PyQt5.QtWidgets import QAction, QApplication, QCompleter, QFileDialog, QLin
     QShortcut, QStyledItemDelegate, QSystemTrayIcon, QTreeWidget
 
 import six
-from six.moves.urllib.parse import quote_plus, urlparse
+from six.moves.urllib.parse import unquote, urlparse
 from six.moves.urllib.request import pathname2url
 
 from Tribler.Core.Modules.process_checker import ProcessChecker
