@@ -14,14 +14,14 @@ from Tribler.Test.Core.base_test import TriblerCoreTest
 class TriblerCoreTestUnicode(TriblerCoreTest):
 
     def test_unicode_binary_1(self):
-        data = "test"
+        data = b"test"
         self.assertNotIsInstance(data, six.text_type)
         data = binascii.b2a_uu(data)
         data = bin2unicode(data)
         self.assertIsInstance(data, six.text_type)
 
     def test_unicode_binary_2(self):
-        data = binascii.b2a_uu("test")
+        data = binascii.b2a_uu(b"test")
         data = bin2unicode(data, None)
         self.assertIsInstance(data, six.text_type)
 
