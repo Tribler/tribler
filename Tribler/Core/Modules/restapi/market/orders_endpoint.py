@@ -1,9 +1,9 @@
 from twisted.web import http
 
+import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.Modules.restapi.market import BaseMarketEndpoint
 from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.order import OrderId, OrderNumber
-from Tribler.Core.Modules.restapi.market import BaseMarketEndpoint
-import Tribler.Core.Utilities.json_util as json
 
 
 class OrdersEndpoint(BaseMarketEndpoint):

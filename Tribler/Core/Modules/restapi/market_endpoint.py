@@ -1,7 +1,7 @@
-from Tribler.Core.Modules.restapi.market.matchmakers_endpoint import MatchmakersEndpoint
 from twisted.web import resource
 
 from Tribler.Core.Modules.restapi.market.asks_bids_endpoint import AsksEndpoint, BidsEndpoint
+from Tribler.Core.Modules.restapi.market.matchmakers_endpoint import MatchmakersEndpoint
 from Tribler.Core.Modules.restapi.market.orders_endpoint import OrdersEndpoint
 from Tribler.Core.Modules.restapi.market.transactions_endpoint import TransactionsEndpoint
 

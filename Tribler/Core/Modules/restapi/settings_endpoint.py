@@ -1,5 +1,5 @@
-from twisted.web import resource
 from twisted.internet.defer import DeferredList
+from twisted.web import resource
 
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.CreditMining.CreditMiningManager import CreditMiningManager
