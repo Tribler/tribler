@@ -53,7 +53,7 @@ def find_duration(info):
 
     if match is None:
         return 0
-    h, m, s = map(int, match.groups()[:3])
+    h, m, s = (int(x) for x in match.groups()[:3])
     return (h * 60 + m) * 60 + s
 
 
@@ -71,7 +71,7 @@ def find_resolution(info):
 
     if match is None:
         return 0
-    w, h = map(int, match.groups()[:2])
+    w, h = (int(x) for x in match.groups()[:2])
     return w, h
 
 
@@ -112,7 +112,7 @@ def preferred_timecodes(videofile, duration, sample_res, ffmpeg, num_samples=20,
                     pxls = []
                     wxstr = wx.Bitmap(outputfile, wx.BITMAP_TYPE_ANY).ConvertToImage().GetData()
                     for index in range(0, len(wxstr), 3):
-                        pxls.append(tuple(map(ord, wxstr[index:index + 3])))
+                        pxls.append(tuple(ord(x) for x in wxstr[index:index + 3]))
                     return pxls
 
             this_colour = colourfulness(get_image_data())
