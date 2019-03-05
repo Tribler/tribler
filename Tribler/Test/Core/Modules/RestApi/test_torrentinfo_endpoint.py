@@ -3,7 +3,9 @@ from __future__ import absolute_import
 import os
 import shutil
 from binascii import hexlify, unhexlify
-from urllib import pathname2url, quote_plus
+
+from six.moves.urllib.parse import quote_plus
+from six.moves.urllib.request import pathname2url
 
 from twisted.internet.defer import inlineCallbacks
 
