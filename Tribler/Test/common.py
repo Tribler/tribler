@@ -1,7 +1,7 @@
 import binascii
 import os
 
-UBUNTU_1504_INFOHASH = 'FC8A15A2FAF2734DBB1DC5F7AFDC5C9BEAEB1F59'.decode('hex')
+UBUNTU_1504_INFOHASH = binascii.unhexlify('FC8A15A2FAF2734DBB1DC5F7AFDC5C9BEAEB1F59')
 
 TESTS_DIR = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
 TESTS_API_DIR = os.path.abspath(os.path.join(TESTS_DIR, u"API"))
