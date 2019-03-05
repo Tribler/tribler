@@ -179,7 +179,7 @@ class InterruptSocket(object):
 
     def interrupt(self):
         if not self._has_interrupted:
-            self._interrupt_socket.sendto('+', (self._ip, self._port))
+            self._interrupt_socket.sendto(b'+', (self._ip, self._port))
             self._has_interrupted = True
 
     def close(self):
