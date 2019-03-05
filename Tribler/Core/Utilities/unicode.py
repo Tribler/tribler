@@ -10,8 +10,8 @@ import sys
 from six import binary_type, text_type
 
 
-def ensure_text(s, encoding='utf-8', errors='strict'):
-    """Copied from https://github.com/benjaminp/six/blob/master/six.py
+def ensure_unicode(s, encoding, errors='strict'):
+    """Similar to six.ensure_text() except that the encoding parameter is *not* optional
     """
     if isinstance(s, binary_type):
         return s.decode(encoding, errors)
