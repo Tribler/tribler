@@ -1,6 +1,8 @@
 """
 This module contains some utility functions for networking.
 """
+from __future__ import absolute_import
+
 import logging
 import random
 import socket
@@ -155,48 +157,3 @@ def is_valid_address(address):
     #            return False
 
     return True
-
-
-class InterruptSocket(object):
-    """
-    When we need the poll to return before the timeout expires, we
-    will send some data to the InterruptSocket and discard the data.
-    """
-
-    def __init__(self):
-        self._ip = u'127.0.0.1'
-        self._port = None
-        self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self._socket.bind((self._ip, 0))
-        self._port = self._socket.getsockname()[1]
-
-        self._interrupt_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self._has_interrupted = False
-
-    def clear(self):
-        self.socket.recv(1024)
-        self._has_interrupted = False
-
-    def interrupt(self):
-        if not self._has_interrupted:
-            self._interrupt_socket.sendto('+', (self._ip, self._port))
-            self._has_interrupted = True
-
-    def close(self):
-        self._interrupt_socket.close()
-        self._interrupt_socket = None
-        self._socket.close()
-        self._socket = None
-
-    @property
-    def ip(self):
-        return self._ip
-
-    @property
-    def port(self):
-        return self._port
-
-    @property
-    def socket(self):
-        return self._socket
-

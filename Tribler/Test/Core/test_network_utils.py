@@ -1,13 +1,15 @@
+from __future__ import absolute_import
+
 import random
-import socket
 
 from nose.tools import raises
-from Tribler.Test.tools import trial_timeout
+
 from twisted.internet import reactor
 from twisted.internet.protocol import Factory
 
-from Tribler.Core.Utilities.network_utils import get_random_port, autodetect_socket_style, InterruptSocket
+from Tribler.Core.Utilities.network_utils import autodetect_socket_style, get_random_port
 from Tribler.Test.Core.base_test import TriblerCoreTest
+from Tribler.Test.tools import trial_timeout
 
 
 class TriblerCoreTestNetworkUtils(TriblerCoreTest):
@@ -37,13 +39,3 @@ class TriblerCoreTestNetworkUtils(TriblerCoreTest):
     def test_autodetect_socket_style(self):
         style = autodetect_socket_style()
         self.assertTrue(style == 0 or autodetect_socket_style() == 1)
-
-    def test_interrupt_socket(self):
-        interrupt_socket = InterruptSocket()
-        self.assertTrue(interrupt_socket.ip, u"127.0.0.1")
-        self.assertIsInstance(interrupt_socket.port, int)
-        self.assertIsInstance(interrupt_socket.socket, socket.socket)
-
-        interrupt_socket.interrupt()
-        interrupt_socket.interrupt()
-        interrupt_socket.close()
