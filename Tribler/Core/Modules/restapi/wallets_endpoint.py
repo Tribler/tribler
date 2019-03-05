@@ -50,8 +50,7 @@ class WalletsEndpoint(resource.Resource):
         """
         wallets = {}
         balance_deferreds = []
-        for wallet_id in self.session.lm.wallets.iterkeys():
-            wallet = self.session.lm.wallets[wallet_id]
+        for wallet_id, wallet in self.session.lm.wallets.items():
             wallets[wallet_id] = {
                 'created': wallet.created,
                 'unlocked': wallet.unlocked,
@@ -90,7 +89,7 @@ class WalletEndpoint(resource.Resource):
 
         child_handler_dict = {"balance": WalletBalanceEndpoint, "transactions": WalletTransactionsEndpoint,
                               "transfer": WalletTransferEndpoint}
-        for path, child_cls in child_handler_dict.iteritems():
+        for path, child_cls in child_handler_dict.items():
             self.putChild(path, child_cls(self.session, self.identifier))
 
     def render_PUT(self, request):

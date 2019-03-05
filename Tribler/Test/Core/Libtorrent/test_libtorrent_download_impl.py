@@ -684,7 +684,7 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         self.libtorrent_download_impl.on_torrent_finished_alert(None)
 
         has_priorities_task = False
-        for task_name in self.libtorrent_download_impl._pending_tasks.iterkeys():
+        for task_name in self.libtorrent_download_impl._pending_tasks:
             if 'reset_priorities' in task_name:
                 has_priorities_task = True
         self.assertTrue(has_priorities_task)
