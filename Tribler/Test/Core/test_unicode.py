@@ -26,7 +26,7 @@ class TriblerCoreTestUnicode(TriblerCoreTest):
         self.assertIsInstance(data, six.text_type)
 
     def test_unicode_binary_3(self):
-        data = binascii.b2a_uu("test")
+        data = binascii.b2a_uu(b"test")
         data = bin2unicode(data, 'bla')
         self.assertIsInstance(data, six.text_type)
 
