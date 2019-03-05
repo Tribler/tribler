@@ -4,7 +4,10 @@ import logging
 import os
 
 import libtorrent
+
 from six import text_type
+
+from Tribler.Core.Utilities.unicode import ensure_unicode
 
 logger = logging.getLogger(__name__)
 
@@ -109,10 +112,10 @@ def create_torrent_file(file_path_list, params):
 
     if params.get('name'):
         if not isinstance(params['name'], text_type):
-            params['name'] = unicode(params['name'], 'utf-8')
+            params['name'] = ensure_unicode(params['name'], 'utf-8')
         torrent_file_name = os.path.join(base_path, params['name'] + postfix)
     else:
-        torrent_file_name = os.path.join(base_path, unicode(t1['info']['name'], 'utf-8') + postfix)
+        torrent_file_name = os.path.join(base_path, ensure_unicode(t1['info']['name'], 'utf-8') + postfix)
     with open(torrent_file_name, 'wb') as f:
         f.write(torrent)
 
