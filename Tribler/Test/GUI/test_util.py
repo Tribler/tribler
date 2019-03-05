@@ -1,5 +1,6 @@
 import unittest
-from urllib import unquote_plus
+
+from six.moves.urllib.parse import unquote_plus
 
 from TriblerGUI.utilities import unicode_quoter, quote_plus_unicode
 
