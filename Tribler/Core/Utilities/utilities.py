@@ -298,7 +298,7 @@ def create_valid_metainfo(metainfo):
         # disabling this check, modifying metainfo to allow for ill-formatted torrents
         metainfo_result['nodes'] = []
 
-    return dict((key, val) for key, val in metainfo_result.iteritems()
+    return dict((key, val) for key, val in metainfo_result.items()
                 if val or (metainfo[key] and metainfo[key] == val))
 
 
