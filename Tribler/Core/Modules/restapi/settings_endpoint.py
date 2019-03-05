@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from twisted.internet.defer import DeferredList
 from twisted.web import resource
 

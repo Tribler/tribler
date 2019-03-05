@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from twisted.web import http
 
 import Tribler.Core.Utilities.json_util as json

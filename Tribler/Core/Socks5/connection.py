@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import logging
 
 from twisted.internet.protocol import Protocol, connectionDone

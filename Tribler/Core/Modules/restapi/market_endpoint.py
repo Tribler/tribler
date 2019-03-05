@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from twisted.web import resource
 
 from Tribler.Core.Modules.restapi.market.asks_bids_endpoint import AsksEndpoint, BidsEndpoint
