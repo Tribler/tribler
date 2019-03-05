@@ -1,5 +1,7 @@
-from twisted.web import resource
+from __future__ import absolute_import
+
 from twisted.internet.defer import DeferredList
+from twisted.web import resource
 
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.CreditMining.CreditMiningManager import CreditMiningManager
@@ -124,7 +126,7 @@ class SettingsEndpoint(resource.Resource):
         """
         Parse the settings dictionary.
         """
-        for key, value in settings_dict.iteritems():
+        for key, value in settings_dict.items():
             if isinstance(value, dict):
                 self.parse_settings_dict(value, depth=depth+1, root_key=key)
             else:

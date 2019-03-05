@@ -1,9 +1,11 @@
+from __future__ import absolute_import
+
 from twisted.web import http
 
+import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.Modules.restapi.market import BaseMarketEndpoint
 from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.transaction import TransactionId, TransactionNumber
-from Tribler.Core.Modules.restapi.market import BaseMarketEndpoint
-import Tribler.Core.Utilities.json_util as json
 
 
 class TransactionsEndpoint(BaseMarketEndpoint):
@@ -90,7 +92,7 @@ class TransactionSpecificNumberEndpoint(BaseMarketEndpoint):
         self.transaction_number = path
 
         child_handler_dict = {"payments": TransactionPaymentsEndpoint}
-        for path, child_cls in child_handler_dict.iteritems():
+        for path, child_cls in child_handler_dict.items():
             self.putChild(path, child_cls(self.session, self.transaction_trader_id, self.transaction_number))
 
 

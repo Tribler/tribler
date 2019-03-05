@@ -84,7 +84,7 @@ class MarketWalletsPage(QWidget):
 
         # Find out which wallets we still can create
         self.wallets_to_create = []
-        for identifier, wallet in self.wallets.iteritems():
+        for identifier, wallet in self.wallets.items():
             if not wallet["created"]:
                 self.wallets_to_create.append(identifier)
 

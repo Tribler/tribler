@@ -9,6 +9,7 @@ import logging
 import os
 import sys
 # logging.basicConfig()
+
 from twisted.python.log import addObserver
 
 from Tribler.Core.Utilities.network_utils import get_random_port
@@ -95,8 +96,8 @@ class UnhandledTwistedExceptionCatcher(object):
                 elif 'log_failure' in event:
                     self._twisted_exceptions.append(str(event['log_failure']))
                 else:
-                    self._twisted_exceptions.append('\n'.join(["%r: %r" % (key, value)
-                                                               for key, value in event.iteritems()]))
+                    self._twisted_exceptions.append('\n'.join("%r: %r" % (key, value)
+                                                              for key, value in event.items()))
 
         addObserver(unhandled_error_observer)
 

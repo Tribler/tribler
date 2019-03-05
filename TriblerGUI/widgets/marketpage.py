@@ -99,7 +99,7 @@ class MarketPage(QWidget):
             self.chosen_wallets = sorted(self.wallets.keys())[0], sorted(self.wallets.keys())[1]
             self.update_button_texts()
 
-        for wallet_id, wallet in wallets.iteritems():
+        for wallet_id, wallet in wallets.items():
             if not wallet['created'] or not wallet['unlocked']:
                 continue
 

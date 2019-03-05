@@ -1,9 +1,11 @@
+from __future__ import absolute_import
+
 from twisted.web import http
 
+import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.Modules.restapi.market import BaseMarketEndpoint
 from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.order import OrderId, OrderNumber
-from Tribler.Core.Modules.restapi.market import BaseMarketEndpoint
-import Tribler.Core.Utilities.json_util as json
 
 
 class OrdersEndpoint(BaseMarketEndpoint):
@@ -66,7 +68,7 @@ class OrderSpecificEndpoint(BaseMarketEndpoint):
         self.order_number = order_number
 
         child_handler_dict = {"cancel": OrderCancelEndpoint}
-        for path, child_cls in child_handler_dict.iteritems():
+        for path, child_cls in child_handler_dict.items():
             self.putChild(path, child_cls(self.session, self.order_number))
 
 

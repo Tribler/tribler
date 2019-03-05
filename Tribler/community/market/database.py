@@ -162,7 +162,7 @@ class MarketDB(TrustChainDB):
         self.commit()
 
         # Add reserved ticks
-        for reserved_order_id, quantity in order.reserved_ticks.iteritems():
+        for reserved_order_id, quantity in order.reserved_ticks.items():
             self.add_reserved_tick(order.order_id, reserved_order_id, quantity)
 
     def delete_order(self, order_id):

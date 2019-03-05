@@ -1,7 +1,9 @@
-from Tribler.Core.Modules.restapi.market.matchmakers_endpoint import MatchmakersEndpoint
+from __future__ import absolute_import
+
 from twisted.web import resource
 
 from Tribler.Core.Modules.restapi.market.asks_bids_endpoint import AsksEndpoint, BidsEndpoint
+from Tribler.Core.Modules.restapi.market.matchmakers_endpoint import MatchmakersEndpoint
 from Tribler.Core.Modules.restapi.market.orders_endpoint import OrdersEndpoint
 from Tribler.Core.Modules.restapi.market.transactions_endpoint import TransactionsEndpoint
 
@@ -17,5 +19,5 @@ class MarketEndpoint(resource.Resource):
 
         child_handler_dict = {"asks": AsksEndpoint, "bids": BidsEndpoint, "transactions": TransactionsEndpoint,
                               "orders": OrdersEndpoint, "matchmakers": MatchmakersEndpoint}
-        for path, child_cls in child_handler_dict.iteritems():
+        for path, child_cls in child_handler_dict.items():
             self.putChild(path, child_cls(self.session))

@@ -1,9 +1,12 @@
+from __future__ import absolute_import
+
 import logging
+
+from twisted.internet.protocol import Protocol, connectionDone
 
 from Tribler.Core.Socks5 import conversion
 from Tribler.Core.Socks5.conversion import SOCKS_VERSION
 from Tribler.Core.Socks5.udp_connection import SocksUDPConnection
-from twisted.internet.protocol import Protocol, connectionDone
 
 
 class ConnectionState(object):
@@ -169,8 +172,8 @@ class Socks5Connection(Protocol):
         @param Circuit broken_circuit: the circuit that has been broken
         @return Set with destinations using this circuit
         """
-        affected_destinations = set(
-            destination for destination, tunnel_circuit in self.destinations.iteritems() if tunnel_circuit == broken_circuit)
+        affected_destinations = set(destination for destination, tunnel_circuit
+                                    in self.destinations.items() if tunnel_circuit == broken_circuit)
         counter = 0
         for destination in affected_destinations:
             if destination in self.destinations:

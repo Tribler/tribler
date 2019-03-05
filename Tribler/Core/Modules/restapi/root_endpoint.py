@@ -63,7 +63,7 @@ class RootEndpoint(resource.Resource):
             "search": SearchEndpoint
         }
 
-        for path, child_cls in child_handler_dict.iteritems():
+        for path, child_cls in child_handler_dict.items():
             self.putChild(path, child_cls(self.session))
 
         if self.session.config.get_ipv8_enabled():

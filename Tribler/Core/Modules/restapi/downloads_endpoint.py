@@ -225,7 +225,7 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
 
             # Create tracker information of the download
             tracker_info = []
-            for url, url_info in download.get_tracker_status().iteritems():
+            for url, url_info in download.get_tracker_status().items():
                 tracker_info.append({"url": url, "peers": url_info[0], "status": url_info[1]})
 
             num_seeds, num_peers = state.get_num_seeds_peers()
