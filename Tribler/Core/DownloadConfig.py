@@ -40,10 +40,10 @@ class DownloadConfigInterface(object):
 
         # Dumb^WPoor man's versioning of DownloadConfig, add missing default values.
         write = False
-        for section, sect_dict in dldefaults.iteritems():
+        for section, sect_dict in dldefaults.items():
             if not self.dlconfig.has_section(section):
                 self.dlconfig.add_section(section)
-            for k, v in sect_dict.iteritems():
+            for k, v in sect_dict.items():
                 if not self.dlconfig.has_option(section, k):
                     write = True
                     self.dlconfig.set(section, k, v)
