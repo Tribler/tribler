@@ -7,8 +7,6 @@ import signal
 import sys
 import time
 import traceback
-import urlparse
-from urllib import pathname2url, unquote
 
 from PyQt5 import uic
 from PyQt5.QtCore import QCoreApplication, QDir, QObject, QPoint, QSettings, QStringListModel, QTimer, QUrl, Qt, \
@@ -18,6 +16,8 @@ from PyQt5.QtWidgets import QAction, QApplication, QCompleter, QFileDialog, QLin
     QShortcut, QStyledItemDelegate, QSystemTrayIcon, QTreeWidget
 
 import six
+from six.moves.urllib.parse import quote_plus, urlparse
+from six.moves.urllib.request import pathname2url
 
 from Tribler.Core.Modules.process_checker import ProcessChecker
 
@@ -924,5 +924,5 @@ class TriblerWindow(QMainWindow):
 
 
 def _qurl_to_path(qurl):
-    parsed = urlparse.urlparse(qurl.toString())
+    parsed = urlparse(qurl.toString())
     return os.path.abspath(os.path.join(parsed.netloc, unquote(parsed.path)))
