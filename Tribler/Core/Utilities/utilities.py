@@ -238,7 +238,7 @@ def validate_torrent_info(metainfo):
         raise ValueError('info misses key')
 
     name = info['name']
-    if not isinstance(name, str):
+    if not isinstance(name, six.binary_type):
         raise ValueError('info name is not string but ' + repr(type(name)))
 
     pl = info['piece length']
@@ -247,11 +247,11 @@ def validate_torrent_info(metainfo):
 
     if 'root hash' in info:
         rh = info['root hash']
-        if not isinstance(rh, str) or len(rh) != 20:
+        if not isinstance(rh, six.binary_type) or len(rh) != 20:
             raise ValueError('info roothash is not 20-byte string')
     else:
         pieces = info['pieces']
-        if not isinstance(pieces, str) or len(pieces) % 20 != 0:
+        if not isinstance(pieces, six.binary_type) or len(pieces) % 20 != 0:
             raise ValueError('info pieces is not multiple of 20 bytes')
 
     validate_files(info)
