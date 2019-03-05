@@ -4,13 +4,13 @@ import logging
 from collections import deque, namedtuple
 from threading import RLock
 from time import time
-from urllib import quote_plus
 
 from PyQt5.QtCore import QBuffer, QIODevice, QObject, QUrl, pyqtSignal
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 
 from six import string_types, text_type
 from six.moves import xrange
+from six.moves.urllib.parse import quote_plus
 
 import Tribler.Core.Utilities.json_util as json
 
