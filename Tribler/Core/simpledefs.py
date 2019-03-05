@@ -13,6 +13,7 @@ DLSTATUS_STOPPED = 5
 DLSTATUS_STOPPED_ON_ERROR = 6
 DLSTATUS_METADATA = 7
 DLSTATUS_CIRCUITS = 8
+DLSTATUS_EXIT_NODES = 9
 
 dlstatus_strings = ['DLSTATUS_ALLOCATING_DISKSPACE',
                     'DLSTATUS_WAITING4HASHCHECK',
@@ -22,7 +23,8 @@ dlstatus_strings = ['DLSTATUS_ALLOCATING_DISKSPACE',
                     'DLSTATUS_STOPPED',
                     'DLSTATUS_STOPPED_ON_ERROR',
                     'DLSTATUS_METADATA',
-                    'DLSTATUS_CIRCUITS']
+                    'DLSTATUS_CIRCUITS',
+                    'DLSTATUS_EXIT_NODES']
 
 UPLOAD = 'up'
 DOWNLOAD = 'down'

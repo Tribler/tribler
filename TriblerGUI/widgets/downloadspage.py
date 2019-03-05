@@ -7,10 +7,11 @@ from PyQt5.QtCore import QTimer, QUrl, pyqtSignal
 from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtWidgets import QAbstractItemView, QAction, QFileDialog, QTreeWidgetItem, QWidget
 
-from TriblerGUI.defs import BUTTON_TYPE_CONFIRM, BUTTON_TYPE_NORMAL, DLSTATUS_CIRCUITS, DLSTATUS_HASHCHECKING, \
-    DLSTATUS_METADATA, DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_WAITING4HASHCHECK, \
-    DOWNLOADS_FILTER_ACTIVE, DOWNLOADS_FILTER_ALL, DOWNLOADS_FILTER_CHANNELS, DOWNLOADS_FILTER_COMPLETED, \
-    DOWNLOADS_FILTER_CREDITMINING, DOWNLOADS_FILTER_DEFINITION, DOWNLOADS_FILTER_DOWNLOADING, DOWNLOADS_FILTER_INACTIVE
+from TriblerGUI.defs import (BUTTON_TYPE_CONFIRM, BUTTON_TYPE_NORMAL, DLSTATUS_CIRCUITS, DLSTATUS_EXIT_NODES,
+                             DLSTATUS_HASHCHECKING, DLSTATUS_METADATA, DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR,
+                             DLSTATUS_WAITING4HASHCHECK, DOWNLOADS_FILTER_ACTIVE, DOWNLOADS_FILTER_ALL,
+                             DOWNLOADS_FILTER_CHANNELS, DOWNLOADS_FILTER_COMPLETED, DOWNLOADS_FILTER_CREDITMINING,
+                             DOWNLOADS_FILTER_DEFINITION, DOWNLOADS_FILTER_DOWNLOADING, DOWNLOADS_FILTER_INACTIVE)
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
@@ -471,7 +472,8 @@ class DownloadsPage(QWidget):
         menu.addAction(force_recheck_action)
         menu.addSeparator()
 
-        exclude_states = [DLSTATUS_METADATA, DLSTATUS_CIRCUITS, DLSTATUS_HASHCHECKING, DLSTATUS_WAITING4HASHCHECK]
+        exclude_states = [DLSTATUS_METADATA, DLSTATUS_CIRCUITS, DLSTATUS_EXIT_NODES,
+                          DLSTATUS_HASHCHECKING, DLSTATUS_WAITING4HASHCHECK]
         if len(self.selected_items) == 1 and self.selected_items[0].get_raw_download_status() not in exclude_states:
             menu.addAction(export_download_action)
             menu.addSeparator()
