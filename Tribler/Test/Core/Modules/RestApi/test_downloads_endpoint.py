@@ -2,9 +2,10 @@ from __future__ import absolute_import
 
 import os
 from binascii import hexlify, unhexlify
-from urllib import pathname2url
 
 from pony.orm import db_session
+
+from six.moves.urllib.request import pathname2url
 
 from twisted.internet.defer import fail
 
