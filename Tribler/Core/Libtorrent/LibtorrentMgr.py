@@ -124,7 +124,7 @@ class LibtorrentMgr(TaskManager):
         self.shutdown_task_manager()
 
         # remove all upnp mapping
-        for upnp_handle in self.upnp_mapping_dict.itervalues():
+        for upnp_handle in self.upnp_mapping_dict.values():
             self.get_session().delete_port_mapping(upnp_handle)
         self.upnp_mapping_dict = None
 
@@ -135,7 +135,7 @@ class LibtorrentMgr(TaskManager):
         ltstate_file.write(lt.bencode(self.get_session().save_state()))
         ltstate_file.close()
 
-        for ltsession in self.ltsessions.itervalues():
+        for ltsession in self.ltsessions.values():
             del ltsession
         self.ltsessions = None
         self.ltsession_metainfo = None
@@ -287,7 +287,7 @@ class LibtorrentMgr(TaskManager):
             ltsession.set_settings(settings)
 
         if hops is None:
-            for ltsession in self.ltsessions.itervalues():
+            for ltsession in self.ltsessions.values():
                 do_set_utp(ltsession)
         else:
             do_set_utp(self.get_session(hops))
@@ -597,7 +597,7 @@ class LibtorrentMgr(TaskManager):
                 del self.metainfo_cache[info_hash]
 
     def _request_torrent_updates(self):
-        for ltsession in self.ltsessions.itervalues():
+        for ltsession in self.ltsessions.values():
             if ltsession:
                 # Newer version of libtorrent require the flags argument in the post_torrent_updates call.
                 if LooseVersion(self.get_libtorrent_version()) >= LooseVersion("1.1.0"):
@@ -606,7 +606,7 @@ class LibtorrentMgr(TaskManager):
                     ltsession.post_torrent_updates()
 
     def _task_process_alerts(self):
-        for hops, ltsession in self.ltsessions.iteritems():
+        for hops, ltsession in self.ltsessions.items():
             if ltsession:
                 for alert in ltsession.pop_alerts():
                     self.process_alert(alert, hops=hops)
@@ -649,7 +649,7 @@ class LibtorrentMgr(TaskManager):
 
     def _map_call_on_ltsessions(self, hops, funcname, *args, **kwargs):
         if hops is None:
-            for session in self.ltsessions.itervalues():
+            for session in self.ltsessions.values():
                 getattr(session, funcname)(*args, **kwargs)
         else:
             getattr(self.get_session(hops), funcname)(*args, **kwargs)
@@ -755,7 +755,7 @@ class LibtorrentMgr(TaskManager):
         This is the extra step necessary to apply a new maximum download/upload rate setting.
         :return:
         """
-        for lt_session in self.ltsessions.itervalues():
+        for lt_session in self.ltsessions.values():
             ltsession_settings = lt_session.get_settings()
             ltsession_settings['download_rate_limit'] = self.tribler_session.config.get_libtorrent_max_download_rate()
             ltsession_settings['upload_rate_limit'] = self.tribler_session.config.get_libtorrent_max_upload_rate()
@@ -763,7 +763,7 @@ class LibtorrentMgr(TaskManager):
 
     def post_session_stats(self, hops=None):
         if hops is None:
-            for lt_session in self.ltsessions.itervalues():
+            for lt_session in self.ltsessions.values():
                 if hasattr(lt_session, "post_session_stats"):
                     lt_session.post_session_stats()
         elif hasattr(self.ltsessions[hops], "post_session_stats"):
@@ -771,7 +771,7 @@ class LibtorrentMgr(TaskManager):
 
 
 def encode_atp(atp):
-    for k, v in atp.iteritems():
+    for k, v in atp.items():
         if isinstance(v, text_type):
             atp[k] = v.encode('utf-8')
     return atp
