@@ -59,7 +59,7 @@ class TestDownload(TestAsServer):
 
     @trial_timeout(60)
     def test_download_torrent_from_file(self):
-        from urllib import pathname2url
+        from six.moves.urllib.request import pathname2url
         d = self.session.start_download_from_uri('file:' + pathname2url(TORRENT_UBUNTU_FILE))
         d.addCallback(self.on_download)
         return self.test_deferred
