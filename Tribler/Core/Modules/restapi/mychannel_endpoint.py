@@ -4,10 +4,11 @@ import base64
 import json
 import logging
 import os
-import urllib
 from binascii import hexlify, unhexlify
 
 from pony.orm import db_session
+
+from six.moves.urllib.parse import unquote
 
 from twisted.internet.defer import Deferred
 from twisted.web import http, resource
@@ -76,8 +77,8 @@ class MyChannelEndpoint(BaseMyChannelEndpoint):
                 return json.dumps({"error": "your channel has not been created"})
 
             my_channel.update_metadata(update_dict={
-                "tags": urllib.unquote(parameters['description'][0]).decode('utf-8'),
-                "title": urllib.unquote(parameters['name'][0]).decode('utf-8')
+                "tags": unquote(parameters['description'][0]).decode('utf-8'),
+                "title": unquote(parameters['name'][0]).decode('utf-8')
             })
 
         return json.dumps({"edited": True})
@@ -92,7 +93,7 @@ class MyChannelEndpoint(BaseMyChannelEndpoint):
         if 'description' not in parameters or not parameters['description']:
             description = u''
         else:
-            description = urllib.unquote(parameters['description'][0]).decode('utf-8')
+            description = unquote(parameters['description'][0]).decode('utf-8')
 
         my_key = self.session.trustchain_keypair
         my_channel_pk = my_key.pub().key_to_bin()
@@ -102,7 +103,7 @@ class MyChannelEndpoint(BaseMyChannelEndpoint):
             request.setResponseCode(http.CONFLICT)
             return json.dumps({"error": "channel already exists"})
 
-        title = urllib.unquote(parameters['name'][0]).decode('utf-8')
+        title = unquote(parameters['name'][0]).decode('utf-8')
         self.session.lm.mds.ChannelMetadata.create_channel(title, description)
         return json.dumps({
             "added": str(my_channel_pk).encode("hex"),
