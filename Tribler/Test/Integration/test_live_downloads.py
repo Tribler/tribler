@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import glob
 import logging
 import os
@@ -6,18 +8,21 @@ import sys
 import time
 import unittest
 from unittest import skipUnless
-from urllib import pathname2url
 
-import numpy
 from PyQt5.QtCore import QPoint, Qt
 from PyQt5.QtGui import QPixmap, QRegion
 from PyQt5.QtTest import QTest
 from PyQt5.QtWidgets import QApplication, QListWidget, QTreeWidget
 
-import run_tribler
 from check_os import setup_gui_logging
 
 import matplotlib.pyplot as plot
+
+import numpy
+
+import run_tribler
+
+from six.moves.urllib.request import pathname2url
 
 import TriblerGUI
 from TriblerGUI.tribler_window import TriblerWindow
