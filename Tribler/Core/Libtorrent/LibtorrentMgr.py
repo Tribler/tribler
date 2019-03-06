@@ -180,7 +180,8 @@ class LibtorrentMgr(TaskManager):
 
             mid = self.tribler_session.trustchain_keypair.key_to_hash()
             settings['peer_fingerprint'] = mid
-            settings['handshake_client_version'] = b'Tribler/' + version_id + b'/' + hexlify(mid)
+            settings['handshake_client_version'] = ('Tribler/' + version_id + '/' +
+                                                    codecs.decode(mid, 'raw_unicode_escape'))
         else:
             settings['enable_outgoing_utp'] = True
             settings['enable_incoming_utp'] = True
