@@ -202,9 +202,14 @@ class MetadataStore(object):
         return (self.process_compressed_mdblob(serialized_data) if filepath.endswith('.lz4') else
                 self.process_squashed_mdblob(serialized_data))
 
-    @db_session
     def process_compressed_mdblob(self, compressed_data):
-        return self.process_squashed_mdblob(lz4.frame.decompress(compressed_data))
+        try:
+            decompressed_data = lz4.frame.decompress(compressed_data)
+        except RuntimeError:
+            self._logger.warning("Unable to decompress mdblob")
+            return []
+
+        return self.process_squashed_mdblob(decompressed_data)
 
     @db_session
     def process_squashed_mdblob(self, chunk_data):

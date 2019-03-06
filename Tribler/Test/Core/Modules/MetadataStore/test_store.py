@@ -139,6 +139,13 @@ class TestMetadataStore(TriblerCoreTest):
         self.assertEqual(num_entries, len(channel.contents))
 
     @db_session
+    def test_process_invalid_compressed_mdblob(self):
+        """
+        Test whether processing an invalid compressed mdblob does not crash Tribler
+        """
+        self.assertFalse(self.mds.process_compressed_mdblob("abcdefg"))
+
+    @db_session
     def test_process_channel_dir(self):
         """
         Test processing a directory containing metadata blobs

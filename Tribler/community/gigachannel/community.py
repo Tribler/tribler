@@ -67,13 +67,10 @@ class GigaChannelCommunity(Community):
         :param peer: the peer that sent us the blob
         :param blob: payload raw data
         """
-
         try:
             with db_session:
                 try:
                     md_list = self.metadata_store.process_compressed_mdblob(blob.raw_blob)
-                except RuntimeError:
-                    return
                 except (TransactionIntegrityError, CacheIndexError) as err:
                     self._logger.error("DB transaction error when tried to process payload: %s", str(err))
                     return
