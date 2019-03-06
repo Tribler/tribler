@@ -5,13 +5,13 @@ Author(s): Egbert Bouman
 """
 from __future__ import absolute_import
 
-import binascii
+import codecs
 import logging
 import os
 import tempfile
 import threading
 import time
-from binascii import hexlify
+from binascii import hexlify, unhexlify
 from copy import deepcopy
 from distutils.version import LooseVersion
 from shutil import rmtree
@@ -181,7 +181,8 @@ class LibtorrentMgr(TaskManager):
 
             mid = self.tribler_session.trustchain_keypair.key_to_hash()
             settings['peer_fingerprint'] = mid
-            settings['handshake_client_version'] = 'Tribler/' + version_id + '/' + mid.encode('hex')
+            settings['handshake_client_version'] = ('Tribler/' + version_id + '/' +
+                                                    codecs.decode(mid, 'raw_unicode_escape'))
         else:
             settings['enable_outgoing_utp'] = True
             settings['enable_incoming_utp'] = True
@@ -332,7 +333,7 @@ class LibtorrentMgr(TaskManager):
             if 'ti' in atp:
                 infohash = str(atp['ti'].info_hash())
             elif 'url' in atp:
-                infohash = binascii.hexlify(parse_magnetlink(atp['url'])[1])
+                infohash = hexlify(parse_magnetlink(atp['url'])[1])
             else:
                 raise ValueError('No ti or url key in add_torrent_params')
 
@@ -464,7 +465,7 @@ class LibtorrentMgr(TaskManager):
 
         magnet = infohash_or_magnet if infohash_or_magnet.startswith('magnet') else None
         infohash_bin = infohash_or_magnet if not magnet else parse_magnetlink(magnet)[1]
-        infohash = binascii.hexlify(infohash_bin)
+        infohash = hexlify(infohash_bin)
 
         if infohash in self.torrents:
             return
@@ -523,7 +524,7 @@ class LibtorrentMgr(TaskManager):
 
     def got_metainfo(self, infohash, timeout=False):
         with self.metainfo_lock:
-            infohash_bin = binascii.unhexlify(infohash)
+            infohash_bin = unhexlify(infohash)
 
             if infohash in self.metainfo_requests:
                 request_dict = self.metainfo_requests.pop(infohash)
