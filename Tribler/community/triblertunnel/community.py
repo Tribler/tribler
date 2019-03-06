@@ -17,7 +17,7 @@ from Tribler.community.triblertunnel.discovery import GoldenRatioStrategy
 from Tribler.community.triblertunnel.dispatcher import TunnelDispatcher
 from Tribler.community.triblertunnel.payload import BalanceRequestPayload, BalanceResponsePayload, PayoutPayload
 from Tribler.pyipv8.ipv8.attestation.trustchain.block import EMPTY_PK
-from Tribler.pyipv8.ipv8.messaging.anonymization.caches import ExtendRequestCache
+from Tribler.pyipv8.ipv8.messaging.anonymization.caches import CreateRequestCache
 from Tribler.pyipv8.ipv8.messaging.anonymization.community import message_to_payload
 from Tribler.pyipv8.ipv8.messaging.anonymization.hidden_services import HiddenTunnelCommunity
 from Tribler.pyipv8.ipv8.messaging.anonymization.payload import LinkedE2EPayload, NO_CRYPTO_PACKETS
@@ -230,18 +230,15 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
     def on_balance_request_cell(self, source_address, data, _):
         payload = self._ez_unpack_noauth(BalanceRequestPayload, data, global_time=False)
 
-        circuit_id = payload.circuit_id
-        request = self.request_cache.get(u"anon-circuit", circuit_id)
-        if not request:
-            self.logger.warning("Circuit creation cache for id %s not found!", circuit_id)
-            return
-
-        if request.should_forward:
+        if self.request_cache.has(u"create", payload.circuit_id):
+            request = self.request_cache.get(u"create", payload.circuit_id)
             forwarding_relay = RelayRoute(request.from_circuit_id, request.peer)
             self.send_cell([forwarding_relay.peer.address], u"relay-balance-request",
                            BalanceRequestPayload(forwarding_relay.circuit_id))
-        else:
+        elif self.request_cache.has(u"circuit", payload.circuit_id):
             self.on_balance_request(payload)
+        else:
+            self.logger.warning("Circuit creation cache for id %s not found!", payload.circuit_id)
 
     def on_relay_balance_request_cell(self, source_address, data, _):
         payload = self._ez_unpack_noauth(BalanceRequestPayload, data, global_time=False)
@@ -291,7 +288,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         # At this point, we don't have the circuit ID of the follow-up hop. We have to iterate over the items in the
         # request cache and find the link to the next hop.
         for cache in self.request_cache._identifiers.values():
-            if isinstance(cache, ExtendRequestCache) and cache.from_circuit_id == payload.circuit_id:
+            if isinstance(cache, CreateRequestCache) and cache.from_circuit_id == payload.circuit_id:
                 self.send_cell([cache.to_peer.address],
                                u"balance-response",
                                BalanceResponsePayload.from_half_block(block, cache.to_circuit_id))
