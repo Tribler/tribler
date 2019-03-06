@@ -257,7 +257,7 @@ def pathlist2filename(pathlist):
     try:
         return fullpath.decode('utf-8')
     except AttributeError:
-        return fullpath  # Python 3: AttributeError: 'str' object has no attribute 'decode' 
+        return fullpath  # Python 3: AttributeError: 'str' object has no attribute 'decode'
     except UnicodeDecodeError:
         charenc = chardet.detect(fullpath)['encoding']
         if not charenc:
