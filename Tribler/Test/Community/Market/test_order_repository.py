@@ -28,16 +28,16 @@ class MemoryOrderRepositoryTestSuite(unittest.TestCase):
 
     def test_add(self):
         # Test for add
-        self.assertEquals([], self.memory_order_repository.find_all())
+        self.assertEquals([], list(self.memory_order_repository.find_all()))
         self.memory_order_repository.add(self.order)
-        self.assertEquals([self.order], (self.memory_order_repository.find_all()))
+        self.assertEquals([self.order], list(self.memory_order_repository.find_all()))
 
     def test_delete_by_id(self):
         # Test for delete by id
         self.memory_order_repository.add(self.order)
-        self.assertEquals([self.order], self.memory_order_repository.find_all())
+        self.assertEquals([self.order], list(self.memory_order_repository.find_all()))
         self.memory_order_repository.delete_by_id(self.order_id)
-        self.assertEquals([], self.memory_order_repository.find_all())
+        self.assertEquals([], list(self.memory_order_repository.find_all()))
 
     def test_find_by_id(self):
         # Test for find by id
@@ -47,9 +47,9 @@ class MemoryOrderRepositoryTestSuite(unittest.TestCase):
 
     def test_find_all(self):
         # Test for find all
-        self.assertEquals([], self.memory_order_repository.find_all())
+        self.assertEquals([], list(self.memory_order_repository.find_all()))
         self.memory_order_repository.add(self.order)
-        self.assertEquals([self.order], self.memory_order_repository.find_all())
+        self.assertEquals([self.order], list(self.memory_order_repository.find_all()))
 
     def test_next_identity(self):
         # Test for next identity

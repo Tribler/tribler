@@ -1,16 +1,18 @@
+from __future__ import absolute_import
+
 import unittest
 
 from Tribler.community.market.core.assetamount import AssetAmount
 from Tribler.community.market.core.assetpair import AssetPair
+from Tribler.community.market.core.message import TraderId
+from Tribler.community.market.core.order import OrderId, OrderNumber
 from Tribler.community.market.core.payment import Payment
 from Tribler.community.market.core.payment_id import PaymentId
 from Tribler.community.market.core.timeout import Timestamp
-from Tribler.community.market.core.transaction import TransactionNumber, TransactionId, Transaction, StartTransaction
-from Tribler.community.market.core.transaction_repository import MemoryTransactionRepository
-from Tribler.community.market.core.transaction_manager import TransactionManager
-from Tribler.community.market.core.order import OrderId, OrderNumber
-from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.trade import Trade
+from Tribler.community.market.core.transaction import StartTransaction, Transaction, TransactionId, TransactionNumber
+from Tribler.community.market.core.transaction_manager import TransactionManager
+from Tribler.community.market.core.transaction_repository import MemoryTransactionRepository
 from Tribler.community.market.core.wallet_address import WalletAddress
 
 
@@ -51,9 +53,9 @@ class TransactionManagerTestSuite(unittest.TestCase):
 
     def test_find_all(self):
         # Test for find all
-        self.assertEquals([], self.transaction_manager.find_all())
+        self.assertEquals([], list(self.transaction_manager.find_all()))
         self.memory_transaction_repository.add(self.transaction)
-        self.assertEquals([self.transaction], self.transaction_manager.find_all())
+        self.assertEquals([self.transaction], list(self.transaction_manager.find_all()))
 
     def test_create_from_start_transaction(self):
         # Test for create from start transaction
