@@ -1,13 +1,16 @@
 from __future__ import absolute_import
+
 import logging
 import os
 import shutil
 from tempfile import mkdtemp
 
-import six
 from libtorrent import bdecode
+
 from nose.tools import raises
-from Tribler.Test.tools import trial_timeout
+
+import six
+
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
 from twisted.web.server import Site
@@ -16,10 +19,11 @@ from twisted.web.static import File
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.Utilities.utilities import create_valid_metainfo, valid_torrent_file
-from Tribler.Core.exceptions import TorrentDefNotFinalizedException, HttpError
+from Tribler.Core.exceptions import HttpError, TorrentDefNotFinalizedException
 from Tribler.Core.simpledefs import INFOHASH_LENGTH
 from Tribler.Test.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE
 from Tribler.Test.test_as_server import BaseTestCase
+from Tribler.Test.tools import trial_timeout
 
 TRACKER = 'http://www.tribler.org/announce'
 
@@ -103,7 +107,7 @@ class TestTorrentDef(BaseTestCase):
         metainfo = t.get_metainfo()
         self.general_check(metainfo)
 
-        self.assertEqual(metainfo['info']['name'], 'dirintorrent')
+        self.assertEqual(metainfo['info']['name'], b'dirintorrent')
         reals = 0
         for file in metainfo['info']['files']:
             s = file['length']
@@ -137,7 +141,7 @@ class TestTorrentDef(BaseTestCase):
 
         metainfo = t.get_metainfo()
         self.general_check(metainfo)
-        self.assertEqual(metainfo['info']['name'], 'dirintorrent')
+        self.assertEqual(metainfo['info']['name'], b'dirintorrent')
 
         reals = 0
         for file in metainfo['info']['files']:
