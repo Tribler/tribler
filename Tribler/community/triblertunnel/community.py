@@ -64,6 +64,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         self.competing_slots = [(0, None)] * num_competing_slots  # 1st tuple item = token balance, 2nd = circuit id
         self.random_slots = [None] * num_random_slots
         self.reject_callback = None  # This callback is invoked with a tuple (time, balance) when we reject a circuit
+        self.last_forced_announce = {}
 
         # Start the SOCKS5 servers
         self.socks_servers = []
@@ -460,6 +461,15 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                 hops[info_hash] = hop_count
                 if download.get_state().get_status() in [DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_METADATA]:
                     active_downloads_per_hop[hop_count] = active_downloads_per_hop.get(hop_count, 0) + 1
+
+                    # Ugly work-around for the libtorrent DHT not making any requests
+                    # after a period of having no circuits
+                    if self.last_forced_announce.get(info_hash, 0) + 60 <= time.time() \
+                            and self.active_data_circuits(hop_count) \
+                            and not ds.get_peerlist():
+                        download.force_dht_announce()
+                        self.last_forced_announce[info_hash] = time.time()
+
                 self.service_callbacks[info_hash] = download.add_peer
                 new_states[info_hash] = ds.get_status()
 
