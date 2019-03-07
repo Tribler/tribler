@@ -10,6 +10,7 @@ import os
 import sys
 from hashlib import sha1
 
+import libtorrent as lt
 from libtorrent import bdecode, bencode
 
 import six
@@ -17,7 +18,7 @@ from six import text_type
 
 from Tribler.Core.Utilities import maketorrent
 from Tribler.Core.Utilities.unicode import dunno2unicode, ensure_unicode
-from Tribler.Core.Utilities.utilities import create_valid_metainfo, http_get, is_valid_url, parse_magnetlink
+from Tribler.Core.Utilities.utilities import http_get, is_valid_url, parse_magnetlink
 from Tribler.Core.defaults import TDEF_DEFAULTS
 from Tribler.Core.exceptions import NotYetImplementedException, TorrentDefNotFinalizedException
 from Tribler.Core.simpledefs import INFOHASH_LENGTH
@@ -144,10 +145,13 @@ class TorrentDef(object):
 
     def _create(metainfo):  # TODO: replace with constructor
         # raises ValueErrors if not good
-        metainfo_fixed = create_valid_metainfo(metainfo)
+        try:
+            lt.torrent_info(metainfo)
+        except RuntimeError as exc:
+            raise ValueError(str(exc))
 
         t = TorrentDef()
-        t.metainfo = metainfo_fixed
+        t.metainfo = metainfo
         t.metainfo_valid = True
         # copy stuff into self.input
         maketorrent.copy_metainfo_to_input(t.metainfo, t.input)
