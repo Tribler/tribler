@@ -485,7 +485,13 @@ class TorrentDef(object):
             self.infohash = infohash
             self.metainfo = metainfo
 
-            self.input['name'] = metainfo['info']['name']
+            try:
+                self.input['name'] = metainfo['info']['name']
+            except KeyError:  #TODO: Remove this tempoary try / except block leaving only the 1 line above
+                print(metainfo)
+                print("======")
+                print(metainfo['info'])
+                raise
             # May have been 0, meaning auto.
             self.input['piece length'] = metainfo['info']['piece length']
             self.metainfo_valid = True
