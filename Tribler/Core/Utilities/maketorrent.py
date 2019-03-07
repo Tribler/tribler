@@ -5,6 +5,7 @@ Author(s): Arno Bakker, Bram Cohen
 """
 from __future__ import absolute_import
 
+import codecs
 import logging
 import os
 from copy import copy
@@ -250,12 +251,11 @@ def filename2pathlist(path, skipfirst=False):
 
 def pathlist2filename(pathlist):
     """ Convert a multi-file torrent file 'path' entry to a filename. """
-    fullpath = ''
-    for elem in pathlist:
-        fullpath = os.path.join(fullpath, elem)
-
+    fullpath = os.path.join(*pathlist)
     try:
-        return fullpath.decode('utf-8')
+        return codecs.decode(fullpath, 'utf-8')
+    except TypeError:
+        return fullpath  # Python 3: a bytes-like object is required, not 'str'
     except UnicodeDecodeError:
         charenc = chardet.detect(fullpath)['encoding']
         if not charenc:
