@@ -252,9 +252,9 @@ def pathlist2filename(pathlist):
     """ Convert a multi-file torrent file 'path' entry to a filename. """
     fullpath = os.path.join(*pathlist)
     try:
-        return fullpath.decode('utf-8')
-    except AttributeError:
-        return fullpath  # Python 3: AttributeError: 'str' object has no attribute 'decode'
+        return codecs.decode(fullpath, 'utf-8')
+    except TypeError:
+        return fullpath  # Python 3: a bytes-like object is required, not 'str'
     except UnicodeDecodeError:
         charenc = chardet.detect(fullpath)['encoding']
         if not charenc:
