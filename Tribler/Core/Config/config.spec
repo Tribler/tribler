@@ -2,6 +2,7 @@
 state_dir = string(default='')
 log_dir = string(default=None)
 testnet = boolean(default=False)
+version_checker_enabled = boolean(default=True)
 
 [tunnel_community]
 enabled = boolean(default=True)
