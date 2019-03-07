@@ -5,6 +5,7 @@ Author(s): Arno Bakker, Bram Cohen
 """
 from __future__ import absolute_import
 
+import codecs
 import logging
 import os
 from copy import copy
