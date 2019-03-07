@@ -3,12 +3,13 @@ Tests for the video server.
 
 Author(s): Arno Bakker
 """
+from __future__ import absolute_import
+
 import binascii
 import os
 
-from Tribler.Test.tools import trial_timeout
 from twisted.internet import reactor
-from twisted.internet.defer import inlineCallbacks, Deferred
+from twisted.internet.defer import Deferred, inlineCallbacks
 from twisted.internet.endpoints import TCP4ClientEndpoint, connectProtocol
 from twisted.internet.protocol import Protocol, connectionDone
 
@@ -19,6 +20,7 @@ from Tribler.Core.Video.VideoServer import VideoServer
 from Tribler.Test.Core.base_test import MockObject, TriblerCoreTest
 from Tribler.Test.common import TESTS_DATA_DIR
 from Tribler.Test.test_as_server import TestAsServer
+from Tribler.Test.tools import trial_timeout
 
 
 class VideoServerProtocol(Protocol):
@@ -147,7 +149,7 @@ class TestVideoServerSession(TestAsServer):
         self.tdef = TorrentDef()
         self.tdef.add_content(self.sourcefn)
         self.tdef.set_tracker("http://127.0.0.1:12/announce")
-        self.tdef.finalize()
+        self.tdef.save()
 
         dscfg = DownloadStartupConfig()
         dscfg.set_dest_dir(os.path.dirname(self.sourcefn))

@@ -43,8 +43,6 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         sourcefn = os.path.join(TESTS_DATA_DIR, 'video.avi')
         tdef.add_content(sourcefn)
         tdef.set_tracker("http://localhost/announce")
-        tdef.finalize()
-
         torrentfn = os.path.join(self.session.config.get_state_dir(), "gen.torrent")
         tdef.save(torrentfn)
 
@@ -139,14 +137,9 @@ class TestLibtorrentDownloadImpl(TestAsServer):
     def test_multifile_torrent(self):
         tdef = TorrentDef()
 
-        dn = os.path.join(TESTS_DATA_DIR, "contentdir")
-        tdef.add_content(dn, "dirintorrent")
-
-        fn = os.path.join(TESTS_DATA_DIR, "video.avi")
-        tdef.add_content(fn, os.path.join("dirintorrent", "video.avi"))
-
+        tdef.add_content(os.path.join(TESTS_DATA_DIR, "video.avi"))
         tdef.set_tracker("http://tribler.org/announce")
-        tdef.finalize()
+        tdef.save()
 
         impl = LibtorrentDownloadImpl(self.session, tdef)
         # Override the add_torrent because it will be called

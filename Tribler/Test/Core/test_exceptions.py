@@ -1,8 +1,9 @@
+from __future__ import absolute_import
+
 from nose.tools import raises
 
-from Tribler.Core.exceptions import TriblerException, OperationNotPossibleAtRuntimeException, \
-    OperationNotEnabledByConfigurationException, NotYetImplementedException, DuplicateDownloadException, \
-    TorrentDefNotFinalizedException
+from Tribler.Core.exceptions import DuplicateDownloadException, NotYetImplementedException, \
+    OperationNotEnabledByConfigurationException, OperationNotPossibleAtRuntimeException, TriblerException
 from Tribler.Test.Core.base_test import TriblerCoreTest
 
 
@@ -29,7 +30,3 @@ class TriblerCoreTestExceptions(TriblerCoreTest):
     @raises(DuplicateDownloadException)
     def test_duplicate_download_exception(self):
         raise DuplicateDownloadException("DuplicateDownloadException")
-
-    @raises(TorrentDefNotFinalizedException)
-    def test_torrent_def_not_finalized(self):
-        raise TorrentDefNotFinalizedException("TorrentDefNotFinalizedException")

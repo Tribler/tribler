@@ -354,9 +354,6 @@ class TriblerLaunchMany(TaskManager):
         """ Called by any thread """
         d = None
         with self.session_lock:
-            if not isinstance(tdef, TorrentDefNoMetainfo) and not tdef.is_finalized():
-                raise ValueError("TorrentDef not finalized")
-
             infohash = tdef.get_infohash()
 
             # Create the destination directory if it does not exist yet

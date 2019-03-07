@@ -39,41 +39,17 @@ class TestMyChannelCreateTorrentEndpoint(AbstractApiTest):
             # Copy expected creation date and created by (Tribler version) from actual result
             creation_date = tdef.get_creation_date()
             expected_tdef.metainfo["creation date"] = creation_date
-            created_by = tdef.get_created_by()
-            expected_tdef.metainfo["created by"] = created_by
+            expected_tdef.metainfo["created by"] = tdef.metainfo['created by']
 
             self.assertEqual(dir(expected_tdef), dir(tdef))
 
         post_data = {
-            "name": "my-video.avi",
             "files[]": os.path.join(self.files_path, "video.avi"),
             "description": "Video of my cat",
             "trackers[]": "http://localhost/announce"
         }
         self.should_check_equality = False
         return self.do_request('createtorrent?download=1', 200, None, 'POST', post_data).addCallback(verify_torrent)
-
-    @trial_timeout(10)
-    def test_torrent_name_is_as_specified(self):
-        """
-        Testing whether the torrent file is created with the name provided (with unicode support)
-        """
-        torrent_name = "\xca\x87u\xc7\x9d\xc9\xb9\xc9\xb9o\xca\x87-video.avi".decode("utf-8")
-        torrent_path = os.path.join(self.files_path, "%s.torrent" % torrent_name)
-
-        def verify_torrent_exists():
-            self.assertTrue(os.path.exists(torrent_path))
-            self.assertTrue(os.path.isfile(torrent_path))
-
-        post_data = {
-            "name": torrent_name.encode('utf-8'),
-            "files[]": os.path.join(self.files_path, "video.avi"),
-            "description": "Video of my cat",
-            "trackers[]": "http://localhost/announce"
-        }
-        self.should_check_equality = False
-        return self.do_request('createtorrent?download=1', 200, None, 'POST', post_data)\
-            .addCallback(lambda response: verify_torrent_exists())
 
     @trial_timeout(10)
     def test_create_torrent_io_error(self):

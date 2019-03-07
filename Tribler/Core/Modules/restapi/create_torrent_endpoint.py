@@ -4,12 +4,15 @@ import base64
 import json
 import logging
 
+from libtorrent import bdecode
+
 from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
 
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Modules.restapi.util import return_handled_exception
+from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.unicode import ensure_unicode
 from Tribler.Core.exceptions import DuplicateDownloadException
 
@@ -41,7 +44,6 @@ class CreateTorrentEndpoint(resource.Resource):
                 curl -X POST http://localhost:8085/createtorrent
                         --data "files[]=path/to/file.txt
                         &files[]=path/to/another/file.mp4
-                        &name=Name
                         &description=Video
                         &trackers[]=url_tracker1
                         &trackers[]=url_backup1
@@ -66,9 +68,6 @@ class CreateTorrentEndpoint(resource.Resource):
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "files parameter missing"})
 
-        if 'name' in parameters and len(parameters['name']) > 0:
-            params['name'] = parameters['name'][0]
-
         if 'description' in parameters and len(parameters['description']) > 0:
             params['comment'] = parameters['description'][0]
 
@@ -90,8 +89,7 @@ class CreateTorrentEndpoint(resource.Resource):
             Success callback
             :param result: from create_torrent_file
             """
-            with open(result['torrent_file_path'], 'rb') as f:
-                torrent_64 = base64.b64encode(f.read())
+            metainfo_dict = bdecode(result['metainfo'])
 
             # Download this torrent if specified
             if 'download' in request.args and len(request.args['download']) > 0 \
@@ -99,11 +97,12 @@ class CreateTorrentEndpoint(resource.Resource):
                 download_config = DownloadStartupConfig()
                 download_config.set_dest_dir(result['base_path'] if len(file_path_list) == 1 else result['base_dir'])
                 try:
-                    self.session.start_download_from_uri('file:' + result['torrent_file_path'], download_config)
+                    self.session.lm.ltmgr.start_download(
+                        tdef=TorrentDef(metainfo=metainfo_dict), dconfig=download_config)
                 except DuplicateDownloadException:
                     self._logger.warning("The created torrent is already being downloaded.")
 
-            request.write(json.dumps({"torrent": torrent_64}))
+            request.write(json.dumps({"torrent": base64.b64encode(result['metainfo'])}))
             # If the above request.write failed, the request will have already been finished
             if not request.finished:
                 request.finish()

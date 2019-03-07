@@ -46,8 +46,6 @@ class TestVideoOnDemand(TestAsServer):
         self.tdef.add_content(sourcefn)
         self.tdef.set_piece_length(self.piecelen)
         self.tdef.set_tracker("http://127.0.0.1:12/announce")
-        self.tdef.finalize()
-
         torrentfn = os.path.join(self.session.config.get_state_dir(), "gen.torrent")
         self.tdef.save(torrentfn)
 

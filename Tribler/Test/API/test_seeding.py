@@ -3,9 +3,12 @@ Seeding tests.
 
 Author(s): Arno Bakker, Niels Zeilemaker
 """
+from __future__ import absolute_import
+
 import logging
 import os
-from twisted.internet.defer import inlineCallbacks, Deferred
+
+from twisted.internet.defer import Deferred, inlineCallbacks
 
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import DLSTATUS_SEEDING, dlstatus_strings
@@ -24,21 +27,12 @@ class TestSeeding(TestAsServer):
         yield super(TestSeeding, self).setUp()
         self._logger = logging.getLogger(self.__class__.__name__)
         self.test_deferred = Deferred()
-        self.tdef = None
-        self.sourcefn = None
+        self.tdef = TorrentDef.load(os.path.join(TESTS_DATA_DIR, 'video.avi.torrent'))
+        self.sourcefn = os.path.join(TESTS_DATA_DIR, 'video.avi')
 
     def setUpPreSession(self):
         super(TestSeeding, self).setUpPreSession()
         self.config.set_libtorrent_enabled(True)
-
-    def generate_torrent(self):
-        self.tdef = TorrentDef()
-        self.sourcefn = os.path.join(TESTS_DATA_DIR, 'video.avi')
-        self.tdef.add_content(self.sourcefn)
-        self.tdef.set_tracker("http://localhost/announce")
-        self.tdef.finalize()
-
-        self.tdef.save(os.path.join(self.session.config.get_state_dir(), "gen.torrent"))
 
     def start_download(self, dscfg):
         download = self.session.start_download_from_tdef(self.tdef, dscfg)
@@ -51,8 +45,6 @@ class TestSeeding(TestAsServer):
         """
         Test whether a torrent is correctly seeded
         """
-        self.generate_torrent()
-
         def start_download(_):
             dscfg = self.dscfg_seed.copy()
             dscfg.set_dest_dir(self.getDestDir())

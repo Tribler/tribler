@@ -18,22 +18,17 @@ from twisted.web.static import File
 
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.network_utils import get_random_port
-from Tribler.Core.exceptions import HttpError, TorrentDefNotFinalizedException
-from Tribler.Core.simpledefs import INFOHASH_LENGTH
+from Tribler.Core.exceptions import HttpError
 from Tribler.Test.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE
 from Tribler.Test.test_as_server import BaseTestCase
 from Tribler.Test.tools import trial_timeout
 
 TRACKER = 'http://www.tribler.org/announce'
+VIDEO_FILE_NAME = "video.avi"
 
 
 class TestTorrentDef(BaseTestCase):
 
-    VIDEO_FILE_NAME = "video.avi"
-
-    """
-    Testing TorrentDef version 0
-    """
     def __init__(self, *argv, **kwargs):
         super(TestTorrentDef, self).__init__(*argv, **kwargs)
         self._logger = logging.getLogger(self.__class__.__name__)
@@ -52,6 +47,13 @@ class TestTorrentDef(BaseTestCase):
         if self.file_server:
             yield self.file_server.stopListening()
 
+    def test_tdef_init(self):
+        """
+        Test initializing a TorrentDef object
+        """
+        tdef_params = TorrentDef(torrent_parameters={'announce': 'http://test.com'})
+        self.assertIn('announce', tdef_params.torrent_parameters)
+
     def test_create_invalid_tdef(self):
         """
         Test whether creating invalid TorrentDef objects result in ValueErrors
@@ -61,191 +63,65 @@ class TestTorrentDef(BaseTestCase):
         invalid_metainfo = {'info': {}}
         self.assertRaises(ValueError, TorrentDef.load_from_memory, bencode(invalid_metainfo))
 
-    def test_add_content_file_and_copy(self):
-        """ Add a single file to a TorrentDef """
-        t = TorrentDef()
-        fn = os.path.join(TESTS_DATA_DIR, self.VIDEO_FILE_NAME)
-        t.add_content(fn)
-        t.set_tracker(TRACKER)
-        t.finalize()
-
-        s = os.path.getsize(fn)
-
-        metainfo = t.get_metainfo()
-        self.general_check(metainfo)
-
-        self.assertEqual(metainfo['info']['name'], self.VIDEO_FILE_NAME)
-        self.assertEqual(metainfo['info']['length'], s)
-        self.assertTrue(t.get_pieces())
-        self.assertEqual(len(t.get_infohash()), INFOHASH_LENGTH)
-        self.assertTrue(t.get_name())
-
-        # test copy constructor
-        nt = TorrentDef(t.input, t.metainfo, t.infohash)
-        self.assertEqual(nt.input, t.input)
-        self.assertEqual(nt.metainfo, t.metainfo)
-        self.assertEqual(nt.infohash, t.infohash)
-
-        # test removing content
-        nt.remove_content("/test123")
-        self.assertEqual(len(nt.input['files']), 1)
-        nt.remove_content(six.text_type(fn))
-        self.assertEqual(len(nt.input['files']), 0)
-        nt.remove_content(six.text_type(fn))
-
     def test_add_content_dir(self):
-        """ Add a single dir to a TorrentDef """
+        """
+        Test whether adding a single content directory with two files is working correctly
+        """
         t = TorrentDef()
-        dn = os.path.join(TESTS_DATA_DIR, "contentdir")
-        t.add_content(dn, "dirintorrent")
-        t.set_tracker(TRACKER)
-        t.finalize()
-
-        exps = 0
-        for f in os.listdir(dn):
-            if f.startswith('.'):
-                continue
-            p = os.path.join(dn, f)
-            s = os.path.getsize(p)
-            exps += s
-            self._logger.debug("Expected size %s %d", f, s)
-
-        self._logger.debug("Expected total size of files in torrent %d", exps)
+        torrent_dir = os.path.join(TESTS_DATA_DIR, "contentdir")
+        t.add_content(os.path.join(torrent_dir, "file.txt"))
+        t.add_content(os.path.join(torrent_dir, "otherfile.txt"))
+        t.save()
 
         metainfo = t.get_metainfo()
-        self.general_check(metainfo)
+        self.assertEqual(len(metainfo['info']['files']), 2)
 
-        self.assertEqual(metainfo['info']['name'], b'dirintorrent')
-        reals = 0
-        for file in metainfo['info']['files']:
-            s = file['length']
-            self._logger.debug("real size %s %d", file['path'], s)
-            reals += s
-
-        self._logger.debug("Real size of files in torrent %d", reals)
-
-        self.assertEqual(exps, reals)
-
-    def test_add_content_dir_and_file(self):
-        """ Add a single dir and single file to a TorrentDef """
+    def test_add_single_file(self):
+        """
+        Test whether adding a single file to a torrent is working correctly
+        """
         t = TorrentDef()
-
-        dn = os.path.join(TESTS_DATA_DIR, "contentdir")
-        t.add_content(dn, "dirintorrent")
-
-        fn = os.path.join(TESTS_DATA_DIR, self.VIDEO_FILE_NAME)
-        t.add_content(fn, os.path.join("dirintorrent", self.VIDEO_FILE_NAME))
-
-        t.set_tracker(TRACKER)
-        t.finalize()
-
-        # Check
-        exps = os.path.getsize(fn)
-        for f in os.listdir(dn):
-            if f.startswith('.'):
-                continue
-            p = os.path.join(dn, f)
-            exps += os.path.getsize(p)
+        torrent_dir = os.path.join(TESTS_DATA_DIR, "contentdir")
+        t.add_content(os.path.join(torrent_dir, "file.txt"))
+        t.save()
 
         metainfo = t.get_metainfo()
-        self.general_check(metainfo)
-        self.assertEqual(metainfo['info']['name'], b'dirintorrent')
-
-        reals = 0
-        for file in metainfo['info']['files']:
-            reals += file['length']
-        self.assertEqual(exps, reals)
-
-    def test_get_name_utf8(self):
-        """ Add a TorrentDef with non-utf8 encoding"""
-        t = TorrentDef()
-        t.set_name('\xA1\xC0')
-        t.set_encoding('euc_kr')
-        t.set_tracker(TRACKER)
-        dn = os.path.join(TESTS_DATA_DIR, "contentdir")
-        t.add_content(dn, "dirintorrent")
-        t.finalize()
-
-        self.assertEqual(t.get_name_utf8(), u'\xf7')
+        self.assertEqual(metainfo['info']['name'], 'file.txt')
 
     def test_get_name_utf8_unknown(self):
-        """ Add a TorrentDef with non-utf8 encoding"""
+        """
+        Test whether we can succesfully get the UTF-8 name
+        """
         t = TorrentDef()
         t.set_name('\xA1\xC0')
-        t.set_tracker(TRACKER)
-        dn = os.path.join(TESTS_DATA_DIR, "contentdir")
-        t.add_content(dn, "dirintorrent")
-        t.finalize()
+        t.torrent_parameters['encoding'] = 'euc_kr'
+        self.assertEqual(t.get_name_utf8(), u'\xf7')
 
+    def test_get_name_utf8(self):
+        """
+        Check whether we can successfully get the UTF-8 encoded torrent name when using a different encoding
+        """
+        t = TorrentDef()
+        t.set_name('\xA1\xC0')
         self.assertEqual(t.get_name_utf8(), u'\xa1\xc0')
 
-    def test_add_content_announce_list(self):
-        """ Add a single file with announce-list to a TorrentDef """
-        t = TorrentDef()
-        fn = os.path.join(TESTS_DATA_DIR, self.VIDEO_FILE_NAME)
-
-        t.add_content(fn)
-        t.set_tracker(TRACKER)
-        exphier = [[TRACKER], ['http://tracker1.tribler.org:6969/announce', 'http://tracker2.tribler.org:7070/ann'],
-                   ['http://www.cs.vu.nl', 'http://www.st.ewi.tudelft.nl', 'http://www.vuze.com']]
-        t.set_tracker_hierarchy(exphier)
-        t.finalize()
-
-        metainfo = t.get_metainfo()
-        self.general_check(metainfo)
-        realhier = metainfo['announce-list']
-        self.assertEqual(realhier, exphier)
-
-    def test_add_content_httpseeds(self):
-        """ Add a single file with BitTornado httpseeds to a TorrentDef """
-        t = TorrentDef()
-        fn = os.path.join(TESTS_DATA_DIR, self.VIDEO_FILE_NAME)
-        t.add_content(fn)
-        t.set_tracker(TRACKER)
-        expseeds = ['http://www.cs.vu.nl/index.html', 'http://www.st.ewi.tudelft.nl/index.html']
-        t.set_httpseeds(expseeds)
-        t.finalize()
-
-        metainfo = t.get_metainfo()
-        self.general_check(metainfo)
-        realseeds = metainfo['httpseeds']
-        self.assertEqual(realseeds, expseeds)
-
     def test_add_content_piece_length(self):
-        """ Add a single file with piece length to a TorrentDef """
+        """
+        Add a single file with piece length to a TorrentDef
+        """
         t = TorrentDef()
-        fn = os.path.join(TESTS_DATA_DIR, self.VIDEO_FILE_NAME)
+        fn = os.path.join(TESTS_DATA_DIR, VIDEO_FILE_NAME)
         t.add_content(fn)
         t.set_piece_length(2 ** 16)
-        t.set_tracker(TRACKER)
-        t.finalize()
+        t.save()
 
         metainfo = t.get_metainfo()
-        self.general_check(metainfo)
         self.assertEqual(metainfo['info']['piece length'], 2 ** 16)
 
-    def test_add_content_file_save(self):
-        """ Add a single file to a TorrentDef and save the latter"""
-        t = TorrentDef()
-        fn = os.path.join(TESTS_DATA_DIR, self.VIDEO_FILE_NAME)
-        t.add_content(fn)
-        t.set_tracker(TRACKER)
-        t.finalize()
-
-        tfn = os.path.join(os.getcwd(), "gen.torrent")
-        t.save(tfn)
-
-        f = open(tfn, "rb")
-        bdata = f.read()
-        f.close()
-        os.remove(tfn)
-
-        data = bdecode(bdata)
-        metainfo = t.get_metainfo()
-        self.general_check(metainfo)
-        self.assertEqual(metainfo, data)
-
     def test_is_private(self):
+        """
+        Test whether the private field from an existing torrent is correctly read
+        """
         privatefn = os.path.join(TESTS_DATA_DIR, "private.torrent")
         publicfn = os.path.join(TESTS_DATA_DIR, "bak_single.torrent")
 
@@ -308,26 +184,7 @@ class TestTorrentDef(BaseTestCase):
     def test_set_tracker_strip_slash(self):
         t = TorrentDef()
         t.set_tracker("http://tracker.org/")
-        self.assertEqual(t.input['announce'], "http://tracker.org")
-
-    @raises(ValueError)
-    def test_set_trackers_no_list_hierarchy(self):
-        t = TorrentDef()
-        t.set_tracker_hierarchy("http://tracker.org")
-
-    @raises(ValueError)
-    def test_set_trackers_no_list_tier(self):
-        t = TorrentDef()
-        t.set_tracker_hierarchy(["http://tracker.org"])
-
-    def test_set_trackers(self):
-        t = TorrentDef()
-        t.set_tracker_hierarchy([["http://tracker.org", "http://tracker2.org/", "http/tracker3.org"]])
-        self.assertEqual(len(t.get_tracker_hierarchy()[0]), 2)
-        self.assertEqual(t.get_tracker_hierarchy()[0][0], "http://tracker.org")
-        self.assertEqual(t.get_tracker_hierarchy()[0][1], "http://tracker2.org")
-
-        self.assertEqual(t.get_trackers_as_single_tuple(), ('http://tracker.org', 'http://tracker2.org'))
+        self.assertEqual(t.torrent_parameters['announce'], "http://tracker.org")
 
     def test_set_tracker(self):
         t = TorrentDef()
@@ -335,61 +192,28 @@ class TestTorrentDef(BaseTestCase):
         t.set_tracker("http://tracker.org")
         self.assertEqual(t.get_trackers_as_single_tuple(), ('http://tracker.org',))
 
-    @raises(ValueError)
-    def test_set_dht_nodes_no_list(self):
-        t = TorrentDef()
-        t.set_dht_nodes(("127.0.0.1", 1234))
+    def test_get_nr_pieces(self):
+        """
+        Test getting the number of pieces from a TorrentDef
+        """
+        tdef = TorrentDef()
+        self.assertEqual(tdef.get_nr_pieces(), 0)
 
-    @raises(ValueError)
-    def test_set_dht_nodes_node_no_list(self):
-        t = TorrentDef()
-        t.set_dht_nodes([("127.0.0.1", 1234)])
+        tdef.metainfo = {'info': {'pieces': 'a' * 40}}
+        self.assertEqual(tdef.get_nr_pieces(), 2)
 
-    @raises(ValueError)
-    def test_set_dht_nodes_node_no_string(self):
-        t = TorrentDef()
-        t.set_dht_nodes([[1234, "127.0.0.1"]])
+    def test_is_multifile(self):
+        """
+        Test whether a TorrentDef is correctly classified as multifile torrent
+        """
+        tdef = TorrentDef()
+        self.assertFalse(tdef.is_multifile_torrent())
 
-    @raises(ValueError)
-    def test_set_dht_nodes_node_no_int(self):
-        t = TorrentDef()
-        t.set_dht_nodes([["127.0.0.1", "1234"]])
+        tdef.metainfo = {}
+        self.assertFalse(tdef.is_multifile_torrent())
 
-    def test_set_dht_nodes(self):
-        t = TorrentDef()
-        t.set_dht_nodes([["127.0.0.1", 1234]])
-        self.assertEqual(t.get_dht_nodes(), [["127.0.0.1", 1234]])
-
-    def test_set_comment(self):
-        t = TorrentDef()
-        t.set_comment("lorem ipsum")
-        self.assertEqual(t.get_comment(), "lorem ipsum")
-        self.assertEqual(t.get_comment_as_unicode(), u"lorem ipsum")
-
-    def test_set_created_by(self):
-        t = TorrentDef()
-        t.set_created_by("dolor sit")
-        self.assertEqual(t.get_created_by(), "dolor sit")
-
-    @raises(ValueError)
-    def test_set_urllist_wrong_url(self):
-        t = TorrentDef()
-        t.set_urllist(["http/url.com"])
-
-    def test_set_urllist_urls(self):
-        t = TorrentDef()
-        t.set_urllist(["http://url.com"])
-        self.assertEqual(t.get_urllist(), ["http://url.com"])
-
-    @raises(ValueError)
-    def test_set_httpseeds_wrong_url(self):
-        t = TorrentDef()
-        t.set_httpseeds(["http/httpseed.com"])
-
-    def test_set_httpseeds(self):
-        t = TorrentDef()
-        t.set_httpseeds(["http://httpseed.com"])
-        self.assertEqual(t.get_httpseeds(), ["http://httpseed.com"])
+        tdef.metainfo = {'info': {'files': ['a']}}
+        self.assertTrue(tdef.is_multifile_torrent())
 
     @raises(ValueError)
     def test_set_piece_length_invalid_type(self):
@@ -400,59 +224,33 @@ class TestTorrentDef(BaseTestCase):
         t = TorrentDef()
         self.assertEqual(t.get_piece_length(), 0)
 
-    @raises(TorrentDefNotFinalizedException)
-    def test_get_infohash(self):
-        t = TorrentDef()
-        t.get_infohash()
-
-    @raises(TorrentDefNotFinalizedException)
-    def test_set_name(self):
-        t = TorrentDef()
-        t.set_name("lorem ipsum")
-        t.get_name()
-
     def test_load_from_dict(self):
         with open(os.path.join(TESTS_DATA_DIR, "bak_single.torrent"), mode='rb') as torrent_file:
             encoded_metainfo = torrent_file.read()
         self.assertTrue(TorrentDef.load_from_dict(bdecode(encoded_metainfo)))
 
-    @raises(TorrentDefNotFinalizedException)
-    def test_no_valid_metainfo(self):
-        t = TorrentDef()
-        t.get_metainfo()
-
-    def test_initial_peers(self):
-        t = TorrentDef()
-        self.assertFalse(t.get_initial_peers())
-
-    def test_set_initial_peers(self):
-        t = TorrentDef()
-        t.set_initial_peers([("127.0.0.1", 1234)])
-        self.assertEqual(t.get_initial_peers(), [("127.0.0.1", 1234)])
-
     def test_torrent_no_metainfo(self):
-        torrent = TorrentDefNoMetainfo("12345678901234567890", self.VIDEO_FILE_NAME, "http://google.com")
-        self.assertEqual(torrent.get_name(), self.VIDEO_FILE_NAME)
+        torrent = TorrentDefNoMetainfo("12345678901234567890", VIDEO_FILE_NAME, "http://google.com")
+        self.assertEqual(torrent.get_name(), VIDEO_FILE_NAME)
         self.assertEqual(torrent.get_infohash(), "12345678901234567890")
         self.assertEqual(torrent.get_length(), 0) # there are no files
         self.assertFalse(torrent.get_metainfo())
         self.assertEqual(torrent.get_url(), "http://google.com")
         self.assertFalse(torrent.is_multifile_torrent())
-        self.assertEqual(torrent.get_name_as_unicode(), six.text_type(self.VIDEO_FILE_NAME))
+        self.assertEqual(torrent.get_name_as_unicode(), six.text_type(VIDEO_FILE_NAME))
         self.assertFalse(torrent.get_files())
         self.assertFalse(torrent.get_files_with_length())
         self.assertFalse(torrent.get_trackers_as_single_tuple())
         self.assertFalse(torrent.is_private())
 
-        torrent2 = TorrentDefNoMetainfo("12345678901234567890", self.VIDEO_FILE_NAME, "magnet:")
+        torrent2 = TorrentDefNoMetainfo("12345678901234567890", VIDEO_FILE_NAME, "magnet:")
         self.assertFalse(torrent2.get_trackers_as_single_tuple())
 
-    def general_check(self, metainfo):
-        self.assertEqual(metainfo['announce'], TRACKER)
-
     def test_get_index(self):
+        """
+        Test whether we can successfully get the index of a file in a torrent.
+        """
         t = TorrentDef()
-        t.metainfo_valid = True
         t.metainfo = {'info': {'files': [{'path': ['a.txt'], 'length': 123}]}}
         self.assertEqual(t.get_index_of_file_in_files('a.txt'), 0)
         self.assertRaises(ValueError, t.get_index_of_file_in_files, 'b.txt')

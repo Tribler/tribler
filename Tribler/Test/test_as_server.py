@@ -326,19 +326,17 @@ class TestAsServer(AbstractServer):
         yield super(TestAsServer, self).tearDown()
 
     def create_local_torrent(self, source_file):
-        '''
+        """
         This method creates a torrent from a local file and saves the torrent in the session state dir.
         Note that the source file needs to exist.
-        '''
+        """
         self.assertTrue(os.path.exists(source_file))
 
         tdef = TorrentDef()
         tdef.add_content(source_file)
         tdef.set_tracker("http://localhost/announce")
-        tdef.finalize()
-
         torrent_path = os.path.join(self.session.config.get_state_dir(), "seed.torrent")
-        tdef.save(torrent_path)
+        tdef.save(torrent_filepath=torrent_path)
 
         return tdef, torrent_path
 
