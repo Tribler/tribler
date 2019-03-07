@@ -7,11 +7,14 @@ from twisted.web import resource, server
 
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.restapi.util import fix_unicode_dict
-from Tribler.Core.simpledefs import NTFY_CHANNEL, NTFY_CREDIT_MINING, NTFY_DISCOVERED, NTFY_ERROR, NTFY_FINISHED, \
-    NTFY_INSERT, NTFY_MARKET_ON_ASK, NTFY_MARKET_ON_ASK_TIMEOUT, NTFY_MARKET_ON_BID, NTFY_MARKET_ON_BID_TIMEOUT, \
-    NTFY_MARKET_ON_PAYMENT_RECEIVED, NTFY_MARKET_ON_PAYMENT_SENT, NTFY_MARKET_ON_TRANSACTION_COMPLETE, \
-    NTFY_NEW_VERSION, NTFY_REMOVE, NTFY_STARTED, NTFY_TORRENT, NTFY_TRIBLER, NTFY_TUNNEL, NTFY_UPDATE, NTFY_UPGRADER, \
-    NTFY_UPGRADER_TICK, NTFY_WATCH_FOLDER_CORRUPT_TORRENT, SIGNAL_LOW_SPACE, SIGNAL_RESOURCE_CHECK, STATE_SHUTDOWN
+from Tribler.Core.simpledefs import (NTFY_CHANNEL, NTFY_CREDIT_MINING, NTFY_DISCOVERED, NTFY_ERROR, NTFY_FINISHED,
+                                     NTFY_INSERT, NTFY_MARKET_ON_ASK, NTFY_MARKET_ON_ASK_TIMEOUT, NTFY_MARKET_ON_BID,
+                                     NTFY_MARKET_ON_BID_TIMEOUT, NTFY_MARKET_ON_PAYMENT_RECEIVED,
+                                     NTFY_MARKET_ON_PAYMENT_SENT, NTFY_MARKET_ON_TRANSACTION_COMPLETE,
+                                     NTFY_NEW_VERSION, NTFY_REMOVE, NTFY_STARTED, NTFY_TORRENT, NTFY_TRIBLER,
+                                     NTFY_TUNNEL, NTFY_UPDATE, NTFY_UPGRADER, NTFY_UPGRADER_TICK,
+                                     NTFY_WATCH_FOLDER_CORRUPT_TORRENT, SIGNAL_GIGACHANNEL_COMMUNITY, SIGNAL_LOW_SPACE,
+                                     SIGNAL_ON_SEARCH_RESULTS, SIGNAL_RESOURCE_CHECK, STATE_SHUTDOWN)
 from Tribler.Core.version import version_id
 from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import Circuit
 
@@ -91,6 +94,7 @@ class EventsEndpoint(resource.Resource):
         self.session.add_observer(self.on_credit_minig_error, NTFY_CREDIT_MINING, [NTFY_ERROR])
         self.session.add_observer(self.on_shutdown, NTFY_TRIBLER, [STATE_SHUTDOWN])
         self.session.add_observer(self.on_circuit_removed, NTFY_TUNNEL, [NTFY_REMOVE])
+        self.session.add_observer(self.on_search_response, SIGNAL_GIGACHANNEL_COMMUNITY, [SIGNAL_ON_SEARCH_RESULTS])
 
     def write_data(self, message):
         """
@@ -182,6 +186,9 @@ class EventsEndpoint(resource.Resource):
                 "uptime": time.time() - circuit.creation_time
             }
             self.write_data({"type": "circuit_removed", "event": event})
+
+    def on_search_response(self, subject, changetype, objectID, *args):
+        self.write_data({"type": "remote_search_results", "event": args[0]})
 
     def render_GET(self, request):
         """

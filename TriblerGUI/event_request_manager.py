@@ -17,8 +17,7 @@ class EventRequestManager(QNetworkAccessManager):
     """
 
     torrent_info_updated = pyqtSignal(object)
-    received_search_result_channel = pyqtSignal(object)
-    received_search_result_torrent = pyqtSignal(object)
+    received_search_result = pyqtSignal(object)
     tribler_started = pyqtSignal()
     upgrader_tick = pyqtSignal(str)
     upgrader_started = pyqtSignal()
@@ -129,6 +128,8 @@ class EventRequestManager(QNetworkAccessManager):
                     self.low_storage_signal.emit(json_dict["event"])
                 elif json_dict["type"] == "credit_mining_error":
                     self.credit_mining_signal.emit(json_dict["event"])
+                elif json_dict["type"] == "remote_search_results":
+                    self.received_search_result.emit(json_dict["event"])
                 elif json_dict["type"] == "shutdown":
                     self.tribler_shutdown_signal.emit(json_dict["event"])
                 elif json_dict["type"] == "tribler_exception":

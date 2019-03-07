@@ -125,6 +125,7 @@ INFOHASH_LENGTH = 20
 SIGNAL_ALLCHANNEL_COMMUNITY = 'signal_allchannel_community'
 SIGNAL_CHANNEL_COMMUNITY = 'signal_channel_community'
 SIGNAL_SEARCH_COMMUNITY = 'signal_search_community'
+SIGNAL_GIGACHANNEL_COMMUNITY = 'signal_gigachannel_community'
 
 SIGNAL_ON_SEARCH_RESULTS = 'signal_on_search_results'
 SIGNAL_ON_TORRENT_UPDATED = 'signal_on_torrent_updated'

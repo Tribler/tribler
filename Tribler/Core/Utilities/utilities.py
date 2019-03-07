@@ -7,6 +7,7 @@ from __future__ import absolute_import
 
 import binascii
 import logging
+import re
 from base64 import b32decode
 
 from libtorrent import bdecode, bencode
@@ -490,3 +491,16 @@ def translate_peers_into_health(peer_info_dicts):
 def unichar_string(text):
     """ Unicode character interpretation of text for Python 2.7 """
     return u''.join(six.unichr(ord(t)) for t in text)
+
+
+def is_simple_match_query(query):
+    """
+    Check if the query is a simple match query with AND operators only.
+    Supports unicode characters.
+    """
+    pattern = re.compile(r"\"[\\\w]+\"\*", flags=re.UNICODE)
+    splits = pattern.split(query)
+    for connector in splits:
+        if connector and connector != " AND ":
+            return False
+    return True

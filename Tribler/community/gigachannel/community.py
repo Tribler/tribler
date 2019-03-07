@@ -4,17 +4,25 @@ from binascii import unhexlify
 
 from pony.orm import CacheIndexError, TransactionIntegrityError, db_session
 
+from twisted.internet.defer import inlineCallbacks
+
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import entries_to_chunk
-from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT
+from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, REGULAR_TORRENT
 from Tribler.Core.Modules.MetadataStore.store import GOT_NEWER_VERSION
+from Tribler.Core.Utilities.utilities import is_simple_match_query
+from Tribler.Core.simpledefs import SIGNAL_GIGACHANNEL_COMMUNITY, SIGNAL_ON_SEARCH_RESULTS
+from Tribler.community.gigachannel.payload import SearchRequestPayload, SearchResponsePayload
+from Tribler.community.gigachannel.request import SearchRequestCache
 from Tribler.pyipv8.ipv8.community import Community
 from Tribler.pyipv8.ipv8.lazy_community import lazy_wrapper
 from Tribler.pyipv8.ipv8.messaging.lazy_payload import VariablePayload
 from Tribler.pyipv8.ipv8.peer import Peer
+from Tribler.pyipv8.ipv8.requestcache import RequestCache
 
 minimal_blob_size = 200
 maximum_payload_size = 1024
 max_entries = maximum_payload_size // minimal_blob_size
+max_search_peers = 5
 
 
 class RawBlobPayload(VariablePayload):
@@ -27,18 +35,26 @@ class GigaChannelCommunity(Community):
     Community to gossip around gigachannels.
     """
 
-    master_peer = Peer(unhexlify("3081a7301006072a8648ce3d020106052b8104002703819200040448a078b597b62d3761a061872cd86"
-                                 "10f58cb513f1dc21e66dd59f1e01d582f633b182d9ca6e5859a9a34e61eb77b768e5e9202f642fd50c6"
-                                 "0b89d8d8b0bdc355cdf8caac262f6707c80da00b1bcbe7bf91ed5015e5163a76a2b2e630afac96925f5"
-                                 "daa8556605043c6da4db7d26113cba9f9cbe63fddf74625117598317e05cb5b8cbd606d0911683570ad"
-                                 "bb921c91"))
+    master_peer = Peer(unhexlify("4c69624e61434c504b3ab5791362b5e98090310c10194e7406a553134e3e2f88bcc5c8a2e1dd249d323"
+                                 "ebb20ca9528cb8b1b0db890ef876589a6d6ba80ded85e5ebab33acd57c8ead9db"))
 
     NEWS_PUSH_MESSAGE = 1
+    SEARCH_REQUEST = 2
+    SEARCH_RESPONSE = 3
 
-    def __init__(self, my_peer, endpoint, network, metadata_store):
+    def __init__(self, my_peer, endpoint, network, metadata_store, notifier=None):
         super(GigaChannelCommunity, self).__init__(my_peer, endpoint, network)
         self.metadata_store = metadata_store
         self.add_message_handler(self.NEWS_PUSH_MESSAGE, self.on_blob)
+        self.add_message_handler(self.SEARCH_REQUEST, self.on_search_request)
+        self.add_message_handler(self.SEARCH_RESPONSE, self.on_search_response)
+        self.request_cache = RequestCache()
+        self.notifier = notifier
+
+    @inlineCallbacks
+    def unload(self):
+        self.request_cache.clear()
+        yield super(GigaChannelCommunity, self).unload()
 
     def send_random_to(self, peer):
         """
@@ -82,6 +98,15 @@ class GigaChannelCommunity(Community):
 
         # Check if the guy who send us this metadata actually has an older version of this md than
         # we do, and queue to send it back.
+        self.respond_with_updated_metadata(peer, md_list)
+
+    def respond_with_updated_metadata(self, peer, md_list):
+        """
+        Responds the peer with the updated metadata if present in the metadata list.
+        :param peer: responding peer
+        :param md_list: Metadata list
+        :return: None
+        """
         with db_session:
             reply_list = [md for md, result in md_list if
                           (md and (md.metadata_type == CHANNEL_TORRENT)) and (result == GOT_NEWER_VERSION)]
@@ -89,13 +114,87 @@ class GigaChannelCommunity(Community):
         if reply_blob:
             self.endpoint.send(peer.address, self.ezr_pack(self.NEWS_PUSH_MESSAGE, RawBlobPayload(reply_blob)))
 
+    def send_search_request(self, query_filter, metadata_type='', sort_by="HEALTH", sort_asc=0, hide_xxx=True):
+        """
+        Sends request to max_search_peers from peer list. The request is cached in request cached. The past cache is
+        cleared before adding a new search request to prevent incorrect results being pushed to the GUI.
+        """
+        search_candidates = self.get_peers()[:max_search_peers]
+        search_request_cache = SearchRequestCache(self.request_cache, search_candidates)
+        self.request_cache.clear()
+        self.request_cache.add(search_request_cache)
+
+        search_request_payload = SearchRequestPayload(search_request_cache.number, query_filter.encode('utf8'),
+                                                      metadata_type, sort_by, sort_asc, hide_xxx)
+        self._logger.info("Started remote search for query:%s", query_filter)
+
+        for peer in search_candidates:
+            self.endpoint.send(peer.address, self.ezr_pack(self.SEARCH_REQUEST, search_request_payload))
+
+    @lazy_wrapper(SearchRequestPayload)
+    def on_search_request(self, peer, request):
+        # Caution: SQL injection
+        # Since this string 'query_filter' is passed as it is to fetch the results, there could be a chance for
+        # SQL injection. But since we use pony which is supposed to be doing proper variable bindings, it should
+        # be relatively safe
+        query_filter = request.query_filter.decode('utf8')
+        # Check if the query_filter is a simple query
+        if not is_simple_match_query(query_filter):
+            self.logger.error("Dropping a complex remote search query:%s", query_filter)
+            return
+
+        metadata_type = {'': [REGULAR_TORRENT, CHANNEL_TORRENT],
+                         "channel": CHANNEL_TORRENT,
+                         "torrent": REGULAR_TORRENT
+                        }.get(request.metadata_type, REGULAR_TORRENT)
+
+        request_dict = {
+            "first": 1,
+            "last": max_entries,
+            "sort_by": request.sort_by,
+            "sort_asc": request.sort_asc,
+            "query_filter": query_filter,
+            "hide_xxx": request.hide_xxx,
+            "metadata_type": metadata_type,
+            "exclude_legacy": True
+        }
+
+        result_blob = None
+        with db_session:
+            db_results, total = self.metadata_store.TorrentMetadata.get_entries(**request_dict)
+            if total > 0:
+                result_blob = entries_to_chunk(db_results[:max_entries], maximum_payload_size)[0]
+        if result_blob:
+            self.endpoint.send(peer.address, self.ezr_pack(self.SEARCH_RESPONSE,
+                                                           SearchResponsePayload(request.id, result_blob)))
+
+    @lazy_wrapper(SearchResponsePayload)
+    def on_search_response(self, peer, response):
+        search_request_cache = self.request_cache.get(u"remote-search-request", response.id)
+        if not search_request_cache or not search_request_cache.process_peer_response(peer):
+            return
+
+        with db_session:
+            try:
+                metadata_result = self.metadata_store.process_compressed_mdblob(response.raw_blob)
+            except (TransactionIntegrityError, CacheIndexError) as err:
+                self._logger.error("DB transaction error when tried to process search payload: %s", str(err))
+                return
+
+            search_results = [(dict(type={REGULAR_TORRENT: 'torrent', CHANNEL_TORRENT: 'channel'}[r.metadata_type],
+                                    **(r.to_simple_dict()))) for (r, _) in metadata_result
+                              if r and (r.metadata_type == CHANNEL_TORRENT or r.metadata_type == REGULAR_TORRENT)]
+        if self.notifier:
+            self.notifier.notify(SIGNAL_GIGACHANNEL_COMMUNITY, SIGNAL_ON_SEARCH_RESULTS, None,
+                                 {"results": search_results})
+
+        # Send the updated metadata if any to the responding peer
+        self.respond_with_updated_metadata(peer, metadata_result)
+
 
 class GigaChannelTestnetCommunity(GigaChannelCommunity):
     """
     This community defines a testnet for the giga channels, used for testing purposes.
     """
-    master_peer = Peer(unhexlify("3081a7301006072a8648ce3d020106052b81040027038192000401b9f303778e7727b35a4c26487481f"
-                                 "a7011e252cc4a6f885f3756bd8898c9620cf1c32e79dd5e75ae277a56702a47428ce47676d005e262fa"
-                                 "fd1a131a2cb66be744d52cb1e0fca503658cb3368e9ebe232e7b8c01e3172ebfdb0620b316467e5b2c4"
-                                 "c6809565cf2142e8d4322f66a3d13a8c4bb18059c9ed97975a97716a085a93e3e62b0387e63f0bf389a"
-                                 "0e9bffe6"))
+    master_peer = Peer(unhexlify("4c69624e61434c504b3afbd79020aa61795d1186ea505cf80fe2ac7f42dfc32b830ebade5d78479cbb4"
+                                 "35bdbfda7b04e156f5515d1b0bbdafa5c67279e25937201ef6b31f7eeded20423"))

@@ -118,8 +118,17 @@ class SearchResultsTableViewController(TriblerTableViewController):
         if self.num_search_results_label:
             self.num_search_results_label.setText("%d results" % response['total'])
 
-        if response['first'] >= self.model.rowCount():
-            self.model.add_items(response['results'])
+        self.model.add_items(response['results'])
+
+    def load_remote_results(self, response):
+        if not response:
+            return
+
+        self.model.add_remote_items(response['results'])
+        self.model.total_items = len(self.model.data_items)
+
+        if self.num_search_results_label:
+            self.num_search_results_label.setText("%d results" % self.model.total_items)
 
 
 class ChannelsTableViewController(TriblerTableViewController):
