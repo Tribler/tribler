@@ -5,6 +5,7 @@ import os
 import shutil
 
 import libtorrent as lt
+from libtorrent import bdecode, bencode
 
 from six.moves import xrange
 
@@ -470,8 +471,11 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
 
         self.libtorrent_download_impl.handle.trackers = lambda: []
         self.libtorrent_download_impl.handle.save_resume_data = lambda: None
-        torrent_dict = {'name': 'test', 'piece length': 42, 'pieces': '', 'files': []}
-        get_info_from_handle(self.libtorrent_download_impl.handle).metadata = lambda: lt.bencode(torrent_dict)
+        self.libtorrent_download_impl.handle.rename_file = lambda *_: None
+        with open(os.path.join(TESTS_DATA_DIR, "bak_single.torrent"), mode='rb') as torrent_file:
+            encoded_metainfo = torrent_file.read()
+        decoded_metainfo = bdecode(encoded_metainfo)
+        get_info_from_handle(self.libtorrent_download_impl.handle).metadata = lambda: bencode(decoded_metainfo['info'])
         get_info_from_handle(self.libtorrent_download_impl.handle).files = lambda: [mocked_file]
 
         self.libtorrent_download_impl.checkpoint = mocked_checkpoint
@@ -525,8 +529,7 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         # The line below should trigger Value Error
         self.libtorrent_download_impl.handle.trackers = lambda: [{'url': 'no-DHT'}]
 
-        torrent_dict = {'name': 'test', 'piece length': 42, 'pieces': '', 'files': []}
-        get_info_from_handle(self.libtorrent_download_impl.handle).metadata = lambda: lt.bencode(torrent_dict)
+        get_info_from_handle(self.libtorrent_download_impl.handle).metadata = lambda: lt.bencode({})
         get_info_from_handle(self.libtorrent_download_impl.handle).files = lambda: [mocked_file]
 
         self.libtorrent_download_impl.checkpoint = mocked_checkpoint

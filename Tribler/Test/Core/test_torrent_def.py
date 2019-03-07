@@ -5,7 +5,7 @@ import os
 import shutil
 from tempfile import mkdtemp
 
-from libtorrent import bdecode
+from libtorrent import bdecode, bencode
 
 from nose.tools import raises
 
@@ -18,7 +18,6 @@ from twisted.web.static import File
 
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.network_utils import get_random_port
-from Tribler.Core.Utilities.utilities import create_valid_metainfo, valid_torrent_file
 from Tribler.Core.exceptions import HttpError, TorrentDefNotFinalizedException
 from Tribler.Core.simpledefs import INFOHASH_LENGTH
 from Tribler.Test.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE
@@ -52,6 +51,15 @@ class TestTorrentDef(BaseTestCase):
         super(TestTorrentDef, self).tearDown()
         if self.file_server:
             yield self.file_server.stopListening()
+
+    def test_create_invalid_tdef(self):
+        """
+        Test whether creating invalid TorrentDef objects result in ValueErrors
+        """
+        invalid_metainfo = {}
+        self.assertRaises(ValueError, TorrentDef.load_from_memory, bencode(invalid_metainfo))
+        invalid_metainfo = {'info': {}}
+        self.assertRaises(ValueError, TorrentDef.load_from_memory, bencode(invalid_metainfo))
 
     def test_add_content_file_and_copy(self):
         """ Add a single file to a TorrentDef """
@@ -154,6 +162,8 @@ class TestTorrentDef(BaseTestCase):
         t.set_name('\xA1\xC0')
         t.set_encoding('euc_kr')
         t.set_tracker(TRACKER)
+        dn = os.path.join(TESTS_DATA_DIR, "contentdir")
+        t.add_content(dn, "dirintorrent")
         t.finalize()
 
         self.assertEqual(t.get_name_utf8(), u'\xf7')
@@ -163,6 +173,8 @@ class TestTorrentDef(BaseTestCase):
         t = TorrentDef()
         t.set_name('\xA1\xC0')
         t.set_tracker(TRACKER)
+        dn = os.path.join(TESTS_DATA_DIR, "contentdir")
+        t.add_content(dn, "dirintorrent")
         t.finalize()
 
         self.assertEqual(t.get_name_utf8(), u'\xa1\xc0')
@@ -255,8 +267,6 @@ class TestTorrentDef(BaseTestCase):
         self.setUpFileServer(file_server_port, files_path)
 
         def _on_load(torrent_def):
-            torrent_def.metainfo = create_valid_metainfo(torrent_def.get_metainfo())
-            self.assertTrue(valid_torrent_file(torrent_def.get_metainfo()))
             self.assertEqual(torrent_def.get_metainfo(), TorrentDef.load(TORRENT_UBUNTU_FILE).get_metainfo())
             self.assertEqual(torrent_def.infohash, TorrentDef.load(TORRENT_UBUNTU_FILE).infohash)
 
@@ -402,10 +412,9 @@ class TestTorrentDef(BaseTestCase):
         t.get_name()
 
     def test_load_from_dict(self):
-        metainfo = {"info": {"name": "my_torrent", "piece length": 12345, "pieces": "12345678901234567890",
-                                   "files": []}}
-        torrent = TorrentDef.load_from_dict(metainfo)
-        self.assertTrue(valid_torrent_file(torrent.get_metainfo()))
+        with open(os.path.join(TESTS_DATA_DIR, "bak_single.torrent"), mode='rb') as torrent_file:
+            encoded_metainfo = torrent_file.read()
+        self.assertTrue(TorrentDef.load_from_dict(bdecode(encoded_metainfo)))
 
     @raises(TorrentDefNotFinalizedException)
     def test_no_valid_metainfo(self):
@@ -439,7 +448,6 @@ class TestTorrentDef(BaseTestCase):
         self.assertFalse(torrent2.get_trackers_as_single_tuple())
 
     def general_check(self, metainfo):
-        self.assertTrue(valid_torrent_file(metainfo))
         self.assertEqual(metainfo['announce'], TRACKER)
 
     def test_get_index(self):

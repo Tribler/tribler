@@ -14,13 +14,13 @@ from time import time
 
 import chardet
 
-from libtorrent import bencode
+import libtorrent as lt
+from libtorrent import bdecode, bencode
 
 from six import text_type
 from six.moves import xrange
 
 from Tribler.Core.Utilities.unicode import bin2unicode
-from Tribler.Core.Utilities.utilities import create_valid_metainfo
 from Tribler.Core.defaults import tdefdictdefaults
 from Tribler.Core.osutils import fix_filebasename
 
@@ -44,7 +44,10 @@ def make_torrent_file(input, userabortflag=None, userprogresscallback=lambda x: 
         return None, None
 
     metainfo = {'info': info, 'encoding': input['encoding'], 'creation date': long(time())}
-    metainfo = create_valid_metainfo(metainfo)
+
+    # Check validity and sanitize
+    torrent_info = lt.torrent_info(metainfo)
+    metainfo['info'] = bdecode(torrent_info.metadata())
 
     # http://www.bittorrent.org/beps/bep_0005.html says both announce and nodes
     # are not allowed, but some torrents (Azureus?) apparently violate this.
