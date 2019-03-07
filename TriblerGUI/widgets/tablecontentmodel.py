@@ -1,4 +1,4 @@
-from __future__ import absolute_import, division
+from __future__ import absolute_import
 
 from abc import abstractmethod
 
@@ -165,7 +165,7 @@ class ChannelsContentModel(TriblerContentModel):
         ACTION_BUTTONS: Qt.ItemIsEnabled
     }
     column_display_filters = {
-        u'updated': lambda date: pretty_date(date // 1000),
+        u'updated': pretty_date,
     }
 
     def __init__(self, subscribed=False, **kwargs):

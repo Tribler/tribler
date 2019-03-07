@@ -93,7 +93,10 @@ def pretty_date(time=False):
     """
     now = datetime.now()
     if isinstance(time, integer_types):
-        diff = now - datetime.fromtimestamp(time)
+        try:
+            diff = now - datetime.fromtimestamp(time)
+        except ValueError:  # The time passed is out of range - return an empty string
+            return ''
     elif isinstance(time, datetime):
         diff = now - time
     elif not time:
