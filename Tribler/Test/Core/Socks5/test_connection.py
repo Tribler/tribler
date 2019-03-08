@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from binascii import unhexlify
 
 from twisted.internet.defer import inlineCallbacks
