@@ -96,7 +96,7 @@ class GigaChannelManager(TaskManager):
             try:
                 if not self.session.has_download(str(channel.infohash)):
                     self._logger.info("Downloading new channel version %s ver %i->%i",
-                                      str(channel.public_key).encode("hex"),
+                                      hexlify(str(channel.public_key)),
                                       channel.local_version, channel.timestamp)
                     self.download_channel(channel)
             except:

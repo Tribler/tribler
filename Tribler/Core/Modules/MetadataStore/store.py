@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import logging
 import os
+from binascii import hexlify
 from datetime import datetime
 
 import lz4.frame
@@ -154,7 +155,7 @@ class MetadataStore(object):
         with db_session:
             channel = self.ChannelMetadata.get(public_key=channel_id)
             self._logger.debug("Starting processing channel dir %s. Channel %s local/max version %i/%i",
-                               dirname, str(channel.public_key).encode("hex"), channel.local_version,
+                               dirname, hexlify(str(channel.public_key)), channel.local_version,
                                channel.timestamp)
 
         for filename in sorted(os.listdir(dirname)):
@@ -186,7 +187,7 @@ class MetadataStore(object):
                         self._logger.error("Not processing metadata located at %s: invalid signature", full_filename)
 
         self._logger.debug("Finished processing channel dir %s. Channel %s local/max version %i/%i",
-                           dirname, str(channel.public_key).encode("hex"), channel.local_version,
+                           dirname, hexlify(str(channel.public_key)), channel.local_version,
                            channel.timestamp)
 
     @db_session

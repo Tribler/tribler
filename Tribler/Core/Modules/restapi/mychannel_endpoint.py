@@ -106,7 +106,7 @@ class MyChannelEndpoint(BaseMyChannelEndpoint):
         title = unquote(parameters['name'][0]).decode('utf-8')
         self.session.lm.mds.ChannelMetadata.create_channel(title, description)
         return json.dumps({
-            "added": str(my_channel_pk).encode("hex"),
+            "added": hexlify(str(my_channel_pk)),
         })
 
 
