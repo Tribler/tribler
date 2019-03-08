@@ -124,7 +124,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         if os.path.isfile(self.exitnode_cache):
             self.logger.debug('Loading exit nodes from cache: %s', self.exitnode_cache)
             exit_nodes = Network()
-            with open(self.exitnode_cache, 'r') as cache:
+            with open(self.exitnode_cache, 'rb') as cache:
                 exit_nodes.load_snapshot(cache.read())
             for exit_node in exit_nodes.get_walkable_addresses():
                 self.endpoint.send(exit_node, self.create_introduction_request(exit_node))
