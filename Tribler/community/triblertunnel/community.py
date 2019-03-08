@@ -12,7 +12,8 @@ from twisted.internet.defer import Deferred, inlineCallbacks, succeed
 from Tribler.Core.Modules.wallet.bandwidth_block import TriblerBandwidthBlock
 from Tribler.Core.Socks5.server import Socks5Server
 from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, DLSTATUS_METADATA, DLSTATUS_SEEDING, DLSTATUS_STOPPED,
-                                     NTFY_CREATED, NTFY_EXTENDED, NTFY_IP_RECREATE, NTFY_JOINED, NTFY_REMOVE, NTFY_TUNNEL)
+                                     NTFY_CREATED, NTFY_EXTENDED, NTFY_IP_RECREATE, NTFY_JOINED, NTFY_REMOVE,
+                                     NTFY_TUNNEL)
 from Tribler.community.triblertunnel.caches import BalanceRequestCache
 from Tribler.community.triblertunnel.discovery import GoldenRatioStrategy
 from Tribler.community.triblertunnel.dispatcher import TunnelDispatcher
