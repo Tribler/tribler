@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import os
 import sys
 import time
+from binascii import hexlify, unhexlify
 
 from six.moves import xrange
 
@@ -10,8 +11,8 @@ from twisted.internet.defer import Deferred, inlineCallbacks, succeed
 
 from Tribler.Core.Modules.wallet.bandwidth_block import TriblerBandwidthBlock
 from Tribler.Core.Socks5.server import Socks5Server
-from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_METADATA, DLSTATUS_SEEDING, DLSTATUS_STOPPED, \
-                                    NTFY_CREATED, NTFY_EXTENDED, NTFY_IP_RECREATE, NTFY_JOINED, NTFY_REMOVE, NTFY_TUNNEL
+from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, DLSTATUS_METADATA, DLSTATUS_SEEDING, DLSTATUS_STOPPED,
+                                     NTFY_CREATED, NTFY_EXTENDED, NTFY_IP_RECREATE, NTFY_JOINED, NTFY_REMOVE, NTFY_TUNNEL)
 from Tribler.community.triblertunnel.caches import BalanceRequestCache
 from Tribler.community.triblertunnel.discovery import GoldenRatioStrategy
 from Tribler.community.triblertunnel.dispatcher import TunnelDispatcher
@@ -21,9 +22,9 @@ from Tribler.pyipv8.ipv8.messaging.anonymization.caches import ExtendRequestCach
 from Tribler.pyipv8.ipv8.messaging.anonymization.community import message_to_payload
 from Tribler.pyipv8.ipv8.messaging.anonymization.hidden_services import HiddenTunnelCommunity
 from Tribler.pyipv8.ipv8.messaging.anonymization.payload import LinkedE2EPayload, NO_CRYPTO_PACKETS
-from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import CIRCUIT_STATE_READY, CIRCUIT_TYPE_DATA, \
-                                                               CIRCUIT_TYPE_RENDEZVOUS, CIRCUIT_TYPE_RP, EXIT_NODE, \
-                                                               RelayRoute
+from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import (CIRCUIT_STATE_READY, CIRCUIT_TYPE_DATA,
+                                                                CIRCUIT_TYPE_RENDEZVOUS, CIRCUIT_TYPE_RP, EXIT_NODE,
+                                                                RelayRoute)
 from Tribler.pyipv8.ipv8.peer import Peer
 from Tribler.pyipv8.ipv8.peerdiscovery.network import Network
 
@@ -33,10 +34,11 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
     This community is built upon the anonymous messaging layer in IPv8.
     It adds support for libtorrent anonymous downloads and bandwidth token payout when closing circuits.
     """
-    master_peer = Peer("3081a7301006072a8648ce3d020106052b81040027038192000400965194026c987edad7c5c0364a95dfa4e961e"
-                       "ec6d1711678be182a31824363db3a54caa11e9b6f1d6051c2f33578b51c12eff3833b7c74c5a243b8705e4e032b"
-                       "14904f4d8855e2044c0408a5729cd4e5b286fec66866811d5439049448e5b8b818d8c29a84a074a13f5e7e414d4"
-                       "e5b1b115a221fe697b89bd3e63c7aecd7617f789a203a4eacf680279224b390e836".decode('hex'))
+    master_peer = ("3081a7301006072a8648ce3d020106052b81040027038192000400965194026c987edad7c5c0364a95dfa4e961e"
+                   "ec6d1711678be182a31824363db3a54caa11e9b6f1d6051c2f33578b51c12eff3833b7c74c5a243b8705e4e032b"
+                   "14904f4d8855e2044c0408a5729cd4e5b286fec66866811d5439049448e5b8b818d8c29a84a074a13f5e7e414d4"
+                   "e5b1b115a221fe697b89bd3e63c7aecd7617f789a203a4eacf680279224b390e836")
+    master_peer = Peer(unhexlify(master_peer))
 
     def __init__(self, *args, **kwargs):
         self.tribler_session = kwargs.pop('tribler_session', None)
@@ -297,7 +299,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
     def readd_bittorrent_peers(self):
         for torrent, peers in self.bittorrent_peers.items():
-            infohash = torrent.tdef.get_infohash().encode("hex")
+            infohash = hexlify(torrent.tdef.get_infohash())
             for peer in peers:
                 self.logger.info("Re-adding peer %s to torrent %s", peer, infohash)
                 torrent.add_peer(peer)
@@ -486,14 +488,14 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                         self.infohash_ip_circuits[info_hash].remove((circuit_id, time_created))
                         if self.tribler_session.notifier:
                             self.tribler_session.notifier.notify(
-                                NTFY_TUNNEL, NTFY_IP_RECREATE, circuit_id, info_hash.encode('hex')[:6])
-                        self.logger.info('Recreate the introducing circuit for %s', info_hash.encode('hex'))
+                                NTFY_TUNNEL, NTFY_IP_RECREATE, circuit_id, hexlify(info_hash)[:6])
+                        self.logger.info('Recreate the introducing circuit for %s', hexlify(info_hash))
                         self.create_introduction_point(info_hash)
 
             time_elapsed = (time.time() - self.last_dht_lookup.get(info_hash, 0))
             force_dht_lookup = time_elapsed >= self.settings.dht_lookup_interval
             if (state_changed or force_dht_lookup) and (new_state == DLSTATUS_DOWNLOADING):
-                self.logger.info('Do dht lookup to find hidden services peers for %s', info_hash.encode('hex'))
+                self.logger.info('Do dht lookup to find hidden services peers for %s', hexlify(info_hash))
                 self.do_raw_dht_lookup(info_hash)
 
             if state_changed and new_state == DLSTATUS_SEEDING:
@@ -559,7 +561,8 @@ class TriblerTunnelTestnetCommunity(TriblerTunnelCommunity):
     """
     This community defines a testnet for the anonymous tunnels.
     """
-    master_peer = Peer("3081a7301006072a8648ce3d020106052b81040027038192000401325e6f0a67a92a890344013914fcf9da9b0326"
-                       "bf6c845815ec8b537e356a56b2a8c27ac4918078202f60eb29ebf081436136c280316ac461daee2d04cf073d1200"
-                       "80d15628af1002b0c0273d9d94fdab08e718f568d83b9c4298117261b5647ca8295f1ba4b880a50fd2ef7041fef7"
-                       "edfbef5f02fc03827a2c09c5f9c701f87abacd022c780d76733c133363a5c46c".decode('hex'))
+    master_peer = ("3081a7301006072a8648ce3d020106052b81040027038192000401325e6f0a67a92a890344013914fcf9da9b0326"
+                   "bf6c845815ec8b537e356a56b2a8c27ac4918078202f60eb29ebf081436136c280316ac461daee2d04cf073d1200"
+                   "80d15628af1002b0c0273d9d94fdab08e718f568d83b9c4298117261b5647ca8295f1ba4b880a50fd2ef7041fef7"
+                   "edfbef5f02fc03827a2c09c5f9c701f87abacd022c780d76733c133363a5c46c")
+    master_peer = Peer(unhexlify(master_peer))
