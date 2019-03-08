@@ -1,12 +1,14 @@
 from __future__ import absolute_import
 
 import os
+
 from nose.tools import raises
+
 import six
 from six.moves.configparser import MissingSectionHeaderError
 
-from Tribler.Core.DownloadConfig import (DownloadConfigInterface, DownloadStartupConfig, get_default_dest_dir,
-                                         DefaultDownloadStartupConfig)
+from Tribler.Core.DownloadConfig import (DefaultDownloadStartupConfig, DownloadConfigInterface,
+                                         DownloadStartupConfig, get_default_dest_dir)
 from Tribler.Core.simpledefs import DLMODE_VOD
 from Tribler.Test.Core.base_test import TriblerCoreTest
 
@@ -90,7 +92,7 @@ class TestConfigParser(TriblerCoreTest):
 
     def test_default_download_startup_config_load(self):
         with open(os.path.join(self.session_base_dir, "dlconfig.conf"), 'wb') as conf_file:
-            conf_file.write("[Tribler]\nabc=def")
+            conf_file.write(b"[Tribler]\nabc=def")
 
         ddsc = DefaultDownloadStartupConfig.load(os.path.join(self.session_base_dir, "dlconfig.conf"))
         self.assertEqual(ddsc.dlconfig.get('Tribler', 'abc'), 'def')
