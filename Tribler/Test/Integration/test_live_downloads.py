@@ -43,7 +43,7 @@ num_hops = int(os.environ.get("TEST_NUM_HOPS", default_num_hops))
 state_dir = default_state_dir
 if os.environ.get("TEST_INTEGRATION") == "yes":
     # Get & set state directory
-    if os.environ.has_key('TSTATEDIR'):
+    if 'TSTATEDIR' in os.environ:
         state_dir = os.environ['TSTATEDIR']
     else:
         os.environ['TSTATEDIR'] = os.environ.get('TSTATEDIR', default_state_dir)
@@ -218,7 +218,7 @@ class TriblerDownloadTest(AbstractTriblerIntegrationTest):
         self.screenshot(window, name="home_page_torrents_loading")
 
         # Start downloading some torrents
-        if os.environ.has_key('TORRENTS_DIR'):
+        if 'TORRENTS_DIR' in os.environ:
             torrent_dir = os.environ.get('TORRENTS_DIR')
         else:
             torrent_dir = os.path.join(os.path.join(os.path.dirname(__file__), os.pardir), "data", "linux_torrents")
