@@ -1,9 +1,10 @@
 from binascii import unhexlify
 
-from Tribler.Core.Socks5.connection import Socks5Connection, ConnectionState
+from twisted.internet.defer import inlineCallbacks
+
+from Tribler.Core.Socks5.connection import ConnectionState, Socks5Connection
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.test_as_server import AbstractServer
-from twisted.internet.defer import inlineCallbacks
 
 
 class MockTransport(MockObject):
