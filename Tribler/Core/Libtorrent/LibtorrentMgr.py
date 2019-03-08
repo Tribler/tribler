@@ -5,7 +5,6 @@ Author(s): Egbert Bouman
 """
 from __future__ import absolute_import
 
-import codecs
 import logging
 import os
 import tempfile
@@ -181,8 +180,7 @@ class LibtorrentMgr(TaskManager):
 
             mid = self.tribler_session.trustchain_keypair.key_to_hash()
             settings['peer_fingerprint'] = mid
-            settings['handshake_client_version'] = ('Tribler/' + version_id + '/' +
-                                                    codecs.decode(mid, 'raw_unicode_escape'))
+            settings['handshake_client_version'] = 'Tribler/' + version_id + '/' + mid.encode('hex')
         else:
             settings['enable_outgoing_utp'] = True
             settings['enable_incoming_utp'] = True
