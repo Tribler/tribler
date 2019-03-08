@@ -141,7 +141,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         cache = self.request_cache.pop(u"balance-request", circuit_id)
 
-        lowest_balance = sys.maxint
+        lowest_balance = sys.maxsize
         lowest_index = -1
         for ind, tup in enumerate(self.competing_slots):
             if not tup[1]:
