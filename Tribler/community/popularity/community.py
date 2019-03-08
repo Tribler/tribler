@@ -1,11 +1,13 @@
 from __future__ import absolute_import
 
+from binascii import hexlify, unhexlify
+
 from pony.orm import db_session
 
 from twisted.internet.defer import inlineCallbacks
 
-from Tribler.community.popularity.constants import ERROR_UNKNOWN_PEER, ERROR_UNKNOWN_RESPONSE, \
-    MSG_TORRENT_HEALTH_RESPONSE
+from Tribler.community.popularity.constants import (ERROR_UNKNOWN_PEER, ERROR_UNKNOWN_RESPONSE,
+                                                    MSG_TORRENT_HEALTH_RESPONSE)
 from Tribler.community.popularity.payload import ContentSubscription, TorrentHealthPayload
 from Tribler.community.popularity.pubsub import PubSubCommunity
 from Tribler.community.popularity.repository import ContentRepository
@@ -16,12 +18,12 @@ class PopularityCommunity(PubSubCommunity):
     """
     Community for disseminating the content across the network. Follows publish-subscribe model.
     """
-    MASTER_PUBLIC_KEY = "3081a7301006072a8648ce3d020106052b8104002703819200040504278d20d6776ce7081ad57d99fe066bb2a93" \
-                        "ce7cc92405a534ef7175bab702be557d8c7d3b725ea0eb09c686e798f6c7ad85e8781a4c3b20e54c15ede38077c" \
-                        "8f5c801b71d13105f261da7ddcaa94ae14bd177bf1a05a66f595b9bb99117d11f73b4c8d3dcdcdc2b3f838b8ba3" \
-                        "5a9f600d2c543e8b3ba646083307b917bbbccfc53fc5ab6ded90b711d7eeda46f5f"
+    MASTER_PUBLIC_KEY = ("3081a7301006072a8648ce3d020106052b8104002703819200040504278d20d6776ce7081ad57d99fe066bb2a93"
+                         "ce7cc92405a534ef7175bab702be557d8c7d3b725ea0eb09c686e798f6c7ad85e8781a4c3b20e54c15ede38077c"
+                         "8f5c801b71d13105f261da7ddcaa94ae14bd177bf1a05a66f595b9bb99117d11f73b4c8d3dcdcdc2b3f838b8ba3"
+                         "5a9f600d2c543e8b3ba646083307b917bbbccfc53fc5ab6ded90b711d7eeda46f5f")
 
-    master_peer = Peer(MASTER_PUBLIC_KEY.decode('hex'))
+    master_peer = Peer(unhexlify(MASTER_PUBLIC_KEY))
 
     def __init__(self, *args, **kwargs):
         self.metadata_store = kwargs.pop('metadata_store', None)
@@ -35,7 +37,7 @@ class PopularityCommunity(PubSubCommunity):
             chr(MSG_TORRENT_HEALTH_RESPONSE): self.on_torrent_health_response
         })
 
-        self.logger.info('Popular Community initialized (peer mid %s)', self.my_peer.mid.encode('HEX'))
+        self.logger.info('Popular Community initialized (peer mid %s)', hexlify(self.my_peer.mid))
 
     @inlineCallbacks
     def unload(self):

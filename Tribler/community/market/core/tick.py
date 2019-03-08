@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import time
+from binascii import hexlify
 
 from six import text_type
 
@@ -201,7 +202,7 @@ class Tick(object):
             "timeout": int(self.timeout),
             "timestamp": float(self.timestamp),
             "traded": self.traded,
-            "block_hash": self.block_hash.encode('hex'),
+            "block_hash": hexlify(self.block_hash),
         }
 
     def __str__(self):

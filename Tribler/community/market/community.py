@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from base64 import b64decode
-from binascii import unhexlify
+from binascii import hexlify, unhexlify
 from functools import wraps
 
 from twisted.internet import reactor
@@ -160,7 +160,7 @@ class MarketCommunity(Community, BlockListener):
         BlockListener.__init__(self)
 
         self._use_main_thread = True  # Market community is unable to deal with thread pool message processing yet
-        self.mid = self.my_peer.mid.encode('hex')
+        self.mid = hexlify(self.my_peer.mid)
         self.mid_register = {}
         self.order_book = None
         self.market_database = MarketDB(db_working_dir, self.DB_NAME)
@@ -237,7 +237,7 @@ class MarketCommunity(Community, BlockListener):
             self._logger.warning("Unable to get address for trader %s", trader_id)
             deferred.errback(failure)
 
-        self.dht.connect_peer(str(trader_id).decode('hex')).addCallbacks(on_peers, on_dht_error)
+        self.dht.connect_peer(unhexlify(str(trader_id))).addCallbacks(on_peers, on_dht_error)
 
         return deferred
 
