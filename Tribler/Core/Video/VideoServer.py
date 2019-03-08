@@ -78,7 +78,7 @@ class VideoServer(ThreadingMixIn, HTTPServer):
                 time.sleep(1)
             self.vod_info[dl_hash]['stream'] = (VODFile(open(vod_filename, 'rb'), download), RLock())
 
-        if self.vod_info[dl_hash].has_key('stream'):
+        if 'stream' in self.vod_info[dl_hash]:
             return self.vod_info[dl_hash]['stream']
         return None, None
 
