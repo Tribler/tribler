@@ -1,4 +1,9 @@
+from __future__ import absolute_import
+
+from binascii import hexlify
+
 from libtorrent import bencode
+
 from twisted.internet import reactor
 from twisted.internet.defer import maybeDeferred
 from twisted.web import http, resource, server
@@ -37,7 +42,7 @@ class TrackerScrapeEndpoint(resource.Resource):
         for infohash in request.args['info_hash']:
             if not self.session.tracker_info.has_info_about_infohash(infohash):
                 request.setResponseCode(http.BAD_REQUEST)
-                return "no info about infohash %s" % infohash.encode('hex')
+                return "no info about infohash %s" % hexlify(infohash)
 
             info_dict = self.session.tracker_info.get_info_about_infohash(infohash)
             response_dict['files'][infohash] = {'complete': info_dict['seeders'],

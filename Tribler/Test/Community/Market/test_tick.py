@@ -1,10 +1,13 @@
+from __future__ import absolute_import
+
 import unittest
+from binascii import hexlify
 
 from Tribler.community.market.core.assetamount import AssetAmount
 from Tribler.community.market.core.assetpair import AssetPair
 from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.order import Order, OrderId, OrderNumber
-from Tribler.community.market.core.tick import Tick, Ask, Bid
+from Tribler.community.market.core.tick import Ask, Bid, Tick
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
 
@@ -75,5 +78,5 @@ class TickTestSuite(unittest.TestCase):
             "timeout": 30,
             "timestamp": 0.0,
             "traded": 0,
-            "block_hash": ('0' * 32).encode('hex')
+            "block_hash": hexlify('0' * 32)
         })

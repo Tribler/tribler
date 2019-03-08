@@ -1,9 +1,9 @@
 from __future__ import absolute_import
 
-import binascii
 import os
 import shutil
 import tempfile
+from binascii import hexlify, unhexlify
 
 from libtorrent import bencode
 
@@ -123,7 +123,7 @@ class TestLibtorrentMgr(AbstractServer):
         self.ltmgr.ltsession_metainfo.pop_alerts = lambda: [fake_alert]
 
         self.ltmgr.is_dht_ready = lambda: True
-        self.ltmgr.get_metainfo(infohash.decode('hex'), metainfo_cb)
+        self.ltmgr.get_metainfo(unhexlify(infohash), metainfo_cb)
 
         return test_deferred
 
@@ -140,7 +140,7 @@ class TestLibtorrentMgr(AbstractServer):
 
         self.ltmgr.initialize()
         self.ltmgr.is_dht_ready = lambda: True
-        self.ltmgr.metainfo_cache[("a" * 20).encode('hex')] = {'meta_info': 'test'}
+        self.ltmgr.metainfo_cache[hexlify("a" * 20)] = {'meta_info': 'test'}
         self.ltmgr.get_metainfo("a" * 20, metainfo_cb)
 
         return test_deferred
@@ -191,12 +191,12 @@ class TestLibtorrentMgr(AbstractServer):
         fake_handle = MockObject()
 
         self.ltmgr.initialize()
-        self.ltmgr.metainfo_requests[('a' * 20).encode('hex')] = {'handle': fake_handle,
+        self.ltmgr.metainfo_requests[hexlify('a' * 20)] = {'handle': fake_handle,
                                                                   'timeout_callbacks': [metainfo_timeout_cb],
                                                                   'callbacks': [],
                                                                   'notify': True}
         self.ltmgr.ltsession_metainfo.remove_torrent = lambda _dummy1, _dummy2: None
-        self.ltmgr.got_metainfo(('a' * 20).encode('hex'), timeout=True)
+        self.ltmgr.got_metainfo(hexlify('a' * 20), timeout=True)
 
         return test_deferred
 
@@ -420,7 +420,7 @@ class TestLibtorrentMgr(AbstractServer):
 
         download = self.ltmgr.start_download_from_magnet("magnet:?xt=urn:btih:" + ('1'*40))
 
-        basename = binascii.hexlify(download.get_def().get_infohash()) + '.state'
+        basename = hexlify(download.get_def().get_infohash()) + '.state'
         filename = os.path.join(download.session.get_downloads_pstate_dir(), basename)
 
         self.assertTrue(os.path.isfile(filename))
