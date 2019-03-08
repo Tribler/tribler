@@ -123,7 +123,7 @@ class TestLibtorrentMgr(AbstractServer):
         self.ltmgr.ltsession_metainfo.pop_alerts = lambda: [fake_alert]
 
         self.ltmgr.is_dht_ready = lambda: True
-        self.ltmgr.get_metainfo(unhexlify(infohash.decode), metainfo_cb)
+        self.ltmgr.get_metainfo(unhexlify(infohash), metainfo_cb)
 
         return test_deferred
 
