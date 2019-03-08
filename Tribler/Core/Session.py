@@ -84,9 +84,11 @@ class Session(object):
         self.notifier = Notifier()
 
         self.upgrader_enabled = True
+        self.upgrader = None
         self.readable_status = ''  # Human-readable string to indicate the status during startup/shutdown of Tribler
 
         self.autoload_discovery = autoload_discovery
+
 
     def create_state_directory_structure(self):
         """Create directory structure of the state directory."""
@@ -402,9 +404,9 @@ class Session(object):
             self.lm.api_manager.start()
 
         if self.upgrader_enabled:
-            upgrader = TriblerUpgrader(self)
+            self.upgrader = TriblerUpgrader(self)
             self.readable_status = STATE_UPGRADING_READABLE
-            upgrader.run()
+            self.upgrader.run()
 
         startup_deferred = self.lm.register(self, self.session_lock)
 
@@ -445,6 +447,9 @@ class Session(object):
             if self.lm.mds:
                 self.notify_shutdown_state("Shutting down Metadata Store...")
                 self.lm.mds.shutdown()
+
+            if self.upgrader:
+                self.upgrader.shutdown()
 
             # We close the API manager as late as possible during shutdown.
             if self.lm.api_manager is not None:

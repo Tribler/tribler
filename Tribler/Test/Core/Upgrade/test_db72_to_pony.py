@@ -168,7 +168,6 @@ class TestUpgradePreconditionChecker(TriblerCoreTest):
         db72_to_pony.old_db_version_ok = lambda _: True
         self.assertTrue(should_upgrade(OLD_DB_SAMPLE, pony_db))
 
-
         mock_logger = MockObject()
         mock_logger.error = lambda _,a: None
 

@@ -6,10 +6,13 @@ import logging
 import os
 import sqlite3
 from binascii import unhexlify
+from time import sleep
 
 from pony import orm
-from pony.orm import db_session
+from pony.orm import CacheIndexError, TransactionIntegrityError, db_session
 from six import text_type
+from twisted.internet import reactor
+from twisted.internet.threads import deferToThread
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import LEGACY_ENTRY, NEW
 from Tribler.Core.Modules.MetadataStore.serialization import REGULAR_TORRENT
@@ -22,8 +25,14 @@ DISCOVERED_CONVERSION_STARTED = "discovered_conversion_started"
 CHANNELS_CONVERSION_STARTED = "channels_conversion_started"
 TRACKERS_CONVERSION_STARTED = "trackers_conversion_started"
 PERSONAL_CONVERSION_STARTED = "personal_conversion_started"
+
+CONVERSION_STARTED = "conversion_started"
 CONVERSION_FINISHED = "conversion_finished"
+
 CONVERSION_FROM_72 = "conversion_from_72"
+CONVERSION_FROM_72_PERSONAL = "conversion_from_72_personal"
+CONVERSION_FROM_72_DISCOVERED = "conversion_from_72_discovered"
+CONVERSION_FROM_72_CHANNELS = "conversion_from_72_channels"
 
 
 def dispesy_cid_to_pk(dispersy_cid):
@@ -65,6 +74,7 @@ class DispersyToPonyMigration(object):
         self.notifier_callback = notifier_callback
         self.tribler_db = tribler_db
         self.mds = None
+        self.shutting_down = False
 
         self.personal_channel_id = None
         self.personal_channel_title = None
@@ -91,7 +101,6 @@ class DispersyToPonyMigration(object):
                                  "public_key": dispesy_cid_to_pk(id_),
                                  "timestamp": final_timestamp(),
                                  "votes": int(nr_favorite or 0),
-                                 # "xxx": float(nr_spam or 0),
                                  "origin_id": 0,
                                  "signature": pseudo_signature(),
                                  "skip_key_check": True,
@@ -100,13 +109,16 @@ class DispersyToPonyMigration(object):
                                  "subscribed": False,
                                  "status": LEGACY_ENTRY,
                                  "num_entries": int(nr_torrents or 0)})
+        connection.close()
         return channels
 
     def get_personal_channel_id_title(self):
         connection = sqlite3.connect(self.tribler_db)
         cursor = connection.cursor()
         cursor.execute('SELECT id,name FROM Channels WHERE peer_id ISNULL LIMIT 1')
-        return cursor.fetchone()
+        result = cursor.fetchone()
+        connection.close()
+        return result
 
     def get_old_trackers(self):
         connection = sqlite3.connect(self.tribler_db)
@@ -125,6 +137,7 @@ class DispersyToPonyMigration(object):
                 "last_check": last_check,
                 "failures": failures,
                 "alive": is_alive})
+        connection.close()
         return trackers
 
     def get_old_torrents_count(self, personal_channel_only=False):
@@ -138,7 +151,9 @@ class DispersyToPonyMigration(object):
         cursor = connection.cursor()
         cursor.execute("SELECT COUNT(*) FROM (SELECT t.torrent_id " + self.select_torrents_sql + \
                        personal_channel_filter + "group by infohash )")
-        return cursor.fetchone()[0]
+        result = cursor.fetchone()[0]
+        connection.close()
+        return result
 
     def get_personal_channel_torrents_count(self):
         connection = sqlite3.connect(self.tribler_db)
@@ -146,7 +161,9 @@ class DispersyToPonyMigration(object):
         cursor.execute("SELECT COUNT(*) FROM (SELECT t.torrent_id " + self.select_torrents_sql + \
                        (" AND ct.channel_id == %s " % self.personal_channel_id) + \
                        " group by infohash )")
-        return cursor.fetchone()[0]
+        result = cursor.fetchone()[0]
+        connection.close()
+        return result
 
     def get_old_torrents(self, personal_channel_only=False, batch_size=BATCH_SIZE, offset=0,
                          sign=False):
@@ -174,6 +191,9 @@ class DispersyToPonyMigration(object):
             try:
                 if len(base64.decodestring(infohash)) != 20:
                     continue
+                if not torrent_id or int(torrent_id) == 0:
+                    continue
+
                 infohash = base64.decodestring(infohash)
 
                 torrent_dict = {
@@ -183,13 +203,13 @@ class DispersyToPonyMigration(object):
                     "torrent_date": datetime.datetime.utcfromtimestamp(creation_date or 0),
                     "title": name or '',
                     "tags": category or '',
-                    "id_": torrent_id or 0,
                     "origin_id": 0,
                     "tracker_info": tracker_url or '',
                     "xxx": int(category == u'xxx')}
                 if not sign:
                     torrent_dict.update({
-                        "timestamp": int(torrent_id or 0),
+                        "id_": torrent_id,
+                        "timestamp": int(torrent_id),
                         "status": LEGACY_ENTRY,
                         "public_key": dispesy_cid_to_pk(channel_id),
                         "signature": pseudo_signature(),
@@ -203,117 +223,152 @@ class DispersyToPonyMigration(object):
             except:
                 continue
 
+        connection.close()
         return torrents
 
+    @db_session
     def convert_personal_channel(self):
         # Reflect conversion state
-        with db_session:
-            v = self.mds.MiscData.get(name=CONVERSION_FROM_72)
-            if v:
-                if v.value == PERSONAL_CONVERSION_STARTED:
-                    # Just drop the entries from the previous try
-
-                    my_channel = self.mds.ChannelMetadata.get_my_channel()
-                    for g in my_channel.contents_list:
-                        g.delete()
+        v = self.mds.MiscData.get_for_update(name=CONVERSION_FROM_72_PERSONAL)
+        if v:
+            if v.value == CONVERSION_STARTED:
+                # Just drop the entries from the previous try
+                my_channel = self.mds.ChannelMetadata.get_my_channel()
+                if my_channel:
+                    my_channel.contents.delete(bulk=True)
                     my_channel.delete()
-                elif v.value == CHANNELS_CONVERSION_STARTED:
-                    v.set(value=PERSONAL_CONVERSION_STARTED)
-                else:
-                    return
-
             else:
-                self.mds.MiscData(name=CONVERSION_FROM_72, value=PERSONAL_CONVERSION_STARTED)
+                # Something is wrong, this should never happen
+                return
+        else:
+            v = self.mds.MiscData(name=CONVERSION_FROM_72_PERSONAL, value=CONVERSION_STARTED)
 
-        if not self.personal_channel_id or not self.get_personal_channel_torrents_count():
-            return
-
-        # Make sure there is nothing left of old personal channel, just in case
-        if self.mds.ChannelMetadata.get_my_channel():
-            return
-
-        old_torrents = self.get_old_torrents(personal_channel_only=True, sign=True)
-        with db_session:
+        # Make sure every necessary bit is there and nothing is left of the old personal channel, just in case
+        if (self.personal_channel_id and
+                self.get_personal_channel_torrents_count() and
+                not self.mds.ChannelMetadata.get_my_channel()):
+            old_torrents = self.get_old_torrents(personal_channel_only=True, sign=True)
             my_channel = self.mds.ChannelMetadata.create_channel(title=self.personal_channel_title, description='')
             for (torrent, _) in old_torrents:
+                if self.shutting_down:
+                    return
                 try:
                     md = self.mds.TorrentMetadata(**torrent)
                     md.parents.add(my_channel)
                 except:
                     continue
-            my_channel.commit_channel_torrent()
+
+            my_channel.consolidate_channel_torrent()
+
+        v.value = CONVERSION_FINISHED
 
     def convert_discovered_torrents(self):
         offset = 0
         # Reflect conversion state
         with db_session:
-            v = self.mds.MiscData.get(name=CONVERSION_FROM_72)
+            v = self.mds.MiscData.get_for_update(name=CONVERSION_FROM_72_DISCOVERED)
             if v:
                 offset = orm.count(
                     g for g in self.mds.TorrentMetadata if
                     g.status == LEGACY_ENTRY and g.metadata_type == REGULAR_TORRENT)
-                v.set(value=DISCOVERED_CONVERSION_STARTED)
+                v.set(value=CONVERSION_STARTED)
             else:
-                self.mds.MiscData(name=CONVERSION_FROM_72, value=DISCOVERED_CONVERSION_STARTED)
+                self.mds.MiscData(name=CONVERSION_FROM_72_DISCOVERED, value=CONVERSION_STARTED)
 
-        start = datetime.datetime.utcnow()
-        x = 0 + offset
-        batch_size = 1000
+        start_time = datetime.datetime.utcnow()
+        batch_size = 100
         total_to_convert = self.get_old_torrents_count()
 
-        while True:
-            old_torrents = self.get_old_torrents(batch_size=batch_size, offset=x)
-            if not old_torrents:
+        reference_timedelta = datetime.timedelta(milliseconds=100)
+        start = 0 + offset
+        end = start
+        while start < total_to_convert:
+            batch = self.get_old_torrents(batch_size=batch_size, offset=start)
+            if not batch:
                 break
-            with db_session:
-                for (t, _) in old_torrents:
-                    try:
-                        self.mds.TorrentMetadata(**t)
-                    except:
-                        continue
 
-            x += batch_size
+            end = start + len(batch)
+
+            batch_start_time = datetime.datetime.now()
+            try:
+                with db_session:
+                    for (t, _) in batch:
+                        if self.shutting_down:
+                            return
+                        try:
+                            self.mds.TorrentMetadata(**t)
+                        except (TransactionIntegrityError, CacheIndexError):
+                            pass
+            except (TransactionIntegrityError, CacheIndexError):
+                pass
+            batch_end_time = datetime.datetime.now() - batch_start_time
+            # It is not necessary to put 'sleep' here, because get_old_torrents effectively plays that role
+
+            target_coeff = (batch_end_time.total_seconds() / reference_timedelta.total_seconds())
+            if len(batch) == batch_size:
+                # Adjust batch size only for full batches
+                if target_coeff < 0.8:
+                    batch_size += batch_size
+                elif target_coeff > 1.0:
+                    batch_size = int(float(batch_size) / target_coeff)
+                batch_size += 1  # we want to guarantee that at least something will go through
+            self._logger.info("Converted old torrents batch: %i/%i %f " % (
+                start + batch_size, total_to_convert, float(batch_end_time.total_seconds())))
+
             if self.notifier_callback:
-                self.notifier_callback("%i/%i" % (x, total_to_convert))
-                self._logger.info("Converted old torrents: %i/%i" % (x, total_to_convert))
+                self.notifier_callback("%i/%i" % (start + batch_size, total_to_convert))
+            start = end
 
-        stop = datetime.datetime.utcnow()
-        elapsed = (stop - start).total_seconds()
+        with db_session:
+            v = self.mds.MiscData.get_for_update(name=CONVERSION_FROM_72_DISCOVERED)
+            v.value = CONVERSION_FINISHED
+
+        stop_time = datetime.datetime.utcnow()
+        elapsed = (stop_time - start_time).total_seconds()
 
         if self.notifier_callback:
-            self.notifier_callback("%i entries converted in %i seconds (%i e/s)" % (x, int(elapsed), int(x / elapsed)))
+            self.notifier_callback(
+                "%i entries converted in %i seconds (%i e/s)" % (
+                    end - offset, int(elapsed), int((end - offset) / elapsed)))
 
     def convert_discovered_channels(self):
         # Reflect conversion state
         with db_session:
-            v = self.mds.MiscData.get(name=CONVERSION_FROM_72)
+            v = self.mds.MiscData.get_for_update(name=CONVERSION_FROM_72_CHANNELS)
             if v:
-                if v.value == CHANNELS_CONVERSION_STARTED:
+                if v.value == CONVERSION_STARTED:
                     # Just drop the entries from the previous try
                     orm.delete(g for g in self.mds.ChannelMetadata if g.status == LEGACY_ENTRY)
                 else:
-                    v.set(value=CHANNELS_CONVERSION_STARTED)
+                    v.set(value=CONVERSION_STARTED)
             else:
-                self.mds.MiscData(name=CONVERSION_FROM_72, value=CHANNELS_CONVERSION_STARTED)
+                self.mds.MiscData(name=CONVERSION_FROM_72_CHANNELS, value=CONVERSION_STARTED)
+
+        old_channels = self.get_old_channels()
+        # We break it up into separate sessions and add sleep because this is going to be executed
+        # on a background thread and we do not want to hold the DB lock for too long
+        for c in old_channels:
+            if self.shutting_down:
+                return
+            sleep(0.01)
+            try:
+                with db_session:
+                    channel = self.mds.ChannelMetadata(**c)
+                    # FIXME: Pony bug?? Cannot store contents_len in separate var and reuse it!!!
+                    channel.num_entries = channel.contents_len
+                    if not channel.contents_len:
+                        channel.delete()
+            except:
+                continue
 
         with db_session:
-            old_channels = self.get_old_channels()
-            for c in old_channels:
-                try:
-                    self.mds.ChannelMetadata(**c)
-                except:
-                    continue
-
-        with db_session:
-            for c in self.mds.ChannelMetadata.select()[:]:
-                c.num_entries = c.contents_len
-                if c.num_entries == 0:
-                    c.delete()
+            v = self.mds.MiscData.get_for_update(name=CONVERSION_FROM_72_CHANNELS)
+            v.value = CONVERSION_FINISHED
 
     def update_trackers_info(self):
         old_trackers = self.get_old_trackers()
         with db_session:
-            trackers = self.mds.TrackerState.select()[:]
+            trackers = self.mds.TrackerState.select().for_update()[:]
             for tracker in trackers:
                 if tracker.url in old_trackers:
                     tracker.set(**old_trackers[tracker.url])
@@ -327,11 +382,21 @@ class DispersyToPonyMigration(object):
                 self.mds.MiscData(name=CONVERSION_FROM_72, value=CONVERSION_FINISHED)
 
     def do_migration(self):
-        self.convert_discovered_torrents()
-        self.convert_discovered_channels()
         self.convert_personal_channel()
-        self.update_trackers_info()
-        self.mark_conversion_finished()
+
+        def background_stuff():
+            self.mds.clock = None  # We should never touch the clock during legacy conversions
+            if not self.shutting_down:
+                self.convert_discovered_torrents()
+            if not self.shutting_down:
+                self.convert_discovered_channels()
+            if not self.shutting_down:
+                self.update_trackers_info()
+            if not self.shutting_down:
+                self.mark_conversion_finished()
+            self.mds._db.disconnect()
+
+        return deferToThread(background_stuff)
 
 
 def old_db_version_ok(old_database_path):
@@ -370,6 +435,7 @@ def new_db_version_ok(new_database_path):
         version = int(cursor.fetchone()[0])
         if version != 0:
             return False
+    connection.close()
     return True
 
 
@@ -384,6 +450,7 @@ def already_upgraded(new_database_path):
             state = result[0]
             if state == CONVERSION_FINISHED:
                 return True
+    connection.close()
     return False
 
 
