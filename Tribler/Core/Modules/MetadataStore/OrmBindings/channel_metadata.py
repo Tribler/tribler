@@ -81,7 +81,7 @@ def entries_to_chunk(metadata_list, chunk_size, start_index=0):
     chunk = ''.join(out_list)
     if last_entry_index is None:
         raise Exception('Serialized entry size > blob size limit!',
-                        str(metadata_list[start_index].signature).encode('hex'))
+                        hexlify(str(metadata_list[start_index].signature)))
     return chunk, last_entry_index + 1
 
 
@@ -223,7 +223,7 @@ def define_binding(db):
             except IOError:
                 self._logger.error(
                     "Error during channel torrent commit, not going to garbage collect the channel. Channel %s",
-                    str(self.public_key).encode("hex"))
+                    hexlify(str(self.public_key)))
             else:
                 if new_start_timestamp:
                     update_dict['start_timestamp'] = new_start_timestamp
@@ -241,7 +241,7 @@ def define_binding(db):
                 self.to_file(os.path.join(self._channels_dir, self.dir_name + BLOB_EXTENSION))
 
                 self._logger.info("Channel %s committed with %i new entries. New version is %i",
-                                  str(self.public_key).encode("hex"), len(md_list), update_dict['timestamp'])
+                                  hexlify(str(self.public_key)), len(md_list), update_dict['timestamp'])
             return torrent
 
         @db_session
