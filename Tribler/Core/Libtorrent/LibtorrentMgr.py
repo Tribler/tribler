@@ -180,7 +180,7 @@ class LibtorrentMgr(TaskManager):
 
             mid = self.tribler_session.trustchain_keypair.key_to_hash()
             settings['peer_fingerprint'] = mid
-            settings['handshake_client_version'] = 'Tribler/' + version_id + '/' + mid.encode('hex')
+            settings['handshake_client_version'] = 'Tribler/' + version_id + '/' + hexlify(mid)
         else:
             settings['enable_outgoing_utp'] = True
             settings['enable_incoming_utp'] = True
@@ -343,7 +343,7 @@ class LibtorrentMgr(TaskManager):
                 return succeed(existing_handle)
 
             if infohash in self.torrents:
-                self._logger.info("Torrent already exists in the downloads. Infohash:%s", infohash.encode('hex'))
+                self._logger.info("Torrent already exists in the downloads. Infohash:%s", hexlify(infohash))
 
             # Otherwise, add it anew
             ltsession.async_add_torrent(encode_atp(atp))

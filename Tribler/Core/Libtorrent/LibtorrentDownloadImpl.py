@@ -852,7 +852,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         peers = []
         peer_infos = self.handle.get_peer_info() if self.handle and self.handle.is_valid() else []
         for peer_info in peer_infos:
-            peer_dict = {'id': peer_info.pid.to_bytes().encode('hex'),
+            peer_dict = {'id': hexlify(peer_info.pid.to_bytes()),
                          'extended_version': peer_info.client,
                          'ip': peer_info.ip[0],
                          'port': peer_info.ip[1],
