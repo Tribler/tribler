@@ -1,4 +1,7 @@
+from __future__ import absolute_import
+
 import logging
+from binascii import hexlify
 
 from twisted.web import resource
 from twisted.web.server import NOT_DONE_YET
@@ -66,7 +69,7 @@ class LibTorrentSettingsEndpoint(resource.Resource):
             return json.dumps({'hop': hop, "settings": {}})
 
         lt_settings = self.session.lm.ltmgr.ltsessions[hop].get_settings()
-        lt_settings['peer_fingerprint'] = lt_settings['peer_fingerprint'].encode('hex')
+        lt_settings['peer_fingerprint'] = hexlify(lt_settings['peer_fingerprint'])
 
         return json.dumps({'hop': hop, "settings": lt_settings})
 

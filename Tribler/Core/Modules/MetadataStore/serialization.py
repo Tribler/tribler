@@ -1,6 +1,7 @@
 from __future__ import absolute_import, division
 
 import struct
+from binascii import hexlify
 from datetime import datetime, timedelta
 
 from Tribler.Core.exceptions import InvalidSignatureException
@@ -241,7 +242,7 @@ class TorrentMetadataPayload(ChannelNodePayload):
     # TODO:  DRY!(copypasted from TorrentMetadata)
     def get_magnet(self):
         return ("magnet:?xt=urn:btih:%s&dn=%s" %
-                (str(self.infohash).encode('hex'), str(self.title).encode('utf8'))) + \
+                (hexlify(str(self.infohash)), str(self.title).encode('utf8'))) + \
                ("&tr=%s" % (str(self.tracker_info).encode('utf8')) if self.tracker_info else "")
 
 

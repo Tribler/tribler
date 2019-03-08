@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 import logging
-from binascii import hexlify
+from binascii import hexlify, unhexlify
 
 from libtorrent import bencode, create_torrent
 
@@ -276,7 +276,7 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                     del peer_info['have']
                     if 'extended_version' in peer_info:
                         peer_info['extended_version'] = _safe_extended_peer_info(peer_info['extended_version'])
-                    peer_info['id'] = peer_info['id'].encode('hex')
+                    peer_info['id'] = hexlify(peer_info['id'])
 
                 download_json["peers"] = peer_list
 
@@ -328,7 +328,7 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
 
         def download_added(download):
             request.write(json.dumps({"started": True,
-                                      "infohash": download.get_def().get_infohash().encode('hex')}))
+                                      "infohash": hexlify(download.get_def().get_infohash())}))
             request.finish()
 
         def on_error(error):
@@ -357,7 +357,7 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                     else:
                         return json.dumps({"error": "Already subscribed"})
 
-                return json.dumps({"started": True, "infohash": str(download.get_def().get_infohash()).encode('hex')})
+                return json.dumps({"started": True, "infohash": hexlify(str(download.get_def().get_infohash()))})
             else:
                 download_uri = u"file:%s" % url2pathname(uri[5:]).decode('utf-8')
         else:
@@ -376,7 +376,7 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
 
     def __init__(self, session, infohash):
         DownloadBaseEndpoint.__init__(self, session)
-        self.infohash = bytes(infohash.decode('hex'))
+        self.infohash = bytes(unhexlify(infohash))
         self.putChild("torrent", DownloadExportTorrentEndpoint(session, self.infohash))
         self.putChild("files", DownloadFilesEndpoint(session, self.infohash))
 
@@ -417,7 +417,7 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
             Success callback
             """
             request.write(json.dumps({"removed": True,
-                                      "infohash": download.get_def().get_infohash().encode('hex')}))
+                                      "infohash": hexlify(download.get_def().get_infohash())}))
             request.finish()
 
         def _on_remove_failure(failure):
@@ -484,7 +484,7 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
                 Success callback
                 """
                 request.write(json.dumps({"modified": True,
-                                          "infohash": download.get_def().get_infohash().encode('hex')}))
+                                          "infohash": hexlify(download.get_def().get_infohash())}))
                 request.finish()
 
             def _on_download_readd_failure(failure):
@@ -527,7 +527,7 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
                 return json.dumps({"error": "unknown state parameter"})
 
         return json.dumps({"modified": True,
-                           "infohash": download.get_def().get_infohash().encode('hex')})
+                           "infohash": hexlify(download.get_def().get_infohash())})
 
 
 class DownloadExportTorrentEndpoint(DownloadBaseEndpoint):
@@ -568,7 +568,7 @@ class DownloadExportTorrentEndpoint(DownloadBaseEndpoint):
         bencoded_torrent = bencode(torrent)
 
         request.setHeader(b'content-type', 'application/x-bittorrent')
-        request.setHeader(b'Content-Disposition', 'attachment; filename=%s.torrent' % self.infohash.encode('hex'))
+        request.setHeader(b'Content-Disposition', 'attachment; filename=%s.torrent' % hexlify(self.infohash))
         return bencoded_torrent
 
 

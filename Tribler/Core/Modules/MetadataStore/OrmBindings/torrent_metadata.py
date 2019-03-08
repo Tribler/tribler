@@ -56,7 +56,7 @@ def define_binding(db):
 
         def get_magnet(self):
             return ("magnet:?xt=urn:btih:%s&dn=%s" %
-                    (str(self.infohash).encode('hex'), self.title)) + \
+                    (hexlify(str(self.infohash)), self.title)) + \
                    ("&tr=%s" % self.tracker_info if self.tracker_info else "")
 
         @classmethod
