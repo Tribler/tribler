@@ -3,7 +3,7 @@ This file contains some utility methods that are used by the API.
 """
 from __future__ import absolute_import
 
-from six import string_types
+from six import binary_type, string_types
 from six.moves import xrange
 
 from twisted.web import http
@@ -51,7 +51,7 @@ def fix_unicode_dict(d):
             new_dict[key] = fix_unicode_array(list(value))
         elif isinstance(value, list):
             new_dict[key] = fix_unicode_array(value)
-        elif isinstance(value, string_types):
+        elif isinstance(value, binary_type):
             new_dict[key] = value.decode('utf-8', 'ignore')
         else:
             new_dict[key] = value
@@ -65,12 +65,12 @@ def fix_unicode_array(arr):
     """
     new_arr = []
 
-    for ind in xrange(len(arr)):
-        if isinstance(arr[ind], string_types):
-            new_arr.append(arr[ind].decode('utf-8', 'ignore'))
-        elif isinstance(arr[ind], dict):
-            new_arr.append(fix_unicode_dict(arr[ind]))
+    for item in arr:
+        if isinstance(item, binary_type):
+            new_arr.append(item.decode('utf-8', 'ignore'))
+        elif isinstance(item, dict):
+            new_arr.append(fix_unicode_dict(item))
         else:
-            new_arr.append(arr[ind])
+            new_arr.append(item)
 
     return new_arr
