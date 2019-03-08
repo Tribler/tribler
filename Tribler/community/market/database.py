@@ -144,8 +144,8 @@ class MarketDB(TrustChainDB):
         Return an order with a specific id.
         """
         try:
-            db_result = self.execute(u"SELECT * FROM orders WHERE trader_id = ? AND order_number = ?",
-                                     (text_type(order_id.trader_id), text_type(order_id.order_number))).next()
+            db_result = next(self.execute(u"SELECT * FROM orders WHERE trader_id = ? AND order_number = ?",
+                                          (text_type(order_id.trader_id), text_type(order_id.order_number))))
         except StopIteration:
             return None
         return Order.from_database(db_result, self.get_reserved_ticks(order_id))
@@ -177,7 +177,7 @@ class MarketDB(TrustChainDB):
         """
         Return the next order number from the database
         """
-        highest_order_number = self.execute(u"SELECT MAX(order_number) FROM orders").next()
+        highest_order_number = next(self.execute(u"SELECT MAX(order_number) FROM orders"))
         if not highest_order_number[0]:
             return 1
         return highest_order_number[0] + 1
@@ -223,9 +223,9 @@ class MarketDB(TrustChainDB):
         Return a transaction with a specific id.
         """
         try:
-            db_result = self.execute(u"SELECT * FROM transactions WHERE trader_id = ? AND transaction_number = ?",
-                                     (text_type(transaction_id.trader_id),
-                                      text_type(transaction_id.transaction_number))).next()
+            db_result = next(self.execute(u"SELECT * FROM transactions WHERE trader_id = ? AND transaction_number = ?",
+                                          (text_type(transaction_id.trader_id),
+                                           text_type(transaction_id.transaction_number))))
         except StopIteration:
             return None
         return Transaction.from_database(db_result, self.get_payments(transaction_id))
@@ -285,7 +285,7 @@ class MarketDB(TrustChainDB):
         """
         Return the next transaction number from the database
         """
-        highest_transaction_number = self.execute(u"SELECT MAX(transaction_number) FROM transactions").next()
+        highest_transaction_number = next(self.execute(u"SELECT MAX(transaction_number) FROM transactions"))
         if not highest_transaction_number[0]:
             return 1
         return highest_transaction_number[0] + 1
