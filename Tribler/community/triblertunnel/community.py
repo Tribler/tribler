@@ -112,7 +112,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         for peer in self.exit_candidates.values():
             exit_nodes.add_verified_peer(peer)
         self.logger.debug('Writing exit nodes to cache: %s', self.exitnode_cache)
-        with open(self.exitnode_cache, 'w') as cache:
+        with open(self.exitnode_cache, 'wb') as cache:
             cache.write(exit_nodes.snapshot())
 
     def restore_exitnodes_from_disk(self):
