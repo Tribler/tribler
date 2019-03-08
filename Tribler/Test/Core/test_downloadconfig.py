@@ -90,7 +90,7 @@ class TestConfigParser(TriblerCoreTest):
 
     def test_default_download_startup_config_load(self):
         with open(os.path.join(self.session_base_dir, "dlconfig.conf"), 'wb') as conf_file:
-            conf_file.write("[Tribler]\nabc=def")
+            conf_file.write(b"[Tribler]\nabc=def")
 
         ddsc = DefaultDownloadStartupConfig.load(os.path.join(self.session_base_dir, "dlconfig.conf"))
         self.assertEqual(ddsc.dlconfig.get('Tribler', 'abc'), 'def')
