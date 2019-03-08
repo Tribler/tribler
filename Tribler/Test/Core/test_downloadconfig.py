@@ -1,12 +1,14 @@
 from __future__ import absolute_import
 
 import os
+
 from nose.tools import raises
+
 import six
 from six.moves.configparser import MissingSectionHeaderError
 
-from Tribler.Core.DownloadConfig import (DownloadConfigInterface, DownloadStartupConfig, get_default_dest_dir,
-                                         DefaultDownloadStartupConfig)
+from Tribler.Core.DownloadConfig import (DefaultDownloadStartupConfig, DownloadConfigInterface,
+                                         DownloadStartupConfig, get_default_dest_dir )
 from Tribler.Core.simpledefs import DLMODE_VOD
 from Tribler.Test.Core.base_test import TriblerCoreTest
 
