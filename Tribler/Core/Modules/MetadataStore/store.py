@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+from __future__ import absolute_import, division
 
 import logging
 import os
@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from time import sleep
 
 import lz4.frame
+
 from pony import orm
 from pony.orm import db_session
 
@@ -280,8 +281,8 @@ class MetadataStore(object):
                 elif target_coeff > 1.0:
                     self.batch_size = int(float(self.batch_size) / target_coeff)
                 self.batch_size += 1  # we want to guarantee that at least something will go through
-            self._logger.debug(("Added payload batch to DB (entries, seconds): %i %f", (self.batch_size,
-                                float(batch_end_time.total_seconds()))))
+            self._logger.debug(("Added payload batch to DB (entries, seconds): %i %f",
+                                (self.batch_size, float(batch_end_time.total_seconds()))))
             start = end
         return result
 

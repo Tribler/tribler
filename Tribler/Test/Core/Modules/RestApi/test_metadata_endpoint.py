@@ -10,7 +10,9 @@ from pony.orm import db_session
 import six
 from six.moves import xrange
 
+from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
+from twisted.internet.task import deferLater
 
 from Tribler.Core.TorrentChecker.torrent_checker import TorrentChecker
 from Tribler.Core.Utilities.network_utils import get_random_port
@@ -122,6 +124,34 @@ class TestSpecificChannelEndpoint(BaseTestMetadataEndpoint):
         channel_pk = hexlify(self.session.lm.mds.ChannelNode._my_key.pub().key_to_bin()[10:])
         return self.do_request('metadata/channels/%s' % channel_pk, expected_code=200,
                                request_type='POST', post_data=post_params)
+
+    def test_unsubscribe(self):
+        with db_session:
+            channel = self.session.lm.mds.ChannelMetadata.select()[:][0]
+            channel.subscribed = True
+
+        self.should_check_equality = False
+        post_params = {'subscribe': '0'}
+        channel_pk = hexlify(channel.public_key)
+
+        def async_sleep(secs):
+            return deferLater(reactor, secs, lambda: None)
+
+        @inlineCallbacks
+        def on_response(_):
+            # stupid workaround for polling results of a background process
+            result = False
+            for _ in range(0, 30):
+                with db_session:
+                    c = self.session.lm.mds.ChannelMetadata.select()[:][0]
+                    if c.contents.count() == 2:
+                        result = True
+                        break
+                    yield async_sleep(0.2)
+            self.assertTrue(result)
+
+        return self.do_request('metadata/channels/%s' % channel_pk, expected_code=200,
+                               request_type='POST', post_data=post_params).addCallback(on_response)
 
 
 class TestSpecificChannelTorrentsEndpoint(BaseTestMetadataEndpoint):

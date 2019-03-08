@@ -4,6 +4,7 @@ import os
 from binascii import hexlify
 
 from pony.orm import db_session
+
 from twisted.internet.task import LoopingCall
 from twisted.internet.threads import deferToThread
 
@@ -169,11 +170,11 @@ class GigaChannelManager(TaskManager):
             self.session.lm.mds.process_channel_dir(channel_dirname, channel.public_key, external_thread=True)
             self.session.lm.mds._db.disconnect()
 
-
         def _on_failure(failure):
             self._logger.error("Error when processing channel dir download: %s", failure)
 
-        finished_deferred = download.finished_deferred.addCallback(lambda dl: deferToThread(on_channel_download_finished, dl))
+        finished_deferred = download.finished_deferred.addCallback(
+            lambda dl: deferToThread(on_channel_download_finished, dl))
         finished_deferred.addErrback(_on_failure)
 
         return download, finished_deferred

@@ -6,12 +6,12 @@ import logging
 import os
 import sqlite3
 from binascii import unhexlify
-from time import sleep
 
 from pony import orm
 from pony.orm import CacheIndexError, TransactionIntegrityError, db_session
+
 from six import text_type
-from twisted.internet import reactor
+
 from twisted.internet.threads import deferToThread
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import LEGACY_ENTRY, NEW
@@ -235,7 +235,8 @@ class DispersyToPonyMigration(object):
                 # Just drop the entries from the previous try
                 my_channel = self.mds.ChannelMetadata.get_my_channel()
                 if my_channel:
-                    my_channel.contents.delete(bulk=True)
+                    # FIXME: PONY BUG - can't use bulk delete because of broken FOREIGN KEY constraints
+                    my_channel.contents.delete()
                     my_channel.delete()
             else:
                 # Something is wrong, this should never happen
@@ -312,8 +313,8 @@ class DispersyToPonyMigration(object):
                 elif target_coeff > 1.0:
                     batch_size = int(float(batch_size) / target_coeff)
                 batch_size += 1  # we want to guarantee that at least something will go through
-            self._logger.info("Converted old torrents batch: %i/%i %f " % (
-                start + batch_size, total_to_convert, float(batch_end_time.total_seconds())))
+            self._logger.info("Converted old torrents batch: %i/%i %f ",
+                              start + batch_size, total_to_convert, float(batch_end_time.total_seconds()))
 
             if self.notifier_callback:
                 self.notifier_callback("%i/%i" % (start + batch_size, total_to_convert))
@@ -347,19 +348,22 @@ class DispersyToPonyMigration(object):
         old_channels = self.get_old_channels()
         # We break it up into separate sessions and add sleep because this is going to be executed
         # on a background thread and we do not want to hold the DB lock for too long
-        for c in old_channels:
-            if self.shutting_down:
-                return
-            sleep(0.01)
-            try:
-                with db_session:
-                    channel = self.mds.ChannelMetadata(**c)
-                    # FIXME: Pony bug?? Cannot store contents_len in separate var and reuse it!!!
-                    channel.num_entries = channel.contents_len
-                    if not channel.contents_len:
-                        channel.delete()
-            except:
-                continue
+        with db_session:
+            for c in old_channels:
+                if self.shutting_down:
+                    return
+                try:
+                    self.mds.ChannelMetadata(**c)
+                except:
+                    continue
+
+        with db_session:
+            for c in self.mds.ChannelMetadata.select().for_update()[:]:
+                contents_len = c.contents_len
+                if contents_len:
+                    c.num_entries = contents_len
+                else:
+                    c.delete()
 
         with db_session:
             v = self.mds.MiscData.get_for_update(name=CONVERSION_FROM_72_CHANNELS)

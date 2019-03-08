@@ -45,7 +45,7 @@ class TriblerUpgrader(object):
         new_database_path = os.path.join(self.session.config.get_state_dir(), 'sqlite', 'metadata.db')
         channels_dir = os.path.join(self.session.config.get_chant_channels_dir())
 
-        self.pony_upgrader  = DispersyToPonyMigration(old_database_path, self.update_status, logger=self._logger)
+        self.pony_upgrader = DispersyToPonyMigration(old_database_path, self.update_status, logger=self._logger)
         if not should_upgrade(old_database_path, new_database_path, logger=self._logger):
             return
         # We have to create the Metadata Store object because the LaunchManyCore has not been started yet

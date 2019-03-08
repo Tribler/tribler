@@ -578,8 +578,10 @@ class TestMetadataDownloadEndpoint(AbstractApiTest):
         Test adding a channel metadata download to the Tribler core
         """
 
+        @db_session
         def verify_download(_):
-            self.assertGreaterEqual(len(self.session.get_downloads()), 1)
+            self.assertEqual(self.session.lm.mds.ChannelMetadata.select().count(), 1)
+            self.assertTrue(self.session.lm.mds.ChannelMetadata.get().subscribed)
 
         post_data = {'uri': 'file:%s' % os.path.join(TESTS_DIR, 'Core/data/sample_channel/channel.mdblob')}
         expected_json = {'started': True, 'infohash': '8e1cfb5b832e124b681497578c3715b63df01b50'}

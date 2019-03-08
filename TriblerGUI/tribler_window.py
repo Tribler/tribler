@@ -245,6 +245,11 @@ class TriblerWindow(QMainWindow):
         self.core_manager.events_manager.credit_mining_signal.connect(self.on_credit_mining_error)
         self.core_manager.events_manager.tribler_shutdown_signal.connect(self.on_tribler_shutdown_state_update)
 
+        self.core_manager.events_manager.upgrader_tick.connect(
+            lambda text: self.show_status_bar("Upgrading Tribler database: " + text))
+        self.core_manager.events_manager.upgrader_finished.connect(
+            lambda _: self.hide_status_bar())
+
         self.core_manager.events_manager.received_search_result.connect(
             self.search_results_page.received_search_result)
 
