@@ -58,7 +58,7 @@ class TestGigaChannelUnits(TestBase):
 
         self.nodes[0].overlay.send_random_to(Peer(self.nodes[1].my_peer.public_key, self.nodes[1].endpoint.wan_address))
 
-        yield self.deliver_messages()
+        yield self.deliver_messages(timeout=0.5)
 
         with db_session:
             self.assertEqual(len(self.nodes[1].overlay.metadata_store.ChannelMetadata.select()), 1)
@@ -78,7 +78,7 @@ class TestGigaChannelUnits(TestBase):
 
         self.nodes[0].overlay.send_random_to(Peer(self.nodes[1].my_peer.public_key, self.nodes[1].endpoint.wan_address))
 
-        yield self.deliver_messages()
+        yield self.deliver_messages(timeout=0.5)
 
         with db_session:
             self.assertEqual(len(self.nodes[1].overlay.metadata_store.ChannelMetadata.select()), 1)
@@ -107,7 +107,7 @@ class TestGigaChannelUnits(TestBase):
         # node1 --outdated_channel--> node0
         self.nodes[1].overlay.send_random_to(Peer(self.nodes[0].my_peer.public_key, self.nodes[0].endpoint.wan_address))
 
-        yield self.deliver_messages(0.5)
+        yield self.deliver_messages(timeout=0.5)
 
         with db_session:
             self.assertEqual(self.nodes[1].overlay.metadata_store.ChannelMetadata.select()[:][0].timestamp,
@@ -141,7 +141,7 @@ class TestGigaChannelUnits(TestBase):
             self.assertEqual(len(torrents), 0)
         self.nodes[1].overlay.send_search_request(u'"ubuntu"*')
 
-        yield self.deliver_messages()
+        yield self.deliver_messages(timeout=0.5)
 
         with db_session:
             torrents = self.nodes[1].overlay.metadata_store.TorrentMetadata.select()[:]
@@ -173,7 +173,7 @@ class TestGigaChannelUnits(TestBase):
         self.nodes[1].overlay.send_search_request(u'"ubuntu"*')
         self.nodes[1].overlay.send_search_request(u'"debian"*')
 
-        yield self.deliver_messages()
+        yield self.deliver_messages(timeout=0.5)
 
         # Assert that only the last result is accepted
         with db_session:
@@ -200,7 +200,7 @@ class TestGigaChannelUnits(TestBase):
         query = u'"\xc1 ubuntu"*'
         self.nodes[1].overlay.send_search_request(query)
 
-        yield self.deliver_messages()
+        yield self.deliver_messages(timeout=0.5)
 
         # Expect no data received in search and nothing processed to the database
         with db_session:
