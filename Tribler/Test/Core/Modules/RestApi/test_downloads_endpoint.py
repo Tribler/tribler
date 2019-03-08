@@ -19,6 +19,9 @@ from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.common import TESTS_DATA_DIR, TESTS_DIR, UBUNTU_1504_INFOHASH
 from Tribler.Test.tools import trial_timeout
 
+def get_hex_infohash(tdef):
+    return hexlify(tdef.get_infohash())
+
 
 class TestDownloadsEndpoint(AbstractApiTest):
 
@@ -308,7 +311,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
 
         video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
         self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
-        infohash = video_tdef.get_infohash().encode('hex')
+        infohash = get_hex_infohash(video_tdef)
 
         request_deferred = self.do_request('downloads/%s' % infohash, post_data={"remove_data": True},
                                            expected_code=200, request_type='DELETE',
@@ -331,7 +334,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
         download = self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
-        infohash = video_tdef.get_infohash().encode('hex')
+        infohash = get_hex_infohash(video_tdef)
         original_stop = download.stop
 
         def mocked_stop():
@@ -358,7 +361,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
         self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
-        infohash = video_tdef.get_infohash().encode('hex')
+        infohash = get_hex_infohash(video_tdef)
 
         self.should_check_equality = False
         return self.do_request('downloads/%s' % infohash, expected_code=400, post_data={"selected_files[]": 1234},
@@ -371,7 +374,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
         download = self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
-        infohash = video_tdef.get_infohash().encode('hex')
+        infohash = get_hex_infohash(video_tdef)
 
         def mocked_set_selected_files(*_):
             mocked_set_selected_files.called = True
@@ -404,7 +407,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
         download = self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
-        infohash = video_tdef.get_infohash().encode('hex')
+        infohash = get_hex_infohash(video_tdef)
 
         def mocked_restart():
             download.should_restart = True
@@ -429,7 +432,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
         download = self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
-        infohash = video_tdef.get_infohash().encode('hex')
+        infohash = get_hex_infohash(video_tdef)
 
         def mocked_recheck():
             mocked_recheck.called = True
@@ -454,7 +457,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
         self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
-        infohash = video_tdef.get_infohash().encode('hex')
+        infohash = get_hex_infohash(video_tdef)
 
         self.should_check_equality = False
         return self.do_request('downloads/%s' % infohash, post_data={"state": "resume", 'anon_hops': 1},
@@ -469,7 +472,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
 
         self.should_check_equality = False
-        return self.do_request('downloads/%s' % video_tdef.get_infohash().encode('hex'), expected_code=400,
+        return self.do_request('downloads/%s' % get_hex_infohash(video_tdef), expected_code=400,
                                post_data={"state": "abc"}, request_type='PATCH')
 
     @trial_timeout(10)
@@ -493,7 +496,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
 
         def on_handle_available(_):
             self.should_check_equality = False
-            return self.do_request('downloads/%s/torrent' % video_tdef.get_infohash().encode('hex'),
+            return self.do_request('downloads/%s/torrent' % get_hex_infohash(video_tdef),
                                    expected_code=200, request_type='GET').addCallback(verify_exported_data)
 
         return download.get_handle().addCallback(on_handle_available)
@@ -520,7 +523,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
             self.assertTrue(json_response['files'])
 
         self.should_check_equality = False
-        return self.do_request('downloads/%s/files' % video_tdef.get_infohash().encode('hex'),
+        return self.do_request('downloads/%s/files' % get_hex_infohash(video_tdef),
                                expected_code=200, request_type='GET').addCallback(verify_files_data)
 
 
@@ -538,7 +541,7 @@ class TestDownloadsDispersyEndpoint(AbstractApiTest):
         """
         video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
         download = self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
-        infohash = video_tdef.get_infohash().encode('hex')
+        infohash = get_hex_infohash(video_tdef)
 
         return download.get_handle().addCallback(
             lambda _: self.do_request('downloads/%s' % infohash, post_data={'anon_hops': 1},
@@ -556,7 +559,7 @@ class TestDownloadsDispersyEndpoint(AbstractApiTest):
 
         video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
         self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
-        infohash = video_tdef.get_infohash().encode('hex')
+        infohash = get_hex_infohash(video_tdef)
 
         return self.do_request('downloads/%s' % infohash, post_data={"remove_data": True}, expected_code=500,
                                expected_json={u'error': {u'message': u'', u'code': u'RuntimeError', u'handled': True}},
