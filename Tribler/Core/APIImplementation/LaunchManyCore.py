@@ -5,12 +5,12 @@ Author(s): Arno Bakker, Niels Zeilemaker
 """
 from __future__ import absolute_import
 
-import binascii
 import logging
 import os
 import sys
 import time
 import time as timemod
+from binascii import hexlify, unhexlify
 from glob import iglob
 from threading import Event, enumerate as enumerate_threads
 from traceback import print_exc
@@ -371,7 +371,7 @@ class TriblerLaunchMany(TaskManager):
 
             # Check if running or saved on disk
             if infohash in self.downloads:
-                self._logger.info("Torrent already exists in the downloads. Infohash:%s", infohash.encode('hex'))
+                self._logger.info("Torrent already exists in the downloads. Infohash:%s", hexlify(infohash))
 
             from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
             d = LibtorrentDownloadImpl(self.session, tdef)
@@ -431,7 +431,7 @@ class TriblerLaunchMany(TaskManager):
         """
         Update the amount of hops for a specified download. This can be done on runtime.
         """
-        infohash = binascii.hexlify(download.tdef.get_infohash())
+        infohash = hexlify(download.tdef.get_infohash())
         self._logger.info("Updating the amount of hops of download %s", infohash)
         pstate = download.get_persistent_download_config()
         pstate.set('state', 'engineresumedata', (yield download.save_resume_data()))
@@ -555,7 +555,7 @@ class TriblerLaunchMany(TaskManager):
             if self.state_cb_count % 5 == 0 and download.get_hops() == 0 and self.payout_manager:
                 for peer in download.get_peerlist():
                     if peer["extended_version"].startswith('Tribler'):
-                        self.payout_manager.update_peer(peer["id"].decode('hex'), infohash, peer["dtotal"])
+                        self.payout_manager.update_peer(unhexlify(peer["id"]), infohash, peer["dtotal"])
 
         self.previous_active_downloads = new_active_downloads
         if do_checkpoint:
@@ -588,7 +588,7 @@ class TriblerLaunchMany(TaskManager):
     def load_download_pstate_noexc(self, infohash):
         """ Called by any thread, assume session_lock already held """
         try:
-            basename = binascii.hexlify(infohash) + '.state'
+            basename = hexlify(infohash) + '.state'
             filename = os.path.join(self.session.get_downloads_pstate_dir(), basename)
             if os.path.exists(filename):
                 return self.load_download_pstate(filename)
@@ -665,7 +665,7 @@ class TriblerLaunchMany(TaskManager):
                 dlpstatedir = self.session.get_downloads_pstate_dir()
 
                 # Remove checkpoint
-                hexinfohash = binascii.hexlify(infohash)
+                hexinfohash = hexlify(infohash)
                 try:
                     basename = hexinfohash + '.state'
                     filename = os.path.join(dlpstatedir, basename)
