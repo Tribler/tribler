@@ -276,13 +276,13 @@ class MarketCommunity(Community, BlockListener):
         self.is_matchmaker = False
 
     def create_introduction_request(self, socket_address, extra_bytes=''):
-        extra_payload = InfoPayload(TraderId(self.mid), Timestamp.now(), self.is_matchmaker)
+        extra_payload = InfoPayload(TraderId(str(self.mid)), Timestamp.now(), self.is_matchmaker)
         extra_bytes = self.serializer.pack_multiple(extra_payload.to_pack_list())[0]
         return super(MarketCommunity, self).create_introduction_request(socket_address, extra_bytes)
 
     def create_introduction_response(self, lan_socket_address, socket_address, identifier,
                                      introduction=None, extra_bytes=''):
-        extra_payload = InfoPayload(TraderId(self.mid), Timestamp.now(), self.is_matchmaker)
+        extra_payload = InfoPayload(TraderId(str(self.mid)), Timestamp.now(), self.is_matchmaker)
         extra_bytes = self.serializer.pack_multiple(extra_payload.to_pack_list())[0]
         return super(MarketCommunity, self).create_introduction_response(lan_socket_address, socket_address,
                                                                          identifier, introduction, extra_bytes)
