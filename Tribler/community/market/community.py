@@ -313,7 +313,7 @@ class MarketCommunity(Community, BlockListener):
         """
         bloomfilter = self.get_orders_bloomfilter()
         auth = BinMemberAuthenticationPayload(self.my_peer.public_key.key_to_bin()).to_pack_list()
-        payload = OrderbookSyncPayload(TraderId(self.mid), Timestamp.now(), bloomfilter).to_pack_list()
+        payload = OrderbookSyncPayload(TraderId(str(self.mid)), Timestamp.now(), bloomfilter).to_pack_list()
 
         packet = self._ez_pack(self._prefix, MSG_BOOK_SYNC, [auth, payload])
         self.endpoint.send(peer.address, packet)
@@ -525,7 +525,7 @@ class MarketCommunity(Community, BlockListener):
         Send a ping message with an identifier to a specific peer.
         """
         auth = BinMemberAuthenticationPayload(self.my_peer.public_key.key_to_bin()).to_pack_list()
-        payload = PingPongPayload(TraderId(self.mid), Timestamp.now(), identifier).to_pack_list()
+        payload = PingPongPayload(TraderId(str(self.mid)), Timestamp.now(), identifier).to_pack_list()
 
         packet = self._ez_pack(self._prefix, MSG_PING, [auth, payload])
         self.endpoint.send(peer.address, packet)
@@ -539,7 +539,7 @@ class MarketCommunity(Community, BlockListener):
         Send a pong message with an identifier to a specific peer.
         """
         auth = BinMemberAuthenticationPayload(self.my_peer.public_key.key_to_bin()).to_pack_list()
-        payload = PingPongPayload(TraderId(self.mid), Timestamp.now(), identifier).to_pack_list()
+        payload = PingPongPayload(TraderId(str(self.mid)), Timestamp.now(), identifier).to_pack_list()
 
         packet = self._ez_pack(self._prefix, MSG_PONG, [auth, payload])
         self.endpoint.send(peer.address, packet)
@@ -832,7 +832,7 @@ class MarketCommunity(Community, BlockListener):
         payload_tup = tick.to_network()
 
         # Add recipient order number, matched quantity, trader ID of the matched person, our own trader ID and match ID
-        my_id = TraderId(self.mid)
+        my_id = TraderId(str(self.mid))
         payload_tup += (recipient_order_id.order_number, matched_quantity, tick.order_id.trader_id, my_id, match_id)
 
         def on_peer_address(address):
@@ -861,7 +861,7 @@ class MarketCommunity(Community, BlockListener):
         We received a match message from a matchmaker.
         """
         self.logger.info("We received a match message for order %s.%s (matched quantity: %s)",
-                         TraderId(self.mid), payload.recipient_order_number, payload.match_quantity)
+                         TraderId(str(self.mid)), payload.recipient_order_number, payload.match_quantity)
 
         # We got a match, check whether we can respond to this match
         self.update_ip(payload.matchmaker_trader_id, peer.address)
@@ -873,7 +873,7 @@ class MarketCommunity(Community, BlockListener):
         """
         Process a match payload.
         """
-        order_id = OrderId(TraderId(self.mid), payload.recipient_order_number)
+        order_id = OrderId(TraderId(str(self.mid)), payload.recipient_order_number)
         other_order_id = OrderId(payload.trader_id, payload.order_number)
         order = self.order_manager.order_repository.find_by_id(order_id)
         if not order:
@@ -897,7 +897,7 @@ class MarketCommunity(Community, BlockListener):
 
         propose_quantity = min(order.available_quantity, payload.match_quantity)
         propose_trade = Trade.propose(
-            TraderId(self.mid),
+            TraderId(str(self.mid)),
             order.order_id,
             other_order_id,
             payload.assets.proportional_downscale(propose_quantity),
@@ -933,7 +933,7 @@ class MarketCommunity(Community, BlockListener):
         self.logger.debug("Sending accept match message with match id %s to trader "
                           "%s (quantity: %d)", str(match_id), str(matchmaker_trader_id), quantity)
 
-        payload = (TraderId(self.mid), Timestamp.now(), match_id, quantity)
+        payload = (TraderId(str(self.mid)), Timestamp.now(), match_id, quantity)
 
         auth = BinMemberAuthenticationPayload(self.my_peer.public_key.key_to_bin()).to_pack_list()
         payload = AcceptMatchPayload(*payload).to_pack_list()
@@ -973,7 +973,7 @@ class MarketCommunity(Community, BlockListener):
                          "%s (ip: %s, port: %s)", str(match_id), str(matchmaker_trader_id), *address)
 
         auth = BinMemberAuthenticationPayload(self.my_peer.public_key.key_to_bin()).to_pack_list()
-        payload = (TraderId(self.mid), Timestamp.now(), match_id, decline_reason)
+        payload = (TraderId(str(self.mid)), Timestamp.now(), match_id, decline_reason)
         payload = DeclineMatchPayload(*payload).to_pack_list()
 
         packet = self._ez_pack(self._prefix, MSG_MATCH_DECLINE, [auth, payload])
@@ -1110,7 +1110,7 @@ class MarketCommunity(Community, BlockListener):
             should_decline = False
 
         if should_decline:
-            declined_trade = Trade.decline(TraderId(self.mid), Timestamp.now(), proposed_trade, decline_reason)
+            declined_trade = Trade.decline(TraderId(str(self.mid)), Timestamp.now(), proposed_trade, decline_reason)
             self.logger.debug("Declined trade made for order id: %s and id: %s "
                               "(valid? %s, available quantity of order: %s, reserved: %s, traded: %s), reason: %s",
                               str(declined_trade.order_id), str(declined_trade.recipient_order_id),
@@ -1129,7 +1129,7 @@ class MarketCommunity(Community, BlockListener):
 
                 new_pair = order.assets.proportional_downscale(counter_quantity)
 
-                counter_trade = Trade.counter(TraderId(self.mid), new_pair, Timestamp.now(), proposed_trade)
+                counter_trade = Trade.counter(TraderId(str(self.mid)), new_pair, Timestamp.now(), proposed_trade)
                 self.logger.debug("Counter trade made with asset pair %s for proposed trade", counter_trade.assets)
                 self.send_counter_trade(counter_trade)
 
@@ -1211,7 +1211,7 @@ class MarketCommunity(Community, BlockListener):
             should_decline = False
 
         if should_decline:
-            declined_trade = Trade.decline(TraderId(self.mid), Timestamp.now(), counter_trade, decline_reason)
+            declined_trade = Trade.decline(TraderId(str(self.mid)), Timestamp.now(), counter_trade, decline_reason)
             self.logger.debug("Declined trade made for order id: %s and id: %s ",
                               str(declined_trade.order_id), str(declined_trade.recipient_order_id))
             self.send_declined_trade(declined_trade)
@@ -1230,7 +1230,7 @@ class MarketCommunity(Community, BlockListener):
     def start_transaction(self, proposed_trade, match_id):
         order = self.order_manager.order_repository.find_by_id(proposed_trade.recipient_order_id)
         transaction = self.transaction_manager.create_from_proposed_trade(proposed_trade, match_id)
-        start_transaction = StartTransaction(TraderId(self.mid), transaction.transaction_id, order.order_id,
+        start_transaction = StartTransaction(TraderId(str(self.mid)), transaction.transaction_id, order.order_id,
                                              proposed_trade.order_id, proposed_trade.proposal_id,
                                              proposed_trade.assets, Timestamp.now())
         self.send_start_transaction(transaction, start_transaction)
@@ -1293,7 +1293,8 @@ class MarketCommunity(Community, BlockListener):
         cache = self.request_cache.add(OrderStatusRequestCache(self, request_deferred))
 
         auth = BinMemberAuthenticationPayload(self.my_peer.public_key.key_to_bin()).to_pack_list()
-        payload = OrderStatusRequestPayload(TraderId(self.mid), Timestamp.now(), order_id, cache.number).to_pack_list()
+        payload = OrderStatusRequestPayload(TraderId(str(self.mid)), Timestamp.now(),
+                                            order_id, cache.number).to_pack_list()
 
         packet = self._ez_pack(self._prefix, MSG_ORDER_QUERY, [auth, payload])
         self.endpoint.send(self.lookup_ip(order_id.trader_id), packet)
@@ -1337,7 +1338,8 @@ class MarketCommunity(Community, BlockListener):
         self.logger.debug("Sending wallet info to trader %s (incoming address: %s, outgoing address: %s",
                           transaction.partner_order_id.trader_id, incoming_address, outgoing_address)
 
-        payload = (TraderId(self.mid), Timestamp.now(), transaction.transaction_id, incoming_address, outgoing_address)
+        payload = (TraderId(str(self.mid)), Timestamp.now(), transaction.transaction_id, incoming_address,
+                   outgoing_address)
         auth = BinMemberAuthenticationPayload(self.my_peer.public_key.key_to_bin()).to_pack_list()
 
         new_payload = WalletInfoPayload(*payload).to_pack_list()
@@ -1408,7 +1410,7 @@ class MarketCommunity(Community, BlockListener):
             self.order_manager.order_repository.update(order)
 
         payment_message = self.transaction_manager.create_payment_message(
-            TraderId(self.mid), payment_id, transaction, transferred_assets, success)
+            TraderId(str(self.mid)), payment_id, transaction, transferred_assets, success)
         self.logger.info("Sending payment message with transferred assets %s (success? %s)",
                          payment_message.transferred_assets, success)
 
