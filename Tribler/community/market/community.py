@@ -189,7 +189,7 @@ class MarketCommunity(Community, BlockListener):
             self.enable_matchmaker()
 
         for trader in self.market_database.get_traders():
-            self.update_ip(TraderId(trader[0]), (str(trader[1]), trader[2]))
+            self.update_ip(TraderId(bytes(trader[0])), (str(trader[1]), trader[2]))
 
         # Register messages
         self.decode_map.update({
