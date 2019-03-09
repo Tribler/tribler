@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import unittest
 
 from Tribler.community.market.core import DeclinedTradeReason

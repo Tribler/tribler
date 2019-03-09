@@ -1,6 +1,7 @@
-import unittest
+from __future__ import absolute_import
 
 import time
+import unittest
 
 from Tribler.community.market.core.assetamount import AssetAmount
 from Tribler.community.market.core.assetpair import AssetPair
@@ -10,7 +11,7 @@ from Tribler.community.market.core.tick import Tick
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.community.market.core.trade import Trade
-from Tribler.community.market.core.transaction import TransactionNumber, TransactionId, Transaction
+from Tribler.community.market.core.transaction import Transaction, TransactionId, TransactionNumber
 
 
 class OrderTestSuite(unittest.TestCase):

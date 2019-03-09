@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Test.test_as_server import AbstractServer

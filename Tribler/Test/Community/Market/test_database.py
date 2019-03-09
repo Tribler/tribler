@@ -43,8 +43,8 @@ class TestDatabase(AbstractServer):
 
         self.transaction_id1 = TransactionId(TraderId(b"0"), TransactionNumber(4))
         self.transaction1 = Transaction(self.transaction_id1, AssetPair(AssetAmount(100, 'BTC'), AssetAmount(30, 'MB')),
-                                        OrderId(TraderId(b"0"), OrderNumber(1)), OrderId(TraderId(b"1"), OrderNumber(2)),
-                                        Timestamp(20.0))
+                                        OrderId(TraderId(b"0"), OrderNumber(1)), OrderId(TraderId(b"1"),
+                                        OrderNumber(2)), Timestamp(20.0))
 
         self.payment1 = Payment(TraderId(b"0"), self.transaction_id1, AssetAmount(5, 'BTC'),
                                 WalletAddress('abc'), WalletAddress('def'), PaymentId("abc"), Timestamp(20.0), False)
