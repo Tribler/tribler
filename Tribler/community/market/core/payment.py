@@ -31,8 +31,8 @@ class Payment(Message):
         (trader_id, transaction_trader_id, transaction_number, payment_id, transferred_amount, transferred_id,
          address_from, address_to, timestamp, success) = data
 
-        transaction_id = TransactionId(TraderId(transaction_trader_id), TransactionNumber(transaction_number))
-        return cls(TraderId(trader_id), transaction_id, AssetAmount(transferred_amount, str(transferred_id)),
+        transaction_id = TransactionId(TraderId(bytes(transaction_trader_id)), TransactionNumber(transaction_number))
+        return cls(TraderId(bytes(trader_id)), transaction_id, AssetAmount(transferred_amount, str(transferred_id)),
                    WalletAddress(str(address_from)), WalletAddress(str(address_to)), PaymentId(str(payment_id)),
                    Timestamp(float(timestamp)), bool(success))
 

@@ -144,7 +144,7 @@ class Order(object):
         (trader_id, order_number, asset1_amount, asset1_type, asset2_amount, asset2_type, traded_quantity,
          timeout, order_timestamp, completed_timestamp, is_ask, cancelled, verified) = data
 
-        order_id = OrderId(TraderId(trader_id), OrderNumber(order_number))
+        order_id = OrderId(TraderId(bytes(trader_id)), OrderNumber(order_number))
         order = cls(order_id, AssetPair(AssetAmount(asset1_amount, str(asset1_type)),
                                         AssetAmount(asset2_amount, str(asset2_type))),
                     Timeout(timeout), Timestamp(order_timestamp), bool(is_ask))
