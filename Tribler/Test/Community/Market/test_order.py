@@ -30,7 +30,7 @@ class OrderTestSuite(unittest.TestCase):
         self.tick = Tick(OrderId(TraderId(b'0'), OrderNumber(1)),
                          AssetPair(AssetAmount(5, 'BTC'), AssetAmount(5, 'MC')),
                          Timeout(0), Timestamp(float("inf")), True)
-        self.tick2 = Tick(OrderId(b'0'), OrderNumber(2)),
+        self.tick2 = Tick(OrderId(TraderId(b'0'), OrderNumber(2)),
                           AssetPair(AssetAmount(500, 'BTC'), AssetAmount(5, 'MC')),
                           Timeout(0), Timestamp(float("inf")), True)
 

@@ -1,11 +1,11 @@
 import unittest
 
 from Tribler.community.market.core.assetamount import AssetAmount
-from Tribler.community.market.core.transaction import TransactionNumber, TransactionId
 from Tribler.community.market.core.message import TraderId
-from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.community.market.core.payment import Payment
 from Tribler.community.market.core.payment_id import PaymentId
+from Tribler.community.market.core.timestamp import Timestamp
+from Tribler.community.market.core.transaction import TransactionId, TransactionNumber
 from Tribler.community.market.core.wallet_address import WalletAddress
 
 

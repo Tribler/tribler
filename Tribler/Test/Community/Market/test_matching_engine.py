@@ -1,8 +1,8 @@
-from Tribler.community.market.core.assetamount import AssetAmount
-from Tribler.community.market.core.assetpair import AssetPair
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Test.test_as_server import AbstractServer
+from Tribler.community.market.core.assetamount import AssetAmount
+from Tribler.community.market.core.assetpair import AssetPair
 from Tribler.community.market.core.matching_engine import MatchingEngine, PriceTimeStrategy
 from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.order import Order, OrderId, OrderNumber

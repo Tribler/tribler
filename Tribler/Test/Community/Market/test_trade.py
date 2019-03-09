@@ -6,7 +6,7 @@ from Tribler.community.market.core.assetpair import AssetPair
 from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.order import OrderId, OrderNumber
 from Tribler.community.market.core.timestamp import Timestamp
-from Tribler.community.market.core.trade import Trade, ProposedTrade, DeclinedTrade, CounterTrade
+from Tribler.community.market.core.trade import CounterTrade, DeclinedTrade, ProposedTrade, Trade
 
 
 class TradeTestSuite(unittest.TestCase):

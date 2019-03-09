@@ -3,11 +3,12 @@ from __future__ import absolute_import
 import os
 
 import six
-from Tribler.community.market.core.assetamount import AssetAmount
-from Tribler.community.market.core.assetpair import AssetPair
+
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Test.test_as_server import AbstractServer
+from Tribler.community.market.core.assetamount import AssetAmount
+from Tribler.community.market.core.assetpair import AssetPair
 from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.order import Order, OrderId, OrderNumber
 from Tribler.community.market.core.payment import Payment
@@ -17,8 +18,7 @@ from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.community.market.core.transaction import Transaction, TransactionId, TransactionNumber
 from Tribler.community.market.core.wallet_address import WalletAddress
-from Tribler.community.market.database import LATEST_DB_VERSION
-from Tribler.community.market.database import MarketDB
+from Tribler.community.market.database import LATEST_DB_VERSION, MarketDB
 
 
 class TestDatabase(AbstractServer):

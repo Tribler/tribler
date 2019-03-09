@@ -1,17 +1,18 @@
 from __future__ import absolute_import
 
-import six
 import unittest
+
+import six
 
 from Tribler.community.market.core.assetamount import AssetAmount
 from Tribler.community.market.core.assetpair import AssetPair
+from Tribler.community.market.core.message import TraderId
+from Tribler.community.market.core.order import OrderId, OrderNumber
 from Tribler.community.market.core.payment import Payment
 from Tribler.community.market.core.payment_id import PaymentId
-from Tribler.community.market.core.transaction import TransactionNumber, TransactionId, Transaction, StartTransaction
 from Tribler.community.market.core.timestamp import Timestamp
-from Tribler.community.market.core.order import OrderId, OrderNumber
-from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.trade import Trade
+from Tribler.community.market.core.transaction import StartTransaction, Transaction, TransactionId, TransactionNumber
 from Tribler.community.market.core.wallet_address import WalletAddress
 
 
