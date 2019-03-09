@@ -18,28 +18,28 @@ class OrderTestSuite(unittest.TestCase):
 
     def setUp(self):
         # Object creation
-        self.transaction_id = TransactionId(TraderId("0"), TransactionNumber(1))
+        self.transaction_id = TransactionId(TraderId(b"0"), TransactionNumber(1))
         self.transaction = Transaction(self.transaction_id, AssetPair(AssetAmount(100, 'BTC'), AssetAmount(30, 'MC')),
-                                       OrderId(TraderId('0'), OrderNumber(2)),
-                                       OrderId(TraderId('1'), OrderNumber(1)), Timestamp(0.0))
-        self.proposed_trade = Trade.propose(TraderId('0'),
-                                            OrderId(TraderId('0'), OrderNumber(2)),
-                                            OrderId(TraderId('1'), OrderNumber(3)),
+                                       OrderId(TraderId(b'0'), OrderNumber(2)),
+                                       OrderId(TraderId(b'1'), OrderNumber(1)), Timestamp(0.0))
+        self.proposed_trade = Trade.propose(TraderId(b'0'),
+                                            OrderId(TraderId(b'0'), OrderNumber(2)),
+                                            OrderId(TraderId(b'1'), OrderNumber(3)),
                                             AssetPair(AssetAmount(100, 'BTC'), AssetAmount(30, 'MC')), Timestamp(0.0))
 
-        self.tick = Tick(OrderId(TraderId('0'), OrderNumber(1)),
+        self.tick = Tick(OrderId(TraderId(b'0'), OrderNumber(1)),
                          AssetPair(AssetAmount(5, 'BTC'), AssetAmount(5, 'MC')),
                          Timeout(0), Timestamp(float("inf")), True)
-        self.tick2 = Tick(OrderId(TraderId('0'), OrderNumber(2)),
+        self.tick2 = Tick(OrderId(b'0'), OrderNumber(2)),
                           AssetPair(AssetAmount(500, 'BTC'), AssetAmount(5, 'MC')),
                           Timeout(0), Timestamp(float("inf")), True)
 
         self.order_timestamp = Timestamp.now()
-        self.order = Order(OrderId(TraderId("0"), OrderNumber(3)),
+        self.order = Order(OrderId(TraderId(b"0"), OrderNumber(3)),
                            AssetPair(AssetAmount(50, 'BTC'), AssetAmount(5, 'MC')),
                            Timeout(5000), self.order_timestamp, False)
         self.order.set_verified()
-        self.order2 = Order(OrderId(TraderId("0"), OrderNumber(4)),
+        self.order2 = Order(OrderId(TraderId(b"0"), OrderNumber(4)),
                             AssetPair(AssetAmount(50, 'BTC'), AssetAmount(5, 'MC')),
                             Timeout(5), Timestamp(time.time() - 1000), True)
         self.order2.set_verified()
@@ -48,13 +48,13 @@ class OrderTestSuite(unittest.TestCase):
         """
         Test the add trade method of an order
         """
-        self.order.reserve_quantity_for_tick(OrderId(TraderId('5'), OrderNumber(1)), 10)
+        self.order.reserve_quantity_for_tick(OrderId(TraderId(b'5'), OrderNumber(1)), 10)
         self.assertEquals(self.order.traded_quantity, 0)
-        self.order.add_trade(OrderId(TraderId('5'), OrderNumber(1)), 10)
+        self.order.add_trade(OrderId(TraderId(b'5'), OrderNumber(1)), 10)
         self.assertEquals(self.order.traded_quantity, 10)
 
-        self.order.reserve_quantity_for_tick(OrderId(TraderId('6'), OrderNumber(1)), 40)
-        self.order.add_trade(OrderId(TraderId('6'), OrderNumber(1)), 40)
+        self.order.reserve_quantity_for_tick(OrderId(TraderId(b'6'), OrderNumber(1)), 40)
+        self.order.add_trade(OrderId(TraderId(b'6'), OrderNumber(1)), 40)
         self.assertTrue(self.order.is_complete())
         self.assertFalse(self.order.cancelled)
 
@@ -62,7 +62,7 @@ class OrderTestSuite(unittest.TestCase):
         """
         Test the acceptable price method
         """
-        order = Order(OrderId(TraderId("0"), OrderNumber(3)),
+        order = Order(OrderId(TraderId(b"0"), OrderNumber(3)),
                       AssetPair(AssetAmount(60, 'BTC'), AssetAmount(30, 'MB')),
                       Timeout(5000), self.order_timestamp, True)
 
@@ -172,9 +172,9 @@ class OrderIDTestSuite(unittest.TestCase):
 
     def setUp(self):
         # Object creation
-        self.order_id = OrderId(TraderId("0"), OrderNumber(1))
-        self.order_id2 = OrderId(TraderId("0"), OrderNumber(1))
-        self.order_id3 = OrderId(TraderId("0"), OrderNumber(2))
+        self.order_id = OrderId(TraderId(b"0"), OrderNumber(1))
+        self.order_id2 = OrderId(TraderId(b"0"), OrderNumber(1))
+        self.order_id3 = OrderId(TraderId(b"0"), OrderNumber(2))
 
     def test_equality(self):
         # Test for equality

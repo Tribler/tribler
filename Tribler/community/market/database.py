@@ -137,7 +137,7 @@ class MarketDB(TrustChainDB):
         """
         db_result = self.execute(u"SELECT * FROM orders")
         return [Order.from_database(db_item, self.get_reserved_ticks(
-            OrderId(TraderId(str(db_item[0])), OrderNumber(db_item[1])))) for db_item in db_result]
+            OrderId(TraderId(db_item[0]), OrderNumber(db_item[1])))) for db_item in db_result]
 
     def get_order(self, order_id):
         """
@@ -206,7 +206,7 @@ class MarketDB(TrustChainDB):
         """
         db_results = self.execute(u"SELECT * FROM orders_reserved_ticks WHERE trader_id = ? AND order_number = ?",
                                   (text_type(order_id.trader_id), text_type(order_id.order_number)))
-        return [(OrderId(TraderId(str(data[2])), OrderNumber(data[3])), data[4]) for data in db_results]
+        return [(OrderId(TraderId(data[2]), OrderNumber(data[3])), data[4]) for data in db_results]
 
     def get_all_transactions(self):
         """
@@ -214,7 +214,7 @@ class MarketDB(TrustChainDB):
         """
         db_result = self.execute(u"SELECT * FROM transactions")
         return [Transaction.from_database(db_item,
-                                          self.get_payments(TransactionId(TraderId(str(db_item[0])),
+                                          self.get_payments(TransactionId(TraderId(db_item[0]),
                                                                           TransactionNumber(db_item[1]))))
                 for db_item in db_result]
 

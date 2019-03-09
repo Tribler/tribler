@@ -21,9 +21,9 @@ class TickEntryTestSuite(AbstractServer):
         yield super(TickEntryTestSuite, self).setUp()
 
         # Object creation
-        tick = Tick(OrderId(TraderId('0'), OrderNumber(1)), AssetPair(AssetAmount(60, 'BTC'), AssetAmount(30, 'MB')),
+        tick = Tick(OrderId(TraderId(b'0'), OrderNumber(1)), AssetPair(AssetAmount(60, 'BTC'), AssetAmount(30, 'MB')),
                     Timeout(0), Timestamp(0.0), True)
-        tick2 = Tick(OrderId(TraderId('0'), OrderNumber(2)),
+        tick2 = Tick(OrderId(TraderId(b'0'), OrderNumber(2)),
                      AssetPair(AssetAmount(63400, 'BTC'), AssetAmount(30, 'MB')), Timeout(100), Timestamp.now(), True)
 
         self.price_level = PriceLevel(Price(100, 'MB', 'BTC'))
@@ -66,9 +66,9 @@ class TickEntryTestSuite(AbstractServer):
         """
         Test blocking of a match
         """
-        self.tick_entry.block_for_matching(OrderId(TraderId("abc"), OrderNumber(3)))
+        self.tick_entry.block_for_matching(OrderId(TraderId(b"abc"), OrderNumber(3)))
         self.assertEqual(len(self.tick_entry._blocked_for_matching), 1)
 
         # Try to add it again - should be ignored
-        self.tick_entry.block_for_matching(OrderId(TraderId("abc"), OrderNumber(3)))
+        self.tick_entry.block_for_matching(OrderId(TraderId(b"abc"), OrderNumber(3)))
         self.assertEqual(len(self.tick_entry._blocked_for_matching), 1)

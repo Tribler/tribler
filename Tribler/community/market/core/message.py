@@ -5,6 +5,7 @@ class TraderId(object):
     """Immutable class for representing the id of a trader."""
 
     def __init__(self, trader_id):
+        # type: (bytes) -> None
         """
         :param trader_id: String representing the trader id
         :type trader_id: str
@@ -12,8 +13,8 @@ class TraderId(object):
         """
         super(TraderId, self).__init__()
 
-        if not isinstance(trader_id, str):
-            raise ValueError("Trader id must be a string")
+        if not isinstance(trader_id, bytes):
+            raise ValueError("Trader id must be bytes")
 
         try:
             int(trader_id, 16)
@@ -31,8 +32,7 @@ class TraderId(object):
         elif self is other:
             return True
         else:
-            return self._trader_id == \
-                   other._trader_id
+            return self._trader_id == other._trader_id
 
     def __ne__(self, other):
         return not self.__eq__(other)

@@ -20,14 +20,14 @@ class TickTestSuite(unittest.TestCase):
     def setUp(self):
         # Object creation
         self.timestamp_now = Timestamp.now()
-        self.tick = Tick(OrderId(TraderId('0'), OrderNumber(1)),
+        self.tick = Tick(OrderId(TraderId(b'0'), OrderNumber(1)),
                          AssetPair(AssetAmount(30, 'BTC'), AssetAmount(30, 'MB')), Timeout(30), Timestamp(0.0), True)
-        self.tick2 = Tick(OrderId(TraderId('0'), OrderNumber(2)),
+        self.tick2 = Tick(OrderId(TraderId(b'0'), OrderNumber(2)),
                           AssetPair(AssetAmount(30, 'BTC'), AssetAmount(30, 'MB')), Timeout(0), Timestamp(0.0), False)
-        self.order_ask = Order(OrderId(TraderId('0'), OrderNumber(2)),
+        self.order_ask = Order(OrderId(TraderId(b'0'), OrderNumber(2)),
                                AssetPair(AssetAmount(30, 'BTC'), AssetAmount(30, 'MB')),
                                Timeout(0), Timestamp(0.0), True)
-        self.order_bid = Order(OrderId(TraderId('0'), OrderNumber(2)),
+        self.order_bid = Order(OrderId(TraderId(b'0'), OrderNumber(2)),
                                AssetPair(AssetAmount(30, 'BTC'), AssetAmount(30, 'MB')),
                                Timeout(0), Timestamp(0.0), False)
 
@@ -38,7 +38,7 @@ class TickTestSuite(unittest.TestCase):
 
     def test_to_network(self):
         # Test for to network
-        self.assertEquals((TraderId('0'), self.tick.timestamp, OrderNumber(1),
+        self.assertEquals((TraderId(b'0'), self.tick.timestamp, OrderNumber(1),
                            AssetPair(AssetAmount(30, 'BTC'), AssetAmount(30, 'MB')), self.tick.timeout, 0),
                           self.tick.to_network())
 

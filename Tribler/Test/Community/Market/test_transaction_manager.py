@@ -24,19 +24,19 @@ class TransactionManagerTestSuite(unittest.TestCase):
         self.memory_transaction_repository = MemoryTransactionRepository("0")
         self.transaction_manager = TransactionManager(self.memory_transaction_repository)
 
-        self.transaction_id = TransactionId(TraderId("0"), TransactionNumber(1))
+        self.transaction_id = TransactionId(TraderId(b"0"), TransactionNumber(1))
         self.transaction = Transaction(self.transaction_id, AssetPair(AssetAmount(100, 'BTC'), AssetAmount(30, 'MB')),
-                                       OrderId(TraderId('3'), OrderNumber(2)),
-                                       OrderId(TraderId('2'), OrderNumber(1)), Timestamp(0.0))
-        self.proposed_trade = Trade.propose(TraderId('0'),
-                                            OrderId(TraderId('0'), OrderNumber(1)),
-                                            OrderId(TraderId('1'), OrderNumber(2)),
+                                       OrderId(TraderId(b'3'), OrderNumber(2)),
+                                       OrderId(TraderId(b'2'), OrderNumber(1)), Timestamp(0.0))
+        self.proposed_trade = Trade.propose(TraderId(b'0'),
+                                            OrderId(TraderId(b'0'), OrderNumber(1)),
+                                            OrderId(TraderId(b'1'), OrderNumber(2)),
                                             AssetPair(AssetAmount(30, 'BTC'), AssetAmount(30, 'MB')),
                                             Timestamp(1462224447.117))
-        self.start_transaction = StartTransaction(TraderId('0'),
-                                                  TransactionId(TraderId("0"), TransactionNumber(1)),
-                                                  OrderId(TraderId('0'), OrderNumber(1)),
-                                                  OrderId(TraderId('1'), OrderNumber(2)), 1235,
+        self.start_transaction = StartTransaction(TraderId(b'0'),
+                                                  TransactionId(TraderId(b"0"), TransactionNumber(1)),
+                                                  OrderId(TraderId(b'0'), OrderNumber(1)),
+                                                  OrderId(TraderId(b'1'), OrderNumber(2)), 1235,
                                                   AssetPair(AssetAmount(20, 'BTC'), AssetAmount(20, 'MB')),
                                                   Timestamp(0.0))
 
@@ -70,7 +70,7 @@ class TransactionManagerTestSuite(unittest.TestCase):
         self.transaction.outgoing_address = WalletAddress('def')
         self.transaction.partner_incoming_address = WalletAddress('ghi')
         self.transaction.partner_outgoing_address = WalletAddress('jkl')
-        payment_msg = self.transaction_manager.create_payment_message(TraderId("0"),
+        payment_msg = self.transaction_manager.create_payment_message(TraderId(b"0"),
                                                                       PaymentId('abc'), self.transaction,
                                                                       AssetAmount(1, 'BTC'),
                                                                       True)

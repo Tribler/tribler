@@ -441,7 +441,7 @@ class TestMarketCommunitySingle(TestMarketCommunityBase):
     @staticmethod
     def get_tick_block(return_ask, pair):
         tick_cls = Ask if return_ask else Bid
-        ask = tick_cls(OrderId(TraderId('0' * 40), OrderNumber(1)), pair, Timeout(3600), Timestamp.now(), return_ask)
+        ask = tick_cls(OrderId(TraderId(b'0' * 40), OrderNumber(1)), pair, Timeout(3600), Timestamp.now(), return_ask)
         ask_tx = ask.to_block_dict()
         ask_tx["address"], ask_tx["port"] = "127.0.0.1", 1337
         tick_block = MarketBlock()

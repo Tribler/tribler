@@ -56,7 +56,7 @@ class Tick(object):
         is_ask, traded, block_hash = data
 
         tick_cls = Ask if is_ask else Bid
-        order_id = OrderId(TraderId(str(trader_id)), OrderNumber(order_number))
+        order_id = OrderId(TraderId(trader_id), OrderNumber(order_number))
         return tick_cls(order_id, AssetPair(AssetAmount(asset1_amount, str(asset1_type)),
                                             AssetAmount(asset2_amount, str(asset2_type))),
                         Timeout(timeout), Timestamp(timestamp), traded=traded, block_hash=str(block_hash))

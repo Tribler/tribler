@@ -25,21 +25,21 @@ class AbstractTestOrderBook(AbstractServer):
     def setUp(self):
         yield super(AbstractTestOrderBook, self).setUp()
         # Object creation
-        self.ask = Ask(OrderId(TraderId('0'), OrderNumber(1)),
+        self.ask = Ask(OrderId(TraderId(b'0'), OrderNumber(1)),
                        AssetPair(AssetAmount(100, 'BTC'), AssetAmount(30, 'MB')), Timeout(100), Timestamp.now())
-        self.invalid_ask = Ask(OrderId(TraderId('0'), OrderNumber(1)),
+        self.invalid_ask = Ask(OrderId(TraderId(b'0'), OrderNumber(1)),
                                AssetPair(AssetAmount(100, 'BTC'), AssetAmount(30, 'MB')), Timeout(0), Timestamp(0.0))
-        self.ask2 = Ask(OrderId(TraderId('1'), OrderNumber(1)),
+        self.ask2 = Ask(OrderId(TraderId(b'1'), OrderNumber(1)),
                         AssetPair(AssetAmount(400, 'BTC'), AssetAmount(30, 'MB')), Timeout(100), Timestamp.now())
-        self.bid = Bid(OrderId(TraderId('2'), OrderNumber(1)),
+        self.bid = Bid(OrderId(TraderId(b'2'), OrderNumber(1)),
                        AssetPair(AssetAmount(200, 'BTC'), AssetAmount(30, 'MB')), Timeout(100), Timestamp.now())
-        self.invalid_bid = Bid(OrderId(TraderId('0'), OrderNumber(1)),
+        self.invalid_bid = Bid(OrderId(TraderId(b'0'), OrderNumber(1)),
                                AssetPair(AssetAmount(100, 'BTC'), AssetAmount(30, 'MB')), Timeout(0), Timestamp(0.0))
-        self.bid2 = Bid(OrderId(TraderId('3'), OrderNumber(1)),
+        self.bid2 = Bid(OrderId(TraderId(b'3'), OrderNumber(1)),
                         AssetPair(AssetAmount(300, 'BTC'), AssetAmount(30, 'MB')), Timeout(100), Timestamp.now())
-        self.trade = Trade.propose(TraderId('0'),
-                                   OrderId(TraderId('0'), OrderNumber(1)),
-                                   OrderId(TraderId('0'), OrderNumber(1)),
+        self.trade = Trade.propose(TraderId(b'0'),
+                                   OrderId(TraderId(b'0'), OrderNumber(1)),
+                                   OrderId(TraderId(b'0'), OrderNumber(1)),
                                    AssetPair(AssetAmount(100, 'BTC'), AssetAmount(30, 'MB')),
                                    Timestamp(1462224447.117))
         self.order_book = OrderBook()

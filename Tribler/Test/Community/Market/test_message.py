@@ -8,9 +8,9 @@ class TraderIdTestSuite(unittest.TestCase):
 
     def setUp(self):
         # Object creation
-        self.trader_id = TraderId('0')
-        self.trader_id2 = TraderId('0')
-        self.trader_id3 = TraderId('1')
+        self.trader_id = TraderId(b'0')
+        self.trader_id2 = TraderId(b'0')
+        self.trader_id3 = TraderId(b'1')
 
     def test_init(self):
         # Test for init validation
