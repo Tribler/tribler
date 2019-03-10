@@ -485,7 +485,8 @@ class TorrentDef(object):
             self.infohash = infohash
             self.metainfo = metainfo
 
-            self.input['name'] = metainfo['info']['name']
+            # In Python 3, 'name' != b'name' so we should look for data in both
+            self.input['name'] = metainfo['info'].get('name', metainfo['info'].[b'name'])
             # May have been 0, meaning auto.
             self.input['piece length'] = metainfo['info']['piece length']
             self.metainfo_valid = True
