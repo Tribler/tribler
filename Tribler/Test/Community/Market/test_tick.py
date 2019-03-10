@@ -78,5 +78,5 @@ class TickTestSuite(unittest.TestCase):
             "timeout": 30,
             "timestamp": 0.0,
             "traded": 0,
-            "block_hash": hexlify('0' * 32)
+            "block_hash": hexlify(b'0' * 32)
         })
