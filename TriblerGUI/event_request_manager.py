@@ -54,18 +54,17 @@ class EventRequestManager(QNetworkAccessManager):
 
     def on_error(self, error, reschedule_on_err):
         self._logger.info("Got Tribler core error: %s" % error)
-        if error == QNetworkReply.ConnectionRefusedError:
-            if self.failed_attempts == 40:
-                raise RuntimeError("Could not connect with the Tribler Core within 20 seconds")
+        if self.failed_attempts == 40:
+            raise RuntimeError("Could not connect with the Tribler Core within 20 seconds")
 
-            self.failed_attempts += 1
+        self.failed_attempts += 1
 
-            if reschedule_on_err:
-                # Reschedule an attempt
-                self.connect_timer = QTimer()
-                self.connect_timer.setSingleShot(True)
-                self.connect_timer.timeout.connect(self.connect)
-                self.connect_timer.start(500)
+        if reschedule_on_err:
+            # Reschedule an attempt
+            self.connect_timer = QTimer()
+            self.connect_timer.setSingleShot(True)
+            self.connect_timer.timeout.connect(self.connect)
+            self.connect_timer.start(500)
 
     def on_read_data(self):
         if self.receivers(self.finished) == 0:

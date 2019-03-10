@@ -12,7 +12,7 @@ import sys
 from threading import RLock
 
 from twisted.internet import threads
-from twisted.internet.defer import fail, inlineCallbacks
+from twisted.internet.defer import fail, inlineCallbacks, succeed
 from twisted.python.failure import Failure
 from twisted.python.log import addObserver
 from twisted.python.threadable import isInIOThread
@@ -404,9 +404,12 @@ class Session(object):
         if self.upgrader_enabled:
             upgrader = TriblerUpgrader(self)
             self.readable_status = STATE_UPGRADING_READABLE
-            upgrader.run()
+            upgrader_deferred = upgrader.run()
+        else:
+            upgrader_deferred = succeed(None)
 
-        startup_deferred = self.lm.register(self, self.session_lock)
+        startup_deferred = upgrader_deferred.addCallbacks(lambda _: self.lm.register(self, self.session_lock),
+                                                          lambda _: None)
 
         def load_checkpoint(_):
             if self.config.get_libtorrent_enabled():

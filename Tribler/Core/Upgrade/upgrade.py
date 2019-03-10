@@ -3,6 +3,8 @@ from __future__ import absolute_import
 import logging
 import os
 
+from twisted.internet.defer import succeed
+
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.Upgrade.config_converter import convert_config_to_tribler71
 from Tribler.Core.Upgrade.db72_to_pony import DispersyToPonyMigration, should_upgrade
@@ -30,9 +32,7 @@ class TriblerUpgrader(object):
         """
         self.notify_starting()
 
-        self.upgrade_72_to_pony()
-        # self.upgrade_config_to_71()
-        self.notify_done()
+        return self.upgrade_72_to_pony().addCallbacks(self.notify_done, lambda _: None)
 
     def update_status(self, status_text):
         self.session.notifier.notify(NTFY_UPGRADER_TICK, NTFY_STARTED, None, status_text)
@@ -45,12 +45,11 @@ class TriblerUpgrader(object):
 
         d = DispersyToPonyMigration(old_database_path, self.update_status, logger=self._logger)
         if not should_upgrade(old_database_path, new_database_path, logger=self._logger):
-            return
+            return succeed(None)
         # We have to create the Metadata Store object because the LaunchManyCore has not been started yet
         mds = MetadataStore(new_database_path, channels_dir, self.session.trustchain_keypair)
         d.initialize(mds)
-        d.do_migration()
-        mds.shutdown()
+        return d.do_migration().addCallbacks(lambda _: mds.shutdown(), lambda _: None)
 
     def upgrade_config_to_71(self):
         """
@@ -69,7 +68,7 @@ class TriblerUpgrader(object):
             self.notified = True
             self.session.notifier.notify(NTFY_UPGRADER, NTFY_STARTED, None)
 
-    def notify_done(self):
+    def notify_done(self, _):
         """
         Broadcast a notification (event) that the upgrader is done.
         """

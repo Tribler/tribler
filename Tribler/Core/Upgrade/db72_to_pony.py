@@ -11,6 +11,10 @@ from pony import orm
 from pony.orm import db_session
 from six import text_type
 
+from twisted.internet import reactor
+from twisted.internet.defer import Deferred, inlineCallbacks
+from twisted.internet.task import deferLater
+
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import LEGACY_ENTRY, NEW
 from Tribler.Core.Modules.MetadataStore.serialization import REGULAR_TORRENT
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
@@ -68,6 +72,8 @@ class DispersyToPonyMigration(object):
 
         self.personal_channel_id = None
         self.personal_channel_title = None
+
+        self.completed = Deferred()
 
     def initialize(self, mds):
         self.mds = mds
@@ -243,6 +249,21 @@ class DispersyToPonyMigration(object):
                     continue
             my_channel.commit_channel_torrent()
 
+    @inlineCallbacks
+    def update_convert_total(self, amount, elapsed):
+        if self.notifier_callback:
+            self.notifier_callback("%i entries converted in %i seconds (%i e/s)" % (amount, int(elapsed),
+                                                                                    int(amount / elapsed)))
+            yield deferLater(reactor, 0.01, lambda: None)
+
+    @inlineCallbacks
+    def update_convert_progress(self, amount, total):
+        if self.notifier_callback:
+            self.notifier_callback("%i/%i" % (amount, total))
+            yield deferLater(reactor, 0.01, lambda: None)
+        self._logger.info("Converted old torrents: %i/%i" % (amount, total))
+
+    @inlineCallbacks
     def convert_discovered_torrents(self):
         offset = 0
         # Reflect conversion state
@@ -273,15 +294,12 @@ class DispersyToPonyMigration(object):
                         continue
 
             x += batch_size
-            if self.notifier_callback:
-                self.notifier_callback("%i/%i" % (x, total_to_convert))
-                self._logger.info("Converted old torrents: %i/%i" % (x, total_to_convert))
+            yield self.update_convert_progress(x, total_to_convert)
 
         stop = datetime.datetime.utcnow()
         elapsed = (stop - start).total_seconds()
 
-        if self.notifier_callback:
-            self.notifier_callback("%i entries converted in %i seconds (%i e/s)" % (x, int(elapsed), int(x / elapsed)))
+        yield self.update_convert_total(x, elapsed)
 
     def convert_discovered_channels(self):
         # Reflect conversion state
@@ -325,13 +343,15 @@ class DispersyToPonyMigration(object):
                 v.set(value=CONVERSION_FINISHED)
             else:
                 self.mds.MiscData(name=CONVERSION_FROM_72, value=CONVERSION_FINISHED)
+        self.completed.callback(None)
 
     def do_migration(self):
-        self.convert_discovered_torrents()
-        self.convert_discovered_channels()
-        self.convert_personal_channel()
-        self.update_trackers_info()
-        self.mark_conversion_finished()
+        self.convert_discovered_torrents()\
+            .addCallbacks(lambda _: self.convert_discovered_channels, lambda _: self.completed.errback(None))\
+            .addCallbacks(lambda _: self.convert_personal_channel, lambda _: self.completed.errback(None))\
+            .addCallbacks(lambda _: self.update_trackers_info, lambda _: self.completed.errback(None))\
+            .addCallbacks(lambda _: self.mark_conversion_finished, lambda _: self.completed.errback(None))
+        return self.completed
 
 
 def old_db_version_ok(old_database_path):
