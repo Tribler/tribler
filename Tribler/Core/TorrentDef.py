@@ -265,7 +265,7 @@ class TorrentDef(object):
         if not is_valid_url(url):
             raise ValueError("Invalid URL")
 
-        url = url.rstrip('/'):  # Some tracker code can't deal with / at end
+        url = url.rstrip('/')  # Some tracker code can't deal with / at end
         self.input['announce'] = url
         self.metainfo_valid = False
 
