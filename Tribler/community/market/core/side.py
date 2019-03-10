@@ -127,8 +127,7 @@ class Side(object):
 
         if self._depth.get(key, 0) > 0:
             return self.get_price_level_list(price_wallet_id, quantity_wallet_id).max_key()
-        else:
-            return None
+        return None
 
     def get_min_price(self, price_wallet_id, quantity_wallet_id):
         """
@@ -137,10 +136,9 @@ class Side(object):
         """
         key = price_wallet_id, quantity_wallet_id
 
-        if self._depth(key, 0) > 0:
+        if self._depth.get(key, 0) > 0:
             return self.get_price_level_list(price_wallet_id, quantity_wallet_id).min_key()
-        else:
-            return None
+        return None
 
     def get_max_price_list(self, price_wallet_id, quantity_wallet_id):
         """
@@ -149,10 +147,9 @@ class Side(object):
         """
         key = price_wallet_id, quantity_wallet_id
 
-        if self._depth(key, 0) > 0:
+        if self._depth.get(key, 0) > 0:
             return self.get_price_level(self.get_max_price(price_wallet_id, quantity_wallet_id))
-        else:
-            return None
+        return None
 
     def get_min_price_list(self, price_wallet_id, quantity_wallet_id):
         """
@@ -161,10 +158,9 @@ class Side(object):
         """
         key = price_wallet_id, quantity_wallet_id
 
-        if self._depth(key, 0) > 0:
+        if self._depth.get(key, 0) > 0:
             return self.get_price_level(self.get_min_price(price_wallet_id, quantity_wallet_id))
-        else:
-            return None
+        return None
 
     def get_list_representation(self):
         """
