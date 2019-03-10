@@ -265,9 +265,7 @@ class TorrentDef(object):
         if not is_valid_url(url):
             raise ValueError("Invalid URL")
 
-        if url.endswith('/'):
-            # Some tracker code can't deal with / at end
-            url = url[:-1]
+        url = url.rstrip('/'):  # Some tracker code can't deal with / at end
         self.input['announce'] = url
         self.metainfo_valid = False
 
@@ -452,10 +450,7 @@ class TorrentDef(object):
     def get_initial_peers(self):
         """ Returns the list of initial peers.
         @return List of (IP,port) tuples. """
-        if 'initial peers' in self.input:
-            return self.input['initial peers']
-        else:
-            return []
+        return self.input.get('initial peers', [])
 
     def finalize(self, userabortflag=None, userprogresscallback=None):
         """ Create BT torrent file by reading the files added with
@@ -488,7 +483,7 @@ class TorrentDef(object):
             # In Python 3, 'name' != b'name' so we should look for data in both
             self.input['name'] = metainfo['info'].get('name', metainfo['info'][b'name'])
             # May have been 0, meaning auto.
-            self.input['piece length'] = metainfo['info']['piece length']
+            self.input['piece length'] = metainfo['info'].get('piece length', metainfo['info'][b'piece length'])
             self.metainfo_valid = True
 
         assert self.infohash is None or isinstance(
