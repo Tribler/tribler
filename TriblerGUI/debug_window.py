@@ -18,7 +18,11 @@ from matplotlib.backends.backend_qt5agg import FigureCanvas
 from matplotlib.dates import DateFormatter
 from matplotlib.figure import Figure
 
-from meliae import scanner
+try:
+    from meliae import scanner
+except ImportError:
+    scanner = None
+
 
 import psutil
 
@@ -658,8 +662,12 @@ class DebugWindow(QMainWindow):
                 self.request_mgr = TriblerRequestManager()
                 self.request_mgr.download_file("debug/memory/dump",
                                                lambda data: self.on_memory_dump_data_available(filename, data))
-            else:
+            elif scanner:
                 scanner.dump_all_objects(os.path.join(self.export_dir, filename))
+            else:
+                ConfirmationDialog.show_error(self.window(),
+                                              "Error when performing a memory dump",
+                                              "meliae memory dumper is not compatible with Python 3")
 
     def on_memory_dump_data_available(self, filename, data):
         if not data:
