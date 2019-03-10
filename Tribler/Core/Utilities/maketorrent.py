@@ -327,7 +327,7 @@ def offset_to_piece(offset, piece_size, endpoint=True):
 
 
 def copy_metainfo_to_input(metainfo, input):
-    keys = tdefdictdefaults.keys()
+    keys = list(tdefdictdefaults)
     # Arno: For magnet link support
     keys.append("initial peers")
     for key in keys:
