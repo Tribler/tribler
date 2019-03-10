@@ -38,7 +38,7 @@ class Side(object):
         :return: The tick
         :rtype: TickEntry
         """
-        return self._tick_map[order_id] if order_id in self._tick_map else None
+        return self._tick_map.get(order_id, None)
 
     def _create_price_level(self, price):
         """
@@ -116,7 +116,7 @@ class Side(object):
         """
         Returns the combinations (price wallet id, quantity wallet id) available in the side.
         """
-        return self._price_level_list_map.keys()
+        return list(self._price_level_list_map)
 
     def get_max_price(self, price_wallet_id, quantity_wallet_id):
         """
@@ -125,7 +125,7 @@ class Side(object):
         """
         key = price_wallet_id, quantity_wallet_id
 
-        if key in self._depth and self._depth[key] > 0:
+        if self._depth.get(key, 0) > 0:
             return self.get_price_level_list(price_wallet_id, quantity_wallet_id).max_key()
         else:
             return None
@@ -137,7 +137,7 @@ class Side(object):
         """
         key = price_wallet_id, quantity_wallet_id
 
-        if key in self._depth and self._depth[key] > 0:
+        if self._depth(key, 0) > 0:
             return self.get_price_level_list(price_wallet_id, quantity_wallet_id).min_key()
         else:
             return None
@@ -149,7 +149,7 @@ class Side(object):
         """
         key = price_wallet_id, quantity_wallet_id
 
-        if key in self._depth and self._depth[key] > 0:
+        if self._depth(key, 0) > 0:
             return self.get_price_level(self.get_max_price(price_wallet_id, quantity_wallet_id))
         else:
             return None
@@ -161,7 +161,7 @@ class Side(object):
         """
         key = price_wallet_id, quantity_wallet_id
 
-        if key in self._depth and self._depth[key] > 0:
+        if self._depth(key, 0) > 0:
             return self.get_price_level(self.get_min_price(price_wallet_id, quantity_wallet_id))
         else:
             return None
