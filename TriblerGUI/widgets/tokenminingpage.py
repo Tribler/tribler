@@ -2,6 +2,7 @@ from __future__ import absolute_import
 from __future__ import division
 
 import datetime
+import gc
 import time
 
 from PyQt5.QtCore import QTimer
@@ -13,6 +14,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvas
 from matplotlib.dates import DateFormatter
 from matplotlib.figure import Figure
 
+from TriblerGUI.defs import GC_TIMEOUT
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.utilities import format_size, get_image_path
 
@@ -169,6 +171,14 @@ class TokenMiningPage(QWidget):
         self.trust_plot.compute_initial_figure()
 
         self.schedule_downloads_timer()
+
+        # Matplotlib is leaking memory on re-plotting. Refer: https://github.com/matplotlib/matplotlib/issues/8528
+        # Note that gc is called every 10 minutes.
+        if self.gc_timer == GC_TIMEOUT:
+            gc.collect()
+            self.gc_timer = 0
+        else:
+            self.gc_timer += 1
 
     def push_data_to_plot(self, upload, download):
         # Keep only last 100 records to show in graph
