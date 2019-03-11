@@ -17,10 +17,10 @@ class MemoryTransactionRepositoryTestSuite(unittest.TestCase):
     def setUp(self):
         # Object creation
         self.memory_transaction_repository = MemoryTransactionRepository("0")
-        self.transaction_id = TransactionId(TraderId("0"), TransactionNumber(1))
+        self.transaction_id = TransactionId(TraderId(b"0"), TransactionNumber(1))
         self.transaction = Transaction(self.transaction_id, AssetPair(AssetAmount(10, 'BTC'), AssetAmount(10, 'MB')),
-                                       OrderId(TraderId("0"), OrderNumber(1)),
-                                       OrderId(TraderId("2"), OrderNumber(2)), Timestamp(0.0))
+                                       OrderId(TraderId(b"0"), OrderNumber(1)),
+                                       OrderId(TraderId(b"2"), OrderNumber(2)), Timestamp(0.0))
 
     def test_find_by_id(self):
         # Test for find by id
@@ -43,9 +43,9 @@ class MemoryTransactionRepositoryTestSuite(unittest.TestCase):
 
     def test_next_identity(self):
         # Test for next identity
-        self.assertEquals(TransactionId(TraderId("0"), TransactionNumber(1)),
+        self.assertEquals(TransactionId(TraderId(b"0"), TransactionNumber(1)),
                           self.memory_transaction_repository.next_identity())
-        self.assertEquals(TransactionId(TraderId("0"), TransactionNumber(2)),
+        self.assertEquals(TransactionId(TraderId(b"0"), TransactionNumber(2)),
                           self.memory_transaction_repository.next_identity())
 
     def test_update(self):

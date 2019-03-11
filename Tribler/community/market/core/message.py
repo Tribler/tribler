@@ -1,3 +1,7 @@
+from __future__ import absolute_import
+
+from six import binary_type
+
 from Tribler.community.market.core.timestamp import Timestamp
 
 
@@ -7,13 +11,15 @@ class TraderId(object):
     def __init__(self, trader_id):
         """
         :param trader_id: String representing the trader id
-        :type trader_id: str
+        :type trader_id: binary_type
         :raises ValueError: Thrown when one of the arguments are invalid
         """
         super(TraderId, self).__init__()
 
-        if not isinstance(trader_id, str):
-            raise ValueError("Trader id must be a string")
+        trader_id = trader_id if isinstance(trader_id, bytes) else binary_type(trader_id)
+
+        if not isinstance(trader_id, binary_type):
+            raise ValueError("Trader id must be a binary type")
 
         try:
             int(trader_id, 16)
@@ -25,14 +31,16 @@ class TraderId(object):
     def __str__(self):
         return "%s" % self._trader_id
 
+    def to_string(self):
+        return self._trader_id
+
     def __eq__(self, other):
         if not isinstance(other, TraderId):
             return NotImplemented
         elif self is other:
             return True
         else:
-            return self._trader_id == \
-                   other._trader_id
+            return self._trader_id == other.to_string()
 
     def __ne__(self, other):
         return not self.__eq__(other)

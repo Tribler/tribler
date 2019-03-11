@@ -150,12 +150,12 @@ class Transaction(object):
          transaction_timestamp, sent_wallet_info, received_wallet_info, incoming_address, outgoing_address,
          partner_incoming_address, partner_outgoing_address, match_id) = data
 
-        transaction_id = TransactionId(TraderId(str(trader_id)), TransactionNumber(transaction_number))
+        transaction_id = TransactionId(TraderId(bytes(trader_id)), TransactionNumber(transaction_number))
         transaction = cls(transaction_id,
                           AssetPair(AssetAmount(asset1_amount, str(asset1_type)),
                                     AssetAmount(asset2_amount, str(asset2_type))),
-                          OrderId(TraderId(str(order_trader_id)), OrderNumber(order_number)),
-                          OrderId(TraderId(str(partner_trader_id)), OrderNumber(partner_order_number)),
+                          OrderId(TraderId(bytes(order_trader_id)), OrderNumber(order_number)),
+                          OrderId(TraderId(bytes(partner_trader_id)), OrderNumber(partner_order_number)),
                           Timestamp(float(transaction_timestamp)))
 
         transaction._transferred_assets = AssetPair(AssetAmount(asset1_transferred, str(asset1_type)),
@@ -197,12 +197,12 @@ class Transaction(object):
         partner_outgoing_address = None
         match_id = ''
 
-        transaction_id = TransactionId(TraderId(str(trader_id)), TransactionNumber(transaction_number))
+        transaction_id = TransactionId(TraderId(bytes(trader_id)), TransactionNumber(transaction_number))
         transaction = cls(transaction_id,
                           AssetPair(AssetAmount(asset1_amount, str(asset1_type)),
                                     AssetAmount(asset2_amount, str(asset2_type))),
-                          OrderId(TraderId(str(order_trader_id)), OrderNumber(order_number)),
-                          OrderId(TraderId(str(partner_trader_id)), OrderNumber(partner_order_number)),
+                          OrderId(TraderId(bytes(order_trader_id)), OrderNumber(order_number)),
+                          OrderId(TraderId(bytes(partner_trader_id)), OrderNumber(partner_order_number)),
                           Timestamp(float(transaction_timestamp)))
 
         transaction._transferred_assets = AssetPair(AssetAmount(asset1_transferred, str(asset1_type)),

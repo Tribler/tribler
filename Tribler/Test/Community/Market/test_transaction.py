@@ -1,17 +1,18 @@
 from __future__ import absolute_import
 
-import six
 import unittest
+
+import six
 
 from Tribler.community.market.core.assetamount import AssetAmount
 from Tribler.community.market.core.assetpair import AssetPair
+from Tribler.community.market.core.message import TraderId
+from Tribler.community.market.core.order import OrderId, OrderNumber
 from Tribler.community.market.core.payment import Payment
 from Tribler.community.market.core.payment_id import PaymentId
-from Tribler.community.market.core.transaction import TransactionNumber, TransactionId, Transaction, StartTransaction
 from Tribler.community.market.core.timestamp import Timestamp
-from Tribler.community.market.core.order import OrderId, OrderNumber
-from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.trade import Trade
+from Tribler.community.market.core.transaction import StartTransaction, Transaction, TransactionId, TransactionNumber
 from Tribler.community.market.core.wallet_address import WalletAddress
 
 
@@ -51,13 +52,13 @@ class TransactionIdTestSuite(unittest.TestCase):
 
     def setUp(self):
         # Object creation
-        self.transaction_id = TransactionId(TraderId('0'), TransactionNumber(1))
-        self.transaction_id2 = TransactionId(TraderId('0'), TransactionNumber(1))
-        self.transaction_id3 = TransactionId(TraderId('0'), TransactionNumber(2))
+        self.transaction_id = TransactionId(TraderId(b'0'), TransactionNumber(1))
+        self.transaction_id2 = TransactionId(TraderId(b'0'), TransactionNumber(1))
+        self.transaction_id3 = TransactionId(TraderId(b'0'), TransactionNumber(2))
 
     def test_properties(self):
         # Test for properties
-        self.assertEqual(TraderId('0'), self.transaction_id.trader_id)
+        self.assertEqual(TraderId(b'0'), self.transaction_id.trader_id)
         self.assertEqual(TransactionNumber(1), self.transaction_id.transaction_number)
 
     def test_conversion(self):
@@ -81,15 +82,15 @@ class TransactionTestSuite(unittest.TestCase):
 
     def setUp(self):
         # Object creation
-        self.transaction_id = TransactionId(TraderId("0"), TransactionNumber(1))
+        self.transaction_id = TransactionId(TraderId(b"0"), TransactionNumber(1))
         self.transaction = Transaction(self.transaction_id, AssetPair(AssetAmount(100, 'BTC'), AssetAmount(100, 'MB')),
-                                       OrderId(TraderId('3'), OrderNumber(2)),
-                                       OrderId(TraderId('2'), OrderNumber(1)), Timestamp(0.0))
-        self.proposed_trade = Trade.propose(TraderId('0'),
-                                            OrderId(TraderId('0'), OrderNumber(2)),
-                                            OrderId(TraderId('1'), OrderNumber(3)),
+                                       OrderId(TraderId(b'3'), OrderNumber(2)),
+                                       OrderId(TraderId(b'2'), OrderNumber(1)), Timestamp(0.0))
+        self.proposed_trade = Trade.propose(TraderId(b'0'),
+                                            OrderId(TraderId(b'0'), OrderNumber(2)),
+                                            OrderId(TraderId(b'1'), OrderNumber(3)),
                                             AssetPair(AssetAmount(100, 'BTC'), AssetAmount(100, 'MB')), Timestamp(0.0))
-        self.payment = Payment(TraderId("0"), TransactionId(TraderId('2'), TransactionNumber(2)),
+        self.payment = Payment(TraderId(b"0"), TransactionId(TraderId(b'2'), TransactionNumber(2)),
                                AssetAmount(3, 'MB'), WalletAddress('a'), WalletAddress('b'),
                                PaymentId('aaa'), Timestamp(4.0), True)
 
@@ -177,28 +178,28 @@ class StartTransactionTestSuite(unittest.TestCase):
 
     def setUp(self):
         # Object creation
-        self.start_transaction = StartTransaction(TraderId('0'),
-                                                  TransactionId(TraderId("0"), TransactionNumber(1)),
-                                                  OrderId(TraderId('0'), OrderNumber(1)),
-                                                  OrderId(TraderId('1'), OrderNumber(1)), 1234,
+        self.start_transaction = StartTransaction(TraderId(b'0'),
+                                                  TransactionId(TraderId(b"0"), TransactionNumber(1)),
+                                                  OrderId(TraderId(b'0'), OrderNumber(1)),
+                                                  OrderId(TraderId(b'1'), OrderNumber(1)), 1234,
                                                   AssetPair(AssetAmount(30, 'BTC'), AssetAmount(40, 'MC')),
                                                   Timestamp(0.0))
 
     def test_from_network(self):
         # Test for from network
         data = StartTransaction.from_network(
-            type('Data', (object,), {"trader_id": TraderId('0'),
-                                     "transaction_id": TransactionId(TraderId('0'), TransactionNumber(1)),
-                                     "order_id": OrderId(TraderId('0'), OrderNumber(1)),
-                                     "recipient_order_id": OrderId(TraderId('1'), OrderNumber(2)),
+            type('Data', (object,), {"trader_id": TraderId(b'0'),
+                                     "transaction_id": TransactionId(TraderId(b'0'), TransactionNumber(1)),
+                                     "order_id": OrderId(TraderId(b'0'), OrderNumber(1)),
+                                     "recipient_order_id": OrderId(TraderId(b'1'), OrderNumber(2)),
                                      "proposal_id": 1235,
                                      "assets": AssetPair(AssetAmount(30, 'BTC'), AssetAmount(40, 'MC')),
                                      "timestamp": Timestamp(0.0)}))
 
-        self.assertEquals(TraderId("0"), data.trader_id)
-        self.assertEquals(TransactionId(TraderId("0"), TransactionNumber(1)), data.transaction_id)
-        self.assertEquals(OrderId(TraderId('0'), OrderNumber(1)), data.order_id)
-        self.assertEquals(OrderId(TraderId('1'), OrderNumber(2)), data.recipient_order_id)
+        self.assertEquals(TraderId(b"0"), data.trader_id)
+        self.assertEquals(TransactionId(TraderId(b"0"), TransactionNumber(1)), data.transaction_id)
+        self.assertEquals(OrderId(TraderId(b'0'), OrderNumber(1)), data.order_id)
+        self.assertEquals(OrderId(TraderId(b'1'), OrderNumber(2)), data.recipient_order_id)
         self.assertEquals(1235, data.proposal_id)
         self.assertEquals(Timestamp(0.0), data.timestamp)
 

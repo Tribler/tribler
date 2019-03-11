@@ -1,8 +1,10 @@
-from Tribler.community.market.core.assetamount import AssetAmount
-from Tribler.community.market.core.assetpair import AssetPair
+from __future__ import absolute_import
+
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Test.test_as_server import AbstractServer
+from Tribler.community.market.core.assetamount import AssetAmount
+from Tribler.community.market.core.assetpair import AssetPair
 from Tribler.community.market.core.matching_engine import MatchingEngine, PriceTimeStrategy
 from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.order import Order, OrderId, OrderNumber
@@ -19,33 +21,33 @@ class PriceTimeStrategyTestSuite(AbstractServer):
     def setUp(self):
         yield super(PriceTimeStrategyTestSuite, self).setUp()
         # Object creation
-        self.ask = Ask(OrderId(TraderId('0'), OrderNumber(1)),
+        self.ask = Ask(OrderId(TraderId(b'0'), OrderNumber(1)),
                        AssetPair(AssetAmount(3000, 'BTC'), AssetAmount(30, 'MB')), Timeout(100), Timestamp.now())
-        self.ask2 = Ask(OrderId(TraderId('1'), OrderNumber(2)),
+        self.ask2 = Ask(OrderId(TraderId(b'1'), OrderNumber(2)),
                         AssetPair(AssetAmount(3000, 'BTC'), AssetAmount(30, 'MB')), Timeout(100), Timestamp.now())
-        self.ask3 = Ask(OrderId(TraderId('0'), OrderNumber(3)),
+        self.ask3 = Ask(OrderId(TraderId(b'0'), OrderNumber(3)),
                         AssetPair(AssetAmount(40000, 'BTC'), AssetAmount(200, 'MB')), Timeout(100), Timestamp.now())
-        self.ask4 = Ask(OrderId(TraderId('1'), OrderNumber(4)),
+        self.ask4 = Ask(OrderId(TraderId(b'1'), OrderNumber(4)),
                         AssetPair(AssetAmount(3000, 'A'), AssetAmount(3000, 'MB')), Timeout(100), Timestamp.now())
-        self.ask5 = Ask(OrderId(TraderId('1'), OrderNumber(4)),
+        self.ask5 = Ask(OrderId(TraderId(b'1'), OrderNumber(4)),
                         AssetPair(AssetAmount(3000, 'BTC'), AssetAmount(30, 'C')), Timeout(100), Timestamp.now())
 
-        self.bid = Bid(OrderId(TraderId('0'), OrderNumber(5)),
+        self.bid = Bid(OrderId(TraderId(b'0'), OrderNumber(5)),
                        AssetPair(AssetAmount(3000, 'BTC'), AssetAmount(30, 'MB')), Timeout(100), Timestamp.now())
-        self.bid2 = Bid(OrderId(TraderId('0'), OrderNumber(6)),
+        self.bid2 = Bid(OrderId(TraderId(b'0'), OrderNumber(6)),
                         AssetPair(AssetAmount(6000, 'BTC'), AssetAmount(30, 'MB')), Timeout(100), Timestamp.now())
 
-        self.ask_order = Order(OrderId(TraderId('9'), OrderNumber(11)),
+        self.ask_order = Order(OrderId(TraderId(b'9'), OrderNumber(11)),
                                AssetPair(AssetAmount(3000, 'BTC'), AssetAmount(30, 'MB')),
                                Timeout(100), Timestamp.now(), True)
-        self.ask_order2 = Order(OrderId(TraderId('9'), OrderNumber(12)),
+        self.ask_order2 = Order(OrderId(TraderId(b'9'), OrderNumber(12)),
                                 AssetPair(AssetAmount(600, 'BTC'), AssetAmount(60, 'MB')),
                                 Timeout(100), Timestamp.now(), True)
 
-        self.bid_order = Order(OrderId(TraderId('9'), OrderNumber(13)),
+        self.bid_order = Order(OrderId(TraderId(b'9'), OrderNumber(13)),
                                AssetPair(AssetAmount(3000, 'BTC'), AssetAmount(30, 'MB')),
                                Timeout(100), Timestamp.now(), False)
-        self.bid_order2 = Order(OrderId(TraderId('9'), OrderNumber(14)),
+        self.bid_order2 = Order(OrderId(TraderId(b'9'), OrderNumber(14)),
                                 AssetPair(AssetAmount(6000, 'BTC'), AssetAmount(60, 'MB')),
                                 Timeout(100), Timestamp.now(), False)
         self.order_book = OrderBook()
@@ -192,14 +194,14 @@ class MatchingEngineTestSuite(AbstractServer):
     def setUp(self):
         yield super(MatchingEngineTestSuite, self).setUp()
         # Object creation
-        self.ask = Ask(OrderId(TraderId('2'), OrderNumber(1)),
+        self.ask = Ask(OrderId(TraderId(b'2'), OrderNumber(1)),
                        AssetPair(AssetAmount(3000, 'BTC'), AssetAmount(30, 'MB')), Timeout(30), Timestamp.now())
-        self.bid = Bid(OrderId(TraderId('4'), OrderNumber(2)),
+        self.bid = Bid(OrderId(TraderId(b'4'), OrderNumber(2)),
                        AssetPair(AssetAmount(3000, 'BTC'), AssetAmount(30, 'MB')), Timeout(30), Timestamp.now())
-        self.ask_order = Order(OrderId(TraderId('5'), OrderNumber(3)),
+        self.ask_order = Order(OrderId(TraderId(b'5'), OrderNumber(3)),
                                AssetPair(AssetAmount(3000, 'BTC'), AssetAmount(30, 'MB')),
                                Timeout(30), Timestamp.now(), True)
-        self.bid_order = Order(OrderId(TraderId('6'), OrderNumber(4)),
+        self.bid_order = Order(OrderId(TraderId(b'6'), OrderNumber(4)),
                                AssetPair(AssetAmount(3000, 'BTC'), AssetAmount(30, 'MB')),
                                Timeout(30), Timestamp.now(), False)
         self.order_book = OrderBook()
@@ -212,7 +214,7 @@ class MatchingEngineTestSuite(AbstractServer):
         """
         Create an ask with a specific price and quantity
         """
-        new_ask = Ask(OrderId(TraderId('2'), OrderNumber(self.ask_count)),
+        new_ask = Ask(OrderId(TraderId(b'2'), OrderNumber(self.ask_count)),
                       AssetPair(AssetAmount(amount1, 'BTC'), AssetAmount(amount2, 'MB')), Timeout(30), Timestamp.now())
         self.ask_count += 1
         return new_ask
@@ -221,7 +223,7 @@ class MatchingEngineTestSuite(AbstractServer):
         """
         Create a bid with a specific price and quantity
         """
-        new_bid = Bid(OrderId(TraderId('3'), OrderNumber(self.bid_count)),
+        new_bid = Bid(OrderId(TraderId(b'3'), OrderNumber(self.bid_count)),
                       AssetPair(AssetAmount(amount1, 'BTC'), AssetAmount(amount2, 'MB')), Timeout(30), Timestamp.now())
         self.bid_count += 1
         return new_bid

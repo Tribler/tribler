@@ -57,15 +57,15 @@ class TestMarketEndpoint(AbstractApiTest):
         """
         Add a transaction and a payment to the market
         """
-        proposed_trade = Trade.propose(TraderId('0'),
-                                       OrderId(TraderId('0'), OrderNumber(1)),
-                                       OrderId(TraderId('1'), OrderNumber(2)),
+        proposed_trade = Trade.propose(TraderId(b'0'),
+                                       OrderId(TraderId(b'0'), OrderNumber(1)),
+                                       OrderId(TraderId(b'1'), OrderNumber(2)),
                                        AssetPair(AssetAmount(30, 'BTC'), AssetAmount(60, 'MB')),
                                        Timestamp(1462224447.117))
         transaction = self.session.lm.market_community.transaction_manager.create_from_proposed_trade(
             proposed_trade, 'abcd')
 
-        payment = Payment(TraderId("0"), transaction.transaction_id,
+        payment = Payment(TraderId(b"0"), transaction.transaction_id,
                           AssetAmount(20, 'BTC'), WalletAddress('a'), WalletAddress('b'),
                           PaymentId('aaa'), Timestamp(4.0), True)
         transaction.add_payment(payment)

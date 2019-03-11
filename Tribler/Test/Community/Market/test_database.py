@@ -3,11 +3,12 @@ from __future__ import absolute_import
 import os
 
 import six
-from Tribler.community.market.core.assetamount import AssetAmount
-from Tribler.community.market.core.assetpair import AssetPair
+
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Test.test_as_server import AbstractServer
+from Tribler.community.market.core.assetamount import AssetAmount
+from Tribler.community.market.core.assetpair import AssetPair
 from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.order import Order, OrderId, OrderNumber
 from Tribler.community.market.core.payment import Payment
@@ -17,8 +18,7 @@ from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.community.market.core.transaction import Transaction, TransactionId, TransactionNumber
 from Tribler.community.market.core.wallet_address import WalletAddress
-from Tribler.community.market.database import LATEST_DB_VERSION
-from Tribler.community.market.database import MarketDB
+from Tribler.community.market.database import LATEST_DB_VERSION, MarketDB
 
 
 class TestDatabase(AbstractServer):
@@ -33,20 +33,20 @@ class TestDatabase(AbstractServer):
 
         self.database = MarketDB(self.getStateDir(), 'market')
 
-        self.order_id1 = OrderId(TraderId('3'), OrderNumber(4))
-        self.order_id2 = OrderId(TraderId('4'), OrderNumber(5))
+        self.order_id1 = OrderId(TraderId(b'3'), OrderNumber(4))
+        self.order_id2 = OrderId(TraderId(b'4'), OrderNumber(5))
         self.order1 = Order(self.order_id1, AssetPair(AssetAmount(5, 'BTC'), AssetAmount(6, 'EUR')),
                             Timeout(3600), Timestamp.now(), True)
         self.order2 = Order(self.order_id2, AssetPair(AssetAmount(5, 'BTC'), AssetAmount(6, 'EUR')),
                             Timeout(3600), Timestamp.now(), False)
-        self.order2.reserve_quantity_for_tick(OrderId(TraderId('3'), OrderNumber(4)), 3)
+        self.order2.reserve_quantity_for_tick(OrderId(TraderId(b'3'), OrderNumber(4)), 3)
 
-        self.transaction_id1 = TransactionId(TraderId("0"), TransactionNumber(4))
+        self.transaction_id1 = TransactionId(TraderId(b"0"), TransactionNumber(4))
         self.transaction1 = Transaction(self.transaction_id1, AssetPair(AssetAmount(100, 'BTC'), AssetAmount(30, 'MB')),
-                                        OrderId(TraderId("0"), OrderNumber(1)), OrderId(TraderId("1"), OrderNumber(2)),
-                                        Timestamp(20.0))
+                                        OrderId(TraderId(b"0"), OrderNumber(1)),
+                                        OrderId(TraderId(b"1"), OrderNumber(2)), Timestamp(20.0))
 
-        self.payment1 = Payment(TraderId("0"), self.transaction_id1, AssetAmount(5, 'BTC'),
+        self.payment1 = Payment(TraderId(b"0"), self.transaction_id1, AssetAmount(5, 'BTC'),
                                 WalletAddress('abc'), WalletAddress('def'), PaymentId("abc"), Timestamp(20.0), False)
 
         self.transaction1.add_payment(self.payment1)
@@ -64,7 +64,7 @@ class TestDatabase(AbstractServer):
         """
         Test the retrieval of a specific order
         """
-        order_id = OrderId(TraderId('3'), OrderNumber(4))
+        order_id = OrderId(TraderId(b'3'), OrderNumber(4))
         self.assertIsNone(self.database.get_order(order_id))
         self.database.add_order(self.order1)
         self.assertIsNotNone(self.database.get_order(order_id))
@@ -133,7 +133,7 @@ class TestDatabase(AbstractServer):
         """
         Test the retrieval of a specific transaction
         """
-        transaction_id = TransactionId(TraderId('0'), TransactionNumber(4))
+        transaction_id = TransactionId(TraderId(b'0'), TransactionNumber(4))
         self.assertIsNone(self.database.get_transaction(transaction_id))
         self.database.add_transaction(self.transaction1)
         self.assertIsNotNone(self.database.get_transaction(transaction_id))
