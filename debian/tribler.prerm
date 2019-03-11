@@ -1,4 +1,6 @@
-# Remove pony orm from pip
-pip uninstall pony
-# Remove lz4 from pip
-pip uninstall lz4
+if which pip >/dev/null 2>&1; then
+    # Remove pony orm from pip
+    pip uninstall -y pony
+    # Remove lz4 from pip
+    pip uninstall -y lz4
+fi
