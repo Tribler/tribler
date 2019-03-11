@@ -230,7 +230,7 @@ class Session(object):
 
         Locking is done by LaunchManyCore.
 
-        :param torrent_definition: a finalized TorrentDef
+        :param torrent_definition: a TorrentDef
         :param download_startup_config: a DownloadStartupConfig or None, in which case
         a new DownloadStartupConfig() is created with its default settings
         and the result becomes the runtime config of this Download

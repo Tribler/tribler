@@ -2,12 +2,10 @@ from __future__ import absolute_import
 
 import logging
 import os
+from hashlib import sha1
 
 import libtorrent
-
-from six import text_type
-
-from Tribler.Core.Utilities.unicode import ensure_unicode
+from libtorrent import bencode
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +28,7 @@ def commonprefix(l):
     return os.path.sep.join(cp)
 
 
-def create_torrent_file(file_path_list, params):
+def create_torrent_file(file_path_list, params, torrent_filepath=None):
     fs = libtorrent.file_storage()
 
     # filter all non-files
@@ -108,21 +106,18 @@ def create_torrent_file(file_path_list, params):
     t1 = torrent.generate()
     torrent = libtorrent.bencode(t1)
 
-    postfix = u'.torrent'
+    if torrent_filepath:
+        with open(torrent_filepath, 'wb') as f:
+            f.write(torrent)
 
-    if params.get('name'):
-        if not isinstance(params['name'], text_type):
-            params['name'] = ensure_unicode(params['name'], 'utf-8')
-        torrent_file_name = os.path.join(base_path, params['name'] + postfix)
-    else:
-        torrent_file_name = os.path.join(base_path, ensure_unicode(t1['info']['name'], 'utf-8') + postfix)
-    with open(torrent_file_name, 'wb') as f:
-        f.write(torrent)
-
-    return {'success': True,
-            'base_path': base_path,
-            'base_dir': base_dir,
-            'torrent_file_path': torrent_file_name}
+    return {
+        'success': True,
+        'base_path': base_path,
+        'base_dir': base_dir,
+        'torrent_file_path': torrent_filepath,
+        'metainfo': torrent,
+        'infohash': sha1(bencode(t1['info'])).digest()
+    }
 
 
 def get_info_from_handle(handle):

@@ -175,9 +175,8 @@ class TestTunnelBase(TestAsServer):
         tdef = TorrentDef()
         tdef.add_content(os.path.join(TESTS_DATA_DIR, "video.avi"))
         tdef.set_tracker("http://localhost/announce")
-        tdef.finalize()
         torrentfn = os.path.join(self.session2.config.get_state_dir(), "gen.torrent")
-        tdef.save(torrentfn)
+        tdef.save(torrent_filepath=torrentfn)
         self.seed_tdef = tdef
 
         if hops > 0:  # Safe seeding enabled

@@ -204,8 +204,7 @@ class TestChannelMetadata(TriblerCoreTest):
     @db_session
     def test_restore_torrent_in_channel(self):
         """
-        Test if the torrent scheduled for deletion is restored/updated after the user
-        tries to re-add it.
+        Test if the torrent scheduled for deletion is restored/updated after the user tries to re-add it.
         """
         channel_metadata = self.mds.ChannelMetadata.create_channel('test', 'test')
         tdef = TorrentDef.load(TORRENT_UBUNTU_FILE)
@@ -221,7 +220,7 @@ class TestChannelMetadata(TriblerCoreTest):
         # Check update of torrent properties from a new tdef
         md.status = TODELETE
         new_tracker_address = u'http://tribler.org/announce'
-        tdef.input['announce'] = new_tracker_address
+        tdef.torrent_parameters['announce'] = new_tracker_address
         md_updated = channel_metadata.add_torrent_to_channel(tdef, None)
         self.assertEqual(md_updated, md)
         self.assertEqual(md.status, NEW)

@@ -74,12 +74,6 @@ class DuplicateDownloadException(TriblerException):
         TriblerException.__init__(self, msg)
 
 
-class TorrentDefNotFinalizedException(TriblerException):
-    """Attempt to start downloading a torrent from a torrent definition that was not finalized."""
-    def __init__(self, msg=None):
-        TriblerException.__init__(self, msg)
-
-
 class TorrentFileException(TriblerException):
     """The torrent file that is used is corrupt or cannot be read."""
     def __init__(self, msg=None):

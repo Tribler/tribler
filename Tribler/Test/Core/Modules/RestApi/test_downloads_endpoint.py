@@ -117,7 +117,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
             self.assertGreaterEqual(len(self.session.get_downloads()), 1)
 
         post_data = {'uri': 'file:%s' % os.path.join(TESTS_DATA_DIR, 'video.avi.torrent')}
-        expected_json = {'started': True, 'infohash': '42bb0a78d8a10bef4a5aee3a7d9f1edf9941cee4'}
+        expected_json = {'started': True, 'infohash': '9d5b2dbc52807325bfc28d688f2bb03f8d1e7667'}
         return self.do_request('downloads', expected_code=200, request_type='PUT', post_data=post_data,
                                expected_json=expected_json).addCallback(verify_download)
 
@@ -133,7 +133,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
             dl = self.session.get_downloads()[0]
             dl.tracker_status[u"\u266b"] = [0, 'Not contacted yet']
             tdef = dl.get_def()
-            tdef.input['name'] = u'video\u266b'
+            tdef.torrent_parameters['name'] = u'video\u266b'
             return self.do_request('downloads?get_peers=1&get_pieces=1',
                                    expected_code=200)
 
@@ -171,7 +171,6 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         Testing whether illegal fields are stripped from the Libtorrent download info response.
         """
-
         def verify_download_list(response):
             response_dict = json.loads(response)
             self.assertIn("downloads", response_dict)
@@ -193,7 +192,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
                                    expected_code=200).addCallback(verify_download_list)
 
         post_data = {'uri': 'file:%s' % os.path.join(TESTS_DATA_DIR, 'video.avi.torrent')}
-        expected_json = {'started': True, 'infohash': '42bb0a78d8a10bef4a5aee3a7d9f1edf9941cee4'}
+        expected_json = {'started': True, 'infohash': '9d5b2dbc52807325bfc28d688f2bb03f8d1e7667'}
         return self.do_request('downloads', expected_code=200, request_type='PUT', post_data=post_data,
                                expected_json=expected_json).addCallback(verify_download)
 
@@ -224,7 +223,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
                                    expected_code=200).addCallback(verify_download_list)
 
         post_data = {'uri': 'file:%s' % os.path.join(TESTS_DATA_DIR, 'video.avi.torrent')}
-        expected_json = {'started': True, 'infohash': '42bb0a78d8a10bef4a5aee3a7d9f1edf9941cee4'}
+        expected_json = {'started': True, 'infohash': '9d5b2dbc52807325bfc28d688f2bb03f8d1e7667'}
         return self.do_request('downloads', expected_code=200, request_type='PUT', post_data=post_data,
                                expected_json=expected_json).addCallback(verify_download)
 
@@ -255,7 +254,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
                                    expected_code=200).addCallback(verify_download_list)
 
         post_data = {'uri': 'file:%s' % os.path.join(TESTS_DATA_DIR, 'video.avi.torrent')}
-        expected_json = {'started': True, 'infohash': '42bb0a78d8a10bef4a5aee3a7d9f1edf9941cee4'}
+        expected_json = {'started': True, 'infohash': '9d5b2dbc52807325bfc28d688f2bb03f8d1e7667'}
         return self.do_request('downloads', expected_code=200, request_type='PUT', post_data=post_data,
                                expected_json=expected_json).addCallback(verify_download)
 
@@ -316,7 +315,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         request_deferred = self.do_request('downloads/%s' % infohash, post_data={"remove_data": True},
                                            expected_code=200, request_type='DELETE',
                                            expected_json={"removed": True,
-                                                          "infohash": "8bb88a02da691636a7ed929b87d467f24700e490"})
+                                                          "infohash": "c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5"})
         return request_deferred.addCallback(verify_removed)
 
     @trial_timeout(10)
@@ -351,7 +350,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         request_deferred = self.do_request('downloads/%s' % infohash, post_data={"state": "stop"},
                                            expected_code=200, request_type='PATCH',
                                            expected_json={"modified": True,
-                                                          "infohash": "8bb88a02da691636a7ed929b87d467f24700e490"})
+                                                          "infohash": "c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5"})
         return request_deferred.addCallback(verify_removed)
 
     @trial_timeout(10)
@@ -389,7 +388,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         return self.do_request('downloads/%s' % infohash, post_data={"selected_files[]": 0},
                                expected_code=200, request_type='PATCH',
                                expected_json={"modified": True,
-                                              "infohash": "8bb88a02da691636a7ed929b87d467f24700e490"}) \
+                                              "infohash": "c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5"}) \
             .addCallback(verify_method_called)
 
     @trial_timeout(10)
@@ -422,7 +421,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         request_deferred = self.do_request('downloads/%s' % infohash, post_data={"state": "resume"},
                                            expected_code=200, request_type='PATCH',
                                            expected_json={"modified": True,
-                                                          "infohash": "8bb88a02da691636a7ed929b87d467f24700e490"})
+                                                          "infohash": "c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5"})
         return request_deferred.addCallback(verify_resumed)
 
     @trial_timeout(10)
@@ -447,7 +446,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         request_deferred = self.do_request('downloads/%s' % infohash, post_data={"state": "recheck"},
                                            expected_code=200, request_type='PATCH',
                                            expected_json={"modified": True,
-                                                          "infohash": "8bb88a02da691636a7ed929b87d467f24700e490"})
+                                                          "infohash": "c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5"})
         return request_deferred.addCallback(verify_rechecked)
 
     @trial_timeout(10)
@@ -527,10 +526,10 @@ class TestDownloadsEndpoint(AbstractApiTest):
                                expected_code=200, request_type='GET').addCallback(verify_files_data)
 
 
-class TestDownloadsDispersyEndpoint(AbstractApiTest):
+class TestDownloadsWithTunnelsEndpoint(AbstractApiTest):
 
     def setUpPreSession(self):
-        super(TestDownloadsDispersyEndpoint, self).setUpPreSession()
+        super(TestDownloadsWithTunnelsEndpoint, self).setUpPreSession()
         self.config.set_libtorrent_enabled(True)
         self.config.set_tunnel_community_enabled(True)
 
@@ -547,7 +546,7 @@ class TestDownloadsDispersyEndpoint(AbstractApiTest):
             lambda _: self.do_request('downloads/%s' % infohash, post_data={'anon_hops': 1},
                                       expected_code=200, request_type='PATCH',
                                       expected_json={'modified': True,
-                                                     "infohash": "8bb88a02da691636a7ed929b87d467f24700e490"})
+                                                     "infohash": "c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5"})
         )
 
     @trial_timeout(10)

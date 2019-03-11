@@ -15,8 +15,6 @@ Author(s): Arno Bakker, Bram Cohen, Egbert Bouman
 import sys
 from collections import OrderedDict
 
-DEFAULTPORT = 7760
-
 #
 #
 # BT per download opts
@@ -49,21 +47,3 @@ dldefaults['download_defaults']['safe_seeding'] = False
 dldefaults['download_defaults']['user_stopped'] = False
 dldefaults['download_defaults']['time_added'] = 0
 dldefaults['download_defaults']['credit_mining'] = False
-
-tdefdictdefaults = {}
-tdefdictdefaults['comment'] = None
-tdefdictdefaults['created by'] = None
-tdefdictdefaults['announce'] = None
-tdefdictdefaults['announce-list'] = None
-tdefdictdefaults['nodes'] = None  # mainline DHT
-tdefdictdefaults['httpseeds'] = None
-tdefdictdefaults['url-list'] = None
-tdefdictdefaults['encoding'] = None
-
-tdefmetadefaults = {}
-tdefmetadefaults['version'] = 1
-tdefmetadefaults['piece length'] = 0
-
-TDEF_DEFAULTS = {}
-TDEF_DEFAULTS.update(tdefdictdefaults)
-TDEF_DEFAULTS.update(tdefmetadefaults)

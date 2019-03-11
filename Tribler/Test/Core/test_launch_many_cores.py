@@ -62,13 +62,6 @@ class TestLaunchManyCore(TriblerCoreTest):
 
         return fake_download, dl_state
 
-    @raises(ValueError)
-    def test_add_tdef_not_finalized(self):
-        """
-        Testing whether a ValueError is raised when a non-finalized tdef is added as download.
-        """
-        self.lm.add(TorrentDef(), None)
-
     def test_load_download_pstate(self):
         """
         Testing whether a pstate is successfully loaded
