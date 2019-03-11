@@ -455,7 +455,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
             self._logger.info("LibtorrentDownloadImpl: could not get info from download handle")
 
         for fileindex, bytes_begin, bytes_end in byteranges:
-            if fileindex >= 0:
+            if fileindex >= 0 and torrent_info:
                 # Ensure the we remain within the file's boundaries
                 file_entry = torrent_info.file_at(fileindex)
                 bytes_begin = min(
