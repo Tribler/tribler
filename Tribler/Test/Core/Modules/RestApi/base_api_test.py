@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import os
 
-from six.moves.urllib.parse import urlencode
 
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, succeed
@@ -18,6 +17,8 @@ from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.version import version_id
 from Tribler.Test.test_as_server import TestAsServer
 
+from TriblerGUI.tribler_request_manager import tribler_urlencode
+
 
 class POSTDataProducer(object):
     """
@@ -26,9 +27,11 @@ class POSTDataProducer(object):
     implements(IBodyProducer)
 
     def __init__(self, data_dict, raw_data):
-        self.body = data_dict
-        if not raw_data:
-            self.body = urlencode(data_dict)
+        self.body = {}
+        if data_dict and not raw_data:
+            self.body = tribler_urlencode(data_dict)
+        elif raw_data:
+            self.body = raw_data.encode('utf-8')
         self.length = len(self.body)
 
     def startProducing(self, consumer):

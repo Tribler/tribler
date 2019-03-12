@@ -43,9 +43,9 @@ class TriblerConfig(object):
         if config is None:
             file_name = os.path.join(self.get_default_state_dir(), FILENAME)
             if os.path.exists(file_name):
-                config = ConfigObj(file_name, configspec=CONFIG_SPEC_PATH, encoding='latin_1')
+                config = ConfigObj(file_name, configspec=CONFIG_SPEC_PATH, default_encoding='utf-8')
             else:
-                config = ConfigObj(configspec=CONFIG_SPEC_PATH, encoding='latin_1')
+                config = ConfigObj(configspec=CONFIG_SPEC_PATH, default_encoding='utf-8')
         self.config = config
         self.validate()
 
@@ -59,14 +59,14 @@ class TriblerConfig(object):
         """
         Load a TriblerConfig from disk.
         """
-        return TriblerConfig(ConfigObj(config_path, configspec=CONFIG_SPEC_PATH, encoding='latin_1'))
+        return TriblerConfig(ConfigObj(config_path, configspec=CONFIG_SPEC_PATH, default_encoding='utf-8'))
 
     def copy(self):
         """
         Return a TriblerConfig object that has the same values.
         """
         # References to the sections are copied here
-        new_configobj = ConfigObj(self.config.copy(), configspec=self.config.configspec, encoding='latin_1')
+        new_configobj = ConfigObj(self.config.copy(), configspec=self.config.configspec, default_encoding='utf-8')
         # Make a deep copy of every section
         for section in self.config:
             new_configobj[section] = self.config[section].copy()

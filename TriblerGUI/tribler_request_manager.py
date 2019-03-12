@@ -19,27 +19,25 @@ from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 
 
 def tribler_urlencode(data):
-    # Convert all values that are an array to uri-encoded values
-    for key in data.keys():
-        value = data[key]
-        if isinstance(value, list):
-            if value:
-                data[key + "[]"] = "&".join(value)
-            else:
-                del data[key]
-
     # Convert all keys and values in the data to utf-8 unicode strings
     utf8_items = []
     for key, value in data.items():
-        utf8_key = quote_plus(text_type(key).encode('utf-8'))
-        # Convert bool values to ints
-        if isinstance(value, bool):
-            value = int(value)
-        utf8_value = quote_plus(text_type(value).encode('utf-8'))
-        utf8_items.append("%s=%s" % (utf8_key, utf8_value))
+        if isinstance(value, list):
+            utf8_items.extend([tribler_urlencode_single(key, list_item) for list_item in value if value])
+        else:
+            utf8_items.append(tribler_urlencode_single(key, value))
 
     data = "&".join(utf8_items)
     return data
+
+
+def tribler_urlencode_single(key, value):
+    utf8_key = quote_plus(text_type(key).encode('utf-8'))
+    # Convert bool values to ints
+    if isinstance(value, bool):
+        value = int(value)
+    utf8_value = quote_plus(text_type(value).encode('utf-8'))
+    return "%s=%s" % (utf8_key, utf8_value)
 
 
 class QueuePriorityEnum(object):

@@ -140,10 +140,10 @@ class TestDownloadsEndpoint(AbstractApiTest):
         ufile = os.path.join(TESTS_DATA_DIR, u'video\u266b.avi.torrent')
         udest = os.path.join(self.session_base_dir, u'video\u266b')
 
-        post_data = (u'uri=file:%s&destination=%s' % (ufile, udest)).encode('utf-8')
+        post_data = (u'uri=file:%s&destination=%s' % (ufile, udest))
         self.should_check_equality = False
-        return self.do_request('downloads', expected_code=200, request_type='PUT', post_data=post_data,
-                               raw_data=True).addCallback(verify_download)
+        return self.do_request('downloads', expected_code=200, request_type='PUT',
+                               raw_data=post_data).addCallback(verify_download)
 
     def create_mock_status(self):
         status = MockObject()
