@@ -597,7 +597,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                     "LibtorrentDownloadImpl: setting send_buffer_watermark to %s",
                     2 * settings['send_buffer_watermark'])
                 settings['send_buffer_watermark'] *= 2
-                self.ltmgr.get_session().set_settings(settings)
+                self.ltmgr.set_session_settings(self.ltmgr.get_session(), settings)
         # When the write cache is too small, double the buffer size to a maximum
         # of 64MiB. Again, this is the same mechanism as Deluge uses.
         elif alert.message().endswith("max outstanding disk writes reached"):
@@ -607,7 +607,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                     "LibtorrentDownloadImpl: setting max_queued_disk_bytes to %s",
                     2 * settings['max_queued_disk_bytes'])
                 settings['max_queued_disk_bytes'] *= 2
-                self.ltmgr.get_session().set_settings(settings)
+                self.ltmgr.set_session_settings(self.ltmgr.get_session(), settings)
 
     def on_torrent_checked_alert(self, alert):
         if self.pause_after_next_hashcheck:
