@@ -45,7 +45,6 @@ DEFAULT_DHT_ROUTERS = [
     ("router.utorrent.com", 6881)
 ]
 DEFAULT_LT_EXTENSIONS = [
-    lt.create_metadata_plugin,
     lt.create_ut_metadata_plugin,
     lt.create_ut_pex_plugin,
     lt.create_smart_ban_plugin
