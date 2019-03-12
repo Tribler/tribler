@@ -4,7 +4,6 @@ import logging
 import os
 import shutil
 from binascii import hexlify
-from unittest import skip
 
 from twisted.internet.defer import Deferred
 
@@ -46,14 +45,6 @@ class TestDownload(TestAsServer):
         self.setUpFileServer(file_server_port, files_path)
 
         d = self.session.start_download_from_uri('http://localhost:%s/ubuntu.torrent' % file_server_port)
-        d.addCallback(self.on_download)
-        return self.test_deferred
-
-    @skip("Fetching a torrent from the external network is unreliable")
-    @trial_timeout(60)
-    def test_download_torrent_from_magnet(self):
-        magnet_link = 'magnet:?xt=urn:btih:%s' % hexlify(UBUNTU_1504_INFOHASH)
-        d = self.session.start_download_from_uri(magnet_link)
         d.addCallback(self.on_download)
         return self.test_deferred
 
