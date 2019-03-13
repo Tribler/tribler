@@ -277,19 +277,6 @@ class LibtorrentMgr(TaskManager):
 
             ltsession.set_proxy(proxy_settings)
 
-    def set_utp(self, enable, hops=None):
-        def do_set_utp(ltsession):
-            settings = ltsession.get_settings()
-            settings['enable_outgoing_utp'] = enable
-            settings['enable_incoming_utp'] = enable
-            self.set_session_settings(ltsession, settings)
-
-        if hops is None:
-            for ltsession in self.ltsessions.values():
-                do_set_utp(ltsession)
-        else:
-            do_set_utp(self.get_session(hops))
-
     def set_max_connections(self, conns, hops=None):
         self._map_call_on_ltsessions(hops, 'set_max_connections', conns)
 
