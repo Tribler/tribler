@@ -67,7 +67,7 @@ class TorrentDef(object):
             except RuntimeError as exc:
                 raise ValueError(str(exc))
 
-            self.infohash = sha1(bencode(metainfo['info'])).digest()
+            self.infohash = sha1(bencode(metainfo[b'info'])).digest()
             self.copy_metainfo_to_torrent_parameters()
 
         elif torrent_parameters:
