@@ -79,6 +79,7 @@ class PlayButtonMixin(TriblerContentTableView):
 
 class SubscribeButtonMixin(TriblerContentTableView):
     def on_subscribe_control_clicked(self, index):
+        print index.model().data_items[index.row()]
         if index.model().data_items[index.row()][u'status'] == 6:  # LEGACY ENTRIES!
             return
         if index.model().data_items[index.row()][u'my_channel']:
