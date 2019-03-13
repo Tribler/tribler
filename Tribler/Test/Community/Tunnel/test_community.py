@@ -147,6 +147,9 @@ class TestTriblerTunnelCommunity(TestBase):
         tribler_session = MockObject()
         tribler_session.notifier = MockObject()
         tribler_session.notifier.notify = lambda *_: None
+        tribler_session.lm = MockObject()
+        tribler_session.lm.ltmgr = MockObject()
+        tribler_session.lm.ltmgr.get_libtorrent_version = lambda: "1.1.0.0"
         self.nodes[0].overlay.tribler_session = tribler_session
 
         mock_state = MockObject()

@@ -38,6 +38,12 @@ class Socks5Connection(Protocol):
 
         self.destinations = {}
 
+    def get_udp_socket(self):
+        """
+        Return the UDP socket. This socket is only available if a SOCKS5 ASSOCIATE request is sent.
+        """
+        return self._udp_socket
+
     def dataReceived(self, data):
         self.buffer = self.buffer + data
         while len(self.buffer) > 0:

@@ -45,7 +45,6 @@ DEFAULT_DHT_ROUTERS = [
     ("router.utorrent.com", 6881)
 ]
 DEFAULT_LT_EXTENSIONS = [
-    lt.create_metadata_plugin,
     lt.create_ut_metadata_plugin,
     lt.create_ut_pex_plugin,
     lt.create_smart_ban_plugin
@@ -192,7 +191,7 @@ class LibtorrentMgr(TaskManager):
             if LooseVersion(self.get_libtorrent_version()) >= LooseVersion("1.1.0"):
                 settings["listen_interfaces"] = "0.0.0.0:%d" % self.tribler_session.config.get_anon_listen_port()
 
-        ltsession.set_settings(settings)
+        self.set_session_settings(ltsession, settings)
         ltsession.set_alert_mask(self.default_alert_mask)
 
         # Load proxy settings
@@ -229,7 +228,7 @@ class LibtorrentMgr(TaskManager):
             ltsession_settings = ltsession.get_settings()
             ltsession_settings['upload_rate_limit'] = self.tribler_session.config.get_libtorrent_max_upload_rate()
             ltsession_settings['download_rate_limit'] = self.tribler_session.config.get_libtorrent_max_download_rate()
-            ltsession.set_settings(ltsession_settings)
+            self.set_session_settings(ltsession, ltsession_settings)
 
         if self.tribler_session.config.get_libtorrent_dht_enabled():
             ltsession.start_dht()
@@ -263,7 +262,7 @@ class LibtorrentMgr(TaskManager):
             if auth:
                 settings["proxy_username"] = auth[0]
                 settings["proxy_password"] = auth[1]
-            ltsession.set_settings(settings)
+            self.set_session_settings(ltsession, settings)
         else:
             proxy_settings = lt.proxy_settings()
             proxy_settings.type = lt.proxy_type(ptype)
@@ -278,19 +277,6 @@ class LibtorrentMgr(TaskManager):
 
             ltsession.set_proxy(proxy_settings)
 
-    def set_utp(self, enable, hops=None):
-        def do_set_utp(ltsession):
-            settings = ltsession.get_settings()
-            settings['enable_outgoing_utp'] = enable
-            settings['enable_incoming_utp'] = enable
-            ltsession.set_settings(settings)
-
-        if hops is None:
-            for ltsession in self.ltsessions.values():
-                do_set_utp(ltsession)
-        else:
-            do_set_utp(self.get_session(hops))
-
     def set_max_connections(self, conns, hops=None):
         self._map_call_on_ltsessions(hops, 'set_max_connections', conns)
 
@@ -301,7 +287,8 @@ class LibtorrentMgr(TaskManager):
 
         # Pass outgoing_port and num_outgoing_ports to dict due to bug in libtorrent 0.16.18
         settings_dict = {'upload_rate_limit': libtorrent_rate, 'outgoing_port': 0, 'num_outgoing_ports': 1}
-        self._map_call_on_ltsessions(hops, 'set_settings', settings_dict)
+        for session in self.ltsessions.values():
+            self.set_session_settings(session, settings_dict)
 
     def get_upload_rate_limit(self, hops=None):
         # Rate conversion due to the fact that we had a different system with Swift
@@ -314,7 +301,8 @@ class LibtorrentMgr(TaskManager):
 
         # Pass outgoing_port and num_outgoing_ports to dict due to bug in libtorrent 0.16.18
         settings_dict = {'download_rate_limit': libtorrent_rate}
-        self._map_call_on_ltsessions(hops, 'set_settings', settings_dict)
+        for session in self.ltsessions.values():
+            self.set_session_settings(session, settings_dict)
 
     def get_download_rate_limit(self, hops=0):
         libtorrent_rate = self.get_session(hops).download_rate_limit()
@@ -747,6 +735,17 @@ class LibtorrentMgr(TaskManager):
             # libtorrent.version is deprecated starting from 1.0
             return lt.version
 
+    def set_session_settings(self, lt_session, new_settings):
+        """
+        Apply/set new sessions in a libtorrent session.
+        :param lt_session: The libtorrent session to apply the settings to.
+        :param new_settings: The new settings to apply.
+        """
+        if hasattr(lt_session, "apply_settings"):
+            lt_session.apply_settings(new_settings)
+        else:
+            lt_session.set_settings(new_settings)
+
     def update_max_rates_from_config(self):
         """
         Set the maximum download and maximum upload rate limits with the value in the config.
@@ -758,7 +757,7 @@ class LibtorrentMgr(TaskManager):
             ltsession_settings = lt_session.get_settings()
             ltsession_settings['download_rate_limit'] = self.tribler_session.config.get_libtorrent_max_download_rate()
             ltsession_settings['upload_rate_limit'] = self.tribler_session.config.get_libtorrent_max_upload_rate()
-            lt_session.set_settings(ltsession_settings)
+            self.set_session_settings(lt_session, ltsession_settings)
 
     def post_session_stats(self, hops=None):
         if hops is None:

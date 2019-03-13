@@ -254,15 +254,15 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
             atp = {}
             atp["save_path"] = os.path.normpath(os.path.join(get_default_dest_dir(), self.get_dest_dir()))
             atp["storage_mode"] = lt.storage_mode_t.storage_mode_sparse
-            atp["paused"] = True
-            atp["auto_managed"] = False
-            atp["duplicate_is_error"] = False
             atp["hops"] = self.get_hops()
+            atp["flags"] = lt.add_torrent_params_flags_t.flag_paused | \
+                           lt.add_torrent_params_flags_t.flag_duplicate_is_error | \
+                           lt.add_torrent_params_flags_t.flag_update_subscribe
 
             if share_mode:
-                atp["flags"] = lt.add_torrent_params_flags_t.flag_share_mode
+                atp["flags"] = atp["flags"] | lt.add_torrent_params_flags_t.flag_share_mode
             if upload_mode:
-                atp["flags"] = lt.add_torrent_params_flags_t.flag_upload_mode
+                atp["flags"] = atp["flags"] | lt.add_torrent_params_flags_t.flag_upload_mode
 
             self.set_checkpoint_disabled(checkpoint_disabled)
 
@@ -597,7 +597,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                     "LibtorrentDownloadImpl: setting send_buffer_watermark to %s",
                     2 * settings['send_buffer_watermark'])
                 settings['send_buffer_watermark'] *= 2
-                self.ltmgr.get_session().set_settings(settings)
+                self.ltmgr.set_session_settings(self.ltmgr.get_session(), settings)
         # When the write cache is too small, double the buffer size to a maximum
         # of 64MiB. Again, this is the same mechanism as Deluge uses.
         elif alert.message().endswith("max outstanding disk writes reached"):
@@ -607,7 +607,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                     "LibtorrentDownloadImpl: setting max_queued_disk_bytes to %s",
                     2 * settings['max_queued_disk_bytes'])
                 settings['max_queued_disk_bytes'] *= 2
-                self.ltmgr.get_session().set_settings(settings)
+                self.ltmgr.set_session_settings(self.ltmgr.get_session(), settings)
 
     def on_torrent_checked_alert(self, alert):
         if self.pause_after_next_hashcheck:
