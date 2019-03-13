@@ -59,20 +59,21 @@ class CreateTorrentEndpoint(resource.Resource):
 
             :statuscode 500: if source files do not exist.
         """
-        parameters = http.parse_qs(request.content.read(), 1)
+        content = request.content.read()
+        parameters = http.parse_qs(content, 1)
         params = {}
 
-        if 'files[]' in parameters and len(parameters['files[]']) > 0:
-            file_path_list = [ensure_unicode(f, 'utf-8') for f in parameters['files[]']]
+        if 'files' in parameters and parameters['files']:
+            file_path_list = [ensure_unicode(f, 'utf-8') for f in parameters['files']]
         else:
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "files parameter missing"})
 
-        if 'description' in parameters and len(parameters['description']) > 0:
+        if 'description' in parameters and parameters['description']:
             params['comment'] = parameters['description'][0]
 
-        if 'trackers[]' in parameters and len(parameters['trackers[]']) > 0:
-            tracker_url_list = parameters['trackers[]']
+        if 'trackers' in parameters and parameters['trackers']:
+            tracker_url_list = parameters['trackers']
             params['announce'] = tracker_url_list[0]
             params['announce-list'] = tracker_url_list
 

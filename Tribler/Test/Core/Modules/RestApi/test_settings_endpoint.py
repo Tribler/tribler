@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-from six import unichr
-
 from twisted.internet.defer import inlineCallbacks
 
 import Tribler.Core.Utilities.json_util as json
@@ -35,7 +33,7 @@ class TestSettingsEndpoint(AbstractApiTest):
         Test setting watch_folder to a unicode path.
         """
         self.should_check_equality = False
-        post_data_dict = {'watch_folder': {'directory': "".join([unichr(i) for i in range(256)])}}
+        post_data_dict = {'watch_folder': {'directory': u'\u2588'}}
         post_data = json.dumps(post_data_dict, ensure_ascii=False)
 
         def check_settings(settings):
@@ -47,7 +45,7 @@ class TestSettingsEndpoint(AbstractApiTest):
             return getter_deferred.addCallback(check_settings)
 
         return self.do_request('settings', expected_code=200, request_type='POST',
-                               post_data=post_data.encode('latin_1'), raw_data=True).addCallback(verify_response)
+                               raw_data=post_data).addCallback(verify_response)
 
     @trial_timeout(10)
     def test_get_settings(self):
@@ -68,7 +66,7 @@ class TestSettingsEndpoint(AbstractApiTest):
 
         self.should_check_equality = False
         post_data = json.dumps({'a': {'b': {'c': 'd'}}})
-        return self.do_request('settings', expected_code=500, request_type='POST', post_data=post_data, raw_data=True)\
+        return self.do_request('settings', expected_code=500, request_type='POST', raw_data=post_data)\
             .addCallback(verify_response)
 
     @trial_timeout(10)
@@ -83,11 +81,11 @@ class TestSettingsEndpoint(AbstractApiTest):
 
         self.should_check_equality = False
         post_data = json.dumps({'general': {'b': 'c'}})
-        yield self.do_request('settings', expected_code=500, request_type='POST', post_data=post_data, raw_data=True)\
+        yield self.do_request('settings', expected_code=500, request_type='POST', raw_data=post_data)\
             .addCallback(verify_response)
 
         post_data = json.dumps({'Tribler': {'b': 'c'}})
-        yield self.do_request('settings', expected_code=500, request_type='POST', post_data=post_data, raw_data=True)\
+        yield self.do_request('settings', expected_code=500, request_type='POST', raw_data=post_data)\
             .addCallback(verify_response)
 
     @trial_timeout(10)
@@ -107,7 +105,7 @@ class TestSettingsEndpoint(AbstractApiTest):
         self.should_check_equality = False
         post_data = json.dumps({'libtorrent': {'utp': False, 'max_download_rate': 50},
                                 'download_defaults': {'seeding_mode': 'time', 'seeding_time': 100}})
-        yield self.do_request('settings', expected_code=200, request_type='POST', post_data=post_data, raw_data=True) \
+        yield self.do_request('settings', expected_code=200, request_type='POST', raw_data=post_data) \
             .addCallback(verify_response1)
 
         def verify_response2(_):
@@ -115,7 +113,7 @@ class TestSettingsEndpoint(AbstractApiTest):
             self.assertEqual(download.get_seeding_ratio(), 3)
 
         post_data = json.dumps({'download_defaults': {'seeding_mode': 'ratio', 'seeding_ratio': 3}})
-        yield self.do_request('settings', expected_code=200, request_type='POST', post_data=post_data, raw_data=True) \
+        yield self.do_request('settings', expected_code=200, request_type='POST', raw_data=post_data) \
             .addCallback(verify_response2)
 
         download.get_credit_mining = lambda: True
@@ -124,5 +122,5 @@ class TestSettingsEndpoint(AbstractApiTest):
             self.assertNotEqual(download.get_seeding_mode(), 'never')
 
         post_data = json.dumps({'download_defaults': {'seeding_mode': 'never'}})
-        yield self.do_request('settings', expected_code=200, request_type='POST', post_data=post_data, raw_data=True) \
+        yield self.do_request('settings', expected_code=200, request_type='POST', raw_data=post_data) \
             .addCallback(verify_response3)
