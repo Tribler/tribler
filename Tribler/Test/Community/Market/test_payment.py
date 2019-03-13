@@ -58,7 +58,7 @@ class PaymentTestSuite(unittest.TestCase):
         Test the dictionary representation of a payment
         """
         self.assertDictEqual(self.payment.to_dictionary(), {
-            "trader_id": '2',
+            "trader_id": b'2',
             "transaction_number": 2,
             "transferred": {
                 "amount": 3,

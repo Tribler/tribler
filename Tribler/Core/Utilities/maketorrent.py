@@ -3,7 +3,7 @@ Make torrent.
 
 Author(s): Arno Bakker, Bram Cohen
 """
-from __future__ import absolute_import
+from __future__ import absolute_import, division
 
 import codecs
 import logging
@@ -76,7 +76,7 @@ def get_length_filepieceranges_from_metainfo(metainfo, selectedfiles):
 
 
 def offset_to_piece(offset, piece_size, endpoint=True):
-    p = offset / piece_size
+    p = offset // piece_size
     if endpoint and offset % piece_size > 0:
         p += 1
     return p

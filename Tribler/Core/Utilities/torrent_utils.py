@@ -116,7 +116,7 @@ def create_torrent_file(file_path_list, params, torrent_filepath=None):
         'base_dir': base_dir,
         'torrent_file_path': torrent_filepath,
         'metainfo': torrent,
-        'infohash': sha1(bencode(t1['info'])).digest()
+        'infohash': sha1(bencode(t1[b'info'])).digest()
     }
 
 

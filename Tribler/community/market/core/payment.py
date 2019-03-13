@@ -107,7 +107,7 @@ class Payment(Message):
 
     def to_dictionary(self):
         return {
-            "trader_id": str(self.transaction_id.trader_id),
+            "trader_id": self.transaction_id.trader_id.to_string(),
             "transaction_number": int(self.transaction_id.transaction_number),
             "transferred": self.transferred_assets.to_dictionary(),
             "payment_id": str(self.payment_id),

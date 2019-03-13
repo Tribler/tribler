@@ -336,9 +336,9 @@ class Transaction(object):
         Return a dictionary with a representation of this transaction.
         """
         return {
-            "trader_id": str(self.transaction_id.trader_id),
+            "trader_id": self.transaction_id.trader_id.to_string(),
             "order_number": int(self.order_id.order_number),
-            "partner_trader_id": str(self.partner_order_id.trader_id),
+            "partner_trader_id": self.partner_order_id.trader_id.to_string(),
             "partner_order_number": int(self.partner_order_id.order_number),
             "transaction_number": int(self.transaction_id.transaction_number),
             "assets": self.assets.to_dictionary(),
