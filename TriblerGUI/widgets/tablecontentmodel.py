@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from abc import abstractmethod
+
 from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt, pyqtSignal
 
 from TriblerGUI.defs import ACTION_BUTTONS
@@ -18,25 +20,67 @@ class RemoteTableModel(QAbstractTableModel):
         self.data_items = []
         self.item_load_batch = 50
         self.total_items = 0  # The total number of items without pagination
-        self.infohashes = {}
+
+        # Unique identifier mapping for items. For torrents, it is infohash and for channels, it is concatenated value
+        # of public key and channel id
+        self.item_uid_map = {}
+
+    @abstractmethod
+    def get_item_uid(self, item):
+        pass
 
     def reset(self):
         self.beginResetModel()
         self.data_items = []
+        self.item_uid_map = {}
+        self.total_items = 0
         self.endResetModel()
 
     def sort(self, column, order):
         self.reset()
         self.on_sort.emit(self.columns[column], bool(order))
 
-    def add_items(self, new_data_items):
-        if not new_data_items:
+    def add_items(self, new_items, remote=False):
+        """
+        Adds new items to the table model. All items are mapped to their unique ids to avoid the duplicates.
+        If the new items are remote then the items are prepended to the top else appended to the end of the model.
+        :param new_items: list(item)
+        :param remote: True if new_items are received from remote peers else False for local items
+        :return: None
+        """
+        if not new_items:
             return
-        # If we want to block the signal like itemChanged, we must use QSignalBlocker object
-        old_end = self.rowCount()
-        new_end = self.rowCount() + len(new_data_items)
-        self.beginInsertRows(QModelIndex(), old_end, new_end - 1)
-        self.data_items.extend(new_data_items)
+
+        # Note: If we want to block the signal like itemChanged, we must use QSignalBlocker object
+
+        # Only add unique items to the table model and reverse mapping from unique ids to rows is built.
+        # If items are remote, prepend to the top else append to the end of the model.
+        new_items_map = {}
+        insert_index = len(self.data_items) if not remote else 0
+        unique_items = []
+        for item in new_items:
+            item_uid = self.get_item_uid(item)
+
+            if item_uid and item_uid not in self.item_uid_map:
+                new_items_map[item_uid] = insert_index
+                unique_items.append(item)
+                insert_index += 1
+
+        # If no new items are found, skip
+        if not unique_items:
+            return
+
+        # Else if remote items, to make space for new unique items update the position of the existing items
+        if remote:
+            for item in self.data_items:
+                old_item_uid = self.get_item_uid(item)
+                if old_item_uid in self.item_uid_map:
+                    new_items_map[old_item_uid] = insert_index + self.item_uid_map[old_item_uid]
+
+        # Update the table model
+        self.beginInsertRows(QModelIndex(), 0, len(unique_items) - 1)
+        self.data_items = unique_items + self.data_items if remote else self.data_items + unique_items
+        self.item_uid_map = new_items_map
         self.endInsertRows()
 
 
@@ -57,6 +101,14 @@ class TriblerContentModel(RemoteTableModel):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
             return self.column_headers[num]
 
+    def get_item_uid(self, item):
+        item_uid = None
+        if "infohash" in item:
+            item_uid = item['infohash']
+        elif "public_key" in item and "id" in item:
+            item_uid = "%s:%s" % (item['public_key'], item['id'])
+        return item_uid
+
     def rowCount(self, parent=QModelIndex()):
         return len(self.data_items)
 
@@ -73,21 +125,12 @@ class TriblerContentModel(RemoteTableModel):
             return self.column_display_filters.get(column, str(data))(data) \
                 if column in self.column_display_filters else data
 
-    def add_items(self, new_data_items):
-        super(TriblerContentModel, self).add_items(new_data_items)
-        # Build reverse mapping from infohashes to rows
-        items_len = len(self.data_items)
-        new_items_len = len(new_data_items)
-        for i, item in enumerate(new_data_items):
-            if "infohash" in item and item['infohash'] not in self.infohashes:
-                self.infohashes[item["infohash"]] = items_len - new_items_len + i
-
     def reset(self):
-        self.infohashes.clear()
+        self.item_uid_map.clear()
         super(TriblerContentModel, self).reset()
 
     def update_torrent_info(self, update_dict):
-        row = self.infohashes.get(update_dict["infohash"])
+        row = self.item_uid_map.get(update_dict["infohash"])
         if row:
             self.data_items[row].update(**update_dict)
             self.dataChanged.emit(self.index(row, 0), self.index(row, len(self.columns)), [])
@@ -117,29 +160,6 @@ class SearchResultsContentModel(TriblerContentModel):
     def __init__(self, **kwargs):
         TriblerContentModel.__init__(self, **kwargs)
         self.type_filter = ''
-
-    def add_remote_items(self, remote_items):
-        new_infohash_map = {}
-
-        # Add new unique items to the top
-        insert_index = 0
-        new_items = []
-        for item in remote_items:
-            if "infohash" in item and item["infohash"] not in self.infohashes:
-                new_infohash_map[item["infohash"]] = insert_index
-                new_items.append(item)
-                insert_index += 1
-
-        # Shift the rest of the items
-        for item in self.data_items:
-            if "infohash" in item and item["infohash"] in self.infohashes:
-                new_infohash_map[item['infohash']] = insert_index + self.infohashes[item["infohash"]]
-
-        # Update the table
-        self.beginInsertRows(QModelIndex(), 0, len(new_items) - 1)
-        self.data_items = new_items + self.data_items
-        self.infohashes = new_infohash_map
-        self.endInsertRows()
 
 
 class ChannelsContentModel(TriblerContentModel):

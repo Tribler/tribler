@@ -8,9 +8,10 @@ from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import entries_to_chunk
 from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, REGULAR_TORRENT
-from Tribler.Core.Modules.MetadataStore.store import GOT_NEWER_VERSION
+from Tribler.Core.Modules.MetadataStore.store import GOT_NEWER_VERSION, UNKNOWN_CHANNEL
 from Tribler.Core.Utilities.utilities import is_simple_match_query
-from Tribler.Core.simpledefs import SIGNAL_GIGACHANNEL_COMMUNITY, SIGNAL_ON_SEARCH_RESULTS
+from Tribler.Core.simpledefs import NTFY_CHANNEL, NTFY_DISCOVERED, SIGNAL_GIGACHANNEL_COMMUNITY, \
+    SIGNAL_ON_SEARCH_RESULTS
 from Tribler.community.gigachannel.payload import SearchRequestPayload, SearchResponsePayload
 from Tribler.community.gigachannel.request import SearchRequestCache
 from Tribler.pyipv8.ipv8.community import Community
@@ -96,6 +97,9 @@ class GigaChannelCommunity(Community):
             self._logger.error("DB transaction error when tried to process payload: %s", str(err))
             return
 
+        # Notify the discovered torrents and channels to the GUI
+        self.notify_discovered_metadata(md_list)
+
         # Check if the guy who send us this metadata actually has an older version of this md than
         # we do, and queue to send it back.
         self.respond_with_updated_metadata(peer, md_list)
@@ -113,6 +117,19 @@ class GigaChannelCommunity(Community):
             reply_blob = entries_to_chunk(reply_list, maximum_payload_size)[0] if reply_list else None
         if reply_blob:
             self.endpoint.send(peer.address, self.ezr_pack(self.NEWS_PUSH_MESSAGE, RawBlobPayload(reply_blob)))
+
+    def notify_discovered_metadata(self, md_list):
+        """
+        Notify about the discovered metadata through event notifier.
+        :param md_list: Metadata list
+        :return: None
+        """
+        with db_session:
+            new_channels = [(dict(type='channel', **(md.to_simple_dict()))) for md, result in md_list
+                            if md and md.metadata_type == CHANNEL_TORRENT and result == UNKNOWN_CHANNEL]
+
+        if self.notifier and new_channels:
+            self.notifier.notify(NTFY_CHANNEL, NTFY_DISCOVERED, None, {"results": new_channels})
 
     def send_search_request(self, query_filter, metadata_type='', sort_by=None, sort_asc=0, hide_xxx=True, uuid=None):
         """
