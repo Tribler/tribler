@@ -79,13 +79,14 @@ class PlayButtonMixin(TriblerContentTableView):
 
 class SubscribeButtonMixin(TriblerContentTableView):
     def on_subscribe_control_clicked(self, index):
-        print index.model().data_items[index.row()]
-        if index.model().data_items[index.row()][u'status'] == 6:  # LEGACY ENTRIES!
+        item = index.model().data_items[index.row()]
+        # skip LEGACY entries, regular torrents and personal channel
+        if (u'subscribed' not in item or
+                item[u'status'] == 6 or
+                item[u'my_channel']):
             return
-        if index.model().data_items[index.row()][u'my_channel']:
-            return
-        status = int(index.model().data_items[index.row()][u'subscribed'])
-        public_key = index.model().data_items[index.row()][u'public_key']
+        status = int(item[u'subscribed'])
+        public_key = item[u'public_key']
         request_mgr = TriblerRequestManager()
         request_mgr.perform_request("metadata/channels/%s" % public_key,
                                     (lambda _: self.on_unsubscribed_channel.emit(index)) if status else
@@ -172,7 +173,9 @@ class SearchResultsTableView(ItemClickedMixin, DownloadButtonMixin, PlayButtonMi
         self.setColumnWidth(0, 100)
         self.setColumnWidth(2, 100)
         self.setColumnWidth(3, 100)
-        self.setColumnWidth(1, self.width() - 304)  # Few pixels offset so the horizontal scrollbar does not appear
+        self.setColumnWidth(4, 100)
+        self.setColumnWidth(5, 100)
+        self.setColumnWidth(1, self.width() - 504)  # Few pixels offset so the horizontal scrollbar does not appear
 
 
 class TorrentsTableView(ItemClickedMixin, DeleteButtonMixin, DownloadButtonMixin, PlayButtonMixin,
