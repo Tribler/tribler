@@ -72,7 +72,7 @@ class TickTestSuite(unittest.TestCase):
         Test the to dictionary method of a tick
         """
         self.assertDictEqual(self.tick.to_dictionary(), {
-            "trader_id": '0',
+            "trader_id": b'0',
             "order_number": 1,
             "assets": self.tick.assets.to_dictionary(),
             "timeout": 30,

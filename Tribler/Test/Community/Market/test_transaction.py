@@ -132,7 +132,7 @@ class TransactionTestSuite(unittest.TestCase):
         Test the to dictionary method of a transaction
         """
         self.assertDictEqual(self.transaction.to_dictionary(), {
-            'trader_id': '0',
+            'trader_id': b'0',
             'transaction_number': 1,
             'order_number': 2,
             'partner_trader_id': '2',

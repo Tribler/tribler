@@ -196,7 +196,7 @@ class Tick(object):
         Return a dictionary with a representation of this tick.
         """
         return {
-            "trader_id": str(self.order_id.trader_id),
+            "trader_id": self.order_id.trader_id.to_string(),
             "order_number": int(self.order_id.order_number),
             "assets": self.assets.to_dictionary(),
             "timeout": int(self.timeout),

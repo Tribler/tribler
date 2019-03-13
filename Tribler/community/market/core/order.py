@@ -403,7 +403,7 @@ class Order(object):
         """
         completed_timestamp = float(self.completed_timestamp) if self.completed_timestamp else None
         return {
-            "trader_id": str(self.order_id.trader_id),
+            "trader_id": self.order_id.trader_id.to_string(),
             "order_number": int(self.order_id.order_number),
             "assets": self.assets.to_dictionary(),
             "reserved_quantity": self.reserved_quantity,
