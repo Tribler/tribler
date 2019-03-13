@@ -4,7 +4,7 @@ import datetime
 import logging
 import os
 import socket
-from time import localtime, strftime
+from time import localtime, strftime, time
 
 from PyQt5 import QtGui, uic
 from PyQt5.QtCore import QTimer, Qt, pyqtSignal
@@ -247,6 +247,8 @@ class DebugWindow(QMainWindow):
             self.run_with_timer(self.load_tunnel_relays_tab)
         elif index == 2:
             self.run_with_timer(self.load_tunnel_exits_tab)
+        elif index == 3:
+            self.run_with_timer(self.load_tunnel_swarms_tab)
 
     def system_tab_changed(self, index):
         if index == 0:
@@ -413,7 +415,12 @@ class DebugWindow(QMainWindow):
         for item in items:
             widget_item = QTreeWidgetItem(tree)
             for index, key in enumerate(keys):
-                value = format_size(item[key]) if key in ["bytes_up", "bytes_down"] else str(item[key])
+                if key in ["bytes_up", "bytes_down"]:
+                    value = format_size(item[key])
+                elif key in ["creation_time", "last_lookup"]:
+                    value = str(datetime.timedelta(seconds=int(time() - item[key]))) if item[key] > 0 else '-'
+                else:
+                    value = str(item[key])
                 widget_item.setText(index, value)
             tree.addTopLevelItem(widget_item)
 
@@ -425,7 +432,7 @@ class DebugWindow(QMainWindow):
         if data:
             self.add_items_to_tree(self.window().circuits_tree_widget, data.get("circuits"),
                                    ["circuit_id", "goal_hops", "actual_hops", "unverified_hop",
-                                    "type", "state", "bytes_up", "bytes_down"])
+                                    "type", "state", "bytes_up", "bytes_down", "creation_time"])
 
     def load_tunnel_relays_tab(self):
         self.request_mgr = TriblerRequestManager()
@@ -434,7 +441,8 @@ class DebugWindow(QMainWindow):
     def on_tunnel_relays(self, data):
         if data:
             self.add_items_to_tree(self.window().relays_tree_widget, data["relays"],
-                                   ["circuit_from", "circuit_to", "is_rendezvous", "bytes_up", "bytes_down"])
+                                   ["circuit_from", "circuit_to", "is_rendezvous",
+                                    "bytes_up", "bytes_down", "creation_time"])
 
     def load_tunnel_exits_tab(self):
         self.request_mgr = TriblerRequestManager()
@@ -443,7 +451,17 @@ class DebugWindow(QMainWindow):
     def on_tunnel_exits(self, data):
         if data:
             self.add_items_to_tree(self.window().exits_tree_widget, data["exits"],
-                                   ["circuit_from", "enabled", "bytes_up", "bytes_down"])
+                                   ["circuit_from", "enabled", "bytes_up", "bytes_down", "creation_time"])
+
+    def load_tunnel_swarms_tab(self):
+        self.request_mgr = TriblerRequestManager()
+        self.request_mgr.perform_request("ipv8/tunnel/swarms", self.on_tunnel_swarms)
+
+    def on_tunnel_swarms(self, data):
+        if data:
+            self.add_items_to_tree(self.window().swarms_tree_widget, data.get("swarms"),
+                                   ["info_hash", "num_seeders", "num_connections", "num_connections_incomplete",
+                                    "seeding", "last_lookup", "bytes_up", "bytes_down"])
 
     def load_dht_tab(self):
         self.request_mgr = TriblerRequestManager()

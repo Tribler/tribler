@@ -17,25 +17,7 @@ from Tribler.pyipv8.ipv8.keyvault.crypto import ECCrypto
 from Tribler.pyipv8.ipv8.peer import Peer
 from Tribler.pyipv8.ipv8.peerdiscovery.community import DiscoveryCommunity
 from Tribler.pyipv8.ipv8.peerdiscovery.network import Network
-
-# Map of info_hash -> peer list
-global_dht_services = {}
-
-
-class MockDHTProvider(object):
-
-    def __init__(self, address):
-        self.address = ("127.0.0.1", address[1])
-
-    def lookup(self, info_hash, cb):
-        if info_hash in global_dht_services:
-            cb((info_hash, global_dht_services[info_hash], None))
-
-    def announce(self, info_hash):
-        if info_hash in global_dht_services:
-            global_dht_services[info_hash].append(self.address)
-        else:
-            global_dht_services[info_hash] = [self.address]
+from Tribler.pyipv8.ipv8.test.messaging.anonymization.test_community import MockDHTProvider
 
 
 class TestTunnelBase(TestAsServer):
@@ -132,9 +114,9 @@ class TestTunnelBase(TestAsServer):
         session.config.set_tunnel_community_exitnode_enabled(exitnode)
         overlay = self.test_class(tunnel_peer, session.lm.ipv8.endpoint, session.lm.ipv8.network,
                                   tribler_session=session,
-                                  dht_provider=MockDHTProvider(session.lm.ipv8.endpoint.get_address()),
                                   settings={"become_exitnode": exitnode, "max_circuits": 1})
         overlay._use_main_thread = False
+        overlay.dht_provider = MockDHTProvider(Peer(overlay.my_peer.key, overlay.my_estimated_wan))
         overlay.settings.remove_tunnel_delay = 0
         session.lm.ipv8.overlays.append(overlay)
 

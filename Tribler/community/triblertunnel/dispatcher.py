@@ -4,7 +4,7 @@ import logging
 
 from Tribler.Core.Socks5 import conversion
 from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import CIRCUIT_ID_PORT, CIRCUIT_STATE_READY,\
-    CIRCUIT_TYPE_RENDEZVOUS, CIRCUIT_TYPE_RP
+    CIRCUIT_TYPE_RP_DOWNLOADER, CIRCUIT_TYPE_RP_SEEDER
 
 
 class TunnelDispatcher(object):
@@ -32,9 +32,9 @@ class TunnelDispatcher(object):
         """
         We received some data from the tunnel community. Dispatch it to the right UDP SOCKS5 socket.
         """
-        if circuit.ctype in [CIRCUIT_TYPE_RENDEZVOUS, CIRCUIT_TYPE_RP]:
+        if circuit.ctype in [CIRCUIT_TYPE_RP_DOWNLOADER, CIRCUIT_TYPE_RP_SEEDER]:
             origin = (community.circuit_id_to_ip(circuit.circuit_id), CIRCUIT_ID_PORT)
-        session_hops = circuit.goal_hops if circuit.ctype != CIRCUIT_TYPE_RENDEZVOUS else circuit.goal_hops - 1
+        session_hops = circuit.goal_hops if circuit.ctype != CIRCUIT_TYPE_RP_DOWNLOADER else circuit.goal_hops - 1
 
         if session_hops > len(self.socks_servers):
             self._logger.error("No socks server found for %d hops", session_hops)
@@ -66,7 +66,7 @@ class TunnelDispatcher(object):
 
         destination = request.destination
         if destination not in self.destinations[hops]:
-            selected_circuit = self.tunnel_community.selection_strategy.select(destination, hops)
+            selected_circuit = self.tunnel_community.select_circuit(destination, hops)
             if not selected_circuit:
                 return False
 

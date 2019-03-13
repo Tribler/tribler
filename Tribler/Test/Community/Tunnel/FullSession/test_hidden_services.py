@@ -1,8 +1,10 @@
-from __future__ import print_function
+from __future__ import absolute_import, print_function
+
 from twisted.internet.defer import Deferred, inlineCallbacks
 
 from Tribler.Core.simpledefs import DLSTATUS_SEEDING
 from Tribler.Test.Community.Tunnel.FullSession.test_tunnel_base import TestTunnelBase
+from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import CIRCUIT_TYPE_IP_SEEDER
 
 
 class TestHiddenServices(TestTunnelBase):
@@ -38,7 +40,7 @@ class TestHiddenServices(TestTunnelBase):
 
         self.tunnel_community.build_tunnels(1)
 
-        while len(self.tunnel_community_seeder.my_intro_points) < 1:
+        while len(self.tunnel_community_seeder.find_circuits(ctype=CIRCUIT_TYPE_IP_SEEDER)) < 1:
             yield self.deliver_messages()
 
         download = self.start_anon_download(hops=1)

@@ -1,12 +1,12 @@
 from __future__ import absolute_import
 
+import hashlib
 import os
 import sys
 import time
 from binascii import hexlify, unhexlify
+from collections import Counter
 from distutils.version import LooseVersion
-
-from six.moves import xrange
 
 from twisted.internet.defer import Deferred, inlineCallbacks, succeed
 
@@ -24,9 +24,10 @@ from Tribler.pyipv8.ipv8.messaging.anonymization.caches import CreateRequestCach
 from Tribler.pyipv8.ipv8.messaging.anonymization.community import message_to_payload
 from Tribler.pyipv8.ipv8.messaging.anonymization.hidden_services import HiddenTunnelCommunity
 from Tribler.pyipv8.ipv8.messaging.anonymization.payload import LinkedE2EPayload, NO_CRYPTO_PACKETS
-from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import (CIRCUIT_STATE_READY, CIRCUIT_TYPE_DATA,
-                                                                CIRCUIT_TYPE_RENDEZVOUS, CIRCUIT_TYPE_RP, EXIT_NODE,
-                                                                RelayRoute)
+from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import CIRCUIT_STATE_CLOSING, CIRCUIT_STATE_READY, \
+                                                               CIRCUIT_TYPE_DATA, CIRCUIT_TYPE_IP_SEEDER,\
+                                                               CIRCUIT_TYPE_RP_DOWNLOADER, CIRCUIT_TYPE_RP_SEEDER,\
+                                                               EXIT_NODE, RelayRoute
 from Tribler.pyipv8.ipv8.peer import Peer
 from Tribler.pyipv8.ipv8.peerdiscovery.network import Network
 
@@ -36,10 +37,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
     This community is built upon the anonymous messaging layer in IPv8.
     It adds support for libtorrent anonymous downloads and bandwidth token payout when closing circuits.
     """
-    master_peer = ("3081a7301006072a8648ce3d020106052b81040027038192000400965194026c987edad7c5c0364a95dfa4e961e"
-                   "ec6d1711678be182a31824363db3a54caa11e9b6f1d6051c2f33578b51c12eff3833b7c74c5a243b8705e4e032b"
-                   "14904f4d8855e2044c0408a5729cd4e5b286fec66866811d5439049448e5b8b818d8c29a84a074a13f5e7e414d4"
-                   "e5b1b115a221fe697b89bd3e63c7aecd7617f789a203a4eacf680279224b390e836")
+    master_peer = ("4c69624e61434c504b3a238050d6cdbb712e259a12bd3bc0095accd87e200ac2d7bc9034a3bc47c3ac41890e90a"
+                   "3ddc68f975eda785f1b925d38f8dbf16eafdf84c7bd5f361b75fbb53f")
     master_peer = Peer(unhexlify(master_peer))
 
     def __init__(self, *args, **kwargs):
@@ -314,7 +313,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                 self.bittorrent_peers[download] = peers | self.bittorrent_peers[download]
 
             # If there are active circuits, add peers immediately. Otherwise postpone.
-            if self.active_data_circuits():
+            if self.find_circuits():
                 self.readd_bittorrent_peers()
 
     def do_payout(self, peer, circuit_id, amount, base_amount):
@@ -363,9 +362,11 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         if self.tribler_session:
             self.tribler_session.notifier.notify(NTFY_TUNNEL, NTFY_REMOVE, circuit, additional_info)
 
-        if circuit.bytes_down >= 1024 * 1024 and self.bandwidth_wallet:
+        # Ignore circuits that are closing so we do not payout again if we receive a destroy message.
+        if circuit.state != CIRCUIT_STATE_CLOSING and circuit.bytes_down >= 1024 * 1024 and self.bandwidth_wallet:
+
             # We should perform a payout of the removed circuit.
-            if circuit.ctype == CIRCUIT_TYPE_RENDEZVOUS:
+            if circuit.ctype == CIRCUIT_TYPE_RP_DOWNLOADER:
                 # We remove an e2e circuit as downloader. We pay the subsequent nodes in the downloader part of the e2e
                 # circuit. In addition, we pay for one hop seeder anonymity since we don't know the circuit length at
                 # the seeder side.
@@ -376,9 +377,6 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                 # We remove a regular data circuit as downloader. Pay the relay nodes and the exit nodes.
                 self.do_payout(circuit.peer, circuit_id, circuit.bytes_down * (circuit.goal_hops * 2 - 1),
                                circuit.bytes_down)
-
-            # Reset the circuit byte counters so we do not payout again if we receive a destroy message.
-            circuit.bytes_up = circuit.bytes_down = 0
 
         # Now we actually remove the circuit
         remove_deferred = super(TriblerTunnelCommunity, self)\
@@ -443,7 +441,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             self.tribler_session.notifier.notify(NTFY_TUNNEL, NTFY_JOINED, previous_node_address, circuit_id)
 
     def on_raw_data(self, circuit, origin, data):
-        anon_seed = circuit.ctype == CIRCUIT_TYPE_RP
+        anon_seed = circuit.ctype == CIRCUIT_TYPE_RP_SEEDER
         self.dispatcher.on_incoming_from_tunnel(self, circuit, origin, data, anon_seed)
 
     def monitor_downloads(self, dslist):
@@ -466,65 +464,39 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                     # Ugly work-around for the libtorrent DHT not making any requests
                     # after a period of having no circuits
                     if self.last_forced_announce.get(info_hash, 0) + 60 <= time.time() \
-                            and self.active_data_circuits(hop_count) \
+                            and self.find_circuits(hops=hop_count) \
                             and not ds.get_peerlist():
                         download.force_dht_announce()
                         self.last_forced_announce[info_hash] = time.time()
 
-                self.service_callbacks[info_hash] = download.add_peer
+                self.e2e_callbacks[info_hash] = download.add_peer
                 new_states[info_hash] = ds.get_status()
 
-        self.hops = hops
         # Request 1 circuit per download while ensuring that the total number of circuits requested per hop count
         # stays within min_circuits and max_circuits.
         self.circuits_needed = {hop_count: min(max(download_count, self.settings.min_circuits),
                                                self.settings.max_circuits)
                                 for hop_count, download_count in active_downloads_per_hop.items()}
 
+        ip_counter = Counter([c.info_hash for c in self.circuits.values() if c.ctype == CIRCUIT_TYPE_IP_SEEDER])
         for info_hash in set(list(new_states) + list(self.download_states)):
             new_state = new_states.get(info_hash, None)
             old_state = self.download_states.get(info_hash, None)
             state_changed = new_state != old_state
 
-            # Stop creating introduction points if the download doesn't exist anymore
-            if info_hash in self.infohash_ip_circuits and new_state is None:
-                del self.infohash_ip_circuits[info_hash]
-
-            # If the introducing circuit does not exist anymore or timed out: Build a new circuit
-            if info_hash in self.infohash_ip_circuits:
-                for (circuit_id, time_created) in self.infohash_ip_circuits[info_hash]:
-                    if circuit_id not in self.my_intro_points and time_created < time.time() - 30:
-                        self.infohash_ip_circuits[info_hash].remove((circuit_id, time_created))
-                        if self.tribler_session.notifier:
-                            self.tribler_session.notifier.notify(
-                                NTFY_TUNNEL, NTFY_IP_RECREATE, circuit_id, hexlify(info_hash)[:6])
-                        self.logger.info('Recreate the introducing circuit for %s', hexlify(info_hash))
-                        self.create_introduction_point(info_hash)
-
-            time_elapsed = (time.time() - self.last_dht_lookup.get(info_hash, 0))
-            force_dht_lookup = time_elapsed >= self.settings.dht_lookup_interval
-            if (state_changed or force_dht_lookup) and (new_state == DLSTATUS_DOWNLOADING):
-                self.logger.info('Do dht lookup to find hidden services peers for %s', hexlify(info_hash))
-                self.do_raw_dht_lookup(info_hash)
-
-            if state_changed and new_state == DLSTATUS_SEEDING:
-                self.create_introduction_point(info_hash)
-
+            # Join/leave hidden swarm as needed.
+            if state_changed and new_state in [DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING]:
+                self.join_swarm(info_hash, hops[info_hash], seeding=new_state == DLSTATUS_SEEDING)
             elif state_changed and new_state in [DLSTATUS_STOPPED, None]:
-                if info_hash in self.infohash_pex:
-                    self.infohash_pex.pop(info_hash)
+                self.leave_swarm(info_hash)
 
-                for cid, info_hash_hops in self.my_download_points.items():
-                    if info_hash_hops[0] == info_hash:
-                        self.remove_circuit(cid, 'download stopped', destroy=True)
-
-                for cid, info_hash_list in self.my_intro_points.items():
-                    for i in xrange(len(info_hash_list) - 1, -1, -1):
-                        if info_hash_list[i] == info_hash:
-                            info_hash_list.pop(i)
-
-                    if len(info_hash_list) == 0:
-                        self.remove_circuit(cid, 'all downloads stopped', destroy=True)
+            # Ensure we have enough introduction points for this infohash. Currently, we only create 1.
+            if new_state == DLSTATUS_SEEDING:
+                for _ in range(1 - ip_counter.get(info_hash, 0)):
+                    self.logger.info('Create introducing circuit for %s', hexlify(info_hash))
+                    self.create_introduction_point(info_hash)
+                    if self.tribler_session and self.tribler_session.notifier:
+                        self.tribler_session.notifier.notify(NTFY_TUNNEL, NTFY_IP_RECREATE, info_hash)
 
         self.download_states = new_states
 
@@ -576,6 +548,9 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             self.cache_exitnodes_to_disk()
 
         super(TriblerTunnelCommunity, self).unload()
+
+    def get_lookup_info_hash(self, info_hash):
+        return hashlib.sha1(b'tribler anonymous download' + hexlify(info_hash)).digest()
 
 
 class TriblerTunnelTestnetCommunity(TriblerTunnelCommunity):

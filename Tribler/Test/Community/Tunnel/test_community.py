@@ -9,30 +9,12 @@ from Tribler.Core.Modules.wallet.tc_wallet import TrustchainWallet
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.community.triblertunnel.community import TriblerTunnelCommunity
 from Tribler.pyipv8.ipv8.attestation.trustchain.community import TrustChainCommunity
-from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import CIRCUIT_TYPE_RENDEZVOUS
+from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import CIRCUIT_TYPE_RP_DOWNLOADER
 from Tribler.pyipv8.ipv8.peer import Peer
 from Tribler.pyipv8.ipv8.test.base import TestBase
+from Tribler.pyipv8.ipv8.test.messaging.anonymization.test_community import MockDHTProvider
 from Tribler.pyipv8.ipv8.test.mocking.exit_socket import MockTunnelExitSocket
 from Tribler.pyipv8.ipv8.test.mocking.ipv8 import MockIPv8
-
-# Map of info_hash -> peer list
-global_dht_services = {}
-
-
-class MockDHTProvider(object):
-
-    def __init__(self, address):
-        self.address = address
-
-    def lookup(self, info_hash, cb):
-        if info_hash in global_dht_services:
-            cb((info_hash, global_dht_services[info_hash], None))
-
-    def announce(self, info_hash):
-        if info_hash in global_dht_services:
-            global_dht_services[info_hash].append(self.address)
-        else:
-            global_dht_services[info_hash] = [self.address]
 
 
 class TestTriblerTunnelCommunity(TestBase):
@@ -50,7 +32,8 @@ class TestTriblerTunnelCommunity(TestBase):
         mock_ipv8.trustchain = TrustChainCommunity(mock_ipv8.my_peer, mock_ipv8.endpoint, mock_ipv8.network,
                                       working_directory=u":memory:")
         mock_ipv8.overlay.bandwidth_wallet = TrustchainWallet(mock_ipv8.trustchain)
-        mock_ipv8.overlay.dht_provider = MockDHTProvider(mock_ipv8.endpoint.wan_address)
+        mock_ipv8.overlay.dht_provider = MockDHTProvider(Peer(mock_ipv8.overlay.my_peer.key,
+                                                              mock_ipv8.overlay.my_estimated_wan))
 
         return mock_ipv8
 
@@ -59,9 +42,8 @@ class TestTriblerTunnelCommunity(TestBase):
         """
         Create an 1 hop introduction point for some node for some service.
         """
-        lookup_service = self.nodes[node_nr].overlay.get_lookup_info_hash(service)
-        self.nodes[node_nr].overlay.hops[lookup_service] = 1
-        self.nodes[node_nr].overlay.create_introduction_point(lookup_service)
+        self.nodes[node_nr].overlay.join_swarm(service, 1, seeding=True)
+        self.nodes[node_nr].overlay.create_introduction_point(service)
 
         yield self.deliver_messages()
 
@@ -135,23 +117,28 @@ class TestTriblerTunnelCommunity(TestBase):
         """
         Test whether we stop building IPs when a download doesn't exist anymore
         """
-        self.nodes[0].overlay.infohash_ip_circuits['a'] = 3
+        def mocked_remove_circuit(circuit_id, *_, **__):
+            mocked_remove_circuit.circuit_id = circuit_id
+        mocked_remove_circuit.circuit_id = -1
+
+        mock_circuit = MockObject()
+        mock_circuit.circuit_id = 0
+        mock_circuit.ctype = 'IP_SEEDER'
+        mock_circuit.state = 'READY'
+        mock_circuit.info_hash = 'a'
+        mock_circuit.goal_hops = 1
+
+        self.nodes[0].overlay.remove_circuit = mocked_remove_circuit
+        self.nodes[0].overlay.circuits[0] = mock_circuit
+        self.nodes[0].overlay.join_swarm('a', 1)
         self.nodes[0].overlay.download_states['a'] = 3
         self.nodes[0].overlay.monitor_downloads([])
-        self.assertNotIn('a', self.nodes[0].overlay.infohash_ip_circuits)
+        self.assertEqual(mocked_remove_circuit.circuit_id, 0)
 
     def test_monitor_downloads_recreate_ip(self):
         """
         Test whether an old introduction point is recreated
         """
-        tribler_session = MockObject()
-        tribler_session.notifier = MockObject()
-        tribler_session.notifier.notify = lambda *_: None
-        tribler_session.lm = MockObject()
-        tribler_session.lm.ltmgr = MockObject()
-        tribler_session.lm.ltmgr.get_libtorrent_version = lambda: "1.1.0.0"
-        self.nodes[0].overlay.tribler_session = tribler_session
-
         mock_state = MockObject()
         mock_download = MockObject()
         mock_tdef = MockObject()
@@ -160,58 +147,77 @@ class TestTriblerTunnelCommunity(TestBase):
         mock_download.get_def = lambda: mock_tdef
         mock_download.add_peer = lambda x: None
         mock_download.get_state = lambda: mock_state
-        mock_state.get_status = lambda: 1
+        mock_state.get_status = lambda: 4
         mock_state.get_download = lambda: mock_download
-        tribler_session.get_downloads = lambda: [mock_download, ]
 
-        real_ih = self.nodes[0].overlay.get_lookup_info_hash('a')
-        self.nodes[0].overlay.infohash_ip_circuits[real_ih] = [(3, 0)]
+        def mock_create_ip(*_, **__):
+            mock_create_ip.called = True
+        mock_create_ip.called = False
+        self.nodes[0].overlay.create_introduction_point = mock_create_ip
+
         self.nodes[0].overlay.download_states['a'] = 3
         self.nodes[0].overlay.monitor_downloads([mock_state])
-        self.assertNotEqual(self.nodes[0].overlay.infohash_ip_circuits[real_ih][0][1], 0)
+        self.assertTrue(mock_create_ip.called)
 
-    def test_monitor_downloads_ih_pex(self):
+    def test_monitor_downloads_leave_swarm(self):
         """
-        Test whether we remove peers from the PEX info when a download is stopped
+        Test whether we leave the swarm when a download is stopped
         """
-        self.nodes[0].overlay.infohash_pex['a'] = 3
+        self.nodes[0].overlay.swarms['a'] = None
         self.nodes[0].overlay.download_states['a'] = 3
         self.nodes[0].overlay.monitor_downloads([])
-        self.assertNotIn('a', self.nodes[0].overlay.infohash_pex)
+        self.assertNotIn('a', self.nodes[0].overlay.swarms)
 
     def test_monitor_downloads_intro(self):
         """
         Test whether rendezvous points are removed when a download is stopped
         """
-        def mocked_remove_circuit(*_dummy1, **_dummy2):
-            mocked_remove_circuit.called = True
-        mocked_remove_circuit.called = False
+        def mocked_remove_circuit(circuit_id, *_, **__):
+            mocked_remove_circuit.circuit_id = circuit_id
+        mocked_remove_circuit.circuit_id = -1
+
+        mock_circuit = MockObject()
+        mock_circuit.circuit_id = 0
+        mock_circuit.ctype = 'RP_DOWNLOADER'
+        mock_circuit.state = 'READY'
+        mock_circuit.info_hash = 'a'
+        mock_circuit.goal_hops = 1
 
         self.nodes[0].overlay.remove_circuit = mocked_remove_circuit
-        self.nodes[0].overlay.my_download_points[3] = ('a',)
+        self.nodes[0].overlay.circuits[0] = mock_circuit
+        self.nodes[0].overlay.join_swarm('a', 1)
+        self.nodes[0].overlay.swarms['a'].add_connection(mock_circuit, None)
         self.nodes[0].overlay.download_states['a'] = 3
         self.nodes[0].overlay.monitor_downloads([])
-        self.assertTrue(mocked_remove_circuit.called)
+        self.assertEqual(mocked_remove_circuit.circuit_id, 0)
 
     def test_monitor_downloads_stop_all(self):
         """
         Test whether circuits are removed when all downloads are stopped
         """
-        def mocked_remove_circuit(*_dummy1, **_dummy2):
-            mocked_remove_circuit.called = True
-        mocked_remove_circuit.called = False
+        def mocked_remove_circuit(circuit_id, *_, **__):
+            mocked_remove_circuit.circuit_id = circuit_id
+        mocked_remove_circuit.circuit_id = -1
+
+        mock_circuit = MockObject()
+        mock_circuit.circuit_id = 0
+        mock_circuit.ctype = 'DATA'
+        mock_circuit.state = 'READY'
+        mock_circuit.info_hash = 'a'
+        mock_circuit.goal_hops = 1
 
         self.nodes[0].overlay.remove_circuit = mocked_remove_circuit
-        self.nodes[0].overlay.my_intro_points[3] = ['a']
+        self.nodes[0].overlay.circuits[0] = mock_circuit
+        self.nodes[0].overlay.join_swarm('a', 1)
         self.nodes[0].overlay.download_states['a'] = 3
         self.nodes[0].overlay.monitor_downloads([])
-        self.assertTrue(mocked_remove_circuit.called)
+        self.assertEqual(mocked_remove_circuit.circuit_id, 0)
 
     def test_update_torrent(self):
         """
         Test updating a torrent when a circuit breaks
         """
-        self.nodes[0].overlay.active_data_circuits = lambda: True
+        self.nodes[0].overlay.find_circuits = lambda: True
         self.nodes[0].overlay.readd_bittorrent_peers = lambda *_: None
         mock_handle = MockObject()
         mock_handle.get_peer_info = lambda: {2, 3}
@@ -275,21 +281,23 @@ class TestTriblerTunnelCommunity(TestBase):
 
         service = '0' * 20
 
-        self.nodes[0].overlay.register_service(service, 1, None, 0)
+        self.nodes[0].overlay.join_swarm(service, 1, seeding=False)
 
         yield self.introduce_nodes()
         yield self.create_intro(2, service)
         yield self.assign_exit_node(0)
 
-        self.nodes[0].overlay.do_dht_lookup(service)
+        self.nodes[0].overlay.do_peer_discovery()
 
-        yield self.deliver_messages(timeout=.5)
+        yield self.deliver_messages(timeout=0.5)
 
         # Destroy the e2e-circuit
+        removed_circuits = []
         for circuit_id, circuit in self.nodes[0].overlay.circuits.items():
-            if circuit.ctype == CIRCUIT_TYPE_RENDEZVOUS:
+            if circuit.ctype == CIRCUIT_TYPE_RP_DOWNLOADER:
                 circuit.bytes_down = 250 * 1024 * 1024
                 self.nodes[0].overlay.remove_circuit(circuit_id, destroy=True)
+                removed_circuits.append(circuit_id)
 
         yield self.sleep(0.5)
 
@@ -297,6 +305,14 @@ class TestTriblerTunnelCommunity(TestBase):
         self.assertTrue(self.nodes[0].overlay.bandwidth_wallet.get_bandwidth_tokens() < 0)
         self.assertTrue(self.nodes[1].overlay.bandwidth_wallet.get_bandwidth_tokens() >= 0)
         self.assertTrue(self.nodes[2].overlay.bandwidth_wallet.get_bandwidth_tokens() > 0)
+
+        # Ensure balances remain unchanged after calling remove_circuit a second time
+        balances = [self.nodes[i].overlay.bandwidth_wallet.get_bandwidth_tokens() for i in range(3)]
+        for circuit_id in removed_circuits:
+            self.nodes[0].overlay.remove_circuit(circuit_id, destroy=True)
+        for i in range(3):
+            self.assertEqual(self.nodes[i].overlay.bandwidth_wallet.get_bandwidth_tokens(), balances[i])
+
 
     @inlineCallbacks
     def test_payouts_invalid_block(self):
