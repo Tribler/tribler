@@ -424,7 +424,7 @@ class DebugWindow(QMainWindow):
     def on_tunnel_circuits(self, data):
         if data:
             self.add_items_to_tree(self.window().circuits_tree_widget, data.get("circuits"),
-                                   ["circuit_id", "goal_hops", "actual_hops",
+                                   ["circuit_id", "goal_hops", "actual_hops", "unverified_hop",
                                     "type", "state", "bytes_up", "bytes_down"])
 
     def load_tunnel_relays_tab(self):

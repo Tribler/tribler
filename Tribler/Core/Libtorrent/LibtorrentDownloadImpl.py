@@ -1135,3 +1135,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
 
     def set_upload_mode(self, upload_mode):
         self.get_handle().addCallback(lambda handle: handle.set_upload_mode(upload_mode))
+
+    def force_dht_announce(self):
+        if self.handle:
+            self.handle.force_dht_announce()
