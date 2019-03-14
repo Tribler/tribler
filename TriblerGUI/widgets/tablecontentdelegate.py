@@ -117,6 +117,10 @@ class SearchResultsDelegate(TriblerButtonsDelegate):
             self.paint_empty_background(painter, option)
 
             if data_item['type'] == 'channel':
+                if index.model().data_items[index.row()][u'status'] == 6:  # LEGACY ENTRIES!
+                    return True
+                if index.model().data_items[index.row()][u'my_channel']:  # Skip personal channel
+                    return True
                 # Draw subscribed widget
                 if index == self.hover_index:
                     self.subscribe_control.paint_hover(painter, option.rect, index)
@@ -144,7 +148,7 @@ class SearchResultsDelegate(TriblerButtonsDelegate):
         elif u'category' in index.model().column_position and \
                 index.column() == index.model().column_position[u'category']:
             if data_item['type'] == 'channel':
-                category = data_item['type']
+                category = "my channel" if data_item['my_channel'] else data_item['type']
             else:
                 category = data_item[u'category']
 

@@ -217,9 +217,20 @@ class TorrentsTableViewController(TriblerTableViewController):
         if not selected_indices:
             return
 
+        first_show = False
+        if self.torrents_container.details_container.isHidden():
+            first_show = True
+
         self.torrents_container.details_container.show()
         torrent_info = selected_indices[0].model().data_items[selected_indices[0].row()]
         self.torrents_container.details_tab_widget.update_with_torrent(selected_indices[0], torrent_info)
+        if first_show:
+            window = self.table_view.window()
+            # FIXME! Brain-dead way to show the rows covered by a newly-opened details_container
+            # Note that none of then more civilized ways to fix it works:
+            # various updateGeometry, viewport().update, adjustSize - nothing works!
+            window.resize(window.geometry().width()+1, window.geometry().height())
+            window.resize(window.geometry().width()-1, window.geometry().height())
 
     def _on_filter_input_change(self, _):
         self.model.reset()

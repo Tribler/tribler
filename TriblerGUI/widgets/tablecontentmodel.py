@@ -86,7 +86,7 @@ class TriblerContentModel(RemoteTableModel):
     def data(self, index, role):
         if role == Qt.DisplayRole:
             column = self.columns[index.column()]
-            data = self.data_items[index.row()][column] if column in self.data_items[index.row()] else u'UNDEFINED'
+            data = self.data_items[index.row()][column] if column in self.data_items[index.row()] else u''
             return self.column_display_filters.get(column, str(data))(data) \
                 if column in self.column_display_filters else data
 
@@ -114,13 +114,21 @@ class SearchResultsContentModel(TriblerContentModel):
     """
     Model for a list that shows search results.
     """
-    columns = [u'category', u'name', u'health', ACTION_BUTTONS]
-    column_headers = [u'Category', u'Name', u'health', u'']
+    columns = [u'category', u'name', u'torrents', u'size', u'updated', u'health', ACTION_BUTTONS]
+    column_headers = [u'Category', u'Name', u'Torrents', u'Size', u'Updated', u'health', u'']
     column_flags = {
         u'category': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         u'name': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
+        u'torrents': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
+        u'size': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
+        u'updated': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         u'health': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         ACTION_BUTTONS: Qt.ItemIsEnabled | Qt.ItemIsSelectable
+    }
+
+    column_display_filters = {
+        u'size': lambda data: (format_size(float(data)) if data != '' else ''),
+        u'updated': pretty_date,
     }
 
     def __init__(self, **kwargs):
@@ -132,11 +140,11 @@ class SearchResultsContentModel(TriblerContentModel):
 
         # Add new unique items to the top
         insert_index = 0
-        unique_items = []
+        new_items = []
         for item in remote_items:
             if "infohash" in item and item["infohash"] not in self.infohashes:
                 new_infohash_map[item["infohash"]] = insert_index
-                unique_items.append(item)
+                new_items.append(item)
                 insert_index += 1
 
         # Shift the rest of the items
@@ -145,8 +153,8 @@ class SearchResultsContentModel(TriblerContentModel):
                 new_infohash_map[item['infohash']] = insert_index + self.infohashes[item["infohash"]]
 
         # Update the table
-        self.beginInsertRows(QModelIndex(), 0, len(self.data_items) + len(unique_items)-1)
-        self.data_items = unique_items + self.data_items
+        self.beginInsertRows(QModelIndex(), 0, len(new_items)-1)
+        self.data_items = new_items + self.data_items
         self.infohashes = new_infohash_map
         self.endInsertRows()
 
@@ -164,6 +172,7 @@ class ChannelsContentModel(TriblerContentModel):
         u'subscribed': Qt.ItemIsEnabled,
         ACTION_BUTTONS: Qt.ItemIsEnabled
     }
+
     column_display_filters = {
         u'updated': pretty_date,
     }

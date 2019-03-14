@@ -117,6 +117,7 @@ def define_binding(db):
             pony_query = cls.search_keyword(query_filter, lim=1000) if query_filter else select(g for g in cls)
 
             # Sort the query
+            sort_expression = None
             if sort_by:
                 if sort_by == "HEALTH":
                     pony_query = pony_query.sort_by("(g.health.seeders, g.health.leechers)") if sort_asc else \
@@ -125,6 +126,9 @@ def define_binding(db):
                     sort_expression = "g." + sort_by
                     sort_expression = sort_expression if sort_asc else desc(sort_expression)
                     pony_query = pony_query.sort_by(sort_expression)
+            # Workaround to always show legacy entries last
+            pony_query = pony_query.order_by(lambda g: (desc(g.status != LEGACY_ENTRY), sort_expression)) \
+                if sort_expression else pony_query.order_by(lambda g: desc(g.status != LEGACY_ENTRY))
             return pony_query
 
 
