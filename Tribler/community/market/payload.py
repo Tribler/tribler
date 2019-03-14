@@ -1,7 +1,9 @@
+from __future__ import absolute_import
+
 from Tribler.community.market.core.assetamount import AssetAmount
 from Tribler.community.market.core.assetpair import AssetPair
 from Tribler.community.market.core.message import TraderId
-from Tribler.community.market.core.order import OrderNumber, OrderId
+from Tribler.community.market.core.order import OrderId, OrderNumber
 from Tribler.community.market.core.payment_id import PaymentId
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
@@ -24,7 +26,7 @@ class MessagePayload(Payload):
         self.timestamp = timestamp
 
     def to_pack_list(self):
-        data = [('varlenI', str(self.trader_id)),
+        data = [('varlenI', self.trader_id.to_string()),
                 ('f', self.timestamp)]
 
         return data

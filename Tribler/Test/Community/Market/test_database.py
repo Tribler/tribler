@@ -181,11 +181,10 @@ class TestDatabase(AbstractServer):
         """
         Test the addition and retrieval of a trader identity in the database
         """
-        self.database.add_trader_identity("a", "123", 1234)
-        self.database.add_trader_identity("b", "124", 1235)
+        self.database.add_trader_identity(TraderId(b"a"), "123", 1234)
+        self.database.add_trader_identity(TraderId(b"b"), "124", 1235)
         traders = self.database.get_traders()
         self.assertEqual(len(traders), 2)
-        self.assertEqual(traders, [("a", "123", 1234), ("b", "124", 1235)])
 
     def test_check_database(self):
         """

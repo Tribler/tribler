@@ -340,14 +340,6 @@ class TriblerGUITest(AbstractTriblerGUITest):
         window.edit_channel_torrents_filter.setText('')
         self.wait_for_list_populated(window.edit_channel_torrents_container.content_table)
 
-        # Remove a single torrent
-        index = self.get_index_of_row(window.edit_channel_torrents_container.content_table, 0)
-        window.edit_channel_torrents_container.content_table.setCurrentIndex(index)
-        QTest.mouseClick(window.remove_selected_button, Qt.LeftButton)
-        self.screenshot(window, name="edit_channel_remove_torrent_dialog")
-        QTest.mouseClick(window.edit_channel_page.dialog.buttons[0], Qt.LeftButton)
-        self.wait_for_signal(window.edit_channel_page.on_torrents_removed)
-
         # Remove all torrents
         QTest.mouseClick(window.remove_all_button, Qt.LeftButton)
         self.screenshot(window, name="edit_channel_remove_all_dialog")

@@ -192,7 +192,6 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                             "dtotal": 23,
                             "downrate": 0,
                             "uinterested": False,
-                            "wstate": "\x00",
                             "optimistic": False,
                             ...
                         }, ...],

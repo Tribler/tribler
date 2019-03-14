@@ -453,14 +453,14 @@ class TestMarketCommunitySingle(TestMarketCommunityBase):
     def get_tx_done_block(ask_amount, bid_amount, traded_amount, ask_total_traded, bid_total_traded):
         ask_pair = AssetPair(AssetAmount(ask_amount, 'BTC'), AssetAmount(ask_amount, 'MB'))
         bid_pair = AssetPair(AssetAmount(bid_amount, 'BTC'), AssetAmount(bid_amount, 'MB'))
-        ask = Order(OrderId(TraderId('0' * 40), OrderNumber(1)), ask_pair, Timeout(3600), Timestamp.now(), True)
+        ask = Order(OrderId(TraderId(b'0' * 40), OrderNumber(1)), ask_pair, Timeout(3600), Timestamp.now(), True)
         ask._traded_quantity = ask_total_traded
-        bid = Order(OrderId(TraderId('1' * 40), OrderNumber(1)), bid_pair, Timeout(3600), Timestamp.now(), False)
+        bid = Order(OrderId(TraderId(b'1' * 40), OrderNumber(1)), bid_pair, Timeout(3600), Timestamp.now(), False)
         bid._traded_quantity = bid_total_traded
-        tx = Transaction(TransactionId(TraderId('0' * 40), TransactionNumber(1)),
+        tx = Transaction(TransactionId(TraderId(b'0' * 40), TransactionNumber(1)),
                          AssetPair(AssetAmount(traded_amount, 'BTC'), AssetAmount(traded_amount, 'MB')),
-                         OrderId(TraderId('0' * 40), OrderNumber(1)),
-                         OrderId(TraderId('1' * 40), OrderNumber(1)), Timestamp(0.0))
+                         OrderId(TraderId(b'0' * 40), OrderNumber(1)),
+                         OrderId(TraderId(b'1' * 40), OrderNumber(1)), Timestamp(0.0))
         tx.transferred_assets.first += AssetAmount(traded_amount, 'BTC')
         tx.transferred_assets.second += AssetAmount(traded_amount, 'MB')
         tx_done_block = MarketBlock()
@@ -474,6 +474,15 @@ class TestMarketCommunitySingle(TestMarketCommunityBase):
         tx_done_block.transaction['ask']['address'], tx_done_block.transaction['ask']['port'] = "1.1.1.1", 1234
         tx_done_block.transaction['bid']['address'], tx_done_block.transaction['bid']['port'] = "1.1.1.1", 1234
         return tx_done_block
+
+    def test_initialize_traders(self):
+        """
+        Test whether we can successfully load information of traders from the database when starting the market
+        """
+        self.assertFalse(self.nodes[0].overlay.mid_register)
+        self.nodes[0].overlay.market_database.add_trader_identity(TraderId(b'1'), "127.0.0.1", 1234)
+        self.nodes[0].overlay.initialize_traders()
+        self.assertTrue(self.nodes[0].overlay.mid_register)
 
     def test_insert_ask_bid(self):
         """

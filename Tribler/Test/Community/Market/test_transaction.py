@@ -135,7 +135,7 @@ class TransactionTestSuite(unittest.TestCase):
             'trader_id': b'0',
             'transaction_number': 1,
             'order_number': 2,
-            'partner_trader_id': '2',
+            'partner_trader_id': b'2',
             'partner_order_number': 1,
             'payment_complete': False,
             'assets': {

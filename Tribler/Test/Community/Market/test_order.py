@@ -145,7 +145,7 @@ class OrderTestSuite(unittest.TestCase):
         Test the conversion of an order to a dictionary
         """
         self.assertEqual(self.order.to_dictionary(), {
-            "trader_id": "0",
+            "trader_id": b"0",
             "cancelled": False,
             "completed_timestamp": None,
             "is_ask": False,
