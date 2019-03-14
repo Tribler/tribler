@@ -4,7 +4,9 @@ import logging
 
 from pony.orm import db_session
 
+from twisted.internet.threads import deferToThread
 from twisted.web import http, resource
+from twisted.web.server import NOT_DONE_YET
 
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, REGULAR_TORRENT
@@ -94,11 +96,6 @@ class SearchEndpoint(BaseMetadataEndpoint):
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "Trying to query for unknown type of metadata"})
 
-        with db_session:
-            pony_query, total = self.session.lm.mds.TorrentMetadata.get_entries(**sanitized)
-            search_results = [(dict(type={REGULAR_TORRENT: 'torrent', CHANNEL_TORRENT: 'channel'}[r.metadata_type],
-                                    **(r.to_simple_dict()))) for r in pony_query]
-
         # Apart from the local search results, we also do remote search to get search results from peers in the
         # Giga channel community.
         if self.session.lm.gigachannel_community and sanitized["first"] == 1:
@@ -109,14 +106,29 @@ class SearchEndpoint(BaseMetadataEndpoint):
                                                                       sort_asc=sanitized['sort_asc'],
                                                                       hide_xxx=sanitized['hide_xxx'])
 
-        return json.dumps({
-            "results": search_results,
-            "first": sanitized["first"],
-            "last": sanitized["last"],
-            "sort_by": sanitized["sort_by"],
-            "sort_asc": sanitized["sort_asc"],
-            "total": total
-        })
+        def search_db():
+            with db_session:
+                pony_query, total = self.session.lm.mds.TorrentMetadata.get_entries(**sanitized)
+                search_results = [(dict(type={REGULAR_TORRENT: 'torrent', CHANNEL_TORRENT: 'channel'}[r.metadata_type],
+                                        **(r.to_simple_dict()))) for r in pony_query]
+            self.session.lm.mds.TorrentMetadata._db.disconnect()
+            return search_results, total
+
+        def on_search_results(search_results_tuple):
+            search_results, total = search_results_tuple
+            request.write(json.dumps({
+                "results": search_results,
+                "first": sanitized["first"],
+                "last": sanitized["last"],
+                "sort_by": sanitized["sort_by"],
+                "sort_asc": sanitized["sort_asc"],
+                "total": total
+            }))
+            request.finish()
+        deferToThread(search_db).addCallback(on_search_results)
+
+        return NOT_DONE_YET
+
 
 
 class SearchCompletionsEndpoint(resource.Resource):

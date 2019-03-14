@@ -331,7 +331,7 @@ class MetadataStore(object):
                                                    infohash=database_blob(payload.infohash))
         if node and node.timestamp < payload.timestamp:
             node.delete()
-            result.append((node, DELETED_METADATA))
+            result.append((None, DELETED_METADATA))
 
         # Check for the older version of the same node
         node = self.TorrentMetadata.get_for_update(public_key=database_blob(payload.public_key), id_=payload.id_)

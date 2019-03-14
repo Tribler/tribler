@@ -212,7 +212,7 @@ class TestMetadataStore(TriblerCoreTest):
         self.mds.TorrentMetadata(**node2_dict)
 
         result = self.mds.process_payload(node_updated_payload)
-        self.assertIn((node, DELETED_METADATA), result)
+        self.assertIn((None, DELETED_METADATA), result)
         self.assertIn((self.mds.TorrentMetadata.get(), UPDATED_OUR_VERSION), result)
         self.assertEqual(database_blob(self.mds.TorrentMetadata.select()[:][0].signature),
                          database_blob(node_updated_payload.signature))
