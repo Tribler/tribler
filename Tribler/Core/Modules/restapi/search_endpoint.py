@@ -111,7 +111,7 @@ class SearchEndpoint(BaseMetadataEndpoint):
                 pony_query, total = self.session.lm.mds.TorrentMetadata.get_entries(**sanitized)
                 search_results = [(dict(type={REGULAR_TORRENT: 'torrent', CHANNEL_TORRENT: 'channel'}[r.metadata_type],
                                         **(r.to_simple_dict()))) for r in pony_query]
-            self.session.lm.mds.TorrentMetadata._db.disconnect()
+            self.session.lm.mds._db.disconnect()
             return search_results, total
 
         def on_search_results(search_results_tuple):
