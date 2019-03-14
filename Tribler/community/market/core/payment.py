@@ -8,6 +8,7 @@ from Tribler.community.market.core.payment_id import PaymentId
 from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.community.market.core.transaction import TransactionId, TransactionNumber
 from Tribler.community.market.core.wallet_address import WalletAddress
+from Tribler.pyipv8.ipv8.database import database_blob
 
 
 class Payment(Message):
@@ -41,7 +42,7 @@ class Payment(Message):
         Returns a database representation of a Payment object.
         :rtype: tuple
         """
-        return (text_type(self.trader_id), text_type(self.transaction_id.trader_id),
+        return (database_blob(self.trader_id.to_string()), database_blob(self.transaction_id.trader_id.to_string()),
                 int(self.transaction_id.transaction_number), text_type(self.payment_id), self.transferred_assets.amount,
                 text_type(self.transferred_assets.asset_id), text_type(self.address_from),
                 text_type(self.address_to), float(self.timestamp), self.success)

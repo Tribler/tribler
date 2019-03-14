@@ -188,8 +188,8 @@ class MarketCommunity(Community, BlockListener):
         if self.is_matchmaker:
             self.enable_matchmaker()
 
-        for trader in self.market_database.get_traders():
-            self.update_ip(TraderId(bytes(trader[0])), (str(trader[1]), trader[2]))
+        for trader_info in self.market_database.get_traders():
+            self.update_ip(*trader_info)
 
         # Register messages
         self.decode_map.update({
@@ -275,13 +275,13 @@ class MarketCommunity(Community, BlockListener):
         self.matching_engine = None
         self.is_matchmaker = False
 
-    def create_introduction_request(self, socket_address, extra_bytes=''):
+    def create_introduction_request(self, socket_address, extra_bytes=b''):
         extra_payload = InfoPayload(TraderId(self.mid), Timestamp.now(), self.is_matchmaker)
         extra_bytes = self.serializer.pack_multiple(extra_payload.to_pack_list())[0]
         return super(MarketCommunity, self).create_introduction_request(socket_address, extra_bytes)
 
     def create_introduction_response(self, lan_socket_address, socket_address, identifier,
-                                     introduction=None, extra_bytes=''):
+                                     introduction=None, extra_bytes=b''):
         extra_payload = InfoPayload(TraderId(self.mid), Timestamp.now(), self.is_matchmaker)
         extra_bytes = self.serializer.pack_multiple(extra_payload.to_pack_list())[0]
         return super(MarketCommunity, self).create_introduction_response(lan_socket_address, socket_address,

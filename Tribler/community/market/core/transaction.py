@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import logging
-from decimal import Decimal
 
 from six import text_type
 
@@ -12,6 +11,7 @@ from Tribler.community.market.core.order import OrderId, OrderNumber
 from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.community.market.core.trade import ProposedTrade
 from Tribler.community.market.core.wallet_address import WalletAddress
+from Tribler.pyipv8.ipv8.database import database_blob
 
 
 class TransactionNumber(object):
@@ -222,9 +222,9 @@ class Transaction(object):
         Returns a database representation of a Transaction object.
         :rtype: tuple
         """
-        return (text_type(self.transaction_id.trader_id), int(self.transaction_id.transaction_number),
-                text_type(self.order_id.trader_id), int(self.order_id.order_number),
-                text_type(self.partner_order_id.trader_id), int(self.partner_order_id.order_number),
+        return (database_blob(self.transaction_id.trader_id.to_string()), int(self.transaction_id.transaction_number),
+                database_blob(self.order_id.trader_id.to_string()), int(self.order_id.order_number),
+                database_blob(self.partner_order_id.trader_id.to_string()), int(self.partner_order_id.order_number),
                 self.assets.first.amount, text_type(self.assets.first.asset_id), self.transferred_assets.first.amount,
                 self.assets.second.amount, text_type(self.assets.second.asset_id),
                 self.transferred_assets.second.amount, float(self.timestamp), self.sent_wallet_info,
