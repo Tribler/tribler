@@ -31,7 +31,7 @@ class SearchResultsPage(QWidget):
         self.window().search_details_container.details_tab_widget.initialize_details_widget()
 
         self.set_columns_visibility([u'health'], True)
-        self.set_columns_visibility([u'torrents', u'size', u'updated'], False)
+        self.set_columns_visibility([u'torrents', u'updated'], False)
 
     def perform_search(self, query):
         self.query = query
@@ -54,15 +54,15 @@ class SearchResultsPage(QWidget):
         if self.window().search_results_tab.get_selected_index() == 0:
             self.model.type_filter = None
             self.set_columns_visibility([u'health'], True)
-            self.set_columns_visibility([u'torrents', u'size', u'updated'], False)
+            self.set_columns_visibility([u'torrents', u'updated'], False)
         elif self.window().search_results_tab.get_selected_index() == 1:
             self.model.type_filter = 'channel'
             self.set_columns_visibility([u'torrents', u'updated'], True)
             self.set_columns_visibility([u'size', u'health'], False)
         elif self.window().search_results_tab.get_selected_index() == 2:
             self.model.type_filter = 'torrent'
-            self.set_columns_visibility([u'size', u'updated'], True)
-            self.set_columns_visibility([u'torrents', u'health'], False)
+            self.set_columns_visibility([u'torrents', u'updated'], False)
+            self.set_columns_visibility([u'size', u'health'], True)
 
         self.perform_search(self.query)
 
