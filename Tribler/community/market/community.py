@@ -188,8 +188,7 @@ class MarketCommunity(Community, BlockListener):
         if self.is_matchmaker:
             self.enable_matchmaker()
 
-        for trader_info in self.market_database.get_traders():
-            self.update_ip(*trader_info)
+        self.initialize_traders()
 
         # Register messages
         self.decode_map.update({
@@ -211,6 +210,13 @@ class MarketCommunity(Community, BlockListener):
         })
 
         self.logger.info("Market community initialized with mid %s", self.mid)
+
+    def initialize_traders(self):
+        """
+        Load the information of traders from the database.
+        """
+        for trader_info in self.market_database.get_traders():
+            self.update_ip(*trader_info)
 
     def get_address_for_trader(self, trader_id):
         """

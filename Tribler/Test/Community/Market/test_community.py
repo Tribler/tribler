@@ -475,6 +475,15 @@ class TestMarketCommunitySingle(TestMarketCommunityBase):
         tx_done_block.transaction['bid']['address'], tx_done_block.transaction['bid']['port'] = "1.1.1.1", 1234
         return tx_done_block
 
+    def test_initialize_traders(self):
+        """
+        Test whether we can successfully load information of traders from the database when starting the market
+        """
+        self.assertFalse(self.nodes[0].overlay.mid_register)
+        self.nodes[0].overlay.market_database.add_trader_identity(TraderId(b'1'), "127.0.0.1", 1234)
+        self.nodes[0].overlay.initialize_traders()
+        self.assertTrue(self.nodes[0].overlay.mid_register)
+
     def test_insert_ask_bid(self):
         """
         Test whether an ask is successfully inserted when a tick block is received
