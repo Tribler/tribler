@@ -1,10 +1,9 @@
 from __future__ import absolute_import
 
-from abc import abstractmethod
-
 from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt, pyqtSignal
 
 from TriblerGUI.defs import ACTION_BUTTONS
+from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.utilities import format_size, pretty_date
 
 
@@ -203,7 +202,18 @@ class MyTorrentsContentModel(TorrentsContentModel):
         self.exclude_deleted = False
         self.edit_enabled = True
 
-    def setData(self, index, Any, role=None):
+    def setData(self, index, new_value, role=None):
         if role == Qt.EditRole:
-            self.data_items[index.row()][self.columns[index.column()]] = Any
+            #self.data_items[index.row()][self.columns[index.column()]] = Any
+            infohash = self.data_items[index.row()][u'infohash']
+            attribute_name = self.columns[index.column()]
+            attribute_name = u'tags' if attribute_name == u'category' else attribute_name
+            attribute_name = u'title' if attribute_name == u'name' else attribute_name
+
+            TriblerRequestManager().perform_request(
+                "mychannel/torrents/%s" % infohash,
+                lambda _: None,
+                method='PATCH',
+                data={attribute_name: new_value})
+
         return True

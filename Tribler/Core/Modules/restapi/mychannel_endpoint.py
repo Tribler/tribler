@@ -7,9 +7,7 @@ import os
 from binascii import hexlify, unhexlify
 
 from pony.orm import db_session
-
 from six.moves.urllib.parse import unquote
-
 from twisted.internet.defer import Deferred
 from twisted.web import http, resource
 from twisted.web.error import SchemeNotSupported
@@ -329,9 +327,13 @@ class MyChannelSpecificTorrentEndpoint(BaseMyChannelEndpoint):
     @db_session
     def render_PATCH(self, request):
         parameters = http.parse_qs(request.content.read(), 1)
-        if 'status' not in parameters:
+        if 'status' not in parameters and 'tags' not in parameters and 'title' not in parameters:
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "status parameter missing"})
+
+        if 'status' in parameters and ('tags' in parameters or 'title' in parameters):
+            request.setResponseCode(http.BAD_REQUEST)
+            return json.dumps({"error": "cannot set status manually when changing other parameters"})
 
         my_channel = self.session.lm.mds.ChannelMetadata.get_my_channel()
         if not my_channel:
@@ -343,10 +345,10 @@ class MyChannelSpecificTorrentEndpoint(BaseMyChannelEndpoint):
             request.setResponseCode(http.NOT_FOUND)
             return json.dumps({"error": "torrent with the specified infohash could not be found"})
 
-        new_status = int(parameters['status'][0])
-        torrent.status = new_status
+        torrent.update_properties(dict([(attribute, parameters[attribute][0]) for attribute in
+                                        ['status', 'tags', 'title'] if attribute in parameters]))
 
-        return json.dumps({"success": True, "new_status": new_status, "dirty": my_channel.dirty})
+        return json.dumps({"success": True, "new_status": torrent.status, "dirty": my_channel.dirty})
 
 
 class MyChannelCommitEndpoint(BaseMyChannelEndpoint):

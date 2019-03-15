@@ -34,14 +34,13 @@ DELETED_METADATA = 6
 # maintained by SQL triggers.
 sql_create_fts_table = """
     CREATE VIRTUAL TABLE IF NOT EXISTS FtsIndex USING FTS5
-        (title, tags, content='ChannelNode', prefix = '2 3 4 5',
+        (title, content='ChannelNode', prefix = '2 3 4 5',
          tokenize='porter unicode61 remove_diacritics 1');"""
 
 sql_add_fts_trigger_insert = """
     CREATE TRIGGER IF NOT EXISTS fts_ai AFTER INSERT ON ChannelNode
     BEGIN
-        INSERT INTO FtsIndex(rowid, title, tags) VALUES
-            (new.rowid, new.title, new.tags);
+        INSERT INTO FtsIndex(rowid, title) VALUES (new.rowid, new.title);
     END;"""
 
 sql_add_fts_trigger_delete = """
@@ -53,8 +52,7 @@ sql_add_fts_trigger_delete = """
 sql_add_fts_trigger_update = """
     CREATE TRIGGER IF NOT EXISTS fts_au AFTER UPDATE ON ChannelNode BEGIN
         DELETE FROM FtsIndex WHERE rowid = old.rowid;
-        INSERT INTO FtsIndex(rowid, title, tags) VALUES (new.rowid, new.title,
-      new.tags);
+        INSERT INTO FtsIndex(rowid, title) VALUES (new.rowid, new.title);
     END;"""
 
 sql_add_signature_index = "CREATE INDEX SignatureIndex ON ChannelNode(signature);"

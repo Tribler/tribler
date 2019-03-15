@@ -7,12 +7,10 @@ import shutil
 from binascii import hexlify
 
 from pony.orm import db_session
-
 from six.moves import xrange
-
 from twisted.internet.defer import inlineCallbacks
 
-from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import NEW, TODELETE
+from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import NEW, TODELETE, UPDATED
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
@@ -222,19 +220,19 @@ class TestMyChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
         return self.do_request('mychannel/torrents', request_type='POST', post_data=post_params, expected_code=404)
 
     @trial_timeout(10)
-    def test_update_my_torrents(self):
+    def test_update_my_torrents_POST(self):
         """
-        Test whether we get an error if we update multiple torrents in your uncreated channel
+        Test updating/creating a torrent in a personal channel with POST
         """
         def on_response(_):
             with db_session:
                 my_channel = self.session.lm.mds.ChannelMetadata.get_my_channel()
-                torrent = my_channel.get_torrent('0' * 20)
+                torrent = my_channel.get_torrent('1' * 20)
                 self.assertEqual(torrent.status, TODELETE)
 
         self.should_check_equality = False
         self.create_my_channel()
-        post_params = {'status': TODELETE, 'infohashes': hexlify('0' * 20)}
+        post_params = {'status': TODELETE, 'infohashes': hexlify('1' * 20)}
         return self.do_request('mychannel/torrents', request_type='POST', post_data=post_params, expected_code=200)\
             .addCallback(on_response)
 
@@ -402,6 +400,16 @@ class TestMyChannelSpecificTorrentEndpoint(BaseTestMyChannelEndpoint):
         return self.do_request('mychannel/torrents/abcd', request_type='PATCH', expected_code=400)
 
     @trial_timeout(10)
+    def test_update_my_torrent_status_and_name(self):
+        """
+        Test whether an error is returned if try to modify both the status and name of a torrent
+        """
+        self.should_check_equality = False
+        post_params = {'status': TODELETE, 'title': 'test'}
+        return self.do_request('mychannel/torrents/abcd',
+                               post_data=post_params, request_type='PATCH', expected_code=400)
+
+    @trial_timeout(10)
     def test_update_my_torrent_no_channel(self):
         """
         Test whether an error is returned if your channel is not created when updating your torrents
@@ -427,8 +435,17 @@ class TestMyChannelSpecificTorrentEndpoint(BaseTestMyChannelEndpoint):
         """
         Test whether you are able to update a torrent in your channel with the REST API
         """
+        new_title = 'bla2'
+        new_tags = "Compressed"
+        def on_response(r):
+            with db_session:
+                my_channel = self.session.lm.mds.ChannelMetadata.get_my_channel()
+                torrent = my_channel.get_torrent('0' * 20)
+                self.assertEqual(torrent.status, UPDATED)
+                self.assertEqual(torrent.tags, new_tags)
+                self.assertEqual(torrent.title, new_title)
         self.should_check_equality = False
         self.create_my_channel()
-        post_params = {'status': TODELETE}
+        post_params = {'title': new_title, 'tags': new_tags}
         return self.do_request('mychannel/torrents/%s' % hexlify('0' * 20),
-                               post_data=post_params, request_type='PATCH', expected_code=200)
+                               post_data=post_params, request_type='PATCH', expected_code=200).addCallback(on_response)

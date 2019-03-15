@@ -82,7 +82,7 @@ class SubscribeButtonMixin(TriblerContentTableView):
         item = index.model().data_items[index.row()]
         # skip LEGACY entries, regular torrents and personal channel
         if (u'subscribed' not in item or
-                item[u'status'] == 6 or
+                item[u'status'] == 1000 or
                 item[u'my_channel']):
             return
         status = int(item[u'subscribed'])

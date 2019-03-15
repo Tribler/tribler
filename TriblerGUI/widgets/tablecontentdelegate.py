@@ -121,7 +121,7 @@ class SearchResultsDelegate(TriblerButtonsDelegate):
             self.paint_empty_background(painter, option)
 
             if data_item['type'] == 'channel':
-                if index.model().data_items[index.row()][u'status'] == 6:  # LEGACY ENTRIES!
+                if index.model().data_items[index.row()][u'status'] == 1000:  # LEGACY ENTRIES!
                     return True
                 if index.model().data_items[index.row()][u'my_channel']:  # Skip personal channel
                     return True
@@ -185,7 +185,7 @@ class ChannelsButtonsDelegate(TriblerButtonsDelegate):
             # Draw empty cell as the background
             self.paint_empty_background(painter, option)
 
-            if index.model().data_items[index.row()][u'status'] == 6:  # LEGACY ENTRIES!
+            if index.model().data_items[index.row()][u'status'] == 1000:  # LEGACY ENTRIES!
                 return True
             if index.model().data_items[index.row()][u'my_channel']:
                 return True
