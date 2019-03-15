@@ -11,6 +11,22 @@ from TriblerGUI.defs import ACTION_BUTTONS, COMMIT_STATUS_COMMITTED, COMMIT_STAT
 from TriblerGUI.utilities import get_health, get_image_path
 from TriblerGUI.widgets.tableiconbuttons import DeleteIconButton, DownloadIconButton, PlayIconButton
 
+#TODO: build this automatically and/or move it somewhere
+CATEGORY_LIST = [
+    u'Video',
+    u'Audio',
+    u'Documents',
+    u'CD/DVD/BD',
+    u'Games',
+    u'Pictures',
+    u'Books',
+    u'Comics',
+    u'Software',
+    u'Science',
+    u'XXX',
+    u'Other',
+]
+
 
 class TriblerButtonsDelegate(QStyledItemDelegate):
     redraw_required = pyqtSignal()
@@ -93,7 +109,7 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
             return
         if index.column() == index.model().column_position['category']:
             cbox = QComboBox(parent)
-            cbox.addItems([str(i) for i in range(0,10)])
+            cbox.addItems(CATEGORY_LIST)
             return cbox
 
         return super(TriblerButtonsDelegate, self).createEditor(parent, option, index)

@@ -65,17 +65,17 @@ class TestTorrentMetadata(TriblerCoreTest):
         Test searching in a database with some torrent metadata inserted
         """
         torrent1 = self.mds.TorrentMetadata.from_dict(
-            dict(rnd_torrent(), title="foo bar 123", tags="video"))
+            dict(rnd_torrent(), title="foo bar 123"))
         torrent2 = self.mds.TorrentMetadata.from_dict(
-            dict(rnd_torrent(), title="eee 123", tags="video"))
+            dict(rnd_torrent(), title="eee 123"))
         self.mds.TorrentMetadata.from_dict(
-            dict(rnd_torrent(), title="xoxoxo bar", tags="video"))
+            dict(rnd_torrent(), title="xoxoxo bar"))
         self.mds.TorrentMetadata.from_dict(
-            dict(rnd_torrent(), title="xoxoxo bar", tags="audio"))
+            dict(rnd_torrent(), title="xoxoxo bar"))
         self.mds.TorrentMetadata.from_dict(
-            dict(rnd_torrent(), title=u"\"", tags="audio"))
+            dict(rnd_torrent(), title=u"\""))
         self.mds.TorrentMetadata.from_dict(
-            dict(rnd_torrent(), title=u"\'", tags="audio"))
+            dict(rnd_torrent(), title=u"\'"))
         orm.flush()
 
         # Search for torrents with the keyword 'foo', it should return one result
@@ -91,10 +91,6 @@ class TestTorrentMetadata(TriblerCoreTest):
         # Search for torrents with the keyword '123', it should return two results
         results = self.mds.TorrentMetadata.search_keyword("123")[:]
         self.assertEqual(len(results), 2)
-
-        # Search for torrents with the keyword 'video', it should return three results
-        results = self.mds.TorrentMetadata.search_keyword("video")[:]
-        self.assertEqual(len(results), 3)
 
     def test_search_empty_query(self):
         """

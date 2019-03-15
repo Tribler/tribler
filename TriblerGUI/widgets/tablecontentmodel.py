@@ -204,7 +204,6 @@ class MyTorrentsContentModel(TorrentsContentModel):
 
     def setData(self, index, new_value, role=None):
         if role == Qt.EditRole:
-            #self.data_items[index.row()][self.columns[index.column()]] = Any
             infohash = self.data_items[index.row()][u'infohash']
             attribute_name = self.columns[index.column()]
             attribute_name = u'tags' if attribute_name == u'category' else attribute_name
@@ -215,5 +214,8 @@ class MyTorrentsContentModel(TorrentsContentModel):
                 lambda _: None,
                 method='PATCH',
                 data={attribute_name: new_value})
+
+            #TODO: reload the item instead
+            self.data_items[index.row()][self.columns[index.column()]] = new_value
 
         return True
