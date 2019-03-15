@@ -4,7 +4,7 @@ from abc import abstractmethod
 
 from PyQt5.QtCore import QEvent, QModelIndex, QObject, QRect, QSize, Qt, pyqtSignal
 from PyQt5.QtGui import QBrush, QColor, QIcon, QPainter, QPen
-from PyQt5.QtWidgets import QStyle, QStyledItemDelegate
+from PyQt5.QtWidgets import QStyle, QStyledItemDelegate, QComboBox
 
 from TriblerGUI.defs import ACTION_BUTTONS, COMMIT_STATUS_COMMITTED, COMMIT_STATUS_NEW, COMMIT_STATUS_TODELETE, \
     HEALTH_CHECKING, HEALTH_DEAD, HEALTH_ERROR, HEALTH_GOOD, HEALTH_MOOT, HEALTH_UNCHECKED
@@ -91,8 +91,12 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
         # Add null editor to action buttons column
         if index.column() == index.model().column_position[ACTION_BUTTONS]:
             return
+        if index.column() == index.model().column_position['category']:
+            cbox = QComboBox(parent)
+            cbox.addItems([str(i) for i in range(0,10)])
+            return cbox
 
-        super(TriblerButtonsDelegate, self).createEditor(parent, option, index)
+        return super(TriblerButtonsDelegate, self).createEditor(parent, option, index)
 
 
 class SearchResultsDelegate(TriblerButtonsDelegate):

@@ -22,15 +22,6 @@ class RemoteTableModel(QAbstractTableModel):
         self.total_items = 0  # The total number of items without pagination
         self.infohashes = {}
 
-    @abstractmethod
-    def _get_remote_data(self, start, end, **kwargs):
-        # This must call self._on_new_items_received as a callback when data received
-        pass
-
-    @abstractmethod
-    def _set_remote_data(self):
-        pass
-
     def reset(self):
         self.beginResetModel()
         self.data_items = []
@@ -67,12 +58,6 @@ class TriblerContentModel(RemoteTableModel):
     def headerData(self, num, orientation, role=None):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
             return self.column_headers[num]
-
-    def _get_remote_data(self, start, end, **kwargs):
-        pass
-
-    def _set_remote_data(self):
-        pass
 
     def rowCount(self, parent=QModelIndex()):
         return len(self.data_items)
@@ -206,8 +191,8 @@ class MyTorrentsContentModel(TorrentsContentModel):
     columns = [u'category', u'name', u'size', u'status', ACTION_BUTTONS]
     column_headers = [u'Category', u'Name', u'Size', u'', u'']
     column_flags = {
-        u'category': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
-        u'name': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
+        u'category': Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable,
+        u'name': Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable,
         u'size': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         u'status': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         ACTION_BUTTONS: Qt.ItemIsEnabled | Qt.ItemIsSelectable
@@ -217,3 +202,8 @@ class MyTorrentsContentModel(TorrentsContentModel):
         TorrentsContentModel.__init__(self, channel_pk=channel_pk, **kwargs)
         self.exclude_deleted = False
         self.edit_enabled = True
+
+    def setData(self, index, Any, role=None):
+        if role == Qt.EditRole:
+            self.data_items[index.row()][self.columns[index.column()]] = Any
+        return True

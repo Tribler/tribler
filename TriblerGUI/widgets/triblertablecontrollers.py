@@ -309,6 +309,8 @@ class MyTorrentsTableViewController(TorrentsTableViewController):
             "mychannel/torrents",
             self.on_torrents,
             url_params={
+                "first": start,
+                "last": end,
                 "sort_by": sort_by,
                 "sort_asc": sort_asc,
                 "filter": to_fts_query(filter_text),
