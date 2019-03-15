@@ -5,14 +5,16 @@ import shutil
 import sqlite3
 
 from pony.orm import db_session
+
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import LEGACY_ENTRY
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
-from Tribler.Core.Upgrade.db72_to_pony import DispersyToPonyMigration, CONVERSION_FINISHED, \
-    CONVERSION_FROM_72, old_db_version_ok, cleanup_pony_experimental_db, new_db_version_ok, already_upgraded, \
-    should_upgrade
-from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
+from Tribler.Core.Upgrade.db72_to_pony import (
+    CONVERSION_FINISHED, CONVERSION_FROM_72, CONVERSION_FROM_72_CHANNELS, CONVERSION_FROM_72_DISCOVERED,
+    CONVERSION_FROM_72_PERSONAL, CONVERSION_STARTED, DispersyToPonyMigration, already_upgraded,
+    cleanup_pony_experimental_db, new_db_version_ok, old_db_version_ok, should_upgrade)
+from Tribler.Test.Core.base_test import MockObject, TriblerCoreTest
 from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto
 
 OLD_DB_SAMPLE = os.path.join(os.path.abspath(os.path.dirname(os.path.realpath(__file__))), '..', 'data',
@@ -47,28 +49,51 @@ class TestUpgradeDB72ToPony(TriblerCoreTest):
         self.assertEqual(self.m.get_personal_channel_torrents_count(), 2)
 
     def test_convert_personal_channel(self):
-        self.m.convert_personal_channel()
-        my_channel = self.mds.ChannelMetadata.get_my_channel()
-        self.assertEqual(len(my_channel.contents_list), 2)
-        self.assertEqual(my_channel.num_entries, 2)
-        for t in my_channel.contents_list:
-            self.assertTrue(t.has_valid_signature())
-        self.assertTrue(my_channel.has_valid_signature())
-        self.assertEqual(self.m.personal_channel_title[:200], my_channel.title)
+        def check_channel():
+            self.m.convert_personal_channel()
+            my_channel = self.mds.ChannelMetadata.get_my_channel()
+            self.assertEqual(len(my_channel.contents_list), 2)
+            self.assertEqual(my_channel.num_entries, 2)
+            for t in my_channel.contents_list:
+                self.assertTrue(t.has_valid_signature())
+            self.assertTrue(my_channel.has_valid_signature())
+            self.assertEqual(self.m.personal_channel_title[:200], my_channel.title)
+
+        check_channel()
+
+        # Now check the case where previous conversion of the personal channel had failed
+        with db_session:
+            self.mds.MiscData.get_for_update(name=CONVERSION_FROM_72_PERSONAL).value = CONVERSION_STARTED
+        check_channel()
 
     @db_session
     def test_convert_all_channels(self):
-        self.m.convert_discovered_torrents()
-        self.m.convert_discovered_channels()
-        chans = self.mds.ChannelMetadata.get_entries()
+        def check_conversion():
+            self.m.convert_discovered_torrents()
+            self.m.convert_discovered_channels()
+            chans = self.mds.ChannelMetadata.get_entries()
 
-        self.assertEqual(len(chans[0]), 2)
-        for c in chans[0]:
-            self.assertNotEqual(self.m.personal_channel_title[:200], c.title)
-            self.assertEqual(c.status, LEGACY_ENTRY)
-            self.assertTrue(c.contents_list)
-            for t in c.contents_list:
-                self.assertEqual(t.status, LEGACY_ENTRY)
+            self.assertEqual(len(chans[0]), 2)
+            for c in chans[0]:
+                self.assertNotEqual(self.m.personal_channel_title[:200], c.title[:200])
+                self.assertEqual(c.status, LEGACY_ENTRY)
+                self.assertTrue(c.contents_list)
+                for t in c.contents_list:
+                    self.assertEqual(t.status, LEGACY_ENTRY)
+        check_conversion()
+
+        # Now check the case where the previous conversion failed at channels conversion
+        with db_session:
+            self.mds.MiscData.get_for_update(name=CONVERSION_FROM_72_CHANNELS).value = CONVERSION_STARTED
+        check_conversion()
+
+        # Now check the case where the previous conversion stopped at torrents conversion
+        with db_session:
+            self.mds.MiscData.get_for_update(name=CONVERSION_FROM_72_CHANNELS).delete()
+            self.mds.MiscData.get_for_update(name=CONVERSION_FROM_72_DISCOVERED).value = CONVERSION_STARTED
+            for d in self.mds.TorrentMetadata.select()[:10][:10]:
+                d.delete()
+        check_conversion()
 
     @db_session
     def test_update_trackers(self):
@@ -168,7 +193,6 @@ class TestUpgradePreconditionChecker(TriblerCoreTest):
         db72_to_pony.old_db_version_ok = lambda _: True
         self.assertTrue(should_upgrade(OLD_DB_SAMPLE, pony_db))
 
-
         mock_logger = MockObject()
         mock_logger.error = lambda _,a: None
 
@@ -176,5 +200,3 @@ class TestUpgradePreconditionChecker(TriblerCoreTest):
         with open(pony_db, 'w') as f:
             f.write("")
         self.assertFalse(should_upgrade(OLD_DB_SAMPLE, pony_db, logger=mock_logger))
-
-

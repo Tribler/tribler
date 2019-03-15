@@ -120,7 +120,7 @@ class TrackerSession(TaskManager):
 
     def add_infohash(self, infohash):
         """
-        Adds a infohash into this session.
+        Adds an infohash into this session.
         :param infohash: The infohash to be added.
         """
         assert not self._is_initiated, u"Must not add request to an initiated session."

@@ -6,6 +6,7 @@ from binascii import unhexlify
 
 from pony.orm import db_session
 
+from twisted.internet import reactor
 from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
 
@@ -141,13 +142,34 @@ class SpecificChannelEndpoint(BaseChannelsEndpoint):
 
         to_subscribe = bool(int(parameters['subscribe'][0]))
         with db_session:
-            channel = self.session.lm.mds.ChannelMetadata.get(public_key=database_blob(self.channel_pk))
+            channel = self.session.lm.mds.ChannelMetadata.get_for_update(public_key=database_blob(self.channel_pk))
             if not channel:
                 request.setResponseCode(http.NOT_FOUND)
                 return json.dumps({"error": "this channel cannot be found"})
 
             channel.subscribed = to_subscribe
-            channel.local_version = 0
+
+        def delete_channel():
+            # TODO: this should be eventually moved to a garbage-collector like subprocess in MetadataStore
+            with db_session:
+                channel = self.session.lm.mds.ChannelMetadata.get_for_update(public_key=database_blob(self.channel_pk))
+                channel.local_version = 0
+            while True:
+                if self.session.lm.mds._shutting_down:
+                    self.session.lm.mds._db.disconnect()
+                    return
+                with db_session:
+                    contents = channel.contents[:100]
+                    if len(contents) > 3:  # leave just 3 entries for preview purposes
+                        # FIXME: PONY BUG - can't use bulk delete because of broken FOREIGN KEY constraints
+                        for entry in contents[:3]:
+                            entry.delete()
+                    else:
+                        break
+            self.session.lm.mds._db.disconnect()
+
+        if not to_subscribe:
+            reactor.callInThread(delete_channel)
 
         return json.dumps({"success": True, "subscribed": to_subscribe})
 

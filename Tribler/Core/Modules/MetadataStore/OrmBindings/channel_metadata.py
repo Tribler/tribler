@@ -448,7 +448,7 @@ def define_binding(db):
                 "id": self.rowid,
                 "public_key": hexlify(self.public_key),
                 "name": self.title,
-                "torrents": self.contents_len,
+                "torrents": self.num_entries,
                 "subscribed": self.subscribed,
                 "votes": self.votes,
                 "status": self.status,

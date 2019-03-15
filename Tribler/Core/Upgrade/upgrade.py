@@ -18,6 +18,8 @@ class TriblerUpgrader(object):
         self.notified = False
         self.is_done = False
         self.failed = True
+        self.finished_deferred = None
+        self.pony_upgrader = None
 
         self.current_status = u"Initializing"
 
@@ -43,13 +45,13 @@ class TriblerUpgrader(object):
         new_database_path = os.path.join(self.session.config.get_state_dir(), 'sqlite', 'metadata.db')
         channels_dir = os.path.join(self.session.config.get_chant_channels_dir())
 
-        d = DispersyToPonyMigration(old_database_path, self.update_status, logger=self._logger)
+        self.pony_upgrader = DispersyToPonyMigration(old_database_path, self.update_status, logger=self._logger)
         if not should_upgrade(old_database_path, new_database_path, logger=self._logger):
             return
         # We have to create the Metadata Store object because the LaunchManyCore has not been started yet
         mds = MetadataStore(new_database_path, channels_dir, self.session.trustchain_keypair)
-        d.initialize(mds)
-        d.do_migration()
+        self.pony_upgrader.initialize(mds)
+        self.finished_deferred = self.pony_upgrader.do_migration()
         mds.shutdown()
 
     def upgrade_config_to_71(self):
@@ -74,3 +76,7 @@ class TriblerUpgrader(object):
         Broadcast a notification (event) that the upgrader is done.
         """
         self.session.notifier.notify(NTFY_UPGRADER, NTFY_FINISHED, None)
+
+    def shutdown(self):
+        if self.pony_upgrader:
+            self.pony_upgrader.shutting_down = True

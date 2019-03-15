@@ -46,6 +46,8 @@ class TestUpgrader(AbstractUpgrader):
         self.upgrader.update_status("12345")
         return test_deferred
 
+    @trial_timeout(10)
+    @inlineCallbacks
     def test_upgrade_72_to_pony(self):
         OLD_DB_SAMPLE = os.path.abspath(os.path.join(os.path.abspath(
             os.path.dirname(os.path.realpath(__file__))), '..', 'data', 'upgrade_databases', 'tribler_v29.sdb'))
@@ -54,6 +56,7 @@ class TestUpgrader(AbstractUpgrader):
         channels_dir = os.path.join(self.session.config.get_chant_channels_dir())
         shutil.copyfile(OLD_DB_SAMPLE, old_database_path)
         self.upgrader.upgrade_72_to_pony()
+        yield self.upgrader.finished_deferred
         mds = MetadataStore(new_database_path, channels_dir, self.session.trustchain_keypair)
         with db_session:
             self.assertEqual(mds.TorrentMetadata.select().count(), 24)
