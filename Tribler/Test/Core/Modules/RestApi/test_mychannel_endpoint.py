@@ -7,7 +7,9 @@ import shutil
 from binascii import hexlify
 
 from pony.orm import db_session
+
 from six.moves import xrange
+
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import NEW, TODELETE, UPDATED
@@ -171,8 +173,8 @@ class TestMyChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
         """
         def on_response(response):
             json_response = json.loads(response)
-            self.assertEqual(len(json_response['torrents']), 9)
-            self.assertIn('status', json_response['torrents'][0])
+            self.assertEqual(len(json_response['results']), 9)
+            self.assertIn('status', json_response['results'][0])
 
         self.create_my_channel()
         self.should_check_equality = False
@@ -222,7 +224,7 @@ class TestMyChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
     @trial_timeout(10)
     def test_update_my_torrents_POST(self):
         """
-        Test updating/creating a torrent in a personal channel with POST
+        Test updating/creating a torrent in a personal channel with a POST request
         """
         def on_response(_):
             with db_session:

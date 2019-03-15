@@ -3,7 +3,6 @@ from __future__ import absolute_import
 from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt, pyqtSignal
 
 from TriblerGUI.defs import ACTION_BUTTONS
-from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.utilities import format_size, pretty_date
 
 
@@ -117,7 +116,7 @@ class SearchResultsContentModel(TriblerContentModel):
 
     def __init__(self, **kwargs):
         TriblerContentModel.__init__(self, **kwargs)
-        self.type_filter = None
+        self.type_filter = ''
 
     def add_remote_items(self, remote_items):
         new_infohash_map = {}
@@ -137,7 +136,7 @@ class SearchResultsContentModel(TriblerContentModel):
                 new_infohash_map[item['infohash']] = insert_index + self.infohashes[item["infohash"]]
 
         # Update the table
-        self.beginInsertRows(QModelIndex(), 0, len(new_items)-1)
+        self.beginInsertRows(QModelIndex(), 0, len(new_items) - 1)
         self.data_items = new_items + self.data_items
         self.infohashes = new_infohash_map
         self.endInsertRows()
@@ -197,6 +196,8 @@ class MyTorrentsContentModel(TorrentsContentModel):
         ACTION_BUTTONS: Qt.ItemIsEnabled | Qt.ItemIsSelectable
     }
 
+    row_edited = pyqtSignal(QModelIndex, str)
+
     def __init__(self, channel_pk='', **kwargs):
         TorrentsContentModel.__init__(self, channel_pk=channel_pk, **kwargs)
         self.exclude_deleted = False
@@ -204,18 +205,7 @@ class MyTorrentsContentModel(TorrentsContentModel):
 
     def setData(self, index, new_value, role=None):
         if role == Qt.EditRole:
-            infohash = self.data_items[index.row()][u'infohash']
-            attribute_name = self.columns[index.column()]
-            attribute_name = u'tags' if attribute_name == u'category' else attribute_name
-            attribute_name = u'title' if attribute_name == u'name' else attribute_name
-
-            TriblerRequestManager().perform_request(
-                "mychannel/torrents/%s" % infohash,
-                lambda _: None,
-                method='PATCH',
-                data={attribute_name: new_value})
-
-            #TODO: reload the item instead
+            self.row_edited.emit(index, new_value)
+            # TODO: reload the whole row from DB instead of just changing the displayed value
             self.data_items[index.row()][self.columns[index.column()]] = new_value
-
         return True

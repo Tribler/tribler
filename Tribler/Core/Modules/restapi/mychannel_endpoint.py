@@ -7,7 +7,10 @@ import os
 from binascii import hexlify, unhexlify
 
 from pony.orm import db_session
+
+from six import viewitems
 from six.moves.urllib.parse import unquote
+
 from twisted.internet.defer import Deferred
 from twisted.web import http, resource
 from twisted.web.error import SchemeNotSupported
@@ -129,7 +132,7 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
             torrents = [torrent.to_simple_dict() for torrent in torrents]
 
             return json.dumps({
-                "torrents": torrents,
+                "results": torrents,
                 "first": sanitized['first'],
                 "last": sanitized['last'],
                 "sort_by": sanitized['sort_by'],
@@ -326,10 +329,42 @@ class MyChannelSpecificTorrentEndpoint(BaseMyChannelEndpoint):
 
     @db_session
     def render_PATCH(self, request):
-        parameters = http.parse_qs(request.content.read(), 1)
+        """
+        .. http:put:: /mychannel/torrents/(string: torrent infohash)
+
+        Edit tags, status or title of a torrent entry in a your channel.
+        The properties to edit should be provided in the PATCH data as a URL-encoded dict.
+        On success, it returns a new status for the torrent.
+
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl -X PUT http://localhost:8085/mychannel/torrents/97d2..151
+                --data "tags=Video"
+
+            **Example response**:
+
+            .. sourcecode:: javascript
+
+                {
+                    "success": 1,
+                    "new_status": 6,
+                    "dirty": 1
+                }
+
+            :statuscode 404: if your channel or the infohash does not exist.
+            :statuscode 500: if the passed arguments data is wrong.
+        """
+        parameters_raw = http.parse_qs(request.content.read(), 1)
+        parameters = {}
+        # FIXME: make all endpoints Unicode-compatible in a unified way
+        for param, val in viewitems(parameters_raw):
+            parameters.update({param: [item.decode('utf-8') for item in val]})
+
         if 'status' not in parameters and 'tags' not in parameters and 'title' not in parameters:
             request.setResponseCode(http.BAD_REQUEST)
-            return json.dumps({"error": "status parameter missing"})
+            return json.dumps({"error": "attribute to change is missing"})
 
         if 'status' in parameters and ('tags' in parameters or 'title' in parameters):
             request.setResponseCode(http.BAD_REQUEST)

@@ -213,3 +213,16 @@ class TestTorrentMetadata(TriblerCoreTest):
         self.assertTrue(md.metadata_conflicting(dict(tdict, title="bla")))
         tdict.pop('title')
         self.assertFalse(md.metadata_conflicting(tdict))
+
+    @db_session
+    def test_update_properties(self):
+        """
+        Test the updating of several properties of a TorrentMetadata object
+        """
+        metadata = self.mds.TorrentMetadata(title='torrent', infohash=str(random.getrandbits(160)))
+        self.assertRaises(NotImplementedError, metadata.update_properties, {"status": 3, "name": "bla"})
+        self.assertRaises(NotImplementedError, metadata.update_properties, {"name": "bla"})
+
+        # Test updating the status only
+        metadata.update_properties({"status": 456})
+        self.assertEqual(metadata.status, 456)

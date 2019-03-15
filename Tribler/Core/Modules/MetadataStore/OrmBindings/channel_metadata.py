@@ -5,9 +5,11 @@ import random
 import sys
 from binascii import hexlify
 from datetime import datetime
+
 from libtorrent import add_files, bencode, create_torrent, file_storage, set_piece_hashes, torrent_info
 
 import lz4.frame
+
 from pony import orm
 from pony.orm import db_session, raw_sql, select
 
@@ -293,7 +295,6 @@ def define_binding(db):
                     raise DuplicateTorrentFileError()
             else:
                 torrent_metadata = db.TorrentMetadata.from_dict(new_entry_dict)
-                torrent_metadata.parents.add(self)
             return torrent_metadata
 
         @property

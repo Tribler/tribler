@@ -71,7 +71,9 @@ class EditChannelPage(QWidget):
         self.window().add_button.clicked.connect(self.on_torrents_add_clicked)
 
         self.model = MyTorrentsContentModel()
-        self.controller = MyTorrentsTableViewController(self.model, self.window().edit_channel_torrents_container,
+        self.controller = MyTorrentsTableViewController(self.model,
+                                                        self.window().edit_channel_torrents_container.content_table,
+                                                        self.window().edit_channel_torrents_container.details_container,
                                                         self.window().edit_channel_torrents_num_items_label,
                                                         self.window().edit_channel_torrents_filter)
         self.window().edit_channel_torrents_container.details_container.hide()
@@ -190,7 +192,7 @@ class EditChannelPage(QWidget):
 
     def load_my_torrents(self):
         self.controller.model.reset()
-        self.controller.load_torrents(1, 50)  # Load the first 50 torrents
+        self.controller.perform_query(first=1, last=50)  # Load the first 50 torrents
 
     def on_create_channel_intro_button_clicked(self):
         self.window().create_channel_form.show()
@@ -384,15 +386,17 @@ class EditChannelPage(QWidget):
         def commit_channel(overview):
             try:
                 if overview and overview['mychannel']['dirty']:
-                    TriblerRequestManager().perform_request("mychannel/commit", lambda _: None, method='POST',
-                                                            capture_errors=False)
+                    self.editchannel_request_mgr = TriblerRequestManager()
+                    self.editchannel_request_mgr.perform_request("mychannel/commit", lambda _: None, method='POST',
+                                                                 capture_errors=False)
             except KeyError:
                 return
 
         if self.channel_overview:
             self.clicked_edit_channel_commit_button()
         else:
-            TriblerRequestManager().perform_request("mychannel", commit_channel, capture_errors=False)
+            self.editchannel_request_mgr = TriblerRequestManager()
+            self.editchannel_request_mgr.perform_request("mychannel", commit_channel, capture_errors=False)
 
     # Commit button-related methods
     def clicked_edit_channel_commit_button(self):

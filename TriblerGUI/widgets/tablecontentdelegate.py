@@ -4,28 +4,12 @@ from abc import abstractmethod
 
 from PyQt5.QtCore import QEvent, QModelIndex, QObject, QRect, QSize, Qt, pyqtSignal
 from PyQt5.QtGui import QBrush, QColor, QIcon, QPainter, QPen
-from PyQt5.QtWidgets import QStyle, QStyledItemDelegate, QComboBox
+from PyQt5.QtWidgets import QComboBox, QStyle, QStyledItemDelegate
 
-from TriblerGUI.defs import ACTION_BUTTONS, COMMIT_STATUS_COMMITTED, COMMIT_STATUS_NEW, COMMIT_STATUS_TODELETE, \
-    HEALTH_CHECKING, HEALTH_DEAD, HEALTH_ERROR, HEALTH_GOOD, HEALTH_MOOT, HEALTH_UNCHECKED
+from TriblerGUI.defs import ACTION_BUTTONS, CATEGORY_LIST, COMMIT_STATUS_COMMITTED, COMMIT_STATUS_NEW, \
+    COMMIT_STATUS_TODELETE, HEALTH_CHECKING, HEALTH_DEAD, HEALTH_ERROR, HEALTH_GOOD, HEALTH_MOOT, HEALTH_UNCHECKED
 from TriblerGUI.utilities import get_health, get_image_path
 from TriblerGUI.widgets.tableiconbuttons import DeleteIconButton, DownloadIconButton, PlayIconButton
-
-#TODO: build this automatically and/or move it somewhere
-CATEGORY_LIST = [
-    u'Video',
-    u'Audio',
-    u'Documents',
-    u'CD/DVD/BD',
-    u'Games',
-    u'Pictures',
-    u'Books',
-    u'Comics',
-    u'Software',
-    u'Science',
-    u'XXX',
-    u'Other',
-]
 
 
 class TriblerButtonsDelegate(QStyledItemDelegate):

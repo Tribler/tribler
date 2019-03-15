@@ -36,4 +36,4 @@ class DiscoveredPage(QWidget):
 
     def load_discovered_channels(self):
         self.controller.model.reset()
-        self.controller.load_channels(1, 50)  # Load the first 50 discovered channels
+        self.controller.perform_query(first=1, last=50)  # Load the first 50 discovered channels

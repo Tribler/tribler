@@ -13,14 +13,11 @@ from Tribler.pyipv8.ipv8.database import database_blob
 from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto
 
 # Metadata, torrents and channel statuses
-NEW = 0
-TODELETE = 1
-COMMITTED = 2
-JUST_RECEIVED = 3
-UPDATE_AVAILABLE = 4
-PREVIEW_UPDATE_AVAILABLE = 5
-UPDATED = 6
-LEGACY_ENTRY = 1000
+NEW = 0  # The entry is newly created and is not published yet. It will be committed at the next commit.
+TODELETE = 1  # The entry is marked to be removed at the next commit.
+COMMITTED = 2  # The entry is committed and seeded.
+UPDATED = 6  # One of the entry's properties was updated. It will be committed at the next commit.
+LEGACY_ENTRY = 1000  # The entry was converted from the old Tribler DB. It has no signature and should not be shared.
 
 PUBLIC_KEY_LEN = 64
 
@@ -61,9 +58,6 @@ def define_binding(db, logger=None, key=None, clock=None):
         # Local
         added_on = orm.Optional(datetime, default=datetime.utcnow)
         status = orm.Optional(int, default=COMMITTED)
-
-        parents = orm.Set('ChannelNode', reverse='children')
-        children = orm.Set('ChannelNode', reverse='parents')
 
         # Special properties
         _payload_class = ChannelNodePayload
@@ -198,12 +192,4 @@ def define_binding(db, logger=None, key=None, clock=None):
         @classmethod
         def from_dict(cls, dct):
             return cls(**dct)
-
-        def update_properties(self, update_dict):
-            #TODO: check if properties really changed
-            self.status = UPDATED
-            self.set(**update_dict)
-            self.timestamp = self._clock.tick()
-            self.sign(self._my_key)
-
     return ChannelNode
