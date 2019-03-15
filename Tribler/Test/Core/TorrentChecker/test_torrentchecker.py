@@ -78,17 +78,6 @@ class TestTorrentChecker(TestAsServer):
         self.torrent_checker._reschedule_tracker_select()
         self.assertTrue(self.torrent_checker.is_pending_task_active("torrent_checker_tracker_selection"))
 
-    def test_add_gui_request_no_trackers(self):
-        """
-        Test whether adding a request to fetch health of a trackerless torrent fails
-        """
-        test_deferred = Deferred()
-        with db_session:
-            self.session.lm.mds.TorrentState(infohash='a' * 20)
-
-        self.torrent_checker.add_gui_request('a' * 20).addErrback(lambda _: test_deferred.callback(None))
-        return test_deferred
-
     def test_add_gui_request_blacklisted_trackers(self):
         """
         Test whether only cached results of a torrent are returned with only blacklisted trackers
@@ -122,14 +111,6 @@ class TestTorrentChecker(TestAsServer):
             self.assertEqual(result['db']['leechers'], 10)
 
         return self.torrent_checker.add_gui_request('a' * 20).addCallback(verify_response)
-
-    def test_add_gui_request_no_tor(self):
-        """
-        Test whether a Failure is raised when we try to fetch info about a torrent unknown to the database
-        """
-        test_deferred = Deferred()
-        self.torrent_checker.add_gui_request('a' * 20).addErrback(lambda _: test_deferred.callback(None))
-        return test_deferred
 
     @trial_timeout(10)
     def test_task_select_no_tracker(self):

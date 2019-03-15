@@ -15,7 +15,7 @@ from twisted.web.client import HTTPConnectionPool
 
 from Tribler.Core.TorrentChecker.session import FakeDHTSession, UdpSocketManager, create_tracker_session
 from Tribler.Core.Utilities.tracker_utils import MalformedTrackerURLException
-from Tribler.Core.Utilities.utilities import is_valid_url
+from Tribler.Core.Utilities.utilities import has_bep33_support, is_valid_url
 from Tribler.Core.simpledefs import NTFY_TORRENT, NTFY_UPDATE
 from Tribler.pyipv8.ipv8.database import database_blob
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
@@ -250,11 +250,12 @@ class TorrentChecker(TaskManager):
             deferred_list.append(session.connect_to_tracker().
                                  addCallbacks(*self.get_callbacks_for_session(session)))
 
-        # Create a (fake) DHT session for the lookup
-        session = FakeDHTSession(self.tribler_session, infohash, timeout)
-        self._session_list['DHT'].append(session)
-        deferred_list.append(session.connect_to_tracker().
-                             addCallbacks(*self.get_callbacks_for_session(session)))
+        # Create a (fake) DHT session for the lookup if we have support for BEP33.
+        if has_bep33_support():
+            session = FakeDHTSession(self.tribler_session, infohash, timeout)
+            self._session_list['DHT'].append(session)
+            deferred_list.append(session.connect_to_tracker().
+                                 addCallbacks(*self.get_callbacks_for_session(session)))
 
         return DeferredList(deferred_list, consumeErrors=True).addCallback(
             lambda res: self.on_gui_request_completed(infohash, res))

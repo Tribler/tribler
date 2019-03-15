@@ -7,16 +7,16 @@ from unittest import skipIf
 
 from pony.orm import db_session
 
-import six
 from six.moves import xrange
 
 from twisted.internet import reactor
-from twisted.internet.defer import inlineCallbacks
+from twisted.internet.defer import inlineCallbacks, succeed
 from twisted.internet.task import deferLater
 
 from Tribler.Core.TorrentChecker.torrent_checker import TorrentChecker
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.Utilities.random_utils import random_infohash
+from Tribler.Core.Utilities.utilities import has_bep33_support
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.tools import trial_timeout
@@ -285,28 +285,20 @@ class TestTorrentHealthEndpoint(AbstractApiTest):
 
         def verify_response_no_trackers(response):
             json_response = json.loads(response)
-            expected_dict = {
-                u"health": {
-                    u"udp://localhost:%d" % self.udp_tracker.port: {
-                        u"leechers": 11,
-                        u"seeders": 12,
-                        u"infohash": six.text_type(hexlify(infohash))
-                    },
-                    u"DHT": {
-                        u"leechers": 2,
-                        u"seeders": 1,
-                        u"infohash": six.text_type(hexlify(infohash))
-                    }
-                }
-            }
-            self.assertDictEqual(json_response, expected_dict)
+            self.assertIn("health", json_response)
+            self.assertIn("udp://localhost:%s" % self.udp_port, json_response['health'])
+            if has_bep33_support():
+                self.assertIn("DHT", json_response['health'])
 
         # Add mock DHT response
-        def get_metainfo(infohash, callback, **_):
-            callback({"seeders": 1, "leechers": 2})
-
         self.session.lm.ltmgr = MockObject()
-        self.session.lm.ltmgr.get_metainfo = get_metainfo
+        self.session.lm.ltmgr.dht_health_manager = MockObject()
+        dht_health_dict = {
+            "infohash": hexlify(infohash),
+            "seeders": 1,
+            "leechers": 2
+        }
+        self.session.lm.ltmgr.dht_health_manager.get_health = lambda *_, **__: succeed({"DHT": [dht_health_dict]})
 
         # Left for compatibility with other tests in this object
         self.udp_tracker.start()

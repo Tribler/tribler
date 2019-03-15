@@ -10,6 +10,7 @@ import logging
 import re
 from base64 import b32decode
 
+import libtorrent
 from libtorrent import bdecode, bencode
 
 import six
@@ -216,3 +217,11 @@ def is_simple_match_query(query):
         if connector and connector != " AND ":
             return False
     return True
+
+
+def has_bep33_support():
+    """
+    Return whether our libtorrent version has support for BEP33 (DHT health lookups).
+    Also see https://github.com/devos50/libtorrent/tree/bep33_support
+    """
+    return 'dht_pkt_alert' in dir(libtorrent)
