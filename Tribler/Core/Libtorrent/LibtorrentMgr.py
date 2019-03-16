@@ -70,8 +70,6 @@ class LibtorrentMgr(TaskManager):
 
         self.upnp_mapping_dict = {}
 
-        self.dht_ready = False
-
         self.metadata_tmpdir = None
         self.metainfo_requests = {}
         self.metainfo_lock = threading.RLock()
@@ -103,7 +101,6 @@ class LibtorrentMgr(TaskManager):
         self.process_alerts_lc.start(1, now=False)
         self.check_reachability_lc.start(5, now=True)
         self.request_torrent_updates_lc.start(1, now=False)
-        self._schedule_next_check(5, DHT_CHECK_RETRIES)
 
         self.register_task(u'task_cleanup_metacache',
                            LoopingCall(self._task_cleanup_metainfo_cache)).start(60, now=True)
@@ -308,9 +305,6 @@ class LibtorrentMgr(TaskManager):
         libtorrent_rate = self.get_session(hops).download_rate_limit()
         return 0 if libtorrent_rate == -1 else (-1 if libtorrent_rate == 1 else libtorrent_rate / 1024)
 
-    def is_dht_ready(self):
-        return self.dht_ready
-
     def add_torrent(self, torrentdl, atp):
         # If we are collecting the torrent for this infohash, abort this first.
         with self.metainfo_lock:
@@ -437,18 +431,6 @@ class LibtorrentMgr(TaskManager):
             self.alert_callback(alert)
 
     def get_metainfo(self, infohash_or_magnet, callback, timeout=30, timeout_callback=None, notify=True):
-        if not self.is_dht_ready() and timeout > 5:
-            self._logger.info("DHT not ready, rescheduling get_metainfo")
-
-            def schedule_call():
-                self.register_anonymous_task("schedule_metainfo_lookup",
-                                             reactor.callLater(5, lambda i=infohash_or_magnet, c=callback, t=timeout-5,
-                                                                         tcb=timeout_callback,
-                                                                         n=notify: self.get_metainfo(i, c, t, tcb, n)))
-
-            reactor.callFromThread(schedule_call)
-            return
-
         magnet = infohash_or_magnet if infohash_or_magnet.startswith('magnet') else None
         infohash_bin = infohash_or_magnet if not magnet else parse_magnetlink(magnet)[1]
         infohash = hexlify(infohash_bin)
@@ -609,30 +591,6 @@ class LibtorrentMgr(TaskManager):
         if self.get_session() and self.get_session().status().has_incoming_connections:
             self.notifier.notify(NTFY_REACHABLE, NTFY_INSERT, None, '')
             self.check_reachability_lc.stop()
-
-    def _schedule_next_check(self, delay, retries_left):
-        if not self.tribler_session.config.get_libtorrent_dht_enabled():
-            self.dht_ready = True
-            return
-
-        self.register_task(u'check_dht', reactor.callLater(delay, self.do_dht_check, retries_left))
-
-    def do_dht_check(self, retries_left):
-        # Sometimes the dht fails to start. To workaround this issue we monitor the #dht_nodes, and restart if needed.
-
-        lt_session = self.get_session()
-        dht_nodes = lt_session.status().dht_nodes
-        if dht_nodes <= 25:
-            if dht_nodes >= 5 and retries_left > 0:
-                self._logger.info(u"No enough DHT nodes %s, will try again", lt_session.status().dht_nodes)
-                self._schedule_next_check(5, retries_left - 1)
-            else:
-                self._logger.info(u"No enough DHT nodes %s, will restart DHT", lt_session.status().dht_nodes)
-                threads.deferToThread(lt_session.start_dht)
-                self._schedule_next_check(10, 1)
-        else:
-            self._logger.info("dht is working enough nodes are found (%d)", self.get_session().status().dht_nodes)
-            self.dht_ready = True
 
     def _map_call_on_ltsessions(self, hops, funcname, *args, **kwargs):
         if hops is None:

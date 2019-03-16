@@ -121,8 +121,6 @@ class TestLibtorrentMgr(AbstractServer):
 
         fake_alert = type('lt.metadata_received_alert', (object,), dict(handle=fake_handle))
         self.ltmgr.ltsession_metainfo.pop_alerts = lambda: [fake_alert]
-
-        self.ltmgr.is_dht_ready = lambda: True
         self.ltmgr.get_metainfo(unhexlify(infohash), metainfo_cb)
 
         return test_deferred
@@ -139,7 +137,6 @@ class TestLibtorrentMgr(AbstractServer):
             test_deferred.callback(None)
 
         self.ltmgr.initialize()
-        self.ltmgr.is_dht_ready = lambda: True
         self.ltmgr.metainfo_cache[hexlify("a" * 20)] = {'meta_info': 'test'}
         self.ltmgr.get_metainfo("a" * 20, metainfo_cb)
 
@@ -229,7 +226,6 @@ class TestLibtorrentMgr(AbstractServer):
 
         self.ltmgr.ltsession_metainfo = mock_ltsession
         self.ltmgr.metadata_tmpdir = tempfile.mkdtemp(suffix=u'tribler_metainfo_tmpdir')
-        self.ltmgr.is_dht_ready = lambda: True
         self.ltmgr.got_metainfo = fake_got_metainfo
 
         self.ltmgr.get_metainfo(magnet_link, lambda _: None)
