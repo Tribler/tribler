@@ -88,6 +88,9 @@ color: white;
 }
 QHeaderView {
 qproperty-defaultAlignment: AlignLeft;
+}
+QListView {
+color:#B5B5B5;
 }</string>
   </property>
   <widget class="QWidget" name="central_widget">
