@@ -13,25 +13,23 @@ import chardet
 
 from six.moves import xrange
 
-from Tribler.Core.Utilities.unicode import ensure_unicode
-
 
 logger = logging.getLogger(__name__)
 
 
+def ensure_unicode_detect_encoding(s):
+    try:
+        return s.decode('utf-8')  # Try bytes --> Unicode
+    except AttributeError:
+        return s  # Already is Unicode
+    except UnicodeDecodeError:
+        charenc = chardet.detect(s)['encoding']
+        return s.decode(charenc) if charenc else s  # Hope for the best
+    
+
 def pathlist2filename(pathlist):
     """ Convert a multi-file torrent file 'path' entry to a filename. """
-    return os.path.join(*(ensure_unicode(elem, 'utf-8') for elem in pathlist))
-    # fullpath = os.path.join(*pathlist)
-    # try:
-    #    return codecs.decode(fullpath, 'utf-8')
-    # except TypeError:
-    #    return fullpath  # Python 3: a bytes-like object is required, not 'str'
-    # except UnicodeDecodeError:
-    #    charenc = chardet.detect(fullpath)['encoding']
-    #    if not charenc:
-    #        return fullpath  # Hope for the best
-    #    return fullpath.decode(charenc)
+    return os.path.join(*(ensure_unicode_detect_encoding(x) for x in pathlist))
 
 
 def get_length_from_metainfo(metainfo, selectedfiles):
