@@ -11,8 +11,9 @@ import os
 
 import chardet
 
-from six import ensure_text
 from six.moves import xrange
+
+from Tribler.Core.Utilities.unicode import ensure_unicode
 
 
 logger = logging.getLogger(__name__)
@@ -20,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 def pathlist2filename(pathlist):
     """ Convert a multi-file torrent file 'path' entry to a filename. """
-    return os.path.join(ensure_text(elem) for elem in pathlist)
+    return os.path.join(ensure_unicode(elem, 'utf-8') for elem in pathlist)
     # fullpath = os.path.join(*pathlist)
     # try:
     #    return codecs.decode(fullpath, 'utf-8')
