@@ -25,7 +25,7 @@ def ensure_unicode_detect_encoding(s):
     except UnicodeDecodeError:
         charenc = chardet.detect(s)['encoding']
         return s.decode(charenc) if charenc else s  # Hope for the best
-    
+
 
 def pathlist2filename(pathlist):
     """ Convert a multi-file torrent file 'path' entry to a filename. """
