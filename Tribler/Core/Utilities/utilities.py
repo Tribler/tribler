@@ -76,6 +76,10 @@ def http_get(uri):
         raise HttpError(response)
 
     try:
+        uri = uri.encode('utf-8')  # Try converting uri to bytes
+    except AttributeError:
+        pass
+    try:
         contextFactory = WebClientContextFactory()
         agent = Agent(reactor, contextFactory)
         headers = Headers({'User-Agent': ['Tribler ' + version_id]})
