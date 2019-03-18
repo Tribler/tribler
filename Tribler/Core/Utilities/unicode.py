@@ -24,10 +24,15 @@ def ensure_unicode(s, encoding, errors='strict'):
 
 
 def ensure_unicode_detect_encoding(s):
-    try:
-        return s.decode('utf-8')  # Try converting bytes --> Unicode utf-8
-    except AttributeError:
-        return s  # Already is Unicode
-    except UnicodeDecodeError:
-        charenc = chardet.detect(s)['encoding']
-        return s.decode(charenc) if charenc else s  # Hope for the best
+    """Similar to ensure_unicode() but use chardet to detect the encoding
+    """
+    if isinstance(s, binary_type):
+        try:
+            return s.decode('utf-8')  # Try converting bytes --> Unicode utf-8
+        except UnicodeDecodeError:
+            charenc = chardet.detect(s)['encoding']
+            return s.decode(charenc) if charenc else s  # Hope for the best
+    elif isinstance(s, text_type):
+        return s
+    else:
+        raise TypeError("not expecting type '%s'" % type(s))
