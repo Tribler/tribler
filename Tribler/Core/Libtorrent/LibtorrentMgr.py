@@ -452,7 +452,7 @@ class LibtorrentMgr(TaskManager):
                 if magnet:
                     atp['url'] = magnet
                 else:
-                    atp['info_hash'] = lt.big_number(infohash_bin)
+                    atp['info_hash'] = lt.sha1_hash(infohash_bin)
                 try:
                     handle = self.ltsession_metainfo.add_torrent(encode_atp(atp))
                 except TypeError as e:
