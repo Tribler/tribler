@@ -63,7 +63,7 @@ class TransactionIdTestSuite(unittest.TestCase):
 
     def test_conversion(self):
         # Test for conversions
-        self.assertEqual('0.1', str(self.transaction_id))
+        self.assertEqual(str(b'0.1'), str(self.transaction_id))
 
     def test_equality(self):
         # Test for equality

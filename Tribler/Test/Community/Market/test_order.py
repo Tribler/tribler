@@ -195,7 +195,7 @@ class OrderIDTestSuite(unittest.TestCase):
 
     def test_str(self):
         # Test for string representation
-        self.assertEquals('0.1', str(self.order_id))
+        self.assertEquals(str(b'0.1'), str(self.order_id))
 
 
 class OrderNumberTestSuite(unittest.TestCase):
