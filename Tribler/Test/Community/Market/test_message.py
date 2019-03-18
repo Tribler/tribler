@@ -22,6 +22,8 @@ class TraderIdTestSuite(unittest.TestCase):
     def test_conversion(self):
         # Test for conversions
         self.assertEqual(str(b'0'), str(self.trader_id))
+        self.assertTrue(isinstance(self.trader_id.to_string(), str))
+        self.assertEqual(str(b'0'), self.trader_id.to_string())
 
     def test_equality(self):
         # Test for equality
