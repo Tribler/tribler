@@ -71,6 +71,10 @@ class AbstractBaseApiTest(TestAsServer):
         self.config.set_http_api_port(get_random_port(min_port=min_base_port, max_port=min_base_port + 2000))
 
     def do_request(self, endpoint, req_type, post_data, raw_data):
+        try:
+            req_type = req_type.encode('utf-8')
+        except AttributeError:
+            pass
         agent = Agent(reactor, pool=self.connection_pool)
         return agent.request(req_type, 'http://localhost:%s/%s' % (self.session.config.get_http_api_port(), endpoint),
                              Headers({'User-Agent': ['Tribler ' + version_id],
