@@ -9,22 +9,12 @@ import codecs
 import logging
 import os
 
-import chardet
-
 from six.moves import xrange
+
+from Tribler.Core.Utilities.unicode import ensure_unicode_detect_encoding
 
 
 logger = logging.getLogger(__name__)
-
-
-def ensure_unicode_detect_encoding(s):
-    try:
-        return s.decode('utf-8')  # Try bytes --> Unicode
-    except AttributeError:
-        return s  # Already is Unicode
-    except UnicodeDecodeError:
-        charenc = chardet.detect(s)['encoding']
-        return s.decode(charenc) if charenc else s  # Hope for the best
 
 
 def pathlist2filename(pathlist):
