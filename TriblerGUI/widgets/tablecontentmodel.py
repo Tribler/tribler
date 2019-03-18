@@ -67,7 +67,7 @@ class TriblerContentModel(RemoteTableModel):
         return self.column_flags[self.columns[index.column()]]
 
     def data(self, index, role):
-        if role == Qt.DisplayRole:
+        if role == Qt.DisplayRole or role == Qt.EditRole:
             column = self.columns[index.column()]
             data = self.data_items[index.row()][column] if column in self.data_items[index.row()] else u''
             return self.column_display_filters.get(column, str(data))(data) \
