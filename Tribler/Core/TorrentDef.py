@@ -34,7 +34,7 @@ def escape_as_utf8(string, encoding='utf8'):
         # can convert to utf8 without any issues.
         return string.decode(encoding).encode('utf8').decode('utf8')
     except AttributeError:  # Python 3 'str' object has no attribute 'decode'
-        return string.encode('utf8').decode('utf8')
+        return escape_as_utf8(string.encode(encoding), encoding)
     except (LookupError, TypeError, ValueError):
         try:
             # The delivered encoding is incorrect, cast it to
