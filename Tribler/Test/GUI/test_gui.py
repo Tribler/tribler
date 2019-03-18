@@ -25,11 +25,11 @@ from TriblerGUI.tribler_window import TriblerWindow
 from TriblerGUI.widgets.home_recommended_item import HomeRecommendedItem
 from TriblerGUI.widgets.loading_list_item import LoadingListItem
 
-api_port = get_random_port()
-core_manager.START_FAKE_API = True
-TriblerGUI.defs.DEFAULT_API_PORT = api_port
-
 if os.environ.get("TEST_GUI") == "yes":
+    api_port = get_random_port()
+    core_manager.START_FAKE_API = True
+    TriblerGUI.defs.DEFAULT_API_PORT = api_port
+
     app = QApplication(sys.argv)
     window = TriblerWindow(api_port=api_port)
     QTest.qWaitForWindowExposed(window)
@@ -68,17 +68,19 @@ def start_fake_core(port):
     reactor.run(installSignalHandlers=False)
 
 
-# Start the fake API
-t = threading.Thread(target=start_fake_core, args=(api_port,))
-t.setDaemon(True)
-t.start()
+if os.environ.get("TEST_GUI") == "yes":
+    # Start the fake API
+    t = threading.Thread(target=start_fake_core, args=(api_port,))
+    t.setDaemon(True)
+    t.start()
 
 
 def no_abort(*args, **kwargs):
     sys.__excepthook__(*args, **kwargs)
 
 
-sys.excepthook = no_abort
+if os.environ.get("TEST_GUI") == "yes":
+    sys.excepthook = no_abort
 
 
 class TimeoutException(Exception):
