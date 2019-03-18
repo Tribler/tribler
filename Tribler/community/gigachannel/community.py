@@ -114,14 +114,15 @@ class GigaChannelCommunity(Community):
         if reply_blob:
             self.endpoint.send(peer.address, self.ezr_pack(self.NEWS_PUSH_MESSAGE, RawBlobPayload(reply_blob)))
 
-    def send_search_request(self, query_filter, metadata_type='', sort_by=None, sort_asc=0, hide_xxx=True):
+    def send_search_request(self, query_filter, metadata_type='', sort_by=None, sort_asc=0, hide_xxx=True, uuid=None):
         """
         Sends request to max_search_peers from peer list. The request is cached in request cached. The past cache is
         cleared before adding a new search request to prevent incorrect results being pushed to the GUI.
+        Returns: request cache number which uniquely identifies each search request
         """
         sort_by = sort_by or "HEALTH"
         search_candidates = self.get_peers()[:max_search_peers]
-        search_request_cache = SearchRequestCache(self.request_cache, search_candidates)
+        search_request_cache = SearchRequestCache(self.request_cache, uuid, search_candidates)
         self.request_cache.clear()
         self.request_cache.add(search_request_cache)
 
@@ -131,6 +132,7 @@ class GigaChannelCommunity(Community):
 
         for peer in search_candidates:
             self.endpoint.send(peer.address, self.ezr_pack(self.SEARCH_REQUEST, search_request_payload))
+        return search_request_cache.number
 
     @lazy_wrapper(SearchRequestPayload)
     def on_search_request(self, peer, request):
@@ -187,7 +189,7 @@ class GigaChannelCommunity(Community):
                               if r and (r.metadata_type == CHANNEL_TORRENT or r.metadata_type == REGULAR_TORRENT)]
         if self.notifier and search_results:
             self.notifier.notify(SIGNAL_GIGACHANNEL_COMMUNITY, SIGNAL_ON_SEARCH_RESULTS, None,
-                                 {"results": search_results})
+                                 {"uuid": search_request_cache.uuid, "results": search_results})
 
         # Send the updated metadata if any to the responding peer
         self.respond_with_updated_metadata(peer, metadata_result)

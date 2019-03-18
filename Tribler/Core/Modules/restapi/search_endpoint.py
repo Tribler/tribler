@@ -41,6 +41,10 @@ class SearchEndpoint(BaseMetadataEndpoint):
             parameters['metadata_type'][0] if 'metadata_type' in parameters else '')
         return sanitized
 
+    @staticmethod
+    def get_uuid(parameters):
+        return parameters['uuid'][0] if 'uuid' in parameters else None
+
     def render_GET(self, request):
         """
         .. http:get:: /search?q=(string:query)
@@ -96,6 +100,8 @@ class SearchEndpoint(BaseMetadataEndpoint):
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "Trying to query for unknown type of metadata"})
 
+        search_uuid = SearchEndpoint.get_uuid(request.args)
+
         # Apart from the local search results, we also do remote search to get search results from peers in the
         # Giga channel community.
         if self.session.lm.gigachannel_community and sanitized["first"] == 1:
@@ -104,7 +110,8 @@ class SearchEndpoint(BaseMetadataEndpoint):
                                                                       metadata_type=raw_metadata_type,
                                                                       sort_by=sanitized['sort_by'],
                                                                       sort_asc=sanitized['sort_asc'],
-                                                                      hide_xxx=sanitized['hide_xxx'])
+                                                                      hide_xxx=sanitized['hide_xxx'],
+                                                                      uuid=search_uuid)
 
         def search_db():
             with db_session:
@@ -117,6 +124,7 @@ class SearchEndpoint(BaseMetadataEndpoint):
         def on_search_results(search_results_tuple):
             search_results, total = search_results_tuple
             request.write(json.dumps({
+                "uuid": search_uuid,
                 "results": search_results,
                 "first": sanitized["first"],
                 "last": sanitized["last"],
