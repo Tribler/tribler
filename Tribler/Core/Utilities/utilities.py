@@ -83,7 +83,7 @@ def http_get(uri):
         contextFactory = WebClientContextFactory()
         agent = Agent(reactor, contextFactory)
         headers = Headers({'User-Agent': ['Tribler ' + version_id]})
-        deferred = agent.request('GET', uri, headers, None)
+        deferred = agent.request(b'GET', uri, headers, None)
         deferred.addCallback(_on_response)
         return deferred
     except:
