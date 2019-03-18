@@ -25,7 +25,9 @@ class ChannelPage(QWidget):
         self.model = TorrentsContentModel(hide_xxx=get_gui_setting(self.gui_settings, "family_filter", True,
                                                                    is_bool=True) if self.gui_settings else True)
         self.window().core_manager.events_manager.torrent_info_updated.connect(self.model.update_torrent_info)
-        self.controller = TorrentsTableViewController(self.model, self.window().channel_page_container,
+        self.controller = TorrentsTableViewController(self.model,
+                                                      self.window().channel_page_container.content_table,
+                                                      self.window().channel_page_container.details_container,
                                                       None, self.window().channel_torrents_filter_input)
 
         # Remove the commit control from the delegate for performance
@@ -46,8 +48,9 @@ class ChannelPage(QWidget):
         self.window().channel_page_container.details_container.hide()
 
         self.model.channel_pk = channel_info['public_key']
+        self.window().channel_torrents_filter_input.setText("")
         self.load_torrents()
 
     def load_torrents(self):
         self.controller.model.reset()
-        self.controller.load_torrents(1, 50)  # Load the first 50 torrents
+        self.controller.perform_query(first=1, last=50)  # Load the first 50 torrents

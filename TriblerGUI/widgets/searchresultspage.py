@@ -27,7 +27,7 @@ class SearchResultsPage(QWidget):
                                                                         is_bool=True) if self.gui_settings else True)
         self.controller = SearchResultsTableViewController(self.model, self.window().search_results_list,
                                                            self.window().search_details_container,
-                                                           self.window().num_search_results_label)
+                                                           self.window().num_results_label)
         self.window().search_details_container.details_tab_widget.initialize_details_widget()
 
         self.set_columns_visibility([u'health'], True)
@@ -37,13 +37,14 @@ class SearchResultsPage(QWidget):
         self.query = query
         self.model.reset()
 
-        self.window().num_search_results_label.setText("")
+        self.window().num_results_label.setText("")
         self.window().search_details_container.hide()
 
         trimmed_query = query if len(query) < 50 else "%s..." % query[:50]
         self.window().search_results_header_label.setText("Search results for: %s" % trimmed_query)
 
-        self.controller.load_search_results(query, 1, 50)
+        self.controller.query_text = query
+        self.controller.perform_query(first=1, last=50)
 
     def set_columns_visibility(self, column_names, hide=False):
         for column_name in column_names:
@@ -52,7 +53,7 @@ class SearchResultsPage(QWidget):
 
     def clicked_tab_button(self, _):
         if self.window().search_results_tab.get_selected_index() == 0:
-            self.model.type_filter = None
+            self.model.type_filter = ''
             self.set_columns_visibility([u'health'], True)
             self.set_columns_visibility([u'torrents', u'updated'], False)
         elif self.window().search_results_tab.get_selected_index() == 1:

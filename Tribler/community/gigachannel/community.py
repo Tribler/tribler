@@ -185,7 +185,7 @@ class GigaChannelCommunity(Community):
             search_results = [(dict(type={REGULAR_TORRENT: 'torrent', CHANNEL_TORRENT: 'channel'}[r.metadata_type],
                                     **(r.to_simple_dict()))) for (r, _) in metadata_result
                               if r and (r.metadata_type == CHANNEL_TORRENT or r.metadata_type == REGULAR_TORRENT)]
-        if self.notifier:
+        if self.notifier and search_results:
             self.notifier.notify(SIGNAL_GIGACHANNEL_COMMUNITY, SIGNAL_ON_SEARCH_RESULTS, None,
                                  {"results": search_results})
 

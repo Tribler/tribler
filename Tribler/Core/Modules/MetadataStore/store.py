@@ -24,7 +24,6 @@ CLOCK_STATE_FILE = "clock.state"
 NO_ACTION = 0
 UNKNOWN_CHANNEL = 1
 UPDATED_OUR_VERSION = 2
-GOT_SAME_VERSION = 3
 GOT_NEWER_VERSION = 4
 UNKNOWN_TORRENT = 5
 DELETED_METADATA = 6
@@ -34,14 +33,13 @@ DELETED_METADATA = 6
 # maintained by SQL triggers.
 sql_create_fts_table = """
     CREATE VIRTUAL TABLE IF NOT EXISTS FtsIndex USING FTS5
-        (title, tags, content='ChannelNode', prefix = '2 3 4 5',
+        (title, content='ChannelNode', prefix = '2 3 4 5',
          tokenize='porter unicode61 remove_diacritics 1');"""
 
 sql_add_fts_trigger_insert = """
     CREATE TRIGGER IF NOT EXISTS fts_ai AFTER INSERT ON ChannelNode
     BEGIN
-        INSERT INTO FtsIndex(rowid, title, tags) VALUES
-            (new.rowid, new.title, new.tags);
+        INSERT INTO FtsIndex(rowid, title) VALUES (new.rowid, new.title);
     END;"""
 
 sql_add_fts_trigger_delete = """
@@ -53,8 +51,7 @@ sql_add_fts_trigger_delete = """
 sql_add_fts_trigger_update = """
     CREATE TRIGGER IF NOT EXISTS fts_au AFTER UPDATE ON ChannelNode BEGIN
         DELETE FROM FtsIndex WHERE rowid = old.rowid;
-        INSERT INTO FtsIndex(rowid, title, tags) VALUES (new.rowid, new.title,
-      new.tags);
+        INSERT INTO FtsIndex(rowid, title) VALUES (new.rowid, new.title);
     END;"""
 
 sql_add_signature_index = "CREATE INDEX SignatureIndex ON ChannelNode(signature);"
@@ -329,9 +326,16 @@ class MetadataStore(object):
         result = []
         node = self.TorrentMetadata.get_for_update(public_key=database_blob(payload.public_key),
                                                    infohash=database_blob(payload.infohash))
-        if node and node.timestamp < payload.timestamp:
-            node.delete()
-            result.append((None, DELETED_METADATA))
+        if node:
+            if node.timestamp < payload.timestamp:
+                node.delete()
+                result.append((None, DELETED_METADATA))
+            elif node.timestamp > payload.timestamp:
+                result.append((node, GOT_NEWER_VERSION))
+                return result
+            else:
+                return result
+            # Otherwise, we got the same version locally and do nothing.
 
         # Check for the older version of the same node
         node = self.TorrentMetadata.get_for_update(public_key=database_blob(payload.public_key), id_=payload.id_)

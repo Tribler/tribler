@@ -58,7 +58,7 @@ class TestChannelsEndpoint(BaseTestMetadataEndpoint):
 
         def on_response(response):
             json_dict = json.loads(response)
-            self.assertEqual(len(json_dict['channels']), 10)
+            self.assertEqual(len(json_dict['results']), 10)
 
         self.should_check_equality = False
         return self.do_request('metadata/channels?sort_by=title', expected_code=200).addCallback(on_response)
@@ -67,7 +67,7 @@ class TestChannelsEndpoint(BaseTestMetadataEndpoint):
     def test_get_channels_sort_by_health(self):
         def on_response(response):
             json_dict = json.loads(response)
-            self.assertEqual(len(json_dict['channels']), 10)
+            self.assertEqual(len(json_dict['results']), 10)
 
         self.should_check_equality = False
         return self.do_request('metadata/channels?sort_by=health', expected_code=200).addCallback(on_response)
@@ -79,7 +79,7 @@ class TestChannelsEndpoint(BaseTestMetadataEndpoint):
 
         def on_response(response):
             json_dict = json.loads(response)
-            self.assertEqual(len(json_dict['channels']), 10)
+            self.assertEqual(len(json_dict['results']), 10)
 
         self.should_check_equality = False
         return self.do_request('metadata/channels?sort_by=fdsafsdf', expected_code=200).addCallback(on_response)
@@ -91,7 +91,7 @@ class TestChannelsEndpoint(BaseTestMetadataEndpoint):
 
         def on_response(response):
             json_dict = json.loads(response)
-            self.assertEqual(len(json_dict['channels']), 5)
+            self.assertEqual(len(json_dict['results']), 5)
 
         self.should_check_equality = False
         return self.do_request('metadata/channels?subscribed=1', expected_code=200).addCallback(on_response)
@@ -144,7 +144,7 @@ class TestSpecificChannelEndpoint(BaseTestMetadataEndpoint):
             for _ in range(0, 30):
                 with db_session:
                     c = self.session.lm.mds.ChannelMetadata.select()[:][0]
-                    if c.contents.count() == 2:
+                    if c.contents.count() == 0:
                         result = True
                         break
                     yield async_sleep(0.2)
@@ -163,7 +163,7 @@ class TestSpecificChannelTorrentsEndpoint(BaseTestMetadataEndpoint):
 
         def on_response(response):
             json_dict = json.loads(response)
-            self.assertEqual(len(json_dict['torrents']), 5)
+            self.assertEqual(len(json_dict['results']), 5)
 
         self.should_check_equality = False
         channel_pk = hexlify(self.session.lm.mds.ChannelNode._my_key.pub().key_to_bin()[10:])

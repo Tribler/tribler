@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-from abc import abstractmethod
-
 from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt, pyqtSignal
 
 from TriblerGUI.defs import ACTION_BUTTONS
@@ -21,15 +19,6 @@ class RemoteTableModel(QAbstractTableModel):
         self.item_load_batch = 50
         self.total_items = 0  # The total number of items without pagination
         self.infohashes = {}
-
-    @abstractmethod
-    def _get_remote_data(self, start, end, **kwargs):
-        # This must call self._on_new_items_received as a callback when data received
-        pass
-
-    @abstractmethod
-    def _set_remote_data(self):
-        pass
 
     def reset(self):
         self.beginResetModel()
@@ -68,12 +57,6 @@ class TriblerContentModel(RemoteTableModel):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
             return self.column_headers[num]
 
-    def _get_remote_data(self, start, end, **kwargs):
-        pass
-
-    def _set_remote_data(self):
-        pass
-
     def rowCount(self, parent=QModelIndex()):
         return len(self.data_items)
 
@@ -84,7 +67,7 @@ class TriblerContentModel(RemoteTableModel):
         return self.column_flags[self.columns[index.column()]]
 
     def data(self, index, role):
-        if role == Qt.DisplayRole:
+        if role == Qt.DisplayRole or role == Qt.EditRole:
             column = self.columns[index.column()]
             data = self.data_items[index.row()][column] if column in self.data_items[index.row()] else u''
             return self.column_display_filters.get(column, str(data))(data) \
@@ -133,7 +116,7 @@ class SearchResultsContentModel(TriblerContentModel):
 
     def __init__(self, **kwargs):
         TriblerContentModel.__init__(self, **kwargs)
-        self.type_filter = None
+        self.type_filter = ''
 
     def add_remote_items(self, remote_items):
         new_infohash_map = {}
@@ -153,7 +136,7 @@ class SearchResultsContentModel(TriblerContentModel):
                 new_infohash_map[item['infohash']] = insert_index + self.infohashes[item["infohash"]]
 
         # Update the table
-        self.beginInsertRows(QModelIndex(), 0, len(new_items)-1)
+        self.beginInsertRows(QModelIndex(), 0, len(new_items) - 1)
         self.data_items = new_items + self.data_items
         self.infohashes = new_infohash_map
         self.endInsertRows()
@@ -206,14 +189,23 @@ class MyTorrentsContentModel(TorrentsContentModel):
     columns = [u'category', u'name', u'size', u'status', ACTION_BUTTONS]
     column_headers = [u'Category', u'Name', u'Size', u'', u'']
     column_flags = {
-        u'category': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
-        u'name': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
+        u'category': Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable,
+        u'name': Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable,
         u'size': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         u'status': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         ACTION_BUTTONS: Qt.ItemIsEnabled | Qt.ItemIsSelectable
     }
 
+    row_edited = pyqtSignal(QModelIndex, str)
+
     def __init__(self, channel_pk='', **kwargs):
         TorrentsContentModel.__init__(self, channel_pk=channel_pk, **kwargs)
         self.exclude_deleted = False
         self.edit_enabled = True
+
+    def setData(self, index, new_value, role=None):
+        if role == Qt.EditRole:
+            self.row_edited.emit(index, new_value)
+            # TODO: reload the whole row from DB instead of just changing the displayed value
+            self.data_items[index.row()][self.columns[index.column()]] = new_value
+        return True

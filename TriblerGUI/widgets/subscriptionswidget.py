@@ -65,7 +65,7 @@ class SubscriptionsWidget(QWidget):
             self.credit_mining_button.hide()
 
         # Disable channel control buttons for LEGACY_ENTRY channels
-        hide_controls = (self.channel_info["status"] == 6)
+        hide_controls = (self.channel_info["status"] == 1000)
         self.num_subs_label.setHidden(hide_controls)
         self.subscribe_button.setHidden(
             hide_controls or ("my_channel" in self.channel_info and self.channel_info["my_channel"]))

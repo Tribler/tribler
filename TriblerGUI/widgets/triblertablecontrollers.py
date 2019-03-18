@@ -35,13 +35,18 @@ class TriblerTableViewController(object):
         self.table_view = table_view
         self.table_view.setModel(self.model)
         self.table_view.verticalScrollBar().valueChanged.connect(self._on_list_scroll)
+        self.query_text = ''
+        self.num_results_label = None
         self.request_mgr = None
 
-    def _on_list_scroll(self, event):
-        pass
-
     def _on_view_sort(self, column, ascending):
-        pass
+        self.model.reset()
+        self.perform_query(first=1, last=50)
+
+    def _on_list_scroll(self, event):
+        if self.table_view.verticalScrollBar().value() == self.table_view.verticalScrollBar().maximum() and \
+                self.model.data_items:  # workaround for duplicate calls to _on_list_scroll on view creation
+            self.perform_query()
 
     def _get_sort_parameters(self):
         """
@@ -51,74 +56,46 @@ class TriblerTableViewController(object):
         sort_asc = self.table_view.horizontalHeader().sortIndicatorOrder()
         return sort_by, sort_asc
 
-
-class SearchResultsTableViewController(TriblerTableViewController):
-    """
-    Controller for the table view that handles search results.
-    """
-
-    def __init__(self, model, table_view, details_container, num_search_results_label=None):
-        TriblerTableViewController.__init__(self, model, table_view)
-        self.num_search_results_label = num_search_results_label
-        self.details_container = details_container
-        self.query = None
-        table_view.selectionModel().selectionChanged.connect(self._on_selection_changed)
-
-    def _on_selection_changed(self, _):
-        selected_indices = self.table_view.selectedIndexes()
-        if not selected_indices:
-            return
-
-        torrent_info = selected_indices[0].model().data_items[selected_indices[0].row()]
-        if torrent_info['type'] == 'channel':
-            self.details_container.hide()
-            self.table_view.clearSelection()
-            return
-
-        self.details_container.show()
-        self.details_container.details_tab_widget.update_with_torrent(selected_indices[0], torrent_info)
-
-    def _on_view_sort(self, column, ascending):
-        self.model.reset()
-        self.load_search_results(self.query, 1, 50)
-
-    def _on_list_scroll(self, event):
-        if self.table_view.verticalScrollBar().value() == self.table_view.verticalScrollBar().maximum() and \
-                self.model.data_items:  # workaround for duplicate calls to _on_list_scroll on view creation
-            self.load_search_results(self.query)
-
-    def load_search_results(self, query, start=None, end=None):
+    def perform_query(self, **kwargs):
         """
-        Fetch search results for a given query.
+        Fetch results for a given query.
         """
-        self.query = query
-
-        if not start or not end:
-            start, end = self.model.rowCount() + 1, self.model.rowCount() + self.model.item_load_batch
+        if 'first' not in kwargs or 'last' not in kwargs:
+            kwargs["first"], kwargs[
+                'last'] = self.model.rowCount() + 1, self.model.rowCount() + self.model.item_load_batch
 
         sort_by, sort_asc = self._get_sort_parameters()
-        url_params = {
-            "filter": to_fts_query(query),
-            "first": start if start else '',
-            "last": end if end else '',
-            "sort_by": sort_by if sort_by else '',
+        kwargs.update({
+            "filter": to_fts_query(self.query_text),
+            "sort_by": sort_by,
             "sort_asc": sort_asc,
-            "hide_xxx": self.model.hide_xxx,
-            "metadata_type": self.model.type_filter if self.model.type_filter else ''
-        }
+            "hide_xxx": self.model.hide_xxx})
+
+        rest_endpoint_url = kwargs.pop("rest_endpoint_url")
         self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("search", self.on_search_results, url_params=url_params)
+        self.request_mgr.perform_request(rest_endpoint_url,
+                                         self.on_query_results,
+                                         url_params=kwargs)
 
-    def on_search_results(self, response):
+    def on_query_results(self, response):
         if not response:
-            return
-
+            return False
         self.model.total_items = response['total']
+        if self.num_results_label:
+            self.num_results_label.setText("%d results" % response['total'])
+        if response['first'] >= self.model.rowCount():
+            self.model.add_items(response['results'])
+        return True
 
-        if self.num_search_results_label:
-            self.num_search_results_label.setText("%d results" % response['total'])
 
-        self.model.add_items(response['results'])
+class FilterInputMixin(object):
+
+    def _on_filter_input_change(self, _):
+        self.query_text = self.filter_input.text().lower()
+        self.model.reset()
+        self.perform_query(start=1, end=50)
+
+class RemoteResultsMixin(object):
 
     def load_remote_results(self, response):
         if not response:
@@ -127,162 +104,101 @@ class SearchResultsTableViewController(TriblerTableViewController):
         self.model.add_remote_items(response['results'])
         self.model.total_items = len(self.model.data_items)
 
-        if self.num_search_results_label:
-            self.num_search_results_label.setText("%d results" % self.model.total_items)
+        if self.num_results_label:
+            self.num_results_label.setText("%d results" % self.model.total_items)
 
 
-class ChannelsTableViewController(TriblerTableViewController):
-    """
-    This class manages a list with channels.
-    """
-
-    def __init__(self, model, table_view, num_channels_label=None, filter_input=None):
-        TriblerTableViewController.__init__(self, model, table_view)
-        self.num_channels_label = num_channels_label
-        self.filter_input = filter_input
-
-        if self.filter_input:
-            self.filter_input.textChanged.connect(self._on_filter_input_change)
-
-    def _on_filter_input_change(self, _):
-        self.model.reset()
-        self.load_channels(1, 50)
-
-    def _on_view_sort(self, column, ascending):
-        self.model.reset()
-        self.load_channels(1, 50)
-
-    def _on_list_scroll(self, event):
-        if self.table_view.verticalScrollBar().value() == self.table_view.verticalScrollBar().maximum() and \
-                self.model.data_items:  # workaround for duplicate calls to _on_list_scroll on view creation
-            self.load_channels()
-
-    def load_channels(self, start=None, end=None):
-        """
-        Fetch various channels.
-        """
-        if not start and not end:
-            start, end = self.model.rowCount() + 1, self.model.rowCount() + self.model.item_load_batch
-
-        if self.filter_input and self.filter_input.text().lower():
-            filter_text = self.filter_input.text().lower()
-        else:
-            filter_text = ''
-
-        sort_by, sort_asc = self._get_sort_parameters()
-
-        self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request(
-            "metadata/channels",
-            self.on_channels,
-            url_params={
-                "first": start,
-                "last": end,
-                "sort_by": sort_by,
-                "sort_asc": sort_asc,
-                "filter": to_fts_query(filter_text),
-                "hide_xxx": self.model.hide_xxx,
-                "subscribed": self.model.subscribed})
-
-    def on_channels(self, response):
-        if not response:
-            return
-
-        self.model.total_items = response['total']
-
-        if self.num_channels_label:
-            self.num_channels_label.setText("%d items" % response['total'])
-
-        if response['first'] >= self.model.rowCount():
-            self.model.add_items(response['channels'])
-
-
-class TorrentsTableViewController(TriblerTableViewController):
-    """
-    This class manages a list with torrents.
-    """
-
-    def __init__(self, model, torrents_container, num_torrents_label=None, filter_input=None):
-        TriblerTableViewController.__init__(self, model, torrents_container.content_table)
-        self.torrents_container = torrents_container
-        self.num_torrents_label = num_torrents_label
-        self.filter_input = filter_input
-        torrents_container.content_table.selectionModel().selectionChanged.connect(self._on_selection_changed)
-
-        if self.filter_input:
-            self.filter_input.textChanged.connect(self._on_filter_input_change)
+class TableSelectionMixin(object):
 
     def _on_selection_changed(self, _):
         selected_indices = self.table_view.selectedIndexes()
         if not selected_indices:
             return
 
+        torrent_info = selected_indices[0].model().data_items[selected_indices[0].row()]
+        if 'type' in torrent_info and torrent_info['type'] == 'channel':
+            self.details_container.hide()
+            self.table_view.clearSelection()
+            return
+
         first_show = False
-        if self.torrents_container.details_container.isHidden():
+        if self.details_container.isHidden():
             first_show = True
 
-        self.torrents_container.details_container.show()
-        torrent_info = selected_indices[0].model().data_items[selected_indices[0].row()]
-        self.torrents_container.details_tab_widget.update_with_torrent(selected_indices[0], torrent_info)
+        self.details_container.show()
+        self.details_container.details_tab_widget.update_with_torrent(selected_indices[0], torrent_info)
         if first_show:
             window = self.table_view.window()
             # FIXME! Brain-dead way to show the rows covered by a newly-opened details_container
             # Note that none of then more civilized ways to fix it works:
             # various updateGeometry, viewport().update, adjustSize - nothing works!
-            window.resize(window.geometry().width()+1, window.geometry().height())
-            window.resize(window.geometry().width()-1, window.geometry().height())
+            window.resize(window.geometry().width() + 1, window.geometry().height())
+            window.resize(window.geometry().width() - 1, window.geometry().height())
 
-    def _on_filter_input_change(self, _):
-        self.model.reset()
-        self.load_torrents(1, 50)
 
-    def _on_view_sort(self, column, ascending):
-        self.model.reset()
-        self.load_torrents(1, 50)
+class SearchResultsTableViewController(RemoteResultsMixin, TableSelectionMixin, TriblerTableViewController):
+    """
+    Controller for the table view that handles search results.
+    """
 
-    def _on_list_scroll(self, event):
-        if self.table_view.verticalScrollBar().value() == self.table_view.verticalScrollBar().maximum() and \
-                self.model.data_items:  # workaround for duplicate calls to _on_list_scroll on view creation
-            self.load_torrents()
+    def __init__(self, model, table_view, details_container, num_results_label=None):
+        TriblerTableViewController.__init__(self, model, table_view)
+        self.num_results_label = num_results_label
+        self.details_container = details_container
+        table_view.selectionModel().selectionChanged.connect(self._on_selection_changed)
 
-    def load_torrents(self, start=None, end=None):
+    def perform_query(self, **kwargs):
         """
-        Fetch various torrents.
+        Fetch search results.
         """
-        if not start and not end:
-            start, end = self.model.rowCount() + 1, self.model.rowCount() + self.model.item_load_batch
+        if "rest_endpoint_url" not in kwargs:
+            kwargs.update({"metadata_type": self.model.type_filter})
+        kwargs.update({"rest_endpoint_url": "search"})
+        super(SearchResultsTableViewController, self).perform_query(**kwargs)
 
-        if self.filter_input and self.filter_input.text().lower():
-            filter_text = self.filter_input.text().lower()
-        else:
-            filter_text = ''
 
-        sort_by, sort_asc = self._get_sort_parameters()
+class ChannelsTableViewController(FilterInputMixin, TriblerTableViewController):
+    """
+    This class manages a list with channels.
+    """
 
-        self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request(
-            "metadata/channels/%s/torrents" % self.model.channel_pk,
-            self.on_torrents,
-            url_params={
-                "first": start,
-                "last": end,
-                "sort_by": sort_by,
-                "sort_asc": sort_asc,
-                "hide_xxx": self.model.hide_xxx,
-                "filter": to_fts_query(filter_text)})
+    def __init__(self, model, table_view, num_results_label=None, filter_input=None):
+        TriblerTableViewController.__init__(self, model, table_view)
+        self.num_results_label = num_results_label
+        self.filter_input = filter_input
 
-    def on_torrents(self, response):
-        if not response:
-            return None
+        if self.filter_input:
+            self.filter_input.textChanged.connect(self._on_filter_input_change)
 
-        self.model.total_items = response['total']
+    def perform_query(self, **kwargs):
+        self.query_text = (self.filter_input.text().lower()
+                           if (self.filter_input and self.filter_input.text().lower())
+                           else '')
+        if "rest_endpoint_url" not in kwargs:
+            kwargs.update({"rest_endpoint_url": "metadata/channels"})
+        kwargs.update({"subscribed": self.model.subscribed})
+        super(ChannelsTableViewController, self).perform_query(**kwargs)
 
-        if self.num_torrents_label:
-            self.num_torrents_label.setText("%d items" % response['total'])
 
-        if response['first'] >= self.model.rowCount():
-            self.model.add_items(response['torrents'])
-        return True
+class TorrentsTableViewController(TableSelectionMixin, FilterInputMixin, TriblerTableViewController):
+    """
+    This class manages a list with torrents.
+    """
+
+    def __init__(self, model, table_view, details_container, num_results_label=None, filter_input=None):
+        TriblerTableViewController.__init__(self, model, table_view)
+        self.num_results_label = num_results_label
+        self.filter_input = filter_input
+        self.details_container = details_container
+        table_view.selectionModel().selectionChanged.connect(self._on_selection_changed)
+        if self.filter_input:
+            self.filter_input.textChanged.connect(self._on_filter_input_change)
+
+    def perform_query(self, **kwargs):
+        if "rest_endpoint_url" not in kwargs:
+            kwargs.update({
+                "rest_endpoint_url": "metadata/channels/%s/torrents" % self.model.channel_pk})
+        super(TorrentsTableViewController, self).perform_query(**kwargs)
 
 
 class MyTorrentsTableViewController(TorrentsTableViewController):
@@ -290,31 +206,35 @@ class MyTorrentsTableViewController(TorrentsTableViewController):
     This class manages the list with the torrents in your own channel.
     """
 
-    def load_torrents(self, start=None, end=None):
-        """
-        Fetch various torrents.
-        """
-        if not start and not end:
-            start, end = self.model.rowCount() + 1, self.model.rowCount() + self.model.item_load_batch
+    def __init__(self, *args, **kwargs):
+        super(MyTorrentsTableViewController, self).__init__(*args, **kwargs)
+        self.model.row_edited.connect(self._on_row_edited)
 
-        if self.filter_input and self.filter_input.text().lower():
-            filter_text = self.filter_input.text().lower()
-        else:
-            filter_text = ''
-
-        sort_by, sort_asc = self._get_sort_parameters()
+    def _on_row_edited(self, index, new_value):
+        infohash = self.model.data_items[index.row()][u'infohash']
+        attribute_name = self.model.columns[index.column()]
+        attribute_name = u'tags' if attribute_name == u'category' else attribute_name
+        attribute_name = u'title' if attribute_name == u'name' else attribute_name
 
         self.request_mgr = TriblerRequestManager()
         self.request_mgr.perform_request(
-            "mychannel/torrents",
-            self.on_torrents,
-            url_params={
-                "sort_by": sort_by,
-                "sort_asc": sort_asc,
-                "filter": to_fts_query(filter_text),
-                "exclude_deleted": self.model.exclude_deleted})
+            "mychannel/torrents/%s" % infohash,
+            self._on_row_update_results,
+            method='PATCH',
+            data={attribute_name: new_value})
 
-    def on_torrents(self, response):
-        if super(MyTorrentsTableViewController, self).on_torrents(response):
+    def _on_row_update_results(self, response):
+        if response:
+            self.table_view.window().edit_channel_page.channel_dirty = response['dirty']
+            self.table_view.window().edit_channel_page.update_channel_commit_views()
+
+    def perform_query(self, **kwargs):
+        kwargs.update({
+            "rest_endpoint_url": "mychannel/torrents",
+            "exclude_deleted": self.model.exclude_deleted})
+        super(MyTorrentsTableViewController, self).perform_query(**kwargs)
+
+    def on_query_results(self, response):
+        if super(MyTorrentsTableViewController, self).on_query_results(response):
             self.table_view.window().edit_channel_page.channel_dirty = response['dirty']
             self.table_view.window().edit_channel_page.update_channel_commit_views()

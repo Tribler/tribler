@@ -4,10 +4,10 @@ from abc import abstractmethod
 
 from PyQt5.QtCore import QEvent, QModelIndex, QObject, QRect, QSize, Qt, pyqtSignal
 from PyQt5.QtGui import QBrush, QColor, QIcon, QPainter, QPen
-from PyQt5.QtWidgets import QStyle, QStyledItemDelegate
+from PyQt5.QtWidgets import QComboBox, QStyle, QStyledItemDelegate
 
-from TriblerGUI.defs import ACTION_BUTTONS, COMMIT_STATUS_COMMITTED, COMMIT_STATUS_NEW, COMMIT_STATUS_TODELETE, \
-    HEALTH_CHECKING, HEALTH_DEAD, HEALTH_ERROR, HEALTH_GOOD, HEALTH_MOOT, HEALTH_UNCHECKED
+from TriblerGUI.defs import ACTION_BUTTONS, CATEGORY_LIST, COMMIT_STATUS_COMMITTED, COMMIT_STATUS_NEW, \
+    COMMIT_STATUS_TODELETE, HEALTH_CHECKING, HEALTH_DEAD, HEALTH_ERROR, HEALTH_GOOD, HEALTH_MOOT, HEALTH_UNCHECKED
 from TriblerGUI.utilities import get_health, get_image_path
 from TriblerGUI.widgets.tableiconbuttons import DeleteIconButton, DownloadIconButton, PlayIconButton
 
@@ -91,8 +91,12 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
         # Add null editor to action buttons column
         if index.column() == index.model().column_position[ACTION_BUTTONS]:
             return
+        if index.column() == index.model().column_position['category']:
+            cbox = QComboBox(parent)
+            cbox.addItems(CATEGORY_LIST)
+            return cbox
 
-        super(TriblerButtonsDelegate, self).createEditor(parent, option, index)
+        return super(TriblerButtonsDelegate, self).createEditor(parent, option, index)
 
 
 class SearchResultsDelegate(TriblerButtonsDelegate):
@@ -117,7 +121,7 @@ class SearchResultsDelegate(TriblerButtonsDelegate):
             self.paint_empty_background(painter, option)
 
             if data_item['type'] == 'channel':
-                if index.model().data_items[index.row()][u'status'] == 6:  # LEGACY ENTRIES!
+                if index.model().data_items[index.row()][u'status'] == 1000:  # LEGACY ENTRIES!
                     return True
                 if index.model().data_items[index.row()][u'my_channel']:  # Skip personal channel
                     return True
@@ -181,7 +185,7 @@ class ChannelsButtonsDelegate(TriblerButtonsDelegate):
             # Draw empty cell as the background
             self.paint_empty_background(painter, option)
 
-            if index.model().data_items[index.row()][u'status'] == 6:  # LEGACY ENTRIES!
+            if index.model().data_items[index.row()][u'status'] == 1000:  # LEGACY ENTRIES!
                 return True
             if index.model().data_items[index.row()][u'my_channel']:
                 return True

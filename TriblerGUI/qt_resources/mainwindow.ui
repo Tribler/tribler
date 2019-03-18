@@ -88,6 +88,9 @@ color: white;
 }
 QHeaderView {
 qproperty-defaultAlignment: AlignLeft;
+}
+QListView {
+color:#B5B5B5;
 }</string>
   </property>
   <widget class="QWidget" name="central_widget">
@@ -3307,7 +3310,7 @@ font-weight: bold;</string>
               </widget>
              </item>
              <item>
-              <widget class="QLabel" name="num_search_results_label">
+              <widget class="QLabel" name="num_results_label">
                <property name="styleSheet">
                 <string notr="true">font-size: 14px;
 color: #B5B5B5;</string>

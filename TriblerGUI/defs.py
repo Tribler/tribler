@@ -101,7 +101,6 @@ COMMIT_STATUS_NEW = 0
 COMMIT_STATUS_TODELETE = 1
 COMMIT_STATUS_COMMITTED = 2
 
-
 HEALTH_CHECKING = u'Checking..'
 HEALTH_DEAD = u'No peers'
 HEALTH_ERROR = u'Error'
@@ -110,4 +109,21 @@ HEALTH_GOOD = u'Seeds found'
 HEALTH_UNCHECKED = u'Unknown'
 
 # Interval for refreshing the results in the debug pane
-DEBUG_PANE_REFRESH_TIMEOUT = 5000   # 5 seconds
+DEBUG_PANE_REFRESH_TIMEOUT = 5000  # 5 seconds
+
+# This list of content categories is used in drop-down menu when editing a personal channel
+# TODO: build this automatically and/or move it somewhere
+CATEGORY_LIST = [
+    u'Video',
+    u'Audio',
+    u'Documents',
+    u'CD/DVD/BD',
+    u'Games',
+    u'Pictures',
+    u'Books',
+    u'Comics',
+    u'Software',
+    u'Science',
+    u'XXX',
+    u'Other',
+]

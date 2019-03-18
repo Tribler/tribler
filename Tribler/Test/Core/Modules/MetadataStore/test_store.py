@@ -14,7 +14,7 @@ from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import NEW
 from Tribler.Core.Modules.MetadataStore.serialization import (
     ChannelMetadataPayload, DeletedMetadataPayload, SignedPayload, UnknownBlobTypeException)
 from Tribler.Core.Modules.MetadataStore.store import (
-    DELETED_METADATA, MetadataStore, UNKNOWN_CHANNEL, UNKNOWN_TORRENT, UPDATED_OUR_VERSION)
+    DELETED_METADATA, GOT_NEWER_VERSION, MetadataStore, UNKNOWN_CHANNEL, UNKNOWN_TORRENT, UPDATED_OUR_VERSION)
 from Tribler.Test.Core.base_test import TriblerCoreTest
 from Tribler.pyipv8.ipv8.database import database_blob
 from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto
@@ -185,7 +185,8 @@ class TestMetadataStore(TriblerCoreTest):
         node, node_payload, node_deleted_payload = get_payloads(self.mds.ChannelMetadata)
         node_dict = node.to_dict()
         node.delete()
-        # Check there is no action if the signature on the delete object is unknown
+
+        # Check that there is no action if the signature on the delete object is unknown
         self.assertFalse(self.mds.process_payload(node_deleted_payload))
         result = self.mds.process_payload(node_payload)
         self.assertEqual(UNKNOWN_CHANNEL, result[0][1])
@@ -208,7 +209,7 @@ class TestMetadataStore(TriblerCoreTest):
         node_updated_payload = node_updated._payload_class.from_signed_blob(node_updated.serialized())
         node_updated.delete()
 
-        node = self.mds.TorrentMetadata(**node_dict)
+        self.mds.TorrentMetadata(**node_dict)
         self.mds.TorrentMetadata(**node2_dict)
 
         result = self.mds.process_payload(node_updated_payload)
@@ -218,7 +219,7 @@ class TestMetadataStore(TriblerCoreTest):
                          database_blob(node_updated_payload.signature))
 
     @db_session
-    def test_process_payload_reject_old(self):
+    def test_process_payload_reject_older(self):
         # Check there is no action if the processed payload has a timestamp that is less than the
         # local_version of the corresponding local channel. (I.e. remote peer trying to push back a deleted entry)
         channel = self.mds.ChannelMetadata(title='bla', version=123, local_version=12,
@@ -228,6 +229,35 @@ class TestMetadataStore(TriblerCoreTest):
         payload = torrent._payload_class(**torrent.to_dict())
         torrent.delete()
         self.assertFalse(self.mds.process_payload(payload))
+
+    @db_session
+    def test_process_payload_reject_older_entry_with_known_infohash_or_merge(self):
+        # Check there is no action if the processed payload has a timestamp that is less than the
+        # local_version of the corresponding local channel. (I.e. remote peer trying to push back a deleted entry)
+        torrent = self.mds.TorrentMetadata(title='blabla', timestamp=10, id_=10,
+                                           infohash=database_blob(os.urandom(20)))
+        payload = torrent._payload_class(**torrent.to_dict())
+        torrent.delete()
+
+        torrent2 = self.mds.TorrentMetadata(title='blabla', timestamp=11, id_=3,
+                                            infohash=payload.infohash)
+        payload2 = torrent._payload_class(**torrent2.to_dict())
+        torrent2.delete()
+
+        torrent3 = self.mds.TorrentMetadata(title='blabla', timestamp=12, id_=4,
+                                            infohash=payload.infohash)
+        payload3 = torrent._payload_class(**torrent3.to_dict())
+        torrent3.delete()
+
+        self.mds.process_payload(payload2)
+        self.assertEqual(GOT_NEWER_VERSION, self.mds.process_payload(payload)[0][1])
+
+        # In this corner case the newly arrived payload contains a newer node
+        # that has the same infohash as the one that is already there.
+        # The older one should be deleted, and the newer one should be installed instead.
+        results = self.mds.process_payload(payload3)
+        self.assertIn((None, DELETED_METADATA), results)
+        self.assertIn((self.mds.TorrentMetadata.get(), UNKNOWN_TORRENT), results)
 
     @db_session
     def test_get_num_channels_nodes(self):

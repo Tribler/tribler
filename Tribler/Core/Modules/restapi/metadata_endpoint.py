@@ -101,7 +101,7 @@ class ChannelsEndpoint(BaseChannelsEndpoint):
             channels_list = [channel.to_simple_dict() for channel in channels]
 
         return json.dumps({
-            "channels": channels_list,
+            "results": channels_list,
             "first": sanitized["first"],
             "last": sanitized["last"],
             "sort_by": sanitized["sort_by"],
@@ -154,18 +154,8 @@ class SpecificChannelEndpoint(BaseChannelsEndpoint):
             with db_session:
                 channel = self.session.lm.mds.ChannelMetadata.get_for_update(public_key=database_blob(self.channel_pk))
                 channel.local_version = 0
-            while True:
-                if self.session.lm.mds._shutting_down:
-                    self.session.lm.mds._db.disconnect()
-                    return
-                with db_session:
-                    contents = channel.contents[:100]
-                    if len(contents) > 3:  # leave just 3 entries for preview purposes
-                        # FIXME: PONY BUG - can't use bulk delete because of broken FOREIGN KEY constraints
-                        for entry in contents[:3]:
-                            entry.delete()
-                    else:
-                        break
+                contents = channel.contents
+                contents.delete(bulk=True)
             self.session.lm.mds._db.disconnect()
 
         if not to_subscribe:
@@ -187,7 +177,7 @@ class SpecificChannelTorrentsEndpoint(BaseMetadataEndpoint):
             torrents_list = [torrent.to_simple_dict() for torrent in torrents]
 
         return json.dumps({
-            "torrents": torrents_list,
+            "results": torrents_list,
             "first": sanitized['first'],
             "last": sanitized['last'],
             "sort_by": sanitized['sort_by'],

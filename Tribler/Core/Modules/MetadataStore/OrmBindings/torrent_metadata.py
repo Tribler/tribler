@@ -7,7 +7,7 @@ from pony import orm
 from pony.orm import db_session, desc, raw_sql, select
 
 from Tribler.Core.Category.FamilyFilter import default_xxx_filter
-from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import LEGACY_ENTRY, TODELETE
+from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import LEGACY_ENTRY, TODELETE, UPDATED
 from Tribler.Core.Modules.MetadataStore.serialization import REGULAR_TORRENT, TorrentMetadataPayload
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
 from Tribler.pyipv8.ipv8.database import database_blob
@@ -195,5 +195,26 @@ def define_binding(db):
                     continue
                 return True
             return False
+
+        def update_properties(self, update_dict):
+            # TODO: generalize this to work for all properties.
+            if "status" in update_dict and len(update_dict) > 1:
+                self._logger.error("Assigning status along with other properties is not supported yet.")
+                raise NotImplementedError
+
+            if set(update_dict) - {"tags", "title", "status"}:
+                self._logger.error("Assigning properties other than tags, title and status is not supported yet.")
+                raise NotImplementedError
+
+            if "status" in update_dict:
+                self.set(**update_dict)
+                return
+
+            if (("tags" in update_dict and self.tags != update_dict["tags"]) or
+                    ("title" in update_dict and self.title != update_dict["title"])):
+                self.set(**update_dict)
+                self.status = UPDATED
+                self.timestamp = self._clock.tick()
+                self.sign()
 
     return TorrentMetadata

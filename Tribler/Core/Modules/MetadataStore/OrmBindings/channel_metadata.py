@@ -15,7 +15,7 @@ from pony.orm import db_session, raw_sql, select
 
 from Tribler.Core.Category.Category import default_category_filter
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import COMMITTED, LEGACY_ENTRY, NEW, PUBLIC_KEY_LEN, \
-    TODELETE
+    TODELETE, UPDATED
 from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, ChannelMetadataPayload
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
@@ -168,7 +168,7 @@ def define_binding(db):
             start_timestamp = self._clock.tick()
             for g in self.contents:
                 if g.status == COMMITTED:
-                    g.status = NEW
+                    g.status = UPDATED
                     g.timestamp = self._clock.tick()
                     g.sign()
 
@@ -232,7 +232,7 @@ def define_binding(db):
                 self.local_version = self.timestamp
                 # Change status of committed metadata and clean up obsolete TODELETE entries
                 for g in md_list:
-                    if g.status == NEW:
+                    if g.status in [NEW, UPDATED]:
                         g.status = COMMITTED
                     elif g.status == TODELETE:
                         g.delete()
@@ -295,12 +295,11 @@ def define_binding(db):
                     raise DuplicateTorrentFileError()
             else:
                 torrent_metadata = db.TorrentMetadata.from_dict(new_entry_dict)
-                torrent_metadata.parents.add(self)
             return torrent_metadata
 
         @property
         def dirty(self):
-            return self.contents.where(lambda g: g.status == NEW or g.status == TODELETE).exists()
+            return self.contents.where(lambda g: g.status in [NEW, TODELETE, UPDATED]).exists()
 
         @property
         def contents(self):
@@ -308,7 +307,7 @@ def define_binding(db):
 
         @property
         def uncommitted_contents(self):
-            return self.contents.where(lambda g: g.status == NEW)
+            return self.contents.where(lambda g: g.status in [NEW, UPDATED])
 
         @property
         def deleted_contents(self):
@@ -345,7 +344,7 @@ def define_binding(db):
             if not torrent_metadata:
                 return False
 
-            if torrent_metadata.status == NEW:
+            if torrent_metadata.status in [NEW, UPDATED]:
                 # Uncommited metadata. Delete immediately
                 torrent_metadata.delete()
             else:
@@ -406,10 +405,11 @@ def define_binding(db):
             :rtype: list
             """
             if only_subscribed:
-                select_lambda = lambda g: g.subscribed and g.status not in [LEGACY_ENTRY, NEW,
+                select_lambda = lambda g: g.subscribed and g.status not in [LEGACY_ENTRY, NEW, UPDATED,
                                                                             TODELETE] and g.num_entries > 0
             else:
-                select_lambda = lambda g: g.status not in [LEGACY_ENTRY, NEW, TODELETE] and g.num_entries > 0
+                select_lambda = lambda g: g.status not in [LEGACY_ENTRY, NEW, UPDATED,
+                                                           TODELETE] and g.num_entries > 0
 
             return db.ChannelMetadata.select(select_lambda).random(limit)
 
