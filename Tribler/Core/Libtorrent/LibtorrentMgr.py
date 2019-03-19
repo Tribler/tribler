@@ -16,20 +16,21 @@ from distutils.version import LooseVersion
 from shutil import rmtree
 
 import libtorrent as lt
-from libtorrent import torrent_handle
+from libtorrent import bdecode, torrent_handle
 
 from six import text_type
 from six.moves.urllib.request import url2pathname
 
-from twisted.internet import reactor, threads
+from twisted.internet import reactor
 from twisted.internet.defer import Deferred, fail, succeed
 from twisted.internet.task import LoopingCall
 from twisted.python.failure import Failure
 
 from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
+from Tribler.Core.Modules.dht_health_manager import DHTHealthManager
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
-from Tribler.Core.Utilities.utilities import fix_torrent, parse_magnetlink
+from Tribler.Core.Utilities.utilities import fix_torrent, has_bep33_support, parse_magnetlink
 from Tribler.Core.exceptions import TorrentFileException
 from Tribler.Core.simpledefs import (NTFY_INSERT, NTFY_MAGNET_CLOSE, NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_STARTED,
                                      NTFY_REACHABLE, NTFY_TORRENTS)
@@ -59,7 +60,8 @@ class LibtorrentMgr(TaskManager):
 
         self.tribler_session = tribler_session
         self.ltsessions = {}
-        self.ltsession_metainfo = None
+        self.ltsession_metainfo = None  # We have a dedicated libtorrent session for metainfo/DHT health lookups
+        self.dht_health_manager = None
 
         self.notifier = tribler_session.notifier
 
@@ -93,6 +95,11 @@ class LibtorrentMgr(TaskManager):
         # start upnp
         self.get_session().start_upnp()
         self.ltsession_metainfo = self.create_session(hops=0, store_listen_port=False)
+
+        if has_bep33_support():
+            # Also listen to DHT log notifications - we need the dht_pkt_alert and extract the BEP33 bloom filters
+            self.ltsession_metainfo.set_alert_mask(self.default_alert_mask | lt.alert.category_t.dht_log_notification)
+            self.dht_health_manager = DHTHealthManager(self.ltsession_metainfo)
 
         # make temporary directory for metadata collecting through DHT
         self.metadata_tmpdir = tempfile.mkdtemp(suffix=u'tribler_metainfo_tmpdir')
@@ -586,6 +593,14 @@ class LibtorrentMgr(TaskManager):
             for alert in self.ltsession_metainfo.pop_alerts():
                 if isinstance(alert, lt.metadata_received_alert):
                     self.got_metainfo(str(alert.handle.info_hash()))
+                elif alert.__class__.__name__ == "dht_pkt_alert":
+                    # We received a raw DHT message - decode it and check whether it is a BEP33 message.
+                    decoded = bdecode(alert.pkt_buf)
+                    if 'r' in decoded:
+                        if 'BFsd' in decoded['r'] and 'BFpe' in decoded['r']:
+                            self.dht_health_manager.received_bloomfilters(decoded['r']['id'],
+                                                                          bytearray(decoded['r']['BFsd']),
+                                                                          bytearray(decoded['r']['BFpe']))
 
     def _check_reachability(self):
         if self.get_session() and self.get_session().status().has_incoming_connections:

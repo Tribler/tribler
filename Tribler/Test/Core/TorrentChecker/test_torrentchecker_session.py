@@ -1,16 +1,19 @@
+from __future__ import absolute_import
+
 import struct
+from binascii import hexlify
+
 from libtorrent import bencode
-from twisted.internet.defer import Deferred, inlineCallbacks
-from twisted.internet.task import Clock
+
+from twisted.internet.defer import Deferred, inlineCallbacks, succeed
 from twisted.python.failure import Failure
 
 from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.Session import Session
-from Tribler.Core.TorrentChecker.session import FakeDHTSession, DHT_TRACKER_MAX_RETRIES, DHT_TRACKER_RECHECK_INTERVAL, \
-    UdpTrackerSession, HttpTrackerSession
-from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
-from Tribler.Test.tools import trial_timeout
+from Tribler.Core.TorrentChecker.session import FakeDHTSession, HttpTrackerSession, UdpTrackerSession
+from Tribler.Test.Core.base_test import MockObject, TriblerCoreTest
 from Tribler.Test.test_as_server import TestAsServer
+from Tribler.Test.tools import trial_timeout
 
 
 class FakeUdpSocketManager(object):
@@ -42,7 +45,7 @@ class TestTorrentCheckerSession(TestAsServer):
     def test_httpsession_bdecode_fails(self):
         session = HttpTrackerSession("localhost", ("localhost", 8475), "/announce", 5)
         session._infohash_list = []
-        session._process_scrape_response("test")
+        session._process_scrape_response(bencode({}))
         self.assertTrue(session.is_failed)
 
     @trial_timeout(5)
@@ -281,10 +284,10 @@ class TestTorrentCheckerSession(TestAsServer):
 
     def test_http_unprocessed_infohashes(self):
         session = HttpTrackerSession("localhost", ("localhost", 8475), "/announce", 5)
-        result_deffered = Deferred()
-        session.result_deferred = result_deffered
+        result_deferred = Deferred()
+        session.result_deferred = result_deferred
         session._infohash_list.append("test")
-        response = bencode(dict())
+        response = bencode({"files": {"a" * 20: {"complete": 10, "incomplete": 10}}})
         session._process_scrape_response(response)
         self.assertTrue(session.is_finished)
 
@@ -331,6 +334,14 @@ class TestDHTSession(TriblerCoreTest):
         config.set_state_dir(self.getStateDir())
 
         self.session = Session(config)
+        self.session.lm.ltmgr = MockObject()
+        self.session.lm.ltmgr.dht_health_manager = MockObject()
+        dht_health_dict = {
+            "infohash": hexlify('a' * 20),
+            "seeders": 1,
+            "leechers": 2
+        }
+        self.session.lm.ltmgr.dht_health_manager.get_health = lambda *_, **__: succeed({"DHT": [dht_health_dict]})
 
         self.dht_session = FakeDHTSession(self.session, 'a' * 20, 10)
 
@@ -346,44 +357,16 @@ class TestDHTSession(TriblerCoreTest):
         """
         Test the metainfo lookup of the DHT session
         """
-        def get_metainfo(infohash, callback, **_):
-            callback({"seeders": 1, "leechers": 2})
-
         def verify_metainfo(metainfo):
             self.assertTrue('DHT' in metainfo)
             self.assertEqual(metainfo['DHT'][0]['leechers'], 2)
             self.assertEqual(metainfo['DHT'][0]['seeders'], 1)
 
-        self.session.lm.ltmgr = MockObject()
-        self.session.lm.ltmgr.get_metainfo = get_metainfo
         return self.dht_session.connect_to_tracker().addCallback(verify_metainfo)
-
-    @trial_timeout(10)
-    def test_metainfo_timeout(self):
-        """
-        Test the metainfo timeout of the DHT session
-        """
-        test_deferred = Deferred()
-
-        def get_metainfo_timeout(*args, **kwargs):
-            timeout_cb = kwargs.get('timeout_callback')
-            timeout_cb('a' * 20)
-
-        def on_timeout(failure):
-            test_deferred.callback(None)
-
-        self.session.lm.ltmgr = MockObject()
-        self.session.lm.ltmgr.get_metainfo = get_metainfo_timeout
-        self.dht_session.connect_to_tracker().addErrback(on_timeout)
-        return test_deferred
 
     def test_methods(self):
         """
         Test various methods in the DHT session class
         """
-        self.assertTrue(self.dht_session.can_add_request())
         self.dht_session.add_infohash('b' * 20)
         self.assertEqual(self.dht_session.infohash, 'b' * 20)
-        self.assertEqual(self.dht_session.max_retries, DHT_TRACKER_MAX_RETRIES)
-        self.assertEqual(self.dht_session.retry_interval, DHT_TRACKER_RECHECK_INTERVAL)
-        self.assertGreater(self.dht_session.last_contact, 0)

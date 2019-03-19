@@ -38,9 +38,6 @@ UDP_TRACKER_MAX_RETRIES = 8
 HTTP_TRACKER_RECHECK_INTERVAL = 60
 HTTP_TRACKER_MAX_RETRIES = 0
 
-DHT_TRACKER_RECHECK_INTERVAL = 60
-DHT_TRACKER_MAX_RETRIES = 8
-
 MAX_TRACKER_MULTI_SCRAPE = 74
 
 
@@ -103,17 +100,6 @@ class TrackerSession(TaskManager):
 
         self.shutdown_task_manager()
         self._infohash_list = None
-
-    def can_add_request(self):
-        """
-        Checks if we still can add requests to this session.
-        :return: True or False.
-        """
-
-        # TODO(ardhi) : quickfix for etree.org can't handle multiple infohash in single call
-        etree_condition = "etree" not in self.tracker_url
-
-        return not self._is_initiated and len(self._infohash_list) < MAX_TRACKER_MULTI_SCRAPE and etree_condition
 
     def has_infohash(self, infohash):
         return infohash in self._infohash_list
@@ -310,7 +296,7 @@ class HttpTrackerSession(TrackerSession):
             return
 
         response_dict = bdecode(body)
-        if response_dict is None:
+        if not response_dict:
             self.failed(msg="no valid response")
             return
 
@@ -682,13 +668,6 @@ class FakeDHTSession(TrackerSession):
         # Return a defer that immediately calls its callback
         return defer.succeed(None)
 
-    def can_add_request(self):
-        """
-        Returns whether or not this session can accept additional infohashes.
-        :return:
-        """
-        return True
-
     def add_infohash(self, infohash):
         """
         This function adds a infohash to the request list.
@@ -701,37 +680,4 @@ class FakeDHTSession(TrackerSession):
         Fakely connects to a tracker.
         :return: A deferred with a callback containing an empty dictionary.
         """
-
-        def on_metainfo_received(metainfo):
-            self.result_deferred.callback({'DHT': [{'infohash': hexlify(self.infohash),
-                                                    'seeders': metainfo['seeders'], 'leechers': metainfo['leechers']}]})
-
-        def on_metainfo_timeout(_):
-            self.result_deferred.errback(Failure(RuntimeError("DHT timeout")))
-
-        if self._session:
-            self._session.lm.ltmgr.get_metainfo(self.infohash, callback=on_metainfo_received,
-                                                timeout_callback=on_metainfo_timeout, timeout=self.timeout)
-
-        return self.result_deferred
-
-    @property
-    def max_retries(self):
-        """
-        Returns the max amount of retries allowed for this session.
-        :return: The maximum amount of retries.
-        """
-        return DHT_TRACKER_MAX_RETRIES
-
-    @property
-    def retry_interval(self):
-        """
-        Returns the interval one has to wait before retrying to connect.
-        :return: The interval before retrying.
-        """
-        return DHT_TRACKER_RECHECK_INTERVAL
-
-    @property
-    def last_contact(self):
-        # we never want this session to be cleaned up as it's faker than a 4 eur bill.
-        return time.time()
+        return self._session.lm.ltmgr.dht_health_manager.get_health(self.infohash)
