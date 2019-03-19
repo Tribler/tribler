@@ -167,7 +167,7 @@ class Order(object):
         :rtype: tuple
         """
         completed_timestamp = float(self.completed_timestamp) if self.completed_timestamp else None
-        return (database_blob(self.order_id.trader_id.to_string()), text_type(self.order_id.order_number),
+        return (database_blob(self.order_id.trader_id.to_bytes()), text_type(self.order_id.order_number),
                 self.assets.first.amount, text_type(self.assets.first.asset_id), self.assets.second.amount,
                 text_type(self.assets.second.asset_id), self.traded_quantity, int(self.timeout),
                 float(self.timestamp), completed_timestamp, self.is_ask(), self._cancelled, self._verified)
@@ -404,7 +404,7 @@ class Order(object):
         """
         completed_timestamp = float(self.completed_timestamp) if self.completed_timestamp else None
         return {
-            "trader_id": self.order_id.trader_id.to_string(),
+            "trader_id": self.order_id.trader_id.to_bytes(),
             "order_number": int(self.order_id.order_number),
             "assets": self.assets.to_dictionary(),
             "reserved_quantity": self.reserved_quantity,

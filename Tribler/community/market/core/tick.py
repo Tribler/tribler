@@ -62,7 +62,7 @@ class Tick(object):
                         Timeout(timeout), Timestamp(timestamp), traded=traded, block_hash=str(block_hash))
 
     def to_database(self):
-        return (database_blob(self.order_id.trader_id.to_string()), int(self.order_id.order_number),
+        return (database_blob(self.order_id.trader_id.to_bytes()), int(self.order_id.order_number),
                 self.assets.first.amount, text_type(self.assets.first.asset_id), self.assets.second.amount,
                 text_type(self.assets.second.asset_id), int(self.timeout), float(self.timestamp), self.is_ask(),
                 self.traded, database_blob(self.block_hash))
@@ -196,7 +196,7 @@ class Tick(object):
         Return a dictionary with a representation of this tick.
         """
         return {
-            "trader_id": self.order_id.trader_id.to_string(),
+            "trader_id": self.order_id.trader_id.to_bytes(),
             "order_number": int(self.order_id.order_number),
             "assets": self.assets.to_dictionary(),
             "timeout": int(self.timeout),
