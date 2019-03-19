@@ -918,7 +918,7 @@ class MarketCommunity(Community, BlockListener):
                 self.send_decline_match_message(payload.match_id,
                                                 payload.matchmaker_trader_id,
                                                 DeclineMatchReason.OTHER)
-  
+
         # Reserve the quantity
         order.reserve_quantity_for_tick(other_order_id, propose_quantity)
         self.order_manager.order_repository.update(order)
