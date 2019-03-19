@@ -913,7 +913,7 @@ class MarketCommunity(Community, BlockListener):
         def on_peer_address(address):
             if address:
                 self.send_proposed_trade(propose_trade, payload.match_id, address)
-            else
+            else:
                 order.release_quantity_for_tick(other_order_id, propose_quantity)
                 self.send_decline_match_message(payload.match_id,
                                                 payload.matchmaker_trader_id,
