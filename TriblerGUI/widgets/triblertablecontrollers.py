@@ -4,6 +4,8 @@ The responsibility of the controller is to populate the table view with some dat
 """
 from __future__ import absolute_import
 
+import uuid
+
 from six import text_type
 
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
@@ -38,6 +40,7 @@ class TriblerTableViewController(object):
         self.query_text = ''
         self.num_results_label = None
         self.request_mgr = None
+        self.query_uuid = None
 
     def _on_view_sort(self, column, ascending):
         self.model.reset()
@@ -64,8 +67,13 @@ class TriblerTableViewController(object):
             kwargs["first"], kwargs[
                 'last'] = self.model.rowCount() + 1, self.model.rowCount() + self.model.item_load_batch
 
+        # Create a new uuid for each new search
+        if kwargs['first'] == 1 or not self.query_uuid:
+            self.query_uuid = uuid.uuid4().hex
+
         sort_by, sort_asc = self._get_sort_parameters()
         kwargs.update({
+            "uuid": self.query_uuid,
             "filter": to_fts_query(self.query_text),
             "sort_by": sort_by,
             "sort_asc": sort_asc,
@@ -83,7 +91,8 @@ class TriblerTableViewController(object):
         self.model.total_items = response['total']
         if self.num_results_label:
             self.num_results_label.setText("%d results" % response['total'])
-        if response['first'] >= self.model.rowCount():
+        if 'first' in response and response['first'] >= self.model.rowCount() \
+                or 'uuid' in response and response['uuid'] == self.query_uuid:
             self.model.add_items(response['results'])
         return True
 

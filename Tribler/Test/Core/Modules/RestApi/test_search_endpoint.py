@@ -74,6 +74,12 @@ class TestSearchEndpoint(AbstractApiTest):
         parsed = json.loads(result)
         self.assertEqual(len(parsed["results"]), 1)
 
+        # If uuid is passed in request, then the same uuid is returned in the response
+        result = yield self.do_request('search?uuid=uuid1&filter=needle&sort_by=name', expected_code=200)
+        parsed = json.loads(result)
+        self.assertEqual(len(parsed["results"]), 1)
+        self.assertEqual(parsed['uuid'], 'uuid1')
+
     @trial_timeout(10)
     def test_completions_no_query(self):
         """

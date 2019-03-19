@@ -9,10 +9,11 @@ class SearchRequestCache(RandomNumberCache):
     """
     This request cache keeps track of all outstanding search requests within the GigaChannelCommunity.
     """
-    def __init__(self, request_cache, peers):
+    def __init__(self, request_cache, uuid, peers):
         super(SearchRequestCache, self).__init__(request_cache, u"remote-search-request")
         self.request_cache = request_cache
         self.requested_peers = {hexlify(peer.mid): False for peer in peers}
+        self.uuid = uuid
 
     @property
     def timeout_delay(self):
