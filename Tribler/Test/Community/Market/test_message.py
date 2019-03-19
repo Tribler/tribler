@@ -14,7 +14,7 @@ class TraderIdTestSuite(unittest.TestCase):
 
     def test_init(self):
         # Test for init validation
-        with self.assertRaises(ValueError):
+        with self.assertRaises((TypeError, ValueError)):
             TraderId(1.0)
         with self.assertRaises(ValueError):
             TraderId('non hexadecimal')
