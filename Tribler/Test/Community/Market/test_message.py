@@ -21,7 +21,7 @@ class TraderIdTestSuite(unittest.TestCase):
 
     def test_conversion(self):
         # Test for conversions
-        self.assertEqual('0', str(self.trader_id))
+        self.assertEqual(b'0', self.trader_id.to_bytes())
 
     def test_equality(self):
         # Test for equality

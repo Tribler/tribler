@@ -146,7 +146,7 @@ class MarketDB(TrustChainDB):
         """
         try:
             db_result = next(self.execute(u"SELECT * FROM orders WHERE trader_id = ? AND order_number = ?",
-                                          (database_blob(order_id.trader_id.to_string()),
+                                          (database_blob(order_id.trader_id.to_bytes()),
                                            text_type(order_id.order_number))))
         except StopIteration:
             return None
@@ -172,7 +172,7 @@ class MarketDB(TrustChainDB):
         Delete a specific order from the database
         """
         self.execute(u"DELETE FROM orders WHERE trader_id = ? AND order_number = ?",
-                     (database_blob(order_id.trader_id.to_string()), text_type(order_id.order_number)))
+                     (database_blob(order_id.trader_id.to_bytes()), text_type(order_id.order_number)))
         self.delete_reserved_ticks(order_id)
 
     def get_next_order_number(self):
@@ -189,7 +189,7 @@ class MarketDB(TrustChainDB):
         Delete all reserved ticks from a specific order
         """
         self.execute(u"DELETE FROM orders_reserved_ticks WHERE trader_id = ? AND order_number = ?",
-                     (database_blob(order_id.trader_id.to_string()), text_type(order_id.order_number)))
+                     (database_blob(order_id.trader_id.to_bytes()), text_type(order_id.order_number)))
 
     def add_reserved_tick(self, order_id, reserved_order_id, amount):
         """
@@ -198,8 +198,8 @@ class MarketDB(TrustChainDB):
         self.execute(
             u"INSERT INTO orders_reserved_ticks (trader_id, order_number, reserved_trader_id, reserved_order_number,"
             u"quantity) VALUES(?,?,?,?,?)",
-            (database_blob(order_id.trader_id.to_string()), text_type(order_id.order_number),
-             database_blob(reserved_order_id.trader_id.to_string()), text_type(reserved_order_id.order_number), amount))
+            (database_blob(order_id.trader_id.to_bytes()), text_type(order_id.order_number),
+             database_blob(reserved_order_id.trader_id.to_bytes()), text_type(reserved_order_id.order_number), amount))
         self.commit()
 
     def get_reserved_ticks(self, order_id):
@@ -207,7 +207,7 @@ class MarketDB(TrustChainDB):
         Get all reserved ticks for a specific order.
         """
         db_results = self.execute(u"SELECT * FROM orders_reserved_ticks WHERE trader_id = ? AND order_number = ?",
-                                  (database_blob(order_id.trader_id.to_string()), text_type(order_id.order_number)))
+                                  (database_blob(order_id.trader_id.to_bytes()), text_type(order_id.order_number)))
         return [(OrderId(TraderId(bytes(data[2])), OrderNumber(data[3])), data[4]) for data in db_results]
 
     def get_all_transactions(self):
@@ -226,7 +226,7 @@ class MarketDB(TrustChainDB):
         """
         try:
             db_result = next(self.execute(u"SELECT * FROM transactions WHERE trader_id = ? AND transaction_number = ?",
-                                          (database_blob(transaction_id.trader_id.to_string()),
+                                          (database_blob(transaction_id.trader_id.to_bytes()),
                                            text_type(transaction_id.transaction_number))))
         except StopIteration:
             return None
@@ -268,7 +268,7 @@ class MarketDB(TrustChainDB):
                                                transaction.assets.second.amount,
                                                transaction.transferred_assets.second.amount,
                                                float(transaction.timestamp),
-                                               database_blob(transaction.transaction_id.trader_id.to_string()),
+                                               database_blob(transaction.transaction_id.trader_id.to_bytes()),
                                                int(transaction.transaction_id.transaction_number),
                                                float(transaction.timestamp))
         )
@@ -280,7 +280,7 @@ class MarketDB(TrustChainDB):
         Delete a specific transaction from the database
         """
         self.execute(u"DELETE FROM transactions WHERE trader_id = ? AND transaction_number = ?",
-                     (database_blob(transaction_id.trader_id.to_string()),
+                     (database_blob(transaction_id.trader_id.to_bytes()),
                       text_type(transaction_id.transaction_number)))
         self.delete_payments(transaction_id)
 
@@ -309,7 +309,7 @@ class MarketDB(TrustChainDB):
         """
         db_result = self.execute(u"SELECT * FROM payments WHERE transaction_trader_id = ? AND transaction_number = ?"
                                  u"ORDER BY timestamp ASC",
-                                 (database_blob(transaction_id.trader_id.to_string()),
+                                 (database_blob(transaction_id.trader_id.to_bytes()),
                                   text_type(transaction_id.transaction_number)))
         return [Payment.from_database(db_item) for db_item in db_result]
 
@@ -318,7 +318,7 @@ class MarketDB(TrustChainDB):
         Delete all payments that are associated with a specific transaction
         """
         self.execute(u"DELETE FROM payments WHERE transaction_trader_id = ? AND transaction_number = ?",
-                     (database_blob(transaction_id.trader_id.to_string()),
+                     (database_blob(transaction_id.trader_id.to_bytes()),
                       text_type(transaction_id.transaction_number)))
 
     def add_tick(self, tick):
@@ -344,7 +344,7 @@ class MarketDB(TrustChainDB):
         return [Tick.from_database(db_tick) for db_tick in self.execute(u"SELECT * FROM ticks")]
 
     def add_trader_identity(self, trader_id, ip, port):
-        self.execute(u"INSERT OR REPLACE INTO traders VALUES(?,?,?)", (database_blob(trader_id.to_string()),
+        self.execute(u"INSERT OR REPLACE INTO traders VALUES(?,?,?)", (database_blob(trader_id.to_bytes()),
                                                                        text_type(ip), port))
         self.commit()
 
