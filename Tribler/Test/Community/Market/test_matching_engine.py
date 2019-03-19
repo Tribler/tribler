@@ -82,38 +82,38 @@ class PriceTimeStrategyTestSuite(AbstractServer):
         """
         Test for match order with an empty order book
         """
-        self.assertEquals([], self.price_time_strategy.match(self.bid_order.order_id,
-                                                             self.bid_order.price,
-                                                             self.bid_order.available_quantity, False))
-        self.assertEquals([], self.price_time_strategy.match(self.ask_order.order_id,
-                                                             self.ask_order.price,
-                                                             self.ask_order.available_quantity, True))
+        self.assertEquals([], list(self.price_time_strategy.match(self.bid_order.order_id,
+                                                                  self.bid_order.price,
+                                                                  self.bid_order.available_quantity, False)))
+        self.assertEquals([], list(self.price_time_strategy.match(self.ask_order.order_id,
+                                                                  self.ask_order.price,
+                                                                  self.ask_order.available_quantity, True)))
 
     def test_match_order_other_price(self):
         """
         Test whether two ticks with different price types are not matched
         """
         self.order_book.insert_ask(self.ask4)
-        self.assertEqual([], self.price_time_strategy.match(self.bid_order.order_id,
-                                                            self.bid_order.price,
-                                                            self.bid_order.available_quantity, False))
+        self.assertEqual([], list(self.price_time_strategy.match(self.bid_order.order_id,
+                                                                 self.bid_order.price,
+                                                                 self.bid_order.available_quantity, False)))
 
     def test_match_order_other_quantity(self):
         """
         Test whether two ticks with different quantity types are not matched
         """
         self.order_book.insert_ask(self.ask5)
-        self.assertEqual([], self.price_time_strategy.match(self.bid_order.order_id,
-                                                            self.bid_order.price,
-                                                            self.bid_order.available_quantity, False))
+        self.assertEqual([], list(self.price_time_strategy.match(self.bid_order.order_id,
+                                                                 self.bid_order.price,
+                                                                 self.bid_order.available_quantity, False)))
 
     def test_match_order_ask(self):
         """
         Test for match ask order
         """
         self.order_book.insert_bid(self.bid)
-        matching_ticks = self.price_time_strategy.match(self.ask_order.order_id, self.ask_order.price,
-                                                        self.ask_order.available_quantity, True)
+        matching_ticks = list(self.price_time_strategy.match(self.ask_order.order_id, self.ask_order.price,
+                                                             self.ask_order.available_quantity, True))
         self.assertEquals(1, len(matching_ticks))
         self.assertEquals(self.order_book.get_tick(self.bid.order_id), matching_ticks[0][1])
         self.assertEquals(3000, matching_ticks[0][2])
@@ -123,8 +123,8 @@ class PriceTimeStrategyTestSuite(AbstractServer):
         Test for match bid order
         """
         self.order_book.insert_ask(self.ask)
-        matching_ticks = self.price_time_strategy.match(self.bid_order.order_id, self.bid_order.price,
-                                                        self.bid_order.available_quantity, False)
+        matching_ticks = list(self.price_time_strategy.match(self.bid_order.order_id, self.bid_order.price,
+                                                             self.bid_order.available_quantity, False))
         self.assertEquals(1, len(matching_ticks))
         self.assertEquals(self.order_book.get_tick(self.ask.order_id), matching_ticks[0][1])
         self.assertEquals(3000, matching_ticks[0][2])
@@ -135,9 +135,9 @@ class PriceTimeStrategyTestSuite(AbstractServer):
         """
         self.order_book.insert_ask(self.ask)
         self.order_book.insert_ask(self.ask2)
-        matching_ticks = self.price_time_strategy.match(self.bid_order2.order_id,
-                                                        self.bid_order2.price,
-                                                        self.bid_order2.available_quantity, False)
+        matching_ticks = list(self.price_time_strategy.match(self.bid_order2.order_id,
+                                                             self.bid_order2.price,
+                                                             self.bid_order2.available_quantity, False))
         self.assertEquals(2, len(matching_ticks))
         self.assertEquals(3000, matching_ticks[0][2])
         self.assertEquals(3000, matching_ticks[1][2])
@@ -148,9 +148,9 @@ class PriceTimeStrategyTestSuite(AbstractServer):
         """
         self.ask.traded = 1000
         self.order_book.insert_ask(self.ask)
-        matching_ticks = self.price_time_strategy.match(self.bid_order.order_id,
-                                                        self.bid_order.price,
-                                                        self.bid_order.available_quantity, False)
+        matching_ticks = list(self.price_time_strategy.match(self.bid_order.order_id,
+                                                             self.bid_order.price,
+                                                             self.bid_order.available_quantity, False))
         self.assertEquals(1, len(matching_ticks))
         self.assertEquals(2000, matching_ticks[0][2])
 
@@ -172,8 +172,8 @@ class PriceTimeStrategyTestSuite(AbstractServer):
         """
         self.order_book.insert_bid(self.bid)
         self.order_book.get_tick(self.bid.order_id).block_for_matching(self.ask_order.order_id)
-        matching_ticks = self.price_time_strategy.match(self.ask_order.order_id, self.ask_order.price,
-                                                        self.ask_order.available_quantity, True)
+        matching_ticks = list(self.price_time_strategy.match(self.ask_order.order_id, self.ask_order.price,
+                                                             self.ask_order.available_quantity, True))
         self.assertEquals(0, len(matching_ticks))
 
     def test_ask_blocked_for_matching(self):
@@ -182,8 +182,8 @@ class PriceTimeStrategyTestSuite(AbstractServer):
         """
         self.order_book.insert_ask(self.ask)
         self.order_book.get_tick(self.ask.order_id).block_for_matching(self.bid_order.order_id)
-        matching_ticks = self.price_time_strategy.match(self.bid_order.order_id, self.bid_order.price,
-                                                        self.bid_order.available_quantity, False)
+        matching_ticks = list(self.price_time_strategy.match(self.bid_order.order_id, self.bid_order.price,
+                                                             self.bid_order.available_quantity, False))
         self.assertEquals(0, len(matching_ticks))
 
 
@@ -236,18 +236,18 @@ class MatchingEngineTestSuite(AbstractServer):
     def test_empty_match_order_empty(self):
         # Test for match order with an empty order book
         self.order_book.insert_ask(self.ask)
-        self.assertEquals([], self.matching_engine.match(self.order_book.get_ask(self.ask.order_id)))
+        self.assertEquals([], list(self.matching_engine.match(self.order_book.get_ask(self.ask.order_id))))
         self.order_book.remove_ask(self.ask.order_id)
 
         self.order_book.insert_bid(self.bid)
-        self.assertEquals([], self.matching_engine.match(self.order_book.get_bid(self.bid.order_id)))
+        self.assertEquals([], list(self.matching_engine.match(self.order_book.get_bid(self.bid.order_id))))
         self.order_book.remove_bid(self.bid.order_id)
 
     def test_match_order_bid(self):
         # Test for match bid order
         self.order_book.insert_ask(self.ask)
         self.order_book.insert_bid(self.bid)
-        matching_ticks = self.matching_engine.match(self.order_book.get_bid(self.bid.order_id))
+        matching_ticks = list(self.matching_engine.match(self.order_book.get_bid(self.bid.order_id)))
         self.assertEquals(1, len(matching_ticks))
         self.assertEquals(3000, matching_ticks[0][2])
 
@@ -255,7 +255,7 @@ class MatchingEngineTestSuite(AbstractServer):
         # Test for match ask order
         self.order_book.insert_bid(self.bid)
         self.order_book.insert_ask(self.ask)
-        matching_ticks = self.matching_engine.match(self.order_book.get_ask(self.ask.order_id))
+        matching_ticks = list(self.matching_engine.match(self.order_book.get_ask(self.ask.order_id)))
         self.assertEquals(1, len(matching_ticks))
         self.assertEquals(3000, matching_ticks[0][2])
 
@@ -278,7 +278,7 @@ class MatchingEngineTestSuite(AbstractServer):
         self.order_book.insert_ask(self.create_ask(100, 700))
         my_bid = self.create_bid(200, 2000)
         self.order_book.insert_bid(my_bid)
-        matching_ticks = self.matching_engine.match(self.order_book.get_bid(my_bid.order_id))
+        matching_ticks = list(self.matching_engine.match(self.order_book.get_bid(my_bid.order_id)))
 
         self.assertEqual(len(matching_ticks), 3)
         total_matched = sum([quantity for _, _, quantity in matching_ticks])
@@ -293,7 +293,7 @@ class MatchingEngineTestSuite(AbstractServer):
         self.order_book.insert_bid(self.create_bid(100, 400))
         my_ask = self.create_ask(200, 200)
         self.order_book.insert_ask(my_ask)
-        matching_ticks = self.matching_engine.match(self.order_book.get_ask(my_ask.order_id))
+        matching_ticks = list(self.matching_engine.match(self.order_book.get_ask(my_ask.order_id)))
 
         self.assertEqual(len(matching_ticks), 3)
         total_matched = sum([quantity for _, _, quantity in matching_ticks])
@@ -301,7 +301,7 @@ class MatchingEngineTestSuite(AbstractServer):
 
     def test_price_time_priority_asks(self):
         """
-        Test whether the price-time priority works correctly
+        Test whether aks price-time priority works correctly
         """
         self.order_book.insert_ask(self.create_ask(20, 100))
         self.order_book.insert_ask(self.create_ask(25, 125))
@@ -309,7 +309,7 @@ class MatchingEngineTestSuite(AbstractServer):
 
         my_bid = self.create_bid(50, 250)
         self.order_book.insert_bid(my_bid)
-        matching_ticks = self.matching_engine.match(self.order_book.get_bid(my_bid.order_id))
+        matching_ticks = list(self.matching_engine.match(self.order_book.get_bid(my_bid.order_id)))
 
         self.assertEqual(len(matching_ticks), 3)
         self.assertEqual(matching_ticks[-1][1].assets.first.amount, 10)
@@ -317,7 +317,7 @@ class MatchingEngineTestSuite(AbstractServer):
 
     def test_price_time_priority_bids(self):
         """
-        Test whether the price-time priority works correctly
+        Test whether bid price-time priority works correctly
         """
         self.order_book.insert_bid(self.create_bid(20, 100))
         self.order_book.insert_bid(self.create_bid(25, 125))
@@ -325,7 +325,7 @@ class MatchingEngineTestSuite(AbstractServer):
 
         my_ask = self.create_ask(50, 250)
         self.order_book.insert_ask(my_ask)
-        matching_ticks = self.matching_engine.match(self.order_book.get_ask(my_ask.order_id))
+        matching_ticks = list(self.matching_engine.match(self.order_book.get_ask(my_ask.order_id)))
 
         self.assertEqual(len(matching_ticks), 3)
         self.assertEqual(matching_ticks[-1][1].assets.first.amount, 10)
@@ -339,5 +339,5 @@ class MatchingEngineTestSuite(AbstractServer):
         self.order_book.insert_bid(self.create_bid(10, 50))
         my_ask = self.create_ask(30, 180)
         self.order_book.insert_ask(my_ask)
-        matching_ticks = self.matching_engine.match(self.order_book.get_ask(my_ask.order_id))
+        matching_ticks = list(self.matching_engine.match(self.order_book.get_ask(my_ask.order_id)))
         self.assertEqual(len(matching_ticks), 1)
