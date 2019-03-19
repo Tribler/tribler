@@ -71,7 +71,7 @@ class TestMarketCommunity(TestMarketCommunityBase):
 
         yield self.sleep(0.5)
 
-        orders = self.nodes[0].overlay.order_manager.order_repository.find_all()
+        orders = list(self.nodes[0].overlay.order_manager.order_repository.find_all())
         self.assertTrue(orders)
         self.assertTrue(orders[0].verified)
         self.assertTrue(orders[0].is_ask())
@@ -89,7 +89,7 @@ class TestMarketCommunity(TestMarketCommunityBase):
 
         yield self.sleep(0.5)
 
-        orders = self.nodes[0].overlay.order_manager.order_repository.find_all()
+        orders = list(self.nodes[0].overlay.order_manager.order_repository.find_all())
         self.assertTrue(orders)
         self.assertTrue(orders[0].verified)
         self.assertFalse(orders[0].is_ask())
@@ -142,8 +142,8 @@ class TestMarketCommunity(TestMarketCommunityBase):
 
         yield self.sleep(0.5)
 
-        self.assertTrue(self.nodes[0].overlay.transaction_manager.find_all())
-        self.assertTrue(self.nodes[1].overlay.transaction_manager.find_all())
+        self.assertTrue(list(self.nodes[0].overlay.transaction_manager.find_all()))
+        self.assertTrue(list(self.nodes[1].overlay.transaction_manager.find_all()))
 
     @trial_timeout(2)
     @inlineCallbacks
@@ -162,8 +162,8 @@ class TestMarketCommunity(TestMarketCommunityBase):
         self.nodes[0].overlay.compute_reputation()
 
         # Verify that the trade has been made
-        self.assertTrue(self.nodes[0].overlay.transaction_manager.find_all())
-        self.assertTrue(self.nodes[1].overlay.transaction_manager.find_all())
+        self.assertTrue(list(self.nodes[0].overlay.transaction_manager.find_all()))
+        self.assertTrue(list(self.nodes[1].overlay.transaction_manager.find_all()))
 
         balance1 = yield self.nodes[0].overlay.wallets['DUM1'].get_balance()
         balance2 = yield self.nodes[0].overlay.wallets['MB'].get_balance()
@@ -203,8 +203,8 @@ class TestMarketCommunity(TestMarketCommunityBase):
         yield self.sleep(0.5)
 
         # Verify that the trade has been made
-        self.assertTrue(self.nodes[0].overlay.transaction_manager.find_all())
-        self.assertTrue(self.nodes[1].overlay.transaction_manager.find_all())
+        self.assertTrue(list(self.nodes[0].overlay.transaction_manager.find_all()))
+        self.assertTrue(list(self.nodes[1].overlay.transaction_manager.find_all()))
 
     @inlineCallbacks
     def test_cancel(self):
@@ -239,8 +239,8 @@ class TestMarketCommunity(TestMarketCommunityBase):
 
         yield self.sleep(0.5)
 
-        self.assertEqual(self.nodes[0].overlay.transaction_manager.find_all()[0].status, "error")
-        self.assertEqual(self.nodes[1].overlay.transaction_manager.find_all()[0].status, "error")
+        self.assertEqual(list(self.nodes[0].overlay.transaction_manager.find_all())[0].status, "error")
+        self.assertEqual(list(self.nodes[1].overlay.transaction_manager.find_all())[0].status, "error")
 
     @trial_timeout(3)
     @inlineCallbacks
@@ -344,16 +344,16 @@ class TestMarketCommunity(TestMarketCommunityBase):
         yield self.sleep(0.5)
 
         # Verify that the trade has been made
-        self.assertTrue(self.nodes[0].overlay.transaction_manager.find_all())
-        self.assertTrue(self.nodes[1].overlay.transaction_manager.find_all())
+        self.assertTrue(list(self.nodes[0].overlay.transaction_manager.find_all()))
+        self.assertTrue(list(self.nodes[1].overlay.transaction_manager.find_all()))
 
         yield self.nodes[1].overlay.create_bid(AssetPair(AssetAmount(8, 'DUM1'), AssetAmount(8, 'DUM2')), 3600)
 
         yield self.sleep(1)
 
         # Verify that the trade has been made
-        self.assertEqual(len(self.nodes[0].overlay.transaction_manager.find_all()), 2)
-        self.assertEqual(len(self.nodes[1].overlay.transaction_manager.find_all()), 2)
+        self.assertEqual(len(list(self.nodes[0].overlay.transaction_manager.find_all())), 2)
+        self.assertEqual(len(list(self.nodes[1].overlay.transaction_manager.find_all())), 2)
 
 
 class TestMarketCommunityTwoNodes(TestMarketCommunityBase):
@@ -373,8 +373,8 @@ class TestMarketCommunityTwoNodes(TestMarketCommunityBase):
         yield self.sleep(0.5)
 
         # Verify that the trade has been made
-        self.assertTrue(self.nodes[0].overlay.transaction_manager.find_all())
-        self.assertTrue(self.nodes[1].overlay.transaction_manager.find_all())
+        self.assertTrue(list(self.nodes[0].overlay.transaction_manager.find_all()))
+        self.assertTrue(list(self.nodes[1].overlay.transaction_manager.find_all()))
 
         balance1 = yield self.nodes[0].overlay.wallets['DUM1'].get_balance()
         balance2 = yield self.nodes[0].overlay.wallets['DUM2'].get_balance()
@@ -400,15 +400,15 @@ class TestMarketCommunityTwoNodes(TestMarketCommunityBase):
         yield self.sleep(0.5)
 
         # Verify that the trade has been made
-        transactions1 = self.nodes[0].overlay.transaction_manager.find_all()
-        transactions2 = self.nodes[1].overlay.transaction_manager.find_all()
+        transactions1 = list(self.nodes[0].overlay.transaction_manager.find_all())
+        transactions2 = list(self.nodes[1].overlay.transaction_manager.find_all())
         self.assertEqual(len(transactions1), 1)
         self.assertEqual(len(transactions1[0].payments), 2)
         self.assertEqual(len(transactions2), 1)
         self.assertEqual(len(transactions2[0].payments), 2)
 
         # There should be no reserved quantity in the orderbook
-        ask_order_id = self.nodes[0].overlay.order_manager.order_repository.find_all()[0].order_id
+        ask_order_id = list(self.nodes[0].overlay.order_manager.order_repository.find_all())[0].order_id
         for node_nr in [0, 1]:
             ask_tick_entry = self.nodes[node_nr].overlay.order_book.get_tick(ask_order_id)
             if ask_tick_entry:
@@ -419,8 +419,8 @@ class TestMarketCommunityTwoNodes(TestMarketCommunityBase):
         yield self.sleep(1)
 
         # Verify that the trade has been made
-        self.assertEqual(len(self.nodes[0].overlay.transaction_manager.find_all()), 2)
-        self.assertEqual(len(self.nodes[1].overlay.transaction_manager.find_all()), 2)
+        self.assertEqual(len(list(self.nodes[0].overlay.transaction_manager.find_all())), 2)
+        self.assertEqual(len(list(self.nodes[1].overlay.transaction_manager.find_all())), 2)
 
         for node_nr in [0, 1]:
             self.assertEqual(len(self.nodes[node_nr].overlay.order_book.asks), 0)
