@@ -6,14 +6,17 @@ from binascii import hexlify, unhexlify
 from pony.orm import db_session
 
 from six.moves.urllib.request import pathname2url
+from twisted.internet import reactor
 
-from twisted.internet.defer import fail
+from twisted.internet.defer import fail, inlineCallbacks, Deferred, returnValue
+from twisted.internet.task import deferLater
 
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core import TorrentDef
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.DownloadState import DownloadState
 from Tribler.Core.Utilities.network_utils import get_random_port
+from Tribler.Core.simpledefs import DLSTATUS_SEEDING
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.common import TESTS_DATA_DIR, TESTS_DIR, UBUNTU_1504_INFOHASH
@@ -631,21 +634,20 @@ class TestMetadataDownloadEndpoint(AbstractApiTest):
     @trial_timeout(20)
     def test_get_downloads_with_channels(self):
         """
-        Testing whether the API returns the right download when a download is added
+        Testing whether the API returns the right download when a channel download is added
         """
-
+        self.should_check_equality = False
+        test_deferred = Deferred()
         test_channel_name = 'testchan'
 
         def verify_download(downloads):
             downloads_json = json.loads(downloads)
-            self.assertEqual(len(downloads_json['downloads']), 3)
+            self.assertEqual(len(downloads_json['downloads']), 1)
             self.assertEqual(test_channel_name,
                              [d for d in downloads_json["downloads"] if d["channel_download"]][0]["name"])
+            test_deferred.callback(None)
 
         video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
-        self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
-        self.session.start_download_from_uri("file:" + pathname2url(
-            os.path.join(TESTS_DATA_DIR, "bak_single.torrent")))
 
         with db_session:
             my_channel = self.session.lm.mds.ChannelMetadata.create_channel(test_channel_name, 'test')
@@ -653,6 +655,7 @@ class TestMetadataDownloadEndpoint(AbstractApiTest):
             torrent_dict = my_channel.commit_channel_torrent()
             self.session.lm.gigachannel_manager.updated_my_channel(TorrentDef.TorrentDef.load_from_dict(torrent_dict))
 
-        self.should_check_equality = False
-        return self.do_request('downloads?get_peers=1&get_pieces=1',
-                               expected_code=200).addCallback(verify_download)
+        def do_request():
+            return self.do_request('downloads?get_peers=1&get_pieces=1', expected_code=200).addCallback(verify_download)
+
+        return deferLater(reactor, 2, do_request)  # Give the download some time to do hash checking

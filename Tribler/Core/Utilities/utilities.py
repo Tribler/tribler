@@ -155,7 +155,12 @@ def fix_torrent(file_path):
     f.close()
 
     # Check if correct bdata
-    fixed_data = bdecode(bdata)
+    try:
+        fixed_data = bdecode(bdata)
+    except RuntimeError:
+        # Libtorrent 1.2.0 will raise a RuntimeError if it fails to decode the data.
+        return None
+
     if fixed_data is not None:
         fixed_data = bencode(fixed_data)
 

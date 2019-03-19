@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import logging
 import os
+from distutils.version import LooseVersion
 from hashlib import sha1
 
 import libtorrent
@@ -86,16 +87,22 @@ def create_torrent_file(file_path_list, params, torrent_filepath=None):
     if params.get('nodes'):
         for node in params['nodes']:
             torrent.add_node(*node)
-    # HTTP seeding
-    # http://www.bittorrent.org/beps/bep_0017.html
-    if params.get('httpseeds'):
-        torrent.add_http_seed(params['httpseeds'])
 
-    # Web seeding
-    # http://www.bittorrent.org/beps/bep_0019.html
-    if len(file_path_list) == 1:
-        if params.get('urllist', False):
-            torrent.add_url_seed(params['urllist'])
+    from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
+    if LooseVersion(LibtorrentMgr.get_libtorrent_version()) < LooseVersion("1.2.0"):
+        # In libtorrent 1.2.0, adding http/url seeds to a torrent requires a Boost.Python converter for
+        # basic_string_view, which is not available yet.
+
+        # HTTP seeding
+        # http://www.bittorrent.org/beps/bep_0017.html
+        if params.get('httpseeds'):
+            torrent.add_http_seed(params['httpseeds'])
+
+        # Web seeding
+        # http://www.bittorrent.org/beps/bep_0019.html
+        if len(file_path_list) == 1:
+            if params.get('urllist', False):
+                torrent.add_url_seed(params['urllist'])
 
     # read the files and calculate the hashes
     if len(file_path_list) == 1:

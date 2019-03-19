@@ -173,7 +173,7 @@ class LibtorrentMgr(TaskManager):
             settings['enable_outgoing_utp'] = enable_utp
             settings['enable_incoming_utp'] = enable_utp
 
-            if LooseVersion(self.get_libtorrent_version()) >= LooseVersion("1.1.0"):
+            if LooseVersion(LibtorrentMgr.get_libtorrent_version()) >= LooseVersion("1.1.0"):
                 settings['prefer_rc4'] = True
                 settings["listen_interfaces"] = "0.0.0.0:%d" % self.tribler_session.config.get_libtorrent_port()
             else:
@@ -192,7 +192,7 @@ class LibtorrentMgr(TaskManager):
             settings['anonymous_mode'] = True
             settings['force_proxy'] = True
 
-            if LooseVersion(self.get_libtorrent_version()) >= LooseVersion("1.1.0"):
+            if LooseVersion(LibtorrentMgr.get_libtorrent_version()) >= LooseVersion("1.1.0"):
                 settings["listen_interfaces"] = "0.0.0.0:%d" % self.tribler_session.config.get_anon_listen_port()
 
         self.set_session_settings(ltsession, settings)
@@ -255,7 +255,7 @@ class LibtorrentMgr(TaskManager):
         """
         Apply the proxy settings to a libtorrent session. This mechanism changed significantly in libtorrent 1.1.0.
         """
-        if LooseVersion(self.get_libtorrent_version()) >= LooseVersion("1.1.0"):
+        if LooseVersion(LibtorrentMgr.get_libtorrent_version()) >= LooseVersion("1.1.0"):
             settings = ltsession.get_settings()
             settings["proxy_type"] = ptype
             settings["proxy_hostnames"] = True
@@ -576,7 +576,7 @@ class LibtorrentMgr(TaskManager):
         for ltsession in self.ltsessions.values():
             if ltsession:
                 # Newer version of libtorrent require the flags argument in the post_torrent_updates call.
-                if LooseVersion(self.get_libtorrent_version()) >= LooseVersion("1.1.0"):
+                if LooseVersion(LibtorrentMgr.get_libtorrent_version()) >= LooseVersion("1.1.0"):
                     ltsession.post_torrent_updates(0xffffffff)
                 else:
                     ltsession.post_torrent_updates()
@@ -697,7 +697,8 @@ class LibtorrentMgr(TaskManager):
 
         return result
 
-    def get_libtorrent_version(self):
+    @staticmethod
+    def get_libtorrent_version():
         """
         This method returns the version of the used libtorrent
         library and is required for compatibility purposes

@@ -10,6 +10,7 @@ from six.moves import xrange
 
 from twisted.internet.defer import Deferred, inlineCallbacks, succeed
 
+from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 from Tribler.Core.Modules.wallet.bandwidth_block import TriblerBandwidthBlock
 from Tribler.Core.Socks5.server import Socks5Server
 from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, DLSTATUS_METADATA, DLSTATUS_SEEDING, DLSTATUS_STOPPED,
@@ -545,7 +546,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             # an outgoing message through the SOCKS5 port.
             # This does not seem to work anymore in libtorrent 1.2.0 (and probably higher) so we manually associate
             # the connection and the libtorrent listen port.
-            if LooseVersion(self.tribler_session.lm.ltmgr.get_libtorrent_version()) < LooseVersion("1.2.0"):
+            if LooseVersion(LibtorrentMgr.get_libtorrent_version()) < LooseVersion("1.2.0"):
                 download.add_peer(('1.1.1.1', 1024))
             else:
                 hops = download.get_hops()
