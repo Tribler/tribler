@@ -358,11 +358,11 @@ class MarketCommunity(Community, BlockListener):
         Return a tuple of incoming and outgoing payment address of an order.
         """
         if order.is_ask():
-            return WalletAddress(self.wallets[order.assets.second.asset_id].get_address()),\
-                   WalletAddress(self.wallets[order.assets.first.asset_id].get_address())
+            return (WalletAddress(self.wallets[order.assets.second.asset_id].get_address()),
+                    WalletAddress(self.wallets[order.assets.first.asset_id].get_address()))
         else:
-            return WalletAddress(self.wallets[order.assets.first.asset_id].get_address()), \
-                   WalletAddress(self.wallets[order.assets.second.asset_id].get_address())
+            return (WalletAddress(self.wallets[order.assets.first.asset_id].get_address()),
+                    WalletAddress(self.wallets[order.assets.second.asset_id].get_address()))
 
     def match_order_ids(self, order_ids):
         """
@@ -664,10 +664,10 @@ class MarketCommunity(Community, BlockListener):
         We received a block for the market community.
         Process it accordingly, after checking the version number first.
         """
-        if "version" not in block.transaction or block.transaction["version"] != self.PROTOCOL_VERSION:
+        if block.transaction.get("version") != self.PROTOCOL_VERSION:
             return
 
-        if block.type == "ask" or block.type == "bid":
+        if block.type in ("ask", "bid"):
             self.process_tick_block(block)
         elif block.type == "tx_init":
             self.process_tx_init_block(block)
@@ -699,7 +699,7 @@ class MarketCommunity(Community, BlockListener):
             "tick": tick.to_block_dict(),
             "version": self.PROTOCOL_VERSION
         }
-        block_type = 'ask' if tick.is_ask() else 'bid'
+        block_type = b'ask' if tick.is_ask() else b'bid'
         return self.trustchain.create_source_block(block_type=block_type, transaction=tx_dict)
 
     @synchronized
@@ -911,14 +911,13 @@ class MarketCommunity(Community, BlockListener):
         )
 
         def on_peer_address(address):
-            if not address:
+            if address:
+                self.send_proposed_trade(propose_trade, payload.match_id, address)
+            else:
                 order.release_quantity_for_tick(other_order_id, propose_quantity)
                 self.send_decline_match_message(payload.match_id,
                                                 payload.matchmaker_trader_id,
                                                 DeclineMatchReason.OTHER)
-                return
-
-            self.send_proposed_trade(propose_trade, payload.match_id, address)
 
         # Reserve the quantity
         order.reserve_quantity_for_tick(other_order_id, propose_quantity)
