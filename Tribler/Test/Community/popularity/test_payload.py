@@ -35,7 +35,7 @@ class TestSerializer(TestCase):
 
     def test_torrent_health_payload(self):
         """ Test serialization/deserialization of Torrent health payload """
-        infohash = 'a' * 20
+        infohash = b'a' * 20
         num_seeders = 10
         num_leechers = 5
         timestamp = 123123123
