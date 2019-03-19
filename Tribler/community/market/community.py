@@ -358,7 +358,7 @@ class MarketCommunity(Community, BlockListener):
         Return a tuple of incoming and outgoing payment address of an order.
         """
         if order.is_ask():
-            return (WalletAddress(self.wallets[order.assets.second.asset_id].get_address())
+            return (WalletAddress(self.wallets[order.assets.second.asset_id].get_address()),
                     WalletAddress(self.wallets[order.assets.first.asset_id].get_address()))
         else:
             return (WalletAddress(self.wallets[order.assets.first.asset_id].get_address()),
