@@ -88,7 +88,7 @@ class OrderId(object):
         """
         format: <trader_id>.<order_number>
         """
-        return "%s.%s" % (self._trader_id.to_bytes.decode('utf-8'), self._order_number)
+        return "%s.%s" % (self._trader_id.to_bytes().decode('utf-8'), self._order_number)
 
     def __eq__(self, other):
         if not isinstance(other, OrderId):
