@@ -1,5 +1,8 @@
-from typing import Any, Dict, List
+from __future__ import absolute_import
 
+from typing import Any, Dict, List  # pylint: disable=unused-import
+
+from Tribler.community.market.core.price import Price
 from Tribler.community.market.core.pricelevel import PriceLevel
 
 
