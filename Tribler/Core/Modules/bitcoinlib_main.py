@@ -7,12 +7,13 @@ It should be imported before any bitcoinlib imports.
 from __future__ import absolute_import
 
 import ast
+import functools
 import imp
-import os
-import sys
-
 # Important import, do not remove! Files importing stuff from this file, rely on availability of the logger module.
 import logging
+import os
+import struct  # DO NOT REMOVE AS UNUSED; It is magically used by bitcoinlib
+import sys
 from logging.handlers import RotatingFileHandler
 
 sys.modules["bitcoinlib.main"] = sys.modules[__name__]
@@ -85,9 +86,10 @@ def initialize_lib(wallet_dir):
         pass
 
 
-def script_type_default(witness_type, multisig=False, locking_script=False):
+def script_type_default(witness_type=None, multisig=False, locking_script=False):
     """
     Determine default script type for provided witness type and key type combination used in this library.
+
     :param witness_type: Type of wallet: standard or segwit
     :type witness_type: str
     :param multisig: Multisig key or not, default is False
@@ -98,6 +100,8 @@ def script_type_default(witness_type, multisig=False, locking_script=False):
     :return str: Default script type
     """
 
+    if not witness_type:
+        return None
     if witness_type == 'legacy' and not multisig:
         return 'p2pkh' if locking_script else 'sig_pubkey'
     elif witness_type == 'legacy' and multisig:
@@ -111,4 +115,34 @@ def script_type_default(witness_type, multisig=False, locking_script=False):
     elif witness_type == 'p2sh-segwit' and multisig:
         return 'p2sh' if locking_script else 'p2sh_p2wsh'
     else:
-        raise KeyError("Wallet and key type combination not supported: %s / %s" % (witness_type, multisig))
+        raise ValueError("Wallet and key type combination not supported: %s / %s" % (witness_type, multisig))
+
+
+def get_encoding_from_witness(witness_type=None):
+    """
+    Derive address encoding (base58 or bech32) from transaction witness type
+
+    :param witness_type: Witness type: legacy, p2sh-segwit or segwit
+    :type witness_type: str
+
+    :return str:
+    """
+
+    if witness_type == 'segwit':
+        return 'bech32'
+    elif witness_type in [None, 'legacy', 'p2sh-segwit']:
+        return 'base58'
+    else:
+        raise ValueError("Unknown witness type %s" % witness_type)
+
+
+def deprecated(func):
+    """This is a decorator which can be used to mark functions
+    as deprecated. It will result in a warning being emitted
+    when the function is used."""
+
+    @functools.wraps(func)
+    def new_func(*args, **kwargs):
+        logging.warning("Call to deprecated function {}.".format(func.__name__))
+        return func(*args, **kwargs)
+    return new_func
