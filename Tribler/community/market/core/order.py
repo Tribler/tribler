@@ -212,7 +212,7 @@ class Order(object):
     def available_quantity(self):
         """
         Return the quantity that is not reserved
-        :rtype: Quantity
+        :rtype: long
         """
         return self.assets.first.amount - self._reserved_quantity - self._traded_quantity
 

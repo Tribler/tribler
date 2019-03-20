@@ -95,7 +95,7 @@ class OrderTestSuite(unittest.TestCase):
     def test_reserve_quantity_insufficient(self):
         # Test for reserve insufficient quantity
         self.assertRaises(ValueError, self.order.reserve_quantity_for_tick, self.tick2.order_id,
-                          self.tick2.assets.first)
+                          self.tick2.assets.first.amount)
 
     def test_reserve_quantity(self):
         # Test for reserve quantity
