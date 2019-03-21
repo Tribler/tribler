@@ -212,7 +212,7 @@ def encode_reply(version, rep, rsv, address_type, bind_address, bind_port):
     return data
 
 
-def decode_udp_packet(data):
+def decode_udp_packet(data):  # type: (bytes) -> UdpRequest
     """
     Decodes a SOCKS5 UDP packet
     @param str data: the raw packet data
@@ -253,7 +253,7 @@ def encode_udp_packet(rsv, frag, address_type, address, port, payload):
         payload
     ]
 
-    return ''.join(strings)
+    return b''.join(strings)
 
 
 class IPV6AddrError(NotImplementedError):
