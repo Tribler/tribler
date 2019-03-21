@@ -27,12 +27,16 @@ class TestCreditMiningPolicies(TriblerCoreTest):
     def setUp(self):
         yield super(TestCreditMiningPolicies, self).setUp()
         self.torrents = [CreditMiningTorrent(i, 'test torrent %d' % i) for i in range(10)]
+        try:
+            self.assertCountEqual  # Python 3
+        except AttributeError:     # Python 2
+            self.assertCountEqual = self.assertItemsEqual
 
     def test_random_policy(self):
         policy = RandomPolicy()
 
         sorted_torrents = policy.sort(self.torrents)
-        self.assertItemsEqual(self.torrents, sorted_torrents, 'Arrays contains different torrents')
+        self.assertCountEqual(self.torrents, sorted_torrents, 'Arrays contains different torrents')
 
     def test_seederratio_policy(self):
         for i, torrent in enumerate(self.torrents):
@@ -44,7 +48,7 @@ class TestCreditMiningPolicies(TriblerCoreTest):
         sorted_torrents = policy.sort(self.torrents)
         expected_torrents = list(reversed(self.torrents))
 
-        self.assertItemsEqual(sorted_torrents, expected_torrents, 'Arrays contains different torrents')
+        self.assertCountEqual(sorted_torrents, expected_torrents, 'Arrays contains different torrents')
         self.assertListEqual(sorted_torrents, expected_torrents, 'Array is not sorted properly')
 
     def test_upload_based_policy_sort(self):
@@ -73,7 +77,7 @@ class TestCreditMiningPolicies(TriblerCoreTest):
         sorted_torrents1 = upload_policy.sort(torrent_collection1)
         expected_torrents1 = list(reversed(torrent_collection1))
 
-        self.assertItemsEqual(sorted_torrents1, expected_torrents1, 'Arrays contains different torrents')
+        self.assertCountEqual(sorted_torrents1, expected_torrents1, 'Arrays contains different torrents')
         self.assertListEqual(sorted_torrents1, expected_torrents1, 'Array is not sorted properly')
 
         # Test Investment policy
@@ -82,7 +86,7 @@ class TestCreditMiningPolicies(TriblerCoreTest):
         sorted_torrents2 = investment_policy.sort(torrent_collection2)
         expected_torrents2 = list(reversed(torrent_collection2))
 
-        self.assertItemsEqual(sorted_torrents2, expected_torrents2, 'Arrays contains different torrents')
+        self.assertCountEqual(sorted_torrents2, expected_torrents2, 'Arrays contains different torrents')
         self.assertListEqual(sorted_torrents2, expected_torrents2, 'Array is not sorted properly')
 
     def test_schedule_start(self):
