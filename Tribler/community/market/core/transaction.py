@@ -85,7 +85,7 @@ class TransactionId(object):
         """
         format: <trader_id>.<transaction_number>
         """
-        return "%s.%d" % (cast_to_unicode(self._trader_id.to_bytes()), self.transaction_number)
+        return "%s.%d" % (cast_to_unicode(self._trader_id.to_bytes()), self._transaction_number)
 
     def __eq__(self, other):
         if not isinstance(other, TransactionId):
