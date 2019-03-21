@@ -183,7 +183,7 @@ class Tick(object):
         Return a block dictionary representation of the tick, will be stored on the TrustChain
         """
         return {
-            "trader_id": str(self.order_id.trader_id),
+            "trader_id": self.order_id.trader_id.to_bytes(),
             "order_number": int(self.order_id.order_number),
             "assets": self.assets.to_dictionary(),
             "timeout": int(self.timeout),
