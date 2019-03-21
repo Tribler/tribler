@@ -9,7 +9,7 @@ from twisted.web.client import Agent, HTTPConnectionPool, readBody
 from twisted.web.http_headers import Headers
 from twisted.web.iweb import IBodyProducer
 
-from zope.interface import implements
+from zope.interface import implementer
 
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.restapi import get_param
@@ -20,12 +20,11 @@ from Tribler.Test.test_as_server import TestAsServer
 from TriblerGUI.tribler_request_manager import tribler_urlencode
 
 
+@implementer(IBodyProducer)
 class POSTDataProducer(object):
     """
     This class is used for posting data by the requests made during the tests.
     """
-    implements(IBodyProducer)
-
     def __init__(self, data_dict, raw_data):
         self.body = {}
         if data_dict and not raw_data:
