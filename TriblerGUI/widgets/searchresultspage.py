@@ -68,4 +68,4 @@ class SearchResultsPage(QWidget):
         self.perform_search(self.query)
 
     def received_search_result(self, response):
-        self.controller.load_remote_results(response)
+        self.controller.on_query_results(response, remote=True)

@@ -85,15 +85,35 @@ class TriblerTableViewController(object):
                                          self.on_query_results,
                                          url_params=kwargs)
 
-    def on_query_results(self, response):
+    def on_query_results(self, response, remote=False):
+        """
+        Updates the table with the response.
+        :param response: List of the items to be added to the model
+        :param remote: True if response is from a remote peer. Default: False
+        :return: None
+        """
         if not response:
             return False
-        self.model.total_items = response['total']
+        if self.is_new_result(response):
+            self.model.add_items(response['results'], remote=remote)
+        self.model.total_items = len(self.model.data_items)
         if self.num_results_label:
-            self.num_results_label.setText("%d results" % response['total'])
-        if 'first' in response and response['first'] >= self.model.rowCount() \
-                or 'uuid' in response and response['uuid'] == self.query_uuid:
-            self.model.add_items(response['results'])
+            self.num_results_label.setText("%d results" % self.model.total_items)
+        return True
+
+    def is_new_result(self, response):
+        """
+        Returns True if the response is a new fresh response else False.
+        - If UUID of the response and the last query does not match, then it is a stale response.
+        - If the response has info about pagination, here 'first' field, if the value of the first field is less than
+        the number of results already present, then the response is stale.
+        :param response: List of items
+        :return: True for fresh response else False
+        """
+        if 'uuid' in response and response['uuid'] != self.query_uuid:
+            return False
+        if 'first' in response and response['first'] < self.model.rowCount():
+            return False
         return True
 
 
@@ -103,18 +123,6 @@ class FilterInputMixin(object):
         self.query_text = self.filter_input.text().lower()
         self.model.reset()
         self.perform_query(start=1, end=50)
-
-class RemoteResultsMixin(object):
-
-    def load_remote_results(self, response):
-        if not response:
-            return
-
-        self.model.add_remote_items(response['results'])
-        self.model.total_items = len(self.model.data_items)
-
-        if self.num_results_label:
-            self.num_results_label.setText("%d results" % self.model.total_items)
 
 
 class TableSelectionMixin(object):
@@ -145,7 +153,7 @@ class TableSelectionMixin(object):
             window.resize(window.geometry().width() - 1, window.geometry().height())
 
 
-class SearchResultsTableViewController(RemoteResultsMixin, TableSelectionMixin, TriblerTableViewController):
+class SearchResultsTableViewController(TableSelectionMixin, TriblerTableViewController):
     """
     Controller for the table view that handles search results.
     """

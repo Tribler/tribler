@@ -24,6 +24,7 @@ class DiscoveredPage(QWidget):
         if not self.initialized:
             self.initialized = True
             self.gui_settings = gui_settings
+            self.window().core_manager.events_manager.discovered_channel.connect(self.on_discovered_channel)
             self.model = ChannelsContentModel(hide_xxx=get_gui_setting(self.gui_settings, "family_filter", True,
                                                                        is_bool=True) if self.gui_settings else True)
             # Set the default sorting column/order to num_torrents/descending
@@ -37,3 +38,6 @@ class DiscoveredPage(QWidget):
     def load_discovered_channels(self):
         self.controller.model.reset()
         self.controller.perform_query(first=1, last=50)  # Load the first 50 discovered channels
+
+    def on_discovered_channel(self, channels):
+        self.controller.on_query_results(channels, remote=True)
