@@ -326,7 +326,7 @@ class MarketCommunity(Community, BlockListener):
 
     def get_orders_bloomfilter(self):
         order_ids = [str(order_id) for order_id in self.order_book.get_order_ids()]
-        orders_bloom_filter = BloomFilter(0.005, max(len(order_ids), 1), prefix=' ')
+        orders_bloom_filter = BloomFilter(0.005, max(len(order_ids), 1), prefix=b' ')
         if order_ids:
             orders_bloom_filter.add_keys(order_ids)
         return orders_bloom_filter
