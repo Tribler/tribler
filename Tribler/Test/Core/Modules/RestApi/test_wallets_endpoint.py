@@ -1,10 +1,14 @@
+from __future__ import absolute_import
+
 import json
 
-from Tribler.Test.tools import trial_timeout
-from twisted.internet.defer import succeed, fail, inlineCallbacks
+from sqlalchemy.orm import session as db_session
+
+from twisted.internet.defer import fail, inlineCallbacks, succeed
 from twisted.python.failure import Failure
 
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
+from Tribler.Test.tools import trial_timeout
 
 
 class TestWalletsEndpoint(AbstractApiTest):
@@ -20,6 +24,10 @@ class TestWalletsEndpoint(AbstractApiTest):
         if self.session.lm.wallets['BTC'].wallet:
             # Close the database session so the wallet file can be removed
             del self.session.lm.wallets['BTC'].wallet
+
+        # Close all bitcoinlib Wallet DB sessions if exists
+        db_session.close_all_sessions()
+
         yield super(TestWalletsEndpoint, self).tearDown()
 
     @trial_timeout(20)

@@ -2,7 +2,9 @@ from __future__ import absolute_import
 
 import datetime
 
-from twisted.internet.defer import succeed, Deferred
+from sqlalchemy.orm import session as db_session
+
+from twisted.internet.defer import Deferred, inlineCallbacks, succeed
 
 from Tribler.Core.Modules.wallet.btc_wallet import BitcoinTestnetWallet, BitcoinWallet
 from Tribler.Test.Core.base_test import MockObject
@@ -11,6 +13,12 @@ from Tribler.Test.tools import trial_timeout
 
 
 class TestBtcWallet(AbstractServer):
+
+    @inlineCallbacks
+    def tearDown(self):
+        # Close all bitcoinlib Wallet DB sessions
+        db_session.close_all_sessions()
+        yield super(TestBtcWallet, self).tearDown()
 
     @trial_timeout(10)
     def test_btc_wallet(self):
