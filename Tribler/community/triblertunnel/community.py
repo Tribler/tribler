@@ -481,7 +481,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                                                self.settings.max_circuits)
                                 for hop_count, download_count in active_downloads_per_hop.items()}
 
-        for info_hash in set(new_states.keys() + self.download_states.keys()):
+        for info_hash in set(list(new_states) + list(self.download_states)):
             new_state = new_states.get(info_hash, None)
             old_state = self.download_states.get(info_hash, None)
             state_changed = new_state != old_state
