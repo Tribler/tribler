@@ -13,7 +13,9 @@ To install the Tribler dependencies using MacPorts, please run the following com
 
 .. code-block:: bash
 
-    sudo port -N install git ffmpeg qt5-qtcreator libtorrent-rasterbar gmp mpfr libmpc libsodium py27-Pillow py27-twisted py27-cherrypy3 py27-cffi py27-chardet py27-configobj py27-gmpy2 py27-pycparser py27-numpy py27-idna py27-cryptography py27-decorator py27-netifaces py27-service_identity py27-asn1-modules py27-pyinstaller py27-pyqt5 py27-sqlite py27-matplotlib py27-libnacl
+    sudo port -N install git ffmpeg qt5-qtcreator libtorrent-rasterbar gmp mpfr libmpc libsodium py27-Pillow py27-twisted \
+    py27-cherrypy3 py27-cffi py27-chardet py27-configobj py27-gmpy2 py27-pycparser py27-numpy py27-idna py27-cryptography \
+    py27-decorator py27-netifaces py27-service_identity py27-asn1-modules py27-pyinstaller py27-pyqt5 py27-sqlite py27-matplotlib py27-libnacl
     
 HomeBrew
 --------
@@ -30,56 +32,54 @@ PyQt5
 
 If you wish to run the Tribler Graphical User Interface, PyQt5 should be available on the system. While PyQt5 is available in the pip repository, this is only compatible with Python 3. To install PyQt5, we first need to install Qt5, a C++ library which can be installed with brew:
 
-.. code-block:: none
+.. code-block:: bash
 
-    brew install qt5
+    brew install qt5, sip, pyqt5
     brew cask install qt-creator # if you want the visual designer
     qmake --version # test whether qt is installed correctly
-
-After the installation completed, PyQt5 should be compiled. This library depends on SIP, another library to automatically generate Python bindings from C++ code. Download the latest SIP version `here <https://www.riverbankcomputing.com/software/sip/download>`_, extract it, navigate to the directory where it has been extracted and compile/install it:
-
-.. code-block:: none
-
-    python configure.py
-    make
-    sudo make install
-
-Next, download PyQt5 from `here <https://sourceforge.net/projects/pyqt/files/PyQt5/>`_ and make sure that you download the version that matches with the version of Qt you installed in the previous steps. Extract the binary and compile it:
-
-.. code-block:: none
-
-    python configure.py
-    make
-    sudo make install
-    python -c "import PyQt5" # this should work without any error
-
-Note that the installation can take a while. After it has finished, the PyQt5 library is installed correctly.
 
 Libtorrent
 ~~~~~~~~~~
 
 An essential dependency of Tribler is libtorrent. libtorrent is dependent on Boost, a set of C++ libraries. Boost can be installed with the following command:
 
-.. code-block:: none
+.. code-block:: bash
 
     brew install boost
     brew install boost-python
 
-Now we can install libtorrent:
+By default libtorrent is installed with ``python3``. To install it with ``python2`` you need to do following:
 
-.. code-block:: none
+.. code-block:: bash
 
-    brew install libtorrent-rasterbar --with-python
+   brew edit libtorrent-rasterbar
 
-After the installation, we should add a pointer to the ``site-packages`` of Python so it can find the new libtorrent library using the following command:
 
-.. code-block:: none
+Change the lines of ``args`` from
 
-    sudo echo 'import site; site.addsitedir("/usr/local/lib/python2.7/site-packages")' >> /Library/Python/2.7/site-packages/homebrew.pth
+.. code-block:: bash
 
-This command basically adds another location for the Python site-packages (the location where libtorrent-rasterbar is installed). This command should be executed since the location where brew installs the Python packages is not in sys.path. You can test whether libtorrent is correctly installed by executing:
+    --with-boost-python=boost_python37-mt
+    PYTHON=python3
 
-.. code-block:: none
+to
+
+.. code-block:: bash
+
+    --with-boost-python=boost_python27-mt
+    PYTHON=python2.7
+
+
+After that you can install it with
+
+.. code-block:: bash
+
+    brew install libtorrent-rasterbar
+
+
+For the final check you can test whether libtorrent is correctly installed by executing:
+
+.. code-block:: bash
 
     python
     >>> import libtorrent
@@ -89,16 +89,17 @@ Other Packages
 
 There are a bunch of other packages that can easily be installed using pip and brew:
 
-.. code-block:: none
+.. code-block:: bash
 
     brew install homebrew/python/pillow gmp mpfr libmpc libsodium
     sudo easy_install pip
     pip install --user cython  # Needs to be installed first for meliae
-    pip install --user cherrypy cffi chardet configobj cryptography decorator gmpy2 idna meliae netifaces numpy pillow psutil pyasn1 pycparser scipy twisted service_identity libnacl bitcoinlib
+    pip install --user cherrypy cffi chardet configobj cryptography decorator gmpy2 idna meliae netifaces numpy pillow \
+    psutil pyasn1 pycparser scipy lz4 pyopenssl Twisted==16.4.1 networkx service_identity libnacl bitcoinlib
 
 If you encounter any error during the installation of Pillow, make sure that libjpeg and zlib are installed. They can be installed using:
 
-.. code-block:: none
+.. code-block:: bash
 
     brew tap homebrew/dupes
     brew install libjpeg zlib
