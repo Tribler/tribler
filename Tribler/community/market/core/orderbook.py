@@ -314,11 +314,11 @@ class OrderBook(TaskManager):
 
     def get_order_ids(self):
         """
-        Return all IDs of the orders in the orderbook, both asks and bids. The returned list is sorted.
+        Return all IDs of the orders in the orderbook, both asks and bids.
 
         :rtype: [OrderId]
         """
-        return sorted(self.get_bid_ids() + self.get_ask_ids())
+        return self.get_bid_ids() + self.get_ask_ids()
 
     def get_ask_ids(self):
         ids = []
@@ -328,7 +328,7 @@ class OrderBook(TaskManager):
                 for ask in price_level:
                     ids.append(ask.tick.order_id)
 
-        return sorted(ids)
+        return ids
 
     def get_bid_ids(self):
         ids = []
@@ -338,7 +338,7 @@ class OrderBook(TaskManager):
                 for bid in price_level:
                     ids.append(bid.tick.order_id)
 
-        return sorted(ids)
+        return ids
 
     def __str__(self):
         res_str = ''
