@@ -12,6 +12,7 @@ from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.community.market.core.trade import ProposedTrade
 from Tribler.community.market.core.wallet_address import WalletAddress
 from Tribler.pyipv8.ipv8.database import database_blob
+from Tribler.pyipv8.ipv8.util import cast_to_unicode
 
 
 class TransactionNumber(object):
@@ -84,7 +85,7 @@ class TransactionId(object):
         """
         format: <trader_id>.<transaction_number>
         """
-        return "%s.%s" % (self.trader_id, self.transaction_number)
+        return "%s.%d" % (cast_to_unicode(self._trader_id.to_bytes()), self._transaction_number)
 
     def __eq__(self, other):
         if not isinstance(other, TransactionId):

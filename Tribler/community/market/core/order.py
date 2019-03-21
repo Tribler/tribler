@@ -10,6 +10,7 @@ from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.pyipv8.ipv8.database import database_blob
+from Tribler.pyipv8.ipv8.util import cast_to_unicode
 
 
 class TickWasNotReserved(Exception):
@@ -88,7 +89,7 @@ class OrderId(object):
         """
         format: <trader_id>.<order_number>
         """
-        return "%s.%s" % (self._trader_id, self._order_number)
+        return "%s.%d" % (cast_to_unicode(self._trader_id.to_bytes()), self._order_number)
 
     def __eq__(self, other):
         if not isinstance(other, OrderId):
