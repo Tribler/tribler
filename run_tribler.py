@@ -121,7 +121,12 @@ if __name__ == "__main__":
             window.setWindowTitle("Tribler")
             app.set_activation_window(window)
             app.parse_sys_args(sys.argv)
+
+            # If app is already running, simply exit the current instance, else continue
+            if app.is_running():
+                sys.exit(0)
             sys.exit(app.exec_())
+
         except ImportError as ie:
             logging.exception(ie)
             error_and_exit("Import Error", "Import error: {0}".format(ie))
