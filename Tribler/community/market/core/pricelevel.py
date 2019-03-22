@@ -77,7 +77,7 @@ class PriceLevel(object):
         self._last = self._head_tick
         return self
 
-    def next(self):
+    def __next__(self):
         """
         Return the next tick in the price level for the iterator
         """
@@ -87,6 +87,9 @@ class PriceLevel(object):
             return_value = self._last
             self._last = self._last.next_tick
             return return_value
+
+    def next(self):
+        return self.__next__()
 
     def append_tick(self, tick):
         """

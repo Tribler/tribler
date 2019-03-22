@@ -1,17 +1,19 @@
+from __future__ import absolute_import
+
 import logging
 import time
 
-from Tribler.community.market.core.assetpair import AssetPair
-from Tribler.community.market.core.price import Price
 from twisted.internet import reactor
 from twisted.internet.defer import fail
 from twisted.internet.task import deferLater
 from twisted.python.failure import Failure
 
+from Tribler.community.market.core.assetpair import AssetPair
 from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.order import OrderId, OrderNumber
+from Tribler.community.market.core.price import Price
 from Tribler.community.market.core.side import Side
-from Tribler.community.market.core.tick import Tick, Ask, Bid
+from Tribler.community.market.core.tick import Ask, Bid
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
@@ -314,11 +316,11 @@ class OrderBook(TaskManager):
 
     def get_order_ids(self):
         """
-        Return all IDs of the orders in the orderbook, both asks and bids. The returned list is sorted.
+        Return all IDs of the orders in the orderbook, both asks and bids.
 
         :rtype: [OrderId]
         """
-        return sorted(self.get_bid_ids() + self.get_ask_ids())
+        return self.get_bid_ids() + self.get_ask_ids()
 
     def get_ask_ids(self):
         ids = []
@@ -328,7 +330,7 @@ class OrderBook(TaskManager):
                 for ask in price_level:
                     ids.append(ask.tick.order_id)
 
-        return sorted(ids)
+        return ids
 
     def get_bid_ids(self):
         ids = []
@@ -338,7 +340,7 @@ class OrderBook(TaskManager):
                 for bid in price_level:
                     ids.append(bid.tick.order_id)
 
-        return sorted(ids)
+        return ids
 
     def __str__(self):
         res_str = ''

@@ -179,7 +179,7 @@ class TestOrderBook(AbstractTestOrderBook):
         self.order_book.insert_bid(self.bid)
 
         ask_dict = {
-            "trader_id": str(self.ask.order_id.trader_id),
+            "trader_id": self.ask.order_id.trader_id.to_bytes(),
             "order_number": int(self.ask.order_id.order_number),
             "assets": self.ask.assets.to_dictionary(),
             "traded": 100,
@@ -187,7 +187,7 @@ class TestOrderBook(AbstractTestOrderBook):
             "timestamp": float(Timestamp.now())
         }
         bid_dict = {
-            "trader_id": str(self.bid.order_id.trader_id),
+            "trader_id": self.bid.order_id.trader_id.to_bytes(),
             "order_number": int(self.bid.order_id.order_number),
             "assets": self.bid.assets.to_dictionary(),
             "traded": 100,
