@@ -541,7 +541,7 @@ class Session(object):
         :param scrape_now: flag to scrape immediately
         """
         if self.lm.torrent_checker:
-            return self.lm.torrent_checker.add_gui_request(infohash, timeout=timeout, scrape_now=scrape_now)
+            return self.lm.torrent_checker.check_torrent_health(infohash, timeout=timeout, scrape_now=scrape_now)
         return fail(Failure(RuntimeError("Torrent checker not available")))
 
     def notify_shutdown_state(self, state):

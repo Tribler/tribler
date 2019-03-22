@@ -4,15 +4,19 @@ import logging
 import socket
 import time
 from binascii import hexlify
+from random import choice
 
 from pony.orm import db_session
 
 from twisted.internet import reactor
 from twisted.internet.defer import CancelledError, DeferredList, maybeDeferred, succeed
 from twisted.internet.error import ConnectingCancelledError, ConnectionLost
+from twisted.internet.task import LoopingCall
 from twisted.python.failure import Failure
 from twisted.web.client import HTTPConnectionPool
 
+from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import LEGACY_ENTRY
+from Tribler.Core.Modules.MetadataStore.serialization import REGULAR_TORRENT
 from Tribler.Core.TorrentChecker.session import FakeDHTSession, UdpSocketManager, create_tracker_session
 from Tribler.Core.Utilities.tracker_utils import MalformedTrackerURLException
 from Tribler.Core.Utilities.utilities import has_bep33_support, is_valid_url
@@ -20,12 +24,11 @@ from Tribler.Core.simpledefs import NTFY_TORRENT, NTFY_UPDATE
 from Tribler.pyipv8.ipv8.database import database_blob
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
-# some settings
-DEFAULT_TORRENT_SELECTION_INTERVAL = 20  # every 20 seconds, the thread will select torrents to check
-DEFAULT_TORRENT_CHECK_INTERVAL = 900  # base multiplier for the check delay
 
-DEFAULT_MAX_TORRENT_CHECK_RETRIES = 8  # max check delay increments when failed.
-DEFAULT_TORRENT_CHECK_RETRY_INTERVAL = 30  # interval when the torrent was successfully checked for the last time
+TRACKER_SELECTION_INTERVAL = 20    # The interval for querying a random tracker
+TORRENT_SELECTION_INTERVAL = 120   # The interval for checking the health of a random torrent
+MIN_TORRENT_CHECK_INTERVAL = 900   # How much time we should wait before checking a torrent again
+TORRENT_CHECK_RETRY_INTERVAL = 30  # Interval when the torrent was successfully checked for the last time
 
 
 class TorrentChecker(TaskManager):
@@ -37,12 +40,10 @@ class TorrentChecker(TaskManager):
 
         self._should_stop = False
 
-        self._torrent_check_interval = DEFAULT_TORRENT_CHECK_INTERVAL
-        self._torrent_check_retry_interval = DEFAULT_TORRENT_CHECK_RETRY_INTERVAL
-        self._max_torrent_check_retries = DEFAULT_MAX_TORRENT_CHECK_RETRIES
+        self.tracker_check_lc = self.register_task("tracker_check", LoopingCall(self.check_random_tracker))
+        self.torrent_check_lc = self.register_task("torrent_check", LoopingCall(self.check_random_torrent))
 
         self._session_list = {'DHT': []}
-        self._last_torrent_selection_time = 0
 
         # Track all session cleanups
         self.session_stop_defer_list = []
@@ -51,7 +52,8 @@ class TorrentChecker(TaskManager):
         self.connection_pool = None
 
     def initialize(self):
-        self._reschedule_tracker_select()
+        self.tracker_check_lc.start(TRACKER_SELECTION_INTERVAL, now=False)
+        self.torrent_check_lc.start(TORRENT_SELECTION_INTERVAL, now=False)
         self.connection_pool = HTTPConnectionPool(reactor, False)
         self.socket_mgr = UdpSocketManager()
         self.create_socket_or_schedule()
@@ -96,22 +98,11 @@ class TorrentChecker(TaskManager):
 
         return DeferredList(self.session_stop_defer_list)
 
-    def _reschedule_tracker_select(self):
+    def check_random_tracker(self):
         """
-        Changes the tracker selection interval dynamically and schedules the task.
+        Calling this method will fetch a random tracker from the database, select some torrents that have this
+        tracker, and perform a request to these trackers.
         """
-        self.register_task(u"torrent_checker_tracker_selection",
-                           reactor.callLater(DEFAULT_TORRENT_SELECTION_INTERVAL, self._task_select_tracker))
-
-    def _task_select_tracker(self):
-        """
-        The regularly scheduled task that selects torrents associated with a specific tracker to check.
-        """
-
-        # update the torrent selection interval
-        self._reschedule_tracker_select()
-
-        # start selecting torrents
         tracker_url = self.get_valid_next_tracker_for_auto_check()
         if tracker_url is None:
             self._logger.warn(u"No tracker to select from, skip")
@@ -126,7 +117,7 @@ class TorrentChecker(TaskManager):
             if tracker:
                 torrents = tracker.torrents
                 for torrent in torrents:
-                    dynamic_interval = self._torrent_check_retry_interval * (2 ** tracker.failures)
+                    dynamic_interval = TORRENT_CHECK_RETRY_INTERVAL * (2 ** tracker.failures)
                     if torrent.last_check + dynamic_interval < int(time.time()):
                         infohashes.append(torrent.infohash)
 
@@ -150,6 +141,26 @@ class TorrentChecker(TaskManager):
             self._logger.info(u"Selected %d new torrents to check on tracker: %s", len(infohashes), tracker_url)
             return session.connect_to_tracker().addCallbacks(*self.get_callbacks_for_session(session)) \
                 .addErrback(lambda _: None)
+
+    @db_session
+    def check_random_torrent(self):
+        """
+        Perform a full health check on a random torrent in the database.
+        We prioritize torrents that have no health info attached.
+        """
+        random_torrents = self.tribler_session.lm.mds.TorrentState.select(
+            lambda g: (metadata for metadata in g.metadata if metadata.status != LEGACY_ENTRY and
+                       metadata.metadata_type == REGULAR_TORRENT))\
+            .order_by(lambda g: g.last_check).limit(10)
+
+        if not random_torrents:
+            self._logger.info("Could not find any eligible torrent for random torrent check")
+            return None
+
+        random_torrent = choice(random_torrents)
+        self.check_torrent_health(random_torrent.infohash)
+
+        return random_torrent.infohash
 
     def get_callbacks_for_session(self, session):
         success_lambda = lambda info_dict: self._on_result_from_session(session, info_dict)
@@ -182,7 +193,7 @@ class TorrentChecker(TaskManager):
         return set([str(tracker.url) for tracker in db_tracker_list
                     if is_valid_url(str(tracker.url)) and not self.is_blacklisted_tracker(str(tracker.url))])
 
-    def on_gui_request_completed(self, infohash, result):
+    def on_torrent_health_check_completed(self, infohash, result):
         final_response = {}
 
         torrent_update_dict = {'infohash': infohash, 'seeders': 0, 'leechers': 0, 'last_check': int(time.time())}
@@ -214,9 +225,9 @@ class TorrentChecker(TaskManager):
                                               "health": "updated"})
         return final_response
 
-    def add_gui_request(self, infohash, timeout=20, scrape_now=False):
+    def check_torrent_health(self, infohash, timeout=20, scrape_now=False):
         """
-        Public API for adding a GUI request.
+        Check the health of a torrent with a given infohash.
         :param infohash: Torrent infohash.
         :param timeout: The timeout to use in the performed requests
         :param scrape_now: Flag whether we want to force scraping immediately
@@ -230,8 +241,9 @@ class TorrentChecker(TaskManager):
                 torrent_id = str(result.infohash)
                 last_check = result.last_check
                 time_diff = time.time() - last_check
-                if time_diff < self._torrent_check_interval and not scrape_now:
-                    self._logger.debug(u"time interval too short, skip GUI request. infohash: %s", hexlify(infohash))
+                if time_diff < MIN_TORRENT_CHECK_INTERVAL and not scrape_now:
+                    self._logger.debug("time interval too short, not doing torrent health check for %s",
+                                       hexlify(infohash))
                     return succeed({
                         "db": {
                             "seeders": result.seeders,
@@ -258,7 +270,7 @@ class TorrentChecker(TaskManager):
                                  addCallbacks(*self.get_callbacks_for_session(session)))
 
         return DeferredList(deferred_list, consumeErrors=True).addCallback(
-            lambda res: self.on_gui_request_completed(infohash, res))
+            lambda res: self.on_torrent_health_check_completed(infohash, res))
 
     def on_session_error(self, session, failure):
         """
