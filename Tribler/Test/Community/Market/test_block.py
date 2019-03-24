@@ -23,14 +23,14 @@ class TestMarketBlock(AbstractServer):
     def setUp(self):
         yield super(TestMarketBlock, self).setUp()
 
-        self.ask = Ask(OrderId(TraderId(b'0' * 40), OrderNumber(1)),
+        self.ask = Ask(OrderId(TraderId(b'0' * 20), OrderNumber(1)),
                        AssetPair(AssetAmount(30, 'BTC'), AssetAmount(30, 'MB')), Timeout(30), Timestamp(0.0), True)
-        self.bid = Ask(OrderId(TraderId(b'1' * 40), OrderNumber(1)),
+        self.bid = Ask(OrderId(TraderId(b'1' * 20), OrderNumber(1)),
                        AssetPair(AssetAmount(30, 'BTC'), AssetAmount(30, 'MB')), Timeout(30), Timestamp(0.0), False)
-        self.transaction = Transaction(TransactionId(TraderId(b'0' * 40), TransactionNumber(1)),
+        self.transaction = Transaction(TransactionId(TraderId(b'0' * 20), TransactionNumber(1)),
                                        AssetPair(AssetAmount(30, 'BTC'), AssetAmount(30, 'MB')),
-                                       OrderId(TraderId(b'0' * 40), OrderNumber(1)),
-                                       OrderId(TraderId(b'1' * 40), OrderNumber(1)), Timestamp(0.0))
+                                       OrderId(TraderId(b'0' * 20), OrderNumber(1)),
+                                       OrderId(TraderId(b'1' * 20), OrderNumber(1)), Timestamp(0.0))
 
         ask_tx = self.ask.to_block_dict()
         bid_tx = self.bid.to_block_dict()
@@ -41,7 +41,7 @@ class TestMarketBlock(AbstractServer):
 
         self.cancel_block = MarketBlock()
         self.cancel_block.type = 'cancel_order'
-        self.cancel_block.transaction = {'trader_id': 'a' * 40, 'order_number': 1}
+        self.cancel_block.transaction = {'trader_id': 'a' * 20, 'order_number': 1}
 
         self.tx_block = MarketBlock()
         self.tx_block.type = 'tx_init'
@@ -93,7 +93,7 @@ class TestMarketBlock(AbstractServer):
         self.assertFalse(self.tick_block.is_valid_tick_block())
 
         self.tick_block.transaction['tick']['timeout'] = 300
-        self.tick_block.transaction['tick']['trader_id'] = 'g' * 40
+        self.tick_block.transaction['tick']['trader_id'] = 'g' * 21
         self.assertFalse(self.tick_block.is_valid_tick_block())
 
         # Make the asset pair invalid

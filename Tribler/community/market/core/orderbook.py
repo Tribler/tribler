@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import logging
 import time
+from binascii import unhexlify
 
 from twisted.internet import reactor
 from twisted.internet.defer import fail
@@ -98,8 +99,10 @@ class OrderBook(TaskManager):
         :type traded_quantity: int
         :type unreserve: bool
         """
-        ask_order_id = OrderId(TraderId(ask_order_dict["trader_id"]), OrderNumber(ask_order_dict["order_number"]))
-        bid_order_id = OrderId(TraderId(bid_order_dict["trader_id"]), OrderNumber(bid_order_dict["order_number"]))
+        ask_order_id = OrderId(TraderId(unhexlify(ask_order_dict["trader_id"])),
+                               OrderNumber(ask_order_dict["order_number"]))
+        bid_order_id = OrderId(TraderId(unhexlify(bid_order_dict["trader_id"])),
+                               OrderNumber(bid_order_dict["order_number"]))
 
         self._logger.debug("Updating ticks in order book: %s and %s (traded quantity: %s)",
                            str(ask_order_id), str(bid_order_id), str(traded_quantity))

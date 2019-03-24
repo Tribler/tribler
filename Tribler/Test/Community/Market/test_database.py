@@ -33,20 +33,20 @@ class TestDatabase(AbstractServer):
 
         self.database = MarketDB(self.getStateDir(), 'market')
 
-        self.order_id1 = OrderId(TraderId(b'3'), OrderNumber(4))
-        self.order_id2 = OrderId(TraderId(b'4'), OrderNumber(5))
+        self.order_id1 = OrderId(TraderId(b'3' * 20), OrderNumber(4))
+        self.order_id2 = OrderId(TraderId(b'4' * 20), OrderNumber(5))
         self.order1 = Order(self.order_id1, AssetPair(AssetAmount(5, 'BTC'), AssetAmount(6, 'EUR')),
                             Timeout(3600), Timestamp.now(), True)
         self.order2 = Order(self.order_id2, AssetPair(AssetAmount(5, 'BTC'), AssetAmount(6, 'EUR')),
                             Timeout(3600), Timestamp.now(), False)
-        self.order2.reserve_quantity_for_tick(OrderId(TraderId(b'3'), OrderNumber(4)), 3)
+        self.order2.reserve_quantity_for_tick(OrderId(TraderId(b'3' * 20), OrderNumber(4)), 3)
 
-        self.transaction_id1 = TransactionId(TraderId(b"0"), TransactionNumber(4))
+        self.transaction_id1 = TransactionId(TraderId(b'0' * 20), TransactionNumber(4))
         self.transaction1 = Transaction(self.transaction_id1, AssetPair(AssetAmount(100, 'BTC'), AssetAmount(30, 'MB')),
-                                        OrderId(TraderId(b"0"), OrderNumber(1)),
-                                        OrderId(TraderId(b"1"), OrderNumber(2)), Timestamp(20.0))
+                                        OrderId(TraderId(b'0' * 20), OrderNumber(1)),
+                                        OrderId(TraderId(b'1' * 20), OrderNumber(2)), Timestamp(20.0))
 
-        self.payment1 = Payment(TraderId(b"0"), self.transaction_id1, AssetAmount(5, 'BTC'),
+        self.payment1 = Payment(TraderId(b'0' * 20), self.transaction_id1, AssetAmount(5, 'BTC'),
                                 WalletAddress('abc'), WalletAddress('def'), PaymentId("abc"), Timestamp(20.0), False)
 
         self.transaction1.add_payment(self.payment1)
@@ -64,7 +64,7 @@ class TestDatabase(AbstractServer):
         """
         Test the retrieval of a specific order
         """
-        order_id = OrderId(TraderId(b'3'), OrderNumber(4))
+        order_id = OrderId(TraderId(b'3' * 20), OrderNumber(4))
         self.assertIsNone(self.database.get_order(order_id))
         self.database.add_order(self.order1)
         self.assertIsNotNone(self.database.get_order(order_id))
@@ -133,7 +133,7 @@ class TestDatabase(AbstractServer):
         """
         Test the retrieval of a specific transaction
         """
-        transaction_id = TransactionId(TraderId(b'0'), TransactionNumber(4))
+        transaction_id = TransactionId(TraderId(b'0' * 20), TransactionNumber(4))
         self.assertIsNone(self.database.get_transaction(transaction_id))
         self.database.add_transaction(self.transaction1)
         self.assertIsNotNone(self.database.get_transaction(transaction_id))
@@ -181,8 +181,8 @@ class TestDatabase(AbstractServer):
         """
         Test the addition and retrieval of a trader identity in the database
         """
-        self.database.add_trader_identity(TraderId(b"a"), "123", 1234)
-        self.database.add_trader_identity(TraderId(b"b"), "124", 1235)
+        self.database.add_trader_identity(TraderId(b'a' * 20), "123", 1234)
+        self.database.add_trader_identity(TraderId(b'b' * 20), "124", 1235)
         traders = self.database.get_traders()
         self.assertEqual(len(traders), 2)
 
@@ -203,4 +203,4 @@ class TestDatabase(AbstractServer):
         self.database.execute(u"DROP TABLE ticks;")
         self.database.execute(u"CREATE TABLE orders(x INTEGER PRIMARY KEY ASC);")
         self.database.execute(u"CREATE TABLE ticks(x INTEGER PRIMARY KEY ASC);")
-        self.assertEqual(self.database.check_database(u"1"), 3)
+        self.assertEqual(self.database.check_database(u"1"), 4)

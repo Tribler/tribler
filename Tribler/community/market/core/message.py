@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from binascii import hexlify
+
 from six import binary_type
 
 from Tribler.community.market.core.timestamp import Timestamp
@@ -18,13 +20,8 @@ class TraderId(object):
 
         trader_id = trader_id if isinstance(trader_id, bytes) else binary_type(trader_id)
 
-        if not isinstance(trader_id, binary_type):
-            raise ValueError("Trader id must be a binary type")
-
-        try:
-            int(trader_id, 16)
-        except ValueError:  # Not a hexadecimal
-            raise ValueError("Trader id must be hexadecimal")
+        if len(trader_id) != 20:
+            raise ValueError("Trader ID must be 20 bytes")
 
         self._trader_id = trader_id  # type: bytes
 
@@ -33,6 +30,9 @@ class TraderId(object):
 
     def __bytes__(self):  # type: () -> bytes
         return self._trader_id
+
+    def as_hex(self):
+        return hexlify(bytes(self)).decode('utf-8')
 
     def __eq__(self, other):
         if not isinstance(other, TraderId):

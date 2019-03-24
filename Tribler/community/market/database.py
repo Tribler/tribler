@@ -19,7 +19,7 @@ DATABASE_DIRECTORY = path.join(u"sqlite")
 # Path to the database location + dispersy._workingdirectory
 DATABASE_PATH = path.join(DATABASE_DIRECTORY, u"market.db")
 # Version to keep track if the db schema needs to be updated.
-LATEST_DB_VERSION = 3
+LATEST_DB_VERSION = 4
 # Schema for the Market DB.
 schema = u"""
 CREATE TABLE IF NOT EXISTS orders(
@@ -359,7 +359,7 @@ class MarketDB(TrustChainDB):
         return super(MarketDB, self).open(initial_statements, prepare_visioning)
 
     def get_upgrade_script(self, current_version):
-        if current_version == 1 or current_version == 2:
+        if current_version == 1 or current_version == 2 or current_version == 3:
             return u"DROP TABLE IF EXISTS orders;" \
                    u"DROP TABLE IF EXISTS transactions;" \
                    u"DROP TABLE IF EXISTS payments;" \

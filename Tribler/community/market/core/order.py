@@ -10,7 +10,6 @@ from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.pyipv8.ipv8.database import database_blob
-from Tribler.pyipv8.ipv8.util import cast_to_unicode
 
 
 class TickWasNotReserved(Exception):
@@ -89,7 +88,7 @@ class OrderId(object):
         """
         format: <trader_id>.<order_number>
         """
-        return "%s.%d" % (cast_to_unicode(bytes(self._trader_id)), self._order_number)
+        return "%s.%d" % (self._trader_id.as_hex(), self._order_number)
 
     def __eq__(self, other):
         if not isinstance(other, OrderId):
@@ -405,7 +404,7 @@ class Order(object):
         """
         completed_timestamp = float(self.completed_timestamp) if self.completed_timestamp else None
         return {
-            "trader_id": bytes(self.order_id.trader_id),
+            "trader_id": self.order_id.trader_id.as_hex(),
             "order_number": int(self.order_id.order_number),
             "assets": self.assets.to_dictionary(),
             "reserved_quantity": self.reserved_quantity,
@@ -423,7 +422,7 @@ class Order(object):
         Return a dictionary representation of this order (suitable for saving on the TrustChain)
         """
         return {
-            "trader_id": str(self.order_id.trader_id),
+            "trader_id": self.order_id.trader_id.as_hex(),
             "order_number": int(self.order_id.order_number),
             "assets": self.assets.to_dictionary(),
             "traded": self.traded_quantity,

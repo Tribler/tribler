@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 import time
-from binascii import hexlify
+from binascii import hexlify, unhexlify
 
 from six import text_type
 
@@ -183,7 +183,7 @@ class Tick(object):
         Return a block dictionary representation of the tick, will be stored on the TrustChain
         """
         return {
-            "trader_id": bytes(self.order_id.trader_id),
+            "trader_id": self.order_id.trader_id.as_hex(),
             "order_number": int(self.order_id.order_number),
             "assets": self.assets.to_dictionary(),
             "timeout": int(self.timeout),
@@ -196,7 +196,7 @@ class Tick(object):
         Return a dictionary with a representation of this tick.
         """
         return {
-            "trader_id": bytes(self.order_id.trader_id),
+            "trader_id": self.order_id.trader_id.as_hex(),
             "order_number": int(self.order_id.order_number),
             "assets": self.assets.to_dictionary(),
             "timeout": int(self.timeout),
@@ -244,7 +244,7 @@ class Ask(Tick):
         """
         tx_dict = block.transaction["tick"]
         return cls(
-            OrderId(TraderId(tx_dict["trader_id"]), OrderNumber(tx_dict["order_number"])),
+            OrderId(TraderId(unhexlify(tx_dict["trader_id"])), OrderNumber(tx_dict["order_number"])),
             AssetPair.from_dictionary(tx_dict["assets"]),
             Timeout(tx_dict["timeout"]),
             Timestamp(tx_dict["timestamp"]),
@@ -284,7 +284,7 @@ class Bid(Tick):
         """
         tx_dict = block.transaction["tick"]
         return cls(
-            OrderId(TraderId(tx_dict["trader_id"]), OrderNumber(tx_dict["order_number"])),
+            OrderId(TraderId(unhexlify(tx_dict["trader_id"])), OrderNumber(tx_dict["order_number"])),
             AssetPair.from_dictionary(tx_dict["assets"]),
             Timeout(tx_dict["timeout"]),
             Timestamp(tx_dict["timestamp"]),

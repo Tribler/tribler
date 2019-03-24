@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from six import integer_types
+from six import integer_types, string_types
 
 from Tribler.community.market import MAX_ORDER_TIMEOUT
 from Tribler.pyipv8.ipv8.attestation.trustchain.block import TrustChainBlock
@@ -68,7 +68,7 @@ class MarketBlock(TrustChainBlock):
         if not MarketBlock.has_fields(required_fields, tick):
             return False
 
-        required_types = [('trader_id', str), ('order_number', int), ('assets', dict), ('timestamp', float),
+        required_types = [('trader_id', string_types), ('order_number', int), ('assets', dict), ('timestamp', float),
                           ('timeout', int)]
 
         if not MarketBlock.is_valid_trader_id(tick['trader_id']):
@@ -94,7 +94,7 @@ class MarketBlock(TrustChainBlock):
         if len(tx) != len(required_fields):
             return False
 
-        required_types = [('trader_id', str), ('order_number', int), ('partner_trader_id', str),
+        required_types = [('trader_id', string_types), ('order_number', int), ('partner_trader_id', string_types),
                           ('partner_order_number', int), ('transaction_number', int), ('assets', dict),
                           ('transferred', dict), ('timestamp', float), ('payment_complete', bool), ('status', str)]
 
@@ -122,8 +122,9 @@ class MarketBlock(TrustChainBlock):
         if len(payment) != len(required_fields):
             return False
 
-        required_types = [('trader_id', str), ('transaction_number', int), ('transferred', dict), ('payment_id', str),
-                          ('address_from', str), ('address_to', str), ('timestamp', float), ('success', bool)]
+        required_types = [('trader_id', string_types), ('transaction_number', int), ('transferred', dict),
+                          ('payment_id', str), ('address_from', str), ('address_to', str), ('timestamp', float),
+                          ('success', bool)]
         if not MarketBlock.is_valid_trader_id(payment['trader_id']):
             return False
         if not MarketBlock.has_required_types(required_types, payment):
@@ -154,7 +155,7 @@ class MarketBlock(TrustChainBlock):
         if not MarketBlock.has_fields(['trader_id', 'order_number'], self.transaction):
             return False
 
-        required_types = [('trader_id', str), ('order_number', int)]
+        required_types = [('trader_id', string_types), ('order_number', int)]
         if not MarketBlock.has_required_types(required_types, self.transaction):
             return False
 

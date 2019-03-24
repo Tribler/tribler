@@ -55,11 +55,6 @@ class MemoryOrderRepository(OrderRepository):
 
         self._logger.info("Memory order repository used")
 
-        try:
-            int(mid, 16)
-        except ValueError:  # Not a hexadecimal
-            raise ValueError("Encoded member id must be hexadecimal")
-
         self._mid = mid
         self._next_id = 0  # Counter to keep track of the number of messages created by this repository
 
