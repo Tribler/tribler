@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import logging
+import random
 import socket
 import time
 from binascii import hexlify
@@ -135,6 +136,9 @@ class TorrentChecker(TaskManager):
                 self._logger.error(e)
                 return succeed(None)
 
+            # We shuffle the list so that different infohashes are checked on subsequent scrape requests if the total
+            # number of infohashes exceeds the maximum number of infohashes we check.
+            random.shuffle(infohashes)
             for infohash in infohashes:
                 session.add_infohash(infohash)
 
