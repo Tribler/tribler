@@ -199,6 +199,9 @@ class TorrentChecker(TaskManager):
 
     def on_torrent_health_check_completed(self, infohash, result):
         final_response = {}
+        if not result or not isinstance(result, list):
+            self._logger.info("Received invalid torrent checker result")
+            return final_response
 
         torrent_update_dict = {'infohash': infohash, 'seeders': 0, 'leechers': 0, 'last_check': int(time.time())}
         for success, response in reversed(result):
