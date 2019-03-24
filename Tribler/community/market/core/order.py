@@ -89,7 +89,7 @@ class OrderId(object):
         """
         format: <trader_id>.<order_number>
         """
-        return "%s.%d" % (cast_to_unicode(self._trader_id.to_bytes()), self._order_number)
+        return "%s.%d" % (cast_to_unicode(bytes(self._trader_id)), self._order_number)
 
     def __eq__(self, other):
         if not isinstance(other, OrderId):
@@ -168,7 +168,7 @@ class Order(object):
         :rtype: tuple
         """
         completed_timestamp = float(self.completed_timestamp) if self.completed_timestamp else None
-        return (database_blob(self.order_id.trader_id.to_bytes()), text_type(self.order_id.order_number),
+        return (database_blob(bytes(self.order_id.trader_id)), text_type(self.order_id.order_number),
                 self.assets.first.amount, text_type(self.assets.first.asset_id), self.assets.second.amount,
                 text_type(self.assets.second.asset_id), self.traded_quantity, int(self.timeout),
                 float(self.timestamp), completed_timestamp, self.is_ask(), self._cancelled, self._verified)
@@ -405,7 +405,7 @@ class Order(object):
         """
         completed_timestamp = float(self.completed_timestamp) if self.completed_timestamp else None
         return {
-            "trader_id": self.order_id.trader_id.to_bytes(),
+            "trader_id": bytes(self.order_id.trader_id),
             "order_number": int(self.order_id.order_number),
             "assets": self.assets.to_dictionary(),
             "reserved_quantity": self.reserved_quantity,

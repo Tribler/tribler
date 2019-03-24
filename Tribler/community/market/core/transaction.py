@@ -85,7 +85,7 @@ class TransactionId(object):
         """
         format: <trader_id>.<transaction_number>
         """
-        return "%s.%d" % (cast_to_unicode(self._trader_id.to_bytes()), self._transaction_number)
+        return "%s.%d" % (cast_to_unicode(bytes(self._trader_id)), self._transaction_number)
 
     def __eq__(self, other):
         if not isinstance(other, TransactionId):
@@ -223,9 +223,9 @@ class Transaction(object):
         Returns a database representation of a Transaction object.
         :rtype: tuple
         """
-        return (database_blob(self.transaction_id.trader_id.to_bytes()), int(self.transaction_id.transaction_number),
-                database_blob(self.order_id.trader_id.to_bytes()), int(self.order_id.order_number),
-                database_blob(self.partner_order_id.trader_id.to_bytes()), int(self.partner_order_id.order_number),
+        return (database_blob(bytes(self.transaction_id.trader_id)), int(self.transaction_id.transaction_number),
+                database_blob(bytes(self.order_id.trader_id)), int(self.order_id.order_number),
+                database_blob(bytes(self.partner_order_id.trader_id)), int(self.partner_order_id.order_number),
                 self.assets.first.amount, text_type(self.assets.first.asset_id), self.transferred_assets.first.amount,
                 self.assets.second.amount, text_type(self.assets.second.asset_id),
                 self.transferred_assets.second.amount, float(self.timestamp), self.sent_wallet_info,
@@ -337,9 +337,9 @@ class Transaction(object):
         Return a dictionary with a representation of this transaction.
         """
         return {
-            "trader_id": self.transaction_id.trader_id.to_bytes(),
+            "trader_id": bytes(self.transaction_id.trader_id),
             "order_number": int(self.order_id.order_number),
-            "partner_trader_id": self.partner_order_id.trader_id.to_bytes(),
+            "partner_trader_id": bytes(self.partner_order_id.trader_id),
             "partner_order_number": int(self.partner_order_id.order_number),
             "transaction_number": int(self.transaction_id.transaction_number),
             "assets": self.assets.to_dictionary(),

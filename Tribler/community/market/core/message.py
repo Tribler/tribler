@@ -31,7 +31,7 @@ class TraderId(object):
     def __str__(self):
         return "%s" % self._trader_id
 
-    def to_bytes(self):  # type: () -> bytes
+    def __bytes__(self):  # type: () -> bytes
         return self._trader_id
 
     def __eq__(self, other):
@@ -40,7 +40,7 @@ class TraderId(object):
         elif self is other:
             return True
         else:
-            return self._trader_id == other.to_bytes()
+            return self._trader_id == bytes(other)
 
     def __ne__(self, other):
         return not self.__eq__(other)

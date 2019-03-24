@@ -42,7 +42,7 @@ class Payment(Message):
         Returns a database representation of a Payment object.
         :rtype: tuple
         """
-        return (database_blob(self.trader_id.to_bytes()), database_blob(self.transaction_id.trader_id.to_bytes()),
+        return (database_blob(bytes(self.trader_id)), database_blob(bytes(self.transaction_id.trader_id)),
                 int(self.transaction_id.transaction_number), text_type(self.payment_id), self.transferred_assets.amount,
                 text_type(self.transferred_assets.asset_id), text_type(self.address_from),
                 text_type(self.address_to), float(self.timestamp), self.success)
@@ -108,7 +108,7 @@ class Payment(Message):
 
     def to_dictionary(self):
         return {
-            "trader_id": self.transaction_id.trader_id.to_bytes(),
+            "trader_id": bytes(self.transaction_id.trader_id),
             "transaction_number": int(self.transaction_id.transaction_number),
             "transferred": self.transferred_assets.to_dictionary(),
             "payment_id": str(self.payment_id),

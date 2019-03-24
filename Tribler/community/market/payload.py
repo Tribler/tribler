@@ -26,7 +26,7 @@ class MessagePayload(Payload):
         self.timestamp = timestamp
 
     def to_pack_list(self):
-        data = [('varlenI', self.trader_id.to_bytes()),
+        data = [('varlenI', bytes(self.trader_id)),
                 ('f', self.timestamp)]
 
         return data
