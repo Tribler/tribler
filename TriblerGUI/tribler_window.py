@@ -725,7 +725,7 @@ class TriblerWindow(QMainWindow):
     def on_torrent_from_url_dialog_done(self, action):
         self.add_torrent_url_dialog_active = False
         if self.dialog and self.dialog.dialog_widget:
-            uri = self.dialog.dialog_widget.dialog_input.text()
+            uri = self.dialog.dialog_widget.dialog_input.text().strip()
 
             # Remove first dialog
             self.dialog.close_dialog()
