@@ -35,9 +35,11 @@ class MarketBlock(TrustChainBlock):
         if 'amount' not in assets_dict['second'] or 'type' not in assets_dict['second']:
             return False
 
-        if not MarketBlock.has_required_types([('amount', integer_types), ('type', str)], assets_dict['first']):
+        if not MarketBlock.has_required_types([('amount', integer_types), ('type', string_types)],
+                                              assets_dict['first']):
             return False
-        if not MarketBlock.has_required_types([('amount', integer_types), ('type', str)], assets_dict['second']):
+        if not MarketBlock.has_required_types([('amount', integer_types), ('type', string_types)],
+                                              assets_dict['second']):
             return False
 
         if assets_dict['first']['amount'].bit_length() > 63 or assets_dict['second']['amount'].bit_length() > 63:
@@ -136,7 +138,7 @@ class MarketBlock(TrustChainBlock):
         """
         Verify whether an incoming block with the tick type is valid.
         """
-        if self.type != "ask" and self.type != "bid":
+        if self.type != b"ask" and self.type != b"bid":
             return False
         if not MarketBlock.has_fields(['tick'], self.transaction):
             return False
@@ -149,7 +151,7 @@ class MarketBlock(TrustChainBlock):
         """
         Verify whether an incoming block with cancel type is valid.
         """
-        if self.type != "cancel_order":
+        if self.type != b"cancel_order":
             return False
 
         if not MarketBlock.has_fields(['trader_id', 'order_number'], self.transaction):
@@ -165,7 +167,7 @@ class MarketBlock(TrustChainBlock):
         """
         Verify whether an incoming block with tx_init/tx_done type is valid.
         """
-        if self.type != "tx_init" and self.type != "tx_done":
+        if self.type != b"tx_init" and self.type != b"tx_done":
             return False
 
         if not MarketBlock.has_fields(['ask', 'bid', 'tx'], self.transaction):
@@ -184,7 +186,7 @@ class MarketBlock(TrustChainBlock):
         """
         Verify whether an incoming block with tx_payment type is valid.
         """
-        if self.type != "tx_payment":
+        if self.type != b"tx_payment":
             return False
 
         if not MarketBlock.has_fields(['payment'], self.transaction):

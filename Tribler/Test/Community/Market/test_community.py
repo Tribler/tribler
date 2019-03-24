@@ -445,7 +445,7 @@ class TestMarketCommunitySingle(TestMarketCommunityBase):
         ask_tx = ask.to_block_dict()
         ask_tx["address"], ask_tx["port"] = "127.0.0.1", 1337
         tick_block = MarketBlock()
-        tick_block.type = 'ask' if return_ask else 'bid'
+        tick_block.type = b'ask' if return_ask else b'bid'
         tick_block.transaction = {'tick': ask_tx, 'version': MarketCommunity.PROTOCOL_VERSION}
         return tick_block
 
@@ -464,7 +464,7 @@ class TestMarketCommunitySingle(TestMarketCommunityBase):
         tx.transferred_assets.first += AssetAmount(traded_amount, 'BTC')
         tx.transferred_assets.second += AssetAmount(traded_amount, 'MB')
         tx_done_block = MarketBlock()
-        tx_done_block.type = 'tx_done'
+        tx_done_block.type = b'tx_done'
         tx_done_block.transaction = {
             'ask': ask.to_status_dictionary(),
             'bid': bid.to_status_dictionary(),

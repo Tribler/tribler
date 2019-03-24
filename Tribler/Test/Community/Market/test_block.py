@@ -36,15 +36,15 @@ class TestMarketBlock(AbstractServer):
         bid_tx = self.bid.to_block_dict()
 
         self.tick_block = MarketBlock()
-        self.tick_block.type = 'ask'
+        self.tick_block.type = b'ask'
         self.tick_block.transaction = {'tick': ask_tx}
 
         self.cancel_block = MarketBlock()
-        self.cancel_block.type = 'cancel_order'
+        self.cancel_block.type = b'cancel_order'
         self.cancel_block.transaction = {'trader_id': 'a' * 20, 'order_number': 1}
 
         self.tx_block = MarketBlock()
-        self.tx_block.type = 'tx_init'
+        self.tx_block.type = b'tx_init'
         self.tx_block.transaction = {
             'ask': ask_tx,
             'bid': bid_tx,
@@ -65,7 +65,7 @@ class TestMarketBlock(AbstractServer):
             'success': True
         }
         self.payment_block = MarketBlock()
-        self.payment_block.type = 'tx_payment'
+        self.payment_block.type = b'tx_payment'
         self.payment_block.transaction = {'payment': payment}
 
     def test_tick_block(self):
@@ -78,10 +78,10 @@ class TestMarketBlock(AbstractServer):
         self.assertFalse(self.tick_block.is_valid_tick_block())
         self.tick_block.transaction['tick']['timeout'] = 3600
 
-        self.tick_block.type = 'test'
+        self.tick_block.type = b'test'
         self.assertFalse(self.tick_block.is_valid_tick_block())
 
-        self.tick_block.type = 'ask'
+        self.tick_block.type = b'ask'
         self.tick_block.transaction['test'] = self.tick_block.transaction.pop('tick')
         self.assertFalse(self.tick_block.is_valid_tick_block())
 
@@ -127,10 +127,10 @@ class TestMarketBlock(AbstractServer):
         """
         self.assertTrue(self.cancel_block.is_valid_cancel_block())
 
-        self.cancel_block.type = 'cancel'
+        self.cancel_block.type = b'cancel'
         self.assertFalse(self.cancel_block.is_valid_cancel_block())
 
-        self.cancel_block.type = 'cancel_order'
+        self.cancel_block.type = b'cancel_order'
         self.cancel_block.transaction.pop('trader_id')
         self.assertFalse(self.cancel_block.is_valid_cancel_block())
 
@@ -143,10 +143,10 @@ class TestMarketBlock(AbstractServer):
         """
         self.assertTrue(self.tx_block.is_valid_tx_init_done_block())
 
-        self.tx_block.type = 'test'
+        self.tx_block.type = b'test'
         self.assertFalse(self.tx_block.is_valid_tx_init_done_block())
 
-        self.tx_block.type = 'tx_init'
+        self.tx_block.type = b'tx_init'
         self.tx_block.transaction['test'] = self.tx_block.transaction.pop('ask')
         self.assertFalse(self.tx_block.is_valid_tx_init_done_block())
 
@@ -188,10 +188,10 @@ class TestMarketBlock(AbstractServer):
         """
         self.assertTrue(self.payment_block.is_valid_tx_payment_block())
 
-        self.payment_block.type = 'test'
+        self.payment_block.type = b'test'
         self.assertFalse(self.payment_block.is_valid_tx_payment_block())
 
-        self.payment_block.type = 'tx_payment'
+        self.payment_block.type = b'tx_payment'
         self.payment_block.transaction['test'] = self.payment_block.transaction.pop('payment')
         self.assertFalse(self.payment_block.is_valid_tx_payment_block())
 

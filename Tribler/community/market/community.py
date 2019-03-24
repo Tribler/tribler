@@ -147,7 +147,7 @@ class MarketCommunity(Community, BlockListener):
         self.trustchain = kwargs.pop('trustchain')
         self.record_transactions = kwargs.pop('record_transactions', False)
         self.trustchain.settings.broadcast_blocks = False
-        self.trustchain.add_listener(self, ['ask', 'bid', 'cancel_order', 'tx_init', 'tx_payment', 'tx_done'])
+        self.trustchain.add_listener(self, [b'ask', b'bid', b'cancel_order', b'tx_init', b'tx_payment', b'tx_done'])
         self.dht = kwargs.pop('dht')
 
         use_database = kwargs.pop('use_database', True)
@@ -249,18 +249,18 @@ class MarketCommunity(Community, BlockListener):
         Check whether we should sign the incoming block.
         """
         tx = block.transaction
-        if block.type == "tx_payment":
+        if block.type == b"tx_payment":
             txid = TransactionId(TraderId(unhexlify(tx["payment"]["trader_id"])),
                                  TransactionNumber(tx["payment"]["transaction_number"]))
             transaction = self.transaction_manager.find_by_id(txid)
             return transaction and block.is_valid_tx_payment_block()
-        elif block.type == "tx_init" or block.type == "tx_done":
+        elif block.type == b"tx_init" or block.type == b"tx_done":
             txid = TransactionId(TraderId(unhexlify(tx["tx"]["trader_id"])),
                                  TransactionNumber(tx["tx"]["transaction_number"]))
             transaction = self.transaction_manager.find_by_id(txid)
             return transaction and block.is_valid_tx_init_done_block()
-        else:
-            return False  # Unknown block type
+
+        return False  # Unknown block type
 
     def enable_matchmaker(self):
         """
@@ -436,7 +436,7 @@ class MarketCommunity(Community, BlockListener):
             self._logger.warning("Invalid tick block received!")
             return
 
-        tick = Ask.from_block(block) if block.type == 'ask' else Bid.from_block(block)
+        tick = Ask.from_block(block) if block.type == b'ask' else Bid.from_block(block)
         self.on_tick(tick)
 
     def process_tx_init_block(self, block):
@@ -670,13 +670,13 @@ class MarketCommunity(Community, BlockListener):
         if block.transaction.get("version") != self.PROTOCOL_VERSION:
             return
 
-        if block.type in ("ask", "bid"):
+        if block.type in (b"ask", b"bid"):
             self.process_tick_block(block)
-        elif block.type == "tx_init":
+        elif block.type == b"tx_init":
             self.process_tx_init_block(block)
-        elif block.type == "tx_done":
+        elif block.type == b"tx_done":
             self.process_tx_done_block(block)
-        elif block.type == "cancel_order":
+        elif block.type == b"cancel_order":
             self.process_cancel_order_block(block)
 
     def add_matchmaker(self, matchmaker):
@@ -720,7 +720,7 @@ class MarketCommunity(Community, BlockListener):
             "order_number": int(order.order_id.order_number),
             "version": self.PROTOCOL_VERSION
         }
-        return self.trustchain.create_source_block(block_type='cancel_order', transaction=tx_dict)
+        return self.trustchain.create_source_block(block_type=b'cancel_order', transaction=tx_dict)
 
     @synchronized
     def create_new_tx_init_block(self, peer, ask_order_dict, bid_order_dict, transaction):
@@ -745,7 +745,7 @@ class MarketCommunity(Community, BlockListener):
             "version": self.PROTOCOL_VERSION
         }
         deferred = self.trustchain.sign_block(peer, peer.public_key.key_to_bin(),
-                                              block_type='tx_init', transaction=tx_dict)
+                                              block_type=b'tx_init', transaction=tx_dict)
         return addCallback(deferred, lambda blocks: blocks[0])
 
     @synchronized
@@ -765,7 +765,7 @@ class MarketCommunity(Community, BlockListener):
             "version": self.PROTOCOL_VERSION
         }
         deferred = self.trustchain.sign_block(peer, peer.public_key.key_to_bin(),
-                                              block_type='tx_payment', transaction=tx_dict)
+                                              block_type=b'tx_payment', transaction=tx_dict)
         return addCallback(deferred, lambda blocks: blocks[0])
 
     @synchronized
@@ -791,7 +791,7 @@ class MarketCommunity(Community, BlockListener):
             "version": self.PROTOCOL_VERSION
         }
         deferred = self.trustchain.sign_block(peer, peer.public_key.key_to_bin(),
-                                              block_type='tx_done', transaction=tx_dict)
+                                              block_type=b'tx_done', transaction=tx_dict)
         return addCallback(deferred, lambda blocks: blocks[0])
 
     def on_tick(self, tick):

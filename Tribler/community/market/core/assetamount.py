@@ -1,3 +1,7 @@
+from __future__ import absolute_import
+
+from six import string_types
+
 # pylint: disable=long-builtin,redefined-builtin
 try:
     long
@@ -26,7 +30,7 @@ class AssetAmount(object):
         if not isinstance(amount, long):
             raise ValueError("Price must be a long")
 
-        if not isinstance(asset_id, str):
+        if not isinstance(asset_id, string_types):
             raise ValueError("Asset id must be a string")
 
         self._amount = amount
