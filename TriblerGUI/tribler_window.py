@@ -727,6 +727,17 @@ class TriblerWindow(QMainWindow):
         if self.dialog and self.dialog.dialog_widget:
             uri = self.dialog.dialog_widget.dialog_input.text().strip()
 
+            # If the URI is a 40-bytes hex-encoded infohash, convert it to a valid magnet link
+            if len(uri) == 40:
+                valid_ih_hex = True
+                try:
+                    int(uri, 16)
+                except ValueError:
+                    valid_ih_hex = False
+
+                if valid_ih_hex:
+                    uri = "magnet:?xt=urn:btih:" + uri
+
             # Remove first dialog
             self.dialog.close_dialog()
             self.dialog = None
