@@ -3,11 +3,11 @@ from __future__ import absolute_import, division
 from base64 import b64encode
 from binascii import hexlify, unhexlify
 
-from twisted.internet.defer import succeed, fail, Deferred
+from twisted.internet.defer import Deferred, fail, succeed
 from twisted.internet.task import LoopingCall
 
 from Tribler.Core.Modules.wallet.bandwidth_block import TriblerBandwidthBlock
-from Tribler.Core.Modules.wallet.wallet import Wallet, InsufficientFunds
+from Tribler.Core.Modules.wallet.wallet import InsufficientFunds, Wallet
 from Tribler.pyipv8.ipv8.attestation.trustchain.listener import BlockListener
 from Tribler.pyipv8.ipv8.keyvault.crypto import ECCrypto
 from Tribler.pyipv8.ipv8.peer import Peer

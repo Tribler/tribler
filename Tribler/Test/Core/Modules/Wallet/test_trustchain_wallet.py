@@ -6,10 +6,10 @@ from twisted.internet.defer import Deferred, inlineCallbacks
 
 from Tribler.Core.Modules.wallet.tc_wallet import TrustchainWallet
 from Tribler.Core.Modules.wallet.wallet import InsufficientFunds
+from Tribler.Test.tools import trial_timeout
 from Tribler.pyipv8.ipv8.attestation.trustchain.community import TrustChainCommunity
 from Tribler.pyipv8.ipv8.test.base import TestBase
 from Tribler.pyipv8.ipv8.test.mocking.ipv8 import MockIPv8
-from Tribler.Test.tools import trial_timeout
 
 
 class TestTrustchainWallet(TestBase):
