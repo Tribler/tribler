@@ -97,7 +97,7 @@ class TrustchainWallet(Wallet, BlockListener):
         addCallback(deferred, lambda _: None)
         latest_block = self.trustchain.persistence.get_latest(self.trustchain.my_peer.public_key.key_to_bin(),
                                                               block_type=b'tribler_bandwidth')
-        txid = "%s.%s.%d.%d" % (hexlify(latest_block.public_key),
+        txid = "%s.%s.%d.%d" % (hexlify(latest_block.public_key).decode('utf-8'),
                                 latest_block.sequence_number, 0, int(quantity * MEGA_DIV))
 
         self.transaction_history.append({
@@ -118,7 +118,7 @@ class TrustchainWallet(Wallet, BlockListener):
         """
         Monitor an incoming transaction with a specific id.
         """
-        pub_key, sequence_number = payment_id.split(b'.')[:2]
+        pub_key, sequence_number = payment_id.split('.')[:2]
         pub_key = unhexlify(pub_key)
         sequence_number = int(sequence_number)
 

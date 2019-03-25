@@ -89,7 +89,7 @@ class TestTrustchainWallet(TestBase):
         """
         his_pubkey = self.nodes[0].overlay.my_peer.public_key.key_to_bin()
 
-        tx_deferred = self.tc_wallet.monitor_transaction(b'%s.1' % hexlify(his_pubkey))
+        tx_deferred = self.tc_wallet.monitor_transaction('%s.1' % hexlify(his_pubkey).decode('utf-8'))
 
         # Now create the transaction
         transaction = {
@@ -118,7 +118,7 @@ class TestTrustchainWallet(TestBase):
         his_pubkey = self.nodes[0].overlay.my_peer.public_key.key_to_bin()
         yield self.nodes[1].overlay.sign_block(self.nodes[1].network.verified_peers[0], public_key=his_pubkey,
                                                block_type=b'tribler_bandwidth', transaction=transaction)
-        yield self.tc_wallet.monitor_transaction(b'%s.1' % hexlify(his_pubkey))
+        yield self.tc_wallet.monitor_transaction('%s.1' % hexlify(his_pubkey).decode('utf-8'))
 
     def test_address(self):
         """

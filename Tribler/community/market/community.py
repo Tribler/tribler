@@ -1461,7 +1461,7 @@ class MarketCommunity(Community, BlockListener):
 
         def monitor_for_transaction():
             wallet = self.wallets[asset_id]
-            transaction_deferred = wallet.monitor_transaction(str(payment.payment_id))
+            transaction_deferred = wallet.monitor_transaction(payment.payment_id.payment_id)
             transaction_deferred.addCallback(lambda _: self.received_payment(peer, payment, transaction))
 
         reactor.callFromThread(monitor_for_transaction)

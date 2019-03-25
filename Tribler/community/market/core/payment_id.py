@@ -1,3 +1,8 @@
+from __future__ import absolute_import
+
+from six import string_types
+
+
 class PaymentId(object):
     """Used for having a validated instance of a payment id that we can monitor."""
 
@@ -9,7 +14,7 @@ class PaymentId(object):
         """
         super(PaymentId, self).__init__()
 
-        if not isinstance(payment_id, str):
+        if not isinstance(payment_id, string_types):
             raise ValueError("Payment id must be a string")
 
         self._payment_id = payment_id
