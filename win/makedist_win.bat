@@ -72,6 +72,10 @@ copy C:\build\missing_dlls\*.dll dist\tribler
 REM Copy VLC, different files based on 32-bit or 64-bit
 mkdir dist\tribler\VLC
 xcopy C:\build\vlc dist\tribler\VLC /s /e
+REM Make sure that there are no conflicting VLC DLLs in the Tribler root directory
+IF EXIST dist\tribler\libvlc.dll DEL /F dist\tribler\libvlc.dll
+IF EXIST dist\tribler\libvlccore.dll DEL /F dist\tribler\libvlccore.dll
+
 
 @echo Running NSIS
 cd dist\tribler
