@@ -106,14 +106,6 @@ CREATE TABLE IF NOT EXISTS orders(
   PRIMARY KEY (trader_id, order_number, reserved_trader_id, reserved_order_number)
  );
 
- CREATE TABLE IF NOT EXISTS traders(
-  trader_id            TEXT NOT NULL,
-  ip_address           TEXT NOT NULL,
-  port                 INTEGER NOT NULL,
-
-  PRIMARY KEY(trader_id)
- );
-
 CREATE TABLE IF NOT EXISTS option(key TEXT PRIMARY KEY, value BLOB);
 INSERT OR REPLACE INTO option(key, value) VALUES('database_version', '""" + str(LATEST_DB_VERSION) + u"""');
 """
@@ -343,18 +335,6 @@ class MarketDB(TrustChainDB):
         """
         return [Tick.from_database(db_tick) for db_tick in self.execute(u"SELECT * FROM ticks")]
 
-    def add_trader_identity(self, trader_id, ip, port):
-        self.execute(u"INSERT OR REPLACE INTO traders VALUES(?,?,?)", (database_blob(bytes(trader_id)),
-                                                                       text_type(ip), port))
-        self.commit()
-
-    def get_traders(self):
-        """
-        Return information about known traders in the database.
-        :return: A tuple
-        """
-        return [(TraderId(res[0]), (str(res[1]), res[2])) for res in self.execute(u"SELECT * FROM traders")]
-
     def open(self, initial_statements=True, prepare_visioning=True):
         return super(MarketDB, self).open(initial_statements, prepare_visioning)
 
@@ -365,7 +345,8 @@ class MarketDB(TrustChainDB):
                    u"DROP TABLE IF EXISTS payments;" \
                    u"DROP TABLE IF EXISTS ticks;" \
                    u"DROP TABLE IF EXISTS orders_reserved_ticks;" \
-                   u"DROP TABLE IF EXISTS option;"
+                   u"DROP TABLE IF EXISTS option;" \
+                   u"DROP TABLE IF EXISTS traders;"
 
     def check_database(self, database_version):
         """

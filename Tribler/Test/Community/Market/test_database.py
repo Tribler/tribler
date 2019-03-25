@@ -177,15 +177,6 @@ class TestDatabase(AbstractServer):
         self.database.delete_all_ticks()
         self.assertEqual(len(self.database.get_ticks()), 0)
 
-    def test_add_get_trader_identity(self):
-        """
-        Test the addition and retrieval of a trader identity in the database
-        """
-        self.database.add_trader_identity(TraderId(b'a' * 20), "123", 1234)
-        self.database.add_trader_identity(TraderId(b'b' * 20), "124", 1235)
-        traders = self.database.get_traders()
-        self.assertEqual(len(traders), 2)
-
     def test_check_database(self):
         """
         Test the check of the database

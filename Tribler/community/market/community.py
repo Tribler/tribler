@@ -185,8 +185,6 @@ class MarketCommunity(Community, BlockListener):
         if self.is_matchmaker:
             self.enable_matchmaker()
 
-        self.initialize_traders()
-
         # Register messages
         self.decode_map.update({
             chr(MSG_MATCH): self.received_match,
@@ -207,13 +205,6 @@ class MarketCommunity(Community, BlockListener):
         })
 
         self.logger.info("Market community initialized with mid %s", hexlify(self.mid))
-
-    def initialize_traders(self):
-        """
-        Load the information of traders from the database.
-        """
-        for trader_info in self.market_database.get_traders():
-            self.update_ip(*trader_info)
 
     def get_address_for_trader(self, trader_id):
         """
@@ -332,10 +323,6 @@ class MarketCommunity(Community, BlockListener):
     @inlineCallbacks
     def unload(self):
         self.request_cache.clear()
-
-        # Store all traders to the database
-        for trader_id, sock_addr in self.mid_register.items():
-            self.market_database.add_trader_identity(trader_id, sock_addr[0], sock_addr[1])
 
         # Save the ticks to the database
         if self.is_matchmaker:
