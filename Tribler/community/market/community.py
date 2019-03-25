@@ -323,7 +323,7 @@ class MarketCommunity(Community, BlockListener):
         self.endpoint.send(peer.address, packet)
 
     def get_orders_bloomfilter(self):
-        order_ids = [str(order_id) for order_id in self.order_book.get_order_ids()]
+        order_ids = [bytes(order_id) for order_id in self.order_book.get_order_ids()]
         orders_bloom_filter = BloomFilter(0.005, max(len(order_ids), 1), prefix=b' ')
         if order_ids:
             orders_bloom_filter.add_keys(order_ids)
@@ -510,7 +510,7 @@ class MarketCommunity(Community, BlockListener):
             return
 
         for order_id in self.order_book.get_order_ids():
-            if str(order_id) not in payload.bloomfilter:
+            if bytes(order_id) not in payload.bloomfilter:
                 is_ask = self.order_book.ask_exists(order_id)
                 entry = self.order_book.get_ask(order_id) if is_ask else self.order_book.get_bid(order_id)
 

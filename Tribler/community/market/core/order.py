@@ -90,6 +90,9 @@ class OrderId(object):
         """
         return "%s.%d" % (self._trader_id.as_hex(), self._order_number)
 
+    def __bytes__(self):
+        return b"%s.%d" % (self._trader_id.as_hex().encode('utf-8'), self._order_number)
+
     def __eq__(self, other):
         if not isinstance(other, OrderId):
             return NotImplemented
