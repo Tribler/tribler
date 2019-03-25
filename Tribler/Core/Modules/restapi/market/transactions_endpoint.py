@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from binascii import unhexlify
+
 from twisted.web import http
 
 import Tribler.Core.Utilities.json_util as json
@@ -139,7 +141,7 @@ class TransactionPaymentsEndpoint(BaseMarketEndpoint):
                     ]
                 }
         """
-        transaction_id = TransactionId(TraderId(self.transaction_trader_id),
+        transaction_id = TransactionId(TraderId(unhexlify(self.transaction_trader_id)),
                                        TransactionNumber(int(self.transaction_number)))
         transaction = self.get_market_community().transaction_manager.find_by_id(transaction_id)
 

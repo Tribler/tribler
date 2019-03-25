@@ -121,11 +121,6 @@ class DatabaseOrderRepository(OrderRepository):
 
         self._logger.info("Memory order repository used")
 
-        try:
-            int(mid, 16)
-        except ValueError:  # Not a hexadecimal
-            raise ValueError("Encoded member id must be hexadecimal")
-
         self._mid = mid
         self.persistence = persistence
 
