@@ -278,8 +278,8 @@ class TriblerLaunchMany(TaskManager):
                 btc_testnet_wallet = BitcoinTestnetWallet(wallet_path)
                 self.wallets[btc_wallet.get_identifier()] = btc_wallet
                 self.wallets[btc_testnet_wallet.get_identifier()] = btc_testnet_wallet
-            except ImportError:
-                self._logger.error("bitcoinlib library cannot be found, Bitcoin wallet not available!")
+            except Exception as exc:
+                self._logger.error("bitcoinlib library cannot be loaded: %s", exc)
 
         if self.session.config.get_chant_enabled():
             channels_dir = os.path.join(self.session.config.get_chant_channels_dir())

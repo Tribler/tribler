@@ -38,7 +38,7 @@ UDP_TRACKER_MAX_RETRIES = 8
 HTTP_TRACKER_RECHECK_INTERVAL = 60
 HTTP_TRACKER_MAX_RETRIES = 0
 
-MAX_TRACKER_MULTI_SCRAPE = 74
+MAX_INFOHASHES_IN_SCRAPE = 60
 
 
 def create_tracker_session(tracker_url, timeout, socket_manager, connection_pool=None):
@@ -111,7 +111,8 @@ class TrackerSession(TaskManager):
         """
         assert not self._is_initiated, u"Must not add request to an initiated session."
         assert not self.has_infohash(infohash), u"Must not add duplicate requests"
-        self._infohash_list.append(infohash)
+        if len(self._infohash_list) < MAX_INFOHASHES_IN_SCRAPE:
+            self._infohash_list.append(infohash)
 
     @abstractmethod
     def connect_to_tracker(self):

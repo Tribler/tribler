@@ -240,6 +240,7 @@ class TestTorrentChecker(TestAsServer):
         }
         self.torrent_checker.on_torrent_health_check_completed(infohash_bin, result)
         self.assertDictEqual(self.torrent_checker.on_torrent_health_check_completed(infohash_bin, result), res_dict)
+        self.assertFalse(self.torrent_checker.on_torrent_health_check_completed(infohash_bin, None))
 
         with db_session:
             ts = self.session.lm.mds.TorrentState(infohash=infohash_bin)
