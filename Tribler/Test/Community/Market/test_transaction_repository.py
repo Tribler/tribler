@@ -20,7 +20,7 @@ class MemoryTransactionRepositoryTestSuite(unittest.TestCase):
         self.transaction_id = TransactionId(TraderId(b'0' * 20), TransactionNumber(1))
         self.transaction = Transaction(self.transaction_id, AssetPair(AssetAmount(10, 'BTC'), AssetAmount(10, 'MB')),
                                        OrderId(TraderId(b'0' * 20), OrderNumber(1)),
-                                       OrderId(TraderId(b'2' * 20), OrderNumber(2)), Timestamp(0.0))
+                                       OrderId(TraderId(b'2' * 20), OrderNumber(2)), Timestamp(0))
 
     def test_find_by_id(self):
         # Test for find by id

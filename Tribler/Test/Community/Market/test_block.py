@@ -24,13 +24,13 @@ class TestMarketBlock(AbstractServer):
         yield super(TestMarketBlock, self).setUp()
 
         self.ask = Ask(OrderId(TraderId(b'0' * 20), OrderNumber(1)),
-                       AssetPair(AssetAmount(30, 'BTC'), AssetAmount(30, 'MB')), Timeout(30), Timestamp(0.0), True)
+                       AssetPair(AssetAmount(30, 'BTC'), AssetAmount(30, 'MB')), Timeout(30), Timestamp(0), True)
         self.bid = Ask(OrderId(TraderId(b'1' * 20), OrderNumber(1)),
-                       AssetPair(AssetAmount(30, 'BTC'), AssetAmount(30, 'MB')), Timeout(30), Timestamp(0.0), False)
+                       AssetPair(AssetAmount(30, 'BTC'), AssetAmount(30, 'MB')), Timeout(30), Timestamp(0), False)
         self.transaction = Transaction(TransactionId(TraderId(b'0' * 20), TransactionNumber(1)),
                                        AssetPair(AssetAmount(30, 'BTC'), AssetAmount(30, 'MB')),
                                        OrderId(TraderId(b'0' * 20), OrderNumber(1)),
-                                       OrderId(TraderId(b'1' * 20), OrderNumber(1)), Timestamp(0.0))
+                                       OrderId(TraderId(b'1' * 20), OrderNumber(1)), Timestamp(0))
 
         ask_tx = self.ask.to_block_dict()
         bid_tx = self.bid.to_block_dict()
@@ -61,7 +61,7 @@ class TestMarketBlock(AbstractServer):
             'payment_id': 'a',
             'address_from': 'a',
             'address_to': 'b',
-            'timestamp': 1234.3,
+            'timestamp': 1234,
             'success': True
         }
         self.payment_block = MarketBlock()

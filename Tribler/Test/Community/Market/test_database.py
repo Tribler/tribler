@@ -44,10 +44,10 @@ class TestDatabase(AbstractServer):
         self.transaction_id1 = TransactionId(TraderId(b'0' * 20), TransactionNumber(4))
         self.transaction1 = Transaction(self.transaction_id1, AssetPair(AssetAmount(100, 'BTC'), AssetAmount(30, 'MB')),
                                         OrderId(TraderId(b'0' * 20), OrderNumber(1)),
-                                        OrderId(TraderId(b'1' * 20), OrderNumber(2)), Timestamp(20.0))
+                                        OrderId(TraderId(b'1' * 20), OrderNumber(2)), Timestamp(20000))
 
         self.payment1 = Payment(TraderId(b'0' * 20), self.transaction_id1, AssetAmount(5, 'BTC'),
-                                WalletAddress('abc'), WalletAddress('def'), PaymentId("abc"), Timestamp(20.0), False)
+                                WalletAddress('abc'), WalletAddress('def'), PaymentId("abc"), Timestamp(20000), False)
 
         self.transaction1.add_payment(self.payment1)
 
@@ -116,18 +116,18 @@ class TestDatabase(AbstractServer):
         # Test try to update with older timestamp
         before_trans1 = Transaction(self.transaction1.transaction_id, self.transaction1.assets,
                                     self.transaction1.order_id, self.transaction1.partner_order_id,
-                                    Timestamp(float(self.transaction1.timestamp) - 1.0))
+                                    Timestamp(int(self.transaction1.timestamp) - 1000))
         self.database.insert_or_update_transaction(before_trans1)
         transaction = self.database.get_transaction(self.transaction1.transaction_id)
-        self.assertEqual(float(transaction.timestamp), float(self.transaction1.timestamp))
+        self.assertEqual(int(transaction.timestamp), int(self.transaction1.timestamp))
 
         # Test update with newer timestamp
         after_trans1 = Transaction(self.transaction1.transaction_id, self.transaction1.assets,
                                    self.transaction1.order_id, self.transaction1.partner_order_id,
-                                   Timestamp(float(self.transaction1.timestamp) + 1.0))
+                                   Timestamp(int(self.transaction1.timestamp) + 1000))
         self.database.insert_or_update_transaction(after_trans1)
         transaction = self.database.get_transaction(self.transaction1.transaction_id)
-        self.assertEqual(float(transaction.timestamp), float(after_trans1.timestamp))
+        self.assertEqual(int(transaction.timestamp), int(after_trans1.timestamp))
 
     def test_get_specific_transaction(self):
         """

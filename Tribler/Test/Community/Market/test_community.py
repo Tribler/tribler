@@ -460,7 +460,7 @@ class TestMarketCommunitySingle(TestMarketCommunityBase):
         tx = Transaction(TransactionId(TraderId(b'0' * 20), TransactionNumber(1)),
                          AssetPair(AssetAmount(traded_amount, 'BTC'), AssetAmount(traded_amount, 'MB')),
                          OrderId(TraderId(b'0' * 20), OrderNumber(1)),
-                         OrderId(TraderId(b'1' * 20), OrderNumber(1)), Timestamp(0.0))
+                         OrderId(TraderId(b'1' * 20), OrderNumber(1)), Timestamp(0))
         tx.transferred_assets.first += AssetAmount(traded_amount, 'BTC')
         tx.transferred_assets.second += AssetAmount(traded_amount, 'MB')
         tx_done_block = MarketBlock()

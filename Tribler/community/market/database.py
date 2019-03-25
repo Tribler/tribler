@@ -31,8 +31,8 @@ CREATE TABLE IF NOT EXISTS orders(
  asset2_type          TEXT NOT NULL,
  traded_quantity      BIGINT NOT NULL,
  timeout              INTEGER NOT NULL,
- order_timestamp      TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
- completed_timestamp  TIMESTAMP,
+ order_timestamp      BIGINT NOT NULL,
+ completed_timestamp  BIGINT,
  is_ask               INTEGER NOT NULL,
  cancelled            INTEGER NOT NULL,
  verified             INTEGER NOT NULL,
@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS orders(
   asset2_amount            BIGINT NOT NULL,
   asset2_type              TEXT NOT NULL,
   asset2_transferred       BIGINT NOT NULL,
-  transaction_timestamp    TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  transaction_timestamp    BIGINT NOT NULL,
   sent_wallet_info         INTEGER NOT NULL,
   received_wallet_info     INTEGER NOT NULL,
   incoming_address         TEXT NOT NULL,
@@ -74,7 +74,7 @@ CREATE TABLE IF NOT EXISTS orders(
   transferred_type         TEXT NOT NULL,
   address_from             TEXT NOT NULL,
   address_to               TEXT NOT NULL,
-  timestamp                TIMESTAMP NOT NULL,
+  timestamp                BIGINT NOT NULL,
   success                  INTEGER NOT NULL,
 
   PRIMARY KEY (trader_id, payment_id, transaction_trader_id, transaction_number)
@@ -88,7 +88,7 @@ CREATE TABLE IF NOT EXISTS orders(
   asset2_amount        BIGINT NOT NULL,
   asset2_type          TEXT NOT NULL,
   timeout              INTEGER NOT NULL,
-  timestamp            TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  timestamp            BIGINT NOT NULL,
   is_ask               INTEGER NOT NULL,
   traded               BIGINT NOT NULL,
   block_hash           TEXT NOT NULL,
@@ -267,10 +267,10 @@ class MarketDB(TrustChainDB):
                                                transaction.transferred_assets.first.amount,
                                                transaction.assets.second.amount,
                                                transaction.transferred_assets.second.amount,
-                                               float(transaction.timestamp),
+                                               int(transaction.timestamp),
                                                database_blob(bytes(transaction.transaction_id.trader_id)),
                                                int(transaction.transaction_id.transaction_number),
-                                               float(transaction.timestamp))
+                                               int(transaction.timestamp))
         )
 
         self.commit()

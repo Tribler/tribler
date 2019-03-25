@@ -20,7 +20,7 @@ class PaymentTestSuite(unittest.TestCase):
                                TransactionId(TraderId(b'2' * 20), TransactionNumber(2)),
                                AssetAmount(3, 'BTC'),
                                WalletAddress('a'), WalletAddress('b'),
-                               PaymentId('aaa'), Timestamp(4.0), True)
+                               PaymentId('aaa'), Timestamp(4000), True)
 
     def test_from_network(self):
         # Test for from network
@@ -31,13 +31,13 @@ class PaymentTestSuite(unittest.TestCase):
                                      "address_from": WalletAddress('a'),
                                      "address_to": WalletAddress('b'),
                                      "payment_id": PaymentId('aaa'),
-                                     "timestamp": Timestamp(4.0),
+                                     "timestamp": Timestamp(4000),
                                      "success": True}))
 
         self.assertEquals(TraderId(b'0' * 20), data.trader_id)
         self.assertEquals(TransactionId(TraderId(b'2' * 20), TransactionNumber(2)), data.transaction_id)
         self.assertEquals(AssetAmount(3, 'BTC'), data.transferred_assets)
-        self.assertEquals(Timestamp(4.0), data.timestamp)
+        self.assertEquals(Timestamp(4000), data.timestamp)
         self.assertTrue(data.success)
 
     def test_to_network(self):
@@ -45,7 +45,7 @@ class PaymentTestSuite(unittest.TestCase):
         data = self.payment.to_network()
 
         self.assertEquals(data[0], TraderId(b'0' * 20))
-        self.assertEquals(data[1], Timestamp(4.0))
+        self.assertEquals(data[1], Timestamp(4000))
         self.assertEquals(data[2], TransactionId(TraderId(b'2' * 20), TransactionNumber(2)))
         self.assertEquals(data[3], AssetAmount(3, 'BTC'))
         self.assertEquals(data[4], WalletAddress('a'))
@@ -67,6 +67,6 @@ class PaymentTestSuite(unittest.TestCase):
             "payment_id": 'aaa',
             "address_from": 'a',
             "address_to": 'b',
-            "timestamp": 4.0,
+            "timestamp": 4000,
             "success": True
         })

@@ -18,6 +18,7 @@ from Tribler.community.market.core.tick import Ask, Bid
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
+from Tribler.pyipv8.ipv8.util import old_round
 
 
 class OrderBook(TaskManager):
@@ -56,7 +57,7 @@ class OrderBook(TaskManager):
         """
         if not self._asks.tick_exists(ask.order_id) and ask.order_id not in self.completed_orders and ask.is_valid():
             self._asks.insert_tick(ask)
-            timeout_delay = float(ask.timestamp) + int(ask.timeout) - time.time()
+            timeout_delay = int(ask.timestamp) + int(ask.timeout) * 1000 - int(old_round(time.time() * 1000))
             task = deferLater(reactor, timeout_delay, self.timeout_ask, ask.order_id)
             self.register_task("ask_%s_timeout" % ask.order_id, task)
             return task.addErrback(self.on_timeout_error)
@@ -76,7 +77,7 @@ class OrderBook(TaskManager):
         """
         if not self._bids.tick_exists(bid.order_id) and bid.order_id not in self.completed_orders and bid.is_valid():
             self._bids.insert_tick(bid)
-            timeout_delay = float(bid.timestamp) + int(bid.timeout) - time.time()
+            timeout_delay = int(bid.timestamp) + int(bid.timeout) * 1000 - int(old_round(time.time() * 1000))
             task = deferLater(reactor, timeout_delay, self.timeout_bid, bid.order_id)
             self.register_task("bid_%s_timeout" % bid.order_id, task)
             return task.addErrback(self.on_timeout_error)

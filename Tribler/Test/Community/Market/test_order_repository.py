@@ -17,9 +17,9 @@ class MemoryOrderRepositoryTestSuite(unittest.TestCase):
         self.memory_order_repository = MemoryOrderRepository(b'0' * 20)
         self.order_id = OrderId(TraderId(b'0' * 20), OrderNumber(1))
         self.order = Order(self.order_id, AssetPair(AssetAmount(100, 'BTC'), AssetAmount(30, 'MC')),
-                           Timeout(0), Timestamp(10.0), False)
+                           Timeout(0), Timestamp(10), False)
         self.order2 = Order(self.order_id, AssetPair(AssetAmount(1000, 'BTC'), AssetAmount(30, 'MC')),
-                            Timeout(0), Timestamp(10.0), False)
+                            Timeout(0), Timestamp(10), False)
 
     def test_add(self):
         # Test for add

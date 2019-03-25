@@ -21,15 +21,15 @@ class TickTestSuite(unittest.TestCase):
         # Object creation
         self.timestamp_now = Timestamp.now()
         self.tick = Tick(OrderId(TraderId(b'0' * 20), OrderNumber(1)),
-                         AssetPair(AssetAmount(30, 'BTC'), AssetAmount(30, 'MB')), Timeout(30), Timestamp(0.0), True)
+                         AssetPair(AssetAmount(30, 'BTC'), AssetAmount(30, 'MB')), Timeout(30), Timestamp(0), True)
         self.tick2 = Tick(OrderId(TraderId(b'0' * 20), OrderNumber(2)),
-                          AssetPair(AssetAmount(30, 'BTC'), AssetAmount(30, 'MB')), Timeout(0), Timestamp(0.0), False)
+                          AssetPair(AssetAmount(30, 'BTC'), AssetAmount(30, 'MB')), Timeout(0), Timestamp(0), False)
         self.order_ask = Order(OrderId(TraderId(b'0' * 20), OrderNumber(2)),
                                AssetPair(AssetAmount(30, 'BTC'), AssetAmount(30, 'MB')),
-                               Timeout(0), Timestamp(0.0), True)
+                               Timeout(0), Timestamp(0), True)
         self.order_bid = Order(OrderId(TraderId(b'0' * 20), OrderNumber(2)),
                                AssetPair(AssetAmount(30, 'BTC'), AssetAmount(30, 'MB')),
-                               Timeout(0), Timestamp(0.0), False)
+                               Timeout(0), Timestamp(0), False)
 
     def test_is_ask(self):
         # Test 'is ask' function

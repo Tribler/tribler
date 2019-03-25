@@ -18,7 +18,7 @@ class MessagePayload(Payload):
     Payload for a generic message in the market community.
     """
 
-    format_list = ['varlenI', 'f']
+    format_list = ['varlenI', 'Q']
 
     def __init__(self, trader_id, timestamp):
         super(MessagePayload, self).__init__()
@@ -27,7 +27,7 @@ class MessagePayload(Payload):
 
     def to_pack_list(self):
         data = [('varlenI', bytes(self.trader_id)),
-                ('f', self.timestamp)]
+                ('Q', int(self.timestamp))]
 
         return data
 

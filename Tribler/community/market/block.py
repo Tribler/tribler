@@ -70,7 +70,7 @@ class MarketBlock(TrustChainBlock):
         if not MarketBlock.has_fields(required_fields, tick):
             return False
 
-        required_types = [('trader_id', string_types), ('order_number', int), ('assets', dict), ('timestamp', float),
+        required_types = [('trader_id', string_types), ('order_number', int), ('assets', dict), ('timestamp', int),
                           ('timeout', int)]
 
         if not MarketBlock.is_valid_trader_id(tick['trader_id']):
@@ -98,7 +98,7 @@ class MarketBlock(TrustChainBlock):
 
         required_types = [('trader_id', string_types), ('order_number', int), ('partner_trader_id', string_types),
                           ('partner_order_number', int), ('transaction_number', int), ('assets', dict),
-                          ('transferred', dict), ('timestamp', float), ('payment_complete', bool), ('status', str)]
+                          ('transferred', dict), ('timestamp', int), ('payment_complete', bool), ('status', str)]
 
         if not MarketBlock.is_valid_trader_id(tx['trader_id']) or not \
                 MarketBlock.is_valid_trader_id(tx['partner_trader_id']):
@@ -125,7 +125,7 @@ class MarketBlock(TrustChainBlock):
             return False
 
         required_types = [('trader_id', string_types), ('transaction_number', int), ('transferred', dict),
-                          ('payment_id', str), ('address_from', str), ('address_to', str), ('timestamp', float),
+                          ('payment_id', str), ('address_from', str), ('address_to', str), ('timestamp', int),
                           ('success', bool)]
         if not MarketBlock.is_valid_trader_id(payment['trader_id']):
             return False

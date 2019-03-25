@@ -157,7 +157,7 @@ class Transaction(object):
                                     AssetAmount(asset2_amount, str(asset2_type))),
                           OrderId(TraderId(bytes(order_trader_id)), OrderNumber(order_number)),
                           OrderId(TraderId(bytes(partner_trader_id)), OrderNumber(partner_order_number)),
-                          Timestamp(float(transaction_timestamp)))
+                          Timestamp(transaction_timestamp))
 
         transaction._transferred_assets = AssetPair(AssetAmount(asset1_transferred, str(asset1_type)),
                                                     AssetAmount(asset2_transferred, str(asset2_type)))
@@ -204,7 +204,7 @@ class Transaction(object):
                                     AssetAmount(asset2_amount, str(asset2_type))),
                           OrderId(TraderId(order_trader_id), OrderNumber(order_number)),
                           OrderId(TraderId(partner_trader_id), OrderNumber(partner_order_number)),
-                          Timestamp(float(transaction_timestamp)))
+                          Timestamp(transaction_timestamp))
 
         transaction._transferred_assets = AssetPair(AssetAmount(asset1_transferred, str(asset1_type)),
                                                     AssetAmount(asset2_transferred, str(asset2_type)))
@@ -228,7 +228,7 @@ class Transaction(object):
                 database_blob(bytes(self.partner_order_id.trader_id)), int(self.partner_order_id.order_number),
                 self.assets.first.amount, text_type(self.assets.first.asset_id), self.transferred_assets.first.amount,
                 self.assets.second.amount, text_type(self.assets.second.asset_id),
-                self.transferred_assets.second.amount, float(self.timestamp), self.sent_wallet_info,
+                self.transferred_assets.second.amount, int(self.timestamp), self.sent_wallet_info,
                 self.received_wallet_info, text_type(self.incoming_address), text_type(self.outgoing_address),
                 text_type(self.partner_incoming_address), text_type(self.partner_outgoing_address),
                 text_type(self.match_id))
@@ -344,7 +344,7 @@ class Transaction(object):
             "transaction_number": int(self.transaction_id.transaction_number),
             "assets": self.assets.to_dictionary(),
             "transferred": self.transferred_assets.to_dictionary(),
-            "timestamp": float(self.timestamp),
+            "timestamp": int(self.timestamp),
             "payment_complete": self.is_payment_complete(),
             "status": self.status
         }

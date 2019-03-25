@@ -12,6 +12,7 @@ from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.community.market.core.trade import Trade
 from Tribler.community.market.core.transaction import Transaction, TransactionId, TransactionNumber
+from Tribler.pyipv8.ipv8.util import old_round
 
 
 class OrderTestSuite(unittest.TestCase):
@@ -22,18 +23,18 @@ class OrderTestSuite(unittest.TestCase):
         self.transaction_id = TransactionId(TraderId(b'0' * 20), TransactionNumber(1))
         self.transaction = Transaction(self.transaction_id, AssetPair(AssetAmount(100, 'BTC'), AssetAmount(30, 'MC')),
                                        OrderId(TraderId(b'0' * 20), OrderNumber(2)),
-                                       OrderId(TraderId(b'1' * 20), OrderNumber(1)), Timestamp(0.0))
+                                       OrderId(TraderId(b'1' * 20), OrderNumber(1)), Timestamp(0))
         self.proposed_trade = Trade.propose(TraderId(b'0' * 20),
                                             OrderId(TraderId(b'0' * 20), OrderNumber(2)),
                                             OrderId(TraderId(b'1' * 20), OrderNumber(3)),
-                                            AssetPair(AssetAmount(100, 'BTC'), AssetAmount(30, 'MC')), Timestamp(0.0))
+                                            AssetPair(AssetAmount(100, 'BTC'), AssetAmount(30, 'MC')), Timestamp(0))
 
         self.tick = Tick(OrderId(TraderId(b'0' * 20), OrderNumber(1)),
                          AssetPair(AssetAmount(5, 'BTC'), AssetAmount(5, 'MC')),
-                         Timeout(0), Timestamp(float("inf")), True)
+                         Timeout(0), Timestamp(00), True)
         self.tick2 = Tick(OrderId(TraderId(b'0' * 20), OrderNumber(2)),
                           AssetPair(AssetAmount(500, 'BTC'), AssetAmount(5, 'MC')),
-                          Timeout(0), Timestamp(float("inf")), True)
+                          Timeout(0), Timestamp(0), True)
 
         self.order_timestamp = Timestamp.now()
         self.order = Order(OrderId(TraderId(b'0' * 20), OrderNumber(3)),
@@ -42,7 +43,7 @@ class OrderTestSuite(unittest.TestCase):
         self.order.set_verified()
         self.order2 = Order(OrderId(TraderId(b'0' * 20), OrderNumber(4)),
                             AssetPair(AssetAmount(50, 'BTC'), AssetAmount(5, 'MC')),
-                            Timeout(5), Timestamp(time.time() - 1000), True)
+                            Timeout(5), Timestamp(int(old_round(time.time() * 1000)) - 1000 * 1000), True)
         self.order2.set_verified()
 
     def test_add_trade(self):
@@ -164,7 +165,7 @@ class OrderTestSuite(unittest.TestCase):
             "traded": 0,
             "status": "open",
             "timeout": 5000,
-            "timestamp": float(self.order_timestamp)
+            "timestamp": int(self.order_timestamp)
         })
 
 

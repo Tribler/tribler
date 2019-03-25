@@ -1331,7 +1331,7 @@ class MarketCommunity(Community, BlockListener):
             "assets": payload.assets.to_dictionary(),
             "traded": payload.traded,
             "timeout": int(payload.timeout),
-            "timestamp": float(payload.timestamp),
+            "timestamp": int(payload.timestamp),
         }
 
         reactor.callFromThread(request.request_deferred.callback, order_dict)

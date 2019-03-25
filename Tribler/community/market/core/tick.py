@@ -14,6 +14,7 @@ from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.pyipv8.ipv8.attestation.trustchain.block import GENESIS_HASH
 from Tribler.pyipv8.ipv8.database import database_blob
+from Tribler.pyipv8.ipv8.util import old_round
 
 
 class Tick(object):
@@ -21,7 +22,7 @@ class Tick(object):
     Abstract tick class for representing a order on another node. This tick is replicating the order sitting on
     the node it belongs to.
     """
-    TIME_TOLERANCE = 10  # A small tolerance for the timestamp, to account for network delays
+    TIME_TOLERANCE = 10 * 1000  # A small tolerance for the timestamp, to account for network delays
 
     def __init__(self, order_id, assets, timeout, timestamp, is_ask, traded=0, block_hash=GENESIS_HASH):
         """
@@ -64,7 +65,7 @@ class Tick(object):
     def to_database(self):
         return (database_blob(bytes(self.order_id.trader_id)), int(self.order_id.order_number),
                 self.assets.first.amount, text_type(self.assets.first.asset_id), self.assets.second.amount,
-                text_type(self.assets.second.asset_id), int(self.timeout), float(self.timestamp), self.is_ask(),
+                text_type(self.assets.second.asset_id), int(self.timeout), int(self.timestamp), self.is_ask(),
                 self.traded, database_blob(self.block_hash))
 
     @classmethod
@@ -163,7 +164,8 @@ class Tick(object):
         :rtype: bool
         """
         return not self._timeout.is_timed_out(self._timestamp) and \
-            time.time() >= float(self.timestamp) - self.TIME_TOLERANCE and int(self._timeout) <= MAX_ORDER_TIMEOUT
+               int(old_round(time.time() * 1000)) >= int(self.timestamp) - self.TIME_TOLERANCE and \
+               int(self._timeout) <= MAX_ORDER_TIMEOUT
 
     def to_network(self):
         """
@@ -187,7 +189,7 @@ class Tick(object):
             "order_number": int(self.order_id.order_number),
             "assets": self.assets.to_dictionary(),
             "timeout": int(self.timeout),
-            "timestamp": float(self.timestamp),
+            "timestamp": int(self.timestamp),
             "traded": self.traded
         }
 
@@ -200,7 +202,7 @@ class Tick(object):
             "order_number": int(self.order_id.order_number),
             "assets": self.assets.to_dictionary(),
             "timeout": int(self.timeout),
-            "timestamp": float(self.timestamp),
+            "timestamp": int(self.timestamp),
             "traded": self.traded,
             "block_hash": hexlify(self.block_hash),
         }

@@ -25,7 +25,7 @@ class TickEntryTestSuite(AbstractServer):
         # Object creation
         tick = Tick(OrderId(TraderId(b'0' * 20), OrderNumber(1)), AssetPair(AssetAmount(60, 'BTC'),
                                                                             AssetAmount(30, 'MB')),
-                    Timeout(0), Timestamp(0.0), True)
+                    Timeout(0), Timestamp(0), True)
         tick2 = Tick(OrderId(TraderId(b'0' * 20), OrderNumber(2)),
                      AssetPair(AssetAmount(63400, 'BTC'), AssetAmount(30, 'MB')), Timeout(100), Timestamp.now(), True)
 
