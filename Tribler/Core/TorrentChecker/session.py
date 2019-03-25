@@ -681,4 +681,4 @@ class FakeDHTSession(TrackerSession):
         Fakely connects to a tracker.
         :return: A deferred with a callback containing an empty dictionary.
         """
-        return self._session.lm.ltmgr.dht_health_manager.get_health(self.infohash)
+        return self._session.lm.ltmgr.dht_health_manager.get_health(bytes(self.infohash))
