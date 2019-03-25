@@ -123,7 +123,6 @@ class TestOrderBook(AbstractTestOrderBook):
         # Test for properties
         self.order_book.insert_ask(self.ask2)
         self.order_book.insert_bid(self.bid2)
-        self.assertEquals(Price(0.0875, 'MB', 'BTC'), self.order_book.get_mid_price('MB', 'BTC'))
         self.assertEquals(Price(-0.025, 'MB', 'BTC'), self.order_book.get_bid_ask_spread('MB', 'BTC'))
 
     def test_ask_price_level(self):

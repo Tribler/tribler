@@ -248,15 +248,6 @@ class OrderBook(TaskManager):
                  self.get_bid_price(price_wallet_id, quantity_wallet_id).amount
         return Price(spread, price_wallet_id, quantity_wallet_id)
 
-    def get_mid_price(self, price_wallet_id, quantity_wallet_id):
-        """
-        Return the price in between the bid and the ask price
-        :rtype: Price
-        """
-        ask_price = self.get_ask_price(price_wallet_id, quantity_wallet_id).amount
-        bid_price = self.get_bid_price(price_wallet_id, quantity_wallet_id).amount
-        return Price((ask_price + bid_price) / 2, price_wallet_id, quantity_wallet_id)
-
     def bid_side_depth(self, price):
         """
         Return the depth of the price level with the given price on the bid side
