@@ -107,7 +107,7 @@ class PopularityCommunity(PubSubCommunity):
         content = self.content_repository.pop_content()
         if content:
             infohash, seeders, leechers, timestamp = content
-            payload = TorrentHealthPayload(infohash, seeders, leechers, timestamp)
+            payload = TorrentHealthPayload(bytes(infohash), seeders, leechers, timestamp)
             self.send_torrent_health_response(payload)
 
     def publish_latest_torrents(self, peer):
@@ -118,7 +118,7 @@ class PopularityCommunity(PubSubCommunity):
             torrents = self.content_repository.get_top_torrents()
             self.logger.info("Publishing %d torrents to peer %s", len(torrents), peer)
 
-            to_send = [TorrentHealthPayload(str(torrent.infohash), torrent.health.seeders, torrent.health.leechers,
+            to_send = [TorrentHealthPayload(bytes(torrent.infohash), torrent.health.seeders, torrent.health.leechers,
                                             torrent.health.last_check) for torrent in torrents]
         for payload in to_send:
             self.send_torrent_health_response(payload, peer=peer)
