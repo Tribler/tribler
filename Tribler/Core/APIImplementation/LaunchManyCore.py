@@ -241,7 +241,8 @@ class TriblerLaunchMany(TaskManager):
             from Tribler.community.popularity.community import PopularityCommunity
 
             self.popularity_community = PopularityCommunity(peer, self.ipv8.endpoint, self.ipv8.network,
-                                                            metadata_store=self.session.lm.mds, session=self.session)
+                                                            metadata_store=self.session.lm.mds,
+                                                            torrent_checker=self.torrent_checker)
 
             self.ipv8.overlays.append(self.popularity_community)
 

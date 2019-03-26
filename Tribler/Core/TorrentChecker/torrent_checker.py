@@ -5,7 +5,6 @@ import random
 import socket
 import time
 from binascii import hexlify
-from random import choice
 
 from pony.orm import db_session
 
@@ -51,6 +50,10 @@ class TorrentChecker(TaskManager):
 
         self.socket_mgr = self.udp_port = None
         self.connection_pool = None
+
+        # We keep track of the results of popular torrents checked by you.
+        # The popularity community gossips this information around.
+        self.torrents_checked = set()
 
     def initialize(self):
         self.tracker_check_lc.start(TRACKER_SELECTION_INTERVAL, now=False)
@@ -161,10 +164,18 @@ class TorrentChecker(TaskManager):
             self._logger.info("Could not find any eligible torrent for random torrent check")
             return None
 
-        random_torrent = choice(random_torrents)
-        self.check_torrent_health(random_torrent.infohash)
+        if not self.torrents_checked:
+            # We have not checked any torrent yet - pick three torrents to health check
+            random_torrents = random.sample(random_torrents, min(3, len(random_torrents)))
+            infohashes = []
+            for random_torrent in random_torrents:
+                self.check_torrent_health(str(random_torrent.infohash))
+                infohashes.append(str(random_torrent.infohash))
+            return infohashes
 
-        return random_torrent.infohash
+        random_torrent = random.choice(random_torrents)
+        self.check_torrent_health(str(random_torrent.infohash))
+        return [random_torrent.infohash]
 
     def get_callbacks_for_session(self, session):
         success_lambda = lambda info_dict: self._on_result_from_session(session, info_dict)
@@ -197,6 +208,14 @@ class TorrentChecker(TaskManager):
         return set([str(tracker.url) for tracker in db_tracker_list
                     if is_valid_url(str(tracker.url)) and not self.is_blacklisted_tracker(str(tracker.url))])
 
+    def update_torrents_checked(self, new_result):
+        """
+        Update the set with torrents that we have checked ourselves.
+        """
+        new_result_tuple = (new_result['infohash'], new_result['seeders'],
+                            new_result['leechers'], new_result['last_check'])
+        self.torrents_checked.add(new_result_tuple)
+
     def on_torrent_health_check_completed(self, infohash, result):
         final_response = {}
         if not result or not isinstance(result, list):
@@ -220,9 +239,7 @@ class TorrentChecker(TaskManager):
                 torrent_update_dict['leechers'] = l
 
         self._update_torrent_result(torrent_update_dict)
-
-        # Add this result to popularity community to publish to subscribers
-        self.publish_torrent_result(torrent_update_dict)
+        self.update_torrents_checked(torrent_update_dict)
 
         # TODO: DRY! Stop doing lots of formats, just make REST endpoint automatically encode binary data to hex!
         self.tribler_session.notifier.notify(NTFY_TORRENT, NTFY_UPDATE, infohash,
@@ -345,13 +362,3 @@ class TorrentChecker(TaskManager):
             torrent.seeders = seeders
             torrent.leechers = leechers
             torrent.last_check = last_check
-
-    def publish_torrent_result(self, response):
-        if response['seeders'] == 0:
-            self._logger.info("Not publishing zero seeded torrents")
-            return
-        content = (response['infohash'], response['seeders'], response['leechers'], response['last_check'])
-        if self.tribler_session.lm.popularity_community:
-            self.tribler_session.lm.popularity_community.queue_content(content)
-        else:
-            self._logger.info("Popular community not available to publish torrent checker result")
