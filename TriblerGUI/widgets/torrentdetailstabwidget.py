@@ -50,7 +50,7 @@ class TorrentDetailsTabWidget(QTabWidget):
         self.check_health_button.clicked.connect(self.on_check_health_clicked)
 
     def on_torrent_info(self, torrent_info):
-        if not torrent_info:
+        if not torrent_info or "torrent" not in torrent_info:
             return
         self.setTabEnabled(1, True)
 
