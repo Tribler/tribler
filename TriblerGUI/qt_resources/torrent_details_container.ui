@@ -133,7 +133,7 @@ QTabBar::tab:selected {
             <x>0</x>
             <y>0</y>
             <width>561</width>
-            <height>196</height>
+            <height>188</height>
            </rect>
           </property>
           <layout class="QFormLayout" name="formLayout">
@@ -246,6 +246,56 @@ QTabBar::tab:selected {
               <string>Health</string>
              </property>
             </widget>
+           </item>
+           <item row="4" column="0">
+            <widget class="QLabel" name="label_5">
+             <property name="styleSheet">
+              <string notr="true">font-weight: bold;</string>
+             </property>
+             <property name="text">
+              <string>Infohash</string>
+             </property>
+            </widget>
+           </item>
+           <item row="4" column="1">
+            <layout class="QFormLayout" name="infohash_layout">
+             <property name="labelAlignment">
+              <set>Qt::AlignCenter</set>
+             </property>
+             <property name="formAlignment">
+              <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+             </property>
+             <item row="0" column="0">
+              <widget class="QLabel" name="torrent_detail_infohash_label">
+               <property name="text">
+                <string>00000000000000000000</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="1">
+              <widget class="EllipseButton" name="copy_infohash_button">
+               <property name="cursor">
+                <cursorShape>PointingHandCursor</cursorShape>
+               </property>
+               <property name="styleSheet">
+                <string notr="true">
+                        EllipseButton{
+                         border: 1px solid #b5b5b5;
+                         border-radius: 4px;
+                         color: white
+                        }
+                        EllipseButton::hover{
+                         color: #333;
+                         background-color:#c5c5c5;
+                        }
+                     </string>
+               </property>
+               <property name="text">
+                <string> Copy </string>
+               </property>
+              </widget>
+             </item>
+            </layout>
            </item>
           </layout>
          </widget>

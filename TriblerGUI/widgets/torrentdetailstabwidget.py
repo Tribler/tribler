@@ -7,6 +7,7 @@ from PyQt5.QtCore import QModelIndex
 from PyQt5.QtWidgets import QLabel, QTabWidget, QTreeWidget, QTreeWidgetItem
 
 from TriblerGUI.defs import HEALTH_CHECKING, HEALTH_GOOD, HEALTH_MOOT, HEALTH_UNCHECKED
+from TriblerGUI.tribler_app import TriblerApplication
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.utilities import format_size, get_health
 from TriblerGUI.widgets.ellipsebutton import EllipseButton
@@ -24,11 +25,13 @@ class TorrentDetailsTabWidget(QTabWidget):
         self._logger = logging.getLogger("TriberGUI")
 
         self.torrent_detail_name_label = None
+        self.torrent_detail_infohash_label = None
         self.torrent_detail_category_label = None
         self.torrent_detail_size_label = None
         self.torrent_detail_health_label = None
         self.torrent_detail_trackers_list = None
         self.check_health_button = None
+        self.copy_infohash_button = None
         self.request_mgr = None
         self.health_request_mgr = None
         self.is_health_checking = False
@@ -40,6 +43,7 @@ class TorrentDetailsTabWidget(QTabWidget):
         this view (using uic.loadUI).
         """
         self.torrent_detail_name_label = self.findChild(QLabel, "torrent_detail_name_label")
+        self.torrent_detail_infohash_label = self.findChild(QLabel, "torrent_detail_infohash_label")
         self.torrent_detail_category_label = self.findChild(QLabel, "torrent_detail_category_label")
         self.torrent_detail_size_label = self.findChild(QLabel, "torrent_detail_size_label")
         self.torrent_detail_health_label = self.findChild(QLabel, "torrent_detail_health_label")
@@ -48,6 +52,8 @@ class TorrentDetailsTabWidget(QTabWidget):
 
         self.check_health_button = self.findChild(EllipseButton, "check_health_button")
         self.check_health_button.clicked.connect(self.on_check_health_clicked)
+        self.copy_infohash_button = self.findChild(EllipseButton, "copy_infohash_button")
+        self.copy_infohash_button.clicked.connect(self.on_copy_infohash_clicked)
 
     def on_torrent_info(self, torrent_info):
         if not torrent_info or "torrent" not in torrent_info:
@@ -88,6 +94,8 @@ class TorrentDetailsTabWidget(QTabWidget):
 
         self.update_health_label(torrent_info['num_seeders'], torrent_info['num_leechers'],
                                  torrent_info['last_tracker_check'])
+
+        self.torrent_detail_infohash_label.setText(self.torrent_info["infohash"])
 
         self.setCurrentIndex(0)
         self.setTabEnabled(1, False)
@@ -182,3 +190,8 @@ class TorrentDetailsTabWidget(QTabWidget):
         # Update the health label of the detail widget
         self.update_health_label(data_item[u'num_seeders'], data_item[u'num_leechers'],
                                  data_item[u'last_tracker_check'])
+
+    def on_copy_infohash_clicked(self):
+        cb = TriblerApplication.clipboard()
+        cb.clear(mode=cb.Clipboard)
+        cb.setText(self.torrent_detail_infohash_label.text(), mode=cb.Clipboard)
