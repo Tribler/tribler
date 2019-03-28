@@ -130,6 +130,8 @@ class TableSelectionMixin(object):
     def _on_selection_changed(self, _):
         selected_indices = self.table_view.selectedIndexes()
         if not selected_indices:
+            self.details_container.hide()
+            self.table_view.clearSelection()
             return
 
         torrent_info = selected_indices[0].model().data_items[selected_indices[0].row()]
