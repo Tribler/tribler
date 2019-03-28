@@ -7866,11 +7866,59 @@ margin-right: 10px;</string>
                        </widget>
                       </item>
                       <item row="6" column="1">
-                       <widget class="QLabel" name="download_detail_infohash_label">
-                        <property name="text">
-                         <string/>
+                       <layout class="QFormLayout" name="infohash_layout">
+                        <property name="labelAlignment">
+                         <set>Qt::AlignCenter</set>
                         </property>
-                       </widget>
+                        <property name="formAlignment">
+                         <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+                        </property>
+                        <item row="0" column="0">
+                         <widget class="QLabel" name="download_detail_infohash_label">
+                          <property name="text">
+                           <string>00000000000000000000</string>
+                          </property>
+                         </widget>
+                        </item>
+                        <item row="0" column="1">
+                         <widget class="QToolButton" name="download_detail_copy_magnet_button">
+                          <property name="minimumSize">
+                           <size>
+                            <width>28</width>
+                            <height>28</height>
+                           </size>
+                          </property>
+                          <property name="maximumSize">
+                           <size>
+                            <width>28</width>
+                            <height>28</height>
+                           </size>
+                          </property>
+                          <property name="cursor">
+                           <cursorShape>PointingHandCursor</cursorShape>
+                          </property>
+                          <property name="styleSheet">
+                           <string notr="true">border: none;</string>
+                          </property>
+                          <property name="text">
+                           <string/>
+                          </property>
+                          <property name="toolTip">
+                           <string>Click to copy magnet link</string>
+                          </property>
+                          <property name="icon">
+                           <iconset>
+                            <normaloff>../images/magnet.png</normaloff>../images/magnet.png</iconset>
+                          </property>
+                          <property name="iconSize">
+                           <size>
+                            <width>25</width>
+                            <height>25</height>
+                           </size>
+                          </property>
+                         </widget>
+                        </item>
+                       </layout>
                       </item>
                       <item row="7" column="0">
                        <widget class="QLabel" name="label_44">

@@ -273,25 +273,40 @@ QTabBar::tab:selected {
               </widget>
              </item>
              <item row="0" column="1">
-              <widget class="EllipseButton" name="copy_infohash_button">
+              <widget class="QToolButton" name="copy_magnet_button">
+               <property name="minimumSize">
+                <size>
+                 <width>28</width>
+                 <height>28</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>28</width>
+                 <height>28</height>
+                </size>
+               </property>
                <property name="cursor">
                 <cursorShape>PointingHandCursor</cursorShape>
                </property>
+               <property name="toolTip">
+                <string>Click to copy magnet link</string>
+               </property>
                <property name="styleSheet">
-                <string notr="true">
-                        EllipseButton{
-                         border: 1px solid #b5b5b5;
-                         border-radius: 4px;
-                         color: white
-                        }
-                        EllipseButton::hover{
-                         color: #333;
-                         background-color:#c5c5c5;
-                        }
-                     </string>
+                <string notr="true">QToolTip{background-color:#fff; color:#000;}</string>
                </property>
                <property name="text">
-                <string> Copy </string>
+                <string/>
+               </property>
+               <property name="icon">
+                <iconset>
+                 <normaloff>../images/magnet.png</normaloff>../images/magnet.png</iconset>
+               </property>
+               <property name="iconSize">
+                <size>
+                 <width>25</width>
+                 <height>25</height>
+                </size>
                </property>
               </widget>
              </item>
