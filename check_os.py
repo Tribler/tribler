@@ -1,4 +1,5 @@
 from __future__ import print_function
+
 import logging.config
 import os
 import sys
@@ -11,8 +12,9 @@ import psutil
 from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.Modules.process_checker import ProcessChecker
 
-FORCE_RESTART_MESSAGE = "A Tribler instance is already running. Do you want to force restart? " \
-                        "\n\nCaution: force restart could result in data corruption."
+FORCE_RESTART_MESSAGE = "An existing Tribler core process (PID:%s) is already running. \n\n" \
+                        "Do you want to stop the process and do a clean restart instead?"
+
 
 def error_and_exit(title, main_text):
     """
@@ -145,39 +147,69 @@ def should_kill_other_tribler_instances():
     if len(sys.argv) > 1:
         return
 
-    # Get PIDs of existing tribler instance
-    pid = get_existing_tribler_pid()
+    old_pid = get_existing_tribler_pid()
+    current_pid = os.getpid()
 
-    # If the PID list is not empty, then there is another Tribler instance running
-    # Ask user whether to force restart
-    if pid > 0:
+    if current_pid != old_pid and old_pid > 0:
+        # If the old process is a zombie, simply kill it and restart Tribler
+        old_process = psutil.Process(old_pid)
+        if old_process.status() == psutil.STATUS_ZOMBIE:
+            kill_tribler_process(old_process)
+            restart_tribler_properly()
+            return
+
         import Tkinter
         import tkMessageBox
         window = Tkinter.Tk()
         window.withdraw()
-        result = tkMessageBox.askquestion("Warning", FORCE_RESTART_MESSAGE, icon='warning')
-        if result == 'yes':
-            try:
-                # Parent of core process (GUI)
-                ppid = psutil.Process(pid).ppid()
-                # Also kill the parent (GUI) if available otherwise the child becomes a defunct zombie
-                if ppid > 1:
-                    os.kill(pid, 9)
-                    os.kill(ppid, 9)
-                else:
-                    os.kill(pid, 9)
-            except OSError:
-                logging.exception("Failed to kill the existing Tribler process")
 
+        message = FORCE_RESTART_MESSAGE % old_pid
+        result = tkMessageBox.askquestion("Warning", message, icon='warning')
+        if result == 'yes':
+            kill_tribler_process(old_process)
             window.update()
             window.quit()
-
-            # Restart Tribler properly
             restart_tribler_properly()
         else:
             window.update()
             window.quit()
             sys.exit(0)
+
+
+def kill_tribler_process(process):
+    """
+    Kills the given process if it is a Tribler process.
+    :param process: psutil.Process
+    :return: None
+    """
+    def is_tribler_process(name):
+        """
+        Checks if the given name is of a Tribler processs. It checks a few potential keywords that
+        could be present in a Tribler process name across different platforms.
+        :param name: Process name
+        :return: True if pid is a Tribler process else False
+        """
+        name = name.lower()
+        process_keywords = ['usr/bin/python', 'run_tribler.py', 'tribler.exe', 'tribler.sh',
+                            'Contents/MacOS/tribler', 'usr/bin/tribler']
+        for keyword in process_keywords:
+            if keyword.lower() in name:
+                return True
+        return False
+
+    try:
+        if not is_tribler_process(process.exe()):
+            return
+
+        parent_process = process.parent()
+        if parent_process.pid > 1 and is_tribler_process(parent_process.exe()):
+            os.kill(process.pid, 9)
+            os.kill(parent_process.pid, 9)
+        else:
+            os.kill(process.pid, 9)
+
+    except OSError:
+        logging.exception("Failed to kill the existing Tribler process")
 
 
 def restart_tribler_properly():
