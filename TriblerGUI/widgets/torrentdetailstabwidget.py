@@ -4,12 +4,13 @@ import logging
 import time
 
 from PyQt5.QtCore import QModelIndex
-from PyQt5.QtWidgets import QLabel, QTabWidget, QTreeWidget, QTreeWidgetItem
+from PyQt5.QtWidgets import QLabel, QTabWidget, QToolButton, QTreeWidget, QTreeWidgetItem
+
+from Tribler.Core.Utilities.utilities import compose_magnetlink
 
 from TriblerGUI.defs import HEALTH_CHECKING, HEALTH_GOOD, HEALTH_MOOT, HEALTH_UNCHECKED
-from TriblerGUI.tribler_app import TriblerApplication
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
-from TriblerGUI.utilities import format_size, get_health
+from TriblerGUI.utilities import copy_to_clipboard, format_size, get_health
 from TriblerGUI.widgets.ellipsebutton import EllipseButton
 
 
@@ -31,7 +32,7 @@ class TorrentDetailsTabWidget(QTabWidget):
         self.torrent_detail_health_label = None
         self.torrent_detail_trackers_list = None
         self.check_health_button = None
-        self.copy_infohash_button = None
+        self.copy_magnet_button = None
         self.request_mgr = None
         self.health_request_mgr = None
         self.is_health_checking = False
@@ -52,13 +53,14 @@ class TorrentDetailsTabWidget(QTabWidget):
 
         self.check_health_button = self.findChild(EllipseButton, "check_health_button")
         self.check_health_button.clicked.connect(self.on_check_health_clicked)
-        self.copy_infohash_button = self.findChild(EllipseButton, "copy_infohash_button")
-        self.copy_infohash_button.clicked.connect(self.on_copy_infohash_clicked)
+        self.copy_magnet_button = self.findChild(QToolButton, "copy_magnet_button")
+        self.copy_magnet_button.clicked.connect(self.on_copy_magnet_clicked)
 
     def on_torrent_info(self, torrent_info):
         if not torrent_info or "torrent" not in torrent_info:
             return
         self.setTabEnabled(1, True)
+        self.torrent_info.update(torrent_info['torrent'])
 
         self.torrent_detail_trackers_list.clear()
 
@@ -191,7 +193,8 @@ class TorrentDetailsTabWidget(QTabWidget):
         self.update_health_label(data_item[u'num_seeders'], data_item[u'num_leechers'],
                                  data_item[u'last_tracker_check'])
 
-    def on_copy_infohash_clicked(self):
-        cb = TriblerApplication.clipboard()
-        cb.clear(mode=cb.Clipboard)
-        cb.setText(self.torrent_detail_infohash_label.text(), mode=cb.Clipboard)
+    def on_copy_magnet_clicked(self):
+        magnet_link = compose_magnetlink(self.torrent_info['infohash'], name=self.torrent_info.get('name', None),
+                                         trackers=self.torrent_info.get('trackers', None))
+        copy_to_clipboard(magnet_link)
+        self.window().tray_show_message("Copying magnet link", magnet_link)

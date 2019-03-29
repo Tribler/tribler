@@ -6,6 +6,8 @@ import re
 import sys
 from datetime import datetime, timedelta
 
+from PyQt5.QtWidgets import QApplication
+
 from six import integer_types
 from six.moves.urllib.parse import quote_plus
 
@@ -264,3 +266,9 @@ def get_health(seeders, leechers, last_tracker_check):
         return HEALTH_MOOT
     else:
         return HEALTH_DEAD
+
+
+def copy_to_clipboard(message):
+    cb = QApplication.clipboard()
+    cb.clear(mode=cb.Clipboard)
+    cb.setText(message, mode=cb.Clipboard)

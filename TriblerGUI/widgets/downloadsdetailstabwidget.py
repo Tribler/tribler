@@ -3,10 +3,12 @@ from __future__ import absolute_import
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QAction, QTabWidget, QTreeWidgetItem
 
+from Tribler.Core.Utilities.utilities import compose_magnetlink
+
 from TriblerGUI.defs import *
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
-from TriblerGUI.utilities import format_size, format_speed, is_video_file
+from TriblerGUI.utilities import copy_to_clipboard, format_size, format_speed, is_video_file
 from TriblerGUI.widgets.downloadfilewidgetitem import DownloadFileWidgetItem
 
 
@@ -30,6 +32,7 @@ class DownloadsDetailsTabWidget(QTabWidget):
         self.window().download_detail_infohash_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
         self.window().download_detail_name_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
         self.window().download_detail_destination_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        self.window().download_detail_copy_magnet_button.clicked.connect(self.on_copy_magnet_clicked)
 
     def update_with_download(self, download):
         did_change = self.current_download != download
@@ -229,3 +232,11 @@ class DownloadsDetailsTabWidget(QTabWidget):
         self.request_mgr = TriblerRequestManager()
         self.request_mgr.perform_request("downloads/%s" % self.current_download['infohash'], lambda _: None,
                                          method='PATCH', data=post_data)
+
+    def on_copy_magnet_clicked(self):
+        trackers = [tr['url'] for tr in self.current_download['trackers']
+                    if 'url' in tr and tr['url'] not in ['[DHT]', '[PeX]']]
+        magnet_link = compose_magnetlink(self.current_download['infohash'],
+                                         name=self.current_download.get('name', None), trackers=trackers)
+        copy_to_clipboard(magnet_link)
+        self.window().tray_show_message("Copying magnet link", magnet_link)
