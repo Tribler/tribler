@@ -125,6 +125,9 @@ class LibtorrentMgr(TaskManager):
 
         self.shutdown_task_manager()
 
+        if self.dht_health_manager:
+            self.dht_health_manager.shutdown_task_manager()
+
         # remove all upnp mapping
         for upnp_handle in self.upnp_mapping_dict.values():
             self.get_session().delete_port_mapping(upnp_handle)
