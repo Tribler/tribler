@@ -245,10 +245,7 @@ class TriblerLaunchMany(TaskManager):
                                                             torrent_checker=self.torrent_checker)
 
             self.ipv8.overlays.append(self.popularity_community)
-
             self.ipv8.strategies.append((RandomWalk(self.popularity_community), 20))
-
-            self.popularity_community.start()
 
         # Gigachannel Community
         if self.session.config.get_chant_enabled():
@@ -295,6 +292,11 @@ class TriblerLaunchMany(TaskManager):
             dummy_wallet2 = DummyWallet2()
             self.wallets[dummy_wallet2.get_identifier()] = dummy_wallet2
 
+        if self.session.config.get_torrent_checking_enabled():
+            self.session.readable_status = STATE_START_TORRENT_CHECKER
+            self.torrent_checker = TorrentChecker(self.session)
+            self.torrent_checker.initialize()
+
         if self.ipv8:
             self.ipv8_start_time = time.time()
             self.load_ipv8_overlays()
@@ -314,12 +316,6 @@ class TriblerLaunchMany(TaskManager):
         if self.session.config.get_chant_enabled():
             self.gigachannel_manager = GigaChannelManager(self.session)
             self.gigachannel_manager.start()
-
-        # add task for tracker checking
-        if self.session.config.get_torrent_checking_enabled():
-            self.session.readable_status = STATE_START_TORRENT_CHECKER
-            self.torrent_checker = TorrentChecker(self.session)
-            self.torrent_checker.initialize()
 
         if self.api_manager:
             self.session.readable_status = STATE_START_API_ENDPOINTS
