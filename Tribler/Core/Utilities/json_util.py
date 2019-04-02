@@ -104,6 +104,18 @@ def dumps(obj, ensure_ascii=True):
         raise error
 
 
+def twisted_dumps(obj, ensure_ascii=True):
+    """
+    Attempt to json.dumps() an object and encode it to convert it to bytes.
+    This method is helpful when returning JSON data in twisted REST calls.
+
+    :param obj: the object to serialize.
+    :param ensure_ascii: allow binary strings to be sent
+    :return: the JSON bytes representation of the object.
+    """
+    return dumps(obj, ensure_ascii).encode('utf-8')
+
+
 def loads(s, *args, **kwargs):
     """
     Attempt to json.loads() a string. This function wraps json.loads, to provide dumps and loads from the same file.
@@ -112,6 +124,16 @@ def loads(s, *args, **kwargs):
     :return: the Python object(s) extracted from the JSON input.
     """
     return json.loads(s, *args, **kwargs)
+
+
+def twisted_loads(s, *args, **kwargs):
+    """
+    Attempt to json.loads() a bytes. This function wraps json.loads, to provide dumps and loads from the same file.
+
+    :param s: the JSON formatted bytes to load objects from.
+    :return: the Python object(s) extracted from the JSON input.
+    """
+    return json.loads(s.decode('utf-8'), *args, **kwargs)
 
 
 def load(fp, *args, **kwargs):
