@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
-from collections import Iterable
 import json
+from collections import Iterable
 
 from six import string_types
 

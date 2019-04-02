@@ -1,14 +1,15 @@
-import json
+from __future__ import absolute_import
 
-from Tribler.Test.tools import trial_timeout
 from twisted.internet.defer import inlineCallbacks
 
+import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.wallet.tc_wallet import TrustchainWallet
+from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
+from Tribler.Test.tools import trial_timeout
 from Tribler.pyipv8.ipv8.attestation.trustchain.block import TrustChainBlock
 from Tribler.pyipv8.ipv8.attestation.trustchain.community import TrustChainCommunity
 from Tribler.pyipv8.ipv8.messaging.deprecated.encoding import encode
 from Tribler.pyipv8.ipv8.test.mocking.ipv8 import MockIPv8
-from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 
 
 class TestTrustchainStatsEndpoint(AbstractApiTest):
@@ -55,7 +56,7 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         self.session.lm.trustchain_community.persistence.add_block(block)
 
         def verify_response(response):
-            response_json = json.loads(response)
+            response_json = json.twisted_loads(response)
             self.assertTrue("statistics" in response_json)
             stats = response_json["statistics"]
             self.assertEqual(stats["id"], self.session.lm.trustchain_community.my_peer.
@@ -83,7 +84,7 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         """
 
         def verify_response(response):
-            response_json = json.loads(response)
+            response_json = json.twisted_loads(response)
             self.assertTrue("statistics" in response_json)
             stats = response_json["statistics"]
             self.assertEqual(stats["id"], self.session.lm.trustchain_community.my_peer.
@@ -115,7 +116,7 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         transaction2 = {'up': 100, 'down': 0}
 
         def verify_response(response):
-            response_json = json.loads(response)
+            response_json = json.twisted_loads(response)
             self.assertEqual(response_json['transaction'], transaction2)
 
         test_block = TrustChainBlock()
@@ -138,7 +139,7 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         transaction2 = {'up': 50, 'down': 0}
 
         def verify_response(response):
-            response_json = json.loads(response)
+            response_json = json.twisted_loads(response)
             self.assertEqual(response_json['transaction'], transaction2)
 
         test_block = TrustChainBlock()

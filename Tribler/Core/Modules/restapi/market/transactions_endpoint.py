@@ -67,7 +67,7 @@ class TransactionsEndpoint(BaseMarketEndpoint):
                 }
         """
         transactions = self.get_market_community().transaction_manager.find_all()
-        return json.dumps({"transactions": [transaction.to_dictionary() for transaction in transactions]})
+        return json.twisted_dumps({"transactions": [transaction.to_dictionary() for transaction in transactions]})
 
 
 class TransactionSpecificTraderEndpoint(BaseMarketEndpoint):
@@ -147,6 +147,6 @@ class TransactionPaymentsEndpoint(BaseMarketEndpoint):
 
         if not transaction:
             request.setResponseCode(http.NOT_FOUND)
-            return json.dumps({"error": "transaction not found"})
+            return json.twisted_dumps({"error": "transaction not found"})
 
-        return json.dumps({"payments": [payment.to_dictionary() for payment in transaction.payments]})
+        return json.twisted_dumps({"payments": [payment.to_dictionary() for payment in transaction.payments]})

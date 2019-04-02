@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import json
 import random
 
 from pony.orm import db_session
@@ -9,6 +8,7 @@ from six.moves import xrange
 
 from twisted.internet.defer import inlineCallbacks
 
+import Tribler.Core.Utilities.json_util as json
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.tools import trial_timeout
 from Tribler.pyipv8.ipv8.database import database_blob
@@ -55,28 +55,28 @@ class TestSearchEndpoint(AbstractApiTest):
         self.should_check_equality = False
 
         result = yield self.do_request('search?filter=needle', expected_code=200)
-        parsed = json.loads(result)
+        parsed = json.twisted_loads(result)
         self.assertEqual(len(parsed["results"]), 1)
 
         result = yield self.do_request('search?filter=hay', expected_code=200)
-        parsed = json.loads(result)
+        parsed = json.twisted_loads(result)
         self.assertEqual(len(parsed["results"]), 50)
 
         result = yield self.do_request('search?filter=test&type=channel', expected_code=200)
-        parsed = json.loads(result)
+        parsed = json.twisted_loads(result)
         self.assertEqual(len(parsed["results"]), 1)
 
         result = yield self.do_request('search?filter=needle&type=torrent', expected_code=200)
-        parsed = json.loads(result)
+        parsed = json.twisted_loads(result)
         self.assertEqual(parsed["results"][0][u'name'], 'needle')
 
         result = yield self.do_request('search?filter=needle&sort_by=name', expected_code=200)
-        parsed = json.loads(result)
+        parsed = json.twisted_loads(result)
         self.assertEqual(len(parsed["results"]), 1)
 
         # If uuid is passed in request, then the same uuid is returned in the response
         result = yield self.do_request('search?uuid=uuid1&filter=needle&sort_by=name', expected_code=200)
-        parsed = json.loads(result)
+        parsed = json.twisted_loads(result)
         self.assertEqual(len(parsed["results"]), 1)
         self.assertEqual(parsed['uuid'], 'uuid1')
 
@@ -95,7 +95,7 @@ class TestSearchEndpoint(AbstractApiTest):
         """
 
         def on_response(response):
-            json_response = json.loads(response)
+            json_response = json.twisted_loads(response)
             self.assertEqual(json_response['completions'], [])
 
         self.should_check_equality = False

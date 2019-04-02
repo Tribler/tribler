@@ -32,7 +32,7 @@ class TestMyChannelCreateTorrentEndpoint(AbstractApiTest):
         expected_tdef = TorrentDef.load(torrent_path)
 
         def verify_torrent(body):
-            response = json.loads(body)
+            response = json.twisted_loads(body)
             torrent = base64.b64decode(response["torrent"])
             tdef = TorrentDef.load_from_memory(torrent)
 
@@ -59,7 +59,7 @@ class TestMyChannelCreateTorrentEndpoint(AbstractApiTest):
         """
 
         def verify_error_message(body):
-            error_response = json.loads(body)
+            error_response = json.twisted_loads(body)
             expected_response = {
                 u"error": {
                     u"handled": True,

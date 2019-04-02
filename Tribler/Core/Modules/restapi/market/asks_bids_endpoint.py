@@ -79,7 +79,7 @@ class AsksEndpoint(BaseAsksBidsEndpoint):
                     }, ...]
                 }
         """
-        return json.dumps({"asks": self.get_market_community().order_book.asks.get_list_representation()})
+        return json.twisted_dumps({"asks": self.get_market_community().order_book.asks.get_list_representation()})
 
     def render_PUT(self, request):
         """
@@ -119,15 +119,15 @@ class AsksEndpoint(BaseAsksBidsEndpoint):
 
         if not has_param(parameters, 'first_asset_amount') or not has_param(parameters, 'second_asset_amount'):
             request.setResponseCode(http.BAD_REQUEST)
-            return json.dumps({"error": "asset amount parameter missing"})
+            return json.twisted_dumps({"error": "asset amount parameter missing"})
 
         if not has_param(parameters, 'first_asset_type') or not has_param(parameters, 'second_asset_type'):
             request.setResponseCode(http.BAD_REQUEST)
-            return json.dumps({"error": "asset type parameter missing"})
+            return json.twisted_dumps({"error": "asset type parameter missing"})
 
         def on_ask_created(ask):
             if not request.finished:
-                request.write(json.dumps({
+                request.write(json.twisted_dumps({
                     'assets': ask.assets.to_dictionary(),
                     'timestamp': int(ask.timestamp),
                     'trader_id': ask.order_id.trader_id.as_hex(),
@@ -186,7 +186,7 @@ class BidsEndpoint(BaseAsksBidsEndpoint):
                     }, ...]
                 }
         """
-        return json.dumps({"bids": self.get_market_community().order_book.bids.get_list_representation()})
+        return json.twisted_dumps({"bids": self.get_market_community().order_book.bids.get_list_representation()})
 
     def render_PUT(self, request):
         """
@@ -226,15 +226,15 @@ class BidsEndpoint(BaseAsksBidsEndpoint):
 
         if not has_param(parameters, 'first_asset_amount') or not has_param(parameters, 'second_asset_amount'):
             request.setResponseCode(http.BAD_REQUEST)
-            return json.dumps({"error": "asset amount parameter missing"})
+            return json.twisted_dumps({"error": "asset amount parameter missing"})
 
         if not has_param(parameters, 'first_asset_type') or not has_param(parameters, 'second_asset_type'):
             request.setResponseCode(http.BAD_REQUEST)
-            return json.dumps({"error": "asset type parameter missing"})
+            return json.twisted_dumps({"error": "asset type parameter missing"})
 
         def on_bid_created(bid):
             if not request.finished:
-                request.write(json.dumps({
+                request.write(json.twisted_dumps({
                     'assets': bid.assets.to_dictionary(),
                     'timestamp': int(bid.timestamp),
                     'trader_id': bid.order_id.trader_id.as_hex(),

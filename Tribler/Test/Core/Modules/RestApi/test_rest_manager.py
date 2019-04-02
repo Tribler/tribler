@@ -21,7 +21,7 @@ class RestRequestTest(AbstractApiTest):
         """
 
         def verify_error_message(body):
-            error_response = json.loads(body)
+            error_response = json.twisted_loads(body)
             expected_response = {
                 u"error": {
                     u"handled": False,
@@ -44,7 +44,7 @@ class RestRequestTest(AbstractApiTest):
         """
 
         def verify_error_message(body):
-            error_response = json.loads(body)
+            error_response = json.twisted_loads(body)
             expected_response = {
                 u"error": {
                     u"handled": False,

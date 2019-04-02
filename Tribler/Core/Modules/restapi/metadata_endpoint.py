@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import json
 import logging
 from binascii import unhexlify
 
@@ -10,6 +9,7 @@ from twisted.internet import reactor
 from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
 
+import Tribler.Core.Utilities.json_util as json
 from Tribler.pyipv8.ipv8.database import database_blob
 from Tribler.util import cast_to_unicode_utf8
 
@@ -100,7 +100,7 @@ class ChannelsEndpoint(BaseChannelsEndpoint):
             channels, total = self.session.lm.mds.ChannelMetadata.get_entries(**sanitized)
             channels_list = [channel.to_simple_dict() for channel in channels]
 
-        return json.dumps({
+        return json.twisted_dumps({
             "results": channels_list,
             "first": sanitized["first"],
             "last": sanitized["last"],
@@ -120,10 +120,10 @@ class ChannelsPopularEndpoint(BaseChannelsEndpoint):
 
             if limit_channels <= 0:
                 request.setResponseCode(http.BAD_REQUEST)
-                return json.dumps({"error": "the limit parameter must be a positive number"})
+                return json.twisted_dumps({"error": "the limit parameter must be a positive number"})
 
         popular_channels = self.session.lm.mds.ChannelMetadata.get_random_channels(limit=limit_channels)
-        return json.dumps({"channels": [channel.to_simple_dict() for channel in popular_channels]})
+        return json.twisted_dumps({"channels": [channel.to_simple_dict() for channel in popular_channels]})
 
 
 class SpecificChannelEndpoint(BaseChannelsEndpoint):
@@ -138,14 +138,14 @@ class SpecificChannelEndpoint(BaseChannelsEndpoint):
         parameters = http.parse_qs(request.content.read(), 1)
         if 'subscribe' not in parameters:
             request.setResponseCode(http.BAD_REQUEST)
-            return json.dumps({"success": False, "error": "subscribe parameter missing"})
+            return json.twisted_dumps({"success": False, "error": "subscribe parameter missing"})
 
         to_subscribe = bool(int(parameters['subscribe'][0]))
         with db_session:
             channel = self.session.lm.mds.ChannelMetadata.get_for_update(public_key=database_blob(self.channel_pk))
             if not channel:
                 request.setResponseCode(http.NOT_FOUND)
-                return json.dumps({"error": "this channel cannot be found"})
+                return json.twisted_dumps({"error": "this channel cannot be found"})
 
             channel.subscribed = to_subscribe
 
@@ -161,7 +161,7 @@ class SpecificChannelEndpoint(BaseChannelsEndpoint):
         if not to_subscribe:
             reactor.callInThread(delete_channel)
 
-        return json.dumps({"success": True, "subscribed": to_subscribe})
+        return json.twisted_dumps({"success": True, "subscribed": to_subscribe})
 
 
 class SpecificChannelTorrentsEndpoint(BaseMetadataEndpoint):
@@ -176,7 +176,7 @@ class SpecificChannelTorrentsEndpoint(BaseMetadataEndpoint):
             torrents, total = self.session.lm.mds.TorrentMetadata.get_entries(channel_pk=self.channel_pk, **sanitized)
             torrents_list = [torrent.to_simple_dict() for torrent in torrents]
 
-        return json.dumps({
+        return json.twisted_dumps({
             "results": torrents_list,
             "first": sanitized['first'],
             "last": sanitized['last'],
@@ -215,10 +215,10 @@ class SpecificTorrentEndpoint(resource.Resource):
 
         if not md:
             request.setResponseCode(http.NOT_FOUND)
-            request.write(json.dumps({"error": "torrent not found in database"}))
+            request.write(json.twisted_dumps({"error": "torrent not found in database"}))
             return
 
-        return json.dumps({"torrent": torrent_dict})
+        return json.twisted_dumps({"torrent": torrent_dict})
 
 
 class TorrentsRandomEndpoint(BaseMetadataEndpoint):
@@ -231,12 +231,12 @@ class TorrentsRandomEndpoint(BaseMetadataEndpoint):
 
             if limit_torrents <= 0:
                 request.setResponseCode(http.BAD_REQUEST)
-                return json.dumps({"error": "the limit parameter must be a positive number"})
+                return json.twisted_dumps({"error": "the limit parameter must be a positive number"})
 
         with db_session:
             random_torrents = self.session.lm.mds.TorrentMetadata.get_random_torrents(limit=limit_torrents)
             torrents = [torrent.to_simple_dict() for torrent in random_torrents]
-        return json.dumps({"torrents": torrents})
+        return json.twisted_dumps({"torrents": torrents})
 
 
 class TorrentHealthEndpoint(resource.Resource):
@@ -304,13 +304,13 @@ class TorrentHealthEndpoint(resource.Resource):
             nowait = True
 
         def on_health_result(result):
-            request.write(json.dumps({'health': result}))
+            request.write(json.twisted_dumps({'health': result}))
             self.finish_request(request)
 
         def on_request_error(failure):
             if not request.finished:
                 request.setResponseCode(http.BAD_REQUEST)
-                request.write(json.dumps({"error": failure.getErrorMessage()}))
+                request.write(json.twisted_dumps({"error": failure.getErrorMessage()}))
             # If the above request.write failed, the request will have already been finished
             if not request.finished:
                 self.finish_request(request)
@@ -318,7 +318,7 @@ class TorrentHealthEndpoint(resource.Resource):
         result_deferred = self.session.check_torrent_health(self.infohash, timeout=timeout, scrape_now=refresh)
         # return immediately. Used by GUI to schedule health updates through the EventsEndpoint
         if nowait:
-            return json.dumps({'checking': '1'})
+            return json.twisted_dumps({'checking': '1'})
         result_deferred.addCallback(on_health_result).addErrback(on_request_error)
 
         return NOT_DONE_YET

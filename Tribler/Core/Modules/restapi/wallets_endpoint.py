@@ -1,9 +1,10 @@
-import json
+from __future__ import absolute_import
 
 from twisted.internet.defer import DeferredList
-from twisted.web import http
-from twisted.web import resource
+from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
+
+import Tribler.Core.Utilities.json_util as json
 
 
 class WalletsEndpoint(resource.Resource):
@@ -66,7 +67,7 @@ class WalletsEndpoint(resource.Resource):
             for _, balance_info in balances:
                 wallets[balance_info[0]]['balance'] = balance_info[1]
 
-            request.write(json.dumps({"wallets": wallets}))
+            request.write(json.twisted_dumps({"wallets": wallets}))
             request.finish()
 
         balance_deferred_list = DeferredList(balance_deferreds)
@@ -117,15 +118,15 @@ class WalletEndpoint(resource.Resource):
         """
         if self.session.lm.wallets[self.identifier].created:
             request.setResponseCode(http.BAD_REQUEST)
-            return json.dumps({"error": "this wallet already exists"})
+            return json.twisted_dumps({"error": "this wallet already exists"})
 
         def on_wallet_created(_):
-            request.write(json.dumps({"created": True}))
+            request.write(json.twisted_dumps({"created": True}))
             request.finish()
 
         def on_create_error(error):
             request.setResponseCode(http.INTERNAL_SERVER_ERROR)
-            request.write(json.dumps({"error": error.getErrorMessage()}))
+            request.write(json.twisted_dumps({"error": error.getErrorMessage()}))
             request.finish()
 
         self.session.lm.wallets[self.identifier].create_wallet().addCallbacks(on_wallet_created, on_create_error)
@@ -168,7 +169,7 @@ class WalletBalanceEndpoint(resource.Resource):
                 }
         """
         def on_balance(balance):
-            request.write(json.dumps({"balance": balance}))
+            request.write(json.twisted_dumps({"balance": balance}))
             request.finish()
 
         self.session.lm.wallets[self.identifier].get_balance().addCallback(on_balance)
@@ -217,7 +218,7 @@ class WalletTransactionsEndpoint(resource.Resource):
                 }
         """
         def on_transactions(transactions):
-            request.write(json.dumps({"transactions": transactions}))
+            request.write(json.twisted_dumps({"transactions": transactions}))
             request.finish()
 
         self.session.lm.wallets[self.identifier].get_transactions().addCallback(on_transactions)
@@ -260,25 +261,26 @@ class WalletTransferEndpoint(resource.Resource):
 
         if self.identifier != "BTC" and self.identifier != "TBTC":
             request.setResponseCode(http.BAD_REQUEST)
-            return json.dumps({"error": "currently, currency transfers using the API is only supported for Bitcoin"})
+            return json.twisted_dumps({"error": "currently, currency transfers using the API "
+                                                "is only supported for Bitcoin"})
 
         wallet = self.session.lm.wallets[self.identifier]
 
         if not wallet.created:
             request.setResponseCode(http.BAD_REQUEST)
-            return json.dumps({"error": "this wallet is not created"})
+            return json.twisted_dumps({"error": "this wallet is not created"})
 
         if 'amount' not in parameters or 'destination' not in parameters:
             request.setResponseCode(http.BAD_REQUEST)
-            return json.dumps({"error": "an amount and a destination address are required"})
+            return json.twisted_dumps({"error": "an amount and a destination address are required"})
 
         def on_transferred(txid):
-            request.write(json.dumps({"txid": txid}))
+            request.write(json.twisted_dumps({"txid": txid}))
             request.finish()
 
         def on_transfer_error(error):
             request.setResponseCode(http.INTERNAL_SERVER_ERROR)
-            request.write(json.dumps({"txid": "", "error": error.getErrorMessage()}))
+            request.write(json.twisted_dumps({"txid": "", "error": error.getErrorMessage()}))
             request.finish()
 
         wallet.transfer(parameters['amount'][0], parameters['destination'][0]).addCallback(on_transferred)\

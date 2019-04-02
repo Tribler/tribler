@@ -1,12 +1,11 @@
 from __future__ import absolute_import
 
-import json
-
 from sqlalchemy.orm import session as db_session
 
 from twisted.internet.defer import fail, inlineCallbacks, succeed
 from twisted.python.failure import Failure
 
+import Tribler.Core.Utilities.json_util as json
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.tools import trial_timeout
 
@@ -36,7 +35,7 @@ class TestWalletsEndpoint(AbstractApiTest):
         Testing whether the API returns wallets when we query for them
         """
         def on_response(response):
-            json_response = json.loads(response)
+            json_response = json.twisted_loads(response)
             self.assertIn('wallets', json_response)
             self.assertGreaterEqual(len(json_response['wallets']), 2)
 
@@ -88,7 +87,7 @@ class TestWalletsEndpoint(AbstractApiTest):
         Testing whether we can retrieve the balance of a wallet
         """
         def on_response(response):
-            json_response = json.loads(response)
+            json_response = json.twisted_loads(response)
             self.assertIn('balance', json_response)
             self.assertGreater(json_response['balance']['available'], 0)
 
@@ -101,7 +100,7 @@ class TestWalletsEndpoint(AbstractApiTest):
         Testing whether we can receive the transactions of a wallet
         """
         def on_response(response):
-            json_response = json.loads(response)
+            json_response = json.twisted_loads(response)
             self.assertIn('transactions', json_response)
 
         self.should_check_equality = False

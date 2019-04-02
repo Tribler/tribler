@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import base64
-import json
 import os
 import shutil
 from binascii import hexlify
@@ -12,6 +11,7 @@ from six.moves import xrange
 
 from twisted.internet.defer import inlineCallbacks
 
+import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import NEW, TODELETE, UPDATED
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.network_utils import get_random_port
@@ -172,7 +172,7 @@ class TestMyChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
         Test whether we can query torrents from your channel
         """
         def on_response(response):
-            json_response = json.loads(response)
+            json_response = json.twisted_loads(response)
             self.assertEqual(len(json_response['results']), 9)
             self.assertIn('status', json_response['results'][0])
 

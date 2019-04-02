@@ -64,7 +64,7 @@ class TorrentInfoEndpoint(resource.Resource):
             if not isinstance(metainfo, dict) or 'info' not in metainfo:
                 self._logger.warning("Received metainfo is not a valid dictionary")
                 request.setResponseCode(http.INTERNAL_SERVER_ERROR)
-                request.write(json.dumps({"error": 'invalid response'}))
+                request.write(json.twisted_dumps({"error": 'invalid response'}))
                 self.finish_request(request)
                 return
 
@@ -75,13 +75,13 @@ class TorrentInfoEndpoint(resource.Resource):
             metainfo['download_exists'] = infohash in self.session.lm.downloads
             encoded_metainfo = hexlify(json.dumps(metainfo, ensure_ascii=False))
 
-            request.write(json.dumps({"metainfo": encoded_metainfo}))
+            request.write(json.twisted_dumps({"metainfo": encoded_metainfo}))
             self.finish_request(request)
 
         def on_metainfo_timeout(_):
             if not request.finished:
                 request.setResponseCode(http.REQUEST_TIMEOUT)
-                request.write(json.dumps({"error": "timeout"}))
+                request.write(json.twisted_dumps({"error": "timeout"}))
             # If the above request.write failed, the request will have already been finished
             if not request.finished:
                 self.finish_request(request)
@@ -89,7 +89,7 @@ class TorrentInfoEndpoint(resource.Resource):
         def on_lookup_error(failure):
             failure.trap(ConnectError, DNSLookupError, HttpError, ConnectionLost)
             request.setResponseCode(http.INTERNAL_SERVER_ERROR)
-            request.write(json.dumps({"error": unichar_string(failure.getErrorMessage())}))
+            request.write(json.twisted_dumps({"error": unichar_string(failure.getErrorMessage())}))
             self.finish_request(request)
 
         def _on_loaded(response):
@@ -108,11 +108,11 @@ class TorrentInfoEndpoint(resource.Resource):
                 payload = read_payload(serialized_data)
                 if payload.metadata_type not in [REGULAR_TORRENT, CHANNEL_TORRENT]:
                     request.setResponseCode(http.INTERNAL_SERVER_ERROR)
-                    return json.dumps({"error": "Non-torrent metadata type"})
+                    return json.twisted_dumps({"error": "Non-torrent metadata type"})
                 magnet = payload.get_magnet()
             except InvalidSignatureException:
                 request.setResponseCode(http.INTERNAL_SERVER_ERROR)
-                return json.dumps({"error": "metadata has incorrect signature"})
+                return json.twisted_dumps({"error": "metadata has incorrect signature"})
             else:
                 return on_magnet(magnet)
 
@@ -125,13 +125,13 @@ class TorrentInfoEndpoint(resource.Resource):
                 return NOT_DONE_YET
             except TypeError:
                 request.setResponseCode(http.INTERNAL_SERVER_ERROR)
-                return json.dumps({"error": "error while decoding torrent file"})
+                return json.twisted_dumps({"error": "error while decoding torrent file"})
 
         def on_magnet(mlink=None):
             infohash = parse_magnetlink(mlink or uri)[1]
             if infohash is None:
                 request.setResponseCode(http.BAD_REQUEST)
-                return json.dumps({"error": "missing infohash"})
+                return json.twisted_dumps({"error": "missing infohash"})
 
             self.session.lm.ltmgr.get_metainfo(mlink or uri, callback=metainfo_deferred.callback, timeout=20,
                                                timeout_callback=on_metainfo_timeout, notify=True)
@@ -142,7 +142,7 @@ class TorrentInfoEndpoint(resource.Resource):
 
         if 'uri' not in request.args or not request.args['uri']:
             request.setResponseCode(http.BAD_REQUEST)
-            return json.dumps({"error": "uri parameter missing"})
+            return json.twisted_dumps({"error": "uri parameter missing"})
 
         uri = cast_to_unicode_utf8(request.args['uri'][0])
 
@@ -154,6 +154,6 @@ class TorrentInfoEndpoint(resource.Resource):
             return on_magnet()
         else:
             request.setResponseCode(http.BAD_REQUEST)
-            return json.dumps({"error": "invalid uri"})
+            return json.twisted_dumps({"error": "invalid uri"})
 
         return NOT_DONE_YET

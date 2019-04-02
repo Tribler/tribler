@@ -44,7 +44,7 @@ class SettingsEndpoint(resource.Resource):
                     }
                 }
         """
-        return json.dumps({
+        return json.twisted_dumps({
             "settings": self.session.config.config,
             "ports": self.session.selected_ports
         })
@@ -74,7 +74,7 @@ class SettingsEndpoint(resource.Resource):
         self.parse_settings_dict(settings_dict)
         self.session.config.write()
 
-        return json.dumps({"modified": True})
+        return json.twisted_dumps({"modified": True})
 
     def parse_setting(self, section, option, value):
         """

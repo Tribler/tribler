@@ -101,10 +101,10 @@ class EventsEndpoint(resource.Resource):
         Write data over the event socket if it's open.
         """
         try:
-            message_str = json.dumps(message)
+            message_str = json.twisted_dumps(message)
         except UnicodeDecodeError:
             # The message contains invalid characters; fix them
-            message_str = json.dumps(fix_unicode_dict(message))
+            message_str = json.twisted_dumps(fix_unicode_dict(message))
 
         if len(self.events_requests) == 0:
             return
@@ -209,7 +209,7 @@ class EventsEndpoint(resource.Resource):
         self.events_requests.append(request)
         request.notifyFinish().addCallbacks(on_request_finished, on_request_finished)
 
-        request.write(json.dumps({"type": "events_start", "event": {
+        request.write(json.twisted_dumps({"type": "events_start", "event": {
             "tribler_started": self.session.lm.initComplete, "version": version_id}}) + '\n')
 
         return server.NOT_DONE_YET

@@ -94,11 +94,11 @@ class SearchEndpoint(BaseMetadataEndpoint):
 
         if not sanitized["query_filter"]:
             request.setResponseCode(http.BAD_REQUEST)
-            return json.dumps({"error": "filter parameter missing"})
+            return json.twisted_dumps({"error": "filter parameter missing"})
 
         if not sanitized["metadata_type"]:
             request.setResponseCode(http.BAD_REQUEST)
-            return json.dumps({"error": "Trying to query for unknown type of metadata"})
+            return json.twisted_dumps({"error": "Trying to query for unknown type of metadata"})
 
         search_uuid = SearchEndpoint.get_uuid(request.args)
 
@@ -123,7 +123,7 @@ class SearchEndpoint(BaseMetadataEndpoint):
 
         def on_search_results(search_results_tuple):
             search_results, total = search_results_tuple
-            request.write(json.dumps({
+            request.write(json.twisted_dumps({
                 "uuid": search_uuid,
                 "results": search_results,
                 "first": sanitized["first"],
@@ -172,9 +172,9 @@ class SearchCompletionsEndpoint(resource.Resource):
         """
         if 'q' not in request.args:
             request.setResponseCode(http.BAD_REQUEST)
-            return json.dumps({"error": "query parameter missing"})
+            return json.twisted_dumps({"error": "query parameter missing"})
 
         keywords = cast_to_unicode_utf8(request.args['q'][0]).lower()
         # TODO: add XXX filtering for completion terms
         results = self.session.lm.mds.TorrentMetadata.get_auto_complete_terms(keywords, max_terms=5)
-        return json.dumps({"completions": results})
+        return json.twisted_dumps({"completions": results})

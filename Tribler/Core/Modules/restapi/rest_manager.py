@@ -88,7 +88,7 @@ class RESTRequest(server.Request):
         if self.site and self.site.displayTracebacks:
             response[u"error"][u"trace"] = format_tb(failure.getTracebackObject())
 
-        body = json.dumps(response)
+        body = json.twisted_dumps(response)
         self.setResponseCode(http.INTERNAL_SERVER_ERROR)
         self.setHeader(b'content-type', self.defaultContentType)
         self.setHeader(b'content-length', intToBytes(len(body)))

@@ -26,7 +26,7 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
         self.session.lm.tunnel_community.competing_slots = [(0, None), (12345, 12345)]
 
         def verify_response(response):
-            response_json = json.loads(response)
+            response_json = json.twisted_loads(response)
             self.assertEqual(len(response_json["slots"]["random"]), 4)
 
         self.should_check_equality = False
@@ -38,7 +38,7 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
         Test whether the API returns open files
         """
         def verify_response(response):
-            response_json = json.loads(response)
+            response_json = json.twisted_loads(response)
             self.assertGreaterEqual(len(response_json['open_files']), 1)
 
         self.should_check_equality = False
@@ -51,7 +51,7 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
         """
 
         def verify_response(response):
-            response_json = json.loads(response)
+            response_json = json.twisted_loads(response)
             self.assertGreaterEqual(len(response_json['open_sockets']), 1)
 
         self.should_check_equality = False
@@ -64,7 +64,7 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
         """
 
         def verify_response(response):
-            response_json = json.loads(response)
+            response_json = json.twisted_loads(response)
             self.assertGreaterEqual(len(response_json['threads']), 1)
 
         self.should_check_equality = False
@@ -77,7 +77,7 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
         """
 
         def verify_response(response):
-            response_json = json.loads(response)
+            response_json = json.twisted_loads(response)
             self.assertGreaterEqual(len(response_json['cpu_history']), 1)
 
         self.session.lm.resource_monitor.check_resources()
@@ -91,7 +91,7 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
         """
 
         def verify_response(response):
-            response_json = json.loads(response)
+            response_json = json.twisted_loads(response)
             self.assertGreaterEqual(len(response_json['memory_history']), 1)
 
         self.session.lm.resource_monitor.check_resources()
@@ -133,7 +133,7 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
                 core_info_log_file.write("%s %d\n" % (test_core_log_message, log_index))
 
         def verify_log_exists(response):
-            json_response = json.loads(response)
+            json_response = json.twisted_loads(response)
             logs = json_response['content'].strip().split("\n")
 
             # Check number of logs returned is correct
@@ -169,7 +169,7 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
 
         # Check number of logs returned is as expected
         def verify_max_logs_returned(response):
-            json_response = json.loads(response)
+            json_response = json.twisted_loads(response)
             logs = json_response['content'].strip().split("\n")
             self.assertEqual(len(logs), expected_num_lines)
 
@@ -183,7 +183,7 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
         Test getting the state of the profiler
         """
         def verify_response(response):
-            json_response = json.loads(response)
+            json_response = json.twisted_loads(response)
             self.assertIn('state', json_response)
 
         self.should_check_equality = False

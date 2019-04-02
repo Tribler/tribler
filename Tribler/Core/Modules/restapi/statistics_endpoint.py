@@ -60,7 +60,7 @@ class StatisticsTriblerEndpoint(resource.Resource):
                     }
                 }
         """
-        return json.dumps({'tribler_statistics': self.session.get_tribler_statistics()})
+        return json.twisted_dumps({'tribler_statistics': self.session.get_tribler_statistics()})
 
 
 class StatisticsIPv8Endpoint(resource.Resource):
@@ -95,6 +95,6 @@ class StatisticsIPv8Endpoint(resource.Resource):
                     }
                 }
         """
-        return json.dumps({
+        return json.twisted_dumps({
             'ipv8_statistics': self.session.get_ipv8_statistics()
         })

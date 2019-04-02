@@ -29,7 +29,7 @@ from Tribler.util import cast_to_unicode_utf8
 
 def _safe_extended_peer_info(ext_peer_info):
     """
-    Given a string describing peer info, return a JSON.dumps() safe representation.
+    Given a string describing peer info, return a json.twisted_dumps() safe representation.
 
     :param ext_peer_info: the string to convert to a dumpable format
     :return: the safe string
@@ -38,7 +38,7 @@ def _safe_extended_peer_info(ext_peer_info):
     if not ext_peer_info:
         ext_peer_info = u''
     try:
-        json.dumps(ext_peer_info)
+        json.twisted_dumps(ext_peer_info)
         return ext_peer_info
     except UnicodeDecodeError:
         # We might have some special unicode characters in here
@@ -61,7 +61,7 @@ class DownloadBaseEndpoint(resource.Resource):
         Returns a 404 response code if your channel has not been created.
         """
         request.setResponseCode(http.NOT_FOUND)
-        return json.dumps({"error": message})
+        return json.twisted_dumps({"error": message})
 
     @staticmethod
     def create_dconfig_from_params(parameters):
@@ -288,7 +288,7 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                 download_json["files"] = self.get_files_info_json(download)
 
             downloads_json.append(download_json)
-        return json.dumps({"downloads": downloads_json})
+        return json.twisted_dumps({"downloads": downloads_json})
 
     def render_PUT(self, request):
         """
@@ -318,21 +318,21 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
 
         if 'uri' not in parameters or len(parameters['uri']) == 0:
             request.setResponseCode(http.BAD_REQUEST)
-            return json.dumps({"error": "uri parameter missing"})
+            return json.twisted_dumps({"error": "uri parameter missing"})
 
         download_config, error = DownloadsEndpoint.create_dconfig_from_params(parameters)
         if error:
             request.setResponseCode(http.BAD_REQUEST)
-            return json.dumps({"error": error})
+            return json.twisted_dumps({"error": error})
 
         def download_added(download):
-            request.write(json.dumps({"started": True,
+            request.write(json.twisted_dumps({"started": True,
                                       "infohash": hexlify(download.get_def().get_infohash())}))
             request.finish()
 
         def on_error(error):
             request.setResponseCode(http.INTERNAL_SERVER_ERROR)
-            request.write(json.dumps({"error": unichar_string(error.getErrorMessage())}))
+            request.write(json.twisted_dumps({"error": unichar_string(error.getErrorMessage())}))
             request.finish()
 
         uri = parameters['uri'][0]
@@ -343,10 +343,10 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                     payload = ChannelMetadataPayload.from_file(filename)
                 except IOError:
                     request.setResponseCode(http.BAD_REQUEST)
-                    return json.dumps({"error": "file not found"})
+                    return json.twisted_dumps({"error": "file not found"})
                 except InvalidSignatureException:
                     request.setResponseCode(http.BAD_REQUEST)
-                    return json.dumps({"error": "Metadata has invalid signature"})
+                    return json.twisted_dumps({"error": "Metadata has invalid signature"})
 
                 with db_session:
                     result = self.session.lm.mds.process_payload(payload)
@@ -355,9 +355,9 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                         if (status == UNKNOWN_CHANNEL or
                                 (status == UPDATED_OUR_VERSION and node.metadata_type == CHANNEL_TORRENT)):
                             node.subscribed = True
-                            return json.dumps(
+                            return json.twisted_dumps(
                                 {"started": True, "infohash": hexlify(node.infohash)})
-                    return json.dumps({"error": "Already subscribed"})
+                    return json.twisted_dumps({"error": "Already subscribed"})
             else:
                 download_uri = u"file:%s" % url2pathname(uri[5:]).decode('utf-8')
         else:
@@ -404,7 +404,7 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
 
         if 'remove_data' not in parameters or len(parameters['remove_data']) == 0:
             request.setResponseCode(http.BAD_REQUEST)
-            return json.dumps({"error": "remove_data parameter missing"})
+            return json.twisted_dumps({"error": "remove_data parameter missing"})
 
         download = self.session.get_download(self.infohash)
         if not download:
@@ -416,7 +416,7 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
             """
             Success callback
             """
-            request.write(json.dumps({"removed": True,
+            request.write(json.twisted_dumps({"removed": True,
                                       "infohash": hexlify(download.get_def().get_infohash())}))
             request.finish()
 
@@ -474,7 +474,7 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
 
         if len(parameters) > 1 and 'anon_hops' in parameters:
             request.setResponseCode(http.BAD_REQUEST)
-            return json.dumps({"error": "anon_hops must be the only parameter in this request"})
+            return json.twisted_dumps({"error": "anon_hops must be the only parameter in this request"})
         elif 'anon_hops' in parameters:
             anon_hops = int(parameters['anon_hops'][0])
             deferred = self.session.lm.update_download_hops(download, anon_hops)
@@ -483,7 +483,7 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
                 """
                 Success callback
                 """
-                request.write(json.dumps({"modified": True,
+                request.write(json.twisted_dumps({"modified": True,
                                           "infohash": hexlify(download.get_def().get_infohash())}))
                 request.finish()
 
@@ -511,7 +511,7 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
                     selected_files_list.append(download.tdef.get_files()[int(ind)])
                 except IndexError:  # File could not be found
                     request.setResponseCode(http.BAD_REQUEST)
-                    return json.dumps({"error": "index %s out of range" % ind})
+                    return json.twisted_dumps({"error": "index %s out of range" % ind})
             download.set_selected_files(selected_files_list)
 
         if 'state' in parameters and len(parameters['state']) > 0:
@@ -524,9 +524,9 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
                 download.force_recheck()
             else:
                 request.setResponseCode(http.BAD_REQUEST)
-                return json.dumps({"error": "unknown state parameter"})
+                return json.twisted_dumps({"error": "unknown state parameter"})
 
-        return json.dumps({"modified": True,
+        return json.twisted_dumps({"modified": True,
                            "infohash": hexlify(download.get_def().get_infohash())})
 
 
@@ -611,4 +611,4 @@ class DownloadFilesEndpoint(DownloadBaseEndpoint):
         if not download:
             return DownloadExportTorrentEndpoint.return_404(request)
 
-        return json.dumps({"files": self.get_files_info_json(download)})
+        return json.twisted_dumps({"files": self.get_files_info_json(download)})

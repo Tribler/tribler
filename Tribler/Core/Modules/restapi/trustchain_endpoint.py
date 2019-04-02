@@ -1,6 +1,8 @@
-import json
+from __future__ import absolute_import
 
 from twisted.web import http, resource
+
+import Tribler.Core.Utilities.json_util as json
 
 
 class TrustchainEndpoint(resource.Resource):
@@ -80,9 +82,9 @@ class TrustchainStatsEndpoint(TrustchainBaseEndpoint):
         """
         if 'MB' not in self.session.lm.wallets:
             request.setResponseCode(http.NOT_FOUND)
-            return json.dumps({"error": "TrustChain community not found"})
+            return json.twisted_dumps({"error": "TrustChain community not found"})
 
-        return json.dumps({'statistics': self.session.lm.wallets['MB'].get_statistics()})
+        return json.twisted_dumps({'statistics': self.session.lm.wallets['MB'].get_statistics()})
 
 
 class TrustchainBootstrapEndpoint(TrustchainBaseEndpoint):
@@ -123,7 +125,7 @@ class TrustchainBootstrapEndpoint(TrustchainBaseEndpoint):
 
         if 'MB' not in self.session.lm.wallets:
             request.setResponseCode(http.NOT_FOUND)
-            return json.dumps({"error": "bandwidth wallet not found"})
+            return json.twisted_dumps({"error": "bandwidth wallet not found"})
         bandwidth_wallet = self.session.lm.wallets['MB']
 
         available_tokens = bandwidth_wallet.get_bandwidth_tokens()
@@ -133,17 +135,17 @@ class TrustchainBootstrapEndpoint(TrustchainBaseEndpoint):
                 amount = int(request.args['amount'][0])
             except ValueError:
                 request.setResponseCode(http.BAD_REQUEST)
-                return json.dumps({"error": "Provided token amount is not a number"})
+                return json.twisted_dumps({"error": "Provided token amount is not a number"})
 
             if amount <= 0:
                 request.setResponseCode(http.BAD_REQUEST)
-                return json.dumps({"error": "Provided token amount is zero or negative"})
+                return json.twisted_dumps({"error": "Provided token amount is zero or negative"})
         else:
             amount = available_tokens
 
         if amount <= 0 or amount > available_tokens:
             request.setResponseCode(http.BAD_REQUEST)
-            return json.dumps({"error": "Not enough bandwidth tokens available"})
+            return json.twisted_dumps({"error": "Not enough bandwidth tokens available"})
 
         result = bandwidth_wallet.bootstrap_new_identity(amount)
-        return json.dumps(result)
+        return json.twisted_dumps(result)

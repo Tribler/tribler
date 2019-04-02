@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import base64
-import json
 import logging
 
 from libtorrent import bdecode
@@ -67,7 +66,7 @@ class CreateTorrentEndpoint(resource.Resource):
             file_path_list = [ensure_unicode(f, 'utf-8') for f in parameters['files']]
         else:
             request.setResponseCode(http.BAD_REQUEST)
-            return json.dumps({"error": "files parameter missing"})
+            return json.twisted_dumps({"error": "files parameter missing"})
 
         if 'description' in parameters and parameters['description']:
             params['comment'] = parameters['description'][0]
@@ -103,7 +102,7 @@ class CreateTorrentEndpoint(resource.Resource):
                 except DuplicateDownloadException:
                     self._logger.warning("The created torrent is already being downloaded.")
 
-            request.write(json.dumps({"torrent": base64.b64encode(result['metainfo'])}))
+            request.write(json.twisted_dumps({"torrent": base64.b64encode(result['metainfo'])}))
             # If the above request.write failed, the request will have already been finished
             if not request.finished:
                 request.finish()

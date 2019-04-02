@@ -45,7 +45,7 @@ class TestStatisticsEndpoint(AbstractApiTest):
         """
 
         def verify_dict(data):
-            self.assertIn("tribler_statistics", json.loads(data))
+            self.assertIn("tribler_statistics", json.twisted_loads(data))
 
         self.should_check_equality = False
         return self.do_request('statistics/tribler', expected_code=200).addCallback(verify_dict)
@@ -57,7 +57,7 @@ class TestStatisticsEndpoint(AbstractApiTest):
         """
 
         def verify_dict(data):
-            self.assertTrue(json.loads(data)["ipv8_statistics"])
+            self.assertTrue(json.twisted_loads(data)["ipv8_statistics"])
 
         self.should_check_equality = False
         return self.do_request('statistics/ipv8', expected_code=200).addCallback(verify_dict)
@@ -70,7 +70,7 @@ class TestStatisticsEndpoint(AbstractApiTest):
         self.session.config.set_ipv8_enabled(False)
 
         def verify_dict(data):
-            self.assertFalse(json.loads(data)["ipv8_statistics"])
+            self.assertFalse(json.twisted_loads(data)["ipv8_statistics"])
 
         self.should_check_equality = False
         return self.do_request('statistics/ipv8', expected_code=200).addCallback(verify_dict)

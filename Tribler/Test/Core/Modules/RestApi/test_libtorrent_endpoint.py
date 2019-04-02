@@ -19,7 +19,7 @@ class TestLibTorrentSettingsEndpoint(AbstractApiTest):
         hop = 0
 
         def verify_settings(result):
-            result_json = json.loads(result)
+            result_json = json.twisted_loads(result)
             settings_json = result_json['settings']
             self.assertEqual(result_json['hop'], hop)
             self.assertTrue("Tribler" in settings_json['user_agent'])
@@ -38,7 +38,7 @@ class TestLibTorrentSettingsEndpoint(AbstractApiTest):
         hop = 1
 
         def verify_settings(result):
-            result_json = json.loads(result)
+            result_json = json.twisted_loads(result)
             self.assertEqual(result_json['hop'], hop)
 
             settings_json = result_json['settings']
@@ -56,7 +56,7 @@ class TestLibTorrentSettingsEndpoint(AbstractApiTest):
         self.session.lm.ltmgr.get_session(hops=hop)
 
         def verify_settings(result):
-            result_json = json.loads(result)
+            result_json = json.twisted_loads(result)
             settings_json = result_json['settings']
             self.assertEqual(result_json['hop'], hop)
             self.assertTrue("libtorrent" in settings_json['user_agent'])
@@ -86,7 +86,7 @@ class TestLibTorrentSessionEndpoint(AbstractApiTest):
                           u'ses.num_incoming_choke']
 
         def verify_stats(result):
-            result_json = json.loads(result)
+            result_json = json.twisted_loads(result)
             session_json = result_json['session']
             self.assertEqual(result_json['hop'], hop)
             self.assertTrue(set(expected_stats) < set(session_json.keys()))
@@ -103,7 +103,7 @@ class TestLibTorrentSessionEndpoint(AbstractApiTest):
         hop = 1
 
         def verify_stats(result):
-            result_json = json.loads(result)
+            result_json = json.twisted_loads(result)
             self.assertEqual(result_json['hop'], hop)
 
             session_json = result_json['session']
@@ -126,7 +126,7 @@ class TestLibTorrentSessionEndpoint(AbstractApiTest):
                           u'ses.num_incoming_choke']
 
         def verify_stats(result):
-            result_json = json.loads(result)
+            result_json = json.twisted_loads(result)
             session_json = result_json['session']
             self.assertEqual(result_json['hop'], hop)
             self.assertTrue(set(expected_stats) < set(session_json.keys()))
