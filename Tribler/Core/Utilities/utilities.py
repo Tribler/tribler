@@ -225,3 +225,19 @@ def has_bep33_support():
     Also see https://github.com/devos50/libtorrent/tree/bep33_support
     """
     return 'dht_pkt_alert' in dir(libtorrent)
+
+
+def is_infohash(infohash):
+    return len(infohash) == 40 and is_hex_string(infohash)
+
+
+def is_channel_public_key(key):
+    return len(key) == 128 and is_hex_string(key)
+
+
+def is_hex_string(text):
+    try:
+        int(text, 16)
+        return True
+    except ValueError:
+        return False

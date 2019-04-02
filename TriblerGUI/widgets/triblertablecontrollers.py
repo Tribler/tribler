@@ -212,12 +212,26 @@ class TorrentsTableViewController(TableSelectionMixin, FilterInputMixin, Tribler
         table_view.selectionModel().selectionChanged.connect(self._on_selection_changed)
         if self.filter_input:
             self.filter_input.textChanged.connect(self._on_filter_input_change)
+        self.asked_preview = False
 
     def perform_query(self, **kwargs):
         if "rest_endpoint_url" not in kwargs:
             kwargs.update({
                 "rest_endpoint_url": "metadata/channels/%s/torrents" % self.model.channel_pk})
         super(TorrentsTableViewController, self).perform_query(**kwargs)
+
+    def on_query_results(self, response, remote=False):
+        if super(TorrentsTableViewController, self).on_query_results(response, remote=remote):
+            if not self.model.data_items and not self.asked_preview:
+                self.fetch_preview()
+            return True
+        return False
+
+    def fetch_preview(self):
+        self.query_text = self.model.channel_pk
+        params = {'metadata_type': 'torrent', "rest_endpoint_url": "search"}
+        super(TorrentsTableViewController, self).perform_query(**params)
+        self.asked_preview = True
 
 
 class MyTorrentsTableViewController(TorrentsTableViewController):

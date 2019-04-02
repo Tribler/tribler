@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from binascii import hexlify
+from binascii import hexlify, unhexlify
 from datetime import datetime
 
 from pony import orm
@@ -10,6 +10,7 @@ from Tribler.Core.Category.FamilyFilter import default_xxx_filter
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import LEGACY_ENTRY, TODELETE, UPDATED
 from Tribler.Core.Modules.MetadataStore.serialization import REGULAR_TORRENT, TorrentMetadataPayload
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
+from Tribler.Core.Utilities.utilities import is_channel_public_key, is_hex_string, is_infohash
 from Tribler.pyipv8.ipv8.database import database_blob
 
 
@@ -71,6 +72,15 @@ def define_binding(db):
 
             fts_ids = raw_sql(
                 'SELECT rowid FROM FtsIndex WHERE FtsIndex MATCH $query ORDER BY bm25(FtsIndex) LIMIT $lim')
+
+            # TODO: Check for complex query
+            normal_query = query.replace('"', '').replace("*", "")
+            if is_hex_string(normal_query) and len(normal_query) % 2 == 0:
+                query_blob = database_blob(unhexlify(normal_query))
+                if is_channel_public_key(normal_query):
+                    return cls.select(lambda g: g.public_key == query_blob or g.rowid in fts_ids)
+                if is_infohash(normal_query):
+                    return cls.select(lambda g: g.infohash == query_blob or g.rowid in fts_ids)
             return cls.select(lambda g: g.rowid in fts_ids)
 
         @classmethod
