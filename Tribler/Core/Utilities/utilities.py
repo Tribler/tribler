@@ -27,8 +27,6 @@ from twisted.web.http_headers import Headers
 from Tribler.Core.exceptions import HttpError
 from Tribler.Core.version import version_id
 
-from TriblerGUI.utilities import quote_plus_unicode
-
 logger = logging.getLogger(__name__)
 
 
@@ -144,27 +142,6 @@ def parse_magnetlink(url):
         logger.debug("parse_magnetlink() TRACS: %s", trs)
 
     return dn, xt, trs
-
-
-def compose_magnetlink(infohash, name=None, trackers=None):
-    """
-    Composes magnet link from infohash, display name and trackers. The format is:
-        magnet:?xt=urn:btih:<infohash>&dn=<name>[&tr=<tracker>]
-    There could be multiple trackers so 'tr' field could be repeated.
-    :param infohash: Infohash
-    :param name: Display name
-    :param trackers: Trackers
-    :return: Magnet link
-    """
-    if not infohash:
-        return ''
-    magnet = "magnet:?xt=urn:btih:%s" % infohash
-    if name:
-        magnet = "%s&dn=%s" % (magnet, quote_plus_unicode(name))
-    if trackers and isinstance(trackers, list):
-        for tracker in trackers:
-            magnet = "%s&tr=%s" % (magnet, tracker)
-    return magnet
 
 
 def fix_torrent(file_path):

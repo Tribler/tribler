@@ -268,6 +268,27 @@ def get_health(seeders, leechers, last_tracker_check):
         return HEALTH_DEAD
 
 
+def compose_magnetlink(infohash, name=None, trackers=None):
+    """
+    Composes magnet link from infohash, display name and trackers. The format is:
+        magnet:?xt=urn:btih:<infohash>&dn=<name>[&tr=<tracker>]
+    There could be multiple trackers so 'tr' field could be repeated.
+    :param infohash: Infohash
+    :param name: Display name
+    :param trackers: Trackers
+    :return: Magnet link
+    """
+    if not infohash:
+        return ''
+    magnet = "magnet:?xt=urn:btih:%s" % infohash
+    if name:
+        magnet = "%s&dn=%s" % (magnet, quote_plus_unicode(name))
+    if trackers and isinstance(trackers, list):
+        for tracker in trackers:
+            magnet = "%s&tr=%s" % (magnet, tracker)
+    return magnet
+
+
 def copy_to_clipboard(message):
     cb = QApplication.clipboard()
     cb.clear(mode=cb.Clipboard)

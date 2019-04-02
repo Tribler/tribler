@@ -6,11 +6,9 @@ import time
 from PyQt5.QtCore import QModelIndex
 from PyQt5.QtWidgets import QLabel, QTabWidget, QToolButton, QTreeWidget, QTreeWidgetItem
 
-from Tribler.Core.Utilities.utilities import compose_magnetlink
-
 from TriblerGUI.defs import HEALTH_CHECKING, HEALTH_GOOD, HEALTH_MOOT, HEALTH_UNCHECKED
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
-from TriblerGUI.utilities import copy_to_clipboard, format_size, get_health
+from TriblerGUI.utilities import compose_magnetlink, copy_to_clipboard, format_size, get_health
 from TriblerGUI.widgets.ellipsebutton import EllipseButton
 
 
