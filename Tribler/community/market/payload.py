@@ -18,7 +18,7 @@ class MessagePayload(Payload):
     Payload for a generic message in the market community.
     """
 
-    format_list = ['varlenI', 'f']
+    format_list = ['varlenI', 'Q']
 
     def __init__(self, trader_id, timestamp):
         super(MessagePayload, self).__init__()
@@ -26,8 +26,8 @@ class MessagePayload(Payload):
         self.timestamp = timestamp
 
     def to_pack_list(self):
-        data = [('varlenI', self.trader_id.to_bytes()),
-                ('f', self.timestamp)]
+        data = [('varlenI', bytes(self.trader_id)),
+                ('Q', int(self.timestamp))]
 
         return data
 
@@ -71,9 +71,9 @@ class OfferPayload(MessagePayload):
         data = super(OfferPayload, self).to_pack_list()
         data += [('I', int(self.order_number)),
                  ('Q', self.assets.first.amount),
-                 ('varlenI', self.assets.first.asset_id),
+                 ('varlenI', self.assets.first.asset_id.encode('utf-8')),
                  ('Q', self.assets.second.amount),
-                 ('varlenI', self.assets.second.asset_id),
+                 ('varlenI', self.assets.second.asset_id.encode('utf-8')),
                  ('I', int(self.timeout)),
                  ('Q', self.traded)]
         return data
@@ -99,9 +99,9 @@ class MatchPayload(OfferPayload):
         data = super(MatchPayload, self).to_pack_list()
         data += [('I', int(self.recipient_order_number)),
                  ('Q', self.match_quantity),
-                 ('varlenI', str(self.match_trader_id)),
-                 ('varlenI', str(self.matchmaker_trader_id)),
-                 ('varlenI', self.match_id)]
+                 ('varlenI', bytes(self.match_trader_id)),
+                 ('varlenI', bytes(self.matchmaker_trader_id)),
+                 ('varlenI', self.match_id.encode('utf-8'))]
         return data
 
     @classmethod
@@ -109,9 +109,11 @@ class MatchPayload(OfferPayload):
                          asset2_type, timeout, traded, recipient_order_number, match_quantity,
                          match_trader_id, matchmaker_trader_id, match_id):
         return MatchPayload(TraderId(trader_id), Timestamp(timestamp), OrderNumber(order_number),
-                            AssetPair(AssetAmount(asset1_amount, asset1_type), AssetAmount(asset2_amount, asset2_type)),
+                            AssetPair(AssetAmount(asset1_amount, asset1_type.decode('utf-8')),
+                                      AssetAmount(asset2_amount, asset2_type.decode('utf-8'))),
                             Timeout(timeout), traded, OrderNumber(recipient_order_number),
-                            match_quantity, TraderId(match_trader_id), TraderId(matchmaker_trader_id), match_id)
+                            match_quantity, TraderId(match_trader_id), TraderId(matchmaker_trader_id),
+                            match_id.decode('utf-8'))
 
 
 class AcceptMatchPayload(MessagePayload):
@@ -128,13 +130,13 @@ class AcceptMatchPayload(MessagePayload):
 
     def to_pack_list(self):
         data = super(AcceptMatchPayload, self).to_pack_list()
-        data += [('varlenI', self.match_id),
+        data += [('varlenI', self.match_id.encode('utf-8')),
                  ('Q', self.quantity)]
         return data
 
     @classmethod
     def from_unpack_list(cls, trader_id, timestamp, match_id, quantity):
-        return AcceptMatchPayload(TraderId(trader_id), Timestamp(timestamp), match_id, quantity)
+        return AcceptMatchPayload(TraderId(trader_id), Timestamp(timestamp), match_id.decode('utf-8'), quantity)
 
 
 class DeclineMatchPayload(MessagePayload):
@@ -151,13 +153,13 @@ class DeclineMatchPayload(MessagePayload):
 
     def to_pack_list(self):
         data = super(DeclineMatchPayload, self).to_pack_list()
-        data += [('varlenI', self.match_id),
+        data += [('varlenI', self.match_id.encode('utf-8')),
                  ('I', self.decline_reason)]
         return data
 
     @classmethod
     def from_unpack_list(cls, trader_id, timestamp, match_id, decline_reason):
-        return DeclineMatchPayload(TraderId(trader_id), Timestamp(timestamp), match_id, decline_reason)
+        return DeclineMatchPayload(TraderId(trader_id), Timestamp(timestamp), match_id.decode('utf-8'), decline_reason)
 
 
 class TradePayload(MessagePayload):
@@ -177,13 +179,13 @@ class TradePayload(MessagePayload):
     def to_pack_list(self):
         data = super(TradePayload, self).to_pack_list()
         data += [('I', int(self.order_number)),
-                 ('varlenI', str(self.recipient_order_id.trader_id)),
+                 ('varlenI', bytes(self.recipient_order_id.trader_id)),
                  ('I', int(self.recipient_order_id.order_number)),
                  ('I', self.proposal_id),
                  ('Q', self.assets.first.amount),
-                 ('varlenI', self.assets.first.asset_id),
+                 ('varlenI', self.assets.first.asset_id.encode('utf-8')),
                  ('Q', self.assets.second.amount),
-                 ('varlenI', self.assets.second.asset_id)]
+                 ('varlenI', self.assets.second.asset_id.encode('utf-8'))]
         return data
 
     @classmethod
@@ -191,7 +193,8 @@ class TradePayload(MessagePayload):
                          proposal_id, asset1_amount, asset1_type, asset2_amount, asset2_type):
         return TradePayload(TraderId(trader_id), Timestamp(timestamp), OrderNumber(order_number),
                             OrderId(TraderId(recipient_trader_id), OrderNumber(recipient_order_number)), proposal_id,
-                            AssetPair(AssetAmount(asset1_amount, asset1_type), AssetAmount(asset2_amount, asset2_type)))
+                            AssetPair(AssetAmount(asset1_amount, asset1_type.decode('utf-8')),
+                                      AssetAmount(asset2_amount, asset2_type.decode('utf-8'))))
 
 
 class DeclineTradePayload(MessagePayload):
@@ -208,7 +211,7 @@ class DeclineTradePayload(MessagePayload):
     def to_pack_list(self):
         data = super(DeclineTradePayload, self).to_pack_list()
         data += [('I', int(self.order_number)),
-                 ('varlenI', str(self.recipient_order_id.trader_id)),
+                 ('varlenI', bytes(self.recipient_order_id.trader_id)),
                  ('I', int(self.recipient_order_id.order_number)),
                  ('I', self.proposal_id),
                  ('I', self.decline_reason)]
@@ -235,7 +238,7 @@ class TransactionPayload(MessagePayload):
 
     def to_pack_list(self):
         data = super(TransactionPayload, self).to_pack_list()
-        data += [('varlenI', str(self.transaction_id.trader_id)),
+        data += [('varlenI', bytes(self.transaction_id.trader_id)),
                  ('I', int(self.transaction_id.transaction_number))]
         return data
 
@@ -257,15 +260,15 @@ class StartTransactionPayload(TransactionPayload):
 
     def to_pack_list(self):
         data = super(StartTransactionPayload, self).to_pack_list()
-        data += [('varlenI', str(self.order_id.trader_id)),
+        data += [('varlenI', bytes(self.order_id.trader_id)),
                  ('I', int(self.order_id.order_number)),
-                 ('varlenI', str(self.recipient_order_id.trader_id)),
+                 ('varlenI', bytes(self.recipient_order_id.trader_id)),
                  ('I', int(self.recipient_order_id.order_number)),
                  ('I', self.proposal_id),
                  ('Q', self.assets.first.amount),
-                 ('varlenI', self.assets.first.asset_id),
+                 ('varlenI', self.assets.first.asset_id.encode('utf-8')),
                  ('Q', self.assets.second.amount),
-                 ('varlenI', self.assets.second.asset_id)]
+                 ('varlenI', self.assets.second.asset_id.encode('utf-8'))]
         return data
 
     @classmethod
@@ -276,8 +279,8 @@ class StartTransactionPayload(TransactionPayload):
                                        TransactionId(TraderId(tx_trader_id), TransactionNumber(transaction_number)),
                                        OrderId(TraderId(order_trader_id), OrderNumber(order_number)),
                                        OrderId(TraderId(recipient_trader_id), OrderNumber(recipient_order_number)),
-                                       proposal_id, AssetPair(AssetAmount(asset1_amount, asset1_type),
-                                                              AssetAmount(asset2_amount, asset2_type)))
+                                       proposal_id, AssetPair(AssetAmount(asset1_amount, asset1_type.decode('utf-8')),
+                                                              AssetAmount(asset2_amount, asset2_type.decode('utf-8'))))
 
 
 class WalletInfoPayload(TransactionPayload):
@@ -294,8 +297,8 @@ class WalletInfoPayload(TransactionPayload):
 
     def to_pack_list(self):
         data = super(WalletInfoPayload, self).to_pack_list()
-        data += [('varlenI', str(self.incoming_address)),
-                 ('varlenI', str(self.outgoing_address))]
+        data += [('varlenI', self.incoming_address.address.encode('utf-8')),
+                 ('varlenI', self.outgoing_address.address.encode('utf-8'))]
         return data
 
     @classmethod
@@ -303,7 +306,8 @@ class WalletInfoPayload(TransactionPayload):
                          incoming_address, outgoing_address):
         return WalletInfoPayload(TraderId(trader_id), Timestamp(timestamp),
                                  TransactionId(TraderId(transaction_trader_id), TransactionNumber(transaction_number)),
-                                 WalletAddress(incoming_address), WalletAddress(outgoing_address))
+                                 WalletAddress(incoming_address.decode('utf-8')),
+                                 WalletAddress(outgoing_address.decode('utf-8')))
 
 
 class PaymentPayload(TransactionPayload):
@@ -325,10 +329,10 @@ class PaymentPayload(TransactionPayload):
     def to_pack_list(self):
         data = super(PaymentPayload, self).to_pack_list()
         data += [('Q', self.transferred_assets.amount),
-                 ('varlenI', self.transferred_assets.asset_id),
-                 ('varlenI', str(self.address_from)),
-                 ('varlenI', str(self.address_to)),
-                 ('varlenI', str(self.payment_id)),
+                 ('varlenI', self.transferred_assets.asset_id.encode('utf-8')),
+                 ('varlenI', self.address_from.address.encode('utf-8')),
+                 ('varlenI', self.address_to.address.encode('utf-8')),
+                 ('varlenI', self.payment_id.payment_id.encode('utf-8')),
                  ('?', self.success)]
         return data
 
@@ -337,8 +341,9 @@ class PaymentPayload(TransactionPayload):
                          transferred_amount, transferred_type, address_from, address_to, payment_id, success):
         return PaymentPayload(TraderId(trader_id), Timestamp(timestamp),
                               TransactionId(TraderId(transaction_trader_id), TransactionNumber(transaction_number)),
-                              AssetAmount(transferred_amount, transferred_type),
-                              WalletAddress(address_from), WalletAddress(address_to), PaymentId(payment_id), success)
+                              AssetAmount(transferred_amount, transferred_type.decode('utf-8')),
+                              WalletAddress(address_from.decode('utf-8')),
+                              WalletAddress(address_to.decode('utf-8')), PaymentId(payment_id.decode('utf-8')), success)
 
 
 class OrderStatusRequestPayload(MessagePayload):
@@ -355,7 +360,7 @@ class OrderStatusRequestPayload(MessagePayload):
 
     def to_pack_list(self):
         data = super(OrderStatusRequestPayload, self).to_pack_list()
-        data += [('varlenI', str(self.order_id.trader_id)),
+        data += [('varlenI', bytes(self.order_id.trader_id)),
                  ('I', int(self.order_id.order_number)),
                  ('I', self.identifier)]
         return data
@@ -386,8 +391,8 @@ class OrderStatusResponsePayload(OfferPayload):
     def from_unpack_list(cls, trader_id, timestamp, order_number, asset1_amount, asset1_type, asset2_amount,
                          asset2_type, timeout, traded, identifier):
         return OrderStatusResponsePayload(TraderId(trader_id), Timestamp(timestamp), OrderNumber(order_number),
-                                          AssetPair(AssetAmount(asset1_amount, asset1_type),
-                                                    AssetAmount(asset2_amount, asset2_type)),
+                                          AssetPair(AssetAmount(asset1_amount, asset1_type.decode('utf-8')),
+                                                    AssetAmount(asset2_amount, asset2_type.decode('utf-8'))),
                                           Timeout(timeout), traded, identifier)
 
 

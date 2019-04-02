@@ -1,7 +1,10 @@
+from __future__ import absolute_import
+
 import time
 import unittest
 
 from Tribler.community.market.core.timestamp import Timestamp
+from Tribler.pyipv8.ipv8.util import old_round
 
 
 class TimestampTestSuite(unittest.TestCase):
@@ -9,9 +12,9 @@ class TimestampTestSuite(unittest.TestCase):
 
     def setUp(self):
         # Object creation
-        self.timestamp = Timestamp(1462224447.117)
-        self.timestamp2 = Timestamp(1462224447.117)
-        self.timestamp3 = Timestamp(1305743832.438)
+        self.timestamp = Timestamp(1462224447000)
+        self.timestamp2 = Timestamp(1462224447000)
+        self.timestamp3 = Timestamp(1305743832000)
 
     def test_init(self):
         # Test for init validation
@@ -22,11 +25,11 @@ class TimestampTestSuite(unittest.TestCase):
 
     def test_now(self):
         # Test for Timestamp.now
-        self.assertAlmostEqual(time.time(), float(Timestamp.now()), delta=.1)
+        self.assertAlmostEqual(int(old_round(time.time() * 1000)), int(Timestamp.now()), delta=1000)
 
     def test_conversion(self):
         # Test for conversions
-        self.assertEqual(1462224447.117, float(self.timestamp))
+        self.assertEqual(1462224447000, int(self.timestamp))
 
         # We cannot check the exact timestamp since this is specific to the configured time zone
         self.assertTrue(str(self.timestamp))
@@ -35,14 +38,14 @@ class TimestampTestSuite(unittest.TestCase):
         # Test for comparison
         self.assertTrue(self.timestamp3 < self.timestamp)
         self.assertTrue(self.timestamp > self.timestamp3)
-        self.assertTrue(self.timestamp3 < 1405743832.438)
-        self.assertTrue(self.timestamp <= 1462224447.117)
-        self.assertTrue(self.timestamp > 1362224447.117)
-        self.assertTrue(self.timestamp3 >= 1305743832.438)
-        self.assertEqual(NotImplemented, self.timestamp.__lt__(10))
-        self.assertEqual(NotImplemented, self.timestamp.__le__(10))
-        self.assertEqual(NotImplemented, self.timestamp.__gt__(10))
-        self.assertEqual(NotImplemented, self.timestamp.__ge__(10))
+        self.assertTrue(self.timestamp3 < 1405743832000)
+        self.assertTrue(self.timestamp <= 1462224447000)
+        self.assertTrue(self.timestamp > 1362224447000)
+        self.assertTrue(self.timestamp3 >= 1305743832000)
+        self.assertEqual(NotImplemented, self.timestamp.__lt__("10"))
+        self.assertEqual(NotImplemented, self.timestamp.__le__("10"))
+        self.assertEqual(NotImplemented, self.timestamp.__gt__("10"))
+        self.assertEqual(NotImplemented, self.timestamp.__ge__("10"))
 
     def test_equality(self):
         # Test for equality

@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import logging
+from binascii import unhexlify
 
 from six import text_type
 
@@ -12,7 +13,6 @@ from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.community.market.core.trade import ProposedTrade
 from Tribler.community.market.core.wallet_address import WalletAddress
 from Tribler.pyipv8.ipv8.database import database_blob
-from Tribler.pyipv8.ipv8.util import cast_to_unicode
 
 
 class TransactionNumber(object):
@@ -85,7 +85,7 @@ class TransactionId(object):
         """
         format: <trader_id>.<transaction_number>
         """
-        return "%s.%d" % (cast_to_unicode(self._trader_id.to_bytes()), self._transaction_number)
+        return "%s.%d" % (self._trader_id.as_hex(), self._transaction_number)
 
     def __eq__(self, other):
         if not isinstance(other, TransactionId):
@@ -157,7 +157,7 @@ class Transaction(object):
                                     AssetAmount(asset2_amount, str(asset2_type))),
                           OrderId(TraderId(bytes(order_trader_id)), OrderNumber(order_number)),
                           OrderId(TraderId(bytes(partner_trader_id)), OrderNumber(partner_order_number)),
-                          Timestamp(float(transaction_timestamp)))
+                          Timestamp(transaction_timestamp))
 
         transaction._transferred_assets = AssetPair(AssetAmount(asset1_transferred, str(asset1_type)),
                                                     AssetAmount(asset2_transferred, str(asset2_type)))
@@ -177,11 +177,11 @@ class Transaction(object):
         """
         Create a Transaction object based on information in a tx_init/tx_done block.
         """
-        trader_id = block_info["tx"]["trader_id"]
+        trader_id = unhexlify(block_info["tx"]["trader_id"])
         transaction_number = block_info["tx"]["transaction_number"]
-        order_trader_id = block_info["tx"]["trader_id"]
+        order_trader_id = unhexlify(block_info["tx"]["trader_id"])
         order_number = block_info["tx"]["order_number"]
-        partner_trader_id = block_info["tx"]["partner_trader_id"]
+        partner_trader_id = unhexlify(block_info["tx"]["partner_trader_id"])
         partner_order_number = block_info["tx"]["partner_order_number"]
         asset1_amount = block_info["tx"]["assets"]["first"]["amount"]
         asset1_type = block_info["tx"]["assets"]["first"]["type"]
@@ -198,13 +198,13 @@ class Transaction(object):
         partner_outgoing_address = None
         match_id = ''
 
-        transaction_id = TransactionId(TraderId(bytes(trader_id)), TransactionNumber(transaction_number))
+        transaction_id = TransactionId(TraderId(trader_id), TransactionNumber(transaction_number))
         transaction = cls(transaction_id,
                           AssetPair(AssetAmount(asset1_amount, str(asset1_type)),
                                     AssetAmount(asset2_amount, str(asset2_type))),
-                          OrderId(TraderId(bytes(order_trader_id)), OrderNumber(order_number)),
-                          OrderId(TraderId(bytes(partner_trader_id)), OrderNumber(partner_order_number)),
-                          Timestamp(float(transaction_timestamp)))
+                          OrderId(TraderId(order_trader_id), OrderNumber(order_number)),
+                          OrderId(TraderId(partner_trader_id), OrderNumber(partner_order_number)),
+                          Timestamp(transaction_timestamp))
 
         transaction._transferred_assets = AssetPair(AssetAmount(asset1_transferred, str(asset1_type)),
                                                     AssetAmount(asset2_transferred, str(asset2_type)))
@@ -223,12 +223,12 @@ class Transaction(object):
         Returns a database representation of a Transaction object.
         :rtype: tuple
         """
-        return (database_blob(self.transaction_id.trader_id.to_bytes()), int(self.transaction_id.transaction_number),
-                database_blob(self.order_id.trader_id.to_bytes()), int(self.order_id.order_number),
-                database_blob(self.partner_order_id.trader_id.to_bytes()), int(self.partner_order_id.order_number),
+        return (database_blob(bytes(self.transaction_id.trader_id)), int(self.transaction_id.transaction_number),
+                database_blob(bytes(self.order_id.trader_id)), int(self.order_id.order_number),
+                database_blob(bytes(self.partner_order_id.trader_id)), int(self.partner_order_id.order_number),
                 self.assets.first.amount, text_type(self.assets.first.asset_id), self.transferred_assets.first.amount,
                 self.assets.second.amount, text_type(self.assets.second.asset_id),
-                self.transferred_assets.second.amount, float(self.timestamp), self.sent_wallet_info,
+                self.transferred_assets.second.amount, int(self.timestamp), self.sent_wallet_info,
                 self.received_wallet_info, text_type(self.incoming_address), text_type(self.outgoing_address),
                 text_type(self.partner_incoming_address), text_type(self.partner_outgoing_address),
                 text_type(self.match_id))
@@ -337,14 +337,14 @@ class Transaction(object):
         Return a dictionary with a representation of this transaction.
         """
         return {
-            "trader_id": self.transaction_id.trader_id.to_bytes(),
+            "trader_id": self.transaction_id.trader_id.as_hex(),
             "order_number": int(self.order_id.order_number),
-            "partner_trader_id": self.partner_order_id.trader_id.to_bytes(),
+            "partner_trader_id": self.partner_order_id.trader_id.as_hex(),
             "partner_order_number": int(self.partner_order_id.order_number),
             "transaction_number": int(self.transaction_id.transaction_number),
             "assets": self.assets.to_dictionary(),
             "transferred": self.transferred_assets.to_dictionary(),
-            "timestamp": float(self.timestamp),
+            "timestamp": int(self.timestamp),
             "payment_complete": self.is_payment_complete(),
             "status": self.status
         }

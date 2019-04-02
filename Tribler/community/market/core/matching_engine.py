@@ -80,10 +80,14 @@ class PriceTimeStrategy(MatchingStrategy):
         quantity_to_match = quantity
 
         # First check whether we can match our order at all in the order book
-        if is_ask and price > self.order_book.get_bid_price(price.numerator, price.denominator):
-            return []
-        if not is_ask and price < self.order_book.get_ask_price(price.numerator, price.denominator):
-            return []
+        if is_ask:
+            bid_price = self.order_book.get_bid_price(price.numerator, price.denominator)
+            if not bid_price or price > bid_price:
+                return []
+        if not is_ask:
+            ask_price = self.order_book.get_ask_price(price.numerator, price.denominator)
+            if not ask_price or price < ask_price:
+                return []
 
         # Next, check whether we have a price level we can start our match search from
         if is_ask:

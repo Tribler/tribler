@@ -1,9 +1,11 @@
-import unittest
+from __future__ import absolute_import
 
 import time
+import unittest
 
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
+from Tribler.pyipv8.ipv8.util import old_round
 
 
 class TimeoutTestSuite(unittest.TestCase):
@@ -23,8 +25,8 @@ class TimeoutTestSuite(unittest.TestCase):
 
     def test_timed_out(self):
         # Test for timed out
-        self.assertTrue(self.timeout1.is_timed_out(Timestamp(time.time() - 3700)))
-        self.assertFalse(self.timeout2.is_timed_out(Timestamp(time.time())))
+        self.assertTrue(self.timeout1.is_timed_out(Timestamp(int(old_round(time.time() * 1000)) - 3700 * 1000)))
+        self.assertFalse(self.timeout2.is_timed_out(Timestamp(int(old_round(time.time() * 1000)))))
 
     def test_hash(self):
         # Test for hashes

@@ -3,11 +3,11 @@ from __future__ import absolute_import, division
 from base64 import b64encode
 from binascii import hexlify, unhexlify
 
-from twisted.internet.defer import succeed, fail, Deferred
+from twisted.internet.defer import Deferred, fail, succeed
 from twisted.internet.task import LoopingCall
 
 from Tribler.Core.Modules.wallet.bandwidth_block import TriblerBandwidthBlock
-from Tribler.Core.Modules.wallet.wallet import Wallet, InsufficientFunds
+from Tribler.Core.Modules.wallet.wallet import InsufficientFunds, Wallet
 from Tribler.pyipv8.ipv8.attestation.trustchain.listener import BlockListener
 from Tribler.pyipv8.ipv8.keyvault.crypto import ECCrypto
 from Tribler.pyipv8.ipv8.peer import Peer
@@ -97,7 +97,7 @@ class TrustchainWallet(Wallet, BlockListener):
         addCallback(deferred, lambda _: None)
         latest_block = self.trustchain.persistence.get_latest(self.trustchain.my_peer.public_key.key_to_bin(),
                                                               block_type=b'tribler_bandwidth')
-        txid = "%s.%s.%d.%d" % (hexlify(latest_block.public_key),
+        txid = "%s.%s.%d.%d" % (hexlify(latest_block.public_key).decode('utf-8'),
                                 latest_block.sequence_number, 0, int(quantity * MEGA_DIV))
 
         self.transaction_history.append({
@@ -118,7 +118,7 @@ class TrustchainWallet(Wallet, BlockListener):
         """
         Monitor an incoming transaction with a specific id.
         """
-        pub_key, sequence_number = payment_id.split(b'.')[:2]
+        pub_key, sequence_number = payment_id.split('.')[:2]
         pub_key = unhexlify(pub_key)
         sequence_number = int(sequence_number)
 
@@ -141,7 +141,7 @@ class TrustchainWallet(Wallet, BlockListener):
         return monitor_deferred
 
     def get_address(self):
-        return b64encode(self.trustchain.my_peer.public_key.key_to_bin())
+        return b64encode(self.trustchain.my_peer.public_key.key_to_bin()).decode('utf-8')
 
     def get_transactions(self):
         return succeed(self.transaction_history)

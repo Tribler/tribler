@@ -6,10 +6,10 @@ from twisted.internet.defer import Deferred, inlineCallbacks
 
 from Tribler.Core.Modules.wallet.tc_wallet import TrustchainWallet
 from Tribler.Core.Modules.wallet.wallet import InsufficientFunds
+from Tribler.Test.tools import trial_timeout
 from Tribler.pyipv8.ipv8.attestation.trustchain.community import TrustChainCommunity
 from Tribler.pyipv8.ipv8.test.base import TestBase
 from Tribler.pyipv8.ipv8.test.mocking.ipv8 import MockIPv8
-from Tribler.Test.tools import trial_timeout
 
 
 class TestTrustchainWallet(TestBase):
@@ -89,7 +89,7 @@ class TestTrustchainWallet(TestBase):
         """
         his_pubkey = self.nodes[0].overlay.my_peer.public_key.key_to_bin()
 
-        tx_deferred = self.tc_wallet.monitor_transaction(b'%s.1' % hexlify(his_pubkey))
+        tx_deferred = self.tc_wallet.monitor_transaction('%s.1' % hexlify(his_pubkey).decode('utf-8'))
 
         # Now create the transaction
         transaction = {
@@ -118,7 +118,7 @@ class TestTrustchainWallet(TestBase):
         his_pubkey = self.nodes[0].overlay.my_peer.public_key.key_to_bin()
         yield self.nodes[1].overlay.sign_block(self.nodes[1].network.verified_peers[0], public_key=his_pubkey,
                                                block_type=b'tribler_bandwidth', transaction=transaction)
-        yield self.tc_wallet.monitor_transaction(b'%s.1' % hexlify(his_pubkey))
+        yield self.tc_wallet.monitor_transaction('%s.1' % hexlify(his_pubkey).decode('utf-8'))
 
     def test_address(self):
         """

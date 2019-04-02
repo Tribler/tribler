@@ -20,16 +20,16 @@ class TickTestSuite(unittest.TestCase):
     def setUp(self):
         # Object creation
         self.timestamp_now = Timestamp.now()
-        self.tick = Tick(OrderId(TraderId(b'0'), OrderNumber(1)),
-                         AssetPair(AssetAmount(30, 'BTC'), AssetAmount(30, 'MB')), Timeout(30), Timestamp(0.0), True)
-        self.tick2 = Tick(OrderId(TraderId(b'0'), OrderNumber(2)),
-                          AssetPair(AssetAmount(30, 'BTC'), AssetAmount(30, 'MB')), Timeout(0), Timestamp(0.0), False)
-        self.order_ask = Order(OrderId(TraderId(b'0'), OrderNumber(2)),
+        self.tick = Tick(OrderId(TraderId(b'0' * 20), OrderNumber(1)),
+                         AssetPair(AssetAmount(30, 'BTC'), AssetAmount(30, 'MB')), Timeout(30), Timestamp(0), True)
+        self.tick2 = Tick(OrderId(TraderId(b'0' * 20), OrderNumber(2)),
+                          AssetPair(AssetAmount(30, 'BTC'), AssetAmount(30, 'MB')), Timeout(0), Timestamp(0), False)
+        self.order_ask = Order(OrderId(TraderId(b'0' * 20), OrderNumber(2)),
                                AssetPair(AssetAmount(30, 'BTC'), AssetAmount(30, 'MB')),
-                               Timeout(0), Timestamp(0.0), True)
-        self.order_bid = Order(OrderId(TraderId(b'0'), OrderNumber(2)),
+                               Timeout(0), Timestamp(0), True)
+        self.order_bid = Order(OrderId(TraderId(b'0' * 20), OrderNumber(2)),
                                AssetPair(AssetAmount(30, 'BTC'), AssetAmount(30, 'MB')),
-                               Timeout(0), Timestamp(0.0), False)
+                               Timeout(0), Timestamp(0), False)
 
     def test_is_ask(self):
         # Test 'is ask' function
@@ -38,7 +38,7 @@ class TickTestSuite(unittest.TestCase):
 
     def test_to_network(self):
         # Test for to network
-        self.assertEquals((TraderId(b'0'), self.tick.timestamp, OrderNumber(1),
+        self.assertEquals((TraderId(b'0' * 20), self.tick.timestamp, OrderNumber(1),
                            AssetPair(AssetAmount(30, 'BTC'), AssetAmount(30, 'MB')), self.tick.timeout, 0),
                           self.tick.to_network())
 
@@ -72,7 +72,7 @@ class TickTestSuite(unittest.TestCase):
         Test the to dictionary method of a tick
         """
         self.assertDictEqual(self.tick.to_dictionary(), {
-            "trader_id": b'0',
+            "trader_id": '30' * 20,
             "order_number": 1,
             "assets": self.tick.assets.to_dictionary(),
             "timeout": 30,

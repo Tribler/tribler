@@ -1,6 +1,9 @@
+from __future__ import absolute_import
+
 import time
 
 from Tribler.community.market.core.timestamp import Timestamp
+from Tribler.pyipv8.ipv8.util import old_round
 
 
 class Timeout(object):
@@ -31,7 +34,7 @@ class Timeout(object):
         :return: True if timeout has occurred, False otherwise
         :rtype: bool
         """
-        return time.time() - float(timestamp) >= self._timeout
+        return int(old_round(time.time() * 1000)) - int(timestamp) >= self._timeout * 1000
 
     def __int__(self):
         return self._timeout

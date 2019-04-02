@@ -8,20 +8,18 @@ class TraderIdTestSuite(unittest.TestCase):
 
     def setUp(self):
         # Object creation
-        self.trader_id = TraderId(b'0')
-        self.trader_id2 = TraderId(b'0')
-        self.trader_id3 = TraderId(b'1')
+        self.trader_id = TraderId(b'0' * 20)
+        self.trader_id2 = TraderId(b'0' * 20)
+        self.trader_id3 = TraderId(b'1' * 20)
 
     def test_init(self):
         # Test for init validation
         with self.assertRaises((TypeError, ValueError)):
             TraderId(1.0)
-        with self.assertRaises(ValueError):
-            TraderId('non hexadecimal')
 
     def test_conversion(self):
         # Test for conversions
-        self.assertEqual(b'0', self.trader_id.to_bytes())
+        self.assertEqual(b'0' * 20, bytes(self.trader_id))
 
     def test_equality(self):
         # Test for equality

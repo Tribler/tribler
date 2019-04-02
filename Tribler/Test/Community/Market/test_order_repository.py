@@ -14,17 +14,12 @@ class MemoryOrderRepositoryTestSuite(unittest.TestCase):
 
     def setUp(self):
         # Object creation
-        self.memory_order_repository = MemoryOrderRepository("0")
-        self.order_id = OrderId(TraderId(b"0"), OrderNumber(1))
+        self.memory_order_repository = MemoryOrderRepository(b'0' * 20)
+        self.order_id = OrderId(TraderId(b'0' * 20), OrderNumber(1))
         self.order = Order(self.order_id, AssetPair(AssetAmount(100, 'BTC'), AssetAmount(30, 'MC')),
-                           Timeout(0), Timestamp(10.0), False)
+                           Timeout(0), Timestamp(10), False)
         self.order2 = Order(self.order_id, AssetPair(AssetAmount(1000, 'BTC'), AssetAmount(30, 'MC')),
-                            Timeout(0), Timestamp(10.0), False)
-
-    def test_init(self):
-        # Test for init validation
-        with self.assertRaises(ValueError):
-            self.memory_order_repository = MemoryOrderRepository("-")
+                            Timeout(0), Timestamp(10), False)
 
     def test_add(self):
         # Test for add
@@ -53,7 +48,7 @@ class MemoryOrderRepositoryTestSuite(unittest.TestCase):
 
     def test_next_identity(self):
         # Test for next identity
-        self.assertEquals(OrderId(TraderId(b"0"), OrderNumber(1)),
+        self.assertEquals(OrderId(TraderId(b'0' * 20), OrderNumber(1)),
                           self.memory_order_repository.next_identity())
 
     def test_update(self):

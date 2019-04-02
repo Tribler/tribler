@@ -12,6 +12,7 @@ from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.community.market.core.trade import Trade
 from Tribler.community.market.core.transaction import Transaction, TransactionId, TransactionNumber
+from Tribler.pyipv8.ipv8.util import old_round
 
 
 class OrderTestSuite(unittest.TestCase):
@@ -19,43 +20,43 @@ class OrderTestSuite(unittest.TestCase):
 
     def setUp(self):
         # Object creation
-        self.transaction_id = TransactionId(TraderId(b"0"), TransactionNumber(1))
+        self.transaction_id = TransactionId(TraderId(b'0' * 20), TransactionNumber(1))
         self.transaction = Transaction(self.transaction_id, AssetPair(AssetAmount(100, 'BTC'), AssetAmount(30, 'MC')),
-                                       OrderId(TraderId(b'0'), OrderNumber(2)),
-                                       OrderId(TraderId(b'1'), OrderNumber(1)), Timestamp(0.0))
-        self.proposed_trade = Trade.propose(TraderId(b'0'),
-                                            OrderId(TraderId(b'0'), OrderNumber(2)),
-                                            OrderId(TraderId(b'1'), OrderNumber(3)),
-                                            AssetPair(AssetAmount(100, 'BTC'), AssetAmount(30, 'MC')), Timestamp(0.0))
+                                       OrderId(TraderId(b'0' * 20), OrderNumber(2)),
+                                       OrderId(TraderId(b'1' * 20), OrderNumber(1)), Timestamp(0))
+        self.proposed_trade = Trade.propose(TraderId(b'0' * 20),
+                                            OrderId(TraderId(b'0' * 20), OrderNumber(2)),
+                                            OrderId(TraderId(b'1' * 20), OrderNumber(3)),
+                                            AssetPair(AssetAmount(100, 'BTC'), AssetAmount(30, 'MC')), Timestamp(0))
 
-        self.tick = Tick(OrderId(TraderId(b'0'), OrderNumber(1)),
+        self.tick = Tick(OrderId(TraderId(b'0' * 20), OrderNumber(1)),
                          AssetPair(AssetAmount(5, 'BTC'), AssetAmount(5, 'MC')),
-                         Timeout(0), Timestamp(float("inf")), True)
-        self.tick2 = Tick(OrderId(TraderId(b'0'), OrderNumber(2)),
+                         Timeout(0), Timestamp(00), True)
+        self.tick2 = Tick(OrderId(TraderId(b'0' * 20), OrderNumber(2)),
                           AssetPair(AssetAmount(500, 'BTC'), AssetAmount(5, 'MC')),
-                          Timeout(0), Timestamp(float("inf")), True)
+                          Timeout(0), Timestamp(0), True)
 
         self.order_timestamp = Timestamp.now()
-        self.order = Order(OrderId(TraderId(b"0"), OrderNumber(3)),
+        self.order = Order(OrderId(TraderId(b'0' * 20), OrderNumber(3)),
                            AssetPair(AssetAmount(50, 'BTC'), AssetAmount(5, 'MC')),
                            Timeout(5000), self.order_timestamp, False)
         self.order.set_verified()
-        self.order2 = Order(OrderId(TraderId(b"0"), OrderNumber(4)),
+        self.order2 = Order(OrderId(TraderId(b'0' * 20), OrderNumber(4)),
                             AssetPair(AssetAmount(50, 'BTC'), AssetAmount(5, 'MC')),
-                            Timeout(5), Timestamp(time.time() - 1000), True)
+                            Timeout(5), Timestamp(int(old_round(time.time() * 1000)) - 1000 * 1000), True)
         self.order2.set_verified()
 
     def test_add_trade(self):
         """
         Test the add trade method of an order
         """
-        self.order.reserve_quantity_for_tick(OrderId(TraderId(b'5'), OrderNumber(1)), 10)
+        self.order.reserve_quantity_for_tick(OrderId(TraderId(b'5' * 20), OrderNumber(1)), 10)
         self.assertEquals(self.order.traded_quantity, 0)
-        self.order.add_trade(OrderId(TraderId(b'5'), OrderNumber(1)), 10)
+        self.order.add_trade(OrderId(TraderId(b'5' * 20), OrderNumber(1)), 10)
         self.assertEquals(self.order.traded_quantity, 10)
 
-        self.order.reserve_quantity_for_tick(OrderId(TraderId(b'6'), OrderNumber(1)), 40)
-        self.order.add_trade(OrderId(TraderId(b'6'), OrderNumber(1)), 40)
+        self.order.reserve_quantity_for_tick(OrderId(TraderId(b'6' * 20), OrderNumber(1)), 40)
+        self.order.add_trade(OrderId(TraderId(b'6' * 20), OrderNumber(1)), 40)
         self.assertTrue(self.order.is_complete())
         self.assertFalse(self.order.cancelled)
 
@@ -63,7 +64,7 @@ class OrderTestSuite(unittest.TestCase):
         """
         Test the acceptable price method
         """
-        order = Order(OrderId(TraderId(b"0"), OrderNumber(3)),
+        order = Order(OrderId(TraderId(b'0' * 20), OrderNumber(3)),
                       AssetPair(AssetAmount(60, 'BTC'), AssetAmount(30, 'MB')),
                       Timeout(5000), self.order_timestamp, True)
 
@@ -145,7 +146,7 @@ class OrderTestSuite(unittest.TestCase):
         Test the conversion of an order to a dictionary
         """
         self.assertEqual(self.order.to_dictionary(), {
-            "trader_id": b"0",
+            "trader_id": "30" * 20,
             "cancelled": False,
             "completed_timestamp": None,
             "is_ask": False,
@@ -164,7 +165,7 @@ class OrderTestSuite(unittest.TestCase):
             "traded": 0,
             "status": "open",
             "timeout": 5000,
-            "timestamp": float(self.order_timestamp)
+            "timestamp": int(self.order_timestamp)
         })
 
 
@@ -173,9 +174,9 @@ class OrderIDTestSuite(unittest.TestCase):
 
     def setUp(self):
         # Object creation
-        self.order_id = OrderId(TraderId(b"0"), OrderNumber(1))
-        self.order_id2 = OrderId(TraderId(b"0"), OrderNumber(1))
-        self.order_id3 = OrderId(TraderId(b"0"), OrderNumber(2))
+        self.order_id = OrderId(TraderId(b'0' * 20), OrderNumber(1))
+        self.order_id2 = OrderId(TraderId(b'0' * 20), OrderNumber(1))
+        self.order_id3 = OrderId(TraderId(b'0' * 20), OrderNumber(2))
 
     def test_equality(self):
         # Test for equality
@@ -195,7 +196,7 @@ class OrderIDTestSuite(unittest.TestCase):
 
     def test_str(self):
         # Test for string representation
-        self.assertEquals('0.1', str(self.order_id))
+        self.assertEquals('%s.1' % ('30' * 20), str(self.order_id))
 
 
 class OrderNumberTestSuite(unittest.TestCase):

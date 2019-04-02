@@ -129,8 +129,8 @@ class AsksEndpoint(BaseAsksBidsEndpoint):
             if not request.finished:
                 request.write(json.dumps({
                     'assets': ask.assets.to_dictionary(),
-                    'timestamp': float(ask.timestamp),
-                    'trader_id': str(ask.order_id.trader_id),
+                    'timestamp': int(ask.timestamp),
+                    'trader_id': ask.order_id.trader_id.as_hex(),
                     'order_number': int(ask.order_id.order_number),
                     'timeout': int(ask.timeout)
                 }))
@@ -236,8 +236,8 @@ class BidsEndpoint(BaseAsksBidsEndpoint):
             if not request.finished:
                 request.write(json.dumps({
                     'assets': bid.assets.to_dictionary(),
-                    'timestamp': float(bid.timestamp),
-                    'trader_id': str(bid.order_id.trader_id),
+                    'timestamp': int(bid.timestamp),
+                    'trader_id': bid.order_id.trader_id.as_hex(),
                     'order_number': int(bid.order_id.order_number),
                     'timeout': int(bid.timeout)
                 }))

@@ -26,8 +26,8 @@ class TestAssetPair(unittest.TestCase):
         """
         Test the equality method of an AssetPair
         """
-        self.assertTrue(self.assetpair1 != self.assetpair3)
         self.assertFalse(self.assetpair1 == self.assetpair2)
+        self.assertTrue(self.assetpair1 == self.assetpair3)
 
     def test_to_dictionary(self):
         """

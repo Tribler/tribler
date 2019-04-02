@@ -35,6 +35,6 @@ class TestReputationBase(AbstractServer):
     def compute_reputations(self):
         blocks = self.market_db.get_all_blocks()
         rep_manager = TemporalPagerankReputationManager(blocks)
-        rep = rep_manager.compute(own_public_key='a')
+        rep = rep_manager.compute(own_public_key=b'a')
         self.assertIsInstance(rep, dict)
         return rep

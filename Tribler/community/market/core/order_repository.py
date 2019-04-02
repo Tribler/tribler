@@ -1,8 +1,10 @@
+from __future__ import absolute_import
+
 import logging
 from abc import ABCMeta, abstractmethod
 
 from Tribler.community.market.core.message import TraderId
-from Tribler.community.market.core.order import OrderNumber, OrderId, Order
+from Tribler.community.market.core.order import OrderId, OrderNumber
 
 
 class OrderRepository(object):
@@ -54,11 +56,6 @@ class MemoryOrderRepository(OrderRepository):
         super(MemoryOrderRepository, self).__init__()
 
         self._logger.info("Memory order repository used")
-
-        try:
-            int(mid, 16)
-        except ValueError:  # Not a hexadecimal
-            raise ValueError("Encoded member id must be hexadecimal")
 
         self._mid = mid
         self._next_id = 0  # Counter to keep track of the number of messages created by this repository
@@ -123,11 +120,6 @@ class DatabaseOrderRepository(OrderRepository):
         super(DatabaseOrderRepository, self).__init__()
 
         self._logger.info("Memory order repository used")
-
-        try:
-            int(mid, 16)
-        except ValueError:  # Not a hexadecimal
-            raise ValueError("Encoded member id must be hexadecimal")
 
         self._mid = mid
         self.persistence = persistence

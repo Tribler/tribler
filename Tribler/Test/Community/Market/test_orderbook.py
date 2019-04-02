@@ -27,23 +27,23 @@ class AbstractTestOrderBook(AbstractServer):
     def setUp(self):
         yield super(AbstractTestOrderBook, self).setUp()
         # Object creation
-        self.ask = Ask(OrderId(TraderId(b'0'), OrderNumber(1)),
+        self.ask = Ask(OrderId(TraderId(b'0' * 20), OrderNumber(1)),
                        AssetPair(AssetAmount(100, 'BTC'), AssetAmount(30, 'MB')), Timeout(100), Timestamp.now())
-        self.invalid_ask = Ask(OrderId(TraderId(b'0'), OrderNumber(1)),
-                               AssetPair(AssetAmount(100, 'BTC'), AssetAmount(30, 'MB')), Timeout(0), Timestamp(0.0))
-        self.ask2 = Ask(OrderId(TraderId(b'1'), OrderNumber(1)),
+        self.invalid_ask = Ask(OrderId(TraderId(b'0' * 20), OrderNumber(1)),
+                               AssetPair(AssetAmount(100, 'BTC'), AssetAmount(30, 'MB')), Timeout(0), Timestamp(0))
+        self.ask2 = Ask(OrderId(TraderId(b'1' * 20), OrderNumber(1)),
                         AssetPair(AssetAmount(400, 'BTC'), AssetAmount(30, 'MB')), Timeout(100), Timestamp.now())
-        self.bid = Bid(OrderId(TraderId(b'2'), OrderNumber(1)),
+        self.bid = Bid(OrderId(TraderId(b'2' * 20), OrderNumber(1)),
                        AssetPair(AssetAmount(200, 'BTC'), AssetAmount(30, 'MB')), Timeout(100), Timestamp.now())
-        self.invalid_bid = Bid(OrderId(TraderId(b'0'), OrderNumber(1)),
-                               AssetPair(AssetAmount(100, 'BTC'), AssetAmount(30, 'MB')), Timeout(0), Timestamp(0.0))
-        self.bid2 = Bid(OrderId(TraderId(b'3'), OrderNumber(1)),
+        self.invalid_bid = Bid(OrderId(TraderId(b'0' * 20), OrderNumber(1)),
+                               AssetPair(AssetAmount(100, 'BTC'), AssetAmount(30, 'MB')), Timeout(0), Timestamp(0))
+        self.bid2 = Bid(OrderId(TraderId(b'3' * 20), OrderNumber(1)),
                         AssetPair(AssetAmount(300, 'BTC'), AssetAmount(30, 'MB')), Timeout(100), Timestamp.now())
-        self.trade = Trade.propose(TraderId(b'0'),
-                                   OrderId(TraderId(b'0'), OrderNumber(1)),
-                                   OrderId(TraderId(b'0'), OrderNumber(1)),
+        self.trade = Trade.propose(TraderId(b'0' * 20),
+                                   OrderId(TraderId(b'0' * 20), OrderNumber(1)),
+                                   OrderId(TraderId(b'0' * 20), OrderNumber(1)),
                                    AssetPair(AssetAmount(100, 'BTC'), AssetAmount(30, 'MB')),
-                                   Timestamp(1462224447.117))
+                                   Timestamp(1462224447117))
         self.order_book = OrderBook()
 
     def tearDown(self):
@@ -123,7 +123,6 @@ class TestOrderBook(AbstractTestOrderBook):
         # Test for properties
         self.order_book.insert_ask(self.ask2)
         self.order_book.insert_bid(self.bid2)
-        self.assertEquals(Price(0.0875, 'MB', 'BTC'), self.order_book.get_mid_price('MB', 'BTC'))
         self.assertEquals(Price(-0.025, 'MB', 'BTC'), self.order_book.get_bid_ask_spread('MB', 'BTC'))
 
     def test_ask_price_level(self):
@@ -179,20 +178,20 @@ class TestOrderBook(AbstractTestOrderBook):
         self.order_book.insert_bid(self.bid)
 
         ask_dict = {
-            "trader_id": self.ask.order_id.trader_id.to_bytes(),
+            "trader_id": self.ask.order_id.trader_id.as_hex(),
             "order_number": int(self.ask.order_id.order_number),
             "assets": self.ask.assets.to_dictionary(),
             "traded": 100,
             "timeout": 3600,
-            "timestamp": float(Timestamp.now())
+            "timestamp": int(Timestamp.now())
         }
         bid_dict = {
-            "trader_id": self.bid.order_id.trader_id.to_bytes(),
+            "trader_id": self.bid.order_id.trader_id.as_hex(),
             "order_number": int(self.bid.order_id.order_number),
             "assets": self.bid.assets.to_dictionary(),
             "traded": 100,
             "timeout": 3600,
-            "timestamp": float(Timestamp.now())
+            "timestamp": int(Timestamp.now())
         }
 
         self.order_book.get_tick(self.ask.order_id).reserve_for_matching(100)

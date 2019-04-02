@@ -17,10 +17,10 @@ class SideTestSuite(unittest.TestCase):
     def setUp(self):
         # Object creation
 
-        self.tick = Tick(OrderId(TraderId(b'0'), OrderNumber(1)),
+        self.tick = Tick(OrderId(TraderId(b'0' * 20), OrderNumber(1)),
                          AssetPair(AssetAmount(60, 'BTC'), AssetAmount(30, 'MB')),
                          Timeout(100), Timestamp.now(), True)
-        self.tick2 = Tick(OrderId(TraderId(b'1'), OrderNumber(2)),
+        self.tick2 = Tick(OrderId(TraderId(b'1' * 20), OrderNumber(2)),
                           AssetPair(AssetAmount(120, 'BTC'), AssetAmount(30, 'MB')),
                           Timeout(100), Timestamp.now(), True)
         self.side = Side()
@@ -48,22 +48,22 @@ class SideTestSuite(unittest.TestCase):
     def test_insert_tick(self):
         # Test insert tick
         self.assertEquals(0, len(self.side))
-        self.assertFalse(self.side.tick_exists(OrderId(TraderId(b'0'), OrderNumber(1))))
+        self.assertFalse(self.side.tick_exists(OrderId(TraderId(b'0' * 20), OrderNumber(1))))
 
         self.side.insert_tick(self.tick)
         self.side.insert_tick(self.tick2)
 
         self.assertEquals(2, len(self.side))
-        self.assertTrue(self.side.tick_exists(OrderId(TraderId(b'0'), OrderNumber(1))))
+        self.assertTrue(self.side.tick_exists(OrderId(TraderId(b'0' * 20), OrderNumber(1))))
 
     def test_remove_tick(self):
         # Test remove tick
         self.side.insert_tick(self.tick)
         self.side.insert_tick(self.tick2)
 
-        self.side.remove_tick(OrderId(TraderId(b'0'), OrderNumber(1)))
+        self.side.remove_tick(OrderId(TraderId(b'0' * 20), OrderNumber(1)))
         self.assertEquals(1, len(self.side))
-        self.side.remove_tick(OrderId(TraderId(b'1'), OrderNumber(2)))
+        self.side.remove_tick(OrderId(TraderId(b'1' * 20), OrderNumber(2)))
         self.assertEquals(0, len(self.side))
 
     def test_get_price_level_list_wallets(self):

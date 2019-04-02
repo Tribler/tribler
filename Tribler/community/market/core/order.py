@@ -10,7 +10,6 @@ from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.pyipv8.ipv8.database import database_blob
-from Tribler.pyipv8.ipv8.util import cast_to_unicode
 
 
 class TickWasNotReserved(Exception):
@@ -89,7 +88,10 @@ class OrderId(object):
         """
         format: <trader_id>.<order_number>
         """
-        return "%s.%d" % (cast_to_unicode(self._trader_id.to_bytes()), self._order_number)
+        return "%s.%d" % (self._trader_id.as_hex(), self._order_number)
+
+    def __bytes__(self):
+        return b"%s.%d" % (self._trader_id.as_hex().encode('utf-8'), self._order_number)
 
     def __eq__(self, other):
         if not isinstance(other, OrderId):
@@ -167,11 +169,11 @@ class Order(object):
         Returns a database representation of an Order object.
         :rtype: tuple
         """
-        completed_timestamp = float(self.completed_timestamp) if self.completed_timestamp else None
-        return (database_blob(self.order_id.trader_id.to_bytes()), text_type(self.order_id.order_number),
+        completed_timestamp = int(self.completed_timestamp) if self.completed_timestamp else None
+        return (database_blob(bytes(self.order_id.trader_id)), text_type(self.order_id.order_number),
                 self.assets.first.amount, text_type(self.assets.first.asset_id), self.assets.second.amount,
                 text_type(self.assets.second.asset_id), self.traded_quantity, int(self.timeout),
-                float(self.timestamp), completed_timestamp, self.is_ask(), self._cancelled, self._verified)
+                int(self.timestamp), completed_timestamp, self.is_ask(), self._cancelled, self._verified)
 
     @property
     def reserved_ticks(self):
@@ -403,15 +405,15 @@ class Order(object):
         """
         Return a dictionary representation of this order.
         """
-        completed_timestamp = float(self.completed_timestamp) if self.completed_timestamp else None
+        completed_timestamp = int(self.completed_timestamp) if self.completed_timestamp else None
         return {
-            "trader_id": self.order_id.trader_id.to_bytes(),
+            "trader_id": self.order_id.trader_id.as_hex(),
             "order_number": int(self.order_id.order_number),
             "assets": self.assets.to_dictionary(),
             "reserved_quantity": self.reserved_quantity,
             "traded": self.traded_quantity,
             "timeout": int(self.timeout),
-            "timestamp": float(self.timestamp),
+            "timestamp": int(self.timestamp),
             "completed_timestamp": completed_timestamp,
             "is_ask": self.is_ask(),
             "cancelled": self.cancelled,
@@ -423,10 +425,10 @@ class Order(object):
         Return a dictionary representation of this order (suitable for saving on the TrustChain)
         """
         return {
-            "trader_id": str(self.order_id.trader_id),
+            "trader_id": self.order_id.trader_id.as_hex(),
             "order_number": int(self.order_id.order_number),
             "assets": self.assets.to_dictionary(),
             "traded": self.traded_quantity,
             "timeout": int(self.timeout),
-            "timestamp": float(self.timestamp)
+            "timestamp": int(self.timestamp)
         }

@@ -57,17 +57,17 @@ class TestMarketEndpoint(AbstractApiTest):
         """
         Add a transaction and a payment to the market
         """
-        proposed_trade = Trade.propose(TraderId(b'0'),
-                                       OrderId(TraderId(b'0'), OrderNumber(1)),
-                                       OrderId(TraderId(b'1'), OrderNumber(2)),
+        proposed_trade = Trade.propose(TraderId(b'0' * 20),
+                                       OrderId(TraderId(b'0' * 20), OrderNumber(1)),
+                                       OrderId(TraderId(b'1' * 20), OrderNumber(2)),
                                        AssetPair(AssetAmount(30, 'BTC'), AssetAmount(60, 'MB')),
-                                       Timestamp(1462224447.117))
+                                       Timestamp(1462224447117))
         transaction = self.session.lm.market_community.transaction_manager.create_from_proposed_trade(
             proposed_trade, 'abcd')
 
-        payment = Payment(TraderId(b"0"), transaction.transaction_id,
+        payment = Payment(TraderId(b'0' * 20), transaction.transaction_id,
                           AssetAmount(20, 'BTC'), WalletAddress('a'), WalletAddress('b'),
-                          PaymentId('aaa'), Timestamp(4.0), True)
+                          PaymentId('aaa'), Timestamp(4000), True)
         transaction.add_payment(payment)
         self.session.lm.market_community.transaction_manager.transaction_repository.update(transaction)
 
@@ -205,7 +205,7 @@ class TestMarketEndpoint(AbstractApiTest):
         Test whether the API returns a 404 when a payment cannot be found
         """
         self.should_check_equality = False
-        return self.do_request('market/transactions/abc/3/payments', expected_code=404)
+        return self.do_request('market/transactions/%s/3/payments' % ('30' * 20), expected_code=404)
 
     @trial_timeout(10)
     def test_get_orders(self):
@@ -236,7 +236,8 @@ class TestMarketEndpoint(AbstractApiTest):
         transaction = self.add_transaction_and_payment()
         self.should_check_equality = False
         return self.do_request('market/transactions/%s/%s/payments' %
-                               (transaction.transaction_id.trader_id, transaction.transaction_id.transaction_number),
+                               (transaction.transaction_id.trader_id.as_hex(),
+                                transaction.transaction_id.transaction_number),
                                expected_code=200).addCallback(on_response)
 
     @trial_timeout(10)

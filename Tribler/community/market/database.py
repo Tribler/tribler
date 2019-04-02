@@ -19,7 +19,7 @@ DATABASE_DIRECTORY = path.join(u"sqlite")
 # Path to the database location + dispersy._workingdirectory
 DATABASE_PATH = path.join(DATABASE_DIRECTORY, u"market.db")
 # Version to keep track if the db schema needs to be updated.
-LATEST_DB_VERSION = 3
+LATEST_DB_VERSION = 4
 # Schema for the Market DB.
 schema = u"""
 CREATE TABLE IF NOT EXISTS orders(
@@ -31,8 +31,8 @@ CREATE TABLE IF NOT EXISTS orders(
  asset2_type          TEXT NOT NULL,
  traded_quantity      BIGINT NOT NULL,
  timeout              INTEGER NOT NULL,
- order_timestamp      TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
- completed_timestamp  TIMESTAMP,
+ order_timestamp      BIGINT NOT NULL,
+ completed_timestamp  BIGINT,
  is_ask               INTEGER NOT NULL,
  cancelled            INTEGER NOT NULL,
  verified             INTEGER NOT NULL,
@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS orders(
   asset2_amount            BIGINT NOT NULL,
   asset2_type              TEXT NOT NULL,
   asset2_transferred       BIGINT NOT NULL,
-  transaction_timestamp    TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  transaction_timestamp    BIGINT NOT NULL,
   sent_wallet_info         INTEGER NOT NULL,
   received_wallet_info     INTEGER NOT NULL,
   incoming_address         TEXT NOT NULL,
@@ -74,7 +74,7 @@ CREATE TABLE IF NOT EXISTS orders(
   transferred_type         TEXT NOT NULL,
   address_from             TEXT NOT NULL,
   address_to               TEXT NOT NULL,
-  timestamp                TIMESTAMP NOT NULL,
+  timestamp                BIGINT NOT NULL,
   success                  INTEGER NOT NULL,
 
   PRIMARY KEY (trader_id, payment_id, transaction_trader_id, transaction_number)
@@ -88,7 +88,7 @@ CREATE TABLE IF NOT EXISTS orders(
   asset2_amount        BIGINT NOT NULL,
   asset2_type          TEXT NOT NULL,
   timeout              INTEGER NOT NULL,
-  timestamp            TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  timestamp            BIGINT NOT NULL,
   is_ask               INTEGER NOT NULL,
   traded               BIGINT NOT NULL,
   block_hash           TEXT NOT NULL,
@@ -104,14 +104,6 @@ CREATE TABLE IF NOT EXISTS orders(
   quantity               BIGINT NOT NULL,
 
   PRIMARY KEY (trader_id, order_number, reserved_trader_id, reserved_order_number)
- );
-
- CREATE TABLE IF NOT EXISTS traders(
-  trader_id            TEXT NOT NULL,
-  ip_address           TEXT NOT NULL,
-  port                 INTEGER NOT NULL,
-
-  PRIMARY KEY(trader_id)
  );
 
 CREATE TABLE IF NOT EXISTS option(key TEXT PRIMARY KEY, value BLOB);
@@ -146,7 +138,7 @@ class MarketDB(TrustChainDB):
         """
         try:
             db_result = next(self.execute(u"SELECT * FROM orders WHERE trader_id = ? AND order_number = ?",
-                                          (database_blob(order_id.trader_id.to_bytes()),
+                                          (database_blob(bytes(order_id.trader_id)),
                                            text_type(order_id.order_number))))
         except StopIteration:
             return None
@@ -172,7 +164,7 @@ class MarketDB(TrustChainDB):
         Delete a specific order from the database
         """
         self.execute(u"DELETE FROM orders WHERE trader_id = ? AND order_number = ?",
-                     (database_blob(order_id.trader_id.to_bytes()), text_type(order_id.order_number)))
+                     (database_blob(bytes(order_id.trader_id)), text_type(order_id.order_number)))
         self.delete_reserved_ticks(order_id)
 
     def get_next_order_number(self):
@@ -189,7 +181,7 @@ class MarketDB(TrustChainDB):
         Delete all reserved ticks from a specific order
         """
         self.execute(u"DELETE FROM orders_reserved_ticks WHERE trader_id = ? AND order_number = ?",
-                     (database_blob(order_id.trader_id.to_bytes()), text_type(order_id.order_number)))
+                     (database_blob(bytes(order_id.trader_id)), text_type(order_id.order_number)))
 
     def add_reserved_tick(self, order_id, reserved_order_id, amount):
         """
@@ -198,8 +190,8 @@ class MarketDB(TrustChainDB):
         self.execute(
             u"INSERT INTO orders_reserved_ticks (trader_id, order_number, reserved_trader_id, reserved_order_number,"
             u"quantity) VALUES(?,?,?,?,?)",
-            (database_blob(order_id.trader_id.to_bytes()), text_type(order_id.order_number),
-             database_blob(reserved_order_id.trader_id.to_bytes()), text_type(reserved_order_id.order_number), amount))
+            (database_blob(bytes(order_id.trader_id)), text_type(order_id.order_number),
+             database_blob(bytes(reserved_order_id.trader_id)), text_type(reserved_order_id.order_number), amount))
         self.commit()
 
     def get_reserved_ticks(self, order_id):
@@ -207,7 +199,7 @@ class MarketDB(TrustChainDB):
         Get all reserved ticks for a specific order.
         """
         db_results = self.execute(u"SELECT * FROM orders_reserved_ticks WHERE trader_id = ? AND order_number = ?",
-                                  (database_blob(order_id.trader_id.to_bytes()), text_type(order_id.order_number)))
+                                  (database_blob(bytes(order_id.trader_id)), text_type(order_id.order_number)))
         return [(OrderId(TraderId(bytes(data[2])), OrderNumber(data[3])), data[4]) for data in db_results]
 
     def get_all_transactions(self):
@@ -226,7 +218,7 @@ class MarketDB(TrustChainDB):
         """
         try:
             db_result = next(self.execute(u"SELECT * FROM transactions WHERE trader_id = ? AND transaction_number = ?",
-                                          (database_blob(transaction_id.trader_id.to_bytes()),
+                                          (database_blob(bytes(transaction_id.trader_id)),
                                            text_type(transaction_id.transaction_number))))
         except StopIteration:
             return None
@@ -267,10 +259,10 @@ class MarketDB(TrustChainDB):
                                                transaction.transferred_assets.first.amount,
                                                transaction.assets.second.amount,
                                                transaction.transferred_assets.second.amount,
-                                               float(transaction.timestamp),
-                                               database_blob(transaction.transaction_id.trader_id.to_bytes()),
+                                               int(transaction.timestamp),
+                                               database_blob(bytes(transaction.transaction_id.trader_id)),
                                                int(transaction.transaction_id.transaction_number),
-                                               float(transaction.timestamp))
+                                               int(transaction.timestamp))
         )
 
         self.commit()
@@ -280,7 +272,7 @@ class MarketDB(TrustChainDB):
         Delete a specific transaction from the database
         """
         self.execute(u"DELETE FROM transactions WHERE trader_id = ? AND transaction_number = ?",
-                     (database_blob(transaction_id.trader_id.to_bytes()),
+                     (database_blob(bytes(transaction_id.trader_id)),
                       text_type(transaction_id.transaction_number)))
         self.delete_payments(transaction_id)
 
@@ -309,7 +301,7 @@ class MarketDB(TrustChainDB):
         """
         db_result = self.execute(u"SELECT * FROM payments WHERE transaction_trader_id = ? AND transaction_number = ?"
                                  u"ORDER BY timestamp ASC",
-                                 (database_blob(transaction_id.trader_id.to_bytes()),
+                                 (database_blob(bytes(transaction_id.trader_id)),
                                   text_type(transaction_id.transaction_number)))
         return [Payment.from_database(db_item) for db_item in db_result]
 
@@ -318,7 +310,7 @@ class MarketDB(TrustChainDB):
         Delete all payments that are associated with a specific transaction
         """
         self.execute(u"DELETE FROM payments WHERE transaction_trader_id = ? AND transaction_number = ?",
-                     (database_blob(transaction_id.trader_id.to_bytes()),
+                     (database_blob(bytes(transaction_id.trader_id)),
                       text_type(transaction_id.transaction_number)))
 
     def add_tick(self, tick):
@@ -343,29 +335,18 @@ class MarketDB(TrustChainDB):
         """
         return [Tick.from_database(db_tick) for db_tick in self.execute(u"SELECT * FROM ticks")]
 
-    def add_trader_identity(self, trader_id, ip, port):
-        self.execute(u"INSERT OR REPLACE INTO traders VALUES(?,?,?)", (database_blob(trader_id.to_bytes()),
-                                                                       text_type(ip), port))
-        self.commit()
-
-    def get_traders(self):
-        """
-        Return information about known traders in the database.
-        :return: A tuple
-        """
-        return [(TraderId(res[0]), (str(res[1]), res[2])) for res in self.execute(u"SELECT * FROM traders")]
-
     def open(self, initial_statements=True, prepare_visioning=True):
         return super(MarketDB, self).open(initial_statements, prepare_visioning)
 
     def get_upgrade_script(self, current_version):
-        if current_version == 1 or current_version == 2:
+        if current_version == 1 or current_version == 2 or current_version == 3:
             return u"DROP TABLE IF EXISTS orders;" \
                    u"DROP TABLE IF EXISTS transactions;" \
                    u"DROP TABLE IF EXISTS payments;" \
                    u"DROP TABLE IF EXISTS ticks;" \
                    u"DROP TABLE IF EXISTS orders_reserved_ticks;" \
-                   u"DROP TABLE IF EXISTS option;"
+                   u"DROP TABLE IF EXISTS option;" \
+                   u"DROP TABLE IF EXISTS traders;"
 
     def check_database(self, database_version):
         """

@@ -21,24 +21,24 @@ class TransactionManagerTestSuite(unittest.TestCase):
 
     def setUp(self):
         # Object creation
-        self.memory_transaction_repository = MemoryTransactionRepository("0")
+        self.memory_transaction_repository = MemoryTransactionRepository(b'0' * 20)
         self.transaction_manager = TransactionManager(self.memory_transaction_repository)
 
-        self.transaction_id = TransactionId(TraderId(b"0"), TransactionNumber(1))
+        self.transaction_id = TransactionId(TraderId(b'0' * 20), TransactionNumber(1))
         self.transaction = Transaction(self.transaction_id, AssetPair(AssetAmount(100, 'BTC'), AssetAmount(30, 'MB')),
-                                       OrderId(TraderId(b'3'), OrderNumber(2)),
-                                       OrderId(TraderId(b'2'), OrderNumber(1)), Timestamp(0.0))
-        self.proposed_trade = Trade.propose(TraderId(b'0'),
-                                            OrderId(TraderId(b'0'), OrderNumber(1)),
-                                            OrderId(TraderId(b'1'), OrderNumber(2)),
+                                       OrderId(TraderId(b'3' * 20), OrderNumber(2)),
+                                       OrderId(TraderId(b'2' * 20), OrderNumber(1)), Timestamp(0))
+        self.proposed_trade = Trade.propose(TraderId(b'0' * 20),
+                                            OrderId(TraderId(b'0' * 20), OrderNumber(1)),
+                                            OrderId(TraderId(b'1' * 20), OrderNumber(2)),
                                             AssetPair(AssetAmount(30, 'BTC'), AssetAmount(30, 'MB')),
-                                            Timestamp(1462224447.117))
-        self.start_transaction = StartTransaction(TraderId(b'0'),
-                                                  TransactionId(TraderId(b"0"), TransactionNumber(1)),
-                                                  OrderId(TraderId(b'0'), OrderNumber(1)),
-                                                  OrderId(TraderId(b'1'), OrderNumber(2)), 1235,
+                                            Timestamp(1462224447117))
+        self.start_transaction = StartTransaction(TraderId(b'0' * 20),
+                                                  TransactionId(TraderId(b'0' * 20), TransactionNumber(1)),
+                                                  OrderId(TraderId(b'0' * 20), OrderNumber(1)),
+                                                  OrderId(TraderId(b'1' * 20), OrderNumber(2)), 1235,
                                                   AssetPair(AssetAmount(20, 'BTC'), AssetAmount(20, 'MB')),
-                                                  Timestamp(0.0))
+                                                  Timestamp(0))
 
     def test_create_from_proposed_trade(self):
         # Test for create from a proposed trade
@@ -70,7 +70,7 @@ class TransactionManagerTestSuite(unittest.TestCase):
         self.transaction.outgoing_address = WalletAddress('def')
         self.transaction.partner_incoming_address = WalletAddress('ghi')
         self.transaction.partner_outgoing_address = WalletAddress('jkl')
-        payment_msg = self.transaction_manager.create_payment_message(TraderId(b"0"),
+        payment_msg = self.transaction_manager.create_payment_message(TraderId(b'0' * 20),
                                                                       PaymentId('abc'), self.transaction,
                                                                       AssetAmount(1, 'BTC'),
                                                                       True)

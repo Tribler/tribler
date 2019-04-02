@@ -35,17 +35,17 @@ class Payment(Message):
         transaction_id = TransactionId(TraderId(bytes(transaction_trader_id)), TransactionNumber(transaction_number))
         return cls(TraderId(bytes(trader_id)), transaction_id, AssetAmount(transferred_amount, str(transferred_id)),
                    WalletAddress(str(address_from)), WalletAddress(str(address_to)), PaymentId(str(payment_id)),
-                   Timestamp(float(timestamp)), bool(success))
+                   Timestamp(timestamp), bool(success))
 
     def to_database(self):
         """
         Returns a database representation of a Payment object.
         :rtype: tuple
         """
-        return (database_blob(self.trader_id.to_bytes()), database_blob(self.transaction_id.trader_id.to_bytes()),
+        return (database_blob(bytes(self.trader_id)), database_blob(bytes(self.transaction_id.trader_id)),
                 int(self.transaction_id.transaction_number), text_type(self.payment_id), self.transferred_assets.amount,
                 text_type(self.transferred_assets.asset_id), text_type(self.address_from),
-                text_type(self.address_to), float(self.timestamp), self.success)
+                text_type(self.address_to), int(self.timestamp), self.success)
 
     @property
     def transaction_id(self):
@@ -108,12 +108,12 @@ class Payment(Message):
 
     def to_dictionary(self):
         return {
-            "trader_id": self.transaction_id.trader_id.to_bytes(),
+            "trader_id": self.transaction_id.trader_id.as_hex(),
             "transaction_number": int(self.transaction_id.transaction_number),
             "transferred": self.transferred_assets.to_dictionary(),
             "payment_id": str(self.payment_id),
             "address_from": str(self.address_from),
             "address_to": str(self.address_to),
-            "timestamp": float(self.timestamp),
+            "timestamp": int(self.timestamp),
             "success": self.success
         }
