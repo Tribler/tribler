@@ -37,9 +37,9 @@ class RootEndpoint(resource.Resource):
         self.events_endpoint = EventsEndpoint(self.session)
         self.state_endpoint = StateEndpoint(self.session)
         self.shutdown_endpoint = ShutdownEndpoint(self.session)
-        self.putChild("events", self.events_endpoint)
-        self.putChild("state", self.state_endpoint)
-        self.putChild("shutdown", self.shutdown_endpoint)
+        self.putChild(b"events", self.events_endpoint)
+        self.putChild(b"state", self.state_endpoint)
+        self.putChild(b"shutdown", self.shutdown_endpoint)
 
     def start_endpoints(self):
         """
@@ -47,26 +47,26 @@ class RootEndpoint(resource.Resource):
         on a fully started Tribler.
         """
         child_handler_dict = {
-            "settings": SettingsEndpoint,
-            "downloads": DownloadsEndpoint,
-            "createtorrent": CreateTorrentEndpoint,
-            "debug": DebugEndpoint,
-            "shutdown": ShutdownEndpoint,
-            "trustchain": TrustchainEndpoint,
-            "statistics": StatisticsEndpoint,
-            "market": MarketEndpoint,
-            "wallets": WalletsEndpoint,
-            "libtorrent": LibTorrentEndpoint,
-            "torrentinfo": TorrentInfoEndpoint,
-            "metadata": MetadataEndpoint,
-            "mychannel": MyChannelEndpoint,
-            "search": SearchEndpoint
+            b"settings": SettingsEndpoint,
+            b"downloads": DownloadsEndpoint,
+            b"createtorrent": CreateTorrentEndpoint,
+            b"debug": DebugEndpoint,
+            b"shutdown": ShutdownEndpoint,
+            b"trustchain": TrustchainEndpoint,
+            b"statistics": StatisticsEndpoint,
+            b"market": MarketEndpoint,
+            b"wallets": WalletsEndpoint,
+            b"libtorrent": LibTorrentEndpoint,
+            b"torrentinfo": TorrentInfoEndpoint,
+            b"metadata": MetadataEndpoint,
+            b"mychannel": MyChannelEndpoint,
+            b"search": SearchEndpoint
         }
 
         for path, child_cls in child_handler_dict.items():
             self.putChild(path, child_cls(self.session))
 
         if self.session.config.get_ipv8_enabled():
-            self.putChild("ipv8", IPV8RootEndpoint(self.session.lm.ipv8))
+            self.putChild(b"ipv8", IPV8RootEndpoint(self.session.lm.ipv8))
 
-        self.getChildWithDefault("search", None).events_endpoint = self.events_endpoint
+        self.getChildWithDefault(b"search", None).events_endpoint = self.events_endpoint

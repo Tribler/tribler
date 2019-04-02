@@ -46,8 +46,8 @@ class MyChannelEndpoint(BaseMyChannelEndpoint):
 
     def __init__(self, session):
         BaseMyChannelEndpoint.__init__(self, session)
-        self.putChild("torrents", MyChannelTorrentsEndpoint(session))
-        self.putChild("commit", MyChannelCommitEndpoint(session))
+        self.putChild(b"torrents", MyChannelTorrentsEndpoint(session))
+        self.putChild(b"commit", MyChannelCommitEndpoint(session))
 
     def render_GET(self, request):
         with db_session:

@@ -26,7 +26,7 @@ class SearchEndpoint(BaseMetadataEndpoint):
         self.events_endpoint = None
         self._logger = logging.getLogger(self.__class__.__name__)
 
-        self.putChild("completions", SearchCompletionsEndpoint(session))
+        self.putChild(b"completions", SearchCompletionsEndpoint(session))
 
     @staticmethod
     def convert_datatype_param_to_search_scope(data_type):

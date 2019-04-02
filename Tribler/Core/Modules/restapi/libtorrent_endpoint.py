@@ -19,8 +19,8 @@ class LibTorrentEndpoint(resource.Resource):
         self.session = session
         self._logger = logging.getLogger(self.__class__.__name__)
 
-        self.putChild("settings", LibTorrentSettingsEndpoint(self.session))
-        self.putChild("session", LibTorrentSessionEndpoint(self.session))
+        self.putChild(b"settings", LibTorrentSettingsEndpoint(self.session))
+        self.putChild(b"session", LibTorrentSessionEndpoint(self.session))
 
 
 class LibTorrentSettingsEndpoint(resource.Resource):

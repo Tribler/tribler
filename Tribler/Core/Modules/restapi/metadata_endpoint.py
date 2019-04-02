@@ -64,8 +64,8 @@ class MetadataEndpoint(resource.Resource):
         resource.Resource.__init__(self)
 
         child_handler_dict = {
-            "channels": ChannelsEndpoint,
-            "torrents": TorrentsEndpoint
+            b"channels": ChannelsEndpoint,
+            b"torrents": TorrentsEndpoint
         }
 
         for path, child_cls in child_handler_dict.items():
@@ -132,7 +132,7 @@ class SpecificChannelEndpoint(BaseChannelsEndpoint):
         BaseChannelsEndpoint.__init__(self, session)
         self.channel_pk = unhexlify(channel_pk)
 
-        self.putChild("torrents", SpecificChannelTorrentsEndpoint(session, self.channel_pk))
+        self.putChild(b"torrents", SpecificChannelTorrentsEndpoint(session, self.channel_pk))
 
     def render_POST(self, request):
         parameters = http.parse_qs(request.content.read(), 1)
@@ -190,7 +190,7 @@ class TorrentsEndpoint(BaseMetadataEndpoint):
 
     def __init__(self, session):
         BaseMetadataEndpoint.__init__(self, session)
-        self.putChild("random", TorrentsRandomEndpoint(session))
+        self.putChild(b"random", TorrentsRandomEndpoint(session))
 
     def getChild(self, path, request):
         return SpecificTorrentEndpoint(self.session, path)
@@ -206,7 +206,7 @@ class SpecificTorrentEndpoint(resource.Resource):
         self.session = session
         self.infohash = unhexlify(infohash)
 
-        self.putChild("health", TorrentHealthEndpoint(self.session, self.infohash))
+        self.putChild(b"health", TorrentHealthEndpoint(self.session, self.infohash))
 
     def render_GET(self, request):
         with db_session:

@@ -19,7 +19,7 @@ class TrackerRootEndpoint(resource.Resource):
 
     def __init__(self, session):
         resource.Resource.__init__(self)
-        self.putChild("scrape", TrackerScrapeEndpoint(session))
+        self.putChild(b"scrape", TrackerScrapeEndpoint(session))
 
 
 class TrackerScrapeEndpoint(resource.Resource):

@@ -377,8 +377,8 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
     def __init__(self, session, infohash):
         DownloadBaseEndpoint.__init__(self, session)
         self.infohash = bytes(unhexlify(infohash))
-        self.putChild("torrent", DownloadExportTorrentEndpoint(session, self.infohash))
-        self.putChild("files", DownloadFilesEndpoint(session, self.infohash))
+        self.putChild(b"torrent", DownloadExportTorrentEndpoint(session, self.infohash))
+        self.putChild(b"files", DownloadFilesEndpoint(session, self.infohash))
 
     def render_DELETE(self, request):
         """

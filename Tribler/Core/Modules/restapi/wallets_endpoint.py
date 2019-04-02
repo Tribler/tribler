@@ -87,8 +87,11 @@ class WalletEndpoint(resource.Resource):
         self.session = session
         self.identifier = identifier.upper()
 
-        child_handler_dict = {"balance": WalletBalanceEndpoint, "transactions": WalletTransactionsEndpoint,
-                              "transfer": WalletTransferEndpoint}
+        child_handler_dict = {
+            b"balance": WalletBalanceEndpoint,
+            b"transactions": WalletTransactionsEndpoint,
+            b"transfer": WalletTransferEndpoint
+        }
         for path, child_cls in child_handler_dict.items():
             self.putChild(path, child_cls(self.session, self.identifier))
 

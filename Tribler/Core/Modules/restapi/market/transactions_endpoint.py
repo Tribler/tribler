@@ -93,7 +93,7 @@ class TransactionSpecificNumberEndpoint(BaseMarketEndpoint):
         self.transaction_trader_id = transaction_trader_id
         self.transaction_number = path
 
-        child_handler_dict = {"payments": TransactionPaymentsEndpoint}
+        child_handler_dict = {b"payments": TransactionPaymentsEndpoint}
         for path, child_cls in child_handler_dict.items():
             self.putChild(path, child_cls(self.session, self.transaction_trader_id, self.transaction_number))
 

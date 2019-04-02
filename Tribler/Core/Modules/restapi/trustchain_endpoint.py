@@ -12,8 +12,8 @@ class TrustchainEndpoint(resource.Resource):
         resource.Resource.__init__(self)
 
         child_handler_dict = {
-            "statistics": TrustchainStatsEndpoint,
-            "bootstrap": TrustchainBootstrapEndpoint
+            b"statistics": TrustchainStatsEndpoint,
+            b"bootstrap": TrustchainBootstrapEndpoint
         }
 
         for path, child_cls in child_handler_dict.items():

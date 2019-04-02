@@ -39,10 +39,16 @@ class DebugEndpoint(resource.Resource):
     def __init__(self, session):
         resource.Resource.__init__(self)
 
-        child_handler_dict = {"circuits": DebugCircuitsEndpoint, "open_files": DebugOpenFilesEndpoint,
-                              "open_sockets": DebugOpenSocketsEndpoint, "threads": DebugThreadsEndpoint,
-                              "cpu": DebugCPUEndpoint, "memory": DebugMemoryEndpoint,
-                              "log": DebugLogEndpoint, "profiler": DebugProfilerEndpoint}
+        child_handler_dict = {
+            b"circuits": DebugCircuitsEndpoint,
+            b"open_files": DebugOpenFilesEndpoint,
+            b"open_sockets": DebugOpenSocketsEndpoint,
+            b"threads": DebugThreadsEndpoint,
+            b"cpu": DebugCPUEndpoint,
+            b"memory": DebugMemoryEndpoint,
+            b"log": DebugLogEndpoint,
+            b"profiler": DebugProfilerEndpoint
+        }
 
         for path, child_cls in child_handler_dict.items():
             self.putChild(path, child_cls(session))
@@ -57,7 +63,7 @@ class DebugCircuitsEndpoint(resource.Resource):
         resource.Resource.__init__(self)
         self.session = session
 
-        self.putChild("slots", DebugCircuitSlotsEndpoint(session))
+        self.putChild(b"slots", DebugCircuitSlotsEndpoint(session))
 
 
 class DebugCircuitSlotsEndpoint(resource.Resource):
@@ -231,7 +237,7 @@ class DebugCPUEndpoint(resource.Resource):
 
     def __init__(self, session):
         resource.Resource.__init__(self)
-        self.putChild("history", DebugCPUHistoryEndpoint(session))
+        self.putChild(b"history", DebugCPUHistoryEndpoint(session))
 
 
 class DebugCPUHistoryEndpoint(resource.Resource):
@@ -277,9 +283,9 @@ class DebugMemoryEndpoint(resource.Resource):
 
     def __init__(self, session):
         resource.Resource.__init__(self)
-        self.putChild("history", DebugMemoryHistoryEndpoint(session))
+        self.putChild(b"history", DebugMemoryHistoryEndpoint(session))
         if HAS_MELIAE:
-            self.putChild("dump", DebugMemoryDumpEndpoint(session))
+            self.putChild(b"dump", DebugMemoryDumpEndpoint(session))
 
 
 class DebugMemoryHistoryEndpoint(resource.Resource):
