@@ -34,6 +34,13 @@ class ChannelPage(QWidget):
         commit_control = self.window().channel_page_container.content_table.delegate.commit_control
         self.window().channel_page_container.content_table.delegate.controls.remove(commit_control)
 
+        # To reload the preview
+        self.window().channel_preview_label.clicked.connect(self.preview_clicked)
+
+    def preview_clicked(self):
+        self.controller.fetch_preview()
+        self.initialize_with_channel(self.channel_info)
+
     def initialize_with_channel(self, channel_info):
         self.channel_info = channel_info
 

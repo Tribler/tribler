@@ -74,7 +74,7 @@ class TriblerTableViewController(object):
         sort_by, sort_asc = self._get_sort_parameters()
         kwargs.update({
             "uuid": self.query_uuid,
-            "filter": to_fts_query(self.query_text),
+            "filter": to_fts_query(kwargs.pop('query_filter') if 'query_filter' in kwargs else self.query_text),
             "sort_by": sort_by,
             "sort_asc": sort_asc,
             "hide_xxx": self.model.hide_xxx})
@@ -110,7 +110,7 @@ class TriblerTableViewController(object):
         :param response: List of items
         :return: True for fresh response else False
         """
-        if 'uuid' in response and response['uuid'] != self.query_uuid:
+        if self.query_uuid and 'uuid' in response and response['uuid'] != self.query_uuid:
             return False
         if 'first' in response and response['first'] < self.model.rowCount():
             return False
@@ -220,18 +220,15 @@ class TorrentsTableViewController(TableSelectionMixin, FilterInputMixin, Tribler
                 "rest_endpoint_url": "metadata/channels/%s/torrents" % self.model.channel_pk})
         super(TorrentsTableViewController, self).perform_query(**kwargs)
 
-    def on_query_results(self, response, remote=False):
-        if super(TorrentsTableViewController, self).on_query_results(response, remote=remote):
-            if not self.model.data_items and not self.asked_preview:
-                self.fetch_preview()
-            return True
-        return False
-
     def fetch_preview(self):
-        self.query_text = self.model.channel_pk
-        params = {'metadata_type': 'torrent', "rest_endpoint_url": "search"}
+        # self.query_uuid = uuid.uuid4().hex
+        params = {'query_filter': self.model.channel_pk,
+                  'metadata_type': 'torrent',
+                  'rest_endpoint_url': 'search',
+                  'first': 1,
+                  'last': 50
+                 }
         super(TorrentsTableViewController, self).perform_query(**params)
-        self.asked_preview = True
 
 
 class MyTorrentsTableViewController(TorrentsTableViewController):

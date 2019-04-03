@@ -3736,19 +3736,25 @@ font-weight: bold;</string>
                </property>
                <property name="sizeHint" stdset="0">
                 <size>
-                 <width>8</width>
+                 <width>12</width>
                  <height>20</height>
                 </size>
                </property>
               </spacer>
              </item>
              <item>
-              <widget class="QLabel" name="channel_preview_label">
+              <widget class="QPushButton" name="channel_preview_label">
+               <property name="toolTip">
+                <string extracomment="reload preview"/>
+               </property>
                <property name="styleSheet">
                 <string notr="true">color: #eee; font-size: 15px;</string>
                </property>
                <property name="text">
-                <string>Preview</string>
+                <string>Preview ⟳</string>
+               </property>
+               <property name="margin">
+                <number>8</number>
                </property>
               </widget>
              </item>
@@ -4421,7 +4427,7 @@ border-top: 1px solid #555;
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>755</width>
+               <width>300</width>
                <height>646</height>
               </rect>
              </property>
@@ -4505,7 +4511,7 @@ color: white;</string>
                   <item row="1" column="0">
                    <widget class="QLabel" name="label_37">
                     <property name="text">
-                        <string>Family filter enabled?
+                     <string>Family filter enabled?
 (requires Tribler restart)</string>
                     </property>
                    </widget>
@@ -7897,14 +7903,14 @@ margin-right: 10px;</string>
                           <property name="cursor">
                            <cursorShape>PointingHandCursor</cursorShape>
                           </property>
+                          <property name="toolTip">
+                           <string>Click to copy magnet link</string>
+                          </property>
                           <property name="styleSheet">
                            <string notr="true">border: none;</string>
                           </property>
                           <property name="text">
                            <string/>
-                          </property>
-                          <property name="toolTip">
-                           <string>Click to copy magnet link</string>
                           </property>
                           <property name="icon">
                            <iconset>
