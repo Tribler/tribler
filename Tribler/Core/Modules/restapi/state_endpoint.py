@@ -1,8 +1,10 @@
+from __future__ import absolute_import
+
 from twisted.web import resource
 
-from Tribler.Core.simpledefs import STATE_STARTING, STATE_UPGRADING, STATE_STARTED, NTFY_UPGRADER, NTFY_STARTED, \
-    NTFY_TRIBLER, NTFY_FINISHED, STATE_EXCEPTION
 import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.simpledefs import NTFY_FINISHED, NTFY_STARTED, NTFY_TRIBLER, NTFY_UPGRADER, STATE_EXCEPTION,\
+    STATE_STARTED, STATE_STARTING, STATE_UPGRADING
 
 
 class StateEndpoint(resource.Resource):
@@ -59,7 +61,7 @@ class StateEndpoint(resource.Resource):
                     "readable_state": ""
                 }
         """
-        return json.dumps({
+        return json.twisted_dumps({
             "state": self.tribler_state,
             "last_exception": self.last_exception,
             "readable_state": self.session.readable_status

@@ -1,9 +1,8 @@
 from __future__ import absolute_import
 
-import json
-
 from twisted.internet.defer import inlineCallbacks, succeed
 
+import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.restapi.market import BaseMarketEndpoint
 from Tribler.Core.Modules.wallet.dummy_wallet import DummyWallet1, DummyWallet2
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
@@ -87,7 +86,7 @@ class TestMarketEndpoint(AbstractApiTest):
         Test whether the API returns the right asks in the order book when performing a request
         """
         def on_response(response):
-            json_response = json.loads(response)
+            json_response = json.twisted_loads(response)
             self.assertIn('asks', json_response)
             self.assertEqual(len(json_response['asks']), 1)
             self.assertIn('ticks', json_response['asks'][0])
@@ -139,7 +138,7 @@ class TestMarketEndpoint(AbstractApiTest):
         Test whether the API returns the right bids in the order book when performing a request
         """
         def on_response(response):
-            json_response = json.loads(response)
+            json_response = json.twisted_loads(response)
             self.assertIn('bids', json_response)
             self.assertEqual(len(json_response['bids']), 1)
             self.assertIn('ticks', json_response['bids'][0])
@@ -191,7 +190,7 @@ class TestMarketEndpoint(AbstractApiTest):
         Test whether the API returns the right transactions in the order book when performing a request
         """
         def on_response(response):
-            json_response = json.loads(response)
+            json_response = json.twisted_loads(response)
             self.assertIn('transactions', json_response)
             self.assertEqual(len(json_response['transactions']), 1)
 
@@ -213,7 +212,7 @@ class TestMarketEndpoint(AbstractApiTest):
         Test whether the API returns the right orders when we perform a request
         """
         def on_response(response):
-            json_response = json.loads(response)
+            json_response = json.twisted_loads(response)
             self.assertIn('orders', json_response)
             self.assertEqual(len(json_response['orders']), 1)
 
@@ -229,7 +228,7 @@ class TestMarketEndpoint(AbstractApiTest):
         Test whether the API returns the right payments when we perform a request
         """
         def on_response(response):
-            json_response = json.loads(response)
+            json_response = json.twisted_loads(response)
             self.assertIn('payments', json_response)
             self.assertEqual(len(json_response['payments']), 1)
 
@@ -271,7 +270,7 @@ class TestMarketEndpoint(AbstractApiTest):
             AssetPair(AssetAmount(3, 'DUM1'), AssetAmount(4, 'DUM2')), Timeout(3600))
 
         def on_response(response):
-            json_response = json.loads(response)
+            json_response = json.twisted_loads(response)
             self.assertTrue(json_response['cancelled'])
             cancelled_order = self.session.lm.market_community.order_manager.order_repository.find_by_id(order.order_id)
             self.assertTrue(cancelled_order.cancelled)
@@ -286,7 +285,7 @@ class TestMarketEndpoint(AbstractApiTest):
         Test the request to fetch known matchmakers
         """
         def on_response(response):
-            json_response = json.loads(response)
+            json_response = json.twisted_loads(response)
             self.assertGreaterEqual(len(json_response['matchmakers']), 1)
 
         self.session.lm.market_community.matchmakers.add(self.session.lm.market_community.my_peer)

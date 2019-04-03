@@ -19,8 +19,8 @@ class LibTorrentEndpoint(resource.Resource):
         self.session = session
         self._logger = logging.getLogger(self.__class__.__name__)
 
-        self.putChild("settings", LibTorrentSettingsEndpoint(self.session))
-        self.putChild("session", LibTorrentSessionEndpoint(self.session))
+        self.putChild(b"settings", LibTorrentSettingsEndpoint(self.session))
+        self.putChild(b"session", LibTorrentSessionEndpoint(self.session))
 
 
 class LibTorrentSettingsEndpoint(resource.Resource):
@@ -66,12 +66,12 @@ class LibTorrentSettingsEndpoint(resource.Resource):
             hop = int(request.args['hop'][0])
 
         if hop not in self.session.lm.ltmgr.ltsessions:
-            return json.dumps({'hop': hop, "settings": {}})
+            return json.twisted_dumps({'hop': hop, "settings": {}})
 
         lt_settings = self.session.lm.ltmgr.ltsessions[hop].get_settings()
         lt_settings['peer_fingerprint'] = hexlify(lt_settings['peer_fingerprint'])
 
-        return json.dumps({'hop': hop, "settings": lt_settings})
+        return json.twisted_dumps({'hop': hop, "settings": lt_settings})
 
 
 class LibTorrentSessionEndpoint(resource.Resource):
@@ -113,7 +113,7 @@ class LibTorrentSessionEndpoint(resource.Resource):
                     }
         """
         def on_session_stats_alert_received(alert):
-            request.write(json.dumps({'hop': hop, 'session': alert.values}))
+            request.write(json.twisted_dumps({'hop': hop, 'session': alert.values}))
             request.finish()
 
         hop = 0
@@ -122,7 +122,7 @@ class LibTorrentSessionEndpoint(resource.Resource):
 
         if hop not in self.session.lm.ltmgr.ltsessions or \
                 not hasattr(self.session.lm.ltmgr.ltsessions[hop], "post_session_stats"):
-            return json.dumps({'hop': hop, 'session': {}})
+            return json.twisted_dumps({'hop': hop, 'session': {}})
 
         self.session.lm.ltmgr.session_stats_callback = on_session_stats_alert_received
         self.session.lm.ltmgr.ltsessions[hop].post_session_stats()

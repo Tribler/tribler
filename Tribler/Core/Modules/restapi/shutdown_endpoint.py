@@ -1,10 +1,13 @@
+from __future__ import absolute_import
+
 import logging
 import os
+
 from twisted.internet import reactor, task
 from twisted.web import resource
 
-from Tribler.Core.Modules.process_checker import ProcessChecker
 import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.Modules.process_checker import ProcessChecker
 
 
 class ShutdownEndpoint(resource.Resource):
@@ -51,4 +54,4 @@ class ShutdownEndpoint(resource.Resource):
             .addCallback(shutdown_process) \
             .addErrback(log_and_shutdown)
 
-        return json.dumps({"shutdown": True})
+        return json.twisted_dumps({"shutdown": True})

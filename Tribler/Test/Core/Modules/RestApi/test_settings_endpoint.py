@@ -21,7 +21,7 @@ class TestSettingsEndpoint(AbstractApiTest):
         check_section = ['libtorrent', 'general', 'torrent_checking',
                          'tunnel_community', 'http_api', 'trustchain', 'watch_folder']
 
-        settings_json = json.loads(settings)
+        settings_json = json.twisted_loads(settings)
         self.assertTrue(settings_json['settings'])
         self.assertTrue(settings_json['ports'])
         for section in check_section:
@@ -37,7 +37,7 @@ class TestSettingsEndpoint(AbstractApiTest):
         post_data = json.dumps(post_data_dict, ensure_ascii=False)
 
         def check_settings(settings):
-            watch_folder = json.loads(settings)['settings']['watch_folder']['directory']
+            watch_folder = json.twisted_loads(settings)['settings']['watch_folder']['directory']
             self.assertEqual(watch_folder, post_data_dict['watch_folder']['directory'])
 
         def verify_response(_):
@@ -61,7 +61,7 @@ class TestSettingsEndpoint(AbstractApiTest):
         Testing whether an error is returned if we are passing an invalid dictionary that is too deep
         """
         def verify_response(response):
-            json_dict = json.loads(response)
+            json_dict = json.twisted_loads(response)
             self.assertTrue('error' in json_dict)
 
         self.should_check_equality = False
@@ -76,7 +76,7 @@ class TestSettingsEndpoint(AbstractApiTest):
         Testing whether an error is returned when we try to set a non-existing key
         """
         def verify_response(response):
-            json_dict = json.loads(response)
+            json_dict = json.twisted_loads(response)
             self.assertTrue('error' in json_dict)
 
         self.should_check_equality = False

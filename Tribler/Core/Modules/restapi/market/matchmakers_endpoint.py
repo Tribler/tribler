@@ -1,5 +1,7 @@
+from __future__ import absolute_import
+
+import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.restapi.market import BaseMarketEndpoint
-from Tribler.Core.Utilities.json_util import dumps
 
 
 class MatchmakersEndpoint(BaseMarketEndpoint):
@@ -32,4 +34,4 @@ class MatchmakersEndpoint(BaseMarketEndpoint):
         """
         matchmakers = self.session.lm.market_community.matchmakers
         matchmakers_json = [{"ip": mm.address[0], "port": mm.address[1]} for mm in matchmakers]
-        return dumps({"matchmakers": matchmakers_json})
+        return json.twisted_dumps({"matchmakers": matchmakers_json})

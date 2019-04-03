@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import json
 import sys
 from binascii import hexlify
 from unittest import skipIf
@@ -13,6 +12,7 @@ from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, succeed
 from twisted.internet.task import deferLater
 
+import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.TorrentChecker.torrent_checker import TorrentChecker
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.Utilities.random_utils import random_infohash
@@ -57,7 +57,7 @@ class TestChannelsEndpoint(BaseTestMetadataEndpoint):
         """
 
         def on_response(response):
-            json_dict = json.loads(response)
+            json_dict = json.twisted_loads(response)
             self.assertEqual(len(json_dict['results']), 10)
 
         self.should_check_equality = False
@@ -66,7 +66,7 @@ class TestChannelsEndpoint(BaseTestMetadataEndpoint):
     @skipIf(sys.platform == "darwin", "Skipping this test on Mac due to Pony bug")
     def test_get_channels_sort_by_health(self):
         def on_response(response):
-            json_dict = json.loads(response)
+            json_dict = json.twisted_loads(response)
             self.assertEqual(len(json_dict['results']), 10)
 
         self.should_check_equality = False
@@ -78,7 +78,7 @@ class TestChannelsEndpoint(BaseTestMetadataEndpoint):
         """
 
         def on_response(response):
-            json_dict = json.loads(response)
+            json_dict = json.twisted_loads(response)
             self.assertEqual(len(json_dict['results']), 10)
 
         self.should_check_equality = False
@@ -90,7 +90,7 @@ class TestChannelsEndpoint(BaseTestMetadataEndpoint):
         """
 
         def on_response(response):
-            json_dict = json.loads(response)
+            json_dict = json.twisted_loads(response)
             self.assertEqual(len(json_dict['results']), 5)
 
         self.should_check_equality = False
@@ -162,7 +162,7 @@ class TestSpecificChannelTorrentsEndpoint(BaseTestMetadataEndpoint):
         """
 
         def on_response(response):
-            json_dict = json.loads(response)
+            json_dict = json.twisted_loads(response)
             self.assertEqual(len(json_dict['results']), 5)
 
         self.should_check_equality = False
@@ -185,7 +185,7 @@ class TestPopularChannelsEndpoint(BaseTestMetadataEndpoint):
         """
 
         def on_response(response):
-            json_dict = json.loads(response)
+            json_dict = json.twisted_loads(response)
             self.assertEqual(len(json_dict['channels']), 5)
 
         self.should_check_equality = False
@@ -224,7 +224,7 @@ class TestRandomTorrentsEndpoint(BaseTestMetadataEndpoint):
         """
 
         def on_response(response):
-            json_dict = json.loads(response)
+            json_dict = json.twisted_loads(response)
             self.assertEqual(len(json_dict['torrents']), 5)
 
         self.should_check_equality = False
@@ -284,7 +284,7 @@ class TestTorrentHealthEndpoint(AbstractApiTest):
         self.session.lm.torrent_checker.initialize()
 
         def verify_response_no_trackers(response):
-            json_response = json.loads(response)
+            json_response = json.twisted_loads(response)
             self.assertIn("health", json_response)
             self.assertIn("udp://localhost:%s" % self.udp_port, json_response['health'])
             if has_bep33_support():
@@ -306,7 +306,7 @@ class TestTorrentHealthEndpoint(AbstractApiTest):
         yield self.do_request(url, expected_code=200, request_type='GET').addCallback(verify_response_no_trackers)
 
         def verify_response_nowait(response):
-            json_response = json.loads(response)
+            json_response = json.twisted_loads(response)
             self.assertDictEqual(json_response, {u'checking': u'1'})
 
         yield self.do_request(url + '&nowait=1', expected_code=200, request_type='GET').addCallback(

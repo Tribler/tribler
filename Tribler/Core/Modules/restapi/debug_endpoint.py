@@ -39,10 +39,16 @@ class DebugEndpoint(resource.Resource):
     def __init__(self, session):
         resource.Resource.__init__(self)
 
-        child_handler_dict = {"circuits": DebugCircuitsEndpoint, "open_files": DebugOpenFilesEndpoint,
-                              "open_sockets": DebugOpenSocketsEndpoint, "threads": DebugThreadsEndpoint,
-                              "cpu": DebugCPUEndpoint, "memory": DebugMemoryEndpoint,
-                              "log": DebugLogEndpoint, "profiler": DebugProfilerEndpoint}
+        child_handler_dict = {
+            b"circuits": DebugCircuitsEndpoint,
+            b"open_files": DebugOpenFilesEndpoint,
+            b"open_sockets": DebugOpenSocketsEndpoint,
+            b"threads": DebugThreadsEndpoint,
+            b"cpu": DebugCPUEndpoint,
+            b"memory": DebugMemoryEndpoint,
+            b"log": DebugLogEndpoint,
+            b"profiler": DebugProfilerEndpoint
+        }
 
         for path, child_cls in child_handler_dict.items():
             self.putChild(path, child_cls(session))
@@ -57,7 +63,7 @@ class DebugCircuitsEndpoint(resource.Resource):
         resource.Resource.__init__(self)
         self.session = session
 
-        self.putChild("slots", DebugCircuitSlotsEndpoint(session))
+        self.putChild(b"slots", DebugCircuitSlotsEndpoint(session))
 
 
 class DebugCircuitSlotsEndpoint(resource.Resource):
@@ -92,7 +98,7 @@ class DebugCircuitSlotsEndpoint(resource.Resource):
                     }, ...]
                 }
         """
-        return json.dumps({
+        return json.twisted_dumps({
             "slots": {
                 "random": self.session.lm.tunnel_community.random_slots,
                 "competing": self.session.lm.tunnel_community.competing_slots
@@ -134,7 +140,7 @@ class DebugOpenFilesEndpoint(resource.Resource):
         """
         my_process = psutil.Process()
 
-        return json.dumps({
+        return json.twisted_dumps({
             "open_files": [{"path": open_file.path, "fd": open_file.fd} for open_file in my_process.open_files()]})
 
 
@@ -184,7 +190,7 @@ class DebugOpenSocketsEndpoint(resource.Resource):
                 "type": open_socket.type
             })
 
-        return json.dumps({"open_sockets": sockets})
+        return json.twisted_dumps({"open_sockets": sockets})
 
 
 class DebugThreadsEndpoint(resource.Resource):
@@ -221,7 +227,7 @@ class DebugThreadsEndpoint(resource.Resource):
                 }
         """
         watchdog = WatchDog()
-        return json.dumps({"threads": watchdog.get_threads_info()})
+        return json.twisted_dumps({"threads": watchdog.get_threads_info()})
 
 
 class DebugCPUEndpoint(resource.Resource):
@@ -231,7 +237,7 @@ class DebugCPUEndpoint(resource.Resource):
 
     def __init__(self, session):
         resource.Resource.__init__(self)
-        self.putChild("history", DebugCPUHistoryEndpoint(session))
+        self.putChild(b"history", DebugCPUHistoryEndpoint(session))
 
 
 class DebugCPUHistoryEndpoint(resource.Resource):
@@ -267,7 +273,7 @@ class DebugCPUHistoryEndpoint(resource.Resource):
                 }
         """
         history = self.session.lm.resource_monitor.get_cpu_history_dict() if self.session.lm.resource_monitor else {}
-        return json.dumps({"cpu_history": history})
+        return json.twisted_dumps({"cpu_history": history})
 
 
 class DebugMemoryEndpoint(resource.Resource):
@@ -277,9 +283,9 @@ class DebugMemoryEndpoint(resource.Resource):
 
     def __init__(self, session):
         resource.Resource.__init__(self)
-        self.putChild("history", DebugMemoryHistoryEndpoint(session))
+        self.putChild(b"history", DebugMemoryHistoryEndpoint(session))
         if HAS_MELIAE:
-            self.putChild("dump", DebugMemoryDumpEndpoint(session))
+            self.putChild(b"dump", DebugMemoryDumpEndpoint(session))
 
 
 class DebugMemoryHistoryEndpoint(resource.Resource):
@@ -315,7 +321,7 @@ class DebugMemoryHistoryEndpoint(resource.Resource):
                 }
         """
         history = self.session.lm.resource_monitor.get_memory_history_dict() if self.session.lm.resource_monitor else {}
-        return json.dumps({"memory_history": history})
+        return json.twisted_dumps({"memory_history": history})
 
 
 class DebugMemoryDumpEndpoint(resource.Resource):
@@ -424,7 +430,7 @@ class DebugLogEndpoint(resource.Resource):
                     response['content'] = self.tail(log_file, 100)  # default 100 lines
                 response['max_lines'] = 0
 
-        return json.dumps(response)
+        return json.twisted_dumps(response)
 
     def tail(self, file_handler, lines=1):
         """Tail a file and get X lines from the end"""
@@ -490,7 +496,7 @@ class DebugProfilerEndpoint(resource.Resource):
         """
         monitor_enabled = self.session.config.get_resource_monitor_enabled()
         state = "STARTED" if (monitor_enabled and self.session.lm.resource_monitor.profiler_running) else "STOPPED"
-        return json.dumps({"state": state})
+        return json.twisted_dumps({"state": state})
 
     def render_PUT(self, request):
         """
@@ -513,7 +519,7 @@ class DebugProfilerEndpoint(resource.Resource):
                 }
         """
         self.session.lm.resource_monitor.start_profiler()
-        return json.dumps({"success": True})
+        return json.twisted_dumps({"success": True})
 
     def render_DELETE(self, request):
         """
@@ -536,4 +542,4 @@ class DebugProfilerEndpoint(resource.Resource):
                 }
         """
         file_path = self.session.lm.resource_monitor.stop_profiler()
-        return json.dumps({"success": True, "profiler_file": file_path})
+        return json.twisted_dumps({"success": True, "profiler_file": file_path})

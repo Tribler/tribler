@@ -44,7 +44,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
 
         def verify_download(downloads):
-            downloads_json = json.loads(downloads)
+            downloads_json = json.twisted_loads(downloads)
             self.assertEqual(len(downloads_json['downloads']), 2)
 
         video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
@@ -63,7 +63,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
 
         def verify_download(downloads):
-            downloads_json = json.loads(downloads)
+            downloads_json = json.twisted_loads(downloads)
             self.assertEqual(len(downloads_json['downloads']), 2)
             self.assertEqual(downloads_json['downloads'][0][u'files'],
                              [{u'included': True, u'index': 0, u'size': 1583233,
@@ -128,7 +128,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
 
         def verify_download(response):
-            self.assertTrue(json.loads(response)['started'])
+            self.assertTrue(json.twisted_loads(response)['started'])
             self.assertGreaterEqual(len(self.session.get_downloads()), 1)
             dl = self.session.get_downloads()[0]
             dl.tracker_status[u"\u266b"] = [0, 'Not contacted yet']
@@ -172,7 +172,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         Testing whether illegal fields are stripped from the Libtorrent download info response.
         """
         def verify_download_list(response):
-            response_dict = json.loads(response)
+            response_dict = json.twisted_loads(response)
             self.assertIn("downloads", response_dict)
             self.assertEqual(1, len(response_dict["downloads"]))
             self.assertIn("peers", response_dict["downloads"][0])
@@ -181,7 +181,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
             self.assertEqual('uTorrent 1.6.1', response_dict["downloads"][0]["peers"][0]['extended_version'])
 
         def verify_download(response):
-            self.assertTrue(json.loads(response)['started'])
+            self.assertTrue(json.twisted_loads(response)['started'])
             self.assertGreaterEqual(len(self.session.get_downloads()), 1)
             dl = self.session.get_downloads()[0]
             ds = DownloadState(dl, self.create_mock_status(), None)
@@ -203,7 +203,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
 
         def verify_download_list(response):
-            response_dict = json.loads(response)
+            response_dict = json.twisted_loads(response)
             self.assertIn("downloads", response_dict)
             self.assertEqual(1, len(response_dict["downloads"]))
             self.assertIn("peers", response_dict["downloads"][0])
@@ -212,7 +212,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
             self.assertEqual(u'\xb5Torrent 1.6.1', response_dict["downloads"][0]["peers"][0]['extended_version'])
 
         def verify_download(response):
-            self.assertTrue(json.loads(response)['started'])
+            self.assertTrue(json.twisted_loads(response)['started'])
             self.assertGreaterEqual(len(self.session.get_downloads()), 1)
             dl = self.session.get_downloads()[0]
             ds = DownloadState(dl, self.create_mock_status(), None)
@@ -234,7 +234,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
 
         def verify_download_list(response):
-            response_dict = json.loads(response)
+            response_dict = json.twisted_loads(response)
             self.assertIn("downloads", response_dict)
             self.assertEqual(1, len(response_dict["downloads"]))
             self.assertIn("peers", response_dict["downloads"][0])
@@ -243,7 +243,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
             self.assertEqual(u'', response_dict["downloads"][0]["peers"][0]['extended_version'])
 
         def verify_download(response):
-            self.assertTrue(json.loads(response)['started'])
+            self.assertTrue(json.twisted_loads(response)['started'])
             self.assertGreaterEqual(len(self.session.get_downloads()), 1)
             dl = self.session.get_downloads()[0]
             ds = DownloadState(dl, self.create_mock_status(), None)
@@ -517,7 +517,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
 
         def verify_files_data(response):
-            json_response = json.loads(response)
+            json_response = json.twisted_loads(response)
             self.assertIn('files', json_response)
             self.assertTrue(json_response['files'])
 
@@ -637,7 +637,7 @@ class TestMetadataDownloadEndpoint(AbstractApiTest):
         test_channel_name = 'testchan'
 
         def verify_download(downloads):
-            downloads_json = json.loads(downloads)
+            downloads_json = json.twisted_loads(downloads)
             self.assertEqual(len(downloads_json['downloads']), 3)
             self.assertEqual(test_channel_name,
                              [d for d in downloads_json["downloads"] if d["channel_download"]][0]["name"])

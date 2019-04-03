@@ -17,11 +17,11 @@ def return_handled_exception(request, exception):
     :return: JSON dictionary describing the exception
     """
     request.setResponseCode(http.INTERNAL_SERVER_ERROR)
-    return json.dumps({
-        u"error": {
-            u"handled": True,
-            u"code": exception.__class__.__name__,
-            u"message": exception.message
+    return json.twisted_dumps({
+        "error": {
+            "handled": True,
+            "code": exception.__class__.__name__,
+            "message": exception.message
         }
     })
 

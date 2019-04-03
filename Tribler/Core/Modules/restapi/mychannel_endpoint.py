@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import base64
-import json
 import logging
 import os
 from binascii import hexlify, unhexlify
@@ -16,6 +15,7 @@ from twisted.web import http, resource
 from twisted.web.error import SchemeNotSupported
 from twisted.web.server import NOT_DONE_YET
 
+import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.restapi.metadata_endpoint import SpecificChannelTorrentsEndpoint
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.utilities import http_get
@@ -33,7 +33,7 @@ class BaseMyChannelEndpoint(resource.Resource):
     def return_500(self, request, exception):
         self._logger.exception(exception)
         request.setResponseCode(http.INTERNAL_SERVER_ERROR)
-        return json.dumps({
+        return json.twisted_dumps({
             u"error": {
                 u"handled": True,
                 u"code": exception.__class__.__name__,
@@ -46,17 +46,17 @@ class MyChannelEndpoint(BaseMyChannelEndpoint):
 
     def __init__(self, session):
         BaseMyChannelEndpoint.__init__(self, session)
-        self.putChild("torrents", MyChannelTorrentsEndpoint(session))
-        self.putChild("commit", MyChannelCommitEndpoint(session))
+        self.putChild(b"torrents", MyChannelTorrentsEndpoint(session))
+        self.putChild(b"commit", MyChannelCommitEndpoint(session))
 
     def render_GET(self, request):
         with db_session:
             my_channel = self.session.lm.mds.ChannelMetadata.get_my_channel()
             if not my_channel:
                 request.setResponseCode(http.NOT_FOUND)
-                return json.dumps({"error": "your channel has not been created"})
+                return json.twisted_dumps({"error": "your channel has not been created"})
 
-            return json.dumps({
+            return json.twisted_dumps({
                 'mychannel': {
                     'public_key': hexlify(my_channel.public_key),
                     'name': my_channel.title,
@@ -69,27 +69,27 @@ class MyChannelEndpoint(BaseMyChannelEndpoint):
         parameters = http.parse_qs(request.content.read(), 1)
         if 'name' not in parameters and 'description' not in parameters:
             request.setResponseCode(http.BAD_REQUEST)
-            return json.dumps({"error": "name or description parameter missing"})
+            return json.twisted_dumps({"error": "name or description parameter missing"})
 
         with db_session:
             my_channel = self.session.lm.mds.ChannelMetadata.get_my_channel()
             if not my_channel:
                 request.setResponseCode(http.NOT_FOUND)
-                return json.dumps({"error": "your channel has not been created"})
+                return json.twisted_dumps({"error": "your channel has not been created"})
 
             my_channel.update_metadata(update_dict={
                 "tags": unquote(parameters['description'][0]).decode('utf-8'),
                 "title": unquote(parameters['name'][0]).decode('utf-8')
             })
 
-        return json.dumps({"edited": True})
+        return json.twisted_dumps({"edited": True})
 
     def render_PUT(self, request):
         parameters = http.parse_qs(request.content.read(), 1)
 
         if 'name' not in parameters or not parameters['name'] or not parameters['name'][0]:
             request.setResponseCode(http.BAD_REQUEST)
-            return json.dumps({"error": "channel name cannot be empty"})
+            return json.twisted_dumps({"error": "channel name cannot be empty"})
 
         if 'description' not in parameters or not parameters['description']:
             description = u''
@@ -102,11 +102,11 @@ class MyChannelEndpoint(BaseMyChannelEndpoint):
         # Do not allow to add a channel twice
         if self.session.lm.mds.get_my_channel():
             request.setResponseCode(http.CONFLICT)
-            return json.dumps({"error": "channel already exists"})
+            return json.twisted_dumps({"error": "channel already exists"})
 
         title = unquote(parameters['name'][0]).decode('utf-8')
         self.session.lm.mds.ChannelMetadata.create_channel(title, description)
-        return json.dumps({
+        return json.twisted_dumps({
             "added": hexlify(str(my_channel_pk)),
         })
 
@@ -121,7 +121,7 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
             my_channel = self.session.lm.mds.ChannelMetadata.get_my_channel()
             if not my_channel:
                 request.setResponseCode(http.NOT_FOUND)
-                return json.dumps({"error": "your channel has not been created"})
+                return json.twisted_dumps({"error": "your channel has not been created"})
 
             sanitized = SpecificChannelTorrentsEndpoint.sanitize_parameters(request.args)
             if 'exclude_deleted' in request.args:
@@ -131,7 +131,7 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
                 channel_pk=database_blob(my_channel.public_key), **sanitized)
             torrents = [torrent.to_simple_dict() for torrent in torrents]
 
-            return json.dumps({
+            return json.twisted_dumps({
                 "results": torrents,
                 "first": sanitized['first'],
                 "last": sanitized['last'],
@@ -145,7 +145,7 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
         parameters = http.parse_qs(request.content.read(), 1)
         if 'status' not in parameters or 'infohashes' not in parameters:
             request.setResponseCode(http.BAD_REQUEST)
-            return json.dumps({"error": "status or infohashes parameter missing"})
+            return json.twisted_dumps({"error": "status or infohashes parameter missing"})
 
         new_status = int(parameters['status'][0])
         infohashes = parameters['infohashes'][0].split(',')
@@ -154,7 +154,7 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
             my_channel = self.session.lm.mds.ChannelMetadata.get_my_channel()
             if not my_channel:
                 request.setResponseCode(http.NOT_FOUND)
-                return json.dumps({"error": "your channel has not been created"})
+                return json.twisted_dumps({"error": "your channel has not been created"})
 
             for infohash in infohashes:
                 torrent = my_channel.get_torrent(unhexlify(infohash))
@@ -162,18 +162,18 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
                     continue
                 torrent.status = new_status
 
-        return json.dumps({"success": True})
+        return json.twisted_dumps({"success": True})
 
     def render_DELETE(self, request):
         with db_session:
             my_channel = self.session.lm.mds.ChannelMetadata.get_my_channel()
             if not my_channel:
                 request.setResponseCode(http.NOT_FOUND)
-                return json.dumps({"error": "your channel has not been created"})
+                return json.twisted_dumps({"error": "your channel has not been created"})
 
             my_channel.drop_channel_contents()
 
-        return json.dumps({"success": True})
+        return json.twisted_dumps({"success": True})
 
     @db_session
     def render_PUT(self, request):
@@ -222,7 +222,7 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
         my_channel = self.session.lm.mds.ChannelMetadata.get_my_channel()
         if not my_channel:
             request.setResponseCode(http.NOT_FOUND)
-            return json.dumps({"error": "your channel has not been created yet"})
+            return json.twisted_dumps({"error": "your channel has not been created yet"})
 
         parameters = http.parse_qs(request.content.read(), 1)
 
@@ -244,7 +244,7 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
             return 1
 
         def _on_added(added):
-            request.write(json.dumps({"added": added}))
+            request.write(json.twisted_dumps({"added": added}))
             request.finish()
 
         def _on_add_failed(failure):
@@ -274,7 +274,7 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
                 deferred.addCallback(_on_magnet_fetched)
             else:
                 request.setResponseCode(http.BAD_REQUEST)
-                return json.dumps({"error": "unknown uri type"})
+                return json.twisted_dumps({"error": "unknown uri type"})
 
             deferred.addCallback(_on_torrent_def_loaded)
             deferred.addCallback(_on_added)
@@ -286,23 +286,23 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
             torrents_dir = parameters['torrents_dir'][0]
             if not os.path.isabs(torrents_dir):
                 request.setResponseCode(http.BAD_REQUEST)
-                return json.dumps({"error": "the torrents_dir should point to a directory"})
+                return json.twisted_dumps({"error": "the torrents_dir should point to a directory"})
 
         recursive = False
         if 'recursive' in parameters and parameters['recursive'] > 0:
             recursive = parameters['recursive'][0]
             if not torrents_dir:
                 request.setResponseCode(http.BAD_REQUEST)
-                return json.dumps({"error": "the torrents_dir parameter should be provided when the recursive "
+                return json.twisted_dumps({"error": "the torrents_dir parameter should be provided when the recursive "
                                             "parameter is set"})
 
         if torrents_dir:
             torrents_list, errors_list = my_channel.add_torrents_from_dir(torrents_dir, recursive)
-            return json.dumps({"added": len(torrents_list), "errors": errors_list})
+            return json.twisted_dumps({"added": len(torrents_list), "errors": errors_list})
 
         if 'torrent' not in parameters or not parameters['torrent']:
             request.setResponseCode(http.BAD_REQUEST)
-            return json.dumps({"error": "torrent parameter missing"})
+            return json.twisted_dumps({"error": "torrent parameter missing"})
 
         # Try to parse the torrent data
         try:
@@ -310,15 +310,15 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
             torrent_def = TorrentDef.load_from_memory(torrent)
         except (TypeError, ValueError):
             request.setResponseCode(http.INTERNAL_SERVER_ERROR)
-            return json.dumps({"error": "invalid torrent file"})
+            return json.twisted_dumps({"error": "invalid torrent file"})
 
         try:
             my_channel.add_torrent_to_channel(torrent_def, extra_info)
         except DuplicateTorrentFileError:
             request.setResponseCode(http.INTERNAL_SERVER_ERROR)
-            return json.dumps({"error": "this torrent already exists in your channel"})
+            return json.twisted_dumps({"error": "this torrent already exists in your channel"})
 
-        return json.dumps({"added": 1})
+        return json.twisted_dumps({"added": 1})
 
 
 class MyChannelSpecificTorrentEndpoint(BaseMyChannelEndpoint):
@@ -364,26 +364,26 @@ class MyChannelSpecificTorrentEndpoint(BaseMyChannelEndpoint):
 
         if 'status' not in parameters and 'tags' not in parameters and 'title' not in parameters:
             request.setResponseCode(http.BAD_REQUEST)
-            return json.dumps({"error": "attribute to change is missing"})
+            return json.twisted_dumps({"error": "attribute to change is missing"})
 
         if 'status' in parameters and ('tags' in parameters or 'title' in parameters):
             request.setResponseCode(http.BAD_REQUEST)
-            return json.dumps({"error": "cannot set status manually when changing other parameters"})
+            return json.twisted_dumps({"error": "cannot set status manually when changing other parameters"})
 
         my_channel = self.session.lm.mds.ChannelMetadata.get_my_channel()
         if not my_channel:
             request.setResponseCode(http.NOT_FOUND)
-            return json.dumps({"error": "your channel has not been created"})
+            return json.twisted_dumps({"error": "your channel has not been created"})
 
         torrent = my_channel.get_torrent(self.infohash)
         if not torrent:
             request.setResponseCode(http.NOT_FOUND)
-            return json.dumps({"error": "torrent with the specified infohash could not be found"})
+            return json.twisted_dumps({"error": "torrent with the specified infohash could not be found"})
 
         torrent.update_properties(dict([(attribute, parameters[attribute][0]) for attribute in
                                         ['status', 'tags', 'title'] if attribute in parameters]))
 
-        return json.dumps({"success": True, "new_status": torrent.status, "dirty": my_channel.dirty})
+        return json.twisted_dumps({"success": True, "new_status": torrent.status, "dirty": my_channel.dirty})
 
 
 class MyChannelCommitEndpoint(BaseMyChannelEndpoint):
@@ -393,10 +393,10 @@ class MyChannelCommitEndpoint(BaseMyChannelEndpoint):
             my_channel = self.session.lm.mds.ChannelMetadata.get_my_channel()
             if not my_channel:
                 request.setResponseCode(http.NOT_FOUND)
-                return json.dumps({"error": "your channel has not been created"})
+                return json.twisted_dumps({"error": "your channel has not been created"})
 
             torrent_dict = my_channel.commit_channel_torrent()
             if torrent_dict:
                 self.session.lm.gigachannel_manager.updated_my_channel(TorrentDef.load_from_dict(torrent_dict))
 
-        return json.dumps({"success": True})
+        return json.twisted_dumps({"success": True})

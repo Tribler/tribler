@@ -96,7 +96,7 @@ class AbstractApiTest(AbstractBaseApiTest):
 
     def parse_body(self, body):
         if body is not None and self.should_check_equality:
-            self.assertDictEqual(self.expected_response_json, json.loads(body))
+            self.assertDictEqual(self.expected_response_json, json.twisted_loads(body))
         return body
 
     def parse_response(self, response):
