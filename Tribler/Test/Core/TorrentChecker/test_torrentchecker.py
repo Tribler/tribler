@@ -36,7 +36,6 @@ class TestTorrentChecker(TestAsServer):
 
         self.session.lm.torrent_checker = TorrentChecker(self.session)
         self.session.lm.tracker_manager = TrackerManager(self.session)
-        self.session.lm.popularity_community = MockObject()
 
         self.torrent_checker = self.session.lm.torrent_checker
         self.torrent_checker.listen_on_udp = lambda: None
@@ -169,51 +168,11 @@ class TestTorrentChecker(TestAsServer):
         self.assertEqual(len(test_tracker_list), 1)
         self.assertEqual(next_tracker_url, "http://announce.torrentsmd.com:8080/announce")
 
-    def test_publish_torrent_result(self):
-        MSG_ZERO_SEED_TORRENT = "Not publishing zero seeded torrents"
-        MSG_NO_popularity_community = "Popular community not available to publish torrent checker result"
-
-        def _fake_logger_info(torrent_checker, msg):
-            if msg == MSG_ZERO_SEED_TORRENT:
-                torrent_checker.zero_seed_torrent = True
-            if msg == MSG_NO_popularity_community:
-                torrent_checker.popularity_community_not_found = True
-
-        original_logger_info = self.torrent_checker._logger.info
-        self.torrent_checker._logger.info = lambda msg: _fake_logger_info(self.torrent_checker, msg)
-
-        def popularity_community_queue_content(torrent_checker, _):
-            torrent_checker.popularity_community_queue_content_called = True
-
-        self.torrent_checker.tribler_session.lm.popularity_community.queue_content = lambda _content: \
-            popularity_community_queue_content(self.torrent_checker, _content)
-
-        # Case1: Fake torrent checker response, seeders:0
-        fake_response = {'infohash': 'a' * 20, 'seeders': 0, 'leechers': 0, 'last_check': time.time()}
-        self.torrent_checker.publish_torrent_result(fake_response)
-        self.assertTrue(self.torrent_checker.zero_seed_torrent)
-
-        # Case2: Positive seeders
-        fake_response['seeders'] = 5
-        self.torrent_checker.popularity_community_queue_content_called = False
-        self.torrent_checker.popularity_community_queue_content_called_type = None
-
-        self.torrent_checker.publish_torrent_result(fake_response)
-        self.assertTrue(self.torrent_checker.popularity_community_queue_content_called)
-
-        # Case3: Popular community is None
-        self.torrent_checker.tribler_session.lm.popularity_community = None
-        self.torrent_checker.publish_torrent_result(fake_response)
-        self.assertTrue(self.torrent_checker.popularity_community_not_found)
-
-        self.torrent_checker._logger.info = original_logger_info
-
     def test_on_health_check_completed(self):
         tracker1 = 'udp://localhost:2801'
         tracker2 = "http://badtracker.org/announce"
         infohash_bin = '\xee'*20
         infohash_hex = hexlify(infohash_bin)
-        self.session.lm.popularity_community.queue_content = lambda _: None
 
         failure = Failure()
         failure.tracker_url = tracker2
@@ -258,7 +217,7 @@ class TestTorrentChecker(TestAsServer):
         torrent1 = self.session.lm.mds.TorrentMetadata(title='torrent1', infohash=str(random.getrandbits(160)))
         torrent1.status = LEGACY_ENTRY
 
-        self.assertIsNone(self.torrent_checker.check_random_torrent())
+        self.assertFalse(self.torrent_checker.check_random_torrent())
 
     @db_session
     def test_check_random_torrent(self):
@@ -271,7 +230,10 @@ class TestTorrentChecker(TestAsServer):
 
         self.torrent_checker.check_torrent_health = lambda _: None
 
-        random_infohash = self.torrent_checker.check_random_torrent()
-        torrent = self.session.lm.mds.TorrentMetadata.get(infohash=random_infohash)
-        self.assertTrue(torrent)
-        self.assertLessEqual(torrent.health.last_check, 10)
+        random_infohashes = self.torrent_checker.check_random_torrent()
+        self.assertTrue(random_infohashes)
+
+        # Now we should only check a single torrent
+        self.torrent_checker.torrents_checked.add(('a' * 20, 5, 5, int(time.time())))
+        random_infohashes = self.torrent_checker.check_random_torrent()
+        self.assertEqual(len(random_infohashes), 1)
