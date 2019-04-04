@@ -37,6 +37,7 @@ class DownloadConfigInterface(object):
         super(DownloadConfigInterface, self).__init__()
 
         self.dlconfig = dlconfig or CallbackConfigParser()
+        self.is_bootstrap_download = False
 
         # Dumb^WPoor man's versioning of DownloadConfig, add missing default values.
         write = False

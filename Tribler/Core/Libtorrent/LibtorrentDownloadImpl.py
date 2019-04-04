@@ -219,6 +219,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                     cdcfg = DownloadStartupConfig()
                 else:
                     cdcfg = dcfg
+
                 self.is_bootstrap_download = cdcfg.is_bootstrap_download
                 self.dlconfig = cdcfg.dlconfig.copy()
                 self.dlconfig.lock = self.dllock

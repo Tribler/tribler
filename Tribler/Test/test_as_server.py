@@ -303,6 +303,7 @@ class TestAsServer(AbstractServer):
         self.config.set_bitcoinlib_enabled(False)
         self.config.set_chant_enabled(False)
         self.config.set_resource_monitor_enabled(False)
+        self.config.set_bootstrap_enabled(False)
 
     @inlineCallbacks
     def tearDown(self):

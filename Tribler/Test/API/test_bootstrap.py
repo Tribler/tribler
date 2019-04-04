@@ -1,19 +1,22 @@
+from __future__ import absolute_import
+
 import logging
 import os
 import random
 from binascii import hexlify
-
 from twisted.internet.defer import Deferred
 from twisted.internet.defer import inlineCallbacks
 
+from six.moves import xrange
+
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.simpledefs import dlstatus_strings, DLSTATUS_SEEDING
+from Tribler.Core.simpledefs import DLSTATUS_SEEDING, dlstatus_strings
 from Tribler.Test.test_as_server import TESTS_DATA_DIR
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.tools import trial_timeout
 
 
-def create_test_torrent(file_name, length):
+def create_dummy_tdef(file_name, length):
     """
     Create torrent def for dummy file of length MB
     :param file_name: path to save test file
@@ -23,19 +26,18 @@ def create_test_torrent(file_name, length):
     if not os.path.exists(file_name):
         random.seed(42)
         with open(file_name, 'wb') as fp:
-            fp.write(bytearray(random.getrandbits(8) for _ in xrange(length*1024*1024)))
+            fp.write(bytearray(random.getrandbits(8) for _ in xrange(length * 1024 * 1024)))
     tdef = TorrentDef()
     tdef.add_content(file_name)
-    tdef.set_piece_length(2**16)
+    tdef.set_piece_length(2 ** 16)
     tdef.save()
     return tdef
 
 
-class MockPayoutManager:
+class MockPayoutManager(object):
 
     def __init__(self):
         self.peers = {}
-        pass
 
     def update_peer(self, mid, balance):
         self.peers[mid] = balance
@@ -57,7 +59,7 @@ class TestBootSeed(TestAsServer):
         self._logger = logging.getLogger(self.__class__.__name__)
         self.test_deferred = Deferred()
         self.sourcefn = os.path.join(TESTS_DATA_DIR, 'bootstrap.block')
-        self.tdef = create_test_torrent(self.sourcefn, 25)
+        self.tdef = create_dummy_tdef(self.sourcefn, 25)
         self._logger.debug("Creating file with infohash %s", hexlify(self.tdef.infohash))
         self.count = 0
         self.payout_manager = MockPayoutManager()
@@ -107,4 +109,3 @@ class TestBootSeed(TestAsServer):
             self.test_deferred.callback(None)
             return 0.0
         return 0.1
-
