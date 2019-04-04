@@ -178,22 +178,22 @@ class TriblerConfig(object):
         self.config['trustchain']['live_edges_enabled'] = value
 
     def set_bootstrap_enabled(self, value):
-        self.config['trustchain']['bootstrap'] = value
+        self.config['bootstrap']['enabled'] = value
 
     def get_bootstrap_enabled(self):
-        return self.config['trustchain']['bootstrap']
+        return self.config['bootstrap']['enabled']
 
     def get_bootstrap_download_rate(self):
-        return self.config['trustchain'].as_int('bootstrap_download_rate')
+        return self.config['bootstrap'].as_int('download_rate')
 
     def set_bootstrap_download_rate(self, value):
-        self.config['trustchain']['bootstrap_download_rate'] = value
+        self.config['bootstrap']['download_rate'] = value
 
-    def get_bootstrap_magnet(self):
-        return self.config['trustchain']['bootstrap_magnet']
+    def get_bootstrap_infohash(self):
+        return self.config['bootstrap']['infohash']
 
-    def set_bootstrap_magnet(self, value):
-        self.config['trustchain']['bootstrap_magnet'] = value
+    def set_bootstrap_infohash(self, value):
+        self.config['bootstrap']['infohash'] = value
 
     def get_trustchain_live_edges_enabled(self):
         return self.config['trustchain']['live_edges_enabled']

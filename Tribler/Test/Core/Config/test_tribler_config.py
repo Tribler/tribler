@@ -100,6 +100,17 @@ class TestTriblerConfig(TriblerCoreTest):
         self.tribler_config.set_credit_mining_sources(source_list)
         self.assertEqual(self.tribler_config.get_credit_mining_sources(), source_list)
 
+    def test_bootstrap_configs(self):
+
+        self.tribler_config.set_bootstrap_enabled(False)
+        self.assertFalse(self.tribler_config.get_bootstrap_enabled())
+
+        self.tribler_config.set_bootstrap_download_rate(20)
+        self.assertEqual(self.tribler_config.get_bootstrap_download_rate(), 20)
+
+        self.tribler_config.set_bootstrap_infohash("TestInfohash")
+        self.assertEqual(self.tribler_config.get_bootstrap_infohash(), "TestInfohash")
+
     def test_get_set_methods_general(self):
         """
         Check whether general get and set methods are working as expected.
