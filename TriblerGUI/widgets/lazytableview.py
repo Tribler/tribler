@@ -94,6 +94,10 @@ class SubscribeButtonMixin(TriblerContentTableView):
                                     data={"subscribe": int(not status)}, method='POST')
         index.model().data_items[index.row()][u'subscribed'] = int(not status)
 
+        # Update votes
+        votes = index.model().data_items[index.row()][u'votes']
+        index.model().data_items[index.row()][u'votes'] = votes + 1 if not status else votes - 1
+
 
 class ItemClickedMixin(TriblerContentTableView):
     def on_table_item_clicked(self, item):
