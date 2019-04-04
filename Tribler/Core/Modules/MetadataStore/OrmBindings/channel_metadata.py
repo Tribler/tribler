@@ -254,6 +254,15 @@ def define_binding(db):
             return db.TorrentMetadata.get(public_key=self.public_key, infohash=infohash)
 
         @db_session
+        def torrent_exists(self, infohash):
+            """
+            Return True if torrent with given infohash exists in the user channel
+            :param infohash: The infohash of the torrent
+            :return: True if torrent exists else False
+            """
+            return db.TorrentMetadata.exists(public_key=self.public_key, infohash=infohash)
+
+        @db_session
         def add_torrent_to_channel(self, tdef, extra_info=None):
             """
             Add a torrent to your channel.
@@ -296,6 +305,10 @@ def define_binding(db):
             else:
                 torrent_metadata = db.TorrentMetadata.from_dict(new_entry_dict)
             return torrent_metadata
+
+        @db_session
+        def copy_to_channel(self, infohash):
+            return db.TorrentMetadata.copy_to_channel(infohash)
 
         @property
         def dirty(self):

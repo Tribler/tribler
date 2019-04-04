@@ -6,8 +6,12 @@ from __future__ import absolute_import
 
 import uuid
 
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QCursor
+from PyQt5.QtWidgets import QAction
 from six import text_type
 
+from TriblerGUI.tribler_action_menu import TriblerActionMenu
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 
 
@@ -155,6 +159,40 @@ class TableSelectionMixin(object):
             window.resize(window.geometry().width() - 1, window.geometry().height())
 
 
+class ContextMenuMixin(object):
+
+    table_view = None
+
+    def enable_context_menu(self, widget):
+        self.table_view = widget
+        self.table_view.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.table_view.customContextMenuRequested.connect(self._show_context_menu)
+
+    def _show_context_menu(self, pos):
+        if not self.table_view:
+            return
+
+        item_index = self.table_view.indexAt(pos)
+        if not item_index or item_index.row() < 0:
+            return
+
+        menu = TriblerActionMenu(self.table_view)
+        self.add_menu_item(menu, ' Download ', item_index, self.table_view.on_download_button_clicked)
+        self.add_menu_item(menu, ' Play ', item_index, self.table_view.on_play_button_clicked)
+
+        if not isinstance(self, MyTorrentsTableViewController):
+            self.add_menu_item(menu, ' Add to channel ', item_index, self.table_view.on_add_to_channel_button_clicked)
+        else:
+            self.add_menu_item(menu, ' Remove from channel ', item_index, self.table_view.on_delete_button_clicked)
+
+        menu.exec_(QCursor.pos())
+
+    def add_menu_item(self, menu, name, item_index, callback):
+        action = QAction(name, self.table_view)
+        action.triggered.connect(lambda _: callback(item_index))
+        menu.addAction(action)
+
+
 class SearchResultsTableViewController(TableSelectionMixin, TriblerTableViewController):
     """
     Controller for the table view that handles search results.
@@ -199,7 +237,7 @@ class ChannelsTableViewController(FilterInputMixin, TriblerTableViewController):
         super(ChannelsTableViewController, self).perform_query(**kwargs)
 
 
-class TorrentsTableViewController(TableSelectionMixin, FilterInputMixin, TriblerTableViewController):
+class TorrentsTableViewController(TableSelectionMixin, FilterInputMixin, ContextMenuMixin, TriblerTableViewController):
     """
     This class manages a list with torrents.
     """
@@ -212,7 +250,7 @@ class TorrentsTableViewController(TableSelectionMixin, FilterInputMixin, Tribler
         table_view.selectionModel().selectionChanged.connect(self._on_selection_changed)
         if self.filter_input:
             self.filter_input.textChanged.connect(self._on_filter_input_change)
-        self.asked_preview = False
+        self.enable_context_menu(self.table_view)
 
     def perform_query(self, **kwargs):
         if "rest_endpoint_url" not in kwargs:
