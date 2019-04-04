@@ -24,6 +24,9 @@ enabled = boolean(default=True)
 ec_keypair_filename = string(default='')
 testnet_keypair_filename = string(default='')
 live_edges_enabled = boolean(default=True)
+bootstrap = boolean(default=True)
+bootstrap_download_rate = integer(min=1, default=1000000)
+bootstrap_magnet = string(default='magnet:?xt=urn:btih:13a25451c761b1482d3e85432f07c4be05ca8a56&dn=bootstrap.block')
 
 [wallets]
 bitcoinlib_enabled = boolean(default=True)

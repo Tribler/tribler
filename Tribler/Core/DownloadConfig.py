@@ -186,10 +186,11 @@ class DownloadStartupConfig(DownloadConfigInterface):
     cf. libtorrent torrent_handle
     """
 
-    def __init__(self, dlconfig=None):
+    def __init__(self, dlconfig=None, is_bootstrap_download=False):
         """ Normal constructor for DownloadStartupConfig (copy constructor
         used internally) """
         DownloadConfigInterface.__init__(self, dlconfig)
+        self.is_bootstrap_download = is_bootstrap_download
     #
     # Class method
     #

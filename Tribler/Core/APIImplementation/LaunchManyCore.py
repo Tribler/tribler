@@ -343,7 +343,23 @@ class TriblerLaunchMany(TaskManager):
 
         if self.session.config.get_ipv8_enabled() and self.session.config.get_trustchain_enabled():
             self.payout_manager = PayoutManager(self.trustchain_community, self.dht_community)
-
+            if self.session.config.get_bootstrap_enabled():
+                dcfg = DownloadStartupConfig(is_bootstrap_download=True)
+                dcfg.set_dest_dir(self.session.config.get_state_dir())
+                full_path = os.path.join(self.session.config.get_state_dir(), "bootstrap.block")
+                if os.path.exists(full_path):
+                    # Start as seeder
+                    tdef = TorrentDef()
+                    tdef.add_content(full_path)
+                    tdef.set_piece_length(2**16)
+                    tdef.save()
+                    self._logger.debug("Seeding bootstrap file %s", hexlify(tdef.infohash))
+                    self.session.start_download_from_tdef(tdef, download_startup_config=dcfg)
+                else:
+                    # Download bootstrap file from current seeders
+                    magnet = self.session.config.get_bootstrap_magnet()
+                    self._logger.debug("Starting bootstrap downloading %s ", magnet)
+                    self.session.start_download_from_uri(magnet, download_config=dcfg)
         self.initComplete = True
 
     def add(self, tdef, dscfg, pstate=None, setupDelay=0, hidden=False,

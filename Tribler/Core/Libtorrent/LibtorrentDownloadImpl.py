@@ -123,6 +123,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         self.orig_files = None
         self.finished_deferred = Deferred()
         self.finished_deferred_already_called = False
+        self.is_bootstrap_download = False
 
         # To be able to return the progress of a stopped torrent, how far it got.
         self.progressbeforestop = 0.0
@@ -209,7 +210,6 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         """
         # Called by any thread, assume sessionlock is held
         self.set_checkpoint_disabled(checkpoint_disabled)
-
         try:
             # The deferred to be returned
             deferred = Deferred()
@@ -219,6 +219,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                     cdcfg = DownloadStartupConfig()
                 else:
                     cdcfg = dcfg
+                self.is_bootstrap_download = cdcfg.is_bootstrap_download
                 self.dlconfig = cdcfg.dlconfig.copy()
                 self.dlconfig.lock = self.dllock
                 self.dlconfig.set_callback(self.dlconfig_changed_callback)
@@ -314,6 +315,11 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
 
                 # Limit the amount of connections if we have specified that
                 self.handle.set_max_connections(self.session.config.get_libtorrent_max_conn_download())
+
+                # Set limit on download for a bootstrap file
+                if self.is_bootstrap_download:
+                    self.handle.set_download_limit(self.session.config.get_bootstrap_download_rate())
+
                 return self
 
         def on_torrent_failed(failure):
