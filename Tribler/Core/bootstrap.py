@@ -8,6 +8,10 @@ from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 
 
 class Bootstrap(object):
+    """
+    A class to create a bootstrap downloads for inital file aka bootstrap file.
+    Bootstrap class will be initialized at the start of Tribler by downloading/seeding bootstrap file.
+    """
 
     def __init__(self, boostrap_dir):
         self._logger = logging.getLogger(self.__class__.__name__)
