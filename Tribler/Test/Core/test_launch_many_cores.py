@@ -11,6 +11,7 @@ from Tribler.Core.Modules.payout_manager import PayoutManager
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.bootstrap_util import create_dummy_tdef
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
+from Tribler.Core.bootstrap import Bootstrap
 from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_METADATA, DLSTATUS_SEEDING, DLSTATUS_STOPPED_ON_ERROR
 from Tribler.Test.Core.base_test import MockObject, TriblerCoreTest
 from Tribler.Test.test_as_server import TestAsServer
@@ -185,12 +186,13 @@ class TestLaunchManyCoreSeederBootstrapSession(TestAsServer):
         TestAsServer.setUpPreSession(self)
 
         # Enable all communities
-        config_sections = ['trustchain', 'ipv8', 'bootstrap', 'libtorrent']
+        config_sections = ['libtorrent', 'bootstrap']
 
         for section in config_sections:
             self.config.config[section]['enabled'] = True
 
         self.full_path = os.path.join(self.config.get_state_dir(), 'bootstrap.block')
+        self.bootstrap = Bootstrap(self.config.get_state_dir())
         self.tdef = create_dummy_tdef(self.full_path, 25)
 
     def downloader_state_callback(self, ds):
@@ -224,7 +226,7 @@ class TestLaunchManyCoreBootstrapSession(TestAsServer):
         TestAsServer.setUpPreSession(self)
 
         # Enable all communities
-        config_sections = ['trustchain', 'ipv8', 'bootstrap', 'libtorrent']
+        config_sections = ['bootstrap', 'libtorrent']
 
         for section in config_sections:
             self.config.config[section]['enabled'] = True

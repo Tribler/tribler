@@ -36,6 +36,7 @@ from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.Utilities.install_dir import get_lib_path
 from Tribler.Core.Video.VideoServer import VideoServer
+from Tribler.Core.bootstrap import Bootstrap
 from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_STOPPED_ON_ERROR, NTFY_ERROR,
                                      NTFY_FINISHED, NTFY_STARTED, NTFY_TORRENT, NTFY_TRIBLER,
                                      STATE_START_API_ENDPOINTS, STATE_START_CREDIT_MINING,
@@ -343,28 +344,22 @@ class TriblerLaunchMany(TaskManager):
 
         self.session.set_download_states_callback(self.sesscb_states_callback)
 
+        payout_enabled = False
         if self.session.config.get_ipv8_enabled() and self.session.config.get_trustchain_enabled():
             self.payout_manager = PayoutManager(self.trustchain_community, self.dht_community)
-            if self.session.config.get_bootstrap_enabled():
-                dcfg = DownloadStartupConfig(is_bootstrap_download=True)
-                dcfg.set_dest_dir(self.session.config.get_state_dir())
-                full_path = os.path.join(self.session.config.get_state_dir(), "bootstrap.block")
-                if os.path.exists(full_path):
-                    # Start as seeder
-                    tdef = TorrentDef()
-                    tdef.add_content(full_path)
-                    tdef.set_piece_length(2**16)
-                    tdef.save()
-                    self._logger.debug("Seeding bootstrap file %s", hexlify(tdef.infohash))
-                    self.bootstrap_download = self.session.start_download_from_tdef(tdef, download_startup_config=dcfg,
-                                                                                    hidden=True)
-                else:
-                    # Download bootstrap file from current seeders
-                    infohash = self.session.config.get_bootstrap_infohash()
-                    self._logger.debug("Starting bootstrap downloading %s", infohash)
-                    tdef = TorrentDefNoMetainfo(unhexlify(infohash), name='bootstrap.block')
-                    self.bootstrap_download = self.session.start_download_from_tdef(tdef, download_startup_config=dcfg,
-                                                                                    hidden=True)
+            payout_enabled = True
+
+        if self.session.config.get_bootstrap_enabled():
+            if not payout_enabled:
+                self._logger.warn("Running bootstrap without payout enabled")
+            bootstrap = Bootstrap(self.session.config.get_state_dir())
+            bootstrap_file = os.path.join(self.session.config.get_state_dir(), 'bootstrap.block')
+            if os.path.exists(bootstrap_file):
+                self.bootstrap_download = bootstrap.start_initial_seeder(self.session.start_download_from_tdef,
+                                                                         bootstrap_file)
+            else:
+                self.bootstrap_download = bootstrap.start_by_infohash(self.session.start_download_from_tdef,
+                                                                      self.session.config.get_bootstrap_infohash())
         self.initComplete = True
 
     def add(self, tdef, dscfg, pstate=None, setupDelay=0, hidden=False,
