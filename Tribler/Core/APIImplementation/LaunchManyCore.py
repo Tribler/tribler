@@ -356,13 +356,15 @@ class TriblerLaunchMany(TaskManager):
                     tdef.set_piece_length(2**16)
                     tdef.save()
                     self._logger.debug("Seeding bootstrap file %s", hexlify(tdef.infohash))
-                    self.bootstrap_session = self.session.start_download_from_tdef(tdef, download_startup_config=dcfg)
+                    self.bootstrap_session = self.session.start_download_from_tdef(tdef, download_startup_config=dcfg,
+                                                                                   hidden=True)
                 else:
                     # Download bootstrap file from current seeders
                     infohash = self.session.config.get_bootstrap_infohash()
                     self._logger.debug("Starting bootstrap downloading %s ", infohash)
                     tdef = TorrentDefNoMetainfo(unhexlify(infohash), name='bootstrap.block')
-                    self.bootstrap_session = self.session.start_download_from_tdef(tdef, download_startup_config=dcfg)
+                    self.bootstrap_session = self.session.start_download_from_tdef(tdef, download_startup_config=dcfg,
+                                                                                   hidden=True)
         self.initComplete = True
 
     def add(self, tdef, dscfg, pstate=None, setupDelay=0, hidden=False,
@@ -398,7 +400,7 @@ class TriblerLaunchMany(TaskManager):
             # Store in list of Downloads, always.
             self.downloads[infohash] = d
             setup_deferred = d.setup(dscfg, pstate, wrapperDelay=setupDelay,
-                                     share_mode=share_mode, checkpoint_disabled=checkpoint_disabled)
+                                     share_mode=share_mode, checkpoint_disabled=checkpoint_disabled, hidden=hidden)
             setup_deferred.addCallback(self.on_download_handle_created)
 
         return d

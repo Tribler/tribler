@@ -125,6 +125,9 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         self.finished_deferred_already_called = False
         self.is_bootstrap_download = False
 
+        # If the download is hidden in GUI
+        self.hidden = False
+
         # To be able to return the progress of a stopped torrent, how far it got.
         self.progressbeforestop = 0.0
         self.filepieceranges = []
@@ -199,7 +202,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         self.deferreds_handle.append(deferred)
         return deferred
 
-    def setup(self, dcfg=None, pstate=None, wrapperDelay=0, share_mode=False, checkpoint_disabled=False):
+    def setup(self, dcfg=None, pstate=None, wrapperDelay=0, share_mode=False, checkpoint_disabled=False, hidden = False):
         """
         Create a Download object. Used internally by Session.
         @param dcfg DownloadStartupConfig or None (in which case
@@ -210,6 +213,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         """
         # Called by any thread, assume sessionlock is held
         self.set_checkpoint_disabled(checkpoint_disabled)
+        self.hidden = hidden
         try:
             # The deferred to be returned
             deferred = Deferred()
