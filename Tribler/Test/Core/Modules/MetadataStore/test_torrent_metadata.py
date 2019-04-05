@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
+import codecs
 import random
 from datetime import datetime
 
@@ -134,6 +135,34 @@ class TestTorrentMetadata(TriblerCoreTest):
         # Search with the word 'sheeps' should return the torrent with 'sheep' in the title
         results = self.mds.TorrentMetadata.search_keyword("sheeps")[:]
         self.assertEqual(torrent.rowid, results[0].rowid)
+
+    @db_session
+    def test_infohash_search(self):
+        """
+        Test searching for torrents with infohash works.
+        """
+        infohash = b"e84213a794f3ccd890382a54a64ca68b7e925433"
+        torrent = self.mds.TorrentMetadata.from_dict(dict(rnd_torrent(), infohash=codecs.decode(infohash, 'hex'),
+                                                          title="mountains sheep", tags="video"))
+
+        # Search with the hex encoded infohash
+        query = '"%s"*' % infohash
+        results = self.mds.TorrentMetadata.search_keyword(query)[:]
+        self.assertEqual(torrent.rowid, results[0].rowid)
+
+    @db_session
+    def test_channel_public_key_search(self):
+        """
+        Test searching for channels with public key works.
+        """
+        self.mds.ChannelNode._my_key = default_eccrypto.generate_key('curve25519')
+        channel = self.mds.ChannelMetadata(title='My channel', infohash=str(random.getrandbits(160)))
+
+        # Search with the hex encoded channel public key
+        query = '"%s"*' % codecs.encode(channel.public_key, 'hex')
+        results = self.mds.TorrentMetadata.search_keyword(query)[:]
+        self.assertIsNotNone(results)
+        self.assertTrue(channel.rowid, results[0].rowid)
 
     @db_session
     def test_get_autocomplete_terms(self):

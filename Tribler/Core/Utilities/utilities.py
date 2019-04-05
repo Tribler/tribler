@@ -228,11 +228,11 @@ def has_bep33_support():
 
 
 def is_infohash(infohash):
-    return len(infohash) == 40 and is_hex_string(infohash)
+    return infohash and len(infohash) == 40 and is_hex_string(infohash)
 
 
 def is_channel_public_key(key):
-    return len(key) == 128 and is_hex_string(key)
+    return key and len(key) == 128 and is_hex_string(key)
 
 
 def is_hex_string(text):

@@ -9,6 +9,7 @@ import uuid
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QCursor
 from PyQt5.QtWidgets import QAction
+
 from six import text_type
 
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
@@ -263,7 +264,6 @@ class TorrentsTableViewController(TableSelectionMixin, FilterInputMixin, Context
         super(TorrentsTableViewController, self).perform_query(**kwargs)
 
     def fetch_preview(self):
-        # self.query_uuid = uuid.uuid4().hex
         params = {'query_filter': self.model.channel_pk,
                   'metadata_type': 'torrent',
                   'rest_endpoint_url': 'search',
