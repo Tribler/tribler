@@ -193,7 +193,7 @@ class TestLaunchManyCoreSeederBootstrapSession(TestAsServer):
 
         self.full_path = os.path.join(self.config.get_state_dir(), 'bootstrap.block')
         self.bootstrap = Bootstrap(self.config.get_state_dir())
-        self.tdef = create_dummy_tdef(self.full_path, 25)
+        self.tdef = create_dummy_tdef(self.full_path, 10, 666)
 
     def downloader_state_callback(self, ds):
         if ds.get_status() == DLSTATUS_SEEDING:
@@ -230,9 +230,10 @@ class TestLaunchManyCoreBootstrapSession(TestAsServer):
 
         for section in config_sections:
             self.config.config[section]['enabled'] = True
+        self.config.set_bootstrap_infohash("200a4aeb677a04817f1043e8d24591818c7e827c")
 
     def downloader_state_callback(self, ds):
-        if ds.get_status() == DLSTATUS_METADATA:
+        if ds.get_status() == DLSTATUS_METADATA or ds.get_status() == DLSTATUS_DOWNLOADING:
             self.test_deferred.callback(None)
             return 0.0
         return 0.5
