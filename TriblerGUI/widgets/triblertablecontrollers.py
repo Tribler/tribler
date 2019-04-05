@@ -177,8 +177,12 @@ class ContextMenuMixin(object):
             return
 
         menu = TriblerActionMenu(self.table_view)
-        self.add_menu_item(menu, ' Download ', item_index, self.table_view.on_download_button_clicked)
-        self.add_menu_item(menu, ' Play ', item_index, self.table_view.on_play_button_clicked)
+
+        # Single selection menu items
+        num_selected = len(self.table_view.selectionModel().selectedRows())
+        if num_selected == 1:
+            self.add_menu_item(menu, ' Download ', item_index, self.table_view.on_download_button_clicked)
+            self.add_menu_item(menu, ' Play ', item_index, self.table_view.on_play_button_clicked)
 
         if not isinstance(self, MyTorrentsTableViewController):
             self.add_menu_item(menu, ' Add to channel ', item_index, self.table_view.on_add_to_channel_button_clicked)

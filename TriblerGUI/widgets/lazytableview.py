@@ -160,7 +160,7 @@ class AddToChannelButtonMixin(CommitControlMixin):
             request_mgr = TriblerRequestManager()
             request_mgr.perform_request("mychannel/torrents", lambda res: self.on_torrent_added, method='PUT', data=post_data)
 
-    def _on_torrent_added(self, _):
+    def on_torrent_added(self, _):
         self.window().edit_channel_page.load_my_torrents()
 
 
