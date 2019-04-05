@@ -76,7 +76,7 @@ class TriblerLaunchMany(TaskManager):
 
         self.shutdownstarttime = None
 
-        self.bootstrap_session = None
+        self.bootstrap_download = None
 
         # modules
         self.api_manager = None
@@ -356,15 +356,15 @@ class TriblerLaunchMany(TaskManager):
                     tdef.set_piece_length(2**16)
                     tdef.save()
                     self._logger.debug("Seeding bootstrap file %s", hexlify(tdef.infohash))
-                    self.bootstrap_session = self.session.start_download_from_tdef(tdef, download_startup_config=dcfg,
-                                                                                   hidden=True)
+                    self.bootstrap_download = self.session.start_download_from_tdef(tdef, download_startup_config=dcfg,
+                                                                                    hidden=True)
                 else:
                     # Download bootstrap file from current seeders
                     infohash = self.session.config.get_bootstrap_infohash()
-                    self._logger.debug("Starting bootstrap downloading %s ", infohash)
+                    self._logger.debug("Starting bootstrap downloading %s", infohash)
                     tdef = TorrentDefNoMetainfo(unhexlify(infohash), name='bootstrap.block')
-                    self.bootstrap_session = self.session.start_download_from_tdef(tdef, download_startup_config=dcfg,
-                                                                                   hidden=True)
+                    self.bootstrap_download = self.session.start_download_from_tdef(tdef, download_startup_config=dcfg,
+                                                                                    hidden=True)
         self.initComplete = True
 
     def add(self, tdef, dscfg, pstate=None, setupDelay=0, hidden=False,

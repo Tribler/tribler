@@ -203,8 +203,8 @@ class TestLaunchManyCoreSeederBootstrapSession(TestAsServer):
     @trial_timeout(20)
     def test_bootstrap_seeder(self):
         self.assertTrue(self.tdef.infohash in self.session.lm.downloads)
-        self.assertIsNotNone(self.session.lm.bootstrap_session)
-        self.session.lm.bootstrap_session.set_state_callback(self.downloader_state_callback)
+        self.assertIsNotNone(self.session.lm.bootstrap_download)
+        self.session.lm.bootstrap_download.set_state_callback(self.downloader_state_callback)
         return self.test_deferred
 
     @inlineCallbacks
@@ -238,8 +238,8 @@ class TestLaunchManyCoreBootstrapSession(TestAsServer):
     @trial_timeout(20)
     def test_bootstrap_downloader(self):
         infohash = self.config.get_bootstrap_infohash()
-        self.assertIsNotNone(self.session.lm.bootstrap_session)
+        self.assertIsNotNone(self.session.lm.bootstrap_download)
         self.assertTrue(unhexlify(infohash) in self.session.lm.downloads,
                         "Infohash %s Should be in downloads" % infohash)
-        self.session.lm.bootstrap_session.set_state_callback(self.downloader_state_callback)
+        self.session.lm.bootstrap_download.set_state_callback(self.downloader_state_callback)
         return self.test_deferred

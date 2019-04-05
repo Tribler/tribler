@@ -27,7 +27,7 @@ live_edges_enabled = boolean(default=True)
 
 [bootstrap]
 enabled = boolean(default=True)
-download_rate = integer(min=1, default=1000000)
+max_download_rate = integer(min=1, default=1000000)
 infohash = string(default='13a25451c761b1482d3e85432f07c4be05ca8a56')
 
 [wallets]

@@ -41,7 +41,6 @@ class TestBootSeed(TestAsServer):
         self.sourcefn = os.path.join(TESTS_DATA_DIR, 'bootstrap.block')
         self.tdef = create_dummy_tdef(self.sourcefn, 25)
         self._logger.debug("Creating file with infohash %s", hexlify(self.tdef.infohash))
-        self.count = 0
         self.payout_manager = MockPayoutManager()
 
     def setUpPreSession(self):
@@ -55,9 +54,9 @@ class TestBootSeed(TestAsServer):
         download.add_peer(("127.0.0.1", self.seeder_session.config.get_libtorrent_port()))
 
     @trial_timeout(20)
-    def test_seeding(self):
+    def test_bootstrap(self):
         """
-        Test whether a torrent is correctly seeded
+        Test whether a dummy bootstrap file is correctly downloaded and after download a direct payout is made
         """
 
         def start_download(_):

@@ -183,11 +183,11 @@ class TriblerConfig(object):
     def get_bootstrap_enabled(self):
         return self.config['bootstrap']['enabled']
 
-    def get_bootstrap_download_rate(self):
-        return self.config['bootstrap'].as_int('download_rate')
+    def get_bootstrap_max_download_rate(self):
+        return self.config['bootstrap'].as_int('max_download_rate')
 
-    def set_bootstrap_download_rate(self, value):
-        self.config['bootstrap']['download_rate'] = value
+    def set_bootstrap_max_download_rate(self, value):
+        self.config['bootstrap']['max_download_rate'] = value
 
     def get_bootstrap_infohash(self):
         return self.config['bootstrap']['infohash']

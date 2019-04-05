@@ -219,76 +219,77 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
         downloads_json = []
         downloads = self.session.get_downloads()
         for download in downloads:
-            if not download.hidden:
-                state = download.get_state()
-                tdef = download.get_def()
+            if download.hidden:
+                continue
+            state = download.get_state()
+            tdef = download.get_def()
 
-                # Create tracker information of the download
-                tracker_info = []
-                for url, url_info in download.get_tracker_status().items():
-                    tracker_info.append({"url": url, "peers": url_info[0], "status": url_info[1]})
+            # Create tracker information of the download
+            tracker_info = []
+            for url, url_info in download.get_tracker_status().items():
+                tracker_info.append({"url": url, "peers": url_info[0], "status": url_info[1]})
 
-                num_seeds, num_peers = state.get_num_seeds_peers()
-                num_connected_seeds, num_connected_peers = download.get_num_connected_seeds_peers()
+            num_seeds, num_peers = state.get_num_seeds_peers()
+            num_connected_seeds, num_connected_peers = download.get_num_connected_seeds_peers()
 
-                download_name = self.session.lm.mds.ChannelMetadata.get_channel_name(
-                    tdef.get_name_utf8(), tdef.get_infohash()) if download.get_channel_download() else tdef.get_name_utf8()
+            download_name = self.session.lm.mds.ChannelMetadata.get_channel_name(
+                tdef.get_name_utf8(), tdef.get_infohash()) if download.get_channel_download() else tdef.get_name_utf8()
 
-                download_json = {
-                    "name": download_name,
-                    "progress": state.get_progress(),
-                    "infohash": hexlify(tdef.get_infohash()),
-                    "speed_down": state.get_current_payload_speed(DOWNLOAD),
-                    "speed_up": state.get_current_payload_speed(UPLOAD),
-                    "status": dlstatus_strings[state.get_status()],
-                    "size": tdef.get_length(),
-                    "eta": state.get_eta(),
-                    "num_peers": num_peers,
-                    "num_seeds": num_seeds,
-                    "num_connected_peers": num_connected_peers,
-                    "num_connected_seeds": num_connected_seeds,
-                    "total_up": state.get_total_transferred(UPLOAD),
-                    "total_down": state.get_total_transferred(DOWNLOAD),
-                    "ratio": state.get_seeding_ratio(),
-                    "trackers": tracker_info,
-                    "hops": download.get_hops(),
-                    "anon_download": download.get_anon_mode(),
-                    "safe_seeding": download.get_safe_seeding(),
-                    # Maximum upload/download rates are set for entire sessions
-                    "max_upload_speed": self.session.config.get_libtorrent_max_upload_rate(),
-                    "max_download_speed": self.session.config.get_libtorrent_max_download_rate(),
-                    "destination": download.get_dest_dir(),
-                    "availability": state.get_availability(),
-                    "total_pieces": tdef.get_nr_pieces(),
-                    "vod_mode": download.get_mode() == DLMODE_VOD,
-                    "vod_prebuffering_progress": state.get_vod_prebuffering_progress(),
-                    "vod_prebuffering_progress_consec": state.get_vod_prebuffering_progress_consec(),
-                    "error": repr(state.get_error()) if state.get_error() else "",
-                    "time_added": download.get_time_added(),
-                    "credit_mining": download.get_credit_mining(),
-                    "channel_download": download.get_channel_download()
-                }
+            download_json = {
+                "name": download_name,
+                "progress": state.get_progress(),
+                "infohash": hexlify(tdef.get_infohash()),
+                "speed_down": state.get_current_payload_speed(DOWNLOAD),
+                "speed_up": state.get_current_payload_speed(UPLOAD),
+                "status": dlstatus_strings[state.get_status()],
+                "size": tdef.get_length(),
+                "eta": state.get_eta(),
+                "num_peers": num_peers,
+                "num_seeds": num_seeds,
+                "num_connected_peers": num_connected_peers,
+                "num_connected_seeds": num_connected_seeds,
+                "total_up": state.get_total_transferred(UPLOAD),
+                "total_down": state.get_total_transferred(DOWNLOAD),
+                "ratio": state.get_seeding_ratio(),
+                "trackers": tracker_info,
+                "hops": download.get_hops(),
+                "anon_download": download.get_anon_mode(),
+                "safe_seeding": download.get_safe_seeding(),
+                # Maximum upload/download rates are set for entire sessions
+                "max_upload_speed": self.session.config.get_libtorrent_max_upload_rate(),
+                "max_download_speed": self.session.config.get_libtorrent_max_download_rate(),
+                "destination": download.get_dest_dir(),
+                "availability": state.get_availability(),
+                "total_pieces": tdef.get_nr_pieces(),
+                "vod_mode": download.get_mode() == DLMODE_VOD,
+                "vod_prebuffering_progress": state.get_vod_prebuffering_progress(),
+                "vod_prebuffering_progress_consec": state.get_vod_prebuffering_progress_consec(),
+                "error": repr(state.get_error()) if state.get_error() else "",
+                "time_added": download.get_time_added(),
+                "credit_mining": download.get_credit_mining(),
+                "channel_download": download.get_channel_download()
+            }
 
-                # Add peers information if requested
-                if get_peers:
-                    peer_list = state.get_peerlist()
-                    for peer_info in peer_list:  # Remove have field since it is very large to transmit.
-                        del peer_info['have']
-                        if 'extended_version' in peer_info:
-                            peer_info['extended_version'] = _safe_extended_peer_info(peer_info['extended_version'])
-                        peer_info['id'] = hexlify(peer_info['id'])
+            # Add peers information if requested
+            if get_peers:
+                peer_list = state.get_peerlist()
+                for peer_info in peer_list:  # Remove have field since it is very large to transmit.
+                    del peer_info['have']
+                    if 'extended_version' in peer_info:
+                        peer_info['extended_version'] = _safe_extended_peer_info(peer_info['extended_version'])
+                    peer_info['id'] = hexlify(peer_info['id'])
 
-                    download_json["peers"] = peer_list
+                download_json["peers"] = peer_list
 
-                # Add piece information if requested
-                if get_pieces:
-                    download_json["pieces"] = download.get_pieces_base64()
+            # Add piece information if requested
+            if get_pieces:
+                download_json["pieces"] = download.get_pieces_base64()
 
-                # Add files if requested
-                if get_files:
-                    download_json["files"] = self.get_files_info_json(download)
+            # Add files if requested
+            if get_files:
+                download_json["files"] = self.get_files_info_json(download)
 
-                downloads_json.append(download_json)
+            downloads_json.append(download_json)
         return json.twisted_dumps({"downloads": downloads_json})
 
     def render_PUT(self, request):
