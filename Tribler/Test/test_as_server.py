@@ -303,6 +303,7 @@ class TestAsServer(AbstractServer):
         self.config.set_bitcoinlib_enabled(False)
         self.config.set_chant_enabled(False)
         self.config.set_resource_monitor_enabled(False)
+        self.config.set_bootstrap_enabled(False)
 
     @inlineCallbacks
     def tearDown(self):
@@ -356,6 +357,7 @@ class TestAsServer(AbstractServer):
         self.seed_config.set_chant_enabled(False)
         self.seed_config.set_credit_mining_enabled(False)
         self.seed_config.set_resource_monitor_enabled(False)
+        self.seed_config.set_bootstrap_enabled(False)
 
         if port:
             self.seed_config.set_libtorrent_port(port)

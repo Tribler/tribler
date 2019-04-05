@@ -219,6 +219,8 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
         downloads_json = []
         downloads = self.session.get_downloads()
         for download in downloads:
+            if download.hidden:
+                continue
             state = download.get_state()
             tdef = download.get_def()
 

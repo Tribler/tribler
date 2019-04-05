@@ -36,6 +36,7 @@ from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.Utilities.install_dir import get_lib_path
 from Tribler.Core.Video.VideoServer import VideoServer
+from Tribler.Core.bootstrap import Bootstrap
 from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_STOPPED_ON_ERROR, NTFY_ERROR,
                                      NTFY_FINISHED, NTFY_STARTED, NTFY_TORRENT, NTFY_TRIBLER,
                                      STATE_START_API_ENDPOINTS, STATE_START_CREDIT_MINING,
@@ -75,6 +76,8 @@ class TriblerLaunchMany(TaskManager):
         self.sessdoneflag = Event()
 
         self.shutdownstarttime = None
+
+        self.bootstrap_download = None
 
         # modules
         self.api_manager = None
@@ -341,9 +344,22 @@ class TriblerLaunchMany(TaskManager):
 
         self.session.set_download_states_callback(self.sesscb_states_callback)
 
+        payout_enabled = False
         if self.session.config.get_ipv8_enabled() and self.session.config.get_trustchain_enabled():
             self.payout_manager = PayoutManager(self.trustchain_community, self.dht_community)
+            payout_enabled = True
 
+        if self.session.config.get_bootstrap_enabled():
+            if not payout_enabled:
+                self._logger.warn("Running bootstrap without payout enabled")
+            bootstrap = Bootstrap(self.session.config.get_state_dir())
+            bootstrap_file = os.path.join(self.session.config.get_state_dir(), 'bootstrap.block')
+            if os.path.exists(bootstrap_file):
+                self.bootstrap_download = bootstrap.start_initial_seeder(self.session.start_download_from_tdef,
+                                                                         bootstrap_file)
+            else:
+                self.bootstrap_download = bootstrap.start_by_infohash(self.session.start_download_from_tdef,
+                                                                      self.session.config.get_bootstrap_infohash())
         self.initComplete = True
 
     def add(self, tdef, dscfg, pstate=None, setupDelay=0, hidden=False,
@@ -379,7 +395,7 @@ class TriblerLaunchMany(TaskManager):
             # Store in list of Downloads, always.
             self.downloads[infohash] = d
             setup_deferred = d.setup(dscfg, pstate, wrapperDelay=setupDelay,
-                                     share_mode=share_mode, checkpoint_disabled=checkpoint_disabled)
+                                     share_mode=share_mode, checkpoint_disabled=checkpoint_disabled, hidden=hidden)
             setup_deferred.addCallback(self.on_download_handle_created)
 
         return d

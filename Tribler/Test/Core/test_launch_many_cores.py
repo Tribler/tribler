@@ -1,17 +1,18 @@
 from __future__ import absolute_import
 
 import os
+from binascii import unhexlify
 from threading import RLock
 
-from nose.tools import raises
-
-from twisted.internet.defer import Deferred
+from twisted.internet.defer import Deferred, inlineCallbacks
 
 from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
 from Tribler.Core.Modules.payout_manager import PayoutManager
 from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.Utilities.bootstrap_util import create_dummy_tdef
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
-from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_STOPPED_ON_ERROR
+from Tribler.Core.bootstrap import Bootstrap
+from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_METADATA, DLSTATUS_SEEDING, DLSTATUS_STOPPED_ON_ERROR
 from Tribler.Test.Core.base_test import MockObject, TriblerCoreTest
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.tools import trial_timeout
@@ -129,6 +130,7 @@ class TestLaunchManyCore(TriblerCoreTest):
         """
         Test whether we are resuming downloads after loading checkpoint
         """
+
         def mocked_resume_download(filename, setupDelay=3):
             self.assertTrue(filename.endswith('abcd.state'))
             self.assertEqual(setupDelay, 0)
@@ -176,3 +178,71 @@ class TestLaunchManyCoreFullSession(TestAsServer):
         self.assertTrue(self.get_community(GigaChannelCommunity))
         self.assertTrue(self.get_community(MarketCommunity))
         self.assertTrue(self.get_community(TrustChainCommunity))
+
+
+class TestLaunchManyCoreSeederBootstrapSession(TestAsServer):
+
+    def setUpPreSession(self):
+        TestAsServer.setUpPreSession(self)
+
+        # Enable all communities
+        config_sections = ['libtorrent', 'bootstrap']
+
+        for section in config_sections:
+            self.config.config[section]['enabled'] = True
+
+        self.full_path = os.path.join(self.config.get_state_dir(), 'bootstrap.block')
+        self.bootstrap = Bootstrap(self.config.get_state_dir())
+        self.tdef = create_dummy_tdef(self.full_path, 10, 666)
+
+    def downloader_state_callback(self, ds):
+        if ds.get_status() == DLSTATUS_SEEDING:
+            os.remove(self.full_path)
+            self.test_deferred.callback(None)
+            return 0.0
+        return 0.5
+
+    @trial_timeout(20)
+    def test_bootstrap_seeder(self):
+        self.assertTrue(self.tdef.infohash in self.session.lm.downloads)
+        self.assertIsNotNone(self.session.lm.bootstrap_download)
+        self.session.lm.bootstrap_download.set_state_callback(self.downloader_state_callback)
+        return self.test_deferred
+
+    @inlineCallbacks
+    def setUp(self):
+        yield super(TestLaunchManyCoreSeederBootstrapSession, self).setUp()
+        self.test_deferred = Deferred()
+
+
+class TestLaunchManyCoreBootstrapSession(TestAsServer):
+
+    @inlineCallbacks
+    def setUp(self):
+        yield super(TestLaunchManyCoreBootstrapSession, self).setUp()
+        self.test_deferred = Deferred()
+
+    def setUpPreSession(self):
+        TestAsServer.setUpPreSession(self)
+
+        # Enable all communities
+        config_sections = ['bootstrap', 'libtorrent']
+
+        for section in config_sections:
+            self.config.config[section]['enabled'] = True
+        self.config.set_bootstrap_infohash("200a4aeb677a04817f1043e8d24591818c7e827c")
+
+    def downloader_state_callback(self, ds):
+        if ds.get_status() == DLSTATUS_METADATA or ds.get_status() == DLSTATUS_DOWNLOADING:
+            self.test_deferred.callback(None)
+            return 0.0
+        return 0.5
+
+    @trial_timeout(20)
+    def test_bootstrap_downloader(self):
+        infohash = self.config.get_bootstrap_infohash()
+        self.assertIsNotNone(self.session.lm.bootstrap_download)
+        self.assertTrue(unhexlify(infohash) in self.session.lm.downloads,
+                        "Infohash %s Should be in downloads" % infohash)
+        self.session.lm.bootstrap_download.set_state_callback(self.downloader_state_callback)
+        return self.test_deferred
