@@ -158,11 +158,12 @@ class AddToChannelButtonMixin(CommitControlMixin):
         for row in self.selectionModel().selectedRows():
             post_data = {"uri": index2uri(row)}
             request_mgr = TriblerRequestManager()
-            request_mgr.perform_request("mychannel/torrents", lambda res: self.on_torrent_added,
+            request_mgr.perform_request("mychannel/torrents", self.on_torrent_added,
                                         method='PUT', data=post_data)
 
     def on_torrent_added(self, _):
         self.window().edit_channel_page.load_my_torrents()
+        self.window().tray_show_message("Channel update", "Torrent is added to your channel")
 
 
 class SearchResultsTableView(ItemClickedMixin, DownloadButtonMixin, PlayButtonMixin, SubscribeButtonMixin,

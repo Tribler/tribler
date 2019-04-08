@@ -16,7 +16,7 @@ from pony.orm import db_session, raw_sql, select
 from Tribler.Core.Category.Category import default_category_filter
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import COMMITTED, LEGACY_ENTRY, NEW, PUBLIC_KEY_LEN, \
     TODELETE, UPDATED
-from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, ChannelMetadataPayload
+from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, ChannelMetadataPayload, REGULAR_TORRENT
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
 from Tribler.Core.exceptions import DuplicateChannelIdError, DuplicateTorrentFileError
@@ -260,7 +260,10 @@ def define_binding(db):
             :param infohash: The infohash of the torrent
             :return: True if torrent exists else False
             """
-            return db.TorrentMetadata.exists(public_key=self.public_key, infohash=infohash)
+            return db.TorrentMetadata.exists(lambda g: g.metadata_type == REGULAR_TORRENT
+                                             and g.status != LEGACY_ENTRY
+                                             and g.public_key == self.public_key
+                                             and g.infohash == database_blob(infohash))
 
         @db_session
         def add_torrent_to_channel(self, tdef, extra_info=None):

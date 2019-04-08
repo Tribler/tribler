@@ -1,6 +1,8 @@
 from __future__ import absolute_import
 
 import base64
+import codecs
+import json
 import logging
 import os
 from binascii import hexlify, unhexlify
@@ -266,7 +268,8 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
                 deferred.addCallback(_on_url_fetched)
             elif uri.startswith("magnet:"):
                 _, xt, _ = parse_magnetlink(uri)
-                if is_infohash(xt) and (my_channel.torrent_exists(xt) or my_channel.copy_to_channel(xt)):
+                if xt and is_infohash(codecs.encode(xt, 'hex')) \
+                        and (my_channel.torrent_exists(xt) or my_channel.copy_to_channel(xt)):
                     return json.dumps({"added": 1})
                 try:
                     self.session.lm.ltmgr.get_metainfo(uri, callback=deferred.callback,
