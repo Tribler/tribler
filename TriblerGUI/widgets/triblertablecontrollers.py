@@ -198,7 +198,7 @@ class ContextMenuMixin(object):
         menu.addAction(action)
 
 
-class SearchResultsTableViewController(TableSelectionMixin, TriblerTableViewController):
+class SearchResultsTableViewController(TableSelectionMixin, ContextMenuMixin, TriblerTableViewController):
     """
     Controller for the table view that handles search results.
     """
@@ -208,6 +208,7 @@ class SearchResultsTableViewController(TableSelectionMixin, TriblerTableViewCont
         self.num_results_label = num_results_label
         self.details_container = details_container
         table_view.selectionModel().selectionChanged.connect(self._on_selection_changed)
+        self.enable_context_menu(self.table_view)
 
     def perform_query(self, **kwargs):
         """
