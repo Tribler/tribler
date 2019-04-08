@@ -100,7 +100,7 @@ class TestLibtorrentMgr(AbstractServer):
 
         def metainfo_cb(metainfo):
             self.assertEqual(metainfo, {'info': {'pieces': ['a']}, 'leechers': 0,
-                                        'nodes': [], 'seeders': 0, 'initial peers': []})
+                                        'nodes': [], 'seeders': 0})
             test_deferred.callback(None)
 
         infohash = "a" * 20
@@ -152,7 +152,7 @@ class TestLibtorrentMgr(AbstractServer):
 
         def metainfo_cb(metainfo):
             self.assertDictEqual(metainfo, {'info': {'pieces': ['a']}, 'leechers': 0,
-                                            'nodes': [], 'seeders': 0, 'initial peers': []})
+                                            'nodes': [], 'seeders': 0})
             test_deferred.callback(None)
 
         fake_handle = MockObject()

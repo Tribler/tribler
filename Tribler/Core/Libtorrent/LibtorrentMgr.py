@@ -538,7 +538,7 @@ class LibtorrentMgr(TaskManager):
                             metainfo["nodes"] = []
                         if peers and notify:
                             self.notifier.notify(NTFY_TORRENTS, NTFY_MAGNET_GOT_PEERS, infohash_bin, len(peers))
-                        metainfo["initial peers"] = peers
+
                         metainfo["leechers"] = leechers
                         metainfo["seeders"] = seeders
 
