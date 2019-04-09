@@ -26,7 +26,8 @@ from TriblerGUI.core_manager import CoreManager
 from TriblerGUI.debug_window import DebugWindow
 from TriblerGUI.defs import BUTTON_TYPE_CONFIRM, BUTTON_TYPE_NORMAL, DEFAULT_API_PORT, PAGE_CHANNEL_DETAILS, \
     PAGE_DISCOVERED, PAGE_DISCOVERING, PAGE_DOWNLOADS, PAGE_EDIT_CHANNEL, PAGE_HOME, PAGE_LOADING, \
-    PAGE_SEARCH_RESULTS, PAGE_SETTINGS, PAGE_SUBSCRIBED_CHANNELS, PAGE_TRUST, PAGE_VIDEO_PLAYER, SHUTDOWN_WAITING_PERIOD
+    PAGE_SEARCH_RESULTS, PAGE_SETTINGS, PAGE_SUBSCRIBED_CHANNELS, PAGE_TRUST, PAGE_VIDEO_PLAYER, \
+    SHUTDOWN_WAITING_PERIOD, PAGE_TRUST_GRAPH_PAGE
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.dialogs.feedbackdialog import FeedbackDialog
 from TriblerGUI.dialogs.startdownloaddialog import StartDownloadDialog
@@ -154,7 +155,8 @@ class TriblerWindow(QMainWindow):
 
         self.menu_buttons = [self.left_menu_button_home, self.left_menu_button_search, self.left_menu_button_my_channel,
                              self.left_menu_button_subscriptions, self.left_menu_button_video_player,
-                             self.left_menu_button_downloads, self.left_menu_button_discovered]
+                             self.left_menu_button_downloads, self.left_menu_button_discovered,
+                             self.left_menu_button_trust_graph]
 
         self.video_player_page.initialize_player()
         self.search_results_page.initialize_search_results_page(self.gui_settings)
@@ -169,6 +171,7 @@ class TriblerWindow(QMainWindow):
         self.channel_page.initialize_channel_page(self.gui_settings)
         self.trust_page.initialize_trust_page()
         self.token_mining_page.initialize_token_mining_page()
+        self.trust_graph_page.initialize_trust_graph()
 
         self.stackedWidget.setCurrentIndex(PAGE_LOADING)
 
@@ -804,6 +807,12 @@ class TriblerWindow(QMainWindow):
         self.stackedWidget.setCurrentIndex(PAGE_VIDEO_PLAYER)
         self.navigation_stack = []
         self.show_left_menu_playlist()
+
+    def clicked_menu_button_trust_graph(self):
+        self.deselect_all_menu_buttons(self.left_menu_button_trust_graph)
+        self.stackedWidget.setCurrentIndex(PAGE_TRUST_GRAPH_PAGE)
+        self.navigation_stack = []
+        self.hide_left_menu_playlist()
 
     def clicked_menu_button_downloads(self):
         self.deselect_all_menu_buttons(self.left_menu_button_downloads)
