@@ -202,6 +202,40 @@ class TestChannelMetadata(TriblerCoreTest):
         self.assertRaises(DuplicateTorrentFileError, channel_metadata.add_torrent_to_channel, tdef, None)
 
     @db_session
+    def test_torrent_exists_in_channel(self):
+        """
+        Test torrent already exists in the channel.
+        """
+        channel_metadata = self.mds.ChannelMetadata.create_channel('test', 'test')
+        self.mds.TorrentMetadata.from_dict(dict(self.torrent_template, infohash="1"))
+        self.assertTrue(channel_metadata.torrent_exists("1"))
+        self.assertFalse(channel_metadata.torrent_exists("0"))
+
+    @db_session
+    def test_copy_to_channel(self):
+        """
+        Test copying a torrent from an another channel.
+        """
+        self.mds.ChannelNode._my_key = default_eccrypto.generate_key('low')
+        channel1 = self.mds.ChannelMetadata(infohash=str(random.getrandbits(160)))
+        self.mds.TorrentMetadata.from_dict(dict(self.torrent_template, infohash="1"))
+
+        self.mds.ChannelNode._my_key = default_eccrypto.generate_key('low')
+        channel2 = self.mds.ChannelMetadata(infohash=str(random.getrandbits(160)))
+
+        # Trying copying existing torrent to channel
+        new_torrent = channel2.copy_to_channel("1")
+        self.assertIsNotNone(new_torrent)
+        self.assertEqual(1, len(channel1.contents_list))
+        self.assertEqual(1, len(channel2.contents_list))
+
+        # Try copying non-existing torrent ot channel
+        new_torrent2 = channel2.copy_to_channel("2")
+        self.assertIsNone(new_torrent2)
+        self.assertEqual(1, len(channel1.contents_list))
+        self.assertEqual(1, len(channel2.contents_list))
+
+    @db_session
     def test_restore_torrent_in_channel(self):
         """
         Test if the torrent scheduled for deletion is restored/updated after the user tries to re-add it.

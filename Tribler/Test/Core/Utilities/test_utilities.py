@@ -6,7 +6,8 @@ from twisted.web.server import Site
 from twisted.web.util import Redirect
 
 from Tribler.Core.Utilities.network_utils import get_random_port
-from Tribler.Core.Utilities.utilities import http_get, is_simple_match_query, is_valid_url, parse_magnetlink
+from Tribler.Core.Utilities.utilities import http_get, is_channel_public_key, is_infohash, is_simple_match_query, \
+    is_valid_url, parse_magnetlink
 from Tribler.Test.test_as_server import AbstractServer
 from Tribler.Test.tools import trial_timeout
 
@@ -82,3 +83,24 @@ class TestMakeTorrent(AbstractServer):
 
         query2 = '"\xc1ubuntu"* OR "debian"*'
         self.assertFalse(is_simple_match_query(query2))
+
+    def test_is_infohash(self):
+        hex_40 = "DC4B96CF85A85CEEDB8ADC4B96CF85A85CEEDB8A"
+        self.assertTrue(is_infohash(hex_40))
+
+        hex_not_40 = "DC4B96CF85A85CEEDB8ADC4B96CF85"
+        self.assertFalse(is_infohash(hex_not_40))
+
+        not_hex = "APPLE6CF85A85CEEDB8ADC4B96CF85A85CEEDB8A"
+        self.assertFalse(is_infohash(not_hex))
+
+    def test_is_channel_public_key(self):
+        hex_128 = "224b20c30b90d0fc7b2cf844f3d651de4481e21c7cdbbff258fa737d117d2c4ac7536de5cc93f4e9d5" \
+                  "1012a1ae0c46e9a05505bd017f0ecb78d8eec4506e848a"
+        self.assertTrue(is_channel_public_key(hex_128))
+
+        hex_not_128 = "DC4B96CF85A85CEEDB8ADC4B96CF85"
+        self.assertFalse(is_channel_public_key(hex_not_128))
+
+        not_hex = "APPLE6CF85A85CEEDB8ADC4B96CF85A85CEEDB8A"
+        self.assertFalse(is_channel_public_key(not_hex))

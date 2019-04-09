@@ -445,7 +445,9 @@ class LibtorrentMgr(TaskManager):
         infohash_bin = infohash_or_magnet if not magnet else parse_magnetlink(magnet)[1]
         infohash = hexlify(infohash_bin)
 
-        if infohash in self.torrents:
+        if infohash in self.torrents and hasattr(self.torrents[infohash], 'handle'):
+            metainfo = {"info": lt.bdecode(get_info_from_handle(self.torrents[infohash].handle).metadata())}
+            callback(metainfo)
             return
 
         with self.metainfo_lock:
@@ -536,7 +538,7 @@ class LibtorrentMgr(TaskManager):
                             metainfo["nodes"] = []
                         if peers and notify:
                             self.notifier.notify(NTFY_TORRENTS, NTFY_MAGNET_GOT_PEERS, infohash_bin, len(peers))
-                        metainfo["initial peers"] = peers
+
                         metainfo["leechers"] = leechers
                         metainfo["seeders"] = seeders
 

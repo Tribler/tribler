@@ -16,7 +16,7 @@ from pony.orm import db_session, raw_sql, select
 from Tribler.Core.Category.Category import default_category_filter
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import COMMITTED, LEGACY_ENTRY, NEW, PUBLIC_KEY_LEN, \
     TODELETE, UPDATED
-from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, ChannelMetadataPayload
+from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, ChannelMetadataPayload, REGULAR_TORRENT
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
 from Tribler.Core.exceptions import DuplicateChannelIdError, DuplicateTorrentFileError
@@ -254,6 +254,18 @@ def define_binding(db):
             return db.TorrentMetadata.get(public_key=self.public_key, infohash=infohash)
 
         @db_session
+        def torrent_exists(self, infohash):
+            """
+            Return True if torrent with given infohash exists in the user channel
+            :param infohash: The infohash of the torrent
+            :return: True if torrent exists else False
+            """
+            return db.TorrentMetadata.exists(lambda g: g.metadata_type == REGULAR_TORRENT
+                                             and g.status != LEGACY_ENTRY
+                                             and g.public_key == self.public_key
+                                             and g.infohash == database_blob(infohash))
+
+        @db_session
         def add_torrent_to_channel(self, tdef, extra_info=None):
             """
             Add a torrent to your channel.
@@ -296,6 +308,10 @@ def define_binding(db):
             else:
                 torrent_metadata = db.TorrentMetadata.from_dict(new_entry_dict)
             return torrent_metadata
+
+        @db_session
+        def copy_to_channel(self, infohash):
+            return db.TorrentMetadata.copy_to_channel(infohash)
 
         @property
         def dirty(self):

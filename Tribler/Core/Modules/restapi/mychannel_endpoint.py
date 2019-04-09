@@ -1,6 +1,8 @@
 from __future__ import absolute_import
 
 import base64
+import codecs
+import json
 import logging
 import os
 from binascii import hexlify, unhexlify
@@ -18,7 +20,7 @@ from twisted.web.server import NOT_DONE_YET
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.restapi.metadata_endpoint import SpecificChannelTorrentsEndpoint
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.Utilities.utilities import http_get
+from Tribler.Core.Utilities.utilities import http_get, is_infohash, parse_magnetlink
 from Tribler.Core.exceptions import DuplicateTorrentFileError
 from Tribler.pyipv8.ipv8.database import database_blob
 
@@ -265,6 +267,10 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
                 deferred = http_get(uri)
                 deferred.addCallback(_on_url_fetched)
             elif uri.startswith("magnet:"):
+                _, xt, _ = parse_magnetlink(uri)
+                if xt and is_infohash(codecs.encode(xt, 'hex')) \
+                        and (my_channel.torrent_exists(xt) or my_channel.copy_to_channel(xt)):
+                    return json.dumps({"added": 1})
                 try:
                     self.session.lm.ltmgr.get_metainfo(uri, callback=deferred.callback,
                                                        timeout=30, timeout_callback=_on_timeout, notify=True)

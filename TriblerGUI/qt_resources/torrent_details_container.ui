@@ -270,6 +270,9 @@ QTabBar::tab:selected {
                <property name="text">
                 <string>00000000000000000000</string>
                </property>
+               <property name="textInteractionFlags">
+                <set>Qt::TextSelectableByMouse</set>
+               </property>
               </widget>
              </item>
              <item row="0" column="1">

@@ -1,15 +1,16 @@
 from __future__ import absolute_import
 
-from binascii import hexlify
+from binascii import hexlify, unhexlify
 from datetime import datetime
 
 from pony import orm
 from pony.orm import db_session, desc, raw_sql, select
 
 from Tribler.Core.Category.FamilyFilter import default_xxx_filter
-from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import LEGACY_ENTRY, TODELETE, UPDATED
+from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import LEGACY_ENTRY, NEW, TODELETE, UPDATED
 from Tribler.Core.Modules.MetadataStore.serialization import REGULAR_TORRENT, TorrentMetadataPayload
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
+from Tribler.Core.Utilities.utilities import is_channel_public_key, is_hex_string, is_infohash
 from Tribler.pyipv8.ipv8.database import database_blob
 
 
@@ -71,6 +72,15 @@ def define_binding(db):
 
             fts_ids = raw_sql(
                 'SELECT rowid FROM FtsIndex WHERE FtsIndex MATCH $query ORDER BY bm25(FtsIndex) LIMIT $lim')
+
+            # TODO: Check for complex query
+            normal_query = query.replace('"', '').replace("*", "")
+            if is_hex_string(normal_query) and len(normal_query) % 2 == 0:
+                query_blob = database_blob(unhexlify(normal_query))
+                if is_channel_public_key(normal_query):
+                    return cls.select(lambda g: g.public_key == query_blob or g.rowid in fts_ids)
+                if is_infohash(normal_query):
+                    return cls.select(lambda g: g.infohash == query_blob or g.rowid in fts_ids)
             return cls.select(lambda g: g.rowid in fts_ids)
 
         @classmethod
@@ -216,5 +226,31 @@ def define_binding(db):
                 self.status = UPDATED
                 self.timestamp = self._clock.tick()
                 self.sign()
+
+        @classmethod
+        @db_session
+        def copy_to_channel(cls, infohash, public_key=None):
+            """
+            Create a new signed copy of the given torrent metadata
+            :param metadata: Metadata to copy
+            :return: New TorrentMetadata signed with your key
+            """
+
+            existing = cls.get(public_key=public_key, infohash=infohash) if public_key \
+                else cls.select(lambda g: g.infohash == database_blob(infohash)).first()
+
+            if not existing:
+                return None
+
+            new_entry_dict = {
+                "infohash": existing.infohash,
+                "title": existing.title,
+                "tags": existing.tags,
+                "size": existing.size,
+                "torrent_date": existing.torrent_date,
+                "tracker_info": existing.tracker_info,
+                "status": NEW
+            }
+            return db.TorrentMetadata.from_dict(new_entry_dict)
 
     return TorrentMetadata

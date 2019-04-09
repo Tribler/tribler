@@ -193,7 +193,7 @@ class ChannelsButtonsDelegate(TriblerButtonsDelegate):
             data_item = index.model().data_items[index.row()]
 
             if index == self.hover_index:
-                self.subscribe_control.paint_hover(painter, option.rect, index)
+                self.subscribe_control.paint_hover(painter, option.rect, index, toggled=data_item['subscribed'])
             else:
                 self.subscribe_control.paint(painter, option.rect, index, toggled=data_item['subscribed'])
 
@@ -330,8 +330,8 @@ class ToggleControl(QObject):
 
         icon.paint(painter, icon_rect)
 
-    def paint_hover(self, painter, rect, _):
-        icon = self.hover_icon
+    def paint_hover(self, painter, rect, _index, toggled=False):
+        icon = self.on_icon if toggled else self.hover_icon
         x = rect.left() + (rect.width() - self.w) / 2
         y = rect.top() + (rect.height() - self.h) / 2
         icon_rect = QRect(x, y, self.w, self.h)

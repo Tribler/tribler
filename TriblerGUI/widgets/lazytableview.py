@@ -94,6 +94,10 @@ class SubscribeButtonMixin(TriblerContentTableView):
                                     data={"subscribe": int(not status)}, method='POST')
         index.model().data_items[index.row()][u'subscribed'] = int(not status)
 
+        # Update votes
+        votes = index.model().data_items[index.row()][u'votes']
+        index.model().data_items[index.row()][u'votes'] = votes + 1 if not status else votes - 1
+
 
 class ItemClickedMixin(TriblerContentTableView):
     def on_table_item_clicked(self, item):
@@ -148,8 +152,22 @@ class DeleteButtonMixin(CommitControlMixin):
                                     data={"status" : COMMIT_STATUS_TODELETE}, method='PATCH')
 
 
+class AddToChannelButtonMixin(CommitControlMixin):
+
+    def on_add_to_channel_button_clicked(self, _):
+        for row in self.selectionModel().selectedRows():
+            post_data = {"uri": index2uri(row)}
+            request_mgr = TriblerRequestManager()
+            request_mgr.perform_request("mychannel/torrents", self.on_torrent_added,
+                                        method='PUT', data=post_data)
+
+    def on_torrent_added(self, _):
+        self.window().edit_channel_page.load_my_torrents()
+        self.window().tray_show_message("Channel update", "Torrent is added to your channel")
+
+
 class SearchResultsTableView(ItemClickedMixin, DownloadButtonMixin, PlayButtonMixin, SubscribeButtonMixin,
-                             TriblerContentTableView):
+                             AddToChannelButtonMixin, TriblerContentTableView):
     on_subscribed_channel = pyqtSignal(QModelIndex)
     on_unsubscribed_channel = pyqtSignal(QModelIndex)
 
@@ -178,7 +196,7 @@ class SearchResultsTableView(ItemClickedMixin, DownloadButtonMixin, PlayButtonMi
 
 
 class TorrentsTableView(ItemClickedMixin, DeleteButtonMixin, DownloadButtonMixin, PlayButtonMixin,
-                        TriblerContentTableView):
+                        AddToChannelButtonMixin, TriblerContentTableView):
     """
     This table displays various torrents.
     """
