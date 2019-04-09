@@ -39,23 +39,36 @@ class TrustAnimationCanvas(MplCanvas):
         self.ax.set_xlim(0, 1), self.ax.set_xticks([])
         self.ax.set_ylim(0, 1), self.ax.set_yticks([])
         self._dynamic_ax = self.figure.subplots()
-        self.draw()
 
-    def update_canvas(self, graph, pos):
+    def update_canvas(self, graph, pos, old_pos, framecount=0, max_frames=20):
+        if not framecount:
+            return
+
         self._dynamic_ax.clear()
+        self._dynamic_ax.set_xlim(0, 1), self._dynamic_ax.set_xticks([])
+        self._dynamic_ax.set_ylim(0, 1), self._dynamic_ax.set_yticks([])
+
         xpos = []
         ypos = []
+
         if graph is not None:
+            move_frame_fraction = 1 - framecount / (1.0 * max_frames)
             for n in graph.nodes():
-                xpos.append(pos[str(n)][0])
-                ypos.append(pos[str(n)][1])
-        self._dynamic_ax.scatter(xpos, ypos)
-        self._dynamic_ax.figure.canvas.draw()
+                if old_pos is not None:
+                    xpos.append(((pos[str(n)][0] - old_pos[str(n)][0]) * move_frame_fraction) + old_pos[str(n)][0])
+                    ypos.append(((pos[str(n)][1] - old_pos[str(n)][1]) * move_frame_fraction) + old_pos[str(n)][1])
+                else:
+                    xpos.append(pos[str(n)][0])
+                    ypos.append(pos[str(n)][1])
+
+            self._dynamic_ax.scatter(xpos, ypos)
+            self._dynamic_ax.figure.canvas.draw()
 
 
 class TrustGraphPage(QWidget):
     REFRESH_INTERVAL_MS = 1000
     TIMEOUT_INTERVAL_MS = 3000
+    FRAMES_PER_SECOND = 20
 
     def __init__(self):
         QWidget.__init__(self)
@@ -64,6 +77,13 @@ class TrustGraphPage(QWidget):
         self.fetch_data_timeout_timer = QTimer()
         self.fetch_data_last_update = 0
         self.graph_request_mgr = TriblerRequestManager()
+        self.pos = None
+        self.old_pos = None
+
+        self.animation_timer = None
+        self.animation_frame = 0
+        self.animation_refresh_interval = int(1000/self.FRAMES_PER_SECOND)
+        self.max_frames = self.REFRESH_INTERVAL_MS * self.FRAMES_PER_SECOND // 1000
 
     def showEvent(self, QShowEvent):
         super(TrustGraphPage, self).showEvent(QShowEvent)
@@ -106,6 +126,19 @@ class TrustGraphPage(QWidget):
 
     def on_received_data(self, data):
         self.graph = nx.node_link_graph(data['graph_data'])
+        self.old_pos = None if self.pos is None else dict(self.pos)
         self.pos = data['positions']
-        self.trust_plot.update_canvas(self.graph, self.pos)
+
+        self.animation_frame = 20
+        self.animation_timer = QTimer()
+        self.animation_timer.timeout.connect(self.update_graph)
+        self.animation_timer.setInterval(int(1000/self.FRAMES_PER_SECOND))
+        self.animation_timer.start(0)
+
+    def update_graph(self):
+        self.animation_frame -= 1
+        if self.animation_frame:
+            self.trust_plot.update_canvas(self.graph, self.pos, self.old_pos, self.animation_frame, self.max_frames)
+        else:
+            self.animation_timer.stop()
 
