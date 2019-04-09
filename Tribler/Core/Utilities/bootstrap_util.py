@@ -15,10 +15,9 @@ def create_dummy_tdef(file_name, length=25, seed=42):
     :param length: Length in MB, e.g. length=15 will generate file of 15 MB
     :return: torrent def with test file
     """
-    if not os.path.exists(file_name):
-        random.seed(seed)
-        with open(file_name, 'wb') as fp:
-            fp.write(bytearray(random.getrandbits(8) for _ in xrange(length * 1024 * 1024)))
+    random.seed(seed)
+    with open(file_name, 'wb') as fp:
+        fp.write(bytearray(random.getrandbits(8) for _ in xrange(length * 1024 * 1024)))
     tdef = TorrentDef()
     tdef.add_content(file_name)
     tdef.set_piece_length(2 ** 16)
