@@ -66,9 +66,11 @@ class TrustAnimationCanvas(MplCanvas):
 
 
 class TrustGraphPage(QWidget):
-    REFRESH_INTERVAL_MS = 1000
-    TIMEOUT_INTERVAL_MS = 3000
-    FRAMES_PER_SECOND = 20
+    REFRESH_INTERVAL_MS = 2000
+    TIMEOUT_INTERVAL_MS = 5000
+
+    MAX_FRAMES = 100
+    ANIMATION_DURATION = 4000
 
     def __init__(self):
         QWidget.__init__(self)
@@ -82,8 +84,7 @@ class TrustGraphPage(QWidget):
 
         self.animation_timer = None
         self.animation_frame = 0
-        self.animation_refresh_interval = int(1000/self.FRAMES_PER_SECOND)
-        self.max_frames = self.REFRESH_INTERVAL_MS * self.FRAMES_PER_SECOND // 1000
+        self.animation_refresh_interval = self.ANIMATION_DURATION/self.MAX_FRAMES
 
     def showEvent(self, QShowEvent):
         super(TrustGraphPage, self).showEvent(QShowEvent)
@@ -129,16 +130,17 @@ class TrustGraphPage(QWidget):
         self.old_pos = None if self.pos is None else dict(self.pos)
         self.pos = data['positions']
 
-        self.animation_frame = 20
+        self.animation_frame = self.MAX_FRAMES
         self.animation_timer = QTimer()
         self.animation_timer.timeout.connect(self.update_graph)
-        self.animation_timer.setInterval(int(1000/self.FRAMES_PER_SECOND))
+        self.animation_timer.setInterval(self.ANIMATION_DURATION/self.MAX_FRAMES)
         self.animation_timer.start(0)
 
     def update_graph(self):
         self.animation_frame -= 1
         if self.animation_frame:
-            self.trust_plot.update_canvas(self.graph, self.pos, self.old_pos, self.animation_frame, self.max_frames)
+            self.trust_plot.update_canvas(self.graph, self.pos, self.old_pos, self.animation_frame, self.MAX_FRAMES)
         else:
             self.animation_timer.stop()
+            self.schedule_fetch_data_timer()
 
