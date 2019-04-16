@@ -7,7 +7,7 @@ First, install the required dependencies by executing the following command in y
 
 .. code-block:: none
 
-    sudo apt install ffmpeg libssl-dev libx11-6 vlc libgmp-dev python2.7 python-minimal python-pip python-cherrypy3 python-libtorrent python-meliae python-pyqt5 python-pyqt5.qtsvg python-scipy
+    sudo apt install ffmpeg libssl-dev libx11-6 vlc libgmp-dev python2.7 python-minimal python-pip python-cherrypy3 python-libtorrent python-meliae python-pyqt5 python-pyqt5.qtsvg python-scipy python-typing
 
 Secondly, install python packages
 
@@ -35,4 +35,4 @@ Execute the following command in your terminal:
 
 .. code-block:: none
 
-    pacman -S libsodium libtorrent-rasterbar python2-pyqt5 qt5-svg phonon-qt5-vlc python2-cherrypy python2-cryptography python2-decorator python2-chardet python2-netifaces python2-twisted python2-configobj python2-matplotlib python2-networkx python2-psutil python2-scipy python2-libnacl python2-lz4 python2-pony python2-pyopenssl
+    pacman -S libsodium libtorrent-rasterbar python2-pyqt5 qt5-svg phonon-qt5-vlc python2-cherrypy python2-cryptography python2-decorator python2-chardet python2-netifaces python2-twisted python2-configobj python2-matplotlib python2-networkx python2-psutil python2-scipy python2-libnacl python2-lz4 python2-pony python2-pyopenssl python2-typing
