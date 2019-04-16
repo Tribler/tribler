@@ -125,7 +125,7 @@ There are some additional packages which should be installed. They can easily be
 .. code-block:: none
 
     pip install cython  # Needs to be installed first for meliae
-    pip install bitcoinlib cherrypy chardet configobj cryptography decorator meliae netifaces networkx pillow psutil twisted libnacl
+    pip install bitcoinlib cherrypy chardet configobj cryptography decorator libnacl meliae netifaces networkx pillow psutil typing twisted
 
 Running Tribler
 ---------------
