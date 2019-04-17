@@ -56,6 +56,7 @@ class TestLaunchManyCore(TriblerCoreTest):
         fake_download.get_hops = lambda: 0
         fake_download.get_safe_seeding = lambda: True
         fake_download.get_peerlist = lambda: [fake_peer]
+        fake_download.hidden = False
         dl_state = MockObject()
         dl_state.get_infohash = lambda: 'aaaa'
         dl_state.get_status = lambda: DLSTATUS_SEEDING
