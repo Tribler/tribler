@@ -137,11 +137,11 @@ class EventsEndpoint(resource.Resource):
 
     def on_torrent_finished(self, subject, changetype, objectID, *args):
         self.write_data({"type": "torrent_finished", "event": {"infohash": hexlify(objectID), "name": args[0],
-                                                               "hidden":args[1]}})
+                                                               "hidden": args[1]}})
 
     def on_torrent_error(self, subject, changetype, objectID, *args):
         self.write_data({"type": "torrent_error", "event": {"infohash": hexlify(objectID), "error": args[0],
-                                                            "hidden":args[1]}})
+                                                            "hidden": args[1]}})
 
     def on_torrent_info_updated(self, subject, changetype, objectID, *args):
         self.write_data({"type": "torrent_info_updated", "event": dict(infohash=hexlify(objectID), **args[0])})

@@ -307,7 +307,7 @@ class TriblerWindow(QMainWindow):
         close_dialog.show()
 
     def on_torrent_finished(self, torrent_info):
-        if not torrent_info["hidden"]:
+        if "hidden" not in torrent_info or not torrent_info["hidden"]:
             self.tray_show_message("Download finished", "Download of %s has finished." % torrent_info["name"])
 
     def show_loading_screen(self):
