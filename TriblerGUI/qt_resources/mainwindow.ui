@@ -12141,7 +12141,7 @@ border: none;
                  </widget>
                 </item>
                 <item>
-                 <widget class="QProgressBar" name="trust_graph_progress_bar">
+                 <widget class="QProgressBar" name="trust_graph_progress_bar" native="true">
                   <property name="styleSheet">
                    <string notr="true">background-color: #fff</string>
                   </property>
@@ -12222,7 +12222,7 @@ border: none;
                    <bool>false</bool>
                   </property>
                   <property name="styleSheet">
-                   <string notr="true"/>
+                   <string notr="true">QWidget { border: none; }</string>
                   </property>
                   <layout class="QVBoxLayout" name="verticalLayout_14">
                    <property name="leftMargin">

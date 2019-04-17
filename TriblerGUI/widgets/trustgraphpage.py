@@ -184,6 +184,8 @@ class TrustGraphPage(QWidget):
     def on_received_data(self, data):
         if data is None:
             return
+        print data['bootstrap']
+        self.window().trust_graph_progress_bar.setValue(int(data['bootstrap']['progress'] * 100))
         self.graph = nx.node_link_graph(data['graph_data'])
         self.old_pos = None if self.pos is None else dict(self.pos)
         self.pos = data['positions']

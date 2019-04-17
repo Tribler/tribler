@@ -21,7 +21,7 @@ class NodeVision(object):
         self.graph.add_node(root_node)
 
         self.root_node = root_node
-        self.bfs_tree = {} # Bfs tree rooted at the peer
+        self.bfs_tree = {}  # Bfs tree rooted at the peer
         self.component = None  # The connected component which includes the peer
 
 

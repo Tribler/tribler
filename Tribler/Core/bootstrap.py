@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import logging
+import os
 from binascii import hexlify, unhexlify
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
@@ -17,6 +18,11 @@ class Bootstrap(object):
         self._logger = logging.getLogger(self.__class__.__name__)
         self.dcfg = DownloadStartupConfig(is_bootstrap_download=True)
         self.dcfg.set_dest_dir(boostrap_dir)
+        self.bootstrap_dir = boostrap_dir
+
+        self.infohash = None
+        self.download = None
+        self.bootstrap_nodes = {}
 
     def start_initial_seeder(self, download_function, bootstrap_file):
         """
@@ -29,7 +35,8 @@ class Bootstrap(object):
         tdef.set_piece_length(2 ** 16)
         tdef.save()
         self._logger.debug("Seeding bootstrap file %s", hexlify(tdef.infohash))
-        return download_function(tdef, download_startup_config=self.dcfg, hidden=True)
+        self.download = download_function(tdef, download_startup_config=self.dcfg, hidden=True)
+        self.infohash = tdef.get_infohash()
 
     def start_by_infohash(self, download_function, infohash):
         """
@@ -39,4 +46,27 @@ class Bootstrap(object):
         """
         self._logger.debug("Starting bootstrap downloading %s", infohash)
         tdef = TorrentDefNoMetainfo(unhexlify(infohash), name='bootstrap.block')
-        return download_function(tdef, download_startup_config=self.dcfg, hidden=True)
+        self.download = download_function(tdef, download_startup_config=self.dcfg, hidden=True)
+        self.infohash = infohash
+
+    def get_bootstrap_peers(self, dht=None):
+        if not self.download:
+            return {}
+
+        def on_dht_response(nodes):
+            for node in nodes:
+                self.bootstrap_nodes[node.mid] = node.public_key
+
+        for peer in self.download.get_peerlist():
+            if peer['id'] not in self.bootstrap_nodes:
+                self.bootstrap_nodes[peer['id']] = None
+                if dht:
+                    dht.connect_peer(peer['id']).addCallbacks(on_dht_response, lambda _: on_dht_response([]))
+
+        return self.bootstrap_nodes
+
+    def persist_nodes(self):
+        bootstrap_file = os.path.join(self.bootstrap_dir, "bootstrap.nodes")
+        with open(bootstrap_file, "wb") as boot_file:
+            for mid, public_key in self.bootstrap_nodes.items():
+                boot_file.write("%s:%s\n" % (mid, public_key))
