@@ -548,15 +548,13 @@ class TriblerLaunchMany(TaskManager):
                 self._logger.error("Error during download: %s", repr(ds.get_error()))
                 if self.download_exists(infohash):
                     self.get_download(infohash).stop()
-                    if not is_hidden:
-                        self.session.notifier.notify(NTFY_TORRENT, NTFY_ERROR, infohash, repr(ds.get_error()))
+                    self.session.notifier.notify(NTFY_TORRENT, NTFY_ERROR, infohash, repr(ds.get_error()), is_hidden)
             elif state == DLSTATUS_SEEDING:
                 seeding_download_list.append({u'infohash': infohash,
                                               u'download': download})
 
                 if infohash in self.previous_active_downloads:
-                    if not is_hidden:
-                        self.session.notifier.notify(NTFY_TORRENT, NTFY_FINISHED, infohash, safename)
+                    self.session.notifier.notify(NTFY_TORRENT, NTFY_FINISHED, infohash, safename, is_hidden)
                     do_checkpoint = True
                 elif download.get_hops() == 0 and download.get_safe_seeding():
                     # Re-add the download with anonymity enabled
