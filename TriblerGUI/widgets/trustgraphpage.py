@@ -20,17 +20,17 @@ from TriblerGUI.widgets.trustpage import MplCanvas
 class TrustAnimationCanvas(MplCanvas):
 
     def __init__(self, parent=None, width=5, height=5, dpi=100):
-        fig = Figure(figsize=(width, height), dpi=dpi)
-        fig.set_facecolor("#00000000")
-        fig.set_edgecolor("green")
+        self.fig = Figure(figsize=(width, height), dpi=dpi)
+        self.fig.set_facecolor("#00000000")
+        self.fig.set_edgecolor("green")
 
-        fig.set_tight_layout({"pad": 1})
-        self.axes = fig.add_subplot(111)
+        self.fig.set_tight_layout({"pad": 1})
+        self.axes = self.fig.add_subplot(111)
         self.axes.tick_params(axis='both', which='both', bottom=False, top=False, left=False,
                               labelbottom=False, labelleft=False)
         # self.plot_data = [[[0], [0]], [datetime.datetime.now()]]
 
-        FigureCanvas.__init__(self, fig)
+        FigureCanvas.__init__(self, self.fig)
         self.setParent(parent)
 
         FigureCanvas.setSizePolicy(self, QSizePolicy.Expanding, QSizePolicy.Expanding)
@@ -43,7 +43,7 @@ class TrustAnimationCanvas(MplCanvas):
         # self.ax = self.figure.add_axes([0.025, 0.1, 1, 1], frameon=False)
         # self.ax.set_xlim(0, 1), self.ax.set_xticks([])
         # self.ax.set_ylim(0, 1), self.ax.set_yticks([])
-        self._dynamic_ax = self.figure.subplots()
+        self._dynamic_ax = self.fig.subplots()
 
     def update_canvas(self, graph, pos, old_pos, edge_list, framecount=0, max_frames=20):
         if not framecount:
