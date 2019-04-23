@@ -53,15 +53,23 @@ class Bootstrap(object):
         if not self.download:
             return {}
 
-        def on_dht_response(nodes):
+        def on_dht_response(mid, nodes):
             for node in nodes:
-                self.bootstrap_nodes[node.mid] = node.public_key
+                node_mid = hexlify(node.mid)
+                # TODO: only persist peers with matching mid
+                # if node_mid == mid:
+                self.bootstrap_nodes[node_mid] = hexlify(node.public_key.key_to_bin())
+            self.persist_nodes()
+
+        def on_dht_error(error):
+            self._logger.error("Failed to get DHT response:%s", error)
 
         for peer in self.download.get_peerlist():
             if peer['id'] not in self.bootstrap_nodes:
-                self.bootstrap_nodes[peer['id']] = None
+                mid = peer['id']
+                self.bootstrap_nodes[mid] = None
                 if dht:
-                    dht.connect_peer(peer['id']).addCallbacks(on_dht_response, lambda _: on_dht_response([]))
+                    dht.find_nodes(mid).addCallback(lambda nodes, mid=mid: on_dht_response(mid, nodes)).addErrback(on_dht_error)
 
         return self.bootstrap_nodes
 
@@ -69,4 +77,5 @@ class Bootstrap(object):
         bootstrap_file = os.path.join(self.bootstrap_dir, "bootstrap.nodes")
         with open(bootstrap_file, "wb") as boot_file:
             for mid, public_key in self.bootstrap_nodes.items():
-                boot_file.write("%s:%s\n" % (mid, public_key))
+                if mid != "0000000000000000000000000000000000000000":
+                    boot_file.write("%s:%s\n" % (mid, public_key))
