@@ -12051,6 +12051,9 @@ margin-top: 9px;</string>
 
 A note on privacy: We respect your privacy and do not record what you're downloading but the amount of bandwidth shared.</string>
             </property>
+            <property name="textFormat">
+             <enum>Qt::RichText</enum>
+            </property>
             <property name="wordWrap">
              <bool>true</bool>
             </property>
@@ -12067,13 +12070,13 @@ A note on privacy: We respect your privacy and do not record what you're downloa
             <property name="minimumSize">
              <size>
               <width>0</width>
-              <height>150</height>
+              <height>56</height>
              </size>
             </property>
             <property name="maximumSize">
              <size>
               <width>16777215</width>
-              <height>300</height>
+              <height>84</height>
              </size>
             </property>
             <property name="styleSheet">
@@ -12097,6 +12100,18 @@ A note on privacy: We respect your privacy and do not record what you're downloa
              </property>
              <item>
               <widget class="QWidget" name="trust_graph_progress_box" native="true">
+               <property name="minimumSize">
+                <size>
+                 <width>0</width>
+                 <height>64</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>16777215</width>
+                 <height>64</height>
+                </size>
+               </property>
                <property name="styleSheet">
                 <string notr="true">QWidget {
 /*background-color: #383838;*/
@@ -12110,13 +12125,7 @@ border: none;
                  <number>0</number>
                 </property>
                 <item>
-                 <widget class="QLabel" name="trust_graph_progress_label">
-                  <property name="sizePolicy">
-                   <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                    <horstretch>0</horstretch>
-                    <verstretch>0</verstretch>
-                   </sizepolicy>
-                  </property>
+                 <widget class="QProgressBar" name="trust_graph_progress_bar">
                   <property name="minimumSize">
                    <size>
                     <width>0</width>
@@ -12130,23 +12139,13 @@ border: none;
                    </size>
                   </property>
                   <property name="styleSheet">
-                   <string notr="true">font-size: 20px; font-weight: bold;</string>
-                  </property>
-                  <property name="text">
-                   <string>Progress</string>
-                  </property>
-                  <property name="alignment">
-                   <set>Qt::AlignCenter</set>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="QProgressBar" name="trust_graph_progress_bar" native="true">
-                  <property name="styleSheet">
                    <string notr="true">background-color: #fff</string>
                   </property>
                   <property name="value">
                    <number>24</number>
+                  </property>
+                  <property name="format">
+                   <string>Progress %p%</string>
                   </property>
                  </widget>
                 </item>
@@ -12206,10 +12205,22 @@ border: none;
                 </property>
                 <item>
                  <widget class="QWidget" name="trust_graph_plot_widget" native="true">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                    <horstretch>1</horstretch>
+                    <verstretch>1</verstretch>
+                   </sizepolicy>
+                  </property>
                   <property name="minimumSize">
                    <size>
-                    <width>0</width>
+                    <width>250</width>
                     <height>250</height>
+                   </size>
+                  </property>
+                  <property name="sizeIncrement">
+                   <size>
+                    <width>1</width>
+                    <height>1</height>
                    </size>
                   </property>
                   <property name="baseSize">
@@ -12222,7 +12233,7 @@ border: none;
                    <bool>false</bool>
                   </property>
                   <property name="styleSheet">
-                   <string notr="true">QWidget { border: none; }</string>
+                   <string notr="true">QWidget { border: 2px solid red; }</string>
                   </property>
                   <layout class="QVBoxLayout" name="verticalLayout_14">
                    <property name="leftMargin">
@@ -12241,11 +12252,11 @@ border: none;
                  </widget>
                 </item>
                 <item>
-                 <widget class="QWidget" name="trust_graph_plot_widget2" native="true">
+                 <widget class="QWidget" name="trust_graph_bottom_widget" native="true">
                   <property name="minimumSize">
                    <size>
                     <width>0</width>
-                    <height>250</height>
+                    <height>20</height>
                    </size>
                   </property>
                   <property name="baseSize">
@@ -12274,23 +12285,15 @@ border: none;
                     <number>0</number>
                    </property>
                    <item>
-                    <widget class="QLabel" name="trust_graph_bottom_label1">
+                    <widget class="QLabel" name="trust_graph_status_bar">
                      <property name="text">
-                      <string>trust_graph_bottom_label1</string>
+                      <string>Peers: 0</string>
                      </property>
-                    </widget>
-                   </item>
-                   <item>
-                    <widget class="QLabel" name="trust_graph_bottom_label2">
-                     <property name="text">
-                      <string>trust_graph_bottom_label2</string>
+                     <property name="alignment">
+                      <set>Qt::AlignCenter</set>
                      </property>
-                    </widget>
-                   </item>
-                   <item>
-                    <widget class="QLabel" name="trust_graph_bottom_label2">
-                     <property name="text">
-                      <string>trust_graph_bottom_label3</string>
+                     <property name="margin">
+                      <number>25</number>
                      </property>
                     </widget>
                    </item>

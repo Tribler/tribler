@@ -128,3 +128,10 @@ CATEGORY_LIST = [
     u'XXX',
     u'Other',
 ]
+
+TRUST_GRAPH_HEADER_MESSAGE = "<hr/><i><strong>Tribler</strong> is about helping others. You become trusted if " \
+                             "you give away bandwidth. Such acts of kindness are registered in the " \
+                             "<a href='https://explorer.tribler.org' style='color:#ffffff'>Tribler blockchain</a>.  " \
+                             "The graph below shows your trust graph based on your blockchain records.</i><hr/>" \
+                             "A note on privacy: To respect your privacy, what content you download is never recorded" \
+                             "in the blockchain or shared. Instead, the amount of bandwidth shared is registered"

@@ -555,8 +555,8 @@ class TriblerLaunchMany(TaskManager):
                 for peer in download.get_peerlist():
                     if peer["extended_version"].startswith('Tribler'):
                         self.payout_manager.update_peer(unhexlify(peer["id"]), infohash, peer["dtotal"])
-                        if self.bootstrap and self.session.config.get_bootstrap_infohash() == self.bootstrap.infohash:
-                            self.bootstrap.persist_nodes()
+                        # if self.bootstrap and self.session.config.get_bootstrap_infohash() == self.bootstrap.infohash:
+                        #     self.bootstrap.persist_nodes()
 
         self.previous_active_downloads = new_active_downloads
         if do_checkpoint:
@@ -686,14 +686,13 @@ class TriblerLaunchMany(TaskManager):
         if self.session.config.get_bootstrap_enabled():
             if not self.payout_manager:
                 self._logger.warn("Running bootstrap without payout enabled")
-            self.bootstrap = Bootstrap(self.session.config.get_state_dir())
+            self.bootstrap = Bootstrap(self.session.config.get_state_dir(), dht=self.dht_community)
             bootstrap_file = os.path.join(self.session.config.get_state_dir(), 'bootstrap.block')
             if os.path.exists(bootstrap_file):
-                os.remove(bootstrap_file)
-                # self.bootstrap.start_initial_seeder(self.session.start_download_from_tdef, bootstrap_file)
-            # else:
-            self.bootstrap.start_by_infohash(self.session.start_download_from_tdef,
-                                             self.session.config.get_bootstrap_infohash())
+                self.bootstrap.start_initial_seeder(self.session.start_download_from_tdef, bootstrap_file)
+            else:
+                self.bootstrap.start_by_infohash(self.session.start_download_from_tdef,
+                                                 self.session.config.get_bootstrap_infohash())
 
     @inlineCallbacks
     def early_shutdown(self):
