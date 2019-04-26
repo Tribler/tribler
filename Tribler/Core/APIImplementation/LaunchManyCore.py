@@ -686,7 +686,8 @@ class TriblerLaunchMany(TaskManager):
         if self.session.config.get_bootstrap_enabled():
             if not self.payout_manager:
                 self._logger.warn("Running bootstrap without payout enabled")
-            self.bootstrap = Bootstrap(self.session.config.get_state_dir(), dht=self.dht_community)
+            bootstrap_dir = os.path.join(self.session.config.get_state_dir(), "bootstrap")
+            self.bootstrap = Bootstrap(bootstrap_dir, dht=self.dht_community)
             bootstrap_file = os.path.join(self.session.config.get_state_dir(), 'bootstrap.block')
             if os.path.exists(bootstrap_file):
                 self.bootstrap.start_initial_seeder(self.session.start_download_from_tdef, bootstrap_file)
