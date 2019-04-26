@@ -1,14 +1,19 @@
 import time
+
 import networkx as nx
+
 from PyQt5.QtCore import QTimer
+from PyQt5.QtWidgets import QSizePolicy, QWidget
+
+import matplotlib
 from matplotlib.backends.backend_qt5agg import FigureCanvas
 from matplotlib.pyplot import Figure
-
-from PyQt5.QtWidgets import QSizePolicy, QWidget
 
 from TriblerGUI.defs import TRUST_GRAPH_HEADER_MESSAGE
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.widgets.trustpage import MplCanvas
+
+matplotlib.use('Qt5Agg')
 
 
 class TrustAnimationCanvas(MplCanvas):
@@ -28,24 +33,19 @@ class TrustAnimationCanvas(MplCanvas):
 
         FigureCanvas.setSizePolicy(self, QSizePolicy.Expanding, QSizePolicy.Expanding)
         FigureCanvas.updateGeometry(self)
-        self.compute_initial_figure()
         self.node_id = None
 
     def compute_initial_figure(self):
         self.axes.cla()
         self.axes.set_title("Realtime view of your Trust Graph", color="#e0e0e0")
-        # self.ax = self.figure.add_axes([0.025, 0.1, 1, 1], frameon=False)
-        # self.ax.set_xlim(0, 1), self.ax.set_xticks([])
-        # self.ax.set_ylim(0, 1), self.ax.set_yticks([])
-        self._dynamic_ax = self.fig.subplots()
 
     def update_canvas(self, graph, node_id, pos, old_pos, edge_list, framecount=0, max_frames=20):
         if not graph or not framecount:
             return
 
-        self._dynamic_ax.clear()
-        self._dynamic_ax.set_xlim(0, 1), self._dynamic_ax.set_xticks([], [])
-        self._dynamic_ax.set_ylim(0, 1), self._dynamic_ax.set_yticks([], [])
+        self.axes.clear()
+        self.axes.set_xlim(0, 1), self.axes.set_xticks([], [])
+        self.axes.set_ylim(0, 1), self.axes.set_yticks([], [])
 
         xpos = []
         ypos = []
@@ -89,16 +89,16 @@ class TrustAnimationCanvas(MplCanvas):
             x2s.append(actual_pos[str(edge[1])][0])
             y2s.append(actual_pos[str(edge[1])][1])
 
-        self._dynamic_ax.set_facecolor('#202020')
-        self._dynamic_ax.plot([x1s, x2s], [y1s, y2s],
-                              marker='o', color='#e0e0e0', alpha=0.5, linestyle='--', lw=0.3,
-                              markersize=12, markeredgecolor='#ababab', markeredgewidth=1)
-        self._dynamic_ax.plot(actual_pos[node_id][0], actual_pos[node_id][1],
-                              marker='o', color='#e67300', alpha=1.0, linestyle='--', lw=1,
-                              markersize=24, markeredgecolor='#e67300', markeredgewidth=1)
-        self._dynamic_ax.text(actual_pos[node_id][0], actual_pos[node_id][1], "You", color='#ffffff', verticalalignment='center', horizontalalignment='center', fontsize=8)
+        self.axes.set_facecolor('#202020')
+        self.axes.plot([x1s, x2s], [y1s, y2s],
+                       marker='o', color='#e0e0e0', alpha=0.5, linestyle='--', lw=0.5,
+                       markersize=12, markeredgecolor='#ababab', markeredgewidth=1)
+        self.axes.plot(actual_pos[node_id][0], actual_pos[node_id][1],
+                       marker='o', color='#e67300', alpha=1.0, linestyle='--', lw=1,
+                       markersize=24, markeredgecolor='#e67300', markeredgewidth=1)
+        self.axes.text(actual_pos[node_id][0], actual_pos[node_id][1], "You", color='#ffffff', verticalalignment='center', horizontalalignment='center', fontsize=8)
 
-        self._dynamic_ax.figure.canvas.draw()
+        self.axes.figure.canvas.draw()
 
 
 class TrustGraphPage(QWidget):
