@@ -1,4 +1,7 @@
+from __future__ import absolute_import, division
+
 import random
+
 import networkx as nx
 
 
@@ -64,7 +67,7 @@ class GraphPositioning(object):
             children = list(G.neighbors(root))
             if not isinstance(G, nx.DiGraph) and parent is not None:
                 children.remove(parent)
-            if len(children) != 0:
+            if children:
                 dx = width/len(children)
                 nextx = xcenter - width/2 - dx/2
                 for child in children:

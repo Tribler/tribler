@@ -1,10 +1,13 @@
+from __future__ import absolute_import
+
 import logging
-from binascii import unhexlify, hexlify
+from binascii import hexlify, unhexlify
+
 import networkx as nx
 
 from twisted.web import resource
+
 import Tribler.Core.Utilities.json_util as json
-from Tribler.Core.Modules.restapi.util import fix_unicode_dict
 from Tribler.Core.Modules.TrustCalculation.local_view import NodeVision
 from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD
 
@@ -16,25 +19,29 @@ class TrustViewEndpoint(resource.Resource):
         self.session = session
         self._logger = logging.getLogger(self.__class__.__name__)
 
-        self.pub_key = self.session.lm.trustchain_community.my_peer.public_key.key_to_bin()
-        self.node_id = hexlify(self.pub_key)
-        self.local_view = NodeVision(self.node_id)
+        self.node_id = None
+        self.local_view = None
 
         self.bootstrap = None
         self.peers = []
         self.transactions = {}
         self.initialized = False
-        self.trustchain_db = self.session.lm.trustchain_community.persistence
+        self.trustchain_db = None
 
-    def write_json(self, request, message):
-        try:
-            message_str = json.twisted_dumps(message)
-        except UnicodeDecodeError:
-            # The message contains invalid characters; fix them
-            message_str = json.twisted_dumps(fix_unicode_dict(message))
-        request.write(message_str)
+    def initialize_graph(self):
+        if not self.initialized and self.session.lm.trustchain_community and not self.local_view:
+            pub_key = self.session.lm.trustchain_community.my_peer.public_key.key_to_bin()
+            self.node_id = hexlify(pub_key)
+            self.local_view = NodeVision(self.node_id)
+            self.trustchain_db = self.session.lm.trustchain_community.persistence
+            self.initialized = True
 
-    def block_to_edge(self, block):
+            # Start bootstrap download if not already done
+            if not self.session.lm.bootstrap:
+                self.session.lm.start_bootstrap_download()
+
+    @staticmethod
+    def block_to_edge(block):
         if not block:
             return None
 
@@ -43,11 +50,11 @@ class TrustViewEndpoint(resource.Resource):
             return {'downloader': hexlify(block.public_key),
                     'uploader': hexlify(block.link_public_key),
                     'amount': diff * -1
-                    }
+                   }
         return {'downloader': hexlify(block.link_public_key),
                 'uploader': hexlify(block.public_key),
                 'amount': diff
-                }
+               }
 
     def load_single_block(self, block):
         if block.hash not in self.transactions:
@@ -57,12 +64,12 @@ class TrustViewEndpoint(resource.Resource):
         for block in blocks:
             self.load_single_block(block)
 
-    def render_GET(self, request):
-        if not self.initialized:
-            self.load_bootstrap()
+    def render_GET(self, _):
+        self.initialize_graph()
 
         # Load your 25 latest trustchain blocks
-        blocks = self.trustchain_db.get_latest_blocks(self.pub_key)
+        pub_key = self.session.lm.trustchain_community.my_peer.public_key.key_to_bin()
+        blocks = self.trustchain_db.get_latest_blocks(pub_key)
         self.load_blocks(blocks)
 
         # Load 25 latest blocks of all the users in the database
@@ -85,11 +92,7 @@ class TrustViewEndpoint(resource.Resource):
                                    'positions': positions,
                                    'bootstrap': self.get_bootstrap_info(),
                                    'num_tx': len(self.transactions)
-                                   })
-
-    def load_bootstrap(self):
-        if not self.session.lm.bootstrap:
-            self.session.lm.start_bootstrap_download()
+                                  })
 
     def get_bootstrap_info(self):
         if self.session.lm.bootstrap.download and self.session.lm.bootstrap.download.get_state():
@@ -97,5 +100,5 @@ class TrustViewEndpoint(resource.Resource):
             return {'download': state.get_total_transferred(DOWNLOAD),
                     'upload': state.get_total_transferred(UPLOAD),
                     'progress': state.get_progress()
-                    }
+                   }
         return {'download': 0, 'upload': 0, 'progress': 0}

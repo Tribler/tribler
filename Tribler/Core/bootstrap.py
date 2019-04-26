@@ -14,14 +14,15 @@ class Bootstrap(object):
     Bootstrap class will be initialized at the start of Tribler by downloading/seeding bootstrap file.
     """
 
-    def __init__(self, boostrap_dir, dht=None):
+    def __init__(self, config_dir, dht=None):
         self._logger = logging.getLogger(self.__class__.__name__)
         self.dcfg = DownloadStartupConfig(is_bootstrap_download=True)
-        if not os.path.exists(boostrap_dir):
-            os.mkdir(boostrap_dir)
-        self.dcfg.set_dest_dir(boostrap_dir)
-        self.bootstrap_dir = boostrap_dir
-        self.bootstrap_file = os.path.join(self.bootstrap_dir, "bootstrap.nodes")
+        self.bootstrap_dir = os.path.join(config_dir, 'bootstrap')
+        if not os.path.exists(self.bootstrap_dir):
+            os.mkdir(self.bootstrap_dir)
+        self.dcfg.set_dest_dir(self.bootstrap_dir)
+        self.bootstrap_file = os.path.join(self.bootstrap_dir, "bootstrap.block")
+        self.nodes_file = os.path.join(self.bootstrap_dir, "bootstrap.nodes")
         self.dht = dht
 
         self.infohash = None
@@ -54,20 +55,9 @@ class Bootstrap(object):
         self.download = download_function(tdef, download_startup_config=self.dcfg, hidden=True)
         self.infohash = infohash
 
-    def get_bootstrap_peers(self):
+    def fetch_bootstrap_peers(self):
         if not self.download:
             return {}
-
-        def on_dht_response(mid, nodes):
-            for node in nodes[:5]:
-                node_mid = hexlify(node.mid)
-                # TODO: only persist peers with matching mid
-                if node_mid == mid:
-                    self.bootstrap_nodes[node_mid] = hexlify(node.public_key.key_to_bin())
-            self.persist_nodes()
-
-        def on_dht_error(error):
-            self._logger.error("Failed to get DHT response:%s", error)
 
         def on_success(nodes):
             if not nodes:
@@ -89,15 +79,15 @@ class Bootstrap(object):
         return self.bootstrap_nodes
 
     def persist_nodes(self):
-        with open(self.bootstrap_file, "wb") as boot_file:
+        with open(self.nodes_file, "wb") as boot_file:
             for mid, public_key in self.bootstrap_nodes.items():
                 if mid != "0000000000000000000000000000000000000000" and public_key:
                     boot_file.write("%s:%s\n" % (mid, public_key))
 
     def load_bootstrap_nodes(self):
-        if not os.path.exists(self.bootstrap_file):
+        if not os.path.exists(self.nodes_file):
             return
-        with open(self.bootstrap_file, "r") as boot_file:
+        with open(self.nodes_file, "r") as boot_file:
             for line in boot_file:
                 if line and ":" in line:
                     mid, pub_key = line.rstrip().split(":")

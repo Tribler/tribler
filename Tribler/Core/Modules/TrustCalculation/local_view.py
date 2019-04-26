@@ -1,8 +1,10 @@
-import networkx as nx
-import matplotlib.pyplot as plt
+from __future__ import absolute_import, division
+
 import math
+
+import networkx as nx
+
 from Tribler.Core.Modules.TrustCalculation.graph_positioning import GraphPositioning as gpos
-from random import choice, random
 
 
 class NodeVision(object):
@@ -23,7 +25,6 @@ class NodeVision(object):
         self.root_node = root_node
         self.bfs_tree = {}  # Bfs tree rooted at the peer
         self.component = None  # The connected component which includes the peer
-
 
         self.pos = self.lay_down_nodes()
         self.component_pos = dict(self.pos)
@@ -114,9 +115,7 @@ class NodeVision(object):
         if n1 in self.graph and n2 in self.graph.successors(n1):
             self.graph[n1][n2]['weight'] *= 0.8
             self.graph[n1][n2]['weight'] += (0.2 * w)
-            # print('Existing edge !!!')
         else:
-            # print('Non-Existing edge !!!')
             self.graph.add_edge(n1, n2, weight=w)
 
     def update_component(self):
@@ -127,52 +126,3 @@ class NodeVision(object):
         for node in self.graph:
             if node not in component_nodes:
                 self.component.remove_node(node)
-
-    # def make_random_transactions(self, tr_count):
-    #     trs = []
-    #     for i in range(tr_count):
-    #         neigh = choice(list(self.graph.nodes().keys()))
-    #         if neigh == self.root_node:
-    #             continue
-    #         if random() > 0.3:
-    #             trs.append({'downloader': self.root_node,
-    #                         'uploader': neigh,
-    #                         'amount': random() * 100})
-    #         else:
-    #             trs.append({'downloader': neigh,
-    #                         'uploader': self.root_node,
-    #                         'amount': random() * 100})
-    #     self.add_transactions(trs)
-    #
-    #
-    #
-    # def diminish_weights(self, remove=True):
-    #     to_be_removed = []
-    #     n_rem, n_not_rem = 0, 0
-    #     for n1, n2 in self.graph.edges():
-    #         self.graph[n1][n2]['weight'] *= 0.9
-    #         if self.graph[n1][n2]['weight'] < 0.5:
-    #             n_rem += 1
-    #             to_be_removed.append((n1, n2))
-    #         else:
-    #             n_not_rem += 1
-    #     if remove:
-    #         print('Removed: {}, Not removed: {}'.format(n_rem, n_not_rem))
-    #         self.graph.remove_edges_from(to_be_removed)
-    #
-    # def normalize_edge_weights(self, minwidth=0.5, maxwidth=2):
-    #     weights = [w for (n1, n2, w) in self.graph.edges(data='weight')]
-    #     maxw = max(weights)
-    #     minw = min(weights)
-    #
-    #     width_diff = (maxwidth - minwidth)
-    #     weight_diff = (maxw - minw)
-    #
-    #     for n1, n2 in self.graph.edges():
-    #         w = self.graph[n1][n2]['weight']
-    #         self.graph[n1][n2]['weight'] = minwidth + (width_diff
-    #                                                    * ((w - minw)
-    #                                                       / weight_diff))
-    #
-
-

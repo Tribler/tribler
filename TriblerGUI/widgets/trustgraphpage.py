@@ -1,6 +1,6 @@
-import time
+from __future__ import absolute_import, division
 
-import networkx as nx
+import time
 
 from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import QSizePolicy, QWidget
@@ -9,14 +9,15 @@ import matplotlib
 from matplotlib.backends.backend_qt5agg import FigureCanvas
 from matplotlib.pyplot import Figure
 
+import networkx as nx
+
 from TriblerGUI.defs import TRUST_GRAPH_HEADER_MESSAGE
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
-from TriblerGUI.widgets.trustpage import MplCanvas
 
 matplotlib.use('Qt5Agg')
 
 
-class TrustAnimationCanvas(MplCanvas):
+class TrustAnimationCanvas(FigureCanvas):
 
     def __init__(self, parent=None, width=5, height=5, dpi=100):
         self.fig = Figure(figsize=(width, height), dpi=dpi)
@@ -44,8 +45,10 @@ class TrustAnimationCanvas(MplCanvas):
             return
 
         self.axes.clear()
-        self.axes.set_xlim(0, 1), self.axes.set_xticks([], [])
-        self.axes.set_ylim(0, 1), self.axes.set_yticks([], [])
+        self.axes.set_xlim(0, 1)
+        self.axes.set_ylim(0, 1)
+        self.axes.set_xticks([], [])
+        self.axes.set_yticks([], [])
 
         xpos = []
         ypos = []
@@ -79,10 +82,8 @@ class TrustAnimationCanvas(MplCanvas):
             xpos.append(v[0])
             ypos.append(v[1])
 
-        # self._dynamic_ax.scatter(xpos, ypos)
-
         # Draw edges
-        x1s, x2s, y1s, y2s, lws = [], [], [], [], []
+        x1s, x2s, y1s, y2s = [], [], [], []
         for edge in edge_list:
             x1s.append(actual_pos[str(edge[0])][0])
             y1s.append(actual_pos[str(edge[0])][1])
@@ -96,7 +97,8 @@ class TrustAnimationCanvas(MplCanvas):
         self.axes.plot(actual_pos[node_id][0], actual_pos[node_id][1],
                        marker='o', color='#e67300', alpha=1.0, linestyle='--', lw=1,
                        markersize=24, markeredgecolor='#e67300', markeredgewidth=1)
-        self.axes.text(actual_pos[node_id][0], actual_pos[node_id][1], "You", color='#ffffff', verticalalignment='center', horizontalalignment='center', fontsize=8)
+        self.axes.text(actual_pos[node_id][0], actual_pos[node_id][1], "You", color='#ffffff',
+                       verticalalignment='center', horizontalalignment='center', fontsize=8)
 
         self.axes.figure.canvas.draw()
 
@@ -115,6 +117,8 @@ class TrustGraphPage(QWidget):
         self.fetch_data_timeout_timer = QTimer()
         self.fetch_data_last_update = 0
         self.graph_request_mgr = TriblerRequestManager()
+        self.graph = None
+        self.edges = None
         self.pos = None
         self.old_pos = None
         self.node_id = None
@@ -190,10 +194,10 @@ class TrustGraphPage(QWidget):
             return True
         if len(old_pos.keys()) != len(new_pos.keys()):
             return True
-        for id, pos in new_pos.items():
-            if id not in old_pos:
+        for node_id in new_pos.keys():
+            if node_id not in old_pos:
                 return True
-            if old_pos[id] != new_pos[id]:
+            if old_pos[node_id] != new_pos[node_id]:
                 return True
         return False
 
@@ -215,4 +219,3 @@ class TrustGraphPage(QWidget):
             self.window().trust_graph_progress_bar.setValue(bootstrap_progress)
         status_message = "Transactions: %s | Peers: %s" % (data['num_tx'], len(data['positions']))
         self.window().trust_graph_status_bar.setText(status_message)
-

@@ -515,7 +515,6 @@ class TriblerLaunchMany(TaskManager):
         This method is periodically (every second) called with a list of the download states of the active downloads.
         """
         self.state_cb_count += 1
-        # print "bootstrap infohash:", self.session.config.get_bootstrap_infohash()
 
         # Check to see if a download has finished
         new_active_downloads = []
@@ -555,8 +554,8 @@ class TriblerLaunchMany(TaskManager):
                 for peer in download.get_peerlist():
                     if peer["extended_version"].startswith('Tribler'):
                         self.payout_manager.update_peer(unhexlify(peer["id"]), infohash, peer["dtotal"])
-                        # if self.bootstrap and self.session.config.get_bootstrap_infohash() == self.bootstrap.infohash:
-                        #     self.bootstrap.persist_nodes()
+                        if self.bootstrap and hexlify(infohash) == self.session.config.get_bootstrap_infohash():
+                            self.bootstrap.fetch_bootstrap_peers()
 
         self.previous_active_downloads = new_active_downloads
         if do_checkpoint:
@@ -686,11 +685,10 @@ class TriblerLaunchMany(TaskManager):
         if self.session.config.get_bootstrap_enabled():
             if not self.payout_manager:
                 self._logger.warn("Running bootstrap without payout enabled")
-            bootstrap_dir = os.path.join(self.session.config.get_state_dir(), "bootstrap")
-            self.bootstrap = Bootstrap(bootstrap_dir, dht=self.dht_community)
-            bootstrap_file = os.path.join(self.session.config.get_state_dir(), 'bootstrap.block')
-            if os.path.exists(bootstrap_file):
-                self.bootstrap.start_initial_seeder(self.session.start_download_from_tdef, bootstrap_file)
+            self.bootstrap = Bootstrap(self.session.config.get_state_dir(), dht=self.dht_community)
+            if os.path.exists(self.bootstrap.bootstrap_file):
+                self.bootstrap.start_initial_seeder(self.session.start_download_from_tdef,
+                                                    self.bootstrap.bootstrap_file)
             else:
                 self.bootstrap.start_by_infohash(self.session.start_download_from_tdef,
                                                  self.session.config.get_bootstrap_infohash())
