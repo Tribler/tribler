@@ -67,7 +67,6 @@ class TrustViewEndpoint(resource.Resource):
 
         # Load 25 latest blocks of all the users in the database
         userblocks = self.trustchain_db.get_users()
-        print "num users:", len(userblocks)
         for userblock in userblocks:
             blocks = self.trustchain_db.get_latest_blocks(unhexlify(userblock['public_key']), limit=25)
             self.load_blocks(blocks)

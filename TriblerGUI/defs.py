@@ -132,6 +132,9 @@ CATEGORY_LIST = [
 TRUST_GRAPH_HEADER_MESSAGE = "<hr/><i><strong>Tribler</strong> is about helping others. You become trusted if " \
                              "you give away bandwidth. Such acts of kindness are registered in the " \
                              "<a href='https://explorer.tribler.org' style='color:#ffffff'>Tribler blockchain</a>.  " \
-                             "The graph below shows your trust graph based on your blockchain records.</i><hr/>" \
-                             "A note on privacy: To respect your privacy, what content you download is never recorded" \
-                             "in the blockchain or shared. Instead, the amount of bandwidth shared is registered"
+                             "The graph below shows your trust graph based on your blockchain records. In the graph, " \
+                             "the highly connected peers are brighter than others and the ones you interacted with " \
+                             "are closer to you.</i><hr/>" \
+                             "<i>A note on privacy: We respect your privacy and never actively share what content " \
+                             "you download or seed. Instead, the accounting of bandwidth given or taken is recorded " \
+                             "in the blockchain so graphs like this can be built.</i>"
