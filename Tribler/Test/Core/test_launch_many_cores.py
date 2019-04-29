@@ -36,6 +36,7 @@ class TestLaunchManyCore(TriblerCoreTest):
         self.lm.session.config.get_max_upload_rate = lambda: 100
         self.lm.session.config.get_max_download_rate = lambda: 100
         self.lm.session.config.get_default_number_hops = lambda: 0
+        self.lm.session.config.get_bootstrap_download = lambda: '0' * 20
 
         # Ignore notifications
         mock_notifier = MockObject()
@@ -192,22 +193,22 @@ class TestLaunchManyCoreSeederBootstrapSession(TestAsServer):
         for section in config_sections:
             self.config.config[section]['enabled'] = True
 
-        self.full_path = os.path.join(self.config.get_state_dir(), 'bootstrap.block')
         self.bootstrap = Bootstrap(self.config.get_state_dir())
-        self.tdef = create_dummy_tdef(self.full_path, 10, 666)
+        self.tdef = create_dummy_tdef(self.bootstrap.bootstrap_file, 10, 666)
 
     def downloader_state_callback(self, ds):
         if ds.get_status() == DLSTATUS_SEEDING:
-            os.remove(self.full_path)
+            os.remove(self.bootstrap.bootstrap_file)
             self.test_deferred.callback(None)
             return 0.0
         return 0.5
 
     @trial_timeout(20)
     def test_bootstrap_seeder(self):
+        self.session.lm.start_bootstrap_download()
         self.assertTrue(self.tdef.infohash in self.session.lm.downloads)
-        self.assertIsNotNone(self.session.lm.bootstrap_download)
-        self.session.lm.bootstrap_download.set_state_callback(self.downloader_state_callback)
+        self.assertIsNotNone(self.session.lm.bootstrap.download)
+        self.session.lm.bootstrap.download.set_state_callback(self.downloader_state_callback)
         return self.test_deferred
 
     @inlineCallbacks
@@ -242,8 +243,9 @@ class TestLaunchManyCoreBootstrapSession(TestAsServer):
     @trial_timeout(20)
     def test_bootstrap_downloader(self):
         infohash = self.config.get_bootstrap_infohash()
-        self.assertIsNotNone(self.session.lm.bootstrap_download)
+        self.session.lm.start_bootstrap_download()
+        self.assertIsNotNone(self.session.lm.bootstrap)
         self.assertTrue(unhexlify(infohash) in self.session.lm.downloads,
                         "Infohash %s Should be in downloads" % infohash)
-        self.session.lm.bootstrap_download.set_state_callback(self.downloader_state_callback)
+        self.session.lm.bootstrap.download.set_state_callback(self.downloader_state_callback)
         return self.test_deferred

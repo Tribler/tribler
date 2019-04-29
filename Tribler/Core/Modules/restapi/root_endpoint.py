@@ -17,6 +17,7 @@ from Tribler.Core.Modules.restapi.state_endpoint import StateEndpoint
 from Tribler.Core.Modules.restapi.statistics_endpoint import StatisticsEndpoint
 from Tribler.Core.Modules.restapi.torrentinfo_endpoint import TorrentInfoEndpoint
 from Tribler.Core.Modules.restapi.trustchain_endpoint import TrustchainEndpoint
+from Tribler.Core.Modules.restapi.trustview_endpoint import TrustViewEndpoint
 from Tribler.Core.Modules.restapi.wallets_endpoint import WalletsEndpoint
 from Tribler.pyipv8.ipv8.REST.root_endpoint import RootEndpoint as IPV8RootEndpoint
 
@@ -53,6 +54,7 @@ class RootEndpoint(resource.Resource):
             b"debug": DebugEndpoint,
             b"shutdown": ShutdownEndpoint,
             b"trustchain": TrustchainEndpoint,
+            b"trustview": TrustViewEndpoint,
             b"statistics": StatisticsEndpoint,
             b"market": MarketEndpoint,
             b"wallets": WalletsEndpoint,

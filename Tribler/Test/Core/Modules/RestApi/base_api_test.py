@@ -63,6 +63,7 @@ class AbstractBaseApiTest(TestAsServer):
         self.config.set_http_api_enabled(True)
         self.config.set_http_api_retry_port(True)
         self.config.set_tunnel_community_enabled(False)
+        self.config.set_trustchain_enabled(False)
 
         # Make sure we select a random port for the HTTP API
         min_base_port = 1000 if not os.environ.get("TEST_BUCKET", None) \
