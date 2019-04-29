@@ -34,14 +34,13 @@ class TrustAnimationCanvas(FigureCanvas):
 
         FigureCanvas.setSizePolicy(self, QSizePolicy.Expanding, QSizePolicy.Expanding)
         FigureCanvas.updateGeometry(self)
-        self.node_id = None
 
     def compute_initial_figure(self):
         self.axes.cla()
         self.axes.set_title("Realtime view of your Trust Graph", color="#e0e0e0")
 
-    def update_canvas(self, graph, node_id, pos, old_pos, edge_list, framecount=0, max_frames=20):
-        if not graph or not framecount:
+    def update_canvas(self, graph, node_id, pos, old_pos, edge_list, frame_count=0, max_frames=20):
+        if not graph or not frame_count:
             return
 
         self.axes.clear()
@@ -50,54 +49,71 @@ class TrustAnimationCanvas(FigureCanvas):
         self.axes.set_xticks([], [])
         self.axes.set_yticks([], [])
 
-        xpos = []
-        ypos = []
+        # To support animation, new positions of the nodes are calculated based on the frame rate.
+        move_frame_fraction = 1 - (frame_count - 1) / (1.0 * max_frames)
+        current_positions = self.compute_node_positions(graph, pos, old_pos, move_frame_fraction)
+
+        # Draw the graph based on the current positions of the nodes
+        self.draw_graph(node_id, current_positions, edge_list)
+
+    def compute_node_positions(self, graph, target_pos, old_pos, move_fraction):
+        """
+        Computes the new position of the nodes to animate the graph based on frame rate (represented by move fraction).
+        :param graph: Graph
+        :param target_pos: Final position of the nodes
+        :param old_pos: Previous position of the nodes
+        :param move_fraction: Represents how close the current position should be from the target position.
+        :return: Positions of the nodes to render in the graph
+        """
         actual_pos = {}
 
         if old_pos is None:
             nodes = [n for n in graph.nodes]
             for n in nodes:
-                actual_pos[n] = ((pos[n][0]), (pos[n][1]))
+                actual_pos[n] = ((target_pos[n][0]), (target_pos[n][1]))
         else:
-            for n in set(old_pos.keys()).difference(pos.keys()):
+            for n in set(old_pos.keys()).difference(target_pos.keys()):
                 old_pos[n] = (1.0, 0.0)
-            for n in set(pos.keys()).difference(old_pos.keys()):
-                pos[n] = (0.0, 0.0)
+            for n in set(target_pos.keys()).difference(old_pos.keys()):
+                target_pos[n] = (0.0, 0.0)
 
-            move_frame_fraction = 1 - (framecount - 1) / (1.0 * max_frames)
             nodes = [n for n in graph.nodes]
             for n in nodes:
                 if old_pos is not None:
-                    if n not in pos:
-                        pos[n] = (0.0, 0.0)
+                    if n not in target_pos:
+                        target_pos[n] = (0.0, 0.0)
                     if n not in old_pos:
                         old_pos[n] = (0.0, 1.0)
-                    actual_pos[n] = ((((pos[n][0] - old_pos[n][0]) * move_frame_fraction) + old_pos[n][0]),
-                                     (((pos[n][1] - old_pos[n][1]) * move_frame_fraction) + old_pos[n][1]))
+                    actual_pos[n] = ((((target_pos[n][0] - old_pos[n][0]) * move_fraction) + old_pos[n][0]),
+                                     (((target_pos[n][1] - old_pos[n][1]) * move_fraction) + old_pos[n][1]))
                 else:
-                    actual_pos[n] = ((pos[n][0]),
-                                     (pos[n][1]))
+                    actual_pos[n] = ((target_pos[n][0]),
+                                     (target_pos[n][1]))
+        return actual_pos
 
-        for v in actual_pos.values():
-            xpos.append(v[0])
-            ypos.append(v[1])
-
-        # Draw edges
+    def draw_graph(self, root_node, node_positions, edges):
+        """
+        Draws graph using the nodes and edges provided from root_node perspective.
+        :param root_node: Central node
+        :param node_positions: List of positions (x,y) of all the graph nodes.
+        :param edges: Node edges in the graph
+        :return: None
+        """
         x1s, x2s, y1s, y2s = [], [], [], []
-        for edge in edge_list:
-            x1s.append(actual_pos[str(edge[0])][0])
-            y1s.append(actual_pos[str(edge[0])][1])
-            x2s.append(actual_pos[str(edge[1])][0])
-            y2s.append(actual_pos[str(edge[1])][1])
+        for edge in edges:
+            x1s.append(node_positions[str(edge[0])][0])
+            y1s.append(node_positions[str(edge[0])][1])
+            x2s.append(node_positions[str(edge[1])][0])
+            y2s.append(node_positions[str(edge[1])][1])
 
         self.axes.set_facecolor('#202020')
         self.axes.plot([x1s, x2s], [y1s, y2s],
                        marker='o', color='#e0e0e0', alpha=0.5, linestyle='--', lw=0.5,
                        markersize=12, markeredgecolor='#ababab', markeredgewidth=1)
-        self.axes.plot(actual_pos[node_id][0], actual_pos[node_id][1],
+        self.axes.plot(node_positions[root_node][0], node_positions[root_node][1],
                        marker='o', color='#e67300', alpha=1.0, linestyle='--', lw=1,
                        markersize=24, markeredgecolor='#e67300', markeredgewidth=1)
-        self.axes.text(actual_pos[node_id][0], actual_pos[node_id][1], "You", color='#ffffff',
+        self.axes.text(node_positions[root_node][0], node_positions[root_node][1], "You", color='#ffffff',
                        verticalalignment='center', horizontalalignment='center', fontsize=8)
 
         self.axes.figure.canvas.draw()
