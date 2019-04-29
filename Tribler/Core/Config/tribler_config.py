@@ -18,7 +18,7 @@ from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.exceptions import InvalidConfigException
 from Tribler.Core.osutils import get_appstate_dir
 
-FILENAME = 'triblerd.conf'
+CONFIG_FILENAME = 'triblerd.conf'
 SPEC_FILENAME = 'config.spec'
 CONFIG_SPEC_PATH = os.path.join(get_lib_path(), 'Core', 'Config', SPEC_FILENAME)
 
@@ -39,13 +39,12 @@ class TriblerConfig(object):
         :raises an InvalidConfigException if ConfigObj is invalid
         """
         self._logger = logging.getLogger(self.__class__.__name__)
+        self._state_dir = self.get_default_state_dir()
 
         if config is None:
-            file_name = os.path.join(self.get_default_state_dir(), FILENAME)
-            if os.path.exists(file_name):
-                config = ConfigObj(file_name, configspec=CONFIG_SPEC_PATH, default_encoding='utf-8')
-            else:
-                config = ConfigObj(configspec=CONFIG_SPEC_PATH, default_encoding='utf-8')
+            config_file = os.path.join(self._state_dir, CONFIG_FILENAME)
+            config = ConfigObj(infile=(config_file if os.path.exists(config_file) else None),
+                               configspec=CONFIG_SPEC_PATH, default_encoding='utf-8')
         self.config = config
         self.validate()
 
@@ -53,6 +52,19 @@ class TriblerConfig(object):
         if not self.config['download_defaults']['saveas']:
             self.config['download_defaults']['saveas'] = get_default_dest_dir()
         self.selected_ports = {}
+
+    def abspath(self, path):
+        return path if os.path.isabs(path) else os.path.join(self.get_state_dir(), path)
+
+    def norm_path(self, path):
+        """
+        Return absolute path if it points outside the state dir. Otherwise, change it to relative path.
+        """
+        if os.path.isabs(path):
+            base_path = self.get_state_dir()
+            if base_path == os.path.commonprefix([path, base_path]):
+                return os.path.relpath(path, base_path)
+        return path
 
     @staticmethod
     def load(config_path=None):
@@ -90,20 +102,17 @@ class TriblerConfig(object):
         """
         if not os.path.exists(self.get_state_dir()):
             os.makedirs(self.get_state_dir())
-        self.config.filename = os.path.join(self.get_state_dir(), FILENAME)
+        self.config.filename = os.path.join(self.get_state_dir(), CONFIG_FILENAME)
         self.config.write()
 
     @staticmethod
     def get_default_state_dir(home_dir_postfix=u'.Tribler'):
         """Get the default application state directory."""
         if 'TSTATEDIR' in os.environ:
-            return os.environ['TSTATEDIR']
+            path = os.environ['TSTATEDIR']
+            return path if os.path.isabs(path) else os.path.join(os.getcwd(), path)
 
-        if os.path.isdir(home_dir_postfix):
-            return os.path.abspath(home_dir_postfix)
-
-        application_directory = get_appstate_dir()
-        return os.path.join(application_directory, home_dir_postfix)
+        return os.path.join(get_appstate_dir(), home_dir_postfix)
 
     def _obtain_port(self, section, option):
         """
@@ -133,40 +142,28 @@ class TriblerConfig(object):
         return self.config['chant']['enabled']
 
     def set_chant_channels_dir(self, chant_db_filename):
-        self.config['chant']['channels_dir'] = chant_db_filename
+        self.config['chant']['channels_dir'] = self.norm_path(chant_db_filename)
 
     def get_chant_channels_dir(self):
-        path = self.config['chant']['channels_dir']
-        return path if os.path.isabs(path) else os.path.join(self.get_state_dir(), path)
+        return self.abspath(self.config['chant']['channels_dir'])
 
     def set_state_dir(self, state_dir):
-        self.config["general"]["state_dir"] = state_dir
+        self._state_dir = state_dir
 
     def get_state_dir(self):
-        if not self.config["general"]["state_dir"]:
-            self.set_state_dir(TriblerConfig.get_default_state_dir())
-
-        return self.config["general"]["state_dir"]
+        return self._state_dir
 
     def set_trustchain_keypair_filename(self, keypairfilename):
-        self.config['trustchain']['ec_keypair_filename'] = keypairfilename
+        self.config['trustchain']['ec_keypair_filename'] = self.norm_path(keypairfilename)
 
     def get_trustchain_keypair_filename(self):
-        file_name = self.config['trustchain']['ec_keypair_filename']
-        if not file_name:
-            file_name = os.path.join(self.get_state_dir(), 'ec_multichain.pem')
-            self.set_trustchain_keypair_filename(file_name)
-        return file_name
+        return self.abspath(self.config['trustchain']['ec_keypair_filename'])
 
     def set_trustchain_testnet_keypair_filename(self, keypairfilename):
-        self.config['trustchain']['testnet_keypair_filename'] = keypairfilename
+        self.config['trustchain']['testnet_keypair_filename'] = self.norm_path(keypairfilename)
 
     def get_trustchain_testnet_keypair_filename(self):
-        file_name = self.config['trustchain']['testnet_keypair_filename']
-        if not file_name:
-            file_name = os.path.join(self.get_state_dir(), 'ec_trustchain_testnet.pem')
-            self.set_trustchain_testnet_keypair_filename(file_name)
-        return file_name
+        return self.abspath(self.config['trustchain']['testnet_keypair_filename'])
 
     def set_trustchain_enabled(self, value):
         self.config['trustchain']['enabled'] = value
@@ -199,11 +196,10 @@ class TriblerConfig(object):
         return self.config['trustchain']['live_edges_enabled']
 
     def set_log_dir(self, value):
-        self.config['general']['log_dir'] = value
+        self.config['general']['log_dir'] = self.norm_path(value)
 
     def get_log_dir(self):
-        log_dir = self.config['general']['log_dir']
-        return os.path.join(self.get_state_dir(), 'logs') if (not log_dir or log_dir == 'None') else log_dir
+        return self.abspath(self.config['general']['log_dir'])
 
     def set_testnet(self, value):
         self.config['general']['testnet'] = value
@@ -497,10 +493,10 @@ class TriblerConfig(object):
         return self.config['download_defaults']['safeseeding_enabled']
 
     def set_default_destination_dir(self, value):
-        self.config['download_defaults']['saveas'] = value
+        self.config['download_defaults']['saveas'] = self.norm_path(value)
 
     def get_default_destination_dir(self):
-        return self.config['download_defaults']['saveas']
+        return self.abspath(self.config['download_defaults']['saveas'])
 
     # Market Community
 
@@ -561,10 +557,10 @@ class TriblerConfig(object):
         return self.config['watch_folder']['enabled']
 
     def set_watch_folder_path(self, value):
-        self.config['watch_folder']['directory'] = value
+        self.config['watch_folder']['directory'] = self.norm_path(value)
 
     def get_watch_folder_path(self):
-        return self.config['watch_folder']['directory']
+        return self.abspath(self.config['watch_folder']['directory'])
 
     # Resource monitor
 
