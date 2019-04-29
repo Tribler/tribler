@@ -20,9 +20,10 @@ class TestTriblerConfig(TriblerCoreTest):
         """
         super(TestTriblerConfig, self).setUp()
 
+        state_dir = self.getStateDir()
+        TriblerConfig.get_default_state_dir = lambda _: state_dir
+
         self.tribler_config = TriblerConfig()
-        TriblerConfig.get_default_state_dir = lambda _: self.getStateDir()
-        self.tribler_config.set_state_dir(self.getStateDir())
         self.assertIsNotNone(self.tribler_config)
 
     def test_init_with_config(self):

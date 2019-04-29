@@ -57,13 +57,14 @@ class TestGigaChannelManager(TriblerCoreTest):
             self.torrents_added = 1
 
         self.mock_session.lm.add = mock_add
+        self.mock_session.config = MockObject()
+        self.mock_session.config.get_state_dir = lambda: None
         #   self.mock_session.has_download = lambda x: x == str(chan.infohash)
 
         # Check add personal channel on startup
         self.mock_session.has_download = lambda _: False
         self.chanman.service_channels = lambda: None  # Disable looping call
         self.chanman.start()
-        self.chanman.check_channels_updates()
         self.assertTrue(self.torrents_added)
         self.chanman.shutdown()
 

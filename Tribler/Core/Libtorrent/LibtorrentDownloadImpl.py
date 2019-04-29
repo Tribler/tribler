@@ -125,6 +125,9 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         self.finished_deferred_already_called = False
         self.is_bootstrap_download = False
 
+        if session:
+            self.state_dir = self.session.config.get_state_dir()
+
         # With hidden True download will not be in GET/downloads set, as a result will not be shown in GUI
         self.hidden = False
 
@@ -219,10 +222,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
             deferred = Deferred()
             with self.dllock:
                 # Copy dlconfig, from default if not specified
-                if dcfg is None:
-                    cdcfg = DownloadStartupConfig()
-                else:
-                    cdcfg = dcfg
+                cdcfg = dcfg or DownloadStartupConfig(state_dir=self.session.config.get_state_dir())
 
                 self.is_bootstrap_download = cdcfg.is_bootstrap_download
                 self.dlconfig = cdcfg.dlconfig.copy()
@@ -294,8 +294,10 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                         self.orig_files[i] = filename_new
 
                 atp["ti"] = torrentinfo
-                has_resume_data = resume_data and isinstance(resume_data, dict)
-                if has_resume_data:
+                if resume_data and isinstance(resume_data, dict):
+                    # Rewrite save_path as a global path, if it is given as a relative path
+                    if "save_path" in resume_data and not os.path.isabs(resume_data["save_path"]):
+                        resume_data["save_path"] = str(os.path.join(self.state_dir, resume_data["save_path"]))
                     atp["resume_data"] = lt.bencode(resume_data)
             else:
                 atp["url"] = self.tdef.get_url() or "magnet:?xt=urn:btih:" + hexlify(self.tdef.get_infohash())
@@ -509,6 +511,12 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         resume_data = alert.resume_data
 
         self.pstate_for_restart = self.get_persistent_download_config()
+
+        # Make save_path relative if the torrent is saved in the Tribler state directory
+        if self.state_dir and 'save_path' in resume_data and os.path.abspath(resume_data['save_path']):
+            if self.state_dir == os.path.commonprefix([resume_data['save_path'], self.state_dir]):
+                resume_data['save_path'] = str(os.path.relpath(resume_data['save_path'], self.state_dir))
+
         self.pstate_for_restart.set('state', 'engineresumedata', resume_data)
         self._logger.debug("%s get resume data %s", hexlify(resume_data['info-hash']), resume_data)
 
@@ -771,9 +779,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
             # self.handle.status().save_path to query the save path of a torrent. However, this attribute
             # is only included in libtorrent 1.0.9+
             status = self.handle.status()
-            if hasattr(status, 'save_path'):
-                return status.save_path
-            return self.handle.save_path()
+            return status.save_path if hasattr(status, 'save_path') else self.handle.save_path()
 
     @checkHandleAndSynchronize()
     def force_recheck(self):
