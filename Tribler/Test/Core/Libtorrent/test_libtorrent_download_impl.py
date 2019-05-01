@@ -9,7 +9,7 @@ from libtorrent import bdecode, bencode
 
 from six.moves import xrange
 
-from twisted.internet.defer import Deferred, succeed, inlineCallbacks
+from twisted.internet.defer import Deferred, inlineCallbacks, succeed
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
@@ -136,6 +136,9 @@ class TestLibtorrentDownloadImpl(TestAsServer):
     @trial_timeout(20)
     @inlineCallbacks
     def test_multifile_torrent(self):
+        # Achtung! This test is completely and utterly broken, as is the whole libtorrent wrapper!
+        # Don't try to understand it, it is a legacy thing!
+
         tdef = TorrentDef()
 
         tdef.add_content(os.path.join(TESTS_DATA_DIR, "video.avi"))
@@ -160,8 +163,6 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         # Create a dummy download config
         impl.dlconfig = DownloadStartupConfig().dlconfig.copy()
 
-        #FIXME: Achtung! This test is completely and utterly broken, as is the whole libtorrent wrapper!
-        # Don't try to understand it, it is a legacy thing!
         pstate = CallbackConfigParser()
         pstate.add_section("state")
         pstate.set("state", "engineresumedata", {"save_path": str(os.path.abspath(self.state_dir))})

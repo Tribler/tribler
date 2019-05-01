@@ -598,8 +598,12 @@ class TriblerLaunchMany(TaskManager):
 
     def resume_download(self, filename, setupDelay=0):
 
-        pstate = self.load_download_pstate(filename)
-        if not pstate:
+        try:
+            pstate = self.load_download_pstate(filename)
+            if not pstate:
+                return
+        except Exception as e:
+            self._logger.exception("tlm: could not open checkpoint file %s", str(filename))
             return
 
         metainfo = pstate.get('state', 'metainfo')
