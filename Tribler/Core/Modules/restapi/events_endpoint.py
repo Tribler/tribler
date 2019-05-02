@@ -31,7 +31,6 @@ class EventsEndpoint(resource.Resource):
       includes information about whether Tribler has started already or not and the version of Tribler used.
     - search_result_channel: This event dictionary contains a search result with a channel that has been found.
     - search_result_torrent: This event dictionary contains a search result with a torrent that has been found.
-    - upgrader_started: An indication that the Tribler upgrader has started.
     - upgrader_finished: An indication that the Tribler upgrader has finished.
     - upgrader_tick: An indication that the state of the upgrader has changed. The dictionary contains a human-readable
       string with the new state.
@@ -70,7 +69,6 @@ class EventsEndpoint(resource.Resource):
         self.infohashes_sent = set()
         self.channel_cids_sent = set()
 
-        self.session.add_observer(self.on_upgrader_started, NTFY_UPGRADER, [NTFY_STARTED])
         self.session.add_observer(self.on_upgrader_finished, NTFY_UPGRADER, [NTFY_FINISHED])
         self.session.add_observer(self.on_upgrader_tick, NTFY_UPGRADER_TICK, [NTFY_STARTED])
         self.session.add_observer(self.on_watch_folder_corrupt_torrent,
@@ -110,9 +108,6 @@ class EventsEndpoint(resource.Resource):
             return
         else:
             [request.write(message_str + '\n') for request in self.events_requests]
-
-    def on_upgrader_started(self, subject, changetype, objectID, *args):
-        self.write_data({"type": "upgrader_started"})
 
     def on_upgrader_finished(self, subject, changetype, objectID, *args):
         self.write_data({"type": "upgrader_finished"})

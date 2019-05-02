@@ -8427,6 +8427,57 @@ font-weight:bold;</string>
                </property>
               </widget>
              </item>
+             <item>
+              <widget class="QPushButton" name="skip_conversion_btn">
+               <property name="enabled">
+                <bool>true</bool>
+               </property>
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="minimumSize">
+                <size>
+                 <width>180</width>
+                 <height>32</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>180</width>
+                 <height>32</height>
+                </size>
+               </property>
+               <property name="layoutDirection">
+                <enum>Qt::LeftToRight</enum>
+               </property>
+               <property name="autoFillBackground">
+                <bool>false</bool>
+               </property>
+               <property name="styleSheet">
+                <string notr="true">border-radius:16px;
+background-color:#e67300;
+color:#fff;
+padding:0 10px;
+text-transform:  uppercase;
+font-weight:bold;</string>
+               </property>
+               <property name="text">
+                <string>Skip</string>
+               </property>
+               <property name="autoDefault">
+                <bool>false</bool>
+               </property>
+               <property name="default">
+                <bool>false</bool>
+               </property>
+               <property name="flat">
+                <bool>false</bool>
+               </property>
+              </widget>
+             </item>
             </layout>
            </widget>
           </item>
@@ -12850,6 +12901,22 @@ color: #eee;</string>
    </hints>
   </connection>
   <connection>
+   <sender>skip_conversion_btn</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>clicked_skip_conversion()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>20</x>
+     <y>20</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>20</x>
+     <y>20</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
    <sender>channel_back_button</sender>
    <signal>clicked()</signal>
    <receiver>MainWindow</receiver>
@@ -12936,6 +13003,7 @@ color: #eee;</string>
   <slot>on_trust_button_click()</slot>
   <slot>clicked_menu_button_search()</slot>
   <slot>clicked_force_shutdown()</slot>
+  <slot>clicked_skip_conversion()</slot>
   <slot>clicked_menu_button_trust_graph()</slot>
  </slots>
 </ui>

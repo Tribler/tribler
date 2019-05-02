@@ -83,10 +83,9 @@ class TestEventsEndpoint(AbstractApiTest):
         """
         Testing whether various events are coming through the events endpoints
         """
-        self.messages_to_wait_for = 21
+        self.messages_to_wait_for = 20
 
         def send_notifications(_):
-            self.session.notifier.notify(NTFY_UPGRADER, NTFY_STARTED, None, None)
             self.session.notifier.notify(NTFY_UPGRADER_TICK, NTFY_STARTED, None, None)
             self.session.notifier.notify(NTFY_UPGRADER, NTFY_FINISHED, None, None)
             self.session.notifier.notify(NTFY_WATCH_FOLDER_CORRUPT_TORRENT, NTFY_INSERT, None, None)

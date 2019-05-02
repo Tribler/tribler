@@ -21,19 +21,6 @@ class TestUpgrader(AbstractUpgrader):
         yield super(TestUpgrader, self).setUp()
         self.upgrader = TriblerUpgrader(self.session)
 
-    def test_run(self):
-        """
-        Test the run method of the upgrader
-        """
-        def check_should_upgrade():
-            self.upgrader.failed = True
-            return True, False
-        self.upgrader.session.config.get_upgrader_enabled = lambda: True
-        self.upgrader.check_should_upgrade_database = check_should_upgrade
-
-        self.upgrader.run()
-        self.assertTrue(self.upgrader.notified)
-
     @trial_timeout(10)
     def test_update_status_text(self):
         test_deferred = Deferred()
@@ -54,10 +41,29 @@ class TestUpgrader(AbstractUpgrader):
         old_database_path = os.path.join(self.session.config.get_state_dir(), 'sqlite', 'tribler.sdb')
         new_database_path = os.path.join(self.session.config.get_state_dir(), 'sqlite', 'metadata.db')
         channels_dir = os.path.join(self.session.config.get_chant_channels_dir())
+
         shutil.copyfile(OLD_DB_SAMPLE, old_database_path)
-        self.upgrader.upgrade_72_to_pony()
-        yield self.upgrader.finished_deferred
+        yield self.upgrader.run()
         mds = MetadataStore(new_database_path, channels_dir, self.session.trustchain_keypair)
         with db_session:
             self.assertEqual(mds.TorrentMetadata.select().count(), 24)
+        mds.shutdown()
+
+    @trial_timeout(10)
+    @inlineCallbacks
+    def test_skip_upgrade_72_to_pony(self):
+        OLD_DB_SAMPLE = os.path.abspath(os.path.join(os.path.abspath(
+            os.path.dirname(os.path.realpath(__file__))), '..', 'data', 'upgrade_databases', 'tribler_v29.sdb'))
+        old_database_path = os.path.join(self.session.config.get_state_dir(), 'sqlite', 'tribler.sdb')
+        new_database_path = os.path.join(self.session.config.get_state_dir(), 'sqlite', 'metadata.db')
+        channels_dir = os.path.join(self.session.config.get_chant_channels_dir())
+
+        shutil.copyfile(OLD_DB_SAMPLE, old_database_path)
+
+        self.upgrader.skip()
+        yield self.upgrader.run()
+        mds = MetadataStore(new_database_path, channels_dir, self.session.trustchain_keypair)
+        with db_session:
+            self.assertEqual(mds.TorrentMetadata.select().count(), 3)
+            self.assertEqual(mds.ChannelMetadata.select().count(), 1)
         mds.shutdown()

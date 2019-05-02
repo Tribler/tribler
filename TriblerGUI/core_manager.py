@@ -78,7 +78,7 @@ class CoreManager(QObject):
             self.use_existing_core = False
             self.start_tribler_core(core_args=core_args, core_env=core_env)
 
-        self.events_manager.connect(reschedule_on_err=False)
+        self.events_manager.connect()
         self.events_manager.reply.error.connect(on_request_error)
 
     def start_tribler_core(self, core_args=None, core_env=None):

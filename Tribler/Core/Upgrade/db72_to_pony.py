@@ -12,7 +12,9 @@ from pony.orm import CacheIndexError, TransactionIntegrityError, db_session
 
 from six import text_type
 
-from twisted.internet.threads import deferToThread
+from twisted.internet import reactor
+from twisted.internet.defer import inlineCallbacks
+from twisted.internet.task import deferLater
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import LEGACY_ENTRY, NEW
 from Tribler.Core.Modules.MetadataStore.serialization import REGULAR_TORRENT
@@ -235,8 +237,7 @@ class DispersyToPonyMigration(object):
                 # Just drop the entries from the previous try
                 my_channel = self.mds.ChannelMetadata.get_my_channel()
                 if my_channel:
-                    # FIXME: PONY BUG - can't use bulk delete because of broken FOREIGN KEY constraints
-                    my_channel.contents.delete()
+                    my_channel.contents.delete(bulk=True)
                     my_channel.delete()
             else:
                 # Something is wrong, this should never happen
@@ -251,8 +252,6 @@ class DispersyToPonyMigration(object):
             old_torrents = self.get_old_torrents(personal_channel_only=True, sign=True)
             my_channel = self.mds.ChannelMetadata.create_channel(title=self.personal_channel_title, description='')
             for (torrent, _) in old_torrents:
-                if self.shutting_down:
-                    return
                 try:
                     md = self.mds.TorrentMetadata(**torrent)
                     md.parents.add(my_channel)
@@ -263,6 +262,25 @@ class DispersyToPonyMigration(object):
 
         v.value = CONVERSION_FINISHED
 
+    @inlineCallbacks
+    def update_convert_total(self, amount, elapsed):
+        if self.notifier_callback:
+            self.notifier_callback("%i entries converted in %i seconds (%i e/s)" % (amount, int(elapsed),
+                                                                                    int(amount / elapsed)))
+            yield deferLater(reactor, 0.001, lambda: None)
+
+    @inlineCallbacks
+    def update_convert_progress(self, amount, total, elapsed):
+        if self.notifier_callback:
+            elapsed = 0.0001 if elapsed == 0.0 else elapsed
+            amount = amount or 1
+            est_speed = amount/elapsed
+            eta = str(datetime.timedelta(seconds=int((total - amount) / est_speed)))
+            self.notifier_callback("Converting old channels.\nTorrents converted: %i/%i (%i%%).\nTime remaining: %s" %
+                                   (amount, total, (amount * 100) // total, eta))
+            yield deferLater(reactor, 0.001, lambda: None)
+
+    @inlineCallbacks
     def convert_discovered_torrents(self):
         offset = 0
         # Reflect conversion state
@@ -280,12 +298,12 @@ class DispersyToPonyMigration(object):
         batch_size = 100
         total_to_convert = self.get_old_torrents_count()
 
-        reference_timedelta = datetime.timedelta(milliseconds=100)
+        reference_timedelta = datetime.timedelta(milliseconds=1000)
         start = 0 + offset
-        end = start
+        elapsed = 1
         while start < total_to_convert:
             batch = self.get_old_torrents(batch_size=batch_size, offset=start)
-            if not batch:
+            if not batch or self.shutting_down:
                 break
 
             end = start + len(batch)
@@ -294,8 +312,6 @@ class DispersyToPonyMigration(object):
             try:
                 with db_session:
                     for (t, _) in batch:
-                        if self.shutting_down:
-                            return
                         try:
                             self.mds.TorrentMetadata(**t)
                         except (TransactionIntegrityError, CacheIndexError):
@@ -303,34 +319,27 @@ class DispersyToPonyMigration(object):
             except (TransactionIntegrityError, CacheIndexError):
                 pass
             batch_end_time = datetime.datetime.now() - batch_start_time
-            # It is not necessary to put 'sleep' here, because get_old_torrents effectively plays that role
 
+            elapsed = (datetime.datetime.utcnow() - start_time).total_seconds()
+            yield self.update_convert_progress(start, total_to_convert, elapsed)
             target_coeff = (batch_end_time.total_seconds() / reference_timedelta.total_seconds())
             if len(batch) == batch_size:
                 # Adjust batch size only for full batches
                 if target_coeff < 0.8:
                     batch_size += batch_size
-                elif target_coeff > 1.0:
+                elif target_coeff > 1.1:
                     batch_size = int(float(batch_size) / target_coeff)
-                batch_size += 1  # we want to guarantee that at least something will go through
-            self._logger.info("Converted old torrents batch: %i/%i %f ",
+                # we want to guarantee that at least some entries will go through
+                batch_size = batch_size if batch_size > 10 else 10
+            self._logger.info("Converted old torrents: %i/%i %f ",
                               start + batch_size, total_to_convert, float(batch_end_time.total_seconds()))
-
-            if self.notifier_callback:
-                self.notifier_callback("%i/%i" % (start + batch_size, total_to_convert))
             start = end
 
         with db_session:
             v = self.mds.MiscData.get_for_update(name=CONVERSION_FROM_72_DISCOVERED)
             v.value = CONVERSION_FINISHED
 
-        stop_time = datetime.datetime.utcnow()
-        elapsed = (stop_time - start_time).total_seconds()
-
-        if self.notifier_callback:
-            self.notifier_callback(
-                "%i entries converted in %i seconds (%i e/s)" % (
-                    end - offset, int(elapsed), int((end - offset) / elapsed)))
+        yield self.update_convert_total(start, elapsed)
 
     def convert_discovered_channels(self):
         # Reflect conversion state
@@ -351,7 +360,7 @@ class DispersyToPonyMigration(object):
         with db_session:
             for c in old_channels:
                 if self.shutting_down:
-                    return
+                    break
                 try:
                     self.mds.ChannelMetadata(**c)
                 except:
@@ -385,22 +394,14 @@ class DispersyToPonyMigration(object):
             else:
                 self.mds.MiscData(name=CONVERSION_FROM_72, value=CONVERSION_FINISHED)
 
+    @inlineCallbacks
     def do_migration(self):
         self.convert_personal_channel()
-
-        def background_stuff():
-            self.mds.clock = None  # We should never touch the clock during legacy conversions
-            if not self.shutting_down:
-                self.convert_discovered_torrents()
-            if not self.shutting_down:
-                self.convert_discovered_channels()
-            if not self.shutting_down:
-                self.update_trackers_info()
-            if not self.shutting_down:
-                self.mark_conversion_finished()
-            self.mds._db.disconnect()
-
-        return deferToThread(background_stuff)
+        self.mds.clock = None  # We should never touch the clock during legacy conversions
+        yield self.convert_discovered_torrents()
+        self.convert_discovered_channels()
+        self.update_trackers_info()
+        self.mark_conversion_finished()
 
 
 def old_db_version_ok(old_database_path):
@@ -412,6 +413,7 @@ def old_db_version_ok(old_database_path):
         version = int(cursor.fetchone()[0])
         if version == 29:
             return True
+    connection.close()
     return False
 
 

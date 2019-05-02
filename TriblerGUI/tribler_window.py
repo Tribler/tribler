@@ -9,12 +9,14 @@ import time
 import traceback
 from binascii import hexlify
 
+
 from PyQt5 import uic
-from PyQt5.QtCore import QCoreApplication, QDir, QObject, QPoint, QSettings, QStringListModel, QTimer, QUrl, Qt, \
-    pyqtSignal, pyqtSlot
+from PyQt5.QtCore import (
+    QCoreApplication, QDir, QObject, QPoint, QSettings, QStringListModel, QTimer, QUrl, Qt, pyqtSignal, pyqtSlot)
 from PyQt5.QtGui import QDesktopServices, QIcon, QKeySequence, QPixmap
-from PyQt5.QtWidgets import QAction, QApplication, QCompleter, QFileDialog, QLineEdit, QListWidget, QMainWindow, \
-    QShortcut, QStyledItemDelegate, QSystemTrayIcon, QTreeWidget
+from PyQt5.QtWidgets import (
+    QAction, QApplication, QCompleter, QFileDialog, QLineEdit, QListWidget, QMainWindow, QShortcut, QStyledItemDelegate,
+    QSystemTrayIcon, QTreeWidget)
 
 import six
 from six.moves.urllib.parse import unquote, urlparse
@@ -24,10 +26,10 @@ from Tribler.Core.Modules.process_checker import ProcessChecker
 
 from TriblerGUI.core_manager import CoreManager
 from TriblerGUI.debug_window import DebugWindow
-from TriblerGUI.defs import BUTTON_TYPE_CONFIRM, BUTTON_TYPE_NORMAL, DEFAULT_API_PORT, PAGE_CHANNEL_DETAILS, \
-    PAGE_DISCOVERED, PAGE_DISCOVERING, PAGE_DOWNLOADS, PAGE_EDIT_CHANNEL, PAGE_HOME, PAGE_LOADING, \
-    PAGE_SEARCH_RESULTS, PAGE_SETTINGS, PAGE_SUBSCRIBED_CHANNELS, PAGE_TRUST, PAGE_TRUST_GRAPH_PAGE, \
-    PAGE_VIDEO_PLAYER, SHUTDOWN_WAITING_PERIOD
+from TriblerGUI.defs import (
+    BUTTON_TYPE_CONFIRM, BUTTON_TYPE_NORMAL, DEFAULT_API_PORT, PAGE_CHANNEL_DETAILS, PAGE_DISCOVERED, PAGE_DISCOVERING,
+    PAGE_DOWNLOADS, PAGE_EDIT_CHANNEL, PAGE_HOME, PAGE_LOADING, PAGE_SEARCH_RESULTS, PAGE_SETTINGS,
+    PAGE_SUBSCRIBED_CHANNELS, PAGE_TRUST, PAGE_TRUST_GRAPH_PAGE, PAGE_VIDEO_PLAYER, SHUTDOWN_WAITING_PERIOD)
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.dialogs.feedbackdialog import FeedbackDialog
 from TriblerGUI.dialogs.startdownloaddialog import StartDownloadDialog
@@ -247,11 +249,6 @@ class TriblerWindow(QMainWindow):
         self.core_manager.events_manager.low_storage_signal.connect(self.on_low_storage)
         self.core_manager.events_manager.credit_mining_signal.connect(self.on_credit_mining_error)
         self.core_manager.events_manager.tribler_shutdown_signal.connect(self.on_tribler_shutdown_state_update)
-
-        self.core_manager.events_manager.upgrader_tick.connect(
-            lambda text: self.show_status_bar("Upgrading Tribler database: " + text))
-        self.core_manager.events_manager.upgrader_finished.connect(
-            lambda _: self.hide_status_bar())
 
         self.core_manager.events_manager.received_search_result.connect(
             self.search_results_page.received_search_result)
@@ -948,6 +945,26 @@ class TriblerWindow(QMainWindow):
             os.kill(int(core_pid), 9)
         # Stop the Qt application
         QApplication.quit()
+
+    def clicked_skip_conversion(self):
+        self.dialog = ConfirmationDialog(self, "Abort the conversion of old channels",
+                                         "The upgrade procedure is now converting torrents in channels "
+                                         "collected by the previous installation of Tribler.\n\n"
+                                         "Are you sure you want to abort the conversion process?\n"
+                                         "(Your personal channel will be converted anyway.)",
+                                         [('ABORT', BUTTON_TYPE_CONFIRM),
+                                          ('CONTINUE', BUTTON_TYPE_NORMAL)])
+        self.dialog.button_clicked.connect(self.on_skip_conversion_dialog)
+        self.dialog.show()
+
+    def on_skip_conversion_dialog(self, action):
+        if action == 0:
+            request_mgr = TriblerRequestManager()
+            request_mgr.perform_request("upgrader", lambda _: None, method='DELETE')
+
+        if self.dialog:
+            self.dialog.close_dialog()
+            self.dialog = None
 
     def on_tribler_shutdown_state_update(self, state):
         self.loading_text_label.setText(state)
