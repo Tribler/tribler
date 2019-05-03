@@ -5,6 +5,7 @@ from abc import abstractmethod
 from PyQt5.QtCore import QEvent, QModelIndex, QObject, QRect, QSize, Qt, pyqtSignal
 from PyQt5.QtGui import QBrush, QColor, QIcon, QPainter, QPen
 from PyQt5.QtWidgets import QComboBox, QStyle, QStyledItemDelegate
+from six import text_type
 
 from TriblerGUI.defs import ACTION_BUTTONS, CATEGORY_LIST, COMMIT_STATUS_COMMITTED, COMMIT_STATUS_NEW, \
     COMMIT_STATUS_TODELETE, HEALTH_CHECKING, HEALTH_DEAD, HEALTH_ERROR, HEALTH_GOOD, HEALTH_MOOT, HEALTH_UNCHECKED
@@ -22,6 +23,7 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
         self.hover_index = None
         self.controls = []
 
+        # TODO: restore this behavior, so there is really some tolerance zone!
         # We have to control if mouse is in the buttons box to add some tolerance for vertical mouse
         # misplacement around the buttons. The button box effectively overlaps upper and lower rows.
         #   row 0
@@ -99,7 +101,23 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
         return super(TriblerButtonsDelegate, self).createEditor(parent, option, index)
 
 
-class SearchResultsDelegate(TriblerButtonsDelegate):
+class DrawCategoryLabelMixin(object):
+    def drawCategoryLabel(self, painter, option, index, data_item):
+        if 'type' in data_item and data_item['type'] == 'channel':
+            category = "my channel" if data_item['my_channel'] else data_item['type']
+        else:
+            category = data_item[u'category']
+
+        # Draw empty cell as the background
+        self.paint_empty_background(painter, option)
+        # Precautions to correctly draw wrong category descriptions
+        if not category or text_type(category) not in CATEGORY_LIST:
+            category = "Unknown"
+        CategoryLabel(category).paint(painter, option, index)
+        return True
+
+
+class SearchResultsDelegate(TriblerButtonsDelegate, DrawCategoryLabelMixin):
 
     def __init__(self, parent=None):
         TriblerButtonsDelegate.__init__(self, parent)
@@ -151,15 +169,7 @@ class SearchResultsDelegate(TriblerButtonsDelegate):
         # Draw 'category' column
         elif u'category' in index.model().column_position and \
                 index.column() == index.model().column_position[u'category']:
-            if data_item['type'] == 'channel':
-                category = "my channel" if data_item['my_channel'] else data_item['type']
-            else:
-                category = data_item[u'category']
-
-            # Draw empty cell as the background
-            self.paint_empty_background(painter, option)
-            CategoryLabel(category).paint(painter, option, index)
-            return True
+            return self.drawCategoryLabel(painter, option, index, data_item)
 
         # Draw 'health' column
         elif u'health' in index.model().column_position and index.column() == index.model().column_position[u'health']:
@@ -200,7 +210,7 @@ class ChannelsButtonsDelegate(TriblerButtonsDelegate):
             return True
 
 
-class TorrentsButtonsDelegate(TriblerButtonsDelegate):
+class TorrentsButtonsDelegate(TriblerButtonsDelegate, DrawCategoryLabelMixin):
 
     def __init__(self, parent=None):
         TriblerButtonsDelegate.__init__(self, parent)
@@ -264,10 +274,7 @@ class TorrentsButtonsDelegate(TriblerButtonsDelegate):
         # Draw 'category' column
         elif u'category' in index.model().column_position and \
                 index.column() == index.model().column_position[u'category']:
-            # Draw empty cell as the background
-            self.paint_empty_background(painter, option)
-            CategoryLabel(index.model().data_items[index.row()]['category']).paint(painter, option, index)
-            return True
+            return self.drawCategoryLabel(painter, option, index, index.model().data_items[index.row()])
 
 
 class CategoryLabel(QObject):
