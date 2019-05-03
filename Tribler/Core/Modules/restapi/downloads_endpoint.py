@@ -96,8 +96,8 @@ class DownloadBaseEndpoint(resource.Resource):
             dest_dir = cast_to_unicode_utf8(parameters['destination'][0])
             download_config.set_dest_dir(dest_dir)
 
-        if 'selected_files[]' in parameters:
-            selected_files_list = [cast_to_unicode_utf8(f) for f in parameters['selected_files[]']]
+        if 'selected_files' in parameters:
+            selected_files_list = [cast_to_unicode_utf8(f) for f in parameters['selected_files']]
             download_config.set_selected_files(selected_files_list)
 
         return download_config, None
@@ -506,9 +506,9 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
             # As such, we can return immediately.
             return NOT_DONE_YET
 
-        if 'selected_files[]' in parameters:
+        if 'selected_files' in parameters:
             selected_files_list = []
-            for ind in parameters['selected_files[]']:
+            for ind in parameters['selected_files']:
                 try:
                     selected_files_list.append(download.tdef.get_files()[int(ind)])
                 except IndexError:  # File could not be found

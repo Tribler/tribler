@@ -363,7 +363,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         infohash = get_hex_infohash(video_tdef)
 
         self.should_check_equality = False
-        return self.do_request('downloads/%s' % infohash, expected_code=400, post_data={"selected_files[]": 1234},
+        return self.do_request('downloads/%s' % infohash, expected_code=400, post_data={"selected_files": 1234},
                                request_type='PATCH')
 
     @trial_timeout(10)
@@ -385,7 +385,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
 
         download.set_selected_files = mocked_set_selected_files
 
-        return self.do_request('downloads/%s' % infohash, post_data={"selected_files[]": 0},
+        return self.do_request('downloads/%s' % infohash, post_data={"selected_files": 0},
                                expected_code=200, request_type='PATCH',
                                expected_json={"modified": True,
                                               "infohash": "c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5"}) \
