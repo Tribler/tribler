@@ -2,7 +2,7 @@ from __future__ import absolute_import, division
 
 from abc import abstractmethod
 
-from PyQt5.QtCore import QModelIndex, QPoint, pyqtSignal
+from PyQt5.QtCore import QModelIndex, QPoint, pyqtSignal, QRect
 from PyQt5.QtWidgets import QTableView
 
 from TriblerGUI.defs import ACTION_BUTTONS, COMMIT_STATUS_COMMITTED, COMMIT_STATUS_NEW, COMMIT_STATUS_TODELETE, \
@@ -51,6 +51,10 @@ class TriblerContentTableView(LazyTableView):
 
     def redraw(self):
         self.viewport().update()
+        # This is required to drop the sensitivity zones of the controls,
+        # so there are no invisible controls left over from a previous state of the view
+        for control in self.delegate.controls:
+            control.rect = QRect()
 
 
 class DownloadButtonMixin(TriblerContentTableView):
