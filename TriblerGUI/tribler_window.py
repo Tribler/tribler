@@ -960,7 +960,7 @@ class TriblerWindow(QMainWindow):
     def on_skip_conversion_dialog(self, action):
         if action == 0:
             request_mgr = TriblerRequestManager()
-            request_mgr.perform_request("upgrader", lambda _: None, method='DELETE')
+            request_mgr.perform_request("upgrader", lambda _: None, data={"skip_db_upgrade": True}, method='POST')
 
         if self.dialog:
             self.dialog.close_dialog()
