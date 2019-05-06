@@ -133,10 +133,14 @@ class SearchEndpoint(BaseMetadataEndpoint):
                 "total": total
             }))
             request.finish()
-        deferToThread(search_db).addCallback(on_search_results)
 
+        def on_error(failure):
+            self._logger.error("Error while performing DB search: %s", failure)
+            request.setResponseCode(http.BAD_REQUEST)
+            request.finish()
+
+        deferToThread(search_db).addCallbacks(on_search_results, on_error)
         return NOT_DONE_YET
-
 
 
 class SearchCompletionsEndpoint(resource.Resource):
