@@ -412,8 +412,12 @@ class Session(object):
         def after_upgrade(_):
             self.upgrader = None
 
-        startup_deferred = upgrader_deferred.addCallbacks(lambda _: self.lm.register(self, self.session_lock),
-                                                          lambda _: None).addCallbacks(after_upgrade, lambda _: None)
+        def log_upgrader_error(failure):
+            self._logger.error("Error in Upgrader callback chain: %s", failure)
+
+        startup_deferred = upgrader_deferred.\
+            addCallbacks(lambda _: self.lm.register(self, self.session_lock), log_upgrader_error).\
+            addCallbacks(after_upgrade, log_upgrader_error)
 
         def load_checkpoint(_):
             if self.config.get_libtorrent_enabled():

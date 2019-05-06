@@ -274,7 +274,7 @@ class DispersyToPonyMigration(object):
         if self.notifier_callback:
             elapsed = 0.0001 if elapsed == 0.0 else elapsed
             amount = amount or 1
-            est_speed = amount/elapsed
+            est_speed = amount / elapsed
             eta = str(datetime.timedelta(seconds=int((total - amount) / est_speed)))
             self.notifier_callback("Converting old channels.\nTorrents converted: %i/%i (%i%%).\nTime remaining: %s" %
                                    (amount, total, (amount * 100) // total, eta))

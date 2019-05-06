@@ -64,7 +64,9 @@ class TriblerUpgrader(object):
             mds.shutdown()
             self.notify_done()
 
-        return self._dtp72.do_migration().addCallbacks(finish_migration, lambda _: None)
+        def log_error(failure):
+            self._logger.error("Error in Upgrader callback chain: %s", failure)
+        return self._dtp72.do_migration().addCallbacks(finish_migration, log_error)
 
 
     def upgrade_config_to_71(self):
