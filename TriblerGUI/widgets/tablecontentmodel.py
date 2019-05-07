@@ -57,17 +57,17 @@ class RemoteTableModel(QAbstractTableModel):
         # If items are remote, prepend to the top else append to the end of the model.
         new_items_map = {}
         insert_index = len(self.data_items) if not remote else 0
-        unique_items = []
+        unique_new_items = []
         for item in new_items:
             item_uid = self.get_item_uid(item)
 
             if item_uid and item_uid not in self.item_uid_map:
                 new_items_map[item_uid] = insert_index
-                unique_items.append(item)
+                unique_new_items.append(item)
                 insert_index += 1
 
         # If no new items are found, skip
-        if not unique_items:
+        if not unique_new_items:
             return
 
         # Else if remote items, to make space for new unique items update the position of the existing items
@@ -78,8 +78,12 @@ class RemoteTableModel(QAbstractTableModel):
                     new_items_map[old_item_uid] = insert_index + self.item_uid_map[old_item_uid]
 
         # Update the table model
-        self.beginInsertRows(QModelIndex(), 0, len(unique_items) - 1)
-        self.data_items = unique_items + self.data_items if remote else self.data_items + unique_items
+        if remote:
+            self.beginInsertRows(QModelIndex(), 0, len(unique_new_items) - 1)
+            self.data_items = unique_new_items + self.data_items
+        else:
+            self.beginInsertRows(QModelIndex(), len(self.data_items), len(self.data_items) + len(unique_new_items) - 1)
+            self.data_items.extend(unique_new_items)
         self.item_uid_map = new_items_map
         self.endInsertRows()
 

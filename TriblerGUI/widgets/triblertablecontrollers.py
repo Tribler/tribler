@@ -154,7 +154,7 @@ class TableSelectionMixin(object):
         if first_show:
             window = self.table_view.window()
             # FIXME! Brain-dead way to show the rows covered by a newly-opened details_container
-            # Note that none of then more civilized ways to fix it works:
+            # Note that none of then more civilized ways to fix it work:
             # various updateGeometry, viewport().update, adjustSize - nothing works!
             window.resize(window.geometry().width() + 1, window.geometry().height())
             window.resize(window.geometry().width() - 1, window.geometry().height())
