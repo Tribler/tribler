@@ -75,7 +75,7 @@ class NodeVision(object):
                    for u, (theta, r) in pos.items()}
 
         # Set positions to the networkx object
-        nx.set_node_attributes(self.graph, new_pos, 'pos')
+        nx.set_node_attributes(self.graph, name='pos', values=new_pos)
 
         # Also, return the positions
         return new_pos
