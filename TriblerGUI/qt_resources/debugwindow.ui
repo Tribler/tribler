@@ -470,6 +470,11 @@
                 <string>Down</string>
                </property>
               </column>
+              <column>
+               <property name="text">
+                <string>Uptime</string>
+               </property>
+              </column>
              </widget>
             </item>
            </layout>
@@ -524,11 +529,16 @@
                 <string>Down</string>
                </property>
               </column>
+              <column>
+               <property name="text">
+                <string>Uptime</string>
+               </property>
+              </column>
              </widget>
             </item>
            </layout>
           </widget>
-          <widget class="QWidget" name="tab_7">
+          <widget class="QWidget" name="tab_8">
            <attribute name="title">
             <string>Exit sockets</string>
            </attribute>
@@ -561,6 +571,80 @@
               <column>
                <property name="text">
                 <string>Enabled?</string>
+               </property>
+              </column>
+              <column>
+               <property name="text">
+                <string>Up</string>
+               </property>
+              </column>
+              <column>
+               <property name="text">
+                <string>Down</string>
+               </property>
+              </column>
+              <column>
+               <property name="text">
+                <string>Uptime</string>
+               </property>
+              </column>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+          <widget class="QWidget" name="tab_9">
+           <attribute name="title">
+            <string>Hidden swarms</string>
+           </attribute>
+           <layout class="QVBoxLayout" name="verticalLayout">
+            <property name="spacing">
+             <number>0</number>
+            </property>
+            <property name="leftMargin">
+             <number>0</number>
+            </property>
+            <property name="topMargin">
+             <number>0</number>
+            </property>
+            <property name="rightMargin">
+             <number>0</number>
+            </property>
+            <property name="bottomMargin">
+             <number>0</number>
+            </property>
+            <item>
+             <widget class="QTreeWidget" name="swarms_tree_widget">
+              <property name="indentation">
+               <number>0</number>
+              </property>
+              <column>
+               <property name="text">
+                <string>Infohash</string>
+               </property>
+              </column>
+              <column>
+               <property name="text">
+                <string># Seeders</string>
+               </property>
+              </column>
+              <column>
+               <property name="text">
+                <string># Connections</string>
+               </property>
+              </column>
+              <column>
+               <property name="text">
+                <string># Pending</string>
+               </property>
+              </column>
+              <column>
+               <property name="text">
+                <string>Seeding?</string>
+               </property>
+              </column>
+              <column>
+               <property name="text">
+                <string>Last lookup</string>
                </property>
               </column>
               <column>

@@ -1,10 +1,12 @@
+from __future__ import absolute_import
+
 from twisted.internet.defer import inlineCallbacks
 
-from Tribler.community.triblertunnel.dispatcher import TunnelDispatcher
-from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import CIRCUIT_STATE_EXTENDING, CIRCUIT_TYPE_DATA, \
-    CIRCUIT_STATE_READY
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.test_as_server import AbstractServer
+from Tribler.community.triblertunnel.dispatcher import TunnelDispatcher
+from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import CIRCUIT_STATE_EXTENDING, CIRCUIT_STATE_READY, \
+    CIRCUIT_TYPE_DATA
 
 
 class TestTunnelDispatcher(AbstractServer):
@@ -17,9 +19,7 @@ class TestTunnelDispatcher(AbstractServer):
         yield super(TestTunnelDispatcher, self).setUp()
 
         self.mock_tunnel_community = MockObject()
-        self.selection_strategy = MockObject()
-        self.selection_strategy.select = lambda *_: None
-        self.mock_tunnel_community.selection_strategy = self.selection_strategy
+        self.mock_tunnel_community.select_circuit = lambda *_: None
         self.mock_tunnel_community.send_data = lambda *_: None
         self.dispatcher = TunnelDispatcher(self.mock_tunnel_community)
 
@@ -72,7 +72,7 @@ class TestTunnelDispatcher(AbstractServer):
         # No circuit is selected
         self.assertFalse(self.dispatcher.on_socks5_udp_data(mock_udp_connection, mock_request))
 
-        self.selection_strategy.select = lambda *_: self.mock_circuit
+        self.mock_tunnel_community.select_circuit = lambda *_: self.mock_circuit
 
         # Circuit is not ready
         self.assertFalse(self.dispatcher.on_socks5_udp_data(mock_udp_connection, mock_request))
