@@ -8,10 +8,11 @@ from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import entries_to_chunk
 from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, REGULAR_TORRENT
-from Tribler.Core.Modules.MetadataStore.store import GOT_NEWER_VERSION, UNKNOWN_CHANNEL
+from Tribler.Core.Modules.MetadataStore.store import (
+    GOT_NEWER_VERSION, UNKNOWN_CHANNEL, UNKNOWN_TORRENT, UPDATED_OUR_VERSION)
 from Tribler.Core.Utilities.utilities import is_simple_match_query
-from Tribler.Core.simpledefs import NTFY_CHANNEL, NTFY_DISCOVERED, SIGNAL_GIGACHANNEL_COMMUNITY, \
-    SIGNAL_ON_SEARCH_RESULTS
+from Tribler.Core.simpledefs import (
+    NTFY_CHANNEL, NTFY_DISCOVERED, SIGNAL_GIGACHANNEL_COMMUNITY, SIGNAL_ON_SEARCH_RESULTS)
 from Tribler.community.gigachannel.payload import SearchRequestPayload, SearchResponsePayload
 from Tribler.community.gigachannel.request import SearchRequestCache
 from Tribler.pyipv8.ipv8.community import Community
@@ -166,7 +167,7 @@ class GigaChannelCommunity(Community):
         metadata_type = {'': [REGULAR_TORRENT, CHANNEL_TORRENT],
                          "channel": CHANNEL_TORRENT,
                          "torrent": REGULAR_TORRENT
-                        }.get(request.metadata_type, REGULAR_TORRENT)
+                         }.get(request.metadata_type, REGULAR_TORRENT)
 
         request_dict = {
             "first": 1,
@@ -202,8 +203,9 @@ class GigaChannelCommunity(Community):
                 return
 
             search_results = [(dict(type={REGULAR_TORRENT: 'torrent', CHANNEL_TORRENT: 'channel'}[r.metadata_type],
-                                    **(r.to_simple_dict()))) for (r, _) in metadata_result
-                              if r and (r.metadata_type == CHANNEL_TORRENT or r.metadata_type == REGULAR_TORRENT)]
+                                    **(r.to_simple_dict()))) for (r, action) in metadata_result if
+                              (r and (r.metadata_type == CHANNEL_TORRENT or r.metadata_type == REGULAR_TORRENT) and
+                               action in [UNKNOWN_CHANNEL, UNKNOWN_TORRENT, UPDATED_OUR_VERSION])]
         if self.notifier and search_results:
             self.notifier.notify(SIGNAL_GIGACHANNEL_COMMUNITY, SIGNAL_ON_SEARCH_RESULTS, None,
                                  {"uuid": search_request_cache.uuid, "results": search_results})

@@ -110,14 +110,10 @@ class TriblerTableViewController(object):
         """
         Returns True if the response is a new fresh response else False.
         - If UUID of the response and the last query does not match, then it is a stale response.
-        - If the response has info about pagination, here 'first' field, if the value of the first field is less than
-        the number of results already present, then the response is stale.
         :param response: List of items
         :return: True for fresh response else False
         """
         if self.query_uuid and 'uuid' in response and response['uuid'] != self.query_uuid:
-            return False
-        if 'first' in response and response['first'] < self.model.rowCount():
             return False
         return True
 
