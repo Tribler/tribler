@@ -841,11 +841,6 @@ class TriblerWindow(QMainWindow):
         self.left_menu_playlist_label.setHidden(False)
         self.left_menu_playlist.setHidden(False)
 
-    def on_channel_clicked(self, channel_info):
-        self.channel_page.initialize_with_channel(channel_info)
-        self.navigation_stack.append(self.stackedWidget.currentIndex())
-        self.stackedWidget.setCurrentIndex(PAGE_CHANNEL_DETAILS)
-
     def on_page_back_clicked(self):
         try:
             prev_page = self.navigation_stack.pop()

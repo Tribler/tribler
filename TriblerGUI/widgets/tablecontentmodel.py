@@ -173,11 +173,11 @@ class ChannelsContentModel(TriblerContentModel):
     columns = [u'name', u'torrents', u'updated', u'subscribed']
     column_headers = [u'Channel name', u'Torrents', u'Updated', u'']
     column_flags = {
-        u'name': Qt.ItemIsEnabled,
-        u'torrents': Qt.ItemIsEnabled,
-        u'updated': Qt.ItemIsEnabled,
-        u'subscribed': Qt.ItemIsEnabled,
-        ACTION_BUTTONS: Qt.ItemIsEnabled
+        u'name': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
+        u'torrents': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
+        u'updated': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
+        u'subscribed': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
+        ACTION_BUTTONS: Qt.ItemIsEnabled | Qt.ItemIsSelectable
     }
 
     column_display_filters = {

@@ -27,9 +27,6 @@ class TriblerContentTableView(LazyTableView):
     # overloading leaveEvent method could be used for that
     mouse_moved = pyqtSignal(QPoint, QModelIndex)
 
-    on_channel_clicked = pyqtSignal(dict)
-    on_torrent_clicked = pyqtSignal(QModelIndex, dict)
-
     def __init__(self, parent=None):
         LazyTableView.__init__(self, parent)
         self.setMouseTracking(True)
@@ -117,9 +114,6 @@ class ItemClickedMixin(TriblerContentTableView):
             self.window().channel_page.initialize_with_channel(content_info)
             self.window().navigation_stack.append(self.window().stackedWidget.currentIndex())
             self.window().stackedWidget.setCurrentIndex(PAGE_CHANNEL_DETAILS)
-            self.on_channel_clicked.emit(content_info)
-        else:
-            self.on_torrent_clicked.emit(item, content_info)
 
 
 class CommitControlMixin(TriblerContentTableView):

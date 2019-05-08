@@ -138,7 +138,6 @@ class TableSelectionMixin(object):
         torrent_info = selected_indices[0].model().data_items[selected_indices[0].row()]
         if 'type' in torrent_info and torrent_info['type'] == 'channel':
             self.details_container.hide()
-            self.table_view.clearSelection()
             return
 
         first_show = False
@@ -217,7 +216,7 @@ class SearchResultsTableViewController(TableSelectionMixin, ContextMenuMixin, Tr
         super(SearchResultsTableViewController, self).perform_query(**kwargs)
 
 
-class ChannelsTableViewController(FilterInputMixin, TriblerTableViewController):
+class ChannelsTableViewController(TableSelectionMixin, FilterInputMixin, TriblerTableViewController):
     """
     This class manages a list with channels.
     """
