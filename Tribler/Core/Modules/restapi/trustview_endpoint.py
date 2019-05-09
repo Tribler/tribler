@@ -25,6 +25,7 @@ class TrustViewEndpoint(resource.Resource):
         self.bootstrap = None
         self.peers = []
         self.transactions = {}
+        self.token_balance = {}
         self.initialized = False
         self.trustchain_db = None
 
@@ -57,8 +58,16 @@ class TrustViewEndpoint(resource.Resource):
                }
 
     def load_single_block(self, block):
-        if block.hash not in self.transactions:
+        if block.hash not in self.transactions and block.type == 'tribler_bandwidth':
             self.transactions[block.hash] = self.block_to_edge(block)
+            # Update token balance
+            hex_public_key = hexlify(block.public_key)
+            node_balance = self.token_balance.get(hex_public_key, dict())
+            if block.sequence_number > node_balance.get('sequence_number', 0):
+                node_balance['sequence_number'] = block.sequence_number
+                node_balance['total_up'] = block.transaction["total_up"]
+                node_balance['total_down'] = block.transaction["total_down"]
+                self.token_balance[hex_public_key] = node_balance
 
     def load_blocks(self, blocks):
         for block in blocks:
@@ -72,10 +81,10 @@ class TrustViewEndpoint(resource.Resource):
         blocks = self.trustchain_db.get_latest_blocks(pub_key)
         self.load_blocks(blocks)
 
-        # Load 25 latest blocks of all the users in the database
-        userblocks = self.trustchain_db.get_users()
+        # Load 5 latest blocks of all the connected users in the database
+        userblocks = self.trustchain_db.get_connected_users(pub_key)
         for userblock in userblocks:
-            blocks = self.trustchain_db.get_latest_blocks(unhexlify(userblock['public_key']), limit=25)
+            blocks = self.trustchain_db.get_latest_blocks(unhexlify(userblock['public_key']), limit=5)
             self.load_blocks(blocks)
 
         # Add blocks to graph and update your local view
@@ -91,7 +100,8 @@ class TrustViewEndpoint(resource.Resource):
                                    'graph_data': graph_data,
                                    'positions': positions,
                                    'bootstrap': self.get_bootstrap_info(),
-                                   'num_tx': len(self.transactions)
+                                   'num_tx': len(self.transactions),
+                                   'token_balance': self.token_balance
                                   })
 
     def get_bootstrap_info(self):
