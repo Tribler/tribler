@@ -144,9 +144,10 @@ class SearchResultsContentModel(TriblerContentModel):
     """
     Model for a list that shows search results.
     """
-    columns = [u'category', u'name', u'torrents', u'size', u'updated', u'health', ACTION_BUTTONS]
-    column_headers = [u'Category', u'Name', u'Torrents', u'Size', u'Updated', u'health', u'']
+    columns = [u'subscribed', u'category', u'name', u'torrents', u'size', u'updated', u'health', ACTION_BUTTONS]
+    column_headers = [u'', u'Category', u'Name', u'Torrents', u'Size', u'Updated', u'health', u'']
     column_flags = {
+        u'subscribed': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         u'category': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         u'name': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         u'torrents': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
@@ -170,8 +171,8 @@ class ChannelsContentModel(TriblerContentModel):
     """
     This model represents a list of channels that can be displayed in a table view.
     """
-    columns = [u'name', u'torrents', u'updated', u'subscribed']
-    column_headers = [u'Channel name', u'Torrents', u'Updated', u'']
+    columns = [u'subscribed', u'name', u'torrents', u'updated']
+    column_headers = [u'', u'Channel name', u'Torrents', u'Updated']
     column_flags = {
         u'name': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         u'torrents': Qt.ItemIsEnabled | Qt.ItemIsSelectable,

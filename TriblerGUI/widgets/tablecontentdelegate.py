@@ -110,9 +110,11 @@ class DrawSubscribedControlMixin(object):
         # Draw empty cell as the background
         self.paint_empty_background(painter, option)
 
+        if u'type' in data_item and data_item[u'type'] != u'channel':
+            return True
         if data_item[u'status'] == 1000:  # LEGACY ENTRIES!
             return True
-        if data_item[u'my_channel']:
+        if u'my_channel' in data_item and data_item[u'my_channel']:
             return True
 
         if index == self.hover_index:
@@ -179,20 +181,22 @@ class SearchResultsDelegate(TriblerButtonsDelegate, DrawCategoryLabelMixin, Draw
     def __init__(self, parent=None):
         # TODO: refactor this not to rely on inheritance order, but instead use interface method pattern
         TriblerButtonsDelegate.__init__(self, parent)
-        self.subscribe_control = SubscribeToggleControl(ACTION_BUTTONS)
+        self.subscribe_control = SubscribeToggleControl(u'subscribed')
         self.health_status_widget = HealthStatusDisplay()
 
         self.play_button = PlayIconButton()
         self.download_button = DownloadIconButton()
         self.ondemand_container = [self.play_button, self.download_button]
         self.controls = [self.play_button, self.download_button, self.subscribe_control]
-        self.column_drawing_actions = [(ACTION_BUTTONS, self.draw_action_column),
+        self.column_drawing_actions = [(u'subscribed', self.draw_subscribed_control),
+                                       (ACTION_BUTTONS, self.draw_action_column),
                                        (u'category', self.draw_category_label),
                                        (u'health', self.draw_health_column)]
 
     def draw_action_column(self, painter, option, index, data_item):
         if data_item['type'] == 'channel':
-            return self.draw_subscribed_control(painter, option, index, data_item)
+            return
+            #return self.draw_subscribed_control(painter, option, index, data_item)
         else:
             return self.draw_download_controls(painter, option, index, None)
 
