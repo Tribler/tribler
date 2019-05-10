@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import logging
 from binascii import hexlify, unhexlify
 
-import networkx as nx
+from networkx.readwrite import json_graph
 
 from twisted.web import resource
 
@@ -85,7 +85,7 @@ class TrustViewEndpoint(resource.Resource):
         self.local_view.update_component()
 
         positions = self.local_view.normalize_positions_dict()
-        graph_data = nx.node_link_data(self.local_view.component)
+        graph_data = json_graph.node_link_data(self.local_view.component)
 
         return json.twisted_dumps({'node_id': self.node_id,
                                    'graph_data': graph_data,

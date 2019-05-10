@@ -9,7 +9,7 @@ import matplotlib
 from matplotlib.backends.backend_qt5agg import FigureCanvas
 from matplotlib.pyplot import Figure
 
-import networkx as nx
+from networkx.readwrite import json_graph
 
 from TriblerGUI.defs import TRUST_GRAPH_HEADER_MESSAGE
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
@@ -68,8 +68,7 @@ class TrustAnimationCanvas(FigureCanvas):
         actual_pos = {}
 
         if old_pos is None:
-            nodes = [n for n in graph.nodes]
-            for n in nodes:
+            for n in graph.node:
                 actual_pos[n] = ((target_pos[n][0]), (target_pos[n][1]))
         else:
             for n in set(old_pos.keys()).difference(target_pos.keys()):
@@ -77,8 +76,7 @@ class TrustAnimationCanvas(FigureCanvas):
             for n in set(target_pos.keys()).difference(old_pos.keys()):
                 target_pos[n] = (0.0, 0.0)
 
-            nodes = [n for n in graph.nodes]
-            for n in nodes:
+            for n in graph.node:
                 if old_pos is not None:
                     if n not in target_pos:
                         target_pos[n] = (0.0, 0.0)
@@ -123,7 +121,7 @@ class TrustGraphPage(QWidget):
     REFRESH_INTERVAL_MS = 1000
     TIMEOUT_INTERVAL_MS = 5000
 
-    MAX_FRAMES = 5
+    MAX_FRAMES = 3
     ANIMATION_DURATION = 3000
 
     def __init__(self):
@@ -190,10 +188,10 @@ class TrustGraphPage(QWidget):
         if data is None:
             return
         self.update_gui_labels(data)
-        self.graph = nx.node_link_graph(data['graph_data'])
+        self.graph = json_graph.node_link_graph(data['graph_data'])
         self.old_pos = None if self.pos is None else dict(self.pos)
         self.pos = data['positions']
-        self.edges = self.graph.edges
+        self.edges = self.graph.edges()
         self.node_id = data['node_id']
 
         if not self.should_update_graph(self.old_pos, self.pos):
