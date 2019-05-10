@@ -445,8 +445,8 @@ class LibtorrentMgr(TaskManager):
         infohash_bin = infohash_or_magnet if not magnet else parse_magnetlink(magnet)[1]
         infohash = hexlify(infohash_bin)
 
-        if infohash in self.torrents and hasattr(self.torrents[infohash], 'handle'):
-            metainfo = {"info": lt.bdecode(get_info_from_handle(self.torrents[infohash].handle).metadata())}
+        if infohash in self.torrents and hasattr(self.torrents[infohash][0], 'handle'):
+            metainfo = {"info": lt.bdecode(get_info_from_handle(self.torrents[infohash][0].handle).metadata())}
             callback(metainfo)
             return
 
