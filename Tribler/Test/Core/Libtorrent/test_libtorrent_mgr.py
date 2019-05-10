@@ -5,6 +5,7 @@ import shutil
 import tempfile
 from binascii import hexlify, unhexlify
 
+import libtorrent
 from libtorrent import bencode
 
 from twisted.internet import reactor
@@ -14,8 +15,10 @@ from twisted.internet.task import deferLater
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
 from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 from Tribler.Core.Notifier import Notifier
+from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.exceptions import TorrentFileException
 from Tribler.Test.Core.base_test import MockObject
+from Tribler.Test.common import TESTS_DATA_DIR
 from Tribler.Test.test_as_server import AbstractServer
 from Tribler.Test.tools import trial_timeout
 
@@ -201,34 +204,33 @@ class TestLibtorrentMgr(AbstractServer):
     def test_get_metainfo_with_already_added_torrent(self):
         """
         Testing metainfo fetching for a torrent which is already in session.
-        got_metainfo() should be called with timeout=False.
         """
-        magnet_link = "magnet:?xt=urn:btih:f72636475a375653083e49d501601675ce3e6619&dn=ubuntu-16.04.3-server-i386.iso"
+        def metainfo_callback(_):
+            test_deferred.callback(None)
 
         test_deferred = Deferred()
 
-        def fake_got_metainfo(_, timeout):
-            self.assertFalse(timeout, "Timeout should not be True")
-            test_deferred.callback(None)
+        sample_torrent = os.path.join(TESTS_DATA_DIR, "bak_single.torrent")
+        torrent_def = TorrentDef.load(sample_torrent)
+        metainfo = torrent_def.get_metainfo()
+
+        mock_torrent_file = MockObject()
+        mock_torrent_file.metadata = lambda: libtorrent.bencode(metainfo)
 
         mock_handle = MockObject()
-        mock_handle.info_hash = lambda: 'a' * 20
-        mock_handle.is_valid = lambda: True
-        mock_handle.has_metadata = lambda: True
+        mock_handle.get_torrent_info = lambda: mock_torrent_file
+
+        download_impl = MockObject()
+        download_impl.handle = mock_handle
+
+        hex_infohash = hexlify(torrent_def.infohash)
 
         mock_ltsession = MockObject()
-        mock_ltsession.add_torrent = lambda _: mock_handle
-        mock_ltsession.find_torrent = lambda _: mock_handle
-        mock_ltsession.get_torrents = lambda: []
-        mock_ltsession.start_upnp = lambda: None
-        mock_ltsession.stop_upnp = lambda: None
-        mock_ltsession.save_state = lambda: None
+        self.ltmgr.initialize()
+        self.ltmgr.torrents[hex_infohash] = (download_impl, mock_ltsession)
 
-        self.ltmgr.ltsession_metainfo = mock_ltsession
-        self.ltmgr.metadata_tmpdir = tempfile.mkdtemp(suffix=u'tribler_metainfo_tmpdir')
-        self.ltmgr.got_metainfo = fake_got_metainfo
-
-        self.ltmgr.get_metainfo(magnet_link, lambda _: None)
+        magnet_link = "magnet:?xt=urn:btih:%s" % hex_infohash
+        self.ltmgr.get_metainfo(magnet_link, callback=metainfo_callback)
         return test_deferred
 
     @trial_timeout(20)
