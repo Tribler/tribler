@@ -10,6 +10,7 @@ import logging
 from Tribler.Core.simpledefs import (DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_CIRCUITS, DLSTATUS_DOWNLOADING,
                                      DLSTATUS_EXIT_NODES, DLSTATUS_HASHCHECKING, DLSTATUS_METADATA, DLSTATUS_SEEDING,
                                      DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_WAITING4HASHCHECK, UPLOAD)
+from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import PEER_FLAG_EXIT_ANY
 
 # Map used to convert libtorrent -> Tribler download status
 DLSTATUS_MAP = [DLSTATUS_WAITING4HASHCHECK,
@@ -63,7 +64,7 @@ class DownloadState(object):
         @return DLSTATUS_* """
         if not self.lt_status:
             return (DLSTATUS_CIRCUITS if not self.download.session.lm.tunnel_community
-                    or self.download.session.lm.tunnel_community.exit_candidates
+                    or self.download.session.lm.tunnel_community.get_candidates(PEER_FLAG_EXIT_ANY)
                     else DLSTATUS_EXIT_NODES) if self.download.get_hops() > 0 else DLSTATUS_WAITING4HASHCHECK
         elif self.get_error():
             return DLSTATUS_STOPPED_ON_ERROR

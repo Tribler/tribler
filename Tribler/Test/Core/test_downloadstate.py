@@ -35,7 +35,7 @@ class TestDownloadState(TriblerCoreTest):
         self.mock_download.session = MockObject()
         self.mock_download.session.lm = MockObject()
         self.mock_download.session.lm.tunnel_community = MockObject()
-        self.mock_download.session.lm.tunnel_community.exit_candidates = {}
+        self.mock_download.session.lm.tunnel_community.get_candidates = lambda _: []
         download_state = DownloadState(self.mock_download, None, None)
 
         self.assertEqual(download_state.get_download(), self.mock_download)
