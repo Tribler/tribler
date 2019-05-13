@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import logging
+import os
 from binascii import hexlify, unhexlify
 
 from libtorrent import bencode, create_torrent
@@ -524,6 +525,12 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
                 download.stop()
             elif state == "recheck":
                 download.force_recheck()
+            elif state == "move_storage":
+                dest_dir = parameters['dest_dir'][0]
+                if not os.path.exists(dest_dir):
+                    return json.twisted_dumps({"error": "Target directory (%s) does not exist" % dest_dir})
+                download.move_storage(dest_dir)
+                download.checkpoint()
             else:
                 request.setResponseCode(http.BAD_REQUEST)
                 return json.twisted_dumps({"error": "unknown state parameter"})

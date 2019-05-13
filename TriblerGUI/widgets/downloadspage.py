@@ -380,6 +380,31 @@ class DownloadsPage(QWidget):
                                                  selected_item.download_info["destination"]))
             QDesktopServices.openUrl(QUrl.fromLocalFile(path))
 
+    def on_move_files(self):
+        if len(self.selected_items) != 1:
+            return
+
+        dest_dir = QFileDialog.getExistingDirectory(self, "Please select the destination directory",
+                                                    self.selected_items[0].download_info["destination"],
+                                                    QFileDialog.ShowDirsOnly)
+
+        _infohash = self.selected_items[0].download_info["infohash"]
+        _name = self.selected_items[0].download_info["name"]
+
+        data = {
+            "state": "move_storage",
+            "dest_dir": dest_dir
+        }
+
+        request_mgr = TriblerRequestManager()
+        request_mgr.perform_request("downloads/%s" % _infohash,
+                                    lambda res, _, name=_name, target=dest_dir: self.on_files_moved(res, name, target),
+                                    data=data, method='PATCH')
+
+    def on_files_moved(self, response, name, dest_dir):
+        if "modified" in response and response["modified"]:
+            self.window().tray_show_message(name, "Moved to %s" % dest_dir)
+
     def on_export_download(self):
         self.export_dir = QFileDialog.getExistingDirectory(self, "Please select the destination directory", "",
                                                            QFileDialog.ShowDirsOnly)
@@ -455,6 +480,7 @@ class DownloadsPage(QWidget):
         force_recheck_action = QAction('Force recheck', self)
         export_download_action = QAction('Export .torrent file', self)
         explore_files_action = QAction('Explore files', self)
+        move_files_action = QAction('Move file storage  ', self)
 
         no_anon_action = QAction('No anonymity', self)
         one_hop_anon_action = QAction('One hop', self)
@@ -471,6 +497,7 @@ class DownloadsPage(QWidget):
         force_recheck_action.setEnabled(DownloadsPage.force_recheck_download_enabled(self.selected_items))
         export_download_action.triggered.connect(self.on_export_download)
         explore_files_action.triggered.connect(self.on_explore_files)
+        move_files_action.triggered.connect(self.on_move_files)
 
         no_anon_action.triggered.connect(lambda: self.change_anonymity(0))
         one_hop_anon_action.triggered.connect(lambda: self.change_anonymity(1))
@@ -496,12 +523,15 @@ class DownloadsPage(QWidget):
                           DLSTATUS_HASHCHECKING, DLSTATUS_WAITING4HASHCHECK]
         if len(self.selected_items) == 1 and self.selected_items[0].get_raw_download_status() not in exclude_states:
             menu.addAction(export_download_action)
-            menu.addSeparator()
-        menu_anon_level = menu.addMenu("Change anonymity")
+        menu.addAction(explore_files_action)
+        if len(self.selected_items) == 1:
+            menu.addAction(move_files_action)
+        menu.addSeparator()
+
+        menu_anon_level = menu.addMenu("Change Anonymity ")
         menu_anon_level.addAction(no_anon_action)
         menu_anon_level.addAction(one_hop_anon_action)
         menu_anon_level.addAction(two_hop_anon_action)
         menu_anon_level.addAction(three_hop_anon_action)
-        menu.addAction(explore_files_action)
 
         menu.exec_(self.window().downloads_list.mapToGlobal(pos))
