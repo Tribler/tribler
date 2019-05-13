@@ -27,7 +27,7 @@ from Tribler.pyipv8.ipv8.messaging.anonymization.payload import LinkedE2EPayload
 from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import CIRCUIT_STATE_CLOSING, CIRCUIT_STATE_READY, \
                                                                CIRCUIT_TYPE_DATA, CIRCUIT_TYPE_IP_SEEDER,\
                                                                CIRCUIT_TYPE_RP_DOWNLOADER, CIRCUIT_TYPE_RP_SEEDER,\
-                                                               EXIT_NODE, RelayRoute
+                                                               EXIT_NODE, PEER_FLAG_EXIT_ANY, RelayRoute
 from Tribler.pyipv8.ipv8.peer import Peer
 from Tribler.pyipv8.ipv8.peerdiscovery.network import Network
 
@@ -37,8 +37,9 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
     This community is built upon the anonymous messaging layer in IPv8.
     It adds support for libtorrent anonymous downloads and bandwidth token payout when closing circuits.
     """
-    master_peer = ("4c69624e61434c504b3a238050d6cdbb712e259a12bd3bc0095accd87e200ac2d7bc9034a3bc47c3ac41890e90a"
-                   "3ddc68f975eda785f1b925d38f8dbf16eafdf84c7bd5f361b75fbb53f")
+
+    master_peer = ("4c69624e61434c504b3ad051d49fbceef0172b68f709818ab00ec1a98461ac4d76dbfe5ec69f3d5eeb34ead4fc5"
+                   "f280bddd4e3381a2b70e70f78a4f783819dbe2146fce70efc0097d600")
     master_peer = Peer(unhexlify(master_peer))
 
     def __init__(self, *args, **kwargs):
@@ -53,7 +54,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         self._use_main_thread = True
 
         if self.tribler_session:
-            self.settings.become_exitnode = self.tribler_session.config.get_tunnel_community_exitnode_enabled()
+            if self.tribler_session.config.get_tunnel_community_exitnode_enabled():
+                self.settings.peer_flags |= PEER_FLAG_EXIT_ANY
             self.tribler_session.lm.tunnel_community = self
 
             if not socks_listen_ports:
@@ -105,12 +107,12 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
     def cache_exitnodes_to_disk(self):
         """
-        Wite a copy of self.exit_candidates to the file self.exitnode_cache.
+        Wite a copy of the exit_candidates to the file self.exitnode_cache.
 
         :returns: None
         """
         exit_nodes = Network()
-        for peer in self.exit_candidates.values():
+        for peer in self.get_candidates(PEER_FLAG_EXIT_ANY):
             exit_nodes.add_verified_peer(peer)
         self.logger.debug('Writing exit nodes to cache: %s', self.exitnode_cache)
         with open(self.exitnode_cache, 'wb') as cache:
@@ -238,7 +240,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             forwarding_relay = RelayRoute(request.from_circuit_id, request.peer)
             self.send_cell([forwarding_relay.peer.address], u"relay-balance-request",
                            BalanceRequestPayload(forwarding_relay.circuit_id))
-        elif self.request_cache.has(u"circuit", payload.circuit_id):
+        elif self.request_cache.has(u"retry", payload.circuit_id):
             self.on_balance_request(payload)
         else:
             self.logger.warning("Circuit creation cache for id %s not found!", payload.circuit_id)

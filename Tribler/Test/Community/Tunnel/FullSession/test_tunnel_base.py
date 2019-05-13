@@ -14,6 +14,7 @@ from Tribler.Core.simpledefs import dlstatus_strings
 from Tribler.Test.test_as_server import TESTS_DATA_DIR, TestAsServer
 from Tribler.community.triblertunnel.community import TriblerTunnelCommunity
 from Tribler.pyipv8.ipv8.keyvault.crypto import ECCrypto
+from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import PEER_FLAG_EXIT_ANY
 from Tribler.pyipv8.ipv8.peer import Peer
 from Tribler.pyipv8.ipv8.peerdiscovery.community import DiscoveryCommunity
 from Tribler.pyipv8.ipv8.peerdiscovery.network import Network
@@ -114,7 +115,9 @@ class TestTunnelBase(TestAsServer):
         session.config.set_tunnel_community_exitnode_enabled(exitnode)
         overlay = self.test_class(tunnel_peer, session.lm.ipv8.endpoint, session.lm.ipv8.network,
                                   tribler_session=session,
-                                  settings={"become_exitnode": exitnode, "max_circuits": 1})
+                                  settings={"max_circuits": 1})
+        if exitnode:
+            overlay.settings.peer_flags |= PEER_FLAG_EXIT_ANY
         overlay._use_main_thread = False
         overlay.dht_provider = MockDHTProvider(Peer(overlay.my_peer.key, overlay.my_estimated_wan))
         overlay.settings.remove_tunnel_delay = 0
