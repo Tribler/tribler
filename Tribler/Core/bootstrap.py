@@ -16,7 +16,7 @@ class Bootstrap(object):
 
     def __init__(self, config_dir, dht=None):
         self._logger = logging.getLogger(self.__class__.__name__)
-        self.dcfg = DownloadStartupConfig(is_bootstrap_download=True)
+        self.dcfg = DownloadStartupConfig(is_bootstrap_download=True, state_dir=config_dir)
         self.bootstrap_dir = os.path.join(config_dir, 'bootstrap')
         if not os.path.exists(self.bootstrap_dir):
             os.mkdir(self.bootstrap_dir)

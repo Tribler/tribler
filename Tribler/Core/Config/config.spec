@@ -1,6 +1,5 @@
 [general]
-state_dir = string(default='')
-log_dir = string(default=None)
+log_dir = string(default='logs')
 testnet = boolean(default=False)
 version_checker_enabled = boolean(default=True)
 
@@ -21,8 +20,8 @@ enabled = boolean(default=True)
 
 [trustchain]
 enabled = boolean(default=True)
-ec_keypair_filename = string(default='')
-testnet_keypair_filename = string(default='')
+ec_keypair_filename = string(default='ec_multichain.pem')
+testnet_keypair_filename = string(default='ec_trustchain_testnet.pem')
 live_edges_enabled = boolean(default=True)
 
 [bootstrap]

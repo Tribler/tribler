@@ -352,7 +352,6 @@ class TriblerLaunchMany(TaskManager):
     def add(self, tdef, dscfg, pstate=None, setupDelay=0, hidden=False,
             share_mode=False, checkpoint_disabled=False):
         """ Called by any thread """
-        d = None
         with self.session_lock:
             infohash = tdef.get_infohash()
 
@@ -373,11 +372,10 @@ class TriblerLaunchMany(TaskManager):
             from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
             d = LibtorrentDownloadImpl(self.session, tdef)
 
-            if pstate is None:  # not already resuming
-                pstate = self.load_download_pstate_noexc(infohash)
-                if pstate is not None:
-                    self._logger.debug("tlm: add: pstate is %s %s",
-                                       pstate.get('dlstate', 'status'), pstate.get('dlstate', 'progress'))
+            pstate = pstate or self.load_download_pstate_noexc(infohash)  # not already resuming
+            if pstate:
+                self._logger.debug("tlm: add: pstate is %s %s",
+                                   pstate.get('dlstate', 'status'), pstate.get('dlstate', 'progress'))
 
             # Store in list of Downloads, always.
             self.downloads[infohash] = d
@@ -599,43 +597,48 @@ class TriblerLaunchMany(TaskManager):
             self._logger.exception("Exception while loading pstate: %s", infohash)
 
     def resume_download(self, filename, setupDelay=0):
-        tdef = dscfg = pstate = None
 
-        pstate = self.load_download_pstate(filename)
+        try:
+            pstate = self.load_download_pstate(filename)
+            if not pstate:
+                return
+        except Exception as e:
+            self._logger.exception("tlm: could not open checkpoint file %s", str(filename))
+            return
 
         metainfo = pstate.get('state', 'metainfo')
-        if 'infohash' in metainfo:
-            tdef = TorrentDefNoMetainfo(metainfo['infohash'], metainfo['name'], metainfo.get('url', None))
-        else:
-            tdef = TorrentDef.load_from_dict(metainfo)
+        tdef = (TorrentDefNoMetainfo(metainfo['infohash'], metainfo['name'], metainfo.get('url', None))
+                if 'infohash' in metainfo else TorrentDef.load_from_dict(metainfo))
 
-        if pstate.has_option('download_defaults', 'saveas') and \
-                isinstance(pstate.get('download_defaults', 'saveas'), tuple):
+        if (pstate.has_option('download_defaults', 'saveas') and
+                isinstance(pstate.get('download_defaults', 'saveas'), tuple)):
             pstate.set('download_defaults', 'saveas', pstate.get('download_defaults', 'saveas')[-1])
 
-        dscfg = DownloadStartupConfig(pstate)
+        # If save_path is relative, make it global instead
 
-        if pstate is not None:
-            has_resume_data = pstate.get('state', 'engineresumedata') is not None
-            self._logger.debug("tlm: load_checkpoint: resumedata %s",
-                               'len %s ' % len(pstate.get('state', 'engineresumedata')) if has_resume_data else 'None')
+        dscfg = DownloadStartupConfig(pstate, state_dir=self.session.config.get_state_dir())
 
-        if tdef and dscfg:
-            if dscfg.get_dest_dir() != '':  # removed torrent ignoring
-                try:
-                    if self.download_exists(tdef.get_infohash()):
-                        self._logger.info("tlm: not resuming checkpoint because download has already been added")
-                    elif dscfg.get_credit_mining() and not self.session.config.get_credit_mining_enabled():
-                        self._logger.info("tlm: not resuming checkpoint since token mining is disabled")
-                    else:
-                        self.add(tdef, dscfg, pstate, setupDelay=setupDelay)
-                except Exception as e:
-                    self._logger.exception("tlm: load check_point: exception while adding download %s", tdef)
-            else:
-                self._logger.info("tlm: removing checkpoint %s destdir is %s", filename, dscfg.get_dest_dir())
-                os.remove(filename)
-        else:
+        self._logger.debug("tlm: load_checkpoint: resumedata %s",
+                           'len %s ' % (len(pstate.get('state', 'engineresumedata'))
+                                        if pstate.get('state', 'engineresumedata') else 'None'))
+        if not (tdef and dscfg):
             self._logger.info("tlm: could not resume checkpoint %s %s %s", filename, tdef, dscfg)
+            return
+
+        if dscfg.get_dest_dir() == '':  # removed torrent ignoring
+            self._logger.info("tlm: removing checkpoint %s destdir is %s", filename, dscfg.get_dest_dir())
+            os.remove(filename)
+            return
+
+        try:
+            if self.download_exists(tdef.get_infohash()):
+                self._logger.info("tlm: not resuming checkpoint because download has already been added")
+            elif dscfg.get_credit_mining() and not self.session.config.get_credit_mining_enabled():
+                self._logger.info("tlm: not resuming checkpoint since token mining is disabled")
+            else:
+                self.add(tdef, dscfg, pstate, setupDelay=setupDelay)
+        except Exception as e:
+            self._logger.exception("tlm: load check_point: exception while adding download %s", tdef)
 
     def checkpoint_downloads(self):
         """

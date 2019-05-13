@@ -9,7 +9,7 @@ from libtorrent import bdecode, bencode
 
 from six.moves import xrange
 
-from twisted.internet.defer import Deferred, succeed
+from twisted.internet.defer import Deferred, inlineCallbacks, succeed
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
@@ -134,7 +134,11 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         return test_deferred
 
     @trial_timeout(20)
+    @inlineCallbacks
     def test_multifile_torrent(self):
+        # Achtung! This test is completely and utterly broken, as is the whole libtorrent wrapper!
+        # Don't try to understand it, it is a legacy thing!
+
         tdef = TorrentDef()
 
         tdef.add_content(os.path.join(TESTS_DATA_DIR, "video.avi"))
@@ -158,13 +162,16 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         fake_status.share_mode = False
         # Create a dummy download config
         impl.dlconfig = DownloadStartupConfig().dlconfig.copy()
-        # Create a dummy pstate
+
         pstate = CallbackConfigParser()
         pstate.add_section("state")
-        test_dict = dict()
-        test_dict["a"] = "b"
-        pstate.set("state", "engineresumedata", test_dict)
-        return impl.network_create_engine_wrapper(pstate)
+        pstate.set("state", "engineresumedata", {"save_path": str(os.path.abspath(self.state_dir))})
+        yield impl.network_create_engine_wrapper(pstate)
+
+        pstate = CallbackConfigParser()
+        pstate.add_section("state")
+        pstate.set("state", "engineresumedata", {"save_path": "some_local_dir"})
+        yield impl.network_create_engine_wrapper(pstate)
 
     @trial_timeout(10)
     def test_save_resume(self):

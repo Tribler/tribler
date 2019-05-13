@@ -33,9 +33,10 @@ class DownloadConfigInterface(object):
     cf. libtorrent torrent_handle
     """
 
-    def __init__(self, dlconfig=None):
+    def __init__(self, dlconfig=None, state_dir=None):
         super(DownloadConfigInterface, self).__init__()
 
+        self.state_dir = state_dir # Dirty hack to support relative paths
         self.dlconfig = dlconfig or CallbackConfigParser()
         self.is_bootstrap_download = False
 
@@ -59,6 +60,11 @@ class DownloadConfigInterface(object):
         """ Sets the directory where to save this Download.
         @param path A path of a directory.
         """
+        # If something is saved inside the Tribler state dir, it should use relative path
+        if self.state_dir:
+            base_path = self.state_dir
+            if base_path == os.path.commonprefix([path, base_path]):
+                path = os.path.relpath(path, base_path)
         assert isinstance(path, string_types), path
         self.dlconfig.set('download_defaults', 'saveas', path)
 
@@ -66,10 +72,13 @@ class DownloadConfigInterface(object):
         """ Gets the directory where to save this Download.
         """
         dest_dir = self.dlconfig.get('download_defaults', 'saveas')
-
         if not dest_dir:
             dest_dir = get_default_dest_dir()
             self.set_dest_dir(dest_dir)
+
+        # This is required to support relative paths
+        if not os.path.isabs(dest_dir):
+            dest_dir = os.path.join(self.state_dir, dest_dir)
 
         return dest_dir
 
@@ -187,10 +196,11 @@ class DownloadStartupConfig(DownloadConfigInterface):
     cf. libtorrent torrent_handle
     """
 
-    def __init__(self, dlconfig=None, is_bootstrap_download=False):
+    def __init__(self, *args, **kwargs):
         """ Normal constructor for DownloadStartupConfig (copy constructor
         used internally) """
-        DownloadConfigInterface.__init__(self, dlconfig)
+        is_bootstrap_download = kwargs.pop("is_bootstrap_download") if "is_bootstrap_download" in kwargs else False
+        DownloadConfigInterface.__init__(self, *args, **kwargs)
         self.is_bootstrap_download = is_bootstrap_download
     #
     # Class method
@@ -234,13 +244,13 @@ class DefaultDownloadStartupConfig(DownloadStartupConfig):
     """
     __single = None
 
-    def __init__(self, dlconfig=None):
+    def __init__(self, *args, **kwargs):
 
         if DefaultDownloadStartupConfig.__single:
             raise RuntimeError("DefaultDownloadStartupConfig is singleton")
         DefaultDownloadStartupConfig.__single = self
 
-        DownloadStartupConfig.__init__(self, dlconfig=dlconfig)
+        DownloadStartupConfig.__init__(self, *args, **kwargs)
 
         self._logger = logging.getLogger(self.__class__.__name__)
 

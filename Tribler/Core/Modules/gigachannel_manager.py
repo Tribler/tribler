@@ -159,7 +159,7 @@ class GigaChannelManager(TaskManager):
         Download a channel with a given infohash and title.
         :param channel: The channel metadata ORM object.
         """
-        dcfg = DownloadStartupConfig()
+        dcfg = DownloadStartupConfig(state_dir=self.session.config.get_state_dir())
         dcfg.set_dest_dir(self.session.lm.mds.channels_dir)
         dcfg.set_channel_download(True)
         tdef = TorrentDefNoMetainfo(infohash=str(channel.infohash), name=channel.dir_name)
@@ -186,7 +186,7 @@ class GigaChannelManager(TaskManager):
         with db_session:
             my_channel = self.session.lm.mds.ChannelMetadata.get_my_channel()
         if my_channel and my_channel.status == COMMITTED and not self.session.has_download(str(my_channel.infohash)):
-            dcfg = DownloadStartupConfig()
+            dcfg = DownloadStartupConfig(state_dir=self.session.config.get_state_dir())
             dcfg.set_dest_dir(self.session.lm.mds.channels_dir)
             dcfg.set_channel_download(True)
             self.session.lm.add(tdef, dcfg)

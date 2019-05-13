@@ -37,6 +37,7 @@ class TestLaunchManyCore(TriblerCoreTest):
         self.lm.session.config.get_max_download_rate = lambda: 100
         self.lm.session.config.get_default_number_hops = lambda: 0
         self.lm.session.config.get_bootstrap_download = lambda: '0' * 20
+        self.lm.session.config.get_state_dir = lambda: self.state_dir
 
         # Ignore notifications
         mock_notifier = MockObject()
@@ -64,6 +65,30 @@ class TestLaunchManyCore(TriblerCoreTest):
         dl_state.get_download = lambda: fake_download
 
         return fake_download, dl_state
+
+    def test_resume_download(self):
+        good = []
+
+        def mock_add(tdef, dscfg, pstate, setupDelay=None):
+            good.append(1)
+        self.lm.add = mock_add
+
+        # Try opening real state file
+        state = os.path.abspath(os.path.join(self.DATA_DIR, u"config_files",
+                                             u"13a25451c761b1482d3e85432f07c4be05ca8a56.state"))
+        self.lm.resume_download(state)
+        self.assertTrue(good)
+
+        # Try opening nonexistent file
+        good = []
+        self.lm.resume_download("nonexistent_file")
+        self.assertFalse(good)
+
+        # Try opening corrupt file
+        config_file_path = os.path.abspath(os.path.join(self.DATA_DIR, u"config_files",
+                                                        u"corrupt_session_config.conf"))
+        self.lm.resume_download(config_file_path)
+        self.assertFalse(good)
 
     def test_load_download_pstate(self):
         """
