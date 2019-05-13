@@ -422,6 +422,22 @@ class DownloadsPage(QWidget):
         else:
             self.window().tray_show_message("Torrent file exported", "Torrent file exported to %s" % dest_path)
 
+    def on_add_to_channel(self):
+        self.request_mgr = TriblerRequestManager()
+        for selected_item in self.selected_items:
+            infohash = selected_item.download_info["infohash"]
+            name = selected_item.download_info["name"]
+            post_data = {"uri": u"magnet:?xt=urn:btih:%s&dn=%s" % (infohash, name)}
+            self.request_mgr.perform_request("mychannel/torrents",
+                                             lambda response, _name=name: self.on_added_to_channel(_name, response),
+                                             method='PUT', data=post_data)
+
+    def on_added_to_channel(self, name, response):
+        if not response:
+            return
+        if 'added' in response and response['added']:
+            self.window().tray_show_message("Channel update", "%s torrent successfully added to your channel" % name)
+
     def on_right_click_item(self, pos):
         item_clicked = self.window().downloads_list.itemAt(pos)
         if not item_clicked or self.selected_items is None:
@@ -435,6 +451,7 @@ class DownloadsPage(QWidget):
         start_action = QAction('Start', self)
         stop_action = QAction('Stop', self)
         remove_download_action = QAction('Remove download', self)
+        add_to_channel_action = QAction('Add to My Channel', self)
         force_recheck_action = QAction('Force recheck', self)
         export_download_action = QAction('Export .torrent file', self)
         explore_files_action = QAction('Explore files', self)
@@ -448,6 +465,7 @@ class DownloadsPage(QWidget):
         start_action.setEnabled(DownloadsPage.start_download_enabled(self.selected_items))
         stop_action.triggered.connect(self.on_stop_download_clicked)
         stop_action.setEnabled(DownloadsPage.stop_download_enabled(self.selected_items))
+        add_to_channel_action.triggered.connect(self.on_add_to_channel)
         remove_download_action.triggered.connect(self.on_remove_download_clicked)
         force_recheck_action.triggered.connect(self.on_force_recheck_download)
         force_recheck_action.setEnabled(DownloadsPage.force_recheck_download_enabled(self.selected_items))
@@ -466,6 +484,8 @@ class DownloadsPage(QWidget):
             play_action = QAction('Play', self)
             play_action.triggered.connect(self.on_play_download_clicked)
             menu.addAction(play_action)
+        menu.addSeparator()
+        menu.addAction(add_to_channel_action)
         menu.addSeparator()
         menu.addAction(remove_download_action)
         menu.addSeparator()

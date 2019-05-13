@@ -145,11 +145,24 @@ class CommitControlMixin(TriblerContentTableView):
 
 
 class DeleteButtonMixin(CommitControlMixin):
-    def on_delete_button_clicked(self, index):
+
+    def on_delete_button_clicked(self, _index):
+        infohashes = [row.model().data_items[row.row()][u'infohash'] for row in self.selectionModel().selectedRows()]
+        post_data = {
+            "infohashes": infohashes,
+            "status": COMMIT_STATUS_TODELETE
+        }
+
         request_mgr = TriblerRequestManager()
-        request_mgr.perform_request("mychannel/torrents/%s" % index.model().data_items[index.row()][u'infohash'],
-                                    lambda response: self.on_torrent_status_updated(response, index),
-                                    data={"status" : COMMIT_STATUS_TODELETE}, method='PATCH')
+        request_mgr.perform_request("mychannel/torrents", self.on_torrents_deleted, data=post_data, method='POST')
+
+    def on_torrents_deleted(self, json_result):
+        if not json_result:
+            return
+
+        if 'success' in json_result and json_result['success']:
+            self.window().edit_channel_page.load_my_torrents()
+            self.window().edit_channel_torrents_container.details_container.hide()
 
 
 class AddToChannelButtonMixin(CommitControlMixin):
