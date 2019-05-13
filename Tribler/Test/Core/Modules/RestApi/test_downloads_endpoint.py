@@ -475,6 +475,55 @@ class TestDownloadsEndpoint(AbstractApiTest):
                                post_data={"state": "abc"}, request_type='PATCH')
 
     @trial_timeout(10)
+    def test_move_to_non_existing_dir(self):
+        """
+        Testing whether moving the torrent storage to a non-existing directory works as expected.
+        """
+        video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
+        self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
+
+        dest_dir = os.path.join(self.temporary_directory(), "non-existing")
+        self.assertFalse(os.path.exists(dest_dir))
+        data = {
+            "state": "move_storage",
+            "dest_dir": dest_dir
+        }
+
+        def check_response(json_str_response):
+            response_dict = json.loads(json_str_response)
+            self.assertTrue("error" in response_dict)
+            self.assertEqual("Target directory (%s) does not exist" % dest_dir, response_dict["error"])
+
+        self.should_check_equality = False
+        return self.do_request('downloads/%s' % get_hex_infohash(video_tdef), expected_code=200,
+                               post_data=data, request_type='PATCH').addCallback(check_response)
+
+    @trial_timeout(10)
+    def test_move_to_existing_dir(self):
+        """
+        Testing whether moving the torrent storage to an existing directory works as expected.
+        """
+        video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
+        self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
+
+        dest_dir = os.path.join(self.temporary_directory(), "existing")
+        os.mkdir(dest_dir)
+        self.assertTrue(os.path.exists(dest_dir))
+        data = {
+            "state": "move_storage",
+            "dest_dir": dest_dir
+        }
+
+        def check_response(json_str_response):
+            response_dict = json.loads(json_str_response)
+            self.assertTrue(response_dict.get("modified", False))
+            self.assertEqual(hexlify(video_tdef.infohash), response_dict["infohash"])
+
+        self.should_check_equality = False
+        return self.do_request('downloads/%s' % get_hex_infohash(video_tdef), expected_code=200,
+                               post_data=data, request_type='PATCH').addCallback(check_response)
+
+    @trial_timeout(10)
     def test_export_unknown_download(self):
         """
         Testing whether the API returns error 404 if a non-existent download is exported
