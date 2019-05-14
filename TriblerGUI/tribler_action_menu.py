@@ -1,4 +1,8 @@
+from __future__ import absolute_import
+
 from PyQt5.QtWidgets import QMenu
+
+from TriblerGUI.defs import CONTEXT_MENU_WIDTH
 
 
 class TriblerActionMenu(QMenu):
@@ -28,3 +32,5 @@ class TriblerActionMenu(QMenu):
             color: #999999;
         }
         """)
+
+        self.setMinimumWidth(CONTEXT_MENU_WIDTH)
