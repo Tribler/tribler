@@ -44,7 +44,7 @@ class ChannelPage(QWidget):
     def initialize_with_channel(self, channel_info):
         self.channel_info = channel_info
 
-        self.window().channel_preview_label.setHidden(channel_info['subscribed'])
+        self.window().channel_preview_label.setHidden(channel_info['state'] in ('Complete', 'Legacy'))
         self.window().channel_back_button.setIcon(QIcon(get_image_path('page_back.png')))
         self.window().channel_page_container.content_table.setFocus()
 
