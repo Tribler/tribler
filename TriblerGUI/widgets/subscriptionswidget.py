@@ -39,25 +39,20 @@ class SubscriptionsWidget(QWidget):
         self.update_subscribe_button()
 
     def update_subscribe_button(self, remote_response=None):
-        if remote_response and 'subscribed' in remote_response:
-            self.channel_info["subscribed"] = remote_response['subscribed']
+        for prop in ('subscribed', 'votes'):
+            if remote_response and prop in remote_response:
+                self.channel_info[prop] = remote_response[prop]
 
-        if remote_response and 'votes' in remote_response:
-            self.channel_info["votes"] = remote_response['votes']
-
-        if int(self.channel_info["subscribed"]):
-            self.subscribe_button.setIcon(QIcon(QPixmap(get_image_path('subscribed_yes.png'))))
-        else:
-            self.subscribe_button.setIcon(QIcon(QPixmap(get_image_path('subscribed_not.png'))))
-
+        self.subscribe_button.setIcon(QIcon(QPixmap(get_image_path(
+            'subscribed_yes.png' if int(self.channel_info["subscribed"]) else 'subscribed_not.png'))))
         self.num_subs_label.setText(str(self.channel_info["votes"]))
 
         if self.window().tribler_settings:  # It could be that the settings are not loaded yet
             self.credit_mining_button.setHidden(not self.window().tribler_settings["credit_mining"]["enabled"])
-            if self.channel_info["public_key"] in self.window().tribler_settings["credit_mining"]["sources"]:
-                self.credit_mining_button.setIcon(QIcon(QPixmap(get_image_path('credit_mining_yes.png'))))
-            else:
-                self.credit_mining_button.setIcon(QIcon(QPixmap(get_image_path('credit_mining_not.png'))))
+            self.credit_mining_button.setIcon(QIcon(QPixmap(get_image_path(
+                'credit_mining_yes.png'
+                if self.channel_info["public_key"] in self.window().tribler_settings["credit_mining"]["sources"] else
+                'credit_mining_not.png'))))
         else:
             self.credit_mining_button.hide()
 
