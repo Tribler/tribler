@@ -222,6 +222,10 @@ class SettingsPage(QWidget):
         settings = settings["settings"]
         gui_settings = self.window().gui_settings
 
+        self.window().settings_stacked_widget.show()
+        self.window().settings_tab.show()
+        self.window().settings_save_button.show()
+
         # General settings
         self.window().family_filter_checkbox.setChecked(get_gui_setting(gui_settings, 'family_filter',
                                                                         True, is_bool=True))
@@ -305,6 +309,10 @@ class SettingsPage(QWidget):
         self.window().cpu_priority_value.setText("Current Priority = %s" % value)
 
     def load_settings(self):
+        self.window().settings_stacked_widget.hide()
+        self.window().settings_tab.hide()
+        self.window().settings_save_button.hide()
+
         self.settings_request_mgr = TriblerRequestManager()
         self.settings_request_mgr.perform_request("settings", self.initialize_with_settings)
 
