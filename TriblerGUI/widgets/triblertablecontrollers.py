@@ -6,7 +6,7 @@ from __future__ import absolute_import
 
 import uuid
 
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, pyqtSignal, QObject
 from PyQt5.QtGui import QCursor
 from PyQt5.QtWidgets import QAction
 
@@ -31,12 +31,14 @@ def to_fts_query(text):
     return " AND ".join(query_list)
 
 
-class TriblerTableViewController(object):
+class TriblerTableViewController(QObject):
     """
     Base controller for a table view that displays some data.
     """
+    query_complete = pyqtSignal(dict, bool)
 
     def __init__(self, model, table_view):
+        super(TriblerTableViewController, self).__init__()
         self.model = model
         self.model.on_sort.connect(self._on_view_sort)
         self.table_view = table_view
@@ -101,9 +103,13 @@ class TriblerTableViewController(object):
             return False
         if self.is_new_result(response):
             self.model.add_items(response['results'], remote=remote)
-        self.model.total_items = len(self.model.data_items)
-        if self.num_results_label:
-            self.num_results_label.setText("%d results" % self.model.total_items)
+
+        # TODO: count remote results
+        if not remote:
+            self.model.total_items = response['total']
+            if self.num_results_label:
+                self.num_results_label.setText("%d results" % self.model.total_items)
+        self.query_complete.emit(response, remote)
         return True
 
     def is_new_result(self, response):

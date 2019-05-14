@@ -36,6 +36,7 @@ class ChannelPage(QWidget):
 
         # To reload the preview
         self.window().channel_preview_label.clicked.connect(self.preview_clicked)
+        self.controller.query_complete.connect(self._on_query_complete)
 
     def preview_clicked(self):
         self.controller.fetch_preview()
@@ -58,6 +59,11 @@ class ChannelPage(QWidget):
         self.model.channel_pk = channel_info['public_key']
         self.window().channel_torrents_filter_input.setText("")
         self.load_torrents()
+
+    def _on_query_complete(self, data, remote):
+        if not remote:
+            self.window().channel_num_torrents_label.setText("{}/{} torrents".format(data['total'],
+                                                                                     self.channel_info['torrents']))
 
     def load_torrents(self):
         self.controller.model.reset()

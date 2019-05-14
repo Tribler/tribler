@@ -3814,6 +3814,33 @@ font-weight: bold;</string>
               </spacer>
              </item>
              <item>
+              <widget class="QLabel" name="channel_num_torrents_label">
+               <property name="styleSheet">
+                <string notr="true">font-size: 14px;
+color: #B5B5B5;</string>
+               </property>
+               <property name="text">
+                <string>99/100 torrents</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <spacer name="horizontalSpacer_16">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeType">
+                <enum>QSizePolicy::Fixed</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>10</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+             <item>
               <widget class="QPushButton" name="channel_preview_label">
                <property name="toolTip">
                 <string extracomment="reload preview"/>
@@ -4055,22 +4082,6 @@ background-color: transparent;
                 </item>
                </layout>
               </widget>
-             </item>
-             <item>
-              <spacer name="horizontalSpacer_16">
-               <property name="orientation">
-                <enum>Qt::Horizontal</enum>
-               </property>
-               <property name="sizeType">
-                <enum>QSizePolicy::Fixed</enum>
-               </property>
-               <property name="sizeHint" stdset="0">
-                <size>
-                 <width>10</width>
-                 <height>20</height>
-                </size>
-               </property>
-              </spacer>
              </item>
              <item>
               <spacer name="horizontalSpacer_6">
@@ -4498,8 +4509,8 @@ border-top: 1px solid #555;
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>300</width>
-               <height>646</height>
+               <width>765</width>
+               <height>710</height>
               </rect>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_22">
