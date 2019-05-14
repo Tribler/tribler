@@ -88,16 +88,16 @@ class SubscribeButtonMixin(TriblerContentTableView):
             return
         status = int(item[u'subscribed'])
         public_key = item[u'public_key']
-        request_mgr = TriblerRequestManager()
-        request_mgr.perform_request("metadata/channels/%s" % public_key,
-                                    (lambda _: self.on_unsubscribed_channel.emit(index)) if status else
-                                    (lambda _: self.on_subscribed_channel.emit(index)),
-                                    data={"subscribe": int(not status)}, method='POST')
-        index.model().data_items[index.row()][u'subscribed'] = int(not status)
 
-        # Update votes
-        votes = index.model().data_items[index.row()][u'votes']
-        index.model().data_items[index.row()][u'votes'] = votes + 1 if not status else votes - 1
+        def update_item(request_data):
+            data_item_dict = index.model().data_items[index.row()]
+            for key, value in data_item_dict.items():
+                if key in request_data:
+                    data_item_dict[key] = request_data[key]
+
+        request_mgr = TriblerRequestManager()
+        request_mgr.perform_request("metadata/channels/%s" % public_key, update_item,
+                                    data={"subscribe": int(not status)}, method='POST')
 
 
 class ItemClickedMixin(TriblerContentTableView):
@@ -179,8 +179,6 @@ class AddToChannelButtonMixin(CommitControlMixin):
 
 class SearchResultsTableView(ItemClickedMixin, DownloadButtonMixin, PlayButtonMixin, SubscribeButtonMixin,
                              AddToChannelButtonMixin, TriblerContentTableView):
-    on_subscribed_channel = pyqtSignal(QModelIndex)
-    on_unsubscribed_channel = pyqtSignal(QModelIndex)
 
     """
     This table displays search results, which can be both torrents and channels.

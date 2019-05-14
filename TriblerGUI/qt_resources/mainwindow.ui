@@ -1138,7 +1138,7 @@ background-color: #e67300;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>10</number>
+         <number>3</number>
         </property>
         <widget class="HomePage" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -3788,6 +3788,32 @@ font-weight: bold;</string>
               </spacer>
              </item>
              <item>
+              <widget class="QLabel" name="channel_state_label">
+               <property name="styleSheet">
+                <string notr="true">color: #eee; font-size: 15px;</string>
+               </property>
+               <property name="text">
+                <string>Channel state</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <spacer name="horizontalSpacer_30">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeType">
+                <enum>QSizePolicy::Fixed</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>10</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+             <item>
               <widget class="QPushButton" name="channel_preview_label">
                <property name="toolTip">
                 <string extracomment="reload preview"/>
@@ -3796,7 +3822,7 @@ font-weight: bold;</string>
                 <string notr="true">color: #eee; font-size: 15px;</string>
                </property>
                <property name="text">
-                <string>Preview ⟳</string>
+                <string>Refresh ⟳</string>
                </property>
                <property name="margin" stdset="0">
                 <number>8</number>
@@ -4472,8 +4498,8 @@ border-top: 1px solid #555;
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>765</width>
-               <height>710</height>
+               <width>300</width>
+               <height>646</height>
               </rect>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_22">
@@ -7762,8 +7788,8 @@ QTabBar::tab:selected {
                       <rect>
                        <x>0</x>
                        <y>0</y>
-                       <width>767</width>
-                       <height>387</height>
+                       <width>321</width>
+                       <height>259</height>
                       </rect>
                      </property>
                      <layout class="QFormLayout" name="formLayout_4">

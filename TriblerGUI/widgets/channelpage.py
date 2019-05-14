@@ -51,6 +51,7 @@ class ChannelPage(QWidget):
         # initialize the page about a channel
         self.window().channel_name_label.setText(channel_info['name'])
         self.window().num_subs_label.setText(str(channel_info['votes']))
+        self.window().channel_state_label.setText(channel_info["state"])
         self.window().subscription_widget.initialize_with_channel(channel_info)
         self.window().channel_page_container.details_container.hide()
 
