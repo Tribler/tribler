@@ -1,8 +1,9 @@
 from __future__ import absolute_import, division
 
-from PyQt5.QtCore import QEvent, QModelIndex, QObject, QRect, QSize, Qt, pyqtSignal
+from PyQt5.QtCore import QEvent, QModelIndex, QObject, QRect, QSize, Qt, pyqtSignal, QRectF
 from PyQt5.QtGui import QBrush, QColor, QIcon, QPainter, QPen
-from PyQt5.QtWidgets import QComboBox, QStyle, QStyledItemDelegate
+from PyQt5.QtSvg import QSvgRenderer, QGraphicsSvgItem
+from PyQt5.QtWidgets import QComboBox, QStyle, QStyledItemDelegate, QGraphicsScene
 
 from six import text_type
 
@@ -105,7 +106,42 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
         return super(TriblerButtonsDelegate, self).createEditor(parent, option, index)
 
 
-class DrawSubscribedControlMixin(object):
+class ChannelStateMixin(object):
+    wait_svg = QSvgRenderer(get_image_path("wait_animation.svg"))
+
+    def init_animation(self):
+        # This signal is fired each time the animation objects wants to show the next frame.
+        # However, this happens even when the view is in the background. So, the signal
+        # continue to fire even when nothing is shown on the screen. This is just stupid
+        # and should be changed eventually.
+        # TODO: make the animation stop when the view becomes hidden. Use QMovie to do this.
+        self.wait_svg.repaintNeeded.connect(self.redraw_required)
+
+    def draw_channel_state(self, painter, option, index, data_item):
+        # Draw empty cell as the background
+        self.paint_empty_background(painter, option)
+
+        if u'type' in data_item and data_item[u'type'] != u'channel':
+            return True
+        if data_item[u'status'] == 1000:  # LEGACY ENTRIES!
+            return True
+        if u'my_channel' in data_item and data_item[u'my_channel']:
+            return True
+
+        if data_item[u'state'] in [u'Updating', u'Downloading']:
+            r = option.rect
+            indicator_border = 1
+            indicator_side = (r.height() if r.width() > r.height() else r.width()) - indicator_border*2
+            y = r.top() + (r.height() - indicator_side) / 2
+            x = r.left() + indicator_border
+            w = indicator_side
+            h = indicator_side
+            indicator_rect = QRect(x, y, w, h)
+            self.wait_svg.render(painter, QRectF(indicator_rect))
+        return True
+
+
+class SubscribedControlMixin(object):
     def draw_subscribed_control(self, painter, option, index, data_item):
         # Draw empty cell as the background
         self.paint_empty_background(painter, option)
@@ -125,7 +161,7 @@ class DrawSubscribedControlMixin(object):
         return True
 
 
-class DrawCategoryLabelMixin(object):
+class CategoryLabelMixin(object):
     def draw_category_label(self, painter, option, index, data_item):
         # Draw empty cell as the background
         self.paint_empty_background(painter, option)
@@ -141,7 +177,7 @@ class DrawCategoryLabelMixin(object):
         return True
 
 
-class DrawDownloadControlsMixin(object):
+class DownloadControlsMixin(object):
     def draw_download_controls(self, painter, option, index, _):
         # Draw empty cell as the background
         self.paint_empty_background(painter, option)
@@ -175,13 +211,15 @@ class HealthLabelMixin(object):
         return True
 
 
-class SearchResultsDelegate(TriblerButtonsDelegate, DrawCategoryLabelMixin, DrawSubscribedControlMixin,
-                            DrawDownloadControlsMixin, HealthLabelMixin):
+class SearchResultsDelegate(TriblerButtonsDelegate, CategoryLabelMixin, SubscribedControlMixin,
+                            DownloadControlsMixin, HealthLabelMixin, ChannelStateMixin):
 
     def __init__(self, parent=None):
         # TODO: refactor this not to rely on inheritance order, but instead use interface method pattern
         TriblerButtonsDelegate.__init__(self, parent)
         self.subscribe_control = SubscribeToggleControl(u'subscribed')
+
+        self.init_animation()
         self.health_status_widget = HealthStatusDisplay()
 
         self.play_button = PlayIconButton()
@@ -191,26 +229,26 @@ class SearchResultsDelegate(TriblerButtonsDelegate, DrawCategoryLabelMixin, Draw
         self.column_drawing_actions = [(u'subscribed', self.draw_subscribed_control),
                                        (ACTION_BUTTONS, self.draw_action_column),
                                        (u'category', self.draw_category_label),
-                                       (u'health', self.draw_health_column)]
+                                       (u'health', self.draw_health_column),
+                                       (u'state', self.draw_channel_state)]
 
     def draw_action_column(self, painter, option, index, data_item):
-        if data_item['type'] == 'channel':
-            return
-            #return self.draw_subscribed_control(painter, option, index, data_item)
-        else:
+        if data_item['type'] != 'channel':
             return self.draw_download_controls(painter, option, index, None)
 
 
-class ChannelsButtonsDelegate(TriblerButtonsDelegate, DrawSubscribedControlMixin):
-
+class ChannelsButtonsDelegate(TriblerButtonsDelegate, SubscribedControlMixin, ChannelStateMixin):
     def __init__(self, parent=None):
         TriblerButtonsDelegate.__init__(self, parent)
+        self.init_animation()
+
         self.subscribe_control = SubscribeToggleControl(u'subscribed')
         self.controls = [self.subscribe_control]
-        self.column_drawing_actions = [(u'subscribed', self.draw_subscribed_control)]
+        self.column_drawing_actions = [(u'subscribed', self.draw_subscribed_control),
+                                       (u'state', self.draw_channel_state)]
 
 
-class TorrentsButtonsDelegate(TriblerButtonsDelegate, DrawCategoryLabelMixin, DrawDownloadControlsMixin,
+class TorrentsButtonsDelegate(TriblerButtonsDelegate, CategoryLabelMixin, DownloadControlsMixin,
                               HealthLabelMixin):
 
     def __init__(self, parent=None):

@@ -144,8 +144,8 @@ class SearchResultsContentModel(TriblerContentModel):
     """
     Model for a list that shows search results.
     """
-    columns = [u'subscribed', u'category', u'name', u'torrents', u'size', u'updated', u'health', ACTION_BUTTONS]
-    column_headers = [u'', u'Category', u'Name', u'Torrents', u'Size', u'Updated', u'health', u'']
+    columns = [u'state', u'subscribed', u'category', u'name', u'torrents', u'size', u'updated', u'health', ACTION_BUTTONS]
+    column_headers = [u'', u'', u'Category', u'Name', u'Torrents', u'Size', u'Updated', u'health', u'']
     column_flags = {
         u'subscribed': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         u'category': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
@@ -154,6 +154,7 @@ class SearchResultsContentModel(TriblerContentModel):
         u'size': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         u'updated': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         u'health': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
+        u'state': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         ACTION_BUTTONS: Qt.ItemIsEnabled | Qt.ItemIsSelectable
     }
 
@@ -171,18 +172,20 @@ class ChannelsContentModel(TriblerContentModel):
     """
     This model represents a list of channels that can be displayed in a table view.
     """
-    columns = [u'subscribed', u'name', u'torrents', u'updated']
-    column_headers = [u'', u'Channel name', u'Torrents', u'Updated']
+    columns = [u'state', u'subscribed', u'name', u'torrents', u'updated']
+    column_headers = [u'', u'', u'Channel name', u'Torrents', u'Updated']
     column_flags = {
+        u'subscribed': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         u'name': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         u'torrents': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         u'updated': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
-        u'subscribed': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
+        u'state': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         ACTION_BUTTONS: Qt.ItemIsEnabled | Qt.ItemIsSelectable
     }
 
     column_display_filters = {
         u'updated': pretty_date,
+        u'state': lambda data: str(data)[:1] if data == u'Downloading' else ""
     }
 
     def __init__(self, subscribed=False, **kwargs):

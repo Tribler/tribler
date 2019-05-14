@@ -453,6 +453,24 @@ def define_binding(db):
 
             return pony_query[(first or 1) - 1:last] if first or last else pony_query, count
 
+        @property
+        @db_session
+        def channel_state(self):
+            """
+            This property describes the current state of the channel.
+            :return: Text-based status
+            """
+            if self.status == LEGACY_ENTRY:
+                return "Legacy"
+            if self.local_version == self.timestamp:
+                return "Complete"
+            if self.local_version > 0:
+                return "Updating"
+            if self.subscribed:
+                return "Downloading"
+            else:
+                return "Preview"
+
         @db_session
         def to_simple_dict(self):
             """
@@ -469,6 +487,8 @@ def define_binding(db):
                 "votes": self.votes,
                 "status": self.status,
                 "updated": int((self.torrent_date - epoch).total_seconds()),
+                "timestamp": self.timestamp,
+                "state": self.channel_state,
 
                 # TODO: optimize this?
                 "my_channel": database_blob(self._my_key.pub().key_to_bin()[10:]) == database_blob(self.public_key)
