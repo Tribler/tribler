@@ -12,6 +12,7 @@ from Tribler.Test.tools import trial_timeout
 def RaiseException(*args, **kwargs):
     raise TriblerException(u"Oops! Something went wrong. Please restart Tribler")
 
+
 class RestRequestTest(AbstractApiTest):
 
     @trial_timeout(10)
@@ -21,15 +22,9 @@ class RestRequestTest(AbstractApiTest):
         """
 
         def verify_error_message(body):
-            error_response = json.twisted_loads(body)
-            expected_response = {
-                u"error": {
-                    u"handled": False,
-                    u"code": u"TriblerException",
-                    u"message": u"Oops! Something went wrong. Please restart Tribler"
-                }
-            }
-            self.assertDictContainsSubset(expected_response[u"error"], error_response[u"error"])
+            error_response = json.twisted_loads(body)['error']
+            self.assertFalse(error_response['handled'])
+            self.assertEqual(error_response['code'], "TriblerException")
 
         post_data = json.dumps({"settings": "bla", "ports": "bla"})
         SettingsEndpoint.parse_settings_dict = RaiseException
