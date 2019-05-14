@@ -3,7 +3,7 @@ from __future__ import absolute_import, division
 from PyQt5.QtCore import QEvent, QModelIndex, QObject, QRect, QSize, Qt, pyqtSignal, QRectF
 from PyQt5.QtGui import QBrush, QColor, QIcon, QPainter, QPen
 from PyQt5.QtSvg import QSvgRenderer, QGraphicsSvgItem
-from PyQt5.QtWidgets import QComboBox, QStyle, QStyledItemDelegate, QGraphicsScene
+from PyQt5.QtWidgets import QComboBox, QStyle, QStyledItemDelegate, QGraphicsScene, QToolTip
 
 from six import text_type
 
@@ -48,6 +48,8 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
             self.hoverrow = index.row()
             if not self.button_box.contains(pos):
                 redraw = True
+                # Hide the tooltip when cell hover changes
+                QToolTip.hideText()
         # Redraw when the mouse leaves the table
         if index.row() == -1 and self.hoverrow != -1:
             self.hoverrow = -1

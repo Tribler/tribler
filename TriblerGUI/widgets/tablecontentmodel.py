@@ -140,7 +140,18 @@ class TriblerContentModel(RemoteTableModel):
             self.dataChanged.emit(self.index(row, 0), self.index(row, len(self.columns)), [])
 
 
-class SearchResultsContentModel(TriblerContentModel):
+class StateTooltipMixin(object):
+    def data(self, index, role):
+        # Return tooltip for state indicator column
+        if role == Qt.ToolTipRole:
+            if index.column() == self.column_position[u'state']:
+                return self.data_items[index.row()][u'state']
+            return None
+        else:
+            return super(StateTooltipMixin, self).data(index, role)
+
+
+class SearchResultsContentModel(StateTooltipMixin, TriblerContentModel):
     """
     Model for a list that shows search results.
     """
@@ -168,7 +179,7 @@ class SearchResultsContentModel(TriblerContentModel):
         self.type_filter = ''
 
 
-class ChannelsContentModel(TriblerContentModel):
+class ChannelsContentModel(StateTooltipMixin, TriblerContentModel):
     """
     This model represents a list of channels that can be displayed in a table view.
     """
