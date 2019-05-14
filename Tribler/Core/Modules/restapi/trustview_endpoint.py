@@ -19,7 +19,7 @@ class TrustViewEndpoint(resource.Resource):
         self.session = session
         self._logger = logging.getLogger(self.__class__.__name__)
 
-        self.node_id = None
+        self.root_public_key = None
         self.local_view = None
 
         self.bootstrap = None
@@ -32,8 +32,8 @@ class TrustViewEndpoint(resource.Resource):
     def initialize_graph(self):
         if not self.initialized and self.session.lm.trustchain_community and not self.local_view:
             pub_key = self.session.lm.trustchain_community.my_peer.public_key.key_to_bin()
-            self.node_id = hexlify(pub_key)
-            self.local_view = NodeVision(self.node_id)
+            self.root_public_key = hexlify(pub_key)
+            self.local_view = NodeVision(self.root_public_key)
             self.trustchain_db = self.session.lm.trustchain_community.persistence
             self.initialized = True
 
@@ -82,9 +82,15 @@ class TrustViewEndpoint(resource.Resource):
         self.load_blocks(blocks)
 
         # Load 5 latest blocks of all the connected users in the database
-        userblocks = self.trustchain_db.get_connected_users(pub_key)
-        for userblock in userblocks:
-            blocks = self.trustchain_db.get_latest_blocks(unhexlify(userblock['public_key']), limit=5)
+        connected_blocks = self.trustchain_db.get_connected_users(pub_key)
+        for connected_block in connected_blocks:
+            blocks = self.trustchain_db.get_latest_blocks(unhexlify(connected_block['public_key']), limit=5)
+            self.load_blocks(blocks)
+
+        # Load 5 latest blocks of all the users in the database
+        user_blocks = self.trustchain_db.get_users(limit=-1)
+        for user_block in user_blocks:
+            blocks = self.trustchain_db.get_latest_blocks(unhexlify(user_block['public_key']), limit=5)
             self.load_blocks(blocks)
 
         # Add blocks to graph and update your local view
@@ -96,7 +102,7 @@ class TrustViewEndpoint(resource.Resource):
         positions = self.local_view.normalize_positions_dict()
         graph_data = json_graph.node_link_data(self.local_view.component)
 
-        return json.twisted_dumps({'node_id': self.node_id,
+        return json.twisted_dumps({'root_public_key': self.root_public_key,
                                    'graph_data': graph_data,
                                    'positions': positions,
                                    'bootstrap': self.get_bootstrap_info(),

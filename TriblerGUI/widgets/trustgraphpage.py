@@ -29,14 +29,16 @@ SPACE = '&nbsp;'
 class TrustAnimationCanvas(FigureCanvas):
 
     def __init__(self, parent=None, width=5, height=5, dpi=100):
-        self.fig = Figure(figsize=(width, height), dpi=dpi)
-        self.fig.set_facecolor("#202020")
-        self.fig.set_edgecolor("green")
+        self.fig = Figure(figsize=(width, height), dpi=dpi, frameon=False)
+        self.fig.set_tight_layout(True)
 
-        self.fig.set_tight_layout({"pad": 1})
         self.axes = self.fig.add_subplot(111)
-        self.axes.tick_params(axis='both', which='both', bottom=False, top=False, left=False,
-                              labelbottom=False, labelleft=False)
+        self.axes.tick_params(which='both', bottom=False, top=False, left=False, labelbottom=False, labelleft=False)
+        self.axes.set_xlim(0, 1)
+        self.axes.set_ylim(0, 1)
+        self.axes.set_xticks([], [])
+        self.axes.set_yticks([], [])
+        self.axes.set_facecolor(BACKGROUND)
 
         FigureCanvas.__init__(self, self.fig)
         self.setParent(parent)
@@ -47,30 +49,26 @@ class TrustAnimationCanvas(FigureCanvas):
         # User interaction
         self.fig.canvas.setFocusPolicy(Qt.ClickFocus)
         self.fig.canvas.setFocus()
-        # self.fig.canvas.mpl_connect('pick_event', self.on_pick)
         self.fig.canvas.mpl_connect('button_press_event', self.on_mouse_press_event)
         self.fig.canvas.mpl_connect('button_release_event', self.on_mouse_release_event)
-        self.figure.canvas.mpl_connect("motion_notify_event", self.on_drag)
+        self.fig.canvas.mpl_connect("motion_notify_event", self.on_drag_event)
 
-        self.line_nodes = []
-        self.central_nodes = []
-        self.drag_root_node = False
+        self.root_public_key = None
+        self.token_balance = {}
 
-        self.animation_frame = 0
+        # Reference to nodes in the plotted graph
+        self.root_node = None
+        self.scatter_nodes = []
 
         self.graph = None
-        self.edges = None
         self.pos = None
         self.old_pos = None
-        self.root_node = None
-        self.token_balance = {}
+        self.node_positions = None
         self.redraw = False
-        self.translation = {'x': 0, 'y': 0}
-        self.root_position = {'x': 0, 'y': 0}
-        self.move_frame_fraction = 0
 
         self.animation_frame = 0
         self.max_frames = 20
+        self.translation = {'x': 0, 'y': 0}
 
         self.selected_node = {'public_key': '', 'up': 0, 'down': 0}
         self.node_selection_callback = None
@@ -82,10 +80,6 @@ class TrustAnimationCanvas(FigureCanvas):
         self.animation_frame = 1
         self.update_canvas()
 
-    def compute_initial_figure(self):
-        self.axes.cla()
-        self.axes.set_title("Realtime view of your Trust Graph", color="#e0e0e0")
-
     def update_canvas(self):
         if not self.graph or not self.animation_frame or not self.should_redraw_graph():
             return
@@ -95,46 +89,48 @@ class TrustAnimationCanvas(FigureCanvas):
         self.axes.set_ylim(0, 1)
         self.axes.set_xticks([], [])
         self.axes.set_yticks([], [])
+        self.axes.set_facecolor(BACKGROUND)
 
         # To support animation, new positions of the nodes are calculated based on the frame rate.
         move_frame_fraction = 1 - (self.animation_frame - 1) / (1.0 * self.max_frames)
-        current_positions = self.compute_node_positions_and_color(self.pos, self.old_pos, move_frame_fraction)
+        self.node_positions = self.compute_node_positions_and_color(self.pos, self.old_pos, move_frame_fraction)
 
         # Draw the graph based on the current positions of the nodes
-        self.draw_graph(self.root_node, current_positions)
+        self.draw_graph(self.root_public_key, self.node_positions)
 
-    def compute_node_positions_and_color(self, target_pos, old_pos, move_fraction):
+    def compute_node_positions_and_color(self, target_position, old_position, move_fraction):
         """
         Computes the new position of the nodes to animate the graph based on frame rate (represented by move fraction).
-        :param target_pos: Final position of the nodes
-        :param old_pos: Previous position of the nodes
+        :param target_position: Final position of the nodes
+        :param old_position: Previous position of the nodes
         :param move_fraction: Represents how close the current position should be from the target position.
-        :return: Positions of the nodes to render in the graph
+        :return: Position, color and size of the nodes to render in the graph
         """
-        actual_pos = {}
+        current_position = {}
 
-        if old_pos is None:
+        if old_position is None:
             for n in self.graph.node:
-                actual_pos[n] = ((target_pos[n][0]), (target_pos[n][1]), self.get_node_color(n), self.get_node_size(n))
+                current_position[n] = ((target_position[n][0]), (target_position[n][1]),
+                                       self.get_node_color(n), self.get_node_size(n))
         else:
-            for n in set(old_pos.keys()).difference(target_pos.keys()):
-                old_pos[n] = (1.0, 0.0)
-            for n in set(target_pos.keys()).difference(old_pos.keys()):
-                target_pos[n] = (0.0, 0.0)
+            for n in set(old_position.keys()).difference(target_position.keys()):
+                old_position[n] = (1.0, 0.0)
+            for n in set(target_position.keys()).difference(old_position.keys()):
+                target_position[n] = (0.0, 0.0)
 
             for n in self.graph.node:
-                if n not in target_pos:
-                    target_pos[n] = (0.0, 0.0)
-                if n not in old_pos:
-                    old_pos[n] = (0.0, 1.0)
-                actual_pos[n] = ((((target_pos[n][0] - old_pos[n][0]) * move_fraction)
-                                  + old_pos[n][0] + self.translation['x']
-                                 ),
-                                 (((target_pos[n][1] - old_pos[n][1]) * move_fraction)
-                                  + old_pos[n][1] + self.translation['y']
-                                 ),
+                if n not in target_position:
+                    target_position[n] = (0.0, 0.0)
+                if n not in old_position:
+                    old_position[n] = (0.0, 1.0)
+                current_position[n] = ((((target_position[n][0] - old_position[n][0]) * move_fraction)
+                                        + old_position[n][0] + self.translation['x']
+                                        ),
+                                 (((target_position[n][1] - old_position[n][1]) * move_fraction)
+                                  + old_position[n][1] + self.translation['y']
+                                  ),
                                  self.get_node_color(n), self.get_node_size(n))
-        return actual_pos
+        return current_position
 
     def draw_graph(self, root_node, node_positions):
         """
@@ -143,6 +139,7 @@ class TrustAnimationCanvas(FigureCanvas):
         :param node_positions: List of positions (x,y) of all the graph nodes.
         :return: None
         """
+        # Compute the co-ordinates for the nodes and (array) index as edges: (x1, y1) ---> (x2, y2)
         x1s, x2s, y1s, y2s = [], [], [], []
         for edge in self.graph.edges():
             x1s.append(node_positions[str(edge[0])][0])
@@ -150,27 +147,35 @@ class TrustAnimationCanvas(FigureCanvas):
             x2s.append(node_positions[str(edge[1])][0])
             y2s.append(node_positions[str(edge[1])][1])
 
-        self.axes.set_facecolor(BACKGROUND)
-        self.central_nodes = self.axes.plot(node_positions[root_node][0], node_positions[root_node][1],
-                                            marker='o', color='#e67300', alpha=1.0, linestyle='--', lw=1,
-                                            markersize=24, markeredgecolor='#e67300', markeredgewidth=1)
-        self.line_nodes = self.axes.plot([x1s, x2s], [y1s, y2s],
-                                         marker='o', color='#e0e0e0', alpha=0.5, linestyle='--', lw=0.5,
-                                         markersize=0, markeredgecolor='#ababab', markeredgewidth=1)
+        # Plot the graph edges but nodes are set to have zero marker size. Nodes are plotted separately later.
+        self.axes.plot([x1s, x2s], [y1s, y2s], color='#e0e0e0', alpha=0.5, linestyle='--', lw=0.1, markersize=0)
         self.axes.text(node_positions[root_node][0], node_positions[root_node][1], "You", color='#ffffff',
                        verticalalignment='center', horizontalalignment='center', fontsize=8)
 
-        nodes_x, nodes_y, colors, sizes = zip(*node_positions.values())
-        self.axes.scatter(nodes_x, nodes_y, c=colors, s=sizes, alpha=0.6, edgecolors=colors)
+        # Plot the root (center) node
+        root_color = SELECTED if self.selected_node.get('public_key', None) == self.root_public_key else '#e67300'
+        self.root_node = self.axes.plot(node_positions[root_node][0], node_positions[root_node][1], marker='o',
+                                        color=root_color, alpha=1.0, linestyle='--', lw=1, markersize=24,
+                                        markeredgecolor='#e67300', markeredgewidth=1)[0]
 
-        self.axes.figure.canvas.draw()
+        # Plot all the nodes as scatter plot to support clicking on the nodes
+        nodes_x, nodes_y, colors, sizes = zip(*node_positions.values())
+        self.scatter_nodes = self.axes.scatter(nodes_x, nodes_y, c=colors, s=sizes, alpha=0.6, edgecolors=colors)
+
+        # Draw the canvas and invoke the callback for showing the info about the selected node
+        self.figure.canvas.draw()
         self.show_selected_node_info()
+
+        # At the end reset the redraw flag
         self.redraw = False
 
     def show_selected_node_info(self):
+        """
+        Invokes the registered callback to show the information about the selected node.
+        """
         if not self.selected_node or not self.selected_node.get('public_key', None):
             self.selected_node = dict()
-            self.selected_node['public_key'] = self.root_node
+            self.selected_node['public_key'] = self.root_public_key
 
         node_balance = self.token_balance.get(self.selected_node['public_key'], dict())
         self.selected_node['total_up'] = node_balance.get('total_up', 0)
@@ -208,24 +213,20 @@ class TrustAnimationCanvas(FigureCanvas):
 
     def on_mouse_press_event(self, event):
         self.selected_node = dict()
-        self.drag_root_node = self.central_nodes[0].contains(event)[0]
-        if self.drag_root_node:
-            self.selected_node['public_key'] = self.root_node
-        else:
-            for index in range(len(self.line_nodes)):
-                clicked_line = self.line_nodes[index].contains(event)
-                if clicked_line[0]:
-                    node_index_in_line = clicked_line[1]['ind'][0]
-                    self.selected_node['public_key'] = self.graph.edges.keys()[index][node_index_in_line]
-                    self.redraw = True
+        enclosing_nodes = self.scatter_nodes.contains(event)
+        # Example value for enclosing nodes: (True, {'ind': array([ 71, 340], dtype=int32)})
+        if enclosing_nodes[0]:
+            index = enclosing_nodes[1]['ind'][-1]
+            self.selected_node['public_key'] = self.node_positions.keys()[index]
+            self.redraw = True
 
     def on_mouse_release_event(self, _):
         self.update_canvas()
 
-    def on_drag(self, event):
-        if event.button == 1 and self.drag_root_node:
-            self.translation['x'] += event.xdata - self.central_nodes[0].get_xdata()[0]
-            self.translation['y'] += event.ydata - self.central_nodes[0].get_ydata()[0]
+    def on_drag_event(self, event):
+        if event.button == 1 and self.selected_node.get('public_key', '') == self.root_public_key:
+            self.translation['x'] += event.xdata - self.root_node.get_xdata()[0]
+            self.translation['y'] += event.ydata - self.root_node.get_ydata()[0]
             self.animation_frame = 1
             self.redraw = True
             self.update_canvas()
@@ -317,7 +318,7 @@ class TrustGraphPage(QWidget):
         self.trust_plot.old_pos = None if self.trust_plot.pos is None else dict(self.trust_plot.pos)
         self.trust_plot.pos = data['positions']
         self.trust_plot.edges = self.trust_plot.graph.edges()
-        self.trust_plot.root_node = data['node_id']
+        self.trust_plot.root_public_key = data['root_public_key']
         self.trust_plot.token_balance = data['token_balance']
 
         if not self.trust_plot.should_redraw_graph():
