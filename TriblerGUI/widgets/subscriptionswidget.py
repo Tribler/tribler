@@ -13,8 +13,6 @@ class SubscriptionsWidget(QWidget):
     This widget shows a favorite button and the number of subscriptions that a specific channel has.
     """
 
-    unsubscribed_channel = pyqtSignal(object)
-    subscribed_channel = pyqtSignal(object)
     credit_mining_toggled = pyqtSignal(bool)
 
     def __init__(self, parent):
@@ -41,7 +39,6 @@ class SubscriptionsWidget(QWidget):
         self.update_subscribe_button()
 
     def update_subscribe_button(self, remote_response=None):
-
         if remote_response and 'subscribed' in remote_response:
             self.channel_info["subscribed"] = remote_response['subscribed']
 
@@ -73,32 +70,10 @@ class SubscriptionsWidget(QWidget):
 
     def on_subscribe_button_click(self):
         self.request_mgr = TriblerRequestManager()
-        if int(self.channel_info["subscribed"]):
-            self.request_mgr.perform_request("metadata/channels/%s" %
-                                             self.channel_info['public_key'],
-                                             self.on_channel_unsubscribed, data={"subscribe": 0}, method='POST')
-        else:
-            self.request_mgr.perform_request("metadata/channels/%s" %
-                                             self.channel_info['public_key'],
-                                             self.on_channel_subscribed, data={"subscribe": 1}, method='POST')
-
-    def on_channel_unsubscribed(self, json_result):
-        if not json_result or not self:
-            return
-        if json_result["success"]:
-            self.unsubscribed_channel.emit(self.channel_info)
-            self.channel_info["subscribed"] = False
-            self.channel_info["votes"] -= 1
-            self.update_subscribe_button()
-
-    def on_channel_subscribed(self, json_result):
-        if not json_result or not self:
-            return
-        if json_result["success"]:
-            self.subscribed_channel.emit(self.channel_info)
-            self.channel_info["subscribed"] = True
-            self.channel_info["votes"] += 1
-            self.update_subscribe_button()
+        self.request_mgr.perform_request("metadata/channels/%s" %
+                                         self.channel_info['public_key'],
+                                         lambda data: self.update_subscribe_button(remote_response=data),
+                                         data={"subscribe": int(not self.channel_info["subscribed"])}, method='POST')
 
     def on_credit_mining_button_click(self):
         old_sources = self.window().tribler_settings["credit_mining"]["sources"]
