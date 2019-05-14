@@ -105,7 +105,7 @@ class SearchEndpoint(BaseMetadataEndpoint):
         # Apart from the local search results, we also do remote search to get search results from peers in the
         # Giga channel community.
         if self.session.lm.gigachannel_community and sanitized["first"] == 1:
-            raw_metadata_type = request.args['metadata_type'][0] if 'metadata_type' in request.args else ''
+            raw_metadata_type = request.args[b'metadata_type'][0] if b'metadata_type' in request.args else ''
             self.session.lm.gigachannel_community.send_search_request(sanitized['query_filter'],
                                                                       metadata_type=raw_metadata_type,
                                                                       sort_by=sanitized['sort_by'],
@@ -174,7 +174,7 @@ class SearchCompletionsEndpoint(resource.Resource):
             request.setResponseCode(http.BAD_REQUEST)
             return json.twisted_dumps({"error": "query parameter missing"})
 
-        keywords = cast_to_unicode_utf8(request.args['q'][0]).lower()
+        keywords = cast_to_unicode_utf8(request.args[b'q'][0]).lower()
         # TODO: add XXX filtering for completion terms
         results = self.session.lm.mds.TorrentMetadata.get_auto_complete_terms(keywords, max_terms=5)
         return json.twisted_dumps({"completions": results})

@@ -92,8 +92,8 @@ class CreateTorrentEndpoint(resource.Resource):
             metainfo_dict = bdecode(result['metainfo'])
 
             # Download this torrent if specified
-            if 'download' in request.args and len(request.args['download']) > 0 \
-                    and request.args['download'][0] == "1":
+            if b'download' in request.args and len(request.args[b'download']) > 0 \
+                    and request.args[b'download'][0] == "1":
                 download_config = DownloadStartupConfig()
                 download_config.set_dest_dir(result['base_path'] if len(file_path_list) == 1 else result['base_dir'])
                 try:

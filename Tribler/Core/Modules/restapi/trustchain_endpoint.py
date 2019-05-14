@@ -132,7 +132,7 @@ class TrustchainBootstrapEndpoint(TrustchainBaseEndpoint):
 
         if 'amount' in request.args:
             try:
-                amount = int(request.args['amount'][0])
+                amount = int(request.args[b'amount'][0])
             except ValueError:
                 request.setResponseCode(http.BAD_REQUEST)
                 return json.twisted_dumps({"error": "Provided token amount is not a number"})
