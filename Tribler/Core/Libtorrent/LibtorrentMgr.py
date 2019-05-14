@@ -136,9 +136,8 @@ class LibtorrentMgr(TaskManager):
         self.get_session().stop_upnp()
 
         # Save libtorrent state
-        ltstate_file = open(os.path.join(self.tribler_session.config.get_state_dir(), LTSTATE_FILENAME), 'w')
-        ltstate_file.write(lt.bencode(self.get_session().save_state()))
-        ltstate_file.close()
+        with open(os.path.join(self.tribler_session.config.get_state_dir(), LTSTATE_FILENAME), 'wb') as ltstate_file:
+            ltstate_file.write(lt.bencode(self.get_session().save_state()))
 
         for ltsession in self.ltsessions.values():
             del ltsession
