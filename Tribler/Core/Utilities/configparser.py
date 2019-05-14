@@ -7,10 +7,10 @@ from __future__ import absolute_import
 
 import ast
 import codecs
+from threading import RLock
 
 from six import StringIO, text_type
 from six.moves.configparser import DEFAULTSECT, RawConfigParser
-from threading import RLock
 
 from Tribler.Core.exceptions import OperationNotPossibleAtRuntimeException
 
@@ -33,7 +33,7 @@ class CallbackConfigParser(RawConfigParser):
         # (e.g. when loading resumedata). Please do not remove.
         with codecs.open(filename, 'rb', encoding) as fp:
             buff = fp.read()
-        self.readfp(StringIO(buff))
+        self._read(StringIO(buff), None)
 
     def set(self, section, option, new_value):
         with self.lock:
