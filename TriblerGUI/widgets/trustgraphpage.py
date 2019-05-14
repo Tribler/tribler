@@ -124,12 +124,10 @@ class TrustAnimationCanvas(FigureCanvas):
                 if n not in old_position:
                     old_position[n] = (0.0, 1.0)
                 current_position[n] = ((((target_position[n][0] - old_position[n][0]) * move_fraction)
-                                        + old_position[n][0] + self.translation['x']
-                                        ),
-                                 (((target_position[n][1] - old_position[n][1]) * move_fraction)
-                                  + old_position[n][1] + self.translation['y']
-                                  ),
-                                 self.get_node_color(n), self.get_node_size(n))
+                                        + old_position[n][0] + self.translation['x']),
+                                       (((target_position[n][1] - old_position[n][1]) * move_fraction)
+                                        + old_position[n][1] + self.translation['y']),
+                                       self.get_node_color(n), self.get_node_size(n))
         return current_position
 
     def draw_graph(self, root_node, node_positions):
@@ -317,7 +315,6 @@ class TrustGraphPage(QWidget):
         self.trust_plot.graph = json_graph.node_link_graph(data['graph_data'])
         self.trust_plot.old_pos = None if self.trust_plot.pos is None else dict(self.trust_plot.pos)
         self.trust_plot.pos = data['positions']
-        self.trust_plot.edges = self.trust_plot.graph.edges()
         self.trust_plot.root_public_key = data['root_public_key']
         self.trust_plot.token_balance = data['token_balance']
 
