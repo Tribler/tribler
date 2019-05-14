@@ -4,6 +4,8 @@ import logging
 import os
 from traceback import format_tb
 
+from six import text_type
+
 from twisted.internet import reactor
 from twisted.internet.defer import maybeDeferred
 from twisted.internet.error import CannotListenError
@@ -78,15 +80,16 @@ class RESTRequest(server.Request):
 
     def processingFailed(self, failure):
         self._logger.exception(failure)
+        failure_message = failure.value.message if hasattr(failure.value, 'message') else text_type(failure.value)
         response = {
-            u"error": {
-                u"handled": False,
-                u"code": failure.value.__class__.__name__,
-                u"message": failure.value.message
+            "error": {
+                "handled": False,
+                "code": failure.value.__class__.__name__,
+                "message": failure_message
             }
         }
         if self.site and self.site.displayTracebacks:
-            response[u"error"][u"trace"] = format_tb(failure.getTracebackObject())
+            response["error"]["trace"] = format_tb(failure.getTracebackObject())
 
         body = json.twisted_dumps(response)
         self.setResponseCode(http.INTERNAL_SERVER_ERROR)
