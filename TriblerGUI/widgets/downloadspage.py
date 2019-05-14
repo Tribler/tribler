@@ -15,7 +15,7 @@ from TriblerGUI.defs import (BUTTON_TYPE_CONFIRM, BUTTON_TYPE_NORMAL, DLSTATUS_C
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
-from TriblerGUI.utilities import format_size, format_speed
+from TriblerGUI.utilities import compose_magnetlink, format_size, format_speed
 from TriblerGUI.widgets.downloadwidgetitem import DownloadWidgetItem
 from TriblerGUI.widgets.loading_list_item import LoadingListItem
 
@@ -380,6 +380,31 @@ class DownloadsPage(QWidget):
                                                  selected_item.download_info["destination"]))
             QDesktopServices.openUrl(QUrl.fromLocalFile(path))
 
+    def on_move_files(self):
+        if len(self.selected_items) != 1:
+            return
+
+        dest_dir = QFileDialog.getExistingDirectory(self, "Please select the destination directory",
+                                                    self.selected_items[0].download_info["destination"],
+                                                    QFileDialog.ShowDirsOnly)
+
+        _infohash = self.selected_items[0].download_info["infohash"]
+        _name = self.selected_items[0].download_info["name"]
+
+        data = {
+            "state": "move_storage",
+            "dest_dir": dest_dir
+        }
+
+        request_mgr = TriblerRequestManager()
+        request_mgr.perform_request("downloads/%s" % _infohash,
+                                    lambda res, _, name=_name, target=dest_dir: self.on_files_moved(res, name, target),
+                                    data=data, method='PATCH')
+
+    def on_files_moved(self, response, name, dest_dir):
+        if "modified" in response and response["modified"]:
+            self.window().tray_show_message(name, "Moved to %s" % dest_dir)
+
     def on_export_download(self):
         self.export_dir = QFileDialog.getExistingDirectory(self, "Please select the destination directory", "",
                                                            QFileDialog.ShowDirsOnly)
@@ -422,6 +447,22 @@ class DownloadsPage(QWidget):
         else:
             self.window().tray_show_message("Torrent file exported", "Torrent file exported to %s" % dest_path)
 
+    def on_add_to_channel(self):
+        self.request_mgr = TriblerRequestManager()
+        for selected_item in self.selected_items:
+            infohash = selected_item.download_info["infohash"]
+            name = selected_item.download_info["name"]
+            post_data = {"uri": compose_magnetlink(infohash, name=name)}
+            self.request_mgr.perform_request("mychannel/torrents",
+                                             lambda response, _name=name: self.on_added_to_channel(_name, response),
+                                             method='PUT', data=post_data)
+
+    def on_added_to_channel(self, name, response):
+        if not response:
+            return
+        if 'added' in response and response['added']:
+            self.window().tray_show_message("Channel update", "%s torrent successfully added to your channel" % name)
+
     def on_right_click_item(self, pos):
         item_clicked = self.window().downloads_list.itemAt(pos)
         if not item_clicked or self.selected_items is None:
@@ -435,9 +476,11 @@ class DownloadsPage(QWidget):
         start_action = QAction('Start', self)
         stop_action = QAction('Stop', self)
         remove_download_action = QAction('Remove download', self)
+        add_to_channel_action = QAction('Add to my channel', self)
         force_recheck_action = QAction('Force recheck', self)
         export_download_action = QAction('Export .torrent file', self)
         explore_files_action = QAction('Explore files', self)
+        move_files_action = QAction('Move file storage', self)
 
         no_anon_action = QAction('No anonymity', self)
         one_hop_anon_action = QAction('One hop', self)
@@ -448,11 +491,13 @@ class DownloadsPage(QWidget):
         start_action.setEnabled(DownloadsPage.start_download_enabled(self.selected_items))
         stop_action.triggered.connect(self.on_stop_download_clicked)
         stop_action.setEnabled(DownloadsPage.stop_download_enabled(self.selected_items))
+        add_to_channel_action.triggered.connect(self.on_add_to_channel)
         remove_download_action.triggered.connect(self.on_remove_download_clicked)
         force_recheck_action.triggered.connect(self.on_force_recheck_download)
         force_recheck_action.setEnabled(DownloadsPage.force_recheck_download_enabled(self.selected_items))
         export_download_action.triggered.connect(self.on_export_download)
         explore_files_action.triggered.connect(self.on_explore_files)
+        move_files_action.triggered.connect(self.on_move_files)
 
         no_anon_action.triggered.connect(lambda: self.change_anonymity(0))
         one_hop_anon_action.triggered.connect(lambda: self.change_anonymity(1))
@@ -467,6 +512,8 @@ class DownloadsPage(QWidget):
             play_action.triggered.connect(self.on_play_download_clicked)
             menu.addAction(play_action)
         menu.addSeparator()
+        menu.addAction(add_to_channel_action)
+        menu.addSeparator()
         menu.addAction(remove_download_action)
         menu.addSeparator()
         menu.addAction(force_recheck_action)
@@ -476,12 +523,15 @@ class DownloadsPage(QWidget):
                           DLSTATUS_HASHCHECKING, DLSTATUS_WAITING4HASHCHECK]
         if len(self.selected_items) == 1 and self.selected_items[0].get_raw_download_status() not in exclude_states:
             menu.addAction(export_download_action)
-            menu.addSeparator()
-        menu_anon_level = menu.addMenu("Change anonymity")
+        menu.addAction(explore_files_action)
+        if len(self.selected_items) == 1:
+            menu.addAction(move_files_action)
+        menu.addSeparator()
+
+        menu_anon_level = menu.addMenu("Change Anonymity ")
         menu_anon_level.addAction(no_anon_action)
         menu_anon_level.addAction(one_hop_anon_action)
         menu_anon_level.addAction(two_hop_anon_action)
         menu_anon_level.addAction(three_hop_anon_action)
-        menu.addAction(explore_files_action)
 
         menu.exec_(self.window().downloads_list.mapToGlobal(pos))

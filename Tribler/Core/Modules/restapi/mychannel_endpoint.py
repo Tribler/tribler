@@ -150,7 +150,7 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
             return json.twisted_dumps({"error": "status or infohashes parameter missing"})
 
         new_status = int(parameters['status'][0])
-        infohashes = parameters['infohashes'][0].split(',')
+        infohashes = parameters['infohashes']
 
         with db_session:
             my_channel = self.session.lm.mds.ChannelMetadata.get_my_channel()

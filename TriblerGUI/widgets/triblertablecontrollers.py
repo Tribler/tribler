@@ -186,9 +186,10 @@ class ContextMenuMixin(object):
             self.add_menu_item(menu, ' Play ', item_index, self.table_view.on_play_button_clicked)
 
         if not isinstance(self, MyTorrentsTableViewController):
-            self.add_menu_item(menu, ' Add to channel ', item_index, self.table_view.on_add_to_channel_button_clicked)
+            self.add_menu_item(menu, ' Add to My Channel ', item_index,
+                               self.table_view.on_add_to_channel_button_clicked)
         else:
-            self.add_menu_item(menu, ' Remove from channel ', item_index, self.table_view.on_delete_button_clicked)
+            self.add_menu_item(menu, ' Remove from My Channel ', item_index, self.table_view.on_delete_button_clicked)
 
         menu.exec_(QCursor.pos())
 

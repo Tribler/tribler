@@ -138,3 +138,5 @@ TRUST_GRAPH_HEADER_MESSAGE = "<hr/><i><strong>Tribler</strong> is about helping 
                              "<i>A note on privacy: We respect your privacy and never actively share what content " \
                              "you download or seed. Instead, the accounting of bandwidth given or taken is recorded " \
                              "in the blockchain so graphs like this can be built.</i>"
+
+CONTEXT_MENU_WIDTH = 200
