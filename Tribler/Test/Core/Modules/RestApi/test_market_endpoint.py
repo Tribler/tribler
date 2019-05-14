@@ -77,7 +77,7 @@ class TestMarketEndpoint(AbstractApiTest):
         Create a dummy block and return it
         """
         block = MockObject()
-        block.hash = 'a'
+        block.hash = b'a'
         return block
 
     @trial_timeout(10)
