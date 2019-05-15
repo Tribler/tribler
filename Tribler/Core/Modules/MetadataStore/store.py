@@ -94,7 +94,7 @@ class DiscreteClock(object):
 
 
 class MetadataStore(object):
-    def __init__(self, db_filename, channels_dir, my_key):
+    def __init__(self, db_filename, channels_dir, my_key, disable_sync=False):
         self.db_filename = db_filename
         self.channels_dir = channels_dir
         self.my_key = my_key
@@ -111,6 +111,20 @@ class MetadataStore(object):
         # multiple sessions in Tribler. ORM-managed classes are bound to the database instance
         # at definition.
         self._db = orm.Database()
+
+        # Possibly disable disk sync.
+        # !!! ACHTUNG !!! This should be used only for special cases (e.g. DB upgrades), because
+        # losing power during a write will corrupt the database.
+        if disable_sync:
+
+            # This attribute is internally called by Pony on startup, though pylint cannot detect it
+            # with the static analysis.
+            # pylint: disable=unused-variable
+            @self._db.on_connect(provider='sqlite')
+            def sqlite_disable_sync(_, connection):
+                cursor = connection.cursor()
+                cursor.execute("PRAGMA synchronous = 0")
+            # pylint: enable=unused-variable
 
         self.MiscData = misc.define_binding(self._db)
 

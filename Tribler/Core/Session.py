@@ -12,7 +12,7 @@ import sys
 from threading import RLock
 
 from twisted.internet import threads
-from twisted.internet.defer import fail, inlineCallbacks
+from twisted.internet.defer import fail, inlineCallbacks, succeed
 from twisted.python.failure import Failure
 from twisted.python.log import addObserver
 from twisted.python.threadable import isInIOThread
@@ -88,7 +88,6 @@ class Session(object):
         self.readable_status = ''  # Human-readable string to indicate the status during startup/shutdown of Tribler
 
         self.autoload_discovery = autoload_discovery
-
 
     def create_state_directory_structure(self):
         """Create directory structure of the state directory."""
@@ -406,9 +405,19 @@ class Session(object):
         if self.upgrader_enabled:
             self.upgrader = TriblerUpgrader(self)
             self.readable_status = STATE_UPGRADING_READABLE
-            self.upgrader.run()
+            upgrader_deferred = self.upgrader.run()
+        else:
+            upgrader_deferred = succeed(None)
 
-        startup_deferred = self.lm.register(self, self.session_lock)
+        def after_upgrade(_):
+            self.upgrader = None
+
+        def log_upgrader_error(failure):
+            self._logger.error("Error in Upgrader callback chain: %s", failure)
+
+        startup_deferred = upgrader_deferred.\
+            addCallbacks(lambda _: self.lm.register(self, self.session_lock), log_upgrader_error).\
+            addCallbacks(after_upgrade, log_upgrader_error)
 
         def load_checkpoint(_):
             if self.config.get_libtorrent_enabled():
@@ -447,9 +456,6 @@ class Session(object):
             if self.lm.mds:
                 self.notify_shutdown_state("Shutting down Metadata Store...")
                 self.lm.mds.shutdown()
-
-            if self.upgrader:
-                self.upgrader.shutdown()
 
             # We close the API manager as late as possible during shutdown.
             if self.lm.api_manager is not None:

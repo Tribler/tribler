@@ -20,7 +20,6 @@ class EventRequestManager(QNetworkAccessManager):
     received_search_result = pyqtSignal(object)
     tribler_started = pyqtSignal()
     upgrader_tick = pyqtSignal(str)
-    upgrader_started = pyqtSignal()
     upgrader_finished = pyqtSignal()
     new_version_available = pyqtSignal(str)
     discovered_channel = pyqtSignal(object)
@@ -54,18 +53,17 @@ class EventRequestManager(QNetworkAccessManager):
 
     def on_error(self, error, reschedule_on_err):
         self._logger.info("Got Tribler core error: %s" % error)
-        if error == QNetworkReply.ConnectionRefusedError:
-            if self.failed_attempts == 40:
-                raise RuntimeError("Could not connect with the Tribler Core within 20 seconds")
+        if self.failed_attempts == 40:
+            raise RuntimeError("Could not connect with the Tribler Core within 20 seconds")
 
-            self.failed_attempts += 1
+        self.failed_attempts += 1
 
-            if reschedule_on_err:
-                # Reschedule an attempt
-                self.connect_timer = QTimer()
-                self.connect_timer.setSingleShot(True)
-                self.connect_timer.timeout.connect(self.connect)
-                self.connect_timer.start(500)
+        if reschedule_on_err:
+            # Reschedule an attempt
+            self.connect_timer = QTimer()
+            self.connect_timer.setSingleShot(True)
+            self.connect_timer.timeout.connect(self.connect)
+            self.connect_timer.start(500)
 
     def on_read_data(self):
         if self.receivers(self.finished) == 0:
@@ -90,8 +88,6 @@ class EventRequestManager(QNetworkAccessManager):
                     self.emitted_tribler_started = True
                 elif json_dict["type"] == "new_version_available":
                     self.new_version_available.emit(json_dict["event"]["version"])
-                elif json_dict["type"] == "upgrader_started":
-                    self.upgrader_started.emit()
                 elif json_dict["type"] == "upgrader_finished":
                     self.upgrader_finished.emit()
                 elif json_dict["type"] == "upgrader_tick":

@@ -18,6 +18,7 @@ from Tribler.Core.Modules.restapi.statistics_endpoint import StatisticsEndpoint
 from Tribler.Core.Modules.restapi.torrentinfo_endpoint import TorrentInfoEndpoint
 from Tribler.Core.Modules.restapi.trustchain_endpoint import TrustchainEndpoint
 from Tribler.Core.Modules.restapi.trustview_endpoint import TrustViewEndpoint
+from Tribler.Core.Modules.restapi.upgrader_endpoint import UpgraderEndpoint
 from Tribler.Core.Modules.restapi.wallets_endpoint import WalletsEndpoint
 from Tribler.pyipv8.ipv8.REST.root_endpoint import RootEndpoint as IPV8RootEndpoint
 
@@ -38,9 +39,11 @@ class RootEndpoint(resource.Resource):
         self.events_endpoint = EventsEndpoint(self.session)
         self.state_endpoint = StateEndpoint(self.session)
         self.shutdown_endpoint = ShutdownEndpoint(self.session)
+        self.upgrader_endpoint = UpgraderEndpoint(self.session)
         self.putChild(b"events", self.events_endpoint)
         self.putChild(b"state", self.state_endpoint)
         self.putChild(b"shutdown", self.shutdown_endpoint)
+        self.putChild(b"upgrader", self.upgrader_endpoint)
 
     def start_endpoints(self):
         """
@@ -52,7 +55,6 @@ class RootEndpoint(resource.Resource):
             b"downloads": DownloadsEndpoint,
             b"createtorrent": CreateTorrentEndpoint,
             b"debug": DebugEndpoint,
-            b"shutdown": ShutdownEndpoint,
             b"trustchain": TrustchainEndpoint,
             b"trustview": TrustViewEndpoint,
             b"statistics": StatisticsEndpoint,
