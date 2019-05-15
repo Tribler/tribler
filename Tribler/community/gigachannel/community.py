@@ -164,10 +164,11 @@ class GigaChannelCommunity(Community):
             self.logger.error("Dropping a complex remote search query:%s", query_filter)
             return
 
-        metadata_type = {'': [REGULAR_TORRENT, CHANNEL_TORRENT],
-                         "channel": CHANNEL_TORRENT,
-                         "torrent": REGULAR_TORRENT
-                         }.get(request.metadata_type, REGULAR_TORRENT)
+        metadata_type = {
+            "": [REGULAR_TORRENT, CHANNEL_TORRENT],
+            "channel": CHANNEL_TORRENT,
+            "torrent": REGULAR_TORRENT
+        }.get(request.metadata_type, REGULAR_TORRENT)
 
         request_dict = {
             "first": 1,
@@ -202,9 +203,9 @@ class GigaChannelCommunity(Community):
                 self._logger.error("DB transaction error when tried to process search payload: %s", str(err))
                 return
 
-            search_results = [(dict(type={REGULAR_TORRENT: 'torrent', CHANNEL_TORRENT: 'channel'}[r.metadata_type],
-                                    **(r.to_simple_dict()))) for (r, action) in metadata_result if
-                              (r and (r.metadata_type == CHANNEL_TORRENT or r.metadata_type == REGULAR_TORRENT) and
+            search_results = [(dict(type={REGULAR_TORRENT: 'torrent', CHANNEL_TORRENT: 'channel'}[md.metadata_type],
+                                    **(md.to_simple_dict()))) for (md, action) in metadata_result if
+                              (md and (md.metadata_type == CHANNEL_TORRENT or md.metadata_type == REGULAR_TORRENT) and
                                action in [UNKNOWN_CHANNEL, UNKNOWN_TORRENT, UPDATED_OUR_VERSION])]
         if self.notifier and search_results:
             self.notifier.notify(SIGNAL_GIGACHANNEL_COMMUNITY, SIGNAL_ON_SEARCH_RESULTS, None,

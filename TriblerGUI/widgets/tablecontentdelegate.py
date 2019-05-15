@@ -1,9 +1,9 @@
 from __future__ import absolute_import, division
 
-from PyQt5.QtCore import QEvent, QModelIndex, QObject, QRect, QSize, Qt, pyqtSignal, QRectF
+from PyQt5.QtCore import QEvent, QModelIndex, QObject, QRect, QRectF, QSize, Qt, pyqtSignal
 from PyQt5.QtGui import QBrush, QColor, QIcon, QPainter, QPen
-from PyQt5.QtSvg import QSvgRenderer, QGraphicsSvgItem
-from PyQt5.QtWidgets import QComboBox, QStyle, QStyledItemDelegate, QGraphicsScene, QToolTip
+from PyQt5.QtSvg import QSvgRenderer
+from PyQt5.QtWidgets import QComboBox, QStyle, QStyledItemDelegate, QToolTip
 
 from six import text_type
 
@@ -124,7 +124,7 @@ class ChannelStateMixin(object):
     def get_indicator_rect(rect):
         r = rect
         indicator_border = 1
-        indicator_side = (r.height() if r.width() > r.height() else r.width()) - indicator_border*2
+        indicator_side = (r.height() if r.width() > r.height() else r.width()) - indicator_border * 2
         y = r.top() + (r.height() - indicator_side) / 2
         x = r.left() + indicator_border
         w = indicator_side
@@ -140,10 +140,9 @@ class ChannelStateMixin(object):
             return True
         if data_item[u'status'] == 1000:  # LEGACY ENTRIES!
             return True
-        if u'my_channel' in data_item and data_item[u'my_channel']:
+        if data_item[u'state'] == u'Personal':
             self.share_icon.paint(painter, self.get_indicator_rect(option.rect))
             return True
-
         if data_item[u'state'] in [u'Updating', u'Downloading']:
             self.wait_svg.render(painter, QRectF(self.get_indicator_rect(option.rect)))
             return True
@@ -159,7 +158,7 @@ class SubscribedControlMixin(object):
             return True
         if data_item[u'status'] == 1000:  # LEGACY ENTRIES!
             return True
-        if u'my_channel' in data_item and data_item[u'my_channel']:
+        if data_item[u'state'] == u'Personal':
             return True
 
         if index == self.hover_index:
@@ -176,7 +175,7 @@ class CategoryLabelMixin(object):
         self.paint_empty_background(painter, option)
 
         if 'type' in data_item and data_item['type'] == 'channel':
-            category = "My channel" if data_item['my_channel'] else data_item['type']
+            category = "My channel" if data_item['state'] == u'Personal' else data_item['type']
         else:
             category = data_item[u'category']
             # Precautions to safely draw wrong category descriptions

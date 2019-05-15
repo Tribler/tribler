@@ -160,7 +160,8 @@ class SearchResultsContentModel(StateTooltipMixin, TriblerContentModel):
     """
     Model for a list that shows search results.
     """
-    columns = [u'state', u'subscribed', u'category', u'name', u'torrents', u'size', u'updated', u'health', ACTION_BUTTONS]
+    columns = [u'state', u'subscribed', u'category', u'name', u'torrents', u'size', u'updated', u'health',
+               ACTION_BUTTONS]
     column_headers = [u'', u'', u'Category', u'Name', u'Torrents', u'Size', u'Updated', u'health', u'']
     column_flags = {
         u'subscribed': Qt.ItemIsEnabled | Qt.ItemIsSelectable,

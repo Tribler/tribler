@@ -460,6 +460,9 @@ def define_binding(db):
             This property describes the current state of the channel.
             :return: Text-based status
             """
+            is_personal = database_blob(self._my_key.pub().key_to_bin()[10:]) == database_blob(self.public_key)
+            if is_personal:
+                return "Personal"
             if self.status == LEGACY_ENTRY:
                 return "Legacy"
             if self.local_version == self.timestamp:
@@ -468,8 +471,7 @@ def define_binding(db):
                 return "Updating"
             if self.subscribed:
                 return "Downloading"
-            else:
-                return "Preview"
+            return "Preview"
 
         @db_session
         def to_simple_dict(self):
@@ -477,7 +479,7 @@ def define_binding(db):
             Return a basic dictionary with information about the channel.
             """
             epoch = datetime.utcfromtimestamp(0)
-
+            # TODO: optimize this?
             return {
                 "id": self.rowid,
                 "public_key": hexlify(self.public_key),
@@ -488,10 +490,7 @@ def define_binding(db):
                 "status": self.status,
                 "updated": int((self.torrent_date - epoch).total_seconds()),
                 "timestamp": self.timestamp,
-                "state": self.channel_state,
-
-                # TODO: optimize this?
-                "my_channel": database_blob(self._my_key.pub().key_to_bin()[10:]) == database_blob(self.public_key)
+                "state": self.channel_state
             }
 
         @classmethod

@@ -2,15 +2,15 @@ from __future__ import absolute_import, division
 
 from abc import abstractmethod
 
-from PyQt5.QtCore import QModelIndex, QPoint, pyqtSignal, QRect
+from PyQt5.QtCore import QModelIndex, QPoint, QRect, pyqtSignal
 from PyQt5.QtWidgets import QTableView
 
-from TriblerGUI.defs import ACTION_BUTTONS, COMMIT_STATUS_COMMITTED, COMMIT_STATUS_NEW, COMMIT_STATUS_TODELETE, \
-    PAGE_CHANNEL_DETAILS
+from TriblerGUI.defs import (
+    ACTION_BUTTONS, COMMIT_STATUS_COMMITTED, COMMIT_STATUS_NEW, COMMIT_STATUS_TODELETE, PAGE_CHANNEL_DETAILS)
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.utilities import index2uri
-from TriblerGUI.widgets.tablecontentdelegate import ChannelsButtonsDelegate, SearchResultsDelegate, \
-    TorrentsButtonsDelegate
+from TriblerGUI.widgets.tablecontentdelegate import (
+    ChannelsButtonsDelegate, SearchResultsDelegate, TorrentsButtonsDelegate)
 from TriblerGUI.widgets.tablecontentmodel import MyTorrentsContentModel
 
 
@@ -84,14 +84,14 @@ class SubscribeButtonMixin(TriblerContentTableView):
         # skip LEGACY entries, regular torrents and personal channel
         if (u'subscribed' not in item or
                 item[u'status'] == 1000 or
-                item[u'my_channel']):
+                item[u'state'] == u'Personal'):
             return
         status = int(item[u'subscribed'])
         public_key = item[u'public_key']
 
         def update_item(request_data):
             data_item_dict = index.model().data_items[index.row()]
-            for key, value in data_item_dict.items():
+            for key, _ in data_item_dict.items():
                 if key in request_data:
                     data_item_dict[key] = request_data[key]
 

@@ -4,13 +4,14 @@ import os
 from binascii import hexlify
 
 from pony.orm import db_session
+
 from twisted.internet.task import LoopingCall
 from twisted.internet.threads import deferToThread
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import COMMITTED
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
-from Tribler.Core.simpledefs import NTFY_UPDATE, NTFY_NODE
+from Tribler.Core.simpledefs import NTFY_NODE, NTFY_UPDATE
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
 
@@ -102,7 +103,6 @@ class GigaChannelManager(TaskManager):
                 self._logger.exception("Error when tried to download a newer version of channel %s",
                                        hexlify(channel.public_key))
 
-
     # TODO: finish this routine
     # This thing should check if the files in the torrent we're going to delete are used in another torrent for
     # the newer version of the same channel, and determine a safe sub-set to delete.
@@ -129,7 +129,7 @@ class GigaChannelManager(TaskManager):
         :param to_remove_list: list of tuples (download_to_remove=download, remove_files=Bool)
         """
 
-        #TODO: make file removal from older versions safe (i.e. check if it overlaps with newer downloads)
+        # TODO: make file removal from older versions safe (i.e. check if it overlaps with newer downloads)
 
         """
         files_to_remove = []

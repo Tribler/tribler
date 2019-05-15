@@ -6,7 +6,7 @@ from __future__ import absolute_import
 
 import uuid
 
-from PyQt5.QtCore import Qt, pyqtSignal, QObject
+from PyQt5.QtCore import QObject, Qt, pyqtSignal
 from PyQt5.QtGui import QCursor
 from PyQt5.QtWidgets import QAction
 
@@ -271,8 +271,7 @@ class TorrentsTableViewController(TableSelectionMixin, FilterInputMixin, Context
                   'metadata_type': 'torrent',
                   'rest_endpoint_url': 'search',
                   'first': 1,
-                  'last': 50
-                 }
+                  'last': 50}
         super(TorrentsTableViewController, self).perform_query(**params)
 
 
