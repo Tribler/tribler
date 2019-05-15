@@ -8,6 +8,9 @@ from TriblerGUI.defs import ACTION_BUTTONS
 from TriblerGUI.utilities import format_size, pretty_date
 
 
+def combine_pk_id(pk, id_):
+    return "%s:%s" % (pk, id_)
+
 class RemoteTableModel(QAbstractTableModel):
     """
     The base model for the tables in the Tribler GUI.
@@ -105,12 +108,13 @@ class TriblerContentModel(RemoteTableModel):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
             return self.column_headers[num]
 
+
     def get_item_uid(self, item):
         item_uid = None
         if "infohash" in item:
             item_uid = item['infohash']
         elif "public_key" in item and "id" in item:
-            item_uid = "%s:%s" % (item['public_key'], item['id'])
+            item_uid = combine_pk_id(item['public_key'], item['id'])
         return item_uid
 
     def rowCount(self, parent=QModelIndex()):
@@ -133,8 +137,9 @@ class TriblerContentModel(RemoteTableModel):
         self.item_uid_map.clear()
         super(TriblerContentModel, self).reset()
 
-    def update_torrent_info(self, update_dict):
-        row = self.item_uid_map.get(update_dict["infohash"])
+    def update_node_info(self, update_dict):
+        row = self.item_uid_map.get(update_dict["infohash"] if "infohash" in update_dict
+                                    else combine_pk_id(update_dict["public_key"], update_dict["id"]))
         if row:
             self.data_items[row].update(**update_dict)
             self.dataChanged.emit(self.index(row, 0), self.index(row, len(self.columns)), [])

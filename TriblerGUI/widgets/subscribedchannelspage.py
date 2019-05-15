@@ -23,6 +23,7 @@ class SubscribedChannelsPage(QWidget):
         self.controller = ChannelsTableViewController(self.model, self.window().subscribed_channels_list,
                                                       self.window().num_subscribed_channels_label,
                                                       self.window().subscribed_channels_filter_input)
+        self.window().core_manager.events_manager.node_info_updated.connect(self.model.update_node_info)
 
     def load_subscribed_channels(self):
         self.controller.model.reset()

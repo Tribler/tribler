@@ -14,7 +14,7 @@ from Tribler.Core.simpledefs import (NTFY_CHANNEL, NTFY_CREDIT_MINING, NTFY_DISC
                                      NTFY_NEW_VERSION, NTFY_REMOVE, NTFY_STARTED, NTFY_TORRENT, NTFY_TRIBLER,
                                      NTFY_TUNNEL, NTFY_UPDATE, NTFY_UPGRADER, NTFY_UPGRADER_TICK,
                                      NTFY_WATCH_FOLDER_CORRUPT_TORRENT, SIGNAL_GIGACHANNEL_COMMUNITY, SIGNAL_LOW_SPACE,
-                                     SIGNAL_ON_SEARCH_RESULTS, SIGNAL_RESOURCE_CHECK, STATE_SHUTDOWN)
+                                     SIGNAL_ON_SEARCH_RESULTS, SIGNAL_RESOURCE_CHECK, STATE_SHUTDOWN, NTFY_NODE)
 from Tribler.Core.version import version_id
 from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import Circuit
 
@@ -78,8 +78,10 @@ class EventsEndpoint(resource.Resource):
         self.session.add_observer(self.on_channel_discovered, NTFY_CHANNEL, [NTFY_DISCOVERED])
         self.session.add_observer(self.on_torrent_discovered, NTFY_TORRENT, [NTFY_DISCOVERED])
         self.session.add_observer(self.on_torrent_finished, NTFY_TORRENT, [NTFY_FINISHED])
+        self.session.add_observer(self.on_channel_finished, NTFY_CHANNEL, [NTFY_FINISHED])
         self.session.add_observer(self.on_torrent_error, NTFY_TORRENT, [NTFY_ERROR])
         self.session.add_observer(self.on_torrent_info_updated, NTFY_TORRENT, [NTFY_UPDATE])
+        self.session.add_observer(self.on_node_info_updated, NTFY_NODE, [NTFY_UPDATE])
         self.session.add_observer(self.on_market_ask, NTFY_MARKET_ON_ASK, [NTFY_UPDATE])
         self.session.add_observer(self.on_market_bid, NTFY_MARKET_ON_BID, [NTFY_UPDATE])
         self.session.add_observer(self.on_market_ask_timeout, NTFY_MARKET_ON_ASK_TIMEOUT, [NTFY_UPDATE])
@@ -134,12 +136,19 @@ class EventsEndpoint(resource.Resource):
         self.write_data({"type": "torrent_finished", "event": {"infohash": hexlify(objectID), "name": args[0],
                                                                "hidden": args[1]}})
 
+    def on_channel_finished(self, subject, changetype, objectID, *args):
+        self.write_data({"type": "channel_finished", "event": {"infohash": hexlify(objectID), "name": args[0],
+                                                               "hidden": args[1]}})
+
     def on_torrent_error(self, subject, changetype, objectID, *args):
         self.write_data({"type": "torrent_error", "event": {"infohash": hexlify(objectID), "error": args[0],
                                                             "hidden": args[1]}})
 
     def on_torrent_info_updated(self, subject, changetype, objectID, *args):
         self.write_data({"type": "torrent_info_updated", "event": dict(infohash=hexlify(objectID), **args[0])})
+
+    def on_node_info_updated(self, subject, changetype, objectID, *args):
+        self.write_data({"type": "node_info_updated", "event": dict(**args[0])})
 
     def on_tribler_exception(self, exception_text):
         self.write_data({"type": "tribler_exception", "event": {"text": exception_text}})

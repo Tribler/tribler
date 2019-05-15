@@ -16,6 +16,7 @@ class EventRequestManager(QNetworkAccessManager):
     The EventRequestManager class handles the events connection over which important events in Tribler are pushed.
     """
 
+    node_info_updated = pyqtSignal(object)
     torrent_info_updated = pyqtSignal(object)
     received_search_result = pyqtSignal(object)
     tribler_started = pyqtSignal()
@@ -50,6 +51,10 @@ class EventRequestManager(QNetworkAccessManager):
         self.emitted_tribler_started = False  # We should only emit tribler_started once
         self.shutting_down = False
         self._logger = logging.getLogger('TriblerGUI')
+
+        self.reactions_dict = {
+            "node_info_updated": self.node_info_updated.emit
+        }
 
     def on_error(self, error, reschedule_on_err):
         self._logger.info("Got Tribler core error: %s" % error)
@@ -128,6 +133,8 @@ class EventRequestManager(QNetworkAccessManager):
                     self.received_search_result.emit(json_dict["event"])
                 elif json_dict["type"] == "shutdown":
                     self.tribler_shutdown_signal.emit(json_dict["event"])
+                elif json_dict["type"] in self.reactions_dict:
+                    self.reactions_dict[json_dict["type"]](json_dict["event"])
                 elif json_dict["type"] == "tribler_exception":
                     raise RuntimeError(json_dict["event"]["text"])
             self.current_event_string = ""
