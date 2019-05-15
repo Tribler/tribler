@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import os
+import time
 from base64 import b64encode
 
 from PyQt5.QtCore import QDir, QTimer, pyqtSignal
@@ -12,7 +13,7 @@ from TriblerGUI.defs import BUTTON_TYPE_CONFIRM, BUTTON_TYPE_NORMAL, COMMIT_STAT
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
-from TriblerGUI.utilities import get_gui_setting
+from TriblerGUI.utilities import get_gui_setting, copy_to_clipboard
 from TriblerGUI.widgets.tablecontentmodel import MyTorrentsContentModel
 from TriblerGUI.widgets.triblertablecontrollers import MyTorrentsTableViewController
 
@@ -126,7 +127,17 @@ class EditChannelPage(QWidget):
         self.update_channel_commit_views()
 
         self.window().export_channel_button.setHidden(False)
-        self.window().edit_channel_name_label.setText("My channel")
+
+        # Channel name
+        self.window().edit_channel_name_label.setText(self.channel_overview["name"])
+        self.window().edit_channel_name_label.setReadOnly(True)
+        self.window().edit_channel_name_label.clicked.connect(self.on_click_channel_name)
+        self.window().edit_channel_name_label.returnPressed.connect(self.on_update_channel_name)
+        self.window().edit_channel_name_label.focussed.connect(self.on_focus_channel_name)
+
+        # Channel public key
+        self.window().edit_channel_cid_label.setText(self.channel_overview["public_key"][:74] + "...")
+        self.window().copy_cid_button.clicked.connect(self.on_copy_channel_id)
 
         self.window().edit_channel_overview_name_label.setText(self.channel_overview["name"])
         self.window().edit_channel_description_label.setText(self.channel_overview["description"])
@@ -138,6 +149,40 @@ class EditChannelPage(QWidget):
         self.window().edit_channel_stacked_widget.setCurrentIndex(1)
 
         self.model.channel_pk = self.channel_overview["public_key"]
+
+    def on_click_channel_name(self):
+        self.window().edit_channel_name_label.setReadOnly(False)
+
+    def on_focus_channel_name(self, has_focus):
+        # When the focus on the channel name is gone, check if user has edited but not saved (ie. pressed enter).
+        # In that case try to save the updated channel name.
+        if not has_focus:
+            self.on_update_channel_name()
+
+    def on_update_channel_name(self):
+        if self.channel_overview['name'] == self.window().edit_channel_name_label.text():
+            return
+
+        post_data = {
+            "name": self.window().edit_channel_name_label.text(),
+            "description": ''
+        }
+
+        self.editchannel_request_mgr = TriblerRequestManager()
+        self.editchannel_request_mgr.perform_request("mychannel", self.on_channel_name_updated,
+                                                     data=post_data, method='POST')
+
+    def on_channel_name_updated(self, result):
+        if not result:
+            return
+        if 'edited' in result:
+            self.channel_overview['name'] = self.window().edit_channel_name_label.text()
+            self.window().tray_show_message("Channel name updated", self.channel_overview['name'])
+            self.window().edit_channel_name_label.setReadOnly(True)
+
+    def on_copy_channel_id(self):
+        copy_to_clipboard(self.channel_overview["public_key"])
+        self.window().tray_show_message("Copied channel ID", self.channel_overview["public_key"])
 
     def on_create_channel_button_pressed(self):
         channel_name = self.window().new_channel_name_edit.text()
