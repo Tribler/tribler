@@ -67,7 +67,7 @@ class TestMakeTorrent(AbstractServer):
             self.assertEqual(response, magnet_link)
 
         # Setup a redirect server which redirects to a magnet link
-        magnet_link = "magnet:?xt=urn:btih:DC4B96CF85A85CEEDB8ADC4B96CF85A85CEEDB8A"
+        magnet_link = b"magnet:?xt=urn:btih:DC4B96CF85A85CEEDB8ADC4B96CF85A85CEEDB8A"
         port = get_random_port()
 
         self.setUpHttpRedirectServer(port, magnet_link)
