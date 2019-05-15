@@ -11,7 +11,7 @@ from twisted.internet.threads import deferToThread
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import COMMITTED
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
-from Tribler.Core.simpledefs import NTFY_NODE, NTFY_UPDATE
+from Tribler.Core.simpledefs import NTFY_CHANNEL_ENTITY, NTFY_UPDATE
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
 
@@ -178,7 +178,7 @@ class GigaChannelManager(TaskManager):
             with db_session:
                 channel_upd = self.session.lm.mds.ChannelMetadata.get(public_key=channel.public_key, id_=channel.id_)
                 channel_upd_dict = channel_upd.to_simple_dict()
-            self.session.notifier.notify(NTFY_NODE, NTFY_UPDATE,
+            self.session.notifier.notify(NTFY_CHANNEL_ENTITY, NTFY_UPDATE,
                                          "%s:%s".format(hexlify(channel.public_key), str(channel.id_)),
                                          channel_upd_dict)
 

@@ -460,6 +460,7 @@ def define_binding(db):
             This property describes the current state of the channel.
             :return: Text-based status
             """
+            # TODO: optimize this by stopping doing blob comparisons on each call, and instead remember rowid?
             is_personal = database_blob(self._my_key.pub().key_to_bin()[10:]) == database_blob(self.public_key)
             if is_personal:
                 return "Personal"
@@ -479,7 +480,6 @@ def define_binding(db):
             Return a basic dictionary with information about the channel.
             """
             epoch = datetime.utcfromtimestamp(0)
-            # TODO: optimize this?
             return {
                 "id": self.rowid,
                 "public_key": hexlify(self.public_key),

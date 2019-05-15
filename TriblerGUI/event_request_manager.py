@@ -4,7 +4,7 @@ import logging
 import time
 
 from PyQt5.QtCore import QTimer, QUrl, pyqtSignal
-from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequest
+from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 
 import Tribler.Core.Utilities.json_util as json
 
@@ -19,7 +19,7 @@ class EventRequestManager(QNetworkAccessManager):
     node_info_updated = pyqtSignal(object)
     torrent_info_updated = pyqtSignal(object)
     received_search_result = pyqtSignal(object)
-    tribler_started = pyqtSignal()
+    tribler_started = pyqtSignal(object)
     upgrader_tick = pyqtSignal(str)
     upgrader_finished = pyqtSignal()
     new_version_available = pyqtSignal(str)
@@ -33,8 +33,6 @@ class EventRequestManager(QNetworkAccessManager):
     market_transaction_complete = pyqtSignal(object)
     market_payment_received = pyqtSignal(object)
     market_payment_sent = pyqtSignal(object)
-    market_iom_input_required = pyqtSignal(object)
-    events_started = pyqtSignal(object)
     low_storage_signal = pyqtSignal(object)
     credit_mining_signal = pyqtSignal(object)
     tribler_shutdown_signal = pyqtSignal(str)
@@ -46,15 +44,36 @@ class EventRequestManager(QNetworkAccessManager):
         self.failed_attempts = 0
         self.connect_timer = QTimer()
         self.current_event_string = ""
-        self.tribler_version = "Unknown"
         self.reply = None
-        self.emitted_tribler_started = False  # We should only emit tribler_started once
         self.shutting_down = False
         self._logger = logging.getLogger('TriblerGUI')
-
         self.reactions_dict = {
-            "node_info_updated": self.node_info_updated.emit
+            "channel_entity_info_updated": self.node_info_updated.emit,
+            "torrent_info_updated": self.torrent_info_updated.emit,
+            "new_version_available": lambda data: self.new_version_available.emit(data["version"]),
+            "upgrader_finished": lambda _: self.upgrader_finished.emit(),
+            "upgrader_tick": lambda data: self.upgrader_tick.emit(data["text"]),
+            "channel_discovered": self.discovered_channel.emit,
+            "torrent_discovered": self.discovered_torrent.emit,
+            "torrent_finished": self.torrent_finished.emit,
+            "market_ask": self.received_market_ask.emit,
+            "market_bid": self.received_market_bid.emit,
+            "market_ask_timeout": self.expired_market_ask.emit,
+            "market_bid_timeout": self.expired_market_bid.emit,
+            "market_transaction_complete": self.market_transaction_complete.emit,
+            "market_payment_received": self.market_payment_received.emit,
+            "market_payment_sent": self.market_payment_sent.emit,
+            "signal_low_space": self.low_storage_signal.emit,
+            "credit_mining_error": self.credit_mining_signal.emit,
+            "remote_search_results": self.received_search_result.emit,
+            "shutdown": self.tribler_shutdown_signal.emit,
+            "events_start": self.events_start_received,
+            "tribler_started": lambda data: self.tribler_started.emit(data["version"])
         }
+
+    def events_start_received(self, event_dict):
+        if event_dict["tribler_started"]:
+            self.tribler_started.emit(event_dict["version"])
 
     def on_error(self, error, reschedule_on_err):
         self._logger.info("Got Tribler core error: %s" % error)
@@ -86,55 +105,11 @@ class EventRequestManager(QNetworkAccessManager):
                 if len(received_events) > 100:  # Only buffer the last 100 events
                     received_events.pop()
 
-                if json_dict["type"] == "torrent_info_updated":
-                    self.torrent_info_updated.emit(json_dict["event"])
-                elif json_dict["type"] == "tribler_started" and not self.emitted_tribler_started:
-                    self.tribler_started.emit()
-                    self.emitted_tribler_started = True
-                elif json_dict["type"] == "new_version_available":
-                    self.new_version_available.emit(json_dict["event"]["version"])
-                elif json_dict["type"] == "upgrader_finished":
-                    self.upgrader_finished.emit()
-                elif json_dict["type"] == "upgrader_tick":
-                    self.upgrader_tick.emit(json_dict["event"]["text"])
-                elif json_dict["type"] == "channel_discovered":
-                    self.discovered_channel.emit(json_dict["event"])
-                elif json_dict["type"] == "torrent_discovered":
-                    self.discovered_torrent.emit(json_dict["event"])
-                elif json_dict["type"] == "events_start":
-                    self.events_started.emit(json_dict["event"])
-                    self.tribler_version = json_dict["event"]["version"]
-                    if json_dict["event"]["tribler_started"] and not self.emitted_tribler_started:
-                        self.tribler_started.emit()
-                        self.emitted_tribler_started = True
-                elif json_dict["type"] == "torrent_finished":
-                    self.torrent_finished.emit(json_dict["event"])
-                elif json_dict["type"] == "market_ask":
-                    self.received_market_ask.emit(json_dict["event"])
-                elif json_dict["type"] == "market_bid":
-                    self.received_market_bid.emit(json_dict["event"])
-                elif json_dict["type"] == "market_ask_timeout":
-                    self.expired_market_ask.emit(json_dict["event"])
-                elif json_dict["type"] == "market_bid_timeout":
-                    self.expired_market_bid.emit(json_dict["event"])
-                elif json_dict["type"] == "market_transaction_complete":
-                    self.market_transaction_complete.emit(json_dict["event"])
-                elif json_dict["type"] == "market_payment_received":
-                    self.market_payment_received.emit(json_dict["event"])
-                elif json_dict["type"] == "market_payment_sent":
-                    self.market_payment_sent.emit(json_dict["event"])
-                elif json_dict["type"] == "market_iom_input_required":
-                    self.market_iom_input_required.emit(json_dict["event"])
-                elif json_dict["type"] == "signal_low_space":
-                    self.low_storage_signal.emit(json_dict["event"])
-                elif json_dict["type"] == "credit_mining_error":
-                    self.credit_mining_signal.emit(json_dict["event"])
-                elif json_dict["type"] == "remote_search_results":
-                    self.received_search_result.emit(json_dict["event"])
-                elif json_dict["type"] == "shutdown":
-                    self.tribler_shutdown_signal.emit(json_dict["event"])
-                elif json_dict["type"] in self.reactions_dict:
-                    self.reactions_dict[json_dict["type"]](json_dict["event"])
+                if json_dict["type"] in self.reactions_dict:
+                    if "event" in json_dict["type"]:
+                        self.reactions_dict[json_dict["type"]](json_dict["event"])
+                    else:
+                        self.reactions_dict[json_dict["type"]]()
                 elif json_dict["type"] == "tribler_exception":
                     raise RuntimeError(json_dict["event"]["text"])
             self.current_event_string = ""
