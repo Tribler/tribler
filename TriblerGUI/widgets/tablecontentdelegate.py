@@ -110,6 +110,7 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
 
 class ChannelStateMixin(object):
     wait_svg = QSvgRenderer(get_image_path("wait_animation.svg"))
+    share_icon = QIcon(get_image_path("share.png"))
 
     def init_animation(self):
         # This signal is fired each time the animation objects wants to show the next frame.
@@ -118,6 +119,18 @@ class ChannelStateMixin(object):
         # and should be changed eventually.
         # TODO: make the animation stop when the view becomes hidden. Use QMovie to do this.
         self.wait_svg.repaintNeeded.connect(self.redraw_required)
+
+    @staticmethod
+    def get_indicator_rect(rect):
+        r = rect
+        indicator_border = 1
+        indicator_side = (r.height() if r.width() > r.height() else r.width()) - indicator_border*2
+        y = r.top() + (r.height() - indicator_side) / 2
+        x = r.left() + indicator_border
+        w = indicator_side
+        h = indicator_side
+        indicator_rect = QRect(x, y, w, h)
+        return indicator_rect
 
     def draw_channel_state(self, painter, option, index, data_item):
         # Draw empty cell as the background
@@ -128,18 +141,12 @@ class ChannelStateMixin(object):
         if data_item[u'status'] == 1000:  # LEGACY ENTRIES!
             return True
         if u'my_channel' in data_item and data_item[u'my_channel']:
+            self.share_icon.paint(painter, self.get_indicator_rect(option.rect))
             return True
 
         if data_item[u'state'] in [u'Updating', u'Downloading']:
-            r = option.rect
-            indicator_border = 1
-            indicator_side = (r.height() if r.width() > r.height() else r.width()) - indicator_border*2
-            y = r.top() + (r.height() - indicator_side) / 2
-            x = r.left() + indicator_border
-            w = indicator_side
-            h = indicator_side
-            indicator_rect = QRect(x, y, w, h)
-            self.wait_svg.render(painter, QRectF(indicator_rect))
+            self.wait_svg.render(painter, QRectF(self.get_indicator_rect(option.rect)))
+            return True
         return True
 
 
