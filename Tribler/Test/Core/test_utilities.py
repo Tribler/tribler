@@ -26,13 +26,15 @@ class TriblerCoreTestUtilities(TriblerCoreTest):
         url = 'http://stackoverflow.com/test?answers=true'
         new_params = {'answers': False, 'data': ['some', 'values']}
         result = add_url_params(url, new_params)
-        self.assertEqual(result, 'http://stackoverflow.com/test?data=some&data=values&answers=false')
+        self.assertIn("data=values", result)
+        self.assertIn("answers=false", result)
 
     def test_add_url_param_clean(self):
         url = 'http://stackoverflow.com/test'
         new_params = {'data': ['some', 'values']}
         result = add_url_params(url, new_params)
-        self.assertEqual(result, 'http://stackoverflow.com/test?data=some&data=values')
+        self.assertIn("data=some", result)
+        self.assertIn("data=values", result)
 
     @trial_timeout(10)
     def test_http_get_expired(self):
