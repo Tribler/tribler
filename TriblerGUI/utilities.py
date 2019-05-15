@@ -293,3 +293,10 @@ def copy_to_clipboard(message):
     cb = QApplication.clipboard()
     cb.clear(mode=cb.Clipboard)
     cb.setText(message, mode=cb.Clipboard)
+
+
+def html_label(text, background="#e4e4e4", color="#222222", bold=True):
+    style = "background-color:" + background if background else ''
+    style = style+";color:"+color if color else style
+    style = style+";font-weight:bold" if bold else style
+    return "<label style='%s'>&nbsp;%s&nbsp;</label>" % (style, text)
