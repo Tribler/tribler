@@ -11,19 +11,12 @@ from matplotlib.pyplot import Figure
 
 from networkx.readwrite import json_graph
 
-from TriblerGUI.defs import TRUST_GRAPH_HEADER_MESSAGE
+from TriblerGUI.defs import COLOR_BACKGROUND, COLOR_DEFAULT, COLOR_GREEN, COLOR_NEUTRAL, COLOR_RED, COLOR_SELECTED, \
+    HTML_SPACE, TRUST_GRAPH_HEADER_MESSAGE, TRUST_GRAPH_PEER_LEGENDS
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.utilities import format_size, html_label
 
 matplotlib.use('Qt5Agg')
-
-RED = "#ff0000"
-GREEN = "#2ca01c"
-NEUTRAL = "#cdcdcd"
-DEFAULT = "#150507"
-SELECTED = "#5c58ee"
-BACKGROUND = "#202020"
-SPACE = '&nbsp;'
 
 
 class TrustAnimationCanvas(FigureCanvas):
@@ -38,7 +31,7 @@ class TrustAnimationCanvas(FigureCanvas):
         self.axes.set_ylim(0, 1)
         self.axes.set_xticks([], [])
         self.axes.set_yticks([], [])
-        self.axes.set_facecolor(BACKGROUND)
+        self.axes.set_facecolor(COLOR_BACKGROUND)
 
         FigureCanvas.__init__(self, self.fig)
         self.setParent(parent)
@@ -89,7 +82,7 @@ class TrustAnimationCanvas(FigureCanvas):
         self.axes.set_ylim(0, 1)
         self.axes.set_xticks([], [])
         self.axes.set_yticks([], [])
-        self.axes.set_facecolor(BACKGROUND)
+        self.axes.set_facecolor(COLOR_BACKGROUND)
 
         # To support animation, new positions of the nodes are calculated based on the frame rate.
         move_frame_fraction = 1 - (self.animation_frame - 1) / (1.0 * self.max_frames)
@@ -151,7 +144,7 @@ class TrustAnimationCanvas(FigureCanvas):
                        verticalalignment='center', horizontalalignment='center', fontsize=8)
 
         # Plot the root (center) node
-        root_color = SELECTED if self.selected_node.get('public_key', None) == self.root_public_key else '#e67300'
+        root_color = COLOR_SELECTED if self.selected_node.get('public_key', None) == self.root_public_key else '#e67300'
         self.root_node = self.axes.plot(node_positions[root_node][0], node_positions[root_node][1], marker='o',
                                         color=root_color, alpha=1.0, linestyle='--', lw=1, markersize=24,
                                         markeredgecolor='#e67300', markeredgewidth=1)[0]
@@ -184,13 +177,13 @@ class TrustAnimationCanvas(FigureCanvas):
 
     def get_node_color(self, node_public_key):
         if self.selected_node.get('public_key', None) == node_public_key:
-            return SELECTED
+            return COLOR_SELECTED
         node_balance = self.token_balance.get(node_public_key, {'total_up': 0, 'total_down': 0})
         if node_balance['total_up'] > node_balance['total_down']:
-            return GREEN
+            return COLOR_GREEN
         elif node_balance['total_up'] < node_balance['total_down']:
-            return RED
-        return NEUTRAL
+            return COLOR_RED
+        return COLOR_NEUTRAL
 
     def get_node_size(self, node_public_key):
         if self.selected_node.get('public_key', None) == node_public_key:
@@ -269,15 +262,15 @@ class TrustGraphPage(QWidget):
         if not selected_node:
             return
 
-        peer_message = "<b>Peer</b> %s%s..." % (SPACE * 16, selected_node.get('public_key', '')[:74])
+        peer_message = "<b>Peer</b> %s%s..." % (HTML_SPACE * 16, selected_node.get('public_key', '')[:74])
         self.window().tr_selected_node_pub_key.setText(peer_message)
 
         diff = selected_node.get('total_up', 0) - selected_node.get('total_down', 0)
-        color = GREEN if diff > 0 else RED if diff < 0 else DEFAULT
-        bandwidth_message = "<b>Bandwidth</b> " + SPACE * 2 \
-                            + " Given " + SPACE + html_label(format_size(selected_node.get('total_up', 0))) \
-                            + " Taken " + SPACE + html_label(format_size(selected_node.get('total_down', 0))) \
-                            + " Balance " + SPACE + html_label(format_size(diff), color=color)
+        color = COLOR_GREEN if diff > 0 else COLOR_RED if diff < 0 else COLOR_DEFAULT
+        bandwidth_message = "<b>Bandwidth</b> " + HTML_SPACE * 2 \
+                            + " Given " + HTML_SPACE + html_label(format_size(selected_node.get('total_up', 0))) \
+                            + " Taken " + HTML_SPACE + html_label(format_size(selected_node.get('total_down', 0))) \
+                            + " Balance " + HTML_SPACE + html_label(format_size(diff), color=color)
         self.window().tr_selected_node_stats.setText(bandwidth_message)
 
     def schedule_fetch_data_timer(self, now=False):
@@ -343,11 +336,7 @@ class TrustGraphPage(QWidget):
             self.window().trust_graph_progress_bar.setHidden(False)
             self.window().trust_graph_progress_bar.setValue(bootstrap_progress)
 
-        status_message = u"<strong style='font-size:14px'>Transactions : %s &nbsp;&nbsp; " \
-                         u"| &nbsp;&nbsp; Peers : %s</strong> &nbsp;" \
-                         u"( <span style='color:%s'>\u2B24 Good</span> &nbsp; " \
-                         u"<span style='color:%s'>\u2B24 Bad</span> &nbsp; " \
-                         u"<span style='color:%s'>\u2B24 Unknown</span> &nbsp; " \
-                         u"<span style='color:%s'>\u2B24 Selected</span> )" \
-                         % (data['num_tx'], len(data['positions']), GREEN, RED, NEUTRAL, SELECTED)
+        status_message = u"<strong style='font-size:14px'>Transactions : %s | Peers : %s</strong> %s" \
+                         % (data['num_tx'], len(data['positions']), TRUST_GRAPH_PEER_LEGENDS)
+
         self.window().trust_graph_status_bar.setText(status_message)

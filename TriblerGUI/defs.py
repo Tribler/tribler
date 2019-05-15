@@ -129,6 +129,14 @@ CATEGORY_LIST = [
     u'Other',
 ]
 
+# Trust Graph constants
+COLOR_RED = "#ff0000"
+COLOR_GREEN = "#2ca01c"
+COLOR_NEUTRAL = "#cdcdcd"
+COLOR_DEFAULT = "#150507"
+COLOR_SELECTED = "#5c58ee"
+COLOR_BACKGROUND = "#202020"
+HTML_SPACE = '&nbsp;'
 TRUST_GRAPH_HEADER_MESSAGE = "<hr/><i><strong>Tribler</strong> is about helping others. You become trusted if " \
                              "you give away bandwidth. Such acts of kindness are registered in the " \
                              "<a href='https://explorer.tribler.org' style='color:#ffffff'>Tribler blockchain</a>.  " \
@@ -140,5 +148,10 @@ TRUST_GRAPH_HEADER_MESSAGE = "<hr/><i><strong>Tribler</strong> is about helping 
                              "<i>A note on privacy: We respect your privacy and never actively share what content " \
                              "you download or seed. Instead, the accounting of bandwidth given or taken is recorded " \
                              "in the blockchain so graphs like this can be built.</i>"
+TRUST_GRAPH_PEER_LEGENDS = u"( <span style='color:%s'>\u2B24 Good </span> " \
+                           u"<span style='color:%s'>\u2B24 Bad </span> " \
+                           u"<span style='color:%s'>\u2B24 Unknown </span> " \
+                           u"<span style='color:%s'>\u2B24 Selected</span> )" \
+                           % (COLOR_GREEN, COLOR_RED, COLOR_NEUTRAL, COLOR_SELECTED)
 
 CONTEXT_MENU_WIDTH = 200
