@@ -1,7 +1,7 @@
 """
 Author(s): Arno Bakker
 """
-from __future__ import absolute_import
+from __future__ import absolute_import, division
 
 import logging
 import os
@@ -84,8 +84,8 @@ class TorrentDef(object):
 
         infokeys = ['name', 'piece length']
         for key in infokeys:
-            if key in self.metainfo['info']:
-                self.torrent_parameters[key] = self.metainfo['info'][key]
+            if key in self.metainfo[b'info']:
+                self.torrent_parameters[key] = self.metainfo[b'info'][key]
 
     @staticmethod
     def load(filepath):
@@ -212,7 +212,7 @@ class TorrentDef(object):
         """
         if not self.metainfo:
             return 0
-        return len(self.metainfo['info']['pieces']) / 20
+        return len(self.metainfo[b'info']['pieces']) // 20
 
     def get_pieces(self):
         """
@@ -220,7 +220,7 @@ class TorrentDef(object):
         """
         if not self.metainfo:
             return []
-        return self.metainfo['info']['pieces'][:]
+        return self.metainfo[b'info']['pieces'][:]
 
     def get_infohash(self):
         """
@@ -439,17 +439,17 @@ class TorrentDef(object):
         Returns whether this TorrentDef is a multi-file torrent.
         """
         if self.metainfo:
-            return 'files' in self.metainfo['info']
+            return 'files' in self.metainfo[b'info']
         return False
 
     def is_private(self):
         """
         Returns whether this TorrentDef is a private torrent (and is not announced in the DHT).
         """
-        return int(self.metainfo['info'].get('private', 0)) == 1
+        return int(self.metainfo[b'info'].get(b'private', 0)) == 1
 
     def get_index_of_file_in_files(self, file):
-        info = self.metainfo['info']
+        info = self.metainfo[b'info']
 
         if file is not None and 'files' in info:
             for i in range(len(info['files'])):

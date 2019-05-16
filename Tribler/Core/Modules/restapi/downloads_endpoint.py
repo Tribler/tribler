@@ -206,16 +206,16 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                 }, ...]
         """
         get_peers = False
-        if 'get_peers' in request.args and len(request.args['get_peers']) > 0 \
-                and request.args['get_peers'][0] == "1":
+        if b'get_peers' in request.args and len(request.args[b'get_peers']) > 0 \
+                and request.args[b'get_peers'][0] == "1":
             get_peers = True
 
         get_pieces = False
-        if 'get_pieces' in request.args and len(request.args['get_pieces']) > 0 \
-                and request.args['get_pieces'][0] == "1":
+        if b'get_pieces' in request.args and len(request.args[b'get_pieces']) > 0 \
+                and request.args[b'get_pieces'][0] == "1":
             get_pieces = True
 
-        get_files = 'get_files' in request.args and request.args['get_files'] and request.args['get_files'][0] == "1"
+        get_files = b'get_files' in request.args and request.args[b'get_files'] and request.args[b'get_files'][0] == "1"
 
         downloads_json = []
         downloads = self.session.get_downloads()

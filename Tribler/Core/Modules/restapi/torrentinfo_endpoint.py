@@ -140,11 +140,11 @@ class TorrentInfoEndpoint(resource.Resource):
         metainfo_deferred = Deferred()
         metainfo_deferred.addCallback(on_got_metainfo)
 
-        if 'uri' not in request.args or not request.args['uri']:
+        if b'uri' not in request.args or not request.args[b'uri']:
             request.setResponseCode(http.BAD_REQUEST)
             return json.twisted_dumps({"error": "uri parameter missing"})
 
-        uri = cast_to_unicode_utf8(request.args['uri'][0])
+        uri = cast_to_unicode_utf8(request.args[b'uri'][0])
 
         if uri.startswith('file:'):
             return on_file()

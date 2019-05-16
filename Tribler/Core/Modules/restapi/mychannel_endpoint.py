@@ -126,8 +126,8 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
                 return json.twisted_dumps({"error": "your channel has not been created"})
 
             sanitized = SpecificChannelTorrentsEndpoint.sanitize_parameters(request.args)
-            if 'exclude_deleted' in request.args:
-                sanitized['exclude_deleted'] = request.args['exclude_deleted']
+            if b'exclude_deleted' in request.args:
+                sanitized['exclude_deleted'] = request.args[b'exclude_deleted']
 
             torrents, total = self.session.lm.mds.TorrentMetadata.get_entries(
                 channel_pk=database_blob(my_channel.public_key), **sanitized)

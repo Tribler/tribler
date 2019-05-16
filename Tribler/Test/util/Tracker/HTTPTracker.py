@@ -34,12 +34,12 @@ class TrackerScrapeEndpoint(resource.Resource):
         """
         Return a bencoded dictionary with information about the queried infohashes.
         """
-        if 'info_hash' not in request.args:
+        if b'info_hash' not in request.args:
             request.setResponseCode(http.BAD_REQUEST)
             return "infohash argument missing"
 
         response_dict = {'files': {}}
-        for infohash in request.args['info_hash']:
+        for infohash in request.args[b'info_hash']:
             if not self.session.tracker_info.has_info_about_infohash(infohash):
                 request.setResponseCode(http.BAD_REQUEST)
                 return "no info about infohash %s" % hexlify(infohash)

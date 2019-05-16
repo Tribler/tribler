@@ -33,15 +33,15 @@ class TestMakeTorrent(AbstractServer):
         """
         _, hashed, _ = parse_magnetlink('magnet:?xt=urn:btih:apctqfwnowubxzoidazgaj2ba6fs6juc')
 
-        self.assertEqual(hashed, "\x03\xc58\x16\xcdu\xa8\x1b\xe5\xc8\x182`'A\x07\x8b/&\x82")
+        self.assertEqual(hashed, b"\x03\xc58\x16\xcdu\xa8\x1b\xe5\xc8\x182`'A\x07\x8b/&\x82")
 
     def test_parse_magnetlink_uppercase(self):
         """
-        Test if a lowercase magnet link can be parsed
+        Test if an uppercase magnet link can be parsed
         """
         _, hashed, _ = parse_magnetlink('magnet:?xt=urn:btih:APCTQFWNOWUBXZOIDAZGAJ2BA6FS6JUC')
 
-        self.assertEqual(hashed, "\x03\xc58\x16\xcdu\xa8\x1b\xe5\xc8\x182`'A\x07\x8b/&\x82")
+        self.assertEqual(hashed, b"\x03\xc58\x16\xcdu\xa8\x1b\xe5\xc8\x182`'A\x07\x8b/&\x82")
 
     def test_valid_url(self):
         """ Test if the URL is valid """
@@ -67,7 +67,7 @@ class TestMakeTorrent(AbstractServer):
             self.assertEqual(response, magnet_link)
 
         # Setup a redirect server which redirects to a magnet link
-        magnet_link = "magnet:?xt=urn:btih:DC4B96CF85A85CEEDB8ADC4B96CF85A85CEEDB8A"
+        magnet_link = b"magnet:?xt=urn:btih:DC4B96CF85A85CEEDB8ADC4B96CF85A85CEEDB8A"
         port = get_random_port()
 
         self.setUpHttpRedirectServer(port, magnet_link)

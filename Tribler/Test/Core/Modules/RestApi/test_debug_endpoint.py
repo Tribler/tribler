@@ -1,6 +1,8 @@
 from __future__ import absolute_import
 
 import os
+import sys
+from unittest import skipIf
 
 from six.moves import xrange
 
@@ -98,6 +100,7 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('debug/memory/history', expected_code=200).addCallback(verify_response)
 
+    @skipIf(sys.version_info.major > 2, "meliae is not Python 3 compatible")
     @trial_timeout(60)
     def test_dump_memory(self):
         """

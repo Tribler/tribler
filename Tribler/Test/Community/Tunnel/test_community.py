@@ -279,7 +279,7 @@ class TestTriblerTunnelCommunity(TestBase):
         self.add_node_to_experiment(self.create_node())
         self.add_node_to_experiment(self.create_node())
 
-        service = '0' * 20
+        service = b'0' * 20
 
         self.nodes[0].overlay.join_swarm(service, 1, seeding=False)
 

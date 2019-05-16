@@ -62,8 +62,8 @@ class LibTorrentSettingsEndpoint(resource.Resource):
                     }
         """
         hop = 0
-        if 'hop' in request.args and request.args['hop']:
-            hop = int(request.args['hop'][0])
+        if b'hop' in request.args and request.args[b'hop']:
+            hop = int(request.args[b'hop'][0])
 
         if hop not in self.session.lm.ltmgr.ltsessions:
             return json.twisted_dumps({'hop': hop, "settings": {}})
@@ -117,8 +117,8 @@ class LibTorrentSessionEndpoint(resource.Resource):
             request.finish()
 
         hop = 0
-        if 'hop' in request.args and request.args['hop']:
-            hop = int(request.args['hop'][0])
+        if b'hop' in request.args and request.args[b'hop']:
+            hop = int(request.args[b'hop'][0])
 
         if hop not in self.session.lm.ltmgr.ltsessions or \
                 not hasattr(self.session.lm.ltmgr.ltsessions[hop], "post_session_stats"):

@@ -115,8 +115,8 @@ class ChannelsPopularEndpoint(BaseChannelsEndpoint):
     def render_GET(self, request):
         limit_channels = 10
 
-        if 'limit' in request.args and request.args['limit']:
-            limit_channels = int(request.args['limit'][0])
+        if b'limit' in request.args and request.args[b'limit']:
+            limit_channels = int(request.args[b'limit'][0])
 
             if limit_channels <= 0:
                 request.setResponseCode(http.BAD_REQUEST)
@@ -226,8 +226,8 @@ class TorrentsRandomEndpoint(BaseMetadataEndpoint):
     def render_GET(self, request):
         limit_torrents = 10
 
-        if 'limit' in request.args and request.args['limit']:
-            limit_torrents = int(request.args['limit'][0])
+        if b'limit' in request.args and request.args[b'limit']:
+            limit_torrents = int(request.args[b'limit'][0])
 
             if limit_torrents <= 0:
                 request.setResponseCode(http.BAD_REQUEST)
@@ -292,15 +292,15 @@ class TorrentHealthEndpoint(resource.Resource):
             :statuscode 404: if the torrent is not found in the database
         """
         timeout = 20
-        if 'timeout' in request.args:
-            timeout = int(request.args['timeout'][0])
+        if b'timeout' in request.args:
+            timeout = int(request.args[b'timeout'][0])
 
         refresh = False
-        if 'refresh' in request.args and request.args['refresh'] and request.args['refresh'][0] == "1":
+        if b'refresh' in request.args and request.args[b'refresh'] and request.args[b'refresh'][0] == "1":
             refresh = True
 
         nowait = False
-        if 'nowait' in request.args and request.args['nowait'] and request.args['nowait'][0] == "1":
+        if b'nowait' in request.args and request.args[b'nowait'] and request.args[b'nowait'][0] == "1":
             nowait = True
 
         def on_health_result(result):

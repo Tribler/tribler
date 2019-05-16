@@ -230,9 +230,9 @@ class TestTorrentDef(BaseTestCase):
         self.assertTrue(TorrentDef.load_from_dict(bdecode(encoded_metainfo)))
 
     def test_torrent_no_metainfo(self):
-        torrent = TorrentDefNoMetainfo("12345678901234567890", VIDEO_FILE_NAME, "http://google.com")
+        torrent = TorrentDefNoMetainfo(b"12345678901234567890", VIDEO_FILE_NAME, "http://google.com")
         self.assertEqual(torrent.get_name(), VIDEO_FILE_NAME)
-        self.assertEqual(torrent.get_infohash(), "12345678901234567890")
+        self.assertEqual(torrent.get_infohash(), b"12345678901234567890")
         self.assertEqual(torrent.get_length(), 0) # there are no files
         self.assertFalse(torrent.get_metainfo())
         self.assertEqual(torrent.get_url(), "http://google.com")
@@ -243,7 +243,7 @@ class TestTorrentDef(BaseTestCase):
         self.assertFalse(torrent.get_trackers_as_single_tuple())
         self.assertFalse(torrent.is_private())
 
-        torrent2 = TorrentDefNoMetainfo("12345678901234567890", VIDEO_FILE_NAME, "magnet:")
+        torrent2 = TorrentDefNoMetainfo(b"12345678901234567890", VIDEO_FILE_NAME, "magnet:")
         self.assertFalse(torrent2.get_trackers_as_single_tuple())
 
     def test_get_index(self):

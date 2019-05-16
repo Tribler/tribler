@@ -15,7 +15,7 @@ class TriblerCoreTestUtilities(TriblerCoreTest):
                                   "%3D1111111111%26&as=http%3A%2F%2Fdownload.wikimedia.org%2Fmediawiki%2F1.15%2Fmediawi"
                                   "ki-1.15.1.tar.gz&xs=http%3A%2F%2Fcache.example.org%2FXRX2PEFXOOEJFRVUCX6HMZMKS5TWG4K"
                                   "5&xs=dchub://example.org")
-        self.assertEqual(result, (u'mediawiki-1.15.1.tar.gz', '\x81\xe1w\xe2\xcc\x00\x94;)\xfc\xfccTW\xf5u#r\x93\xb0',
+        self.assertEqual(result, (u'mediawiki-1.15.1.tar.gz', b'\x81\xe1w\xe2\xcc\x00\x94;)\xfc\xfccTW\xf5u#r\x93\xb0',
                                   ['http://tracker.example.org/announce.php?uk=1111111111&']))
 
     def test_parse_magnetlink_nomagnet(self):
@@ -26,13 +26,15 @@ class TriblerCoreTestUtilities(TriblerCoreTest):
         url = 'http://stackoverflow.com/test?answers=true'
         new_params = {'answers': False, 'data': ['some', 'values']}
         result = add_url_params(url, new_params)
-        self.assertEqual(result, 'http://stackoverflow.com/test?data=some&data=values&answers=false')
+        self.assertIn("data=values", result)
+        self.assertIn("answers=false", result)
 
     def test_add_url_param_clean(self):
         url = 'http://stackoverflow.com/test'
         new_params = {'data': ['some', 'values']}
         result = add_url_params(url, new_params)
-        self.assertEqual(result, 'http://stackoverflow.com/test?data=some&data=values')
+        self.assertIn("data=some", result)
+        self.assertIn("data=values", result)
 
     @trial_timeout(10)
     def test_http_get_expired(self):
