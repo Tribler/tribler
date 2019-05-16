@@ -9,7 +9,8 @@ from PyQt5.QtGui import QCursor
 from PyQt5.QtWidgets import QAction, QFileDialog, QWidget
 
 from TriblerGUI.defs import BUTTON_TYPE_CONFIRM, BUTTON_TYPE_NORMAL, COMMIT_STATUS_TODELETE, \
-    PAGE_EDIT_CHANNEL_CREATE_TORRENT, PAGE_EDIT_CHANNEL_OVERVIEW, PAGE_EDIT_CHANNEL_SETTINGS, PAGE_EDIT_CHANNEL_TORRENTS
+    PAGE_EDIT_CHANNEL_CREATE_TORRENT, PAGE_EDIT_CHANNEL_OVERVIEW, PAGE_EDIT_CHANNEL_SETTINGS, \
+    PAGE_EDIT_CHANNEL_TORRENTS, CONTEXT_MENU_WIDTH
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
@@ -56,20 +57,11 @@ class EditChannelPage(QWidget):
         self.window().create_channel_button.clicked.connect(self.on_create_channel_button_pressed)
         self.window().edit_channel_save_button.clicked.connect(self.on_edit_channel_save_button_pressed)
         self.window().edit_channel_commit_button.clicked.connect(self.clicked_edit_channel_commit_button)
+        self.window().channel_options_button.clicked.connect(self.show_channel_options)
 
         # Tab bar buttons
         self.window().channel_settings_tab.initialize()
         self.window().channel_settings_tab.clicked_tab_button.connect(self.clicked_tab_button)
-
-        self.window().export_channel_button.clicked.connect(self.on_export_mdblob)
-
-        # TODO: re-enable remove_selected button
-        self.window().remove_selected_button.setHidden(True)
-
-        # Connect torrent addition/removal buttons
-        self.window().remove_selected_button.clicked.connect(self.on_torrents_remove_selected_clicked)
-        self.window().remove_all_button.clicked.connect(self.on_torrents_remove_all_clicked)
-        self.window().add_button.clicked.connect(self.on_torrents_add_clicked)
 
         self.model = MyTorrentsContentModel()
         self.controller = MyTorrentsTableViewController(self.model,
@@ -97,6 +89,9 @@ class EditChannelPage(QWidget):
             self.controller.table_view.setColumnHidden(4, True)
             self.model.exclude_deleted = False
 
+    def showEvent(self, QShowEvent):
+        self.update_channel_commit_views()
+
     def update_channel_commit_views(self, deleted_index=None):
         if self.channel_dirty and self.autocommit_enabled:
             self.commit_timer.stop()
@@ -120,13 +115,18 @@ class EditChannelPage(QWidget):
             return
         if 'error' in overview:
             self.window().edit_channel_stacked_widget.setCurrentIndex(0)
+            self.window().edit_channel_name_label.setReadOnly(True)
+            self.window().edit_channel_cid_label.setHidden(True)
+            self.window().copy_cid_button.setHidden(True)
+            self.window().channel_options_button.setHidden(True)
             return
 
         self.channel_overview = overview["mychannel"]
         self.channel_dirty = self.channel_overview['dirty']
-        self.update_channel_commit_views()
 
         self.window().export_channel_button.setHidden(False)
+
+        self.window().channel_settings_tab.setHidden(True)
 
         # Channel name
         self.window().edit_channel_name_label.setText(self.channel_overview["name"])
@@ -136,7 +136,9 @@ class EditChannelPage(QWidget):
         self.window().edit_channel_name_label.focussed.connect(self.on_focus_channel_name)
 
         # Channel public key
+        self.window().edit_channel_cid_label.setHidden(False)
         self.window().edit_channel_cid_label.setText(self.channel_overview["public_key"][:74] + "...")
+        self.window().copy_cid_button.setHidden(False)
         self.window().copy_cid_button.clicked.connect(self.on_copy_channel_id)
 
         self.window().edit_channel_overview_name_label.setText(self.channel_overview["name"])
@@ -146,9 +148,12 @@ class EditChannelPage(QWidget):
         self.window().edit_channel_name_edit.setText(self.channel_overview["name"])
         self.window().edit_channel_description_edit.setText(self.channel_overview["description"])
 
-        self.window().edit_channel_stacked_widget.setCurrentIndex(1)
-
         self.model.channel_pk = self.channel_overview["public_key"]
+
+        self.window().edit_channel_stacked_widget.setCurrentIndex(1)
+        self.window().edit_channel_details_stacked_widget.setCurrentIndex(PAGE_EDIT_CHANNEL_TORRENTS)
+        self.load_my_torrents()
+        self.update_channel_commit_views()
 
     def on_click_channel_name(self):
         self.window().edit_channel_name_label.setReadOnly(False)
@@ -160,7 +165,12 @@ class EditChannelPage(QWidget):
             self.on_update_channel_name()
 
     def on_update_channel_name(self):
-        if self.channel_overview['name'] == self.window().edit_channel_name_label.text():
+        new_name = self.window().edit_channel_name_label.text()
+        if not new_name:
+            ConfirmationDialog.show_error(self.window(), "Channel name cannot be emtpty")
+            return
+
+        if self.channel_overview['name'] == new_name:
             return
 
         post_data = {
@@ -225,6 +235,20 @@ class EditChannelPage(QWidget):
             self.window().edit_channel_name_label.setText(self.window().edit_channel_name_edit.text())
             self.window().edit_channel_description_label.setText(
                 self.window().edit_channel_description_edit.toPlainText())
+
+    def show_channel_options(self):
+        channel_options_menu = TriblerActionMenu(self)
+
+        export_channel_action = QAction('Export channel', self)
+        export_channel_action.triggered.connect(self.on_export_mdblob)
+
+        channel_options_menu.addAction(export_channel_action)
+
+        options_btn_pos = self.window().channel_options_button.pos()
+        plus_btn_geometry = self.window().channel_options_button.geometry()
+        options_btn_pos.setX(options_btn_pos.x() - CONTEXT_MENU_WIDTH + plus_btn_geometry.width())
+        options_btn_pos.setY(options_btn_pos.y() + plus_btn_geometry.height())
+        channel_options_menu.exec_(self.mapToGlobal(options_btn_pos))
 
     def clicked_tab_button(self, tab_button_name):
         if tab_button_name == "edit_channel_overview_button":
