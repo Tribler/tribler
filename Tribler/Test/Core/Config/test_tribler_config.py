@@ -339,3 +339,11 @@ class TestTriblerConfig(TriblerCoreTest):
         """
         self.tribler_config.set_record_transactions(True)
         self.assertTrue(self.tribler_config.get_record_transactions())
+
+    def test_get_set_default_add_download_to_channel(self):
+        """
+        Check whether set/get methods of default add download to channel works.
+        """
+        self.assertEqual(self.tribler_config.get_default_add_download_to_channel(), False)
+        self.tribler_config.set_default_add_download_to_channel(True)
+        self.assertEqual(self.tribler_config.get_default_add_download_to_channel(), True)

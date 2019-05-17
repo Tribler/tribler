@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>538</width>
-    <height>526</height>
+    <height>550</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -468,17 +468,17 @@ background-color: transparent;
         <property name="minimumSize">
          <size>
           <width>0</width>
-          <height>28</height>
+          <height>24</height>
          </size>
         </property>
         <property name="maximumSize">
          <size>
           <width>16777215</width>
-          <height>28</height>
+          <height>24</height>
          </size>
         </property>
         <property name="styleSheet">
-         <string notr="true">color: #B5B5B5;</string>
+         <string notr="true"/>
         </property>
         <property name="text">
          <string>Download anonymous using proxies</string>
@@ -490,14 +490,39 @@ background-color: transparent;
         <property name="enabled">
          <bool>true</bool>
         </property>
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>24</height>
+         </size>
+        </property>
         <property name="styleSheet">
-         <string notr="true">color: #B5B5B5;</string>
+         <string notr="true"/>
         </property>
         <property name="text">
          <string>Seed encrypted using proxies</string>
         </property>
         <property name="tristate">
          <bool>false</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="add_to_channel_checkbox">
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>24</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>16777215</width>
+          <height>24</height>
+         </size>
+        </property>
+        <property name="text">
+         <string>Add to my channel</string>
         </property>
        </widget>
       </item>
@@ -523,9 +548,6 @@ background-color: transparent;
        <width>16777215</width>
        <height>50</height>
       </size>
-     </property>
-     <property name="styleSheet">
-      <string notr="true"/>
      </property>
      <layout class="QHBoxLayout" name="horizontalLayout">
       <property name="leftMargin">
