@@ -106,7 +106,7 @@ class EventRequestManager(QNetworkAccessManager):
                     received_events.pop()
 
                 if json_dict["type"] in self.reactions_dict:
-                    if "event" in json_dict["type"]:
+                    if "event" in json_dict:
                         self.reactions_dict[json_dict["type"]](json_dict["event"])
                     else:
                         self.reactions_dict[json_dict["type"]]()
