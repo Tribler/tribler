@@ -8,6 +8,9 @@ from TriblerGUI.defs import ACTION_BUTTONS
 from TriblerGUI.utilities import format_size, pretty_date
 
 
+def combine_pk_id(pk, id_):
+    return "%s:%s" % (pk, id_)
+
 class RemoteTableModel(QAbstractTableModel):
     """
     The base model for the tables in the Tribler GUI.
@@ -57,17 +60,17 @@ class RemoteTableModel(QAbstractTableModel):
         # If items are remote, prepend to the top else append to the end of the model.
         new_items_map = {}
         insert_index = len(self.data_items) if not remote else 0
-        unique_items = []
+        unique_new_items = []
         for item in new_items:
             item_uid = self.get_item_uid(item)
 
             if item_uid and item_uid not in self.item_uid_map:
                 new_items_map[item_uid] = insert_index
-                unique_items.append(item)
+                unique_new_items.append(item)
                 insert_index += 1
 
         # If no new items are found, skip
-        if not unique_items:
+        if not unique_new_items:
             return
 
         # Else if remote items, to make space for new unique items update the position of the existing items
@@ -78,8 +81,12 @@ class RemoteTableModel(QAbstractTableModel):
                     new_items_map[old_item_uid] = insert_index + self.item_uid_map[old_item_uid]
 
         # Update the table model
-        self.beginInsertRows(QModelIndex(), 0, len(unique_items) - 1)
-        self.data_items = unique_items + self.data_items if remote else self.data_items + unique_items
+        if remote:
+            self.beginInsertRows(QModelIndex(), 0, len(unique_new_items) - 1)
+            self.data_items = unique_new_items + self.data_items
+        else:
+            self.beginInsertRows(QModelIndex(), len(self.data_items), len(self.data_items) + len(unique_new_items) - 1)
+            self.data_items.extend(unique_new_items)
         self.item_uid_map = new_items_map
         self.endInsertRows()
 
@@ -101,12 +108,13 @@ class TriblerContentModel(RemoteTableModel):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
             return self.column_headers[num]
 
+
     def get_item_uid(self, item):
         item_uid = None
         if "infohash" in item:
             item_uid = item['infohash']
         elif "public_key" in item and "id" in item:
-            item_uid = "%s:%s" % (item['public_key'], item['id'])
+            item_uid = combine_pk_id(item['public_key'], item['id'])
         return item_uid
 
     def rowCount(self, parent=QModelIndex()):
@@ -129,26 +137,41 @@ class TriblerContentModel(RemoteTableModel):
         self.item_uid_map.clear()
         super(TriblerContentModel, self).reset()
 
-    def update_torrent_info(self, update_dict):
-        row = self.item_uid_map.get(update_dict["infohash"])
+    def update_node_info(self, update_dict):
+        row = self.item_uid_map.get(update_dict["infohash"] if "infohash" in update_dict
+                                    else combine_pk_id(update_dict["public_key"], update_dict["id"]))
         if row:
             self.data_items[row].update(**update_dict)
             self.dataChanged.emit(self.index(row, 0), self.index(row, len(self.columns)), [])
 
 
-class SearchResultsContentModel(TriblerContentModel):
+class StateTooltipMixin(object):
+    def data(self, index, role):
+        # Return tooltip for state indicator column
+        if role == Qt.ToolTipRole:
+            if index.column() == self.column_position[u'state']:
+                return self.data_items[index.row()][u'state']
+            return None
+        else:
+            return super(StateTooltipMixin, self).data(index, role)
+
+
+class SearchResultsContentModel(StateTooltipMixin, TriblerContentModel):
     """
     Model for a list that shows search results.
     """
-    columns = [u'category', u'name', u'torrents', u'size', u'updated', u'health', ACTION_BUTTONS]
-    column_headers = [u'Category', u'Name', u'Torrents', u'Size', u'Updated', u'health', u'']
+    columns = [u'state', u'subscribed', u'category', u'name', u'torrents', u'size', u'updated', u'health',
+               ACTION_BUTTONS]
+    column_headers = [u'', u'', u'Category', u'Name', u'Torrents', u'Size', u'Updated', u'health', u'']
     column_flags = {
+        u'subscribed': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         u'category': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         u'name': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         u'torrents': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         u'size': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         u'updated': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         u'health': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
+        u'state': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         ACTION_BUTTONS: Qt.ItemIsEnabled | Qt.ItemIsSelectable
     }
 
@@ -162,22 +185,24 @@ class SearchResultsContentModel(TriblerContentModel):
         self.type_filter = ''
 
 
-class ChannelsContentModel(TriblerContentModel):
+class ChannelsContentModel(StateTooltipMixin, TriblerContentModel):
     """
     This model represents a list of channels that can be displayed in a table view.
     """
-    columns = [u'name', u'torrents', u'updated', u'subscribed']
-    column_headers = [u'Channel name', u'Torrents', u'Updated', u'']
+    columns = [u'state', u'subscribed', u'name', u'torrents', u'updated']
+    column_headers = [u'', u'', u'Channel name', u'Torrents', u'Updated']
     column_flags = {
-        u'name': Qt.ItemIsEnabled,
-        u'torrents': Qt.ItemIsEnabled,
-        u'updated': Qt.ItemIsEnabled,
-        u'subscribed': Qt.ItemIsEnabled,
-        ACTION_BUTTONS: Qt.ItemIsEnabled
+        u'subscribed': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
+        u'name': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
+        u'torrents': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
+        u'updated': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
+        u'state': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
+        ACTION_BUTTONS: Qt.ItemIsEnabled | Qt.ItemIsSelectable
     }
 
     column_display_filters = {
         u'updated': pretty_date,
+        u'state': lambda data: str(data)[:1] if data == u'Downloading' else ""
     }
 
     def __init__(self, subscribed=False, **kwargs):

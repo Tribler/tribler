@@ -116,9 +116,11 @@ DEBUG_PANE_REFRESH_TIMEOUT = 5000  # 5 seconds
 # TODO: build this automatically and/or move it somewhere
 CATEGORY_LIST = [
     u'Video',
+    u'VideoClips',
     u'Audio',
     u'Documents',
     u'CD/DVD/BD',
+    u'Compressed',
     u'Games',
     u'Pictures',
     u'Books',

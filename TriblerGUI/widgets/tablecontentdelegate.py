@@ -1,13 +1,15 @@
 from __future__ import absolute_import, division
 
-from abc import abstractmethod
-
-from PyQt5.QtCore import QEvent, QModelIndex, QObject, QRect, QSize, Qt, pyqtSignal
+from PyQt5.QtCore import QEvent, QModelIndex, QObject, QRect, QRectF, QSize, Qt, pyqtSignal
 from PyQt5.QtGui import QBrush, QColor, QIcon, QPainter, QPen
-from PyQt5.QtWidgets import QComboBox, QStyle, QStyledItemDelegate
+from PyQt5.QtSvg import QSvgRenderer
+from PyQt5.QtWidgets import QComboBox, QStyle, QStyledItemDelegate, QToolTip
 
-from TriblerGUI.defs import ACTION_BUTTONS, CATEGORY_LIST, COMMIT_STATUS_COMMITTED, COMMIT_STATUS_NEW, \
-    COMMIT_STATUS_TODELETE, HEALTH_CHECKING, HEALTH_DEAD, HEALTH_ERROR, HEALTH_GOOD, HEALTH_MOOT, HEALTH_UNCHECKED
+from six import text_type
+
+from TriblerGUI.defs import (
+    ACTION_BUTTONS, CATEGORY_LIST, COMMIT_STATUS_COMMITTED, COMMIT_STATUS_NEW, COMMIT_STATUS_TODELETE, HEALTH_CHECKING,
+    HEALTH_DEAD, HEALTH_ERROR, HEALTH_GOOD, HEALTH_MOOT, HEALTH_UNCHECKED)
 from TriblerGUI.utilities import get_health, get_image_path
 from TriblerGUI.widgets.tableiconbuttons import DeleteIconButton, DownloadIconButton, PlayIconButton
 
@@ -21,7 +23,9 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
         self.hoverrow = None
         self.hover_index = None
         self.controls = []
+        self.column_drawing_actions = []
 
+        # TODO: restore this behavior, so there is really some tolerance zone!
         # We have to control if mouse is in the buttons box to add some tolerance for vertical mouse
         # misplacement around the buttons. The button box effectively overlaps upper and lower rows.
         #   row 0
@@ -44,6 +48,8 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
             self.hoverrow = index.row()
             if not self.button_box.contains(pos):
                 redraw = True
+                # Hide the tooltip when cell hover changes
+                QToolTip.hideText()
         # Redraw when the mouse leaves the table
         if index.row() == -1 and self.hoverrow != -1:
             self.hoverrow = -1
@@ -76,9 +82,12 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
             # Draw the rest of the columns
             super(TriblerButtonsDelegate, self).paint(painter, option, index)
 
-    @abstractmethod
     def paint_exact(self, painter, option, index):
-        pass
+        data_item = index.model().data_items[index.row()]
+        for column, drawing_action in self.column_drawing_actions:
+            if (column in index.model().column_position and
+                    index.column() == index.model().column_position[column]):
+                return drawing_action(painter, option, index, data_item)
 
     def editorEvent(self, event, model, option, index):
         for control in self.controls:
@@ -99,108 +108,156 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
         return super(TriblerButtonsDelegate, self).createEditor(parent, option, index)
 
 
-class SearchResultsDelegate(TriblerButtonsDelegate):
+class ChannelStateMixin(object):
+    wait_svg = QSvgRenderer(get_image_path("wait_animation.svg"))
+    share_icon = QIcon(get_image_path("share.png"))
+
+    def init_animation(self):
+        # This signal is fired each time the animation objects wants to show the next frame.
+        # However, this happens even when the view is in the background. So, the signal
+        # continue to fire even when nothing is shown on the screen. This is just stupid
+        # and should be changed eventually.
+        # TODO: make the animation stop when the view becomes hidden. Use QMovie to do this.
+        self.wait_svg.repaintNeeded.connect(self.redraw_required)
+
+    @staticmethod
+    def get_indicator_rect(rect):
+        r = rect
+        indicator_border = 1
+        indicator_side = (r.height() if r.width() > r.height() else r.width()) - indicator_border * 2
+        y = r.top() + (r.height() - indicator_side) / 2
+        x = r.left() + indicator_border
+        w = indicator_side
+        h = indicator_side
+        indicator_rect = QRect(x, y, w, h)
+        return indicator_rect
+
+    def draw_channel_state(self, painter, option, index, data_item):
+        # Draw empty cell as the background
+        self.paint_empty_background(painter, option)
+
+        if u'type' in data_item and data_item[u'type'] != u'channel':
+            return True
+        if data_item[u'status'] == 1000:  # LEGACY ENTRIES!
+            return True
+        if data_item[u'state'] == u'Personal':
+            self.share_icon.paint(painter, self.get_indicator_rect(option.rect))
+            return True
+        if data_item[u'state'] in [u'Updating', u'Downloading']:
+            self.wait_svg.render(painter, QRectF(self.get_indicator_rect(option.rect)))
+            return True
+        return True
+
+
+class SubscribedControlMixin(object):
+    def draw_subscribed_control(self, painter, option, index, data_item):
+        # Draw empty cell as the background
+        self.paint_empty_background(painter, option)
+
+        if u'type' in data_item and data_item[u'type'] != u'channel':
+            return True
+        if data_item[u'status'] == 1000:  # LEGACY ENTRIES!
+            return True
+        if data_item[u'state'] == u'Personal':
+            return True
+
+        if index == self.hover_index:
+            self.subscribe_control.paint_hover(painter, option.rect, index, toggled=data_item['subscribed'])
+        else:
+            self.subscribe_control.paint(painter, option.rect, index, toggled=data_item['subscribed'])
+
+        return True
+
+
+class CategoryLabelMixin(object):
+    def draw_category_label(self, painter, option, index, data_item):
+        # Draw empty cell as the background
+        self.paint_empty_background(painter, option)
+
+        if 'type' in data_item and data_item['type'] == 'channel':
+            category = "My channel" if data_item['state'] == u'Personal' else data_item['type']
+        else:
+            category = data_item[u'category']
+            # Precautions to safely draw wrong category descriptions
+            if not category or text_type(category) not in CATEGORY_LIST:
+                category = "Unknown"
+        CategoryLabel(category).paint(painter, option, index)
+        return True
+
+
+class DownloadControlsMixin(object):
+    def draw_download_controls(self, painter, option, index, _):
+        # Draw empty cell as the background
+        self.paint_empty_background(painter, option)
+
+        # When the cursor leaves the table, we must "forget" about the button_box
+        if self.hoverrow == -1:
+            self.button_box = QRect()
+        if index.row() == self.hoverrow:
+            extended_border_height = int(option.rect.height() * self.button_box_extended_border_ratio)
+            button_box_extended_rect = option.rect.adjusted(0, -extended_border_height,
+                                                            0, extended_border_height)
+            self.button_box = button_box_extended_rect
+
+            active_buttons = [b for b in self.ondemand_container if b.should_draw(index)]
+            if active_buttons:
+                for rect, button in ChannelsButtonsDelegate.split_rect_into_squares(
+                        button_box_extended_rect, active_buttons):
+                    button.paint(painter, rect, index)
+        return True
+
+
+class HealthLabelMixin(object):
+    def draw_health_column(self, painter, option, index, data_item):
+        # Draw empty cell as the background
+        self.paint_empty_background(painter, option)
+
+        # This dumb check is required because some endpoints do not return entry type
+        if 'type' not in data_item or data_item['type'] == 'torrent':
+            self.health_status_widget.paint(painter, option.rect, index)
+
+        return True
+
+
+class SearchResultsDelegate(TriblerButtonsDelegate, CategoryLabelMixin, SubscribedControlMixin,
+                            DownloadControlsMixin, HealthLabelMixin, ChannelStateMixin):
 
     def __init__(self, parent=None):
+        # TODO: refactor this not to rely on inheritance order, but instead use interface method pattern
         TriblerButtonsDelegate.__init__(self, parent)
-        self.subscribe_control = SubscribeToggleControl(ACTION_BUTTONS)
+        self.subscribe_control = SubscribeToggleControl(u'subscribed')
+
+        self.init_animation()
         self.health_status_widget = HealthStatusDisplay()
 
         self.play_button = PlayIconButton()
         self.download_button = DownloadIconButton()
         self.ondemand_container = [self.play_button, self.download_button]
         self.controls = [self.play_button, self.download_button, self.subscribe_control]
+        self.column_drawing_actions = [(u'subscribed', self.draw_subscribed_control),
+                                       (ACTION_BUTTONS, self.draw_action_column),
+                                       (u'category', self.draw_category_label),
+                                       (u'health', self.draw_health_column),
+                                       (u'state', self.draw_channel_state)]
 
-    def paint_exact(self, painter, option, index):
-        data_item = index.model().data_items[index.row()]
-
-        # Draw the download controls
-        if ACTION_BUTTONS in index.model().column_position and \
-                index.column() == index.model().column_position[ACTION_BUTTONS]:
-            # Draw empty cell as the background
-            self.paint_empty_background(painter, option)
-
-            if data_item['type'] == 'channel':
-                if index.model().data_items[index.row()][u'status'] == 1000:  # LEGACY ENTRIES!
-                    return True
-                if index.model().data_items[index.row()][u'my_channel']:  # Skip personal channel
-                    return True
-                # Draw subscribed widget
-                if index == self.hover_index:
-                    self.subscribe_control.paint_hover(painter, option.rect, index)
-                else:
-                    self.subscribe_control.paint(painter, option.rect, index, toggled=data_item['subscribed'])
-            else:
-                # When the cursor leaves the table, we must "forget" about the button_box
-                if self.hoverrow == -1:
-                    self.button_box = QRect()
-                if index.row() == self.hoverrow:
-                    extended_border_height = int(option.rect.height() * self.button_box_extended_border_ratio)
-                    button_box_extended_rect = option.rect.adjusted(0, -extended_border_height,
-                                                                    0, extended_border_height)
-                    self.button_box = button_box_extended_rect
-
-                    active_buttons = [b for b in self.ondemand_container if b.should_draw(index)]
-                    if active_buttons:
-                        for rect, button in ChannelsButtonsDelegate.split_rect_into_squares(
-                                button_box_extended_rect, active_buttons):
-                            button.paint(painter, rect, index)
-
-            return True
-
-        # Draw 'category' column
-        elif u'category' in index.model().column_position and \
-                index.column() == index.model().column_position[u'category']:
-            if data_item['type'] == 'channel':
-                category = "my channel" if data_item['my_channel'] else data_item['type']
-            else:
-                category = data_item[u'category']
-
-            # Draw empty cell as the background
-            self.paint_empty_background(painter, option)
-            CategoryLabel(category).paint(painter, option, index)
-            return True
-
-        # Draw 'health' column
-        elif u'health' in index.model().column_position and index.column() == index.model().column_position[u'health']:
-            # Draw empty cell as the background
-            self.paint_empty_background(painter, option)
-
-            if data_item['type'] == 'torrent':
-                self.health_status_widget.paint(painter, option.rect, index)
-
-            return True
+    def draw_action_column(self, painter, option, index, data_item):
+        if data_item['type'] != 'channel':
+            return self.draw_download_controls(painter, option, index, None)
 
 
-class ChannelsButtonsDelegate(TriblerButtonsDelegate):
-
+class ChannelsButtonsDelegate(TriblerButtonsDelegate, SubscribedControlMixin, ChannelStateMixin):
     def __init__(self, parent=None):
         TriblerButtonsDelegate.__init__(self, parent)
+        self.init_animation()
+
         self.subscribe_control = SubscribeToggleControl(u'subscribed')
         self.controls = [self.subscribe_control]
-
-    def paint_exact(self, painter, option, index):
-        # Draw 'subscribed' column
-        if index.column() == index.model().column_position[u'subscribed']:
-            # Draw empty cell as the background
-            self.paint_empty_background(painter, option)
-
-            if index.model().data_items[index.row()][u'status'] == 1000:  # LEGACY ENTRIES!
-                return True
-            if index.model().data_items[index.row()][u'my_channel']:
-                return True
-
-            data_item = index.model().data_items[index.row()]
-
-            if index == self.hover_index:
-                self.subscribe_control.paint_hover(painter, option.rect, index, toggled=data_item['subscribed'])
-            else:
-                self.subscribe_control.paint(painter, option.rect, index, toggled=data_item['subscribed'])
-
-            return True
+        self.column_drawing_actions = [(u'subscribed', self.draw_subscribed_control),
+                                       (u'state', self.draw_channel_state)]
 
 
-class TorrentsButtonsDelegate(TriblerButtonsDelegate):
+class TorrentsButtonsDelegate(TriblerButtonsDelegate, CategoryLabelMixin, DownloadControlsMixin,
+                              HealthLabelMixin):
 
     def __init__(self, parent=None):
         TriblerButtonsDelegate.__init__(self, parent)
@@ -215,59 +272,21 @@ class TorrentsButtonsDelegate(TriblerButtonsDelegate):
         self.controls = [self.play_button, self.download_button, self.commit_control, self.delete_button]
 
         self.health_status_widget = HealthStatusDisplay()
+        self.column_drawing_actions = [(ACTION_BUTTONS, self.draw_download_controls),
+                                       (u'category', self.draw_category_label),
+                                       (u'status', self.draw_commit_status_column),
+                                       (u'health', self.draw_health_column)]
 
-    def paint_exact(self, painter, option, index):
-        # Draw 'health' column
-        if u'health' in index.model().column_position and index.column() == index.model().column_position[u'health']:
-            # Draw empty cell as the background
-            self.paint_empty_background(painter, option)
+    def draw_commit_status_column(self, painter, option, index, _):
+        # Draw empty cell as the background
+        self.paint_empty_background(painter, option)
 
-            self.health_status_widget.paint(painter, option.rect, index)
+        if index == self.hover_index:
+            self.commit_control.paint_hover(painter, option.rect, index)
+        else:
+            self.commit_control.paint(painter, option.rect, index)
 
-            return True
-
-        # Draw buttons in the ACTION_BUTTONS column
-        elif ACTION_BUTTONS in index.model().column_position and \
-                index.column() == index.model().column_position[ACTION_BUTTONS]:
-            # Draw empty cell as the background
-            self.paint_empty_background(painter, option)
-
-            # When the cursor leaves the table, we must "forget" about the button_box
-            if self.hoverrow == -1:
-                self.button_box = QRect()
-            if index.row() == self.hoverrow:
-                extended_border_height = int(option.rect.height() * self.button_box_extended_border_ratio)
-                button_box_extended_rect = option.rect.adjusted(0, -extended_border_height,
-                                                                0, extended_border_height)
-                self.button_box = button_box_extended_rect
-
-                active_buttons = [b for b in self.ondemand_container if b.should_draw(index)]
-                if active_buttons:
-                    for rect, button in ChannelsButtonsDelegate.split_rect_into_squares(
-                            button_box_extended_rect, active_buttons):
-                        button.paint(painter, rect, index)
-
-            return True
-
-        # Draw 'commit_status' column
-        elif u'status' in index.model().column_position and index.column() == index.model().column_position[u'status']:
-            # Draw empty cell as the background
-            self.paint_empty_background(painter, option)
-
-            if index == self.hover_index:
-                self.commit_control.paint_hover(painter, option.rect, index)
-            else:
-                self.commit_control.paint(painter, option.rect, index)
-
-            return True
-
-        # Draw 'category' column
-        elif u'category' in index.model().column_position and \
-                index.column() == index.model().column_position[u'category']:
-            # Draw empty cell as the background
-            self.paint_empty_background(painter, option)
-            CategoryLabel(index.model().data_items[index.row()]['category']).paint(painter, option, index)
-            return True
+        return True
 
 
 class CategoryLabel(QObject):

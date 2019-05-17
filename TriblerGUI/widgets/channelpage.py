@@ -15,7 +15,7 @@ class ChannelPage(QWidget):
 
     def __init__(self):
         QWidget.__init__(self)
-        self.channel_info = None
+        self.channel_info = {}
         self.model = None
         self.controller = None
         self.gui_settings = None
@@ -24,7 +24,9 @@ class ChannelPage(QWidget):
         self.gui_settings = gui_settings
         self.model = TorrentsContentModel(hide_xxx=get_gui_setting(self.gui_settings, "family_filter", True,
                                                                    is_bool=True) if self.gui_settings else True)
-        self.window().core_manager.events_manager.torrent_info_updated.connect(self.model.update_torrent_info)
+        self.window().core_manager.events_manager.torrent_info_updated.connect(self.model.update_node_info)
+        self.window().core_manager.events_manager.node_info_updated.connect(self.model.update_node_info)
+        self.window().core_manager.events_manager.node_info_updated.connect(self.on_node_info_update)
         self.controller = TorrentsTableViewController(self.model,
                                                       self.window().channel_page_container.content_table,
                                                       self.window().channel_page_container.details_container,
@@ -36,6 +38,13 @@ class ChannelPage(QWidget):
 
         # To reload the preview
         self.window().channel_preview_label.clicked.connect(self.preview_clicked)
+        self.controller.query_complete.connect(self._on_query_complete)
+
+    def on_node_info_update(self, update_dict):
+        if "public_key" in update_dict and "id" in update_dict and self.channel_info and \
+                self.channel_info["public_key"] == update_dict["public_key"] and\
+                self.channel_info["id"] == update_dict["id"]:
+            self.initialize_with_channel(update_dict)
 
     def preview_clicked(self):
         self.controller.fetch_preview()
@@ -43,20 +52,27 @@ class ChannelPage(QWidget):
 
     def initialize_with_channel(self, channel_info):
         self.channel_info = channel_info
+        self.model.channel_pk = channel_info['public_key']
 
-        self.window().channel_preview_label.setHidden(channel_info['subscribed'])
+        self.window().channel_preview_label.setHidden(channel_info['state'] in ('Complete', 'Legacy'))
         self.window().channel_back_button.setIcon(QIcon(get_image_path('page_back.png')))
         self.window().channel_page_container.content_table.setFocus()
-
-        # initialize the page about a channel
-        self.window().channel_name_label.setText(channel_info['name'])
-        self.window().num_subs_label.setText(str(channel_info['votes']))
-        self.window().subscription_widget.initialize_with_channel(channel_info)
         self.window().channel_page_container.details_container.hide()
-
-        self.model.channel_pk = channel_info['public_key']
+        self.update_labels()
         self.window().channel_torrents_filter_input.setText("")
         self.load_torrents()
+
+    def update_labels(self):
+        # initialize the page about a channel
+        self.window().channel_name_label.setText(self.channel_info['name'])
+        self.window().num_subs_label.setText(str(self.channel_info['votes']))
+        self.window().channel_state_label.setText(self.channel_info["state"])
+        self.window().subscription_widget.initialize_with_channel(self.channel_info)
+
+    def _on_query_complete(self, data, remote):
+        if not remote:
+            self.window().channel_num_torrents_label.setText("{}/{} torrents".format(data['total'],
+                                                                                     self.channel_info['torrents']))
 
     def load_torrents(self):
         self.controller.model.reset()

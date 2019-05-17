@@ -11,6 +11,7 @@ from twisted.internet.threads import deferToThread
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import COMMITTED
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
+from Tribler.Core.simpledefs import NTFY_CHANNEL_ENTITY, NTFY_UPDATE
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
 
@@ -39,8 +40,8 @@ class GigaChannelManager(TaskManager):
                     not self.session.has_download(str(my_channel.infohash)):
                 torrent_path = os.path.join(self.session.lm.mds.channels_dir, my_channel.dir_name + ".torrent")
                 self.updated_my_channel(TorrentDef.load(torrent_path))
-        except:
-            pass
+        except Exception:
+            self._logger.exception("Error when tried to resume personal channel seeding on GigaChannel Manager startup")
 
         channels_check_interval = 5.0  # seconds
         self.channels_lc = self.register_task("Process channels download queue and remove cruft",
@@ -67,20 +68,20 @@ class GigaChannelManager(TaskManager):
             dirnames = [c.dir_name for c in channels]
 
         # TODO: add some more advanced logic for removal of older channel versions
-        cruft_list = [(d, d.get_def().get_name_utf8() not in dirnames) \
-                      for d in self.session.lm.get_channel_downloads() \
+        cruft_list = [(d, d.get_def().get_name_utf8() not in dirnames)
+                      for d in self.session.lm.get_channel_downloads()
                       if bytes(d.get_def().infohash) not in subscribed_infohashes]
         self.remove_channels_downloads(cruft_list)
 
     def service_channels(self):
         try:
             self.remove_cruft_channels()
-        except:
-            pass
+        except Exception:
+            self._logger.exception("Error when tried to check for cruft channels")
         try:
             self.check_channels_updates()
-        except:
-            pass
+        except Exception:
+            self._logger.exception("Error when checking for channel updates")
 
     def check_channels_updates(self):
         """
@@ -98,9 +99,9 @@ class GigaChannelManager(TaskManager):
                                       hexlify(str(channel.public_key)),
                                       channel.local_version, channel.timestamp)
                     self.download_channel(channel)
-            except:
-                pass
-
+            except Exception:
+                self._logger.exception("Error when tried to download a newer version of channel %s",
+                                       hexlify(channel.public_key))
 
     # TODO: finish this routine
     # This thing should check if the files in the torrent we're going to delete are used in another torrent for
@@ -128,7 +129,7 @@ class GigaChannelManager(TaskManager):
         :param to_remove_list: list of tuples (download_to_remove=download, remove_files=Bool)
         """
 
-        #TODO: make file removal from older versions safe (i.e. check if it overlaps with newer downloads)
+        # TODO: make file removal from older versions safe (i.e. check if it overlaps with newer downloads)
 
         """
         files_to_remove = []
@@ -173,9 +174,17 @@ class GigaChannelManager(TaskManager):
         def _on_failure(failure):
             self._logger.error("Error when processing channel dir download: %s", failure)
 
+        def _on_success(_):
+            with db_session:
+                channel_upd = self.session.lm.mds.ChannelMetadata.get(public_key=channel.public_key, id_=channel.id_)
+                channel_upd_dict = channel_upd.to_simple_dict()
+            self.session.notifier.notify(NTFY_CHANNEL_ENTITY, NTFY_UPDATE,
+                                         "%s:%s".format(hexlify(channel.public_key), str(channel.id_)),
+                                         channel_upd_dict)
+
         finished_deferred = download.finished_deferred.addCallback(
             lambda dl: deferToThread(on_channel_download_finished, dl))
-        finished_deferred.addErrback(_on_failure)
+        finished_deferred.addCallbacks(_on_success, _on_failure)
 
         return download, finished_deferred
 

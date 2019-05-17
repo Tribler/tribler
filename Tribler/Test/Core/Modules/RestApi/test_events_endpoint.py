@@ -10,14 +10,13 @@ from twisted.web.client import Agent, HTTPConnectionPool
 from twisted.web.http_headers import Headers
 
 import Tribler.Core.Utilities.json_util as json
-from Tribler.Core.simpledefs import (NTFY_CHANNEL, NTFY_CREDIT_MINING, NTFY_DISCOVERED, NTFY_ERROR, NTFY_FINISHED,
-                                     NTFY_INSERT, NTFY_MARKET_ON_ASK, NTFY_MARKET_ON_ASK_TIMEOUT, NTFY_MARKET_ON_BID,
-                                     NTFY_MARKET_ON_BID_TIMEOUT, NTFY_MARKET_ON_PAYMENT_RECEIVED,
-                                     NTFY_MARKET_ON_PAYMENT_SENT, NTFY_MARKET_ON_TRANSACTION_COMPLETE, NTFY_NEW_VERSION,
-                                     NTFY_REMOVE, NTFY_STARTED, NTFY_TORRENT, NTFY_TUNNEL, NTFY_UPDATE, NTFY_UPGRADER,
-                                     NTFY_UPGRADER_TICK, NTFY_WATCH_FOLDER_CORRUPT_TORRENT,
-                                     SIGNAL_GIGACHANNEL_COMMUNITY, SIGNAL_LOW_SPACE, SIGNAL_ON_SEARCH_RESULTS,
-                                     SIGNAL_RESOURCE_CHECK)
+from Tribler.Core.simpledefs import (
+    NTFY_CHANNEL, NTFY_CHANNEL_ENTITY, NTFY_CREDIT_MINING, NTFY_DISCOVERED, NTFY_ERROR, NTFY_FINISHED, NTFY_INSERT,
+    NTFY_MARKET_ON_ASK, NTFY_MARKET_ON_ASK_TIMEOUT, NTFY_MARKET_ON_BID, NTFY_MARKET_ON_BID_TIMEOUT,
+    NTFY_MARKET_ON_PAYMENT_RECEIVED, NTFY_MARKET_ON_PAYMENT_SENT, NTFY_MARKET_ON_TRANSACTION_COMPLETE, NTFY_NEW_VERSION,
+    NTFY_REMOVE, NTFY_STARTED, NTFY_TORRENT, NTFY_TUNNEL, NTFY_UPDATE, NTFY_UPGRADER, NTFY_UPGRADER_TICK,
+    NTFY_WATCH_FOLDER_CORRUPT_TORRENT, SIGNAL_GIGACHANNEL_COMMUNITY, SIGNAL_LOW_SPACE, SIGNAL_ON_SEARCH_RESULTS,
+    SIGNAL_RESOURCE_CHECK)
 from Tribler.Core.version import version_id
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.tools import trial_timeout
@@ -83,9 +82,10 @@ class TestEventsEndpoint(AbstractApiTest):
         """
         Testing whether various events are coming through the events endpoints
         """
-        self.messages_to_wait_for = 20
+        self.messages_to_wait_for = 21
 
         def send_notifications(_):
+            self.session.notifier.notify(NTFY_CHANNEL_ENTITY, NTFY_UPDATE, None, {"state": "Complete"})
             self.session.notifier.notify(NTFY_UPGRADER_TICK, NTFY_STARTED, None, None)
             self.session.notifier.notify(NTFY_UPGRADER, NTFY_FINISHED, None, None)
             self.session.notifier.notify(NTFY_WATCH_FOLDER_CORRUPT_TORRENT, NTFY_INSERT, None, None)

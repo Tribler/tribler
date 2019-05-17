@@ -6,7 +6,7 @@ from __future__ import absolute_import
 
 import uuid
 
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import QObject, Qt, pyqtSignal
 from PyQt5.QtGui import QCursor
 from PyQt5.QtWidgets import QAction
 
@@ -31,12 +31,14 @@ def to_fts_query(text):
     return " AND ".join(query_list)
 
 
-class TriblerTableViewController(object):
+class TriblerTableViewController(QObject):
     """
     Base controller for a table view that displays some data.
     """
+    query_complete = pyqtSignal(dict, bool)
 
     def __init__(self, model, table_view):
+        super(TriblerTableViewController, self).__init__()
         self.model = model
         self.model.on_sort.connect(self._on_view_sort)
         self.table_view = table_view
@@ -101,23 +103,23 @@ class TriblerTableViewController(object):
             return False
         if self.is_new_result(response):
             self.model.add_items(response['results'], remote=remote)
-        self.model.total_items = len(self.model.data_items)
-        if self.num_results_label:
-            self.num_results_label.setText("%d results" % self.model.total_items)
+
+        # TODO: count remote results
+        if not remote:
+            self.model.total_items = response['total']
+            if self.num_results_label:
+                self.num_results_label.setText("%d results" % self.model.total_items)
+        self.query_complete.emit(response, remote)
         return True
 
     def is_new_result(self, response):
         """
         Returns True if the response is a new fresh response else False.
         - If UUID of the response and the last query does not match, then it is a stale response.
-        - If the response has info about pagination, here 'first' field, if the value of the first field is less than
-        the number of results already present, then the response is stale.
         :param response: List of items
         :return: True for fresh response else False
         """
         if self.query_uuid and 'uuid' in response and response['uuid'] != self.query_uuid:
-            return False
-        if 'first' in response and response['first'] < self.model.rowCount():
             return False
         return True
 
@@ -142,7 +144,6 @@ class TableSelectionMixin(object):
         torrent_info = selected_indices[0].model().data_items[selected_indices[0].row()]
         if 'type' in torrent_info and torrent_info['type'] == 'channel':
             self.details_container.hide()
-            self.table_view.clearSelection()
             return
 
         first_show = False
@@ -154,7 +155,7 @@ class TableSelectionMixin(object):
         if first_show:
             window = self.table_view.window()
             # FIXME! Brain-dead way to show the rows covered by a newly-opened details_container
-            # Note that none of then more civilized ways to fix it works:
+            # Note that none of then more civilized ways to fix it work:
             # various updateGeometry, viewport().update, adjustSize - nothing works!
             window.resize(window.geometry().width() + 1, window.geometry().height())
             window.resize(window.geometry().width() - 1, window.geometry().height())
@@ -221,7 +222,7 @@ class SearchResultsTableViewController(TableSelectionMixin, ContextMenuMixin, Tr
         super(SearchResultsTableViewController, self).perform_query(**kwargs)
 
 
-class ChannelsTableViewController(FilterInputMixin, TriblerTableViewController):
+class ChannelsTableViewController(TableSelectionMixin, FilterInputMixin, TriblerTableViewController):
     """
     This class manages a list with channels.
     """
@@ -270,8 +271,7 @@ class TorrentsTableViewController(TableSelectionMixin, FilterInputMixin, Context
                   'metadata_type': 'torrent',
                   'rest_endpoint_url': 'search',
                   'first': 1,
-                  'last': 50
-                 }
+                  'last': 50}
         super(TorrentsTableViewController, self).perform_query(**params)
 
 

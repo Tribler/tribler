@@ -87,8 +87,7 @@ class TriblerWindow(QMainWindow):
         if self.debug_window:
             self.debug_window.setHidden(True)
 
-        dialog = FeedbackDialog(self, exception_text, self.core_manager.events_manager.tribler_version,
-                                self.start_time)
+        dialog = FeedbackDialog(self, exception_text, self.tribler_version, self.start_time)
         dialog.show()
 
     def __init__(self, core_args=None, core_env=None, api_port=None):
@@ -106,6 +105,7 @@ class TriblerWindow(QMainWindow):
         self.navigation_stack = []
         self.tribler_started = False
         self.tribler_settings = None
+        self.tribler_version = None
         self.debug_window = None
         self.core_manager = CoreManager(api_port)
         self.pending_requests = {}
@@ -245,7 +245,6 @@ class TriblerWindow(QMainWindow):
         self.core_manager.events_manager.torrent_finished.connect(self.on_torrent_finished)
         self.core_manager.events_manager.new_version_available.connect(self.on_new_version_available)
         self.core_manager.events_manager.tribler_started.connect(self.on_tribler_started)
-        self.core_manager.events_manager.events_started.connect(self.on_events_started)
         self.core_manager.events_manager.low_storage_signal.connect(self.on_low_storage)
         self.core_manager.events_manager.credit_mining_signal.connect(self.on_credit_mining_error)
         self.core_manager.events_manager.tribler_shutdown_signal.connect(self.on_tribler_shutdown_state_update)
@@ -344,8 +343,12 @@ class TriblerWindow(QMainWindow):
             except RuntimeError as e:
                 logging.error("Failed to set tray message: %s", str(e))
 
-    def on_tribler_started(self):
+    def on_tribler_started(self, version):
+        if self.tribler_started:
+            logging.warning("Received duplicate Tribler Core started event")
+            return
         self.tribler_started = True
+        self.tribler_version = version
 
         self.top_menu_button.setHidden(False)
         self.left_menu.setHidden(False)
@@ -368,9 +371,7 @@ class TriblerWindow(QMainWindow):
             self.clicked_menu_button_home()
 
         self.setAcceptDrops(True)
-
-    def on_events_started(self, json_dict):
-        self.setWindowTitle("Tribler %s" % json_dict["version"])
+        self.setWindowTitle("Tribler %s" % self.tribler_version)
 
     def show_status_bar(self, message):
         self.tribler_status_bar_label.setText(message)
@@ -821,7 +822,7 @@ class TriblerWindow(QMainWindow):
 
     def clicked_menu_button_debug(self):
         if not self.debug_window:
-            self.debug_window = DebugWindow(self.tribler_settings, self.core_manager.events_manager.tribler_version)
+            self.debug_window = DebugWindow(self.tribler_settings, self.tribler_version)
         self.debug_window.show()
 
     def clicked_menu_button_subscriptions(self):
@@ -840,11 +841,6 @@ class TriblerWindow(QMainWindow):
         self.left_menu_seperator.setHidden(False)
         self.left_menu_playlist_label.setHidden(False)
         self.left_menu_playlist.setHidden(False)
-
-    def on_channel_clicked(self, channel_info):
-        self.channel_page.initialize_with_channel(channel_info)
-        self.navigation_stack.append(self.stackedWidget.currentIndex())
-        self.stackedWidget.setCurrentIndex(PAGE_CHANNEL_DETAILS)
 
     def on_page_back_clicked(self):
         try:

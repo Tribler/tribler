@@ -2,15 +2,15 @@ from __future__ import absolute_import, division
 
 from abc import abstractmethod
 
-from PyQt5.QtCore import QModelIndex, QPoint, pyqtSignal
+from PyQt5.QtCore import QModelIndex, QPoint, QRect, pyqtSignal
 from PyQt5.QtWidgets import QTableView
 
-from TriblerGUI.defs import ACTION_BUTTONS, COMMIT_STATUS_COMMITTED, COMMIT_STATUS_NEW, COMMIT_STATUS_TODELETE, \
-    PAGE_CHANNEL_DETAILS
+from TriblerGUI.defs import (
+    ACTION_BUTTONS, COMMIT_STATUS_COMMITTED, COMMIT_STATUS_NEW, COMMIT_STATUS_TODELETE, PAGE_CHANNEL_DETAILS)
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.utilities import index2uri
-from TriblerGUI.widgets.tablecontentdelegate import ChannelsButtonsDelegate, SearchResultsDelegate, \
-    TorrentsButtonsDelegate
+from TriblerGUI.widgets.tablecontentdelegate import (
+    ChannelsButtonsDelegate, SearchResultsDelegate, TorrentsButtonsDelegate)
 from TriblerGUI.widgets.tablecontentmodel import MyTorrentsContentModel
 
 
@@ -26,9 +26,6 @@ class TriblerContentTableView(LazyTableView):
     # TODO: add redraw when the mouse leaves the view through the header
     # overloading leaveEvent method could be used for that
     mouse_moved = pyqtSignal(QPoint, QModelIndex)
-
-    on_channel_clicked = pyqtSignal(dict)
-    on_torrent_clicked = pyqtSignal(QModelIndex, dict)
 
     def __init__(self, parent=None):
         LazyTableView.__init__(self, parent)
@@ -51,6 +48,10 @@ class TriblerContentTableView(LazyTableView):
 
     def redraw(self):
         self.viewport().update()
+        # This is required to drop the sensitivity zones of the controls,
+        # so there are no invisible controls left over from a previous state of the view
+        for control in self.delegate.controls:
+            control.rect = QRect()
 
 
 class DownloadButtonMixin(TriblerContentTableView):
@@ -83,20 +84,20 @@ class SubscribeButtonMixin(TriblerContentTableView):
         # skip LEGACY entries, regular torrents and personal channel
         if (u'subscribed' not in item or
                 item[u'status'] == 1000 or
-                item[u'my_channel']):
+                item[u'state'] == u'Personal'):
             return
         status = int(item[u'subscribed'])
         public_key = item[u'public_key']
-        request_mgr = TriblerRequestManager()
-        request_mgr.perform_request("metadata/channels/%s" % public_key,
-                                    (lambda _: self.on_unsubscribed_channel.emit(index)) if status else
-                                    (lambda _: self.on_subscribed_channel.emit(index)),
-                                    data={"subscribe": int(not status)}, method='POST')
-        index.model().data_items[index.row()][u'subscribed'] = int(not status)
 
-        # Update votes
-        votes = index.model().data_items[index.row()][u'votes']
-        index.model().data_items[index.row()][u'votes'] = votes + 1 if not status else votes - 1
+        def update_item(request_data):
+            data_item_dict = index.model().data_items[index.row()]
+            for key, _ in data_item_dict.items():
+                if key in request_data:
+                    data_item_dict[key] = request_data[key]
+
+        request_mgr = TriblerRequestManager()
+        request_mgr.perform_request("metadata/channels/%s" % public_key, update_item,
+                                    data={"subscribe": int(not status)}, method='POST')
 
 
 class ItemClickedMixin(TriblerContentTableView):
@@ -113,9 +114,6 @@ class ItemClickedMixin(TriblerContentTableView):
             self.window().channel_page.initialize_with_channel(content_info)
             self.window().navigation_stack.append(self.window().stackedWidget.currentIndex())
             self.window().stackedWidget.setCurrentIndex(PAGE_CHANNEL_DETAILS)
-            self.on_channel_clicked.emit(content_info)
-        else:
-            self.on_torrent_clicked.emit(item, content_info)
 
 
 class CommitControlMixin(TriblerContentTableView):
@@ -181,8 +179,6 @@ class AddToChannelButtonMixin(CommitControlMixin):
 
 class SearchResultsTableView(ItemClickedMixin, DownloadButtonMixin, PlayButtonMixin, SubscribeButtonMixin,
                              AddToChannelButtonMixin, TriblerContentTableView):
-    on_subscribed_channel = pyqtSignal(QModelIndex)
-    on_unsubscribed_channel = pyqtSignal(QModelIndex)
 
     """
     This table displays search results, which can be both torrents and channels.
@@ -201,11 +197,13 @@ class SearchResultsTableView(ItemClickedMixin, DownloadButtonMixin, PlayButtonMi
         return SearchResultsDelegate()
 
     def resizeEvent(self, _):
-        self.setColumnWidth(0, 100)
+        self.setColumnWidth(0, 20)
+        self.setColumnWidth(1, 40)
         self.setColumnWidth(2, 100)
-        self.setColumnWidth(3, 100)
+        self.setColumnWidth(3, self.width() - 460)  # Few pixels offset so the horizontal scrollbar does not appear
         self.setColumnWidth(4, 100)
-        self.setColumnWidth(1, self.width() - 404)  # Few pixels offset so the horizontal scrollbar does not appear
+        self.setColumnWidth(5, 100)
+        self.setColumnWidth(6, 100)
 
 
 class TorrentsTableView(ItemClickedMixin, DeleteButtonMixin, DownloadButtonMixin, PlayButtonMixin,
@@ -267,7 +265,8 @@ class ChannelsTableView(ItemClickedMixin, SubscribeButtonMixin,
         return ChannelsButtonsDelegate()
 
     def resizeEvent(self, _):
-        self.setColumnWidth(1, 150)
-        self.setColumnWidth(2, 100)
+        self.setColumnWidth(0, 20)
+        self.setColumnWidth(1, 40)
+        self.setColumnWidth(2, self.width() - 260)  # Few pixels offset so the horizontal scrollbar does not appear
         self.setColumnWidth(3, 100)
-        self.setColumnWidth(0, self.width() - 354)  # Few pixels offset so the horizontal scrollbar does not appear
+        self.setColumnWidth(4, 100)

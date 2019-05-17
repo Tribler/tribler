@@ -26,10 +26,10 @@ from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
 from Tribler.Core.Utilities import torrent_utils
 from Tribler.Core.Utilities.crypto_patcher import patch_crypto_be_discovery
 from Tribler.Core.exceptions import NotYetImplementedException, OperationNotEnabledByConfigurationException
-from Tribler.Core.simpledefs import NTFY_DELETE, NTFY_INSERT, NTFY_TRIBLER, NTFY_UPDATE, STATEDIR_CHANNELS_DIR, \
-    STATEDIR_DLPSTATE_DIR, STATEDIR_WALLET_DIR, STATE_LOAD_CHECKPOINTS, STATE_READABLE_STARTED, STATE_SHUTDOWN, \
-    STATE_START_API, STATE_UPGRADING_READABLE
-from Tribler.Core.simpledefs import STATEDIR_DB_DIR
+from Tribler.Core.simpledefs import (
+    NTFY_DELETE, NTFY_INSERT, NTFY_STARTED, NTFY_TRIBLER, NTFY_UPDATE, STATEDIR_CHANNELS_DIR, STATEDIR_DB_DIR,
+    STATEDIR_DLPSTATE_DIR, STATEDIR_WALLET_DIR, STATE_LOAD_CHECKPOINTS, STATE_READABLE_STARTED, STATE_SHUTDOWN,
+    STATE_START_API, STATE_UPGRADING_READABLE)
 from Tribler.Core.statistics import TriblerStatistics
 
 try:
@@ -415,9 +415,13 @@ class Session(object):
         def log_upgrader_error(failure):
             self._logger.error("Error in Upgrader callback chain: %s", failure)
 
-        startup_deferred = upgrader_deferred.\
-            addCallbacks(lambda _: self.lm.register(self, self.session_lock), log_upgrader_error).\
-            addCallbacks(after_upgrade, log_upgrader_error)
+        def on_tribler_started(_):
+            self.notifier.notify(NTFY_TRIBLER, NTFY_STARTED, None)
+
+        startup_deferred = upgrader_deferred. \
+            addCallbacks(lambda _: self.lm.register(self, self.session_lock), log_upgrader_error). \
+            addCallbacks(after_upgrade, log_upgrader_error). \
+            addCallback(on_tribler_started)
 
         def load_checkpoint(_):
             if self.config.get_libtorrent_enabled():

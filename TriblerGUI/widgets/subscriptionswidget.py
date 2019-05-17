@@ -13,8 +13,6 @@ class SubscriptionsWidget(QWidget):
     This widget shows a favorite button and the number of subscriptions that a specific channel has.
     """
 
-    unsubscribed_channel = pyqtSignal(object)
-    subscribed_channel = pyqtSignal(object)
     credit_mining_toggled = pyqtSignal(bool)
 
     def __init__(self, parent):
@@ -41,64 +39,35 @@ class SubscriptionsWidget(QWidget):
         self.update_subscribe_button()
 
     def update_subscribe_button(self, remote_response=None):
+        for prop in ('subscribed', 'votes'):
+            if remote_response and prop in remote_response:
+                self.channel_info[prop] = remote_response[prop]
 
-        if remote_response and 'subscribed' in remote_response:
-            self.channel_info["subscribed"] = remote_response['subscribed']
-
-        if remote_response and 'votes' in remote_response:
-            self.channel_info["votes"] = remote_response['votes']
-
-        if int(self.channel_info["subscribed"]):
-            self.subscribe_button.setIcon(QIcon(QPixmap(get_image_path('subscribed_yes.png'))))
-        else:
-            self.subscribe_button.setIcon(QIcon(QPixmap(get_image_path('subscribed_not.png'))))
-
+        self.subscribe_button.setIcon(QIcon(QPixmap(get_image_path(
+            'subscribed_yes.png' if int(self.channel_info["subscribed"]) else 'subscribed_not.png'))))
         self.num_subs_label.setText(str(self.channel_info["votes"]))
 
         if self.window().tribler_settings:  # It could be that the settings are not loaded yet
             self.credit_mining_button.setHidden(not self.window().tribler_settings["credit_mining"]["enabled"])
-            if self.channel_info["public_key"] in self.window().tribler_settings["credit_mining"]["sources"]:
-                self.credit_mining_button.setIcon(QIcon(QPixmap(get_image_path('credit_mining_yes.png'))))
-            else:
-                self.credit_mining_button.setIcon(QIcon(QPixmap(get_image_path('credit_mining_not.png'))))
+            self.credit_mining_button.setIcon(QIcon(QPixmap(get_image_path(
+                'credit_mining_yes.png'
+                if self.channel_info["public_key"] in self.window().tribler_settings["credit_mining"]["sources"] else
+                'credit_mining_not.png'))))
         else:
             self.credit_mining_button.hide()
 
         # Disable channel control buttons for LEGACY_ENTRY channels
         hide_controls = (self.channel_info["status"] == 1000)
         self.num_subs_label.setHidden(hide_controls)
-        self.subscribe_button.setHidden(
-            hide_controls or ("my_channel" in self.channel_info and self.channel_info["my_channel"]))
+        self.subscribe_button.setHidden(hide_controls or self.channel_info["state"] == "Personal")
         self.credit_mining_button.setHidden(hide_controls)
 
     def on_subscribe_button_click(self):
         self.request_mgr = TriblerRequestManager()
-        if int(self.channel_info["subscribed"]):
-            self.request_mgr.perform_request("metadata/channels/%s" %
-                                             self.channel_info['public_key'],
-                                             self.on_channel_unsubscribed, data={"subscribe": 0}, method='POST')
-        else:
-            self.request_mgr.perform_request("metadata/channels/%s" %
-                                             self.channel_info['public_key'],
-                                             self.on_channel_subscribed, data={"subscribe": 1}, method='POST')
-
-    def on_channel_unsubscribed(self, json_result):
-        if not json_result or not self:
-            return
-        if json_result["success"]:
-            self.unsubscribed_channel.emit(self.channel_info)
-            self.channel_info["subscribed"] = False
-            self.channel_info["votes"] -= 1
-            self.update_subscribe_button()
-
-    def on_channel_subscribed(self, json_result):
-        if not json_result or not self:
-            return
-        if json_result["success"]:
-            self.subscribed_channel.emit(self.channel_info)
-            self.channel_info["subscribed"] = True
-            self.channel_info["votes"] += 1
-            self.update_subscribe_button()
+        self.request_mgr.perform_request("metadata/channels/%s" %
+                                         self.channel_info['public_key'],
+                                         lambda data: self.update_subscribe_button(remote_response=data),
+                                         data={"subscribe": int(not self.channel_info["subscribed"])}, method='POST')
 
     def on_credit_mining_button_click(self):
         old_sources = self.window().tribler_settings["credit_mining"]["sources"]

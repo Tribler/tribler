@@ -44,6 +44,7 @@ STATEDIR_DB_DIR = u"sqlite"
 NTFY_PEERS = 'peers'
 NTFY_TORRENTS = 'torrents'
 NTFY_TORRENT = 'torrent'
+NTFY_CHANNEL_ENTITY = 'channel_entity'
 NTFY_CHANNEL = 'channel'
 NTFY_PLAYLISTS = 'playlists'
 NTFY_COMMENTS = 'comments'

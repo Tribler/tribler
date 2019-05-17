@@ -148,12 +148,14 @@ class SpecificChannelEndpoint(BaseChannelsEndpoint):
                 return json.twisted_dumps({"error": "this channel cannot be found"})
 
             channel.subscribed = to_subscribe
+            if not to_subscribe:
+                channel.local_version = 0
+            channel_state = channel.to_simple_dict()["state"]
 
         def delete_channel():
             # TODO: this should be eventually moved to a garbage-collector like subprocess in MetadataStore
             with db_session:
                 channel = self.session.lm.mds.ChannelMetadata.get_for_update(public_key=database_blob(self.channel_pk))
-                channel.local_version = 0
                 contents = channel.contents
                 contents.delete(bulk=True)
             self.session.lm.mds._db.disconnect()
@@ -161,7 +163,7 @@ class SpecificChannelEndpoint(BaseChannelsEndpoint):
         if not to_subscribe:
             reactor.callInThread(delete_channel)
 
-        return json.twisted_dumps({"success": True, "subscribed": to_subscribe})
+        return json.twisted_dumps({"success": True, "subscribed": to_subscribe, "state": channel_state})
 
 
 class SpecificChannelTorrentsEndpoint(BaseMetadataEndpoint):

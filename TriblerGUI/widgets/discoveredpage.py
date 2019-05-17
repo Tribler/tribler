@@ -27,6 +27,7 @@ class DiscoveredPage(QWidget):
             self.window().core_manager.events_manager.discovered_channel.connect(self.on_discovered_channel)
             self.model = ChannelsContentModel(hide_xxx=get_gui_setting(self.gui_settings, "family_filter", True,
                                                                        is_bool=True) if self.gui_settings else True)
+            self.window().core_manager.events_manager.node_info_updated.connect(self.model.update_node_info)
             # Set the default sorting column/order to num_torrents/descending
             default_sort_column = self.model.columns.index(u'torrents')
             self.window().discovered_channels_list.horizontalHeader().setSortIndicator(
