@@ -7,6 +7,7 @@ import signal
 import sys
 import time
 import traceback
+from base64 import b64encode
 from binascii import hexlify
 
 
@@ -29,7 +30,8 @@ from TriblerGUI.debug_window import DebugWindow
 from TriblerGUI.defs import (
     BUTTON_TYPE_CONFIRM, BUTTON_TYPE_NORMAL, DEFAULT_API_PORT, PAGE_CHANNEL_DETAILS, PAGE_DISCOVERED, PAGE_DISCOVERING,
     PAGE_DOWNLOADS, PAGE_EDIT_CHANNEL, PAGE_HOME, PAGE_LOADING, PAGE_SEARCH_RESULTS, PAGE_SETTINGS,
-    PAGE_SUBSCRIBED_CHANNELS, PAGE_TRUST, PAGE_TRUST_GRAPH_PAGE, PAGE_VIDEO_PLAYER, SHUTDOWN_WAITING_PERIOD)
+    PAGE_SUBSCRIBED_CHANNELS, PAGE_TRUST, PAGE_TRUST_GRAPH_PAGE, PAGE_VIDEO_PLAYER, SHUTDOWN_WAITING_PERIOD,
+    CONTEXT_MENU_WIDTH)
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.dialogs.feedbackdialog import FeedbackDialog
 from TriblerGUI.dialogs.startdownloaddialog import StartDownloadDialog
@@ -373,6 +375,12 @@ class TriblerWindow(QMainWindow):
         self.setAcceptDrops(True)
         self.setWindowTitle("Tribler %s" % self.tribler_version)
 
+        # Load channel if it exists
+        self.edit_channel_page.load_my_channel_overview()
+
+    def on_events_started(self, json_dict):
+        self.setWindowTitle("Tribler %s" % json_dict["version"])
+
     def show_status_bar(self, message):
         self.tribler_status_bar_label.setText(message)
         self.tribler_status_bar.show()
@@ -392,7 +400,7 @@ class TriblerWindow(QMainWindow):
             self.start_download_from_uri(uri)
 
     def perform_start_download_request(self, uri, anon_download, safe_seeding, destination, selected_files,
-                                       total_files=0, callback=None):
+                                       total_files=0, add_to_channel=False, callback=None):
         # Check if destination directory is writable
         is_writable, error = is_dir_writable(destination)
         if not is_writable:
@@ -400,6 +408,13 @@ class TriblerWindow(QMainWindow):
                                 "write permissions on the directory and add the torrent again. %s" \
                                 % (destination, error)
             ConfirmationDialog.show_message(self.window(), "Download error <i>%s</i>" % uri, gui_error_message, "OK")
+            return
+
+        if add_to_channel and not self.edit_channel_page.channel_overview:
+            error_message = "In the download options, you checked to add the torrent to your channel " \
+                            "but you do not have one yet. No worries, you can easily create your own channel by " \
+                            "navigating to My Channel section on the left sidebar."
+            ConfirmationDialog.show_error(self.window(), "Download Error!", error_message)
             return
 
         selected_files_list = []
@@ -433,6 +448,31 @@ class TriblerWindow(QMainWindow):
             recent_locations = recent_locations[:5]
 
         self.gui_settings.setValue("recent_download_locations", ','.join(recent_locations))
+
+        if add_to_channel:
+            self.add_torrent_to_channel(uri)
+
+    def add_torrent_to_channel(self, uri, callback=None):
+        post_data = dict()
+        if uri.startswith("file:"):
+            with open(uri[5:], "rb") as torrent_file:
+                post_data['torrent'] = b64encode(torrent_file.read())
+        elif uri.startswith("magnet:"):
+            post_data['uri'] = uri
+
+        if post_data:
+            request_mgr = TriblerRequestManager()
+            request_mgr.perform_request("mychannel/torrents", callback if callback else lambda _: None,
+                                        method='PUT', data=post_data)
+
+    def add_dir_to_channel(self, dirname, recursive=False, callback=None):
+        post_data = {
+            "torrents_dir": dirname,
+            "recursive": int(recursive)
+        }
+        request_mgr = TriblerRequestManager()
+        request_mgr.perform_request("mychannel/torrents", callback if callback else lambda _: None,
+                                    method='PUT', data=post_data)
 
     def on_new_version_available(self, version):
         if version == str(self.gui_settings.value('last_reported_version')):
@@ -661,7 +701,8 @@ class TriblerWindow(QMainWindow):
                     self.dialog.dialog_widget.safe_seed_checkbox.isChecked(),
                     self.dialog.dialog_widget.destination_input.currentText(),
                     self.dialog.get_selected_files(),
-                    self.dialog.dialog_widget.files_list_view.topLevelItemCount())
+                    self.dialog.dialog_widget.files_list_view.topLevelItemCount(),
+                    add_to_channel=self.dialog.dialog_widget.add_to_channel_checkbox.isChecked())
             else:
                 ConfirmationDialog.show_error(self, "Tribler UI Error", "Something went wrong. Please try again.")
                 logging.exception("Error while trying to download. Either dialog or dialog.dialog_widget is None")
