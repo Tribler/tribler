@@ -40,7 +40,7 @@ from Tribler.community.market.reputation.temporal_pagerank_manager import Tempor
 from Tribler.pyipv8.ipv8.attestation.trustchain.listener import BlockListener
 from Tribler.pyipv8.ipv8.attestation.trustchain.payload import HalfBlockPairPayload
 from Tribler.pyipv8.ipv8.community import Community, lazy_wrapper
-from Tribler.pyipv8.ipv8.messaging.bloomfilter import BloomFilter
+from Tribler.Core.bloomfilter import BloomFilter
 from Tribler.pyipv8.ipv8.messaging.payload_headers import BinMemberAuthenticationPayload
 from Tribler.pyipv8.ipv8.messaging.payload_headers import GlobalTimeDistributionPayload
 from Tribler.pyipv8.ipv8.peer import Peer
