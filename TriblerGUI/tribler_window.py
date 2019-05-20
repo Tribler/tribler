@@ -33,6 +33,7 @@ from TriblerGUI.defs import (
     PAGE_SUBSCRIBED_CHANNELS, PAGE_TRUST, PAGE_TRUST_GRAPH_PAGE, PAGE_VIDEO_PLAYER, SHUTDOWN_WAITING_PERIOD,
     CONTEXT_MENU_WIDTH)
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
+from TriblerGUI.dialogs.createtorrentdialog import CreateTorrentDialog
 from TriblerGUI.dialogs.feedbackdialog import FeedbackDialog
 from TriblerGUI.dialogs.startdownloaddialog import StartDownloadDialog
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
@@ -622,18 +623,31 @@ class TriblerWindow(QMainWindow):
         browse_directory_action = QAction('Import torrent(s) from directory', self)
         add_url_action = QAction('Import torrent from magnet/URL', self)
         add_mdblob_action = QAction('Import Tribler metadata from file', self)
+        create_torrent_action = QAction('Create torrent from file(s)', self)
 
         browse_files_action.triggered.connect(self.on_add_torrent_browse_file)
         browse_directory_action.triggered.connect(self.on_add_torrent_browse_dir)
         add_url_action.triggered.connect(self.on_add_torrent_from_url)
         add_mdblob_action.triggered.connect(self.on_add_mdblob_browse_file)
+        create_torrent_action.triggered.connect(self.on_create_torrent)
 
         menu.addAction(browse_files_action)
         menu.addAction(browse_directory_action)
         menu.addAction(add_url_action)
         menu.addAction(add_mdblob_action)
+        menu.addSeparator()
+        menu.addAction(create_torrent_action)
 
         return menu
+
+    def on_create_torrent(self):
+        print "on create torrent"
+        self.create_dialog = CreateTorrentDialog(self)
+        self.create_dialog.button_clicked.connect(self.on_start_creating_torrent_action)
+        self.create_dialog.show()
+
+    def on_start_creating_torrent_action(self, action):
+        print "on start creating torrent action:", action
 
     def on_add_torrent_button_click(self, pos):
         self.create_add_torrent_menu().exec_(self.mapToGlobal(self.add_torrent_button.pos()))

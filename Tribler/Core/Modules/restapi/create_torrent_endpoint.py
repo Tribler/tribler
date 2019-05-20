@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import base64
 import logging
+import os
 
 from libtorrent import bdecode
 
@@ -76,6 +77,15 @@ class CreateTorrentEndpoint(resource.Resource):
             params['announce'] = tracker_url_list[0]
             params['announce-list'] = tracker_url_list
 
+        name = 'unknown'
+        if 'name' in parameters and parameters['name']:
+            name = parameters['name'][0]
+            params['name'] = name
+
+        export_dir = None
+        if 'export_dir' in parameters and parameters['export_dir']:
+            export_dir = parameters['export_dir'][0]
+
         from Tribler.Core.version import version_id
         params['created by'] = '%s version: %s' % ('Tribler', version_id)
 
@@ -90,6 +100,11 @@ class CreateTorrentEndpoint(resource.Resource):
             :param result: from create_torrent_file
             """
             metainfo_dict = bdecode(result['metainfo'])
+
+            if export_dir and os.path.exists(export_dir):
+                save_path = os.path.join(export_dir, "%s.torrent" % name)
+                with open(save_path, "wb") as fd:
+                    fd.write(result['metainfo'])
 
             # Download this torrent if specified
             if b'download' in request.args and len(request.args[b'download']) > 0 \
