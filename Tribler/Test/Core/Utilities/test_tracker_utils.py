@@ -80,6 +80,9 @@ class TestGetUniformedTrackerUrl(TriblerCoreTest):
         result = get_uniformed_tracker_url("ftp://tracker.1337\xffx.org:80/announce")
         self.assertIsNone(result)
 
+    def test_skip_split_error(self):
+        result = get_uniformed_tracker_url(";")
+        self.assertIsNone(result)
 
 
 class TestParseTrackerUrl(TriblerCoreTest):

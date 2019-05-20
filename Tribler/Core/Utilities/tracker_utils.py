@@ -56,6 +56,9 @@ def get_uniformed_tracker_url(tracker_url):
 
     # Search the string for delimiters and try to get the first correct URL
     for tracker_url in re.split(delimiters_regex, tracker_url):
+        # Rule out the case where the regex returns None
+        if not tracker_url:
+            continue
         # Rule out truncated URLs
         if re.search(truncated_url_detector, tracker_url):
             continue
