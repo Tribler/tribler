@@ -29,7 +29,7 @@ class DiscoveredPage(QWidget):
                                                                        is_bool=True) if self.gui_settings else True)
             self.window().core_manager.events_manager.node_info_updated.connect(self.model.update_node_info)
             # Set the default sorting column/order to num_torrents/descending
-            default_sort_column = self.model.columns.index(u'torrents')
+            default_sort_column = self.model.columns.index(u'votes')
             self.window().discovered_channels_list.horizontalHeader().setSortIndicator(
                 default_sort_column, Qt.AscendingOrder)
             self.controller = ChannelsTableViewController(self.model, self.window().discovered_channels_list,
