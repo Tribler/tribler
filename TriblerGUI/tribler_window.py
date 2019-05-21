@@ -115,6 +115,7 @@ class TriblerWindow(QMainWindow):
         self.pending_uri_requests = []
         self.download_uri = None
         self.dialog = None
+        self.create_dialog = None
         self.new_version_dialog = None
         self.start_download_dialog_active = False
         self.request_mgr = None
@@ -641,13 +642,15 @@ class TriblerWindow(QMainWindow):
         return menu
 
     def on_create_torrent(self):
-        print "on create torrent"
+        if self.create_dialog:
+            self.create_dialog.close_dialog()
+
         self.create_dialog = CreateTorrentDialog(self)
-        self.create_dialog.button_clicked.connect(self.on_start_creating_torrent_action)
+        self.create_dialog.signal_create_torrent_updates.connect(self.on_create_torrent_updates)
         self.create_dialog.show()
 
-    def on_start_creating_torrent_action(self, action):
-        print "on start creating torrent action:", action
+    def on_create_torrent_updates(self, update_dict):
+        self.tray_show_message("Torrent updates", update_dict['msg'])
 
     def on_add_torrent_button_click(self, _pos):
         plus_btn_pos = self.add_torrent_button.pos()

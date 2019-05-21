@@ -30,11 +30,7 @@ class DownloadFileTreeWidgetItem(QTreeWidgetItem):
 
 class CreateTorrentDialog(DialogContainer):
 
-    button_clicked = pyqtSignal(int)
-    received_metainfo = pyqtSignal(dict)
-
-    signal_torrent_created = pyqtSignal(dict)
-    signal_torrent_added_to_channel = pyqtSignal(dict)
+    signal_create_torrent_updates = pyqtSignal(dict)
 
     def __init__(self, parent):
         DialogContainer.__init__(self, parent)
@@ -130,7 +126,7 @@ class CreateTorrentDialog(DialogContainer):
         self.dialog_widget.btn_create.setEnabled(True)
         self.dialog_widget.edit_channel_create_torrent_progress_label.setText("Created torrent")
         if 'torrent' in result:
-            self.signal_torrent_created.emit({"msg": "Torrent successfully created"})
+            self.signal_create_torrent_updates.emit({"msg": "Torrent successfully created"})
             if self.dialog_widget.add_to_channel_checkbox.isChecked():
                 self.add_torrent_to_channel(result['torrent'])
             else:
@@ -145,7 +141,7 @@ class CreateTorrentDialog(DialogContainer):
         if not result:
             return
         if 'added' in result:
-            self.signal_torrent_added_to_channel.emit({"msg": "Torrent successfully added to the channel"})
+            self.signal_create_torrent_updates.emit({"msg": "Torrent successfully added to the channel"})
             self.dialog_widget.edit_channel_create_torrent_progress_label.setText("Created torrent")
         self.close_dialog()
 
