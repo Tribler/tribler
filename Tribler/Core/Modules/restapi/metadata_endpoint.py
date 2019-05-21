@@ -122,8 +122,10 @@ class ChannelsPopularEndpoint(BaseChannelsEndpoint):
                 request.setResponseCode(http.BAD_REQUEST)
                 return json.twisted_dumps({"error": "the limit parameter must be a positive number"})
 
-        popular_channels = self.session.lm.mds.ChannelMetadata.get_random_channels(limit=limit_channels)
-        return json.twisted_dumps({"channels": [channel.to_simple_dict() for channel in popular_channels]})
+        with db_session:
+            popular_channels = [channel.to_simple_dict() for channel in
+                                self.session.lm.mds.ChannelMetadata.get_random_channels(limit=limit_channels)]
+        return json.twisted_dumps({"channels": popular_channels})
 
 
 class SpecificChannelEndpoint(BaseChannelsEndpoint):

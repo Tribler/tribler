@@ -68,7 +68,7 @@ class TestChannelMetadata(TriblerCoreTest):
         """
         Utility method to return a dictionary with a channel information.
         """
-        return dict(TestChannelMetadata.get_sample_torrent_dict(my_key), votes=222, subscribed=False, timestamp=1)
+        return dict(TestChannelMetadata.get_sample_torrent_dict(my_key), subscribed=False, timestamp=1)
 
     @db_session
     def test_serialization(self):
