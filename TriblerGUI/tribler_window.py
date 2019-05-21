@@ -751,7 +751,7 @@ class TriblerWindow(QMainWindow):
             self.dialog = ConfirmationDialog(self, "Add torrents from directory",
                                              "Add %s torrent files from the following directory "
                                              "to your Tribler channel:\n\n%s" %
-                                             (chosen_dir, len(self.selected_torrent_files)),
+                                             (len(self.selected_torrent_files), chosen_dir),
                                              [('ADD', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
                                              checkbox_text="Add torrents to My Channel",)
             self.dialog.button_clicked.connect(self.on_confirm_add_directory_dialog)
