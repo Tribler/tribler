@@ -650,7 +650,7 @@ class TriblerWindow(QMainWindow):
             self.create_dialog.close_dialog()
 
         self.create_dialog = CreateTorrentDialog(self)
-        self.create_dialog.signal_create_torrent_updates.connect(self.on_create_torrent_updates)
+        self.create_dialog.create_torrent_notification.connect(self.on_create_torrent_updates)
         self.create_dialog.show()
 
     def on_create_torrent_updates(self, update_dict):

@@ -7,16 +7,16 @@ from PyQt5.QtWidgets import QLineEdit
 class ClickableLineEdit(QLineEdit):
 
     clicked = pyqtSignal()
-    focussed = pyqtSignal(bool)
+    create_torrent_notification = pyqtSignal(bool)
 
     def mousePressEvent(self, event):
         self.clicked.emit()
         QLineEdit.mousePressEvent(self, event)
 
     def focusInEvent(self, event):
-        self.focussed.emit(True)
+        self.create_torrent_notification.emit(True)
         QLineEdit.focusInEvent(self, event)
 
     def focusOutEvent(self, event):
-        self.focussed.emit(False)
+        self.create_torrent_notification.emit(False)
         QLineEdit.focusOutEvent(self, event)
