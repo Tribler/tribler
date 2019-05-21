@@ -14,8 +14,8 @@ import Tribler.Core.Utilities.json_util as json
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.dialogs.dialogcontainer import DialogContainer
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
-from TriblerGUI.utilities import format_size, get_gui_setting, get_image_path, get_ui_file_path, is_dir_writable, \
-    quote_plus_unicode
+from TriblerGUI.utilities import format_size, get_checkbox_style, get_gui_setting, get_image_path, get_ui_file_path, \
+    is_dir_writable, quote_plus_unicode
 
 
 class DownloadFileTreeWidgetItem(QTreeWidgetItem):
@@ -74,6 +74,12 @@ class StartDownloadDialog(DialogContainer):
         }
         """ % get_image_path('down_arrow_input.png'))
 
+        # self.dialog_widget.add_to_channel_checkbox.setStyleSheet(get_checkbox_style())
+        checkbox_style = get_checkbox_style()
+        for checkbox in [self.dialog_widget.add_to_channel_checkbox, self.dialog_widget.safe_seed_checkbox,
+                         self.dialog_widget.anon_download_checkbox]:
+            checkbox.setStyleSheet(checkbox_style)
+
         if self.window().tribler_settings:
             # Set the most recent download locations in the QComboBox
             current_settings = get_gui_setting(self.window().gui_settings, "recent_download_locations", "")
@@ -91,6 +97,8 @@ class StartDownloadDialog(DialogContainer):
             .setChecked(self.window().tribler_settings['download_defaults']['anonymity_enabled'])
         self.dialog_widget.safe_seed_checkbox\
             .setChecked(self.window().tribler_settings['download_defaults']['safeseeding_enabled'])
+        self.dialog_widget.add_to_channel_checkbox\
+            .setChecked(self.window().tribler_settings['download_defaults']['add_download_to_channel'])
 
         self.dialog_widget.safe_seed_checkbox.setEnabled(self.dialog_widget.anon_download_checkbox.isChecked())
 

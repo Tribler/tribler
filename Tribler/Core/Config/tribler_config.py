@@ -498,6 +498,12 @@ class TriblerConfig(object):
     def get_default_destination_dir(self):
         return self.abspath(self.config['download_defaults']['saveas'])
 
+    def set_default_add_download_to_channel(self, value):
+        self.config['download_defaults']['add_download_to_channel'] = value
+
+    def get_default_add_download_to_channel(self):
+        return self.config['download_defaults']['add_download_to_channel']
+
     # Market Community
 
     def set_market_community_enabled(self, value):

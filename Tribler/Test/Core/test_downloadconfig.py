@@ -52,6 +52,9 @@ class TestConfigParser(TriblerCoreTest):
         dlcfg.set_channel_download(True)
         self.assertTrue(dlcfg.get_channel_download())
 
+        dlcfg.set_add_to_channel(True)
+        self.assertTrue(dlcfg.get_add_to_channel())
+
     @raises(ValueError)
     def test_downloadconfig_set_vod_multiple_files(self):
         dlcfg = DownloadConfigInterface()

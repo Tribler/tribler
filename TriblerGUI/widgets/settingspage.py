@@ -13,7 +13,9 @@ from TriblerGUI.defs import BUTTON_TYPE_CONFIRM, BUTTON_TYPE_NORMAL, DEFAULT_API
     PAGE_SETTINGS_BANDWIDTH, PAGE_SETTINGS_CONNECTION, PAGE_SETTINGS_DEBUG, PAGE_SETTINGS_GENERAL, PAGE_SETTINGS_SEEDING
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
-from TriblerGUI.utilities import get_gui_setting, is_dir_writable, seconds_to_hhmm_string, string_to_seconds
+from TriblerGUI.utilities import get_checkbox_style, get_gui_setting, is_dir_writable, seconds_to_hhmm_string, \
+    string_to_seconds
+
 
 try:
     import qrcode
@@ -59,6 +61,17 @@ class SettingsPage(QWidget):
         self.window().fully_empty_tokens_button.clicked.connect(self.confirm_fully_empty_tokens)
         self.window().partially_empty_tokens_button.clicked.connect(self.partially_empty_tokens)
         self.window().log_location_chooser_button.clicked.connect(self.on_choose_log_dir_clicked)
+
+        checkbox_style = get_checkbox_style()
+        for checkbox in [self.window().family_filter_checkbox, self.window().channel_autocommit_checkbox,
+                         self.window().always_ask_location_checkbox, self.window().developer_mode_enabled_checkbox,
+                         self.window().use_monochrome_icon_checkbox, self.window().download_settings_anon_checkbox,
+                         self.window().download_settings_anon_seeding_checkbox, self.window().lt_utp_checkbox,
+                         self.window().watchfolder_enabled_checkbox, self.window().allow_exit_node_checkbox,
+                         self.window().credit_mining_enabled_checkbox, self.window().developer_mode_enabled_checkbox,
+                         self.window().checkbox_enable_network_statistics, self.window().checkbox_enable_resource_log,
+                         self.window().download_settings_add_to_channel_checkbox]:
+            checkbox.setStyleSheet(checkbox_style)
 
         self.update_stacked_widget_height()
 
@@ -235,8 +248,10 @@ class SettingsPage(QWidget):
         self.window().always_ask_location_checkbox.setChecked(
             get_gui_setting(gui_settings, "ask_download_settings", True, is_bool=True))
         self.window().download_settings_anon_checkbox.setChecked(settings['download_defaults']['anonymity_enabled'])
-        self.window().download_settings_anon_seeding_checkbox.setChecked(settings['download_defaults'][
-                                                                             'safeseeding_enabled'])
+        self.window().download_settings_anon_seeding_checkbox.setChecked(settings['download_defaults']
+                                                                         ['safeseeding_enabled'])
+        self.window().download_settings_add_to_channel_checkbox.setChecked(settings['download_defaults']
+                                                                           ['add_download_to_channel'])
         self.window().watchfolder_enabled_checkbox.setChecked(settings['watch_folder']['enabled'])
         self.window().watchfolder_location_input.setText(settings['watch_folder']['directory'])
 
@@ -452,6 +467,8 @@ class SettingsPage(QWidget):
             self.window().download_settings_anon_checkbox.isChecked()
         settings_data['download_defaults']['safeseeding_enabled'] = \
             self.window().download_settings_anon_seeding_checkbox.isChecked()
+        settings_data['download_defaults']['add_download_to_channel'] = \
+            self.window().download_settings_add_to_channel_checkbox.isChecked()
 
         settings_data['resource_monitor']['enabled'] = self.window().checkbox_enable_resource_log.isChecked()
         settings_data['resource_monitor']['cpu_priority'] = int(self.window().slider_cpu_level.value())

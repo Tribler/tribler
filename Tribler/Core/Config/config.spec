@@ -68,6 +68,7 @@ seeding_mode = string(default='ratio')
 seeding_ratio = float(default=2.0)
 seeding_time = float(default=60)
 channel_download = boolean(default=False)
+add_download_to_channel = boolean(default=False)
 
 [ipv8]
 enabled = boolean(default=True)

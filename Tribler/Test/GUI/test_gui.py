@@ -342,27 +342,10 @@ class TriblerGUITest(AbstractTriblerGUITest):
         window.edit_channel_torrents_filter.setText('')
         self.wait_for_list_populated(window.edit_channel_torrents_container.content_table)
 
-        # Remove all torrents
-        QTest.mouseClick(window.remove_all_button, Qt.LeftButton)
-        self.screenshot(window, name="edit_channel_remove_all_dialog")
-        QTest.mouseClick(window.edit_channel_page.dialog.buttons[0], Qt.LeftButton)
-        self.wait_for_signal(window.edit_channel_page.on_all_torrents_removed, no_args=True)
-        self.wait_for_list_populated(window.edit_channel_torrents_container.content_table)
-        self.screenshot(window, name="edit_channel_remove_all_pending")
-
         # Commit the result
         QTest.mouseClick(window.edit_channel_commit_button, Qt.LeftButton)
         self.wait_for_signal(window.edit_channel_page.on_commit, no_args=True)
         self.screenshot(window, name="edit_channel_committed")
-
-    def test_create_torrent(self):
-        QTest.mouseClick(window.left_menu_button_my_channel, Qt.LeftButton)
-        self.wait_for_variable("edit_channel_page.channel_overview")
-        QTest.mouseClick(window.edit_channel_torrents_button, Qt.LeftButton)
-        self.wait_for_list_populated(window.edit_channel_torrents_container.content_table)
-        window.edit_channel_page.on_create_torrent_from_files()
-        self.screenshot(window, name="create_torrent_page")
-        QTest.mouseClick(window.manage_channel_create_torrent_back, Qt.LeftButton)
 
     def test_settings(self):
         QTest.mouseClick(window.settings_button, Qt.LeftButton)

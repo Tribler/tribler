@@ -185,6 +185,12 @@ class DownloadConfigInterface(object):
     def get_channel_download(self):
         return bool(self.dlconfig.get('download_defaults', 'channel_download'))
 
+    def set_add_to_channel(self, value):
+        self.dlconfig.set('download_defaults', 'add_to_channel', value)
+
+    def get_add_to_channel(self):
+        return bool(self.dlconfig.get('download_defaults', 'add_to_channel'))
+
 
 class DownloadStartupConfig(DownloadConfigInterface):
 
