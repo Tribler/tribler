@@ -476,6 +476,9 @@ class TriblerWindow(QMainWindow):
         request_mgr.perform_request("mychannel/torrents", callback if callback else lambda _: None,
                                     method='PUT', data=post_data)
 
+    def on_dir_added_to_channel(self):
+        self.tray_show_message("Tribler update", "%s added to your channel" % self.chosen_dir)
+
     def on_new_version_available(self, version):
         if version == str(self.gui_settings.value('last_reported_version')):
             return
@@ -741,18 +744,22 @@ class TriblerWindow(QMainWindow):
                                                       "Please select the directory containing the .torrent files",
                                                       QDir.homePath(),
                                                       QFileDialog.ShowDirsOnly)
-
+        self.chosen_dir = chosen_dir
         if len(chosen_dir) != 0:
             self.selected_torrent_files = [torrent_file for torrent_file in glob.glob(chosen_dir + "/*.torrent")]
             self.dialog = ConfirmationDialog(self, "Add torrents from directory",
-                                             "Are you sure you want to add %d torrents to Tribler?" %
-                                             len(self.selected_torrent_files),
-                                             [('ADD', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)])
+                                             "Add %s torrent files from the following directory "
+                                             "to your Tribler channel:\n\n%s" %
+                                             (chosen_dir, len(self.selected_torrent_files)),
+                                             [('ADD', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
+                                             checkbox_text="Add torrents to My Channel",)
             self.dialog.button_clicked.connect(self.on_confirm_add_directory_dialog)
             self.dialog.show()
 
     def on_confirm_add_directory_dialog(self, action):
         if action == 0:
+            if self.dialog.checkbox.isChecked():
+                self.add_dir_to_channel(self.chosen_dir, callback=self.on_dir_added_to_channel)
             for torrent_file in self.selected_torrent_files:
                 escaped_uri = u"file:%s" % pathname2url(torrent_file.encode('utf-8'))
                 self.perform_start_download_request(escaped_uri,

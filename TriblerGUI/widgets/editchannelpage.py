@@ -59,10 +59,6 @@ class EditChannelPage(QWidget):
         self.window().edit_channel_commit_button.clicked.connect(self.clicked_edit_channel_commit_button)
         self.window().channel_options_button.clicked.connect(self.show_channel_options)
 
-        # Tab bar buttons
-        self.window().channel_settings_tab.initialize()
-        self.window().channel_settings_tab.clicked_tab_button.connect(self.clicked_tab_button)
-
         self.model = MyTorrentsContentModel()
         self.controller = MyTorrentsTableViewController(self.model,
                                                         self.window().edit_channel_torrents_container.content_table,
@@ -237,27 +233,32 @@ class EditChannelPage(QWidget):
                 self.window().edit_channel_description_edit.toPlainText())
 
     def show_channel_options(self):
-        channel_options_menu = TriblerActionMenu(self)
-
+        browse_files_action = QAction('Add .torrent file', self)
+        browse_dir_action = QAction('Add torrent(s) directory', self)
+        add_url_action = QAction('Add URL/magnet links', self)
+        remove_all_action = QAction('Remove all', self)
         export_channel_action = QAction('Export channel', self)
+
+        browse_files_action.triggered.connect(self.on_add_torrent_browse_file)
+        browse_dir_action.triggered.connect(self.on_add_torrents_browse_dir)
+        add_url_action.triggered.connect(self.on_add_torrent_from_url)
+        remove_all_action.triggered.connect(self.on_torrents_remove_all_clicked)
         export_channel_action.triggered.connect(self.on_export_mdblob)
 
+        channel_options_menu = TriblerActionMenu(self)
+        channel_options_menu.addAction(browse_files_action)
+        channel_options_menu.addAction(browse_dir_action)
+        channel_options_menu.addAction(add_url_action)
+        channel_options_menu.addSeparator()
+        channel_options_menu.addAction(remove_all_action)
+        channel_options_menu.addSeparator()
         channel_options_menu.addAction(export_channel_action)
 
         options_btn_pos = self.window().channel_options_button.pos()
-        plus_btn_geometry = self.window().channel_options_button.geometry()
-        options_btn_pos.setX(options_btn_pos.x() - CONTEXT_MENU_WIDTH + plus_btn_geometry.width())
-        options_btn_pos.setY(options_btn_pos.y() + plus_btn_geometry.height())
+        options_btn_geometry = self.window().channel_options_button.geometry()
+        options_btn_pos.setX(options_btn_pos.x() - channel_options_menu.geometry().width() + options_btn_geometry.width())
+        options_btn_pos.setY(options_btn_pos.y() + options_btn_geometry.height())
         channel_options_menu.exec_(self.mapToGlobal(options_btn_pos))
-
-    def clicked_tab_button(self, tab_button_name):
-        if tab_button_name == "edit_channel_overview_button":
-            self.window().edit_channel_details_stacked_widget.setCurrentIndex(PAGE_EDIT_CHANNEL_OVERVIEW)
-        elif tab_button_name == "edit_channel_settings_button":
-            self.window().edit_channel_details_stacked_widget.setCurrentIndex(PAGE_EDIT_CHANNEL_SETTINGS)
-        elif tab_button_name == "edit_channel_torrents_button":
-            self.load_my_torrents()
-            self.window().edit_channel_details_stacked_widget.setCurrentIndex(PAGE_EDIT_CHANNEL_TORRENTS)
 
     def load_my_torrents(self):
         self.controller.model.reset()
@@ -310,48 +311,6 @@ class EditChannelPage(QWidget):
         dialog.show()
 
     # Torrent removal-related methods
-    def on_torrents_remove_selected_clicked(self):
-        selected_items = self.controller.table_view.selectedIndexes()
-        num_selected = len(selected_items)
-        if num_selected == 0:
-            return
-
-        selected_infohashes = [self.model.data_items[row][u'infohash'] for row in
-                               set([index.row() for index in selected_items])]
-        self.dialog = ConfirmationDialog(self, "Remove %s selected torrents" % len(selected_infohashes),
-                                         "Are you sure that you want to remove %s selected torrents "
-                                         "from your channel?" % len(selected_infohashes),
-                                         [('CONFIRM', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)])
-        self.dialog.button_clicked.connect(lambda action:
-                                           self.on_torrents_remove_selected_action(action, selected_infohashes))
-        self.dialog.show()
-
-    def on_torrents_remove_selected_action(self, action, items):
-        if action == 0:
-            items = [str(item) for item in items]
-            infohashes = ",".join(items)
-
-            post_data = {
-                "infohashes": infohashes,
-                "status": COMMIT_STATUS_TODELETE
-            }
-
-            request_mgr = TriblerRequestManager()
-            request_mgr.perform_request("mychannel/torrents",
-                                        lambda response: self.on_torrents_removed_response(response, items),
-                                        data=post_data, method='POST')
-        if self.dialog:
-            self.dialog.close_dialog()
-            self.dialog = None
-
-    def on_torrents_removed_response(self, json_result, infohashes):
-        if not json_result:
-            return
-
-        if 'success' in json_result and json_result['success']:
-            self.on_torrents_removed.emit(infohashes)
-            self.load_my_torrents()
-
     def on_torrents_remove_all_clicked(self):
         self.dialog = ConfirmationDialog(self.window(), "Remove all torrents",
                                          "Are you sure that you want to remove all torrents from your channel?",
@@ -402,30 +361,6 @@ class EditChannelPage(QWidget):
             self.dialog.close_dialog()
             self.dialog = None
             self.chosen_dir = None
-
-    def on_torrents_add_clicked(self):
-        menu = TriblerActionMenu(self)
-
-        browse_files_action = QAction('Import torrent from file', self)
-        browse_dir_action = QAction('Import torrent(s) from dir', self)
-        add_url_action = QAction('Add torrent from URL/magnet link', self)
-        create_torrent_action = QAction('Create torrent from file(s)', self)
-
-        browse_files_action.triggered.connect(self.on_add_torrent_browse_file)
-        browse_dir_action.triggered.connect(self.on_add_torrents_browse_dir)
-        add_url_action.triggered.connect(self.on_add_torrent_from_url)
-        create_torrent_action.triggered.connect(self.on_create_torrent_from_files)
-
-        menu.addAction(browse_files_action)
-        menu.addAction(browse_dir_action)
-        menu.addAction(add_url_action)
-        menu.addAction(create_torrent_action)
-
-        menu.exec_(QCursor.pos())
-
-    def on_create_torrent_from_files(self):
-        self.window().edit_channel_details_create_torrent.initialize()
-        self.window().edit_channel_details_stacked_widget.setCurrentIndex(PAGE_EDIT_CHANNEL_CREATE_TORRENT)
 
     def on_add_torrent_browse_file(self):
         filenames = QFileDialog.getOpenFileNames(
