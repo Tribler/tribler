@@ -47,7 +47,8 @@ class CreateTorrentEndpoint(resource.Resource):
                         &description=Video
                         &trackers[]=url_tracker1
                         &trackers[]=url_backup1
-                        &trackers[]=url_backup2"
+                        &trackers[]=url_backup2
+                        &export_dir=something"
 
             **Example response**:
 

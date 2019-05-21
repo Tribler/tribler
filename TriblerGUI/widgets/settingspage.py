@@ -13,8 +13,9 @@ from TriblerGUI.defs import BUTTON_TYPE_CONFIRM, BUTTON_TYPE_NORMAL, DEFAULT_API
     PAGE_SETTINGS_BANDWIDTH, PAGE_SETTINGS_CONNECTION, PAGE_SETTINGS_DEBUG, PAGE_SETTINGS_GENERAL, PAGE_SETTINGS_SEEDING
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
-from TriblerGUI.utilities import get_gui_setting, is_dir_writable, seconds_to_hhmm_string, string_to_seconds, \
-    get_checkbox_style
+from TriblerGUI.utilities import get_checkbox_style, get_gui_setting, is_dir_writable, seconds_to_hhmm_string, \
+    string_to_seconds
+
 
 try:
     import qrcode
@@ -247,10 +248,10 @@ class SettingsPage(QWidget):
         self.window().always_ask_location_checkbox.setChecked(
             get_gui_setting(gui_settings, "ask_download_settings", True, is_bool=True))
         self.window().download_settings_anon_checkbox.setChecked(settings['download_defaults']['anonymity_enabled'])
-        self.window().download_settings_anon_seeding_checkbox.setChecked(settings['download_defaults'][
-                                                                             'safeseeding_enabled'])
-        self.window().download_settings_add_to_channel_checkbox.setChecked(settings['download_defaults'][
-                                                                               'add_download_to_channel'])
+        self.window().download_settings_anon_seeding_checkbox.setChecked(settings['download_defaults']
+                                                                         ['safeseeding_enabled'])
+        self.window().download_settings_add_to_channel_checkbox.setChecked(settings['download_defaults']
+                                                                           ['add_download_to_channel'])
         self.window().watchfolder_enabled_checkbox.setChecked(settings['watch_folder']['enabled'])
         self.window().watchfolder_location_input.setText(settings['watch_folder']['directory'])
 

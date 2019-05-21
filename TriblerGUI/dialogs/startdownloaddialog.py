@@ -14,8 +14,8 @@ import Tribler.Core.Utilities.json_util as json
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.dialogs.dialogcontainer import DialogContainer
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
-from TriblerGUI.utilities import format_size, get_gui_setting, get_image_path, get_ui_file_path, is_dir_writable, \
-    quote_plus_unicode, get_checkbox_style
+from TriblerGUI.utilities import format_size, get_checkbox_style, get_gui_setting, get_image_path, get_ui_file_path, \
+    is_dir_writable, quote_plus_unicode
 
 
 class DownloadFileTreeWidgetItem(QTreeWidgetItem):

@@ -30,6 +30,7 @@ class TestMyChannelCreateTorrentEndpoint(AbstractApiTest):
         """
         torrent_path = os.path.join(self.files_path, "video.avi.torrent")
         expected_tdef = TorrentDef.load(torrent_path)
+        export_dir = self.temporary_directory()
 
         def verify_torrent(body):
             response = json.twisted_loads(body)
@@ -42,12 +43,15 @@ class TestMyChannelCreateTorrentEndpoint(AbstractApiTest):
             expected_tdef.metainfo["created by"] = tdef.metainfo['created by']
 
             self.assertEqual(dir(expected_tdef), dir(tdef))
+            self.assertTrue(os.path.exists(os.path.join(export_dir, "test_torrent.torrent")))
 
         post_data = {
             "files": [os.path.join(self.files_path, "video.avi"),
                       os.path.join(self.files_path, "video.avi.torrent")],
             "description": "Video of my cat",
-            "trackers": "http://localhost/announce"
+            "trackers": "http://localhost/announce",
+            "name": "test_torrent",
+            "export_dir": export_dir
         }
         self.should_check_equality = False
         return self.do_request('createtorrent?download=1', 200, None, 'POST', post_data).addCallback(verify_torrent)

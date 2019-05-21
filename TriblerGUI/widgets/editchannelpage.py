@@ -1,20 +1,17 @@
 from __future__ import absolute_import
 
 import os
-import time
 from base64 import b64encode
 
 from PyQt5.QtCore import QDir, QTimer, pyqtSignal
-from PyQt5.QtGui import QCursor
 from PyQt5.QtWidgets import QAction, QFileDialog, QWidget
 
-from TriblerGUI.defs import BUTTON_TYPE_CONFIRM, BUTTON_TYPE_NORMAL, COMMIT_STATUS_TODELETE, \
-    PAGE_EDIT_CHANNEL_CREATE_TORRENT, PAGE_EDIT_CHANNEL_OVERVIEW, PAGE_EDIT_CHANNEL_SETTINGS, \
-    PAGE_EDIT_CHANNEL_TORRENTS, CONTEXT_MENU_WIDTH
+from TriblerGUI.defs import BUTTON_TYPE_CONFIRM, BUTTON_TYPE_NORMAL, PAGE_EDIT_CHANNEL_OVERVIEW, \
+    PAGE_EDIT_CHANNEL_TORRENTS
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
-from TriblerGUI.utilities import get_gui_setting, copy_to_clipboard
+from TriblerGUI.utilities import copy_to_clipboard, get_gui_setting
 from TriblerGUI.widgets.tablecontentmodel import MyTorrentsContentModel
 from TriblerGUI.widgets.triblertablecontrollers import MyTorrentsTableViewController
 
@@ -85,7 +82,7 @@ class EditChannelPage(QWidget):
             self.controller.table_view.setColumnHidden(4, True)
             self.model.exclude_deleted = False
 
-    def showEvent(self, QShowEvent):
+    def showEvent(self, _event):
         self.update_channel_commit_views()
 
     def update_channel_commit_views(self, deleted_index=None):
@@ -114,7 +111,6 @@ class EditChannelPage(QWidget):
             self.window().edit_channel_name_label.setReadOnly(True)
             self.window().edit_channel_cid_label.setHidden(True)
             self.window().copy_cid_button.setHidden(True)
-            self.window().channel_options_button.setHidden(True)
             return
 
         self.channel_overview = overview["mychannel"]
@@ -163,7 +159,8 @@ class EditChannelPage(QWidget):
     def on_update_channel_name(self):
         new_name = self.window().edit_channel_name_label.text()
         if not new_name:
-            ConfirmationDialog.show_error(self.window(), "Channel name cannot be emtpty")
+            ConfirmationDialog.show_error(self.window(), "Error", "Channel name cannot be empty")
+            self.window().edit_channel_name_label.setText(self.channel_overview['name'])
             return
 
         if self.channel_overview['name'] == new_name:
@@ -233,6 +230,9 @@ class EditChannelPage(QWidget):
                 self.window().edit_channel_description_edit.toPlainText())
 
     def show_channel_options(self):
+        if not self.channel_overview:
+            return
+
         browse_files_action = QAction('Add .torrent file', self)
         browse_dir_action = QAction('Add torrent(s) directory', self)
         add_url_action = QAction('Add URL/magnet links', self)
@@ -256,7 +256,8 @@ class EditChannelPage(QWidget):
 
         options_btn_pos = self.window().channel_options_button.pos()
         options_btn_geometry = self.window().channel_options_button.geometry()
-        options_btn_pos.setX(options_btn_pos.x() - channel_options_menu.geometry().width() + options_btn_geometry.width())
+        options_btn_pos.setX(options_btn_pos.x() - channel_options_menu.geometry().width()
+                             + options_btn_geometry.width())
         options_btn_pos.setY(options_btn_pos.y() + options_btn_geometry.height())
         channel_options_menu.exec_(self.mapToGlobal(options_btn_pos))
 

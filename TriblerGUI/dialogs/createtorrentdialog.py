@@ -1,25 +1,19 @@
 from __future__ import absolute_import
 
 import os
-from binascii import unhexlify
 
 from PyQt5 import uic
-from PyQt5.QtCore import Qt, pyqtSignal, QDir
-from PyQt5.QtWidgets import QFileDialog, QSizePolicy, QTreeWidgetItem, QAction
+from PyQt5.QtCore import QDir, pyqtSignal
+from PyQt5.QtWidgets import QAction, QFileDialog, QSizePolicy, QTreeWidgetItem
 
 from six.moves import xrange
-from six.moves.urllib.parse import unquote_plus
 
-import Tribler.Core.Utilities.json_util as json
-from Tribler.Core.TorrentDef import TorrentDef
-from TriblerGUI.defs import BUTTON_TYPE_NORMAL, PAGE_EDIT_CHANNEL_TORRENTS
-
+from TriblerGUI.defs import BUTTON_TYPE_NORMAL
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.dialogs.dialogcontainer import DialogContainer
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
-from TriblerGUI.utilities import format_size, get_gui_setting, get_image_path, get_ui_file_path, is_dir_writable, \
-    quote_plus_unicode, get_checkbox_style
+from TriblerGUI.utilities import get_ui_file_path, is_dir_writable
 
 
 class DownloadFileTreeWidgetItem(QTreeWidgetItem):
@@ -65,12 +59,13 @@ class CreateTorrentDialog(DialogContainer):
 
         for filename in filenames:
             self.dialog_widget.create_torrent_files_list.addItem(filename)
-            
+
     def on_choose_dir_clicked(self):
-        chosen_dir = QFileDialog.getExistingDirectory(self.window(), "Please select the directory containing the files",
+        chosen_dir = QFileDialog.getExistingDirectory(self.window(),
+                                                      "Please select the directory containing the files",
                                                       "", QFileDialog.ShowDirsOnly)
 
-        if len(chosen_dir) == 0:
+        if not chosen_dir:
             return
 
         files = []
@@ -84,9 +79,11 @@ class CreateTorrentDialog(DialogContainer):
 
     def on_create_clicked(self):
         if self.dialog_widget.create_torrent_files_list.count() == 0:
-            dialog = ConfirmationDialog(self.dialog_widget, "Warning!", "You should add at least one file to your torrent.",
-                                             [('CLOSE', BUTTON_TYPE_NORMAL)])
-            dialog.button_clicked.connect(lambda: dialog.close_dialog())
+            dialog = ConfirmationDialog(self.dialog_widget, "Warning!",
+                                        "You should add at least one file to your torrent.",
+                                        [('CLOSE', BUTTON_TYPE_NORMAL)])
+
+            dialog.button_clicked.connect(dialog.close_dialog)
             dialog.show()
             return
 
@@ -99,12 +96,14 @@ class CreateTorrentDialog(DialogContainer):
 
         export_dir = self.dialog_widget.file_export_dir.text()
         if not os.path.exists(export_dir):
-            ConfirmationDialog.show_error(self.dialog_widget, "Path does not exist",
-                                          "Cannot save torrent file to %s", export_dir)
+            ConfirmationDialog.show_error(self.dialog_widget, "Cannot save torrent file to %s" % export_dir,
+                                          "Path does not exist")
             return
-        if not is_dir_writable(export_dir):
-            ConfirmationDialog.show_error(self.dialog_widget, "Path is not writable",
-                                          "Cannot save torrent file to %s", export_dir)
+
+        is_writable, error = is_dir_writable(export_dir)
+        if not is_writable:
+            ConfirmationDialog.show_error(self.dialog_widget, "Cannot save torrent file to %s" % export_dir,
+                                          "Error: %s" % error)
             return
 
         name = self.dialog_widget.create_torrent_name_field.text()
@@ -115,7 +114,8 @@ class CreateTorrentDialog(DialogContainer):
             "files": files_list,
             "export_dir": export_dir
         }
-        url = "createtorrent?download=1" if self.dialog_widget.seed_after_adding_checkbox.isChecked() else "createtorrent"
+        url = "createtorrent?download=1" if self.dialog_widget.seed_after_adding_checkbox.isChecked() \
+            else "createtorrent"
         self.request_mgr = TriblerRequestManager()
         self.request_mgr.perform_request(url, self.on_torrent_created, data=post_data, method='POST')
         self.dialog_widget.edit_channel_create_torrent_progress_label.setText("Creating torrent. Please wait...")
@@ -161,11 +161,11 @@ class CreateTorrentDialog(DialogContainer):
         if not item_clicked:
             return
 
-        self.selected_item_index = self.dialog_widget.create_torrent_files_list.row(item_clicked)
-
-        menu = TriblerActionMenu(self)
+        selected_item_index = self.dialog_widget.create_torrent_files_list.row(item_clicked)
 
         remove_action = QAction('Remove file', self)
-        remove_action.triggered.connect(self.on_remove_entry)
+        remove_action.triggered.connect(lambda index=selected_item_index: self.on_remove_entry(index))
+
+        menu = TriblerActionMenu(self)
         menu.addAction(remove_action)
         menu.exec_(self.dialog_widget.create_torrent_files_list.mapToGlobal(pos))

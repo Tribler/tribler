@@ -28,10 +28,10 @@ from Tribler.Core.Modules.process_checker import ProcessChecker
 from TriblerGUI.core_manager import CoreManager
 from TriblerGUI.debug_window import DebugWindow
 from TriblerGUI.defs import (
-    BUTTON_TYPE_CONFIRM, BUTTON_TYPE_NORMAL, DEFAULT_API_PORT, PAGE_CHANNEL_DETAILS, PAGE_DISCOVERED, PAGE_DISCOVERING,
-    PAGE_DOWNLOADS, PAGE_EDIT_CHANNEL, PAGE_HOME, PAGE_LOADING, PAGE_SEARCH_RESULTS, PAGE_SETTINGS,
-    PAGE_SUBSCRIBED_CHANNELS, PAGE_TRUST, PAGE_TRUST_GRAPH_PAGE, PAGE_VIDEO_PLAYER, SHUTDOWN_WAITING_PERIOD,
-    CONTEXT_MENU_WIDTH)
+    BUTTON_TYPE_CONFIRM, BUTTON_TYPE_NORMAL, CONTEXT_MENU_WIDTH, DEFAULT_API_PORT, PAGE_CHANNEL_DETAILS,
+    PAGE_DISCOVERED, PAGE_DISCOVERING, PAGE_DOWNLOADS, PAGE_EDIT_CHANNEL, PAGE_HOME, PAGE_LOADING,
+    PAGE_SEARCH_RESULTS, PAGE_SETTINGS, PAGE_SUBSCRIBED_CHANNELS, PAGE_TRUST, PAGE_TRUST_GRAPH_PAGE,
+    PAGE_VIDEO_PLAYER, SHUTDOWN_WAITING_PERIOD)
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.dialogs.createtorrentdialog import CreateTorrentDialog
 from TriblerGUI.dialogs.feedbackdialog import FeedbackDialog
@@ -116,6 +116,7 @@ class TriblerWindow(QMainWindow):
         self.download_uri = None
         self.dialog = None
         self.create_dialog = None
+        self.chosen_dir = None
         self.new_version_dialog = None
         self.start_download_dialog_active = False
         self.request_mgr = None

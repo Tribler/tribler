@@ -101,9 +101,6 @@ class DownloadBaseEndpoint(resource.Resource):
             selected_files_list = [cast_to_unicode_utf8(f) for f in parameters['selected_files']]
             download_config.set_selected_files(selected_files_list)
 
-        if 'add_to_channel' in parameters and parameters['add_to_channel']:
-            download_config.set_add_to_channel(parameters['add_to_channel'])
-
         return download_config, None
 
     def get_files_info_json(self, download):
