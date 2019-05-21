@@ -7,12 +7,11 @@ from datetime import datetime, timedelta
 from time import sleep
 
 import lz4.frame
-
 from pony import orm
 from pony.orm import db_session
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings import (
-    channel_metadata, channel_node, misc, torrent_metadata, torrent_state, tracker_state)
+    channel_metadata, channel_node, misc, torrent_metadata, torrent_state, tracker_state, channel_peer)
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import BLOB_EXTENSION
 from Tribler.Core.Modules.MetadataStore.serialization import (
     CHANNEL_TORRENT, DELETED, REGULAR_TORRENT, read_payload_with_offset, time2int)
@@ -136,6 +135,7 @@ class MetadataStore(object):
         self.ChannelNode = channel_node.define_binding(self._db, logger=self._logger, key=my_key, clock=self.clock)
         self.TorrentMetadata = torrent_metadata.define_binding(self._db)
         self.ChannelMetadata = channel_metadata.define_binding(self._db)
+        self.ChannelPeer = channel_peer.define_binding(self._db)
 
         self.ChannelMetadata._channels_dir = channels_dir
 
@@ -240,15 +240,15 @@ class MetadataStore(object):
         return (self.process_compressed_mdblob(serialized_data, external_thread) if filepath.endswith('.lz4') else
                 self.process_squashed_mdblob(serialized_data, external_thread))
 
-    def process_compressed_mdblob(self, compressed_data, external_thread=False):
+    def process_compressed_mdblob(self, compressed_data, external_thread=False, source=None):
         try:
             decompressed_data = lz4.frame.decompress(compressed_data)
         except RuntimeError:
             self._logger.warning("Unable to decompress mdblob")
             return []
-        return self.process_squashed_mdblob(decompressed_data, external_thread)
+        return self.process_squashed_mdblob(decompressed_data, external_thread, source)
 
-    def process_squashed_mdblob(self, chunk_data, external_thread=False):
+    def process_squashed_mdblob(self, chunk_data, external_thread=False, source=None):
         """
         Process raw concatenated payloads blob. This routine breaks the database access into smaller batches.
         It uses a congestion-control like algorithm to determine the optimal batch size, targeting the
@@ -278,7 +278,7 @@ class MetadataStore(object):
             # We separate the sessions to minimize database locking.
             with db_session:
                 for payload in batch:
-                    result.extend(self.process_payload(payload))
+                    result.extend(self.process_payload(payload, source))
             if external_thread:
                 sleep(self.sleep_on_external_thread)
 
@@ -298,15 +298,18 @@ class MetadataStore(object):
         return result
 
     @db_session
-    def process_payload(self, payload):
+    def process_payload(self, payload, source=None):
         """
         This routine decides what to do with a given payload and executes the necessary actions.
         To do so, it looks into the database, compares version numbers, etc.
-        It returns a list of tuples each of which contain the corresponding new/old object and the actions
-        that were performed on that object.
+        It returns a list of tuples each of which contains the corresponding new/old object and the action
+        that was performed on that object.
         :param payload: payload to work on
         :return: a list of tuples of (<metadata or payload>, <action type>)
         """
+
+        source_peer = (self.ChannelPeer.get(public_key=database_blob(source.key_to_bin()[10:])) or
+                       self.ChannelPeer(public_key=database_blob(source.key_to_bin()[10:]))) if source else None
 
         if payload.metadata_type == DELETED:
             # We only allow people to delete their own entries, thus PKs must match
@@ -339,12 +342,19 @@ class MetadataStore(object):
         # Check for a node with the same infohash
         result = []
         node = self.TorrentMetadata.get_for_update(public_key=database_blob(payload.public_key),
-                                                   infohash=database_blob(payload.infohash))
+                                                   infohash=database_blob(payload.infohash),
+                                                   metadata_type=payload.metadata_type)
         if node:
             if node.timestamp < payload.timestamp:
+                # This is an older node that is obsoleted by the received payload.
+                # Delete the older node and continue processing the received payload.
+                # We do not add the new node immediately, because there is a chance that it
+                # will still replace an older version of the same node. (See next block)
                 node.delete()
                 result.append((None, DELETED_METADATA))
             elif node.timestamp > payload.timestamp:
+                if source_peer and node.metadata_type == CHANNEL_TORRENT:
+                    node.votes.add(source_peer)
                 result.append((node, GOT_NEWER_VERSION))
                 return result
             else:
@@ -352,8 +362,12 @@ class MetadataStore(object):
             # Otherwise, we got the same version locally and do nothing.
 
         # Check for the older version of the same node
-        node = self.TorrentMetadata.get_for_update(public_key=database_blob(payload.public_key), id_=payload.id_)
+        node = self.TorrentMetadata.get_for_update(public_key=database_blob(payload.public_key),
+                                                   id_=payload.id_,
+                                                   metadata_type=payload.metadata_type)
         if node:
+            if source_peer and node.metadata_type == CHANNEL_TORRENT:
+                node.votes.add(source_peer)
             if node.timestamp < payload.timestamp:
                 node.set(**payload.to_dict())
                 result.append((node, UPDATED_OUR_VERSION))
@@ -369,7 +383,10 @@ class MetadataStore(object):
         if payload.metadata_type == REGULAR_TORRENT:
             result.append((self.TorrentMetadata.from_payload(payload), UNKNOWN_TORRENT))
         elif payload.metadata_type == CHANNEL_TORRENT:
-            result.append((self.ChannelMetadata.from_payload(payload), UNKNOWN_CHANNEL))
+            channel_md = self.ChannelMetadata.from_payload(payload)
+            if source:
+                channel_md.votes.add(source_peer)
+            result.append((channel_md, UNKNOWN_CHANNEL))
             return result
 
         return result

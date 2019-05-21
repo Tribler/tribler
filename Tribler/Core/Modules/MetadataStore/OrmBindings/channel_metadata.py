@@ -95,7 +95,7 @@ def define_binding(db):
 
         # Local
         subscribed = orm.Optional(bool, default=False)
-        votes = orm.Optional(int, size=64, default=0)
+        votes = orm.Set('ChannelPeer', reverse='votes')
         local_version = orm.Optional(int, size=64, default=0)
 
         _payload_class = ChannelMetadataPayload
@@ -486,7 +486,7 @@ def define_binding(db):
                 "name": self.title,
                 "torrents": self.num_entries,
                 "subscribed": self.subscribed,
-                "votes": self.votes,
+                "votes": self.votes.count(),
                 "status": self.status,
                 "updated": int((self.torrent_date - epoch).total_seconds()),
                 "timestamp": self.timestamp,

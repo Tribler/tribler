@@ -88,7 +88,7 @@ class GigaChannelCommunity(Community):
         try:
             with db_session:
                 try:
-                    md_list = self.metadata_store.process_compressed_mdblob(blob.raw_blob)
+                    md_list = self.metadata_store.process_compressed_mdblob(blob.raw_blob, source=peer.public_key)
                 except (TransactionIntegrityError, CacheIndexError) as err:
                     self._logger.error("DB transaction error when tried to process payload: %s", str(err))
                     return
