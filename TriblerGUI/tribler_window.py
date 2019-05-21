@@ -649,8 +649,12 @@ class TriblerWindow(QMainWindow):
     def on_start_creating_torrent_action(self, action):
         print "on start creating torrent action:", action
 
-    def on_add_torrent_button_click(self, pos):
-        self.create_add_torrent_menu().exec_(self.mapToGlobal(self.add_torrent_button.pos()))
+    def on_add_torrent_button_click(self, _pos):
+        plus_btn_pos = self.add_torrent_button.pos()
+        plus_btn_geometry = self.add_torrent_button.geometry()
+        plus_btn_pos.setX(plus_btn_pos.x() - CONTEXT_MENU_WIDTH)
+        plus_btn_pos.setY(plus_btn_pos.y() + plus_btn_geometry.height())
+        self.create_add_torrent_menu().exec_(self.mapToGlobal(plus_btn_pos))
 
     def on_add_torrent_browse_file(self):
         filenames = QFileDialog.getOpenFileNames(self,
