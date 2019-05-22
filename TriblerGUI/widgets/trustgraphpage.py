@@ -1,5 +1,6 @@
 from __future__ import absolute_import, division
 
+import math
 import time
 
 from PyQt5.QtCore import QTimer, Qt
@@ -186,9 +187,9 @@ class TrustAnimationCanvas(FigureCanvas):
         return COLOR_NEUTRAL
 
     def get_node_size(self, node_public_key):
-        if self.selected_node.get('public_key', None) == node_public_key:
-            return 200
-        return 100
+        node_balance = self.token_balance.get(node_public_key, {'total_up': 0, 'total_down': 0})
+        diff_log = abs(node_balance['total_up'] - node_balance['total_down'])
+        return 10 * math.log(diff_log + 10, 10)
 
     def should_redraw_graph(self):
         if not self.old_pos or self.redraw:
