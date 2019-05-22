@@ -192,13 +192,13 @@ class DispersyToPonyMigration(object):
 
 
             try:
-                if (len(base64.decodestring(infohash)) != 20) or \
+                if (len(base64.decodestring(infohash.encode('utf-8'))) != 20) or \
                         (not torrent_id or int(torrent_id) == 0) or \
                         (not length or (int(length) <= 0) or (int(length) > (1 << 45))) or \
                         not name:
                     continue
 
-                infohash = base64.decodestring(infohash)
+                infohash = base64.decodestring(infohash.encode())
 
                 torrent_date = datetime.datetime.utcfromtimestamp(creation_date or 0)
                 torrent_date = torrent_date if 0 <= time2int(torrent_date) <= self.conversion_start_timestamp_int \

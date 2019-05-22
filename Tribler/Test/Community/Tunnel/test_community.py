@@ -436,7 +436,7 @@ class TestTriblerTunnelCommunity(TestBase):
         his_pubkey = self.nodes[1].overlay.my_peer.public_key.key_to_bin()
         yield self.nodes[0].overlay.bandwidth_wallet.trustchain.sign_block(
             self.nodes[1].overlay.my_peer, public_key=his_pubkey,
-            block_type='tribler_bandwidth', transaction={'up': 0, 'down': 1024 * 1024})
+            block_type=b'tribler_bandwidth', transaction={'up': 0, 'down': 1024 * 1024})
 
         self.nodes[2].overlay.random_slots = []
         self.nodes[2].overlay.competing_slots = [(0, None)]
@@ -491,7 +491,7 @@ class TestTriblerTunnelCommunity(TestBase):
         his_pubkey = self.nodes[1].overlay.my_peer.public_key.key_to_bin()
         yield self.nodes[0].overlay.bandwidth_wallet.trustchain.sign_block(
             self.nodes[1].overlay.my_peer, public_key=his_pubkey,
-            block_type='tribler_bandwidth', transaction={'up': 0, 'down': 1024 * 1024})
+            block_type=b'tribler_bandwidth', transaction={'up': 0, 'down': 1024 * 1024})
 
         def on_reject(_, balance):
             self.assertEqual(balance, -1024 * 1024)

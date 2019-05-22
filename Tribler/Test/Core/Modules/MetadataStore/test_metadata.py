@@ -61,7 +61,7 @@ class TestMetadata(TriblerCoreTest):
         metadata2_dict.pop("signature")
         self.assertRaises(InvalidSignatureException, ChannelNodePayload, **metadata2_dict)
 
-        serialized3 = serialized2[:-5] + "\xee" * 5
+        serialized3 = serialized2[:-5] + b"\xee" * 5
         self.assertRaises(InvalidSignatureException, ChannelNodePayload.from_signed_blob, serialized3)
         # Test bypass signature check
         ChannelNodePayload.from_signed_blob(serialized3, check_signature=False)
@@ -118,12 +118,12 @@ class TestMetadata(TriblerCoreTest):
         md_dict = metadata.to_dict()
 
         # Mess with the signature
-        metadata.signature = 'a'
+        metadata.signature = b'a'
         self.assertFalse(metadata.has_valid_signature())
 
         # Create metadata with wrong key
         metadata.delete()
-        md_dict.update(public_key=database_blob("aaa"))
+        md_dict.update(public_key=database_blob(b"aaa"))
         md_dict.pop("rowid")
 
         metadata = self.mds.ChannelNode(skip_key_check=True, **md_dict)

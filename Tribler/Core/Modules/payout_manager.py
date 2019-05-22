@@ -33,12 +33,12 @@ class PayoutManager(object):
             if nodes:
                 deferred = self.bandwidth_wallet.trustchain.sign_block(nodes[0],
                                                                        public_key=nodes[0].public_key.key_to_bin(),
-                                                                       block_type='tribler_bandwidth',
+                                                                       block_type=b'tribler_bandwidth',
                                                                        transaction={'up': 0, 'down': total_bytes})
                 addCallback(deferred, lambda _: None)
 
         if total_bytes >= 1024 * 1024:  # Do at least 1MB payouts
-            self.logger.info("Doing direct payout to %s (%d bytes)", hexlify(mid), total_bytes)
+            self.logger.info("Doing direct payout to %s (%d bytes)", hexlify(mid).decode('utf-8'), total_bytes)
             self.dht.connect_peer(mid).addCallbacks(on_nodes, lambda _: on_nodes([]))
 
         # Remove the outstanding bytes; otherwise we will payout again
@@ -48,8 +48,8 @@ class PayoutManager(object):
         """
         Update a peer with a specific mid for a specific infohash.
         """
-        self.logger.debug("Updating peer with mid %s and ih %s (balance: %d)", hexlify(mid),
-                          hexlify(infohash), balance)
+        self.logger.debug("Updating peer with mid %s and ih %s (balance: %d)", hexlify(mid).decode('utf-8'),
+                          hexlify(infohash).decode('utf-8'), balance)
 
         if mid not in self.tribler_peers:
             self.tribler_peers[mid] = {}

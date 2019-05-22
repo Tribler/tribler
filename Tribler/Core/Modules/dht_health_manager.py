@@ -97,12 +97,13 @@ class DHTHealthManager(TaskManager):
         def tobits(s):
             result = []
             for c in s:
-                bits = bin(ord(c))[2:]
+                num = ord(c) if isinstance(c, str) else c
+                bits = bin(num)[2:]
                 bits = '00000000'[len(bits):] + bits
                 result.extend([int(b) for b in bits])
             return result
 
-        bits_array = tobits(str(bf))
+        bits_array = tobits(bytes(bf))
         total_zeros = 0
         for bit in bits_array:
             if bit == 0:

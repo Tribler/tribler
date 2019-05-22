@@ -58,7 +58,9 @@ class ChannelSource(BaseSource):
 
         # Add torrents from database
         for torrent in channel.contents_list:
-            self.torrent_insert_callback(hexlify(self.source), hexlify(torrent.infohash), torrent.title)
+            self.torrent_insert_callback(hexlify(self.source).decode('utf-8'),
+                                         hexlify(torrent.infohash).decode('utf-8'),
+                                         torrent.title)
 
     def __str__(self):
-        return 'channel:' + self.source
+        return 'channel:' + hexlify(self.source).decode('utf-8')

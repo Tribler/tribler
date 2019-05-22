@@ -71,7 +71,7 @@ class TestEventsEndpoint(AbstractApiTest):
 
     def open_events_socket(self, _):
         agent = Agent(reactor, pool=self.connection_pool)
-        return agent.request(b'GET', 'http://localhost:%s/events' % self.session.config.get_http_api_port(),
+        return agent.request(b'GET', ('http://localhost:%s/events' % self.session.config.get_http_api_port()).encode(),
                              Headers({'User-Agent': ['Tribler ' + version_id]}), None) \
             .addCallback(self.on_event_socket_opened)
 
@@ -93,8 +93,8 @@ class TestEventsEndpoint(AbstractApiTest):
             self.session.notifier.notify(NTFY_NEW_VERSION, NTFY_INSERT, None, None)
             self.session.notifier.notify(NTFY_CHANNEL, NTFY_DISCOVERED, None, None)
             self.session.notifier.notify(NTFY_TORRENT, NTFY_DISCOVERED, None, {'a': 'Invalid character \xa1'})
-            self.session.notifier.notify(NTFY_TORRENT, NTFY_FINISHED, 'a' * 10, None, False)
-            self.session.notifier.notify(NTFY_TORRENT, NTFY_ERROR, 'a' * 10, 'This is an error message', False)
+            self.session.notifier.notify(NTFY_TORRENT, NTFY_FINISHED, b'a' * 10, None, False)
+            self.session.notifier.notify(NTFY_TORRENT, NTFY_ERROR, b'a' * 10, 'This is an error message', False)
             self.session.notifier.notify(NTFY_MARKET_ON_ASK, NTFY_UPDATE, None, {'a': 'b'})
             self.session.notifier.notify(NTFY_MARKET_ON_BID, NTFY_UPDATE, None, {'a': 'b'})
             self.session.notifier.notify(NTFY_MARKET_ON_ASK_TIMEOUT, NTFY_UPDATE, None, {'a': 'b'})

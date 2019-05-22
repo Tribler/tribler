@@ -400,7 +400,7 @@ class TriblerLaunchMany(TaskManager):
     def get_downloads(self):
         """ Called by any thread """
         with self.session_lock:
-            return self.downloads.values()  # copy, is mutable
+            return list(self.downloads.values())  # copy, is mutable
 
     def get_channel_downloads(self):
         with self.session_lock:
@@ -580,7 +580,7 @@ class TriblerLaunchMany(TaskManager):
     def load_download_pstate_noexc(self, infohash):
         """ Called by any thread, assume session_lock already held """
         try:
-            basename = hexlify(infohash) + '.state'
+            basename = hexlify(infohash).decode('utf-8') + '.state'
             filename = os.path.join(self.session.get_downloads_pstate_dir(), basename)
             if os.path.exists(filename):
                 return self.load_download_pstate(filename)
@@ -674,7 +674,7 @@ class TriblerLaunchMany(TaskManager):
                 dlpstatedir = self.session.get_downloads_pstate_dir()
 
                 # Remove checkpoint
-                hexinfohash = hexlify(infohash)
+                hexinfohash = hexlify(infohash).decode('utf-8')
                 try:
                     basename = hexinfohash + '.state'
                     filename = os.path.join(dlpstatedir, basename)

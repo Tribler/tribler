@@ -18,7 +18,7 @@ from ipv8.taskmanager import TaskManager
 import libtorrent as lt
 from libtorrent import bdecode, torrent_handle
 
-from six import text_type
+from six import binary_type, text_type
 from six.moves.urllib.request import url2pathname
 
 from twisted.internet import reactor
@@ -181,8 +181,10 @@ class LibtorrentMgr(TaskManager):
                 ltsession.set_pe_settings(pe_settings)
 
             mid = self.tribler_session.trustchain_keypair.key_to_hash()
-            settings['peer_fingerprint'] = mid
-            settings['handshake_client_version'] = 'Tribler/' + version_id + '/' + str(hexlify(mid))
+            # FIXME: if we put in bytes here, subsequent calls to get_settings may, and probably will,
+            #        give UnicodeDecodeErrors
+            settings['peer_fingerprint'] = hexlify(mid).decode('utf-8')
+            settings['handshake_client_version'] = 'Tribler/' + version_id + '/' + hexlify(mid).decode('utf-8')
         else:
             settings['enable_outgoing_utp'] = True
             settings['enable_incoming_utp'] = True
@@ -318,7 +320,7 @@ class LibtorrentMgr(TaskManager):
         if 'ti' in atp:
             infohash = str(atp['ti'].info_hash())
         elif 'url' in atp:
-            infohash = hexlify(parse_magnetlink(atp['url'])[1])
+            infohash = hexlify(parse_magnetlink(atp['url'])[1]).decode('utf-8')
         else:
             raise ValueError('No ti or url key in add_torrent_params')
 
@@ -443,7 +445,7 @@ class LibtorrentMgr(TaskManager):
         :param timeout: A timeout in seconds.
         :return: A deferred that fires with the queried metainfo, or None if the lookup failed.
         """
-        infohash_hex = hexlify(infohash)
+        infohash_hex = hexlify(infohash).decode('utf-8')
 
         # Check if we already cached the results, if so, return them
         if infohash in self.metainfo_cache:
@@ -524,13 +526,13 @@ class LibtorrentMgr(TaskManager):
 
         if trackers:
             if len(trackers) > 1:
-                metainfo["announce-list"] = [trackers]
-            metainfo["announce"] = trackers[0]
+                metainfo[b"announce-list"] = [trackers]
+            metainfo[b"announce"] = trackers[0]
         else:
-            metainfo["nodes"] = []
+            metainfo[b"nodes"] = []
 
-        metainfo["leechers"] = leechers
-        metainfo["seeders"] = seeders
+        metainfo[b"leechers"] = leechers
+        metainfo[b"seeders"] = seeders
 
         self.metainfo_cache[infohash] = {'time': time.time(), 'meta_info': metainfo}
         for metainfo_deferred in metainfo_deferreds:

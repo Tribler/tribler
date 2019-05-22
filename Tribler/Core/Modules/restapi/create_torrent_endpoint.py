@@ -13,7 +13,7 @@ import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Modules.restapi.util import return_handled_exception
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.Utilities.unicode import ensure_unicode
+from Tribler.Core.Utilities.unicode import ensure_unicode, recursive_bytes, recursive_unicode
 from Tribler.Core.exceptions import DuplicateDownloadException
 
 
@@ -61,7 +61,7 @@ class CreateTorrentEndpoint(resource.Resource):
             :statuscode 500: if source files do not exist.
         """
         content = request.content.read()
-        parameters = http.parse_qs(content, 1)
+        parameters = recursive_unicode(http.parse_qs(content, 1))
         params = {}
 
         if 'files' in parameters and parameters['files']:
@@ -108,8 +108,8 @@ class CreateTorrentEndpoint(resource.Resource):
                     fd.write(result['metainfo'])
 
             # Download this torrent if specified
-            if b'download' in request.args and len(request.args[b'download']) > 0 \
-                    and request.args[b'download'][0] == "1":
+            if 'download' in request.args and len(request.args['download']) > 0 \
+                    and request.args['download'][0] == "1":
                 download_config = DownloadStartupConfig()
                 download_config.set_dest_dir(result['base_path'] if len(file_path_list) == 1 else result['base_dir'])
                 try:
@@ -118,7 +118,7 @@ class CreateTorrentEndpoint(resource.Resource):
                 except DuplicateDownloadException:
                     self._logger.warning("The created torrent is already being downloaded.")
 
-            request.write(json.twisted_dumps({"torrent": base64.b64encode(result['metainfo'])}))
+            request.write(json.twisted_dumps({"torrent": base64.b64encode(result['metainfo']).decode('utf-8')}))
             # If the above request.write failed, the request will have already been finished
             if not request.finished:
                 request.finish()
@@ -135,7 +135,7 @@ class CreateTorrentEndpoint(resource.Resource):
             if not request.finished:
                 request.finish()
 
-        deferred = self.session.create_torrent_file(file_path_list, params)
+        deferred = self.session.create_torrent_file(file_path_list, recursive_bytes(params))
         deferred.addCallback(_on_torrent_created)
         deferred.addErrback(_on_create_failure)
         return NOT_DONE_YET

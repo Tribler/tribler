@@ -1,6 +1,8 @@
 import os
 import psutil
 
+from six import text_type
+
 from Tribler.Core.Config.tribler_config import TriblerConfig
 
 
@@ -61,7 +63,7 @@ class ProcessChecker(object):
         self.remove_lock_file()
 
         with open(self.lock_file_path, 'wb') as lock_file:
-            lock_file.write(str(os.getpid()))
+            lock_file.write(text_type(os.getpid()).encode())
 
     def remove_lock_file(self):
         """

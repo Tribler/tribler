@@ -99,8 +99,8 @@ class TestCreditMiningManager(TestAsServer):
         super(TestCreditMiningManager, self).__init__(*argv, **kwargs)
         # Some fake data for convenience
         self.cid = '0' * 64
-        self.infohash = '0' * 40
-        self.infohash_bin = '\00' * 20
+        self.infohash = b'0' * 40
+        self.infohash_bin = b'\00' * 20
         self.name = u'torrent'
 
     @inlineCallbacks
@@ -137,7 +137,7 @@ class TestCreditMiningManager(TestAsServer):
             torrent.sources = set([self.cid])
         self.credit_mining_manager.remove_source(self.cid)
         self.assertTrue(len(self.credit_mining_manager.torrents) == 0)
-        self.assertItemsEqual(torrents.keys(), removed)
+        self.assertEqual(list(torrents.keys()), removed)
 
     def test_torrent_insert(self):
         self.credit_mining_manager.add_source(self.cid)
@@ -153,7 +153,7 @@ class TestCreditMiningManager(TestAsServer):
     def test_torrent_insert_duplicate(self):
         self.credit_mining_manager.torrents[self.infohash] = CreditMiningTorrent(self.infohash, self.name)
         self.credit_mining_manager.on_torrent_insert(self.cid, self.infohash, self.name)
-        torrent = self.credit_mining_manager.torrents.values()[0]
+        torrent = list(self.credit_mining_manager.torrents.values())[0]
 
         self.credit_mining_manager.on_torrent_insert(self.cid, self.infohash, self.name)
         self.assertIn(torrent, self.credit_mining_manager.torrents.values())
@@ -292,7 +292,7 @@ class TestCreditMiningManager(TestAsServer):
 
         download = MockObject()
         download.tdef = MockObject()
-        download.tdef.get_infohash = lambda: '\00' * 20
+        download.tdef.get_infohash = lambda: b'\00' * 20
         download.tdef.get_name = lambda: self.name + str(i)
         download.get_def = lambda _download=download: _download.tdef
         download.force_recheck = lambda: None
@@ -413,9 +413,9 @@ class TestCreditMiningManager(TestAsServer):
         self.assertTrue(self.credit_mining_manager.shutdown_called)
 
     def test_add_download_while_credit_mining(self):
-        infohash_str = '00' * 20
-        infohash_bin = '\00' * 20
-        magnet = 'magnet:?xt=urn:btih:' + infohash_str
+        infohash_str = b'00' * 20
+        infohash_bin = b'\00' * 20
+        magnet = 'magnet:?xt=urn:btih:' + ('00' * 20)
 
         def fake_move_storage(dl, dest_dir):
             dl.dest_dir = dest_dir

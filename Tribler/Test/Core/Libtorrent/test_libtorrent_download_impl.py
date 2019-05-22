@@ -187,13 +187,13 @@ class TestLibtorrentDownloadImpl(TestAsServer):
             """
             check if resume data is ready
             """
-            basename = binascii.hexlify(tdef.get_infohash()) + '.state'
+            basename = binascii.hexlify(tdef.get_infohash()).decode('utf-8') + '.state'
             filename = os.path.join(self.session.get_downloads_pstate_dir(), basename)
 
             engine_data = CallbackConfigParser()
             engine_data.read_file(filename)
 
-            self.assertEqual(tdef.get_infohash(), engine_data.get('state', 'engineresumedata').get('info-hash'))
+            self.assertEqual(tdef.get_infohash(), engine_data.get('state', 'engineresumedata').get(b'info-hash'))
 
         def callback(_):
             """
@@ -221,7 +221,7 @@ class TestLibtorrentDownloadImpl(TestAsServer):
             """
             callback after finishing setup in LibtorrentDownloadImpl
             """
-            basename = binascii.hexlify(tdef.get_infohash()) + '.state'
+            basename = binascii.hexlify(tdef.get_infohash()).decode('utf-8') + '.state'
             filename = os.path.join(self.session.get_downloads_pstate_dir(), basename)
 
             self.assertFalse(os.path.isfile(filename))
@@ -290,7 +290,7 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         self.libtorrent_download_impl.handle.rename_file = lambda *_: None
 
         self.libtorrent_download_impl.get_share_mode = lambda: False
-        self.libtorrent_download_impl.tdef.get_infohash = lambda: 'a' * 20
+        self.libtorrent_download_impl.tdef.get_infohash = lambda: b'a' * 20
         self.libtorrent_download_impl.orig_files = ['a', 'b']
         self.libtorrent_download_impl.get_save_path = lambda: 'my/path'
         self.libtorrent_download_impl.set_selected_files(['a'])
@@ -315,7 +315,7 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         self.libtorrent_download_impl.handle.prioritize_files = mocked_set_file_prios
         self.libtorrent_download_impl.handle.get_torrent_info = lambda: mock_torrent_info
         self.libtorrent_download_impl.handle.rename_file = lambda *_: None
-        self.libtorrent_download_impl.tdef.get_infohash = lambda: 'a' * 20
+        self.libtorrent_download_impl.tdef.get_infohash = lambda: b'a' * 20
         self.libtorrent_download_impl.orig_files = ['a', 'b']
         self.libtorrent_download_impl.get_save_path = lambda: 'my/path'
 
@@ -476,7 +476,7 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         with open(os.path.join(TESTS_DATA_DIR, "bak_single.torrent"), mode='rb') as torrent_file:
             encoded_metainfo = torrent_file.read()
         decoded_metainfo = bdecode(encoded_metainfo)
-        get_info_from_handle(self.libtorrent_download_impl.handle).metadata = lambda: bencode(decoded_metainfo['info'])
+        get_info_from_handle(self.libtorrent_download_impl.handle).metadata = lambda: bencode(decoded_metainfo[b'info'])
         get_info_from_handle(self.libtorrent_download_impl.handle).files = lambda: [mocked_file]
 
         self.libtorrent_download_impl.checkpoint = mocked_checkpoint
@@ -698,10 +698,10 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         Testing whether a correct pieces bitmask is returned when requested
         """
         self.libtorrent_download_impl.handle.status().pieces = [True, False, True, False, False]
-        self.assertEqual(self.libtorrent_download_impl.get_pieces_base64(), "oA==")
+        self.assertEqual(self.libtorrent_download_impl.get_pieces_base64(), b"oA==")
 
         self.libtorrent_download_impl.handle.status().pieces = [True * 16]
-        self.assertEqual(self.libtorrent_download_impl.get_pieces_base64(), "gA==")
+        self.assertEqual(self.libtorrent_download_impl.get_pieces_base64(), b"gA==")
 
     @trial_timeout(10)
     def test_resume_data_failed(self):

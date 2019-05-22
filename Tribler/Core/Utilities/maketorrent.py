@@ -23,17 +23,17 @@ def pathlist2filename(pathlist):
 
 
 def get_length_from_metainfo(metainfo, selectedfiles):
-    if 'files' not in metainfo['info']:
+    if b'files' not in metainfo[b'info']:
         # single-file torrent
-        return metainfo['info']['length']
+        return metainfo[b'info'][b'length']
     else:
         # multi-file torrent
-        files = metainfo['info']['files']
+        files = metainfo[b'info'][b'files']
 
         total = 0
         for i in xrange(len(files)):
-            path = files[i]['path']
-            length = files[i]['length']
+            path = files[i][b'path']
+            length = files[i][b'length']
             if length > 0 and (not selectedfiles or pathlist2filename(path) in selectedfiles):
                 total += length
         return total
@@ -41,20 +41,20 @@ def get_length_from_metainfo(metainfo, selectedfiles):
 
 def get_length_filepieceranges_from_metainfo(metainfo, selectedfiles):
 
-    if 'files' not in metainfo['info']:
+    if b'files' not in metainfo[b'info']:
         # single-file torrent
-        return metainfo['info']['length'], None
+        return metainfo[b'info'][b'length'], None
     else:
         # multi-file torrent
-        files = metainfo['info']['files']
-        piecesize = metainfo['info']['piece length']
+        files = metainfo[b'info'][b'files']
+        piecesize = metainfo[b'info'][b'piece length']
 
         offset = 0
         total = 0
         filepieceranges = []
         for i in xrange(len(files)):
-            path = files[i]['path']
-            length = files[i]['length']
+            path = files[i][b'path']
+            length = files[i][b'length']
             filename = pathlist2filename(path)
 
             if length > 0 and (not selectedfiles or (selectedfiles and filename in selectedfiles)):

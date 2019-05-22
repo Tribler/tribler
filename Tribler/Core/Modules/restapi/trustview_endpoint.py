@@ -32,7 +32,7 @@ class TrustViewEndpoint(resource.Resource):
     def initialize_graph(self):
         if not self.initialized and self.session.lm.trustchain_community and not self.local_view:
             pub_key = self.session.lm.trustchain_community.my_peer.public_key.key_to_bin()
-            self.root_public_key = hexlify(pub_key)
+            self.root_public_key = hexlify(pub_key).decode('utf-8')
             self.local_view = NodeVision(self.root_public_key)
             self.trustchain_db = self.session.lm.trustchain_community.persistence
             self.initialized = True
@@ -48,20 +48,20 @@ class TrustViewEndpoint(resource.Resource):
 
         diff = block.transaction['up'] - block.transaction['down']
         if diff < 0:
-            return {'downloader': hexlify(block.public_key),
-                    'uploader': hexlify(block.link_public_key),
+            return {'downloader': hexlify(block.public_key).decode('utf-8'),
+                    'uploader': hexlify(block.link_public_key).decode('utf-8'),
                     'amount': diff * -1
                    }
-        return {'downloader': hexlify(block.link_public_key),
-                'uploader': hexlify(block.public_key),
+        return {'downloader': hexlify(block.link_public_key).decode('utf-8'),
+                'uploader': hexlify(block.public_key).decode('utf-8'),
                 'amount': diff
                }
 
     def load_single_block(self, block):
-        if block.hash not in self.transactions and block.type == 'tribler_bandwidth':
+        if block.hash not in self.transactions and block.type == b'tribler_bandwidth':
             self.transactions[block.hash] = self.block_to_edge(block)
             # Update token balance
-            hex_public_key = hexlify(block.public_key)
+            hex_public_key = hexlify(block.public_key).decode('utf-8')
             node_balance = self.token_balance.get(hex_public_key, dict())
             if block.sequence_number > node_balance.get('sequence_number', 0):
                 node_balance['sequence_number'] = block.sequence_number

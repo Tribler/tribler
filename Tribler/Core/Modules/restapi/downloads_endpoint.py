@@ -8,7 +8,6 @@ from libtorrent import bencode, create_torrent
 
 from pony.orm import db_session
 
-import six
 from six import unichr  # pylint: disable=redefined-builtin
 from six.moves.urllib.parse import unquote_plus
 from six.moves.urllib.request import url2pathname
@@ -22,7 +21,7 @@ from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, Ch
 from Tribler.Core.Modules.MetadataStore.store import UNKNOWN_CHANNEL, UPDATED_OUR_VERSION
 from Tribler.Core.Modules.restapi.util import return_handled_exception
 from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
-from Tribler.Core.Utilities.unicode import ensure_unicode
+from Tribler.Core.Utilities.unicode import recursive_unicode
 from Tribler.Core.Utilities.utilities import unichar_string
 from Tribler.Core.exceptions import InvalidSignatureException
 from Tribler.Core.simpledefs import DLMODE_VOD, DOWNLOAD, UPLOAD, dlstatus_strings
@@ -95,11 +94,11 @@ class DownloadBaseEndpoint(resource.Resource):
             download_config.set_safe_seeding(True)
 
         if 'destination' in parameters and len(parameters['destination']) > 0:
-            dest_dir = cast_to_unicode_utf8(parameters['destination'][0])
+            dest_dir = parameters['destination'][0]
             download_config.set_dest_dir(dest_dir)
 
         if 'selected_files' in parameters:
-            selected_files_list = [cast_to_unicode_utf8(f) for f in parameters['selected_files']]
+            selected_files_list = [f for f in parameters['selected_files']]
             download_config.set_selected_files(selected_files_list)
 
         return download_config, None
@@ -206,17 +205,16 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                     }
                 }, ...]
         """
+        args = recursive_unicode(request.args)
         get_peers = False
-        if b'get_peers' in request.args and len(request.args[b'get_peers']) > 0 \
-                and request.args[b'get_peers'][0] == "1":
+        if 'get_peers' in args and len(args['get_peers']) > 0 and args['get_peers'][0] == "1":
             get_peers = True
 
         get_pieces = False
-        if b'get_pieces' in request.args and len(request.args[b'get_pieces']) > 0 \
-                and request.args[b'get_pieces'][0] == "1":
+        if 'get_pieces' in args and len(args['get_pieces']) > 0 and args['get_pieces'][0] == "1":
             get_pieces = True
 
-        get_files = b'get_files' in request.args and request.args[b'get_files'] and request.args[b'get_files'][0] == "1"
+        get_files = 'get_files' in args and args['get_files'] and args['get_files'][0] == "1"
 
         downloads_json = []
         downloads = self.session.get_downloads()
@@ -240,7 +238,7 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
             download_json = {
                 "name": download_name,
                 "progress": state.get_progress(),
-                "infohash": hexlify(tdef.get_infohash()),
+                "infohash": hexlify(tdef.get_infohash()).decode('utf-8'),
                 "speed_down": state.get_current_payload_speed(DOWNLOAD),
                 "speed_up": state.get_current_payload_speed(UPLOAD),
                 "status": dlstatus_strings[state.get_status()],
@@ -279,13 +277,13 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                     del peer_info['have']
                     if 'extended_version' in peer_info:
                         peer_info['extended_version'] = _safe_extended_peer_info(peer_info['extended_version'])
-                    peer_info['id'] = hexlify(peer_info['id'])
+                    peer_info['id'] = hexlify(peer_info['id']).decode('utf-8')
 
                 download_json["peers"] = peer_list
 
             # Add piece information if requested
             if get_pieces:
-                download_json["pieces"] = download.get_pieces_base64()
+                download_json["pieces"] = download.get_pieces_base64().decode('utf-8')
 
             # Add files if requested
             if get_files:
@@ -318,7 +316,7 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
 
                     {"started": True, "infohash": "4344503b7e797ebf31582327a5baae35b11bda01"}
         """
-        parameters = http.parse_qs(request.content.read(), 1)
+        parameters = recursive_unicode(http.parse_qs(request.content.read(), 1))
 
         if 'uri' not in parameters or len(parameters['uri']) == 0:
             request.setResponseCode(http.BAD_REQUEST)
@@ -331,7 +329,7 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
 
         def download_added(download):
             request.write(json.twisted_dumps({"started": True,
-                                      "infohash": hexlify(download.get_def().get_infohash())}))
+                                      "infohash": hexlify(download.get_def().get_infohash()).decode('utf-8')}))
             request.finish()
 
         def on_error(error):
@@ -339,7 +337,7 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
             request.write(json.twisted_dumps({"error": unichar_string(error.getErrorMessage())}))
             request.finish()
 
-        uri = ensure_unicode(parameters['uri'][0], 'utf-8')
+        uri = parameters['uri'][0]
         if uri.startswith("file:"):
             filename = url2pathname(uri[5:])
             if uri.endswith(".mdblob") or uri.endswith(".mdblob.lz4"):
@@ -352,7 +350,7 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                                     (status == UPDATED_OUR_VERSION and node.metadata_type == CHANNEL_TORRENT)):
                                 node.subscribed = True
                                 return json.twisted_dumps(
-                                    {"started": True, "infohash": hexlify(node.infohash)})
+                                    {"started": True, "infohash": hexlify(node.infohash).decode('utf-8')})
                         return json.twisted_dumps({"error": "Could not import Tribler metadata file"})
                     except IOError:
                         request.setResponseCode(http.BAD_REQUEST)
@@ -402,7 +400,7 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
 
                     {"removed": True, "infohash": "4344503b7e797ebf31582327a5baae35b11bda01"}
         """
-        parameters = http.parse_qs(request.content.read(), 1)
+        parameters = recursive_unicode(http.parse_qs(request.content.read(), 1))
 
         if 'remove_data' not in parameters or len(parameters['remove_data']) == 0:
             request.setResponseCode(http.BAD_REQUEST)
@@ -419,7 +417,7 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
             Success callback
             """
             request.write(json.twisted_dumps({"removed": True,
-                                      "infohash": hexlify(download.get_def().get_infohash())}))
+                                      "infohash": hexlify(download.get_def().get_infohash()).decode('utf-8')}))
             request.finish()
 
         def _on_remove_failure(failure):
@@ -472,7 +470,7 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
         if not download:
             return DownloadSpecificEndpoint.return_404(request)
 
-        parameters = http.parse_qs(request.content.read(), 1)
+        parameters = recursive_unicode(http.parse_qs(request.content.read(), 1))
 
         if len(parameters) > 1 and 'anon_hops' in parameters:
             request.setResponseCode(http.BAD_REQUEST)
@@ -486,7 +484,7 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
                 Success callback
                 """
                 request.write(json.twisted_dumps({"modified": True,
-                                          "infohash": hexlify(download.get_def().get_infohash())}))
+                                          "infohash": hexlify(download.get_def().get_infohash()).decode('utf-8')}))
                 request.finish()
 
             def _on_download_readd_failure(failure):
@@ -535,7 +533,7 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
                 return json.twisted_dumps({"error": "unknown state parameter"})
 
         return json.twisted_dumps({"modified": True,
-                           "infohash": hexlify(download.get_def().get_infohash())})
+                           "infohash": hexlify(download.get_def().get_infohash()).decode('utf-8')})
 
 
 class DownloadExportTorrentEndpoint(DownloadBaseEndpoint):

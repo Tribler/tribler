@@ -5,6 +5,7 @@ from binascii import hexlify, unhexlify
 
 from pony.orm import db_session
 
+from six import assertCountEqual
 from six.moves.urllib.request import pathname2url
 
 from twisted.internet.defer import fail
@@ -21,7 +22,7 @@ from Tribler.Test.tools import trial_timeout
 
 
 def get_hex_infohash(tdef):
-    return hexlify(tdef.get_infohash())
+    return hexlify(tdef.get_infohash()).decode('utf-8')
 
 
 class TestDownloadsEndpoint(AbstractApiTest):
@@ -65,13 +66,12 @@ class TestDownloadsEndpoint(AbstractApiTest):
 
         def verify_download(downloads):
             downloads_json = json.twisted_loads(downloads)
-            self.assertEqual(len(downloads_json['downloads']), 2)
-            self.assertEqual(downloads_json['downloads'][0][u'files'],
-                             [{u'included': True, u'index': 0, u'size': 1583233,
-                               u'name': u'Tribler_4.1.7_src.zip', u'progress': 0.0}])
-            self.assertEqual(downloads_json['downloads'][1][u'files'],
-                             [{u'included': True, u'index': 0, u'size': 1942100,
-                               u'name': u'video.avi', u'progress': 0.0}])
+            assertCountEqual(self, [downloads_json['downloads'][0][u'files'],
+                                    downloads_json['downloads'][1][u'files']],
+                                   [[{u'included': True, u'index': 0, u'size': 1583233,
+                                      u'name': u'Tribler_4.1.7_src.zip', u'progress': 0.0}],
+                                    [{u'included': True, u'index': 0, u'size': 1942100,
+                                      u'name': u'video.avi', u'progress': 0.0}]])
 
         video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
         self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
@@ -186,7 +186,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
             self.assertGreaterEqual(len(self.session.get_downloads()), 1)
             dl = self.session.get_downloads()[0]
             ds = DownloadState(dl, self.create_mock_status(), None)
-            ds.get_peerlist = lambda: [{'id': '1234', 'have': '5678', 'extended_version': 'uTorrent 1.6.1'}]
+            ds.get_peerlist = lambda: [{'id': b'1234', 'have': '5678', 'extended_version': 'uTorrent 1.6.1'}]
             dl.get_state = lambda: ds
             self.should_check_equality = False
             return self.do_request('downloads?get_peers=1&get_pieces=1',
@@ -217,7 +217,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
             self.assertGreaterEqual(len(self.session.get_downloads()), 1)
             dl = self.session.get_downloads()[0]
             ds = DownloadState(dl, self.create_mock_status(), None)
-            ds.get_peerlist = lambda: [{'id': '1234', 'have': '5678', 'extended_version': '\xb5Torrent 1.6.1'}]
+            ds.get_peerlist = lambda: [{'id': b'1234', 'have': '5678', 'extended_version': '\xb5Torrent 1.6.1'}]
             dl.get_state = lambda: ds
             self.should_check_equality = False
             return self.do_request('downloads?get_peers=1&get_pieces=1',
@@ -248,7 +248,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
             self.assertGreaterEqual(len(self.session.get_downloads()), 1)
             dl = self.session.get_downloads()[0]
             ds = DownloadState(dl, self.create_mock_status(), None)
-            ds.get_peerlist = lambda: [{'id': '1234', 'have': '5678', 'extended_version': None}]
+            ds.get_peerlist = lambda: [{'id': b'1234', 'have': '5678', 'extended_version': None}]
             dl.get_state = lambda: ds
             self.should_check_equality = False
             return self.do_request('downloads?get_peers=1&get_pieces=1',
@@ -269,7 +269,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
             self.assertGreaterEqual(len(self.session.get_downloads()), 1)
             self.assertEqual(self.session.get_downloads()[0].get_def().get_name(), 'Unknown name')
 
-        post_data = {'uri': 'magnet:?xt=urn:btih:%s' % (hexlify(UBUNTU_1504_INFOHASH))}
+        post_data = {'uri': 'magnet:?xt=urn:btih:%s' % hexlify(UBUNTU_1504_INFOHASH).decode('utf-8')}
         expected_json = {'started': True, 'infohash': 'fc8a15a2faf2734dbb1dc5f7afdc5c9beaeb1f59'}
         return self.do_request('downloads', expected_code=200, request_type='PUT', post_data=post_data,
                                expected_json=expected_json).addCallback(verify_download)
@@ -315,8 +315,8 @@ class TestDownloadsEndpoint(AbstractApiTest):
 
         request_deferred = self.do_request('downloads/%s' % infohash, post_data={"remove_data": True},
                                            expected_code=200, request_type='DELETE',
-                                           expected_json={"removed": True,
-                                                          "infohash": "c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5"})
+                                           expected_json={u"removed": True,
+                                                          u"infohash": u"c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5"})
         return request_deferred.addCallback(verify_removed)
 
     @trial_timeout(10)
@@ -350,8 +350,8 @@ class TestDownloadsEndpoint(AbstractApiTest):
 
         request_deferred = self.do_request('downloads/%s' % infohash, post_data={"state": "stop"},
                                            expected_code=200, request_type='PATCH',
-                                           expected_json={"modified": True,
-                                                          "infohash": "c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5"})
+                                           expected_json={u"modified": True,
+                                                          u"infohash": u"c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5"})
         return request_deferred.addCallback(verify_removed)
 
     @trial_timeout(10)
@@ -388,8 +388,8 @@ class TestDownloadsEndpoint(AbstractApiTest):
 
         return self.do_request('downloads/%s' % infohash, post_data={"selected_files": 0},
                                expected_code=200, request_type='PATCH',
-                               expected_json={"modified": True,
-                                              "infohash": "c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5"}) \
+                               expected_json={u"modified": True,
+                                              u"infohash": u"c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5"}) \
             .addCallback(verify_method_called)
 
     @trial_timeout(10)
@@ -421,8 +421,8 @@ class TestDownloadsEndpoint(AbstractApiTest):
 
         request_deferred = self.do_request('downloads/%s' % infohash, post_data={"state": "resume"},
                                            expected_code=200, request_type='PATCH',
-                                           expected_json={"modified": True,
-                                                          "infohash": "c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5"})
+                                           expected_json={u"modified": True,
+                                                          u"infohash": u"c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5"})
         return request_deferred.addCallback(verify_resumed)
 
     @trial_timeout(10)
@@ -446,8 +446,8 @@ class TestDownloadsEndpoint(AbstractApiTest):
 
         request_deferred = self.do_request('downloads/%s' % infohash, post_data={"state": "recheck"},
                                            expected_code=200, request_type='PATCH',
-                                           expected_json={"modified": True,
-                                                          "infohash": "c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5"})
+                                           expected_json={u"modified": True,
+                                                          u"infohash": u"c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5"})
         return request_deferred.addCallback(verify_rechecked)
 
     @trial_timeout(10)
@@ -518,7 +518,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         def check_response(json_str_response):
             response_dict = json.loads(json_str_response)
             self.assertTrue(response_dict.get("modified", False))
-            self.assertEqual(hexlify(video_tdef.infohash), response_dict["infohash"])
+            self.assertEqual(hexlify(video_tdef.infohash).decode('utf-8'), response_dict["infohash"])
 
         self.should_check_equality = False
         return self.do_request('downloads/%s' % get_hex_infohash(video_tdef), expected_code=200,
@@ -660,7 +660,7 @@ class TestMetadataDownloadEndpoint(AbstractApiTest):
             with db_session:
                 my_channel = self.session.lm.mds.ChannelMetadata.create_channel('test', 'test')
 
-            hexed = hexlify(my_channel.serialized())[:-5] + "aaaaa"
+            hexed = hexlify(my_channel.serialized())[:-5] + b"aaaaa"
             out_file.write(unhexlify(hexed))
 
         post_data = {u'uri': u'file:%s' % file_path, u'metadata_download': u'1'}

@@ -5,7 +5,7 @@ Author(s): Mihai Capota, Ardhi Putra
 """
 from __future__ import absolute_import
 
-import random
+import os
 
 from pony.orm import db_session
 
@@ -32,8 +32,8 @@ class TestCreditMiningSources(TestAsServer):
         with db_session:
             my_channel = self.session.lm.mds.ChannelMetadata.create_channel('test', 'test')
             self.session.lm.mds.TorrentMetadata(origin_id=my_channel.id_, title='testtorrent',
-                                                infohash=str(random.getrandbits(160)))
+                                                infohash=os.urandom(20))
 
-        source = ChannelSource(self.session, str(my_channel.public_key), lambda *_: test_deferred.callback(None))
+        source = ChannelSource(self.session, my_channel.public_key, lambda *_: test_deferred.callback(None))
         source.start()
         return test_deferred

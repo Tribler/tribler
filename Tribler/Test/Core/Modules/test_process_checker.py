@@ -2,6 +2,8 @@ import os
 from multiprocessing import Process, Value
 from time import sleep
 
+from six import text_type
+
 from Tribler.Core.Modules.process_checker import ProcessChecker, LOCK_FILE_NAME
 from Tribler.Test.test_as_server import AbstractServer
 
@@ -28,7 +30,7 @@ class TestProcessChecker(AbstractServer):
 
     def create_lock_file_with_pid(self, pid):
         with open(os.path.join(self.state_dir, LOCK_FILE_NAME), 'wb') as lock_file:
-            lock_file.write(str(pid))
+            lock_file.write(text_type(pid).encode())
 
     def test_create_lock_file(self):
         """
@@ -61,7 +63,7 @@ class TestProcessChecker(AbstractServer):
         Testing pid should be -1 if the lock file is invalid
         """
         with open(os.path.join(self.state_dir, LOCK_FILE_NAME), 'wb') as lock_file:
-            lock_file.write("Hello world")
+            lock_file.write(b"Hello world")
 
         process_checker = ProcessChecker(state_directory=self.state_dir)
         self.assertEqual(process_checker.get_pid_from_lock_file(), -1)

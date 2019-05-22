@@ -2,8 +2,7 @@ from __future__ import absolute_import
 
 import os
 
-from six import text_type
-from six.moves.urllib.parse import quote_plus
+from six import text_type, quote_plus
 
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, succeed
@@ -53,6 +52,7 @@ class POSTDataProducer(object):
             self.body = tribler_urlencode(data_dict)
         elif raw_data:
             self.body = raw_data.encode('utf-8')
+        self.body = self.body.encode() if isinstance(self.body, text_type) else self.body
         self.length = len(self.body)
 
     def startProducing(self, consumer):

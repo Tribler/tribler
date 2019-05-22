@@ -38,7 +38,7 @@ class TestVideoOnDemand(TestAsServer):
 
     def create_torrent(self):
         [srchandle, sourcefn] = mkstemp()
-        self.content = '0' * self.contentlen
+        self.content = b'0' * self.contentlen
         os.write(srchandle, self.content)
         os.close(srchandle)
 
@@ -81,7 +81,7 @@ class TestVideoOnDemand(TestAsServer):
             stream = VODFile(open(download.get_content_dest(), 'rb'), download)
 
             # Read last piece
-            lastpieceoff = ((self.contentlen - 1) / self.piecelen) * self.piecelen
+            lastpieceoff = ((self.contentlen - 1) // self.piecelen) * self.piecelen
             lastpiecesize = self.contentlen - lastpieceoff
             self._logger.debug("stream: lastpieceoff %s %s", lastpieceoff, lastpiecesize)
             self.stream_read(stream, lastpieceoff, lastpiecesize, self.piecelen)

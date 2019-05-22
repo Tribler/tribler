@@ -52,7 +52,7 @@ class TestLaunchManyCore(TriblerCoreTest):
         Create a fake download and state which can be passed to the global download callback.
         """
         tdef = TorrentDef()
-        tdef.get_infohash = lambda: 'aaaa'
+        tdef.get_infohash = lambda: b'aaaa'
         fake_peer = {'extended_version': 'Tribler', 'id': 'a' * 20, 'dtotal': 10 * 1024 * 1024}
         fake_download = MockObject()
         fake_download.get_def = lambda: tdef
@@ -62,7 +62,7 @@ class TestLaunchManyCore(TriblerCoreTest):
         fake_download.get_peerlist = lambda: [fake_peer]
         fake_download.hidden = False
         dl_state = MockObject()
-        dl_state.get_infohash = lambda: 'aaaa'
+        dl_state.get_infohash = lambda: b'aaaa'
         dl_state.get_status = lambda: DLSTATUS_SEEDING
         dl_state.get_download = lambda: fake_download
 
@@ -116,7 +116,7 @@ class TestLaunchManyCore(TriblerCoreTest):
         fake_error_state.get_status = lambda: DLSTATUS_STOPPED_ON_ERROR
         fake_error_state.get_error = lambda: "test error"
 
-        self.lm.downloads = {'aaaa': fake_error_download}
+        self.lm.downloads = {b'aaaa': fake_error_download}
         self.lm.sesscb_states_callback([fake_error_state])
 
         return error_stop_deferred
@@ -150,7 +150,7 @@ class TestLaunchManyCore(TriblerCoreTest):
         self.lm.payout_manager = PayoutManager(fake_tc, None)
 
         self.lm.state_cb_count = 4
-        self.lm.downloads = {'aaaa': fake_download}
+        self.lm.downloads = {b'aaaa': fake_download}
         self.lm.sesscb_states_callback([dl_state])
 
         self.assertTrue(self.lm.payout_manager.tribler_peers)

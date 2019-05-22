@@ -1,7 +1,6 @@
 from __future__ import absolute_import, division
 
 import os
-import random
 from binascii import hexlify
 from datetime import datetime
 
@@ -10,6 +9,8 @@ from ipv8.database import database_blob
 from libtorrent import add_files, bencode, create_torrent, file_storage, set_piece_hashes, torrent_info
 
 import lz4.frame
+
+from six import text_type
 
 from pony import orm
 from pony.orm import db_session, desc, raw_sql, select
@@ -68,8 +69,7 @@ def entries_to_chunk(metadata_list, chunk_size, start_index=0):
         offset = len(header)
         out_list = [header]  # LZ4 header
         for index, metadata in enumerate(metadata_list[start_index:], start_index):
-            blob = c.compress(
-                ''.join(metadata.serialized_delete() if metadata.status == TODELETE else metadata.serialized()))
+            blob = c.compress((metadata.serialized_delete() if metadata.status == TODELETE else metadata.serialized()))
             # Chunk size limit reached?
             if offset + len(blob) > (chunk_size - LZ4_END_MARK_SIZE):
                 break
@@ -79,10 +79,10 @@ def entries_to_chunk(metadata_list, chunk_size, start_index=0):
             out_list.append(blob)
         out_list.append(c.flush())  # LZ4 end mark
 
-    chunk = ''.join(out_list)
+    chunk = b''.join(out_list)
     if last_entry_index is None:
         raise Exception('Serialized entry size > blob size limit!',
-                        hexlify(str(metadata_list[start_index].signature)))
+                        hexlify(metadata_list[start_index].signature).decode('utf-8'))
     return chunk, last_entry_index + 1
 
 
@@ -138,7 +138,7 @@ def define_binding(db):
 
             my_channel = cls(origin_id=0, public_key=database_blob(cls._my_key.pub().key_to_bin()[10:]),
                              title=title, tags=description, subscribed=True, share=True,
-                             infohash=str(random.getrandbits(160)))
+                             infohash=os.urandom(20))
             # random infohash is necessary to avoid triggering DB uniqueness constraints
             my_channel.sign()
             return my_channel
@@ -203,7 +203,7 @@ def define_binding(db):
             # Make torrent out of dir with metadata files
             torrent, infohash = create_torrent_from_dir(channel_dir,
                                                         os.path.join(self._channels_dir, self.dirname + ".torrent"))
-            torrent_date = datetime.utcfromtimestamp(torrent['creation date'])
+            torrent_date = datetime.utcfromtimestamp(torrent[b'creation date'])
 
             return {"infohash": infohash, "num_entries": self.contents_len,
                     "timestamp": final_timestamp, "torrent_date": torrent_date}, torrent
@@ -231,7 +231,7 @@ def define_binding(db):
             except IOError:
                 self._logger.error(
                     "Error during channel torrent commit, not going to garbage collect the channel. Channel %s",
-                    hexlify(str(self.public_key)))
+                    hexlify(self.public_key).decode('utf-8'))
             else:
                 if new_start_timestamp:
                     update_dict['start_timestamp'] = new_start_timestamp
@@ -249,7 +249,7 @@ def define_binding(db):
                 self.to_file(os.path.join(self._channels_dir, self.dirname + BLOB_EXTENSION))
 
                 self._logger.info("Channel %s committed with %i new entries. New version is %i",
-                                  hexlify(str(self.public_key)), len(md_list), update_dict['timestamp'])
+                                  hexlify(self.public_key).decode('utf-8'), len(md_list), update_dict['timestamp'])
             return torrent
 
         @db_session
@@ -327,7 +327,7 @@ def define_binding(db):
         @property
         def dirname(self):
             # Have to limit this to support Windows file path length limit
-            return hexlify(self.public_key)[:CHANNEL_DIR_NAME_PK_LENGTH]+"{:0>16x}".format(self.id_)
+            return hexlify(self.public_key)[:CHANNEL_DIR_NAME_PK_LENGTH].decode('utf-8') + "{:0>16x}".format(self.id_)
 
         @property
         @db_session

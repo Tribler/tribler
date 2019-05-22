@@ -57,7 +57,7 @@ class TestTrustViewEndpoint(AbstractApiTest):
 
         transaction = {'up': 100, 'down': 0, 'total_up': 100, 'total_down': 0}
         test_block = TrustChainBlock()
-        test_block.type = 'tribler_bandwidth'
+        test_block.type = b'tribler_bandwidth'
         test_block.transaction = transaction
         test_block._transaction = encode(transaction)
         test_block.public_key = self.session.lm.trustchain_community.my_peer.public_key.key_to_bin()

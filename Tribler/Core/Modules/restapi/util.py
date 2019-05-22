@@ -21,7 +21,7 @@ def return_handled_exception(request, exception):
         "error": {
             "handled": True,
             "code": exception.__class__.__name__,
-            "message": exception.message
+            "message": str(exception)
         }
     })
 

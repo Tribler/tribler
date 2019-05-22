@@ -36,14 +36,14 @@ class TestDHTHealthManager(TriblerCoreTest):
         def verify_health(response):
             self.assertIsInstance(response, dict)
             self.assertIn('DHT', response)
-            self.assertEqual(response['DHT'][0]['infohash'], hexlify('a' * 20))
+            self.assertEqual(response['DHT'][0]['infohash'], hexlify(b'a' * 20))
 
-        return self.dht_health_manager.get_health('a' * 20, timeout=0.1).addCallback(verify_health)
+        return self.dht_health_manager.get_health(b'a' * 20, timeout=0.1).addCallback(verify_health)
 
     @trial_timeout(10)
     def test_existing_get_health(self):
-        lookup_deferred = self.dht_health_manager.get_health('a' * 20, timeout=0.1)
-        self.assertEqual(self.dht_health_manager.get_health('a' * 20, timeout=0.1), lookup_deferred)
+        lookup_deferred = self.dht_health_manager.get_health(b'a' * 20, timeout=0.1)
+        self.assertEqual(self.dht_health_manager.get_health(b'a' * 20, timeout=0.1), lookup_deferred)
         return lookup_deferred
 
     @trial_timeout(10)
@@ -51,12 +51,12 @@ class TestDHTHealthManager(TriblerCoreTest):
         """
         Test combining two bloom filters
         """
-        bf1 = bytearray('a' * 256)
-        bf2 = bytearray('a' * 256)
+        bf1 = bytearray(b'a' * 256)
+        bf2 = bytearray(b'a' * 256)
         self.assertEqual(self.dht_health_manager.combine_bloomfilters(bf1, bf2), bf1)
 
-        bf1 = bytearray('\0' * 256)
-        bf2 = bytearray('b' * 256)
+        bf1 = bytearray(b'\0' * 256)
+        bf2 = bytearray(b'b' * 256)
         self.assertEqual(self.dht_health_manager.combine_bloomfilters(bf1, bf2), bf2)
 
     @trial_timeout(10)
@@ -76,7 +76,7 @@ class TestDHTHealthManager(TriblerCoreTest):
         self.assertEqual(self.dht_health_manager.get_size_from_bloomfilter(bf), 1224)
 
         # Maximum capacity
-        bf = bytearray('\xff' * 256)
+        bf = bytearray(b'\xff' * 256)
         self.assertEqual(self.dht_health_manager.get_size_from_bloomfilter(bf), 6000)
 
     @trial_timeout(10)
@@ -92,8 +92,8 @@ class TestDHTHealthManager(TriblerCoreTest):
         self.dht_health_manager.lookup_deferreds[infohash] = Deferred()
         self.dht_health_manager.bf_seeders[infohash] = bytearray(256)
         self.dht_health_manager.bf_peers[infohash] = bytearray(256)
-        self.dht_health_manager.received_bloomfilters('b' * 20,
-                                                      bf_seeds=bytearray('\xee' * 256),
-                                                      bf_peers=bytearray('\xff' * 256))
-        self.assertEqual(self.dht_health_manager.bf_seeders[infohash], bytearray('\xee' * 256))
-        self.assertEqual(self.dht_health_manager.bf_peers[infohash], bytearray('\xff' * 256))
+        self.dht_health_manager.received_bloomfilters(b'b' * 20,
+                                                      bf_seeds=bytearray(b'\xee' * 256),
+                                                      bf_peers=bytearray(b'\xff' * 256))
+        self.assertEqual(self.dht_health_manager.bf_seeders[infohash], bytearray(b'\xee' * 256))
+        self.assertEqual(self.dht_health_manager.bf_peers[infohash], bytearray(b'\xff' * 256))

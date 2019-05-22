@@ -157,10 +157,10 @@ class TorrentChecker(TaskManager):
         Perform a full health check on a random torrent in the database.
         We prioritize torrents that have no health info attached.
         """
-        random_torrents = self.tribler_session.lm.mds.TorrentState.select(
+        random_torrents = list(self.tribler_session.lm.mds.TorrentState.select(
             lambda g: (metadata for metadata in g.metadata if metadata.status != LEGACY_ENTRY and
                        metadata.metadata_type == REGULAR_TORRENT))\
-            .order_by(lambda g: g.last_check).limit(10)
+            .order_by(lambda g: g.last_check).limit(10))
 
         if not random_torrents:
             self._logger.info("Could not find any eligible torrent for random torrent check")
@@ -234,10 +234,11 @@ class TorrentChecker(TaskManager):
             if not success and isinstance(response, Failure):
                 final_response[response.tracker_url] = {'error': response.getErrorMessage()}
                 continue
-            final_response[response.keys()[0]] = response[response.keys()[0]][0]
+            keys = list(response.keys())
+            final_response[keys[0]] = response[keys[0]][0]
 
-            s = response[response.keys()[0]][0]['seeders']
-            l = response[response.keys()[0]][0]['leechers']
+            s = response[keys[0]][0]['seeders']
+            l = response[keys[0]][0]['leechers']
 
             # More leeches is better, because undefined peers are marked as leeches in DHT
             if s > torrent_update_dict['seeders'] or \
@@ -269,17 +270,17 @@ class TorrentChecker(TaskManager):
         with db_session:
             result = self.tribler_session.lm.mds.TorrentState.get(infohash=database_blob(infohash))
             if result:
-                torrent_id = str(result.infohash)
+                torrent_id = result.infohash
                 last_check = result.last_check
                 time_diff = time.time() - last_check
                 if time_diff < MIN_TORRENT_CHECK_INTERVAL and not scrape_now:
                     self._logger.debug("time interval too short, not doing torrent health check for %s",
-                                       hexlify(infohash))
+                                       hexlify(infohash).decode('utf-8'))
                     return succeed({
                         "db": {
                             "seeders": result.seeders,
                             "leechers": result.leechers,
-                            "infohash": hexlify(infohash)
+                            "infohash": hexlify(infohash).decode('utf-8')
                         }
                     })
 
@@ -362,7 +363,7 @@ class TorrentChecker(TaskManager):
         leechers = response['leechers']
         last_check = response['last_check']
 
-        self._logger.debug(u"Update result %s/%s for %s", seeders, leechers, hexlify(infohash))
+        self._logger.debug(u"Update result %s/%s for %s", seeders, leechers, hexlify(infohash).decode('utf-8'))
 
         with db_session:
             # Update torrent state

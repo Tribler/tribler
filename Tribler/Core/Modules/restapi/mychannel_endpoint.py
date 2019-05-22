@@ -21,6 +21,7 @@ from twisted.web.server import NOT_DONE_YET
 
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import entries_to_chunk
+from Tribler.Core.Utilities.unicode import recursive_unicode
 from Tribler.Core.Modules.restapi.metadata_endpoint import SpecificChannelTorrentsEndpoint
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.utilities import http_get, is_infohash, parse_magnetlink
@@ -42,7 +43,7 @@ class BaseMyChannelEndpoint(SpecificChannelTorrentsEndpoint):
             u"error": {
                 u"handled": True,
                 u"code": exception.__class__.__name__,
-                u"message": exception.message
+                u"message": str(exception)
             }
         })
 
@@ -64,7 +65,7 @@ class MyChannelEndpoint(BaseMyChannelEndpoint):
 
             return json.twisted_dumps({
                 'mychannel': {
-                    'public_key': hexlify(my_channel.public_key),
+                    'public_key': hexlify(my_channel.public_key).decode('utf-8'),
                     'name': my_channel.title,
                     'description': my_channel.tags,
                     'dirty': my_channel.dirty
@@ -72,7 +73,7 @@ class MyChannelEndpoint(BaseMyChannelEndpoint):
             })
 
     def render_POST(self, request):
-        parameters = http.parse_qs(request.content.read(), 1)
+        parameters = recursive_unicode(http.parse_qs(request.content.read(), 1))
         if 'name' not in parameters and 'description' not in parameters:
             request.setResponseCode(http.BAD_REQUEST)
             return json.twisted_dumps({"error": "name or description parameter missing"})
@@ -84,15 +85,14 @@ class MyChannelEndpoint(BaseMyChannelEndpoint):
                 return json.twisted_dumps({"error": "your channel has not been created"})
 
             my_channel.update_metadata(update_dict={
-                "tags": unquote(parameters['description'][0]).decode('utf-8'),
-                "title": unquote(parameters['name'][0]).decode('utf-8')
+                "tags": unquote(parameters['description'][0]),
+                "title": unquote(parameters['name'][0])
             })
 
         return json.twisted_dumps({"edited": True})
 
     def render_PUT(self, request):
-        parameters = http.parse_qs(request.content.read(), 1)
-
+        parameters = recursive_unicode(http.parse_qs(request.content.read(), 1))
         if 'name' not in parameters or not parameters['name'] or not parameters['name'][0]:
             request.setResponseCode(http.BAD_REQUEST)
             return json.twisted_dumps({"error": "channel name cannot be empty"})
@@ -100,7 +100,7 @@ class MyChannelEndpoint(BaseMyChannelEndpoint):
         if 'description' not in parameters or not parameters['description']:
             description = u''
         else:
-            description = unquote(parameters['description'][0]).decode('utf-8')
+            description = unquote(parameters['description'][0])
 
         my_key = self.session.trustchain_keypair
         my_channel_pk = my_key.pub().key_to_bin()
@@ -110,10 +110,10 @@ class MyChannelEndpoint(BaseMyChannelEndpoint):
             request.setResponseCode(http.CONFLICT)
             return json.twisted_dumps({"error": "channel already exists"})
 
-        title = unquote(parameters['name'][0]).decode('utf-8')
+        title = unquote(parameters['name'][0])
         self.session.lm.mds.ChannelMetadata.create_channel(title, description)
         return json.twisted_dumps({
-            "added": hexlify(str(my_channel_pk)),
+            "added": hexlify(my_channel_pk).decode('utf-8'),
         })
 
 
@@ -151,9 +151,10 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
                 request.setResponseCode(http.NOT_FOUND)
                 return json.twisted_dumps({"error": "your channel has not been created"})
 
-            sanitized = self.sanitize_parameters(request.args)
-            if b'exclude_deleted' in request.args:
-                sanitized['exclude_deleted'] = bool(int(request.args[b'exclude_deleted'][0]) > 0)
+            args = recursive_unicode(request.args)
+            sanitized = self.sanitize_parameters(args)
+            if 'exclude_deleted' in args:
+                sanitized['exclude_deleted'] = bool(int(request.args['exclude_deleted'][0]) > 0)
 
             sanitized.update(dict(channel_pk=database_blob(my_channel.public_key)))
 
@@ -169,7 +170,7 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
             })
 
     def render_POST(self, request):
-        parameters = http.parse_qs(request.content.read(), 1)
+        parameters = recursive_unicode(http.parse_qs(request.content.read(), 1))
         if 'status' not in parameters or 'infohashes' not in parameters:
             request.setResponseCode(http.BAD_REQUEST)
             return json.twisted_dumps({"error": "status or infohashes parameter missing"})
@@ -251,7 +252,7 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
             request.setResponseCode(http.NOT_FOUND)
             return json.twisted_dumps({"error": "your channel has not been created yet"})
 
-        parameters = http.parse_qs(request.content.read(), 1)
+        parameters = recursive_unicode(http.parse_qs(request.content.read(), 1))
 
         if 'description' not in parameters or not parameters['description']:
             extra_info = {}
@@ -313,14 +314,14 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
             return NOT_DONE_YET
 
         torrents_dir = None
-        if 'torrents_dir' in parameters and parameters['torrents_dir'] > 0:
+        if 'torrents_dir' in parameters and parameters['torrents_dir']:
             torrents_dir = parameters['torrents_dir'][0]
             if not os.path.isabs(torrents_dir):
                 request.setResponseCode(http.BAD_REQUEST)
                 return json.twisted_dumps({"error": "the torrents_dir should point to a directory"})
 
         recursive = False
-        if 'recursive' in parameters and parameters['recursive'] > 0:
+        if 'recursive' in parameters and parameters['recursive']:
             recursive = parameters['recursive'][0]
             if not torrents_dir:
                 request.setResponseCode(http.BAD_REQUEST)
@@ -402,12 +403,7 @@ class MyChannelSpecificTorrentEndpoint(BaseMyChannelEndpoint):
             :statuscode 404: if your channel or the infohash does not exist.
             :statuscode 500: if the passed arguments data is wrong.
         """
-        parameters_raw = http.parse_qs(request.content.read(), 1)
-        parameters = {}
-        # FIXME: make all endpoints Unicode-compatible in a unified way
-        for param, val in viewitems(parameters_raw):
-            parameters.update({param: [item.decode('utf-8') for item in val]})
-
+        parameters = recursive_unicode(http.parse_qs(request.content.read(), 1))
         if 'status' not in parameters and 'tags' not in parameters and 'title' not in parameters:
             request.setResponseCode(http.BAD_REQUEST)
             return json.twisted_dumps({"error": "attribute to change is missing"})

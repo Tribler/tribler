@@ -142,7 +142,7 @@ class VideoRequestHandler(BaseHTTPRequestHandler):
         fileindex = int(fileindex)
         filename, length = download.get_def().get_files_with_length()[fileindex]
 
-        requested_range = get_ranges(self.headers.getheader('range'), length)
+        requested_range = get_ranges(self.headers.get('range'), length)
         if requested_range is not None and len(requested_range) != 1:
             self.send_error(416, "Requested Range Not Satisfiable")
             return

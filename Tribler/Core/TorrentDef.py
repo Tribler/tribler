@@ -68,7 +68,7 @@ class TorrentDef(object):
         """
         self._logger = logging.getLogger(self.__class__.__name__)
         self.torrent_parameters = {}
-        self.metainfo = metainfo
+        self.metainfo = None
         self.files_list = []
         self.infohash = None
 
@@ -84,7 +84,7 @@ class TorrentDef(object):
                 lt.torrent_info(metainfo)
             except RuntimeError as exc:
                 raise ValueError(str(exc))
-
+            self.metainfo = metainfo
             self.infohash = sha1(bencode(metainfo[b'info'])).digest()
             self.copy_metainfo_to_torrent_parameters()
 
@@ -95,12 +95,12 @@ class TorrentDef(object):
         """
         Populate the torrent_parameters dictionary with information from the metainfo.
         """
-        for key in ["comment", "created by", "creation date", "announce", "announce-list", "nodes",
-                    "httpseeds", "urllist"]:
+        for key in [b"comment", b"created by", b"creation date", b"announce", b"announce-list", b"nodes",
+                    b"httpseeds", b"urllist"]:
             if key in self.metainfo:
                 self.torrent_parameters[key] = self.metainfo[key]
 
-        infokeys = ['name', 'piece length']
+        infokeys = [b'name', b'piece length']
         for key in infokeys:
             if key in self.metainfo[b'info']:
                 self.torrent_parameters[key] = self.metainfo[b'info'][key]
@@ -158,13 +158,13 @@ class TorrentDef(object):
         Set the character encoding for e.g. the 'name' field
         :param enc: The new encoding of the file.
         """
-        self.torrent_parameters['encoding'] = enc
+        self.torrent_parameters[b'encoding'] = enc
 
     def get_encoding(self):
         """
         Returns the used encoding of the TorrentDef.
         """
-        return self.torrent_parameters.get('encoding', 'utf-8')
+        return self.torrent_parameters.get(b'encoding', b'utf-8')
 
     def set_tracker(self, url):
         """
@@ -176,19 +176,19 @@ class TorrentDef(object):
 
         if url.endswith('/'):  # Some tracker code can't deal with / at end
             url = url[:-1]
-        self.torrent_parameters['announce'] = url
+        self.torrent_parameters[b'announce'] = url
 
     def get_tracker(self):
         """
         Returns the torrent announce URL.
         """
-        return self.torrent_parameters.get('announce', None)
+        return self.torrent_parameters.get(b'announce', None)
 
     def get_tracker_hierarchy(self):
         """
         Returns the hierarchy of trackers.
         """
-        return self.torrent_parameters.get('announce-list', [])
+        return self.torrent_parameters.get(b'announce-list', [])
 
     def get_trackers_as_single_tuple(self):
         """
@@ -216,13 +216,13 @@ class TorrentDef(object):
         if not isinstance(piece_length, six.integer_types):
             raise ValueError("Piece length not an int/long")
 
-        self.torrent_parameters['piece length'] = piece_length
+        self.torrent_parameters[b'piece length'] = piece_length
 
     def get_piece_length(self):
         """
         Returns the piece size.
         """
-        return self.torrent_parameters.get('piece length', 0)
+        return self.torrent_parameters.get(b'piece length', 0)
 
     def get_nr_pieces(self):
         """
@@ -230,7 +230,7 @@ class TorrentDef(object):
         """
         if not self.metainfo:
             return 0
-        return len(self.metainfo[b'info']['pieces']) // 20
+        return len(self.metainfo[b'info'][b'pieces']) // 20
 
     def get_pieces(self):
         """
@@ -238,7 +238,7 @@ class TorrentDef(object):
         """
         if not self.metainfo:
             return []
-        return self.metainfo[b'info']['pieces'][:]
+        return self.metainfo[b'info'][b'pieces'][:]
 
     def get_infohash(self):
         """
@@ -256,7 +256,7 @@ class TorrentDef(object):
         """
         Returns the name as raw string of bytes.
         """
-        return self.torrent_parameters['name']
+        return self.torrent_parameters[b'name']
 
     def get_name_utf8(self):
         """
@@ -269,25 +269,25 @@ class TorrentDef(object):
         Set the name of this torrent.
         :param name: The new name of the torrent
         """
-        self.torrent_parameters['name'] = name
+        self.torrent_parameters[b'name'] = name
 
     def get_name_as_unicode(self):
         """ Returns the info['name'] field as Unicode string.
         @return Unicode string. """
-        if "name.utf-8" in self.metainfo["info"]:
+        if b"name.utf-8" in self.metainfo[b"info"]:
             # There is an utf-8 encoded name.  We assume that it is
             # correctly encoded and use it normally
             try:
-                return ensure_unicode(self.metainfo["info"]["name.utf-8"], "UTF-8")
+                return ensure_unicode(self.metainfo[b"info"][b"name.utf-8"], "UTF-8")
             except UnicodeError:
                 pass
 
-        if "name" in self.metainfo["info"]:
+        if b"name" in self.metainfo[b"info"]:
             # Try to use the 'encoding' field.  If it exists, it
             # should contain something like 'utf-8'
             if "encoding" in self.metainfo:
                 try:
-                    return ensure_unicode(self.metainfo["info"]["name"], self.metainfo["encoding"])
+                    return ensure_unicode(self.metainfo[b"info"][b"name"], self.metainfo[b"encoding"])
                 except UnicodeError:
                     pass
                 except LookupError:
@@ -296,17 +296,10 @@ class TorrentDef(object):
                     # Windows is not supported (Jan 2010)
                     pass
 
-            # Try to convert the names in path to unicode, without
-            # specifying the encoding
-            try:
-                return text_type(self.metainfo["info"]["name"])
-            except UnicodeError:
-                pass
-
             # Try to convert the names in path to unicode, assuming
             # that it was encoded as utf-8
             try:
-                return ensure_unicode(self.metainfo["info"]["name"], "UTF-8")
+                return ensure_unicode(self.metainfo[b"info"][b"name"], "UTF-8")
             except UnicodeError:
                 pass
 
@@ -322,7 +315,7 @@ class TorrentDef(object):
                             self._logger.debug("Bad character filter %s, isalnum? %s", ord(char), char.isalnum())
                             return u"?"
                     return u"".join([filter_character(char) for char in name])
-                return text_type(filter_characters(self.metainfo["info"]["name"]))
+                return text_type(filter_characters(self.metainfo[b"info"][b"name"]))
             except UnicodeError:
                 pass
 
@@ -345,19 +338,19 @@ class TorrentDef(object):
         list of filenames.
         @return A unicode filename generator.
         """
-        if "files" in self.metainfo["info"]:
+        if "files" in self.metainfo[b"info"]:
             # Multi-file torrent
             join = os.path.join
-            files = self.metainfo["info"]["files"]
+            files = self.metainfo[b"info"][b"files"]
 
             for file_dict in files:
-                if "path.utf-8" in file_dict:
+                if b"path.utf-8" in file_dict:
                     # This file has an utf-8 encoded list of elements.
                     # We assume that it is correctly encoded and use
                     # it normally
                     try:
-                        yield (join(*[ensure_unicode(element, "UTF-8") for element in file_dict["path.utf-8"]]),
-                               file_dict["length"])
+                        yield (join(*[ensure_unicode(element, "UTF-8") for element in file_dict[b"path.utf-8"]]),
+                               file_dict[b"length"])
                         continue
                     except UnicodeError:
                         pass
@@ -366,9 +359,9 @@ class TorrentDef(object):
                     # Try to use the 'encoding' field.  If it exists,
                     # it should contain something like 'utf-8'
                     if "encoding" in self.metainfo:
-                        encoding = self.metainfo["encoding"]
+                        encoding = self.metainfo[b"encoding"]
                         try:
-                            yield (join(*[ensure_unicode(element, encoding) for element in file_dict["path"]]),
+                            yield (join(*[ensure_unicode(element, encoding) for element in file_dict[b"path"]]),
                                    file_dict["length"])
                             continue
                         except UnicodeError:
@@ -383,7 +376,7 @@ class TorrentDef(object):
                     # Try to convert the names in path to unicode,
                     # without specifying the encoding
                     try:
-                        yield join(*[text_type(element) for element in file_dict["path"]]), file_dict["length"]
+                        yield join(*[text_type(element) for element in file_dict[b"path"]]), file_dict[b"length"]
                         continue
                     except UnicodeError:
                         pass
@@ -391,8 +384,8 @@ class TorrentDef(object):
                     # Try to convert the names in path to unicode,
                     # assuming that it was encoded as utf-8
                     try:
-                        yield (join(*[ensure_unicode(element, "UTF-8") for element in file_dict["path"]]),
-                               file_dict["length"])
+                        yield (join(*[ensure_unicode(element, "UTF-8") for element in file_dict[b"path"]]),
+                               file_dict[b"length"])
                         continue
                     except UnicodeError:
                         pass
@@ -410,15 +403,15 @@ class TorrentDef(object):
                                         "Bad character filter %s, isalnum? %s", ord(char), char.isalnum())
                                     return u"?"
                             return u"".join([filter_character(char) for char in name])
-                        yield (join(*[text_type(filter_characters(element)) for element in file_dict["path"]]),
-                               file_dict["length"])
+                        yield (join(*[text_type(filter_characters(element)) for element in file_dict[b"path"]]),
+                               file_dict[b"length"])
                         continue
                     except UnicodeError:
                         pass
 
         else:
             # Single-file torrent
-            yield self.get_name_as_unicode(), self.metainfo["info"]["length"]
+            yield self.get_name_as_unicode(), self.metainfo[b"info"][b"length"]
 
     def get_files_with_length(self, exts=None):
         """ The list of files in the torrent def.
@@ -450,14 +443,14 @@ class TorrentDef(object):
         """
         Returns the creation date of the torrent.
         """
-        return self.metainfo.get("creation date", 0)
+        return self.metainfo.get(b"creation date", 0)
 
     def is_multifile_torrent(self):
         """
         Returns whether this TorrentDef is a multi-file torrent.
         """
         if self.metainfo:
-            return 'files' in self.metainfo[b'info']
+            return b'files' in self.metainfo[b'info']
         return False
 
     def is_private(self):
@@ -469,14 +462,14 @@ class TorrentDef(object):
     def get_index_of_file_in_files(self, file):
         info = self.metainfo[b'info']
 
-        if file is not None and 'files' in info:
-            for i in range(len(info['files'])):
-                file_dict = info['files'][i]
+        if file is not None and b'files' in info:
+            for i in range(len(info[b'files'])):
+                file_dict = info[b'files'][i]
 
-                if 'path.utf-8' in file_dict:
-                    intorrentpath = maketorrent.pathlist2filename(file_dict['path.utf-8'])
+                if b'path.utf-8' in file_dict:
+                    intorrentpath = maketorrent.pathlist2filename(file_dict[b'path.utf-8'])
                 else:
-                    intorrentpath = maketorrent.pathlist2filename(file_dict['path'])
+                    intorrentpath = maketorrent.pathlist2filename(file_dict[b'path'])
 
                 if intorrentpath == file:
                     return i
@@ -494,7 +487,7 @@ class TorrentDefNoMetainfo(object):
     """
 
     def __init__(self, infohash, name, url=None):
-        assert isinstance(infohash, six.binary_type), "INFOHASH has invalid type: %s" % type(infohash)
+        #assert isinstance(infohash, six.binary_type), "INFOHASH has invalid type: %s" % type(infohash)
         assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
         self.infohash = infohash
         self.name = name

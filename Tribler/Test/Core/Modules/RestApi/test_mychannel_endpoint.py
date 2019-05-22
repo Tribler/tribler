@@ -34,9 +34,9 @@ class BaseTestMyChannelEndpoint(AbstractApiTest):
         with db_session:
             _ = self.session.lm.mds.ChannelMetadata.create_channel('test', 'test')
             for ind in xrange(5):
-                _ = self.session.lm.mds.TorrentMetadata(title='torrent%d' % ind, status=NEW, infohash=('%d' % ind) * 20)
+                _ = self.session.lm.mds.TorrentMetadata(title='torrent%d' % ind, status=NEW, infohash=str(ind).encode()*20)
             for ind in xrange(5, 9):
-                _ = self.session.lm.mds.TorrentMetadata(title='torrent%d' % ind, infohash=('%d' % ind) * 20)
+                _ = self.session.lm.mds.TorrentMetadata(title='torrent%d' % ind, infohash=str(ind).encode()*20)
 
     def setUpPreSession(self):
         super(BaseTestMyChannelEndpoint, self).setUpPreSession()
@@ -259,12 +259,12 @@ class TestMyChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
         def on_response(_):
             with db_session:
                 my_channel = self.session.lm.mds.ChannelMetadata.get_my_channel()
-                torrent = my_channel.get_torrent('1' * 20)
+                torrent = my_channel.get_torrent(b'1' * 20)
                 self.assertEqual(torrent.status, TODELETE)
 
         self.should_check_equality = False
         self.create_my_channel()
-        post_params = {'status': TODELETE, 'infohashes': hexlify('1' * 20)}
+        post_params = {'status': TODELETE, 'infohashes': hexlify(b'1' * 20).decode('utf-8')}
         return self.do_request('mychannel/torrents', request_type='POST', post_data=post_params, expected_code=200)\
             .addCallback(on_response)
 
@@ -337,7 +337,7 @@ class TestMyChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
         tdef = TorrentDef.load(TORRENT_UBUNTU_FILE)
         my_channel.add_torrent_to_channel(tdef, {'description': 'blabla'})
 
-        with open(TORRENT_UBUNTU_FILE, "r") as torrent_file:
+        with open(TORRENT_UBUNTU_FILE, "rb") as torrent_file:
             base64_content = base64.b64encode(torrent_file.read())
 
             self.should_check_equality = False
@@ -355,7 +355,7 @@ class TestMyChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
             base64_content = base64.b64encode(torrent_file.read())
 
             self.should_check_equality = False
-            post_params = {'torrent': base64_content}
+            post_params = {'torrent': base64_content.decode('utf-8')}
             return self.do_request('mychannel/torrents', request_type='PUT', post_data=post_params, expected_code=200)
 
     @trial_timeout(10)
@@ -472,12 +472,12 @@ class TestMyChannelSpecificTorrentEndpoint(BaseTestMyChannelEndpoint):
         def on_response(r):
             with db_session:
                 my_channel = self.session.lm.mds.ChannelMetadata.get_my_channel()
-                torrent = my_channel.get_torrent('0' * 20)
+                torrent = my_channel.get_torrent(b'0' * 20)
                 self.assertEqual(torrent.status, UPDATED)
                 self.assertEqual(torrent.tags, new_tags)
                 self.assertEqual(torrent.title, new_title)
         self.should_check_equality = False
         self.create_my_channel()
         post_params = {'title': new_title, 'tags': new_tags}
-        return self.do_request('mychannel/torrents/%s' % hexlify('0' * 20),
+        return self.do_request('mychannel/torrents/%s' % hexlify(b'0' * 20).decode('utf-8'),
                                post_data=post_params, request_type='PATCH', expected_code=200).addCallback(on_response)

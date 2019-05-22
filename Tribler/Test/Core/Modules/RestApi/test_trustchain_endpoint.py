@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from binascii import hexlify, unhexlify
+
 from anydex.wallet.tc_wallet import TrustchainWallet
 
 from ipv8.attestation.trustchain.block import TrustChainBlock
@@ -46,14 +48,14 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         """
         block = TrustChainBlock()
         block.public_key = self.session.lm.trustchain_community.my_peer.public_key.key_to_bin()
-        block.link_public_key = "deadbeef".decode("HEX")
+        block.link_public_key = unhexlify(b"deadbeef")
         block.link_sequence_number = 21
-        block.type = 'tribler_bandwidth'
-        block.transaction = {"up": 42, "down": 8, "total_up": 1024, "total_down": 2048, "type": "tribler_bandwidth"}
+        block.type = b'tribler_bandwidth'
+        block.transaction = {"up": 42, "down": 8, "total_up": 1024, "total_down": 2048, "type": b"tribler_bandwidth"}
         block._transaction = encode(block.transaction)
         block.sequence_number = 3
-        block.previous_hash = "babecafe".decode("HEX")
-        block.signature = "babebeef".decode("HEX")
+        block.previous_hash = unhexlify(b"babecafe")
+        block.signature = unhexlify(b"babebeef")
         block.hash = block.calculate_hash()
         self.session.lm.trustchain_community.persistence.add_block(block)
 
@@ -61,8 +63,8 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
             response_json = json.twisted_loads(response)
             self.assertTrue("statistics" in response_json)
             stats = response_json["statistics"]
-            self.assertEqual(stats["id"], self.session.lm.trustchain_community.my_peer.
-                             public_key.key_to_bin().encode("HEX"))
+            self.assertEqual(stats["id"], hexlify(self.session.lm.trustchain_community.my_peer.
+                             public_key.key_to_bin()).decode('utf-8'))
             self.assertEqual(stats["total_blocks"], 3)
             self.assertEqual(stats["total_up"], 1024)
             self.assertEqual(stats["total_down"], 2048)
@@ -70,7 +72,7 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
             self.assertEqual(stats["peers_that_helped_pk"], 1)
             self.assertIn("latest_block", stats)
             self.assertNotEqual(stats["latest_block"]["insert_time"], "")
-            self.assertEqual(stats["latest_block"]["hash"], block.hash.encode("HEX"))
+            self.assertEqual(stats["latest_block"]["hash"], hexlify(block.hash).decode('utf-8'))
             self.assertEqual(stats["latest_block"]["link_public_key"], "deadbeef")
             self.assertEqual(stats["latest_block"]["link_sequence_number"], 21)
             self.assertEqual(stats["latest_block"]["up"], 42)
@@ -89,8 +91,8 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
             response_json = json.twisted_loads(response)
             self.assertTrue("statistics" in response_json)
             stats = response_json["statistics"]
-            self.assertEqual(stats["id"], self.session.lm.trustchain_community.my_peer.
-                             public_key.key_to_bin().encode("HEX"))
+            self.assertEqual(stats["id"], hexlify(self.session.lm.trustchain_community.my_peer.
+                             public_key.key_to_bin()).decode('utf-8'))
             self.assertEqual(stats["total_blocks"], 0)
             self.assertEqual(stats["total_up"], 0)
             self.assertEqual(stats["total_down"], 0)
@@ -122,7 +124,7 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
             self.assertEqual(response_json['transaction'], transaction2)
 
         test_block = TrustChainBlock()
-        test_block.type = 'tribler_bandwidth'
+        test_block.type = b'tribler_bandwidth'
         test_block.transaction = transaction
         test_block._transaction = encode(transaction)
         test_block.public_key = self.session.lm.trustchain_community.my_peer.public_key.key_to_bin()
@@ -145,7 +147,7 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
             self.assertEqual(response_json['transaction'], transaction2)
 
         test_block = TrustChainBlock()
-        test_block.type = 'tribler_bandwidth'
+        test_block.type = b'tribler_bandwidth'
         test_block.transaction = transaction
         test_block._transaction = encode(transaction)
         test_block.public_key = self.session.lm.trustchain_community.my_peer.public_key.key_to_bin()
@@ -162,7 +164,7 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         """
         transaction = {'up': 100, 'down': 0, 'total_up': 100, 'total_down': 0}
         test_block = TrustChainBlock()
-        test_block.type = 'tribler_bandwidth'
+        test_block.type = b'tribler_bandwidth'
         test_block.transaction = transaction
         test_block._transaction = encode(transaction)
         test_block.public_key = self.session.lm.trustchain_community.my_peer.public_key.key_to_bin()
@@ -179,7 +181,7 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         """
         transaction = {'up': 0, 'down': 100, 'total_up': 0, 'total_down': 100}
         test_block = TrustChainBlock()
-        test_block.type = 'tribler_bandwidth'
+        test_block.type = b'tribler_bandwidth'
         test_block.transaction = transaction
         test_block._transaction = encode(transaction)
         test_block.public_key = self.session.lm.trustchain_community.my_peer.public_key.key_to_bin()

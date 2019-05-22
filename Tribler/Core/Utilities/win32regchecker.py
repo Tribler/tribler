@@ -7,10 +7,10 @@ import logging
 import sys
 
 if sys.platform == 'win32':
-    import _winreg
+    from six.moves import winreg
 
     # short for PyHKEY from "_winreg" module
-    HKCR = _winreg.HKEY_CLASSES_ROOT
+    HKCR = winreg.HKEY_CLASSES_ROOT
 else:
     HKCR = 0
 
@@ -32,13 +32,13 @@ class Win32RegChecker:
         try:
             # test that shell/open association with ABC exist
             self._logger.debug("win32regcheck: Opening %s %s", key_name, value_name)
-            full_key = _winreg.OpenKey(hkey, key_name, 0, _winreg.KEY_READ)
+            full_key = winreg.OpenKey(hkey, key_name, 0, winreg.KEY_READ)
 
             self._logger.debug("win32regcheck: Open returned %s", full_key)
 
-            value_data, value_type = _winreg.QueryValueEx(full_key, value_name)
+            value_data, value_type = winreg.QueryValueEx(full_key, value_name)
             self._logger.debug("win32regcheck: Read %s %s", value_data, value_type)
-            _winreg.CloseKey(full_key)
+            winreg.CloseKey(full_key)
 
             return value_data
         except Exception as ex:

@@ -106,7 +106,7 @@ class CreditMiningManager(TaskManager):
         """
         self._logger.info('Shutting down CreditMiningManager')
 
-        deferreds = [self.remove_source(source) for source in self.sources.keys()] if remove_downloads else []
+        deferreds = [self.remove_source(source) for source in list(self.sources.keys())] if remove_downloads else []
 
         self.shutdown_task_manager()
 
@@ -189,7 +189,7 @@ class CreditMiningManager(TaskManager):
             self._logger.info('Removed source %s', source_str)
 
             deferreds = []
-            for infohash, torrent in self.torrents.items():
+            for infohash, torrent in list(self.torrents.items()):
                 if source_str in torrent.sources:
                     torrent.sources.remove(source_str)
                     if not torrent.sources:
@@ -226,7 +226,7 @@ class CreditMiningManager(TaskManager):
 
         # If a download already exists or already has a checkpoint, skip this torrent
         if self.session.get_download(unhexlify(infohash)) or \
-                os.path.exists(os.path.join(self.session.get_downloads_pstate_dir(), infohash + '.state')):
+                os.path.exists(os.path.join(self.session.get_downloads_pstate_dir(), infohash.decode('utf-8') + '.state')):
             self._logger.debug('Skipping torrent %s (download already running or scheduled to run)', infohash)
             return
 

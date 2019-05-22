@@ -50,11 +50,11 @@ class EventsEndpoint(resource.Resource):
             # Tribler has discovered a new torrent. Contains the torrent data
             (NTFY_TORRENT, NTFY_DISCOVERED): ("torrent_discovered", get_first_arg),
             # A torrent has finished downloading. Contains the infohash and the name of the torrent
-            (NTFY_TORRENT, NTFY_FINISHED): ("torrent_finished", lambda oid, *args: {"infohash": hexlify(oid), "name": args[0], "hidden": args[1]}),
+            (NTFY_TORRENT, NTFY_FINISHED): ("torrent_finished", lambda oid, *args: {"infohash": hexlify(oid).decode('utf-8'), "name": args[0], "hidden": args[1]}),
             # An error has occurred during the download process of a torrent. Contains infohash and error string
-            (NTFY_TORRENT, NTFY_ERROR): ("torrent_error", lambda oid, *args: {"infohash": hexlify(oid), "error": args[0], "hidden": args[1]}),
+            (NTFY_TORRENT, NTFY_ERROR): ("torrent_error", lambda oid, *args: {"infohash": hexlify(oid).decode('utf-8'), "error": args[0], "hidden": args[1]}),
             # Information about some torrent has been updated (e.g. health). Contains updated torrent data
-            (NTFY_TORRENT, NTFY_UPDATE): ("torrent_info_updated", lambda oid, *args: dict(infohash=hexlify(oid), **args[0])),
+            (NTFY_TORRENT, NTFY_UPDATE): ("torrent_info_updated", lambda oid, *args: dict(infohash=hexlify(oid).decode('utf-8'), **args[0])),
             # Information about some generic channel entity has been updated. Contains updated entity
             (NTFY_CHANNEL_ENTITY, NTFY_UPDATE): ("channel_entity_info_updated", lambda oid, *args: dict(**args[0])),
             # Tribler learned about a new ask in the market. Contains information about the ask.

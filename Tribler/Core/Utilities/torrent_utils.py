@@ -56,8 +56,8 @@ def create_torrent_file(file_path_list, params, torrent_filepath=None):
             filename = os.path.join(base_path[len(base_dir) + 1:], full_file_path[len(base_dir):])[1:]
             fs.add_file(filename, os.path.getsize(full_file_path))
 
-    if params.get('piece length'):
-        piece_size = params['piece length']
+    if params.get(b'piece length'):
+        piece_size = params[b'piece length']
     else:
         piece_size = 0
 
@@ -67,35 +67,39 @@ def create_torrent_file(file_path_list, params, torrent_filepath=None):
     if hasattr(libtorrent.create_torrent_flags_t, 'calculate_file_hashes'):
         flags |= libtorrent.create_torrent_flags_t.calculate_file_hashes
 
+    from six import PY3
+    params = {k:(v.decode('utf-8') if PY3 and isinstance(v, bytes) else v) for k,v in params.items()}
+
     torrent = libtorrent.create_torrent(fs, piece_size=piece_size, flags=flags)
-    if params.get('comment'):
-        torrent.set_comment(params['comment'])
-    if params.get('created by'):
-        torrent.set_creator(params['created by'])
+    # Python2 wants binary, python3 want unicode
+    if params.get(b'comment'):
+        torrent.set_comment(params[b'comment'])
+    if params.get(b'created by'):
+        torrent.set_creator(params[b'created by'])
     # main tracker
-    if params.get('announce'):
-        torrent.add_tracker(params['announce'])
+    if params.get(b'announce'):
+        torrent.add_tracker(params[b'announce'])
     # tracker list
-    if params.get('announce-list'):
+    if params.get(b'announce-list'):
         tier = 1
-        for tracker in params['announce-list']:
+        for tracker in params[b'announce-list']:
             torrent.add_tracker(tracker, tier=tier)
             tier += 1
     # DHT nodes
     # http://www.bittorrent.org/beps/bep_0005.html
-    if params.get('nodes'):
-        for node in params['nodes']:
+    if params.get(b'nodes'):
+        for node in params[b'nodes']:
             torrent.add_node(*node)
     # HTTP seeding
     # http://www.bittorrent.org/beps/bep_0017.html
-    if params.get('httpseeds'):
-        torrent.add_http_seed(params['httpseeds'])
+    if params.get(b'httpseeds'):
+        torrent.add_http_seed(params[b'httpseeds'])
 
     # Web seeding
     # http://www.bittorrent.org/beps/bep_0019.html
     if len(file_path_list) == 1:
-        if params.get('urllist', False):
-            torrent.add_url_seed(params['urllist'])
+        if params.get(b'urllist', False):
+            torrent.add_url_seed(params[b'urllist'])
 
     # read the files and calculate the hashes
     if len(file_path_list) == 1:

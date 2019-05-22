@@ -261,7 +261,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         # Get the latest block
         latest_block = self.bandwidth_wallet.trustchain.persistence.get_latest(self.my_peer.public_key.key_to_bin(),
-                                                                               block_type='tribler_bandwidth')
+                                                                               block_type=b'tribler_bandwidth')
         if not latest_block:
             latest_block = TriblerBandwidthBlock()
         latest_block.public_key = EMPTY_PK  # We hide the public key
@@ -331,7 +331,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         self.logger.info("Sending payout of %d (base: %d) to %s (cid: %s)", amount, base_amount, peer, circuit_id)
 
         block = TriblerBandwidthBlock.create(
-            'tribler_bandwidth',
+            b'tribler_bandwidth',
             {'up': 0, 'down': amount},
             self.bandwidth_wallet.trustchain.persistence,
             self.my_peer.public_key.key_to_bin(),

@@ -7,6 +7,8 @@ from datetime import datetime
 from ipv8.database import database_blob
 from ipv8.keyvault.crypto import default_eccrypto
 
+from six import binary_type
+
 from pony import orm
 from pony.orm.core import DEFAULT
 
@@ -126,8 +128,8 @@ def define_binding(db, logger=None, key=None, clock=None):
                         raise InvalidSignatureException(
                             ("Attempted to create %s object with invalid signature/PK: " % str(
                                 self.__class__.__name__)) +
-                            (hexlify(kwargs["signature"]) if "signature" in kwargs else "empty signature ") + " / " +
-                            (hexlify(kwargs["public_key"]) if "public_key" in kwargs else " empty PK"))
+                            (hexlify(kwargs["signature"]).decode('utf-8') if "signature" in kwargs else "empty signature ") + " / " +
+                            (hexlify(kwargs["public_key"]).decode('utf-8') if "public_key" in kwargs else " empty PK"))
 
             if private_key_override:
                 # Get default values for Pony class attributes. We have to do it manually because we need
@@ -135,7 +137,7 @@ def define_binding(db, logger=None, key=None, clock=None):
                 kwargs = generate_dict_from_pony_args(self.__class__, skip_list=["signature", "public_key"], **kwargs)
                 payload = self._payload_class(
                     **dict(kwargs,
-                           public_key=str(private_key_override.pub().key_to_bin()[10:]),
+                           public_key=private_key_override.pub().key_to_bin()[10:],
                            key=private_key_override,
                            metadata_type=self.metadata_type))
                 kwargs["public_key"] = payload.public_key
@@ -157,7 +159,7 @@ def define_binding(db, logger=None, key=None, clock=None):
             :param key: private key to sign object with
             :return: serialized_data+signature binary string
             """
-            return ''.join(self._serialized(key))
+            return b''.join(self._serialized(key))
 
         def _serialized_delete(self):
             """
@@ -174,7 +176,7 @@ def define_binding(db, logger=None, key=None, clock=None):
             Create a special command to delete this metadata and encode it for transfer (blob output).
             :return: serialized_data+signature binary string
             """
-            return ''.join(self._serialized_delete())
+            return b''.join(self._serialized_delete())
 
         def to_file(self, filename, key=None):
             with open(filename, 'wb') as output_file:
@@ -193,7 +195,7 @@ def define_binding(db, logger=None, key=None, clock=None):
         def has_valid_signature(self):
             crypto = default_eccrypto
             signature_correct = False
-            key_correct = crypto.is_valid_public_bin(b"LibNaCLPK:" + str(self.public_key))
+            key_correct = crypto.is_valid_public_bin(b"LibNaCLPK:" + binary_type(self.public_key))
 
             if key_correct:
                 try:

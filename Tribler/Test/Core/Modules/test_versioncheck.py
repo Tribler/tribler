@@ -1,3 +1,5 @@
+from six import ensure_binary
+
 from Tribler.Test.tools import trial_timeout
 from twisted.internet import reactor
 from twisted.internet.defer import maybeDeferred, inlineCallbacks
@@ -42,7 +44,7 @@ class TestVersionCheck(TestAsServer):
         self.new_version_called = True
 
     def setup_version_server(self, response, response_code=200):
-        site = server.Site(VersionResource(response, response_code))
+        site = server.Site(VersionResource(ensure_binary(response), response_code))
         self.server = reactor.listenTCP(self.port, site)
 
     def assert_new_version_called(self, _):
@@ -63,12 +65,12 @@ class TestVersionCheck(TestAsServer):
         self.setup_version_server(json.dumps({'name': 'v1337.0'}))
         return self.check_version()
 
-    @trial_timeout(10)
+    @trial_timeout(20)
     def test_bad_request(self):
         self.setup_version_server(json.dumps({'name': 'v1.0'}), response_code=500)
         return self.check_version()
 
-    @trial_timeout(10)
+    @trial_timeout(20)
     def test_connection_error(self):
         self.setup_version_server(json.dumps({'name': 'v1.0'}))
         versioncheck_manager.VERSION_CHECK_URL = "http://this.will.not.exist"

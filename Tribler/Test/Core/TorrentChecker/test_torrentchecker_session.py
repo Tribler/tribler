@@ -185,7 +185,7 @@ class TestTorrentCheckerSession(TestAsServer):
         session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 0, self.socket_mgr)
         session.on_ip_address_resolved("127.0.0.1")
         self.assertFalse(session.is_failed)
-        packet = struct.pack("!qq4s", 123, 123, "test")
+        packet = struct.pack("!qq4s", 123, 123, b"test")
         session.handle_connection_response(packet)
         self.assertTrue(session.is_failed)
 
@@ -202,7 +202,7 @@ class TestTorrentCheckerSession(TestAsServer):
         session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 0, self.socket_mgr)
         session.on_ip_address_resolved("127.0.0.1", start_scraper=None)
         self.assertFalse(session.is_failed)
-        packet = struct.pack("!qq4s", 123, 123, "test")
+        packet = struct.pack("!qq4s", 123, 123, b"test")
         session.handle_connection_response(packet)
         self.assertTrue(session.is_failed)
 
@@ -241,7 +241,7 @@ class TestTorrentCheckerSession(TestAsServer):
         session.action = 123
         session.transaction_id = 123
         self.assertFalse(session.is_failed)
-        session._infohash_list = ["test", "test2"]
+        session._infohash_list = [b"test", b"test2"]
         packet = struct.pack("!iiiii", 123, 123, 0, 1, 2)
         session.handle_scrape_response(packet)
         self.assertTrue(session.is_failed)
@@ -252,7 +252,7 @@ class TestTorrentCheckerSession(TestAsServer):
         session.on_ip_address_resolved("127.0.0.1", start_scraper=False)
         session.result_deferred = Deferred()
         self.assertFalse(session.is_failed)
-        session._infohash_list = ["test"]
+        session._infohash_list = [b"test"]
         packet = struct.pack("!iiiii", session.action, session.transaction_id, 0, 1, 2)
         session.handle_scrape_response(packet)
 
@@ -276,7 +276,7 @@ class TestTorrentCheckerSession(TestAsServer):
         self.assertFalse(session.is_failed)
         packet = struct.pack("!iiq", session.action, session.transaction_id, 126)
         session.handle_response(packet)
-        session._infohash_list = ["test"]
+        session._infohash_list = [b"test"]
         packet = struct.pack("!iiiii", session.action, session.transaction_id, 0, 1, 2)
         session.handle_response(packet)
         self.assertTrue(session.is_finished)
@@ -287,8 +287,8 @@ class TestTorrentCheckerSession(TestAsServer):
         session = HttpTrackerSession("localhost", ("localhost", 8475), "/announce", 5)
         result_deferred = Deferred()
         session.result_deferred = result_deferred
-        session._infohash_list.append("test")
-        response = bencode({"files": {"a" * 20: {"complete": 10, "incomplete": 10}}})
+        session._infohash_list.append(b"test")
+        response = bencode({"files": {b"a" * 20: {"complete": 10, "incomplete": 10}}})
         session._process_scrape_response(response)
         self.assertTrue(session.is_finished)
 
@@ -339,14 +339,14 @@ class TestDHTSession(TriblerCoreTest):
         self.session.lm.ltmgr = MockObject()
         self.session.lm.ltmgr.dht_health_manager = MockObject()
         dht_health_dict = {
-            "infohash": hexlify('a' * 20),
+            "infohash": hexlify(b'a' * 20),
             "seeders": 1,
             "leechers": 2
         }
         self.session.lm.ltmgr.dht_health_manager.get_health = lambda *_, **__: succeed({"DHT": [dht_health_dict]})
 
-        self.dht_session = FakeDHTSession(self.session, 'a' * 20, 10)
-        self.bep33_dht_session = FakeBep33DHTSession(self.session, 'a' * 20, 10)
+        self.dht_session = FakeDHTSession(self.session, b'a' * 20, 10)
+        self.bep33_dht_session = FakeBep33DHTSession(self.session, b'a' * 20, 10)
 
     @trial_timeout(10)
     def test_cleanup(self):

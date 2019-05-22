@@ -3,7 +3,7 @@ A wrapper around a libtorrent download.
 
 Author(s): Arno Bakker, Egbert Bouman
 """
-from __future__ import absolute_import
+from __future__ import absolute_import, division
 
 import base64
 import logging
@@ -18,8 +18,7 @@ from ipv8.taskmanager import TaskManager
 
 import libtorrent as lt
 
-import six
-from six.moves import xrange
+from six import ensure_binary, ensure_text, int2byte
 
 from twisted.internet import reactor
 from twisted.internet.defer import CancelledError, Deferred, succeed
@@ -54,7 +53,7 @@ class VODFile(object):
         self._download = d
 
         pieces = self._download.tdef.get_pieces()
-        self.pieces = [pieces[x:x + 20] for x in xrange(0, len(pieces), 20)]
+        self.pieces = [pieces[x:x + 20] for x in list(range(0, len(pieces), 20))]
         self.piecesize = self._download.tdef.get_piece_length()
 
         self.startpiece = get_info_from_handle(self._download.handle).map_file(
@@ -279,7 +278,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                 metainfo = self.tdef.get_metainfo()
                 torrentinfo = lt.torrent_info(metainfo)
 
-                self.orig_files = [file_entry.path.decode('utf-8') for file_entry in torrentinfo.files()]
+                self.orig_files = [ensure_text(file_entry.path) for file_entry in torrentinfo.files()]
                 is_multifile = len(self.orig_files) > 1
                 commonprefix = os.path.commonprefix(self.orig_files) if is_multifile else ''
                 swarmname = commonprefix.partition(os.path.sep)[0]
@@ -298,12 +297,12 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                 atp["ti"] = torrentinfo
                 if resume_data and isinstance(resume_data, dict):
                     # Rewrite save_path as a global path, if it is given as a relative path
-                    if "save_path" in resume_data and not os.path.isabs(resume_data["save_path"]):
-                        resume_data["save_path"] = six.text_type(
-                            os.path.join(self.state_dir, ensure_unicode(resume_data["save_path"], 'utf-8')))
+                    if b"save_path" in resume_data and not os.path.isabs(resume_data[b"save_path"]):
+                        resume_data[b"save_path"] = six.text_type(
+                            os.path.join(self.state_dir, ensure_unicode(resume_data[b"save_path"], 'utf-8')))
                     atp["resume_data"] = lt.bencode(resume_data)
             else:
-                atp["url"] = self.tdef.get_url() or "magnet:?xt=urn:btih:" + hexlify(self.tdef.get_infohash())
+                atp["url"] = self.tdef.get_url() or "magnet:?xt=urn:btih:" + hexlify(self.tdef.get_infohash()).decode('utf-8')
                 atp["name"] = self.tdef.get_name_as_unicode()
 
         def on_torrent_added(handle):
@@ -400,21 +399,21 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                     pieces_have += 1
                 elif consecutive:
                     break
-            return float(pieces_have) / pieces_all
+            return pieces_have / pieces_all
         return 0.0
 
-    @checkHandleAndSynchronize('')
+    @checkHandleAndSynchronize(b'')
     def get_pieces_base64(self):
         """
         Returns a base64 encoded bitmask of the pieces that we have.
         """
-        bitstr = ""
+        bitstr = b""
         for bit in self.handle.status().pieces:
-            bitstr += '1' if bit else '0'
+            bitstr += b'1' if bit else b'0'
 
-        encoded_str = ""
+        encoded_str = b""
         for i in range(0, len(bitstr), 8):
-            encoded_str += chr(int(bitstr[i:i + 8].ljust(8, '0'), 2))
+            encoded_str += int2byte(int(bitstr[i:i + 8].ljust(8, b'0'), 2))
         return base64.b64encode(encoded_str)
 
     @checkHandleAndSynchronize(0.0)
@@ -437,7 +436,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                 startpiece = max(startpiece, 0)
                 endpiece = min(endpiece, torrent_info.num_pieces())
 
-                pieces += range(startpiece, endpiece)
+                pieces += list(range(startpiece, endpiece))
             else:
                 self._logger.info("LibtorrentDownloadImpl: could not get progress for incorrect fileindex")
 
@@ -483,7 +482,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                 startpiece = max(startpiece, 0)
                 endpiece = min(endpiece, torrent_info.num_pieces())
 
-                pieces += range(startpiece, endpiece)
+                pieces += list(range(startpiece, endpiece))
             else:
                 self._logger.info("LibtorrentDownloadImpl: could not set priority for incorrect fileindex")
 
@@ -516,17 +515,17 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         self.pstate_for_restart = self.get_persistent_download_config()
 
         # Make save_path relative if the torrent is saved in the Tribler state directory
-        if self.state_dir and 'save_path' in resume_data and os.path.abspath(resume_data['save_path']):
-            if self.state_dir == os.path.commonprefix([ensure_unicode(resume_data['save_path'], 'utf-8'),
+        if self.state_dir and b'save_path' in resume_data and os.path.abspath(resume_data[b'save_path']):
+            if self.state_dir == os.path.commonprefix([ensure_unicode(resume_data[b'save_path'], 'utf-8'),
                                                        self.state_dir]):
-                resume_data['save_path'] = six.text_type(
+                resume_data[b'save_path'] = six.text_type(
                     os.path.relpath(ensure_unicode(resume_data['save_path'], 'utf-8'), self.state_dir))
 
         self.pstate_for_restart.set('state', 'engineresumedata', resume_data)
-        self._logger.debug("%s get resume data %s", hexlify(resume_data['info-hash']), resume_data)
+        self._logger.debug("%s get resume data %s", hexlify(resume_data[b'info-hash']).decode('utf-8'), resume_data)
 
         # save it to file
-        basename = hexlify(resume_data['info-hash']) + '.state'
+        basename = hexlify(resume_data[b'info-hash']).decode('utf-8') + '.state'
         filename = os.path.join(self.session.get_downloads_pstate_dir(), basename)
 
         self._logger.debug("tlm: network checkpointing: to file %s", filename)
@@ -575,14 +574,14 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         if not torrent_info:
             return
 
-        metadata = {'info': lt.bdecode(torrent_info.metadata())}
+        metadata = {b'info': lt.bdecode(torrent_info.metadata())}
 
-        trackers = [tracker['url'] for tracker in self.handle.trackers()]
+        trackers = [ensure_binary(tracker['url']) for tracker in self.handle.trackers()]
         if trackers:
             if len(trackers) > 1:
-                metadata["announce-list"] = [trackers]
+                metadata[b"announce-list"] = [trackers]
             else:
-                metadata["announce"] = trackers[0]
+                metadata[b"announce"] = trackers[0]
 
         try:
             self.tdef = TorrentDef.load_from_dict(metadata)
@@ -596,7 +595,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
             self._logger.warning("Torrent contains no files!")
             torrent_files = []
 
-        self.orig_files = [torrent_file.path.decode('utf-8') for torrent_file in torrent_files]
+        self.orig_files = [ensure_text(torrent_file.path) for torrent_file in torrent_files]
         self.set_corrected_infoname()
         self.set_filepieceranges()
         self.set_selected_files()
@@ -604,7 +603,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         self.checkpoint()
 
     def on_file_renamed_alert(self, alert):
-        unwanteddir_abs = os.path.join(ensure_unicode(self.get_save_path(), 'utf-8'), self.unwanted_directory_name)
+        unwanteddir_abs = os.path.join(self.get_save_path(), self.unwanted_directory_name)
         if os.path.exists(unwanteddir_abs) and all(self.handle.file_priorities()):
             shutil.rmtree(unwanteddir_abs, ignore_errors=True)
 
@@ -693,7 +692,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
 
         # Allow correctedinfoname to be overwritten for multifile torrents only
         if self.get_corrected_filename() and self.get_corrected_filename() != '' and 'files' in \
-                self.tdef.get_metainfo()['info']:
+                self.tdef.get_metainfo()[b'info']:
             self.correctedinfoname = self.get_corrected_filename()
 
     @property
@@ -721,7 +720,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
             else:
                 DownloadConfigInterface.set_selected_files(self, selected_files)
 
-            unwanteddir_abs = os.path.join(self.get_save_path().decode('utf-8'), self.unwanted_directory_name)
+            unwanteddir_abs = os.path.join(self.get_save_path(), self.unwanted_directory_name)
             torrent_info = get_info_from_handle(self.handle)
             if not torrent_info or not hasattr(torrent_info, 'files'):
                 self._logger.error("File info not available for torrent [%s]", self.correctedinfoname)
@@ -739,13 +738,13 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                 else:
                     filepriorities.append(0)
                     new_path = os.path.join(self.unwanted_directory_name,
-                                            '%s%d' % (hexlify(self.tdef.get_infohash()), index))
+                                            '%s%d' % (hexlify(self.tdef.get_infohash()).decode('utf-8'), index))
 
                 # as from libtorrent 1.0, files returning file_storage (lazy-iterable)
                 if hasattr(lt, 'file_storage') and isinstance(torrent_storage, lt.file_storage):
-                    cur_path = torrent_storage.at(index).path.decode('utf-8')
+                    cur_path = ensure_text(torrent_storage.at(index).path)
                 else:
-                    cur_path = torrent_storage[index].path.decode('utf-8')
+                    cur_path = ensure_text(torrent_storage[index].path)
 
                 if cur_path != new_path:
                     if not os.path.exists(unwanteddir_abs) and self.unwanted_directory_name in new_path:
@@ -784,7 +783,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
             # self.handle.status().save_path to query the save path of a torrent. However, this attribute
             # is only included in libtorrent 1.0.9+
             status = self.handle.status()
-            return status.save_path if hasattr(status, 'save_path') else self.handle.save_path()
+            return ensure_text(status.save_path if hasattr(status, 'save_path') else self.handle.save_path())
 
     @checkHandleAndSynchronize()
     def force_recheck(self):
@@ -919,7 +918,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         for announce_entry in self.handle.trackers():
             if announce_entry['url'] not in self.tracker_status:
                 try:
-                    url = six.text_type(announce_entry['url'])
+                    url = ensure_text(announce_entry['url'])
                     self.tracker_status[url] = [0, 'Not contacted yet']
                 except UnicodeDecodeError:
                     pass
@@ -1044,7 +1043,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                 filename = file_entry.path
                 ext = os.path.splitext(filename)[1].lstrip('.')
                 if exts is None or ext in exts:
-                    dest_files.append((filename, os.path.join(self.get_dest_dir(), filename.decode('utf-8'))))
+                    dest_files.append((filename, os.path.join(self.get_dest_dir(), ensure_text(filename))))
         return dest_files
 
     def checkpoint(self):
@@ -1058,7 +1057,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         if not self.handle or not self.handle.is_valid():
             # Libtorrent hasn't received or initialized this download yet
             # 1. Check if we have data for this infohash already (don't overwrite it if we do!)
-            basename = hexlify(self.tdef.get_infohash()) + '.state'
+            basename = hexlify(self.tdef.get_infohash()).decode('utf-8') + '.state'
             filename = os.path.join(self.session.get_downloads_pstate_dir(), basename)
             if not os.path.isfile(filename):
                 resume_data = self.pstate_for_restart.get('state', 'engineresumedata') \
@@ -1067,9 +1066,9 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                 # 2. If there is no saved data for this infohash, checkpoint it without data so we do not
                 #    lose it when we crash or restart before the download becomes known.
                 resume_data = resume_data or {
-                    'file-format': "libtorrent resume file",
-                    'file-version': 1,
-                    'info-hash': self.tdef.get_infohash()
+                    b'file-format': b"libtorrent resume file",
+                    b'file-version': 1,
+                    b'info-hash': self.tdef.get_infohash()
                 }
                 alert = type('anonymous_alert', (object,), dict(resume_data=resume_data))
                 self.on_save_resume_data_alert(alert)
