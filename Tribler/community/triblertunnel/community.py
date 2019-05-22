@@ -559,8 +559,7 @@ class TriblerTunnelTestnetCommunity(TriblerTunnelCommunity):
     """
     This community defines a testnet for the anonymous tunnels.
     """
-    master_peer = ("3081a7301006072a8648ce3d020106052b81040027038192000401325e6f0a67a92a890344013914fcf9da9b0326"
-                   "bf6c845815ec8b537e356a56b2a8c27ac4918078202f60eb29ebf081436136c280316ac461daee2d04cf073d1200"
-                   "80d15628af1002b0c0273d9d94fdab08e718f568d83b9c4298117261b5647ca8295f1ba4b880a50fd2ef7041fef7"
-                   "edfbef5f02fc03827a2c09c5f9c701f87abacd022c780d76733c133363a5c46c")
+
+    master_peer = ("4c69624e61434c504b3a7773497078402b39b61b4d26851dad4a8d956243558ff387239a80429c362f52df70e1e"
+                   "8a97182311d7fb9c13fb80fae616bc82c691c7f03e69560da8c7295d8")
     master_peer = Peer(unhexlify(master_peer))
