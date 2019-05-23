@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 import time
-from binascii import unhexlify, hexlify
+from binascii import hexlify, unhexlify
 from random import choice, randint
 
 import Tribler.Test.GUI.FakeTriblerAPI.tribler_utils as tribler_utils

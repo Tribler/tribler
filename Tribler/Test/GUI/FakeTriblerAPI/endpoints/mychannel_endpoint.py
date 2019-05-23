@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 import json
-from binascii import unhexlify, hexlify
+from binascii import hexlify, unhexlify
 
 from twisted.web import http, resource
 
