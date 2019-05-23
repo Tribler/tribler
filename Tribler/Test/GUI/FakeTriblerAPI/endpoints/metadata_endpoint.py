@@ -55,9 +55,9 @@ class ChannelsEndpoint(BaseChannelsEndpoint):
         """
         Sanitize the parameters and check whether they exist
         """
-        first = 1 if 'first' not in parameters else int(parameters['first'][0])
-        last = 50 if 'last' not in parameters else int(parameters['last'][0])
-        sort_by = None if 'sort_by' not in parameters else parameters['sort_by'][0]
+        first = 1 if 'first' not in parameters else int(parameters['first'][0])  # TODO check integer!
+        last = 50 if 'last' not in parameters else int(parameters['last'][0])  # TODO check integer!
+        sort_by = None if 'sort_by' not in parameters else parameters['sort_by'][0]  # TODO check integer!
         sort_asc = True if 'sort_asc' not in parameters else bool(int(parameters['sort_asc'][0]))
         query_filter = None if 'filter' not in parameters else parameters['filter'][0]
 
@@ -126,9 +126,9 @@ class SpecificChannelTorrentsEndpoint(BaseChannelsEndpoint):
         """
         Sanitize the parameters and check whether they exist
         """
-        first = 1 if 'first' not in parameters else int(parameters['first'][0])
-        last = 50 if 'last' not in parameters else int(parameters['last'][0])
-        sort_by = None if 'sort_by' not in parameters else parameters['sort_by'][0]
+        first = 1 if 'first' not in parameters else int(parameters['first'][0])  # TODO check integer!
+        last = 50 if 'last' not in parameters else int(parameters['last'][0])  # TODO check integer!
+        sort_by = None if 'sort_by' not in parameters else parameters['sort_by'][0]  # TODO check integer!
         sort_asc = True if 'sort_asc' not in parameters else bool(int(parameters['sort_asc'][0]))
         query_filter = None if 'filter' not in parameters else parameters['filter'][0]
 

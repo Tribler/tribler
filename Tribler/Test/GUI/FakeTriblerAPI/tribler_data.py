@@ -4,6 +4,8 @@ from random import randint, sample
 
 from time import time
 
+from six.moves import xrange
+
 from Tribler.Test.GUI.FakeTriblerAPI.constants import NEW, TODELETE
 from Tribler.Test.GUI.FakeTriblerAPI.models.channel import Channel
 from Tribler.Test.GUI.FakeTriblerAPI.models.download import Download
@@ -136,7 +138,8 @@ class TriblerData(object):
 
         return results[first-1:last], len(results)
 
-    def get_torrents(self, first=1, last=50, sort_by=None, sort_asc=True, filter=None, channel_pk=None, include_status=False):
+    def get_torrents(self, first=1, last=50, sort_by=None, sort_asc=True, filter=None, channel_pk=None,
+                     include_status=False):
         """
         Return torrents, based on various parameters.
         """
