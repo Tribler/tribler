@@ -1,23 +1,24 @@
 import os
+
 from random import randint, sample
+
 from time import time
 
 from Tribler.Test.GUI.FakeTriblerAPI.constants import NEW, TODELETE
-from Tribler.Test.GUI.FakeTriblerAPI.models.trustchain_block import TrustchainBlock
+from Tribler.Test.GUI.FakeTriblerAPI.models.channel import Channel
+from Tribler.Test.GUI.FakeTriblerAPI.models.download import Download
 from Tribler.Test.GUI.FakeTriblerAPI.models.order import Order
 from Tribler.Test.GUI.FakeTriblerAPI.models.tick import Tick
+from Tribler.Test.GUI.FakeTriblerAPI.models.torrent import Torrent
 from Tribler.Test.GUI.FakeTriblerAPI.models.transaction import Transaction
+from Tribler.Test.GUI.FakeTriblerAPI.models.trustchain_block import TrustchainBlock
+from Tribler.Test.GUI.FakeTriblerAPI.models.tunnel import Circuit, Relay, Exit
 from Tribler.Test.GUI.FakeTriblerAPI.utils.network import get_random_port
-from models.channel import Channel
-from models.download import Download
-from models.torrent import Torrent
-from models.tunnel import Circuit, Relay, Exit
-
 
 CREATE_MY_CHANNEL = True
 
 
-class TriblerData:
+class TriblerData(object):
 
     def __init__(self):
         self.channels = []
@@ -32,6 +33,9 @@ class TriblerData:
         self.orders = []
         self.dht_stats = {}
         self.video_player_port = get_random_port()
+        self.tunnel_circuits = []
+        self.tunnel_relays = []
+        self.tunnel_exits = []
 
     def generate(self):
         self.generate_torrents()
@@ -174,7 +178,7 @@ class TriblerData:
     def assign_subscribed_channels(self):
         # Make between 10 and 50 channels subscribed channels
         num_subscribed = randint(10, 20)
-        for i in range(0, num_subscribed):
+        for _ in range(0, num_subscribed):
             channel_index = randint(0, len(self.channels) - 1)
             self.subscribed_channels.add(channel_index)
             self.channels[channel_index].subscribed = True
@@ -184,15 +188,17 @@ class TriblerData:
         for _ in xrange(1000):
             self.torrents.append(Torrent.random())
 
-    def get_channel_with_id(self, id):
+    def get_channel_with_id(self, cid):
         for channel in self.channels:
-            if str(channel.id) == id:
+            if str(channel.id) == cid:
                 return channel
+        return None
 
     def get_channel_with_public_key(self, public_key):
         for channel in self.channels:
             if str(channel.public_key) == public_key:
                 return channel
+        return None
 
     def get_my_channel(self):
         if self.my_channel == -1:
@@ -203,11 +209,13 @@ class TriblerData:
         for download in self.downloads:
             if download.torrent.infohash == infohash:
                 return download
+        return None
 
     def get_torrent_with_infohash(self, infohash):
         for torrent in self.torrents:
             if torrent.infohash == infohash:
                 return torrent
+        return None
 
     def start_random_download(self, media=False):
         random_torrent = Torrent.random()
@@ -244,7 +252,7 @@ class TriblerData:
         my_id = 'a' * 20
         cur_timestamp = time() - 100 * 24 * 3600  # 100 days in the past
         self.trustchain_blocks.append(TrustchainBlock(my_id=my_id, timestamp=cur_timestamp))
-        for i in xrange(100):
+        for _ in xrange(100):
             cur_timestamp += 24 * 3600
             self.trustchain_blocks.append(TrustchainBlock(my_id=my_id, timestamp=cur_timestamp, last_block=
                                                           self.trustchain_blocks[-1]))
@@ -259,6 +267,7 @@ class TriblerData:
         for transaction in self.transactions:
             if transaction.trader_id == trader_id and transaction.transaction_number == tx_number:
                 return transaction
+        return None
 
     def generate_transactions(self):
         self.transactions = [Transaction('DUM1', 'DUM2') for _ in xrange(randint(20, 50))]

@@ -55,25 +55,26 @@ class ChannelsEndpoint(BaseChannelsEndpoint):
         """
         Sanitize the parameters and check whether they exist
         """
-        first = 1 if 'first' not in parameters else int(parameters['first'][0])  # TODO check integer!
-        last = 50 if 'last' not in parameters else int(parameters['last'][0])  # TODO check integer!
-        sort_by = None if 'sort_by' not in parameters else parameters['sort_by'][0]  # TODO check integer!
+        first = 1 if 'first' not in parameters else int(parameters['first'][0])
+        last = 50 if 'last' not in parameters else int(parameters['last'][0])
+        sort_by = None if 'sort_by' not in parameters else parameters['sort_by'][0]
         sort_asc = True if 'sort_asc' not in parameters else bool(int(parameters['sort_asc'][0]))
-        filter = None if 'filter' not in parameters else parameters['filter'][0]
+        query_filter = None if 'filter' not in parameters else parameters['filter'][0]
 
-        if filter:
-            parts = filter.split("\"")
-            filter = parts[1]
+        if query_filter:
+            parts = query_filter.split("\"")
+            query_filter = parts[1]
 
         subscribed = False
         if 'subscribed' in parameters:
             subscribed = bool(int(parameters['subscribed'][0]))
 
-        return first, last, sort_by, sort_asc, filter, subscribed
+        return first, last, sort_by, sort_asc, query_filter, subscribed
 
     def render_GET(self, request):
-        first, last, sort_by, sort_asc, filter, subscribed = ChannelsEndpoint.sanitize_parameters(request.args)
-        channels, total = tribler_utils.tribler_data.get_channels(first, last, sort_by, sort_asc, filter, subscribed)
+        first, last, sort_by, sort_asc, query_filter, subscribed = ChannelsEndpoint.sanitize_parameters(request.args)
+        channels, total = tribler_utils.tribler_data.get_channels(first, last, sort_by, sort_asc, query_filter,
+                                                                  subscribed)
         return json.dumps({
             "results": channels,
             "first": first,
@@ -125,30 +126,30 @@ class SpecificChannelTorrentsEndpoint(BaseChannelsEndpoint):
         """
         Sanitize the parameters and check whether they exist
         """
-        first = 1 if 'first' not in parameters else int(parameters['first'][0])  # TODO check integer!
-        last = 50 if 'last' not in parameters else int(parameters['last'][0])  # TODO check integer!
-        sort_by = None if 'sort_by' not in parameters else parameters['sort_by'][0]  # TODO check integer!
+        first = 1 if 'first' not in parameters else int(parameters['first'][0])
+        last = 50 if 'last' not in parameters else int(parameters['last'][0])
+        sort_by = None if 'sort_by' not in parameters else parameters['sort_by'][0]
         sort_asc = True if 'sort_asc' not in parameters else bool(int(parameters['sort_asc'][0]))
-        filter = None if 'filter' not in parameters else parameters['filter'][0]
+        query_filter = None if 'filter' not in parameters else parameters['filter'][0]
 
         channel = ''
         if 'channel' in parameters:
             channel = parameters['channel'][0].decode('hex')
 
-        if filter:
-            parts = filter.split("\"")
-            filter = parts[1]
+        if query_filter:
+            parts = query_filter.split("\"")
+            query_filter = parts[1]
 
-        return first, last, sort_by, sort_asc, filter, channel
+        return first, last, sort_by, sort_asc, query_filter, channel
 
     def render_GET(self, request):
-        first, last, sort_by, sort_asc, filter, channel = SpecificChannelTorrentsEndpoint.sanitize_parameters(
+        first, last, sort_by, sort_asc, query_filter, channel = SpecificChannelTorrentsEndpoint.sanitize_parameters(
             request.args)
         channel_obj = tribler_utils.tribler_data.get_channel_with_public_key(self.channel_pk)
         if not channel_obj:
             return SpecificChannelTorrentsEndpoint.return_404(request)
 
-        torrents, total = tribler_utils.tribler_data.get_torrents(first, last, sort_by, sort_asc, filter, channel)
+        torrents, total = tribler_utils.tribler_data.get_torrents(first, last, sort_by, sort_asc, query_filter, channel)
         return json.dumps({
             "results": torrents,
             "first": first,
@@ -161,7 +162,7 @@ class SpecificChannelTorrentsEndpoint(BaseChannelsEndpoint):
 
 class ChannelsPopularEndpoint(BaseChannelsEndpoint):
 
-    def render_GET(self, request):
+    def render_GET(self, _request):
         results_json = [channel.get_json() for channel in sample(tribler_utils.tribler_data.channels, 20)]
         return json.dumps({"channels": results_json})
 
@@ -177,8 +178,9 @@ class TorrentsEndpoint(resource.Resource):
 
 class TorrentsRandomEndpoint(resource.Resource):
 
-    def render_GET(self, request):
-        return json.dumps({"torrents": [torrent.get_json() for torrent in sample(tribler_utils.tribler_data.torrents, 20)]})
+    def render_GET(self, _request):
+        return json.dumps({"torrents": [torrent.get_json()
+                                        for torrent in sample(tribler_utils.tribler_data.torrents, 20)]})
 
 
 class SpecificTorrentEndpoint(resource.Resource):

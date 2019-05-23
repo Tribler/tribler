@@ -1,9 +1,9 @@
-from random import randint, choice, random
+from random import randint, random
 
 import datetime
 
 
-class TrustchainBlock:
+class TrustchainBlock(object):
 
     def __init__(self, my_id=None, timestamp=0, last_block=None):
         self.public_key = my_id

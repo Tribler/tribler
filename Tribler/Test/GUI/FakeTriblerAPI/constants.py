@@ -4,7 +4,7 @@ CATEGORIES = [
     ('other', 0.1),
     ('unknown', 0.1),
     ('Video', 0.1),
-    ('VideoClips', 0.1) ,
+    ('VideoClips', 0.1),
     ('Audio', 0.1),
     ('Document', 0.1),
     ('Compressed', 0.1),

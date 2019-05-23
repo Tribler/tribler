@@ -21,7 +21,7 @@ class MarketEndpoint(resource.Resource):
 
 class AsksEndpoint(resource.Resource):
 
-    def render_GET(self, request):
+    def render_GET(self, _request):
         return json.dumps({
             "asks": [{
                 "asset1": "DUM1",
@@ -33,7 +33,7 @@ class AsksEndpoint(resource.Resource):
 
 class BidsEndpoint(resource.Resource):
 
-    def render_GET(self, request):
+    def render_GET(self, _request):
         return json.dumps({
             "bids": [{
                 "asset1": "DUM1",
@@ -45,7 +45,7 @@ class BidsEndpoint(resource.Resource):
 
 class TransactionsEndpoint(resource.Resource):
 
-    def render_GET(self, request):
+    def render_GET(self, _request):
         return json.dumps({"transactions": [transaction.get_json() for
                                             transaction in tribler_utils.tribler_data.transactions]})
 
@@ -71,8 +71,8 @@ class TransactionSpecificNumberEndpoint(resource.Resource):
         self.transaction_number = int(path)
 
         child_handler_dict = {"payments": TransactionPaymentsEndpoint}
-        for path, child_cls in child_handler_dict.iteritems():
-            self.putChild(path, child_cls(self.transaction_trader_id, self.transaction_number))
+        for child_path, child_cls in child_handler_dict.iteritems():
+            self.putChild(child_path, child_cls(self.transaction_trader_id, self.transaction_number))
 
 
 class TransactionPaymentsEndpoint(resource.Resource):
@@ -82,12 +82,12 @@ class TransactionPaymentsEndpoint(resource.Resource):
         self.transaction_trader_id = transaction_trader_id
         self.transaction_number = transaction_number
 
-    def render_GET(self, request):
+    def render_GET(self, _request):
         tx = tribler_utils.tribler_data.get_transaction(self.transaction_trader_id, self.transaction_number)
         return json.dumps({"payments": [payment.get_json() for payment in tx.payments]})
 
 
 class OrdersEndpoint(resource.Resource):
 
-    def render_GET(self, request):
+    def render_GET(self, _request):
         return json.dumps({"orders": [order.get_json() for order in tribler_utils.tribler_data.orders]})

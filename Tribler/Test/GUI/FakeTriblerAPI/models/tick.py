@@ -3,7 +3,7 @@ import random
 import time
 
 
-class Tick:
+class Tick(object):
 
     def __init__(self, asset1_type, asset2_type, is_ask=True):
         self.is_ask = is_ask

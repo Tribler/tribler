@@ -13,12 +13,12 @@ class DownloadsEndpoint(resource.Resource):
 
     def render_GET(self, request):
         get_peers = False
-        if 'get_peers' in request.args and len(request.args['get_peers']) > 0 \
+        if 'get_peers' in request.args and request.args['get_peers'] \
                 and request.args['get_peers'][0] == "1":
             get_peers = True
 
         get_pieces = False
-        if 'get_pieces' in request.args and len(request.args['get_pieces']) > 0 \
+        if 'get_pieces' in request.args and request.args['get_pieces'] \
                 and request.args['get_pieces'][0] == "1":
             get_pieces = True
 
@@ -27,8 +27,8 @@ class DownloadsEndpoint(resource.Resource):
 
     def render_PUT(self, request):
         headers = request.getAllHeaders()
-        request_data = cgi.FieldStorage(fp=request.content, headers=headers,
-                                        environ={'REQUEST_METHOD': 'POST', 'CONTENT_TYPE': headers['content-type']})
+        cgi.FieldStorage(fp=request.content, headers=headers,
+                         environ={'REQUEST_METHOD': 'POST', 'CONTENT_TYPE': headers['content-type']})
 
         # Just start a fake download
         tribler_utils.tribler_data.start_random_download()
@@ -51,7 +51,7 @@ class DownloadEndpoint(resource.Resource):
             selected_files_list = [unicode(f, 'utf-8') for f in parameters['selected_files[]']]
             download.set_selected_files(selected_files_list)
 
-        if 'state' in parameters and len(parameters['state']) > 0:
+        if 'state' in parameters and parameters['state']:
             state = parameters['state'][0]
             if state == "resume":
                 download.status = 3

@@ -2,10 +2,12 @@ import random
 
 import time
 
+from six.moves import xrange
+
 from Tribler.Test.GUI.FakeTriblerAPI.models.payment import Payment
 
 
-class Transaction:
+class Transaction(object):
 
     def __init__(self, price_type, quantity_type):
         self.trader_id = ''.join(random.choice('0123456789abcdef') for _ in xrange(16))

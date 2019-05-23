@@ -1,7 +1,7 @@
 from random import randint, uniform
 
 
-class DownloadPeer:
+class DownloadPeer(object):
 
     def __init__(self):
         self.ip = "%d.%d.%d.%d" % (randint(0, 255), randint(0, 255), randint(0, 255), randint(0, 255))

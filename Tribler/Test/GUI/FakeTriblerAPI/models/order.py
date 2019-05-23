@@ -3,7 +3,7 @@ import random
 import time
 
 
-class Order:
+class Order(object):
 
     def __init__(self, asset1_type, asset2_type):
         self.trader_id = ''.join(random.choice('0123456789abcdef') for _ in xrange(16))

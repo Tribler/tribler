@@ -96,10 +96,10 @@ class MyChannelTorrentsEndpoint(MyChannelBaseEndpoint):
             return "your channel has not been created"
 
         request.args['channel'] = [my_channel.public_key.encode('hex')]
-        first, last, sort_by, sort_asc, filter, channel = \
+        first, last, sort_by, sort_asc, query_filter, channel = \
             SpecificChannelTorrentsEndpoint.sanitize_parameters(request.args)
 
-        torrents, total = tribler_utils.tribler_data.get_torrents(first, last, sort_by, sort_asc, filter, channel,
+        torrents, total = tribler_utils.tribler_data.get_torrents(first, last, sort_by, sort_asc, query_filter, channel,
                                                                   include_status=True)
 
         return json.dumps({

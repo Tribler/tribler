@@ -22,7 +22,7 @@ class TrustchainStatsEndpoint(resource.Resource):
     This class handles requests regarding the TrustChain community information.
     """
 
-    def render_GET(self, request):
+    def render_GET(self, _request):
         last_block = tribler_utils.tribler_data.trustchain_blocks[-1]
 
         return json.dumps({'statistics': {

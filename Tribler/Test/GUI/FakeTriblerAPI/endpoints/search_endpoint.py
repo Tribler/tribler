@@ -1,5 +1,5 @@
 import json
-from random import randint, Random
+from random import Random
 
 from twisted.web import http, resource
 
@@ -18,21 +18,21 @@ class SearchEndpoint(resource.Resource):
         """
         Sanitize the parameters and check whether they exist
         """
-        first = 1 if 'first' not in parameters else int(parameters['first'][0])  # TODO check integer!
-        last = 50 if 'last' not in parameters else int(parameters['last'][0])  # TODO check integer!
-        sort_by = None if 'sort_by' not in parameters else parameters['sort_by'][0]  # TODO check integer!
+        first = 1 if 'first' not in parameters else int(parameters['first'][0])
+        last = 50 if 'last' not in parameters else int(parameters['last'][0])
+        sort_by = None if 'sort_by' not in parameters else parameters['sort_by'][0]
         sort_asc = True if 'sort_asc' not in parameters else bool(int(parameters['sort_asc'][0]))
-        filter = None if 'filter' not in parameters else parameters['filter'][0],
-        type = None if 'type' not in parameters else parameters['type'][0]
+        query_filter = None if 'filter' not in parameters else parameters['filter'][0],
+        md_type = None if 'type' not in parameters else parameters['type'][0]
 
-        return first, last, sort_by, sort_asc, type, filter
+        return first, last, sort_by, sort_asc, md_type, query_filter
 
     def render_GET(self, request):
         if 'filter' not in request.args:
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "filter parameter missing"})
 
-        first, last, sort_by, sort_asc, type, query = SearchEndpoint.sanitize_parameters(request.args)
+        first, last, sort_by, sort_asc, md_type, query = SearchEndpoint.sanitize_parameters(request.args)
         random = Random()
         random.seed(hash(query))
 
@@ -59,11 +59,11 @@ class SearchEndpoint(resource.Resource):
         if sort_by and sort_by != 'category':
             channels_json.sort(key=lambda result: result[sort_by] if sort_by in result else None, reverse=not sort_asc)
 
-        if not type:
+        if not md_type:
             search_results = channels_json + torrents_json
-        elif type == 'channel':
+        elif md_type == 'channel':
             search_results = channels_json
-        elif type == 'torrent':
+        elif md_type == 'torrent':
             search_results = torrents_json
         else:
             search_results = []

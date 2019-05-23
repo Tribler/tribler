@@ -17,8 +17,8 @@ class Circuit(Base):
         self.circuit_id = random.getrandbits(32)
         self.goal_hops = random.randint(1, 3)
         self.actual_hops = random.randint(0, self.goal_hops)
-        self.type = random.choice(['DATA', 'IP', 'RP','RENDEZVOUS'])
-        self.state = random.choice(['READY', 'EXTENDING', 'TO_BE_EXTENDED','CLOSING'])
+        self.type = random.choice(['DATA', 'IP', 'RP', 'RENDEZVOUS'])
+        self.state = random.choice(['READY', 'EXTENDING', 'TO_BE_EXTENDED', 'CLOSING'])
 
     def to_dictionary(self):
         result = super(Circuit, self).to_dictionary()

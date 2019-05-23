@@ -5,7 +5,7 @@ from Tribler.Test.GUI.FakeTriblerAPI.constants import COMMITTED
 from Tribler.Test.GUI.FakeTriblerAPI.utils import get_random_hex_string, get_random_filename
 
 
-class Torrent:
+class Torrent(object):
 
     def __init__(self, infohash, name, length, category, status=COMMITTED):
         self.infohash = infohash

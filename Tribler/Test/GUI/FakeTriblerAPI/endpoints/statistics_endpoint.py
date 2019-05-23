@@ -1,5 +1,5 @@
 import json
-from random import randint, choice
+from random import randint
 
 from twisted.web import resource
 
@@ -22,7 +22,7 @@ class StatisticsTriblerEndpoint(resource.Resource):
     """
     This class handles requests regarding Tribler statistics.
     """
-    def render_GET(self, request):
+    def render_GET(self, _request):
         return json.dumps({'tribler_statistics': {
             "db_size": randint(1000, 1000000),
             "num_channels": randint(1, 100),
@@ -34,7 +34,7 @@ class StatisticsIPv8Endpoint(resource.Resource):
     """
     This class handles requests regarding IPv8 statistics.
     """
-    def render_GET(self, request):
+    def render_GET(self, _request):
         return json.dumps({'ipv8_statistics': {
             "total_up": 13423,
             "total_down": 3252

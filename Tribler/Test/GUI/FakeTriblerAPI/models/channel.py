@@ -6,12 +6,12 @@ from Tribler.Test.GUI.FakeTriblerAPI.constants import NEW, TODELETE
 from Tribler.Test.GUI.FakeTriblerAPI.utils import get_random_hex_string
 
 
-class Channel:
+class Channel(object):
 
-    def __init__(self, id, name="", description=""):
+    def __init__(self, cid, name="", description=""):
         self.name = name
         self.description = description
-        self.id = id
+        self.id = cid
         self.public_key = get_random_hex_string(64).decode('hex')
         self.votes = randint(0, 10000)
         self.torrents = set()
@@ -24,7 +24,7 @@ class Channel:
     def add_random_torrents(self):
         all_torrents = tribler_utils.tribler_data.torrents
         num_torrents_in_channel = randint(1, len(all_torrents) - 1)
-        for i in range(0, num_torrents_in_channel):
+        for _ in range(0, num_torrents_in_channel):
             self.torrents.add(tribler_utils.tribler_data.torrents[randint(0, len(all_torrents) - 1)])
 
     def get_json(self):

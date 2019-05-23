@@ -1,6 +1,8 @@
 import json
 from random import choice, randint
 
+from six.moves import xrange
+
 from twisted.web import resource
 
 from Tribler.Test.GUI.FakeTriblerAPI import tribler_utils
@@ -38,8 +40,9 @@ class IPv8TrustChainSpecificUserEndpoint(resource.Resource):
 
 class IPv8TrustChainSpecificUserBlocksEndpoint(resource.Resource):
 
-    def render_GET(self, request):
-        return json.dumps({"blocks": [block.to_dictionary() for block in tribler_utils.tribler_data.trustchain_blocks]})
+    def render_GET(self, _request):
+        return json.dumps({"blocks": [block.to_dictionary()
+                                      for block in tribler_utils.tribler_data.trustchain_blocks]})
 
 
 class IPv8TunnelEndpoint(resource.Resource):
@@ -53,20 +56,22 @@ class IPv8TunnelEndpoint(resource.Resource):
 
 class IPv8CircuitsEndpoint(resource.Resource):
 
-    def render_GET(self, request):
-        return json.dumps({"circuits": [circuit.to_dictionary() for circuit in tribler_utils.tribler_data.tunnel_circuits]})
+    def render_GET(self, _request):
+        return json.dumps({"circuits": [circuit.to_dictionary()
+                                        for circuit in tribler_utils.tribler_data.tunnel_circuits]})
 
 
 class IPv8RelaysEndpoint(resource.Resource):
 
-    def render_GET(self, request):
+    def render_GET(self, _request):
         return json.dumps({"relays": [relay.to_dictionary() for relay in tribler_utils.tribler_data.tunnel_relays]})
 
 
 class IPv8ExitsEndpoint(resource.Resource):
 
-    def render_GET(self, request):
-        return json.dumps({"exits": [exit_socket.to_dictionary() for exit_socket in tribler_utils.tribler_data.tunnel_exits]})
+    def render_GET(self, _request):
+        return json.dumps({"exits": [exit_socket.to_dictionary()
+                                     for exit_socket in tribler_utils.tribler_data.tunnel_exits]})
 
 
 class IPv8DHTEndpoint(resource.Resource):
@@ -78,13 +83,13 @@ class IPv8DHTEndpoint(resource.Resource):
 
 class IPv8DHTStatisticsEndpoint(resource.Resource):
 
-    def render_GET(self, request):
+    def render_GET(self, _request):
         return json.dumps({"statistics": tribler_utils.tribler_data.dht_stats})
 
 
 class IPv8OverlaysEndpoint(resource.Resource):
 
-    def render_GET(self, request):
+    def render_GET(self, _request):
         return json.dumps({'overlays': [{
             "master_peer": ''.join(choice('0123456789abcdef') for _ in xrange(20)),
             "my_peer": ''.join(choice('0123456789abcdef') for _ in xrange(20)),

@@ -6,7 +6,7 @@ from twisted.web import resource
 
 class TorrentInfoEndpoint(resource.Resource):
 
-    def render_GET(self, request):
+    def render_GET(self, _request):
         metainfo = {
             "info": {
                 "files": [{

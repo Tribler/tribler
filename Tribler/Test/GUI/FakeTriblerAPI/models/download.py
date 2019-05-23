@@ -5,7 +5,7 @@ from Tribler.Test.GUI.FakeTriblerAPI.constants import DLSTATUS_STRINGS
 from Tribler.Test.GUI.FakeTriblerAPI.models.download_peer import DownloadPeer
 
 
-class Download:
+class Download(object):
 
     def __init__(self, torrent, is_credit_mining=False, is_channel_download=False):
         self.torrent = torrent

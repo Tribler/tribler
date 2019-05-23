@@ -1,7 +1,7 @@
 import random
 
 
-class Payment:
+class Payment(object):
 
     def __init__(self, transaction):
         self.trader_id = transaction.trader_id

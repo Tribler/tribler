@@ -81,7 +81,7 @@ def _test_port(family, sock_type, port):
             s.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER, struct.pack('ii', 1, 0))
         s.bind(('', port))
         is_port_working = True
-    except socket.error as e:
+    except socket.error:
         is_port_working = False
     finally:
         if s:

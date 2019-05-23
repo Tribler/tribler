@@ -4,7 +4,7 @@ from twisted.web import resource
 
 class WalletsEndpoint(resource.Resource):
 
-    def render_GET(self, request):
+    def render_GET(self, _request):
         wallets = {
             "DUM1": {
                 "created": True,
