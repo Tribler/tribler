@@ -2,6 +2,9 @@ from __future__ import absolute_import
 
 import os
 
+from ipv8.database import database_blob
+from ipv8.keyvault.crypto import default_eccrypto
+
 from pony import orm
 from pony.orm import db_session
 
@@ -11,8 +14,6 @@ from Tribler.Core.Modules.MetadataStore.serialization import ChannelNodePayload,
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.exceptions import InvalidSignatureException
 from Tribler.Test.Core.base_test import TriblerCoreTest
-from Tribler.pyipv8.ipv8.database import database_blob
-from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto
 
 
 class TestMetadata(TriblerCoreTest):

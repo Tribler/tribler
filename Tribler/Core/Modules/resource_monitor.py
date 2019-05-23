@@ -1,12 +1,16 @@
+from __future__ import absolute_import
+
 import logging
 import os
 import time
 
+from ipv8.taskmanager import TaskManager
+
 import psutil
+
 from twisted.internet.task import LoopingCall
 
 from Tribler.Core.simpledefs import SIGNAL_LOW_SPACE, SIGNAL_RESOURCE_CHECK
-from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
 # Attempt to import yappi
 try:

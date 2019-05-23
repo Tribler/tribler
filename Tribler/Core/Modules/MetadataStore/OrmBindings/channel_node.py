@@ -3,14 +3,15 @@ from __future__ import absolute_import
 from binascii import hexlify
 from datetime import datetime
 
+from ipv8.database import database_blob
+from ipv8.keyvault.crypto import default_eccrypto
+
 from pony import orm
 from pony.orm.core import DEFAULT
 
 from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_NODE, ChannelNodePayload, DELETED, \
     DeletedMetadataPayload
 from Tribler.Core.exceptions import InvalidSignatureException
-from Tribler.pyipv8.ipv8.database import database_blob
-from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto
 
 # Metadata, torrents and channel statuses
 NEW = 0  # The entry is newly created and is not published yet. It will be committed at the next commit.

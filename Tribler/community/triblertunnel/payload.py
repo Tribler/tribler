@@ -1,5 +1,7 @@
-from Tribler.pyipv8.ipv8.attestation.trustchain.payload import HalfBlockPayload
-from Tribler.pyipv8.ipv8.messaging.payload import Payload
+from __future__ import absolute_import
+
+from ipv8.attestation.trustchain.payload import HalfBlockPayload
+from ipv8.messaging.payload import Payload
 
 
 class PayoutPayload(HalfBlockPayload):

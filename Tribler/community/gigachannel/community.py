@@ -2,6 +2,12 @@ from __future__ import absolute_import
 
 from binascii import unhexlify
 
+from ipv8.community import Community
+from ipv8.lazy_community import lazy_wrapper
+from ipv8.messaging.lazy_payload import VariablePayload
+from ipv8.peer import Peer
+from ipv8.requestcache import RequestCache
+
 from pony.orm import CacheIndexError, TransactionIntegrityError, db_session
 
 from twisted.internet.defer import inlineCallbacks
@@ -15,11 +21,6 @@ from Tribler.Core.simpledefs import (
     NTFY_CHANNEL, NTFY_DISCOVERED, SIGNAL_GIGACHANNEL_COMMUNITY, SIGNAL_ON_SEARCH_RESULTS)
 from Tribler.community.gigachannel.payload import SearchRequestPayload, SearchResponsePayload
 from Tribler.community.gigachannel.request import SearchRequestCache
-from Tribler.pyipv8.ipv8.community import Community
-from Tribler.pyipv8.ipv8.lazy_community import lazy_wrapper
-from Tribler.pyipv8.ipv8.messaging.lazy_payload import VariablePayload
-from Tribler.pyipv8.ipv8.peer import Peer
-from Tribler.pyipv8.ipv8.requestcache import RequestCache
 
 minimal_blob_size = 200
 maximum_payload_size = 1024

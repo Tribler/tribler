@@ -4,6 +4,9 @@ import logging
 import time
 from binascii import unhexlify
 
+from ipv8.taskmanager import TaskManager
+from ipv8.util import old_round
+
 from twisted.internet import reactor
 from twisted.internet.defer import fail
 from twisted.internet.task import deferLater
@@ -17,8 +20,6 @@ from Tribler.community.market.core.side import Side
 from Tribler.community.market.core.tick import Ask, Bid
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
-from Tribler.pyipv8.ipv8.taskmanager import TaskManager
-from Tribler.pyipv8.ipv8.util import old_round
 
 
 class OrderBook(TaskManager):

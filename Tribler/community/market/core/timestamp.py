@@ -3,9 +3,9 @@ from __future__ import absolute_import, division
 import datetime
 import time
 
-from six import integer_types
+from ipv8.util import old_round
 
-from Tribler.pyipv8.ipv8.util import old_round
+from six import integer_types
 
 
 class Timestamp(object):

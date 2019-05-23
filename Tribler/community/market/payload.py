@@ -1,5 +1,8 @@
 from __future__ import absolute_import
 
+from ipv8.messaging.bloomfilter import BloomFilter
+from ipv8.messaging.payload import Payload
+
 from Tribler.community.market.core.assetamount import AssetAmount
 from Tribler.community.market.core.assetpair import AssetPair
 from Tribler.community.market.core.message import TraderId
@@ -9,8 +12,6 @@ from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.community.market.core.transaction import TransactionId, TransactionNumber
 from Tribler.community.market.core.wallet_address import WalletAddress
-from Tribler.pyipv8.ipv8.messaging.bloomfilter import BloomFilter
-from Tribler.pyipv8.ipv8.messaging.payload import Payload
 
 
 class MessagePayload(Payload):

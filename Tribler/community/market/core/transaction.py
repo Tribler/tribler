@@ -3,6 +3,8 @@ from __future__ import absolute_import
 import logging
 from binascii import unhexlify
 
+from ipv8.database import database_blob
+
 from six import text_type
 
 from Tribler.community.market.core.assetamount import AssetAmount
@@ -12,7 +14,6 @@ from Tribler.community.market.core.order import OrderId, OrderNumber
 from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.community.market.core.trade import ProposedTrade
 from Tribler.community.market.core.wallet_address import WalletAddress
-from Tribler.pyipv8.ipv8.database import database_blob
 
 
 class TransactionNumber(object):

@@ -1,9 +1,12 @@
+from __future__ import absolute_import
+
 import logging
+
+from ipv8.taskmanager import TaskManager
 
 from twisted.internet import reactor
 
 from Tribler.community.market.core.tick import Tick
-from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
 
 class TickEntry(TaskManager):

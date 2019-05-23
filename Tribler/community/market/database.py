@@ -5,6 +5,9 @@ from __future__ import absolute_import
 
 from os import path
 
+from ipv8.attestation.trustchain.database import TrustChainDB
+from ipv8.database import database_blob
+
 from six import text_type
 
 from Tribler.community.market.core.message import TraderId
@@ -12,8 +15,6 @@ from Tribler.community.market.core.order import Order, OrderId, OrderNumber
 from Tribler.community.market.core.payment import Payment
 from Tribler.community.market.core.tick import Tick
 from Tribler.community.market.core.transaction import Transaction, TransactionId, TransactionNumber
-from Tribler.pyipv8.ipv8.attestation.trustchain.database import TrustChainDB
-from Tribler.pyipv8.ipv8.database import database_blob
 
 DATABASE_DIRECTORY = path.join(u"sqlite")
 # Path to the database location + dispersy._workingdirectory

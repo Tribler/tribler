@@ -2,9 +2,10 @@ from __future__ import absolute_import
 
 import logging
 
-from Tribler.Core.Socks5 import conversion
-from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import CIRCUIT_ID_PORT, CIRCUIT_STATE_READY,\
+from ipv8.messaging.anonymization.tunnel import CIRCUIT_ID_PORT, CIRCUIT_STATE_READY,\
     CIRCUIT_TYPE_RP_DOWNLOADER, CIRCUIT_TYPE_RP_SEEDER
+
+from Tribler.Core.Socks5 import conversion
 
 
 class TunnelDispatcher(object):

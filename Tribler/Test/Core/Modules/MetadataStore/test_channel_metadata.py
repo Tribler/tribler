@@ -5,6 +5,9 @@ import random
 from binascii import unhexlify
 from datetime import datetime
 
+from ipv8.database import database_blob
+from ipv8.keyvault.crypto import default_eccrypto
+
 from pony.orm import db_session
 
 from six.moves import xrange
@@ -20,8 +23,6 @@ from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.exceptions import DuplicateChannelIdError, DuplicateTorrentFileError
 from Tribler.Test.Core.base_test import TriblerCoreTest
 from Tribler.Test.common import TORRENT_UBUNTU_FILE
-from Tribler.pyipv8.ipv8.database import database_blob
-from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto
 
 
 class TestChannelMetadata(TriblerCoreTest):

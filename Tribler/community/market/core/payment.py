@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from ipv8.database import database_blob
+
 from six import text_type
 
 from Tribler.community.market.core.assetamount import AssetAmount
@@ -8,7 +10,6 @@ from Tribler.community.market.core.payment_id import PaymentId
 from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.community.market.core.transaction import TransactionId, TransactionNumber
 from Tribler.community.market.core.wallet_address import WalletAddress
-from Tribler.pyipv8.ipv8.database import database_blob
 
 
 class Payment(Message):

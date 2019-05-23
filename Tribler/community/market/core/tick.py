@@ -3,6 +3,10 @@ from __future__ import absolute_import
 import time
 from binascii import hexlify, unhexlify
 
+from ipv8.attestation.trustchain.block import GENESIS_HASH
+from ipv8.database import database_blob
+from ipv8.util import old_round
+
 from six import text_type
 
 from Tribler.community.market import MAX_ORDER_TIMEOUT
@@ -12,9 +16,6 @@ from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.order import OrderId, OrderNumber
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
-from Tribler.pyipv8.ipv8.attestation.trustchain.block import GENESIS_HASH
-from Tribler.pyipv8.ipv8.database import database_blob
-from Tribler.pyipv8.ipv8.util import old_round
 
 
 class Tick(object):

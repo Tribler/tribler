@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 
-from pony import orm
+from ipv8.database import database_blob
 
-from Tribler.pyipv8.ipv8.database import database_blob
+from pony import orm
 
 
 def define_binding(db):

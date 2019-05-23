@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import struct
 
-from Tribler.pyipv8.ipv8.messaging.payload import Payload
+from ipv8.messaging.payload import Payload
 
 
 TORRENT_INFO_FORMAT = '20sIIQ'  # Infohash, seeders, leechers and a timestamp

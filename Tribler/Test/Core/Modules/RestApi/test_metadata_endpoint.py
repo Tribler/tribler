@@ -4,6 +4,8 @@ import sys
 from binascii import hexlify
 from unittest import skipIf
 
+from ipv8.keyvault.crypto import default_eccrypto
+
 from pony.orm import db_session
 
 from six.moves import xrange
@@ -22,7 +24,6 @@ from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.tools import trial_timeout
 from Tribler.Test.util.Tracker.HTTPTracker import HTTPTracker
 from Tribler.Test.util.Tracker.UDPTracker import UDPTracker
-from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto
 
 
 class BaseTestMetadataEndpoint(AbstractApiTest):

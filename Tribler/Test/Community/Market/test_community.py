@@ -1,5 +1,8 @@
 from __future__ import absolute_import
 
+from ipv8.test.base import TestBase
+from ipv8.test.mocking.ipv8 import MockIPv8
+
 from nose.tools import raises
 
 from twisted.internet.defer import fail, inlineCallbacks
@@ -19,8 +22,6 @@ from Tribler.community.market.core.tick import Ask, Bid
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.community.market.core.transaction import Transaction, TransactionId, TransactionNumber
-from Tribler.pyipv8.ipv8.test.base import TestBase
-from Tribler.pyipv8.ipv8.test.mocking.ipv8 import MockIPv8
 
 
 class TestMarketCommunityBase(TestBase):

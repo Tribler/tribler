@@ -3,13 +3,13 @@ from __future__ import absolute_import, division
 import math
 from binascii import hexlify
 
+from ipv8.dht.routing import distance, id_to_binary_string
+from ipv8.taskmanager import TaskManager
+
 import libtorrent as lt
 
 from twisted.internet import reactor
 from twisted.internet.defer import Deferred
-
-from Tribler.pyipv8.ipv8.dht.routing import distance, id_to_binary_string
-from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
 
 class DHTHealthManager(TaskManager):

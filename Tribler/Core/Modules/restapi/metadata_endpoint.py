@@ -3,6 +3,8 @@ from __future__ import absolute_import
 import logging
 from binascii import unhexlify
 
+from ipv8.database import database_blob
+
 from pony.orm import db_session
 
 from twisted.internet import reactor
@@ -10,7 +12,6 @@ from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
 
 import Tribler.Core.Utilities.json_util as json
-from Tribler.pyipv8.ipv8.database import database_blob
 from Tribler.util import cast_to_unicode_utf8
 
 

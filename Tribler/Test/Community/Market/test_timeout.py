@@ -3,9 +3,10 @@ from __future__ import absolute_import
 import time
 import unittest
 
+from ipv8.util import old_round
+
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
-from Tribler.pyipv8.ipv8.util import old_round
 
 
 class TimeoutTestSuite(unittest.TestCase):

@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from Tribler.pyipv8.ipv8.messaging.lazy_payload import VariablePayload
+from ipv8.messaging.lazy_payload import VariablePayload
 
 
 class SearchRequestPayload(VariablePayload):

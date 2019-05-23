@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from ipv8.test.mocking.ipv8 import MockIPv8
+
 from twisted.internet.defer import inlineCallbacks, succeed
 
 import Tribler.Core.Utilities.json_util as json
@@ -19,7 +21,6 @@ from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.community.market.core.trade import Trade
 from Tribler.community.market.core.wallet_address import WalletAddress
-from Tribler.pyipv8.ipv8.test.mocking.ipv8 import MockIPv8
 
 
 class TestMarketEndpoint(AbstractApiTest):

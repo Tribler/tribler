@@ -2,6 +2,10 @@ from __future__ import absolute_import
 
 import os
 
+from ipv8.keyvault.crypto import default_eccrypto
+from ipv8.peer import Peer
+from ipv8.test.base import TestBase
+
 from pony.orm import db_session
 
 from six.moves import xrange
@@ -13,9 +17,6 @@ from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.Utilities.random_utils import random_infohash
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.community.gigachannel.community import GigaChannelCommunity
-from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto
-from Tribler.pyipv8.ipv8.peer import Peer
-from Tribler.pyipv8.ipv8.test.base import TestBase
 
 
 class TestGigaChannelUnits(TestBase):

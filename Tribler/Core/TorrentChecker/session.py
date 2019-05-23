@@ -9,6 +9,9 @@ import time
 from abc import ABCMeta, abstractmethod, abstractproperty
 from binascii import hexlify
 
+from ipv8.messaging.deprecated.encoding import add_url_params
+from ipv8.taskmanager import TaskManager
+
 from libtorrent import bdecode
 
 from six import text_type
@@ -16,12 +19,9 @@ from six import text_type
 from twisted.internet import defer, reactor
 from twisted.internet.defer import Deferred, inlineCallbacks
 from twisted.internet.protocol import DatagramProtocol
-from twisted.python.failure import Failure
 from twisted.web.client import Agent, HTTPConnectionPool, RedirectAgent, readBody
 
 from Tribler.Core.Utilities.tracker_utils import parse_tracker_url
-from Tribler.pyipv8.ipv8.messaging.deprecated.encoding import add_url_params
-from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
 # Although these are the actions for UDP trackers, they can still be used as
 # identifiers.

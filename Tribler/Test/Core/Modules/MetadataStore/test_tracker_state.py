@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from ipv8.keyvault.crypto import default_eccrypto
+
 from pony.orm import db_session
 
 from twisted.internet.defer import inlineCallbacks
@@ -7,7 +9,6 @@ from twisted.internet.defer import inlineCallbacks
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.Utilities.tracker_utils import MalformedTrackerURLException
 from Tribler.Test.Core.base_test import TriblerCoreTest
-from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto
 
 
 class TestTrackerState(TriblerCoreTest):

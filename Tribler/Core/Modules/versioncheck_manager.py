@@ -1,18 +1,23 @@
+from __future__ import absolute_import
+
 import logging
 from distutils.version import LooseVersion
+
+from ipv8.taskmanager import TaskManager
+
 from twisted.internet.error import ConnectError, DNSLookupError
 from twisted.internet.task import LoopingCall
 from twisted.web.error import SchemeNotSupported
 
-from Tribler.Core.Utilities.utilities import http_get
 import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.Utilities.utilities import http_get
 from Tribler.Core.exceptions import HttpError
 from Tribler.Core.simpledefs import NTFY_INSERT, NTFY_NEW_VERSION
 from Tribler.Core.version import version_id
-from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
 VERSION_CHECK_URL = 'https://api.github.com/repos/tribler/tribler/releases/latest'
 VERSION_CHECK_INTERVAL = 86400  # One day
+
 
 class VersionCheckManager(TaskManager):
 

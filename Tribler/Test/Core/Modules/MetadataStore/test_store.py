@@ -5,6 +5,9 @@ import random
 import string
 from binascii import unhexlify
 
+from ipv8.database import database_blob
+from ipv8.keyvault.crypto import default_eccrypto
+
 from pony.orm import db_session
 
 from twisted.internet.defer import inlineCallbacks
@@ -16,8 +19,6 @@ from Tribler.Core.Modules.MetadataStore.serialization import (
 from Tribler.Core.Modules.MetadataStore.store import (
     DELETED_METADATA, GOT_NEWER_VERSION, MetadataStore, UNKNOWN_CHANNEL, UNKNOWN_TORRENT, UPDATED_OUR_VERSION)
 from Tribler.Test.Core.base_test import TriblerCoreTest
-from Tribler.pyipv8.ipv8.database import database_blob
-from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto
 
 
 def make_wrong_payload(filename):

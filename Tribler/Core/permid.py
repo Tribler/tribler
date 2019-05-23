@@ -3,9 +3,11 @@ Permanent Identifier.
 
 Author(s): Arno Bakker
 """
+from __future__ import absolute_import
+
 import logging
 
-from Tribler.pyipv8.ipv8.keyvault.private.libnaclkey import LibNaCLSK
+from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 
 logger = logging.getLogger(__name__)
 

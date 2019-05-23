@@ -3,6 +3,9 @@ from __future__ import absolute_import
 import random
 from datetime import datetime
 
+from ipv8.database import database_blob
+from ipv8.keyvault.crypto import default_eccrypto
+
 from pony.orm import db_session
 
 from twisted.internet.defer import Deferred, inlineCallbacks
@@ -13,8 +16,6 @@ from Tribler.Core.Modules.gigachannel_manager import GigaChannelManager
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Test.Core.base_test import MockObject, TriblerCoreTest
 from Tribler.Test.common import TORRENT_UBUNTU_FILE
-from Tribler.pyipv8.ipv8.database import database_blob
-from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto
 
 
 class TestGigaChannelManager(TriblerCoreTest):

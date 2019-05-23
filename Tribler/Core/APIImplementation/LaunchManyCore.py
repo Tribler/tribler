@@ -15,6 +15,16 @@ from glob import iglob
 from threading import Event, enumerate as enumerate_threads
 from traceback import print_exc
 
+from ipv8.dht.provider import DHTCommunityProvider
+from ipv8.messaging.anonymization.community import TunnelSettings
+from ipv8.peer import Peer
+from ipv8.peerdiscovery.churn import RandomChurn
+from ipv8.peerdiscovery.community import DiscoveryCommunity, PeriodicSimilarity
+from ipv8.peerdiscovery.discovery import EdgeWalk, RandomWalk
+from ipv8.taskmanager import TaskManager
+
+from ipv8_service import IPv8
+
 from twisted.internet import reactor
 from twisted.internet.defer import Deferred, DeferredList, inlineCallbacks, succeed
 from twisted.internet.task import LoopingCall
@@ -41,14 +51,6 @@ from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLS
                                      NTFY_FINISHED, NTFY_STARTED, NTFY_TORRENT, NTFY_TRIBLER,
                                      STATE_START_API_ENDPOINTS, STATE_START_CREDIT_MINING,
                                      STATE_START_LIBTORRENT, STATE_START_TORRENT_CHECKER, STATE_START_WATCH_FOLDER)
-from Tribler.pyipv8.ipv8.dht.provider import DHTCommunityProvider
-from Tribler.pyipv8.ipv8.messaging.anonymization.community import TunnelSettings
-from Tribler.pyipv8.ipv8.peer import Peer
-from Tribler.pyipv8.ipv8.peerdiscovery.churn import RandomChurn
-from Tribler.pyipv8.ipv8.peerdiscovery.community import DiscoveryCommunity, PeriodicSimilarity
-from Tribler.pyipv8.ipv8.peerdiscovery.discovery import EdgeWalk, RandomWalk
-from Tribler.pyipv8.ipv8.taskmanager import TaskManager
-from Tribler.pyipv8.ipv8_service import IPv8
 
 
 class TriblerLaunchMany(TaskManager):
@@ -131,7 +133,7 @@ class TriblerLaunchMany(TaskManager):
 
         # IPv8
         if self.session.config.get_ipv8_enabled():
-            from Tribler.pyipv8.ipv8.configuration import get_default_configuration
+            from ipv8.configuration import get_default_configuration
             ipv8_config = get_default_configuration()
             ipv8_config['port'] = self.session.config.get_ipv8_port()
             ipv8_config['address'] = self.session.config.get_ipv8_address()
@@ -139,7 +141,7 @@ class TriblerLaunchMany(TaskManager):
             ipv8_config['keys'] = []  # We load the keys ourselves
 
             if self.session.config.get_ipv8_bootstrap_override():
-                import Tribler.pyipv8.ipv8.community as community_file
+                import ipv8.community as community_file
                 community_file._DEFAULT_ADDRESSES = [self.session.config.get_ipv8_bootstrap_override()]
                 community_file._DNS_ADDRESSES = []
 
@@ -164,7 +166,7 @@ class TriblerLaunchMany(TaskManager):
 
         # TrustChain Community
         if self.session.config.get_trustchain_enabled():
-            from Tribler.pyipv8.ipv8.attestation.trustchain.community import TrustChainCommunity, \
+            from ipv8.attestation.trustchain.community import TrustChainCommunity, \
                 TrustChainTestnetCommunity
 
             community_cls = TrustChainTestnetCommunity if self.session.config.get_testnet() else TrustChainCommunity
@@ -179,7 +181,7 @@ class TriblerLaunchMany(TaskManager):
 
         # DHT Community
         if self.session.config.get_dht_enabled():
-            from Tribler.pyipv8.ipv8.dht.discovery import DHTDiscoveryCommunity
+            from ipv8.dht.discovery import DHTDiscoveryCommunity
 
             self.dht_community = DHTDiscoveryCommunity(peer, self.ipv8.endpoint, self.ipv8.network)
             self.ipv8.overlays.append(self.dht_community)

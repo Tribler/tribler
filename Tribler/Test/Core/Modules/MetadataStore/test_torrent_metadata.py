@@ -5,6 +5,8 @@ import codecs
 import random
 from datetime import datetime
 
+from ipv8.keyvault.crypto import default_eccrypto
+
 from pony import orm
 from pony.orm import db_session
 
@@ -15,7 +17,6 @@ from twisted.internet.defer import inlineCallbacks
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import TODELETE
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Test.Core.base_test import TriblerCoreTest
-from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto
 
 
 def rnd_torrent():

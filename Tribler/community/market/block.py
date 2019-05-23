@@ -1,9 +1,10 @@
 from __future__ import absolute_import
 
+from ipv8.attestation.trustchain.block import TrustChainBlock
+
 from six import integer_types, string_types
 
 from Tribler.community.market import MAX_ORDER_TIMEOUT
-from Tribler.pyipv8.ipv8.attestation.trustchain.block import TrustChainBlock
 
 
 class MarketBlock(TrustChainBlock):

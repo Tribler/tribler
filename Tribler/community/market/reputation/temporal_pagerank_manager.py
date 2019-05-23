@@ -1,7 +1,10 @@
+from __future__ import absolute_import
+
+from ipv8.attestation.trustchain.block import UNKNOWN_SEQ
+
 import networkx as nx
 
 from Tribler.community.market.reputation.reputation_manager import ReputationManager
-from Tribler.pyipv8.ipv8.attestation.trustchain.block import UNKNOWN_SEQ
 
 
 class TemporalPagerankReputationManager(ReputationManager):

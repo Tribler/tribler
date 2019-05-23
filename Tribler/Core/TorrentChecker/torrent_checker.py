@@ -6,6 +6,9 @@ import socket
 import time
 from binascii import hexlify
 
+from ipv8.database import database_blob
+from ipv8.taskmanager import TaskManager
+
 from pony.orm import db_session
 
 from twisted.internet import reactor
@@ -21,8 +24,6 @@ from Tribler.Core.TorrentChecker.session import FakeDHTSession, UdpSocketManager
 from Tribler.Core.Utilities.tracker_utils import MalformedTrackerURLException
 from Tribler.Core.Utilities.utilities import has_bep33_support, is_valid_url
 from Tribler.Core.simpledefs import NTFY_TORRENT, NTFY_UPDATE
-from Tribler.pyipv8.ipv8.database import database_blob
-from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
 
 TRACKER_SELECTION_INTERVAL = 20    # The interval for querying a random tracker

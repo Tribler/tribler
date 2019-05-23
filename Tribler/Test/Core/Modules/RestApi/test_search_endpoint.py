@@ -2,6 +2,8 @@ from __future__ import absolute_import
 
 import random
 
+from ipv8.database import database_blob
+
 from pony.orm import db_session
 
 from six.moves import xrange
@@ -11,7 +13,6 @@ from twisted.internet.defer import inlineCallbacks
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.tools import trial_timeout
-from Tribler.pyipv8.ipv8.database import database_blob
 
 
 class TestSearchEndpoint(AbstractApiTest):

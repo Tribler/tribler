@@ -3,8 +3,9 @@ from __future__ import absolute_import
 import logging
 from binascii import hexlify
 
+from ipv8.util import addCallback
+
 from Tribler.Core.Modules.wallet.tc_wallet import TrustchainWallet
-from Tribler.pyipv8.ipv8.util import addCallback
 
 
 class PayoutManager(object):
