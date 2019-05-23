@@ -40,7 +40,7 @@ class Download(object):
         self.is_channel_download = is_channel_download
 
         # Set some pieces to True
-        for _ in xrange(self.total_pieces / 2):
+        for _ in xrange(self.total_pieces // 2):
             self.has_pieces[randint(0, self.total_pieces - 1)] = True
 
         for _ in xrange(randint(5, 40)):
