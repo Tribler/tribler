@@ -136,11 +136,11 @@ class TestUpgradePreconditionChecker(TriblerCoreTest):
         connection.close()
 
         # Assert older experimental version is deleted
-        self.assertFalse(cleanup_pony_experimental_db(pony_db))
+        cleanup_pony_experimental_db(pony_db)
         self.assertFalse(os.path.exists(pony_db))
 
         # Assert recent database version is left untouched
-        self.assertFalse(cleanup_pony_experimental_db(pony_db_bak))
+        cleanup_pony_experimental_db(pony_db_bak)
         self.assertTrue(os.path.exists(pony_db_bak))
 
         # Assert True is returned for a garbled db and nothing is done with it
