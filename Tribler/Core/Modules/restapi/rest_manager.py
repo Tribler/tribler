@@ -4,6 +4,8 @@ import logging
 import os
 from traceback import format_tb
 
+from ipv8.taskmanager import TaskManager
+
 from six import text_type
 
 from twisted.internet import reactor
@@ -15,7 +17,6 @@ from twisted.web import http, server
 
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.restapi.root_endpoint import RootEndpoint
-from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
 
 class RESTManager(TaskManager):

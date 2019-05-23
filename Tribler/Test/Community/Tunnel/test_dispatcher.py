@@ -1,12 +1,12 @@
 from __future__ import absolute_import
 
+from ipv8.messaging.anonymization.tunnel import CIRCUIT_STATE_EXTENDING, CIRCUIT_STATE_READY, CIRCUIT_TYPE_DATA
+
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.test_as_server import AbstractServer
 from Tribler.community.triblertunnel.dispatcher import TunnelDispatcher
-from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import CIRCUIT_STATE_EXTENDING, CIRCUIT_STATE_READY, \
-    CIRCUIT_TYPE_DATA
 
 
 class TestTunnelDispatcher(AbstractServer):

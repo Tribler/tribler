@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from ipv8.REST.root_endpoint import RootEndpoint as IPV8RootEndpoint
+
 from twisted.web import resource
 
 from Tribler.Core.Modules.restapi.create_torrent_endpoint import CreateTorrentEndpoint
@@ -20,7 +22,6 @@ from Tribler.Core.Modules.restapi.trustchain_endpoint import TrustchainEndpoint
 from Tribler.Core.Modules.restapi.trustview_endpoint import TrustViewEndpoint
 from Tribler.Core.Modules.restapi.upgrader_endpoint import UpgraderEndpoint
 from Tribler.Core.Modules.restapi.wallets_endpoint import WalletsEndpoint
-from Tribler.pyipv8.ipv8.REST.root_endpoint import RootEndpoint as IPV8RootEndpoint
 
 
 class RootEndpoint(resource.Resource):

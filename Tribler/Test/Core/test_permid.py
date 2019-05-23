@@ -2,11 +2,12 @@ from __future__ import absolute_import
 
 import os
 
+from ipv8.keyvault.private.libnaclkey import LibNaCLSK
+
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core import permid
 from Tribler.Test.Core.base_test import TriblerCoreTest
-from Tribler.pyipv8.ipv8.keyvault.private.libnaclkey import LibNaCLSK
 
 
 class TriblerCoreTestPermid(TriblerCoreTest):

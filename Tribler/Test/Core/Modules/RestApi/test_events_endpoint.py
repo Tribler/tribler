@@ -2,6 +2,8 @@ from __future__ import absolute_import
 
 import logging
 
+from ipv8.messaging.anonymization.tunnel import Circuit
+
 from twisted.internet import reactor
 from twisted.internet.defer import Deferred, inlineCallbacks
 from twisted.internet.protocol import Protocol
@@ -20,7 +22,6 @@ from Tribler.Core.simpledefs import (
 from Tribler.Core.version import version_id
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.tools import trial_timeout
-from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import Circuit
 
 
 class EventDataProtocol(Protocol):

@@ -4,11 +4,12 @@ import struct
 from binascii import hexlify
 from datetime import datetime, timedelta
 
+from ipv8.database import database_blob
+from ipv8.keyvault.crypto import default_eccrypto
+from ipv8.messaging.payload import Payload
+from ipv8.messaging.serialization import default_serializer
+
 from Tribler.Core.exceptions import InvalidSignatureException
-from Tribler.pyipv8.ipv8.database import database_blob
-from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto
-from Tribler.pyipv8.ipv8.messaging.payload import Payload
-from Tribler.pyipv8.ipv8.messaging.serialization import default_serializer
 
 EPOCH = datetime(1970, 1, 1)
 INFOHASH_SIZE = 20  # bytes

@@ -3,13 +3,14 @@ from __future__ import absolute_import
 import logging
 import os
 
+from ipv8.taskmanager import TaskManager
+
 from twisted.internet.task import LoopingCall
 
 from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.utilities import fix_torrent
 from Tribler.Core.simpledefs import NTFY_INSERT, NTFY_WATCH_FOLDER_CORRUPT_TORRENT
-from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
 WATCH_FOLDER_CHECK_INTERVAL = 10
 

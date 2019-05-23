@@ -14,6 +14,8 @@ import time
 from binascii import hexlify
 from threading import RLock
 
+from ipv8.taskmanager import TaskManager
+
 import libtorrent as lt
 
 import six
@@ -34,7 +36,6 @@ from Tribler.Core.exceptions import SaveResumeDataError
 from Tribler.Core.osutils import fix_filebasename
 from Tribler.Core.simpledefs import DLMODE_NORMAL, DLMODE_VOD, DLSTATUS_SEEDING, DLSTATUS_STOPPED, \
     PERSISTENTSTATE_CURRENTVERSION, dlstatus_strings
-from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
 if sys.platform == "win32":
     try:

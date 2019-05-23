@@ -1,4 +1,6 @@
-from Tribler.pyipv8.ipv8.requestcache import NumberCache
+from __future__ import absolute_import
+
+from ipv8.requestcache import NumberCache
 
 
 class BalanceRequestCache(NumberCache):

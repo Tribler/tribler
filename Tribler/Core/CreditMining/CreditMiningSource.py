@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import logging
 from binascii import hexlify
 
-from Tribler.pyipv8.ipv8.taskmanager import TaskManager
+from ipv8.taskmanager import TaskManager
 
 
 class BaseSource(TaskManager):

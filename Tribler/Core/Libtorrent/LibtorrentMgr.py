@@ -15,6 +15,8 @@ from copy import deepcopy
 from distutils.version import LooseVersion
 from shutil import rmtree
 
+from ipv8.taskmanager import TaskManager
+
 import libtorrent as lt
 from libtorrent import bdecode, torrent_handle
 
@@ -35,7 +37,6 @@ from Tribler.Core.exceptions import TorrentFileException
 from Tribler.Core.simpledefs import (NTFY_INSERT, NTFY_MAGNET_CLOSE, NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_STARTED,
                                      NTFY_REACHABLE, NTFY_TORRENTS)
 from Tribler.Core.version import version_id
-from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
 LTSTATE_FILENAME = "lt.state"
 METAINFO_CACHE_PERIOD = 5 * 60

@@ -6,6 +6,8 @@ import time
 from binascii import hexlify, unhexlify
 from glob import glob
 
+from ipv8.taskmanager import TaskManager
+
 import psutil
 
 from six import string_types
@@ -20,7 +22,6 @@ from Tribler.Core.TorrentDef import TorrentDefNoMetainfo
 from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_STOPPED, \
     DLSTATUS_STOPPED_ON_ERROR, NTFY_CREDIT_MINING, NTFY_ERROR, UPLOAD
 from Tribler.Core.simpledefs import DOWNLOAD
-from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
 
 class CreditMiningTorrent(object):

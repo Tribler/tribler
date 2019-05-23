@@ -3,6 +3,8 @@ from __future__ import absolute_import
 import time
 from binascii import hexlify
 
+from ipv8.messaging.anonymization.tunnel import Circuit
+
 from twisted.web import resource, server
 
 import Tribler.Core.Utilities.json_util as json
@@ -15,7 +17,6 @@ from Tribler.Core.simpledefs import (
     NTFY_WATCH_FOLDER_CORRUPT_TORRENT, SIGNAL_GIGACHANNEL_COMMUNITY, SIGNAL_LOW_SPACE, SIGNAL_ON_SEARCH_RESULTS,
     SIGNAL_RESOURCE_CHECK, STATE_SHUTDOWN)
 from Tribler.Core.version import version_id
-from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import Circuit
 
 
 class EventsEndpoint(resource.Resource):

@@ -7,6 +7,8 @@ import os
 import sqlite3
 from binascii import unhexlify
 
+from ipv8.database import database_blob
+
 from pony import orm
 from pony.orm import CacheIndexError, TransactionIntegrityError, db_session
 
@@ -19,7 +21,6 @@ from twisted.internet.task import deferLater
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import LEGACY_ENTRY, NEW
 from Tribler.Core.Modules.MetadataStore.serialization import REGULAR_TORRENT
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
-from Tribler.pyipv8.ipv8.database import database_blob
 
 BATCH_SIZE = 10000
 

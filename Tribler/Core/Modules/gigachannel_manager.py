@@ -3,6 +3,8 @@ from __future__ import absolute_import
 import os
 from binascii import hexlify
 
+from ipv8.taskmanager import TaskManager
+
 from pony.orm import db_session
 
 from twisted.internet.task import LoopingCall
@@ -12,7 +14,6 @@ from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import COMMITTED
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.simpledefs import NTFY_CHANNEL_ENTITY, NTFY_UPDATE
-from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
 
 class GigaChannelManager(TaskManager):

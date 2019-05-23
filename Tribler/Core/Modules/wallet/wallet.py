@@ -5,9 +5,9 @@ import logging
 import random
 import string
 
-import six
+from ipv8.taskmanager import TaskManager
 
-from Tribler.pyipv8.ipv8.taskmanager import TaskManager
+import six
 
 
 class InsufficientFunds(Exception):

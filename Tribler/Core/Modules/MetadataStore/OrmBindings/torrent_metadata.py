@@ -3,6 +3,8 @@ from __future__ import absolute_import
 from binascii import hexlify, unhexlify
 from datetime import datetime
 
+from ipv8.database import database_blob
+
 from pony import orm
 from pony.orm import db_session, desc, raw_sql, select
 
@@ -11,7 +13,6 @@ from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import LEGACY_E
 from Tribler.Core.Modules.MetadataStore.serialization import REGULAR_TORRENT, TorrentMetadataPayload
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
 from Tribler.Core.Utilities.utilities import is_channel_public_key, is_hex_string, is_infohash
-from Tribler.pyipv8.ipv8.database import database_blob
 
 
 def define_binding(db):

@@ -2,7 +2,7 @@ from __future__ import absolute_import, division
 
 from random import sample
 
-from Tribler.pyipv8.ipv8.peerdiscovery.discovery import DiscoveryStrategy
+from ipv8.peerdiscovery.discovery import DiscoveryStrategy
 
 
 class GoldenRatioStrategy(DiscoveryStrategy):

@@ -7,6 +7,8 @@ import logging
 import os
 from binascii import hexlify, unhexlify
 
+from ipv8.database import database_blob
+
 from pony.orm import db_session
 
 from six import viewitems
@@ -22,7 +24,6 @@ from Tribler.Core.Modules.restapi.metadata_endpoint import SpecificChannelTorren
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.utilities import http_get, is_infohash, parse_magnetlink
 from Tribler.Core.exceptions import DuplicateTorrentFileError
-from Tribler.pyipv8.ipv8.database import database_blob
 
 
 class BaseMyChannelEndpoint(resource.Resource):

@@ -6,6 +6,8 @@ import sys
 from binascii import hexlify
 from datetime import datetime
 
+from ipv8.database import database_blob
+
 from libtorrent import add_files, bencode, create_torrent, file_storage, set_piece_hashes, torrent_info
 
 import lz4.frame
@@ -20,7 +22,6 @@ from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, Ch
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
 from Tribler.Core.exceptions import DuplicateChannelIdError, DuplicateTorrentFileError
-from Tribler.pyipv8.ipv8.database import database_blob
 
 CHANNEL_DIR_NAME_LENGTH = 32  # Its not 40 so it could be distinguished from infohash
 BLOB_EXTENSION = '.mdblob'

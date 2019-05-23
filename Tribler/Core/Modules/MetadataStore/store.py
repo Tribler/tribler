@@ -6,6 +6,8 @@ from binascii import hexlify
 from datetime import datetime, timedelta
 from time import sleep
 
+from ipv8.database import database_blob
+
 import lz4.frame
 
 from pony import orm
@@ -17,7 +19,6 @@ from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import BLOB
 from Tribler.Core.Modules.MetadataStore.serialization import (
     CHANNEL_TORRENT, DELETED, REGULAR_TORRENT, read_payload_with_offset, time2int)
 from Tribler.Core.exceptions import InvalidSignatureException
-from Tribler.pyipv8.ipv8.database import database_blob
 
 CLOCK_STATE_FILE = "clock.state"
 

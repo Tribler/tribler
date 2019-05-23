@@ -2,16 +2,17 @@ from __future__ import absolute_import
 
 import random
 
+from ipv8.attestation.trustchain.block import TrustChainBlock
+from ipv8.attestation.trustchain.community import TrustChainCommunity
+from ipv8.messaging.deprecated.encoding import encode
+from ipv8.test.mocking.ipv8 import MockIPv8
+
 from twisted.internet.defer import inlineCallbacks
 
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.tools import trial_timeout
-from Tribler.pyipv8.ipv8.attestation.trustchain.block import TrustChainBlock
-from Tribler.pyipv8.ipv8.attestation.trustchain.community import TrustChainCommunity
-from Tribler.pyipv8.ipv8.messaging.deprecated.encoding import encode
-from Tribler.pyipv8.ipv8.test.mocking.ipv8 import MockIPv8
 
 
 class TestTrustViewEndpoint(AbstractApiTest):

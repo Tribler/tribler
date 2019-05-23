@@ -2,6 +2,13 @@ from __future__ import absolute_import
 
 import os
 
+from ipv8.keyvault.crypto import ECCrypto
+from ipv8.messaging.anonymization.tunnel import PEER_FLAG_EXIT_ANY
+from ipv8.peer import Peer
+from ipv8.peerdiscovery.community import DiscoveryCommunity
+from ipv8.peerdiscovery.network import Network
+from ipv8.test.messaging.anonymization.test_community import MockDHTProvider
+
 from six.moves import xrange
 
 from twisted.internet import reactor
@@ -13,12 +20,6 @@ from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import dlstatus_strings
 from Tribler.Test.test_as_server import TESTS_DATA_DIR, TestAsServer
 from Tribler.community.triblertunnel.community import TriblerTunnelCommunity
-from Tribler.pyipv8.ipv8.keyvault.crypto import ECCrypto
-from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import PEER_FLAG_EXIT_ANY
-from Tribler.pyipv8.ipv8.peer import Peer
-from Tribler.pyipv8.ipv8.peerdiscovery.community import DiscoveryCommunity
-from Tribler.pyipv8.ipv8.peerdiscovery.network import Network
-from Tribler.pyipv8.ipv8.test.messaging.anonymization.test_community import MockDHTProvider
 
 
 class TestTunnelBase(TestAsServer):

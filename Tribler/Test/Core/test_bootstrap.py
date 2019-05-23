@@ -2,12 +2,13 @@ from __future__ import absolute_import
 
 from binascii import unhexlify
 
+from ipv8.keyvault.crypto import ECCrypto
+from ipv8.test.base import TestBase
+
 from twisted.internet.defer import inlineCallbacks, succeed
 
 from Tribler.Core.bootstrap import Bootstrap
 from Tribler.Test.Core.base_test import MockObject
-from Tribler.pyipv8.ipv8.keyvault.crypto import ECCrypto
-from Tribler.pyipv8.ipv8.test.base import TestBase
 
 
 class FakeDHT(object):

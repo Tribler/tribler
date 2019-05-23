@@ -1,7 +1,10 @@
+from __future__ import absolute_import
+
+from ipv8.keyvault.crypto import default_eccrypto
+from ipv8.peer import Peer
+from ipv8.test.base import TestBase
+
 from Tribler.community.gigachannel.sync_strategy import SyncChannels
-from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto
-from Tribler.pyipv8.ipv8.peer import Peer
-from Tribler.pyipv8.ipv8.test.base import TestBase
 
 
 class MockCommunity(object):

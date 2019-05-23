@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 
-from Tribler.pyipv8.ipv8.attestation.trustchain.block import EMPTY_SIG, GENESIS_HASH, GENESIS_SEQ, TrustChainBlock, \
+from ipv8.attestation.trustchain.block import EMPTY_SIG, GENESIS_HASH, GENESIS_SEQ, TrustChainBlock, \
     ValidationResult
-from Tribler.pyipv8.ipv8.messaging.deprecated.encoding import encode
+from ipv8.messaging.deprecated.encoding import encode
 
 
 class TriblerBandwidthBlock(TrustChainBlock):

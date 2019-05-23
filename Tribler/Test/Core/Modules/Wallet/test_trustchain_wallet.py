@@ -2,14 +2,15 @@ from __future__ import absolute_import
 
 from binascii import hexlify
 
+from ipv8.attestation.trustchain.community import TrustChainCommunity
+from ipv8.test.base import TestBase
+from ipv8.test.mocking.ipv8 import MockIPv8
+
 from twisted.internet.defer import Deferred, inlineCallbacks
 
 from Tribler.Core.Modules.wallet.tc_wallet import TrustchainWallet
 from Tribler.Core.Modules.wallet.wallet import InsufficientFunds
 from Tribler.Test.tools import trial_timeout
-from Tribler.pyipv8.ipv8.attestation.trustchain.community import TrustChainCommunity
-from Tribler.pyipv8.ipv8.test.base import TestBase
-from Tribler.pyipv8.ipv8.test.mocking.ipv8 import MockIPv8
 
 
 class TestTrustchainWallet(TestBase):

@@ -8,6 +8,18 @@ from binascii import hexlify, unhexlify
 from collections import Counter
 from distutils.version import LooseVersion
 
+from ipv8.attestation.trustchain.block import EMPTY_PK
+from ipv8.messaging.anonymization.caches import CreateRequestCache
+from ipv8.messaging.anonymization.community import message_to_payload
+from ipv8.messaging.anonymization.hidden_services import HiddenTunnelCommunity
+from ipv8.messaging.anonymization.payload import LinkedE2EPayload, NO_CRYPTO_PACKETS
+from ipv8.messaging.anonymization.tunnel import CIRCUIT_STATE_CLOSING, CIRCUIT_STATE_READY, \
+                                                               CIRCUIT_TYPE_DATA, CIRCUIT_TYPE_IP_SEEDER,\
+                                                               CIRCUIT_TYPE_RP_DOWNLOADER, CIRCUIT_TYPE_RP_SEEDER,\
+                                                               EXIT_NODE, PEER_FLAG_EXIT_ANY, RelayRoute
+from ipv8.peer import Peer
+from ipv8.peerdiscovery.network import Network
+
 from twisted.internet.defer import Deferred, inlineCallbacks, succeed
 
 from Tribler.Core.Modules.wallet.bandwidth_block import TriblerBandwidthBlock
@@ -19,17 +31,6 @@ from Tribler.community.triblertunnel.caches import BalanceRequestCache
 from Tribler.community.triblertunnel.discovery import GoldenRatioStrategy
 from Tribler.community.triblertunnel.dispatcher import TunnelDispatcher
 from Tribler.community.triblertunnel.payload import BalanceRequestPayload, BalanceResponsePayload, PayoutPayload
-from Tribler.pyipv8.ipv8.attestation.trustchain.block import EMPTY_PK
-from Tribler.pyipv8.ipv8.messaging.anonymization.caches import CreateRequestCache
-from Tribler.pyipv8.ipv8.messaging.anonymization.community import message_to_payload
-from Tribler.pyipv8.ipv8.messaging.anonymization.hidden_services import HiddenTunnelCommunity
-from Tribler.pyipv8.ipv8.messaging.anonymization.payload import LinkedE2EPayload, NO_CRYPTO_PACKETS
-from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import CIRCUIT_STATE_CLOSING, CIRCUIT_STATE_READY, \
-                                                               CIRCUIT_TYPE_DATA, CIRCUIT_TYPE_IP_SEEDER,\
-                                                               CIRCUIT_TYPE_RP_DOWNLOADER, CIRCUIT_TYPE_RP_SEEDER,\
-                                                               EXIT_NODE, PEER_FLAG_EXIT_ANY, RelayRoute
-from Tribler.pyipv8.ipv8.peer import Peer
-from Tribler.pyipv8.ipv8.peerdiscovery.network import Network
 
 
 class TriblerTunnelCommunity(HiddenTunnelCommunity):

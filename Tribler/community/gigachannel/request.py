@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from binascii import hexlify
 
-from Tribler.pyipv8.ipv8.requestcache import RandomNumberCache
+from ipv8.requestcache import RandomNumberCache
 
 
 class SearchRequestCache(RandomNumberCache):

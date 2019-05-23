@@ -3,18 +3,19 @@ from __future__ import absolute_import
 from os.path import join
 from tempfile import mkdtemp
 
+from ipv8.attestation.trustchain.community import TrustChainCommunity
+from ipv8.messaging.anonymization.tunnel import CIRCUIT_TYPE_RP_DOWNLOADER, PEER_FLAG_EXIT_ANY
+from ipv8.peer import Peer
+from ipv8.test.base import TestBase
+from ipv8.test.messaging.anonymization.test_community import MockDHTProvider
+from ipv8.test.mocking.exit_socket import MockTunnelExitSocket
+from ipv8.test.mocking.ipv8 import MockIPv8
+
 from twisted.internet.defer import Deferred, inlineCallbacks
 
 from Tribler.Core.Modules.wallet.tc_wallet import TrustchainWallet
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.community.triblertunnel.community import TriblerTunnelCommunity
-from Tribler.pyipv8.ipv8.attestation.trustchain.community import TrustChainCommunity
-from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import CIRCUIT_TYPE_RP_DOWNLOADER, PEER_FLAG_EXIT_ANY
-from Tribler.pyipv8.ipv8.peer import Peer
-from Tribler.pyipv8.ipv8.test.base import TestBase
-from Tribler.pyipv8.ipv8.test.messaging.anonymization.test_community import MockDHTProvider
-from Tribler.pyipv8.ipv8.test.mocking.exit_socket import MockTunnelExitSocket
-from Tribler.pyipv8.ipv8.test.mocking.ipv8 import MockIPv8
 
 
 class TestTriblerTunnelCommunity(TestBase):

@@ -1,6 +1,8 @@
+from __future__ import absolute_import
+
 from random import choice
 
-from Tribler.pyipv8.ipv8.peerdiscovery.discovery import DiscoveryStrategy
+from ipv8.peerdiscovery.discovery import DiscoveryStrategy
 
 
 class SyncChannels(DiscoveryStrategy):

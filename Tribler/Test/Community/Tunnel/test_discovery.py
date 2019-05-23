@@ -2,10 +2,11 @@ from __future__ import absolute_import
 
 from unittest import TestCase
 
+from ipv8.keyvault.crypto import default_eccrypto
+from ipv8.peer import Peer
+from ipv8.peerdiscovery.network import Network
+
 from Tribler.community.triblertunnel.discovery import GoldenRatioStrategy
-from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto
-from Tribler.pyipv8.ipv8.peer import Peer
-from Tribler.pyipv8.ipv8.peerdiscovery.network import Network
 
 
 class FakeOverlay(object):

@@ -2,6 +2,8 @@ from __future__ import absolute_import
 
 import logging
 
+from ipv8.database import database_blob
+
 from six import integer_types, text_type
 
 from Tribler.community.market.core.assetamount import AssetAmount
@@ -9,7 +11,6 @@ from Tribler.community.market.core.assetpair import AssetPair
 from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
-from Tribler.pyipv8.ipv8.database import database_blob
 
 
 class TickWasNotReserved(Exception):

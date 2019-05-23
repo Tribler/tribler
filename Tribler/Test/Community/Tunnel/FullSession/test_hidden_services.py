@@ -1,10 +1,11 @@
 from __future__ import absolute_import, print_function
 
+from ipv8.messaging.anonymization.tunnel import CIRCUIT_TYPE_IP_SEEDER
+
 from twisted.internet.defer import Deferred, inlineCallbacks
 
 from Tribler.Core.simpledefs import DLSTATUS_SEEDING
 from Tribler.Test.Community.Tunnel.FullSession.test_tunnel_base import TestTunnelBase
-from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import CIRCUIT_TYPE_IP_SEEDER
 
 
 class TestHiddenServices(TestTunnelBase):

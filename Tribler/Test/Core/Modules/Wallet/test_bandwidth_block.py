@@ -1,14 +1,15 @@
 from __future__ import absolute_import
 
-from hashlib import sha256
 import random
+from hashlib import sha256
+
+from ipv8.attestation.trustchain.block import EMPTY_SIG, GENESIS_HASH, GENESIS_SEQ, ValidationResult
+from ipv8.keyvault.crypto import ECCrypto
+from ipv8.messaging.deprecated.encoding import encode
+from ipv8.util import cast_to_bin
 
 from Tribler.Core.Modules.wallet.bandwidth_block import TriblerBandwidthBlock
 from Tribler.Test.test_as_server import AbstractServer
-from Tribler.pyipv8.ipv8.attestation.trustchain.block import GENESIS_SEQ, GENESIS_HASH, ValidationResult, EMPTY_SIG
-from Tribler.pyipv8.ipv8.messaging.deprecated.encoding import encode
-from Tribler.pyipv8.ipv8.keyvault.crypto import ECCrypto
-from Tribler.pyipv8.ipv8.util import cast_to_bin
 
 
 class TriblerBandwidthTestBlock(TriblerBandwidthBlock):

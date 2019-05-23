@@ -4,6 +4,8 @@ import os
 import random
 from datetime import datetime
 
+from ipv8.keyvault.crypto import default_eccrypto
+
 from pony.orm import db_session
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import NEW
@@ -12,7 +14,6 @@ from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Test.Core.Modules.MetadataStore.test_channel_download import CHANNEL_METADATA, CHANNEL_METADATA_UPDATED, \
     CHANNEL_TORRENT, CHANNEL_TORRENT_UPDATED
 from Tribler.Test.common import TORRENT_UBUNTU_FILE, TORRENT_VIDEO_FILE
-from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto
 
 DATA_DIR = os.path.join(os.path.abspath(os.path.dirname(os.path.realpath(__file__))), '..', '..', 'data')
 SAMPLE_DIR = os.path.join(DATA_DIR, 'sample_channel')

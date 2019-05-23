@@ -3,15 +3,16 @@ from __future__ import absolute_import
 import random
 from binascii import hexlify, unhexlify
 
+from ipv8.community import Community
+from ipv8.lazy_community import lazy_wrapper
+from ipv8.messaging.payload_headers import BinMemberAuthenticationPayload
+from ipv8.peer import Peer
+
 from pony.orm import db_session
 
 from twisted.internet.task import LoopingCall
 
 from Tribler.community.popularity.payload import TorrentsHealthPayload
-from Tribler.pyipv8.ipv8.community import Community
-from Tribler.pyipv8.ipv8.lazy_community import lazy_wrapper
-from Tribler.pyipv8.ipv8.messaging.payload_headers import BinMemberAuthenticationPayload
-from Tribler.pyipv8.ipv8.peer import Peer
 
 
 PUBLISH_INTERVAL = 5

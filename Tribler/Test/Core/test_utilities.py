@@ -1,9 +1,10 @@
 from __future__ import absolute_import
 
+from ipv8.messaging.deprecated.encoding import add_url_params
+
 from Tribler.Core.Utilities.utilities import http_get, parse_magnetlink
 from Tribler.Test.Core.base_test import TriblerCoreTest
 from Tribler.Test.tools import trial_timeout
-from Tribler.pyipv8.ipv8.messaging.deprecated.encoding import add_url_params
 
 
 class TriblerCoreTestUtilities(TriblerCoreTest):

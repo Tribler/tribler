@@ -4,6 +4,16 @@ from base64 import b64decode
 from binascii import hexlify, unhexlify
 from functools import wraps
 
+from ipv8.attestation.trustchain.listener import BlockListener
+from ipv8.attestation.trustchain.payload import HalfBlockPairPayload
+from ipv8.community import Community, lazy_wrapper
+from ipv8.messaging.bloomfilter import BloomFilter
+from ipv8.messaging.payload_headers import BinMemberAuthenticationPayload
+from ipv8.messaging.payload_headers import GlobalTimeDistributionPayload
+from ipv8.peer import Peer
+from ipv8.requestcache import NumberCache, RandomNumberCache, RequestCache
+from ipv8.util import addCallback
+
 from twisted.internet import reactor
 from twisted.internet.defer import Deferred, inlineCallbacks, succeed
 
@@ -37,15 +47,6 @@ from Tribler.community.market.payload import AcceptMatchPayload, DeclineMatchPay
     MatchPayload, OrderStatusRequestPayload, OrderStatusResponsePayload, OrderbookSyncPayload, PaymentPayload,\
     PingPongPayload, StartTransactionPayload, TradePayload, WalletInfoPayload
 from Tribler.community.market.reputation.temporal_pagerank_manager import TemporalPagerankReputationManager
-from Tribler.pyipv8.ipv8.attestation.trustchain.listener import BlockListener
-from Tribler.pyipv8.ipv8.attestation.trustchain.payload import HalfBlockPairPayload
-from Tribler.pyipv8.ipv8.community import Community, lazy_wrapper
-from Tribler.pyipv8.ipv8.messaging.bloomfilter import BloomFilter
-from Tribler.pyipv8.ipv8.messaging.payload_headers import BinMemberAuthenticationPayload
-from Tribler.pyipv8.ipv8.messaging.payload_headers import GlobalTimeDistributionPayload
-from Tribler.pyipv8.ipv8.peer import Peer
-from Tribler.pyipv8.ipv8.requestcache import NumberCache, RandomNumberCache, RequestCache
-from Tribler.pyipv8.ipv8.util import addCallback
 
 
 # Message definitions

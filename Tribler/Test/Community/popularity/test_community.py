@@ -3,6 +3,10 @@ from __future__ import absolute_import
 import os
 import time
 
+from ipv8.keyvault.crypto import default_eccrypto
+from ipv8.test.base import TestBase
+from ipv8.test.mocking.ipv8 import MockIPv8
+
 from pony.orm import db_session
 
 from six.moves import xrange
@@ -12,9 +16,6 @@ from twisted.internet.defer import inlineCallbacks
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.community.popularity.community import PopularityCommunity
-from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto
-from Tribler.pyipv8.ipv8.test.base import TestBase
-from Tribler.pyipv8.ipv8.test.mocking.ipv8 import MockIPv8
 
 
 class TestPopularityCommunity(TestBase):

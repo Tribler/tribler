@@ -4,6 +4,8 @@ import os
 import shutil
 import sqlite3
 
+from ipv8.keyvault.crypto import default_eccrypto
+
 from pony.orm import db_session
 
 from twisted.internet.defer import inlineCallbacks
@@ -15,7 +17,6 @@ from Tribler.Core.Upgrade.db72_to_pony import (
     CONVERSION_FROM_72_PERSONAL, CONVERSION_STARTED, DispersyToPonyMigration, already_upgraded,
     cleanup_pony_experimental_db, new_db_version_ok, old_db_version_ok, should_upgrade)
 from Tribler.Test.Core.base_test import MockObject, TriblerCoreTest
-from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto
 
 OLD_DB_SAMPLE = os.path.join(os.path.abspath(os.path.dirname(os.path.realpath(__file__))), '..', 'data',
                              'upgrade_databases', 'tribler_v29.sdb')
