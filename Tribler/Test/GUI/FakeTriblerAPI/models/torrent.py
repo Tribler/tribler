@@ -1,8 +1,13 @@
-from random import randint, uniform, choice
+from __future__ import absolute_import
+
 import time
+from binascii import hexlify, unhexlify
+from random import choice, randint, uniform
+
+from six.moves import xrange
 
 from Tribler.Test.GUI.FakeTriblerAPI.constants import COMMITTED
-from Tribler.Test.GUI.FakeTriblerAPI.utils import get_random_hex_string, get_random_filename
+from Tribler.Test.GUI.FakeTriblerAPI.utils import get_random_filename, get_random_hex_string
 
 
 class Torrent(object):
@@ -36,7 +41,7 @@ class Torrent(object):
     def get_json(self, include_status=False, include_trackers=False):
         result = {
             "name": self.name,
-            "infohash": self.infohash.encode('hex'),
+            "infohash": hexlify(self.infohash),
             "size": self.length,
             "category": self.category,
             "relevance_score": self.relevance_score,
@@ -55,7 +60,7 @@ class Torrent(object):
 
     @staticmethod
     def random():
-        infohash = get_random_hex_string(40).decode('hex')
+        infohash = unhexlify(get_random_hex_string(40))
         name = get_random_filename()
         categories = ['document', 'audio', 'video', 'xxx']
         torrent = Torrent(infohash, name, randint(1024, 1024 * 3000), choice(categories))

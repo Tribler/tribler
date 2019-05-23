@@ -1,6 +1,9 @@
-import random
+from __future__ import absolute_import
 
+import random
 import time
+
+from six.moves import xrange
 
 
 class Order(object):

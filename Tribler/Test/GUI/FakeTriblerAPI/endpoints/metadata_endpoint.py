@@ -1,5 +1,8 @@
+from __future__ import absolute_import
+
 import json
-from random import sample, randint
+from binascii import unhexlify
+from random import randint, sample
 
 from twisted.internet import reactor
 from twisted.web import http, resource
@@ -18,7 +21,7 @@ class MetadataEndpoint(resource.Resource):
             "torrents": TorrentsEndpoint
         }
 
-        for path, child_cls in child_handler_dict.iteritems():
+        for path, child_cls in child_handler_dict.items():
             self.putChild(path, child_cls())
 
 
@@ -41,7 +44,7 @@ class ChannelsEndpoint(BaseChannelsEndpoint):
         child_handler_dict = {
             "popular": ChannelsPopularEndpoint
         }
-        for path, child_cls in child_handler_dict.iteritems():
+        for path, child_cls in child_handler_dict.items():
             self.putChild(path, child_cls())
 
     def getChild(self, path, request):
@@ -89,7 +92,7 @@ class SpecificChannelEndpoint(resource.Resource):
 
     def __init__(self, channel_pk):
         resource.Resource.__init__(self)
-        self.channel_pk = channel_pk.decode('hex')
+        self.channel_pk = unhexlify(channel_pk)
 
         self.putChild("torrents", SpecificChannelTorrentsEndpoint(self.channel_pk))
 
@@ -134,7 +137,7 @@ class SpecificChannelTorrentsEndpoint(BaseChannelsEndpoint):
 
         channel = ''
         if 'channel' in parameters:
-            channel = parameters['channel'][0].decode('hex')
+            channel = unhexlify(parameters['channel'][0])
 
         if query_filter:
             parts = query_filter.split("\"")
@@ -187,7 +190,7 @@ class SpecificTorrentEndpoint(resource.Resource):
 
     def __init__(self, infohash):
         resource.Resource.__init__(self)
-        self.infohash = infohash.decode('hex')
+        self.infohash = unhexlify(infohash)
 
         self.putChild("health", SpecificTorrentHealthEndpoint(self.infohash))
 

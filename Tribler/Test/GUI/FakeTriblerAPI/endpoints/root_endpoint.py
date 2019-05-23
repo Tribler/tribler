@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from twisted.web import resource
 
 from Tribler.Test.GUI.FakeTriblerAPI.endpoints.debug_endpoint import DebugEndpoint
@@ -9,12 +11,12 @@ from Tribler.Test.GUI.FakeTriblerAPI.endpoints.market_endpoint import MarketEndp
 from Tribler.Test.GUI.FakeTriblerAPI.endpoints.metadata_endpoint import MetadataEndpoint
 from Tribler.Test.GUI.FakeTriblerAPI.endpoints.mychannel_endpoint import MyChannelEndpoint
 from Tribler.Test.GUI.FakeTriblerAPI.endpoints.search_endpoint import SearchEndpoint
+from Tribler.Test.GUI.FakeTriblerAPI.endpoints.settings_endpoint import SettingsEndpoint
 from Tribler.Test.GUI.FakeTriblerAPI.endpoints.shutdown_endpoint import ShutdownEndpoint
 from Tribler.Test.GUI.FakeTriblerAPI.endpoints.state_endpoint import StateEndpoint
 from Tribler.Test.GUI.FakeTriblerAPI.endpoints.statistics_endpoint import StatisticsEndpoint
 from Tribler.Test.GUI.FakeTriblerAPI.endpoints.torrentinfo_endpoint import TorrentInfoEndpoint
 from Tribler.Test.GUI.FakeTriblerAPI.endpoints.trustchain_endpoint import TrustchainEndpoint
-from Tribler.Test.GUI.FakeTriblerAPI.endpoints.settings_endpoint import SettingsEndpoint
 from Tribler.Test.GUI.FakeTriblerAPI.endpoints.wallets_endpoint import WalletsEndpoint
 
 
@@ -35,5 +37,5 @@ class RootEndpoint(resource.Resource):
                               "debug": DebugEndpoint, "ipv8": IPv8Endpoint,
                               "libtorrent": LibTorrentEndpoint}
 
-        for path, child_cls in child_handler_dict.iteritems():
+        for path, child_cls in child_handler_dict.items():
             self.putChild(path, child_cls())

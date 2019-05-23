@@ -1,5 +1,7 @@
 import random
 
+from six import unichr  # pylint: disable=redefined-builtin
+
 
 def get_random_hex_string(length):
     return ''.join([random.choice('0123456789abcdef') for _ in range(length)])

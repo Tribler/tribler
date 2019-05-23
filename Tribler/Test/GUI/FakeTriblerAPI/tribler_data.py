@@ -1,7 +1,8 @@
+from __future__ import absolute_import
+
 import os
-
+from binascii import hexlify
 from random import randint, sample
-
 from time import time
 
 from six.moves import xrange
@@ -14,7 +15,7 @@ from Tribler.Test.GUI.FakeTriblerAPI.models.tick import Tick
 from Tribler.Test.GUI.FakeTriblerAPI.models.torrent import Torrent
 from Tribler.Test.GUI.FakeTriblerAPI.models.transaction import Transaction
 from Tribler.Test.GUI.FakeTriblerAPI.models.trustchain_block import TrustchainBlock
-from Tribler.Test.GUI.FakeTriblerAPI.models.tunnel import Circuit, Relay, Exit
+from Tribler.Test.GUI.FakeTriblerAPI.models.tunnel import Circuit, Exit, Relay
 from Tribler.Test.GUI.FakeTriblerAPI.utils.network import get_random_port
 
 CREATE_MY_CHANNEL = True
@@ -283,10 +284,10 @@ class TriblerData(object):
             "num_tokens": randint(10, 50),
             "routing_table_buckets": randint(1, 10),
             "num_keys_in_store": randint(100, 500),
-            "num_store_for_me": {os.urandom(20).encode('hex'): randint(1, 8)},
+            "num_store_for_me": {hexlify(os.urandom(20)): randint(1, 8)},
             "num_peers_in_store": {},
-            "node_id": os.urandom(20).encode('hex'),
-            "peer_id": os.urandom(20).encode('hex'),
+            "node_id": hexlify(os.urandom(20)),
+            "peer_id": hexlify(os.urandom(20)),
             "routing_table_size": randint(10, 50)
         }
 

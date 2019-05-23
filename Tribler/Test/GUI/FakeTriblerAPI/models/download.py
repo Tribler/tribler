@@ -1,5 +1,10 @@
+from __future__ import absolute_import, division
+
 import base64
-from random import randint, uniform, random
+from binascii import hexlify
+from random import randint, random, uniform
+
+from six.moves import xrange
 
 from Tribler.Test.GUI.FakeTriblerAPI.constants import DLSTATUS_STRINGS
 from Tribler.Test.GUI.FakeTriblerAPI.models.download_peer import DownloadPeer
@@ -59,7 +64,7 @@ class Download(object):
     def get_json(self, get_peers=False, get_pieces=False):
         download = {
             "name": self.torrent.name,
-            "infohash": self.torrent.infohash.encode('hex'),
+            "infohash": hexlify(self.torrent.infohash),
             "status": DLSTATUS_STRINGS[self.status],
             "num_peers": self.num_peers,
             "num_seeds": self.seeds,

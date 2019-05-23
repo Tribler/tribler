@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import json
 
 from twisted.web import resource
@@ -15,7 +17,7 @@ class MarketEndpoint(resource.Resource):
 
         child_handler_dict = {"asks": AsksEndpoint, "bids": BidsEndpoint,
                               "transactions": TransactionsEndpoint, "orders": OrdersEndpoint}
-        for path, child_cls in child_handler_dict.iteritems():
+        for path, child_cls in child_handler_dict.items():
             self.putChild(path, child_cls())
 
 
@@ -71,7 +73,7 @@ class TransactionSpecificNumberEndpoint(resource.Resource):
         self.transaction_number = int(path)
 
         child_handler_dict = {"payments": TransactionPaymentsEndpoint}
-        for child_path, child_cls in child_handler_dict.iteritems():
+        for child_path, child_cls in child_handler_dict.items():
             self.putChild(child_path, child_cls(self.transaction_trader_id, self.transaction_number))
 
 

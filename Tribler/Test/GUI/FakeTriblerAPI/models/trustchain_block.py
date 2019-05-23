@@ -1,6 +1,8 @@
-from random import randint, random
+from __future__ import absolute_import
 
 import datetime
+from binascii import hexlify
+from random import randint, random
 
 
 class TrustchainBlock(object):
@@ -27,13 +29,13 @@ class TrustchainBlock(object):
             "down": self.down,
             "total_up": self.total_up,
             "total_down": self.total_down,
-            "public_key": self.public_key.encode("hex"),
+            "public_key": hexlify(self.public_key),
             "sequence_number": self.sequence_number,
-            "link_public_key": self.link_public_key.encode("hex"),
+            "link_public_key": hexlify(self.link_public_key),
             "link_sequence_number": self.link_sequence_number,
-            "previous_hash": self.previous_hash.encode("hex"),
-            "signature": self.signature.encode("hex"),
+            "previous_hash": hexlify(self.previous_hash),
+            "signature": hexlify(self.signature),
             "insert_time": self.insert_time,
-            "hash": ('e' * 20).encode("hex"),
+            "hash": hexlify('e' * 20),
             "type": self.type
         }

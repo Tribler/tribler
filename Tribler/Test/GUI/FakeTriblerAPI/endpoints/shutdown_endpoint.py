@@ -1,7 +1,9 @@
+from __future__ import absolute_import
+
 import json
 
-from twisted.web import resource
 from twisted.internet import reactor, task
+from twisted.web import resource
 
 
 class ShutdownEndpoint(resource.Resource):

@@ -1,12 +1,14 @@
+from __future__ import absolute_import
+
 import json
+from binascii import unhexlify, hexlify
 
 from twisted.web import http, resource
 
+import Tribler.Test.GUI.FakeTriblerAPI.tribler_utils as tribler_utils
 from Tribler.Test.GUI.FakeTriblerAPI.constants import COMMITTED, TODELETE
 from Tribler.Test.GUI.FakeTriblerAPI.endpoints.metadata_endpoint import SpecificChannelTorrentsEndpoint
 from Tribler.Test.GUI.FakeTriblerAPI.models.channel import Channel
-
-import Tribler.Test.GUI.FakeTriblerAPI.tribler_utils as tribler_utils
 
 
 class MyChannelBaseEndpoint(resource.Resource):
@@ -31,7 +33,7 @@ class MyChannelEndpoint(MyChannelBaseEndpoint):
 
         return json.dumps({
             'mychannel': {
-                'public_key': my_channel.public_key.encode('hex'),
+                'public_key': hexlify(my_channel.public_key),
                 'name': my_channel.name,
                 'description': my_channel.description,
                 'dirty': my_channel.is_dirty()
@@ -95,7 +97,7 @@ class MyChannelTorrentsEndpoint(MyChannelBaseEndpoint):
             request.setResponseCode(http.NOT_FOUND)
             return "your channel has not been created"
 
-        request.args['channel'] = [my_channel.public_key.encode('hex')]
+        request.args['channel'] = [hexlify(my_channel.public_key)]
         first, last, sort_by, sort_asc, query_filter, channel = \
             SpecificChannelTorrentsEndpoint.sanitize_parameters(request.args)
 
@@ -126,7 +128,7 @@ class MyChannelTorrentsEndpoint(MyChannelBaseEndpoint):
         new_status = int(parameters['status'][0])
         infohashes = parameters['infohashes'][0].split(',')
         for infohash in infohashes:
-            torrent = my_channel.get_torrent_with_infohash(infohash.decode('hex'))
+            torrent = my_channel.get_torrent_with_infohash(unhexlify(infohash))
             if torrent:
                 torrent.status = new_status
 
@@ -157,7 +159,7 @@ class MyChannelSpecificTorrentEndpoint(MyChannelBaseEndpoint):
             return json.dumps({"error": "status parameter missing"})
 
         my_channel = tribler_utils.tribler_data.get_my_channel()
-        torrent = my_channel.get_torrent_with_infohash(self.infohash.decode('hex'))
+        torrent = my_channel.get_torrent_with_infohash(unhexlify(self.infohash))
         if not torrent:
             request.setResponseCode(http.NOT_FOUND)
             return json.dumps({"error": "torrent with the specified infohash could not be found"})

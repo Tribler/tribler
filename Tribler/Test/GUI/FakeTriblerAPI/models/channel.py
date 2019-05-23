@@ -1,9 +1,13 @@
+from __future__ import absolute_import
+
 import time
-from random import randint, choice
+from binascii import unhexlify, hexlify
+from random import choice, randint
 
 import Tribler.Test.GUI.FakeTriblerAPI.tribler_utils as tribler_utils
 from Tribler.Test.GUI.FakeTriblerAPI.constants import NEW, TODELETE
 from Tribler.Test.GUI.FakeTriblerAPI.utils import get_random_hex_string
+from Tribler.pyipv8.ipv8.util import old_round
 
 
 class Channel(object):
@@ -12,12 +16,12 @@ class Channel(object):
         self.name = name
         self.description = description
         self.id = cid
-        self.public_key = get_random_hex_string(64).decode('hex')
+        self.public_key = unhexlify(get_random_hex_string(64))
         self.votes = randint(0, 10000)
         self.torrents = set()
         self.subscribed = False
         self.state = choice([u"Downloading", u"Personal", u"Legacy", u"Complete", u"Updating", u"Preview"])
-        self.timestamp = int(round(time.time() * 1000)) - randint(0, 3600 * 24 * 7 * 1000)
+        self.timestamp = int(old_round(time.time() * 1000)) - randint(0, 3600 * 24 * 7 * 1000)
 
         self.add_random_torrents()
 
@@ -30,7 +34,7 @@ class Channel(object):
     def get_json(self):
         return {
             "id": self.id,
-            "public_key": self.public_key.encode('hex'),
+            "public_key": hexlify(self.public_key),
             "name": self.name,
             "torrents": len(self.torrents),
             "subscribed": self.subscribed,

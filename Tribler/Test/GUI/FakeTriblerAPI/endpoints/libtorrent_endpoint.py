@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import json
 
 from twisted.web import resource

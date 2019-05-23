@@ -1,5 +1,10 @@
+from __future__ import absolute_import
+
 import cgi
 import json
+from binascii import hexlify, unhexlify
+
+from six import text_type
 
 from twisted.web import http, resource
 
@@ -40,7 +45,7 @@ class DownloadEndpoint(resource.Resource):
 
     def __init__(self, infohash):
         resource.Resource.__init__(self)
-        self.infohash = infohash.decode('hex')
+        self.infohash = unhexlify(infohash)
         self.putChild("files", DownloadFilesEndpoint(self.infohash))
 
     def render_PATCH(self, request):
@@ -48,7 +53,7 @@ class DownloadEndpoint(resource.Resource):
         parameters = http.parse_qs(request.content.read(), 1)
 
         if 'selected_files[]' in parameters:
-            selected_files_list = [unicode(f, 'utf-8') for f in parameters['selected_files[]']]
+            selected_files_list = [text_type(f, 'utf-8') for f in parameters['selected_files[]']]
             download.set_selected_files(selected_files_list)
 
         if 'state' in parameters and parameters['state']:
@@ -63,7 +68,7 @@ class DownloadEndpoint(resource.Resource):
                 request.setResponseCode(http.BAD_REQUEST)
                 return json.dumps({"error": "unknown state parameter"})
 
-        return json.dumps({"modified": True, "infohash": self.infohash.encode('hex')})
+        return json.dumps({"modified": True, "infohash": hexlify(self.infohash)})
 
 
 class DownloadBaseEndpoint(resource.Resource):

@@ -1,5 +1,6 @@
-import json
+from __future__ import absolute_import
 
+import json
 import time
 
 from six.moves import xrange

@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import json
 from random import Random
 
@@ -38,8 +40,8 @@ class SearchEndpoint(resource.Resource):
 
         num_channels = len(tribler_utils.tribler_data.channels)
         num_torrents = len(tribler_utils.tribler_data.torrents)
-        picked_torrents = random.sample(range(0, num_torrents - 1), random.randint(20, num_channels - 1))
-        picked_channels = random.sample(range(0, num_channels - 1), random.randint(5, min(20, num_channels - 1)))
+        picked_torrents = random.sample(list(range(0, num_torrents - 1)), random.randint(20, num_channels - 1))
+        picked_channels = random.sample(list(range(0, num_channels - 1)), random.randint(5, min(20, num_channels - 1)))
 
         torrents_json = []
         for index in picked_torrents:
