@@ -162,6 +162,7 @@ class MetadataStore(object):
                 self.MiscData(name="db_version", value=str(CURRENT_DB_VERSION))
 
         self.clock.init_clock()
+        self.ChannelMetadata.vsids_normalize()
 
     def shutdown(self):
         self._shutting_down = True
@@ -339,6 +340,11 @@ class MetadataStore(object):
         # Check the payload timestamp<->id_ correctness
         if payload.timestamp < payload.id_:
             return []
+
+        # Check if we already have this payload
+        node = self.ChannelNode.get_for_update(signature=payload.signature, public_key=payload.public_key)
+        if node:
+            return [(node, NO_ACTION)]
 
         # Check for a node with the same infohash
         result = []

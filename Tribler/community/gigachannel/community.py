@@ -99,6 +99,18 @@ class GigaChannelCommunity(Community):
             self._logger.error("DB transaction error when tried to process payload: %s", str(err))
             return
 
+        # Update votes counters
+        with db_session:
+            # This check ensures, in a bit hackish way, that we do not bump responses
+            # sent by respond_with_updated_metatada
+            # TODO: make the bump decision based on packet type instead when we switch to nested channels!
+            if len(md_list) > 1:
+                for c in [md for md, _ in md_list if md and (md.metadata_type == CHANNEL_TORRENT)]:
+                    channel = self.metadata_store.ChannelMetadata.get_for_update(rowid=c.rowid)
+                    if channel:
+                        channel.vote_bump()
+                    break  # We only want to bump the leading channel entry in the payload, since other are contents
+
         # Notify the discovered torrents and channels to the GUI
         self.notify_discovered_metadata(md_list)
 

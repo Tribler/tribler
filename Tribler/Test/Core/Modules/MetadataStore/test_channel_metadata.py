@@ -286,6 +286,20 @@ class TestChannelMetadata(TriblerCoreTest):
         self.assertEqual(0, len(channel_metadata.contents_list))
 
     @db_session
+    def test_vsids(self):
+        self.assertEqual(1.0, self.mds.ChannelMetadata.bump_amount)
+
+        channel = self.mds.ChannelMetadata.create_channel('test', 'test')
+        channel.vote_bump()
+        self.assertLess(0.0, channel.votes)
+        self.assertLess(1.0, self.mds.ChannelMetadata.bump_amount)
+
+        # Make sure the rescale works right for the channels
+        self.mds.ChannelMetadata.vsids_normalize()
+        self.assertEqual(1.0, self.mds.ChannelMetadata.bump_amount)
+        self.assertEqual(1.0, channel.votes)
+
+    @db_session
     def test_commit_channel_torrent(self):
         channel = self.mds.ChannelMetadata.create_channel('test', 'test')
         tdef = TorrentDef.load(TORRENT_UBUNTU_FILE)
