@@ -182,11 +182,23 @@ class TestMetadataStore(TriblerCoreTest):
         self.assertEqual(node_dict['metadata_type'], result[0][0].to_dict()['metadata_type'])
 
         # Check the same for a channel
+        source_peer_key = default_eccrypto.generate_key(u"curve25519")
         node, node_payload, node_deleted_payload = get_payloads(self.mds.ChannelMetadata)
         node_dict = node.to_dict()
         node.delete()
+        result = self.mds.process_payload(node_payload, source=source_peer_key.pub())
+        self.assertEqual(UNKNOWN_CHANNEL, result[0][1])
+        self.assertEqual(node_dict['metadata_type'], result[0][0].to_dict()['metadata_type'])
+
+        # Check that two votes are added if the channel is received from two different sources
+        source_peer_key = default_eccrypto.generate_key(u"curve25519")
+        result = self.mds.process_payload(node_payload, source=source_peer_key.pub())
+        self.assertEqual(2, self.mds.ChannelPeer.select().count())
 
         # Check that there is no action if the signature on the delete object is unknown
+        node, node_payload, node_deleted_payload = get_payloads(self.mds.ChannelMetadata)
+        node_dict = node.to_dict()
+        node.delete()
         self.assertFalse(self.mds.process_payload(node_deleted_payload))
         result = self.mds.process_payload(node_payload)
         self.assertEqual(UNKNOWN_CHANNEL, result[0][1])
