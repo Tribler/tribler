@@ -106,19 +106,8 @@ class GigaChannelCommunity(Community):
             # TODO: make the bump decision based on packet type instead when we switch to nested channels!
             if len(md_list) > 1:
                 for c in [md for md, _ in md_list if md and (md.metadata_type == CHANNEL_TORRENT)]:
-                    channel = self.metadata_store.ChannelMetadata.get_for_update(rowid=c.rowid)
-                    if channel:
-                        peer_pk = peer.public_key.key_to_bin()[10:]
-
-                        voter = self.metadata_store.ChannelPeer.get(public_key=peer_pk)
-                        if not voter:
-                            voter = self.metadata_store.ChannelPeer(public_key=peer_pk)
-                        vote = self.metadata_store.ChannelVote.get(voter=voter, channel=channel)
-                        if not vote:
-                            vote = self.metadata_store.ChannelVote(voter=voter, channel=channel)
-
-                        channel.vote_bump(vote)
-                    break  # We only want to bump the leading channel entry in the payload, since others are content
+                    self.metadata_store.vote_bump(c.public_key, c.id_, peer.public_key.key_to_bin()[10:])
+                    break  # We only want to bump the leading channel entry in the payload, since the rest is content
 
         # Notify the discovered torrents and channels to the GUI
         self.notify_discovered_metadata(md_list)

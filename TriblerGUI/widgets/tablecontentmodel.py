@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import math
 from abc import abstractmethod
 
 from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt, pyqtSignal
@@ -188,6 +189,7 @@ class SearchResultsContentModel(StateTooltipMixin, VotesAlignmentMixin, TriblerC
 
     column_display_filters = {
         u'size': lambda data: (format_size(float(data)) if data != '' else ''),
+        u'votes': lambda votes: format(math.log1p(float(votes)), "^-.2f") if votes else "",
         u'updated': pretty_date,
     }
 
@@ -214,6 +216,7 @@ class ChannelsContentModel(StateTooltipMixin, VotesAlignmentMixin, TriblerConten
 
     column_display_filters = {
         u'updated': pretty_date,
+        u'votes': lambda votes: format(math.log1p(float(votes)), "^-.2f") if votes else "",
         u'state': lambda data: str(data)[:1] if data == u'Downloading' else ""
     }
 

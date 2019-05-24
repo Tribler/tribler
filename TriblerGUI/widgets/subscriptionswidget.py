@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import json
+import math
 
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtGui import QIcon, QPixmap
@@ -47,7 +48,7 @@ class SubscriptionsWidget(QWidget):
 
         self.subscribe_button.setIcon(QIcon(QPixmap(get_image_path(
             'subscribed_yes.png' if int(self.channel_info["subscribed"]) else 'subscribed_not.png'))))
-        self.num_subs_label.setText(str(self.channel_info["votes"]))
+        self.num_subs_label.setText(format(math.log1p(self.channel_info['votes']), "^-.2f"))
 
         if self.window().tribler_settings:  # It could be that the settings are not loaded yet
             self.credit_mining_button.setHidden(not self.window().tribler_settings["credit_mining"]["enabled"])

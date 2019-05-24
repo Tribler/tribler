@@ -1,6 +1,5 @@
 from __future__ import absolute_import, division
 
-import math
 import os
 import random
 import sys
@@ -12,12 +11,13 @@ from ipv8.database import database_blob
 from libtorrent import add_files, bencode, create_torrent, file_storage, set_piece_hashes, torrent_info
 
 import lz4.frame
+
 from pony import orm
 from pony.orm import db_session, raw_sql, select
 
 from Tribler.Core.Category.Category import default_category_filter
-from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import COMMITTED, LEGACY_ENTRY, NEW, PUBLIC_KEY_LEN, \
-    TODELETE, UPDATED
+from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import (
+    COMMITTED, LEGACY_ENTRY, NEW, PUBLIC_KEY_LEN, TODELETE, UPDATED)
 from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, ChannelMetadataPayload, REGULAR_TORRENT
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
@@ -104,14 +104,6 @@ def define_binding(db):
         _channels_dir = None
         _category_filter = None
         _CHUNK_SIZE_LIMIT = 1 * 1024 * 1024  # We use 1MB chunks as a workaround for Python's lack of string pointers
-
-        # VSIDS-based votes ratings
-        bump_amount = 1.0
-        decay_coefficient = 0.98
-        rescale_threshold = 10.0 ** 100
-        vsids_last_bump = datetime.utcnow()
-        vsids_exp_period = 24.0 * 60 * 60  # decay e times over this period
-        vsids_total_activity = 0.0
 
         @db_session
         def update_metadata(self, update_dict=None):
@@ -269,9 +261,9 @@ def define_binding(db):
             :return: True if torrent exists else False
             """
             return db.TorrentMetadata.exists(lambda g: g.metadata_type == REGULAR_TORRENT
-                                                       and g.status != LEGACY_ENTRY
-                                                       and g.public_key == self.public_key
-                                                       and g.infohash == database_blob(infohash))
+                                             and g.status != LEGACY_ENTRY
+                                             and g.public_key == self.public_key
+                                             and g.infohash == database_blob(infohash))
 
         @db_session
         def add_torrent_to_channel(self, tdef, extra_info=None):
@@ -494,8 +486,9 @@ def define_binding(db):
                 "name": self.title,
                 "torrents": self.num_entries,
                 "subscribed": self.subscribed,
-                "votes": (math.log1p(self.votes / db.ChannelMetadata.vsids_total_activity)
-                          if db.ChannelMetadata.vsids_total_activity > 0.0 else 0),
+                # "votes": (math.log1p(self.votes / db.ChannelMetadata.vsids_total_activity)
+                #          if db.ChannelMetadata.vsids_total_activity > 0.0 else 0),
+                "votes": self.votes,
                 "status": self.status,
                 "updated": int((self.torrent_date - epoch).total_seconds()),
                 "timestamp": self.timestamp,
@@ -559,38 +552,5 @@ def define_binding(db):
                 orm.commit()  # Kinda optimization to drop excess cache?
 
             return torrents_list, errors_list
-
-        @classmethod
-        @db_session
-        def vsids_rescale(cls):
-            for channel in cls.select():
-                channel.votes /= cls.bump_amount
-            db.ChannelMetadata.vsids_total_activity /= cls.bump_amount
-            cls.bump_amount = 1.0
-
-        @classmethod
-        @db_session
-        def vsids_normalize(cls):
-            # If we run the normalization for the first time during the runtime, we have to gather the activity from DB
-            db.ChannelMetadata.vsids_total_activity = db.ChannelMetadata.vsids_total_activity or \
-                                                      orm.sum(g.votes for g in db.ChannelMetadata)
-            channel_count = orm.count(db.ChannelMetadata.select())
-            if not channel_count:
-                return
-            if db.ChannelMetadata.vsids_total_activity > 0.0:
-                cls.bump_amount = db.ChannelMetadata.vsids_total_activity / channel_count
-                cls.vsids_rescale()
-
-        def vote_bump(self, vote):
-            self.votes -= vote.last_amount
-            vote.last_amount = self.bump_amount
-
-            self.votes += self.bump_amount
-            db.ChannelMetadata.vsids_total_activity += self.bump_amount
-            db.ChannelMetadata.bump_amount *= math.exp(
-                (datetime.utcnow() - db.ChannelMetadata.vsids_last_bump).total_seconds() /
-                db.ChannelMetadata.vsids_exp_period)
-            if self.bump_amount > self.rescale_threshold:
-                db.ChannelMetadata.vsids_rescale()
 
     return ChannelMetadata

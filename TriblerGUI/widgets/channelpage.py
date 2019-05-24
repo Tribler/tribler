@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import math
+
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QWidget
 
@@ -65,7 +67,7 @@ class ChannelPage(QWidget):
     def update_labels(self):
         # initialize the page about a channel
         self.window().channel_name_label.setText(self.channel_info['name'])
-        self.window().num_subs_label.setText(str(self.channel_info['votes']))
+        self.window().num_subs_label.setText(format(math.log1p(self.channel_info['votes']), "^-.2f"))
         self.window().channel_state_label.setText(self.channel_info["state"])
         self.window().subscription_widget.initialize_with_channel(self.channel_info)
 

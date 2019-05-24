@@ -287,16 +287,18 @@ class TestChannelMetadata(TriblerCoreTest):
 
     @db_session
     def test_vsids(self):
-        self.assertEqual(1.0, self.mds.ChannelMetadata.bump_amount)
+        peer_key = default_eccrypto.generate_key(u"curve25519")
+        self.assertEqual(1.0, self.mds.vsids.bump_amount)
 
         channel = self.mds.ChannelMetadata.create_channel('test', 'test')
-        channel.vote_bump()
+        self.mds.vote_bump(channel.public_key, channel.id_, peer_key.pub().key_to_bin()[10:])
+        self.mds.vote_bump(channel.public_key, channel.id_, peer_key.pub().key_to_bin()[10:])
         self.assertLess(0.0, channel.votes)
-        self.assertLess(1.0, self.mds.ChannelMetadata.bump_amount)
+        self.assertLess(1.0, self.mds.vsids.bump_amount)
 
         # Make sure the rescale works right for the channels
-        self.mds.ChannelMetadata.vsids_normalize()
-        self.assertEqual(1.0, self.mds.ChannelMetadata.bump_amount)
+        self.mds.vsids.normalize()
+        self.assertEqual(1.0, self.mds.vsids.bump_amount)
         self.assertEqual(1.0, channel.votes)
 
     @db_session
