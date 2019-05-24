@@ -1,5 +1,6 @@
 from __future__ import absolute_import, division
 
+import math
 import os
 import random
 import sys
@@ -108,6 +109,10 @@ def define_binding(db):
         bump_amount = 1.0
         decay_coefficient = 0.98
         rescale_threshold = 10.0**100
+        vsids_last_bump = datetime.utcnow()
+        vsids_exp_period = 24.0*60*60  # decay e times over this period
+        vsids_total_activity = 0.0
+
 
 
         @db_session
@@ -491,7 +496,7 @@ def define_binding(db):
                 "name": self.title,
                 "torrents": self.num_entries,
                 "subscribed": self.subscribed,
-                "votes": self.votes/db.ChannelMetadata.bump_amount,
+                "votes": math.log1p(self.votes/db.ChannelMetadata.vsids_total_activity),
                 "status": self.status,
                 "updated": int((self.torrent_date - epoch).total_seconds()),
                 "timestamp": self.timestamp,
@@ -561,22 +566,28 @@ def define_binding(db):
         def vsids_rescale(cls):
             for channel in cls.select():
                 channel.votes /= cls.bump_amount
+            db.ChannelMetadata.vsids_total_activity /= cls.bump_amount
             cls.bump_amount = 1.0
 
         @classmethod
         @db_session
         def vsids_normalize(cls):
+            # If we run the normalization for the first time during the runtime, we have to gather the activity from DB
+            db.ChannelMetadata.vsids_total_activity = db.ChannelMetadata.vsids_total_activity or\
+                                                      orm.sum(g.votes for g in db.ChannelMetadata)
             channel_count = orm.count(db.ChannelMetadata.select())
             if not channel_count:
                 return
-            total_activity = orm.sum(g.votes for g in db.ChannelMetadata)
-            if total_activity > 0.0:
-                cls.bump_amount = total_activity / channel_count
+            if db.ChannelMetadata.vsids_total_activity > 0.0:
+                cls.bump_amount = db.ChannelMetadata.vsids_total_activity / channel_count
                 cls.vsids_rescale()
 
         def vote_bump(self):
             self.votes += self.bump_amount
-            db.ChannelMetadata.bump_amount /= self.decay_coefficient
+            db.ChannelMetadata.vsids_total_activity += self.bump_amount
+            db.ChannelMetadata.bump_amount *= math.exp(
+                (datetime.utcnow() - db.ChannelMetadata.vsids_last_bump).total_seconds() /
+                db.ChannelMetadata.vsids_exp_period)
             if self.bump_amount > self.rescale_threshold:
                 db.ChannelMetadata.vsids_rescale()
 
