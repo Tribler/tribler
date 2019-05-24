@@ -14,14 +14,14 @@ from pony import orm
 from pony.orm import db_session
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings import (
-    channel_metadata, channel_node, misc, torrent_metadata, torrent_state, tracker_state)
+    channel_metadata, channel_node, misc, torrent_metadata, torrent_state, tracker_state, channel_vote, channel_peer)
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import BLOB_EXTENSION
 from Tribler.Core.Modules.MetadataStore.serialization import (
     CHANNEL_TORRENT, DELETED, REGULAR_TORRENT, read_payload_with_offset, time2int)
 from Tribler.Core.exceptions import InvalidSignatureException
 
-BETA_DB_VERSIONS = [0]
-CURRENT_DB_VERSION = 1
+BETA_DB_VERSIONS = [0, 1]
+CURRENT_DB_VERSION = 2
 
 CLOCK_STATE_FILE = "clock.state"
 
@@ -140,6 +140,8 @@ class MetadataStore(object):
         self.ChannelNode = channel_node.define_binding(self._db, logger=self._logger, key=my_key, clock=self.clock)
         self.TorrentMetadata = torrent_metadata.define_binding(self._db)
         self.ChannelMetadata = channel_metadata.define_binding(self._db)
+        self.ChannelVote = channel_vote.define_binding(self._db)
+        self.ChannelPeer = channel_peer.define_binding(self._db)
 
         self.ChannelMetadata._channels_dir = channels_dir
 

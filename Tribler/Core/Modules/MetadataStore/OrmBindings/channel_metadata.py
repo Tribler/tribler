@@ -12,7 +12,6 @@ from ipv8.database import database_blob
 from libtorrent import add_files, bencode, create_torrent, file_storage, set_piece_hashes, torrent_info
 
 import lz4.frame
-
 from pony import orm
 from pony.orm import db_session, raw_sql, select
 
@@ -98,6 +97,7 @@ def define_binding(db):
         # Local
         subscribed = orm.Optional(bool, default=False)
         votes = orm.Optional(float, default=0.0)
+        individual_votes = orm.Set("ChannelVote", reverse="channel")
         local_version = orm.Optional(int, size=64, default=0)
 
         _payload_class = ChannelMetadataPayload
@@ -108,12 +108,10 @@ def define_binding(db):
         # VSIDS-based votes ratings
         bump_amount = 1.0
         decay_coefficient = 0.98
-        rescale_threshold = 10.0**100
+        rescale_threshold = 10.0 ** 100
         vsids_last_bump = datetime.utcnow()
-        vsids_exp_period = 24.0*60*60  # decay e times over this period
+        vsids_exp_period = 24.0 * 60 * 60  # decay e times over this period
         vsids_total_activity = 0.0
-
-
 
         @db_session
         def update_metadata(self, update_dict=None):
@@ -271,9 +269,9 @@ def define_binding(db):
             :return: True if torrent exists else False
             """
             return db.TorrentMetadata.exists(lambda g: g.metadata_type == REGULAR_TORRENT
-                                             and g.status != LEGACY_ENTRY
-                                             and g.public_key == self.public_key
-                                             and g.infohash == database_blob(infohash))
+                                                       and g.status != LEGACY_ENTRY
+                                                       and g.public_key == self.public_key
+                                                       and g.infohash == database_blob(infohash))
 
         @db_session
         def add_torrent_to_channel(self, tdef, extra_info=None):
@@ -496,7 +494,8 @@ def define_binding(db):
                 "name": self.title,
                 "torrents": self.num_entries,
                 "subscribed": self.subscribed,
-                "votes": math.log1p(self.votes/db.ChannelMetadata.vsids_total_activity),
+                "votes": (math.log1p(self.votes / db.ChannelMetadata.vsids_total_activity)
+                          if db.ChannelMetadata.vsids_total_activity > 0.0 else 0),
                 "status": self.status,
                 "updated": int((self.torrent_date - epoch).total_seconds()),
                 "timestamp": self.timestamp,
@@ -573,7 +572,7 @@ def define_binding(db):
         @db_session
         def vsids_normalize(cls):
             # If we run the normalization for the first time during the runtime, we have to gather the activity from DB
-            db.ChannelMetadata.vsids_total_activity = db.ChannelMetadata.vsids_total_activity or\
+            db.ChannelMetadata.vsids_total_activity = db.ChannelMetadata.vsids_total_activity or \
                                                       orm.sum(g.votes for g in db.ChannelMetadata)
             channel_count = orm.count(db.ChannelMetadata.select())
             if not channel_count:
@@ -582,7 +581,10 @@ def define_binding(db):
                 cls.bump_amount = db.ChannelMetadata.vsids_total_activity / channel_count
                 cls.vsids_rescale()
 
-        def vote_bump(self):
+        def vote_bump(self, vote):
+            self.votes -= vote.last_amount
+            vote.last_amount = self.bump_amount
+
             self.votes += self.bump_amount
             db.ChannelMetadata.vsids_total_activity += self.bump_amount
             db.ChannelMetadata.bump_amount *= math.exp(
