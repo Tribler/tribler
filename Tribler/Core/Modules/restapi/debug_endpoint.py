@@ -396,15 +396,17 @@ class DebugLogEndpoint(resource.Resource):
             **Example response**:
 
             A JSON with content of the log file & max_lines requested, for eg.
-            {
-                "max_lines" : 5,
-                "content" :"INFO    1506675301.76   sqlitecachedb:181   Reading database version...
-                            INFO    1506675301.76   sqlitecachedb:185   Current database version is 29
-                            INFO    1506675301.76   sqlitecachedb:203   Beginning the first transaction...
-                            INFO    1506675301.76         upgrade:93    tribler is in the latest version,...
-                            INFO    1506675302.08  LaunchManyCore:254   lmc: Starting Dispersy..."
-            }
 
+            .. sourcecode:: javascript
+
+                {
+                    "max_lines" : 5,
+                    "content" :"INFO    1506675301.76   sqlitecachedb:181   Reading database version...
+                                INFO    1506675301.76   sqlitecachedb:185   Current database version is 29
+                                INFO    1506675301.76   sqlitecachedb:203   Beginning the first transaction...
+                                INFO    1506675301.76         upgrade:93    tribler is in the latest version,...
+                                INFO    1506675302.08  LaunchManyCore:254   lmc: Starting IPv8..."
+                }
         """
 
         # First, flush all the logs to make sure it is written to file

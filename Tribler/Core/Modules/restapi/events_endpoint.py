@@ -23,7 +23,7 @@ class EventsEndpoint(resource.Resource):
     """
     Important events in Tribler are returned over the events endpoint. This connection is held open. Each event is
     pushed over this endpoint in the form of a JSON dictionary. Each JSON dictionary contains a type field that
-    indicates the type of the event. Individual events are separated by a newline character (\n).
+    indicates the type of the event. Individual events are separated by a newline character.
     """
     def __init__(self, session):
         resource.Resource.__init__(self)

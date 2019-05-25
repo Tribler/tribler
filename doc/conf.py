@@ -35,9 +35,9 @@ class Mock(MagicMock):
         return Mock if name in _classnames else Mock()
 
 
-MOCK_MODULES = ['twisted', 'twisted.web', 'twisted.web.error', 'twisted.web.server', 'twisted.web.client', 'twisted.web.http_headers',
-                'twisted.internet', 'twisted.internet.defer', 'twisted.internet.interfaces', 'twisted.internet.ssl',
-                'twisted.internet.task', 'twisted.internet.threads',
+MOCK_MODULES = ['twisted', 'twisted.web', 'twisted.web.error', 'twisted.web.server', 'twisted.web.client',
+                'twisted.web.http_headers', 'twisted.internet', 'twisted.internet.defer', 'twisted.internet.interfaces',
+                'twisted.internet.ssl', 'twisted.internet.task', 'twisted.internet.threads',
                 'twisted.python', 'twisted.python.failure', 'twisted.python.threadable', 'twisted.internet.base',
                 'twisted.internet.error', 'twisted.internet.protocol', 'libtorrent', 'treq',
                 'Tribler.community.tunnel.crypto.cryptowrapper', 'Tribler.community.market.community',
@@ -187,7 +187,7 @@ html_theme = 'sphinx_rtd_theme'
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+#html_static_path = ['_static']
 
 # Add any extra paths that contain custom files (such as robots.txt or
 # .htaccess) here, relative to this directory. These files are copied

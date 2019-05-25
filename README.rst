@@ -6,7 +6,7 @@ Tribler
 
 *Towards making Bittorrent anonymous and impossible to shut down.*
 
-Developers usually hang out in the official IRC channel #tribler @ FreeNode (click `here <http://webchat.freenode.net/?channels=tribler>`_ for direct a webchat window)
+Developers usually hang out in the official IRC channel #tribler @ FreeNode (click `here <http://webchat.freenode.net/?channels=tribler>`__ for direct a webchat window)
 
 We use our own dedicated Tor-like network for anonymous torrent downloading. We implemented and enhanced the *Tor protocol specifications* plus merged them with Bittorrent streaming. More info: https://github.com/Tribler/tribler/wiki
 Tribler includes our own Tor-like onion routing network with hidden services based seeding and end-to-end encryption, detailed specs: https://github.com/Tribler/tribler/wiki/Anonymous-Downloading-and-Streaming-specifications
@@ -21,7 +21,7 @@ Tribler currently offers a Youtube-style service. For instance, Bittorrent-compa
 Obtaining the latest release
 ============================
 
-Just click `here <https://github.com/Tribler/tribler/releases/latest>`_ and download the latest package for your OS.
+Just click `here <https://github.com/Tribler/tribler/releases/latest>`__ and download the latest package for your OS.
 
 Obtaining support
 =================
@@ -45,13 +45,13 @@ Running Tribler from the repository
 
 First clone the repository:
 
-.. code-block:: none
+.. code-block:: bash
 
     git clone --recursive git@github.com:Tribler/tribler.git
 
 or, if you haven't added your ssh key to your github account:
 
-.. code-block:: none
+.. code-block:: bash
 
     git clone --recursive https://github.com/Tribler/tribler.git
 
@@ -60,13 +60,13 @@ Second, install the `dependencies <doc/development/development_on_linux.rst>`_.
 Done!
 Now you can run tribler by executing the ``tribler.sh`` script on the root of the repository:
 
-.. code-block:: none
+.. code-block:: bash
 
     ./tribler.sh
     
 On Windows, you can use the following command to run Tribler:
 
-.. code-block:: none
+.. code-block:: bash
 
     python run_tribler.py
     
