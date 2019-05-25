@@ -1,6 +1,6 @@
 ==========
-My channel
+My Channel
 ==========
 
-.. automodule:: Tribler.Core.Modules.restapi.channels.my_channel_endpoint
+.. automodule:: Tribler.Core.Modules.restapi.mychannel_endpoint
     :members:

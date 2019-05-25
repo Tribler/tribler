@@ -76,21 +76,21 @@ Endpoints
 .. toctree::
    :maxdepth: 2
 
-   channels_discovered
-   channels_subscribed
-   channels_popular
-   mychannel
-   rssfeeds
-   torrents
-   torrentinfo
-   playlists
-   downloads
-   search
-   state
-   variables
-   settings
-   events
-   wallets
-   market
+   createtorrent
    debug
+   downloads
+   events
+   libtorrent
+   market
+   metadata
+   mychannel
+   search
+   settings
+   shutdown
+   state
    statistics
+   torrentinfo
+   trustchain
+   trustview
+   upgrader
+   wallets
