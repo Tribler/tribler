@@ -20,6 +20,9 @@ from Tribler.Core.Modules.MetadataStore.serialization import (
     CHANNEL_TORRENT, DELETED, REGULAR_TORRENT, read_payload_with_offset, time2int)
 from Tribler.Core.exceptions import InvalidSignatureException
 
+BETA_DB_VERSIONS = [0]
+CURRENT_DB_VERSION = 1
+
 CLOCK_STATE_FILE = "clock.state"
 
 NO_ACTION = 0
@@ -156,7 +159,7 @@ class MetadataStore(object):
 
         if create_db:
             with db_session:
-                self.MiscData(name="db_version", value="0")
+                self.MiscData(name="db_version", value=str(CURRENT_DB_VERSION))
 
         self.clock.init_clock()
 

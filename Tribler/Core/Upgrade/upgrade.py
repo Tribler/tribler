@@ -7,7 +7,7 @@ from twisted.internet.defer import succeed
 
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.Upgrade.config_converter import convert_config_to_tribler71
-from Tribler.Core.Upgrade.db72_to_pony import DispersyToPonyMigration, should_upgrade
+from Tribler.Core.Upgrade.db72_to_pony import DispersyToPonyMigration, cleanup_pony_experimental_db, should_upgrade
 from Tribler.Core.simpledefs import NTFY_FINISHED, NTFY_STARTED, NTFY_UPGRADER, NTFY_UPGRADER_TICK
 
 
@@ -48,6 +48,9 @@ class TriblerUpgrader(object):
         old_database_path = os.path.join(self.session.config.get_state_dir(), 'sqlite', 'tribler.sdb')
         new_database_path = os.path.join(self.session.config.get_state_dir(), 'sqlite', 'metadata.db')
         channels_dir = os.path.join(self.session.config.get_chant_channels_dir())
+
+        if os.path.exists(new_database_path):
+            cleanup_pony_experimental_db(new_database_path)
 
         self._dtp72 = DispersyToPonyMigration(old_database_path, self.update_status, logger=self._logger)
         if not should_upgrade(old_database_path, new_database_path, logger=self._logger):

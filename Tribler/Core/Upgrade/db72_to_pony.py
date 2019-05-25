@@ -20,6 +20,7 @@ from twisted.internet.task import deferLater
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import LEGACY_ENTRY, NEW
 from Tribler.Core.Modules.MetadataStore.serialization import REGULAR_TORRENT
+from Tribler.Core.Modules.MetadataStore.store import BETA_DB_VERSIONS, CURRENT_DB_VERSION
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
 
 BATCH_SIZE = 10000
@@ -427,6 +428,10 @@ def cleanup_pony_experimental_db(new_database_path):
         cursor.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'MiscData'")
         result = cursor.fetchone()
         delete_old_pony_db = not bool(result[0] if result else False)
+        if not delete_old_pony_db:
+            cursor.execute('SELECT value FROM MiscData WHERE name == "db_version"')
+            version = int(cursor.fetchone()[0])
+            delete_old_pony_db = version in BETA_DB_VERSIONS  # Delete the older betas DB
     connection.close()
     # We're looking at the old experimental version database. Delete it.
     if delete_old_pony_db:
@@ -440,7 +445,7 @@ def new_db_version_ok(new_database_path):
         cursor = connection.cursor()
         cursor.execute('SELECT value FROM MiscData WHERE name == "db_version"')
         version = int(cursor.fetchone()[0])
-        if version != 0:
+        if version != CURRENT_DB_VERSION:
             return False
     connection.close()
     return True
@@ -479,13 +484,12 @@ def should_upgrade(old_database_path, new_database_path, logger=None):
 
     if os.path.exists(new_database_path):
         try:
-            cleanup_pony_experimental_db(new_database_path)
             if not new_db_version_ok(new_database_path):
                 return False
             if already_upgraded(new_database_path):
                 return False
         except:
-            logger.error("Error while trying to open Pony DB file ", new_database_path)
+            logger.error("Error while trying to open Pony DB file %s", new_database_path)
             return False
 
     return True
