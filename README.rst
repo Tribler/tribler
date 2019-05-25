@@ -2,7 +2,7 @@
 Tribler
 *******
 
-|jenkins_build| |contributors| |pr_closed| |issues_closed| |downloads_7_0| |downloads_7_1| |downloads_7_2| |doi| |openhub|
+|jenkins_build| |docs| |contributors| |pr_closed| |issues_closed| |downloads_7_0| |downloads_7_1| |downloads_7_2| |doi| |openhub|
 
 *Towards making Bittorrent anonymous and impossible to shut down.*
 
@@ -117,3 +117,7 @@ Submodule notes
 .. |doi| image:: https://zenodo.org/badge/8411137.svg
     :target: https://zenodo.org/badge/latestdoi/8411137
     :alt: DOI number
+
+.. |docs| image:: https://readthedocs.org/projects/tribler/badge/?version=devel
+    :target: https://tribler.readthedocs.io/en/devel/?badge=devel
+    :alt: Documentation Status
