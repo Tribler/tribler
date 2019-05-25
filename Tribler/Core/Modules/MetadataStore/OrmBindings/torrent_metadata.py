@@ -71,8 +71,10 @@ def define_binding(db):
             if not query or query == "*":
                 return []
 
+            # TODO: optimize this query by removing unnecessary select nests (including Pony-manages selects)
             fts_ids = raw_sql(
-                'SELECT rowid FROM FtsIndex WHERE FtsIndex MATCH $query ORDER BY bm25(FtsIndex) LIMIT $lim')
+                """SELECT rowid FROM ChannelNode WHERE rowid IN (SELECT rowid FROM FtsIndex WHERE FtsIndex MATCH $query
+                ORDER BY bm25(FtsIndex) LIMIT $lim) GROUP BY infohash""")
 
             # TODO: Check for complex query
             normal_query = query.replace('"', '').replace("*", "")

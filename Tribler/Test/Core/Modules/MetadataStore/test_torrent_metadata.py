@@ -94,6 +94,18 @@ class TestTorrentMetadata(TriblerCoreTest):
         results = self.mds.TorrentMetadata.search_keyword("123")[:]
         self.assertEqual(len(results), 2)
 
+    @db_session
+    def test_search_deduplicated(self):
+        """
+        Test SQL-query base deduplication of search results with the same infohash
+        """
+        key2 = default_eccrypto.generate_key(u"curve25519")
+        torrent = rnd_torrent()
+        self.mds.TorrentMetadata.from_dict(dict(torrent, title="foo bar 123"))
+        self.mds.TorrentMetadata.from_dict(dict(torrent, title="eee 123", sign_with=key2))
+        results = self.mds.TorrentMetadata.search_keyword("foo")[:]
+        self.assertEqual(len(results), 1)
+
     def test_search_empty_query(self):
         """
         Test whether an empty query returns nothing
