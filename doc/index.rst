@@ -16,7 +16,6 @@ Contents:
    development_methodology
    development/development
    Building Tribler <building/building>
-   architecture
    restapi/introduction
    trustchain
    twisted101

@@ -26,7 +26,6 @@ override_dh_install:
 	rm -f $(CURDIR)/debian/tribler/usr/share/tribler/Tribler/LICENSE
 	rm -rf $(CURDIR)/debian/tribler/usr/share/tribler/Tribler/Test
 	rm -rf $(CURDIR)/debian/tribler/usr/share/tribler/Tribler/Main/Build
-	rm -f $(CURDIR)/debian/tribler/usr/share/tribler/Tribler/dispersy/twisted/plugins/dropin.cache
 
 get-orig-source:
 	set -e; if echo $(DEB_VERSION) | grep -c "git"; \

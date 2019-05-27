@@ -90,7 +90,6 @@ NTFY_MARKET_IOM_INPUT_REQUIRED = 'onmarketiominputrequired'
 NTFY_ACTIVITIES = 'activities'  # an activity was set (peer met/dns resolved)
 NTFY_REACHABLE = 'reachable'  # the Session is reachable from the Internet
 NTFY_TRIBLER = 'tribler'  # notifications regarding Tribler in general
-NTFY_DISPERSY = 'dispersy'  # an notification regarding dispersy
 NTFY_WATCH_FOLDER_CORRUPT_TORRENT = 'corrupt_torrent'  # a corrupt torrent has been found in the watch folder
 NTFY_NEW_VERSION = 'newversion' # a new version of Tribler is available
 

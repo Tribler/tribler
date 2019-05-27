@@ -110,14 +110,14 @@ class TrustchainBootstrapEndpoint(TrustchainBaseEndpoint):
             .. sourcecode:: javascript
 
                 {
-                    "private_key": "TGliTmFDTFNLOmC4BR7otCpn+NzTBAFwKdSJdpT0KG9Zy5vPGX6s3rDXmNiDoGKyToLeYYB88vj9\nRj5NW
-                                    pbNf/ldcixYZ2YxQ7Q=\n",
+                    "private_key": "TGliTmFDTFNLOmC4BR7otCpn+NzTBAFwKdSJdpT0KG9Zy5vPGX6s3rDXmNiDoGKyToLeYYB88vj9Rj5NW
+                                    pbNf/ldcixYZ2YxQ7Q=",
                     "transaction": {
                         "down": 0,
                         "up": 1000
                     },
                     "block": {
-                        "block_hash": "THJxNlKWMQG1Tio+Yz5CUCrnWahcyk6TDVfRLQf7w6M=\n",
+                        "block_hash": "THJxNlKWMQG1Tio+Yz5CUCrnWahcyk6TDVfRLQf7w6M=",
                         "sequence_number": 1
                     }
                 }

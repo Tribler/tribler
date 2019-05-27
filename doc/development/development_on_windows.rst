@@ -7,7 +7,7 @@ In this guide, all required dependencies of Tribler will be explained. It presen
 
 First, Python 2.7 should be installed. If you already have a Python version installed, please check whether this version is 64 bit before proceeding.
 
-.. code-block:: none
+.. code-block:: bash
 
     python -c "import struct;print( 8 * struct.calcsize('P'))"
 
@@ -29,13 +29,13 @@ PyQt5
 
 If you wish to run the Tribler Graphical User Interface, PyQt5 should be available on the system. While PyQt5 is available in the pip repository, this is only compatible with Python 3. There is an unofficial distribution available for Python 2.7 here `https://github.com/pyqt/python-qt5 <https://github.com/pyqt/python-qt5/>`_. You can simply install PyQt5 from this repository.
 
-.. code-block:: none
+.. code-block:: bash
 
     pip install git+git://github.com/pyqt/python-qt5.git
 
 After installation, check it was correctly installed
 
-.. code-block:: none
+.. code-block:: bash
 
     python -c "import PyQt5" # this should work without any error
 
@@ -45,7 +45,7 @@ Start by downloading the Qt library from `here <https://www.qt.io/download-open-
 
 After the Qt installation is completed, PyQt5 should be compiled. This library depends on SIP, another library to automatically generate Python bindings from C++ code. Download the latest SIP version `here <https://riverbankcomputing.com/software/sip/download>`__, extract it, navigate to the directory where it has been extracted and compile/install it (don't forget to execute these commands in the Visual Studio command line):
 
-.. code-block:: none
+.. code-block:: bash
 
     python configure.py
     nmake
@@ -53,7 +53,7 @@ After the Qt installation is completed, PyQt5 should be compiled. This library d
 
 Next, download PyQt5 from `here <https://sourceforge.net/projects/pyqt/files/PyQt5/>`__ and make sure that you download the version that matches with the version of Qt you installed in the previous steps. Extract the binary and compile it:
 
-.. code-block:: none
+.. code-block:: bash
 
     python configure.py --qmake=<qmake_path> --disable=QtNfc --disable=QtBluetooth
     nmake
@@ -80,7 +80,7 @@ Next, you should build Boost.build. You can do this by opening the Visual Studio
 
 Now, download the libtorrent source code from `GitHub <https://github.com/arvidn/libtorrent/releases>`__ and extract it. It is advised to compile version 1.0.8. Note that you if you have a 32-bit system, you can download the ``.msi`` installer so you do not have to compile libtorrent yourself. Open the Developer Command Prompt shipped with Visual Studio (not the regular command prompt) and navigate to the location where you extracted the libtorrent source. In the directory where the libtorrent source code is located, navigate to ``bindings\\python`` and build libtorrent by executing the following command (this takes a while so make sure to grab a coffee while waiting):
 
-.. code-block:: none
+.. code-block:: bash
 
     b2 boost=source libtorrent-link=static address-model=64
 
@@ -88,7 +88,7 @@ This command will build a static libtorrent 64-bit debug binary. You can also bu
 
 After successfully copying the ``libtorrent.pyd`` file either compiled or from the repository, you can check if the installation was successful:
 
-.. code-block:: none
+.. code-block:: bash
 
     python -c "import libtorrent" # this should work without any error
 
@@ -97,7 +97,7 @@ libsodium
 
 Libsodium can be download as precompiled binary from `their website <https://download.libsodium.org/libsodium/releases/>`__. Download the latest version, built with msvc. Extract the archive to any location on your machine. Next, you should add the location of the dynamic library to your ``PATH`` variables (either as system variable or as user variable). These library files can be found in ``LIBSODIUM_ROOT\\x64\\Release\\v140\\dynamic\\`` where ``LIBSODIUM_ROOT`` is the location of your extracted libsodium files. After modifying your PATH, you should reopen your command prompt. You test whether Python is able to load ``libsodium.dll`` by executing:
 
-.. code-block:: none
+.. code-block:: bash
 
     python -c "import ctypes; ctypes.cdll.LoadLibrary('libsodium')"
 
@@ -110,7 +110,7 @@ NumPy & SciPy
 -------------
 To install NumPy & SciPy, download the respective .whl files `here <http://www.lfd.uci.edu/~gohlke/pythonlibs/>`__ and install using with pip as below. Make sure to download files with cp27 in names as they are for python 2.7
 
-.. code-block:: none
+.. code-block:: bash
 
     pip install scipy‑0.19.1‑cp27‑cp27m‑win_amd64.whl
     pip install numpy‑1.13.1+mkl‑cp27‑cp27m‑win_amd64.whl
@@ -122,7 +122,7 @@ Additional Packages
 
 There are some additional packages which should be installed. They can easily be installed using pip:
 
-.. code-block:: none
+.. code-block:: bash
 
     pip install cython  # Needs to be installed first for meliae
     pip install bitcoinlib cherrypy chardet configobj cryptography decorator libnacl meliae netifaces networkx pillow psutil typing twisted
@@ -132,7 +132,7 @@ Running Tribler
 
 You should now be able to run Tribler from command line. Grab a copy of the Tribler source code and navigate in a command line interface to the source code directory. Start Tribler by running:
 
-.. code-block:: none
+.. code-block:: bash
 
     python run_tribler.py
 

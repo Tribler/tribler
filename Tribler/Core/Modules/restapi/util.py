@@ -38,7 +38,7 @@ def get_parameter(parameters, name):
 def fix_unicode_dict(d):
     """
     This method removes illegal (unicode) characters recursively from a dictionary.
-    This is required since Dispersy members might add invalid characters to their strings and we are unable to utf8
+    This is required since IPv8 peers might add invalid characters to their strings and we are unable to utf8
     encode these when sending the data over the API.
     """
     new_dict = {}

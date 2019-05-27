@@ -16,8 +16,8 @@ from Tribler.util import cast_to_unicode_utf8
 
 class SearchEndpoint(BaseMetadataEndpoint):
     """
-    This endpoint is responsible for searching in channels and torrents present in the local Tribler database. It also
-    fires a remote search in the Dispersy communities.
+    This endpoint is responsible for searching in channels and torrents present in the local Tribler database.
+    It also fires a remote search in the IPv8 channel community.
     """
 
     def __init__(self, session):
