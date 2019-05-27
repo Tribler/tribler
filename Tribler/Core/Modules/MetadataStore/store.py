@@ -1,7 +1,6 @@
 from __future__ import absolute_import, division
 
 import logging
-import math
 import os
 from binascii import hexlify
 from datetime import datetime, timedelta
@@ -15,15 +14,15 @@ from pony import orm
 from pony.orm import db_session
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings import (
-    channel_metadata, channel_node, channel_peer, channel_vote, misc, torrent_metadata, torrent_state, tracker_state)
+    channel_metadata, channel_node, channel_peer, channel_vote, misc, torrent_metadata, torrent_state, tracker_state,
+    vsids)
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import BLOB_EXTENSION
-from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import LEGACY_ENTRY
 from Tribler.Core.Modules.MetadataStore.serialization import (
     CHANNEL_TORRENT, DELETED, REGULAR_TORRENT, read_payload_with_offset, time2int)
 from Tribler.Core.exceptions import InvalidSignatureException
 
-BETA_DB_VERSIONS = [0, 1]
-CURRENT_DB_VERSION = 2
+BETA_DB_VERSIONS = [0, 1, 2]
+CURRENT_DB_VERSION = 3
 
 CLOCK_STATE_FILE = "clock.state"
 
@@ -99,72 +98,6 @@ class DiscreteClock(object):
         return self.clock
 
 
-# VSIDS-based votes ratings
-# We use VSIDS since it provides an efficient way to add temporal decay to the voting system.
-# Temporal decay is necessary for two reasons:
-# 1. We do not gossip _unsubscription_ events, but we want votes decline for channels that go out of favor
-# 2. We want to promote the fresh content
-#
-# There are two differences with the classic VSIDS:
-# a. We scale the bump amount with passage of time, instead of on each bump event.
-#    By default, the bump amount scales 2.71 per 23hrs. Note though, that we only count Tribler uptime
-#    for this purpose. This is intentional, so the ratings do not suddenly drop after the user skips a week
-#    of uptime.
-# b. Repeated votes by some peer to some channel _do not add up_. Instead, the vote is refreshed by substracting
-#    the old amount from the current vote (it is stored in the DB), and adding the new one (1.0 votes, scaled). This
-#    is the reason why we have to keep the old votes in the DB, and normalize the old votes last_amount values - to
-#    keep them in the same "normalization space" to be compatible with the current votes values.
-class Vsids(object):
-    def __init__(self, mds_channel, mds_vote, mds_peer):
-        self.ChannelMetadata = mds_channel
-        self.ChannelVote = mds_vote
-        self.ChannelPeer = mds_peer
-
-        self.rescale_threshold = 10.0 ** 100
-        self.exp_period = 24.0 * 60 * 60  # decay e times over this period
-        self.total_activity = 0.0
-
-        self.bump_amount = 1.0
-        self.last_bump = datetime.utcnow()
-
-    @db_session
-    def rescale(self, norm):
-        for channel in self.ChannelMetadata.select(lambda g: g.status != LEGACY_ENTRY):
-            channel.votes /= norm
-        for vote in self.ChannelVote.select():
-            vote.last_amount /= norm
-
-        self.total_activity /= norm
-        self.bump_amount /= norm
-
-    @db_session
-    def normalize(self):
-        # If we run the normalization for the first time during the runtime, we have to gather the activity from DB
-        self.total_activity = self.total_activity or orm.sum(g.votes for g in self.ChannelMetadata)
-        channel_count = orm.count(self.ChannelMetadata.select(lambda g: g.status != LEGACY_ENTRY))
-        if not channel_count:
-            return
-        if self.total_activity > 0.0:
-            self.rescale(self.total_activity/channel_count)
-            self.bump_amount = 1.0
-
-    @db_session
-    def bump_channel(self, channel, vote):
-        # Substract the last vote by the same peer from the total vote amount for this channel.
-        # This effectively puts a cap of 1.0 vote from a peer on a channel
-        channel.votes -= vote.last_amount
-        self.total_activity -= vote.last_amount
-
-        vote.last_amount = self.bump_amount
-        channel.votes += self.bump_amount
-
-        self.total_activity += self.bump_amount
-        self.bump_amount *= math.exp((datetime.utcnow() - self.last_bump).total_seconds() / self.exp_period)
-        self.last_bump = datetime.utcnow()
-        if self.bump_amount > self.rescale_threshold:
-            self.rescale(self.bump_amount)
-
-
 class MetadataStore(object):
     def __init__(self, db_filename, channels_dir, my_key, disable_sync=False):
         self.db_filename = db_filename
@@ -210,7 +143,7 @@ class MetadataStore(object):
         self.ChannelMetadata = channel_metadata.define_binding(self._db)
         self.ChannelVote = channel_vote.define_binding(self._db)
         self.ChannelPeer = channel_peer.define_binding(self._db)
-        self.vsids = Vsids(self.ChannelMetadata, self.ChannelVote, self.ChannelPeer)
+        self.Vsids = vsids.define_binding(self._db)
 
         self.ChannelMetadata._channels_dir = channels_dir
 
@@ -233,7 +166,12 @@ class MetadataStore(object):
                 self.MiscData(name="db_version", value=str(CURRENT_DB_VERSION))
 
         self.clock.init_clock()
-        self.vsids.normalize()
+
+        with db_session:
+            if not self.Vsids.get(rowid=0):
+                self.Vsids.create_default_vsids()
+            # Decay only happens when Tribler is running
+            self.Vsids[0].last_bump = datetime.utcnow()
 
     @db_session
     def upsert_vote(self, channel, peer_pk):
@@ -254,7 +192,7 @@ class MetadataStore(object):
             return
         vote = self.upsert_vote(channel, voter_pk)
 
-        self.vsids.bump_channel(channel, vote)
+        self.Vsids[0].bump_channel(channel, vote)
 
     def shutdown(self):
         self._shutting_down = True

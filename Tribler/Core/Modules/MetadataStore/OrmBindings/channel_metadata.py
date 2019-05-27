@@ -100,6 +100,8 @@ def define_binding(db):
         individual_votes = orm.Set("ChannelVote", reverse="channel")
         local_version = orm.Optional(int, size=64, default=0)
 
+        votes_scaling = 1.0
+
         _payload_class = ChannelMetadataPayload
         _channels_dir = None
         _category_filter = None
@@ -486,9 +488,7 @@ def define_binding(db):
                 "name": self.title,
                 "torrents": self.num_entries,
                 "subscribed": self.subscribed,
-                # "votes": (math.log1p(self.votes / db.ChannelMetadata.vsids_total_activity)
-                #          if db.ChannelMetadata.vsids_total_activity > 0.0 else 0),
-                "votes": self.votes,
+                "votes": self.votes/db.ChannelMetadata.votes_scaling,
                 "status": self.status,
                 "updated": int((self.torrent_date - epoch).total_seconds()),
                 "timestamp": self.timestamp,
