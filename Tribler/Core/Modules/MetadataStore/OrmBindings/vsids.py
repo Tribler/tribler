@@ -37,6 +37,7 @@ def define_binding(db):
         last_bump = orm.Required(datetime)
         rescale_threshold = orm.Optional(float, default=10.0 ** 100)
         exp_period = orm.Optional(float, default=24.0 * 60 * 60)  # decay e times over this period
+        max_val = orm.Optional(float, default=1.0)
 
         @db_session
         def rescale(self, norm):
@@ -45,6 +46,7 @@ def define_binding(db):
             for vote in db.ChannelVote.select():
                 vote.last_amount /= norm
 
+            self.max_val /= norm
             self.total_activity /= norm
             self.bump_amount /= norm
             db.ChannelMetadata.votes_scaling = self.bump_amount
@@ -71,6 +73,8 @@ def define_binding(db):
 
             vote.last_amount = self.bump_amount
             channel.votes += self.bump_amount
+            if channel.votes > self.max_val:
+                self.max_val = channel.votes
 
             self.total_activity += self.bump_amount
             self.bump_amount *= math.exp((datetime.utcnow() - self.last_bump).total_seconds() / self.exp_period)
@@ -78,7 +82,7 @@ def define_binding(db):
             if self.bump_amount > self.rescale_threshold:
                 self.rescale(self.bump_amount)
 
-            db.ChannelMetadata.votes_scaling = self.bump_amount
+            db.ChannelMetadata.votes_scaling = self.max_val
 
         @classmethod
         @db_session
