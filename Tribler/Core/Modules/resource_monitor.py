@@ -21,6 +21,7 @@ except ImportError:
 
 DEFAULT_RESOURCE_FILENAME = "resources.log"
 
+
 class ResourceMonitor(TaskManager):
     """
     This class contains code to monitor resources (memory usage and CPU). Can be toggled using the config file.

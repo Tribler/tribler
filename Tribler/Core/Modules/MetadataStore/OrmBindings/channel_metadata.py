@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+from __future__ import absolute_import, division
 
 import os
 import random
@@ -16,8 +16,8 @@ from pony import orm
 from pony.orm import db_session, raw_sql, select
 
 from Tribler.Core.Category.Category import default_category_filter
-from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import COMMITTED, LEGACY_ENTRY, NEW, PUBLIC_KEY_LEN, \
-    TODELETE, UPDATED
+from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import (
+    COMMITTED, LEGACY_ENTRY, NEW, PUBLIC_KEY_LEN, TODELETE, UPDATED)
 from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, ChannelMetadataPayload, REGULAR_TORRENT
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
@@ -96,8 +96,11 @@ def define_binding(db):
 
         # Local
         subscribed = orm.Optional(bool, default=False)
-        votes = orm.Optional(int, size=64, default=0)
+        votes = orm.Optional(float, default=0.0)
+        individual_votes = orm.Set("ChannelVote", reverse="channel")
         local_version = orm.Optional(int, size=64, default=0)
+
+        votes_scaling = 1.0
 
         _payload_class = ChannelMetadataPayload
         _channels_dir = None
@@ -485,7 +488,7 @@ def define_binding(db):
                 "name": self.title,
                 "torrents": self.num_entries,
                 "subscribed": self.subscribed,
-                "votes": self.votes,
+                "votes": self.votes/db.ChannelMetadata.votes_scaling,
                 "status": self.status,
                 "updated": int((self.torrent_date - epoch).total_seconds()),
                 "timestamp": self.timestamp,

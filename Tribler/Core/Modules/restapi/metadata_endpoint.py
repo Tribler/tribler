@@ -53,6 +53,7 @@ class BaseMetadataEndpoint(resource.Resource):
             u'updated': "torrent_date",
             u'status': 'status',
             u'torrents': 'num_entries',
+            u'votes': 'votes',
             u'health': 'HEALTH'
         }
 

@@ -14,14 +14,15 @@ from pony import orm
 from pony.orm import db_session
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings import (
-    channel_metadata, channel_node, misc, torrent_metadata, torrent_state, tracker_state)
+    channel_metadata, channel_node, channel_peer, channel_vote, misc, torrent_metadata, torrent_state, tracker_state,
+    vsids)
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import BLOB_EXTENSION
 from Tribler.Core.Modules.MetadataStore.serialization import (
     CHANNEL_TORRENT, DELETED, REGULAR_TORRENT, read_payload_with_offset, time2int)
 from Tribler.Core.exceptions import InvalidSignatureException
 
-BETA_DB_VERSIONS = [0]
-CURRENT_DB_VERSION = 1
+BETA_DB_VERSIONS = [0, 1, 2]
+CURRENT_DB_VERSION = 3
 
 CLOCK_STATE_FILE = "clock.state"
 
@@ -140,6 +141,9 @@ class MetadataStore(object):
         self.ChannelNode = channel_node.define_binding(self._db, logger=self._logger, key=my_key, clock=self.clock)
         self.TorrentMetadata = torrent_metadata.define_binding(self._db)
         self.ChannelMetadata = channel_metadata.define_binding(self._db)
+        self.ChannelVote = channel_vote.define_binding(self._db)
+        self.ChannelPeer = channel_peer.define_binding(self._db)
+        self.Vsids = vsids.define_binding(self._db)
 
         self.ChannelMetadata._channels_dir = channels_dir
 
@@ -162,6 +166,33 @@ class MetadataStore(object):
                 self.MiscData(name="db_version", value=str(CURRENT_DB_VERSION))
 
         self.clock.init_clock()
+
+        with db_session:
+            if not self.Vsids.get(rowid=0):
+                self.Vsids.create_default_vsids()
+            # Decay only happens when Tribler is running
+            self.Vsids[0].last_bump = datetime.utcnow()
+
+    @db_session
+    def upsert_vote(self, channel, peer_pk):
+        voter = self.ChannelPeer.get(public_key=peer_pk)
+        if not voter:
+            voter = self.ChannelPeer(public_key=peer_pk)
+        vote = self.ChannelVote.get(voter=voter, channel=channel)
+        if not vote:
+            vote = self.ChannelVote(voter=voter, channel=channel)
+        else:
+            vote.vote_date = datetime.utcnow()
+        return vote
+
+    @db_session
+    def vote_bump(self, public_key, id_, voter_pk):
+        channel = self.ChannelMetadata.get_for_update(public_key=public_key, id_=id_)
+        if not channel:
+            return
+        vote = self.upsert_vote(channel, voter_pk)
+
+        self.Vsids[0].bump_channel(channel, vote)
 
     def shutdown(self):
         self._shutting_down = True
@@ -339,6 +370,11 @@ class MetadataStore(object):
         # Check the payload timestamp<->id_ correctness
         if payload.timestamp < payload.id_:
             return []
+
+        # Check if we already have this payload
+        node = self.ChannelNode.get_for_update(signature=payload.signature, public_key=payload.public_key)
+        if node:
+            return [(node, NO_ACTION)]
 
         # Check for a node with the same infohash
         result = []

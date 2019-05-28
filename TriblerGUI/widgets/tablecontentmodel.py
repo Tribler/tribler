@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import math
 from abc import abstractmethod
 
 from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt, pyqtSignal
@@ -108,7 +109,6 @@ class TriblerContentModel(RemoteTableModel):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
             return self.column_headers[num]
 
-
     def get_item_uid(self, item):
         item_uid = None
         if "infohash" in item:
@@ -156,13 +156,24 @@ class StateTooltipMixin(object):
             return super(StateTooltipMixin, self).data(index, role)
 
 
-class SearchResultsContentModel(StateTooltipMixin, TriblerContentModel):
+class VotesAlignmentMixin(object):
+    def data(self, index, role):
+        # Return tooltip for state indicator column
+        if role == Qt.TextAlignmentRole:
+            if index.column() == self.column_position[u'votes']:
+                return Qt.AlignRight | Qt.AlignVCenter
+            return None
+        else:
+            return super(VotesAlignmentMixin, self).data(index, role)
+
+
+class SearchResultsContentModel(StateTooltipMixin, VotesAlignmentMixin, TriblerContentModel):
     """
     Model for a list that shows search results.
     """
-    columns = [u'state', u'subscribed', u'category', u'name', u'torrents', u'size', u'updated', u'health',
+    columns = [u'state', u'votes', u'subscribed', u'category', u'name', u'torrents', u'size', u'updated', u'health',
                ACTION_BUTTONS]
-    column_headers = [u'', u'', u'Category', u'Name', u'Torrents', u'Size', u'Updated', u'health', u'']
+    column_headers = [u'', u'', u'', u'Category', u'Name', u'Torrents', u'Size', u'Updated', u'health', u'']
     column_flags = {
         u'subscribed': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         u'category': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
@@ -171,12 +182,14 @@ class SearchResultsContentModel(StateTooltipMixin, TriblerContentModel):
         u'size': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         u'updated': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         u'health': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
+        u'votes': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         u'state': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         ACTION_BUTTONS: Qt.ItemIsEnabled | Qt.ItemIsSelectable
     }
 
     column_display_filters = {
         u'size': lambda data: (format_size(float(data)) if data != '' else ''),
+        u'votes': lambda votes: format(math.log1p(float(votes)), "^-.2f") if votes else "",
         u'updated': pretty_date,
     }
 
@@ -185,23 +198,25 @@ class SearchResultsContentModel(StateTooltipMixin, TriblerContentModel):
         self.type_filter = ''
 
 
-class ChannelsContentModel(StateTooltipMixin, TriblerContentModel):
+class ChannelsContentModel(StateTooltipMixin, VotesAlignmentMixin, TriblerContentModel):
     """
     This model represents a list of channels that can be displayed in a table view.
     """
-    columns = [u'state', u'subscribed', u'name', u'torrents', u'updated']
-    column_headers = [u'', u'', u'Channel name', u'Torrents', u'Updated']
+    columns = [u'state', u'votes', u'subscribed', u'name', u'torrents', u'updated']
+    column_headers = [u'', u'', u'', u'Channel name', u'Torrents', u'Updated']
     column_flags = {
         u'subscribed': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         u'name': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         u'torrents': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         u'updated': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
+        u'votes': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         u'state': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         ACTION_BUTTONS: Qt.ItemIsEnabled | Qt.ItemIsSelectable
     }
 
     column_display_filters = {
         u'updated': pretty_date,
+        u'votes': lambda votes: format(math.log1p(float(votes)), "^-.2f") if votes else "",
         u'state': lambda data: str(data)[:1] if data == u'Downloading' else ""
     }
 
