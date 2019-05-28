@@ -41,10 +41,10 @@ def start_fake_core(port):
     from twisted.internet import reactor
     from twisted.web.server import Site
 
-    from FakeTriblerAPI.endpoints.root_endpoint import RootEndpoint
-    from FakeTriblerAPI.endpoints.video_root_endpoint import VideoRootEndpoint
-    from FakeTriblerAPI.tribler_data import TriblerData
-    import FakeTriblerAPI.tribler_utils as tribler_utils
+    from Tribler.Test.GUI.FakeTriblerAPI.endpoints.root_endpoint import RootEndpoint
+    from Tribler.Test.GUI.FakeTriblerAPI.endpoints.video_root_endpoint import VideoRootEndpoint
+    from Tribler.Test.GUI.FakeTriblerAPI.tribler_data import TriblerData
+    import Tribler.Test.GUI.FakeTriblerAPI.tribler_utils as tribler_utils
 
     def generate_tribler_data():
         tribler_utils.tribler_data = TriblerData()
