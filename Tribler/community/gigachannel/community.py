@@ -163,7 +163,8 @@ class GigaChannelCommunity(Community):
         self.request_cache.add(search_request_cache)
 
         search_request_payload = SearchRequestPayload(search_request_cache.number, query_filter.encode('utf8'),
-                                                      metadata_type, sort_by, sort_asc, hide_xxx)
+                                                      metadata_type.encode('utf8'), sort_by.encode('utf8'),
+                                                      sort_asc, hide_xxx)
         self._logger.info("Started remote search for query:%s", query_filter)
 
         for peer in search_candidates:
@@ -186,12 +187,12 @@ class GigaChannelCommunity(Community):
             "": [REGULAR_TORRENT, CHANNEL_TORRENT],
             "channel": CHANNEL_TORRENT,
             "torrent": REGULAR_TORRENT
-        }.get(request.metadata_type, REGULAR_TORRENT)
+        }.get(request.metadata_type.decode('utf8'), REGULAR_TORRENT)
 
         request_dict = {
             "first": 1,
             "last": max_entries,
-            "sort_by": request.sort_by,
+            "sort_by": request.sort_by.decode('utf8'),
             "sort_asc": request.sort_asc,
             "query_filter": query_filter,
             "hide_xxx": request.hide_xxx,

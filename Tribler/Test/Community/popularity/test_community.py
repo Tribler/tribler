@@ -40,14 +40,14 @@ class TestPopularityCommunity(TestBase):
         for torrent_ind in xrange(5):
             last_check = int(time.time()) if last_check_now else 0
             metadata_store.TorrentState(
-                infohash=('%d' % torrent_ind) * 20, seeders=torrent_ind + 1, last_check=last_check)
+                infohash=str(torrent_ind).encode() * 20, seeders=torrent_ind + 1, last_check=last_check)
 
     @inlineCallbacks
     def test_torrents_health_gossip(self):
         """
         Test whether torrent health information is correctly gossiped around
         """
-        checked_torrent_info = ('a' * 20, 200, 0, int(time.time()))
+        checked_torrent_info = (b'a' * 20, 200, 0, int(time.time()))
         self.nodes[0].overlay.torrent_checker.torrents_checked.add(checked_torrent_info)
         yield self.introduce_nodes()
 
@@ -66,7 +66,7 @@ class TestPopularityCommunity(TestBase):
         """
         self.fill_database(self.nodes[1].overlay.metadata_store)
 
-        checked_torrent_info = ('0' * 20, 200, 0, int(time.time()))
+        checked_torrent_info = (b'0' * 20, 200, 0, int(time.time()))
         self.nodes[0].overlay.torrent_checker.torrents_checked.add(checked_torrent_info)
         yield self.introduce_nodes()
 
@@ -76,5 +76,5 @@ class TestPopularityCommunity(TestBase):
 
         # Check whether node 1 has new torrent health information
         with db_session:
-            state = self.nodes[1].overlay.metadata_store.TorrentState.get(infohash='0' * 20)
+            state = self.nodes[1].overlay.metadata_store.TorrentState.get(infohash=b'0' * 20)
             self.assertIsNot(state.last_check, 0)
