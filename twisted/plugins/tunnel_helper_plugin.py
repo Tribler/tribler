@@ -18,7 +18,7 @@ from twisted.plugin import IPlugin
 from twisted.python import usage
 from twisted.python.log import msg
 
-from zope.interface import implements
+from zope.interface import implementer
 
 from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.Session import Session
@@ -220,8 +220,8 @@ class Tunnel(object):
             return self.session.shutdown()
 
 
+@implementer(IPlugin, IServiceMaker)
 class TunnelHelperServiceMaker(object):
-    implements(IServiceMaker, IPlugin)
     tapname = "tunnel_helper"
     description = "Tunnel Helper twistd plugin, starts a (hidden) tunnel as a service."
     options = Options
