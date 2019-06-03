@@ -199,9 +199,9 @@ class SearchResultsTableView(ItemClickedMixin, DownloadButtonMixin, PlayButtonMi
     def resizeEvent(self, _):
         self.setColumnWidth(0, 20)
         self.setColumnWidth(1, 40)
-        self.setColumnWidth(2, 40)
-        self.setColumnWidth(3, 100)
-        self.setColumnWidth(4, self.width() - 500)  # Few pixels offset so the horizontal scrollbar does not appear
+        self.setColumnWidth(2, 100)
+        self.setColumnWidth(3, self.width() - 500)  # Few pixels offset so the horizontal scrollbar does not appear
+        self.setColumnWidth(4, 100)
         self.setColumnWidth(5, 100)
         self.setColumnWidth(6, 100)
         self.setColumnWidth(7, 100)
@@ -268,7 +268,7 @@ class ChannelsTableView(ItemClickedMixin, SubscribeButtonMixin,
     def resizeEvent(self, _):
         self.setColumnWidth(0, 20)
         self.setColumnWidth(1, 40)
-        self.setColumnWidth(2, 40)
-        self.setColumnWidth(3, self.width() - 300)  # Few pixels offset so the horizontal scrollbar does not appear
+        self.setColumnWidth(2, self.width() - 350)  # Few pixels offset so the horizontal scrollbar does not appear
+        self.setColumnWidth(3, 100)
         self.setColumnWidth(4, 100)
         self.setColumnWidth(5, 100)
