@@ -277,7 +277,6 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                     del peer_info['have']
                     if 'extended_version' in peer_info:
                         peer_info['extended_version'] = _safe_extended_peer_info(peer_info['extended_version'])
-                    peer_info['id'] = hexlify(peer_info['id']).decode('utf-8')
 
                 download_json["peers"] = peer_list
 

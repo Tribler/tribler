@@ -73,19 +73,13 @@ class TorrentDef(object):
         self.infohash = None
 
         if metainfo is not None:
-            # This is a workaround to avoid feeding unicode objects to Libtorrent.
-            # In fact, this conforms to the 'Unicode Sandwich' model for handling unicode in Python.
-            # However, it is too bad that the low-level Libtorrent wrapper does not handle unicode.
-            if isinstance(metainfo, dict):
-                metainfo = convert_dict_unicode_to_bytes(metainfo)
-
             # First, make sure the passed metainfo is valid
             try:
                 lt.torrent_info(metainfo)
             except RuntimeError as exc:
                 raise ValueError(str(exc))
             self.metainfo = metainfo
-            self.infohash = sha1(bencode(metainfo[b'info'])).digest()
+            self.infohash = sha1(bencode(self.metainfo[b'info'])).digest()
             self.copy_metainfo_to_torrent_parameters()
 
         elif torrent_parameters:
@@ -515,10 +509,10 @@ class TorrentDefNoMetainfo(object):
         """
         Not all names are utf-8, attempt to construct it as utf-8 anyway.
         """
-        return escape_as_utf8(self.get_name())
+        return escape_as_utf8(six.ensure_binary(self.get_name()))
 
     def get_name_as_unicode(self):
-        return text_type(self.name) if self.name else u''
+        return ensure_unicode(self.name, 'utf-8')
 
     def get_files(self, exts=None):
         return []

@@ -219,10 +219,10 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         def on_transaction_completed(blocks):
             # Send the next payout
-            if blocks and payload.circuit_id in self.relay_from_to and block.transaction['down'] > payload.base_amount:
+            if blocks and payload.circuit_id in self.relay_from_to and block.transaction[b'down'] > payload.base_amount:
                 relay = self.relay_from_to[payload.circuit_id]
                 self._logger.info("Sending next payout to peer %s", relay.peer)
-                self.do_payout(relay.peer, relay.circuit_id, block.transaction['down'] - payload.base_amount * 2,
+                self.do_payout(relay.peer, relay.circuit_id, block.transaction[b'down'] - payload.base_amount * 2,
                                payload.base_amount)
 
         block = TriblerBandwidthBlock.from_payload(payload, self.serializer)
@@ -286,7 +286,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             self.on_token_balance(payload.circuit_id, 0)
         else:
             self.on_token_balance(payload.circuit_id,
-                                  block.transaction["total_up"] - block.transaction["total_down"])
+                                  block.transaction[b"total_up"] - block.transaction[b"total_down"])
 
     def on_relay_balance_response_cell(self, source_address, data, _):
         payload = self._ez_unpack_noauth(BalanceResponsePayload, data, global_time=False)

@@ -457,9 +457,6 @@ class TestLibtorrentMgr(AbstractServer):
         self.ltmgr.trsession = self.tribler_session
         self.ltmgr.metadata_tmpdir = tempfile.mkdtemp(suffix=u'tribler_metainfo_tmpdir')
 
-        mock_tdef = MockObject()
-        mock_tdef.get_infohash = lambda: 'a' * 20
-
         self.tribler_session.get_download = lambda _: None
         self.tribler_session.get_downloads_pstate_dir = lambda: self.ltmgr.metadata_tmpdir
 
@@ -507,10 +504,10 @@ class TestLibtorrentMgr(AbstractServer):
         class peer_disconnected_alert(object):
             def __init__(self):
                 self.pid = MockObject()
-                self.pid.to_string = lambda: 'a' * 20
+                self.pid.to_bytes = lambda: b'a' * 20
 
         def mocked_do_payout(mid):
-            self.assertEqual(mid, 'a' * 20)
+            self.assertEqual(mid, b'a' * 20)
             mocked_do_payout.called = True
         mocked_do_payout.called = False
 

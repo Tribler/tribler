@@ -171,12 +171,12 @@ class TorrentChecker(TaskManager):
             random_torrents = random.sample(random_torrents, min(3, len(random_torrents)))
             infohashes = []
             for random_torrent in random_torrents:
-                self.check_torrent_health(str(random_torrent.infohash))
-                infohashes.append(str(random_torrent.infohash))
+                self.check_torrent_health(random_torrent.infohash)
+                infohashes.append(random_torrent.infohash)
             return infohashes
 
         random_torrent = random.choice(random_torrents)
-        self.check_torrent_health(str(random_torrent.infohash))
+        self.check_torrent_health(random_torrent.infohash)
         return [random_torrent.infohash]
 
     def get_callbacks_for_session(self, session):
@@ -207,8 +207,8 @@ class TorrentChecker(TaskManager):
     def get_valid_trackers_of_torrent(self, torrent_id):
         """ Get a set of valid trackers for torrent. Also remove any invalid torrent."""
         db_tracker_list = self.tribler_session.lm.mds.TorrentState.get(infohash=database_blob(torrent_id)).trackers
-        return set([str(tracker.url) for tracker in db_tracker_list
-                    if is_valid_url(str(tracker.url)) and not self.is_blacklisted_tracker(str(tracker.url))])
+        return set([tracker.url for tracker in db_tracker_list
+                    if is_valid_url(tracker.url) and not self.is_blacklisted_tracker(tracker.url)])
 
     def update_torrents_checked(self, new_result):
         """

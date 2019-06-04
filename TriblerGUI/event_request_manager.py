@@ -94,12 +94,12 @@ class EventRequestManager(QNetworkAccessManager):
             self.finished.connect(lambda reply: self.on_finished())
         self.connect_timer.stop()
         data = self.reply.readAll()
-        self.current_event_string += data
+        self.current_event_string += bytes(data).decode('utf8')
         if len(self.current_event_string) > 0 and self.current_event_string[-1] == '\n':
             for event in self.current_event_string.split('\n'):
                 if len(event) == 0:
                     continue
-                json_dict = json.loads(str(event))
+                json_dict = json.loads(event)
 
                 received_events.insert(0, (json_dict, time.time()))
                 if len(received_events) > 100:  # Only buffer the last 100 events

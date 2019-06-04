@@ -610,8 +610,10 @@ class TriblerLaunchMany(TaskManager):
             return
 
         try:
-            tdef = (TorrentDefNoMetainfo(metainfo['infohash'], metainfo['name'], metainfo.get('url', None))
-                    if 'infohash' in metainfo else TorrentDef.load_from_dict(metainfo))
+            url = metainfo.get(b'url', None)
+            url = url.decode('utf-8') if url else url
+            tdef = (TorrentDefNoMetainfo(metainfo[b'infohash'], metainfo[b'name'], url)
+                    if b'infohash' in metainfo else TorrentDef.load_from_dict(metainfo))
         except ValueError as e:
             self._logger.exception("tlm: could not restore tdef from metainfo dict: %s %s ", e, text_type(metainfo))
             return
@@ -822,4 +824,16 @@ class TriblerLaunchMany(TaskManager):
         """ Called by any thread """
         pstate = CallbackConfigParser()
         pstate.read_file(filename)
+
+        # FIXME: python 3 compatability
+        import six
+        if six.PY3 and pstate.has_option('state', 'metainfo') \
+                and not isinstance(pstate.get('state', 'metainfo'), dict):
+            import re
+            metainfo = pstate.get('state', 'metainfo', literal_eval=False)
+            metainfo = re.sub(r":[^b]('|\").*?[^\\]\1", lambda x: ': b' + x.group(0)[2:], metainfo)
+            metainfo = re.sub(r"[{| ]('|\").*?[^\\]\1:", lambda x: x.group()[:1] + 'b' + x.group()[1:], metainfo)
+            metainfo = re.sub(r": (\d+L)(,|})", lambda x: x.group(0)[:-2] + ',', metainfo)
+            pstate.set('state', 'metainfo', metainfo)
+
         return pstate

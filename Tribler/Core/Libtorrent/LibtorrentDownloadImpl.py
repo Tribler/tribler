@@ -872,8 +872,12 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         peers = []
         peer_infos = self.handle.get_peer_info() if self.handle and self.handle.is_valid() else []
         for peer_info in peer_infos:
-            peer_dict = {'id': hexlify(peer_info.pid.to_bytes()),
-                         'extended_version': peer_info.client,
+            try:
+                extended_version = peer_info.client
+            except:
+                extended_version = 'unknown'
+            peer_dict = {'id': hexlify(peer_info.pid.to_bytes()).decode('utf-8'),
+                         'extended_version': extended_version,
                          'ip': peer_info.ip[0],
                          'port': peer_info.ip[1],
                          # optimistic_unchoke = 0x800 seems unavailable in python bindings

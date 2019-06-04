@@ -25,7 +25,11 @@ def error_and_exit(title, main_text):
     """
     # NOTE: We don't want to load all of these imports normally.
     #       Otherwise we will have these unused GUI modules loaded in the main process.
-    from Tkinter import Tk, Canvas, DISABLED, INSERT, Label, Text, WORD
+    try:
+        from Tkinter import Tk, Canvas, DISABLED, INSERT, Label, Text, WORD
+    except:
+        # For python 3
+        from tkinter import Tk, Canvas, DISABLED, INSERT, Label, Text, WORD
 
     root = Tk()
     root.wm_title("Tribler: Critical Error!")

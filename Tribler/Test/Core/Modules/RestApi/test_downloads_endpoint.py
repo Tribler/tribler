@@ -186,7 +186,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
             self.assertGreaterEqual(len(self.session.get_downloads()), 1)
             dl = self.session.get_downloads()[0]
             ds = DownloadState(dl, self.create_mock_status(), None)
-            ds.get_peerlist = lambda: [{'id': b'1234', 'have': '5678', 'extended_version': 'uTorrent 1.6.1'}]
+            ds.get_peerlist = lambda: [{'id': '1234', 'have': '5678', 'extended_version': 'uTorrent 1.6.1'}]
             dl.get_state = lambda: ds
             self.should_check_equality = False
             return self.do_request('downloads?get_peers=1&get_pieces=1',
@@ -217,7 +217,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
             self.assertGreaterEqual(len(self.session.get_downloads()), 1)
             dl = self.session.get_downloads()[0]
             ds = DownloadState(dl, self.create_mock_status(), None)
-            ds.get_peerlist = lambda: [{'id': b'1234', 'have': '5678', 'extended_version': '\xb5Torrent 1.6.1'}]
+            ds.get_peerlist = lambda: [{'id': '1234', 'have': '5678', 'extended_version': '\xb5Torrent 1.6.1'}]
             dl.get_state = lambda: ds
             self.should_check_equality = False
             return self.do_request('downloads?get_peers=1&get_pieces=1',
@@ -248,7 +248,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
             self.assertGreaterEqual(len(self.session.get_downloads()), 1)
             dl = self.session.get_downloads()[0]
             ds = DownloadState(dl, self.create_mock_status(), None)
-            ds.get_peerlist = lambda: [{'id': b'1234', 'have': '5678', 'extended_version': None}]
+            ds.get_peerlist = lambda: [{'id': '1234', 'have': '5678', 'extended_version': None}]
             dl.get_state = lambda: ds
             self.should_check_equality = False
             return self.do_request('downloads?get_peers=1&get_pieces=1',

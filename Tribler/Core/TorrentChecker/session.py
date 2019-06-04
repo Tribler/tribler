@@ -192,7 +192,7 @@ class HttpTrackerSession(TrackerSession):
 
         agent = RedirectAgent(Agent(reactor, connectTimeout=self.timeout, pool=self._connection_pool))
         try:
-            self.request = self.register_task("request", agent.request('GET', url.encode('ascii')))
+            self.request = self.register_task("request", agent.request(b'GET', url.encode('ascii')))
             self.request.addCallback(self.on_response)
             self.request.addErrback(self.on_error)
             self._logger.debug(u"%s HTTP SCRAPE message sent: %s", self, url)

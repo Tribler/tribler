@@ -46,7 +46,7 @@ class TrustViewEndpoint(resource.Resource):
         if not block:
             return None
 
-        diff = block.transaction['up'] - block.transaction['down']
+        diff = block.transaction[b'up'] - block.transaction[b'down']
         if diff < 0:
             return {'downloader': hexlify(block.public_key).decode('utf-8'),
                     'uploader': hexlify(block.link_public_key).decode('utf-8'),
@@ -65,8 +65,8 @@ class TrustViewEndpoint(resource.Resource):
             node_balance = self.token_balance.get(hex_public_key, dict())
             if block.sequence_number > node_balance.get('sequence_number', 0):
                 node_balance['sequence_number'] = block.sequence_number
-                node_balance['total_up'] = block.transaction["total_up"]
-                node_balance['total_down'] = block.transaction["total_down"]
+                node_balance['total_up'] = block.transaction[b"total_up"]
+                node_balance['total_down'] = block.transaction[b"total_down"]
                 self.token_balance[hex_public_key] = node_balance
 
     def load_blocks(self, blocks):

@@ -445,8 +445,9 @@ class TriblerWindow(QMainWindow):
                                     method='PUT', data=post_data)
 
         # Save the download location to the GUI settings
-        current_settings = get_gui_setting(self.gui_settings, "recent_download_locations", "")
-        recent_locations = current_settings.split(",") if len(current_settings) > 0 else []
+        current_settings = get_gui_setting(self.gui_settings, "recent_download_locations", b"")
+        current_settings = six.ensure_binary(current_settings)
+        recent_locations = current_settings.split(b",") if len(current_settings) > 0 else []
         if isinstance(destination, six.text_type):
             destination = destination.encode('utf-8')
         encoded_destination = hexlify(destination)
@@ -457,7 +458,7 @@ class TriblerWindow(QMainWindow):
         if len(recent_locations) > 5:
             recent_locations = recent_locations[:5]
 
-        self.gui_settings.setValue("recent_download_locations", ','.join(recent_locations))
+        self.gui_settings.setValue("recent_download_locations", b','.join(recent_locations))
 
         if add_to_channel:
             self.add_torrent_to_channel(uri)

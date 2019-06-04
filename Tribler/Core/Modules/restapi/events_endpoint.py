@@ -119,7 +119,7 @@ class EventsEndpoint(resource.Resource):
         if len(self.events_requests) == 0:
             return
         else:
-            [request.write(message_str + '\n') for request in self.events_requests]
+            [request.write(message_str + b'\n') for request in self.events_requests]
 
     # An exception has occurred in Tribler. The event includes a readable string of the error.
     def on_tribler_exception(self, exception_text):
@@ -144,6 +144,6 @@ class EventsEndpoint(resource.Resource):
         request.notifyFinish().addCallbacks(on_request_finished, on_request_finished)
 
         request.write(json.twisted_dumps({"type": "events_start", "event": {
-            "tribler_started": self.session.lm.initComplete, "version": version_id}}) + '\n')
+            "tribler_started": self.session.lm.initComplete, "version": version_id}}) + b'\n')
 
         return server.NOT_DONE_YET

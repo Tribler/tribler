@@ -6,6 +6,7 @@ from PyQt5 import uic
 from PyQt5.QtCore import QTimer, Qt, pyqtSignal
 from PyQt5.QtWidgets import QFileDialog, QSizePolicy, QTreeWidgetItem
 
+from six import ensure_binary
 from six.moves import xrange
 from six.moves.urllib.parse import unquote_plus
 
@@ -88,7 +89,8 @@ class StartDownloadDialog(DialogContainer):
             # Set the most recent download locations in the QComboBox
             current_settings = get_gui_setting(self.window().gui_settings, "recent_download_locations", "")
             if len(current_settings) > 0:
-                recent_locations = [unhexlify(url).decode('utf-8') for url in current_settings.split(",")]
+                current_settings = ensure_binary(current_settings)
+                recent_locations = [unhexlify(url).decode('utf-8') for url in current_settings.split(b",")]
                 self.dialog_widget.destination_input.addItems(recent_locations)
             else:
                 self.dialog_widget.destination_input.setCurrentText(
@@ -183,7 +185,7 @@ class StartDownloadDialog(DialogContainer):
         self.dialog_widget.files_list_view.clear()
         for filename in files:
             item = DownloadFileTreeWidgetItem(self.dialog_widget.files_list_view)
-            item.setText(0, '/'.join(filename['path']).encode('raw_unicode_escape'))
+            item.setText(0, '/'.join(filename['path']).encode('raw_unicode_escape').decode('utf-8'))
             item.setText(1, format_size(float(filename['length'])))
             item.setData(0, Qt.UserRole, filename)
             item.setCheckState(2, Qt.Checked)

@@ -421,7 +421,7 @@ class LibtorrentMgr(TaskManager):
 
         elif alert_type == 'peer_disconnected_alert' and \
                 self.tribler_session and self.tribler_session.lm.payout_manager:
-            self.tribler_session.lm.payout_manager.do_payout(alert.pid.to_string())
+            self.tribler_session.lm.payout_manager.do_payout(alert.pid.to_bytes())
 
         elif alert_type == 'session_stats_alert':
             queued_disk_jobs = alert.values['disk.queued_disk_jobs']
@@ -544,8 +544,8 @@ class LibtorrentMgr(TaskManager):
     def _task_cleanup_metainfo_cache(self):
         oldest_time = time.time() - METAINFO_CACHE_PERIOD
 
-        for info_hash, values in self.metainfo_cache.items():
-            last_time, _ = values
+        for info_hash, cache_entry in list(self.metainfo_cache.items()):
+            last_time = cache_entry[b'time']
             if last_time < oldest_time:
                 del self.metainfo_cache[info_hash]
 
