@@ -66,6 +66,20 @@ class TestMetadata(TriblerCoreTest):
 
 
     @db_session
+    def test_ffa_serialization(self):
+        """
+        Test converting free-for-all (unsigned) torrent metadata to payload and back
+        """
+        metadata1 = self.mds.ChannelNode.from_dict({ "public_key": "", "signature": "", "skip_key_check": True})
+        serialized1 = metadata1.serialized()
+        metadata1.delete()
+        orm.flush()
+
+        metadata2 = self.mds.ChannelNode.from_payload(ChannelNodePayload.from_signed_blob(serialized1))
+        serialized2 = metadata2.serialized()
+        self.assertEqual(serialized1, serialized2)
+
+    @db_session
     def test_key_mismatch_exception(self):
         mismatched_key = default_eccrypto.generate_key(u"curve25519")
         metadata = self.mds.ChannelNode.from_dict({})

@@ -16,6 +16,7 @@ INFOHASH_SIZE = 20  # bytes
 
 SIGNATURE_SIZE = 64
 EMPTY_SIG = '0' * 64
+EMPTY_KEY = '0' * 64
 
 # Metadata types. Should have been an enum, but in Python its unwieldy.
 TYPELESS = 100
@@ -85,27 +86,29 @@ class SignedPayload(Payload):
         super(SignedPayload, self).__init__()
         self.metadata_type = metadata_type
         self.reserved_flags = reserved_flags
-        self.public_key = str(public_key)
-        self.signature = str(kwargs["signature"]) if "signature" in kwargs else EMPTY_SIG
-
-        skip_key_check = kwargs["skip_key_check"] if "skip_key_check" in kwargs else False
+        self.public_key = str(public_key) if public_key else EMPTY_KEY
+        self.signature = str(kwargs["signature"]) if "signature" in kwargs and kwargs["signature"] else EMPTY_SIG
 
         serialized_data = default_serializer.pack_multiple(self.to_pack_list())[0]
-        if not skip_key_check:
-            if "key" in kwargs and kwargs["key"]:
-                key = kwargs["key"]
-                if self.public_key != str(key.pub().key_to_bin()[10:]):
-                    raise KeysMismatchException(self.public_key, str(key.pub().key_to_bin()[10:]))
+        if "skip_key_check" in kwargs and kwargs["skip_key_check"]:
+            return
 
-                self.signature = default_eccrypto.create_signature(key, serialized_data)
-            elif "signature" in kwargs:
-                # This check ensures that an entry with a wrong signature will not proliferate further
-                if not default_eccrypto.is_valid_signature(
-                        default_eccrypto.key_from_public_bin(b"LibNaCLPK:" + self.public_key),
-                        serialized_data, self.signature):
-                    raise InvalidSignatureException("Tried to create payload with wrong signature")
-            else:
-                raise InvalidSignatureException("Tried to create payload without signature")
+        if "key" in kwargs and kwargs["key"]:
+            key = kwargs["key"]
+            if self.public_key != str(key.pub().key_to_bin()[10:]):
+                raise KeysMismatchException(self.public_key, str(key.pub().key_to_bin()[10:]))
+            self.signature = default_eccrypto.create_signature(key, serialized_data)
+        # Special case: free-for-all entries are allowed to go unsigned with zero key and sig
+        elif self.public_key == EMPTY_KEY and self.signature == EMPTY_SIG:
+            return
+        elif "signature" in kwargs:
+            # This check ensures that an entry with a wrong signature will not proliferate further
+            if not default_eccrypto.is_valid_signature(
+                    default_eccrypto.key_from_public_bin(b"LibNaCLPK:" + self.public_key),
+                    serialized_data, self.signature):
+                raise InvalidSignatureException("Tried to create payload with wrong signature")
+        else:
+            raise InvalidSignatureException("Tried to create payload without signature")
 
     def to_pack_list(self):
         data = [('H', self.metadata_type),
