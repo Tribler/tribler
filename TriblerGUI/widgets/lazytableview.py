@@ -105,6 +105,7 @@ class ItemClickedMixin(TriblerContentTableView):
         column_position = self.model().column_position
         if (ACTION_BUTTONS in column_position and item.column() == column_position[ACTION_BUTTONS]) or \
                 (u'status' in column_position and item.column() == column_position[u'status']) or \
+                (u'votes' in column_position and item.column() == column_position[u'votes']) or \
                 (u'subscribed' in column_position and item.column() == column_position[u'subscribed']):
             return
 
@@ -261,14 +262,15 @@ class ChannelsTableView(ItemClickedMixin, SubscribeButtonMixin,
         # Mix-in connects
         self.clicked.connect(self.on_table_item_clicked)
         self.delegate.subscribe_control.clicked.connect(self.on_subscribe_control_clicked)
+        self.delegate.rating_control.clicked.connect(self.on_subscribe_control_clicked)
 
     def init_delegate(self):
         return ChannelsButtonsDelegate()
 
     def resizeEvent(self, _):
         self.setColumnWidth(0, 20)
-        self.setColumnWidth(1, 40)
+        self.setColumnWidth(1, 100)
         self.setColumnWidth(2, self.width() - 350)  # Few pixels offset so the horizontal scrollbar does not appear
         self.setColumnWidth(3, 100)
         self.setColumnWidth(4, 100)
-        self.setColumnWidth(5, 100)
+        self.setColumnWidth(5, 40)

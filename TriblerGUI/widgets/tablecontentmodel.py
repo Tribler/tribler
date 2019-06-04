@@ -166,6 +166,12 @@ class VotesAlignmentMixin(object):
         else:
             return super(VotesAlignmentMixin, self).data(index, role)
 
+    def represent_votes(self, votes):
+        # Votes are represented as unicode hearts in this implementation.
+        # The number of hearts range from one to five.
+        votes = 1 + int(math.ceil(votes * 4))
+        return u" %s " % u"\u2665" * votes
+
 
 class SearchResultsContentModel(StateTooltipMixin, VotesAlignmentMixin, TriblerContentModel):
     """
@@ -173,7 +179,7 @@ class SearchResultsContentModel(StateTooltipMixin, VotesAlignmentMixin, TriblerC
     """
     columns = [u'state', u'subscribed', u'category', u'name', u'torrents', u'size', u'updated', u'health', u'votes',
                ACTION_BUTTONS]
-    column_headers = [u'', u'', u'Category', u'Name', u'Torrents', u'Size', u'Updated', u'health', u'Rating', u'']
+    column_headers = [u'', u'', u'Category', u'Name', u'Torrents', u'Size', u'Updated', u'health', u'Popularity', u'']
     column_flags = {
         u'subscribed': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         u'category': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
@@ -189,7 +195,7 @@ class SearchResultsContentModel(StateTooltipMixin, VotesAlignmentMixin, TriblerC
 
     column_display_filters = {
         u'size': lambda data: (format_size(float(data)) if data != '' else ''),
-        u'votes': lambda votes: u"\u066d" * int(math.ceil(votes * 5)) if votes else " - ",
+        u'votes': VotesAlignmentMixin.represent_votes,
         u'updated': pretty_date,
     }
 
@@ -202,8 +208,8 @@ class ChannelsContentModel(StateTooltipMixin, VotesAlignmentMixin, TriblerConten
     """
     This model represents a list of channels that can be displayed in a table view.
     """
-    columns = [u'state', u'subscribed', u'name', u'torrents', u'updated', u'votes']
-    column_headers = [u'', u'', u'Channel name', u'Torrents', u'Updated', u'Rating']
+    columns = [u'state', u'votes', u'name', u'torrents', u'updated']
+    column_headers = [u'', u'Popularity', u'Channel name', u'Torrents', u'Updated']
     column_flags = {
         u'subscribed': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         u'name': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
@@ -216,7 +222,7 @@ class ChannelsContentModel(StateTooltipMixin, VotesAlignmentMixin, TriblerConten
 
     column_display_filters = {
         u'updated': pretty_date,
-        u'votes': lambda votes: u"\u066d" * int(math.ceil(votes * 5)) if votes else " - ",
+        u'votes': lambda votes: u"\u2665" * (1 + int(math.ceil(votes * 4))) if votes is not None else " - ",
         u'state': lambda data: str(data)[:1] if data == u'Downloading' else ""
     }
 
