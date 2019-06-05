@@ -314,6 +314,8 @@ def format_votes(votes=0.0):
     # Votes are represented as unicode hearts in this implementation.
     # The number of hearts range from one to five.
     if votes:
-        votes = 1 + int(math.ceil(float(votes) * 4))
+        votes = float(votes)
+        votes = 1.0 if votes > 1 else votes
+        votes = 1 + int(math.ceil(votes * 4))
         return u"  %s " % (u"\u2665" * votes)
     return u"  \u2665 "
