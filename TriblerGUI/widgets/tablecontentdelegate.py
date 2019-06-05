@@ -1,9 +1,7 @@
 from __future__ import absolute_import, division
 
-import math
-
 from PyQt5.QtCore import QEvent, QModelIndex, QObject, QRect, QRectF, QSize, Qt, pyqtSignal
-from PyQt5.QtGui import QBrush, QColor, QIcon, QPainter, QPen, QTextCharFormat
+from PyQt5.QtGui import QBrush, QColor, QIcon, QPainter, QPen
 from PyQt5.QtSvg import QSvgRenderer
 from PyQt5.QtWidgets import QComboBox, QStyle, QStyledItemDelegate, QToolTip
 
@@ -12,7 +10,7 @@ from six import text_type
 from TriblerGUI.defs import (
     ACTION_BUTTONS, CATEGORY_LIST, COMMIT_STATUS_COMMITTED, COMMIT_STATUS_NEW, COMMIT_STATUS_TODELETE, HEALTH_CHECKING,
     HEALTH_DEAD, HEALTH_ERROR, HEALTH_GOOD, HEALTH_MOOT, HEALTH_UNCHECKED)
-from TriblerGUI.utilities import get_health, get_image_path
+from TriblerGUI.utilities import format_votes, get_health, get_image_path
 from TriblerGUI.widgets.tableiconbuttons import DeleteIconButton, DownloadIconButton, PlayIconButton
 
 
@@ -184,9 +182,11 @@ class RatingControlMixin(object):
             return True
 
         if index == self.hover_index:
-            self.rating_control.paint_hover(painter, option.rect, index, votes=data_item['votes'], subscribed=data_item['subscribed'])
+            self.rating_control.paint_hover(painter, option.rect, index, votes=data_item['votes'],
+                                            subscribed=data_item['subscribed'])
         else:
-            self.rating_control.paint(painter, option.rect, index, votes=data_item['votes'], subscribed=data_item['subscribed'])
+            self.rating_control.paint(painter, option.rect, index, votes=data_item['votes'],
+                                      subscribed=data_item['subscribed'])
 
         return True
 
@@ -241,13 +241,14 @@ class HealthLabelMixin(object):
         return True
 
 
-class SearchResultsDelegate(TriblerButtonsDelegate, CategoryLabelMixin, SubscribedControlMixin,
+class SearchResultsDelegate(TriblerButtonsDelegate, CategoryLabelMixin, RatingControlMixin,
                             DownloadControlsMixin, HealthLabelMixin, ChannelStateMixin):
 
     def __init__(self, parent=None):
         # TODO: refactor this not to rely on inheritance order, but instead use interface method pattern
         TriblerButtonsDelegate.__init__(self, parent)
         self.subscribe_control = SubscribeToggleControl(u'subscribed')
+        self.rating_control = RatingControl(u'votes')
 
         self.init_animation()
         self.health_status_widget = HealthStatusDisplay()
@@ -255,8 +256,8 @@ class SearchResultsDelegate(TriblerButtonsDelegate, CategoryLabelMixin, Subscrib
         self.play_button = PlayIconButton()
         self.download_button = DownloadIconButton()
         self.ondemand_container = [self.play_button, self.download_button]
-        self.controls = [self.play_button, self.download_button, self.subscribe_control]
-        self.column_drawing_actions = [(u'subscribed', self.draw_subscribed_control),
+        self.controls = [self.play_button, self.download_button, self.rating_control]
+        self.column_drawing_actions = [(u'votes', self.draw_rating_control),
                                        (ACTION_BUTTONS, self.draw_action_column),
                                        (u'category', self.draw_category_label),
                                        (u'health', self.draw_health_column),
@@ -572,14 +573,8 @@ class HealthStatusDisplay(QObject):
 
 class RatingControl(QObject):
     """
-    Column-level controls are stateless collections of methods for visualizing cell data and
-    triggering corresponding events.
+    Controls for visualizing the votes and subscription information for channels.
     """
-    icon_border = 4
-    icon_size = 16
-    h = icon_size + 2 * icon_border
-    w = h
-    size = QSize(w, h)
 
     rating_colors = {
         "UNSUBSCRIBED": QColor("#888888"),
@@ -608,13 +603,11 @@ class RatingControl(QObject):
 
     def paint(self, painter, rect, _index, votes=0, subscribed=False):
         color = self.rating_colors["SUBSCRIBED" if subscribed else "UNSUBSCRIBED"]
-        text = u"\u2665" * (1 + int(math.ceil(votes * 4))) if votes else " - "
-        self.draw_text(painter, rect, text, color=color)
+        self.draw_text(painter, rect, format_votes(votes), color=color)
 
     def paint_hover(self, painter, rect, _index, votes=0, subscribed=False):
-        text = u"\u2665" * (1 + int(math.ceil(votes * 4))) if votes else " - "
         color = self.rating_colors["SUBSCRIBED_HOVER" if subscribed else "UNSUBSCRIBED_HOVER"]
-        self.draw_text(painter, rect, text, color=color)
+        self.draw_text(painter, rect, format_votes(votes), color=color)
 
     def check_clicked(self, event, _, __, index):
         if event.type() == QEvent.MouseButtonRelease and \
@@ -633,4 +626,3 @@ class RatingControl(QObject):
                 self.last_index = index
                 return True
         return False
-

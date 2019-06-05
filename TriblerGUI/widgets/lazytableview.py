@@ -192,6 +192,7 @@ class SearchResultsTableView(ItemClickedMixin, DownloadButtonMixin, PlayButtonMi
         self.clicked.connect(self.on_table_item_clicked)
         self.delegate.play_button.clicked.connect(self.on_play_button_clicked)
         self.delegate.subscribe_control.clicked.connect(self.on_subscribe_control_clicked)
+        self.delegate.rating_control.clicked.connect(self.on_subscribe_control_clicked)
         self.delegate.download_button.clicked.connect(self.on_download_button_clicked)
 
     def init_delegate(self):
@@ -199,7 +200,7 @@ class SearchResultsTableView(ItemClickedMixin, DownloadButtonMixin, PlayButtonMi
 
     def resizeEvent(self, _):
         self.setColumnWidth(0, 20)
-        self.setColumnWidth(1, 40)
+        self.setColumnWidth(1, 100)
         self.setColumnWidth(2, 100)
         self.setColumnWidth(3, self.width() - 500)  # Few pixels offset so the horizontal scrollbar does not appear
         self.setColumnWidth(4, 100)

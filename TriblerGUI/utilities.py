@@ -1,6 +1,7 @@
 from __future__ import absolute_import, division
 
 import hashlib
+import math
 import os
 import re
 import sys
@@ -307,3 +308,12 @@ def get_checkbox_style(color="#B5B5B5"):
             QCheckBox::indicator:checked {image: url('%s'); width:16px; height:16px}
             QCheckBox::indicator:unchecked {image: url('%s'); width:16px; height:16px}
             """ % (color, get_image_path('checked-yes.png'), get_image_path('checked-no.png'))
+
+
+def format_votes(votes=0.0):
+    # Votes are represented as unicode hearts in this implementation.
+    # The number of hearts range from one to five.
+    if votes:
+        votes = 1 + int(math.ceil(float(votes) * 4))
+        return u"  %s " % (u"\u2665" * votes)
+    return u"  \u2665 "

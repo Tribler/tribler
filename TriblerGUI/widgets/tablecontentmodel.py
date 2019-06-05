@@ -1,16 +1,16 @@
 from __future__ import absolute_import
 
-import math
 from abc import abstractmethod
 
 from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt, pyqtSignal
 
 from TriblerGUI.defs import ACTION_BUTTONS
-from TriblerGUI.utilities import format_size, pretty_date
+from TriblerGUI.utilities import format_size, format_votes, pretty_date
 
 
 def combine_pk_id(pk, id_):
     return "%s:%s" % (pk, id_)
+
 
 class RemoteTableModel(QAbstractTableModel):
     """
@@ -166,20 +166,14 @@ class VotesAlignmentMixin(object):
         else:
             return super(VotesAlignmentMixin, self).data(index, role)
 
-    def represent_votes(self, votes):
-        # Votes are represented as unicode hearts in this implementation.
-        # The number of hearts range from one to five.
-        votes = 1 + int(math.ceil(votes * 4))
-        return u" %s " % u"\u2665" * votes
-
 
 class SearchResultsContentModel(StateTooltipMixin, VotesAlignmentMixin, TriblerContentModel):
     """
     Model for a list that shows search results.
     """
-    columns = [u'state', u'subscribed', u'category', u'name', u'torrents', u'size', u'updated', u'health', u'votes',
+    columns = [u'state', u'votes', u'category', u'name', u'torrents', u'size', u'updated', u'health',
                ACTION_BUTTONS]
-    column_headers = [u'', u'', u'Category', u'Name', u'Torrents', u'Size', u'Updated', u'health', u'Popularity', u'']
+    column_headers = [u'', u'Popularity', u'Category', u'Name', u'Torrents', u'Size', u'Updated', u'health', u'']
     column_flags = {
         u'subscribed': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         u'category': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
@@ -195,7 +189,7 @@ class SearchResultsContentModel(StateTooltipMixin, VotesAlignmentMixin, TriblerC
 
     column_display_filters = {
         u'size': lambda data: (format_size(float(data)) if data != '' else ''),
-        u'votes': VotesAlignmentMixin.represent_votes,
+        u'votes': format_votes,
         u'updated': pretty_date,
     }
 
@@ -222,7 +216,7 @@ class ChannelsContentModel(StateTooltipMixin, VotesAlignmentMixin, TriblerConten
 
     column_display_filters = {
         u'updated': pretty_date,
-        u'votes': lambda votes: u"\u2665" * (1 + int(math.ceil(votes * 4))) if votes is not None else " - ",
+        u'votes': format_votes,
         u'state': lambda data: str(data)[:1] if data == u'Downloading' else ""
     }
 
