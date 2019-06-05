@@ -1,14 +1,13 @@
 from __future__ import absolute_import
 
 import json
-import math
 
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.QtWidgets import QWidget
 
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
-from TriblerGUI.utilities import get_image_path
+from TriblerGUI.utilities import format_votes, get_image_path
 
 
 class SubscriptionsWidget(QWidget):
@@ -23,7 +22,6 @@ class SubscriptionsWidget(QWidget):
 
         self.subscribe_button = None
         self.channel_info = None
-        self.num_subs_label = None
         self.credit_mining_button = None
         self.request_mgr = None
         self.initialized = False
@@ -32,7 +30,6 @@ class SubscriptionsWidget(QWidget):
         self.channel_info = channel
         if not self.initialized:
             self.subscribe_button = self.findChild(QWidget, "subscribe_button")
-            self.num_subs_label = self.findChild(QWidget, "num_subs_label")
             self.credit_mining_button = self.findChild(QWidget, "credit_mining_button")
 
             self.subscribe_button.clicked.connect(self.on_subscribe_button_click)
@@ -46,9 +43,9 @@ class SubscriptionsWidget(QWidget):
             if remote_response and prop in remote_response:
                 self.channel_info[prop] = remote_response[prop]
 
-        self.subscribe_button.setIcon(QIcon(QPixmap(get_image_path(
-            'subscribed_yes.png' if int(self.channel_info["subscribed"]) else 'subscribed_not.png'))))
-        self.num_subs_label.setText(format(math.log1p(self.channel_info['votes']), "^-.2f"))
+        color = '#FE6D01' if int(self.channel_info["subscribed"]) else '#fff'
+        self.subscribe_button.setStyleSheet('border:none; color: %s' % color)
+        self.subscribe_button.setText(format_votes(self.channel_info['votes']))
 
         if self.window().tribler_settings:  # It could be that the settings are not loaded yet
             self.credit_mining_button.setHidden(not self.window().tribler_settings["credit_mining"]["enabled"])
@@ -61,7 +58,6 @@ class SubscriptionsWidget(QWidget):
 
         # Disable channel control buttons for LEGACY_ENTRY channels
         hide_controls = (self.channel_info["status"] == 1000)
-        self.num_subs_label.setHidden(hide_controls)
         self.subscribe_button.setHidden(hide_controls or self.channel_info["state"] == "Personal")
         self.credit_mining_button.setHidden(hide_controls)
 

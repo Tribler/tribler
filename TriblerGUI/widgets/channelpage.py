@@ -1,11 +1,9 @@
 from __future__ import absolute_import
 
-import math
-
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QWidget
 
-from TriblerGUI.utilities import get_gui_setting, get_image_path
+from TriblerGUI.utilities import format_votes, get_gui_setting, get_image_path
 from TriblerGUI.widgets.tablecontentmodel import TorrentsContentModel
 from TriblerGUI.widgets.triblertablecontrollers import TorrentsTableViewController
 
@@ -67,7 +65,11 @@ class ChannelPage(QWidget):
     def update_labels(self):
         # initialize the page about a channel
         self.window().channel_name_label.setText(self.channel_info['name'])
-        self.window().num_subs_label.setText(format(math.log1p(self.channel_info['votes']), "^-.2f"))
+
+        color = '#FE6D01' if int(self.channel_info["subscribed"]) else '#fff'
+        self.window().subscribe_button.setStyleSheet('border:none; color: %s' % color)
+        self.window().subscribe_button.setText(format_votes(self.channel_info['votes']))
+
         self.window().channel_state_label.setText(self.channel_info["state"])
         self.window().subscription_widget.initialize_with_channel(self.channel_info)
 
