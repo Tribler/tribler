@@ -5,18 +5,17 @@ import os
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.peer import Peer
 from ipv8.test.base import TestBase
-
 from pony.orm import db_session
-
 from six.moves import xrange
-
 from twisted.internet.defer import inlineCallbacks
 
-from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import NEW
+from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import NEW, COMMITTED
+from Tribler.Core.Modules.MetadataStore.serialization import EMPTY_KEY
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.Utilities.random_utils import random_infohash
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.community.gigachannel.community import GigaChannelCommunity
+from Tribler.pyipv8.ipv8.database import database_blob
 
 
 class TestGigaChannelUnits(TestBase):
@@ -115,7 +114,7 @@ class TestGigaChannelUnits(TestBase):
                              self.nodes[0].overlay.metadata_store.ChannelMetadata.select()[:][0].timestamp)
 
     @inlineCallbacks
-    def test_gigachannel_search(self):
+    def test_gigachannel_search(self, LEGACY=None):
         """
         Scenario: Node 0 is setup with a channel with 20 ubuntu related torrents. Node 1 searches for 'ubuntu' and
         expects to receive some results. The search results are processed by node 1 when it receives and adds to its
@@ -131,6 +130,11 @@ class TestGigaChannelUnits(TestBase):
         yield self.introduce_nodes()
 
         with db_session:
+            # add some free-for-all entries
+            self.nodes[0].overlay.metadata_store.TorrentMetadata(title="ubuntu legacy", infohash=random_infohash(),
+                                                                 public_key=EMPTY_KEY, status=COMMITTED)
+            self.nodes[0].overlay.metadata_store.ChannelMetadata(title="ubuntu legacy chan", infohash=random_infohash(),
+                                                                 public_key=EMPTY_KEY, status=LEGACY)
             channel = self.nodes[0].overlay.metadata_store.ChannelMetadata.create_channel("ubuntu", "ubuntu")
             for i in xrange(20):
                 self.add_random_torrent(self.nodes[0].overlay.metadata_store.TorrentMetadata, name="ubuntu %s" % i)
@@ -147,6 +151,15 @@ class TestGigaChannelUnits(TestBase):
         with db_session:
             torrents = self.nodes[1].overlay.metadata_store.TorrentMetadata.select()[:]
             self.assertEqual(len(torrents), 5)
+
+            # Only non-legacy FFA torrents should be sent on search
+            torrents_ffa = self.nodes[1].overlay.metadata_store.TorrentMetadata.select(
+                lambda g: g.public_key == database_blob(EMPTY_KEY))[:]
+            self.assertEqual(len(torrents_ffa), 1)
+            # Legacy FFA channel should not be sent
+            channels_ffa = self.nodes[1].overlay.metadata_store.ChannelMetadata.select(
+                lambda g: g.public_key == database_blob(EMPTY_KEY))[:]
+            self.assertEqual(len(channels_ffa), 0)
         self.assertTrue(self.nodes[1].overlay.notified_results)
 
     @inlineCallbacks

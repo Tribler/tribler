@@ -86,12 +86,12 @@ class TestChannelMetadata(TriblerCoreTest):
         """
         self.mds.ChannelNode._my_key = default_eccrypto.generate_key('low')
         channel1 = self.mds.ChannelMetadata(infohash=str(random.getrandbits(160)))
-        self.mds.TorrentMetadata.from_dict(dict(self.torrent_template))
+        a = self.mds.TorrentMetadata.from_dict(dict(self.torrent_template, origin_id=channel1.id_))
 
         self.mds.ChannelNode._my_key = default_eccrypto.generate_key('low')
         channel2 = self.mds.ChannelMetadata(infohash=str(random.getrandbits(160)))
-        self.mds.TorrentMetadata.from_dict(dict(self.torrent_template, infohash="1"))
-        self.mds.TorrentMetadata.from_dict(dict(self.torrent_template, infohash="2"))
+        self.mds.TorrentMetadata.from_dict(dict(self.torrent_template, infohash="1", origin_id=channel2.id_))
+        self.mds.TorrentMetadata.from_dict(dict(self.torrent_template, infohash="2", origin_id=channel2.id_))
 
         self.assertEqual(1, len(channel1.contents_list))
         self.assertEqual(2, len(channel2.contents_list))
@@ -219,10 +219,10 @@ class TestChannelMetadata(TriblerCoreTest):
         """
         self.mds.ChannelNode._my_key = default_eccrypto.generate_key('low')
         channel1 = self.mds.ChannelMetadata(infohash=str(random.getrandbits(160)))
-        self.mds.TorrentMetadata.from_dict(dict(self.torrent_template, infohash="1"))
+        self.mds.TorrentMetadata.from_dict(dict(self.torrent_template, infohash="1", origin_id=channel1.id_))
 
         self.mds.ChannelNode._my_key = default_eccrypto.generate_key('low')
-        channel2 = self.mds.ChannelMetadata(infohash=str(random.getrandbits(160)))
+        channel2 = self.mds.ChannelMetadata(infohash=str(random.getrandbits(160)), id_=ROOT_CHANNEL_ID)
 
         # Trying copying existing torrent to channel
         new_torrent = channel2.copy_to_channel("1")

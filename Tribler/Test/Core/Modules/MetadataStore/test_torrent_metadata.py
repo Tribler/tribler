@@ -15,8 +15,10 @@ from six.moves import xrange
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import TODELETE
+from Tribler.Core.Modules.MetadataStore.serialization import EMPTY_KEY
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Test.Core.base_test import TriblerCoreTest
+from Tribler.pyipv8.ipv8.database import database_blob
 
 
 def rnd_torrent():
@@ -49,6 +51,20 @@ class TestTorrentMetadata(TriblerCoreTest):
         """
         torrent_metadata = self.mds.TorrentMetadata.from_dict({"infohash": str(random.getrandbits(160))})
         self.assertTrue(torrent_metadata.serialized())
+
+    @db_session
+    def test_create_ffa_entry(self):
+        """
+        Test creating a free-for-all torrent entries
+        """
+        torrent_metadata = self.mds.TorrentMetadata.from_dict({
+            "public_key": EMPTY_KEY,
+            "infohash": str(random.getrandbits(160))})
+        self.assertTrue(torrent_metadata.serialized())
+        self.mds.TorrentMetadata.from_dict({
+            "public_key": EMPTY_KEY,
+            "infohash": str(random.getrandbits(160))})
+        self.assertEqual(self.mds.TorrentMetadata.select(lambda g: g.public_key == database_blob(EMPTY_KEY)).count(), 2)
 
     @db_session
     def test_get_magnet(self):

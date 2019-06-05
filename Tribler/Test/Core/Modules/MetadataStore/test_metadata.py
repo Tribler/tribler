@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import os
+from binascii import hexlify
 
 from ipv8.database import database_blob
 from ipv8.keyvault.crypto import default_eccrypto
@@ -10,9 +11,10 @@ from pony.orm import db_session
 
 from twisted.internet.defer import inlineCallbacks
 
-from Tribler.Core.Modules.MetadataStore.serialization import ChannelNodePayload, KeysMismatchException
+from Tribler.Core.Modules.MetadataStore.serialization import ChannelNodePayload, KeysMismatchException, EMPTY_KEY, \
+    EMPTY_SIG
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
-from Tribler.Core.exceptions import InvalidSignatureException
+from Tribler.Core.exceptions import InvalidSignatureException, InvalidChannelNodeException
 from Tribler.Test.Core.base_test import TriblerCoreTest
 
 
@@ -64,20 +66,26 @@ class TestMetadata(TriblerCoreTest):
         # Test bypass signature check
         ChannelNodePayload.from_signed_blob(serialized3, check_signature=False)
 
-
     @db_session
     def test_ffa_serialization(self):
         """
         Test converting free-for-all (unsigned) torrent metadata to payload and back
         """
-        metadata1 = self.mds.ChannelNode.from_dict({ "public_key": "", "signature": "", "skip_key_check": True})
+        metadata1 = self.mds.ChannelNode.from_dict({"public_key": "", "id_": "123"})
         serialized1 = metadata1.serialized()
+        # Make sure sig is really zeroes
+        self.assertTrue(hexlify(serialized1).endswith(hexlify(EMPTY_SIG)))
         metadata1.delete()
         orm.flush()
 
         metadata2 = self.mds.ChannelNode.from_payload(ChannelNodePayload.from_signed_blob(serialized1))
         serialized2 = metadata2.serialized()
         self.assertEqual(serialized1, serialized2)
+
+        self.assertRaises(InvalidChannelNodeException, self.mds.ChannelNode.from_dict, {"public_key": ""})
+        # Check that creating a pair of metadata entries do not trigger uniqueness constraints error
+        self.mds.ChannelNode.from_dict({"public_key": "", "id_": "124"})
+        self.mds.ChannelNode.from_dict({"public_key": "", "id_": "125"})
 
     @db_session
     def test_key_mismatch_exception(self):

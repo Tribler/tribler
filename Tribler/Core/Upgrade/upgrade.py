@@ -71,7 +71,6 @@ class TriblerUpgrader(object):
             self._logger.error("Error in Upgrader callback chain: %s", failure)
         return self._dtp72.do_migration().addCallbacks(finish_migration, log_error)
 
-
     def upgrade_config_to_71(self):
         """
         This method performs actions necessary to upgrade the configuration files to Tribler 7.1.

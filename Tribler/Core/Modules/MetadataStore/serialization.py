@@ -15,8 +15,8 @@ EPOCH = datetime(1970, 1, 1)
 INFOHASH_SIZE = 20  # bytes
 
 SIGNATURE_SIZE = 64
-EMPTY_SIG = '0' * 64
-EMPTY_KEY = '0' * 64
+EMPTY_SIG = b'\x00' * 64
+EMPTY_KEY = b'\x00' * 64
 
 # Metadata types. Should have been an enum, but in Python its unwieldy.
 TYPELESS = 100
@@ -86,21 +86,31 @@ class SignedPayload(Payload):
         super(SignedPayload, self).__init__()
         self.metadata_type = metadata_type
         self.reserved_flags = reserved_flags
-        self.public_key = str(public_key) if public_key else EMPTY_KEY
-        self.signature = str(kwargs["signature"]) if "signature" in kwargs and kwargs["signature"] else EMPTY_SIG
+        self.public_key = str(public_key)
+        self.signature = str(kwargs["signature"]) if "signature" in kwargs and kwargs["signature"] else None
 
-        serialized_data = default_serializer.pack_multiple(self.to_pack_list())[0]
+        # Special case: free-for-all entries are allowed to go with zero key and without sig check
+        if "unsigned" in kwargs and kwargs["unsigned"]:
+            self.public_key = EMPTY_KEY
+            self.signature = EMPTY_SIG
+            return
+
         if "skip_key_check" in kwargs and kwargs["skip_key_check"]:
             return
 
+        # This is integrity check for FFA payloads.
+        if self.public_key == EMPTY_KEY:
+            if self.signature == EMPTY_SIG:
+                return
+            else:
+                raise InvalidSignatureException("Tried to create FFA payload with non-null signature")
+
+        serialized_data = default_serializer.pack_multiple(self.to_pack_list())[0]
         if "key" in kwargs and kwargs["key"]:
             key = kwargs["key"]
             if self.public_key != str(key.pub().key_to_bin()[10:]):
                 raise KeysMismatchException(self.public_key, str(key.pub().key_to_bin()[10:]))
             self.signature = default_eccrypto.create_signature(key, serialized_data)
-        # Special case: free-for-all entries are allowed to go unsigned with zero key and sig
-        elif self.public_key == EMPTY_KEY and self.signature == EMPTY_SIG:
-            return
         elif "signature" in kwargs:
             # This check ensures that an entry with a wrong signature will not proliferate further
             if not default_eccrypto.is_valid_signature(
@@ -126,7 +136,7 @@ class SignedPayload(Payload):
 
     @classmethod
     def from_signed_blob_with_offset(cls, data, check_signature=True, offset=0):
-        # TODO: stop serializing/deserializing the stuff twice
+        # TODO: stop serializing/deserializing stuff twice
         unpack_list, end_offset = default_serializer.unpack_multiple(cls.format_list, data, offset=offset)
         if check_signature:
             signature = data[end_offset:end_offset + SIGNATURE_SIZE]

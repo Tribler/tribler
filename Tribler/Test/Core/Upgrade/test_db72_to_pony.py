@@ -10,7 +10,7 @@ from pony.orm import db_session
 
 from twisted.internet.defer import inlineCallbacks
 
-from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import LEGACY_ENTRY
+from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import LEGACY_ENTRY, COMMITTED
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.Upgrade.db72_to_pony import (
     CONVERSION_FINISHED, CONVERSION_FROM_72, CONVERSION_FROM_72_CHANNELS, CONVERSION_FROM_72_DISCOVERED,
@@ -68,7 +68,7 @@ class TestUpgradeDB72ToPony(TriblerCoreTest):
         check_channel()
 
     @db_session
-    def test_convert_all_channels(self):
+    def test_convert_legacy_channels(self):
         def check_conversion():
             self.m.convert_discovered_torrents()
             self.m.convert_discovered_channels()
@@ -80,7 +80,7 @@ class TestUpgradeDB72ToPony(TriblerCoreTest):
                 self.assertEqual(c.status, LEGACY_ENTRY)
                 self.assertTrue(c.contents_list)
                 for t in c.contents_list:
-                    self.assertEqual(t.status, LEGACY_ENTRY)
+                    self.assertEqual(t.status, COMMITTED)
         check_conversion()
 
         # Now check the case where the previous conversion failed at channels conversion

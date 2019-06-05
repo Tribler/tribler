@@ -3,15 +3,15 @@ from __future__ import absolute_import
 from binascii import hexlify
 from datetime import datetime
 
-from ipv8.database import database_blob
-from ipv8.keyvault.crypto import default_eccrypto
-
 from pony import orm
 from pony.orm.core import DEFAULT
 
-from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_NODE, ChannelNodePayload, DELETED, \
-    DeletedMetadataPayload
-from Tribler.Core.exceptions import InvalidSignatureException
+from Tribler.Core.Modules.MetadataStore.serialization import (
+    CHANNEL_NODE, DELETED, EMPTY_KEY, ChannelNodePayload, DeletedMetadataPayload)
+from Tribler.Core.exceptions import InvalidChannelNodeException, InvalidSignatureException
+
+from ipv8.database import database_blob
+from ipv8.keyvault.crypto import default_eccrypto
 
 # Metadata, torrents and channel statuses
 NEW = 0  # The entry is newly created and is not published yet. It will be committed at the next commit.
@@ -54,7 +54,10 @@ def define_binding(db, logger=None, key=None, clock=None):
         orm.composite_key(public_key, id_)
 
         timestamp = orm.Required(int, size=64, default=0)
-        signature = orm.Required(database_blob, unique=True)
+        # Signature is nullable. This means that "None" entries are stored in DB as NULLs instead of empty strings.
+        # NULLs are not checked for uniqueness and not indexed.
+        # This is necessary to store unsigned signatures without violating the uniqueness constraints.
+        signature = orm.Optional(database_blob, unique=True, nullable=True, default=None)
 
         # Local
         added_on = orm.Optional(datetime, default=datetime.utcnow)
@@ -71,20 +74,35 @@ def define_binding(db, logger=None, key=None, clock=None):
             Initialize a metadata object.
             All this dance is required to ensure that the signature is there and it is correct.
             """
+            skip_key_check = False
+
+            # FIXME: refactor this method by moving different ways to create an entry into separate methods
 
             # Process special keyworded arguments
             # "sign_with" argument given, sign with it
             private_key_override = None
             if "sign_with" in kwargs:
                 kwargs["public_key"] = database_blob(kwargs["sign_with"].pub().key_to_bin()[10:])
-                private_key_override = kwargs["sign_with"]
-                kwargs.pop("sign_with")
+                private_key_override = kwargs.pop("sign_with")
+
+            # Free-for-all entries require special treatment
+            if "public_key" in kwargs and kwargs["public_key"] == "":
+                # We have to give the entry an unique sig to honor the DB constraints. We use the entry's id_
+                # as the sig to keep it unique and short. The uniqueness is guaranteed by DB as it already
+                # imposes uniqueness constraints on the id_+public_key combination.
+                if "id_" in kwargs:
+                    kwargs["signature"] = None
+                    skip_key_check = True
+                else:
+                    # Trying to create an FFA entry without specifying the id_ should be considered an error,
+                    # because assigning id_ automatically by _clock breaks anonymity.
+                    # FFA entries should be "timeless" and anonymous.
+                    raise InvalidChannelNodeException(
+                        ("Attempted to create %s free-for-all (unsigned) object without specifying id_ : " %
+                         str(self.__class__.__name__)))
 
             # For putting legacy/test stuff in
-            skip_key_check = False
-            if "skip_key_check" in kwargs and kwargs["skip_key_check"]:
-                skip_key_check = True
-                kwargs.pop("skip_key_check")
+            skip_key_check = kwargs.pop("skip_key_check", skip_key_check)
 
             if "id_" not in kwargs:
                 kwargs["id_"] = self._clock.tick()
@@ -130,7 +148,7 @@ def define_binding(db, logger=None, key=None, clock=None):
             :param key: private key to sign object with
             :return: (serialized_data, signature) tuple
             """
-            return self._payload_class(key=key, **self.to_dict())._serialized()
+            return self._payload_class(key=key, unsigned=(self.signature==None), **self.to_dict())._serialized()
 
         def serialized(self, key=None):
             """
@@ -193,4 +211,5 @@ def define_binding(db, logger=None, key=None, clock=None):
         @classmethod
         def from_dict(cls, dct):
             return cls(**dct)
+
     return ChannelNode

@@ -321,7 +321,9 @@ def define_binding(db):
 
         @property
         def contents(self):
-            return db.TorrentMetadata.select(lambda g: g.public_key == self.public_key and g != self)
+            return db.TorrentMetadata.select(lambda g: g.public_key == self.public_key and
+                                             g.origin_id == self.id_ and
+                                             g != self)
 
         @property
         def uncommitted_contents(self):
