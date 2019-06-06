@@ -163,6 +163,7 @@ class SpecificChannelEndpoint(BaseChannelsEndpoint):
                 return json.twisted_dumps({"error": "this channel cannot be found"})
 
             channel.subscribed = to_subscribe
+            channel.share = to_subscribe
             if not to_subscribe:
                 channel.local_version = 0
             channel_state = channel.to_simple_dict()["state"]

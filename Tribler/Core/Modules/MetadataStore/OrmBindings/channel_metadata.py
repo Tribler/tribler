@@ -96,6 +96,7 @@ def define_binding(db):
 
         # Local
         subscribed = orm.Optional(bool, default=False)
+        share = orm.Optional(bool, default=False)
         votes = orm.Optional(float, default=0.0)
         individual_votes = orm.Set("ChannelVote", reverse="channel")
         local_version = orm.Optional(int, size=64, default=0)
@@ -148,7 +149,9 @@ def define_binding(db):
                 raise DuplicateChannelIdError()
 
             my_channel = cls(id_=ROOT_CHANNEL_ID, public_key=database_blob(cls._my_key.pub().key_to_bin()[10:]),
-                             title=title, tags=description, subscribed=True, infohash=str(random.getrandbits(160)))
+                             title=title, tags=description, subscribed=True, share=True,
+                             infohash=str(random.getrandbits(160)))
+            # random infohash is necessary to avoid triggering DB uniqueness constraints
             my_channel.sign()
             return my_channel
 
