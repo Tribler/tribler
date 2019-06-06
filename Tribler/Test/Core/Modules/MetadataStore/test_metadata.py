@@ -11,10 +11,10 @@ from pony.orm import db_session
 
 from twisted.internet.defer import inlineCallbacks
 
-from Tribler.Core.Modules.MetadataStore.serialization import ChannelNodePayload, KeysMismatchException, EMPTY_KEY, \
-    EMPTY_SIG
+from Tribler.Core.Modules.MetadataStore.serialization import (
+    CHANNEL_NODE, ChannelNodePayload, KeysMismatchException, NULL_KEY, NULL_SIG)
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
-from Tribler.Core.exceptions import InvalidSignatureException, InvalidChannelNodeException
+from Tribler.Core.exceptions import InvalidChannelNodeException, InvalidSignatureException
 from Tribler.Test.Core.base_test import TriblerCoreTest
 
 
@@ -74,7 +74,7 @@ class TestMetadata(TriblerCoreTest):
         metadata1 = self.mds.ChannelNode.from_dict({"public_key": "", "id_": "123"})
         serialized1 = metadata1.serialized()
         # Make sure sig is really zeroes
-        self.assertTrue(hexlify(serialized1).endswith(hexlify(EMPTY_SIG)))
+        self.assertTrue(hexlify(serialized1).endswith(hexlify(NULL_SIG)))
         metadata1.delete()
         orm.flush()
 
@@ -82,7 +82,11 @@ class TestMetadata(TriblerCoreTest):
         serialized2 = metadata2.serialized()
         self.assertEqual(serialized1, serialized2)
 
+        # Check that it is impossible to create FFA node without specifying id_
         self.assertRaises(InvalidChannelNodeException, self.mds.ChannelNode.from_dict, {"public_key": ""})
+        # Check that it is impossible to create FFA payload with non-null signature
+        self.assertRaises(InvalidSignatureException, ChannelNodePayload, CHANNEL_NODE, 0, NULL_KEY, 0, 0, 0,
+                          signature="123")
         # Check that creating a pair of metadata entries do not trigger uniqueness constraints error
         self.mds.ChannelNode.from_dict({"public_key": "", "id_": "124"})
         self.mds.ChannelNode.from_dict({"public_key": "", "id_": "125"})

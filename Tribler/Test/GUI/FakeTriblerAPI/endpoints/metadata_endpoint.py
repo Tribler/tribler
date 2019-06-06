@@ -51,7 +51,7 @@ class ChannelsEndpoint(BaseChannelsEndpoint):
         if path == "popular":
             return ChannelsPopularEndpoint()
 
-        return SpecificChannelEndpoint(path)
+        return ChannelPublicKeyEndpoint(path)
 
     @staticmethod
     def sanitize_parameters(parameters):
@@ -88,13 +88,24 @@ class ChannelsEndpoint(BaseChannelsEndpoint):
         })
 
 
+class ChannelPublicKeyEndpoint(BaseChannelsEndpoint):
+
+    def getChild(self, path, request):
+        return SpecificChannelEndpoint(self.channel_pk, path)
+
+    def __init__(self, path):
+        BaseChannelsEndpoint.__init__(self)
+        self.channel_pk = unhexlify(path)
+
+
 class SpecificChannelEndpoint(resource.Resource):
 
-    def __init__(self, channel_pk):
+    def __init__(self, channel_pk, path):
         resource.Resource.__init__(self)
-        self.channel_pk = unhexlify(channel_pk)
+        self.channel_pk = channel_pk
+        self.channel_id = int(path)
 
-        self.putChild("torrents", SpecificChannelTorrentsEndpoint(self.channel_pk))
+        self.putChild(b"torrents", SpecificChannelTorrentsEndpoint(self.channel_pk, self.channel_id))
 
     def render_POST(self, request):
         parameters = http.parse_qs(request.content.read(), 1)
@@ -120,9 +131,10 @@ class SpecificChannelEndpoint(resource.Resource):
 
 class SpecificChannelTorrentsEndpoint(BaseChannelsEndpoint):
 
-    def __init__(self, channel_pk):
+    def __init__(self, channel_pk, channel_id):
         BaseChannelsEndpoint.__init__(self)
         self.channel_pk = channel_pk
+        self.channel_id = channel_id
 
     @staticmethod
     def sanitize_parameters(parameters):

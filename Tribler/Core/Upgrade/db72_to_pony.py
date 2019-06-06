@@ -5,7 +5,8 @@ import datetime
 import logging
 import os
 import sqlite3
-from struct import pack
+
+from ipv8.database import database_blob
 
 from pony import orm
 from pony.orm import CacheIndexError, TransactionIntegrityError, db_session
@@ -18,11 +19,9 @@ from twisted.internet.task import deferLater
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import COMMITTED, LEGACY_ENTRY, NEW
 from Tribler.Core.Modules.MetadataStore.OrmBindings.torrent_metadata import infohash_to_id
-from Tribler.Core.Modules.MetadataStore.serialization import EMPTY_KEY, REGULAR_TORRENT
+from Tribler.Core.Modules.MetadataStore.serialization import NULL_KEY, REGULAR_TORRENT
 from Tribler.Core.Modules.MetadataStore.store import BETA_DB_VERSIONS, CURRENT_DB_VERSION
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
-
-from ipv8.database import database_blob
 
 BATCH_SIZE = 10000
 
@@ -60,8 +59,8 @@ class DispersyToPonyMigration(object):
                   " (SELECT ti.tracker FROM TorrentTrackerMapping ttm, TrackerInfo ti WHERE " \
                   "ttm.torrent_id == t.torrent_id AND ttm.tracker_id == ti.tracker_id AND ti.tracker != 'DHT' " \
                   "AND ti.tracker != 'http://retracker.local/announce' ORDER BY ti.is_alive ASC, ti.failures DESC, " \
-                  "ti.last_check ASC), chs.dispersy_cid, ct.name, t.infohash, t.length, t.creation_date, t.torrent_id, " \
-                  "t.category, t.num_seeders, t.num_leechers, t.last_tracker_check " \
+                  "ti.last_check ASC), chs.dispersy_cid, ct.name, t.infohash, t.length, t.creation_date, " \
+                  "t.torrent_id, t.category, t.num_seeders, t.num_leechers, t.last_tracker_check " \
                   "FROM _ChannelTorrents ct, Torrent t, Channels chs WHERE ct.name NOT NULL and t.length > 0 AND " \
                   "t.category NOT NULL AND ct.deleted_at IS NULL AND t.torrent_id == ct.torrent_id AND " \
                   "t.infohash NOT NULL AND ct.channel_id == chs.id"
@@ -92,14 +91,15 @@ class DispersyToPonyMigration(object):
         cursor = connection.cursor()
 
         channels = []
-        for id_, name, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam in cursor.execute( self.select_channels_sql):
+        for id_, name, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam in cursor.execute(
+                self.select_channels_sql):
             if nr_torrents and nr_torrents > 0:
                 channels.append({"id_": infohash_to_id(dispersy_cid),
                                  # converting this to str is a workaround for python 2.7 'writable buffers not hashable'
                                  # problem with Pony
                                  "infohash": str(dispersy_cid),
                                  "title": name or '',
-                                 "public_key": EMPTY_KEY,
+                                 "public_key": NULL_KEY,
                                  "timestamp": final_timestamp(),
                                  "origin_id": 0,
                                  "size": 0,
@@ -206,7 +206,7 @@ class DispersyToPonyMigration(object):
                     torrent_dict.update({
                         "origin_id": infohash_to_id(channel_id),
                         "status": COMMITTED,
-                        "public_key": EMPTY_KEY})
+                        "public_key": NULL_KEY})
                 health_dict = {
                     "seeders": int(num_seeders or 0),
                     "leechers": int(num_leechers or 0),

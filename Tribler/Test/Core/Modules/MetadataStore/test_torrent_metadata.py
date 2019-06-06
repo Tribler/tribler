@@ -15,7 +15,7 @@ from six.moves import xrange
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import TODELETE
-from Tribler.Core.Modules.MetadataStore.serialization import EMPTY_KEY
+from Tribler.Core.Modules.MetadataStore.serialization import NULL_KEY
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Test.Core.base_test import TriblerCoreTest
 from Tribler.pyipv8.ipv8.database import database_blob
@@ -58,13 +58,13 @@ class TestTorrentMetadata(TriblerCoreTest):
         Test creating a free-for-all torrent entries
         """
         torrent_metadata = self.mds.TorrentMetadata.from_dict({
-            "public_key": EMPTY_KEY,
+            "public_key": NULL_KEY,
             "infohash": str(random.getrandbits(160))})
         self.assertTrue(torrent_metadata.serialized())
         self.mds.TorrentMetadata.from_dict({
-            "public_key": EMPTY_KEY,
+            "public_key": NULL_KEY,
             "infohash": str(random.getrandbits(160))})
-        self.assertEqual(self.mds.TorrentMetadata.select(lambda g: g.public_key == database_blob(EMPTY_KEY)).count(), 2)
+        self.assertEqual(self.mds.TorrentMetadata.select(lambda g: g.public_key == database_blob(NULL_KEY)).count(), 2)
 
     @db_session
     def test_get_magnet(self):
@@ -253,7 +253,8 @@ class TestTorrentMetadata(TriblerCoreTest):
 
         # Test fetching torrents in a channel
         channel_pk = self.mds.ChannelNode._my_key.pub().key_to_bin()[10:]
-        torrents, count = self.mds.TorrentMetadata.get_entries(first=1, last=10, sort_by='title', channel_pk=channel_pk)
+        torrents, count = self.mds.TorrentMetadata.get_entries(first=1, last=10, sort_by='title',
+                                                               channel_pk=channel_pk, origin_id=0)
         self.assertEqual(5, len(torrents))
         self.assertEqual(5, count)
 

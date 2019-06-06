@@ -10,7 +10,7 @@ from pony.orm import db_session
 
 from twisted.internet.defer import inlineCallbacks
 
-from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import LEGACY_ENTRY, COMMITTED
+from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import COMMITTED, LEGACY_ENTRY
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.Upgrade.db72_to_pony import (
     CONVERSION_FINISHED, CONVERSION_FROM_72, CONVERSION_FROM_72_CHANNELS, CONVERSION_FROM_72_DISCOVERED,

@@ -15,8 +15,8 @@ EPOCH = datetime(1970, 1, 1)
 INFOHASH_SIZE = 20  # bytes
 
 SIGNATURE_SIZE = 64
-EMPTY_SIG = b'\x00' * 64
-EMPTY_KEY = b'\x00' * 64
+NULL_SIG = b'\x00' * 64
+NULL_KEY = b'\x00' * 64
 
 # Metadata types. Should have been an enum, but in Python its unwieldy.
 TYPELESS = 100
@@ -91,16 +91,16 @@ class SignedPayload(Payload):
 
         # Special case: free-for-all entries are allowed to go with zero key and without sig check
         if "unsigned" in kwargs and kwargs["unsigned"]:
-            self.public_key = EMPTY_KEY
-            self.signature = EMPTY_SIG
+            self.public_key = NULL_KEY
+            self.signature = NULL_SIG
             return
 
         if "skip_key_check" in kwargs and kwargs["skip_key_check"]:
             return
 
         # This is integrity check for FFA payloads.
-        if self.public_key == EMPTY_KEY:
-            if self.signature == EMPTY_SIG:
+        if self.public_key == NULL_KEY:
+            if self.signature == NULL_SIG:
                 return
             else:
                 raise InvalidSignatureException("Tried to create FFA payload with non-null signature")

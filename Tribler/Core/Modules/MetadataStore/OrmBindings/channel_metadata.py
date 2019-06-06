@@ -485,7 +485,7 @@ def define_binding(db):
             """
             epoch = datetime.utcfromtimestamp(0)
             return {
-                "id": self.rowid,
+                "id": self.id_,
                 "public_key": hexlify(self.public_key),
                 "name": self.title,
                 "torrents": self.num_entries,

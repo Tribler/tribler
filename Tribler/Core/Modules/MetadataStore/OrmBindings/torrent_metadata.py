@@ -11,7 +11,7 @@ from pony.orm import db_session, desc, raw_sql, select
 
 from Tribler.Core.Category.FamilyFilter import default_xxx_filter
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import LEGACY_ENTRY, NEW, TODELETE, UPDATED
-from Tribler.Core.Modules.MetadataStore.serialization import REGULAR_TORRENT, TorrentMetadataPayload, EMPTY_KEY
+from Tribler.Core.Modules.MetadataStore.serialization import NULL_KEY, REGULAR_TORRENT, TorrentMetadataPayload
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
 from Tribler.Core.Utilities.utilities import is_channel_public_key, is_hex_string, is_infohash
 
@@ -43,7 +43,7 @@ def define_binding(db):
 
         def __init__(self, *args, **kwargs):
             # Free-for-all entries require special treatment
-            if "public_key" in kwargs and kwargs["public_key"] == EMPTY_KEY:
+            if "public_key" in kwargs and kwargs["public_key"] == NULL_KEY:
                 # To produce a relatively unique id_ we take a few bytes of the infohash and convert it to a number.
                 # abs is necessary as the conversion can produce a negative value, and we do not support that.
                 kwargs["id_"] = kwargs["id_"] if "id_" in kwargs else infohash_to_id(kwargs["infohash"])
@@ -159,8 +159,8 @@ def define_binding(db):
 
         @classmethod
         @db_session
-        def get_entries(cls, first=None, last=None, metadata_type=REGULAR_TORRENT, channel_pk=False,
-                        exclude_deleted=False, hide_xxx=False, exclude_legacy=False, **kwargs):
+        def get_entries(cls, first=None, last=None, metadata_type=REGULAR_TORRENT, channel_pk=None,
+                        exclude_deleted=False, hide_xxx=False, exclude_legacy=False, origin_id=None, **kwargs):
             """
             Get some torrents. Optionally sort the results by a specific field, or filter the channels based
             on a keyword/whether you are subscribed to it.
@@ -181,9 +181,13 @@ def define_binding(db):
             if exclude_legacy:
                 pony_query = pony_query.where(lambda g: g.status != LEGACY_ENTRY)
 
-            # Filter on channel
+            # Filter on channel public key
             if channel_pk:
                 pony_query = pony_query.where(public_key=channel_pk)
+
+            # Filter on parent channel id
+            if origin_id is not None:
+                pony_query = pony_query.where(origin_id=origin_id)
 
             count = pony_query.count()
 

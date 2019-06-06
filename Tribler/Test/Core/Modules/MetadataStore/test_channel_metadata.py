@@ -86,7 +86,7 @@ class TestChannelMetadata(TriblerCoreTest):
         """
         self.mds.ChannelNode._my_key = default_eccrypto.generate_key('low')
         channel1 = self.mds.ChannelMetadata(infohash=str(random.getrandbits(160)))
-        a = self.mds.TorrentMetadata.from_dict(dict(self.torrent_template, origin_id=channel1.id_))
+        self.mds.TorrentMetadata.from_dict(dict(self.torrent_template, origin_id=channel1.id_))
 
         self.mds.ChannelNode._my_key = default_eccrypto.generate_key('low')
         channel2 = self.mds.ChannelMetadata(infohash=str(random.getrandbits(160)))

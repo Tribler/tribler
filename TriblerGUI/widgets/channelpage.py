@@ -55,6 +55,7 @@ class ChannelPage(QWidget):
     def initialize_with_channel(self, channel_info):
         self.channel_info = channel_info
         self.model.channel_pk = channel_info['public_key']
+        self.model.channel_id = channel_info['id']
 
         self.window().channel_preview_label.setHidden(channel_info['state'] in ('Complete', 'Legacy'))
         self.window().channel_back_button.setIcon(QIcon(get_image_path('page_back.png')))
