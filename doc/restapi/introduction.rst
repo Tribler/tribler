@@ -81,7 +81,6 @@ Endpoints
    downloads
    events
    libtorrent
-   market
    metadata
    mychannel
    search
@@ -93,4 +92,3 @@ Endpoints
    trustchain
    trustview
    upgrader
-   wallets

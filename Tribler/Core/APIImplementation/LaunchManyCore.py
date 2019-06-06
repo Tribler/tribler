@@ -15,6 +15,9 @@ from glob import iglob
 from threading import Event, enumerate as enumerate_threads
 from traceback import print_exc
 
+from anydex.wallet.dummy_wallet import DummyWallet1, DummyWallet2
+from anydex.wallet.tc_wallet import TrustchainWallet
+
 from ipv8.dht.provider import DHTCommunityProvider
 from ipv8.messaging.anonymization.community import TunnelSettings
 from ipv8.peer import Peer
@@ -38,8 +41,6 @@ from Tribler.Core.Modules.payout_manager import PayoutManager
 from Tribler.Core.Modules.resource_monitor import ResourceMonitor
 from Tribler.Core.Modules.tracker_manager import TrackerManager
 from Tribler.Core.Modules.versioncheck_manager import VersionCheckManager
-from Tribler.Core.Modules.wallet.dummy_wallet import DummyWallet1, DummyWallet2
-from Tribler.Core.Modules.wallet.tc_wallet import TrustchainWallet
 from Tribler.Core.Modules.watch_folder import WatchFolder
 from Tribler.Core.TorrentChecker.torrent_checker import TorrentChecker
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
@@ -214,11 +215,10 @@ class TriblerLaunchMany(TaskManager):
 
         # Market Community
         if self.session.config.get_market_community_enabled() and self.session.config.get_dht_enabled():
-            from Tribler.community.market.community import MarketCommunity, MarketTestnetCommunity
+            from anydex.core.community import MarketCommunity, MarketTestnetCommunity
 
             community_cls = MarketTestnetCommunity if self.session.config.get_testnet() else MarketCommunity
             self.market_community = community_cls(peer, self.ipv8.endpoint, self.ipv8.network,
-                                                  tribler_session=self.session,
                                                   trustchain=self.trustchain_community,
                                                   dht=self.dht_community,
                                                   wallets=self.wallets,
@@ -263,7 +263,7 @@ class TriblerLaunchMany(TaskManager):
         # Wallets
         if self.session.config.get_bitcoinlib_enabled():
             try:
-                from Tribler.Core.Modules.wallet.btc_wallet import BitcoinWallet, BitcoinTestnetWallet
+                from anydex.wallet.btc_wallet import BitcoinWallet, BitcoinTestnetWallet
                 wallet_path = os.path.join(self.session.config.get_state_dir(), 'wallet')
                 btc_wallet = BitcoinWallet(wallet_path)
                 btc_testnet_wallet = BitcoinTestnetWallet(wallet_path)

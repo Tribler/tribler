@@ -3,6 +3,8 @@ from __future__ import absolute_import
 from os.path import join
 from tempfile import mkdtemp
 
+from anydex.wallet.tc_wallet import TrustchainWallet
+
 from ipv8.attestation.trustchain.community import TrustChainCommunity
 from ipv8.messaging.anonymization.tunnel import CIRCUIT_TYPE_RP_DOWNLOADER, PEER_FLAG_EXIT_ANY
 from ipv8.peer import Peer
@@ -13,7 +15,6 @@ from ipv8.test.mocking.ipv8 import MockIPv8
 
 from twisted.internet.defer import Deferred, inlineCallbacks
 
-from Tribler.Core.Modules.wallet.tc_wallet import TrustchainWallet
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.community.triblertunnel.community import TriblerTunnelCommunity
 

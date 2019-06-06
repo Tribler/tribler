@@ -1,3 +1,6 @@
 [submodule "py-ipv8"]
 	path = Tribler/pyipv8
 	url = https://github.com/Tribler/py-ipv8.git
+[submodule "Tribler/anydex"]
+	path = Tribler/anydex
+	url = https://github.com/Tribler/anydex-core.git
