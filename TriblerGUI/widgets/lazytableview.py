@@ -203,7 +203,7 @@ class SearchResultsTableView(ItemClickedMixin, DownloadButtonMixin, PlayButtonMi
         self.setColumnWidth(0, 20)
         self.setColumnWidth(1, 100)
         self.setColumnWidth(2, 100)
-        self.setColumnWidth(3, self.width() - 500)  # Few pixels offset so the horizontal scrollbar does not appear
+        self.setColumnWidth(3, self.width() - 600)  # Few pixels offset so the horizontal scrollbar does not appear
         self.setColumnWidth(4, 100)
         self.setColumnWidth(5, 100)
         self.setColumnWidth(6, 100)

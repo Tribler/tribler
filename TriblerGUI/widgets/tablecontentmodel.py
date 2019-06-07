@@ -4,7 +4,7 @@ from abc import abstractmethod
 
 from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt, pyqtSignal
 
-from TriblerGUI.defs import ACTION_BUTTONS
+from TriblerGUI.defs import ACTION_BUTTONS, BITTORRENT_BIRTHDAY
 from TriblerGUI.utilities import format_size, format_votes, pretty_date
 
 
@@ -190,7 +190,7 @@ class SearchResultsContentModel(StateTooltipMixin, VotesAlignmentMixin, TriblerC
     column_display_filters = {
         u'size': lambda data: (format_size(float(data)) if data != '' else ''),
         u'votes': format_votes,
-        u'updated': lambda timestamp: pretty_date(timestamp) if timestamp > 0 else 'N/A'
+        u'updated': lambda timestamp: pretty_date(timestamp) if timestamp > BITTORRENT_BIRTHDAY else 'N/A'
     }
 
     def __init__(self, **kwargs):
@@ -239,7 +239,7 @@ class TorrentsContentModel(TriblerContentModel):
 
     column_display_filters = {
         u'size': lambda data: format_size(float(data)),
-        u'updated': lambda timestamp: pretty_date(timestamp) if timestamp > 0 else 'N/A'
+        u'updated': lambda timestamp: pretty_date(timestamp) if timestamp > BITTORRENT_BIRTHDAY else 'N/A'
     }
 
     def __init__(self, channel_pk=None, channel_id=None, **kwargs):
