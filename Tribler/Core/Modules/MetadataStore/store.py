@@ -171,7 +171,7 @@ class MetadataStore(object):
             default_vsids = self.Vsids.get(rowid=0)
             if not default_vsids:
                 default_vsids = self.Vsids.create_default_vsids()
-            self.ChannelMetadata.votes_scaling = default_vsids.bump_amount
+            self.ChannelMetadata.votes_scaling = default_vsids.max_val
             # Decay only happens while Tribler is running
             default_vsids.last_bump = datetime.utcnow()
 
