@@ -31,8 +31,8 @@ class SearchResultsPage(QWidget):
         self.window().search_details_container.details_tab_widget.initialize_details_widget()
         self.window().core_manager.events_manager.node_info_updated.connect(self.model.update_node_info)
 
-        self.set_columns_visibility([u'health'], True)
-        self.set_columns_visibility([u'torrents', u'updated'], False)
+        self.set_columns_visibility([u'health', u'updated'], True)
+        self.set_columns_visibility([u'torrents'], False)
 
     def perform_search(self, query):
         self.query = query
@@ -56,15 +56,15 @@ class SearchResultsPage(QWidget):
         if self.window().search_results_tab.get_selected_index() == 0:
             self.model.type_filter = ''
             self.set_columns_visibility([u'votes', u'category', u'health'], True)
-            self.set_columns_visibility([u'torrents', u'updated'], False)
+            self.set_columns_visibility([u'torrents'], False)
         elif self.window().search_results_tab.get_selected_index() == 1:
             self.model.type_filter = 'channel'
-            self.set_columns_visibility([u'votes', u'torrents', u'updated'], True)
+            self.set_columns_visibility([u'votes', u'torrents'], True)
             self.set_columns_visibility([u'size', u'category', u'health'], False)
         elif self.window().search_results_tab.get_selected_index() == 2:
             self.model.type_filter = 'torrent'
-            self.set_columns_visibility([u'votes', u'torrents', u'updated'], False)
-            self.set_columns_visibility([u'size', u'category', u'health'], True)
+            self.set_columns_visibility([u'votes', u'torrents'], False)
+            self.set_columns_visibility([u'size', u'category', u'health', u'updated'], True)
 
         self.perform_search(self.query)
 
