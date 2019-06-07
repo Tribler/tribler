@@ -15,11 +15,9 @@ from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
 
 import Tribler.Core.Utilities.json_util as json
-from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import BLOB_EXTENSION
-from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, \
-    REGULAR_TORRENT, read_payload
+from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.utilities import fix_torrent, http_get, parse_magnetlink, unichar_string
-from Tribler.Core.exceptions import HttpError, InvalidSignatureException
+from Tribler.Core.exceptions import HttpError
 from Tribler.util import cast_to_unicode_utf8
 
 
@@ -51,7 +49,7 @@ class TorrentInfoEndpoint(resource.Resource):
 
                 .. sourcecode:: none
 
-                    curl -X PUT http://localhost:8085/torrentinfo?torrent=file:/home/me/test.torrent
+                    curl -X GET http://localhost:8085/torrentinfo?torrent=file:/home/me/test.torrent
 
             **Example response**:
 
@@ -68,7 +66,11 @@ class TorrentInfoEndpoint(resource.Resource):
                 self.finish_request(request)
                 return
 
+            # Add the torrent to GigaChannel as a free-for-all entry, so others can search it
+            self.session.lm.mds.TorrentMetadata.add_ffa_from_tdef(TorrentDef.load_from_dict(metainfo))
+
             # TODO(Martijn): store the stuff in a database!!!
+            # TODO(Vadim): this means cache the downloaded torrent in a binary storage, like LevelDB
             infohash = hashlib.sha1(bencode(metainfo['info'])).digest()
 
             # Check if the torrent is already in the downloads
@@ -101,26 +103,9 @@ class TorrentInfoEndpoint(resource.Resource):
                     return
             metainfo_deferred.callback(bdecode(response))
 
-        def on_mdblob(filename):
-            try:
-                with open(filename, 'rb') as f:
-                    serialized_data = f.read()
-                payload = read_payload(serialized_data)
-                if payload.metadata_type not in [REGULAR_TORRENT, CHANNEL_TORRENT]:
-                    request.setResponseCode(http.INTERNAL_SERVER_ERROR)
-                    return json.twisted_dumps({"error": "Non-torrent metadata type"})
-                magnet = payload.get_magnet()
-            except InvalidSignatureException:
-                request.setResponseCode(http.INTERNAL_SERVER_ERROR)
-                return json.twisted_dumps({"error": "metadata has incorrect signature"})
-            else:
-                return on_magnet(magnet)
-
         def on_file():
             try:
                 filename = url2pathname(uri[5:].encode('utf-8') if isinstance(uri, text_type) else uri[5:])
-                if filename.endswith(BLOB_EXTENSION):
-                    return on_mdblob(filename)
                 metainfo_deferred.callback(bdecode(fix_torrent(filename)))
                 return NOT_DONE_YET
             except TypeError:

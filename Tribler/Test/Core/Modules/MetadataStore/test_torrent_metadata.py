@@ -17,7 +17,9 @@ from twisted.internet.defer import inlineCallbacks
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import TODELETE
 from Tribler.Core.Modules.MetadataStore.serialization import NULL_KEY
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
+from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Test.Core.base_test import TriblerCoreTest
+from Tribler.Test.common import TORRENT_UBUNTU_FILE
 from Tribler.pyipv8.ipv8.database import database_blob
 
 
@@ -53,18 +55,14 @@ class TestTorrentMetadata(TriblerCoreTest):
         self.assertTrue(torrent_metadata.serialized())
 
     @db_session
-    def test_create_ffa_entry(self):
+    def test_create_ffa_from_tdef(self):
         """
         Test creating a free-for-all torrent entries
         """
-        torrent_metadata = self.mds.TorrentMetadata.from_dict({
-            "public_key": NULL_KEY,
-            "infohash": str(random.getrandbits(160))})
-        self.assertTrue(torrent_metadata.serialized())
-        self.mds.TorrentMetadata.from_dict({
-            "public_key": NULL_KEY,
-            "infohash": str(random.getrandbits(160))})
-        self.assertEqual(self.mds.TorrentMetadata.select(lambda g: g.public_key == database_blob(NULL_KEY)).count(), 2)
+        tdef = TorrentDef.load(TORRENT_UBUNTU_FILE)
+        self.mds.TorrentMetadata.add_ffa_from_tdef(tdef)
+        self.assertEqual(self.mds.TorrentMetadata.select(lambda g: g.public_key == database_blob("")).count(), 1)
+
 
     @db_session
     def test_get_magnet(self):
