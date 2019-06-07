@@ -168,10 +168,12 @@ class MetadataStore(object):
         self.clock.init_clock()
 
         with db_session:
-            if not self.Vsids.get(rowid=0):
-                self.Vsids.create_default_vsids()
-            # Decay only happens when Tribler is running
-            self.Vsids[0].last_bump = datetime.utcnow()
+            default_vsids = self.Vsids.get(rowid=0)
+            if not default_vsids:
+                default_vsids = self.Vsids.create_default_vsids()
+            self.ChannelMetadata.votes_scaling = default_vsids.bump_amount
+            # Decay only happens while Tribler is running
+            default_vsids.last_bump = datetime.utcnow()
 
     @db_session
     def upsert_vote(self, channel, peer_pk):

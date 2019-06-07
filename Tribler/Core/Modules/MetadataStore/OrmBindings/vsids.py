@@ -49,7 +49,7 @@ def define_binding(db):
             self.max_val /= norm
             self.total_activity /= norm
             self.bump_amount /= norm
-            db.ChannelMetadata.votes_scaling = self.bump_amount
+            db.ChannelMetadata.votes_scaling = self.max_val
 
         # Normalization routine should normally be called only in case the values in the DB do not look normal
         @db_session
@@ -62,27 +62,28 @@ def define_binding(db):
             if self.total_activity > 0.0:
                 self.rescale(self.total_activity/channel_count)
                 self.bump_amount = 1.0
-            db.ChannelMetadata.votes_scaling = self.bump_amount
 
         @db_session
         def bump_channel(self, channel, vote):
-            # Substract the last vote by the same peer from the total vote amount for this channel.
+            # Subtract the last vote by the same peer from the total vote amount for this channel.
             # This effectively puts a cap of 1.0 vote from a peer on a channel
             channel.votes -= vote.last_amount
             self.total_activity -= vote.last_amount
 
             vote.last_amount = self.bump_amount
             channel.votes += self.bump_amount
+            self.total_activity += self.bump_amount
+
             if channel.votes > self.max_val:
                 self.max_val = channel.votes
+            db.ChannelMetadata.votes_scaling = self.max_val
 
-            self.total_activity += self.bump_amount
-            self.bump_amount *= math.exp((datetime.utcnow() - self.last_bump).total_seconds() / self.exp_period)
-            self.last_bump = datetime.utcnow()
+            bump_moment = datetime.utcnow()
+            self.bump_amount *= math.exp((bump_moment - self.last_bump).total_seconds() / self.exp_period)
+            self.last_bump = bump_moment
+
             if self.bump_amount > self.rescale_threshold:
                 self.rescale(self.bump_amount)
-
-            db.ChannelMetadata.votes_scaling = self.max_val
 
         @classmethod
         @db_session
