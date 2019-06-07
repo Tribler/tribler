@@ -157,3 +157,5 @@ TRUST_GRAPH_PEER_LEGENDS = u"( <span style='color:%s'>\u2B24 Good </span> " \
                            % (COLOR_GREEN, COLOR_RED, COLOR_NEUTRAL, COLOR_SELECTED)
 
 CONTEXT_MENU_WIDTH = 200
+
+BITTORRENT_BIRTHDAY = 994032000

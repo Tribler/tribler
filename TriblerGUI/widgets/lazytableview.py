@@ -203,7 +203,7 @@ class SearchResultsTableView(ItemClickedMixin, DownloadButtonMixin, PlayButtonMi
         self.setColumnWidth(0, 20)
         self.setColumnWidth(1, 100)
         self.setColumnWidth(2, 100)
-        self.setColumnWidth(3, self.width() - 500)  # Few pixels offset so the horizontal scrollbar does not appear
+        self.setColumnWidth(3, self.width() - 600)  # Few pixels offset so the horizontal scrollbar does not appear
         self.setColumnWidth(4, 100)
         self.setColumnWidth(5, 100)
         self.setColumnWidth(6, 100)
@@ -240,13 +240,17 @@ class TorrentsTableView(ItemClickedMixin, DeleteButtonMixin, DownloadButtonMixin
             if not self.isColumnHidden(4):
                 self.setColumnWidth(4, 100)
                 fixed_column_widths += 100
+            if not self.isColumnHidden(5):
+                self.setColumnWidth(5, 100)
+                fixed_column_widths += 100
             self.setColumnWidth(1, self.width() - fixed_column_widths)
         else:
             self.setColumnWidth(0, 100)
             self.setColumnWidth(2, 100)
             self.setColumnWidth(3, 100)
             self.setColumnWidth(4, 100)
-            self.setColumnWidth(1, self.width() - 404)  # Few pixels offset so the horizontal scrollbar does not appear
+            self.setColumnWidth(5, 100)
+            self.setColumnWidth(1, self.width() - 504)  # Few pixels offset so the horizontal scrollbar does not appear
 
 
 class ChannelsTableView(ItemClickedMixin, SubscribeButtonMixin,

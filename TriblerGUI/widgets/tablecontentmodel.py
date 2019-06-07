@@ -4,7 +4,7 @@ from abc import abstractmethod
 
 from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt, pyqtSignal
 
-from TriblerGUI.defs import ACTION_BUTTONS
+from TriblerGUI.defs import ACTION_BUTTONS, BITTORRENT_BIRTHDAY
 from TriblerGUI.utilities import format_size, format_votes, pretty_date
 
 
@@ -190,7 +190,7 @@ class SearchResultsContentModel(StateTooltipMixin, VotesAlignmentMixin, TriblerC
     column_display_filters = {
         u'size': lambda data: (format_size(float(data)) if data != '' else ''),
         u'votes': format_votes,
-        u'updated': pretty_date,
+        u'updated': lambda timestamp: pretty_date(timestamp) if timestamp > BITTORRENT_BIRTHDAY else 'N/A'
     }
 
     def __init__(self, **kwargs):
@@ -226,18 +226,20 @@ class ChannelsContentModel(StateTooltipMixin, VotesAlignmentMixin, TriblerConten
 
 
 class TorrentsContentModel(TriblerContentModel):
-    columns = [u'category', u'name', u'size', u'health', ACTION_BUTTONS]
-    column_headers = [u'Category', u'Name', u'Size', u'Health', u'']
+    columns = [u'category', u'name', u'size', u'health', u'updated', ACTION_BUTTONS]
+    column_headers = [u'Category', u'Name', u'Size', u'Health', u'Updated', u'']
     column_flags = {
         u'category': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         u'name': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         u'size': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         u'health': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
+        u'updated': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         ACTION_BUTTONS: Qt.ItemIsEnabled | Qt.ItemIsSelectable
     }
 
     column_display_filters = {
         u'size': lambda data: format_size(float(data)),
+        u'updated': lambda timestamp: pretty_date(timestamp) if timestamp > BITTORRENT_BIRTHDAY else 'N/A'
     }
 
     def __init__(self, channel_pk=None, channel_id=None, **kwargs):
@@ -247,13 +249,14 @@ class TorrentsContentModel(TriblerContentModel):
 
 
 class MyTorrentsContentModel(TorrentsContentModel):
-    columns = [u'category', u'name', u'size', u'status', ACTION_BUTTONS]
-    column_headers = [u'Category', u'Name', u'Size', u'', u'']
+    columns = [u'category', u'name', u'size', u'status', u'updated', ACTION_BUTTONS]
+    column_headers = [u'Category', u'Name', u'Size', u'', u'Updated', u'']
     column_flags = {
         u'category': Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable,
         u'name': Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable,
         u'size': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         u'status': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
+        u'updated': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         ACTION_BUTTONS: Qt.ItemIsEnabled | Qt.ItemIsSelectable
     }
 

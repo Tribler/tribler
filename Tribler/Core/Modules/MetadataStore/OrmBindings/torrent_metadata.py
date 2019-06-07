@@ -222,6 +222,7 @@ def define_binding(db):
             """
             Return a basic dictionary with information about the channel.
             """
+            epoch = datetime.utcfromtimestamp(0)
             simple_dict = {
                 "id": self.rowid,
                 "name": self.title,
@@ -231,6 +232,7 @@ def define_binding(db):
                 "num_seeders": self.health.seeders,
                 "num_leechers": self.health.leechers,
                 "last_tracker_check": self.health.last_check,
+                "updated": int((self.torrent_date - epoch).total_seconds()),
                 "status": self.status
             }
 
