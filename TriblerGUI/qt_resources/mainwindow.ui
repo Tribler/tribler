@@ -1138,7 +1138,7 @@ background-color: #e67300;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>1</number>
+         <number>3</number>
         </property>
         <widget class="HomePage" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -3984,15 +3984,21 @@ color: white;
                 </property>
                 <item>
                  <widget class="QToolButton" name="subscribe_button">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
                   <property name="minimumSize">
                    <size>
-                    <width>28</width>
+                    <width>50</width>
                     <height>28</height>
                    </size>
                   </property>
                   <property name="maximumSize">
                    <size>
-                    <width>28</width>
+                    <width>100</width>
                     <height>28</height>
                    </size>
                   </property>
@@ -4018,6 +4024,9 @@ background-color: transparent;
                     <height>18</height>
                    </size>
                   </property>
+                  <property name="toolButtonStyle">
+                   <enum>Qt::ToolButtonTextOnly</enum>
+                  </property>
                  </widget>
                 </item>
                 <item>
@@ -4035,35 +4044,6 @@ background-color: transparent;
                    </size>
                   </property>
                  </spacer>
-                </item>
-                <item>
-                 <widget class="QLabel" name="num_subs_label">
-                  <property name="sizePolicy">
-                   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                    <horstretch>0</horstretch>
-                    <verstretch>0</verstretch>
-                   </sizepolicy>
-                  </property>
-                  <property name="minimumSize">
-                   <size>
-                    <width>0</width>
-                    <height>24</height>
-                   </size>
-                  </property>
-                  <property name="maximumSize">
-                   <size>
-                    <width>16777215</width>
-                    <height>24</height>
-                   </size>
-                  </property>
-                  <property name="styleSheet">
-                   <string notr="true">color: #B5B5B5;
-background-color: transparent;</string>
-                  </property>
-                  <property name="text">
-                   <string>-</string>
-                  </property>
-                 </widget>
                 </item>
                 <item>
                  <spacer name="horizontalSpacer_70">
@@ -4143,6 +4123,12 @@ background-color: transparent;
           </item>
           <item>
            <widget class="TorrentsListWidget" name="channel_page_container" native="true">
+            <property name="minimumSize">
+             <size>
+              <width>50</width>
+              <height>0</height>
+             </size>
+            </property>
             <property name="styleSheet">
              <string notr="true"/>
             </property>

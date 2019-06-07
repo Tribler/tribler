@@ -10,7 +10,7 @@ from six import text_type
 from TriblerGUI.defs import (
     ACTION_BUTTONS, CATEGORY_LIST, COMMIT_STATUS_COMMITTED, COMMIT_STATUS_NEW, COMMIT_STATUS_TODELETE, HEALTH_CHECKING,
     HEALTH_DEAD, HEALTH_ERROR, HEALTH_GOOD, HEALTH_MOOT, HEALTH_UNCHECKED)
-from TriblerGUI.utilities import get_health, get_image_path
+from TriblerGUI.utilities import format_votes, get_health, get_image_path
 from TriblerGUI.widgets.tableiconbuttons import DeleteIconButton, DownloadIconButton, PlayIconButton
 
 
@@ -169,6 +169,26 @@ class SubscribedControlMixin(object):
         return True
 
 
+class RatingControlMixin(object):
+    def draw_rating_control(self, painter, option, index, data_item):
+        # Draw empty cell as the background
+        self.paint_empty_background(painter, option)
+
+        if u'type' in data_item and data_item[u'type'] != u'channel':
+            return True
+        if data_item[u'status'] == 1000:  # LEGACY ENTRIES!
+            return True
+
+        if index == self.hover_index:
+            self.rating_control.paint_hover(painter, option.rect, index, votes=data_item['votes'],
+                                            subscribed=data_item['subscribed'])
+        else:
+            self.rating_control.paint(painter, option.rect, index, votes=data_item['votes'],
+                                      subscribed=data_item['subscribed'])
+
+        return True
+
+
 class CategoryLabelMixin(object):
     def draw_category_label(self, painter, option, index, data_item):
         # Draw empty cell as the background
@@ -219,13 +239,14 @@ class HealthLabelMixin(object):
         return True
 
 
-class SearchResultsDelegate(TriblerButtonsDelegate, CategoryLabelMixin, SubscribedControlMixin,
+class SearchResultsDelegate(TriblerButtonsDelegate, CategoryLabelMixin, RatingControlMixin,
                             DownloadControlsMixin, HealthLabelMixin, ChannelStateMixin):
 
     def __init__(self, parent=None):
         # TODO: refactor this not to rely on inheritance order, but instead use interface method pattern
         TriblerButtonsDelegate.__init__(self, parent)
         self.subscribe_control = SubscribeToggleControl(u'subscribed')
+        self.rating_control = RatingControl(u'votes')
 
         self.init_animation()
         self.health_status_widget = HealthStatusDisplay()
@@ -233,8 +254,8 @@ class SearchResultsDelegate(TriblerButtonsDelegate, CategoryLabelMixin, Subscrib
         self.play_button = PlayIconButton()
         self.download_button = DownloadIconButton()
         self.ondemand_container = [self.play_button, self.download_button]
-        self.controls = [self.play_button, self.download_button, self.subscribe_control]
-        self.column_drawing_actions = [(u'subscribed', self.draw_subscribed_control),
+        self.controls = [self.play_button, self.download_button, self.rating_control]
+        self.column_drawing_actions = [(u'votes', self.draw_rating_control),
                                        (ACTION_BUTTONS, self.draw_action_column),
                                        (u'category', self.draw_category_label),
                                        (u'health', self.draw_health_column),
@@ -245,15 +266,16 @@ class SearchResultsDelegate(TriblerButtonsDelegate, CategoryLabelMixin, Subscrib
             return self.draw_download_controls(painter, option, index, None)
 
 
-class ChannelsButtonsDelegate(TriblerButtonsDelegate, SubscribedControlMixin, ChannelStateMixin):
+class ChannelsButtonsDelegate(TriblerButtonsDelegate, ChannelStateMixin, RatingControlMixin):
     def __init__(self, parent=None):
         TriblerButtonsDelegate.__init__(self, parent)
         self.init_animation()
 
         self.subscribe_control = SubscribeToggleControl(u'subscribed')
-        self.controls = [self.subscribe_control]
-        self.column_drawing_actions = [(u'subscribed', self.draw_subscribed_control),
-                                       (u'state', self.draw_channel_state)]
+        self.rating_control = RatingControl(u'votes')
+        self.controls = [self.rating_control]
+        self.column_drawing_actions = [(u'state', self.draw_channel_state),
+                                       (u'votes', self.draw_rating_control)]
 
 
 class TorrentsButtonsDelegate(TriblerButtonsDelegate, CategoryLabelMixin, DownloadControlsMixin,
@@ -545,3 +567,60 @@ class HealthStatusDisplay(QObject):
             txt = u'S' + str(seeders) + u' L' + str(leechers)
 
             self.draw_text(painter, text_box, txt)
+
+
+class RatingControl(QObject):
+    """
+    Controls for visualizing the votes and subscription information for channels.
+    """
+
+    rating_colors = {
+        "UNSUBSCRIBED": QColor("#888888"),
+        "UNSUBSCRIBED_HOVER": QColor("#ffffff"),
+        "SUBSCRIBED": QColor("#FE6D01"),
+        "SUBSCRIBED_HOVER": QColor("#FF5722")
+    }
+
+    clicked = pyqtSignal(QModelIndex)
+
+    def __init__(self, column_name, parent=None):
+        QObject.__init__(self, parent=parent)
+        self.column_name = column_name
+        self.last_index = QModelIndex()
+
+    def draw_text(self, painter, rect, text, color=QColor("#B5B5B5"), font=None, alignment=Qt.AlignVCenter):
+        painter.save()
+        text_flags = Qt.AlignLeft | alignment | Qt.TextSingleLine
+        text_box = painter.boundingRect(rect, text_flags, text)
+        painter.setPen(QPen(color, 1, Qt.SolidLine, Qt.RoundCap))
+        if font:
+            painter.setFont(font)
+
+        painter.drawText(text_box, text_flags, text)
+        painter.restore()
+
+    def paint(self, painter, rect, _index, votes=0, subscribed=False):
+        color = self.rating_colors["SUBSCRIBED" if subscribed else "UNSUBSCRIBED"]
+        self.draw_text(painter, rect, format_votes(votes), color=color)
+
+    def paint_hover(self, painter, rect, _index, votes=0, subscribed=False):
+        color = self.rating_colors["SUBSCRIBED_HOVER" if subscribed else "UNSUBSCRIBED_HOVER"]
+        self.draw_text(painter, rect, format_votes(votes), color=color)
+
+    def check_clicked(self, event, _, __, index):
+        if event.type() == QEvent.MouseButtonRelease and \
+                index.model().column_position[self.column_name] == index.column():
+            self.clicked.emit(index)
+            return True
+        return False
+
+    def size_hint(self, _, __):
+        return self.size
+
+    def on_mouse_moved(self, pos, index):
+        if self.last_index != index:
+            # Handle the case when the cursor leaves the table
+            if not index.model() or (index.model().column_position[self.column_name] == index.column()):
+                self.last_index = index
+                return True
+        return False
