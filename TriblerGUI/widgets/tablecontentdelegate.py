@@ -178,8 +178,6 @@ class RatingControlMixin(object):
             return True
         if data_item[u'status'] == 1000:  # LEGACY ENTRIES!
             return True
-        if data_item[u'state'] == u'Personal':
-            return True
 
         if index == self.hover_index:
             self.rating_control.paint_hover(painter, option.rect, index, votes=data_item['votes'],

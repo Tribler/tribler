@@ -58,10 +58,12 @@ class SubscriptionsWidget(QWidget):
 
         # Disable channel control buttons for LEGACY_ENTRY channels
         hide_controls = (self.channel_info["status"] == 1000)
-        self.subscribe_button.setHidden(hide_controls or self.channel_info["state"] == "Personal")
+        self.subscribe_button.setHidden(hide_controls)
         self.credit_mining_button.setHidden(hide_controls)
 
     def on_subscribe_button_click(self):
+        if self.channel_info["state"] == "Personal" or self.channel_info["status"] == 1000:
+            return
         self.request_mgr = TriblerRequestManager()
         self.request_mgr.perform_request("metadata/channels/%s" %
                                          self.channel_info['public_key'],
