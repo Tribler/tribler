@@ -18,6 +18,7 @@ from pony.orm import db_session, raw_sql, select
 from Tribler.Core.Category.Category import default_category_filter
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import (
     COMMITTED, LEGACY_ENTRY, NEW, PUBLIC_KEY_LEN, TODELETE, UPDATED)
+from Tribler.Core.Modules.MetadataStore.OrmBindings.torrent_metadata import tdef_to_metadata_dict
 from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, ChannelMetadataPayload, REGULAR_TORRENT
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
@@ -277,20 +278,9 @@ def define_binding(db):
             :param tdef: The torrent definition file of the torrent to add
             :param extra_info: Optional extra info to add to the torrent
             """
+            new_entry_dict = dict(tdef_to_metadata_dict(tdef), status=NEW)
             if extra_info:
-                tags = extra_info.get('description', '')
-            else:
-                # We only want to determine the type of the data. XXX filtering is done by the receiving side
-                tags = default_category_filter.calculateCategory(tdef.metainfo, tdef.get_name_as_unicode())
-
-            new_entry_dict = {
-                "infohash": tdef.get_infohash(),
-                "title": tdef.get_name_as_unicode()[:300],  # TODO: do proper size checking based on bytes
-                "tags": tags[:200],  # TODO: do proper size checking based on bytes
-                "size": tdef.get_length(),
-                "torrent_date": datetime.fromtimestamp(tdef.get_creation_date()),
-                "tracker_info": get_uniformed_tracker_url(tdef.get_tracker() or '') or '',
-                "status": NEW}
+                new_entry_dict['tags'] = extra_info.get('description', '')
 
             # See if the torrent is already in the channel
             old_torrent = self.get_torrent(tdef.get_infohash())

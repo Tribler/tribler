@@ -399,6 +399,14 @@ class TriblerWindow(QMainWindow):
             return
 
         uri = self.pending_uri_requests.pop()
+
+        # TODO: create a proper confirmation dialog to show results of adding .mdblob files
+        # the case for .mdblob files is handled without torrentinfo endpoint
+        if uri.startswith('file') and uri.endswith('.mdblob'):
+            request_mgr = TriblerRequestManager()
+            request_mgr.perform_request("downloads", lambda _: None, method='PUT', data={"uri": uri})
+            return
+
         if uri.startswith('file') or uri.startswith('magnet'):
             self.start_download_from_uri(uri)
 
@@ -669,7 +677,8 @@ class TriblerWindow(QMainWindow):
                                                  QDir.homePath(),
                                                  "Torrent files (*.torrent)")
         if len(filenames[0]) > 0:
-            [self.pending_uri_requests.append(u"file:%s" % filename) for filename in filenames[0]]
+            for filename in filenames[0]:
+                self.pending_uri_requests.append(u"file:%s" % filename)
             self.process_uri_request()
 
     def on_add_mdblob_browse_file(self):
@@ -686,6 +695,7 @@ class TriblerWindow(QMainWindow):
         self.download_uri = uri
 
         if get_gui_setting(self.gui_settings, "ask_download_settings", True, is_bool=True):
+            # FIXME: instead of using this workaround, make sure the settings are _available_ by this moment
             # If tribler settings is not available, fetch the settings and inform the user to try again.
             if not self.tribler_settings:
                 self.fetch_settings()
@@ -702,6 +712,7 @@ class TriblerWindow(QMainWindow):
             self.dialog.show()
             self.start_download_dialog_active = True
         else:
+            # FIXME: instead of using this workaround, make sure the settings are _available_ by this moment
             # In the unlikely scenario that tribler settings are not available yet, try to fetch settings again and
             # add the download uri back to self.pending_uri_requests to process again.
             if not self.tribler_settings:

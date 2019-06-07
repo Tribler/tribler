@@ -9,8 +9,9 @@ from ipv8.database import database_blob
 from pony import orm
 from pony.orm import db_session, desc, raw_sql, select
 
+from Tribler.Core.Category.Category import default_category_filter
 from Tribler.Core.Category.FamilyFilter import default_xxx_filter
-from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import LEGACY_ENTRY, NEW, TODELETE, UPDATED
+from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import COMMITTED, LEGACY_ENTRY, NEW, TODELETE, UPDATED
 from Tribler.Core.Modules.MetadataStore.serialization import NULL_KEY, REGULAR_TORRENT, TorrentMetadataPayload
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
 from Tribler.Core.Utilities.utilities import is_channel_public_key, is_hex_string, is_infohash
@@ -19,6 +20,22 @@ from Tribler.Core.Utilities.utilities import is_channel_public_key, is_hex_strin
 # This function is used to devise id_ from infohash in deterministic way. Used in FFA channels.
 def infohash_to_id(infohash):
     return abs(unpack(">q", infohash[:8])[0])
+
+
+def tdef_to_metadata_dict(tdef):
+    """
+    Helper function to create a TorrentMetadata-compatible dict from TorrentDef
+    """
+    # We only want to determine the type of the data. XXX filtering is done by the receiving side
+    tags = default_category_filter.calculateCategory(tdef.metainfo, tdef.get_name_as_unicode())
+
+    return {
+        "infohash": tdef.get_infohash(),
+        "title": tdef.get_name_as_unicode()[:300],  # TODO: do proper size checking based on bytes
+        "tags": tags[:200],  # TODO: do proper size checking based on bytes
+        "size": tdef.get_length(),
+        "torrent_date": datetime.fromtimestamp(tdef.get_creation_date()),
+        "tracker_info": get_uniformed_tracker_url(tdef.get_tracker() or '') or ''}
 
 
 def define_binding(db):
@@ -72,6 +89,13 @@ def define_binding(db):
             return ("magnet:?xt=urn:btih:%s&dn=%s" %
                     (hexlify(str(self.infohash)), self.title)) + \
                    ("&tr=%s" % self.tracker_info if self.tracker_info else "")
+
+        @classmethod
+        @db_session
+        def add_ffa_from_tdef(cls, tdef):
+            # Ad this torrent as a free-for-all entry if it is unknown to GigaChannel
+            return cls.from_dict(dict(tdef_to_metadata_dict(tdef), public_key="", status=COMMITTED, id_=0)) if\
+                    not cls.exists(lambda g: g.infohash == database_blob(tdef.get_infohash())) else None
 
         @classmethod
         def search_keyword(cls, query, lim=100):
