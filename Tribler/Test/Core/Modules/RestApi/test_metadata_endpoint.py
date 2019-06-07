@@ -39,7 +39,8 @@ class BaseTestMetadataEndpoint(AbstractApiTest):
             for ind in xrange(10):
                 self.session.lm.mds.ChannelNode._my_key = default_eccrypto.generate_key('curve25519')
                 _ = self.session.lm.mds.ChannelMetadata(title='channel%d' % ind, subscribed=(ind % 2 == 0),
-                                                        num_entries=torrents_per_channel, infohash=random_infohash())
+                                                        num_entries=torrents_per_channel, infohash=random_infohash(),
+                                                        id_=0)
                 for torrent_ind in xrange(torrents_per_channel):
                     rand_infohash = random_infohash()
                     self.infohashes.append(rand_infohash)
@@ -106,7 +107,7 @@ class TestSpecificChannelEndpoint(BaseTestMetadataEndpoint):
         """
         self.should_check_equality = False
         channel_pk = hexlify(self.session.lm.mds.ChannelNode._my_key.pub().key_to_bin()[10:])
-        return self.do_request('metadata/channels/%s' % channel_pk, expected_code=400, request_type='POST')
+        return self.do_request('metadata/channels/%s/0' % channel_pk, expected_code=400, request_type='POST')
 
     def test_subscribe_no_channel(self):
         """
@@ -114,7 +115,7 @@ class TestSpecificChannelEndpoint(BaseTestMetadataEndpoint):
         """
         self.should_check_equality = False
         post_params = {'subscribe': '1'}
-        return self.do_request('metadata/channels/aa', expected_code=404, request_type='POST', post_data=post_params)
+        return self.do_request('metadata/channels/aa/0', expected_code=404, request_type='POST', post_data=post_params)
 
     def test_subscribe(self):
         """
@@ -123,7 +124,7 @@ class TestSpecificChannelEndpoint(BaseTestMetadataEndpoint):
         self.should_check_equality = False
         post_params = {'subscribe': '1'}
         channel_pk = hexlify(self.session.lm.mds.ChannelNode._my_key.pub().key_to_bin()[10:])
-        return self.do_request('metadata/channels/%s' % channel_pk, expected_code=200,
+        return self.do_request('metadata/channels/%s/0' % channel_pk, expected_code=200,
                                request_type='POST', post_data=post_params)
 
     def test_unsubscribe(self):
@@ -151,7 +152,7 @@ class TestSpecificChannelEndpoint(BaseTestMetadataEndpoint):
                     yield async_sleep(0.2)
             self.assertTrue(result)
 
-        return self.do_request('metadata/channels/%s' % channel_pk, expected_code=200,
+        return self.do_request('metadata/channels/%s/0' % channel_pk, expected_code=200,
                                request_type='POST', post_data=post_params).addCallback(on_response)
 
 
@@ -168,7 +169,8 @@ class TestSpecificChannelTorrentsEndpoint(BaseTestMetadataEndpoint):
 
         self.should_check_equality = False
         channel_pk = hexlify(self.session.lm.mds.ChannelNode._my_key.pub().key_to_bin()[10:])
-        return self.do_request('metadata/channels/%s/torrents' % channel_pk, expected_code=200).addCallback(on_response)
+        return self.do_request('metadata/channels/%s/0/torrents' % channel_pk, expected_code=200).addCallback(
+            on_response)
 
 
 class TestPopularChannelsEndpoint(BaseTestMetadataEndpoint):

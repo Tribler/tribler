@@ -12,6 +12,7 @@ from TriblerGUI.utilities import format_size, pretty_date
 def combine_pk_id(pk, id_):
     return "%s:%s" % (pk, id_)
 
+
 class RemoteTableModel(QAbstractTableModel):
     """
     The base model for the tables in the Tribler GUI.
@@ -240,9 +241,10 @@ class TorrentsContentModel(TriblerContentModel):
         u'size': lambda data: format_size(float(data)),
     }
 
-    def __init__(self, channel_pk='', **kwargs):
+    def __init__(self, channel_pk=None, channel_id=None, **kwargs):
         TriblerContentModel.__init__(self, **kwargs)
         self.channel_pk = channel_pk
+        self.channel_id = channel_id
 
 
 class MyTorrentsContentModel(TorrentsContentModel):
@@ -258,8 +260,8 @@ class MyTorrentsContentModel(TorrentsContentModel):
 
     row_edited = pyqtSignal(QModelIndex, str)
 
-    def __init__(self, channel_pk='', **kwargs):
-        TorrentsContentModel.__init__(self, channel_pk=channel_pk, **kwargs)
+    def __init__(self, **kwargs):
+        TorrentsContentModel.__init__(self, **kwargs)
         self.exclude_deleted = False
         self.edit_enabled = True
 

@@ -88,6 +88,7 @@ class SubscribeButtonMixin(TriblerContentTableView):
             return
         status = int(item[u'subscribed'])
         public_key = item[u'public_key']
+        id_ = item[u'id']
 
         def update_item(request_data):
             data_item_dict = index.model().data_items[index.row()]
@@ -96,7 +97,7 @@ class SubscribeButtonMixin(TriblerContentTableView):
                     data_item_dict[key] = request_data[key]
 
         request_mgr = TriblerRequestManager()
-        request_mgr.perform_request("metadata/channels/%s" % public_key, update_item,
+        request_mgr.perform_request("metadata/channels/%s/%i" % (public_key, id_), update_item,
                                     data={"subscribe": int(not status)}, method='POST')
 
 

@@ -15,6 +15,21 @@ import Tribler.Core.Utilities.json_util as json
 from Tribler.util import cast_to_unicode_utf8
 
 
+# This is the top-level endpoint class that serves other endpoints
+class MetadataEndpoint(resource.Resource):
+
+    def __init__(self, session):
+        resource.Resource.__init__(self)
+
+        child_handler_dict = {
+            b"channels": ChannelsEndpoint,
+            b"torrents": TorrentsEndpoint
+        }
+
+        for path, child_cls in child_handler_dict.items():
+            self.putChild(path, child_cls(session))
+
+
 class BaseMetadataEndpoint(resource.Resource):
 
     def __init__(self, session):
@@ -60,20 +75,6 @@ class BaseMetadataEndpoint(resource.Resource):
         return json2pony_columns[sort_param] if sort_param in json2pony_columns else None
 
 
-class MetadataEndpoint(resource.Resource):
-
-    def __init__(self, session):
-        resource.Resource.__init__(self)
-
-        child_handler_dict = {
-            b"channels": ChannelsEndpoint,
-            b"torrents": TorrentsEndpoint
-        }
-
-        for path, child_cls in child_handler_dict.items():
-            self.putChild(path, child_cls(session))
-
-
 class BaseChannelsEndpoint(BaseMetadataEndpoint):
     @staticmethod
     def sanitize_parameters(parameters):
@@ -94,7 +95,7 @@ class ChannelsEndpoint(BaseChannelsEndpoint):
         if path == "popular":
             return ChannelsPopularEndpoint(self.session)
 
-        return SpecificChannelEndpoint(self.session, path)
+        return ChannelPublicKeyEndpoint(self.session, path)
 
     def render_GET(self, request):
         sanitized = ChannelsEndpoint.sanitize_parameters(request.args)
@@ -128,13 +129,24 @@ class ChannelsPopularEndpoint(BaseChannelsEndpoint):
         return json.twisted_dumps({"channels": [channel.to_simple_dict() for channel in popular_channels]})
 
 
+class ChannelPublicKeyEndpoint(BaseChannelsEndpoint):
+
+    def getChild(self, path, request):
+        return SpecificChannelEndpoint(self.session, self.channel_pk, path)
+
+    def __init__(self, session, path):
+        BaseChannelsEndpoint.__init__(self, session)
+        self.channel_pk = unhexlify(path)
+
+
 class SpecificChannelEndpoint(BaseChannelsEndpoint):
 
-    def __init__(self, session, channel_pk):
+    def __init__(self, session, channel_pk, path):
         BaseChannelsEndpoint.__init__(self, session)
-        self.channel_pk = unhexlify(channel_pk)
+        self.channel_pk = channel_pk
+        self.channel_id = int(path)
 
-        self.putChild(b"torrents", SpecificChannelTorrentsEndpoint(session, self.channel_pk))
+        self.putChild(b"torrents", SpecificChannelTorrentsEndpoint(session, self.channel_pk, self.channel_id))
 
     def render_POST(self, request):
         parameters = http.parse_qs(request.content.read(), 1)
@@ -144,18 +156,20 @@ class SpecificChannelEndpoint(BaseChannelsEndpoint):
 
         to_subscribe = bool(int(parameters['subscribe'][0]))
         with db_session:
-            channel = self.session.lm.mds.ChannelMetadata.get_for_update(public_key=database_blob(self.channel_pk))
+            channel = self.session.lm.mds.ChannelMetadata.get_for_update(public_key=database_blob(self.channel_pk),
+                                                                         id_=self.channel_id)
             if not channel:
                 request.setResponseCode(http.NOT_FOUND)
                 return json.twisted_dumps({"error": "this channel cannot be found"})
 
             channel.subscribed = to_subscribe
+            channel.share = to_subscribe
             if not to_subscribe:
                 channel.local_version = 0
             channel_state = channel.to_simple_dict()["state"]
 
         def delete_channel():
-            # TODO: this should be eventually moved to a garbage-collector like subprocess in MetadataStore
+            # TODO: this should be eventually moved to a garbage-collector-like subprocess in MetadataStore
             with db_session:
                 channel = self.session.lm.mds.ChannelMetadata.get_for_update(public_key=database_blob(self.channel_pk))
                 contents = channel.contents
@@ -170,14 +184,17 @@ class SpecificChannelEndpoint(BaseChannelsEndpoint):
 
 class SpecificChannelTorrentsEndpoint(BaseMetadataEndpoint):
 
-    def __init__(self, session, channel_pk):
+    def __init__(self, session, channel_pk, channel_id):
         BaseMetadataEndpoint.__init__(self, session)
         self.channel_pk = channel_pk
+        self.channel_id = channel_id
 
     def render_GET(self, request):
         sanitized = SpecificChannelTorrentsEndpoint.sanitize_parameters(request.args)
         with db_session:
-            torrents, total = self.session.lm.mds.TorrentMetadata.get_entries(channel_pk=self.channel_pk, **sanitized)
+            torrents, total = self.session.lm.mds.TorrentMetadata.get_entries(channel_pk=self.channel_pk,
+                                                                              origin_id=self.channel_id,
+                                                                              **sanitized)
             torrents_list = [torrent.to_simple_dict() for torrent in torrents]
 
         return json.twisted_dumps({

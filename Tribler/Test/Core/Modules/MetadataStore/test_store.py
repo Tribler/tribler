@@ -125,7 +125,7 @@ class TestMetadataStore(TriblerCoreTest):
         self.mds.ChannelMetadata._CHUNK_SIZE_LIMIT = 500
 
         num_entries = 10
-        channel = self.mds.ChannelMetadata(title='testchan', infohash=database_blob(os.urandom(20)))
+        channel = self.mds.ChannelMetadata.create_channel('testchan')
         md_list = [self.mds.TorrentMetadata(title='test' + str(x), status=NEW, infohash=database_blob(os.urandom(20)))
                    for x in range(0, num_entries)]
         channel.commit_channel_torrent()

@@ -5,7 +5,6 @@ import datetime
 import logging
 import os
 import sqlite3
-from binascii import unhexlify
 
 from ipv8.database import database_blob
 
@@ -18,8 +17,9 @@ from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
 from twisted.internet.task import deferLater
 
-from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import LEGACY_ENTRY, NEW
-from Tribler.Core.Modules.MetadataStore.serialization import REGULAR_TORRENT
+from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import COMMITTED, LEGACY_ENTRY, NEW
+from Tribler.Core.Modules.MetadataStore.OrmBindings.torrent_metadata import infohash_to_id
+from Tribler.Core.Modules.MetadataStore.serialization import NULL_KEY, REGULAR_TORRENT
 from Tribler.Core.Modules.MetadataStore.store import BETA_DB_VERSIONS, CURRENT_DB_VERSION
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
 
@@ -37,10 +37,6 @@ CONVERSION_FROM_72 = "conversion_from_72"
 CONVERSION_FROM_72_PERSONAL = "conversion_from_72_personal"
 CONVERSION_FROM_72_DISCOVERED = "conversion_from_72_discovered"
 CONVERSION_FROM_72_CHANNELS = "conversion_from_72_channels"
-
-
-def dispesy_cid_to_pk(dispersy_cid):
-    return database_blob(unhexlify(("%X" % dispersy_cid).zfill(128)))
 
 
 def pseudo_signature():
@@ -63,12 +59,11 @@ class DispersyToPonyMigration(object):
                   " (SELECT ti.tracker FROM TorrentTrackerMapping ttm, TrackerInfo ti WHERE " \
                   "ttm.torrent_id == t.torrent_id AND ttm.tracker_id == ti.tracker_id AND ti.tracker != 'DHT' " \
                   "AND ti.tracker != 'http://retracker.local/announce' ORDER BY ti.is_alive ASC, ti.failures DESC, " \
-                  "ti.last_check ASC), ct.channel_id, ct.name, t.infohash, t.length, t.creation_date, t.torrent_id, " \
-                  "t.category, t.num_seeders, t.num_leechers, t.last_tracker_check " \
-                  "FROM _ChannelTorrents ct, Torrent t WHERE ct.name NOT NULL and t.length > 0 AND " \
+                  "ti.last_check ASC), chs.dispersy_cid, ct.name, t.infohash, t.length, t.creation_date, " \
+                  "t.torrent_id, t.category, t.num_seeders, t.num_leechers, t.last_tracker_check " \
+                  "FROM _ChannelTorrents ct, Torrent t, Channels chs WHERE ct.name NOT NULL and t.length > 0 AND " \
                   "t.category NOT NULL AND ct.deleted_at IS NULL AND t.torrent_id == ct.torrent_id AND " \
-                  "t.infohash NOT NULL "
-
+                  "t.infohash NOT NULL AND ct.channel_id == chs.id"
     select_torrents_sql = " FROM _ChannelTorrents ct, Torrent t WHERE " + \
                           "ct.name NOT NULL and t.length>0 AND t.category NOT NULL AND ct.deleted_at IS NULL " + \
                           " AND t.torrent_id == ct.torrent_id AND t.infohash NOT NULL "
@@ -99,16 +94,15 @@ class DispersyToPonyMigration(object):
         for id_, name, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam in cursor.execute(
                 self.select_channels_sql):
             if nr_torrents and nr_torrents > 0:
-                channels.append({"id_": 0,
-                                 "infohash": database_blob(os.urandom(20)),
+                channels.append({"id_": infohash_to_id(dispersy_cid),
+                                 # converting this to str is a workaround for python 2.7 'writable buffers not hashable'
+                                 # problem with Pony
+                                 "infohash": str(dispersy_cid),
                                  "title": name or '',
-                                 "public_key": dispesy_cid_to_pk(id_),
+                                 "public_key": NULL_KEY,
                                  "timestamp": final_timestamp(),
                                  "origin_id": 0,
-                                 "signature": pseudo_signature(),
-                                 "skip_key_check": True,
                                  "size": 0,
-                                 "local_version": final_timestamp(),
                                  "subscribed": False,
                                  "status": LEGACY_ENTRY,
                                  "num_entries": int(nr_torrents or 0)})
@@ -206,18 +200,13 @@ class DispersyToPonyMigration(object):
                     "torrent_date": datetime.datetime.utcfromtimestamp(creation_date or 0),
                     "title": name or '',
                     "tags": category or '',
-                    "origin_id": 0,
                     "tracker_info": tracker_url or '',
                     "xxx": int(category == u'xxx')}
                 if not sign:
                     torrent_dict.update({
-                        "id_": torrent_id,
-                        "timestamp": int(torrent_id),
-                        "status": LEGACY_ENTRY,
-                        "public_key": dispesy_cid_to_pk(channel_id),
-                        "signature": pseudo_signature(),
-                        "skip_key_check": True})
-
+                        "origin_id": infohash_to_id(channel_id),
+                        "status": COMMITTED,
+                        "public_key": NULL_KEY})
                 health_dict = {
                     "seeders": int(num_seeders or 0),
                     "leechers": int(num_leechers or 0),
@@ -364,6 +353,7 @@ class DispersyToPonyMigration(object):
                     break
                 try:
                     self.mds.ChannelMetadata(**c)
+
                 except:
                     continue
 

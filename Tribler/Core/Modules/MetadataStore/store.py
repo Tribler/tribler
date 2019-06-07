@@ -21,8 +21,8 @@ from Tribler.Core.Modules.MetadataStore.serialization import (
     CHANNEL_TORRENT, DELETED, REGULAR_TORRENT, read_payload_with_offset, time2int)
 from Tribler.Core.exceptions import InvalidSignatureException
 
-BETA_DB_VERSIONS = [0, 1, 2]
-CURRENT_DB_VERSION = 3
+BETA_DB_VERSIONS = [0, 1, 2, 3]
+CURRENT_DB_VERSION = 4
 
 CLOCK_STATE_FILE = "clock.state"
 

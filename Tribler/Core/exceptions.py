@@ -47,6 +47,13 @@ class InvalidSignatureException(TriblerException):
     pass
 
 
+class InvalidChannelNodeException(TriblerException):
+    """
+    Raised when trying to create an inconsistent GigaChannel entry
+    """
+    pass
+
+
 class DuplicateChannelIdError(TriblerException):
     """
     The Channel name already exists in the ChannelManager channel list,
