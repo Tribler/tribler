@@ -315,6 +315,8 @@ def format_votes(votes=0.0):
     # The number of hearts range from one to five.
     if votes:
         votes = float(votes)
+        # FIXME: this is a temp fix to cap the normalized value to 1.
+        #  The votes should already be normalized before formatting it.
         votes = 1.0 if votes > 1 else votes
         votes = 1 + int(math.ceil(votes * 4))
         return u"  %s " % (u"\u2665" * votes)
