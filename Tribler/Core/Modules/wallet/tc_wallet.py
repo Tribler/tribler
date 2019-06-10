@@ -159,7 +159,7 @@ class TrustchainWallet(Wallet, BlockListener):
         peers_you_helped = set()
         peers_helped_you = set()
         for block in self.trustchain.persistence.get_latest_blocks(public_key, limit=-1,
-                                                                   block_type=b'tribler_bandwidth'):
+                                                                   block_types=[b'tribler_bandwidth']):
             if int(block.transaction["up"]) > 0:
                 peers_you_helped.add(block.link_public_key)
             if int(block.transaction["down"]) > 0:
