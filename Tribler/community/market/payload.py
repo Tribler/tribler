@@ -1,10 +1,10 @@
 from __future__ import absolute_import
 
-from ipv8.messaging.bloomfilter import BloomFilter
 from ipv8.messaging.payload import Payload
 
 from Tribler.community.market.core.assetamount import AssetAmount
 from Tribler.community.market.core.assetpair import AssetPair
+from Tribler.community.market.core.bloomfilter import BloomFilter
 from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.order import OrderId, OrderNumber
 from Tribler.community.market.core.payment_id import PaymentId

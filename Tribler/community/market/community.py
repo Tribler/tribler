@@ -7,7 +7,6 @@ from functools import wraps
 from ipv8.attestation.trustchain.listener import BlockListener
 from ipv8.attestation.trustchain.payload import HalfBlockPairPayload
 from ipv8.community import Community, lazy_wrapper
-from ipv8.messaging.bloomfilter import BloomFilter
 from ipv8.messaging.payload_headers import BinMemberAuthenticationPayload
 from ipv8.messaging.payload_headers import GlobalTimeDistributionPayload
 from ipv8.peer import Peer
@@ -25,6 +24,7 @@ from Tribler.Core.simpledefs import NTFY_UPDATE
 from Tribler.community.market import MAX_ORDER_TIMEOUT
 from Tribler.community.market.block import MarketBlock
 from Tribler.community.market.core import DeclineMatchReason, DeclinedTradeReason
+from Tribler.community.market.core.bloomfilter import BloomFilter
 from Tribler.community.market.core.matching_engine import MatchingEngine, PriceTimeStrategy
 from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.order import OrderId, OrderNumber
