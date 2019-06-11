@@ -419,8 +419,8 @@ class TriblerGUITest(AbstractTriblerGUITest):
 
     @skipIf(sys.platform == "win32", "This test is unreliable on Windows")
     def test_add_download_url(self):
-        window.on_add_torrent_from_url()
         self.go_to_and_wait_for_downloads()
+        window.on_add_torrent_from_url()
         old_count = window.downloads_list.topLevelItemCount()
         self.screenshot(window, name="add_torrent_url_dialog")
         window.dialog.dialog_widget.dialog_input.setText("http://test.url/test.torrent")

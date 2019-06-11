@@ -115,16 +115,18 @@ if __name__ == "__main__":
             from TriblerGUI.tribler_window import TriblerWindow
 
             app = TriblerApplication("triblerapp", sys.argv)
-
+            if app.is_running():
+                for arg in sys.argv[1:]:
+                    if os.path.exists(arg) and arg.endswith(".torrent"):
+                        app.send_message("file:%s" % arg)
+                    elif arg.startswith('magnet'):
+                        app.send_message(arg)
+                sys.exit(1)
 
             window = TriblerWindow()
             window.setWindowTitle("Tribler")
             app.set_activation_window(window)
             app.parse_sys_args(sys.argv)
-
-            # If app is already running, simply exit the current instance, else continue
-            if app.is_running():
-                sys.exit(0)
             sys.exit(app.exec_())
 
         except ImportError as ie:
