@@ -2,6 +2,7 @@ from __future__ import absolute_import, division
 
 from random import sample
 
+from ipv8.messaging.anonymization.tunnel import PEER_FLAG_EXIT_ANY
 from ipv8.peerdiscovery.discovery import DiscoveryStrategy
 
 
@@ -15,7 +16,7 @@ class GoldenRatioStrategy(DiscoveryStrategy):
     the set golden ratio.
     """
 
-    def __init__(self, overlay, golden_ratio=9/16, target_peers=23):
+    def __init__(self, overlay, golden_ratio=9 / 16, target_peers=23):
         """
         Initialize the GoldenRatioStrategy.
 
@@ -44,9 +45,9 @@ class GoldenRatioStrategy(DiscoveryStrategy):
         with self.walk_lock:
             peer_count = len(self.overlay.get_peers())
             if peer_count > self.target_peers:
-                exit_count = len(self.overlay.exit_candidates)
-                ratio = 1.0 - exit_count/peer_count # Peer count is > 0 per definition
-                exit_peers = set(self.overlay.exit_candidates.values())
+                exit_peers = set(self.overlay.get_candidates(PEER_FLAG_EXIT_ANY))
+                exit_count = len(exit_peers)
+                ratio = 1.0 - exit_count / peer_count  # Peer count is > 0 per definition
                 if ratio < self.golden_ratio:
                     self.overlay.network.remove_peer(sample(exit_peers, 1)[0])
                 elif ratio > self.golden_ratio:
