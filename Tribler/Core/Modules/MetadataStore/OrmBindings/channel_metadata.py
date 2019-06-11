@@ -166,6 +166,9 @@ def define_binding(db):
             self.commit_channel_torrent()
 
             folder = os.path.join(self._channels_dir, self.dir_name)
+            # We check if we need to re-create the channel dir in case it was deleted for some reason
+            if not os.path.isdir(folder):
+                os.makedirs(folder)
             for filename in os.listdir(folder):
                 file_path = os.path.join(folder, filename)
                 # We only remove mdblobs and leave the rest as it is
