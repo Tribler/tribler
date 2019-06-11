@@ -18,8 +18,9 @@ from Tribler.Core.Modules.MetadataStore.OrmBindings import (
     vsids)
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import BLOB_EXTENSION
 from Tribler.Core.Modules.MetadataStore.serialization import (
-    CHANNEL_TORRENT, DELETED, REGULAR_TORRENT, read_payload_with_offset, time2int)
+    CHANNEL_TORRENT, DELETED, NULL_KEY, REGULAR_TORRENT, read_payload_with_offset, time2int)
 from Tribler.Core.exceptions import InvalidSignatureException
+
 
 BETA_DB_VERSIONS = [0, 1, 2, 3]
 CURRENT_DB_VERSION = 4
@@ -373,10 +374,24 @@ class MetadataStore(object):
         if payload.timestamp < payload.id_:
             return []
 
+        # FFA payloads get special treatment:
+        if payload.public_key == NULL_KEY:
+            if payload.metadata_type == REGULAR_TORRENT:
+                node = self.TorrentMetadata.add_ffa_from_dict(payload.to_dict())
+                if node:
+                    return [(node, UNKNOWN_TORRENT)]
+            return [(None, NO_ACTION)]
+
         # Check if we already have this payload
         node = self.ChannelNode.get_for_update(signature=payload.signature, public_key=payload.public_key)
         if node:
             return [(node, NO_ACTION)]
+
+        # Signed entry > FFA entry. Old FFA entry > new FFA entry
+        ffa_node = self.TorrentMetadata.get_for_update(public_key=database_blob(""),
+                                                       infohash=database_blob(payload.infohash))
+        if ffa_node:
+            ffa_node.delete()
 
         # Check for a node with the same infohash
         result = []

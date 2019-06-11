@@ -19,7 +19,7 @@ from twisted.internet.task import deferLater
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import COMMITTED, LEGACY_ENTRY, NEW
 from Tribler.Core.Modules.MetadataStore.OrmBindings.torrent_metadata import infohash_to_id
-from Tribler.Core.Modules.MetadataStore.serialization import NULL_KEY, REGULAR_TORRENT
+from Tribler.Core.Modules.MetadataStore.serialization import REGULAR_TORRENT
 from Tribler.Core.Modules.MetadataStore.store import BETA_DB_VERSIONS, CURRENT_DB_VERSION
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
 
@@ -99,7 +99,7 @@ class DispersyToPonyMigration(object):
                                  # problem with Pony
                                  "infohash": str(dispersy_cid),
                                  "title": name or '',
-                                 "public_key": NULL_KEY,
+                                 "public_key": "",
                                  "timestamp": final_timestamp(),
                                  "origin_id": 0,
                                  "size": 0,
@@ -191,22 +191,22 @@ class DispersyToPonyMigration(object):
                 if not torrent_id or int(torrent_id) == 0:
                     continue
 
+                if not length:
+                    continue
+
                 infohash = base64.decodestring(infohash)
 
                 torrent_dict = {
                     "status": NEW,
                     "infohash": infohash,
-                    "size": int(length or 0),
+                    "size": int(length),
                     "torrent_date": datetime.datetime.utcfromtimestamp(creation_date or 0),
                     "title": name or '',
                     "tags": category or '',
                     "tracker_info": tracker_url or '',
                     "xxx": int(category == u'xxx')}
                 if not sign:
-                    torrent_dict.update({
-                        "origin_id": infohash_to_id(channel_id),
-                        "status": COMMITTED,
-                        "public_key": NULL_KEY})
+                    torrent_dict.update({"origin_id": infohash_to_id(channel_id)})
                 health_dict = {
                     "seeders": int(num_seeders or 0),
                     "leechers": int(num_leechers or 0),
@@ -303,7 +303,7 @@ class DispersyToPonyMigration(object):
                 with db_session:
                     for (t, _) in batch:
                         try:
-                            self.mds.TorrentMetadata(**t)
+                            self.mds.TorrentMetadata.add_ffa_from_dict(t)
                         except (TransactionIntegrityError, CacheIndexError):
                             pass
             except (TransactionIntegrityError, CacheIndexError):
