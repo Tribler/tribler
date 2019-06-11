@@ -7,13 +7,17 @@ from ipv8.peer import Peer
 from ipv8.peerdiscovery.network import Network
 
 from Tribler.community.triblertunnel.discovery import GoldenRatioStrategy
+from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import PEER_FLAG_EXIT_ANY
 
 
 class FakeOverlay(object):
 
     def __init__(self):
-        self.exit_candidates = {}
+        self.exit_candidates = []
         self.network = Network()
+
+    def get_candidates(self, flag):
+        return self.exit_candidates if flag == PEER_FLAG_EXIT_ANY else []
 
     def get_peers(self):
         return self.network.verified_peers
@@ -30,7 +34,7 @@ class TestGoldenRatio(TestCase):
         overlay = FakeOverlay()
         peer1 = cls._generate_peer()  # Normal peer
         peer2 = cls._generate_peer()  # Exit node
-        overlay.exit_candidates[peer2.public_key.key_to_bin()] = peer2
+        overlay.exit_candidates.append(peer2)
         overlay.network.add_verified_peer(peer1)
         overlay.network.add_verified_peer(peer2)
         return overlay, peer1, peer2
