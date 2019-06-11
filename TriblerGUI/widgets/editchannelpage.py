@@ -125,7 +125,7 @@ class EditChannelPage(QWidget):
         self.window().edit_channel_name_label.setReadOnly(True)
         self.window().edit_channel_name_label.clicked.connect(self.on_click_channel_name)
         self.window().edit_channel_name_label.returnPressed.connect(self.on_update_channel_name)
-        self.window().edit_channel_name_label.create_torrent_notification.connect(self.on_focus_channel_name)
+        self.window().edit_channel_name_label.on_focus_notification.connect(self.on_focus_channel_name)
 
         # Channel public key
         self.window().edit_channel_cid_label.setHidden(False)
