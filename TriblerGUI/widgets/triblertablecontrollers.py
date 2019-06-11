@@ -187,8 +187,9 @@ class ContextMenuMixin(object):
             self.add_menu_item(menu, ' Play ', item_index, self.table_view.on_play_button_clicked)
 
         if not isinstance(self, MyTorrentsTableViewController):
-            self.add_menu_item(menu, ' Add to My Channel ', item_index,
-                               self.table_view.on_add_to_channel_button_clicked)
+            if self.selection_has_torrents():
+                self.add_menu_item(menu, ' Add to My Channel ', item_index,
+                                   self.table_view.on_add_to_channel_button_clicked)
         else:
             self.add_menu_item(menu, ' Remove from My Channel ', item_index, self.table_view.on_delete_button_clicked)
 
@@ -198,6 +199,18 @@ class ContextMenuMixin(object):
         action = QAction(name, self.table_view)
         action.triggered.connect(lambda _: callback(item_index))
         menu.addAction(action)
+
+    def selection_has_torrents(self):
+        for row in self.table_view.selectionModel().selectedRows():
+            if row.model().is_torrent_item(row.row()):
+                return True
+        return False
+
+    def selection_has_channels(self):
+        for row in self.table_view.selectionModel().selectedRows():
+            if row.model().is_channel_item(row.row()):
+                return True
+        return False
 
 
 class SearchResultsTableViewController(TableSelectionMixin, ContextMenuMixin, TriblerTableViewController):
