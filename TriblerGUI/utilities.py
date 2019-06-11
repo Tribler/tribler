@@ -191,11 +191,11 @@ def is_frozen():
 
 
 def get_ui_file_path(filename):
-    return os.path.join(get_base_path(), 'qt_resources/%s' % filename)
+    return os.path.join(get_base_path(), 'qt_resources', filename)
 
 
 def get_image_path(filename):
-    return os.path.join(get_base_path(), 'images/%s' % filename)
+    return os.path.join(get_base_path(), 'images', filename)
 
 
 def get_gui_setting(gui_settings, value, default, is_bool=False):
@@ -305,9 +305,8 @@ def html_label(text, background="#e4e4e4", color="#222222", bold=True):
 
 def get_checkbox_style(color="#B5B5B5"):
     return """QCheckBox { color: %s; }
-            QCheckBox::indicator:checked {image: url('%s'); width:16px; height:16px}
-            QCheckBox::indicator:unchecked {image: url('%s'); width:16px; height:16px}
-            """ % (color, get_image_path('checked-yes.png'), get_image_path('checked-no.png'))
+                QCheckBox::indicator:unchecked {border: 1px solid #555;}
+                """ % color
 
 
 def format_votes(votes=0.0):
