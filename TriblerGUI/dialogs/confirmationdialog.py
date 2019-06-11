@@ -59,6 +59,7 @@ class ConfirmationDialog(DialogContainer):
 
         error_dialog.button_clicked.connect(on_close)
         error_dialog.show()
+        return error_dialog
 
     @classmethod
     def show_message(cls, window, title, message_text, button_text):
@@ -69,6 +70,7 @@ class ConfirmationDialog(DialogContainer):
 
         error_dialog.button_clicked.connect(on_close)
         error_dialog.show()
+        return error_dialog
 
     def create_button(self, index, button_text, _):
         button = EllipseButton(self.dialog_widget)

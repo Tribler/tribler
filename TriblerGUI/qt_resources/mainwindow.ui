@@ -12546,7 +12546,7 @@ color: #eee;</string>
    <header>TriblerGUI.widgets.homepage.h</header>
    <container>1</container>
   </customwidget>
-  <customwidget>
+  <customwidget>clickablewidgets
    <class>DownloadsDetailsTabWidget</class>
    <extends>QTabWidget</extends>
    <header>TriblerGUI.widgets.downloadsdetailstabwidget.h</header>
@@ -12664,7 +12664,7 @@ color: #eee;</string>
   <customwidget>
    <class>ClickableLineEdit</class>
    <extends>QLineEdit</extends>
-   <header>TriblerGUI.widgets.ClickableLineEdit.h</header>
+   <header>TriblerGUI.widgets.clickablewidgets.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

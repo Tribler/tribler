@@ -123,7 +123,7 @@ color: white;
         <property name="styleSheet">
          <string notr="true">font-size: 14px;
 color: white;</string>
-        </property>
+        </property>ClickableLabel
         <property name="text">
          <string>Download torrent</string>
         </property>
@@ -433,7 +433,7 @@ background-color: transparent;
        </widget>
       </item>
       <item>
-       <widget class="QLabel" name="loading_files_label">
+       <widget class="ClickableLabel" name="loading_files_label">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
           <horstretch>0</horstretch>
@@ -643,6 +643,14 @@ background-color: transparent;
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>ClickableLabel</class>
+   <extends>QLabel</extends>
+   <header>TriblerGUI.widgets.clickablewidgets.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
+ <slots/>
 </ui>
