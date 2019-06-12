@@ -7,7 +7,7 @@ from ipv8.taskmanager import TaskManager
 
 from twisted.internet.task import LoopingCall
 
-from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
+from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import NTFY_INSERT, NTFY_WATCH_FOLDER_CORRUPT_TORRENT
 
@@ -63,7 +63,7 @@ class WatchFolder(TaskManager):
 
                 if not self.session.has_download(infohash):
                     self._logger.info("Starting download from torrent file %s", name)
-                    dl_config = DefaultDownloadStartupConfig.getInstance().copy()
+                    dl_config = DownloadConfig()
 
                     anon_enabled = self.session.config.get_default_anonymity_enabled()
                     default_num_hops = self.session.config.get_default_number_hops()

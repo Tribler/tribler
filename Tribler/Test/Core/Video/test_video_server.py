@@ -13,7 +13,7 @@ from twisted.internet.defer import Deferred, inlineCallbacks
 from twisted.internet.endpoints import TCP4ClientEndpoint, connectProtocol
 from twisted.internet.protocol import Protocol, connectionDone
 
-from Tribler.Core.DownloadConfig import DownloadStartupConfig
+from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.Video.VideoServer import VideoServer
@@ -154,7 +154,7 @@ class TestVideoServerSession(TestAsServer):
         self.tdef.set_tracker("http://127.0.0.1:12/announce")
         self.tdef.save()
 
-        dscfg = DownloadStartupConfig()
+        dscfg = DownloadConfig()
         dscfg.set_dest_dir(os.path.dirname(self.sourcefn))
 
         download = self.session.start_download_from_tdef(self.tdef, dscfg)

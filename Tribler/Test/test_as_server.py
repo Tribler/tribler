@@ -34,7 +34,7 @@ from twisted.web.server import Site
 from twisted.web.static import File
 
 from Tribler.Core.Config.tribler_config import CONFIG_SPEC_PATH, TriblerConfig
-from Tribler.Core.DownloadConfig import DownloadStartupConfig
+from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.Session import Session
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.instrumentation import WatchDog
@@ -364,7 +364,7 @@ class TestAsServer(AbstractServer):
             self.seed_config.set_libtorrent_port(port)
 
         def start_seed_download(_):
-            self.dscfg_seed = DownloadStartupConfig()
+            self.dscfg_seed = DownloadConfig()
             self.dscfg_seed.set_dest_dir(seed_dir)
             d = self.seeder_session.start_download_from_tdef(tdef, self.dscfg_seed)
             d.set_state_callback(self.seeder_state_callback)

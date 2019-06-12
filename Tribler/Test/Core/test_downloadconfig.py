@@ -2,13 +2,13 @@ from __future__ import absolute_import
 
 import os
 
+from configobj import ConfigObjError
 from nose.tools import raises
 
 import six
 from six.moves.configparser import MissingSectionHeaderError
 
-from Tribler.Core.DownloadConfig import (DefaultDownloadStartupConfig, DownloadConfigInterface,
-                                         DownloadStartupConfig, get_default_dest_dir)
+from Tribler.Core.Config.download_config import DownloadConfig, get_default_dest_dir
 from Tribler.Core.simpledefs import DLMODE_VOD
 from Tribler.Test.Core.base_test import TriblerCoreTest
 
@@ -18,14 +18,8 @@ class TestConfigParser(TriblerCoreTest):
     FILE_DIR = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
     CONFIG_FILES_DIR = os.path.abspath(os.path.join(FILE_DIR, u"data/config_files/"))
 
-    def tearDown(self):
-        super(TestConfigParser, self).tearDown()
-
-        # Make sure we don't leave a DefaultDownloadStartupConfig instance behind
-        DefaultDownloadStartupConfig.delInstance()
-
     def test_downloadconfig(self):
-        dlcfg = DownloadConfigInterface()
+        dlcfg = DownloadConfig()
 
         self.assertIsInstance(dlcfg.get_dest_dir(), six.text_type)
         dlcfg.set_dest_dir(self.session_base_dir)
@@ -57,51 +51,40 @@ class TestConfigParser(TriblerCoreTest):
 
     @raises(ValueError)
     def test_downloadconfig_set_vod_multiple_files(self):
-        dlcfg = DownloadConfigInterface()
+        dlcfg = DownloadConfig()
         dlcfg.set_mode(DLMODE_VOD)
         dlcfg.set_selected_files(["foo.txt", "bar.txt"])
 
+
     def test_downloadconfig_copy(self):
-        dlcfg = DownloadConfigInterface()
+        dlcfg = DownloadConfig()
         dlcfg_copy = dlcfg.copy()
 
         self.assertEqual(dlcfg_copy.get_hops(), 0)
 
-    def test_downloadstartupconfig_copy(self):
-        dlcfg = DownloadStartupConfig()
-        dlcfg_copy = dlcfg.copy()
-
-        self.assertEqual(dlcfg_copy.get_hops(), 0)
-
-    def test_startup_download_save_load(self):
-        dlcfg = DownloadStartupConfig()
+    def test_download_save_load(self):
+        dlcfg = DownloadConfig()
         file_path = os.path.join(self.session_base_dir, "downloadconfig.conf")
-        dlcfg.save(file_path)
+        dlcfg.write(file_path)
         dlcfg.load(file_path)
 
-    @raises(MissingSectionHeaderError)
-    def test_startup_download_load_corrupt(self):
-        dlcfg = DownloadStartupConfig()
+    @raises(ConfigObjError)
+    def test_download_load_corrupt(self):
+        dlcfg = DownloadConfig()
         dlcfg.load(os.path.join(self.CONFIG_FILES_DIR, "corrupt_download_config.conf"))
 
     def test_get_default_dest_dir(self):
         self.assertIsInstance(get_default_dest_dir(), six.text_type)
 
-
-    @raises(RuntimeError)
-    def test_default_download_startup_config_init(self):
-        _ = DefaultDownloadStartupConfig.getInstance()
-        DefaultDownloadStartupConfig()
-
-    def test_default_download_startup_config_load(self):
+    def test_default_download_config_load(self):
         with open(os.path.join(self.session_base_dir, "dlconfig.conf"), 'wb') as conf_file:
             conf_file.write(b"[Tribler]\nabc=def")
 
-        ddsc = DefaultDownloadStartupConfig.load(os.path.join(self.session_base_dir, "dlconfig.conf"))
-        self.assertEqual(ddsc.dlconfig.get('Tribler', 'abc'), 'def')
+        dcfg = DownloadConfig.load(os.path.join(self.session_base_dir, "dlconfig.conf"))
+        self.assertEqual(dcfg.config['Tribler']['abc'], 'def')
 
     def test_user_stopped(self):
-        dlcfg = DownloadConfigInterface()
+        dlcfg = DownloadConfig()
         dlcfg.set_user_stopped(False)
         self.assertFalse(dlcfg.get_user_stopped())
 

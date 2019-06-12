@@ -11,7 +11,7 @@ from twisted.internet.defer import inlineCallbacks
 from twisted.internet.task import LoopingCall
 from twisted.internet.threads import deferToThread
 
-from Tribler.Core.DownloadConfig import DownloadStartupConfig
+from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import COMMITTED
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.simpledefs import DLSTATUS_SEEDING, NTFY_CHANNEL_ENTITY, NTFY_UPDATE
@@ -217,7 +217,7 @@ class GigaChannelManager(TaskManager):
         Download a channel with a given infohash and title.
         :param channel: The channel metadata ORM object.
         """
-        dcfg = DownloadStartupConfig(state_dir=self.session.config.get_state_dir())
+        dcfg = DownloadConfig(state_dir=self.session.config.get_state_dir())
         dcfg.set_dest_dir(self.session.lm.mds.channels_dir)
         dcfg.set_channel_download(True)
         tdef = TorrentDefNoMetainfo(infohash=bytes(channel.infohash), name=channel.dirname)
@@ -260,7 +260,7 @@ class GigaChannelManager(TaskManager):
         with db_session:
             my_channel = self.session.lm.mds.ChannelMetadata.get_my_channel()
         if my_channel and my_channel.status == COMMITTED and not self.session.has_download(str(my_channel.infohash)):
-            dcfg = DownloadStartupConfig(state_dir=self.session.config.get_state_dir())
+            dcfg = DownloadConfig(state_dir=self.session.config.get_state_dir())
             dcfg.set_dest_dir(self.session.lm.mds.channels_dir)
             dcfg.set_channel_download(True)
             self.session.lm.add(tdef, dcfg)

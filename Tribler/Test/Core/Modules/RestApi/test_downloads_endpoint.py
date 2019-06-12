@@ -12,7 +12,7 @@ from twisted.internet.defer import fail
 
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core import TorrentDef
-from Tribler.Core.DownloadConfig import DownloadStartupConfig
+from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.DownloadState import DownloadState
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
@@ -50,7 +50,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
             self.assertEqual(len(downloads_json['downloads']), 2)
 
         video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
-        self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
+        self.session.start_download_from_tdef(video_tdef, DownloadConfig())
         self.session.start_download_from_uri("file:" + pathname2url(
             os.path.join(TESTS_DATA_DIR, "bak_single.torrent")))
 
@@ -74,7 +74,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
                                       u'name': u'video.avi', u'progress': 0.0}]])
 
         video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
-        self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
+        self.session.start_download_from_tdef(video_tdef, DownloadConfig())
         self.session.start_download_from_uri("file:" + pathname2url(
             os.path.join(TESTS_DATA_DIR, "bak_single.torrent")))
 
@@ -310,7 +310,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
             self.assertEqual(len(self.session.get_downloads()), 0)
 
         video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
-        self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
+        self.session.start_download_from_tdef(video_tdef, DownloadConfig())
         infohash = get_hex_infohash(video_tdef)
 
         request_deferred = self.do_request('downloads/%s' % infohash, post_data={"remove_data": True},
@@ -333,7 +333,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         Testing whether the API returns 200 if a download is being stopped
         """
         video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
-        download = self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
+        download = self.session.start_download_from_tdef(video_tdef, DownloadConfig())
         infohash = get_hex_infohash(video_tdef)
         original_stop = download.stop
 
@@ -360,7 +360,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         Testing whether an error is returned when we toggle a file for inclusion out of range
         """
         video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
-        self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
+        self.session.start_download_from_tdef(video_tdef, DownloadConfig())
         infohash = get_hex_infohash(video_tdef)
 
         self.should_check_equality = False
@@ -373,7 +373,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         Testing whether files can be correctly toggled in a download
         """
         video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
-        download = self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
+        download = self.session.start_download_from_tdef(video_tdef, DownloadConfig())
         infohash = get_hex_infohash(video_tdef)
 
         def mocked_set_selected_files(*_):
@@ -406,7 +406,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         Testing whether the API returns 200 if a download is being resumed
         """
         video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
-        download = self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
+        download = self.session.start_download_from_tdef(video_tdef, DownloadConfig())
         infohash = get_hex_infohash(video_tdef)
 
         def mocked_restart():
@@ -431,7 +431,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         Testing whether the API returns 200 if a download is being rechecked
         """
         video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
-        download = self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
+        download = self.session.start_download_from_tdef(video_tdef, DownloadConfig())
         infohash = get_hex_infohash(video_tdef)
 
         def mocked_recheck():
@@ -456,7 +456,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         Testing whether the API returns 400 if we supply both anon_hops and another parameter
         """
         video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
-        self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
+        self.session.start_download_from_tdef(video_tdef, DownloadConfig())
         infohash = get_hex_infohash(video_tdef)
 
         self.should_check_equality = False
@@ -469,7 +469,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         Testing whether the API returns error 400 if an unknown state is passed when modifying a download
         """
         video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
-        self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
+        self.session.start_download_from_tdef(video_tdef, DownloadConfig())
 
         self.should_check_equality = False
         return self.do_request('downloads/%s' % get_hex_infohash(video_tdef), expected_code=400,
@@ -481,7 +481,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         Testing whether moving the torrent storage to a non-existing directory works as expected.
         """
         video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
-        self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
+        self.session.start_download_from_tdef(video_tdef, DownloadConfig())
 
         dest_dir = os.path.join(self.temporary_directory(), "non-existing")
         self.assertFalse(os.path.exists(dest_dir))
@@ -505,7 +505,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         Testing whether moving the torrent storage to an existing directory works as expected.
         """
         video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
-        self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
+        self.session.start_download_from_tdef(video_tdef, DownloadConfig())
 
         dest_dir = os.path.join(self.temporary_directory(), "existing")
         os.mkdir(dest_dir)
@@ -538,7 +538,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         Testing whether the API returns the contents of the torrent file if a download is exported
         """
         video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
-        download = self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
+        download = self.session.start_download_from_tdef(video_tdef, DownloadConfig())
 
         def verify_exported_data(result):
             self.assertTrue(result)
@@ -564,7 +564,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         Testing whether the API returns file information of a specific download when requested
         """
         video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
-        self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
+        self.session.start_download_from_tdef(video_tdef, DownloadConfig())
 
         def verify_files_data(response):
             json_response = json.twisted_loads(response)
@@ -589,7 +589,7 @@ class TestDownloadsWithTunnelsEndpoint(AbstractApiTest):
         Testing whether the API returns 200 if we change the amount of hops of a download
         """
         video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
-        download = self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
+        download = self.session.start_download_from_tdef(video_tdef, DownloadConfig())
         infohash = get_hex_infohash(video_tdef)
 
         return download.get_handle().addCallback(
@@ -607,7 +607,7 @@ class TestDownloadsWithTunnelsEndpoint(AbstractApiTest):
         self.session.remove_download = on_remove_download
 
         video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
-        self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
+        self.session.start_download_from_tdef(video_tdef, DownloadConfig())
         infohash = get_hex_infohash(video_tdef)
 
         return self.do_request('downloads/%s' % infohash, post_data={"remove_data": True}, expected_code=500,
@@ -693,7 +693,7 @@ class TestMetadataDownloadEndpoint(AbstractApiTest):
                              [d for d in downloads_json["downloads"] if d["channel_download"]][0]["name"])
 
         video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
-        self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
+        self.session.start_download_from_tdef(video_tdef, DownloadConfig())
         self.session.start_download_from_uri("file:" + pathname2url(
             os.path.join(TESTS_DATA_DIR, "bak_single.torrent")))
 

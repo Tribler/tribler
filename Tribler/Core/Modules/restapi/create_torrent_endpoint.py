@@ -10,7 +10,7 @@ from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
 
 import Tribler.Core.Utilities.json_util as json
-from Tribler.Core.DownloadConfig import DownloadStartupConfig
+from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.Modules.restapi.util import return_handled_exception
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.unicode import ensure_unicode, recursive_bytes, recursive_unicode
@@ -110,7 +110,7 @@ class CreateTorrentEndpoint(resource.Resource):
             # Download this torrent if specified
             if 'download' in request.args and len(request.args['download']) > 0 \
                     and request.args['download'][0] == "1":
-                download_config = DownloadStartupConfig()
+                download_config = DownloadConfig()
                 download_config.set_dest_dir(result['base_path'] if len(file_path_list) == 1 else result['base_dir'])
                 try:
                     self.session.lm.ltmgr.start_download(

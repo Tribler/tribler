@@ -16,7 +16,7 @@ from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
 
 import Tribler.Core.Utilities.json_util as json
-from Tribler.Core.DownloadConfig import DownloadStartupConfig
+from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, ChannelMetadataPayload
 from Tribler.Core.Modules.MetadataStore.store import UNKNOWN_CHANNEL, UPDATED_OUR_VERSION
 from Tribler.Core.Modules.restapi.util import return_handled_exception
@@ -72,7 +72,7 @@ class DownloadBaseEndpoint(resource.Resource):
         - safe_seeding: whether the seeding of the download should be anonymous or not (0 = off, 1 = on)
         - destination: the destination path of the torrent (where it is saved on disk)
         """
-        download_config = DownloadStartupConfig()
+        download_config = DownloadConfig()
 
         anon_hops = 0
         if 'anon_hops' in parameters and len(parameters['anon_hops']) > 0:
@@ -109,7 +109,7 @@ class DownloadBaseEndpoint(resource.Resource):
         """
         files_json = []
         files_completion = dict((name, progress) for name, progress in download.get_state().get_files_completion())
-        selected_files = download.get_selected_files()
+        selected_files = download.config.get_selected_files()
         file_index = 0
         for fn, size in download.get_def().get_files_with_length():
             files_json.append({
@@ -233,7 +233,8 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
             num_connected_seeds, num_connected_peers = download.get_num_connected_seeds_peers()
 
             download_name = self.session.lm.mds.ChannelMetadata.get_channel_name(
-                tdef.get_name_utf8(), tdef.get_infohash()) if download.get_channel_download() else tdef.get_name_utf8()
+                tdef.get_name_utf8(),
+                tdef.get_infohash()) if download.config.get_channel_download() else tdef.get_name_utf8()
 
             download_json = {
                 "name": download_name,
@@ -252,22 +253,22 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                 "total_down": state.get_total_transferred(DOWNLOAD),
                 "ratio": state.get_seeding_ratio(),
                 "trackers": tracker_info,
-                "hops": download.get_hops(),
+                "hops": download.config.get_hops(),
                 "anon_download": download.get_anon_mode(),
-                "safe_seeding": download.get_safe_seeding(),
+                "safe_seeding": download.config.get_safe_seeding(),
                 # Maximum upload/download rates are set for entire sessions
                 "max_upload_speed": self.session.config.get_libtorrent_max_upload_rate(),
                 "max_download_speed": self.session.config.get_libtorrent_max_download_rate(),
-                "destination": download.get_dest_dir(),
+                "destination": download.config.get_dest_dir(),
                 "availability": state.get_availability(),
                 "total_pieces": tdef.get_nr_pieces(),
-                "vod_mode": download.get_mode() == DLMODE_VOD,
+                "vod_mode": download.config.get_mode() == DLMODE_VOD,
                 "vod_prebuffering_progress": state.get_vod_prebuffering_progress(),
                 "vod_prebuffering_progress_consec": state.get_vod_prebuffering_progress_consec(),
                 "error": repr(state.get_error()) if state.get_error() else "",
-                "time_added": download.get_time_added(),
-                "credit_mining": download.get_credit_mining(),
-                "channel_download": download.get_channel_download()
+                "time_added": download.config.get_time_added(),
+                "credit_mining": download.config.get_credit_mining(),
+                "channel_download": download.config.get_channel_download()
             }
 
             # Add peers information if requested

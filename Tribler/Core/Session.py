@@ -28,7 +28,7 @@ from Tribler.Core.Utilities.crypto_patcher import patch_crypto_be_discovery
 from Tribler.Core.exceptions import NotYetImplementedException, OperationNotEnabledByConfigurationException
 from Tribler.Core.simpledefs import (
     NTFY_DELETE, NTFY_INSERT, NTFY_STARTED, NTFY_TRIBLER, NTFY_UPDATE, STATEDIR_CHANNELS_DIR, STATEDIR_DB_DIR,
-    STATEDIR_DLPSTATE_DIR, STATEDIR_WALLET_DIR, STATE_LOAD_CHECKPOINTS, STATE_READABLE_STARTED, STATE_SHUTDOWN,
+    STATEDIR_CHECKPOINT_DIR, STATEDIR_WALLET_DIR, STATE_LOAD_CHECKPOINTS, STATE_READABLE_STARTED, STATE_SHUTDOWN,
     STATE_START_API, STATE_UPGRADING_READABLE)
 from Tribler.Core.statistics import TriblerStatistics
 
@@ -101,7 +101,7 @@ class Session(object):
 
         create_dir(self.config.get_state_dir())
         create_in_state_dir(STATEDIR_DB_DIR)
-        create_in_state_dir(STATEDIR_DLPSTATE_DIR)
+        create_in_state_dir(STATEDIR_CHECKPOINT_DIR)
         create_in_state_dir(STATEDIR_WALLET_DIR)
         create_in_state_dir(STATEDIR_CHANNELS_DIR)
 
@@ -220,26 +220,25 @@ class Session(object):
             return self.lm.ltmgr.start_download_from_uri(uri, dconfig=download_config)
         raise OperationNotEnabledByConfigurationException()
 
-    def start_download_from_tdef(self, torrent_definition, download_startup_config=None, pstate=None, hidden=False):
+    def start_download_from_tdef(self, torrent_definition, download_config=None, hidden=False):
         """
         Creates a Download object and adds it to the session. The passed
-        ContentDef and DownloadStartupConfig are copied into the new Download
+        TorrentDef and DownloadConfig are copied into the new Download
         object. The Download is then started and checkpointed.
 
         If a checkpointed version of the Download is found, that is restarted
-        overriding the saved DownloadStartupConfig if "download_startup_config" is not None.
+        overriding the saved DownloadConfig if "download_config" is not None.
 
         Locking is done by LaunchManyCore.
 
         :param torrent_definition: a TorrentDef
-        :param download_startup_config: a DownloadStartupConfig or None, in which case
-        a new DownloadStartupConfig() is created with its default settings
-        and the result becomes the runtime config of this Download
+        :param download_config: a DownloadConfig or None, in which case
+        a new DownloadConfig() is created with its default settings
         :param hidden: whether this torrent should be added to the mypreference table
         :return: a Download
         """
         if self.config.get_libtorrent_enabled():
-            return self.lm.add(torrent_definition, download_startup_config, pstate=pstate, hidden=hidden)
+            return self.lm.add(torrent_definition, download_config, hidden=hidden)
         raise OperationNotEnabledByConfigurationException()
 
     def resume_download_from_file(self, filename):
@@ -489,12 +488,12 @@ class Session(object):
         """
         return self.lm.sessdoneflag.isSet()
 
-    def get_downloads_pstate_dir(self):
+    def get_downloads_config_dir(self):
         """
         Returns the directory in which to checkpoint the Downloads in this
         Session. This function is called by the network thread.
         """
-        return os.path.join(self.config.get_state_dir(), STATEDIR_DLPSTATE_DIR)
+        return os.path.join(self.config.get_state_dir(), STATEDIR_CHECKPOINT_DIR)
 
     def get_ipv8_instance(self):
         if not self.config.get_ipv8_enabled():

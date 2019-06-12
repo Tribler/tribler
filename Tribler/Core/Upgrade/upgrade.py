@@ -8,7 +8,7 @@ from twisted.internet.defer import succeed
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
-from Tribler.Core.Upgrade.config_converter import convert_config_to_tribler71
+from Tribler.Core.Upgrade.config_converter import convert_config_to_tribler71, convert_config_to_tribler74
 from Tribler.Core.Upgrade.db72_to_pony import DispersyToPonyMigration, cleanup_pony_experimental_db, should_upgrade
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.simpledefs import NTFY_FINISHED, NTFY_STARTED, NTFY_UPGRADER, NTFY_UPGRADER_TICK
@@ -71,8 +71,9 @@ class TriblerUpgrader(object):
         Note that by default, upgrading is enabled in the config. It is then disabled
         after upgrading to Tribler 7.
         """
-
-        return self.upgrade_72_to_pony()
+        d = self.upgrade_72_to_pony()
+        self.upgrade_config_to_74()
+        return d
 
     def update_status(self, status_text):
         self.session.notifier.notify(NTFY_UPGRADER_TICK, NTFY_STARTED, None, status_text)
@@ -105,6 +106,12 @@ class TriblerUpgrader(object):
         def log_error(failure):
             self._logger.error("Error in Upgrader callback chain: %s", failure)
         return self._dtp72.do_migration().addCallbacks(finish_migration, log_error)
+
+    def upgrade_config_to_74(self):
+        """
+        This method performs actions necessary to upgrade the configuration files to Tribler 7.4.
+        """
+        convert_config_to_tribler74()
 
     def upgrade_config_to_71(self):
         """

@@ -412,7 +412,11 @@ class TestLibtorrentMgr(AbstractServer):
 
         mock_download = MockObject()
         mock_download.get_def = lambda: mock_tdef
-        mock_download.get_credit_mining = lambda: False
+
+        mock_config = MockObject()
+        mock_config.get_credit_mining = lambda: False
+        mock_download.config = mock_config
+
         self.tribler_session.get_download = lambda _: mock_download
         self.tribler_session.start_download_from_tdef = lambda tdef, _: MockObject()
 
@@ -458,7 +462,7 @@ class TestLibtorrentMgr(AbstractServer):
         self.ltmgr.metadata_tmpdir = tempfile.mkdtemp(suffix=u'tribler_metainfo_tmpdir')
 
         self.tribler_session.get_download = lambda _: None
-        self.tribler_session.get_downloads_pstate_dir = lambda: self.ltmgr.metadata_tmpdir
+        self.tribler_session.get_downloads_config_dir = lambda: self.ltmgr.metadata_tmpdir
 
         mock_lm = MockObject()
         mock_lm.ltmgr = self.ltmgr
@@ -474,8 +478,8 @@ class TestLibtorrentMgr(AbstractServer):
 
         download = self.ltmgr.start_download_from_magnet("magnet:?xt=urn:btih:" + ('1'*40))
 
-        basename = hexlify(download.get_def().get_infohash()).decode('utf-8') + '.state'
-        filename = os.path.join(download.session.get_downloads_pstate_dir(), basename)
+        basename = hexlify(download.get_def().get_infohash()).decode('utf-8') + '.conf'
+        filename = os.path.join(download.session.get_downloads_config_dir(), basename)
 
         self.assertTrue(os.path.isfile(filename))
 

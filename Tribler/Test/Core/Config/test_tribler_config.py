@@ -21,9 +21,9 @@ class TestTriblerConfig(TriblerCoreTest):
         super(TestTriblerConfig, self).setUp()
 
         state_dir = self.getStateDir()
-        TriblerConfig.get_default_state_dir = lambda _: state_dir
+        self.tribler_config = TriblerConfig(ConfigObj(configspec=CONFIG_SPEC_PATH, default_encoding='utf-8'))
+        self.tribler_config.set_state_dir(state_dir)
 
-        self.tribler_config = TriblerConfig()
         self.assertIsNotNone(self.tribler_config)
 
     def test_init_with_config(self):
@@ -51,7 +51,7 @@ class TestTriblerConfig(TriblerCoreTest):
         port = 4444
         self.tribler_config.set_anon_listen_port(port)
         self.tribler_config.write()
-        path = os.path.join(self.tribler_config.get_default_state_dir(), CONFIG_FILENAME)
+        path = os.path.join(self.tribler_config.get_state_dir(), CONFIG_FILENAME)
         read_config = TriblerConfig.load(path)
 
         read_config.validate()

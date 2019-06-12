@@ -1,15 +1,23 @@
 from __future__ import absolute_import
 
 import ast
+import base64
 import logging
 import os
+import re
 from glob import iglob
 
+from configobj import ConfigObj
+
+import libtorrent as lt
+
+from six import PY3
 from six.moves.configparser import DuplicateSectionError, MissingSectionHeaderError, NoSectionError, RawConfigParser
 
 from Tribler.Core.Config.tribler_config import TriblerConfig
+from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.exceptions import InvalidConfigException
-from Tribler.Core.simpledefs import STATEDIR_DLPSTATE_DIR
+from Tribler.Core.simpledefs import STATEDIR_CHECKPOINT_DIR
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +48,7 @@ def convert_config_to_tribler71(current_config, state_dir=None):
     # We also have to update all existing downloads, in particular, rename the section 'downloadconfig' to
     # 'download_defaults'.
     for _, filename in enumerate(iglob(
-            os.path.join(state_dir, STATEDIR_DLPSTATE_DIR, '*.state'))):
+            os.path.join(state_dir, STATEDIR_CHECKPOINT_DIR, '*.state'))):
         download_cfg = RawConfigParser()
         try:
             with open(filename) as cfg_file:
@@ -192,3 +200,46 @@ def add_libtribler_config(new_config, old_config):
                 logger.debug("The following field in the old libtribler.conf was wrong: %s", exc.args)
 
     return config
+
+
+def convert_config_to_tribler74(state_dir=None):
+    """
+    Convert the download config files to Tribler 7.4 format. The extensions will also be renamed from .state to .conf
+    """
+    state_dir = state_dir or TriblerConfig.get_default_state_dir()
+    for _, filename in enumerate(iglob(os.path.join(state_dir, STATEDIR_CHECKPOINT_DIR, '*.state'))):
+        old_config = CallbackConfigParser()
+        try:
+            old_config.read_file(filename)
+        except MissingSectionHeaderError:
+            logger.error("Removing download state file %s since it appears to be corrupt", filename)
+            os.remove(filename)
+
+        # We first need to fix the .state file such that it has the correct metainfo/resumedata
+        for section, option in [('state', 'metainfo'), ('state', 'engineresumedata')]:
+            value = old_config.get(section, option, literal_eval=False)
+            if PY3:
+                value = re.sub(r":[^b]('|\").*?[^\\]\1", lambda x: ': b' + x.group(0)[2:], value)
+                value = re.sub(r"[{| ]('|\").*?[^\\]\1:", lambda x: x.group()[:1] + 'b' + x.group()[1:], value)
+                value = re.sub(r"(\d+L)(,|}|])", lambda x: x.group(0)[:-2] + x.group(0)[-1:], value)
+            try:
+                value = ast.literal_eval(value)
+                old_config.set(section, option, base64.b64encode(lt.bencode(value)).decode('utf-8'))
+            except (ValueError, SyntaxError):
+                logger.error("Removing download state file %s since it could not be converted", filename)
+                os.remove(filename)
+                continue
+
+        # Remove dlstate since the same information is already stored in the resumedata
+        if old_config.has_option('state', 'dlstate'):
+            old_config.remove_option('state', 'dlstate')
+
+        new_config = ConfigObj(infile=filename[:-6] + '.conf', encoding='utf8')
+        for section in old_config.sections():
+            for key, _ in old_config.items(section):
+                val = old_config.get(section, key)
+                if section not in new_config:
+                    new_config[section] = {}
+                new_config[section][key] = val
+        new_config.write()
+        os.remove(filename)

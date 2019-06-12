@@ -6,7 +6,7 @@ from nose.tools import raises
 
 from twisted.internet.defer import inlineCallbacks
 
-from Tribler.Core.DownloadConfig import DownloadStartupConfig
+from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.Session import SOCKET_BLOCK_ERRORCODE
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.exceptions import OperationNotEnabledByConfigurationException
@@ -141,10 +141,10 @@ class TestSessionWithLibTorrent(TestSessionAsServer):
         Test whether removing a torrent id works.
         """
         torrent_def = TorrentDef.load(TORRENT_UBUNTU_FILE)
-        dcfg = DownloadStartupConfig()
+        dcfg = DownloadConfig()
         dcfg.set_dest_dir(self.getDestDir())
 
-        download = self.session.start_download_from_tdef(torrent_def, download_startup_config=dcfg, hidden=True)
+        download = self.session.start_download_from_tdef(torrent_def, download_config=dcfg, hidden=True)
 
         # Create a deferred which forwards the unhexlified string version of the download's infohash
         download_started = download.get_handle().addCallback(lambda handle: unhexlify(str(handle.info_hash())))

@@ -393,7 +393,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                 if self.tribler_session and self.tribler_session.config.get_libtorrent_enabled() else None
             if ltmgr:
                 for d, s in ltmgr.torrents.values():
-                    if s == ltmgr.get_session(d.get_hops()):
+                    if s == ltmgr.get_session(d.config.get_hops()):
                         d.get_handle().addCallback(lambda handle, download=d:
                                                    self.update_torrent(affected_peers, handle, download))
 
@@ -456,7 +456,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         for ds in dslist:
             download = ds.get_download()
-            hop_count = download.get_hops()
+            hop_count = download.config.get_hops()
             if hop_count > 0:
                 # Convert the real infohash to the infohash used for looking up introduction points
                 real_info_hash = download.get_def().get_infohash()
@@ -524,7 +524,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             if LooseVersion(self.tribler_session.lm.ltmgr.get_libtorrent_version()) < LooseVersion("1.2.0"):
                 download.add_peer(('1.1.1.1', 1024))
             else:
-                hops = download.get_hops()
+                hops = download.config.get_hops()
                 lt_listen_port = self.tribler_session.lm.ltmgr.get_session(hops).listen_port()
                 for session in self.socks_servers[hops - 1].sessions:
                     session.get_udp_socket().remote_udp_address = ("127.0.0.1", lt_listen_port)

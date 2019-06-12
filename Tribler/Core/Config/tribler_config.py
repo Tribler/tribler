@@ -8,11 +8,11 @@ import os
 
 from configobj import ConfigObj
 
-from six import text_type
+from six import text_type, PY3
 
 from validate import Validator
 
-from Tribler.Core.DownloadConfig import get_default_dest_dir
+from Tribler.Core.Config.download_config import get_default_dest_dir
 from Tribler.Core.Utilities.install_dir import get_lib_path
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.Utilities.unicode import ensure_unicode
@@ -20,7 +20,7 @@ from Tribler.Core.exceptions import InvalidConfigException
 from Tribler.Core.osutils import get_appstate_dir
 
 CONFIG_FILENAME = 'triblerd.conf'
-SPEC_FILENAME = 'config.spec'
+SPEC_FILENAME = 'tribler_config.spec'
 CONFIG_SPEC_PATH = os.path.join(get_lib_path(), 'Core', 'Config', SPEC_FILENAME)
 
 

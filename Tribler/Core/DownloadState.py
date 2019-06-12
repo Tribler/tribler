@@ -66,7 +66,7 @@ class DownloadState(object):
         if not self.lt_status:
             return (DLSTATUS_CIRCUITS if not self.download.session.lm.tunnel_community
                     or self.download.session.lm.tunnel_community.get_candidates(PEER_FLAG_EXIT_ANY)
-                    else DLSTATUS_EXIT_NODES) if self.download.get_hops() > 0 else DLSTATUS_WAITING4HASHCHECK
+                    else DLSTATUS_EXIT_NODES) if self.download.config.get_hops() > 0 else DLSTATUS_WAITING4HASHCHECK
         elif self.get_error():
             return DLSTATUS_STOPPED_ON_ERROR
         return DLSTATUS_MAP[self.lt_status.state] if not self.lt_status.paused else DLSTATUS_STOPPED
@@ -144,7 +144,7 @@ class DownloadState(object):
         """ Returns a list of booleans indicating whether we have completely
         received that piece of the content. The list of pieces for which
         we provide this info depends on which files were selected for download
-        using DownloadStartupConfig.set_selected_files().
+        using DownloadConfig.set_selected_files().
         @return A list of booleans
         """
         return self.lt_status.pieces
@@ -172,7 +172,7 @@ class DownloadState(object):
         return completion
 
     def get_selected_files(self):
-        selected_files = self.download.get_selected_files()
+        selected_files = self.download.config.get_selected_files()
         if len(selected_files) > 0:
             return selected_files
 

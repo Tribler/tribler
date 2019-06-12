@@ -26,7 +26,7 @@ from twisted.internet.defer import Deferred, fail, succeed
 from twisted.internet.task import LoopingCall
 from twisted.python.failure import Failure
 
-from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
+from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.Modules.dht_health_manager import DHTHealthManager
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
@@ -644,8 +644,7 @@ class LibtorrentMgr(TaskManager):
 
         assert tdef is not None, "tdef MUST not be None after loading torrent"
 
-        default_dl_config = DefaultDownloadStartupConfig.getInstance()
-        dscfg = default_dl_config.copy()
+        dscfg = DownloadConfig()
 
         if dconfig is not None:
             dscfg = dconfig
@@ -654,9 +653,9 @@ class LibtorrentMgr(TaskManager):
         if d:
             # If there is an existing credit mining download with the same infohash
             # then move to the user download directory and checkpoint the download immediately.
-            if d.get_credit_mining():
+            if d.config.get_credit_mining():
                 self.tribler_session.lm.credit_mining_manager.torrents.pop(hexlify(tdef.get_infohash()), None)
-                d.set_credit_mining(False)
+                d.config.set_credit_mining(False)
                 d.move_storage(dscfg.get_dest_dir())
                 d.checkpoint()
 
