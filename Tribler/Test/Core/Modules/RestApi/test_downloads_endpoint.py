@@ -507,12 +507,15 @@ class TestDownloadsEndpoint(AbstractApiTest):
         self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
 
         dest_dir = os.path.join(self.temporary_directory(), "existing")
+        print type(dest_dir)
+        print dest_dir
         os.mkdir(dest_dir)
         self.assertTrue(os.path.exists(dest_dir))
         data = {
             "state": "move_storage",
             "dest_dir": dest_dir
         }
+        print data
 
         def check_response(json_str_response):
             response_dict = json.loads(json_str_response)
@@ -662,7 +665,10 @@ class TestMetadataDownloadEndpoint(AbstractApiTest):
             hexed = hexlify(my_channel.serialized())[:-5] + "aaaaa"
             out_file.write(unhexlify(hexed))
 
+        print type(file_path)
+        print file_path
         post_data = {'uri': 'file:%s' % file_path, 'metadata_download': '1'}
+        print post_data
         expected_json = {'error': "Metadata has invalid signature"}
         self.should_check_equality = True
         return self.do_request('downloads', expected_code=400, request_type='PUT', post_data=post_data,

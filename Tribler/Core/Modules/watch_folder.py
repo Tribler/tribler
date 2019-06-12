@@ -45,13 +45,16 @@ class WatchFolder(TaskManager):
 
         # Make sure that we pass a str to os.walk
         watch_dir = self.session.config.get_watch_folder_path().encode('utf-8')
+        print type(watch_dir), watch_dir
 
         for root, _, files in os.walk(watch_dir):
             for name in files:
+                print type(name) , name
                 if not name.endswith(".torrent"):
                     continue
 
                 try:
+                    print type(os.path.join(root, name)), os.path.join(root, name)
                     tdef = TorrentDef.load_from_memory(fix_torrent(os.path.join(root, name)))
                 except:  # torrent appears to be corrupt
                     self.cleanup_torrent_file(root, name)

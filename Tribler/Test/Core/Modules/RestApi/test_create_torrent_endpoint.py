@@ -43,6 +43,8 @@ class TestMyChannelCreateTorrentEndpoint(AbstractApiTest):
             expected_tdef.metainfo["created by"] = tdef.metainfo['created by']
 
             self.assertEqual(dir(expected_tdef), dir(tdef))
+            bla = os.path.join(export_dir, "test_torrent.torrent")
+            print type(bla), bla
             self.assertTrue(os.path.exists(os.path.join(export_dir, "test_torrent.torrent")))
 
         post_data = {
