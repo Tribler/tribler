@@ -17,7 +17,8 @@ from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import NEW
 from Tribler.Core.Modules.MetadataStore.serialization import (
     ChannelMetadataPayload, DeletedMetadataPayload, SignedPayload, UnknownBlobTypeException)
 from Tribler.Core.Modules.MetadataStore.store import (
-    DELETED_METADATA, GOT_NEWER_VERSION, MetadataStore, UNKNOWN_CHANNEL, UNKNOWN_TORRENT, UPDATED_OUR_VERSION)
+    DELETED_METADATA, GOT_NEWER_VERSION, MetadataStore, NO_ACTION, UNKNOWN_CHANNEL, UNKNOWN_TORRENT,
+    UPDATED_OUR_VERSION)
 from Tribler.Test.Core.base_test import TriblerCoreTest
 
 
@@ -192,6 +193,32 @@ class TestMetadataStore(TriblerCoreTest):
         result = self.mds.process_payload(node_payload)
         self.assertEqual(UNKNOWN_CHANNEL, result[0][1])
         self.assertEqual(node_dict['metadata_type'], result[0][0].to_dict()['metadata_type'])
+
+    @db_session
+    def test_process_payload_ffa(self):
+        infohash = "1"*20
+        ffa_torrent = self.mds.TorrentMetadata.add_ffa_from_dict(dict(infohash=infohash, title='abc'))
+        ffa_payload = self.mds.TorrentMetadata._payload_class.from_signed_blob(ffa_torrent.serialized())
+        ffa_torrent.delete()
+
+        # Assert that FFA is never added to DB if there is already a signed entry with the same infohash
+        signed_md = self.mds.TorrentMetadata(infohash=infohash, title="sdfsdfsdf")
+        signed_md_payload = self.mds.TorrentMetadata._payload_class.from_signed_blob(signed_md.serialized())
+        self.assertEqual([(None, NO_ACTION)], self.mds.process_payload(ffa_payload))
+        signed_md.delete()
+
+        # Add an FFA from the payload
+        md, result = self.mds.process_payload(ffa_payload)[0]
+        self.assertEqual(UNKNOWN_TORRENT, result)
+        self.assertTrue(md)
+
+        # Assert that older FFAs are never replaced by newer ones with the same infohash
+        self.assertEqual([(None, NO_ACTION)], self.mds.process_payload(ffa_payload))
+
+        # Assert that FFA entry is replaced by a signed entry when we recieve one with the same infohash
+        self.mds.process_payload(signed_md_payload)
+        self.assertEqual(database_blob(signed_md_payload.signature),
+                         self.mds.TorrentMetadata.get(infohash=infohash).signature)
 
     @db_session
     def test_process_payload_merge_entries(self):

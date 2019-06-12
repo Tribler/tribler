@@ -15,6 +15,7 @@ from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
 
 import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.Modules.MetadataStore.OrmBindings.torrent_metadata import tdef_to_metadata_dict
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.utilities import fix_torrent, http_get, parse_magnetlink, unichar_string
 from Tribler.Core.exceptions import HttpError
@@ -67,7 +68,8 @@ class TorrentInfoEndpoint(resource.Resource):
                 return
 
             # Add the torrent to GigaChannel as a free-for-all entry, so others can search it
-            self.session.lm.mds.TorrentMetadata.add_ffa_from_tdef(TorrentDef.load_from_dict(metainfo))
+            self.session.lm.mds.TorrentMetadata.add_ffa_from_dict(
+                tdef_to_metadata_dict(TorrentDef.load_from_dict(metainfo)))
 
             # TODO(Martijn): store the stuff in a database!!!
             # TODO(Vadim): this means cache the downloaded torrent in a binary storage, like LevelDB

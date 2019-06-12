@@ -12,7 +12,7 @@ from pony.orm import db_session, desc, raw_sql, select
 from Tribler.Core.Category.Category import default_category_filter
 from Tribler.Core.Category.FamilyFilter import default_xxx_filter
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import COMMITTED, LEGACY_ENTRY, NEW, TODELETE, UPDATED
-from Tribler.Core.Modules.MetadataStore.serialization import NULL_KEY, REGULAR_TORRENT, TorrentMetadataPayload
+from Tribler.Core.Modules.MetadataStore.serialization import REGULAR_TORRENT, TorrentMetadataPayload
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
 from Tribler.Core.Utilities.utilities import is_channel_public_key, is_hex_string, is_infohash
 
@@ -59,12 +59,6 @@ def define_binding(db):
         _payload_class = TorrentMetadataPayload
 
         def __init__(self, *args, **kwargs):
-            # Free-for-all entries require special treatment
-            if "public_key" in kwargs and kwargs["public_key"] == NULL_KEY:
-                # To produce a relatively unique id_ we take a few bytes of the infohash and convert it to a number.
-                # abs is necessary as the conversion can produce a negative value, and we do not support that.
-                kwargs["id_"] = kwargs["id_"] if "id_" in kwargs else infohash_to_id(kwargs["infohash"])
-
             if "health" not in kwargs and "infohash" in kwargs:
                 kwargs["health"] = db.TorrentState.get(infohash=kwargs["infohash"]) or db.TorrentState(
                     infohash=kwargs["infohash"])
@@ -92,10 +86,19 @@ def define_binding(db):
 
         @classmethod
         @db_session
-        def add_ffa_from_tdef(cls, tdef):
-            # Ad this torrent as a free-for-all entry if it is unknown to GigaChannel
-            return cls.from_dict(dict(tdef_to_metadata_dict(tdef), public_key="", status=COMMITTED, id_=0)) if\
-                    not cls.exists(lambda g: g.infohash == database_blob(tdef.get_infohash())) else None
+        def add_ffa_from_dict(cls, ffa_dict):
+            # To produce a relatively unique id_ we take some bytes of the infohash and convert these to a number.
+            # abs is necessary as the conversion can produce a negative value, and we do not support that.
+            id_ = infohash_to_id(ffa_dict["infohash"])
+            # Check that this torrent is yet unknown to GigaChannel, and if there is no duplicate FFA entry.
+            # Test for a duplicate id_+public_key is necessary to account for a (highly improbabl
+            # e) situation when
+            # two entries have different infohashes but the same id_. We do not want people to exploit this.
+            if cls.exists(lambda g: (g.infohash == database_blob(ffa_dict["infohash"])) or (
+                    g.id_ == id_ and g.public_key == database_blob(""))):
+                return None
+            # Add the torrent as a free-for-all entry if it is unknown to GigaChannel
+            return cls.from_dict(dict(ffa_dict, public_key="", status=COMMITTED, id_=id_))
 
         @classmethod
         def search_keyword(cls, query, lim=100):

@@ -15,6 +15,7 @@ from six.moves import xrange
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import TODELETE
+from Tribler.Core.Modules.MetadataStore.OrmBindings.torrent_metadata import tdef_to_metadata_dict
 from Tribler.Core.Modules.MetadataStore.serialization import NULL_KEY
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.TorrentDef import TorrentDef
@@ -55,14 +56,21 @@ class TestTorrentMetadata(TriblerCoreTest):
         self.assertTrue(torrent_metadata.serialized())
 
     @db_session
-    def test_create_ffa_from_tdef(self):
+    def test_create_ffa_from_dict(self):
         """
-        Test creating a free-for-all torrent entries
+        Test creating a free-for-all torrent entry
         """
         tdef = TorrentDef.load(TORRENT_UBUNTU_FILE)
-        self.mds.TorrentMetadata.add_ffa_from_tdef(tdef)
-        self.assertEqual(self.mds.TorrentMetadata.select(lambda g: g.public_key == database_blob("")).count(), 1)
 
+        # Make sure that FFA entry with the infohash that is already known to GigaChannel cannot be created
+        signed_entry = self.mds.TorrentMetadata.from_dict(tdef_to_metadata_dict(tdef))
+        self.mds.TorrentMetadata.add_ffa_from_dict(tdef_to_metadata_dict(tdef))
+        self.assertEqual(self.mds.TorrentMetadata.select(lambda g: g.public_key == database_blob("")).count(), 0)
+
+        signed_entry.delete()
+        # Create FFA entry
+        self.mds.TorrentMetadata.add_ffa_from_dict(tdef_to_metadata_dict(tdef))
+        self.assertEqual(self.mds.TorrentMetadata.select(lambda g: g.public_key == database_blob("")).count(), 1)
 
     @db_session
     def test_get_magnet(self):
