@@ -34,7 +34,7 @@ class TestConfigUpgrade70to71(TriblerCoreTest):
         """
         Test upgrading a libtribler configuration from 7.0 to 7.1
         """
-        os.environ['TSTATEDIR'] = self.session_base_dir
+        os.environ['TSTATEDIR'] = self.session_base_dir.encode('utf-8')
         old_config = RawConfigParser()
         old_config.read(os.path.join(self.CONFIG_PATH, "libtribler70.conf"))
         new_config = TriblerConfig()
