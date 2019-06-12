@@ -86,6 +86,8 @@ class CreateTorrentEndpoint(resource.Resource):
         export_dir = None
         if 'export_dir' in parameters and parameters['export_dir']:
             export_dir = parameters['export_dir'][0]
+            print type export_dir, export_dir
+            export_dir = ensure_unicode(export_dir, 'utf-8')
 
         from Tribler.Core.version import version_id
         params['created by'] = '%s version: %s' % ('Tribler', version_id)
