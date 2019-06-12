@@ -109,6 +109,10 @@ class TriblerContentModel(RemoteTableModel):
     column_width = {}
     column_flags = {}
     column_display_filters = {}
+    column_tooltip_filters = {
+        u'state': lambda data: data,
+        u'votes': lambda data: "{0:.0%}".format(float(data)) if data else None,
+    }
 
     def __init__(self, hide_xxx=False):
         RemoteTableModel.__init__(self, parent=None)
@@ -138,12 +142,23 @@ class TriblerContentModel(RemoteTableModel):
     def flags(self, index):
         return self.column_flags[self.columns[index.column()]]
 
+    def filter_item_txt(self, txt_filter, index, show_default=True):
+        column = self.columns[index.column()]
+        data = self.data_items[index.row()].get(column, u'')
+
+        if column in txt_filter:
+            display_txt = txt_filter.get(column, str(data))(data)
+        elif show_default:
+            display_txt = data
+        else:
+            display_txt = None
+        return display_txt
+
     def data(self, index, role):
         if role == Qt.DisplayRole or role == Qt.EditRole:
-            column = self.columns[index.column()]
-            data = self.data_items[index.row()][column] if column in self.data_items[index.row()] else u''
-            return self.column_display_filters.get(column, str(data))(data) \
-                if column in self.column_display_filters else data
+            return self.filter_item_txt(self.column_display_filters, index)
+        elif role == Qt.ToolTipRole:
+            return self.filter_item_txt(self.column_tooltip_filters, index, show_default=False)
 
     def reset(self):
         self.item_uid_map.clear()
@@ -157,17 +172,6 @@ class TriblerContentModel(RemoteTableModel):
             self.dataChanged.emit(self.index(row, 0), self.index(row, len(self.columns)), [])
 
 
-class StateTooltipMixin(object):
-    def data(self, index, role):
-        # Return tooltip for state indicator column
-        if role == Qt.ToolTipRole:
-            if index.column() == self.column_position[u'state']:
-                return self.data_items[index.row()].get(u'state')
-            return None
-        else:
-            return super(StateTooltipMixin, self).data(index, role)
-
-
 class VotesAlignmentMixin(object):
     def data(self, index, role):
         # Return tooltip for state indicator column
@@ -179,7 +183,7 @@ class VotesAlignmentMixin(object):
             return super(VotesAlignmentMixin, self).data(index, role)
 
 
-class SearchResultsContentModel(StateTooltipMixin, VotesAlignmentMixin, TriblerContentModel):
+class SearchResultsContentModel(VotesAlignmentMixin, TriblerContentModel):
     """
     Model for a list that shows search results.
     """
@@ -205,12 +209,13 @@ class SearchResultsContentModel(StateTooltipMixin, VotesAlignmentMixin, TriblerC
         u'updated': lambda timestamp: pretty_date(timestamp) if timestamp > BITTORRENT_BIRTHDAY else 'N/A'
     }
 
+
     def __init__(self, **kwargs):
         TriblerContentModel.__init__(self, **kwargs)
         self.type_filter = ''
 
 
-class ChannelsContentModel(StateTooltipMixin, VotesAlignmentMixin, TriblerContentModel):
+class ChannelsContentModel(VotesAlignmentMixin, TriblerContentModel):
     """
     This model represents a list of channels that can be displayed in a table view.
     """
