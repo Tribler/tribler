@@ -31,6 +31,7 @@ class TestMyChannelCreateTorrentEndpoint(AbstractApiTest):
         torrent_path = os.path.join(self.files_path, "video.avi.torrent")
         expected_tdef = TorrentDef.load(torrent_path)
         export_dir = self.temporary_directory()
+        self.assertTrue(os.path.exists(export_dir))
 
         def verify_torrent(body):
             response = json.twisted_loads(body)
