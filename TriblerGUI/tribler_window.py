@@ -707,6 +707,8 @@ class TriblerWindow(QMainWindow):
                 self.fetch_settings()
                 self.dialog = ConfirmationDialog.show_error(self, "Download Error", "Tribler settings is not available\
                                                                    yet. Fetching it now. Please try again later.")
+                # By re-adding the download uri to the pending list, the request is re-processed
+                # when the settings is received
                 self.pending_uri_requests.append(uri)
                 return
             # Clear any previous dialog if exists
