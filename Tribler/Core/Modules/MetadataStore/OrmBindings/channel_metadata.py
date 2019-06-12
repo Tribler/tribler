@@ -23,6 +23,7 @@ from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, Ch
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
 from Tribler.Core.exceptions import DuplicateChannelIdError, DuplicateTorrentFileError
+from Tribler.util import cast_to_unicode_utf8
 
 CHANNEL_DIR_NAME_LENGTH = 32  # Its not 40 so it could be distinguished from infohash
 BLOB_EXTENSION = '.mdblob'
@@ -534,9 +535,9 @@ def define_binding(db):
 
             # Build list of .torrents to process
             for f in filename_generator:
-                filepath = os.path.join(torrents_dir, f)
-                filename = str(filepath) if sys.platform == 'win32' else filepath.decode('utf-8')
-                if os.path.isfile(filepath) and filename.endswith(u'.torrent'):
+                filepath = cast_to_unicode_utf8(os.path.join(cast_to_unicode_utf8(torrents_dir),
+                                                             cast_to_unicode_utf8(f)))
+                if os.path.isfile(filepath) and cast_to_unicode_utf8(f).endswith(u'.torrent'):
                     torrents_list.append(filepath)
 
             for chunk in chunks(torrents_list, 100):  # 100 is a reasonable chunk size for commits

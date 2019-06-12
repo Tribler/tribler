@@ -79,7 +79,7 @@ class BaseTestCase(unittest.TestCase):
 
     def temporary_directory(self, suffix=''):
         random_string = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(6))
-        temp = os.path.join(TESTS_DIR, "temp", self.__class__.__name__ + suffix + random_string)
+        temp = os.path.join(TESTS_DIR, u"temp\xf0", self.__class__.__name__ + suffix + random_string)
         self._tempdirs.append(temp)
         os.makedirs(temp)
         return temp
@@ -104,7 +104,7 @@ class AbstractServer(BaseTestCase):
     def setUp(self):
         self._logger = logging.getLogger(self.__class__.__name__)
 
-        self.session_base_dir = self.temporary_directory(suffix="_tribler_test_session_")
+        self.session_base_dir = self.temporary_directory(suffix=u"_tribler_test_session_")
         self.state_dir = os.path.join(self.session_base_dir, u"dot.Tribler\xf0")
         self.dest_dir = os.path.join(self.session_base_dir, u"TriblerDownloads\xf0")
 
