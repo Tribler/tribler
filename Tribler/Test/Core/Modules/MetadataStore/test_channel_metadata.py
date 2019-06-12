@@ -168,15 +168,6 @@ class TestChannelMetadata(TriblerCoreTest):
         self.assertEqual(channel_metadata, channel_result)
 
     @db_session
-    def test_get_channel_with_id(self):
-        """
-        Test retrieving a channel with a specific ID
-        """
-        self.assertIsNone(self.mds.ChannelMetadata.get_channel_with_id('a' * 20))
-        channel_metadata = self.mds.ChannelMetadata.create_channel('test', 'test')
-        self.assertIsNotNone(self.mds.ChannelMetadata.get_channel_with_id(channel_metadata.public_key))
-
-    @db_session
     def test_add_metadata_to_channel(self):
         """
         Test whether adding new torrents to a channel works as expected

@@ -17,13 +17,11 @@ from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
 from twisted.internet.task import deferLater
 
-from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import COMMITTED, LEGACY_ENTRY, NEW
+from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import LEGACY_ENTRY, NEW
 from Tribler.Core.Modules.MetadataStore.OrmBindings.torrent_metadata import infohash_to_id
 from Tribler.Core.Modules.MetadataStore.serialization import REGULAR_TORRENT
 from Tribler.Core.Modules.MetadataStore.store import BETA_DB_VERSIONS, CURRENT_DB_VERSION
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
-
-BATCH_SIZE = 10000
 
 DISCOVERED_CONVERSION_STARTED = "discovered_conversion_started"
 CHANNELS_CONVERSION_STARTED = "channels_conversion_started"
@@ -162,7 +160,7 @@ class DispersyToPonyMigration(object):
         connection.close()
         return result
 
-    def get_old_torrents(self, personal_channel_only=False, batch_size=BATCH_SIZE, offset=0,
+    def get_old_torrents(self, personal_channel_only=False, batch_size=10000, offset=0,
                          sign=False):
         connection = sqlite3.connect(self.tribler_db)
         cursor = connection.cursor()

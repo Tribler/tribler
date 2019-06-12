@@ -22,8 +22,8 @@ from Tribler.Core.Modules.MetadataStore.serialization import (
 from Tribler.Core.exceptions import InvalidSignatureException
 
 
-BETA_DB_VERSIONS = [0, 1, 2, 3]
-CURRENT_DB_VERSION = 4
+BETA_DB_VERSIONS = [0, 1, 2, 3, 4]
+CURRENT_DB_VERSION = 5
 
 CLOCK_STATE_FILE = "clock.state"
 
@@ -430,10 +430,6 @@ class MetadataStore(object):
             return result
 
         return result
-
-    @db_session
-    def get_my_channel(self):
-        return self.ChannelMetadata.get_channel_with_id(self.my_key.pub().key_to_bin()[10:])
 
     @db_session
     def get_num_channels(self):

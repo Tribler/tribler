@@ -103,7 +103,7 @@ class MyChannelEndpoint(BaseMyChannelEndpoint):
         my_channel_pk = my_key.pub().key_to_bin()
 
         # Do not allow to add a channel twice
-        if self.session.lm.mds.get_my_channel():
+        if self.session.lm.mds.ChannelMetadata.get_my_channel():
             request.setResponseCode(http.CONFLICT)
             return json.twisted_dumps({"error": "channel already exists"})
 
@@ -242,7 +242,7 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
 
         def _on_torrent_def_loaded(torrent_def):
             with db_session:
-                channel = self.session.lm.mds.get_my_channel()
+                channel = self.session.lm.mds.ChannelMetadata.get_my_channel()
                 channel.add_torrent_to_channel(torrent_def, extra_info)
             return 1
 
