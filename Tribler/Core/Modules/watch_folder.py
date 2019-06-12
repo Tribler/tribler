@@ -44,7 +44,7 @@ class WatchFolder(TaskManager):
             return
 
         # Make sure that we pass a str to os.walk
-        watch_dir = self.session.config.get_watch_folder_path().encode('raw_unicode_escape')
+        watch_dir = self.session.config.get_watch_folder_path().encode('utf-8')
 
         for root, _, files in os.walk(watch_dir):
             for name in files:

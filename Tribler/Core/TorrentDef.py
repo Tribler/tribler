@@ -43,6 +43,17 @@ def escape_as_utf8(string, encoding='utf8'):
             return string.encode('utf8', 'ignore').decode('utf8')
 
 
+def convert_dict_unicode_to_bytes(orig_dict):
+    result = {}
+    for k, v in orig_dict.items():
+        k = k.encode('utf-8') if isinstance(k, text_type) else k
+        if isinstance(v, dict):
+            result[k] = convert_dict_unicode_to_bytes(v)
+        else:
+            result[k] = v.encode('utf-8') if isinstance(v, text_type) else v
+    return result
+
+
 class TorrentDef(object):
     """
     This object acts as a wrapper around some libtorrent metadata.
@@ -60,7 +71,14 @@ class TorrentDef(object):
         self.metainfo = metainfo
         self.files_list = []
         self.infohash = None
+
+
         if metainfo is not None:
+            # This is a workaround to avoid feeding unicode objects to Libtorrent.
+            # In fact, this conforms to the 'Unicode Sandwich' model for handling unicode in Python.
+            # However, it is too bad that the low-level Libtorrent wrapper does not handle unicode.
+            metainfo = convert_dict_unicode_to_bytes(metainfo)
+
             # First, make sure the passed metainfo is valid
             try:
                 lt.torrent_info(metainfo)

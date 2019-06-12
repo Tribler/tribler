@@ -15,9 +15,9 @@ from validate import Validator
 from Tribler.Core.DownloadConfig import get_default_dest_dir
 from Tribler.Core.Utilities.install_dir import get_lib_path
 from Tribler.Core.Utilities.network_utils import get_random_port
+from Tribler.Core.Utilities.unicode import ensure_unicode
 from Tribler.Core.exceptions import InvalidConfigException
 from Tribler.Core.osutils import get_appstate_dir
-from Tribler.util import cast_to_unicode_utf8
 
 CONFIG_FILENAME = 'triblerd.conf'
 SPEC_FILENAME = 'config.spec'
@@ -152,7 +152,7 @@ class TriblerConfig(object):
         self._state_dir = state_dir
 
     def get_state_dir(self):
-        return cast_to_unicode_utf8(self._state_dir)
+        return ensure_unicode(self._state_dir, 'utf-8')
 
     def set_trustchain_keypair_filename(self, keypairfilename):
         self.config['trustchain']['ec_keypair_filename'] = self.norm_path(keypairfilename)

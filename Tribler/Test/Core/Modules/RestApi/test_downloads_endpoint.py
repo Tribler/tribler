@@ -19,6 +19,7 @@ from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.common import TESTS_DATA_DIR, TESTS_DIR, UBUNTU_1504_INFOHASH
 from Tribler.Test.tools import trial_timeout
 
+
 def get_hex_infohash(tdef):
     return hexlify(tdef.get_infohash())
 
@@ -654,7 +655,7 @@ class TestMetadataDownloadEndpoint(AbstractApiTest):
         """
         Test whether adding metadata with an invalid signature results in an error
         """
-        file_path = os.path.join(self.session_base_dir, "invalid.mdblob")
+        file_path = os.path.join(self.session_base_dir, u"invalid.mdblob")
         with open(file_path, "wb") as out_file:
             with db_session:
                 my_channel = self.session.lm.mds.ChannelMetadata.create_channel('test', 'test')
@@ -662,7 +663,7 @@ class TestMetadataDownloadEndpoint(AbstractApiTest):
             hexed = hexlify(my_channel.serialized())[:-5] + "aaaaa"
             out_file.write(unhexlify(hexed))
 
-        post_data = {'uri': 'file:%s' % file_path, 'metadata_download': '1'}
+        post_data = {u'uri': u'file:%s' % file_path, u'metadata_download': u'1'}
         expected_json = {'error': "Metadata has invalid signature"}
         self.should_check_equality = True
         return self.do_request('downloads', expected_code=400, request_type='PUT', post_data=post_data,

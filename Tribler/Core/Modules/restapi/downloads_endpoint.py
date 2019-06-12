@@ -22,6 +22,7 @@ from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, Ch
 from Tribler.Core.Modules.MetadataStore.store import UNKNOWN_CHANNEL, UPDATED_OUR_VERSION
 from Tribler.Core.Modules.restapi.util import return_handled_exception
 from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
+from Tribler.Core.Utilities.unicode import ensure_unicode
 from Tribler.Core.Utilities.utilities import unichar_string
 from Tribler.Core.exceptions import InvalidSignatureException
 from Tribler.Core.simpledefs import DLMODE_VOD, DOWNLOAD, UPLOAD, dlstatus_strings
@@ -338,10 +339,10 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
             request.write(json.twisted_dumps({"error": unichar_string(error.getErrorMessage())}))
             request.finish()
 
-        uri = parameters['uri'][0]
+        uri = ensure_unicode(parameters['uri'][0], 'utf-8')
         if uri.startswith("file:"):
+            filename = url2pathname(uri[5:])
             if uri.endswith(".mdblob"):
-                filename = url2pathname(uri[5:].encode('utf-8') if isinstance(uri, six.text_type) else uri[5:])
                 try:
                     payload = ChannelMetadataPayload.from_file(filename)
                 except IOError:
@@ -362,9 +363,9 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                                 {"started": True, "infohash": hexlify(node.infohash)})
                     return json.twisted_dumps({"error": "Already subscribed"})
             else:
-                download_uri = u"file:%s" % url2pathname(uri[5:]).decode('utf-8')
+                download_uri = u"file:%s" % filename
         else:
-            download_uri = unquote_plus(cast_to_unicode_utf8(uri))
+            download_uri = unquote_plus(uri)
         download_deferred = self.session.start_download_from_uri(download_uri, download_config)
         download_deferred.addCallback(download_added)
         download_deferred.addErrback(on_error)
@@ -442,7 +443,7 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
 
     def render_PATCH(self, request):
         """
-        .. http:patch:: /download/(string: infohash)
+        .. http:patch:: /downloads/(string: infohash)
 
         A PATCH request to this endpoint will update a download in Tribler.
 
@@ -526,7 +527,7 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
             elif state == "recheck":
                 download.force_recheck()
             elif state == "move_storage":
-                dest_dir = parameters['dest_dir'][0]
+                dest_dir = cast_to_unicode_utf8(parameters['dest_dir'][0])
                 if not os.path.exists(dest_dir):
                     return json.twisted_dumps({"error": "Target directory (%s) does not exist" % dest_dir})
                 download.move_storage(dest_dir)

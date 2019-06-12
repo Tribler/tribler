@@ -2,7 +2,6 @@ from __future__ import absolute_import, division
 
 import os
 import random
-import sys
 from binascii import hexlify
 from datetime import datetime
 
@@ -15,13 +14,12 @@ import lz4.frame
 from pony import orm
 from pony.orm import db_session, raw_sql, select
 
-from Tribler.Core.Category.Category import default_category_filter
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import (
     COMMITTED, LEGACY_ENTRY, NEW, PUBLIC_KEY_LEN, TODELETE, UPDATED)
 from Tribler.Core.Modules.MetadataStore.OrmBindings.torrent_metadata import tdef_to_metadata_dict
 from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, ChannelMetadataPayload, REGULAR_TORRENT
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
+from Tribler.Core.Utilities.unicode import ensure_unicode
 from Tribler.Core.exceptions import DuplicateChannelIdError, DuplicateTorrentFileError
 
 CHANNEL_DIR_NAME_LENGTH = 32  # Its not 40 so it could be distinguished from infohash
@@ -534,9 +532,9 @@ def define_binding(db):
 
             # Build list of .torrents to process
             for f in filename_generator:
-                filepath = os.path.join(torrents_dir, f)
-                filename = str(filepath) if sys.platform == 'win32' else filepath.decode('utf-8')
-                if os.path.isfile(filepath) and filename.endswith(u'.torrent'):
+                filepath = ensure_unicode(
+                    os.path.join(ensure_unicode(torrents_dir, 'utf-8'), ensure_unicode(f, 'utf-8')), 'utf-8')
+                if os.path.isfile(filepath) and ensure_unicode(f, 'utf-8').endswith(u'.torrent'):
                     torrents_list.append(filepath)
 
             for chunk in chunks(torrents_list, 100):  # 100 is a reasonable chunk size for commits

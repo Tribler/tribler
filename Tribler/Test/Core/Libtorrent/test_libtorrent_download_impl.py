@@ -7,6 +7,7 @@ import shutil
 import libtorrent as lt
 from libtorrent import bdecode, bencode
 
+from six import text_type
 from six.moves import xrange
 
 from twisted.internet.defer import Deferred, inlineCallbacks, succeed
@@ -165,7 +166,7 @@ class TestLibtorrentDownloadImpl(TestAsServer):
 
         pstate = CallbackConfigParser()
         pstate.add_section("state")
-        pstate.set("state", "engineresumedata", {"save_path": str(os.path.abspath(self.state_dir))})
+        pstate.set("state", "engineresumedata", {"save_path": text_type(os.path.abspath(self.state_dir))})
         yield impl.network_create_engine_wrapper(pstate)
 
         pstate = CallbackConfigParser()

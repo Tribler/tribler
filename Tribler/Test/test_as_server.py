@@ -104,7 +104,7 @@ class AbstractServer(BaseTestCase):
     def setUp(self):
         self._logger = logging.getLogger(self.__class__.__name__)
 
-        self.session_base_dir = self.temporary_directory(suffix="_tribler_test_session_")
+        self.session_base_dir = self.temporary_directory(suffix=u"_tribler_test_session_")
         self.state_dir = os.path.join(self.session_base_dir, u"dot.Tribler")
         self.dest_dir = os.path.join(self.session_base_dir, u"TriblerDownloads")
 

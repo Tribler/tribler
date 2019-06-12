@@ -32,11 +32,11 @@ from Tribler.Core.Libtorrent import checkHandleAndSynchronize
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities import maketorrent
 from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
+from Tribler.Core.Utilities.unicode import ensure_unicode
 from Tribler.Core.exceptions import SaveResumeDataError
 from Tribler.Core.osutils import fix_filebasename
-from Tribler.Core.simpledefs import DLMODE_NORMAL, DLMODE_VOD, DLSTATUS_SEEDING, DLSTATUS_STOPPED, \
-    PERSISTENTSTATE_CURRENTVERSION, dlstatus_strings
-from Tribler.util import cast_to_unicode_utf8
+from Tribler.Core.simpledefs import (
+    DLMODE_NORMAL, DLMODE_VOD, DLSTATUS_SEEDING, DLSTATUS_STOPPED, PERSISTENTSTATE_CURRENTVERSION, dlstatus_strings)
 
 if sys.platform == "win32":
     try:
@@ -300,7 +300,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                     # Rewrite save_path as a global path, if it is given as a relative path
                     if "save_path" in resume_data and not os.path.isabs(resume_data["save_path"]):
                         resume_data["save_path"] = six.text_type(
-                            os.path.join(self.state_dir, cast_to_unicode_utf8(resume_data["save_path"])))
+                            os.path.join(self.state_dir, ensure_unicode(resume_data["save_path"], 'utf-8')))
                     atp["resume_data"] = lt.bencode(resume_data)
             else:
                 atp["url"] = self.tdef.get_url() or "magnet:?xt=urn:btih:" + hexlify(self.tdef.get_infohash())
@@ -517,9 +517,10 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
 
         # Make save_path relative if the torrent is saved in the Tribler state directory
         if self.state_dir and 'save_path' in resume_data and os.path.abspath(resume_data['save_path']):
-            if self.state_dir == os.path.commonprefix([cast_to_unicode_utf8(resume_data['save_path']), self.state_dir]):
+            if self.state_dir == os.path.commonprefix([ensure_unicode(resume_data['save_path'], 'utf-8'),
+                                                       self.state_dir]):
                 resume_data['save_path'] = six.text_type(
-                    os.path.relpath(cast_to_unicode_utf8(resume_data['save_path']), self.state_dir))
+                    os.path.relpath(ensure_unicode(resume_data['save_path'], 'utf-8'), self.state_dir))
 
         self.pstate_for_restart.set('state', 'engineresumedata', resume_data)
         self._logger.debug("%s get resume data %s", hexlify(resume_data['info-hash']), resume_data)
@@ -603,7 +604,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         self.checkpoint()
 
     def on_file_renamed_alert(self, alert):
-        unwanteddir_abs = os.path.join(self.get_save_path().decode('utf-8'), self.unwanted_directory_name)
+        unwanteddir_abs = os.path.join(ensure_unicode(self.get_save_path(), 'utf-8'), self.unwanted_directory_name)
         if os.path.exists(unwanteddir_abs) and all(self.handle.file_priorities()):
             shutil.rmtree(unwanteddir_abs, ignore_errors=True)
 
