@@ -429,7 +429,13 @@ class Session(object):
                 self.load_checkpoint()
             self.readable_status = STATE_READABLE_STARTED
 
-        return startup_deferred.addCallback(load_checkpoint)
+        def start_gigachannel_manager(_):
+            # GigaChannel Manager should be started *after* resuming the downloads,
+            # because it depends on the states of torrent downloads
+            # TODO: move GigaChannel torrents into a separate session
+            if self.lm.gigachannel_manager:
+                self.lm.gigachannel_manager.start()
+        return startup_deferred.addCallback(load_checkpoint).addCallback(start_gigachannel_manager)
 
     def shutdown(self):
         """
