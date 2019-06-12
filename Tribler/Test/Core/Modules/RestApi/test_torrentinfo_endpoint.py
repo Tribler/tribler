@@ -48,7 +48,7 @@ class TestTorrentInfoEndpoint(AbstractApiTest):
             json_data = json.loads(data)
             metainfo_dict = json.loads(unhexlify(json_data['metainfo']), encoding='latin-1')
             # FIXME: !! HTTP query for torrent produces dicts with unicode. TorrentDef creation can't handle unicode.!!
-            #self.assertTrue(TorrentDef.load_from_dict(metainfo_dict))
+            self.assertTrue(TorrentDef.load_from_dict(metainfo_dict))
             self.assertTrue('info' in metainfo_dict)
 
         self.should_check_equality = False
@@ -63,8 +63,8 @@ class TestTorrentInfoEndpoint(AbstractApiTest):
         yield self.do_request('torrentinfo?uri=%s' % path, expected_code=500)
 
         # FIXME: !!! HTTP query for torrent produces dicts with unicode. TorrentDef creation can't handle unicode. !!!
-        #path = "http://localhost:%d/ubuntu.torrent" % file_server_port
-        #yield self.do_request('torrentinfo?uri=%s' % path, expected_code=200).addCallback(verify_valid_dict)
+        path = "http://localhost:%d/ubuntu.torrent" % file_server_port
+        yield self.do_request('torrentinfo?uri=%s' % path, expected_code=200).addCallback(verify_valid_dict)
 
         def get_metainfo(infohash, callback, **_):
             with open(os.path.join(TESTS_DATA_DIR, "bak_single.torrent"), mode='rb') as torrent_file:
