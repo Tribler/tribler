@@ -105,8 +105,8 @@ class AbstractServer(BaseTestCase):
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.session_base_dir = self.temporary_directory(suffix="_tribler_test_session_")
-        self.state_dir = os.path.join(self.session_base_dir, u"dot.Tribler")
-        self.dest_dir = os.path.join(self.session_base_dir, u"TriblerDownloads")
+        self.state_dir = os.path.join(self.session_base_dir, u"dot.Tribler\xf0")
+        self.dest_dir = os.path.join(self.session_base_dir, u"TriblerDownloads\xf0")
 
         # Wait until the reactor has started
         reactor_deferred = Deferred()
