@@ -532,6 +532,12 @@ class TriblerWindow(QMainWindow):
         if 'error' in settings:
             raise RuntimeError(TriblerRequestManager.get_message_from_error(settings))
 
+        # If there is any pending dialog (likely download dialog or error dialog of setting not available),
+        # close the dialog
+        if self.dialog:
+            self.dialog.close_dialog()
+            self.dialog = None
+
         self.tribler_settings = settings['settings']
 
         # Set the video server port
@@ -699,8 +705,11 @@ class TriblerWindow(QMainWindow):
             # If tribler settings is not available, fetch the settings and inform the user to try again.
             if not self.tribler_settings:
                 self.fetch_settings()
-                ConfirmationDialog.show_error(self, "Download Error", "Tribler settings is not available yet. "
-                                                                      "Fetching it now. Please try again later.")
+                self.dialog = ConfirmationDialog.show_error(self, "Download Error", "Tribler settings is not available\
+                                                                   yet. Fetching it now. Please try again later.")
+                # By re-adding the download uri to the pending list, the request is re-processed
+                # when the settings is received
+                self.pending_uri_requests.append(uri)
                 return
             # Clear any previous dialog if exists
             if self.dialog:

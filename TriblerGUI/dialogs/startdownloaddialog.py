@@ -40,6 +40,7 @@ class StartDownloadDialog(DialogContainer):
 
         self.download_uri = download_uri
         self.has_metainfo = False
+        self.metainfo_timeout = False
 
         uic.loadUi(get_ui_file_path('startdownloaddialog.ui'), self.dialog_widget)
 
@@ -50,6 +51,7 @@ class StartDownloadDialog(DialogContainer):
         self.dialog_widget.download_button.clicked.connect(self.on_download_clicked)
         self.dialog_widget.select_all_files_button.clicked.connect(self.on_all_files_selected_clicked)
         self.dialog_widget.deselect_all_files_button.clicked.connect(self.on_all_files_deselected_clicked)
+        self.dialog_widget.loading_files_label.clicked.connect(self.on_reload_torrent_info)
 
         self.dialog_widget.destination_input.setStyleSheet("""
         QComboBox {
@@ -138,7 +140,8 @@ class StartDownloadDialog(DialogContainer):
 
         if 'error' in metainfo:
             if metainfo['error'] == 'timeout':
-                self.dialog_widget.loading_files_label.setText("Timeout when trying to fetch files.")
+                self.dialog_widget.loading_files_label.setText("Timeout when trying to fetch files. Click to retry.")
+                self.metainfo_timeout = True
             elif 'code' in metainfo['error'] and metainfo['error']['code'] == 'IOError':
                 self.dialog_widget.loading_files_label.setText("Unable to read torrent file data")
             else:
@@ -153,7 +156,8 @@ class StartDownloadDialog(DialogContainer):
 
         # Show if the torrent already exists in the downloads
         if 'download_exists' in metainfo and metainfo['download_exists']:
-            self.dialog_widget.existing_download_info_label.setText("Note: this torrent already exists in the Downloads")
+            self.dialog_widget.existing_download_info_label.setText("Note: this torrent already exists in "
+                                                                    "the Downloads")
         else:
             self.dialog_widget.existing_download_info_label.setText("")
 
@@ -173,6 +177,12 @@ class StartDownloadDialog(DialogContainer):
         self.on_main_window_resize()
 
         self.received_metainfo.emit(metainfo)
+
+    def on_reload_torrent_info(self):
+        if self.metainfo_timeout:
+            self.dialog_widget.loading_files_label.setText("Trying to load files again. Please wait ...")
+            self.metainfo_timeout = False
+            self.perform_files_request()
 
     def on_browse_dir_clicked(self):
         chosen_dir = QFileDialog.getExistingDirectory(self.window(), "Please select the destination directory of your "

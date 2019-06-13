@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import logging
 import os
+import subprocess
 import sys
 import threading
 import time
@@ -16,11 +17,13 @@ from PyQt5.QtWidgets import QTableView
 from six.moves import xrange
 
 from Tribler.Core.Utilities.network_utils import get_random_port
+from Tribler.Test.common import TORRENT_UBUNTU_FILE
 
 import TriblerGUI
 import TriblerGUI.core_manager as core_manager
 import TriblerGUI.defs
 from TriblerGUI.dialogs.feedbackdialog import FeedbackDialog
+from TriblerGUI.tribler_app import TriblerApplication
 from TriblerGUI.tribler_window import TriblerWindow
 from TriblerGUI.widgets.home_recommended_item import HomeRecommendedItem
 from TriblerGUI.widgets.loading_list_item import LoadingListItem
@@ -30,8 +33,9 @@ if os.environ.get("TEST_GUI") == "yes":
     core_manager.START_FAKE_API = True
     TriblerGUI.defs.DEFAULT_API_PORT = api_port
 
-    app = QApplication(sys.argv)
+    app = TriblerApplication("triblerapp", sys.argv)
     window = TriblerWindow(api_port=api_port)
+    app.set_activation_window(window)
     QTest.qWaitForWindowExposed(window)
 else:
     window = None
@@ -222,6 +226,29 @@ class TriblerGUITest(AbstractTriblerGUITest):
     """
     GUI tests for the GUI written in PyQt. These methods are using the QTest framework to simulate mouse clicks.
     """
+
+    @skipIf(sys.platform == "win32", "This test is unreliable on Windows")
+    def test_run_tribler(self):
+        """
+        Tests running a second instance of Tribler with a torrent file. Simulates user clicking on a Ubuntu torrent
+        file.
+        """
+        def on_app_message(msg):
+            self.assertEqual(msg, "file:%s" % TORRENT_UBUNTU_FILE)
+
+        app.messageReceived.connect(on_app_message)
+
+        # Start a second Tribler instance with a torrent file
+        tribler_executable = "%s/run_tribler.py" % os.path.dirname(os.path.dirname(TriblerGUI.__file__))
+        tribler_instance_2 = subprocess.Popen(['python', tribler_executable, TORRENT_UBUNTU_FILE])
+        _process_stream = tribler_instance_2.communicate()[0]
+        self.assertEqual(tribler_instance_2.returncode, 1)
+
+        QTest.qWait(200)
+
+        torrent_name_in_dialog = window.dialog.dialog_widget.torrent_name_label.text()
+        self.assertEqual(torrent_name_in_dialog, TORRENT_UBUNTU_FILE)
+        self.screenshot(window, name="start_download_dialog_on_startup")
 
     def test_home_page_torrents(self):
         QTest.mouseClick(window.left_menu_button_home, Qt.LeftButton)
@@ -419,8 +446,8 @@ class TriblerGUITest(AbstractTriblerGUITest):
 
     @skipIf(sys.platform == "win32", "This test is unreliable on Windows")
     def test_add_download_url(self):
-        window.on_add_torrent_from_url()
         self.go_to_and_wait_for_downloads()
+        window.on_add_torrent_from_url()
         old_count = window.downloads_list.topLevelItemCount()
         self.screenshot(window, name="add_torrent_url_dialog")
         window.dialog.dialog_widget.dialog_input.setText("http://test.url/test.torrent")
