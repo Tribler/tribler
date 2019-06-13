@@ -657,7 +657,7 @@ class TestMetadataDownloadEndpoint(AbstractApiTest):
         """
         Test whether adding metadata with an invalid signature results in an error
         """
-        file_path = os.path.join(self.session_base_dir, "invalid.mdblob")
+        file_path = os.path.join(self.session_base_dir, u"invalid.mdblob")
         with open(file_path, "wb") as out_file:
             with db_session:
                 my_channel = self.session.lm.mds.ChannelMetadata.create_channel('test', 'test')
@@ -667,7 +667,7 @@ class TestMetadataDownloadEndpoint(AbstractApiTest):
 
         print type(file_path)
         print file_path
-        post_data = {'uri': 'file:%s' % file_path, 'metadata_download': '1'}
+        post_data = {u'uri': u'file:%s' % file_path, u'metadata_download': u'1'}
         print post_data
         expected_json = {'error': "Metadata has invalid signature"}
         self.should_check_equality = True
