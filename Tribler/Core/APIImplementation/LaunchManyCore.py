@@ -308,7 +308,8 @@ class TriblerLaunchMany(TaskManager):
 
         if self.session.config.get_chant_enabled():
             self.gigachannel_manager = GigaChannelManager(self.session)
-            self.gigachannel_manager.start()
+            # GigaChannel Manager startup routines are started asynchronously by Session
+            # after resuming Libtorrent downloads.
 
         if self.api_manager:
             self.session.readable_status = STATE_START_API_ENDPOINTS
