@@ -341,8 +341,8 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
 
         uri = ensure_unicode(parameters['uri'][0], 'utf-8')
         if uri.startswith("file:"):
+            filename = url2pathname(uri[5:])
             if uri.endswith(".mdblob"):
-                filename = url2pathname(uri[5:])
                 try:
                     payload = ChannelMetadataPayload.from_file(filename)
                 except IOError:
@@ -363,9 +363,9 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                                 {"started": True, "infohash": hexlify(node.infohash)})
                     return json.twisted_dumps({"error": "Already subscribed"})
             else:
-                download_uri = u"file:%s" % url2pathname(uri[5:]).decode('utf-8')
+                download_uri = u"file:%s" % filename
         else:
-            download_uri = unquote_plus(cast_to_unicode_utf8(uri))
+            download_uri = unquote_plus(uri)
         download_deferred = self.session.start_download_from_uri(download_uri, download_config)
         download_deferred.addCallback(download_added)
         download_deferred.addErrback(on_error)

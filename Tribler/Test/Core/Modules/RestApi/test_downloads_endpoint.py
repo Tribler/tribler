@@ -19,6 +19,7 @@ from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.common import TESTS_DATA_DIR, TESTS_DIR, UBUNTU_1504_INFOHASH
 from Tribler.Test.tools import trial_timeout
 
+
 def get_hex_infohash(tdef):
     return hexlify(tdef.get_infohash())
 
