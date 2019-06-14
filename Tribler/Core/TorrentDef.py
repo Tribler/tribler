@@ -72,12 +72,12 @@ class TorrentDef(object):
         self.files_list = []
         self.infohash = None
 
-
         if metainfo is not None:
             # This is a workaround to avoid feeding unicode objects to Libtorrent.
             # In fact, this conforms to the 'Unicode Sandwich' model for handling unicode in Python.
             # However, it is too bad that the low-level Libtorrent wrapper does not handle unicode.
-            metainfo = convert_dict_unicode_to_bytes(metainfo)
+            if isinstance(metainfo, dict):
+                metainfo = convert_dict_unicode_to_bytes(metainfo)
 
             # First, make sure the passed metainfo is valid
             try:
