@@ -11,7 +11,7 @@ from twisted.web.server import NOT_DONE_YET
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, REGULAR_TORRENT
 from Tribler.Core.Modules.restapi.metadata_endpoint import BaseMetadataEndpoint
-from Tribler.util import cast_to_unicode_utf8
+from Tribler.Core.Utilities.unicode import ensure_unicode
 
 
 class SearchEndpoint(BaseMetadataEndpoint):
@@ -178,7 +178,7 @@ class SearchCompletionsEndpoint(resource.Resource):
             request.setResponseCode(http.BAD_REQUEST)
             return json.twisted_dumps({"error": "query parameter missing"})
 
-        keywords = cast_to_unicode_utf8(request.args[b'q'][0]).lower()
+        keywords = ensure_unicode(request.args[b'q'][0], 'utf-8').lower()
         # TODO: add XXX filtering for completion terms
         results = self.session.lm.mds.TorrentMetadata.get_auto_complete_terms(keywords, max_terms=5)
         return json.twisted_dumps({"completions": results})

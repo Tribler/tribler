@@ -19,9 +19,10 @@ from Tribler.Core.CreditMining.CreditMiningPolicy import InvestmentPolicy, MB
 from Tribler.Core.CreditMining.CreditMiningSource import ChannelSource
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.TorrentDef import TorrentDefNoMetainfo
-from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_STOPPED, \
-    DLSTATUS_STOPPED_ON_ERROR, NTFY_CREDIT_MINING, NTFY_ERROR, UPLOAD
-from Tribler.Core.simpledefs import DOWNLOAD
+from Tribler.Core.Utilities.unicode import ensure_unicode
+from Tribler.Core.simpledefs import (
+    DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR, DOWNLOAD, NTFY_CREDIT_MINING,
+    NTFY_ERROR, UPLOAD)
 
 
 class CreditMiningTorrent(object):
@@ -122,7 +123,7 @@ class CreditMiningManager(TaskManager):
                 error_message = u"Credit mining directory [%s]  does not exist. Tribler will re-create the " \
                                 u"directory and resume again.<br/>If you wish to disable credit mining entirely, " \
                                 u"please go to Settings >> ANONYMITY >> Token mining. " % \
-                                self.settings.save_path.encode('utf-8')
+                                ensure_unicode(self.settings.save_path, 'utf-8')
             except OSError:
                 self.shutdown()
                 error_message = u"Credit mining directory [%s] was deleted or does not exist and Tribler could not " \

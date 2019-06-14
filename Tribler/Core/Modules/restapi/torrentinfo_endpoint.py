@@ -77,6 +77,8 @@ class TorrentInfoEndpoint(resource.Resource):
 
             # Check if the torrent is already in the downloads
             metainfo['download_exists'] = infohash in self.session.lm.downloads
+            # FIXME: json.dumps garbles binary data that is used by the 'pieces' field
+            # However, this is fine as long as the GUI does not use this field.
             encoded_metainfo = hexlify(json.dumps(metainfo, ensure_ascii=False))
 
             request.write(json.twisted_dumps({"metainfo": encoded_metainfo}))
