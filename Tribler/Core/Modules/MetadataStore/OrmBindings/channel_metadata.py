@@ -12,7 +12,7 @@ from libtorrent import add_files, bencode, create_torrent, file_storage, set_pie
 import lz4.frame
 
 from pony import orm
-from pony.orm import db_session, raw_sql, select
+from pony.orm import db_session, desc, raw_sql, select
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import (
     COMMITTED, LEGACY_ENTRY, NEW, PUBLIC_KEY_LEN, TODELETE, UPDATED)
@@ -122,7 +122,7 @@ def define_binding(db):
             :param payload: The channel metadata, in serialized form.
             :return: The ChannelMetadata object that contains the latest version of the channel
             """
-            channel = ChannelMetadata.get_channel_with_id(payload.public_key)
+            channel = ChannelMetadata.get(public_key=database_blob(payload.public_key), id_=payload.origin_id)
             if not channel:
                 return ChannelMetadata.from_payload(payload)
 
@@ -133,7 +133,10 @@ def define_binding(db):
         @classmethod
         @db_session
         def get_my_channel(cls):
-            return ChannelMetadata.get_channel_with_id(cls._my_key.pub().key_to_bin()[10:])
+            # return ChannelMetadata.get(public_key=database_blob(cls._my_key.pub().key_to_bin()[10:]), id_=0)
+            # This is a workaround to fetch the most current personal channel
+            # It should be replaced with the above line as soon as we move to nested channels
+            return cls.get_recent_channel_with_public_key(cls._my_key.pub().key_to_bin()[10:])
 
         @classmethod
         @db_session
@@ -144,7 +147,7 @@ def define_binding(db):
             :param description: The description of the channel
             :return: The channel metadata
             """
-            if ChannelMetadata.get_channel_with_id(cls._my_key.pub().key_to_bin()[10:]):
+            if ChannelMetadata.exists(lambda g: g.public_key == database_blob(cls._my_key.pub().key_to_bin()[10:])):
                 raise DuplicateChannelIdError()
 
             my_channel = cls(id_=ROOT_CHANNEL_ID, public_key=database_blob(cls._my_key.pub().key_to_bin()[10:]),
@@ -366,16 +369,6 @@ def define_binding(db):
 
             return True
 
-        @classmethod
-        @db_session
-        def get_channel_with_id(cls, channel_id):
-            """
-            Fetch a channel with a specific id.
-            :param channel_id: The ID of the channel to fetch.
-            :return: the ChannelMetadata object, or None if it is not available.
-            """
-            return cls.get(public_key=database_blob(channel_id))
-
         @db_session
         def drop_channel_contents(self):
             """
@@ -394,6 +387,12 @@ def define_binding(db):
 
         @classmethod
         @db_session
+        def get_recent_channel_with_public_key(cls, public_key):
+            return cls.select(lambda g: g.public_key == database_blob(public_key)).sort_by(
+                lambda g: desc(g.id_)).first() or None
+
+        @classmethod
+        @db_session
         def get_channel_with_dirname(cls, dirname):
             # It is impossible to use LIKE queries on BLOBs, so we have to use comparisons
             def extend_to_bitmask(txt):
@@ -405,7 +404,7 @@ def define_binding(db):
             dirname_binmask_end = "x'" + extend_to_bitmask(binmask_plus_one) + "'"
 
             sql = "g.public_key >= " + dirname_binmask_start + " AND g.public_key < " + dirname_binmask_end
-            return orm.get(g for g in cls if raw_sql(sql))
+            return orm.select(g for g in cls if raw_sql(sql)).first()
 
         @classmethod
         @db_session
@@ -502,10 +501,12 @@ def define_binding(db):
             :param infohash - infohash of the download.
             :return: Channel title as a string, prefixed with 'OLD:' for older versions
             """
-            try:
-                channel = cls.get_channel_with_dirname(name)
-            except UnicodeEncodeError:
-                channel = cls.get_channel_with_infohash(infohash)
+            channel = cls.get_channel_with_infohash(infohash)
+            if not channel:
+                try:
+                    channel = cls.get_channel_with_dirname(name)
+                except UnicodeEncodeError:
+                    channel = None
 
             if not channel:
                 return name
