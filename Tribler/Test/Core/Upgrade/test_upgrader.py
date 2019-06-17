@@ -64,6 +64,6 @@ class TestUpgrader(AbstractUpgrader):
         yield self.upgrader.run()
         mds = MetadataStore(new_database_path, channels_dir, self.session.trustchain_keypair)
         with db_session:
-            self.assertEqual(mds.TorrentMetadata.select().count(), 3)
-            self.assertEqual(mds.ChannelMetadata.select().count(), 1)
+            self.assertEqual(mds.TorrentMetadata.select().count(), 0)
+            self.assertEqual(mds.ChannelMetadata.select().count(), 0)
         mds.shutdown()
