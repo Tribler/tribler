@@ -40,7 +40,7 @@ MOCK_MODULES = ['twisted', 'twisted.web', 'twisted.web.error', 'twisted.web.serv
                 'twisted.internet.ssl', 'twisted.internet.task', 'twisted.internet.threads',
                 'twisted.python', 'twisted.python.failure', 'twisted.python.threadable', 'twisted.internet.base',
                 'twisted.internet.error', 'twisted.internet.protocol', 'libtorrent', 'treq',
-                'Tribler.community.tunnel.crypto.cryptowrapper', 'Tribler.community.market.community',
+                'Tribler.community.tunnel.crypto.cryptowrapper',
                 'psutil', 'meliae', 'libnacl',
                 'decorator', 'libnacl.dual', 'libnacl.sign', 'libnacl.encode', 'libnacl.public', 'networkx',
                 'netifaces', 'ipv8.messaging.anonymization.tunnel', 'networkx', 'networkx.readwrite']

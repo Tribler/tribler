@@ -4,6 +4,8 @@ import os
 from binascii import unhexlify
 from threading import RLock
 
+from anydex.core.community import MarketCommunity
+
 from ipv8.attestation.trustchain.community import TrustChainCommunity
 
 from twisted.internet.defer import Deferred, inlineCallbacks
@@ -19,7 +21,6 @@ from Tribler.Test.Core.base_test import MockObject, TriblerCoreTest
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.tools import trial_timeout
 from Tribler.community.gigachannel.community import GigaChannelCommunity
-from Tribler.community.market.community import MarketCommunity
 
 
 class TestLaunchManyCore(TriblerCoreTest):

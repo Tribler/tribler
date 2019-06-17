@@ -8,6 +8,8 @@ from binascii import hexlify, unhexlify
 from collections import Counter
 from distutils.version import LooseVersion
 
+from anydex.wallet.bandwidth_block import TriblerBandwidthBlock
+
 from ipv8.attestation.trustchain.block import EMPTY_PK
 from ipv8.messaging.anonymization.caches import CreateRequestCache
 from ipv8.messaging.anonymization.community import message_to_payload
@@ -22,7 +24,6 @@ from ipv8.peerdiscovery.network import Network
 
 from twisted.internet.defer import Deferred, inlineCallbacks, succeed
 
-from Tribler.Core.Modules.wallet.bandwidth_block import TriblerBandwidthBlock
 from Tribler.Core.Socks5.server import Socks5Server
 from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, DLSTATUS_METADATA, DLSTATUS_SEEDING, DLSTATUS_STOPPED,
                                      NTFY_CREATED, NTFY_EXTENDED, NTFY_IP_RECREATE, NTFY_JOINED, NTFY_REMOVE,

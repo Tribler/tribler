@@ -1,5 +1,8 @@
 from __future__ import absolute_import
 
+from anydex.restapi.root_endpoint import RootEndpoint as AnyDexRootEndpoint
+from anydex.restapi.wallets_endpoint import WalletsEndpoint
+
 from ipv8.REST.root_endpoint import RootEndpoint as IPV8RootEndpoint
 
 from twisted.web import resource
@@ -9,7 +12,6 @@ from Tribler.Core.Modules.restapi.debug_endpoint import DebugEndpoint
 from Tribler.Core.Modules.restapi.downloads_endpoint import DownloadsEndpoint
 from Tribler.Core.Modules.restapi.events_endpoint import EventsEndpoint
 from Tribler.Core.Modules.restapi.libtorrent_endpoint import LibTorrentEndpoint
-from Tribler.Core.Modules.restapi.market_endpoint import MarketEndpoint
 from Tribler.Core.Modules.restapi.metadata_endpoint import MetadataEndpoint
 from Tribler.Core.Modules.restapi.mychannel_endpoint import MyChannelEndpoint
 from Tribler.Core.Modules.restapi.search_endpoint import SearchEndpoint
@@ -21,7 +23,6 @@ from Tribler.Core.Modules.restapi.torrentinfo_endpoint import TorrentInfoEndpoin
 from Tribler.Core.Modules.restapi.trustchain_endpoint import TrustchainEndpoint
 from Tribler.Core.Modules.restapi.trustview_endpoint import TrustViewEndpoint
 from Tribler.Core.Modules.restapi.upgrader_endpoint import UpgraderEndpoint
-from Tribler.Core.Modules.restapi.wallets_endpoint import WalletsEndpoint
 
 
 class RootEndpoint(resource.Resource):
@@ -59,8 +60,6 @@ class RootEndpoint(resource.Resource):
             b"trustchain": TrustchainEndpoint,
             b"trustview": TrustViewEndpoint,
             b"statistics": StatisticsEndpoint,
-            b"market": MarketEndpoint,
-            b"wallets": WalletsEndpoint,
             b"libtorrent": LibTorrentEndpoint,
             b"torrentinfo": TorrentInfoEndpoint,
             b"metadata": MetadataEndpoint,
@@ -73,5 +72,10 @@ class RootEndpoint(resource.Resource):
 
         if self.session.config.get_ipv8_enabled():
             self.putChild(b"ipv8", IPV8RootEndpoint(self.session.lm.ipv8))
+
+        if self.session.config.get_market_community_enabled():
+            self.putChild(b"market", AnyDexRootEndpoint(self.session.lm.ipv8, enable_ipv8_endpoints=False))
+
+        self.putChild(b"wallets", WalletsEndpoint(self.session.lm.ipv8))
 
         self.getChildWithDefault(b"search", None).events_endpoint = self.events_endpoint
