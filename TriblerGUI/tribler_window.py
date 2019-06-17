@@ -1036,8 +1036,7 @@ class TriblerWindow(QMainWindow):
         self.dialog = ConfirmationDialog(self, "Abort the conversion of old channels",
                                          "The upgrade procedure is now converting torrents in channels "
                                          "collected by the previous installation of Tribler.\n\n"
-                                         "Are you sure you want to abort the conversion process?\n"
-                                         "(Your personal channel will be converted anyway.)",
+                                         "Are you sure you want to abort the conversion process?\n",
                                          [('ABORT', BUTTON_TYPE_CONFIRM),
                                           ('CONTINUE', BUTTON_TYPE_NORMAL)])
         self.dialog.button_clicked.connect(self.on_skip_conversion_dialog)
