@@ -159,3 +159,7 @@ TRUST_GRAPH_PEER_LEGENDS = u"( <span style='color:%s'>\u2B24 Good </span> " \
 CONTEXT_MENU_WIDTH = 200
 
 BITTORRENT_BIRTHDAY = 994032000
+
+# Timeout for metainfo request
+METAINFO_MAX_RETRIES = 3
+METAINFO_TIMEOUT = 2000
