@@ -17,6 +17,7 @@ from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
 from twisted.internet.task import deferLater
 
+from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import BLOB_EXTENSION
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import LEGACY_ENTRY, NEW
 from Tribler.Core.Modules.MetadataStore.OrmBindings.torrent_metadata import infohash_to_id
 from Tribler.Core.Modules.MetadataStore.serialization import REGULAR_TORRENT, int2time, time2int
@@ -261,7 +262,18 @@ class DispersyToPonyMigration(object):
                                      offset=0, message="Converting personal channel torrents.")
 
             with db_session:
-                self.mds.ChannelMetadata.get_my_channel().consolidate_channel_torrent()
+                my_channel = self.mds.ChannelMetadata.get_my_channel()
+                folder = os.path.join(my_channel._channels_dir, my_channel.dir_name)
+
+                # We check if we need to re-create the channel dir in case it was deleted for some reason
+                if not os.path.isdir(folder):
+                    os.makedirs(folder)
+                for filename in os.listdir(folder):
+                    file_path = os.path.join(folder, filename)
+                    # We only remove mdblobs and leave the rest as it is
+                    if filename.endswith(BLOB_EXTENSION) or filename.endswith(BLOB_EXTENSION + '.lz4'):
+                        os.unlink(file_path)
+                my_channel.commit_channel_torrent()
 
         with db_session:
             v = self.mds.MiscData.get_for_update(name=CONVERSION_FROM_72_PERSONAL)
@@ -317,7 +329,8 @@ class DispersyToPonyMigration(object):
                         if torrent and health:
                             torrent.health.set(**health)
                     except:
-                        pass
+                        self._logger.warning("Error while converting torrent entry: %s %s", text_type(torrent_dict),
+                                             text_type(health))
             batch_end_time = datetime.datetime.now() - batch_start_time
 
             elapsed = (datetime.datetime.utcnow() - start_time).total_seconds()

@@ -157,6 +157,7 @@ def define_binding(db):
             my_channel.sign()
             return my_channel
 
+        @db_session
         def consolidate_channel_torrent(self):
             """
             Delete the channel dir contents and create it anew.
@@ -164,7 +165,8 @@ def define_binding(db):
             :param key: The public/private key, used to sign the data
             """
 
-            self.commit_channel_torrent()
+            # Cleanup entries marked for deletion
+            self.deleted_contents.delete(bulk=True)
 
             folder = os.path.join(self._channels_dir, self.dir_name)
             # We check if we need to re-create the channel dir in case it was deleted for some reason
