@@ -166,6 +166,7 @@ class DispersyToPonyMigration(object):
                          sign=False):
         connection = sqlite3.connect(self.tribler_db)
         cursor = connection.cursor()
+        cursor.execute("PRAGMA temp_store = 2")
 
         personal_channel_filter = ""
         if self.personal_channel_id:

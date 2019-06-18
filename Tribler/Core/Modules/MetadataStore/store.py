@@ -130,6 +130,7 @@ class MetadataStore(object):
             def sqlite_disable_sync(_, connection):
                 cursor = connection.cursor()
                 cursor.execute("PRAGMA synchronous = 0")
+                cursor.execute("PRAGMA temp_store = 2")
             # pylint: enable=unused-variable
 
         self.MiscData = misc.define_binding(self._db)
