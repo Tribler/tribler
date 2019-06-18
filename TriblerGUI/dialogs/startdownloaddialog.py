@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from binascii import unhexlify
 
 from PyQt5 import uic
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import QTimer, Qt, pyqtSignal
 from PyQt5.QtWidgets import QFileDialog, QSizePolicy, QTreeWidgetItem
 
 from six.moves import xrange
@@ -11,6 +11,7 @@ from six.moves.urllib.parse import unquote_plus
 
 import Tribler.Core.Utilities.json_util as json
 
+from TriblerGUI.defs import METAINFO_MAX_RETRIES, METAINFO_TIMEOUT
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.dialogs.dialogcontainer import DialogContainer
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
@@ -40,7 +41,8 @@ class StartDownloadDialog(DialogContainer):
 
         self.download_uri = download_uri
         self.has_metainfo = False
-        self.metainfo_timeout = False
+        self.metainfo_fetch_timer = None
+        self.metainfo_retries = 0
 
         uic.loadUi(get_ui_file_path('startdownloaddialog.ui'), self.dialog_widget)
 
@@ -134,14 +136,31 @@ class StartDownloadDialog(DialogContainer):
         self.request_mgr.perform_request("torrentinfo?uri=%s" % quote_plus_unicode(self.download_uri),
                                          self.on_received_metainfo, capture_errors=False)
 
+        if self.metainfo_retries <= METAINFO_MAX_RETRIES:
+            loading_message = "Loading torrent files..." if not self.metainfo_retries else \
+                "Timeout in fetching files. Retrying (%s/%s)" % (self.metainfo_retries, METAINFO_MAX_RETRIES)
+            self.dialog_widget.loading_files_label.setText(loading_message)
+
+            self.metainfo_fetch_timer = QTimer()
+            self.metainfo_fetch_timer.timeout.connect(self.perform_files_request)
+            self.metainfo_fetch_timer.setSingleShot(True)
+            self.metainfo_fetch_timer.start(METAINFO_TIMEOUT)
+
+            self.metainfo_retries += 1
+
     def on_received_metainfo(self, metainfo):
         if not metainfo or not self:
             return
 
         if 'error' in metainfo:
             if metainfo['error'] == 'timeout':
-                self.dialog_widget.loading_files_label.setText("Timeout when trying to fetch files. Click to retry.")
-                self.metainfo_timeout = True
+                # If it failed to load metainfo for max number of times, show an error message in red.
+                if self.metainfo_retries > METAINFO_MAX_RETRIES:
+                    self.dialog_widget.loading_files_label.setStyleSheet("color:#ff0000;")
+                    self.dialog_widget.loading_files_label.setText("Failed to load files. Click to retry again.")
+                    return
+                self.perform_files_request()
+
             elif 'code' in metainfo['error'] and metainfo['error']['code'] == 'IOError':
                 self.dialog_widget.loading_files_label.setText("Unable to read torrent file data")
             else:
@@ -161,6 +180,7 @@ class StartDownloadDialog(DialogContainer):
         else:
             self.dialog_widget.existing_download_info_label.setText("")
 
+        self.dialog_widget.files_list_view.clear()
         for filename in files:
             item = DownloadFileTreeWidgetItem(self.dialog_widget.files_list_view)
             item.setText(0, '/'.join(filename['path']).encode('raw_unicode_escape'))
@@ -179,9 +199,13 @@ class StartDownloadDialog(DialogContainer):
         self.received_metainfo.emit(metainfo)
 
     def on_reload_torrent_info(self):
-        if self.metainfo_timeout:
-            self.dialog_widget.loading_files_label.setText("Trying to load files again. Please wait ...")
-            self.metainfo_timeout = False
+        """
+        This method is called when user clicks the QLabel text showing loading or error message. Here, we reset
+        the number of retries to fetch the metainfo. Note color of QLabel is also reset to white.
+        """
+        if self.metainfo_retries > METAINFO_MAX_RETRIES:
+            self.dialog_widget.loading_files_label.setStyleSheet("color:#ffffff;")
+            self.metainfo_retries = 0
             self.perform_files_request()
 
     def on_browse_dir_clicked(self):
