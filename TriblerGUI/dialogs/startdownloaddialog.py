@@ -1,18 +1,17 @@
 from __future__ import absolute_import
 
-import time
 from binascii import unhexlify
 
 from PyQt5 import uic
-from PyQt5.QtCore import Qt, pyqtSignal, QTimer
+from PyQt5.QtCore import QTimer, Qt, pyqtSignal
 from PyQt5.QtWidgets import QFileDialog, QSizePolicy, QTreeWidgetItem
 
 from six.moves import xrange
 from six.moves.urllib.parse import unquote_plus
 
 import Tribler.Core.Utilities.json_util as json
-from TriblerGUI.defs import METAINFO_TIMEOUT, METAINFO_MAX_RETRIES
 
+from TriblerGUI.defs import METAINFO_MAX_RETRIES, METAINFO_TIMEOUT
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.dialogs.dialogcontainer import DialogContainer
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
