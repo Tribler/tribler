@@ -17,9 +17,10 @@ from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
 from twisted.internet.task import deferLater
 
+from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import BLOB_EXTENSION
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import LEGACY_ENTRY, NEW
 from Tribler.Core.Modules.MetadataStore.OrmBindings.torrent_metadata import infohash_to_id
-from Tribler.Core.Modules.MetadataStore.serialization import REGULAR_TORRENT
+from Tribler.Core.Modules.MetadataStore.serialization import REGULAR_TORRENT, int2time, time2int
 from Tribler.Core.Modules.MetadataStore.store import BETA_DB_VERSIONS, CURRENT_DB_VERSION
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
 
@@ -72,6 +73,7 @@ class DispersyToPonyMigration(object):
         self.tribler_db = tribler_db
         self.mds = None
         self.shutting_down = False
+        self.conversion_start_timestamp_int = time2int(datetime.datetime.utcnow())
 
         self.personal_channel_id = None
         self.personal_channel_title = None
@@ -172,49 +174,58 @@ class DispersyToPonyMigration(object):
                                       (" %i " % self.personal_channel_id)
 
         torrents = []
+        batch_not_empty = False # This is a dumb way to indicate that this batch got zero entries from DB
+
         for tracker_url, channel_id, name, infohash, length, creation_date, torrent_id, category, num_seeders, \
             num_leechers, last_tracker_check in \
                 cursor.execute(
                     self.select_full + personal_channel_filter + " group by infohash" +
                     (" LIMIT " + str(batch_size) + " OFFSET " + str(offset))):
+            batch_not_empty = True
             # check if name is valid unicode data
             try:
                 name = text_type(name)
             except UnicodeDecodeError:
                 continue
 
-            try:
-                if len(base64.decodestring(infohash)) != 20:
-                    continue
-                if not torrent_id or int(torrent_id) == 0:
-                    continue
 
-                if not length:
+            try:
+                if (len(base64.decodestring(infohash)) != 20) or \
+                        (not torrent_id or int(torrent_id) == 0) or \
+                        (not length or (int(length) <= 0) or (int(length) > (1 << 45))) or \
+                        not name:
                     continue
 
                 infohash = base64.decodestring(infohash)
 
+                torrent_date = datetime.datetime.utcfromtimestamp(creation_date or 0)
+                torrent_date = torrent_date if 0 <= time2int(torrent_date) <= self.conversion_start_timestamp_int \
+                    else int2time(0)
                 torrent_dict = {
                     "status": NEW,
                     "infohash": infohash,
                     "size": int(length),
-                    "torrent_date": datetime.datetime.utcfromtimestamp(creation_date or 0),
+                    "torrent_date": torrent_date,
                     "title": name or '',
                     "tags": category or '',
                     "tracker_info": tracker_url or '',
                     "xxx": int(category == u'xxx')}
                 if not sign:
                     torrent_dict.update({"origin_id": infohash_to_id(channel_id)})
+                seeders = int(num_seeders or 0)
+                leechers = int(num_leechers or 0)
+                last_tracker_check = int(last_tracker_check or 0)
                 health_dict = {
-                    "seeders": int(num_seeders or 0),
-                    "leechers": int(num_leechers or 0),
-                    "last_check": int(last_tracker_check or 0)}
+                    "seeders": seeders,
+                    "leechers": leechers,
+                    "last_check": last_tracker_check
+                } if (last_tracker_check >= 0 and seeders >= 0 and leechers >= 0) else None
                 torrents.append((torrent_dict, health_dict))
             except:
                 continue
 
         connection.close()
-        return torrents
+        return torrents if batch_not_empty else None
 
     @inlineCallbacks
     def convert_personal_channel(self):
@@ -248,10 +259,21 @@ class DispersyToPonyMigration(object):
             with db_session:
                 self.mds.ChannelMetadata.create_channel(title=self.personal_channel_title, description='')
             yield self.convert_async(add_to_pony, get_old_stuff, total_to_convert,
-                                     offset=0, message="Converting old torrents.")
+                                     offset=0, message="Converting personal channel torrents.")
 
             with db_session:
-                self.mds.ChannelMetadata.get_my_channel().consolidate_channel_torrent()
+                my_channel = self.mds.ChannelMetadata.get_my_channel()
+                folder = os.path.join(my_channel._channels_dir, my_channel.dir_name)
+
+                # We check if we need to re-create the channel dir in case it was deleted for some reason
+                if not os.path.isdir(folder):
+                    os.makedirs(folder)
+                for filename in os.listdir(folder):
+                    file_path = os.path.join(folder, filename)
+                    # We only remove mdblobs and leave the rest as it is
+                    if filename.endswith(BLOB_EXTENSION) or filename.endswith(BLOB_EXTENSION + '.lz4'):
+                        os.unlink(file_path)
+                my_channel.commit_channel_torrent()
 
         with db_session:
             v = self.mds.MiscData.get_for_update(name=CONVERSION_FROM_72_PERSONAL)
@@ -292,23 +314,23 @@ class DispersyToPonyMigration(object):
         start = 0 + offset
         elapsed = 1
         while start < total_to_convert:
-            batch = get_old_stuff(batch_size=batch_size, offset=offset)
+            batch = get_old_stuff(batch_size=batch_size, offset=start)
 
-            if not batch or self.shutting_down:
+            if batch is None or self.shutting_down:
                 break
 
-            end = start + len(batch)
+            end = start + batch_size
 
             batch_start_time = datetime.datetime.now()
-            try:
-                with db_session:
-                    for (t, _) in batch:
-                        try:
-                            add_to_pony(t)
-                        except (TransactionIntegrityError, CacheIndexError):
-                            pass
-            except (TransactionIntegrityError, CacheIndexError):
-                pass
+            with db_session:
+                for (torrent_dict, health) in batch:
+                    try:
+                        torrent = add_to_pony(torrent_dict)
+                        if torrent and health:
+                            torrent.health.set(**health)
+                    except:
+                        self._logger.warning("Error while converting torrent entry: %s %s", text_type(torrent_dict),
+                                             text_type(health))
             batch_end_time = datetime.datetime.now() - batch_start_time
 
             elapsed = (datetime.datetime.utcnow() - start_time).total_seconds()
@@ -374,7 +396,6 @@ class DispersyToPonyMigration(object):
                     break
                 try:
                     self.mds.ChannelMetadata(**c)
-
                 except:
                     continue
 

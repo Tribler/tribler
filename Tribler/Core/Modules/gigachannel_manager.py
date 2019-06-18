@@ -47,7 +47,7 @@ class GigaChannelManager(TaskManager):
                             tdef = TorrentDef.load(torrent_path)
                         except IOError:
                             self._logger.warning("Can't open personal channel torrent file. Will try to regenerate it.")
-                    tdef = tdef if (tdef and tdef.infohash != str(my_channel.infohash)) else\
+                    tdef = tdef if (tdef and tdef.infohash == str(my_channel.infohash)) else\
                         TorrentDef.load_from_dict(my_channel.consolidate_channel_torrent())
                     self.updated_my_channel(tdef)
         except Exception:
