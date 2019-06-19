@@ -176,6 +176,26 @@ class TestLaunchManyCore(TriblerCoreTest):
         self.lm.load_checkpoint()
         self.assertTrue(mocked_resume_download.called)
 
+    def test_resume_empty_download(self):
+        """
+        Test whether download resumes with faulty pstate file.
+        """
+
+        def mocked_add_download():
+            mocked_add_download.called = True
+
+        mocked_add_download.called = False
+        self.lm.session.get_downloads_pstate_dir = lambda: self.session_base_dir
+        self.lm.add = lambda tdef, dscfg: mocked_add_download()
+
+        # Empty pstate file
+        pstate_filename = os.path.join(self.lm.session.get_downloads_pstate_dir(), 'abcd.state')
+        with open(pstate_filename, 'wb') as state_file:
+            state_file.write(b"")
+
+        self.lm.resume_download(pstate_filename)
+        self.assertFalse(mocked_add_download.called)
+
 
 class TestLaunchManyCoreFullSession(TestAsServer):
     """
