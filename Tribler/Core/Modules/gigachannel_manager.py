@@ -178,7 +178,8 @@ class GigaChannelManager(TaskManager):
 
         def on_channel_download_finished(dl):
             channel_dirname = os.path.join(self.session.lm.mds.channels_dir, dl.get_def().get_name())
-            self.session.lm.mds.process_channel_dir(channel_dirname, channel.public_key, external_thread=True)
+            self.session.lm.mds.process_channel_dir(channel_dirname, channel.public_key, channel.id_,
+                                                    external_thread=True)
             self.session.lm.mds._db.disconnect()
 
         def _on_failure(failure):

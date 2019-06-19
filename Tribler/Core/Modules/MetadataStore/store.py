@@ -202,17 +202,18 @@ class MetadataStore(object):
         self._shutting_down = True
         self._db.disconnect()
 
-    def process_channel_dir(self, dirname, channel_id, external_thread=True):
+    def process_channel_dir(self, dirname, public_key, id_, external_thread=True):
         """
         Load all metadata blobs in a given directory.
         :param dirname: The directory containing the metadata blobs.
         :param external_thread: indicate to lower levels that this is running on a background thread
-        :param channel_id: public_key of the channel.
+        :param public_key: public_key of the channel.
+        :param id_: id_ of the channel.
         """
         # We use multiple separate db_sessions here to limit the memory and reactor time impact,
         # but we must check the existence of the channel every time to avoid race conditions
         with db_session:
-            channel = self.ChannelMetadata.get(public_key=channel_id)
+            channel = self.ChannelMetadata.get(public_key=public_key, id_=id_)
             if not channel:
                 return
             self._logger.debug("Starting processing channel dir %s. Channel %s local/max version %i/%i",
@@ -238,7 +239,7 @@ class MetadataStore(object):
                 # ===start_timestamp|---local_version----timestamp|===
                 # local_version is essentially a cursor pointing into the current state of update process
                 with db_session:
-                    channel = self.ChannelMetadata.get(public_key=channel_id)
+                    channel = self.ChannelMetadata.get(public_key=public_key, id_=id_)
                     if not channel:
                         return
                     if blob_sequence_number <= channel.start_timestamp or \
@@ -249,7 +250,7 @@ class MetadataStore(object):
                     self.process_mdblob_file(full_filename, external_thread)
                     # We track the local version of the channel while reading blobs
                     with db_session:
-                        channel = self.ChannelMetadata.get_for_update(public_key=channel_id)
+                        channel = self.ChannelMetadata.get_for_update(public_key=public_key, id_=id_)
                         if channel:
                             channel.local_version = blob_sequence_number
                         else:
@@ -258,7 +259,7 @@ class MetadataStore(object):
                     self._logger.error("Not processing metadata located at %s: invalid signature", full_filename)
 
         with db_session:
-            channel = self.ChannelMetadata.get(public_key=channel_id)
+            channel = self.ChannelMetadata.get(public_key=public_key, id_=id_)
             if not channel:
                 return
             self._logger.debug("Finished processing channel dir %s. Channel %s local/max version %i/%i",

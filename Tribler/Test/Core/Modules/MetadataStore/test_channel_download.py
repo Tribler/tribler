@@ -39,7 +39,7 @@ class TestChannelDownload(TestAsServer):
             old_channel = self.session.lm.mds.ChannelMetadata.from_payload(old_payload)
             chan_dir = os.path.join(CHANNEL_DIR, old_channel.dir_name)
 
-        self.session.lm.mds.process_channel_dir(chan_dir, old_payload.public_key)
+        self.session.lm.mds.process_channel_dir(chan_dir, old_payload.public_key, old_payload.id_)
 
         channel_tdef = TorrentDef.load(CHANNEL_TORRENT_UPDATED)
         libtorrent_port = get_random_port()
