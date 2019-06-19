@@ -13,7 +13,6 @@ from six.moves import xrange
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import COMMITTED, NEW
-from Tribler.Core.Modules.MetadataStore.serialization import NULL_KEY
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.Utilities.random_utils import random_infohash
 from Tribler.Test.Core.base_test import MockObject

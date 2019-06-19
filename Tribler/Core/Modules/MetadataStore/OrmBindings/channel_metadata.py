@@ -410,23 +410,21 @@ def define_binding(db):
 
         @classmethod
         @db_session
-        def get_random_channels(cls, limit, only_subscribed=False):
+        def get_random_channels(cls, limit, only_subscribed=False, only_downloaded=False):
             """
             Fetch up to some limit of torrents from this channel
 
             :param limit: the maximum amount of torrents to fetch
             :param only_subscribed: whether we only want random channels we are subscribed to
+            :param only_downloaded: whether we only want channels that were downloaded/seeded from a torrent
             :return: the subset of random channels we are subscribed to
             :rtype: list
             """
-            if only_subscribed:
-                select_lambda = lambda g: g.subscribed and g.status not in [LEGACY_ENTRY, NEW, UPDATED,
-                                                                            TODELETE] and g.num_entries > 0
-            else:
-                select_lambda = lambda g: g.status not in [LEGACY_ENTRY, NEW, UPDATED,
-                                                           TODELETE] and g.num_entries > 0
-
-            return db.ChannelMetadata.select(select_lambda).random(limit)
+            query = db.ChannelMetadata.select(
+                lambda g: g.status not in [LEGACY_ENTRY, NEW, UPDATED, TODELETE] and g.num_entries > 0)
+            query = query.where(subscribed=True) if only_subscribed else query
+            query = query.where(lambda g: g.local_version > 0) if only_downloaded else query
+            return query.random(limit)
 
         @db_session
         def get_random_torrents(self, limit):
