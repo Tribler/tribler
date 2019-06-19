@@ -57,6 +57,9 @@ class TorrentDetailsTabWidget(QTabWidget):
     def on_torrent_info(self, torrent_info):
         if not torrent_info or "torrent" not in torrent_info:
             return
+
+        if self.torrent_info["infohash"] != torrent_info['torrent']['infohash']:
+            return
         self.setTabEnabled(1, True)
         self.torrent_info.update(torrent_info['torrent'])
 
