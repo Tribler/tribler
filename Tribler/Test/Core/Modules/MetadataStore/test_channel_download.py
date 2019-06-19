@@ -54,6 +54,7 @@ class TestChannelDownload(TestAsServer):
         download, finished_deferred = self.session.lm.gigachannel_manager.download_channel(channel)
         download.add_peer(("127.0.0.1", self.seeder_session.config.get_libtorrent_port()))
         yield finished_deferred
+        yield self.session.lm.gigachannel_manager.process_queued_channels()
 
         with db_session:
             # There should be 4 torrents + 1 channel torrent
