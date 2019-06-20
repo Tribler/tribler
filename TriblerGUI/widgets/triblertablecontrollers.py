@@ -134,16 +134,28 @@ class FilterInputMixin(object):
 
 class TableSelectionMixin(object):
 
+    def _brain_dead_refresh(self):
+        """
+        FIXME! Brain-dead way to show the rows covered by a newly-opened details_container
+        Note that none of then more civilized ways to fix it work:
+        various updateGeometry, viewport().update, adjustSize - nothing works!
+        """
+        window = self.table_view.window()
+        window.resize(window.geometry().width() + 1, window.geometry().height())
+        window.resize(window.geometry().width() - 1, window.geometry().height())
+
     def _on_selection_changed(self, _):
         selected_indices = self.table_view.selectedIndexes()
         if not selected_indices:
             self.details_container.hide()
             self.table_view.clearSelection()
+            self._brain_dead_refresh()
             return
 
         torrent_info = selected_indices[0].model().data_items[selected_indices[0].row()]
         if 'type' in torrent_info and torrent_info['type'] == 'channel':
             self.details_container.hide()
+            self._brain_dead_refresh()
             return
 
         first_show = False
@@ -153,12 +165,7 @@ class TableSelectionMixin(object):
         self.details_container.show()
         self.details_container.details_tab_widget.update_with_torrent(selected_indices[0], torrent_info)
         if first_show:
-            window = self.table_view.window()
-            # FIXME! Brain-dead way to show the rows covered by a newly-opened details_container
-            # Note that none of then more civilized ways to fix it work:
-            # various updateGeometry, viewport().update, adjustSize - nothing works!
-            window.resize(window.geometry().width() + 1, window.geometry().height())
-            window.resize(window.geometry().width() - 1, window.geometry().height())
+            self._brain_dead_refresh()
 
 
 class ContextMenuMixin(object):
