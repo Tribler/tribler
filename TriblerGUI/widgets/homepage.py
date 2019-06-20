@@ -98,6 +98,7 @@ class HomePage(QWidget):
         correctly. As a workaround, call the resizeEvent after a small period of time.
         """
         self.resize_event_timer = QTimer()
+        self.resize_event_timer.setSingleShot(True)
         self.resize_event_timer.timeout.connect(lambda: self.window().resizeEvent(None))
         self.resize_event_timer.start(100)
 
