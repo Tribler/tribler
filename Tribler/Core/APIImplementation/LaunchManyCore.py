@@ -18,6 +18,7 @@ from traceback import print_exc
 from anydex.wallet.dummy_wallet import DummyWallet1, DummyWallet2
 from anydex.wallet.tc_wallet import TrustchainWallet
 
+
 from ipv8.dht.provider import DHTCommunityProvider
 from ipv8.messaging.anonymization.community import TunnelSettings
 from ipv8.peer import Peer
@@ -27,6 +28,8 @@ from ipv8.peerdiscovery.discovery import EdgeWalk, RandomWalk
 from ipv8.taskmanager import TaskManager
 
 from ipv8_service import IPv8
+
+from six import text_type
 
 from twisted.internet import reactor
 from twisted.internet.defer import Deferred, DeferredList, inlineCallbacks, succeed
@@ -602,8 +605,12 @@ class TriblerLaunchMany(TaskManager):
             self._logger.error("tlm: could not resume checkpoint %s; metainfo not found", filename)
             return
 
-        tdef = (TorrentDefNoMetainfo(metainfo['infohash'], metainfo['name'], metainfo.get('url', None))
-                if 'infohash' in metainfo else TorrentDef.load_from_dict(metainfo))
+        try:
+            tdef = (TorrentDefNoMetainfo(metainfo['infohash'], metainfo['name'], metainfo.get('url', None))
+                    if 'infohash' in metainfo else TorrentDef.load_from_dict(metainfo))
+        except ValueError as e:
+            self._logger.exception("tlm: could not restore tdef from metainfo dict: %s %s ", e, text_type(metainfo))
+            return
 
         if (pstate.has_option('download_defaults', 'saveas') and
                 isinstance(pstate.get('download_defaults', 'saveas'), tuple)):
