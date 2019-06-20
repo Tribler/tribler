@@ -335,6 +335,9 @@ class MetadataStore(object):
             self._logger.debug(("Added payload batch to DB (entries, seconds): %i %f",
                                 (self.batch_size, float(batch_end_time.total_seconds()))))
             start = end
+            if self._shutting_down:
+                break
+
         return result
 
     @db_session

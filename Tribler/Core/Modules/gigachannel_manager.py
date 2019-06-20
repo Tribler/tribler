@@ -7,13 +7,14 @@ from ipv8.taskmanager import TaskManager
 
 from pony.orm import db_session
 
+from twisted.internet.defer import succeed
 from twisted.internet.task import LoopingCall
 from twisted.internet.threads import deferToThread
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import COMMITTED
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
-from Tribler.Core.simpledefs import NTFY_CHANNEL_ENTITY, NTFY_UPDATE
+from Tribler.Core.simpledefs import DLSTATUS_SEEDING, NTFY_CHANNEL_ENTITY, NTFY_UPDATE
 
 
 class GigaChannelManager(TaskManager):
@@ -26,6 +27,11 @@ class GigaChannelManager(TaskManager):
         super(GigaChannelManager, self).__init__()
         self.session = session
         self.channels_lc = None
+
+        # We queue up processing of the channels because we do it in a separate thread, and we don't want
+        # to run more that one of these simultaneously
+        self.channels_processing_queue = []
+        self.processing = False
 
     def start(self):
         """
@@ -93,6 +99,13 @@ class GigaChannelManager(TaskManager):
         except Exception:
             self._logger.exception("Error when checking for channel updates")
 
+    def process_queued_channels(self):
+        if self.processing or not self.channels_processing_queue:
+            return succeed(None)
+        self.processing = True
+        channel = self.channels_processing_queue.pop(0)
+        return self.process_channel_dir(channel, self.session.get_download(str(channel.infohash)))
+
     def check_channels_updates(self):
         """
         Check whether there are channels that are updated. If so, download the new version of the channel.
@@ -100,18 +113,24 @@ class GigaChannelManager(TaskManager):
         # FIXME: These naughty try-except-pass workarounds are necessary to keep the loop going in all circumstances
 
         with db_session:
-            channels_queue = list(self.session.lm.mds.ChannelMetadata.get_updated_channels())
+            channels = list(self.session.lm.mds.ChannelMetadata.get_updated_channels())
 
-        for channel in channels_queue:
+        for channel in channels:
             try:
                 if not self.session.has_download(str(channel.infohash)):
                     self._logger.info("Downloading new channel version %s ver %i->%i",
                                       hexlify(str(channel.public_key)),
                                       channel.local_version, channel.timestamp)
                     self.download_channel(channel)
+                elif self.session.get_download(str(channel.infohash)).get_state().get_status() == DLSTATUS_SEEDING:
+                    self._logger.info("Processing previously downloaded, but unprocessed channel torrent %s ver %i->%i",
+                                      hexlify(str(channel.public_key)),
+                                      channel.local_version, channel.timestamp)
+                    self.channels_processing_queue.append(channel)
             except Exception:
                 self._logger.exception("Error when tried to download a newer version of channel %s",
                                        hexlify(channel.public_key))
+        return self.process_queued_channels()
 
     # TODO: finish this routine
     # This thing should check if the files in the torrent we're going to delete are used in another torrent for
@@ -176,7 +195,16 @@ class GigaChannelManager(TaskManager):
         tdef = TorrentDefNoMetainfo(infohash=str(channel.infohash), name=channel.dir_name)
         download = self.session.start_download_from_tdef(tdef, dcfg)
 
-        def on_channel_download_finished(dl):
+        def _add_channel_to_processing_queue(_):
+            self.channels_processing_queue.append(channel)
+
+        finished_deferred = download.finished_deferred.addCallback(_add_channel_to_processing_queue)
+
+        return download, finished_deferred
+
+    def process_channel_dir(self, channel, download):
+
+        def _process_download(dl):
             channel_dirname = os.path.join(self.session.lm.mds.channels_dir, dl.get_def().get_name())
             self.session.lm.mds.process_channel_dir(channel_dirname, channel.public_key, channel.id_,
                                                     external_thread=True)
@@ -184,6 +212,7 @@ class GigaChannelManager(TaskManager):
 
         def _on_failure(failure):
             self._logger.error("Error when processing channel dir download: %s", failure)
+            self.processing = False
 
         def _on_success(_):
             with db_session:
@@ -192,12 +221,9 @@ class GigaChannelManager(TaskManager):
             self.session.notifier.notify(NTFY_CHANNEL_ENTITY, NTFY_UPDATE,
                                          "%s:%s".format(hexlify(channel.public_key), str(channel.id_)),
                                          channel_upd_dict)
+            self.processing = False
 
-        finished_deferred = download.finished_deferred.addCallback(
-            lambda dl: deferToThread(on_channel_download_finished, dl))
-        finished_deferred.addCallbacks(_on_success, _on_failure)
-
-        return download, finished_deferred
+        return deferToThread(_process_download, download).addCallbacks(_on_success, _on_failure)
 
     def updated_my_channel(self, tdef):
         """

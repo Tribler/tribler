@@ -14,6 +14,7 @@ from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import NEW
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.Modules.gigachannel_manager import GigaChannelManager
 from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.simpledefs import DLSTATUS_SEEDING
 from Tribler.Test.Core.base_test import MockObject, TriblerCoreTest
 from Tribler.Test.common import TORRENT_UBUNTU_FILE
 
@@ -77,30 +78,66 @@ class TestGigaChannelManager(TriblerCoreTest):
         self.assertFalse(self.torrents_added)
         self.chanman.shutdown()
 
+    @db_session
     def test_check_channels_updates(self):
-        with db_session:
-            chan = self.generate_personal_channel()
-            chan.commit_channel_torrent()
-            chan.local_version -= 1
-            _ = self.mock_session.lm.mds.ChannelMetadata(title="bla", public_key=database_blob(str(123)),
-                                                         signature=database_blob(str(345)), skip_key_check=True,
-                                                         timestamp=123, local_version=123, subscribed=True,
-                                                         infohash=str(random.getrandbits(160)))
-            _ = self.mock_session.lm.mds.ChannelMetadata(title="bla", public_key=database_blob(str(124)),
-                                                         signature=database_blob(str(346)), skip_key_check=True,
-                                                         timestamp=123, local_version=122, subscribed=False,
+        # We add our personal channel in an inconsistent state to make sure the GigaChannel Manager will
+        # not try to update it in the same way it should update other's channels
+        chan = self.generate_personal_channel()
+        chan.commit_channel_torrent()
+        chan.local_version -= 1
+        # Subscribed, not updated
+        self.mock_session.lm.mds.ChannelMetadata(title="bla1", public_key=database_blob(str(123)),
+                                                 signature=database_blob(str(345)), skip_key_check=True,
+                                                 timestamp=123, local_version=123, subscribed=True,
+                                                 infohash=str(random.getrandbits(160)))
+        # Not subscribed, updated
+        self.mock_session.lm.mds.ChannelMetadata(title="bla2", public_key=database_blob(str(124)),
+                                                 signature=database_blob(str(346)), skip_key_check=True,
+                                                 timestamp=123, local_version=122, subscribed=False,
+                                                 infohash=str(random.getrandbits(160)))
+        # Subscribed, updated - only this one should be downloaded
+        chan3 = self.mock_session.lm.mds.ChannelMetadata(title="bla3", public_key=database_blob(str(125)),
+                                                         signature=database_blob(str(347)), skip_key_check=True,
+                                                         timestamp=123, local_version=122, subscribed=True,
                                                          infohash=str(random.getrandbits(160)))
         self.mock_session.has_download = lambda _: False
         self.torrents_added = 0
 
-        def mock_dl(_):
+        def mock_download_channel(chan):
             self.torrents_added += 1
+            self.assertEqual(chan, chan3)
 
-        self.chanman.download_channel = mock_dl
+        self.chanman.download_channel = mock_download_channel
 
+        # Manually fire the channel updates checking routine
         self.chanman.check_channels_updates()
         # download_channel should only fire once - for the original subscribed channel
         self.assertEqual(1, self.torrents_added)
+
+        # Check that downloaded, but unprocessed channel torrent is added to the processing queue
+        self.mock_session.has_download = lambda _: True
+
+        class MockDownload(object):
+            def get_state(self):
+                class MockState(object):
+                    def get_status(self):
+                        return DLSTATUS_SEEDING
+
+                return MockState()
+
+        self.mock_session.get_download = lambda _: MockDownload()
+
+        def mock_process_channel_dir(c, _):
+            # Only the subscribed, but not processed (with local_version < timestamp) channel should be processed
+            self.assertEqual(c, chan3)
+
+        self.chanman.process_channel_dir = mock_process_channel_dir
+
+        # Manually fire the channel updates checking routine
+        self.chanman.check_channels_updates()
+
+        # The queue should be empty afterwards
+        self.assertEqual(0, len(self.chanman.channels_processing_queue))
 
     def test_remove_cruft_channels(self):
         with db_session:
