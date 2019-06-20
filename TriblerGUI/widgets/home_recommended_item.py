@@ -67,6 +67,8 @@ class HomeRecommendedItem(QWidget, fc_home_recommended_item):
         self.download_button.clicked.connect(self.on_download_button_clicked)
         self.download_button.hide()
 
+        self.setContentsMargins(0, 0, 10, 10)
+
     def on_download_button_clicked(self):
         if not self.torrent_info:
             return

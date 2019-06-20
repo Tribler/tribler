@@ -1323,8 +1323,6 @@ padding-top: 10px;
 padding-left: 10px;
 }
 QTableWidget::item {
-padding-right: 10px;
-padding-bottom: 10px;
 border: none;
 }
 
