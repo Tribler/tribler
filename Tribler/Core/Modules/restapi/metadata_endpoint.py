@@ -171,7 +171,8 @@ class SpecificChannelEndpoint(BaseChannelsEndpoint):
         def delete_channel():
             # TODO: this should be eventually moved to a garbage-collector-like subprocess in MetadataStore
             with db_session:
-                channel = self.session.lm.mds.ChannelMetadata.get_for_update(public_key=database_blob(self.channel_pk))
+                channel = self.session.lm.mds.ChannelMetadata.get_for_update(public_key=database_blob(self.channel_pk),
+                                                                             id_=self.channel_id)
                 contents = channel.contents
                 contents.delete(bulk=True)
             self.session.lm.mds._db.disconnect()
