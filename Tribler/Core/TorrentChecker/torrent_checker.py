@@ -221,6 +221,11 @@ class TorrentChecker(TaskManager):
         final_response = {}
         if not result or not isinstance(result, list):
             self._logger.info("Received invalid torrent checker result")
+            self.tribler_session.notifier.notify(NTFY_TORRENT, NTFY_UPDATE, infohash,
+                                                 {"num_seeders": 0,
+                                                  "num_leechers": 0,
+                                                  "last_tracker_check": int(time.time()),
+                                                  "health": "updated"})
             return final_response
 
         torrent_update_dict = {'infohash': infohash, 'seeders': 0, 'leechers': 0, 'last_check': int(time.time())}
@@ -305,7 +310,6 @@ class TorrentChecker(TaskManager):
         And trap CancelledErrors that can be thrown when shutting down.
         :param failure: The failure object raised by Twisted.
         """
-        failure.trap(ValueError, CancelledError, ConnectingCancelledError, ConnectionLost, RuntimeError)
         self._logger.warning(u"Got session error for URL %s: %s", session.tracker_url,
                              str(failure).replace(u'\n]', u']'))
 
