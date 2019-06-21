@@ -167,7 +167,7 @@ class TriblerContentModel(RemoteTableModel):
     def update_node_info(self, update_dict):
         row = self.item_uid_map.get(update_dict["infohash"] if "infohash" in update_dict
                                     else combine_pk_id(update_dict["public_key"], update_dict["id"]))
-        if row:
+        if row is not None:
             self.data_items[row].update(**update_dict)
             self.dataChanged.emit(self.index(row, 0), self.index(row, len(self.columns)), [])
 
