@@ -105,6 +105,7 @@ class DispersyToPonyMigration(object):
                                  "size": 0,
                                  "subscribed": False,
                                  "status": LEGACY_ENTRY,
+                                 "votes": -1,
                                  "num_entries": int(nr_torrents or 0)})
         connection.close()
         return channels
