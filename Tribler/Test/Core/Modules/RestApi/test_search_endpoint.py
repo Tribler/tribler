@@ -75,6 +75,16 @@ class TestSearchEndpoint(AbstractApiTest):
         parsed = json.twisted_loads(result)
         self.assertEqual(len(parsed["results"]), 1)
 
+        # Test getting total count of results
+        result = yield self.do_request('search/count?filter=needle', expected_code=200)
+        parsed = json.twisted_loads(result)
+        self.assertEqual(parsed["total"], 1)
+
+        # Test getting total count of results
+        result = yield self.do_request('search/count?filter=hay', expected_code=200)
+        parsed = json.twisted_loads(result)
+        self.assertEqual(parsed["total"], 100)
+
         # If uuid is passed in request, then the same uuid is returned in the response
         result = yield self.do_request('search?uuid=uuid1&filter=needle&sort_by=name', expected_code=200)
         parsed = json.twisted_loads(result)

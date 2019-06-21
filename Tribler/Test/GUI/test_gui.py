@@ -171,6 +171,13 @@ class AbstractTriblerGUITest(TestCase):
 
         raise TimeoutException("Did not receive settings within 10 seconds")
 
+    def wait_for_something(self, something, timeout=10):
+        for _ in range(0, timeout * 1000, 100):
+            QTest.qWait(100)
+            if something is not None:
+                return
+        raise TimeoutException("The value was not set within 10 seconds")
+
     def get_attr_recursive(self, attr_name):
         parts = attr_name.split(".")
         cur_attr = window
@@ -356,7 +363,8 @@ class TriblerGUITest(AbstractTriblerGUITest):
         window.edit_channel_torrents_container.content_table.sortByColumn(2, 1)  # Size
         self.wait_for_list_populated(window.edit_channel_torrents_container.content_table)
         self.screenshot(window, name="edit_channel_torrents_sorted")
-        max_items = min(window.discovered_channels_list.model().total_items, 50)
+        self.wait_for_something(window.edit_channel_torrents_container.content_table.model().total_items)
+        max_items = min(window.edit_channel_torrents_container.content_table.model().total_items, 50)
         self.assertLessEqual(window.discovered_channels_list.verticalHeader().count(), max_items)
 
         # Filter
@@ -436,6 +444,7 @@ class TriblerGUITest(AbstractTriblerGUITest):
         QTest.keyClick(window.top_search_bar, Qt.Key_Enter)
         self.wait_for_list_populated(window.search_results_list)
         self.screenshot(window, name="search_results_all")
+        self.wait_for_something(window.search_results_list.model().total_items)
 
         QTest.mouseClick(window.search_results_channels_button, Qt.LeftButton)
         self.wait_for_list_populated(window.search_results_list)

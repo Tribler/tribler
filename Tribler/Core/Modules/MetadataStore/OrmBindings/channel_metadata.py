@@ -438,18 +438,11 @@ def define_binding(db):
 
         @classmethod
         @db_session
-        def get_entries(cls, first=None, last=None, subscribed=False, metadata_type=CHANNEL_TORRENT, **kwargs):
-            """
-            Get some channels. Optionally sort the results by a specific field, or filter the channels based
-            on a keyword/whether you are subscribed to it.
-            :return: A tuple. The first entry is a list of ChannelMetadata entries. The second entry indicates
-                     the total number of results, regardless the passed first/last parameter.
-            """
-            pony_query, count = super(ChannelMetadata, cls).get_entries(metadata_type=metadata_type, **kwargs)
-            if subscribed:
-                pony_query = pony_query.where(subscribed=subscribed)
-
-            return pony_query[(first or 1) - 1:last] if first or last else pony_query, count
+        def get_entries_query(cls, metadata_type=CHANNEL_TORRENT, subscribed=None, **kwargs):
+            # This method filters channels-related arguments and translates them into Pony query parameters
+            pony_query = super(ChannelMetadata, cls).get_entries_query(metadata_type=metadata_type, **kwargs)
+            pony_query = pony_query.where(subscribed=subscribed) if subscribed is not None else pony_query
+            return pony_query
 
         @property
         @db_session

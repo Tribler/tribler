@@ -243,7 +243,7 @@ class TestTorrentMetadata(TriblerCoreTest):
     @db_session
     def test_get_entries(self):
         """
-        Test whether we can get torrents
+        Test base method for getting torrents
         """
 
         # First we create a few channels and add some torrents to these channels
@@ -258,22 +258,28 @@ class TestTorrentMetadata(TriblerCoreTest):
         tlist[-1].xxx = 1
         tlist[-2].status = TODELETE
 
-        torrents, count = self.mds.TorrentMetadata.get_entries(first=1, last=5)
+        torrents = self.mds.TorrentMetadata.get_entries(first=1, last=5)
         self.assertEqual(5, len(torrents))
+
+        count = self.mds.TorrentMetadata.get_entries_count()
         self.assertEqual(25, count)
 
         # Test fetching torrents in a channel
         channel_pk = self.mds.ChannelNode._my_key.pub().key_to_bin()[10:]
-        torrents, count = self.mds.TorrentMetadata.get_entries(first=1, last=10, sort_by='title',
-                                                               channel_pk=channel_pk, origin_id=0)
-        self.assertEqual(5, len(torrents))
-        self.assertEqual(5, count)
 
-        torrents, count = self.mds.TorrentMetadata.get_entries(
-            channel_pk=channel_pk, hide_xxx=True, exclude_deleted=True)[:]
-
+        args = dict(channel_pk=channel_pk, hide_xxx=True, exclude_deleted=True)
+        torrents = self.mds.TorrentMetadata.get_entries_query(**args)[:]
         self.assertListEqual(tlist[-5:-2], list(torrents))
+
+        count = self.mds.TorrentMetadata.get_entries_count(**args)
         self.assertEqual(count, 3)
+
+        args = dict(sort_by='title', channel_pk=channel_pk, origin_id=0)
+        torrents = self.mds.TorrentMetadata.get_entries(first=1, last=10, **args)
+        self.assertEqual(5, len(torrents))
+
+        count = self.mds.TorrentMetadata.get_entries_count(**args)
+        self.assertEqual(5, count)
 
     @db_session
     def test_metadata_conflicting(self):

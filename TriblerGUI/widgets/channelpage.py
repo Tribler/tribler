@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QWidget
 
@@ -40,7 +41,7 @@ class ChannelPage(QWidget):
 
         # To reload the preview
         self.window().channel_preview_button.clicked.connect(self.preview_clicked)
-        self.controller.query_complete.connect(self._on_query_complete)
+        self.controller.count_query_complete.connect(self._on_query_complete)
 
     def on_node_info_update(self, update_dict):
         if "public_key" in update_dict and "id" in update_dict and self.channel_info and \
@@ -53,6 +54,8 @@ class ChannelPage(QWidget):
         self.initialize_with_channel(self.channel_info)
 
     def initialize_with_channel(self, channel_info):
+        # Turn off sorting by default to speed up SQL queries
+        self.window().channel_page_container.content_table.horizontalHeader().setSortIndicator(-1, Qt.AscendingOrder)
         self.channel_info = channel_info
         self.model.channel_pk = channel_info['public_key']
         self.model.channel_id = channel_info['id']
@@ -76,10 +79,9 @@ class ChannelPage(QWidget):
         self.window().channel_state_label.setText(self.channel_info["state"])
         self.window().subscription_widget.initialize_with_channel(self.channel_info)
 
-    def _on_query_complete(self, data, remote):
-        if not remote:
-            self.window().channel_num_torrents_label.setText("{}/{} torrents".format(data['total'],
-                                                                                     self.channel_info['torrents']))
+    def _on_query_complete(self, data):
+        self.window().channel_num_torrents_label.setText(
+            "{}/{} torrents".format(data['total'], self.channel_info['torrents']))
 
     def load_torrents(self):
         self.controller.model.reset()

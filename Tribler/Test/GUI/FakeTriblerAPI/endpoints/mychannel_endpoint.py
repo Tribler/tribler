@@ -89,6 +89,8 @@ class MyChannelCommitEndpoint(MyChannelBaseEndpoint):
 class MyChannelTorrentsEndpoint(MyChannelBaseEndpoint):
 
     def getChild(self, path, request):
+        if path == b"count":
+            return MyChannelTorrentsCountEndpoint()
         return MyChannelSpecificTorrentEndpoint(path)
 
     def render_GET(self, request):
@@ -103,14 +105,12 @@ class MyChannelTorrentsEndpoint(MyChannelBaseEndpoint):
 
         torrents, total = tribler_utils.tribler_data.get_torrents(first, last, sort_by, sort_asc, query_filter, channel,
                                                                   include_status=True)
-
         return json.dumps({
             "results": torrents,
             "first": first,
             "last": last,
             "sort_by": sort_by,
             "sort_asc": int(sort_asc),
-            "total": total,
             "dirty": my_channel.is_dirty()
         })
 
@@ -144,6 +144,23 @@ class MyChannelTorrentsEndpoint(MyChannelBaseEndpoint):
             torrent.status = TODELETE
 
         return json.dumps({"success": True})
+
+
+class MyChannelTorrentsCountEndpoint(MyChannelBaseEndpoint):
+
+    def render_GET(self, request):
+        my_channel = tribler_utils.tribler_data.get_my_channel()
+        if my_channel is None:
+            request.setResponseCode(http.NOT_FOUND)
+            return "your channel has not been created"
+
+        request.args['channel'] = [hexlify(my_channel.public_key)]
+        first, last, sort_by, sort_asc, query_filter, channel = \
+            SpecificChannelTorrentsEndpoint.sanitize_parameters(request.args)
+
+        _, total = tribler_utils.tribler_data.get_torrents(first, last, sort_by, sort_asc, query_filter, channel,
+                                                           include_status=True)
+        return json.dumps({"total": total})
 
 
 class MyChannelSpecificTorrentEndpoint(MyChannelBaseEndpoint):

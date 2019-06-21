@@ -223,9 +223,6 @@ class MetadataStore(object):
         for filename in sorted(os.listdir(dirname)):
             full_filename = os.path.join(dirname, filename)
 
-            if self._shutting_down:
-                return
-
             blob_sequence_number = None
             if filename.endswith(BLOB_EXTENSION):
                 blob_sequence_number = int(filename[:-len(BLOB_EXTENSION)])
@@ -248,6 +245,10 @@ class MetadataStore(object):
                         continue
                 try:
                     self.process_mdblob_file(full_filename, external_thread)
+                    # If we stopped mdblob processing due to shutdown flag, we should stop
+                    # processing immediately, so that channel local version will not increase
+                    if self._shutting_down:
+                        return
                     # We track the local version of the channel while reading blobs
                     with db_session:
                         channel = self.ChannelMetadata.get_for_update(public_key=public_key, id_=id_)

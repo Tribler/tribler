@@ -35,7 +35,7 @@ class TriblerTableViewController(QObject):
     """
     Base controller for a table view that displays some data.
     """
-    query_complete = pyqtSignal(dict, bool)
+    count_query_complete = pyqtSignal(dict)
 
     def __init__(self, model, table_view):
         super(TriblerTableViewController, self).__init__()
@@ -62,7 +62,10 @@ class TriblerTableViewController(QObject):
         """
         Return a tuple (column_name, sort_asc) that indicates the sorting column/order of the table view.
         """
-        sort_by = self.model.columns[self.table_view.horizontalHeader().sortIndicatorSection()]
+        sort_column_number = self.table_view.horizontalHeader().sortIndicatorSection()
+        # If the column number is set to -1, this means we do not want to do sorting at all
+        # We have to set it to something (-1), because QT does not support setting it to "None"
+        sort_by = self.model.columns[sort_column_number] if sort_column_number >= 0 else None
         sort_asc = self.table_view.horizontalHeader().sortIndicatorOrder()
         return sort_by, sort_asc
 
@@ -77,20 +80,52 @@ class TriblerTableViewController(QObject):
         # Create a new uuid for each new search
         if kwargs['first'] == 1 or not self.query_uuid:
             self.query_uuid = uuid.uuid4().hex
+        kwargs.update({"uuid": self.query_uuid})
 
         sort_by, sort_asc = self._get_sort_parameters()
-        kwargs.update({
-            "uuid": self.query_uuid,
-            "filter": to_fts_query(kwargs.pop('query_filter') if 'query_filter' in kwargs else self.query_text),
-            "sort_by": sort_by,
-            "sort_asc": sort_asc,
-            "hide_xxx": self.model.hide_xxx})
+
+        if sort_by is not None:
+            kwargs.update({"sort_by": sort_by, "sort_asc": sort_asc})
+
+        if 'query_filter' in kwargs:
+            kwargs.update({"filter": to_fts_query(kwargs.pop('query_filter'))})
+        elif self.query_text:
+            kwargs.update({"filter": self.query_text})
+
+        if self.model.hide_xxx is not None:
+            kwargs.update({"hide_xxx": self.model.hide_xxx})
 
         rest_endpoint_url = kwargs.pop("rest_endpoint_url")
         self.request_mgr = TriblerRequestManager()
         self.request_mgr.perform_request(rest_endpoint_url,
                                          self.on_query_results,
                                          url_params=kwargs)
+
+        # If it is the first time we fetch the results, so we must get the total number of items as well
+        if self.model.total_items is None:
+            self.query_total_count(rest_endpoint_url=rest_endpoint_url, **kwargs)
+
+    def on_total_count_results(self, response):
+        # Workaround for possible race condition between simultaneous requests. Sees query_total_count for details.
+        if "total" in response:
+            self.count_query_complete.emit(response)
+            self.model.total_items = response['total']
+            # TODO unify this label update with the above count_query_complete signal
+            if self.num_results_label:
+                self.num_results_label.setText("%d results" % self.model.total_items)
+            return False
+
+    def query_total_count(self, **kwargs):
+        rest_endpoint_url = kwargs.pop("rest_endpoint_url")
+        kwargs.pop("first", None)
+        kwargs.pop("last", None)
+        kwargs.pop("sort_by", None)
+        kwargs.pop("sort_asc", None)
+        self.request_mgr2 = TriblerRequestManager()
+        # Unfortunately, TriblerRequestManager cannot discern between different requests to the same endpoint.
+        # That is why we have to process both count and regular requests by the same callback.
+        # Otherwise, there is no guarantee which callback will process which request...
+        self.request_mgr2.perform_request(rest_endpoint_url+"/count", self.on_total_count_results, url_params=kwargs)
 
     def on_query_results(self, response, remote=False):
         """
@@ -99,17 +134,13 @@ class TriblerTableViewController(QObject):
         :param remote: True if response is from a remote peer. Default: False
         :return: None
         """
+        # TODO: count remote results
         if not response:
             return False
+
         if self.is_new_result(response):
             self.model.add_items(response['results'], remote=remote)
 
-        # TODO: count remote results
-        if not remote:
-            self.model.total_items = response['total']
-            if self.num_results_label:
-                self.num_results_label.setText("%d results" % self.model.total_items)
-        self.query_complete.emit(response, remote)
         return True
 
     def is_new_result(self, response):
@@ -276,7 +307,8 @@ class ChannelsTableViewController(TableSelectionMixin, FilterInputMixin, Tribler
                            else '')
         if "rest_endpoint_url" not in kwargs:
             kwargs.update({"rest_endpoint_url": "metadata/channels"})
-        kwargs.update({"subscribed": self.model.subscribed})
+        if self.model.subscribed is not None:
+            kwargs.update({"subscribed": self.model.subscribed})
         super(ChannelsTableViewController, self).perform_query(**kwargs)
 
 

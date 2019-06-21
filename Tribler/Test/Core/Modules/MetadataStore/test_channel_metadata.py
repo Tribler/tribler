@@ -349,21 +349,20 @@ class TestChannelMetadata(TriblerCoreTest):
             _ = self.mds.ChannelMetadata(title='channel%d' % ind, subscribed=(ind % 2 == 0),
                                          infohash=str(random.getrandbits(160)))
         channels = self.mds.ChannelMetadata.get_entries(first=1, last=5)
-        self.assertEqual(len(channels[0]), 5)
-        self.assertEqual(channels[1], 10)
+        self.assertEqual(len(channels), 5)
 
         # Test filtering
         channels = self.mds.ChannelMetadata.get_entries(first=1, last=5, query_filter='channel5')
-        self.assertEqual(len(channels[0]), 1)
+        self.assertEqual(len(channels), 1)
 
         # Test sorting
         channels = self.mds.ChannelMetadata.get_entries(first=1, last=10, sort_by='title', sort_asc=False)
-        self.assertEqual(len(channels[0]), 10)
-        self.assertEqual(channels[0][0].title, 'channel9')
+        self.assertEqual(len(channels), 10)
+        self.assertEqual(channels[0].title, 'channel9')
 
         # Test fetching subscribed channels
         channels = self.mds.ChannelMetadata.get_entries(first=1, last=10, sort_by='title', subscribed=True)
-        self.assertEqual(len(channels[0]), 5)
+        self.assertEqual(len(channels), 5)
 
     @db_session
     def test_get_channel_name(self):

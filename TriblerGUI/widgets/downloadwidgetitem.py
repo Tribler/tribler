@@ -4,9 +4,7 @@ import logging
 from datetime import datetime
 
 from PyQt5.QtGui import QFont
-from PyQt5.QtWidgets import QProgressBar, QTreeWidgetItem
-from PyQt5.QtWidgets import QVBoxLayout
-from PyQt5.QtWidgets import QWidget
+from PyQt5.QtWidgets import QProgressBar, QTreeWidgetItem, QVBoxLayout, QWidget
 
 from TriblerGUI.defs import *
 from TriblerGUI.utilities import duration_to_string, format_size, format_speed

@@ -13,7 +13,6 @@ from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, RE
 from Tribler.Core.Modules.restapi.metadata_endpoint import BaseMetadataEndpoint
 from Tribler.Core.Utilities.unicode import ensure_unicode
 
-
 class SearchEndpoint(BaseMetadataEndpoint):
     """
     This endpoint is responsible for searching in channels and torrents present in the local Tribler database.
@@ -27,6 +26,7 @@ class SearchEndpoint(BaseMetadataEndpoint):
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.putChild(b"completions", SearchCompletionsEndpoint(session))
+        self.putChild(b"count", SearchCountEndpoint(session))
 
     @staticmethod
     def convert_datatype_param_to_search_scope(data_type):
@@ -55,14 +55,14 @@ class SearchEndpoint(BaseMetadataEndpoint):
         xxx_filter option disables xxx filter
         channel option limits search to a certain channel
         sort_by option sorts results in forward or backward, based on column name (e.g. "id" vs "-id")
-        txt option uses FTS search on the chosen word* terms
+        filter option uses FTS search on the chosen word* terms
         type option limits query to certain metadata types (e.g. "torrent" or "channel")
 
             **Example request**:
 
             .. sourcecode:: none
 
-                curl -X GET 'http://localhost:8085/search?txt=ubuntu&first=0&last=30&type=torrent&sort_by=size'
+                curl -X GET 'http://localhost:8085/search?filter=ubuntu&first=0&last=30&type=torrent&sort_by=size'
 
             **Example response**:
 
@@ -90,7 +90,7 @@ class SearchEndpoint(BaseMetadataEndpoint):
                    "chant_dirty":false
                 }
         """
-        sanitized = SearchEndpoint.sanitize_parameters(request.args)
+        sanitized = self.sanitize_parameters(request.args)
 
         if not sanitized["query_filter"]:
             request.setResponseCode(http.BAD_REQUEST)
@@ -115,14 +115,13 @@ class SearchEndpoint(BaseMetadataEndpoint):
 
         def search_db():
             with db_session:
-                pony_query, total = self.session.lm.mds.TorrentMetadata.get_entries(**sanitized)
+                pony_query = self.session.lm.mds.TorrentMetadata.get_entries(**sanitized)
                 search_results = [(dict(type={REGULAR_TORRENT: 'torrent', CHANNEL_TORRENT: 'channel'}[r.metadata_type],
                                         **(r.to_simple_dict()))) for r in pony_query]
             self.session.lm.mds._db.disconnect()
-            return search_results, total
+            return search_results
 
-        def on_search_results(search_results_tuple):
-            search_results, total = search_results_tuple
+        def on_search_results(search_results):
             request.write(json.twisted_dumps({
                 "uuid": search_uuid,
                 "results": search_results,
@@ -130,7 +129,6 @@ class SearchEndpoint(BaseMetadataEndpoint):
                 "last": sanitized["last"],
                 "sort_by": sanitized["sort_by"],
                 "sort_asc": sanitized["sort_asc"],
-                "total": total
             }))
             request.finish()
 
@@ -141,6 +139,25 @@ class SearchEndpoint(BaseMetadataEndpoint):
 
         deferToThread(search_db).addCallbacks(on_search_results, on_error)
         return NOT_DONE_YET
+
+class SearchCountEndpoint(SearchEndpoint):
+
+    def __init__(self, session):
+        resource.Resource.__init__(self)
+        self.session = session
+
+    def render_GET(self, request):
+        sanitized = self.sanitize_parameters(request.args)
+        search_uuid = SearchEndpoint.get_uuid(request.args)
+        if not sanitized["query_filter"]:
+            request.setResponseCode(http.BAD_REQUEST)
+            return json.twisted_dumps({"error": "filter parameter missing"})
+
+        if not sanitized["metadata_type"]:
+            request.setResponseCode(http.BAD_REQUEST)
+            return json.twisted_dumps({"error": "Trying to query for unknown type of metadata"})
+
+        return self.get_total_count(self.session.lm.mds.TorrentMetadata, sanitized, search_uuid=search_uuid)
 
 
 class SearchCompletionsEndpoint(resource.Resource):

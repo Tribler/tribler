@@ -50,6 +50,8 @@ class ChannelsEndpoint(BaseChannelsEndpoint):
     def getChild(self, path, request):
         if path == "popular":
             return ChannelsPopularEndpoint()
+        elif path == "count":
+            return ChannelsCountEndpoint()
 
         return ChannelPublicKeyEndpoint(path)
 
@@ -66,7 +68,7 @@ class ChannelsEndpoint(BaseChannelsEndpoint):
 
         if query_filter:
             parts = query_filter.split("\"")
-            query_filter = parts[1]
+            query_filter = parts[0]
 
         subscribed = False
         if 'subscribed' in parameters:
@@ -84,8 +86,14 @@ class ChannelsEndpoint(BaseChannelsEndpoint):
             "last": last,
             "sort_by": sort_by,
             "sort_asc": int(sort_asc),
-            "total": total
         })
+
+
+class ChannelsCountEndpoint(BaseChannelsEndpoint):
+    def render_GET(self, request):
+        first, last, sort_by, sort_asc, query_filter, subscribed = ChannelsEndpoint.sanitize_parameters(request.args)
+        _, total = tribler_utils.tribler_data.get_channels(first, last, sort_by, sort_asc, query_filter, subscribed)
+        return json.dumps({"total": total})
 
 
 class ChannelPublicKeyEndpoint(BaseChannelsEndpoint):
@@ -135,6 +143,7 @@ class SpecificChannelTorrentsEndpoint(BaseChannelsEndpoint):
         BaseChannelsEndpoint.__init__(self)
         self.channel_pk = channel_pk
         self.channel_id = channel_id
+        self.putChild("count", SpecificChannelTorrentsCountEndpoint(self.channel_pk, self.channel_id))
 
     @staticmethod
     def sanitize_parameters(parameters):
@@ -153,7 +162,7 @@ class SpecificChannelTorrentsEndpoint(BaseChannelsEndpoint):
 
         if query_filter:
             parts = query_filter.split("\"")
-            query_filter = parts[1]
+            query_filter = parts[0]
 
         return first, last, sort_by, sort_asc, query_filter, channel
 
@@ -171,8 +180,21 @@ class SpecificChannelTorrentsEndpoint(BaseChannelsEndpoint):
             "last": last,
             "sort_by": sort_by,
             "sort_asc": int(sort_asc),
-            "total": total
         })
+
+
+class SpecificChannelTorrentsCountEndpoint(SpecificChannelTorrentsEndpoint):
+
+    def __init__(self, channel_pk, channel_id):
+        BaseChannelsEndpoint.__init__(self)
+        self.channel_pk = channel_pk
+        self.channel_id = channel_id
+
+    def render_GET(self, request):
+        first, last, sort_by, sort_asc, query_filter, channel = SpecificChannelTorrentsEndpoint.sanitize_parameters(
+            request.args)
+        _, total = tribler_utils.tribler_data.get_torrents(first, last, sort_by, sort_asc, query_filter, channel)
+        return json.dumps({"total": total})
 
 
 class ChannelsPopularEndpoint(BaseChannelsEndpoint):

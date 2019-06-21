@@ -26,7 +26,7 @@ from Tribler.Core.Utilities.utilities import http_get, is_infohash, parse_magnet
 from Tribler.Core.exceptions import DuplicateTorrentFileError
 
 
-class BaseMyChannelEndpoint(resource.Resource):
+class BaseMyChannelEndpoint(SpecificChannelTorrentsEndpoint):
 
     def __init__(self, session):
         resource.Resource.__init__(self)
@@ -117,6 +117,8 @@ class MyChannelEndpoint(BaseMyChannelEndpoint):
 class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
 
     def getChild(self, path, request):
+        if path == b"count":
+            return MyChannelTorrentsCountEndpoint(self.session)
         return MyChannelSpecificTorrentEndpoint(self.session, path)
 
     def render_GET(self, request):
@@ -126,12 +128,13 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
                 request.setResponseCode(http.NOT_FOUND)
                 return json.twisted_dumps({"error": "your channel has not been created"})
 
-            sanitized = SpecificChannelTorrentsEndpoint.sanitize_parameters(request.args)
+            sanitized = self.sanitize_parameters(request.args)
             if b'exclude_deleted' in request.args:
                 sanitized['exclude_deleted'] = request.args[b'exclude_deleted']
 
-            torrents, total = self.session.lm.mds.TorrentMetadata.get_entries(
-                channel_pk=database_blob(my_channel.public_key), **sanitized)
+            sanitized.update(dict(channel_pk=database_blob(my_channel.public_key)))
+
+            torrents = self.session.lm.mds.TorrentMetadata.get_entries(**sanitized)
             torrents = [torrent.to_simple_dict() for torrent in torrents]
 
             return json.twisted_dumps({
@@ -140,7 +143,6 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
                 "last": sanitized['last'],
                 "sort_by": sanitized['sort_by'],
                 "sort_asc": int(sanitized['sort_asc']),
-                "total": total,
                 "dirty": my_channel.dirty
             })
 
@@ -326,6 +328,23 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
             return json.twisted_dumps({"error": "this torrent already exists in your channel"})
 
         return json.twisted_dumps({"added": 1})
+
+
+class MyChannelTorrentsCountEndpoint(BaseMyChannelEndpoint):
+
+    def render_GET(self, request):
+        with db_session:
+            my_channel = self.session.lm.mds.ChannelMetadata.get_my_channel()
+            if not my_channel:
+                request.setResponseCode(http.NOT_FOUND)
+                return json.twisted_dumps({"error": "your channel has not been created"})
+
+            sanitized = self.sanitize_parameters(request.args)
+            if b'exclude_deleted' in request.args:
+                sanitized['exclude_deleted'] = request.args[b'exclude_deleted']
+
+            sanitized.update(dict(channel_pk=database_blob(my_channel.public_key)))
+            return self.get_total_count(self.session.lm.mds.TorrentMetadata, sanitized)
 
 
 class MyChannelSpecificTorrentEndpoint(BaseMyChannelEndpoint):

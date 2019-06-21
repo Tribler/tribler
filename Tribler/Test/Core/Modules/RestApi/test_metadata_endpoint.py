@@ -99,6 +99,17 @@ class TestChannelsEndpoint(BaseTestMetadataEndpoint):
         return self.do_request('metadata/channels?subscribed=1', expected_code=200).addCallback(on_response)
 
 
+class TestChannelsCountEndpoint(BaseTestMetadataEndpoint):
+
+    @inlineCallbacks
+    def test_get_channels_count(self):
+        # Test getting total count of results
+        self.should_check_equality = False
+        result = yield self.do_request('metadata/channels/count?subscribed=1', expected_code=200)
+        json_dict = json.twisted_loads(result)
+        self.assertEqual(json_dict['total'], 5)
+
+
 class TestSpecificChannelEndpoint(BaseTestMetadataEndpoint):
 
     def test_subscribe_missing_parameter(self):
@@ -171,6 +182,18 @@ class TestSpecificChannelTorrentsEndpoint(BaseTestMetadataEndpoint):
         channel_pk = hexlify(self.session.lm.mds.ChannelNode._my_key.pub().key_to_bin()[10:])
         return self.do_request('metadata/channels/%s/0/torrents' % channel_pk, expected_code=200).addCallback(
             on_response)
+
+
+class TestSpecificChannelTorrentsCountEndpoint(BaseTestMetadataEndpoint):
+    @inlineCallbacks
+    def test_get_torrents_count(self):
+        # Test getting total count of results
+        self.should_check_equality = False
+        channel_pk = hexlify(self.session.lm.mds.ChannelNode._my_key.pub().key_to_bin()[10:])
+        result = yield self.do_request('metadata/channels/%s/0/torrents/count' % channel_pk,
+                                       expected_code=200)
+        json_dict = json.twisted_loads(result)
+        self.assertEqual(json_dict['total'], 5)
 
 
 class TestPopularChannelsEndpoint(BaseTestMetadataEndpoint):

@@ -79,7 +79,7 @@ class GigaChannelManager(TaskManager):
         :return: list of tuples (download_to_remove=download, remove_files=Bool)
         """
         with db_session:
-            channels, _ = self.session.lm.mds.ChannelMetadata.get_entries(last=10000, subscribed=True)
+            channels = self.session.lm.mds.ChannelMetadata.get_entries(last=10000, subscribed=True)
             subscribed_infohashes = [bytes(c.infohash) for c in list(channels)]
             dirnames = [c.dir_name for c in channels]
 
