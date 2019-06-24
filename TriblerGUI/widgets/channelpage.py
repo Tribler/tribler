@@ -32,6 +32,8 @@ class ChannelPage(QWidget):
                                                       self.window().channel_page_container.details_container,
                                                       None, self.window().channel_torrents_filter_input)
 
+        self.window().channel_page_container.splitter.splitterMoved.connect(self.controller.brain_dead_refresh)
+
         # Remove the commit control from the delegate for performance
         commit_control = self.window().channel_page_container.content_table.delegate.commit_control
         self.window().channel_page_container.content_table.delegate.controls.remove(commit_control)
