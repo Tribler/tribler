@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import hashlib
 import logging
 from binascii import hexlify
+from copy import deepcopy
 
 from libtorrent import bdecode, bencode
 
@@ -83,11 +84,13 @@ class TorrentInfoEndpoint(resource.Resource):
             infohash = hashlib.sha1(bencode(metainfo[b'info'])).digest()
 
             # Check if the torrent is already in the downloads
-            metainfo['download_exists'] = infohash in self.session.lm.downloads
+            encoded_metainfo = deepcopy(metainfo)
+            encoded_metainfo['download_exists'] = infohash in self.session.lm.downloads
             # FIXME: json.dumps garbles binary data that is used by the 'pieces' field
             # However, this is fine as long as the GUI does not use this field.
-            metainfo[b'info'][b'pieces'] = hexlify(metainfo[b'info'][b'pieces'])
-            encoded_metainfo = hexlify(json.dumps(recursive_unicode(metainfo), ensure_ascii=False).encode('utf-8')).decode('utf-8')
+            encoded_metainfo[b'info'][b'pieces'] = hexlify(encoded_metainfo[b'info'][b'pieces'])
+            encoded_metainfo = hexlify(json.dumps(recursive_unicode(encoded_metainfo), ensure_ascii=False)
+                                       .encode('utf-8')).decode('utf-8')
 
             request.write(json.twisted_dumps({"metainfo": encoded_metainfo}))
             self.finish_request(request)

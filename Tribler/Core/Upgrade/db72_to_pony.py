@@ -97,9 +97,9 @@ class DispersyToPonyMigration(object):
                 channels.append({"id_": infohash_to_id(dispersy_cid),
                                  # converting this to str is a workaround for python 2.7 'writable buffers not hashable'
                                  # problem with Pony
-                                 "infohash": str(dispersy_cid),
+                                 "infohash": bytes(dispersy_cid),
                                  "title": name or '',
-                                 "public_key": "",
+                                 "public_key": b"",
                                  "timestamp": final_timestamp(),
                                  "origin_id": 0,
                                  "size": 0,

@@ -89,7 +89,7 @@ def define_binding(db, logger=None, key=None, clock=None):
                 private_key_override = kwargs.pop("sign_with")
 
             # Free-for-all entries require special treatment
-            if "public_key" in kwargs and kwargs["public_key"] == "":
+            if "public_key" in kwargs and kwargs["public_key"] == b"":
                 # We have to give the entry an unique sig to honor the DB constraints. We use the entry's id_
                 # as the sig to keep it unique and short. The uniqueness is guaranteed by DB as it already
                 # imposes uniqueness constraints on the id_+public_key combination.
@@ -195,7 +195,7 @@ def define_binding(db, logger=None, key=None, clock=None):
         def has_valid_signature(self):
             crypto = default_eccrypto
             signature_correct = False
-            key_correct = crypto.is_valid_public_bin(b"LibNaCLPK:" + binary_type(self.public_key))
+            key_correct = crypto.is_valid_public_bin(b"LibNaCLPK:" + bytes(self.public_key))
 
             if key_correct:
                 try:

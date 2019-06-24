@@ -100,7 +100,7 @@ class TestTriblerTunnelCommunity(TestBase):
         mock_torrent = MockObject()
         mock_torrent.add_peer = lambda _: None
         mock_torrent.tdef = MockObject()
-        mock_torrent.tdef.get_infohash = lambda: 'a' * 20
+        mock_torrent.tdef.get_infohash = lambda: b'a' * 20
         self.nodes[0].overlay.bittorrent_peers = {mock_torrent: [None]}
         self.nodes[0].overlay.readd_bittorrent_peers()
 
@@ -127,13 +127,13 @@ class TestTriblerTunnelCommunity(TestBase):
         mock_circuit.circuit_id = 0
         mock_circuit.ctype = 'IP_SEEDER'
         mock_circuit.state = 'READY'
-        mock_circuit.info_hash = 'a'
+        mock_circuit.info_hash = b'a'
         mock_circuit.goal_hops = 1
 
         self.nodes[0].overlay.remove_circuit = mocked_remove_circuit
         self.nodes[0].overlay.circuits[0] = mock_circuit
-        self.nodes[0].overlay.join_swarm('a', 1)
-        self.nodes[0].overlay.download_states['a'] = 3
+        self.nodes[0].overlay.join_swarm(b'a', 1)
+        self.nodes[0].overlay.download_states[b'a'] = 3
         self.nodes[0].overlay.monitor_downloads([])
         self.assertEqual(mocked_remove_circuit.circuit_id, 0)
 
@@ -144,11 +144,12 @@ class TestTriblerTunnelCommunity(TestBase):
         mock_state = MockObject()
         mock_download = MockObject()
         mock_tdef = MockObject()
-        mock_tdef.get_infohash = lambda: 'a'
-        mock_download.get_hops = lambda: 1
+        mock_tdef.get_infohash = lambda: b'a'
         mock_download.get_def = lambda: mock_tdef
         mock_download.add_peer = lambda x: None
         mock_download.get_state = lambda: mock_state
+        mock_download.config = MockObject()
+        mock_download.config.get_hops = lambda: 1
         mock_state.get_status = lambda: 4
         mock_state.get_download = lambda: mock_download
 
@@ -157,7 +158,7 @@ class TestTriblerTunnelCommunity(TestBase):
         mock_create_ip.called = False
         self.nodes[0].overlay.create_introduction_point = mock_create_ip
 
-        self.nodes[0].overlay.download_states['a'] = 3
+        self.nodes[0].overlay.download_states[b'a'] = 3
         self.nodes[0].overlay.monitor_downloads([mock_state])
         self.assertTrue(mock_create_ip.called)
 
@@ -165,10 +166,10 @@ class TestTriblerTunnelCommunity(TestBase):
         """
         Test whether we leave the swarm when a download is stopped
         """
-        self.nodes[0].overlay.swarms['a'] = None
-        self.nodes[0].overlay.download_states['a'] = 3
+        self.nodes[0].overlay.swarms[b'a'] = None
+        self.nodes[0].overlay.download_states[b'a'] = 3
         self.nodes[0].overlay.monitor_downloads([])
-        self.assertNotIn('a', self.nodes[0].overlay.swarms)
+        self.assertNotIn(b'a', self.nodes[0].overlay.swarms)
 
     def test_monitor_downloads_intro(self):
         """
@@ -182,14 +183,14 @@ class TestTriblerTunnelCommunity(TestBase):
         mock_circuit.circuit_id = 0
         mock_circuit.ctype = 'RP_DOWNLOADER'
         mock_circuit.state = 'READY'
-        mock_circuit.info_hash = 'a'
+        mock_circuit.info_hash = b'a'
         mock_circuit.goal_hops = 1
 
         self.nodes[0].overlay.remove_circuit = mocked_remove_circuit
         self.nodes[0].overlay.circuits[0] = mock_circuit
-        self.nodes[0].overlay.join_swarm('a', 1)
-        self.nodes[0].overlay.swarms['a'].add_connection(mock_circuit, None)
-        self.nodes[0].overlay.download_states['a'] = 3
+        self.nodes[0].overlay.join_swarm(b'a', 1)
+        self.nodes[0].overlay.swarms[b'a'].add_connection(mock_circuit, None)
+        self.nodes[0].overlay.download_states[b'a'] = 3
         self.nodes[0].overlay.monitor_downloads([])
         self.assertEqual(mocked_remove_circuit.circuit_id, 0)
 
@@ -205,13 +206,13 @@ class TestTriblerTunnelCommunity(TestBase):
         mock_circuit.circuit_id = 0
         mock_circuit.ctype = 'DATA'
         mock_circuit.state = 'READY'
-        mock_circuit.info_hash = 'a'
+        mock_circuit.info_hash = b'a'
         mock_circuit.goal_hops = 1
 
         self.nodes[0].overlay.remove_circuit = mocked_remove_circuit
         self.nodes[0].overlay.circuits[0] = mock_circuit
-        self.nodes[0].overlay.join_swarm('a', 1)
-        self.nodes[0].overlay.download_states['a'] = 3
+        self.nodes[0].overlay.join_swarm(b'a', 1)
+        self.nodes[0].overlay.download_states[b'a'] = 3
         self.nodes[0].overlay.monitor_downloads([])
         self.assertEqual(mocked_remove_circuit.circuit_id, 0)
 
@@ -224,12 +225,12 @@ class TestTriblerTunnelCommunity(TestBase):
         mock_handle = MockObject()
         mock_handle.get_peer_info = lambda: {2, 3}
         peers = {1, 2}
-        self.nodes[0].overlay.update_torrent(peers, mock_handle, 'a')
-        self.assertIn('a', self.nodes[0].overlay.bittorrent_peers)
+        self.nodes[0].overlay.update_torrent(peers, mock_handle, b'a')
+        self.assertIn(b'a', self.nodes[0].overlay.bittorrent_peers)
 
         # Test adding peers
-        self.nodes[0].overlay.bittorrent_peers['a'] = {4}
-        self.nodes[0].overlay.update_torrent(peers, mock_handle, 'a')
+        self.nodes[0].overlay.bittorrent_peers[b'a'] = {4}
+        self.nodes[0].overlay.update_torrent(peers, mock_handle, b'a')
 
     @inlineCallbacks
     def test_payouts(self):
@@ -436,7 +437,7 @@ class TestTriblerTunnelCommunity(TestBase):
         his_pubkey = self.nodes[1].overlay.my_peer.public_key.key_to_bin()
         yield self.nodes[0].overlay.bandwidth_wallet.trustchain.sign_block(
             self.nodes[1].overlay.my_peer, public_key=his_pubkey,
-            block_type=b'tribler_bandwidth', transaction={'up': 0, 'down': 1024 * 1024})
+            block_type=b'tribler_bandwidth', transaction={b'up': 0, b'down': 1024 * 1024})
 
         self.nodes[2].overlay.random_slots = []
         self.nodes[2].overlay.competing_slots = [(0, None)]
@@ -444,7 +445,7 @@ class TestTriblerTunnelCommunity(TestBase):
         yield self.deliver_messages()
 
         # Let some artificial data flow over the circuit
-        self.nodes[0].overlay.circuits.values()[0].bytes_down = 250 * 1024 * 1024
+        list(self.nodes[0].overlay.circuits.values())[0].bytes_down = 250 * 1024 * 1024
 
         self.assertEqual(self.nodes[0].overlay.tunnels_ready(1), 1.0)
         self.assertTrue(self.nodes[2].overlay.exit_sockets)
@@ -491,7 +492,7 @@ class TestTriblerTunnelCommunity(TestBase):
         his_pubkey = self.nodes[1].overlay.my_peer.public_key.key_to_bin()
         yield self.nodes[0].overlay.bandwidth_wallet.trustchain.sign_block(
             self.nodes[1].overlay.my_peer, public_key=his_pubkey,
-            block_type=b'tribler_bandwidth', transaction={'up': 0, 'down': 1024 * 1024})
+            block_type=b'tribler_bandwidth', transaction={b'up': 0, b'down': 1024 * 1024})
 
         def on_reject(_, balance):
             self.assertEqual(balance, -1024 * 1024)

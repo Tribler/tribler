@@ -77,11 +77,15 @@ class BaseTestCase(unittest.TestCase):
             os.chmod(temp_dir, 0o700)
             shutil.rmtree(six.text_type(temp_dir), ignore_errors=False)
 
-    def temporary_directory(self, suffix=''):
+    def temporary_directory(self, suffix='', exist_ok=False):
         random_string = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(6))
         temp = os.path.join(TESTS_DIR, "temp", self.__class__.__name__ + suffix + random_string)
         self._tempdirs.append(temp)
-        os.makedirs(temp)
+        try:
+            os.makedirs(temp)
+        except FileExistsError as e:
+            if not exist_ok:
+                raise e
         return temp
 
 

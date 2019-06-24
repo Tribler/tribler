@@ -51,7 +51,7 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         block.link_public_key = unhexlify(b"deadbeef")
         block.link_sequence_number = 21
         block.type = b'tribler_bandwidth'
-        block.transaction = {"up": 42, "down": 8, "total_up": 1024, "total_down": 2048, "type": b"tribler_bandwidth"}
+        block.transaction = {b"up": 42, b"down": 8, b"total_up": 1024, b"total_down": 2048, b"type": b"tribler_bandwidth"}
         block._transaction = encode(block.transaction)
         block.sequence_number = 3
         block.previous_hash = unhexlify(b"babecafe")
@@ -116,7 +116,7 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         """
         Testing whether the API return all available tokens when no argument is supplied
         """
-        transaction = {'up': 100, 'down': 0, 'total_up': 100, 'total_down': 0}
+        transaction = {b'up': 100, b'down': 0, b'total_up': 100, b'total_down': 0}
         transaction2 = {'up': 100, 'down': 0}
 
         def verify_response(response):
@@ -139,7 +139,7 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         """
         Testing whether the API return partial available credit when argument is supplied
         """
-        transaction = {'up': 100, 'down': 0, 'total_up': 100, 'total_down': 0}
+        transaction = {b'up': 100, b'down': 0, b'total_up': 100, b'total_down': 0}
         transaction2 = {'up': 50, 'down': 0}
 
         def verify_response(response):
@@ -162,7 +162,7 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         """
         Testing whether the API returns error 400 if bandwidth is to low when bootstrapping a new identity
         """
-        transaction = {'up': 100, 'down': 0, 'total_up': 100, 'total_down': 0}
+        transaction = {b'up': 100, b'down': 0, b'total_up': 100, b'total_down': 0}
         test_block = TrustChainBlock()
         test_block.type = b'tribler_bandwidth'
         test_block.transaction = transaction
@@ -179,7 +179,7 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         """
         Testing whether the API returns error 400 if bandwidth is to low when bootstrapping a new identity
         """
-        transaction = {'up': 0, 'down': 100, 'total_up': 0, 'total_down': 100}
+        transaction = {b'up': 0, b'down': 100, b'total_up': 0, b'total_down': 100}
         test_block = TrustChainBlock()
         test_block.type = b'tribler_bandwidth'
         test_block.transaction = transaction

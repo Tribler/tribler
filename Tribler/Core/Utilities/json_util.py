@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import json
 from collections import Iterable
 
-from six import string_types
+from six import ensure_text, string_types
 
 __all__ = ['dumps', 'loads']
 
@@ -123,6 +123,8 @@ def loads(s, *args, **kwargs):
     :param s: the JSON formatted string to load objects from.
     :return: the Python object(s) extracted from the JSON input.
     """
+    # Older versions of Python 3 only accept bytes. As a work-around we convert it to unicode here.
+    s = ensure_text(s)
     return json.loads(s, *args, **kwargs)
 
 

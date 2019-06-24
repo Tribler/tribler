@@ -59,7 +59,7 @@ class TestLibTorrentSettingsEndpoint(AbstractApiTest):
             result_json = json.twisted_loads(result)
             settings_json = result_json['settings']
             self.assertEqual(result_json['hop'], hop)
-            self.assertTrue("libtorrent" in settings_json['user_agent'])
+            self.assertIn("libtorrent", settings_json['user_agent'])
             self.assertEqual(settings_json['outgoing_port'], 0)
             self.assertEqual(settings_json['num_outgoing_ports'], 1)
 

@@ -55,7 +55,7 @@ class TestTrustViewEndpoint(AbstractApiTest):
             self.assertEqual(response_json['num_tx'], 1)
             self.assertEqual(len(response_json['graph_data']['nodes']), 2)
 
-        transaction = {'up': 100, 'down': 0, 'total_up': 100, 'total_down': 0}
+        transaction = {b'up': 100, b'down': 0, b'total_up': 100, b'total_down': 0}
         test_block = TrustChainBlock()
         test_block.type = b'tribler_bandwidth'
         test_block.transaction = transaction

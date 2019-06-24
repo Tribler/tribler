@@ -5,6 +5,7 @@ import shutil
 
 from configobj import ConfigObj
 
+from six import ensure_str
 from six.moves.configparser import RawConfigParser
 
 from Tribler.Core.Config.tribler_config import CONFIG_SPEC_PATH, TriblerConfig
@@ -34,7 +35,7 @@ class TestConfigUpgrade70to71(TriblerCoreTest):
         """
         Test upgrading a libtribler configuration from 7.0 to 7.1
         """
-        os.environ['TSTATEDIR'] = self.session_base_dir.encode('utf-8')
+        os.environ['TSTATEDIR'] = ensure_str(self.session_base_dir)
         old_config = RawConfigParser()
         old_config.read(os.path.join(self.CONFIG_PATH, "libtribler70.conf"))
         new_config = TriblerConfig()

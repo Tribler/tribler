@@ -301,7 +301,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                                BalanceResponsePayload.from_half_block(block, cache.to_circuit_id))
 
     def readd_bittorrent_peers(self):
-        for torrent, peers in self.bittorrent_peers.items():
+        for torrent, peers in list(self.bittorrent_peers.items()):
             infohash = hexlify(torrent.tdef.get_infohash())
             for peer in peers:
                 self.logger.info("Re-adding peer %s to torrent %s", peer, infohash)
@@ -332,7 +332,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         block = TriblerBandwidthBlock.create(
             b'tribler_bandwidth',
-            {'up': 0, 'down': amount},
+            {b'up': 0, b'down': amount},
             self.bandwidth_wallet.trustchain.persistence,
             self.my_peer.public_key.key_to_bin(),
             link_pk=peer.public_key.key_to_bin())

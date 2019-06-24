@@ -135,6 +135,10 @@ class TestSessionWithLibTorrent(TestSessionAsServer):
         super(TestSessionWithLibTorrent, self).setUpPreSession()
         self.config.set_libtorrent_enabled(True)
 
+    def temporary_directory(self, suffix=''):
+        return super(TestSessionWithLibTorrent, self).temporary_directory(suffix,
+                                                                          exist_ok=suffix == u'_tribler_test_session_')
+
     @trial_timeout(10)
     def test_remove_torrent_id(self):
         """

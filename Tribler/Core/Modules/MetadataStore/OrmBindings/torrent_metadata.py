@@ -6,6 +6,8 @@ from struct import unpack
 
 from ipv8.database import database_blob
 
+from six import PY2
+
 from pony import orm
 from pony.orm import db_session, desc, raw_sql, select
 
@@ -45,7 +47,7 @@ def tdef_to_metadata_dict(tdef):
         "tags": tags[:200],  # TODO: do proper size checking based on bytes
         "size": tdef.get_length(),
         "torrent_date": torrent_date if torrent_date >= EPOCH else EPOCH,
-        "tracker_info": get_uniformed_tracker_url(tdef.get_tracker() or '') or ''}
+        "tracker_info": get_uniformed_tracker_url((tdef.get_tracker() or b'').decode('utf-8')) or ''}
 
 
 def define_binding(db):
@@ -103,11 +105,13 @@ def define_binding(db):
             # Check that this torrent is yet unknown to GigaChannel, and if there is no duplicate FFA entry.
             # Test for a duplicate id_+public_key is necessary to account for a (highly improbable) situation when
             # two entries have different infohashes but the same id_. We do not want people to exploit this.
-            if cls.exists(lambda g: (g.infohash == database_blob(ffa_dict["infohash"])) or (
-                    g.id_ == id_ and g.public_key == database_blob(""))):
+            ih_blob = database_blob(ffa_dict["infohash"])
+            pk_blob = database_blob(b"")
+            if cls.exists(lambda g: (g.infohash == ih_blob) or (
+                    g.id_ == id_ and g.public_key == pk_blob)):
                 return None
             # Add the torrent as a free-for-all entry if it is unknown to GigaChannel
-            return cls.from_dict(dict(ffa_dict, public_key="", status=COMMITTED, id_=id_))
+            return cls.from_dict(dict(ffa_dict, public_key=b'', status=COMMITTED, id_=id_))
 
         @classmethod
         def search_keyword(cls, query, lim=100):

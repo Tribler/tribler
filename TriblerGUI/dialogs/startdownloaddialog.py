@@ -89,8 +89,7 @@ class StartDownloadDialog(DialogContainer):
             # Set the most recent download locations in the QComboBox
             current_settings = get_gui_setting(self.window().gui_settings, "recent_download_locations", "")
             if len(current_settings) > 0:
-                current_settings = ensure_binary(current_settings)
-                recent_locations = [unhexlify(url).decode('utf-8') for url in current_settings.split(b",")]
+                recent_locations = [unhexlify(url).decode('utf-8') for url in current_settings.split(",")]
                 self.dialog_widget.destination_input.addItems(recent_locations)
             else:
                 self.dialog_widget.destination_input.setCurrentText(

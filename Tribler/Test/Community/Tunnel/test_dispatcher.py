@@ -36,10 +36,10 @@ class TestTunnelDispatcher(AbstractServer):
         """
         mock_circuit = MockObject()
         mock_circuit.goal_hops = 300
-        mock_circuit.circuit_id = 'a'
+        mock_circuit.circuit_id = b'a'
         mock_circuit.ctype = CIRCUIT_TYPE_DATA
         origin = ("0.0.0.0", 1024)
-        self.assertFalse(self.dispatcher.on_incoming_from_tunnel(self.mock_tunnel_community, mock_circuit, origin, 'a'))
+        self.assertFalse(self.dispatcher.on_incoming_from_tunnel(self.mock_tunnel_community, mock_circuit, origin, b'a'))
 
         mock_circuit.goal_hops = 1
         mock_sock_server = MockObject()
@@ -47,12 +47,12 @@ class TestTunnelDispatcher(AbstractServer):
         mock_session._udp_socket = None
         mock_sock_server.sessions = [mock_session]
         self.dispatcher.set_socks_servers([mock_sock_server])
-        self.dispatcher.destinations[1] = {'a': mock_circuit}
-        self.assertFalse(self.dispatcher.on_incoming_from_tunnel(self.mock_tunnel_community, mock_circuit, origin, 'a'))
+        self.dispatcher.destinations[1] = {b'a': mock_circuit}
+        self.assertFalse(self.dispatcher.on_incoming_from_tunnel(self.mock_tunnel_community, mock_circuit, origin, b'a'))
 
         mock_session._udp_socket = MockObject()
         mock_session._udp_socket.sendDatagram = lambda _: True
-        self.assertTrue(self.dispatcher.on_incoming_from_tunnel(self.mock_tunnel_community, mock_circuit, origin, 'a'))
+        self.assertTrue(self.dispatcher.on_incoming_from_tunnel(self.mock_tunnel_community, mock_circuit, origin, b'a'))
 
     def test_on_socks_in(self):
         """

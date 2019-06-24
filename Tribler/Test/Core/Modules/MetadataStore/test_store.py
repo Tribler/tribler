@@ -189,7 +189,7 @@ class TestMetadataStore(TriblerCoreTest):
         payload = ChannelMetadataPayload.from_file(CHANNEL_METADATA)
         channel = self.mds.process_payload(payload)[0][0]
         self.assertFalse(channel.contents_list)
-        self.mds.process_channel_dir(self.CHANNEL_DIR, channel.public_key, channel.id_)
+        self.mds.process_channel_dir(CHANNEL_DIR, channel.public_key, channel.id_)
         self.assertEqual(len(channel.contents_list), 3)
         self.assertEqual(channel.timestamp, 1562257279008)
         self.assertEqual(channel.local_version, channel.timestamp)
@@ -231,7 +231,7 @@ class TestMetadataStore(TriblerCoreTest):
 
     @db_session
     def test_process_payload_ffa(self):
-        infohash = "1" * 20
+        infohash = b"1" * 20
         ffa_torrent = self.mds.TorrentMetadata.add_ffa_from_dict(dict(infohash=infohash, title='abc'))
         ffa_payload = self.mds.TorrentMetadata._payload_class.from_signed_blob(ffa_torrent.serialized())
         ffa_torrent.delete()

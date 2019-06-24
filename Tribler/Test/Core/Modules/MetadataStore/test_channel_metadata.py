@@ -226,7 +226,7 @@ class TestChannelMetadata(TriblerCoreTest):
         # Check update of torrent properties from a new tdef
         md.status = TODELETE
         new_tracker_address = u'http://tribler.org/announce'
-        tdef.torrent_parameters['announce'] = new_tracker_address
+        tdef.torrent_parameters[b'announce'] = new_tracker_address.encode('utf-8')
         md_updated = channel_metadata.add_torrent_to_channel(tdef, None)
         self.assertEqual(md_updated, md)
         self.assertEqual(md.status, UPDATED)

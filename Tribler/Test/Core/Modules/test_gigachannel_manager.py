@@ -1,10 +1,12 @@
 from __future__ import absolute_import
 
-import random
+import os
 from datetime import datetime
 
 from ipv8.database import database_blob
 from ipv8.keyvault.crypto import default_eccrypto
+
+from six import assertCountEqual
 
 from pony.orm import db_session
 
@@ -33,7 +35,7 @@ class TestGigaChannelManager(TriblerCoreTest):
         yield super(TestGigaChannelManager, self).setUp()
         self.torrent_template = {
             "title": "",
-            "infohash": "",
+            "infohash": b"",
             "torrent_date": datetime(1970, 1, 1),
             "tags": "video"
         }
@@ -71,7 +73,7 @@ class TestGigaChannelManager(TriblerCoreTest):
         self.chanman.shutdown()
 
         # Check skip already added personal channel
-        self.mock_session.has_download = lambda x: x == str(chan.infohash)
+        self.mock_session.has_download = lambda x: x == chan.infohash
         self.torrents_added = False
         self.chanman.start()
         self.chanman.check_channels_updates()
@@ -87,20 +89,20 @@ class TestGigaChannelManager(TriblerCoreTest):
         chan.commit_channel_torrent()
         chan.local_version -= 1
         # Subscribed, not updated
-        self.mock_session.lm.mds.ChannelMetadata(title="bla1", public_key=database_blob(str(123)),
-                                                 signature=database_blob(str(345)), skip_key_check=True,
+        self.mock_session.lm.mds.ChannelMetadata(title="bla1", public_key=database_blob(b'123'),
+                                                 signature=database_blob(b'345'), skip_key_check=True,
                                                  timestamp=123, local_version=123, subscribed=True,
-                                                 infohash=str(random.getrandbits(160)))
+                                                 infohash=os.urandom(20))
         # Not subscribed, updated
-        self.mock_session.lm.mds.ChannelMetadata(title="bla2", public_key=database_blob(str(124)),
-                                                 signature=database_blob(str(346)), skip_key_check=True,
+        self.mock_session.lm.mds.ChannelMetadata(title="bla2", public_key=database_blob(b'124'),
+                                                 signature=database_blob(b'346'), skip_key_check=True,
                                                  timestamp=123, local_version=122, subscribed=False,
-                                                 infohash=str(random.getrandbits(160)))
+                                                 infohash=os.urandom(20))
         # Subscribed, updated - only this one should be downloaded
-        chan3 = self.mock_session.lm.mds.ChannelMetadata(title="bla3", public_key=database_blob(str(125)),
-                                                         signature=database_blob(str(347)), skip_key_check=True,
+        chan3 = self.mock_session.lm.mds.ChannelMetadata(title="bla3", public_key=database_blob(b'125'),
+                                                         signature=database_blob(b'347'), skip_key_check=True,
                                                          timestamp=123, local_version=122, subscribed=True,
-                                                         infohash=str(random.getrandbits(160)))
+                                                         infohash=os.urandom(20))
         self.mock_session.has_download = lambda _: False
         self.torrents_added = 0
 
@@ -154,15 +156,15 @@ class TestGigaChannelManager(TriblerCoreTest):
             my_chan.commit_channel_torrent()
 
             # Now we add an external channel we are subscribed to.
-            chan2 = self.mock_session.lm.mds.ChannelMetadata(title="bla1", infohash=database_blob(str(123)),
-                                                             public_key=database_blob(str(123)),
-                                                             signature=database_blob(str(345)), skip_key_check=True,
+            chan2 = self.mock_session.lm.mds.ChannelMetadata(title="bla1", infohash=database_blob(b'123'),
+                                                             public_key=database_blob(b'123'),
+                                                             signature=database_blob(b'345'), skip_key_check=True,
                                                              timestamp=123, local_version=123, subscribed=True)
 
             # Another external channel, but there is a catch: we recently unsubscribed from it
-            chan3 = self.mock_session.lm.mds.ChannelMetadata(title="bla2", infohash=database_blob(str(124)),
-                                                             public_key=database_blob(str(124)),
-                                                             signature=database_blob(str(346)), skip_key_check=True,
+            chan3 = self.mock_session.lm.mds.ChannelMetadata(title="bla2", infohash=database_blob(b'124'),
+                                                             public_key=database_blob(b'124'),
+                                                             signature=database_blob(b'346'), skip_key_check=True,
                                                              timestamp=123, local_version=123, subscribed=False)
 
         class MockDownload(MockObject):
@@ -187,14 +189,15 @@ class TestGigaChannelManager(TriblerCoreTest):
             MockDownload(database_blob(bytes(my_chan.infohash)), my_chan.dirname),
 
             # Downloads for the updated external channel: "old ones" and "recent"
-            MockDownload(database_blob(bytes(str(12331244))), chan2.dirname),
+            MockDownload(database_blob(b'12331244'), chan2.dirname),
             MockDownload(database_blob(bytes(chan2.infohash)), chan2.dirname),
 
             # Downloads for the unsubscribed external channel
-            MockDownload(database_blob(bytes(str(1231551))), chan3.dirname),
+            MockDownload(database_blob(b'1231551'), chan3.dirname),
             MockDownload(database_blob(bytes(chan3.infohash)), chan3.dirname),
+
             # Orphaned download
-            MockDownload(database_blob(str(333)), u"blabla")]
+            MockDownload(database_blob(b'333'), u"blabla")]
 
         def mock_get_channel_downloads():
             return mock_dl_list
@@ -213,9 +216,10 @@ class TestGigaChannelManager(TriblerCoreTest):
         self.chanman.remove_cruft_channels()
         yield self.chanman.process_queued_channels()
         # We want to remove torrents for (a) deleted channels and (b) unsubscribed channels
-        self.assertItemsEqual(self.remove_list,
-                              [(mock_dl_list[0], False),
-                               (mock_dl_list[2], False),
-                               (mock_dl_list[4], True),
-                               (mock_dl_list[5], True),
-                               (mock_dl_list[6], True)])
+        assertCountEqual(self,
+                         self.remove_list,
+                         [(mock_dl_list[0], False),
+                          (mock_dl_list[2], False),
+                          (mock_dl_list[4], True),
+                          (mock_dl_list[5], True),
+                          (mock_dl_list[6], True)])

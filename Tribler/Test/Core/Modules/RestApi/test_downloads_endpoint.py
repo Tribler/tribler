@@ -516,7 +516,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         }
 
         def check_response(json_str_response):
-            response_dict = json.loads(json_str_response)
+            response_dict = json.loads(json_str_response.decode('utf-8'))
             self.assertTrue(response_dict.get("modified", False))
             self.assertEqual(hexlify(video_tdef.infohash).decode('utf-8'), response_dict["infohash"])
 

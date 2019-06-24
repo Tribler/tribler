@@ -71,7 +71,7 @@ class TestMetadata(TriblerCoreTest):
         """
         Test converting free-for-all (unsigned) torrent metadata to payload and back
         """
-        metadata1 = self.mds.ChannelNode.from_dict({"public_key": "", "id_": "123"})
+        metadata1 = self.mds.ChannelNode.from_dict({"public_key": b"", "id_": "123"})
         serialized1 = metadata1.serialized()
         # Make sure sig is really zeroes
         self.assertTrue(hexlify(serialized1).endswith(hexlify(NULL_SIG)))
@@ -83,13 +83,13 @@ class TestMetadata(TriblerCoreTest):
         self.assertEqual(serialized1, serialized2)
 
         # Check that it is impossible to create FFA node without specifying id_
-        self.assertRaises(InvalidChannelNodeException, self.mds.ChannelNode.from_dict, {"public_key": ""})
+        self.assertRaises(InvalidChannelNodeException, self.mds.ChannelNode.from_dict, {"public_key": b""})
         # Check that it is impossible to create FFA payload with non-null signature
         self.assertRaises(InvalidSignatureException, ChannelNodePayload, CHANNEL_NODE, 0, NULL_KEY, 0, 0, 0,
-                          signature="123")
+                          signature=b"123")
         # Check that creating a pair of metadata entries do not trigger uniqueness constraints error
-        self.mds.ChannelNode.from_dict({"public_key": "", "id_": "124"})
-        self.mds.ChannelNode.from_dict({"public_key": "", "id_": "125"})
+        self.mds.ChannelNode.from_dict({"public_key": b"", "id_": "124"})
+        self.mds.ChannelNode.from_dict({"public_key": b"", "id_": "125"})
 
     @db_session
     def test_key_mismatch_exception(self):

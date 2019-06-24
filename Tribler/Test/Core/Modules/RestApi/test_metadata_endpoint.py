@@ -193,8 +193,8 @@ class TestSpecificChannelTorrentsEndpoint(BaseTestMetadataEndpoint):
         """
         with db_session:
             channel = self.session.lm.mds.ChannelMetadata(title='ffa', infohash=random_infohash(),
-                                                          public_key="", id_=123)
-            self.session.lm.mds.TorrentMetadata(public_key="", id_=333333,
+                                                          public_key=b"", id_=123)
+            self.session.lm.mds.TorrentMetadata(public_key=b"", id_=333333,
                                                 origin_id=channel.id_, title='torrent', infohash=random_infohash())
 
         def on_response(response):

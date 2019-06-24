@@ -545,7 +545,7 @@ class LibtorrentMgr(TaskManager):
         oldest_time = time.time() - METAINFO_CACHE_PERIOD
 
         for info_hash, cache_entry in list(self.metainfo_cache.items()):
-            last_time = cache_entry[b'time']
+            last_time = cache_entry['time']
             if last_time < oldest_time:
                 del self.metainfo_cache[info_hash]
 

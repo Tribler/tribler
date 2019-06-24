@@ -18,7 +18,7 @@ from ipv8.taskmanager import TaskManager
 
 import libtorrent as lt
 
-from six import ensure_binary, ensure_text, int2byte
+from six import ensure_binary, ensure_text, int2byte, text_type
 
 from twisted.internet import reactor
 from twisted.internet.defer import CancelledError, Deferred, succeed
@@ -285,7 +285,7 @@ class LibtorrentDownloadImpl(TaskManager):
                 if resume_data and isinstance(resume_data, dict):
                     # Rewrite save_path as a global path, if it is given as a relative path
                     if b"save_path" in resume_data and not os.path.isabs(resume_data[b"save_path"]):
-                        resume_data[b"save_path"] = six.text_type(
+                        resume_data[b"save_path"] = text_type(
                             os.path.join(self.state_dir, ensure_unicode(resume_data[b"save_path"], 'utf-8')))
                     atp["resume_data"] = lt.bencode(resume_data)
             else:
@@ -502,8 +502,8 @@ class LibtorrentDownloadImpl(TaskManager):
         if self.state_dir and b'save_path' in resume_data and os.path.abspath(resume_data[b'save_path']):
             if self.state_dir == os.path.commonprefix([ensure_unicode(resume_data[b'save_path'], 'utf-8'),
                                                        self.state_dir]):
-                resume_data[b'save_path'] = six.text_type(
-                    os.path.relpath(ensure_unicode(resume_data['save_path'], 'utf-8'), self.state_dir))
+                resume_data[b'save_path'] = text_type(
+                    os.path.relpath(ensure_unicode(resume_data[b'save_path'], 'utf-8'), self.state_dir))
 
         metainfo = {
             'infohash': self.tdef.get_infohash(),

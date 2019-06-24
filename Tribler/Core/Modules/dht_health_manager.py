@@ -44,7 +44,7 @@ class DHTHealthManager(TaskManager):
         self.bf_peers[infohash] = bytearray(256)
 
         # Perform a get_peers request. This should result in get_peers responses with the BEP33 bloom filters.
-        self.lt_session.dht_get_peers(lt.sha1_hash(infohash))
+        self.lt_session.dht_get_peers(lt.sha1_hash(bytes(infohash)))
 
         self.register_task("lookup_%s" % hexlify(infohash), reactor.callLater(timeout, self.finalize_lookup, infohash))
 

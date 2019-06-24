@@ -85,7 +85,7 @@ class TrustchainStatsEndpoint(TrustchainBaseEndpoint):
             request.setResponseCode(http.NOT_FOUND)
             return json.twisted_dumps({"error": "TrustChain community not found"})
 
-        return json.twisted_dumps({'statistics': self.session.lm.wallets['MB'].get_statistics()})
+        return json.twisted_dumps({'statistics': recursive_unicode(self.session.lm.wallets['MB'].get_statistics())})
 
 
 class TrustchainBootstrapEndpoint(TrustchainBaseEndpoint):
