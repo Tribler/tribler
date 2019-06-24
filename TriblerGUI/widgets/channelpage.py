@@ -39,7 +39,7 @@ class ChannelPage(QWidget):
         self.window().channel_page_container.content_table.delegate.controls.remove(commit_control)
 
         # To reload the preview
-        self.window().channel_preview_label.clicked.connect(self.preview_clicked)
+        self.window().channel_preview_button.clicked.connect(self.preview_clicked)
         self.controller.query_complete.connect(self._on_query_complete)
 
     def on_node_info_update(self, update_dict):
@@ -57,7 +57,7 @@ class ChannelPage(QWidget):
         self.model.channel_pk = channel_info['public_key']
         self.model.channel_id = channel_info['id']
 
-        self.window().channel_preview_label.setHidden(channel_info['state'] in ('Complete', 'Legacy'))
+        self.window().channel_preview_button.setHidden(channel_info['state'] in ('Complete', 'Legacy'))
         self.window().channel_back_button.setIcon(QIcon(get_image_path('page_back.png')))
         self.window().channel_page_container.content_table.setFocus()
         self.window().channel_page_container.details_container.hide()

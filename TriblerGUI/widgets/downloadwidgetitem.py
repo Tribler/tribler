@@ -1,13 +1,15 @@
-import logging
+from __future__ import absolute_import
 
-from PyQt5.QtGui import QFont
-from PyQt5.QtWidgets import QTreeWidgetItem, QProgressBar
-from PyQt5.QtWidgets import QVBoxLayout
-from PyQt5.QtWidgets import QWidget
+import logging
 from datetime import datetime
 
+from PyQt5.QtGui import QFont
+from PyQt5.QtWidgets import QProgressBar, QTreeWidgetItem
+from PyQt5.QtWidgets import QVBoxLayout
+from PyQt5.QtWidgets import QWidget
+
 from TriblerGUI.defs import *
-from TriblerGUI.utilities import format_size, format_speed, duration_to_string
+from TriblerGUI.utilities import duration_to_string, format_size, format_speed
 
 
 class DownloadWidgetItem(QTreeWidgetItem):
@@ -62,7 +64,11 @@ class DownloadWidgetItem(QTreeWidgetItem):
             self.setFont(0, itfont)
         else:
             self.font(0).setItalic(False)
-        self.setText(1, format_size(float(self.download_info["size"])))
+
+        if self.download_info["size"] == 0 and self.get_raw_download_status() == DLSTATUS_METADATA:
+            self.setText(1, "unknown")
+        else:
+            self.setText(1, format_size(float(self.download_info["size"])))
 
         try:
             self.progress_slider.setValue(int(self.download_info["progress"] * 100))
