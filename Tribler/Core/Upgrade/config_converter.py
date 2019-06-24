@@ -206,6 +206,10 @@ def convert_config_to_tribler74(state_dir=None):
     """
     Convert the download config files to Tribler 7.4 format. The extensions will also be renamed from .state to .conf
     """
+    if PY3:
+        from lib2to3.refactor import RefactoringTool, get_fixers_from_package
+        refactoring_tool = RefactoringTool(fixer_names=get_fixers_from_package('lib2to3.fixes'))
+
     state_dir = state_dir or TriblerConfig.get_default_state_dir()
     for _, filename in enumerate(iglob(os.path.join(state_dir, STATEDIR_CHECKPOINT_DIR, '*.state'))):
         old_config = CallbackConfigParser()
@@ -221,7 +225,7 @@ def convert_config_to_tribler74(state_dir=None):
             if PY3:
                 value = re.sub(r":[^b]('|\").*?[^\\]\1", lambda x: ': b' + x.group(0)[2:], value)
                 value = re.sub(r"[{| ]('|\").*?[^\\]\1:", lambda x: x.group()[:1] + 'b' + x.group()[1:], value)
-                value = re.sub(r"(\d+L)(,|}|])", lambda x: x.group(0)[:-2] + x.group(0)[-1:], value)
+                value = str(refactoring_tool.refactor_string(value+'\n', option + '_2to3'))
             try:
                 value = ast.literal_eval(value)
                 old_config.set(section, option, base64.b64encode(lt.bencode(value)).decode('utf-8'))

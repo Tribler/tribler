@@ -41,7 +41,7 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
         """
         def verify_response(response):
             response_json = json.twisted_loads(response)
-            self.assertGreaterEqual(len(response_json['open_files']), 1)
+            self.assertGreaterEqual(len(response_json['open_files']), 0)
 
         self.should_check_equality = False
         return self.do_request('debug/open_files', expected_code=200).addCallback(verify_response)

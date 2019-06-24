@@ -3,6 +3,8 @@ import logging
 import socket
 import struct
 
+from six import ensure_str
+
 SOCKS_VERSION = 0x05
 
 ADDRESS_TYPE_IPV4 = 0x01
@@ -145,7 +147,7 @@ def __decode_address(address_type, offset, data):
     elif address_type == ADDRESS_TYPE_DOMAIN_NAME:
         domain_length, = struct.unpack_from("!B", data, offset)
         offset += 1
-        destination_address = data[offset:offset + domain_length]
+        destination_address = ensure_str(data[offset:offset + domain_length])
         offset += domain_length
     elif address_type == ADDRESS_TYPE_IPV6:
         raise IPV6AddrError()
