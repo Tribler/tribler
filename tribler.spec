@@ -96,6 +96,9 @@ app = BUNDLE(coll,
 # Remove the test directories in the Tribler source code
 shutil.rmtree(os.path.join(DISTPATH, 'tribler', 'tribler_source', 'Tribler', 'Test'))
 
+# Remove the second IPv8 submodule
+shutil.rmtree(os.path.join(DISTPATH, 'tribler', 'tribler_source', 'Tribler', 'anydex', 'pyipv8'))
+
 # Replace the Info.plist file on MacOS
 if sys.platform == 'darwin':
     shutil.copy('Tribler/Main/Build/Mac/Info.plist', 'dist/Tribler.app/Contents/Info.plist')
