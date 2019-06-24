@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1010</width>
+    <width>1058</width>
     <height>880</height>
    </rect>
   </property>
@@ -3878,18 +3878,40 @@ color: #B5B5B5;</string>
               </spacer>
              </item>
              <item>
-              <widget class="QPushButton" name="channel_preview_label">
-               <property name="toolTip">
-                <string extracomment="reload preview"/>
+              <widget class="QToolButton" name="channel_preview_button">
+               <property name="minimumSize">
+                <size>
+                 <width>28</width>
+                 <height>28</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>28</width>
+                 <height>28</height>
+                </size>
+               </property>
+               <property name="cursor">
+                <cursorShape>PointingHandCursor</cursorShape>
                </property>
                <property name="styleSheet">
-                <string notr="true">color: #eee; font-size: 15px;</string>
+                <string notr="true">QToolButton {
+border: none;
+background-color: transparent;
+}</string>
                </property>
                <property name="text">
-                <string>Refresh ⟳</string>
+                <string>REFRESH</string>
                </property>
-               <property name="margin" stdset="0">
-                <number>8</number>
+               <property name="icon">
+                <iconset>
+                 <normaloff>../images/refresh.png</normaloff>../images/refresh.png</iconset>
+               </property>
+               <property name="iconSize">
+                <size>
+                 <width>18</width>
+                 <height>18</height>
+                </size>
                </property>
               </widget>
              </item>
@@ -4533,7 +4555,7 @@ border-top: 1px solid #555;
                <x>0</x>
                <y>0</y>
                <width>300</width>
-               <height>646</height>
+               <height>610</height>
               </rect>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_22">
@@ -7848,8 +7870,8 @@ QTabBar::tab:selected {
                       <rect>
                        <x>0</x>
                        <y>0</y>
-                       <width>321</width>
-                       <height>259</height>
+                       <width>308</width>
+                       <height>276</height>
                       </rect>
                      </property>
                      <layout class="QFormLayout" name="formLayout_4">
@@ -12544,7 +12566,7 @@ color: #eee;</string>
    <header>TriblerGUI.widgets.homepage.h</header>
    <container>1</container>
   </customwidget>
-  <customwidget>clickablewidgets
+  <customwidget>
    <class>DownloadsDetailsTabWidget</class>
    <extends>QTabWidget</extends>
    <header>TriblerGUI.widgets.downloadsdetailstabwidget.h</header>
