@@ -43,14 +43,13 @@ class EditChannelPage(QWidget):
     def initialize_edit_channel_page(self, gui_settings):
         self.gui_settings = gui_settings
 
-        self.window().create_channel_intro_button.clicked.connect(self.on_create_channel_intro_button_clicked)
-
         self.window().create_channel_form.hide()
         self.update_channel_commit_views()
 
         self.window().edit_channel_stacked_widget.setCurrentIndex(1)
         self.window().edit_channel_details_stacked_widget.setCurrentIndex(PAGE_EDIT_CHANNEL_OVERVIEW)
 
+        self.window().create_channel_intro_button.clicked.connect(self.on_create_channel_intro_button_clicked)
         self.window().create_channel_button.clicked.connect(self.on_create_channel_button_pressed)
         self.window().edit_channel_save_button.clicked.connect(self.on_edit_channel_save_button_pressed)
         self.window().edit_channel_commit_button.clicked.connect(self.clicked_edit_channel_commit_button)
@@ -63,6 +62,7 @@ class EditChannelPage(QWidget):
                                                         self.window().edit_channel_torrents_num_items_label,
                                                         self.window().edit_channel_torrents_filter)
         self.window().edit_channel_torrents_container.details_container.hide()
+        self.window().channel_options_button.hide()
         self.autocommit_enabled = get_gui_setting(self.gui_settings, "autocommit_enabled", True,
                                                   is_bool=True) if self.gui_settings else True
 
@@ -117,7 +117,7 @@ class EditChannelPage(QWidget):
         self.channel_dirty = self.channel_overview['dirty']
 
         self.window().export_channel_button.setHidden(False)
-
+        self.window().channel_options_button.show()
         self.window().channel_settings_tab.setHidden(True)
 
         # Channel name
@@ -230,9 +230,6 @@ class EditChannelPage(QWidget):
                 self.window().edit_channel_description_edit.toPlainText())
 
     def show_channel_options(self):
-        if not self.channel_overview:
-            return
-
         browse_files_action = QAction('Add .torrent file', self)
         browse_dir_action = QAction('Add torrent(s) directory', self)
         add_url_action = QAction('Add URL/magnet links', self)
