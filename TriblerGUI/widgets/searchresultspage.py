@@ -30,6 +30,7 @@ class SearchResultsPage(QWidget):
                                                            self.window().num_results_label)
         self.window().search_details_container.details_tab_widget.initialize_details_widget()
         self.window().core_manager.events_manager.node_info_updated.connect(self.model.update_node_info)
+        self.window().core_manager.events_manager.torrent_info_updated.connect(self.controller.update_health_details)
 
         self.set_columns_visibility([u'health', u'updated'], True)
         self.set_columns_visibility([u'torrents'], False)

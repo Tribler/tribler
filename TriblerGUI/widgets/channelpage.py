@@ -24,13 +24,13 @@ class ChannelPage(QWidget):
         self.gui_settings = gui_settings
         self.model = TorrentsContentModel(hide_xxx=get_gui_setting(self.gui_settings, "family_filter", True,
                                                                    is_bool=True) if self.gui_settings else True)
-        self.window().core_manager.events_manager.torrent_info_updated.connect(self.model.update_node_info)
         self.window().core_manager.events_manager.node_info_updated.connect(self.model.update_node_info)
         self.window().core_manager.events_manager.node_info_updated.connect(self.on_node_info_update)
         self.controller = TorrentsTableViewController(self.model,
                                                       self.window().channel_page_container.content_table,
                                                       self.window().channel_page_container.details_container,
                                                       None, self.window().channel_torrents_filter_input)
+        self.window().core_manager.events_manager.torrent_info_updated.connect(self.controller.update_health_details)
 
         self.window().channel_page_container.splitter.splitterMoved.connect(self.controller.brain_dead_refresh)
 
