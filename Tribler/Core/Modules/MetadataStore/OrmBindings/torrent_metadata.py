@@ -12,7 +12,7 @@ from pony.orm import db_session, desc, raw_sql, select
 from Tribler.Core.Category.Category import default_category_filter
 from Tribler.Core.Category.FamilyFilter import default_xxx_filter
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import COMMITTED, LEGACY_ENTRY, NEW, TODELETE, UPDATED
-from Tribler.Core.Modules.MetadataStore.serialization import REGULAR_TORRENT, TorrentMetadataPayload
+from Tribler.Core.Modules.MetadataStore.serialization import EPOCH, REGULAR_TORRENT, TorrentMetadataPayload
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
 from Tribler.Core.Utilities.utilities import is_channel_public_key, is_hex_string, is_infohash
 
@@ -28,13 +28,18 @@ def tdef_to_metadata_dict(tdef):
     """
     # We only want to determine the type of the data. XXX filtering is done by the receiving side
     tags = default_category_filter.calculateCategory(tdef.metainfo, tdef.get_name_as_unicode())
+    try:
+        torrent_date = datetime.fromtimestamp(tdef.get_creation_date())
+    except ValueError:
+        torrent_date = EPOCH
+
 
     return {
         "infohash": tdef.get_infohash(),
         "title": tdef.get_name_as_unicode()[:300],  # TODO: do proper size checking based on bytes
         "tags": tags[:200],  # TODO: do proper size checking based on bytes
         "size": tdef.get_length(),
-        "torrent_date": datetime.fromtimestamp(tdef.get_creation_date()),
+        "torrent_date": torrent_date if torrent_date >= EPOCH else EPOCH,
         "tracker_info": get_uniformed_tracker_url(tdef.get_tracker() or '') or ''}
 
 
