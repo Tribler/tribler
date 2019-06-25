@@ -471,6 +471,7 @@ def define_binding(db):
             Return a basic dictionary with information about the channel.
             """
             epoch = datetime.utcfromtimestamp(0)
+            # TODO: redo with super
             return {
                 "id": self.id_,
                 "public_key": hexlify(self.public_key),

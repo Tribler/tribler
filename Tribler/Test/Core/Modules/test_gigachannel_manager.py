@@ -79,6 +79,7 @@ class TestGigaChannelManager(TriblerCoreTest):
         self.chanman.shutdown()
 
     @db_session
+    @inlineCallbacks
     def test_check_channels_updates(self):
         # We add our personal channel in an inconsistent state to make sure the GigaChannel Manager will
         # not try to update it in the same way it should update other's channels
@@ -135,10 +136,12 @@ class TestGigaChannelManager(TriblerCoreTest):
 
         # Manually fire the channel updates checking routine
         self.chanman.check_channels_updates()
+        yield self.chanman.process_queued_channels()
 
         # The queue should be empty afterwards
         self.assertEqual(0, len(self.chanman.channels_processing_queue))
 
+    @inlineCallbacks
     def test_remove_cruft_channels(self):
         with db_session:
             # Our personal chan is created, then updated, so there are 2 files on disk and there are 2 torrents:
@@ -207,6 +210,7 @@ class TestGigaChannelManager(TriblerCoreTest):
 
         self.mock_session.lm.get_channel_downloads = mock_get_channel_downloads
         self.chanman.remove_cruft_channels()
+        yield self.chanman.process_queued_channels()
         # We want to remove torrents for (a) deleted channels and (b) unsubscribed channels
         self.assertItemsEqual(self.remove_list,
                               [(mock_dl_list[0], False),

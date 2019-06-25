@@ -224,7 +224,7 @@ def define_binding(db):
             """
             epoch = datetime.utcfromtimestamp(0)
             simple_dict = {
-                "id": self.rowid,
+                "id": self.id_,
                 "name": self.title,
                 "infohash": hexlify(self.infohash),
                 "size": self.size,
