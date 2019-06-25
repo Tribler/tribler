@@ -60,6 +60,14 @@ class TorrentInfoEndpoint(resource.Resource):
         """
 
         def on_got_metainfo(metainfo):
+            if not metainfo:
+                if not request.finished:
+                    request.setResponseCode(http.INTERNAL_SERVER_ERROR)
+                    request.write(json.twisted_dumps({"error": "metainfo error"}))
+                # If the above request.write failed, the request will have already been finished
+                if not request.finished:
+                    self.finish_request(request)
+
             if not isinstance(metainfo, dict) or 'info' not in metainfo:
                 self._logger.warning("Received metainfo is not a valid dictionary")
                 request.setResponseCode(http.INTERNAL_SERVER_ERROR)
@@ -84,14 +92,6 @@ class TorrentInfoEndpoint(resource.Resource):
             request.write(json.twisted_dumps({"metainfo": encoded_metainfo}))
             self.finish_request(request)
 
-        def on_metainfo_timeout(_):
-            if not request.finished:
-                request.setResponseCode(http.REQUEST_TIMEOUT)
-                request.write(json.twisted_dumps({"error": "timeout"}))
-            # If the above request.write failed, the request will have already been finished
-            if not request.finished:
-                self.finish_request(request)
-
         def on_lookup_error(failure):
             failure.trap(ConnectError, DNSLookupError, HttpError, ConnectionLost)
             request.setResponseCode(http.INTERNAL_SERVER_ERROR)
@@ -102,18 +102,19 @@ class TorrentInfoEndpoint(resource.Resource):
             if response.startswith('magnet'):
                 _, infohash, _ = parse_magnetlink(response)
                 if infohash:
-                    self.session.lm.ltmgr.get_metainfo(response, callback=metainfo_deferred.callback, timeout=20,
-                                                       timeout_callback=on_metainfo_timeout, notify=True)
+                    self.session.lm.ltmgr.get_metainfo(infohash, timeout=20).addCallback(on_got_metainfo)
                     return
-            metainfo_deferred.callback(bdecode(response))
+
+            # Otherwise, we directly invoke the on_got_metainfo method
+            on_got_metainfo(bdecode(response))
 
         def on_file():
             try:
                 filename = url2pathname(uri[5:].encode('utf-8') if isinstance(uri, text_type) else uri[5:])
                 tdef = TorrentDef.load(filename)
-                metainfo_deferred.callback(tdef.get_metainfo())
+                on_got_metainfo(tdef.get_metainfo())
                 return NOT_DONE_YET
-            except TypeError:
+            except (TypeError, RuntimeError):
                 request.setResponseCode(http.INTERNAL_SERVER_ERROR)
                 return json.twisted_dumps({"error": "error while decoding torrent file"})
 
@@ -123,12 +124,8 @@ class TorrentInfoEndpoint(resource.Resource):
                 request.setResponseCode(http.BAD_REQUEST)
                 return json.twisted_dumps({"error": "missing infohash"})
 
-            self.session.lm.ltmgr.get_metainfo(mlink or uri, callback=metainfo_deferred.callback, timeout=20,
-                                               timeout_callback=on_metainfo_timeout, notify=True)
+            self.session.lm.ltmgr.get_metainfo(infohash, timeout=20).addCallback(on_got_metainfo)
             return NOT_DONE_YET
-
-        metainfo_deferred = Deferred()
-        metainfo_deferred.addCallback(on_got_metainfo)
 
         if b'uri' not in request.args or not request.args[b'uri']:
             request.setResponseCode(http.BAD_REQUEST)

@@ -238,9 +238,17 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
             return TorrentDef.load_from_memory(data)
 
         def _on_magnet_fetched(meta_info):
+            if not meta_info:
+                request.write(self.return_500(request, RuntimeError("Metainfo timeout")))
+                request.finish()
+                return
+
             return TorrentDef.load_from_dict(meta_info)
 
         def _on_torrent_def_loaded(torrent_def):
+            if not torrent_def:
+                return
+
             with db_session:
                 channel = self.session.lm.mds.ChannelMetadata.get_my_channel()
                 channel.add_torrent_to_channel(torrent_def, extra_info)
@@ -256,10 +264,6 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
             request.write(self.return_500(request, failure.value))
             request.finish()
 
-        def _on_timeout(_):
-            request.write(self.return_500(request, RuntimeError("Metainfo timeout")))
-            request.finish()
-
         # First, check whether we did upload a magnet link or URL
         if 'uri' in parameters and parameters['uri']:
             deferred = Deferred()
@@ -272,13 +276,9 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
                 if xt and is_infohash(codecs.encode(xt, 'hex')) \
                         and (my_channel.torrent_exists(xt) or my_channel.copy_to_channel(xt)):
                     return json.dumps({"added": 1})
-                try:
-                    self.session.lm.ltmgr.get_metainfo(uri, callback=deferred.callback,
-                                                       timeout=30, timeout_callback=_on_timeout, notify=True)
-                except Exception as ex:
-                    deferred.errback(ex)
 
                 deferred.addCallback(_on_magnet_fetched)
+                self.session.lm.ltmgr.get_metainfo(xt, timeout=30).addCallback(deferred.callback)
             else:
                 request.setResponseCode(http.BAD_REQUEST)
                 return json.twisted_dumps({"error": "unknown uri type"})

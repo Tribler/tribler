@@ -9,7 +9,7 @@ from pony.orm import db_session
 
 from six.moves import xrange
 
-from twisted.internet.defer import inlineCallbacks
+from twisted.internet.defer import inlineCallbacks, succeed
 
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import NEW, TODELETE, UPDATED
@@ -364,9 +364,9 @@ class TestMyChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
         """
         self.create_my_channel()
 
-        def fake_get_metainfo(_, callback, **__):
+        def fake_get_metainfo(_, **__):
             meta_info = TorrentDef.load(TORRENT_UBUNTU_FILE).get_metainfo()
-            callback(meta_info)
+            return succeed(meta_info)
 
         self.session.lm.ltmgr.get_metainfo = fake_get_metainfo
 
@@ -377,12 +377,12 @@ class TestMyChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
     @trial_timeout(10)
     def test_add_torrent_from_magnet_error(self):
         """
-        Test whether a ValueError while adding magnets to your channel results in a proper 500 error
+        Test whether an error while adding magnets to your channel results in a proper 500 error
         """
         self.create_my_channel()
 
         def fake_get_metainfo(*_, **__):
-            raise ValueError(u"Test error")
+            return succeed(None)
 
         self.session.lm.ltmgr.get_metainfo = fake_get_metainfo
 

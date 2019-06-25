@@ -87,25 +87,11 @@ class TestLibtorrentMgr(AbstractServer):
         ltsession = self.ltmgr.get_session(0)
         self.assertTrue(ltsession)
 
-    def test_get_metainfo_not_ready(self):
-        """
-        Testing the metainfo fetching method when the DHT is not ready
-        """
-        self.ltmgr.initialize()
-        self.assertFalse(self.ltmgr.get_metainfo("a" * 20, None))
-
     @trial_timeout(20)
-    def test_get_metainfo(self):
+    def test_get_metainfo_valid_metadata(self):
         """
-        Testing the metainfo fetching method
+        Testing the get_metainfo method when the handle has valid metadata immediately
         """
-        test_deferred = Deferred()
-
-        def metainfo_cb(metainfo):
-            self.assertEqual(metainfo, {'info': {'pieces': ['a']}, 'leechers': 0,
-                                        'nodes': [], 'seeders': 0})
-            test_deferred.callback(None)
-
         infohash = "a" * 20
 
         self.ltmgr.initialize()
@@ -122,103 +108,96 @@ class TestLibtorrentMgr(AbstractServer):
         self.ltmgr.ltsession_metainfo.add_torrent = lambda *_: fake_handle
         self.ltmgr.ltsession_metainfo.remove_torrent = lambda *_: None
 
-        fake_alert = type('lt.metadata_received_alert', (object,), dict(handle=fake_handle))
-        self.ltmgr.ltsession_metainfo.pop_alerts = lambda: [fake_alert]
-        self.ltmgr.get_metainfo(unhexlify(infohash), metainfo_cb)
+        def verify_metainfo(metainfo):
+            self.assertEqual(metainfo, {'info': {'pieces': ['a']}, 'leechers': 0,
+                                        'nodes': [], 'seeders': 0})
 
-        return test_deferred
+        return self.ltmgr.get_metainfo(unhexlify(infohash)).addCallback(verify_metainfo)
+
+    @trial_timeout(20)
+    def test_get_metainfo_add_fail(self):
+        """
+        Test whether we try to add a torrent again if the atp is rejected
+        """
+        infohash = "a" * 20
+
+        self.ltmgr.initialize()
+
+        def mock_add_torrent(atp):
+            if isinstance(atp['info_hash'], libtorrent.sha1_hash):
+                raise TypeError
+            else:
+                torrent_info = MockObject()
+                torrent_info.metadata = lambda: bencode({'pieces': ['a']})
+                torrent_info.trackers = lambda: []
+
+                fake_handle = MockObject()
+                fake_handle.is_valid = lambda: True
+                fake_handle.has_metadata = lambda: True
+                fake_handle.get_peer_info = lambda: []
+                fake_handle.torrent_file = lambda: torrent_info
+                return fake_handle
+
+        self.ltmgr.ltsession_metainfo.add_torrent = mock_add_torrent
+        self.ltmgr.ltsession_metainfo.remove_torrent = lambda *_: None
+        return self.ltmgr.get_metainfo(unhexlify(infohash), timeout=0.1)
+
+    @trial_timeout(20)
+    def test_get_metainfo_duplicate_request(self):
+        """
+        Test whether the same request is returned when invoking get_metainfo twice with the same infohash
+        """
+        infohash = "a" * 20
+
+        self.ltmgr.initialize()
+
+        torrent_info = MockObject()
+        torrent_info.metadata = lambda: bencode({'pieces': ['a']})
+        torrent_info.trackers = lambda: []
+
+        fake_handle = MockObject()
+        fake_handle.is_valid = lambda: True
+        fake_handle.has_metadata = lambda: False
+        fake_handle.get_peer_info = lambda: []
+        fake_handle.torrent_file = lambda: torrent_info
+        self.ltmgr.ltsession_metainfo.add_torrent = lambda *_: fake_handle
+        self.ltmgr.ltsession_metainfo.remove_torrent = lambda *_: None
+
+        self.ltmgr.get_metainfo(infohash)
+        self.ltmgr.get_metainfo(infohash)
+
+        self.assertEqual(len(self.ltmgr.metainfo_requests[infohash][1]), 2)
 
     @trial_timeout(20)
     def test_get_metainfo_cache(self):
         """
-        Testing metainfo caching
+        Testing whether cached metainfo is returned, if available
         """
-        test_deferred = Deferred()
+        self.ltmgr.initialize()
+        self.ltmgr.metainfo_cache["a" * 20] = {'meta_info': 'test'}
 
-        def metainfo_cb(metainfo):
+        def verify_cached_metainfo(metainfo):
             self.assertEqual(metainfo, "test")
-            test_deferred.callback(None)
 
-        self.ltmgr.initialize()
-        self.ltmgr.metainfo_cache[hexlify("a" * 20)] = {'meta_info': 'test'}
-        self.ltmgr.get_metainfo("a" * 20, metainfo_cb)
-
-        return test_deferred
-
-    @trial_timeout(20)
-    def test_got_metainfo(self):
-        """
-        Testing whether the callback is correctly invoked when we received metainfo
-        """
-        test_deferred = Deferred()
-        self.ltmgr.initialize()
-
-        def metainfo_cb(metainfo):
-            self.assertDictEqual(metainfo, {'info': {'pieces': ['a']}, 'leechers': 0,
-                                            'nodes': [], 'seeders': 0})
-            test_deferred.callback(None)
-
-        fake_handle = MockObject()
-        torrent_info = MockObject()
-        torrent_info.metadata = lambda: bencode({'pieces': ['a']})
-        torrent_info.trackers = lambda: []
-        fake_handle.get_peer_info = lambda: []
-        fake_handle.torrent_file = lambda: torrent_info
-
-        self.ltmgr.ltsession_metainfo.remove_torrent = lambda *_: None
-
-        self.ltmgr.metainfo_requests['a' * 20] = {
-            'handle': fake_handle,
-            'timeout_callbacks': [],
-            'callbacks': [metainfo_cb],
-            'notify': False
-        }
-        self.ltmgr.got_metainfo("a" * 20)
-
-        return test_deferred
-
-    @trial_timeout(20)
-    def test_got_metainfo_timeout(self):
-        """
-        Testing whether the callback is correctly invoked when we received metainfo after timeout
-        """
-        test_deferred = Deferred()
-
-        def metainfo_timeout_cb(metainfo):
-            self.assertEqual(metainfo, 'a' * 20)
-            test_deferred.callback(None)
-
-        fake_handle = MockObject()
-
-        self.ltmgr.initialize()
-        self.ltmgr.metainfo_requests[hexlify('a' * 20)] = {'handle': fake_handle,
-                                                                  'timeout_callbacks': [metainfo_timeout_cb],
-                                                                  'callbacks': [],
-                                                                  'notify': True}
-        self.ltmgr.ltsession_metainfo.remove_torrent = lambda _dummy1, _dummy2: None
-        self.ltmgr.got_metainfo(hexlify('a' * 20), timeout=True)
-
-        return test_deferred
+        return self.ltmgr.get_metainfo("a" * 20).addCallback(verify_cached_metainfo)
 
     @trial_timeout(20)
     def test_get_metainfo_with_already_added_torrent(self):
         """
         Testing metainfo fetching for a torrent which is already in session.
         """
-        def metainfo_callback(_):
-            test_deferred.callback(None)
-
-        test_deferred = Deferred()
-
         sample_torrent = os.path.join(TESTS_DATA_DIR, "bak_single.torrent")
         torrent_def = TorrentDef.load(sample_torrent)
-        metainfo = torrent_def.get_metainfo()
 
-        mock_torrent_file = MockObject()
-        mock_torrent_file.metadata = lambda: libtorrent.bencode(metainfo)
+        torrent_info = MockObject()
+        torrent_info.metadata = lambda: bencode(torrent_def.get_metainfo())
+        torrent_info.trackers = lambda: []
 
         mock_handle = MockObject()
-        mock_handle.get_torrent_info = lambda: mock_torrent_file
+        mock_handle.is_valid = lambda: True
+        mock_handle.has_metadata = lambda: True
+        mock_handle.torrent_file = lambda: torrent_info
+        mock_handle.get_peer_info = lambda: []
 
         download_impl = MockObject()
         download_impl.handle = mock_handle
@@ -229,9 +208,90 @@ class TestLibtorrentMgr(AbstractServer):
         self.ltmgr.initialize()
         self.ltmgr.torrents[hex_infohash] = (download_impl, mock_ltsession)
 
-        magnet_link = "magnet:?xt=urn:btih:%s" % hex_infohash
-        self.ltmgr.get_metainfo(magnet_link, callback=metainfo_callback)
-        return test_deferred
+        def verify_metainfo(metainfo):
+            self.assertTrue(metainfo)
+
+        self.ltmgr.ltsession_metainfo.remove_torrent = lambda *_: None
+        return self.ltmgr.get_metainfo(torrent_def.infohash).addCallback(verify_metainfo)
+
+    @trial_timeout(20)
+    def test_check_metainfo(self):
+        """
+        Testing whether the check_metainfo method is doing the correct things
+        """
+        self.ltmgr.initialize()
+
+        fake_handle = MockObject()
+        fake_handle.is_valid = lambda: True
+        fake_handle.has_metadata = lambda: True
+
+        tracker1 = MockObject()
+        tracker1.url = 'http://test1.com'
+        tracker2 = MockObject()
+        tracker2.url = 'http://test2.com'
+
+        torrent_info = MockObject()
+        torrent_info.metadata = lambda: bencode({'pieces': ['a']})
+        torrent_info.trackers = lambda: [tracker1, tracker2]
+
+        seed_peer = MockObject()
+        seed_peer.ip = "127.0.0.1"
+        seed_peer.progress = 1
+        leech_peer = MockObject()
+        leech_peer.ip = "127.0.0.1"
+        leech_peer.progress = 0.5
+
+        fake_handle.get_peer_info = lambda: [seed_peer, leech_peer]
+        fake_handle.torrent_file = lambda: torrent_info
+
+        self.ltmgr.ltsession_metainfo.remove_torrent = lambda *_: None
+
+        test_deferred = Deferred()
+        self.ltmgr.metainfo_requests['a' * 20] = (fake_handle, [test_deferred])
+        self.ltmgr.check_metainfo(hexlify("a" * 20))
+
+        def verify_metainfo(metainfo):
+            expected = {
+                'info': {
+                    'pieces': ['a']
+                },
+                'announce': 'http://test1.com',
+                'announce-list': [['http://test1.com', 'http://test2.com']],
+                'leechers': 1,
+                'seeders': 1
+            }
+            self.assertDictEqual(metainfo, expected)
+
+        return test_deferred.addCallback(verify_metainfo)
+
+    @trial_timeout(20)
+    def test_check_metainfo_no_request(self):
+        """
+        Test whether None is returned as metainfo if there is no pending request
+        """
+        self.ltmgr.initialize()
+        self.assertFalse(self.ltmgr.check_metainfo(hexlify("a" * 20)))
+
+    @trial_timeout(20)
+    def test_check_metainfo_invalid_handle(self):
+        """
+        Test whether None is returned as metainfo if the handle is invalid
+        """
+        self.ltmgr.initialize()
+
+        fake_handle = MockObject()
+        fake_handle.is_valid = lambda: False
+        fake_handle.has_metadata = lambda: True
+
+        test_deferred = Deferred()
+        self.ltmgr.metainfo_requests['a' * 20] = (fake_handle, [test_deferred])
+
+        def verify_metainfo(metainfo):
+            self.assertFalse(metainfo)
+
+        self.ltmgr.check_metainfo(hexlify('a' * 20))
+
+        return test_deferred.addCallback(verify_metainfo)
 
     @trial_timeout(20)
     def test_add_torrent(self):
@@ -303,6 +363,13 @@ class TestLibtorrentMgr(AbstractServer):
             lambda handle: self.assertEqual(handle, mock_handle)
         )
 
+    def test_add_torrent_no_ti_url(self):
+        """
+        Test whether a ValueError is raised if we try to add a torrent without infohash or url
+        """
+        self.ltmgr.initialize()
+        self.assertRaises(ValueError, self.ltmgr.add_torrent, None, {})
+
     def test_remove_invalid_torrent(self):
         """
         Tests a successful removal status of torrents without a handle
@@ -334,14 +401,6 @@ class TestLibtorrentMgr(AbstractServer):
         self.ltmgr.process_alert(alert())
 
         self.assertNotIn('0'*20, self.ltmgr.torrents)
-
-    def test_start_download_corrupt(self):
-        """
-        Testing whether starting the download of a corrupt torrent file raises an exception
-        """
-        self.ltmgr.metadata_tmpdir = tempfile.mkdtemp(suffix=u'tribler_metainfo_tmpdir')
-        corrupt_file = os.path.join(self.LIBTORRENT_FILES_DIR, 'corrupt_torrent.torrent')
-        self.assertRaises(TorrentFileException, self.ltmgr.start_download, torrentfilename=corrupt_file)
 
     def test_start_download_duplicate(self):
         """

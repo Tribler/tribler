@@ -52,6 +52,9 @@ class WatchFolder(TaskManager):
 
                 try:
                     tdef = TorrentDef.load(os.path.join(root, name))
+                    if not tdef.get_metainfo():
+                        self.cleanup_torrent_file(root, name)
+                        continue
                 except:  # torrent appears to be corrupt
                     self.cleanup_torrent_file(root, name)
                     continue
