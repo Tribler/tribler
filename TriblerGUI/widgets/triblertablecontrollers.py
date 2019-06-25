@@ -168,6 +168,20 @@ class TableSelectionMixin(object):
             self.brain_dead_refresh()
 
 
+class TorrentHealthDetailsMixin(object):
+
+    def update_health_details(self, update_dict):
+        if self.details_container.isHidden() or not self.details_container.details_tab_widget.torrent_info:
+            return
+
+        if self.details_container.details_tab_widget.torrent_info["infohash"] == update_dict["infohash"]:
+            self.details_container.details_tab_widget.torrent_info.update(update_dict)
+            self.details_container.details_tab_widget.update_health_label(update_dict["num_seeders"],
+                                                                          update_dict["num_leechers"],
+                                                                          update_dict["last_tracker_check"])
+            self.model.update_node_info(update_dict)
+
+
 class ContextMenuMixin(object):
 
     table_view = None
@@ -220,7 +234,8 @@ class ContextMenuMixin(object):
         return False
 
 
-class SearchResultsTableViewController(TableSelectionMixin, ContextMenuMixin, TriblerTableViewController):
+class SearchResultsTableViewController(TableSelectionMixin, ContextMenuMixin, TriblerTableViewController,
+                                       TorrentHealthDetailsMixin):
     """
     Controller for the table view that handles search results.
     """
@@ -265,7 +280,8 @@ class ChannelsTableViewController(TableSelectionMixin, FilterInputMixin, Tribler
         super(ChannelsTableViewController, self).perform_query(**kwargs)
 
 
-class TorrentsTableViewController(TableSelectionMixin, FilterInputMixin, ContextMenuMixin, TriblerTableViewController):
+class TorrentsTableViewController(TableSelectionMixin, FilterInputMixin, ContextMenuMixin, TriblerTableViewController,
+                                  TorrentHealthDetailsMixin):
     """
     This class manages a list with torrents.
     """
