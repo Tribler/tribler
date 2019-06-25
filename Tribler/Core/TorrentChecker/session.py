@@ -19,6 +19,7 @@ from six import text_type
 from twisted.internet import defer, reactor
 from twisted.internet.defer import Deferred, inlineCallbacks
 from twisted.internet.protocol import DatagramProtocol
+from twisted.python.failure import Failure
 from twisted.web.client import Agent, HTTPConnectionPool, RedirectAgent, readBody
 
 from Tribler.Core.Utilities.tracker_utils import parse_tracker_url
@@ -679,6 +680,33 @@ class FakeDHTSession(TrackerSession):
     def connect_to_tracker(self):
         """
         Fakely connects to a tracker.
-        :return: A deferred with a callback containing an empty dictionary.
+        :return: A deferred that fires with the health information.
+        """
+        def on_metainfo(metainfo):
+            if not metainfo:
+                self.result_deferred.errback(Failure(RuntimeError("Metainfo lookup error")))
+                return
+
+            self.result_deferred.callback({
+                "DHT": [{
+                    "infohash": hexlify(self.infohash),
+                    "seeders": metainfo["seeders"],
+                    "leechers": metainfo["leechers"]
+                }]
+            })
+
+        self._session.lm.ltmgr.get_metainfo(self.infohash, timeout=self.timeout).addCallback(on_metainfo)
+        return self.result_deferred
+
+
+class FakeBep33DHTSession(FakeDHTSession):
+    """
+    Fake session for a BEP33 lookup.
+    """
+
+    def connect_to_tracker(self):
+        """
+        Fakely connects to a tracker.
+        :return: A deferred that fires with the health information.
         """
         return self._session.lm.ltmgr.dht_health_manager.get_health(bytes(self.infohash))

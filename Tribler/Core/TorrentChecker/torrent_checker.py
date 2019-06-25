@@ -13,14 +13,15 @@ from pony.orm import db_session
 
 from twisted.internet import reactor
 from twisted.internet.defer import CancelledError, DeferredList, maybeDeferred, succeed
-from twisted.internet.error import ConnectingCancelledError, ConnectionLost
+from twisted.internet.error import ConnectingCancelledError
 from twisted.internet.task import LoopingCall
 from twisted.python.failure import Failure
 from twisted.web.client import HTTPConnectionPool
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import LEGACY_ENTRY
 from Tribler.Core.Modules.MetadataStore.serialization import REGULAR_TORRENT
-from Tribler.Core.TorrentChecker.session import FakeDHTSession, UdpSocketManager, create_tracker_session
+from Tribler.Core.TorrentChecker.session import FakeBep33DHTSession, FakeDHTSession, UdpSocketManager, \
+    create_tracker_session
 from Tribler.Core.Utilities.tracker_utils import MalformedTrackerURLException
 from Tribler.Core.Utilities.utilities import has_bep33_support, is_valid_url
 from Tribler.Core.simpledefs import NTFY_TORRENT, NTFY_UPDATE
@@ -292,12 +293,17 @@ class TorrentChecker(TaskManager):
             deferred_list.append(session.connect_to_tracker().
                                  addCallbacks(*self.get_callbacks_for_session(session)))
 
-        # Create a (fake) DHT session for the lookup if we have support for BEP33.
         if has_bep33_support():
+            # Create a (fake) DHT session for the lookup if we have support for BEP33.
+            session = FakeBep33DHTSession(self.tribler_session, infohash, timeout)
+
+        else:
+            # Otherwise, fallback on the normal DHT metainfo lookups.
             session = FakeDHTSession(self.tribler_session, infohash, timeout)
-            self._session_list['DHT'].append(session)
-            deferred_list.append(session.connect_to_tracker().
-                                 addCallbacks(*self.get_callbacks_for_session(session)))
+
+        self._session_list['DHT'].append(session)
+        deferred_list.append(session.connect_to_tracker().
+                             addCallbacks(*self.get_callbacks_for_session(session)))
 
         return DeferredList(deferred_list, consumeErrors=True).addCallback(
             lambda res: self.on_torrent_health_check_completed(infohash, res))
