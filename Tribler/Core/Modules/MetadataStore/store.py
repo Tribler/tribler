@@ -149,7 +149,7 @@ class MetadataStore(object):
 
         self.ChannelMetadata._channels_dir = channels_dir
 
-        self._db.bind(provider='sqlite', filename=db_filename, create_db=create_db)
+        self._db.bind(provider='sqlite', filename=db_filename, create_db=create_db, timeout=120.0)
         if create_db:
             with db_session:
                 self._db.execute(sql_create_fts_table)
