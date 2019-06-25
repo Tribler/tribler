@@ -6,7 +6,7 @@ import socket
 import struct
 import sys
 import time
-from abc import ABCMeta, abstractmethod, abstractproperty
+from abc import ABCMeta, abstractmethod
 from binascii import hexlify
 
 from ipv8.messaging.deprecated.encoding import add_url_params
@@ -33,11 +33,6 @@ TRACKER_ACTION_SCRAPE = 2
 MAX_INT32 = 2 ** 16 - 1
 
 UDP_TRACKER_INIT_CONNECTION_ID = 0x41727101980
-UDP_TRACKER_RECHECK_INTERVAL = 15
-UDP_TRACKER_MAX_RETRIES = 8
-
-HTTP_TRACKER_RECHECK_INTERVAL = 60
-HTTP_TRACKER_MAX_RETRIES = 0
 
 MAX_INFOHASHES_IN_SCRAPE = 60
 
@@ -73,7 +68,6 @@ class TrackerSession(TaskManager):
         self._infohash_list = []
         self.result_deferred = None
 
-        self._retries = 0
         self.timeout = timeout
         self.timeout_call = None
 
@@ -136,16 +130,6 @@ class TrackerSession(TaskManager):
             self.result_deferred = None
         self.timeout_call = None
 
-    @abstractproperty
-    def max_retries(self):
-        """Number of retries before a session is marked as failed."""
-        pass
-
-    @abstractproperty
-    def retry_interval(self):
-        """Interval between retries."""
-        pass
-
     @property
     def tracker_type(self):
         return self._tracker_type
@@ -161,13 +145,6 @@ class TrackerSession(TaskManager):
     @property
     def last_contact(self):
         return self._last_contact
-
-    @property
-    def retries(self):
-        return self._retries
-
-    def increase_retries(self):
-        self._retries += 1
 
     @property
     def is_initiated(self):
@@ -198,20 +175,6 @@ class HttpTrackerSession(TrackerSession):
         self._parse_deferred = None
         self.request = None
         self._connection_pool = connection_pool if connection_pool else HTTPConnectionPool(reactor, False)
-
-    def max_retries(self):
-        """
-        Returns the max amount of retries allowed for this session.
-        :return: The maximum amount of retries.
-        """
-        return HTTP_TRACKER_MAX_RETRIES
-
-    def retry_interval(self):
-        """
-        Returns the interval one has to wait before retrying to connect.
-        :return: The interval before retrying.
-        """
-        return HTTP_TRACKER_RECHECK_INTERVAL
 
     def connect_to_tracker(self):
         # create the HTTP GET message
@@ -491,21 +454,6 @@ class UdpTrackerSession(TrackerSession):
 
         if self.timeout_call and self.timeout_call.active():
             self.timeout_call.cancel()
-
-    def max_retries(self):
-        """
-        Returns the max amount of retries allowed for this session.
-        :return: The maximum amount of retries.
-        """
-        return UDP_TRACKER_MAX_RETRIES
-
-    def retry_interval(self):
-        """
-        Returns the time one has to wait until retrying the connection again.
-        Increases exponentially with the number of retries.
-        :return: The interval one has to wait before retrying the connection.
-        """
-        return UDP_TRACKER_RECHECK_INTERVAL * (2 ** self._retries)
 
     def connect_to_tracker(self):
         """
