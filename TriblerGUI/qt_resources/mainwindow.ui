@@ -12245,7 +12245,17 @@ A note on privacy: We respect your privacy and do not record what you're downloa
              </size>
             </property>
             <property name="styleSheet">
-             <string notr="true">background-color: #fff;margin-left:16px; margin-right:16px; margin-top:8px;margin-bottom:4px</string>
+             <string notr="true">QProgressBar {
+         background-color: #FFF;
+         border: 0px;
+         padding: 0px;
+         height: 10px;
+         margin: 0 16px;
+        }
+        QProgressBar::chunk {
+         background: #5c58ee;
+         width:5px
+        }</string>
             </property>
             <property name="minimum">
              <number>0</number>
