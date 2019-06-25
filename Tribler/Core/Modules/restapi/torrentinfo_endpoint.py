@@ -17,7 +17,7 @@ from twisted.web.server import NOT_DONE_YET
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.MetadataStore.OrmBindings.torrent_metadata import tdef_to_metadata_dict
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.Utilities.utilities import fix_torrent, http_get, parse_magnetlink, unichar_string
+from Tribler.Core.Utilities.utilities import http_get, parse_magnetlink, unichar_string
 from Tribler.Core.exceptions import HttpError
 from Tribler.util import cast_to_unicode_utf8
 
@@ -110,7 +110,8 @@ class TorrentInfoEndpoint(resource.Resource):
         def on_file():
             try:
                 filename = url2pathname(uri[5:].encode('utf-8') if isinstance(uri, text_type) else uri[5:])
-                metainfo_deferred.callback(bdecode(fix_torrent(filename)))
+                tdef = TorrentDef.load(filename)
+                metainfo_deferred.callback(tdef.get_metainfo())
                 return NOT_DONE_YET
             except TypeError:
                 request.setResponseCode(http.INTERNAL_SERVER_ERROR)

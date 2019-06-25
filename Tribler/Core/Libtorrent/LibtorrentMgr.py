@@ -32,7 +32,7 @@ from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
 from Tribler.Core.Modules.dht_health_manager import DHTHealthManager
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
-from Tribler.Core.Utilities.utilities import fix_torrent, has_bep33_support, parse_magnetlink
+from Tribler.Core.Utilities.utilities import has_bep33_support, parse_magnetlink
 from Tribler.Core.exceptions import TorrentFileException
 from Tribler.Core.simpledefs import (NTFY_INSERT, NTFY_MAGNET_CLOSE, NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_STARTED,
                                      NTFY_REACHABLE, NTFY_TORRENTS)
@@ -668,11 +668,7 @@ class LibtorrentMgr(TaskManager):
             if tdef is None:
                 assert torrentfilename is not None, "torrent file must be provided if tdef and infohash are not given"
                 # try to get the torrent from the given torrent file
-                torrent_data = fix_torrent(torrentfilename)
-                if torrent_data is None:
-                    raise TorrentFileException("error while decoding torrent file")
-
-                tdef = TorrentDef.load_from_memory(torrent_data)
+                tdef = TorrentDef.load(torrentfilename)
 
         assert tdef is not None, "tdef MUST not be None after loading torrent"
 
