@@ -5001,11 +5001,11 @@ color: white;</string>
 color: white;</string>
                     </property>
                     <property name="text">
-                     <string>Tray icon</string>
+                     <string>Monochrome tray icon</string>
                     </property>
                    </widget>
                   </item>
-                  <item row="13" column="1">
+                  <item row="12" column="1">
                    <widget class="QCheckBox" name="use_monochrome_icon_checkbox">
                     <property name="styleSheet">
                      <string notr="true">margin-top: 2px;</string>
