@@ -254,7 +254,7 @@ def define_binding(db):
             # WARNING! This does NOT check the INFOHASH
             a = self.to_dict()
             for comp in ["title", "size", "tags", "torrent_date", "tracker_info"]:
-                if (comp not in b) or (str(a[comp]) == str(b[comp])):
+                if (comp not in b) or (unicode(a[comp]) == unicode(b[comp])):
                     continue
                 return True
             return False
