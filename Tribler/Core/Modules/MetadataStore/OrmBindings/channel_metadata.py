@@ -470,20 +470,14 @@ def define_binding(db):
             """
             Return a basic dictionary with information about the channel.
             """
-            epoch = datetime.utcfromtimestamp(0)
-            # TODO: redo with super
-            return {
-                "id": self.id_,
-                "public_key": hexlify(self.public_key),
-                "name": self.title,
+            result = super(ChannelMetadata, self).to_simple_dict()
+            result.update({
                 "torrents": self.num_entries,
                 "subscribed": self.subscribed,
                 "votes": self.votes/db.ChannelMetadata.votes_scaling,
-                "status": self.status,
-                "updated": int((self.torrent_date - epoch).total_seconds()),
-                "timestamp": self.timestamp,
                 "state": self.channel_state
-            }
+            })
+            return result
 
         @classmethod
         @db_session

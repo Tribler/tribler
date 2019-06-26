@@ -4,12 +4,12 @@ from binascii import hexlify, unhexlify
 from datetime import datetime
 from struct import unpack
 
-from six import text_type
-
 from ipv8.database import database_blob
 
 from pony import orm
 from pony.orm import db_session, desc, raw_sql, select
+
+from six import text_type
 
 from Tribler.Core.Category.Category import default_category_filter
 from Tribler.Core.Category.FamilyFilter import default_xxx_filter
@@ -227,6 +227,7 @@ def define_binding(db):
             epoch = datetime.utcfromtimestamp(0)
             simple_dict = {
                 "id": self.id_,
+                "public_key": hexlify(self.public_key),
                 "name": self.title,
                 "infohash": hexlify(self.infohash),
                 "size": self.size,
