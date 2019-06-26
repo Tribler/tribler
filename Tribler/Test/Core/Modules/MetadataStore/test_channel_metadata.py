@@ -4,6 +4,7 @@ import os
 import random
 from binascii import unhexlify
 from datetime import datetime
+from time import sleep
 
 from ipv8.database import database_blob
 from ipv8.keyvault.crypto import default_eccrypto
@@ -284,6 +285,7 @@ class TestChannelMetadata(TriblerCoreTest):
         channel = self.mds.ChannelMetadata.create_channel('test', 'test')
         self.mds.vote_bump(channel.public_key, channel.id_, peer_key.pub().key_to_bin()[10:])
         self.mds.vote_bump(channel.public_key, channel.id_, peer_key.pub().key_to_bin()[10:])
+        sleep(0.1)  # Necessary mostly on Windows, because of the lower timer resolution
         self.assertLess(0.0, channel.votes)
         self.assertLess(1.0, self.mds.Vsids[0].bump_amount)
 
