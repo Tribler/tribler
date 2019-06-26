@@ -454,7 +454,7 @@ class DownloadsPage(QWidget):
             name = selected_item.download_info["name"]
             post_data = {"uri": compose_magnetlink(infohash, name=name)}
             self.request_mgr.perform_request("mychannel/torrents",
-                                             lambda response, _name=name: self.on_added_to_channel(_name, response),
+                                             lambda response: self.on_added_to_channel(name, response),
                                              method='PUT', data=post_data)
 
     def on_added_to_channel(self, name, response):
