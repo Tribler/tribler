@@ -16,7 +16,6 @@ from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import TODELETE
 from Tribler.Core.Modules.MetadataStore.OrmBindings.torrent_metadata import tdef_to_metadata_dict
-from Tribler.Core.Modules.MetadataStore.serialization import NULL_KEY
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Test.Core.base_test import TriblerCoreTest
@@ -71,6 +70,12 @@ class TestTorrentMetadata(TriblerCoreTest):
         # Create FFA entry
         self.mds.TorrentMetadata.add_ffa_from_dict(tdef_to_metadata_dict(tdef))
         self.assertEqual(self.mds.TorrentMetadata.select(lambda g: g.public_key == database_blob("")).count(), 1)
+
+    @db_session
+    def test_sanitize_tdef(self):
+        tdef = TorrentDef.load(TORRENT_UBUNTU_FILE)
+        tdef.metainfo["creation date"] = -100000
+        self.assertTrue(self.mds.TorrentMetadata.from_dict(tdef_to_metadata_dict(tdef)))
 
     @db_session
     def test_get_magnet(self):
