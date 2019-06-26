@@ -54,7 +54,7 @@ class DownloadConfigInterface(object):
             self.dlconfig.write_file()
 
     def copy(self):
-        return DownloadConfigInterface(self.dlconfig.copy())
+        return DownloadConfigInterface(dlconfig=self.dlconfig.copy(), state_dir=self.state_dir)
 
     def set_dest_dir(self, path):
         """ Sets the directory where to save this Download.
