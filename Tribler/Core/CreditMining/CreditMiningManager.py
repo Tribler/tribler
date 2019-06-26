@@ -15,9 +15,9 @@ from six import string_types
 from twisted.internet.defer import Deferred, DeferredList, succeed
 from twisted.internet.task import LoopingCall
 
+from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.CreditMining.CreditMiningPolicy import InvestmentPolicy, MB
 from Tribler.Core.CreditMining.CreditMiningSource import ChannelSource
-from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.TorrentDef import TorrentDefNoMetainfo
 from Tribler.Core.Utilities.unicode import ensure_unicode
 from Tribler.Core.simpledefs import (
@@ -226,7 +226,8 @@ class CreditMiningManager(TaskManager):
 
         # If a download already exists or already has a checkpoint, skip this torrent
         if self.session.get_download(unhexlify(infohash)) or \
-                os.path.exists(os.path.join(self.session.get_downloads_config_dir(), infohash.decode('utf-8') + '.state')):
+                os.path.exists(os.path.join(self.session.get_downloads_config_dir(),
+                                            infohash.decode('utf-8') + '.state')):
             self._logger.debug('Skipping torrent %s (download already running or scheduled to run)', infohash)
             return
 

@@ -1,15 +1,17 @@
+from __future__ import absolute_import
+
 from six import ensure_binary
 
-from Tribler.Test.tools import trial_timeout
 from twisted.internet import reactor
-from twisted.internet.defer import maybeDeferred, inlineCallbacks
-from twisted.web import server, resource
+from twisted.internet.defer import inlineCallbacks, maybeDeferred
+from twisted.web import resource, server
 
-from Tribler.Core.Modules import versioncheck_manager
 import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.Modules import versioncheck_manager
 from Tribler.Core.Modules.versioncheck_manager import VersionCheckManager
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Test.test_as_server import TestAsServer
+from Tribler.Test.tools import trial_timeout
 
 
 class VersionResource(resource.Resource):

@@ -9,9 +9,9 @@ from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.messaging.payload import Payload
 from ipv8.messaging.serialization import default_serializer
 
-from Tribler.Core.exceptions import InvalidSignatureException
-
 from six import binary_type
+
+from Tribler.Core.exceptions import InvalidSignatureException
 
 EPOCH = datetime(1970, 1, 1)
 INFOHASH_SIZE = 20  # bytes

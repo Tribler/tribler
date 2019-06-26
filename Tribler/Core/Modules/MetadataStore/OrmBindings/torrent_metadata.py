@@ -6,8 +6,6 @@ from struct import unpack
 
 from ipv8.database import database_blob
 
-from six import PY2
-
 from pony import orm
 from pony.orm import db_session, desc, raw_sql, select
 

@@ -6,9 +6,9 @@ from datetime import datetime
 from ipv8.database import database_blob
 from ipv8.keyvault.crypto import default_eccrypto
 
-from six import assertCountEqual
-
 from pony.orm import db_session
+
+from six import assertCountEqual
 
 from twisted.internet.defer import Deferred, inlineCallbacks
 

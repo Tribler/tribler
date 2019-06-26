@@ -8,7 +8,7 @@ import os
 
 from configobj import ConfigObj
 
-from six import text_type, PY3
+from six import text_type
 
 from validate import Validator
 

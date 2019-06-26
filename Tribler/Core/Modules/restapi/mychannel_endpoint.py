@@ -21,9 +21,9 @@ from twisted.web.server import NOT_DONE_YET
 
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import entries_to_chunk
-from Tribler.Core.Utilities.unicode import recursive_unicode
 from Tribler.Core.Modules.restapi.metadata_endpoint import SpecificChannelTorrentsEndpoint
 from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.Utilities.unicode import recursive_unicode
 from Tribler.Core.Utilities.utilities import http_get, is_infohash, parse_magnetlink
 from Tribler.Core.exceptions import DuplicateTorrentFileError
 from Tribler.community.gigachannel.community import max_entries, maximum_payload_size

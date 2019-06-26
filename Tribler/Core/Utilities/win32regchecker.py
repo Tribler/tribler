@@ -3,6 +3,8 @@ Windows 32 bit register checker.
 
 Author(s): Arno Bakker
 """
+from __future__ import absolute_import
+
 import logging
 import sys
 

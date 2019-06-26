@@ -5,7 +5,6 @@ Author(s): Arno Bakker, Niels Zeilemaker
 """
 from __future__ import absolute_import
 
-import libtorrent as lt
 import logging
 import os
 import sys
@@ -18,7 +17,6 @@ from traceback import print_exc
 
 from anydex.wallet.dummy_wallet import DummyWallet1, DummyWallet2
 from anydex.wallet.tc_wallet import TrustchainWallet
-
 
 from ipv8.dht.provider import DHTCommunityProvider
 from ipv8.messaging.anonymization.community import TunnelSettings

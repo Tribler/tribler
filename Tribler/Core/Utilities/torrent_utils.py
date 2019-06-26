@@ -68,7 +68,7 @@ def create_torrent_file(file_path_list, params, torrent_filepath=None):
         flags |= libtorrent.create_torrent_flags_t.calculate_file_hashes
 
     from six import PY3
-    params = {k:(v.decode('utf-8') if PY3 and isinstance(v, bytes) else v) for k,v in params.items()}
+    params = {k: (v.decode('utf-8') if PY3 and isinstance(v, bytes) else v) for k, v in params.items()}
 
     torrent = libtorrent.create_torrent(fs, piece_size=piece_size, flags=flags)
     # Python2 wants binary, python3 want unicode

@@ -9,9 +9,9 @@ from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
 
 import Tribler.Core.Utilities.json_util as json
-from Tribler.Core.Utilities.unicode import recursive_unicode
 from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, REGULAR_TORRENT
 from Tribler.Core.Modules.restapi.metadata_endpoint import BaseMetadataEndpoint
+from Tribler.Core.Utilities.unicode import recursive_unicode
 
 class SearchEndpoint(BaseMetadataEndpoint):
     """

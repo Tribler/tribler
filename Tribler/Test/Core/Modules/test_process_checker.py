@@ -1,10 +1,12 @@
+from __future__ import absolute_import
+
 import os
 from multiprocessing import Process, Value
 from time import sleep
 
 from six import text_type
 
-from Tribler.Core.Modules.process_checker import ProcessChecker, LOCK_FILE_NAME
+from Tribler.Core.Modules.process_checker import LOCK_FILE_NAME, ProcessChecker
 from Tribler.Test.test_as_server import AbstractServer
 
 

@@ -3,10 +3,10 @@ from __future__ import absolute_import
 import os
 
 from configobj import ConfigObjError
+
 from nose.tools import raises
 
 import six
-from six.moves.configparser import MissingSectionHeaderError
 
 from Tribler.Core.Config.download_config import DownloadConfig, get_default_dest_dir
 from Tribler.Core.simpledefs import DLMODE_VOD

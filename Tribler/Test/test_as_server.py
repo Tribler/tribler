@@ -33,8 +33,8 @@ from twisted.web.http import HTTPChannel
 from twisted.web.server import Site
 from twisted.web.static import File
 
-from Tribler.Core.Config.tribler_config import CONFIG_SPEC_PATH, TriblerConfig
 from Tribler.Core.Config.download_config import DownloadConfig
+from Tribler.Core.Config.tribler_config import CONFIG_SPEC_PATH, TriblerConfig
 from Tribler.Core.Session import Session
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.instrumentation import WatchDog
@@ -46,6 +46,9 @@ TESTS_DIR = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
 TESTS_DATA_DIR = os.path.abspath(os.path.join(TESTS_DIR, u"data"))
 TESTS_API_DIR = os.path.abspath(os.path.join(TESTS_DIR, u"API"))
 OUTPUT_DIR = os.path.abspath(os.environ.get('OUTPUT_DIR', 'output'))
+
+if six.PY2:
+    FileExistsError = OSError
 
 
 class BaseTestCase(unittest.TestCase):

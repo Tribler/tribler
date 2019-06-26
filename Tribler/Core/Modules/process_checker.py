@@ -1,4 +1,7 @@
+from __future__ import absolute_import
+
 import os
+
 import psutil
 
 from six import text_type

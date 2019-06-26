@@ -62,7 +62,8 @@ class Category(object):
         except KeyError:
             # single mode
             files_list.append(
-                (torrent_dict[b'info'][b"name"].decode('utf-8'), torrent_dict[b'info'][b'length'] / float(self.__size_change)))
+                (torrent_dict[b'info'][b"name"].decode('utf-8'),
+                 torrent_dict[b'info'][b'length'] / float(self.__size_change)))
 
         tracker = torrent_dict.get(b'announce')
         if not tracker:

@@ -13,9 +13,9 @@ from six.moves import xrange
 
 from twisted.internet.defer import inlineCallbacks, succeed
 
+from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.CreditMining.CreditMiningManager import CreditMiningTorrent
 from Tribler.Core.CreditMining.CreditMiningPolicy import BasePolicy, MB
-from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_STOPPED, DOWNLOAD, \
     NTFY_CREDIT_MINING, NTFY_ERROR
 from Tribler.Test.Core.base_test import MockObject

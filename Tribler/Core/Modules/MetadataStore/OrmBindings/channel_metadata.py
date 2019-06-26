@@ -10,8 +10,6 @@ from libtorrent import add_files, bencode, create_torrent, file_storage, set_pie
 
 import lz4.frame
 
-from six import ensure_text, PY2
-
 from pony import orm
 from pony.orm import db_session, desc, raw_sql, select
 

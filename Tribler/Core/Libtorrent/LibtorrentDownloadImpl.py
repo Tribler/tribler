@@ -14,8 +14,6 @@ import time
 from binascii import hexlify
 from threading import RLock
 
-from ipv8.taskmanager import TaskManager
-
 import libtorrent as lt
 
 from six import ensure_binary, ensure_text, int2byte, text_type
@@ -34,7 +32,7 @@ from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
 from Tribler.Core.Utilities.unicode import ensure_unicode
 from Tribler.Core.exceptions import SaveResumeDataError
 from Tribler.Core.osutils import fix_filebasename
-from Tribler.Core.simpledefs import DLMODE_NORMAL, DLMODE_VOD, DLSTATUS_SEEDING, DLSTATUS_STOPPED, dlstatus_strings
+from Tribler.Core.simpledefs import DLMODE_VOD, DLSTATUS_SEEDING, DLSTATUS_STOPPED
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
 if sys.platform == "win32":
@@ -289,7 +287,8 @@ class LibtorrentDownloadImpl(TaskManager):
                             os.path.join(self.state_dir, ensure_unicode(resume_data[b"save_path"], 'utf-8')))
                     atp["resume_data"] = lt.bencode(resume_data)
             else:
-                atp["url"] = self.tdef.get_url() or "magnet:?xt=urn:btih:" + hexlify(self.tdef.get_infohash()).decode('utf-8')
+                atp["url"] = self.tdef.get_url() or \
+                             "magnet:?xt=urn:btih:" + hexlify(self.tdef.get_infohash()).decode('utf-8')
                 atp["name"] = self.tdef.get_name_as_unicode()
 
         def on_torrent_added(handle):
@@ -821,12 +820,10 @@ class LibtorrentDownloadImpl(TaskManager):
                 return self.get_byte_progress(
                     [(self.get_vod_fileindex(), self.vod_seekpos, self.vod_seekpos + self.prebuffsize),
                      (self.get_vod_fileindex(), -self.endbuffsize - 1, -1)], consecutive=consecutive)
-            else:
-                return self.get_byte_progress(
-                    [(self.get_vod_fileindex(), self.vod_seekpos, self.vod_seekpos + self.prebuffsize)],
-                    consecutive=consecutive)
-        else:
-            return 0.0
+            return self.get_byte_progress(
+                [(self.get_vod_fileindex(), self.vod_seekpos, self.vod_seekpos + self.prebuffsize)],
+                consecutive=consecutive)
+        return 0.0
 
     def get_peerlist(self):
         """ Returns a list of dictionaries, one for each connected peer

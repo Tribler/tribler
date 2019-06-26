@@ -1,4 +1,4 @@
-from __future__ import print_function
+from __future__ import absolute_import, print_function
 
 import logging.config
 import os
@@ -27,7 +27,7 @@ def error_and_exit(title, main_text):
     #       Otherwise we will have these unused GUI modules loaded in the main process.
     try:
         from Tkinter import Tk, Canvas, DISABLED, INSERT, Label, Text, WORD
-    except:
+    except ImportError:
         # For python 3
         from tkinter import Tk, Canvas, DISABLED, INSERT, Label, Text, WORD
 

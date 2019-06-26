@@ -1,9 +1,8 @@
 from __future__ import absolute_import
 
-import random
+import os
 import socket
 import time
-import os
 from binascii import hexlify
 
 from pony.orm import db_session

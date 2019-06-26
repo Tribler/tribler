@@ -7,10 +7,10 @@ from datetime import datetime
 from ipv8.database import database_blob
 from ipv8.keyvault.crypto import default_eccrypto
 
-from six import binary_type
-
 from pony import orm
 from pony.orm.core import DEFAULT
+
+from six import binary_type
 
 from Tribler.Core.Modules.MetadataStore.serialization import (
     CHANNEL_NODE, ChannelNodePayload, DELETED, DeletedMetadataPayload)
@@ -128,7 +128,8 @@ def define_binding(db, logger=None, key=None, clock=None):
                         raise InvalidSignatureException(
                             ("Attempted to create %s object with invalid signature/PK: " % str(
                                 self.__class__.__name__)) +
-                            (hexlify(kwargs["signature"]).decode('utf-8') if "signature" in kwargs else "empty signature ") + " / " +
+                            (hexlify(kwargs["signature"]).decode('utf-8')
+                             if "signature" in kwargs else "empty signature ") + " / " +
                             (hexlify(kwargs["public_key"]).decode('utf-8') if "public_key" in kwargs else " empty PK"))
 
             if private_key_override:

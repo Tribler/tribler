@@ -1,13 +1,14 @@
-import time
-from collections import namedtuple
+from __future__ import absolute_import
 
 import os
 import sys
+import time
+from collections import namedtuple
 from unittest import skipIf
 
 from Tribler.Core.Modules.resource_monitor import ResourceMonitor
-from Tribler.Core.simpledefs import SIGNAL_RESOURCE_CHECK, SIGNAL_LOW_SPACE
-from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
+from Tribler.Core.simpledefs import SIGNAL_LOW_SPACE, SIGNAL_RESOURCE_CHECK
+from Tribler.Test.Core.base_test import MockObject, TriblerCoreTest
 
 
 class TestResourceMonitor(TriblerCoreTest):

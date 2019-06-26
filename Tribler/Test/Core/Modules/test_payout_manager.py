@@ -1,7 +1,9 @@
+from __future__ import absolute_import
+
 from twisted.internet.defer import inlineCallbacks, succeed
 
 from Tribler.Core.Modules.payout_manager import PayoutManager
-from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
+from Tribler.Test.Core.base_test import MockObject, TriblerCoreTest
 
 
 class TestPayoutManager(TriblerCoreTest):

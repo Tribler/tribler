@@ -207,11 +207,11 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
         """
         args = recursive_unicode(request.args)
         get_peers = False
-        if 'get_peers' in args and len(args['get_peers']) > 0 and args['get_peers'][0] == "1":
+        if 'get_peers' in args and args['get_peers'] and args['get_peers'][0] == "1":
             get_peers = True
 
         get_pieces = False
-        if 'get_pieces' in args and len(args['get_pieces']) > 0 and args['get_pieces'][0] == "1":
+        if 'get_pieces' in args and args['get_pieces'] and args['get_pieces'][0] == "1":
             get_pieces = True
 
         get_files = 'get_files' in args and args['get_files'] and args['get_files'][0] == "1"
@@ -329,7 +329,7 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
 
         def download_added(download):
             request.write(json.twisted_dumps({"started": True,
-                                      "infohash": hexlify(download.get_def().get_infohash()).decode('utf-8')}))
+                                              "infohash": hexlify(download.get_def().get_infohash()).decode('utf-8')}))
             request.finish()
 
         def on_error(error):
@@ -417,7 +417,7 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
             Success callback
             """
             request.write(json.twisted_dumps({"removed": True,
-                                      "infohash": hexlify(download.get_def().get_infohash()).decode('utf-8')}))
+                                              "infohash": hexlify(download.get_def().get_infohash()).decode('utf-8')}))
             request.finish()
 
         def _on_remove_failure(failure):
@@ -483,8 +483,10 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
                 """
                 Success callback
                 """
-                request.write(json.twisted_dumps({"modified": True,
-                                          "infohash": hexlify(download.get_def().get_infohash()).decode('utf-8')}))
+                request.write(json.twisted_dumps(
+                    {"modified": True,
+                     "infohash": hexlify(download.get_def().get_infohash()).decode('utf-8')})
+                )
                 request.finish()
 
             def _on_download_readd_failure(failure):
@@ -533,7 +535,7 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
                 return json.twisted_dumps({"error": "unknown state parameter"})
 
         return json.twisted_dumps({"modified": True,
-                           "infohash": hexlify(download.get_def().get_infohash()).decode('utf-8')})
+                                   "infohash": hexlify(download.get_def().get_infohash()).decode('utf-8')})
 
 
 class DownloadExportTorrentEndpoint(DownloadBaseEndpoint):

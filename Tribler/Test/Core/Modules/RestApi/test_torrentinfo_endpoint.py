@@ -78,7 +78,8 @@ class TestTorrentInfoEndpoint(AbstractApiTest):
         def get_metainfo_timeout(*args, **kwargs):
             return succeed(None)
 
-        path = 'magnet:?xt=urn:btih:%s&dn=%s' % (hexlify(UBUNTU_1504_INFOHASH).decode('utf-8'), quote_plus('test torrent'))
+        path = 'magnet:?xt=urn:btih:%s&dn=%s' % (hexlify(UBUNTU_1504_INFOHASH).decode('utf-8'),
+                                                 quote_plus('test torrent'))
         self.session.lm.ltmgr = MockObject()
         self.session.lm.ltmgr.get_metainfo = get_metainfo
         self.session.lm.ltmgr.shutdown = lambda: None

@@ -8,6 +8,7 @@ from configobj import ConfigObj
 import libtorrent as lt
 
 from six import string_types
+
 from validate import Validator
 
 from Tribler.Core.Utilities.install_dir import get_lib_path
@@ -229,5 +230,4 @@ def get_default_dest_dir():
     downloads_dir = os.path.join(get_home_dir(), u"Downloads")
     if os.path.isdir(downloads_dir):
         return os.path.join(downloads_dir, download_dir)
-    else:
-        return os.path.join(get_home_dir(), download_dir)
+    return os.path.join(get_home_dir(), download_dir)
