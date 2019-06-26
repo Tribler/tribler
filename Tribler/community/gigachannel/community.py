@@ -195,8 +195,8 @@ class GigaChannelCommunity(Community):
 
         result_blob = None
         with db_session:
-            db_results, total = self.metadata_store.TorrentMetadata.get_entries(**request_dict)
-            if total > 0:
+            db_results = self.metadata_store.TorrentMetadata.get_entries(**request_dict)
+            if db_results:
                 result_blob = entries_to_chunk(db_results[:max_entries], maximum_payload_size)[0]
         if result_blob:
             self.endpoint.send(peer.address, self.ezr_pack(self.SEARCH_RESPONSE,

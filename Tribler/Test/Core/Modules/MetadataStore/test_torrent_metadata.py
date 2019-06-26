@@ -177,9 +177,9 @@ class TestTorrentMetadata(TriblerCoreTest):
         self.assertEqual(torrent.rowid, results[0].rowid)
 
     @db_session
-    def test_infohash_search(self):
+    def test_infohash_text_search(self):
         """
-        Test searching for torrents with infohash works.
+        Test searching for torrents with infohash through text filter works.
         """
         infohash = b"e84213a794f3ccd890382a54a64ca68b7e925433"
         torrent = self.mds.TorrentMetadata.from_dict(dict(rnd_torrent(), infohash=codecs.decode(infohash, 'hex'),
@@ -187,22 +187,21 @@ class TestTorrentMetadata(TriblerCoreTest):
 
         # Search with the hex encoded infohash
         query = '"%s"*' % infohash
-        results = self.mds.TorrentMetadata.search_keyword(query)[:]
-        self.assertEqual(torrent.rowid, results[0].rowid)
+        results = self.mds.TorrentMetadata.get_entries(query_filter=query)[:]
+        self.assertEqual(torrent, results[0])
 
     @db_session
-    def test_channel_public_key_search(self):
+    def test_channel_public_key_text_search(self):
         """
-        Test searching for channels with public key works.
+        Test searching for channels with public key through text filter works.
         """
         self.mds.ChannelNode._my_key = default_eccrypto.generate_key('curve25519')
         channel = self.mds.ChannelMetadata(title='My channel', infohash=str(random.getrandbits(160)))
 
         # Search with the hex encoded channel public key
         query = '"%s"*' % codecs.encode(channel.public_key, 'hex')
-        results = self.mds.TorrentMetadata.search_keyword(query)[:]
-        self.assertIsNotNone(results)
-        self.assertTrue(channel.rowid, results[0].rowid)
+        results = self.mds.ChannelMetadata.get_entries(query_filter=query)[:]
+        self.assertEqual(results[0], channel)
 
     @db_session
     def test_get_autocomplete_terms(self):
@@ -243,7 +242,7 @@ class TestTorrentMetadata(TriblerCoreTest):
     @db_session
     def test_get_entries(self):
         """
-        Test whether we can get torrents
+        Test base method for getting torrents
         """
 
         # First we create a few channels and add some torrents to these channels
@@ -258,22 +257,28 @@ class TestTorrentMetadata(TriblerCoreTest):
         tlist[-1].xxx = 1
         tlist[-2].status = TODELETE
 
-        torrents, count = self.mds.TorrentMetadata.get_entries(first=1, last=5)
+        torrents = self.mds.TorrentMetadata.get_entries(first=1, last=5)
         self.assertEqual(5, len(torrents))
+
+        count = self.mds.TorrentMetadata.get_entries_count()
         self.assertEqual(25, count)
 
         # Test fetching torrents in a channel
         channel_pk = self.mds.ChannelNode._my_key.pub().key_to_bin()[10:]
-        torrents, count = self.mds.TorrentMetadata.get_entries(first=1, last=10, sort_by='title',
-                                                               channel_pk=channel_pk, origin_id=0)
-        self.assertEqual(5, len(torrents))
-        self.assertEqual(5, count)
 
-        torrents, count = self.mds.TorrentMetadata.get_entries(
-            channel_pk=channel_pk, hide_xxx=True, exclude_deleted=True)[:]
-
+        args = dict(channel_pk=channel_pk, hide_xxx=True, exclude_deleted=True)
+        torrents = self.mds.TorrentMetadata.get_entries_query(**args)[:]
         self.assertListEqual(tlist[-5:-2], list(torrents))
+
+        count = self.mds.TorrentMetadata.get_entries_count(**args)
         self.assertEqual(count, 3)
+
+        args = dict(sort_by='title', channel_pk=channel_pk, origin_id=0)
+        torrents = self.mds.TorrentMetadata.get_entries(first=1, last=10, **args)
+        self.assertEqual(5, len(torrents))
+
+        count = self.mds.TorrentMetadata.get_entries_count(**args)
+        self.assertEqual(5, count)
 
     @db_session
     def test_metadata_conflicting(self):

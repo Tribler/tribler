@@ -7,7 +7,7 @@ from ipv8.taskmanager import TaskManager
 
 from pony.orm import db_session
 
-from twisted.internet.defer import succeed
+from twisted.internet.defer import inlineCallbacks
 from twisted.internet.task import LoopingCall
 from twisted.internet.threads import deferToThread
 
@@ -15,6 +15,10 @@ from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import COMMITTED
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.simpledefs import DLSTATUS_SEEDING, NTFY_CHANNEL_ENTITY, NTFY_UPDATE
+
+
+PROCESS_CHANNEL_DIR = 1
+REMOVE_CHANNEL_DOWNLOAD = 2
 
 
 class GigaChannelManager(TaskManager):
@@ -30,7 +34,7 @@ class GigaChannelManager(TaskManager):
 
         # We queue up processing of the channels because we do it in a separate thread, and we don't want
         # to run more that one of these simultaneously
-        self.channels_processing_queue = []
+        self.channels_processing_queue = {}
         self.processing = False
 
     def start(self):
@@ -53,9 +57,16 @@ class GigaChannelManager(TaskManager):
                             tdef = TorrentDef.load(torrent_path)
                         except IOError:
                             self._logger.warning("Can't open personal channel torrent file. Will try to regenerate it.")
-                    tdef = tdef if (tdef and tdef.infohash == str(my_channel.infohash)) else\
-                        TorrentDef.load_from_dict(my_channel.consolidate_channel_torrent())
-                    self.updated_my_channel(tdef)
+                    if tdef and tdef.infohash == str(my_channel.infohash):
+                        tdef = tdef
+                    else:
+                        regenerated = my_channel.consolidate_channel_torrent()
+                        # If the user created their channel, but added no torrents to it, the channel torrent will not
+                        # be created.
+                        if regenerated:
+                            tdef = TorrentDef.load_from_dict(regenerated)
+                    if tdef:
+                        self.updated_my_channel(tdef)
         except Exception:
             self._logger.exception("Error when tried to resume personal channel seeding on GigaChannel Manager startup")
 
@@ -79,7 +90,8 @@ class GigaChannelManager(TaskManager):
         :return: list of tuples (download_to_remove=download, remove_files=Bool)
         """
         with db_session:
-            channels, _ = self.session.lm.mds.ChannelMetadata.get_entries(last=10000, subscribed=True)
+            # FIXME: if someone is subscribed to more than 1000 channels, they are in trouble...
+            channels = self.session.lm.mds.ChannelMetadata.get_entries(last=1000, subscribed=True)
             subscribed_infohashes = [bytes(c.infohash) for c in list(channels)]
             dirnames = [c.dir_name for c in channels]
 
@@ -87,9 +99,13 @@ class GigaChannelManager(TaskManager):
         cruft_list = [(d, d.get_def().get_name_utf8() not in dirnames)
                       for d in self.session.lm.get_channel_downloads()
                       if bytes(d.get_def().infohash) not in subscribed_infohashes]
-        self.remove_channels_downloads(cruft_list)
+
+        for d, remove_content in cruft_list:
+            self.channels_processing_queue[d.get_def().infohash] = (REMOVE_CHANNEL_DOWNLOAD, (d, remove_content))
 
     def service_channels(self):
+        if self.processing:
+            return
         try:
             self.remove_cruft_channels()
         except Exception:
@@ -99,12 +115,22 @@ class GigaChannelManager(TaskManager):
         except Exception:
             self._logger.exception("Error when checking for channel updates")
 
+        try:
+            if not self.processing:
+                return self.process_queued_channels()
+        except Exception:
+            self._logger.exception("Error when tried to start processing queued channel torrents changes")
+
+    @inlineCallbacks
     def process_queued_channels(self):
-        if self.processing or not self.channels_processing_queue:
-            return succeed(None)
-        self.processing = True
-        channel = self.channels_processing_queue.pop(0)
-        return self.process_channel_dir(channel, self.session.get_download(str(channel.infohash)))
+        while self.channels_processing_queue:
+            infohash, (action, data) = next(iter(self.channels_processing_queue.items()))
+            self.channels_processing_queue.pop(infohash)
+            self.processing = True
+            if action == PROCESS_CHANNEL_DIR:
+                yield self.process_channel_dir_threaded(data)  # data is a channel
+            elif action == REMOVE_CHANNEL_DOWNLOAD:
+                yield self.remove_channel_download(data)  # data is a tuple (download, remove_content bool)
 
     def check_channels_updates(self):
         """
@@ -126,11 +152,10 @@ class GigaChannelManager(TaskManager):
                     self._logger.info("Processing previously downloaded, but unprocessed channel torrent %s ver %i->%i",
                                       hexlify(str(channel.public_key)),
                                       channel.local_version, channel.timestamp)
-                    self.channels_processing_queue.append(channel)
+                    self.channels_processing_queue[channel.infohash] = (PROCESS_CHANNEL_DIR, channel)
             except Exception:
                 self._logger.exception("Error when tried to download a newer version of channel %s",
                                        hexlify(channel.public_key))
-        return self.process_queued_channels()
 
     # TODO: finish this routine
     # This thing should check if the files in the torrent we're going to delete are used in another torrent for
@@ -153,9 +178,9 @@ class GigaChannelManager(TaskManager):
         return files_to_remove
     """
 
-    def remove_channels_downloads(self, to_remove_list):
+    def remove_channel_download(self, to_remove):
         """
-        :param to_remove_list: list of tuples (download_to_remove=download, remove_files=Bool)
+        :param to_remove: a tuple (download_to_remove=download, remove_files=Bool)
         """
 
         # TODO: make file removal from older versions safe (i.e. check if it overlaps with newer downloads)
@@ -166,15 +191,18 @@ class GigaChannelManager(TaskManager):
             files_to_remove.extend(self.safe_files_to_remove(download))
         """
 
-        def _on_remove_failure(failure):
+        def _on_failure(failure):
             self._logger.error("Error when removing the channel download: %s", failure)
+            self.processing = False
 
-        for i, dl_tuple in enumerate(to_remove_list):
-            d, remove_content = dl_tuple
-            deferred = self.session.remove_download(d, remove_content=remove_content)
-            deferred.addErrback(_on_remove_failure)
-            self.register_task(u'remove_channel' + d.tdef.get_name_utf8() + u'-' + hexlify(d.tdef.get_infohash()) +
-                               u'-' + str(i), deferred)
+        def _on_success(_):
+            self.processing = False
+
+        d, remove_content = to_remove
+        deferred = self.session.remove_download(d, remove_content=remove_content)
+        deferred.addCallbacks(_on_success, _on_failure)
+        self.register_task(u'remove_channel' + d.tdef.get_name_utf8() + u'-' + hexlify(d.tdef.get_infohash()),
+                           deferred)
 
         """
         def _on_torrents_removed(torrent):
@@ -183,6 +211,8 @@ class GigaChannelManager(TaskManager):
         dl.addCallback(_on_torrents_removed)
         self.register_task(u'remove_channels_files-' + "_".join([d.tdef.get_name_utf8() for d in to_remove_list]), dl)
         """
+
+        return deferred
 
     def download_channel(self, channel):
         """
@@ -196,16 +226,16 @@ class GigaChannelManager(TaskManager):
         download = self.session.start_download_from_tdef(tdef, dcfg)
 
         def _add_channel_to_processing_queue(_):
-            self.channels_processing_queue.append(channel)
+            self.channels_processing_queue[channel.infohash] = (PROCESS_CHANNEL_DIR, channel)
 
         finished_deferred = download.finished_deferred.addCallback(_add_channel_to_processing_queue)
 
         return download, finished_deferred
 
-    def process_channel_dir(self, channel, download):
+    def process_channel_dir_threaded(self, channel):
 
-        def _process_download(dl):
-            channel_dirname = os.path.join(self.session.lm.mds.channels_dir, dl.get_def().get_name())
+        def _process_download():
+            channel_dirname = os.path.join(self.session.lm.mds.channels_dir, channel.dir_name)
             self.session.lm.mds.process_channel_dir(channel_dirname, channel.public_key, channel.id_,
                                                     external_thread=True)
             self.session.lm.mds._db.disconnect()
@@ -223,7 +253,7 @@ class GigaChannelManager(TaskManager):
                                          channel_upd_dict)
             self.processing = False
 
-        return deferToThread(_process_download, download).addCallbacks(_on_success, _on_failure)
+        return deferToThread(_process_download).addCallbacks(_on_success, _on_failure)
 
     def updated_my_channel(self, tdef):
         """

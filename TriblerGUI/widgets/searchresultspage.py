@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QWidget
 
 from TriblerGUI.utilities import get_gui_setting
@@ -44,6 +45,9 @@ class SearchResultsPage(QWidget):
 
         trimmed_query = query if len(query) < 50 else "%s..." % query[:50]
         self.window().search_results_header_label.setText("Search results for: %s" % trimmed_query)
+
+        # Turn off sorting by default to speed up SQL queries
+        self.window().search_results_list.horizontalHeader().setSortIndicator(-1, Qt.AscendingOrder)
 
         self.controller.query_text = query
         self.controller.perform_query(first=1, last=50)

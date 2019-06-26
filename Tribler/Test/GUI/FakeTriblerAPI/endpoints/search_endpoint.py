@@ -14,6 +14,7 @@ class SearchEndpoint(resource.Resource):
         resource.Resource.__init__(self)
 
         self.putChild("completions", SearchCompletionsEndpoint())
+        self.putChild("count", SearchCountEndpoint())
 
     @staticmethod
     def sanitize_parameters(parameters):
@@ -29,7 +30,8 @@ class SearchEndpoint(resource.Resource):
 
         return first, last, sort_by, sort_asc, md_type, query_filter
 
-    def render_GET(self, request):
+    def base_get(self, request):
+
         if 'filter' not in request.args:
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "filter parameter missing"})
@@ -70,14 +72,26 @@ class SearchEndpoint(resource.Resource):
         else:
             search_results = []
 
+        return first, last, sort_by, sort_asc, search_results
+
+    def render_GET(self, request):
+        first, last, sort_by, sort_asc, search_results = self.base_get(request)
         return json.dumps({
             "results": search_results[first-1:last],
             "first": first,
             "last": last,
             "sort_by": sort_by,
             "sort_asc": sort_asc,
-            "total": len(search_results)
         })
+
+
+class SearchCountEndpoint(SearchEndpoint):
+    def __init__(self):
+        resource.Resource.__init__(self)
+
+    def render_GET(self, request):
+        _, _, _, _, search_results = self.base_get(request)
+        return json.dumps({"total": len(search_results)})
 
 
 class SearchCompletionsEndpoint(resource.Resource):

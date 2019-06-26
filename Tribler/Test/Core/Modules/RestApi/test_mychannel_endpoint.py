@@ -167,18 +167,23 @@ class TestMyChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
         return self.do_request('mychannel/torrents', expected_code=404)
 
     @trial_timeout(10)
+    @inlineCallbacks
     def test_get_my_torrents(self):
         """
         Test whether we can query torrents from your channel
         """
-        def on_response(response):
-            json_response = json.twisted_loads(response)
-            self.assertEqual(len(json_response['results']), 9)
-            self.assertIn('status', json_response['results'][0])
 
         self.create_my_channel()
         self.should_check_equality = False
-        return self.do_request('mychannel/torrents', expected_code=200).addCallback(on_response)
+        result = yield self.do_request('mychannel/torrents', expected_code=200)
+        parsed = json.twisted_loads(result)
+        self.assertEqual(len(parsed['results']), 9)
+        self.assertIn('status', parsed['results'][0])
+
+        # Test getting total count of results
+        result = yield self.do_request('mychannel/torrents/count', expected_code=200)
+        parsed = json.twisted_loads(result)
+        self.assertEqual(parsed["total"], 9)
 
     @trial_timeout(10)
     def test_delete_all_torrents_no_channel(self):

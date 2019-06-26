@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import os
 from base64 import b64encode
 
-from PyQt5.QtCore import QDir, QTimer, pyqtSignal
+from PyQt5.QtCore import QDir, QTimer, Qt, pyqtSignal
 from PyQt5.QtWidgets import QAction, QFileDialog, QWidget
 
 from TriblerGUI.defs import BUTTON_TYPE_CONFIRM, BUTTON_TYPE_NORMAL, PAGE_EDIT_CHANNEL_OVERVIEW, \
@@ -259,6 +259,9 @@ class EditChannelPage(QWidget):
         channel_options_menu.exec_(self.mapToGlobal(options_btn_pos))
 
     def load_my_torrents(self):
+        # Turn off sorting by default to speed up SQL queries
+        self.window().edit_channel_torrents_container.content_table.horizontalHeader().setSortIndicator(
+            -1, Qt.AscendingOrder)
         self.controller.model.reset()
         self.controller.perform_query(first=1, last=50)  # Load the first 50 torrents
 

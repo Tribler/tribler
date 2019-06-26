@@ -48,9 +48,20 @@ class BaseMetadataEndpoint(resource.Resource):
                 parameters['sort_by'][0]),
             "sort_asc": True if 'sort_asc' not in parameters else bool(int(parameters['sort_asc'][0])),
             "query_filter": None if 'filter' not in parameters else cast_to_unicode_utf8(parameters['filter'][0]),
-            "hide_xxx": False if 'hide_xxx' not in parameters else bool(int(parameters['hide_xxx'][0]) > 0)}
+            "hide_xxx": False if 'hide_xxx' not in parameters else bool(int(parameters['hide_xxx'][0]) > 0),
+        }
 
         return sanitized
+
+    @classmethod
+    def get_total_count(cls, md_class, sanitized, search_uuid=None):
+        for p in ["first", "last", "sort_by", "sort_asc"]:
+            sanitized.pop(p, None)
+        total_count = md_class.get_entries_count(**sanitized)
+        result = {"total": total_count}
+        if search_uuid:
+            result.update({"uuid": search_uuid})
+        return json.twisted_dumps(result)
 
     @staticmethod
     def convert_sort_param_to_pony_col(sort_param):
@@ -92,15 +103,17 @@ class BaseChannelsEndpoint(BaseMetadataEndpoint):
 class ChannelsEndpoint(BaseChannelsEndpoint):
 
     def getChild(self, path, request):
-        if path == "popular":
+        if path == b"popular":
             return ChannelsPopularEndpoint(self.session)
-
+        if path == b"count":
+            return ChannelsCountEndpoint(self.session)
         return ChannelPublicKeyEndpoint(self.session, path)
 
     def render_GET(self, request):
-        sanitized = ChannelsEndpoint.sanitize_parameters(request.args)
+        sanitized = self.sanitize_parameters(request.args)
+
         with db_session:
-            channels, total = self.session.lm.mds.ChannelMetadata.get_entries(**sanitized)
+            channels = self.session.lm.mds.ChannelMetadata.get_entries(**sanitized)
             channels_list = [channel.to_simple_dict() for channel in channels]
 
         return json.twisted_dumps({
@@ -109,9 +122,14 @@ class ChannelsEndpoint(BaseChannelsEndpoint):
             "last": sanitized["last"],
             "sort_by": sanitized["sort_by"],
             "sort_asc": int(sanitized["sort_asc"]),
-            "total": total
         })
 
+
+class ChannelsCountEndpoint(BaseChannelsEndpoint):
+
+    def render_GET(self, request):
+        sanitized = self.sanitize_parameters(request.args)
+        return self.get_total_count(self.session.lm.mds.ChannelMetadata, sanitized)
 
 class ChannelsPopularEndpoint(BaseChannelsEndpoint):
 
@@ -125,8 +143,10 @@ class ChannelsPopularEndpoint(BaseChannelsEndpoint):
                 request.setResponseCode(http.BAD_REQUEST)
                 return json.twisted_dumps({"error": "the limit parameter must be a positive number"})
 
-        popular_channels = self.session.lm.mds.ChannelMetadata.get_random_channels(limit=limit_channels)
-        return json.twisted_dumps({"channels": [channel.to_simple_dict() for channel in popular_channels]})
+        with db_session:
+            popular_channels = self.session.lm.mds.ChannelMetadata.get_random_channels(limit=limit_channels)
+            results = [channel.to_simple_dict() for channel in popular_channels]
+        return json.twisted_dumps({"channels": results})
 
 
 class ChannelPublicKeyEndpoint(BaseChannelsEndpoint):
@@ -190,12 +210,14 @@ class SpecificChannelTorrentsEndpoint(BaseMetadataEndpoint):
         self.channel_pk = channel_pk
         self.channel_id = channel_id
 
+        self.putChild(b"count", SpecificChannelTorrentsCountEndpoint(session, self.channel_pk, self.channel_id))
+
     def render_GET(self, request):
-        sanitized = SpecificChannelTorrentsEndpoint.sanitize_parameters(request.args)
+        sanitized = self.sanitize_parameters(request.args)
+        sanitized.update(dict(channel_pk=self.channel_pk, origin_id=self.channel_id))
+
         with db_session:
-            torrents, total = self.session.lm.mds.TorrentMetadata.get_entries(channel_pk=self.channel_pk,
-                                                                              origin_id=self.channel_id,
-                                                                              **sanitized)
+            torrents = self.session.lm.mds.TorrentMetadata.get_entries(**sanitized)
             torrents_list = [torrent.to_simple_dict() for torrent in torrents]
 
         return json.twisted_dumps({
@@ -204,8 +226,20 @@ class SpecificChannelTorrentsEndpoint(BaseMetadataEndpoint):
             "last": sanitized['last'],
             "sort_by": sanitized['sort_by'],
             "sort_asc": int(sanitized['sort_asc']),
-            "total": total
         })
+
+
+class SpecificChannelTorrentsCountEndpoint(SpecificChannelTorrentsEndpoint):
+
+    def __init__(self, session, channel_pk, channel_id):
+        BaseMetadataEndpoint.__init__(self, session)
+        self.channel_pk = channel_pk
+        self.channel_id = channel_id
+
+    def render_GET(self, request):
+        sanitized = self.sanitize_parameters(request.args)
+        sanitized.update(dict(channel_pk=self.channel_pk, origin_id=self.channel_id))
+        return self.get_total_count(self.session.lm.mds.TorrentMetadata, sanitized)
 
 
 class TorrentsEndpoint(BaseMetadataEndpoint):

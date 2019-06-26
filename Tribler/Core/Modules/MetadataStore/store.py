@@ -223,9 +223,6 @@ class MetadataStore(object):
         for filename in sorted(os.listdir(dirname)):
             full_filename = os.path.join(dirname, filename)
 
-            if self._shutting_down:
-                return
-
             blob_sequence_number = None
             if filename.endswith(BLOB_EXTENSION):
                 blob_sequence_number = int(filename[:-len(BLOB_EXTENSION)])
@@ -248,6 +245,10 @@ class MetadataStore(object):
                         continue
                 try:
                     self.process_mdblob_file(full_filename, external_thread)
+                    # If we stopped mdblob processing due to shutdown flag, we should stop
+                    # processing immediately, so that channel local version will not increase
+                    if self._shutting_down:
+                        return
                     # We track the local version of the channel while reading blobs
                     with db_session:
                         channel = self.ChannelMetadata.get_for_update(public_key=public_key, id_=id_)
@@ -423,7 +424,7 @@ class MetadataStore(object):
                 result.append((node, GOT_NEWER_VERSION))
             # Otherwise, we got the same version locally and do nothing.
             # The situation when something was marked for deletion, and then we got here (i.e. we have the same
-            # version) should never happen, because this version should have removed the above mentioned thing earlier
+            # version) should never happen, because this version should have removed the above mentioned node earlier
             if result:
                 self._logger.warning("Broken DB state!")
             return result

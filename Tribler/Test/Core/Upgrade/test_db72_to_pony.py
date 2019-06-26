@@ -74,8 +74,8 @@ class TestUpgradeDB72ToPony(TriblerCoreTest):
             self.m.convert_discovered_channels()
             chans = self.mds.ChannelMetadata.get_entries()
 
-            self.assertEqual(len(chans[0]), 2)
-            for c in chans[0]:
+            self.assertEqual(len(chans), 2)
+            for c in chans:
                 self.assertNotEqual(self.m.personal_channel_title[:200], c.title[:200])
                 self.assertEqual(c.status, LEGACY_ENTRY)
                 self.assertTrue(c.contents_list)

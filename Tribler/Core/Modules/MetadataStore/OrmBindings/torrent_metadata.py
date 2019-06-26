@@ -9,6 +9,8 @@ from ipv8.database import database_blob
 from pony import orm
 from pony.orm import db_session, desc, raw_sql, select
 
+from six import text_type
+
 from Tribler.Core.Category.Category import default_category_filter
 from Tribler.Core.Category.FamilyFilter import default_xxx_filter
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import COMMITTED, LEGACY_ENTRY, NEW, TODELETE, UPDATED
@@ -96,8 +98,7 @@ def define_binding(db):
             # abs is necessary as the conversion can produce a negative value, and we do not support that.
             id_ = infohash_to_id(ffa_dict["infohash"])
             # Check that this torrent is yet unknown to GigaChannel, and if there is no duplicate FFA entry.
-            # Test for a duplicate id_+public_key is necessary to account for a (highly improbabl
-            # e) situation when
+            # Test for a duplicate id_+public_key is necessary to account for a (highly improbable) situation when
             # two entries have different infohashes but the same id_. We do not want people to exploit this.
             if cls.exists(lambda g: (g.infohash == database_blob(ffa_dict["infohash"])) or (
                     g.id_ == id_ and g.public_key == database_blob(""))):
@@ -119,15 +120,6 @@ def define_binding(db):
             fts_ids = raw_sql(
                 """SELECT rowid FROM ChannelNode WHERE rowid IN (SELECT rowid FROM FtsIndex WHERE FtsIndex MATCH $query
                 ORDER BY bm25(FtsIndex) LIMIT $lim) GROUP BY infohash""")
-
-            # TODO: Check for complex query
-            normal_query = query.replace('"', '').replace("*", "")
-            if is_hex_string(normal_query) and len(normal_query) % 2 == 0:
-                query_blob = database_blob(unhexlify(normal_query))
-                if is_channel_public_key(normal_query):
-                    return cls.select(lambda g: g.public_key == query_blob or g.rowid in fts_ids)
-                if is_infohash(normal_query):
-                    return cls.select(lambda g: g.infohash == query_blob or g.rowid in fts_ids)
             return cls.select(lambda g: g.rowid in fts_ids)
 
         @classmethod
@@ -162,68 +154,70 @@ def define_binding(db):
 
         @classmethod
         @db_session
-        def get_entries_query(cls, sort_by=None, sort_asc=True, query_filter=None):
-            """
-            Get some metadata entries. Optionally sort the results by a specific field, or filter the channels based
-            on a keyword/whether you are subscribed to it.
-            :return: A tuple. The first entry is a list of ChannelMetadata entries. The second entry indicates
-                     the total number of results, regardless the passed first/last parameter.
-            """
+        def get_entries_query(cls, metadata_type=REGULAR_TORRENT, channel_pk=None,
+                              exclude_deleted=False, hide_xxx=False, exclude_legacy=False, origin_id=None,
+                              sort_by=None, sort_asc=True, query_filter=None, infohash=None):
             # Warning! For Pony magic to work, iteration variable name (e.g. 'g') should be the same everywhere!
             # Filter the results on a keyword or some keywords
+
+            # FIXME: it is dangerous to mix query attributes. Should be handled by higher level methods instead
+            # If we get a hex-encoded public key or infohash in the query_filter field, we drop the filter,
+            # and instead query by public_key or infohash field. However, we only do this if there is no
+            # channel_pk or origin_id attributes set, because we only want this special treatment of query_filter
+            # argument for global search queries. In other words, named arguments have priority over hacky shenaningans
+            if query_filter:
+                normal_filter = query_filter.replace('"', '').replace("*", "")
+                if is_hex_string(normal_filter) and len(normal_filter) % 2 == 0:
+                    query_blob = database_blob(unhexlify(normal_filter))
+                    if is_channel_public_key(normal_filter):
+                        if (origin_id is None) and not channel_pk:
+                            channel_pk = query_blob
+                            query_filter = None
+                    elif is_infohash(normal_filter):
+                        infohash = query_blob
+                        query_filter = None
+
             pony_query = cls.search_keyword(query_filter, lim=1000) if query_filter else select(g for g in cls)
-
-            # Sort the query
-            sort_expression = None
-            if sort_by:
-                if sort_by == "HEALTH":
-                    pony_query = pony_query.sort_by("(g.health.seeders, g.health.leechers)") if sort_asc else \
-                        pony_query.sort_by("(desc(g.health.seeders), desc(g.health.leechers))")
-                else:
-                    sort_expression = "g." + sort_by
-                    sort_expression = sort_expression if sort_asc else desc(sort_expression)
-                    pony_query = pony_query.sort_by(sort_expression)
-            # Workaround to always show legacy entries last
-            pony_query = pony_query.order_by(lambda g: (desc(g.status != LEGACY_ENTRY), sort_expression)) \
-                if sort_expression else pony_query.order_by(lambda g: desc(g.status != LEGACY_ENTRY))
-            return pony_query
-
-
-        @classmethod
-        @db_session
-        def get_entries(cls, first=None, last=None, metadata_type=REGULAR_TORRENT, channel_pk=None,
-                        exclude_deleted=False, hide_xxx=False, exclude_legacy=False, origin_id=None, **kwargs):
-            """
-            Get some torrents. Optionally sort the results by a specific field, or filter the channels based
-            on a keyword/whether you are subscribed to it.
-            :return: A tuple. The first entry is a list of ChannelMetadata entries. The second entry indicates
-                     the total number of results, regardless the passed first/last parameter.
-            """
-            pony_query = cls.get_entries_query(**kwargs)
 
             if isinstance(metadata_type, list):
                 pony_query = pony_query.where(lambda g: g.metadata_type in metadata_type)
             else:
                 pony_query = pony_query.where(metadata_type=metadata_type)
 
-            if exclude_deleted:
-                pony_query = pony_query.where(lambda g: g.status != TODELETE)
-            if hide_xxx:
-                pony_query = pony_query.where(lambda g: g.xxx == 0)
-            if exclude_legacy:
-                pony_query = pony_query.where(lambda g: g.status != LEGACY_ENTRY)
+            pony_query = pony_query.where(public_key=channel_pk) if channel_pk else pony_query
+            # origin_id can be zero, for e.g. root channel
+            pony_query = pony_query.where(origin_id=origin_id) if origin_id is not None else pony_query
+            pony_query = pony_query.where(lambda g: g.status != TODELETE) if exclude_deleted else pony_query
+            pony_query = pony_query.where(lambda g: g.xxx == 0) if hide_xxx else pony_query
+            pony_query = pony_query.where(lambda g: g.status != LEGACY_ENTRY) if exclude_legacy else pony_query
+            pony_query = pony_query.where(lambda g: g.infohash == infohash) if infohash else pony_query
 
-            # Filter on channel public key
-            if channel_pk:
-                pony_query = pony_query.where(public_key=channel_pk)
+            # Sort the query
+            if sort_by == "HEALTH":
+                pony_query = pony_query.sort_by("(g.health.seeders, g.health.leechers)") if sort_asc else \
+                    pony_query.sort_by("(desc(g.health.seeders), desc(g.health.leechers))")
+            elif sort_by:
+                sort_expression = "g." + sort_by
+                sort_expression = sort_expression if sort_asc else desc(sort_expression)
+                pony_query = pony_query.sort_by(sort_expression)
 
-            # Filter on parent channel id
-            if origin_id is not None:
-                pony_query = pony_query.where(origin_id=origin_id)
+            return pony_query
 
-            count = pony_query.count()
+        @classmethod
+        @db_session
+        def get_entries(cls, first=1, last=None, **kwargs):
+            """
+            Get some torrents. Optionally sort the results by a specific field, or filter the channels based
+            on a keyword/whether you are subscribed to it.
+            :return: A list of class members
+            """
+            pony_query = cls.get_entries_query(**kwargs)
+            return pony_query[(first or 1) - 1:last]
 
-            return pony_query[(first or 1) - 1:last] if first or last else pony_query, count
+        @classmethod
+        @db_session
+        def get_entries_count(cls, **kwargs):
+            return cls.get_entries_query(**kwargs).count()
 
         @db_session
         def to_simple_dict(self, include_trackers=False):
@@ -232,7 +226,8 @@ def define_binding(db):
             """
             epoch = datetime.utcfromtimestamp(0)
             simple_dict = {
-                "id": self.rowid,
+                "id": self.id_,
+                "public_key": hexlify(self.public_key),
                 "name": self.title,
                 "infohash": hexlify(self.infohash),
                 "size": self.size,
@@ -254,7 +249,7 @@ def define_binding(db):
             # WARNING! This does NOT check the INFOHASH
             a = self.to_dict()
             for comp in ["title", "size", "tags", "torrent_date", "tracker_info"]:
-                if (comp not in b) or (str(a[comp]) == str(b[comp])):
+                if (comp not in b) or (text_type(a[comp]) == text_type(b[comp])):
                     continue
                 return True
             return False

@@ -23,7 +23,7 @@ class RemoteTableModel(QAbstractTableModel):
         super(RemoteTableModel, self).__init__(parent)
         self.data_items = []
         self.item_load_batch = 50
-        self.total_items = 0  # The total number of items without pagination
+        self.total_items = None  # The total number of items without pagination
 
         # Unique identifier mapping for items. For torrents, it is infohash and for channels, it is concatenated value
         # of public key and channel id
@@ -37,7 +37,7 @@ class RemoteTableModel(QAbstractTableModel):
         self.beginResetModel()
         self.data_items = []
         self.item_uid_map = {}
-        self.total_items = 0
+        self.total_items = None
         self.endResetModel()
 
     def sort(self, column, order):
@@ -114,7 +114,7 @@ class TriblerContentModel(RemoteTableModel):
         u'votes': lambda data: "{0:.0%}".format(float(data)) if data else None,
     }
 
-    def __init__(self, hide_xxx=False):
+    def __init__(self, hide_xxx=None):
         RemoteTableModel.__init__(self, parent=None)
         self.data_items = []
         self.column_position = {name: i for i, name in enumerate(self.columns)}
@@ -209,7 +209,6 @@ class SearchResultsContentModel(VotesAlignmentMixin, TriblerContentModel):
         u'updated': lambda timestamp: pretty_date(timestamp) if timestamp > BITTORRENT_BIRTHDAY else 'N/A'
     }
 
-
     def __init__(self, **kwargs):
         TriblerContentModel.__init__(self, **kwargs)
         self.type_filter = ''
@@ -237,7 +236,7 @@ class ChannelsContentModel(VotesAlignmentMixin, TriblerContentModel):
         u'state': lambda data: str(data)[:1] if data == u'Downloading' else ""
     }
 
-    def __init__(self, subscribed=False, **kwargs):
+    def __init__(self, subscribed=None, **kwargs):
         TriblerContentModel.__init__(self, **kwargs)
         self.subscribed = subscribed
 
