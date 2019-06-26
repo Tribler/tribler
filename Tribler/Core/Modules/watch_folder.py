@@ -9,7 +9,6 @@ from twisted.internet.task import LoopingCall
 
 from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.Utilities.utilities import fix_torrent
 from Tribler.Core.simpledefs import NTFY_INSERT, NTFY_WATCH_FOLDER_CORRUPT_TORRENT
 
 WATCH_FOLDER_CHECK_INTERVAL = 10
@@ -52,7 +51,10 @@ class WatchFolder(TaskManager):
                     continue
 
                 try:
-                    tdef = TorrentDef.load_from_memory(fix_torrent(os.path.join(root, name)))
+                    tdef = TorrentDef.load(os.path.join(root, name))
+                    if not tdef.get_metainfo():
+                        self.cleanup_torrent_file(root, name)
+                        continue
                 except:  # torrent appears to be corrupt
                     self.cleanup_torrent_file(root, name)
                     continue

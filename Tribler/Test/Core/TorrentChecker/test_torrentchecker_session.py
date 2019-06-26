@@ -10,7 +10,8 @@ from twisted.python.failure import Failure
 
 from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.Session import Session
-from Tribler.Core.TorrentChecker.session import FakeDHTSession, HttpTrackerSession, UdpTrackerSession
+from Tribler.Core.TorrentChecker.session import FakeBep33DHTSession, FakeDHTSession, HttpTrackerSession, \
+    UdpTrackerSession
 from Tribler.Test.Core.base_test import MockObject, TriblerCoreTest
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.tools import trial_timeout
@@ -345,29 +346,54 @@ class TestDHTSession(TriblerCoreTest):
         self.session.lm.ltmgr.dht_health_manager.get_health = lambda *_, **__: succeed({"DHT": [dht_health_dict]})
 
         self.dht_session = FakeDHTSession(self.session, 'a' * 20, 10)
+        self.bep33_dht_session = FakeBep33DHTSession(self.session, 'a' * 20, 10)
 
     @trial_timeout(10)
     def test_cleanup(self):
         """
         Test the cleanup of a DHT session
         """
-        return self.dht_session.cleanup()
+        return self.bep33_dht_session.cleanup()
 
     @trial_timeout(10)
     def test_connect_to_tracker(self):
         """
         Test the metainfo lookup of the DHT session
         """
+        metainfo = {'seeders': 42, 'leechers': 42}
+        self.session.lm.ltmgr.get_metainfo = lambda *_, **__: succeed(metainfo)
+
+        def verify_metainfo(metainfo):
+            self.assertTrue('DHT' in metainfo)
+            self.assertEqual(metainfo['DHT'][0]['leechers'], 42)
+            self.assertEqual(metainfo['DHT'][0]['seeders'], 42)
+
+        self.dht_session.connect_to_tracker().addCallback(verify_metainfo)
+
+    @trial_timeout(10)
+    def test_connect_to_tracker_fail(self):
+        """
+        Test the metainfo lookup of the DHT session when it fails
+        """
+        self.session.lm.ltmgr.get_metainfo = lambda *_, **__: succeed(None)
+
+        return self.dht_session.connect_to_tracker().addErrback(lambda _: None)
+
+    @trial_timeout(10)
+    def test_connect_to_tracker_bep33(self):
+        """
+        Test the metainfo lookup of the BEP33 DHT session
+        """
         def verify_metainfo(metainfo):
             self.assertTrue('DHT' in metainfo)
             self.assertEqual(metainfo['DHT'][0]['leechers'], 2)
             self.assertEqual(metainfo['DHT'][0]['seeders'], 1)
 
-        return self.dht_session.connect_to_tracker().addCallback(verify_metainfo)
+        return self.bep33_dht_session.connect_to_tracker().addCallback(verify_metainfo)
 
     def test_methods(self):
         """
         Test various methods in the DHT session class
         """
-        self.dht_session.add_infohash('b' * 20)
-        self.assertEqual(self.dht_session.infohash, 'b' * 20)
+        self.bep33_dht_session.add_infohash('b' * 20)
+        self.assertEqual(self.bep33_dht_session.infohash, 'b' * 20)

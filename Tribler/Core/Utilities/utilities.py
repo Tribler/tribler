@@ -144,24 +144,6 @@ def parse_magnetlink(url):
     return dn, xt, trs
 
 
-def fix_torrent(file_path):
-    """
-    Reads and checks if a torrent file is valid and tries to overwrite the torrent file with a non-sloppy version.
-    :param file_path: The torrent file path
-    :return: True if the torrent file is now overwritten with valid information, otherwise False
-    """
-    f = open(file_path, 'rb')
-    bdata = f.read()
-    f.close()
-
-    # Check if correct bdata
-    fixed_data = bdecode(bdata)
-    if fixed_data is not None:
-        fixed_data = bencode(fixed_data)
-
-    return fixed_data
-
-
 def translate_peers_into_health(peer_info_dicts):
     """
     peer_info_dicts is a peer_info dictionary from LibTorrentDownloadImpl.create_peerlist_data.

@@ -9,7 +9,7 @@ from pony.orm import db_session
 from six.moves.urllib.parse import quote_plus
 from six.moves.urllib.request import pathname2url
 
-from twisted.internet.defer import inlineCallbacks
+from twisted.internet.defer import inlineCallbacks, succeed
 
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.TorrentDef import TorrentDef
@@ -69,15 +69,14 @@ class TestTorrentInfoEndpoint(AbstractApiTest):
         path = "http://localhost:%d/ubuntu.torrent" % file_server_port
         yield self.do_request('torrentinfo?uri=%s' % path, expected_code=200).addCallback(verify_valid_dict)
 
-        def get_metainfo(infohash, callback, **_):
+        def get_metainfo(infohash, timeout=20):
             with open(os.path.join(TESTS_DATA_DIR, "bak_single.torrent"), mode='rb') as torrent_file:
                 torrent_data = torrent_file.read()
             tdef = TorrentDef.load_from_memory(torrent_data)
-            callback(tdef.get_metainfo())
+            return succeed(tdef.get_metainfo())
 
         def get_metainfo_timeout(*args, **kwargs):
-            timeout_cb = kwargs.get('timeout_callback')
-            timeout_cb('a' * 20)
+            return succeed(None)
 
         path = 'magnet:?xt=urn:btih:%s&dn=%s' % (hexlify(UBUNTU_1504_INFOHASH), quote_plus('test torrent'))
         self.session.lm.ltmgr = MockObject()
@@ -90,7 +89,7 @@ class TestTorrentInfoEndpoint(AbstractApiTest):
 
         path = 'magnet:?xt=urn:btih:%s&dn=%s' % ('a' * 40, quote_plus('test torrent'))
         self.session.lm.ltmgr.get_metainfo = get_metainfo_timeout
-        yield self.do_request('torrentinfo?uri=%s' % path, expected_code=408)
+        yield self.do_request('torrentinfo?uri=%s' % path, expected_code=500)
 
         self.session.lm.ltmgr.get_metainfo = get_metainfo
         yield self.do_request('torrentinfo?uri=%s' % path, expected_code=200).addCallback(verify_valid_dict)

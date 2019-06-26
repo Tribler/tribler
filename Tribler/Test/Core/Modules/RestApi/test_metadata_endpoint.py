@@ -293,8 +293,9 @@ class TestTorrentHealthEndpoint(AbstractApiTest):
             if has_bep33_support():
                 self.assertIn("DHT", json_response['health'])
 
-        # Add mock DHT response
+        # Add mock DHT response - we both need to account for the case when BEP33 is used and the old lookup method
         self.session.lm.ltmgr = MockObject()
+        self.session.lm.ltmgr.get_metainfo = lambda _, **__: succeed(None)
         self.session.lm.ltmgr.dht_health_manager = MockObject()
         dht_health_dict = {
             "infohash": hexlify(infohash),
