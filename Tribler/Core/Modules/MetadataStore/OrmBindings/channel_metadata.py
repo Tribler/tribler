@@ -181,7 +181,7 @@ def define_binding(db):
             # Channel should get a new starting timestamp and its contents should get higher timestamps
             start_timestamp = self._clock.tick()
             for g in self.contents:
-                if g.status == COMMITTED:
+                if g.status in [COMMITTED, UPDATED]:
                     g.status = UPDATED
                     g.timestamp = self._clock.tick()
                     g.sign()

@@ -4,6 +4,8 @@ from binascii import hexlify, unhexlify
 from datetime import datetime
 from struct import unpack
 
+from six import text_type
+
 from ipv8.database import database_blob
 
 from pony import orm
@@ -246,7 +248,7 @@ def define_binding(db):
             # WARNING! This does NOT check the INFOHASH
             a = self.to_dict()
             for comp in ["title", "size", "tags", "torrent_date", "tracker_info"]:
-                if (comp not in b) or (str(a[comp]) == str(b[comp])):
+                if (comp not in b) or (text_type(a[comp]) == text_type(b[comp])):
                     continue
                 return True
             return False

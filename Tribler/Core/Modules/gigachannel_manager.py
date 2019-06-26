@@ -108,8 +108,11 @@ class GigaChannelManager(TaskManager):
         except Exception:
             self._logger.exception("Error when checking for channel updates")
 
-        if not self.processing:
-            return self.process_queued_channels()
+        try:
+            if not self.processing:
+                return self.process_queued_channels()
+        except Exception:
+            self._logger.exception("Error when tried to start processing queued channel torrents changes")
 
     @inlineCallbacks
     def process_queued_channels(self):

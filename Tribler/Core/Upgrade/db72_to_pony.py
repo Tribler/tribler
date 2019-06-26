@@ -284,6 +284,7 @@ class DispersyToPonyMigration(object):
     @inlineCallbacks
     def update_convert_total(self, amount, elapsed):
         if self.notifier_callback:
+            elapsed = 0.0001 if elapsed == 0.0 else elapsed
             self.notifier_callback("%i entries converted in %i seconds (%i e/s)" % (amount, int(elapsed),
                                                                                     int(amount / elapsed)))
             yield deferLater(reactor, 0.001, lambda: None)
