@@ -114,7 +114,8 @@ if __name__ == "__main__":
             from TriblerGUI.tribler_app import TriblerApplication
             from TriblerGUI.tribler_window import TriblerWindow
 
-            app = TriblerApplication("triblerapp", sys.argv)
+            app_name = os.environ.get('TRIBLER_APP_NAME', 'triblerapp')
+            app = TriblerApplication(app_name, sys.argv)
             if app.is_running():
                 for arg in sys.argv[1:]:
                     if os.path.exists(arg) and arg.endswith(".torrent"):

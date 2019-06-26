@@ -14,6 +14,7 @@ from PyQt5.QtTest import QTest
 from PyQt5.QtWidgets import QApplication, QListWidget, QTextEdit, QTreeWidget
 from PyQt5.QtWidgets import QTableView
 
+from six import text_type
 from six.moves import xrange
 
 from Tribler.Core.Utilities.network_utils import get_random_port
@@ -33,7 +34,7 @@ if os.environ.get("TEST_GUI") == "yes":
     core_manager.START_FAKE_API = True
     TriblerGUI.defs.DEFAULT_API_PORT = api_port
 
-    app = TriblerApplication("triblerapp", sys.argv)
+    app = TriblerApplication("triblerapp-guitest", sys.argv)
     window = TriblerWindow(api_port=api_port)
     app.set_activation_window(window)
     QTest.qWaitForWindowExposed(window)
@@ -239,8 +240,14 @@ class TriblerGUITest(AbstractTriblerGUITest):
         app.messageReceived.connect(on_app_message)
 
         # Start a second Tribler instance with a torrent file
-        tribler_executable = "%s/run_tribler.py" % os.path.dirname(os.path.dirname(TriblerGUI.__file__))
-        tribler_instance_2 = subprocess.Popen(['python', tribler_executable, TORRENT_UBUNTU_FILE])
+        system_encoding = sys.getfilesystemencoding()
+        test_env = {(k.encode(system_encoding) if isinstance(k, text_type) else str(k))
+                    : (v.encode(system_encoding) if isinstance(v, text_type) else str(v))
+                    for k, v in os.environ.copy().items()}
+        test_env['TRIBLER_APP_NAME'] = 'triblerapp-guitest'
+
+        tribler_executable = os.path.join(os.path.dirname(os.path.dirname(TriblerGUI.__file__)), "run_tribler.py")
+        tribler_instance_2 = subprocess.Popen(['python', tribler_executable, TORRENT_UBUNTU_FILE], env=test_env)
         _process_stream = tribler_instance_2.communicate()[0]
         self.assertEqual(tribler_instance_2.returncode, 1)
 
