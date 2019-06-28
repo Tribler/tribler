@@ -262,6 +262,7 @@ class TorrentsContentModel(TriblerContentModel):
         TriblerContentModel.__init__(self, **kwargs)
         self.channel_pk = channel_pk
         self.channel_id = channel_id
+        self.my_channel = False
 
 
 class MyTorrentsContentModel(TorrentsContentModel):

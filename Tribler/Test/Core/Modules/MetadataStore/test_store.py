@@ -137,6 +137,8 @@ class TestMetadataStore(TriblerCoreTest):
 
         channel_dir = os.path.join(self.mds.channels_dir, channel.dir_name)
         self.assertTrue(len(os.listdir(channel_dir)) > 1)  # make sure it was broken into more than one .mdblob file
+        # allow processing of personal metadata into channel
+        self.mds.skip_received_personal_metadata_payload = False
         self.mds.process_channel_dir(channel_dir, channel.public_key, channel.id_)
         self.assertEqual(num_entries, len(channel.contents))
 

@@ -216,6 +216,7 @@ class TorrentHealthDetailsMixin(object):
 class ContextMenuMixin(object):
 
     table_view = None
+    model = None
 
     def enable_context_menu(self, widget):
         self.table_view = widget
@@ -223,7 +224,7 @@ class ContextMenuMixin(object):
         self.table_view.customContextMenuRequested.connect(self._show_context_menu)
 
     def _show_context_menu(self, pos):
-        if not self.table_view:
+        if not self.table_view or not self.model:
             return
 
         item_index = self.table_view.indexAt(pos)
@@ -238,12 +239,14 @@ class ContextMenuMixin(object):
             self.add_menu_item(menu, ' Download ', item_index, self.table_view.on_download_button_clicked)
             self.add_menu_item(menu, ' Play ', item_index, self.table_view.on_play_button_clicked)
 
-        if not isinstance(self, MyTorrentsTableViewController):
-            if self.selection_has_torrents():
+        # Add menu separater for channel stuff
+        menu.addSeparator()
+
+        if isinstance(self, MyTorrentsTableViewController):
+            self.add_menu_item(menu, ' Remove from My Channel ', item_index, self.table_view.on_delete_button_clicked)
+        elif not self.model.my_channel and self.selection_has_torrents():
                 self.add_menu_item(menu, ' Add to My Channel ', item_index,
                                    self.table_view.on_add_to_channel_button_clicked)
-        else:
-            self.add_menu_item(menu, ' Remove from My Channel ', item_index, self.table_view.on_delete_button_clicked)
 
         menu.exec_(QCursor.pos())
 

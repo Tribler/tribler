@@ -177,6 +177,11 @@ class MetadataStore(object):
             # Decay only happens while Tribler is running
             default_vsids.last_bump = datetime.utcnow()
 
+        # Flag to skip processing of personal channel torrent metadata. This is True by default because we assume
+        # the user always has the latest channel version and no need to update his own channel with gossipped data
+        # from the network. We need this flag in testing the processing of metadata.
+        self.skip_received_personal_metadata_payload = True
+
     @db_session
     def upsert_vote(self, channel, peer_pk):
         voter = self.ChannelPeer.get(public_key=peer_pk)
@@ -318,7 +323,15 @@ class MetadataStore(object):
 
             # We separate the sessions to minimize database locking.
             with db_session:
+                my_channel = self.ChannelMetadata.get_my_channel()
                 for payload in batch:
+                    # If we received our metadata payload of torrent we have in our channel, we simply ignore it since
+                    # We always have the latest version ourselves.  This prevents from adding already deleted torrents
+                    # again in My channel.
+                    if self.skip_received_personal_metadata_payload and my_channel \
+                            and payload.public_key == str(my_channel.public_key) \
+                            and payload.metadata_type == REGULAR_TORRENT:
+                        continue
                     result.extend(self.process_payload(payload))
             if external_thread:
                 sleep(self.sleep_on_external_thread)

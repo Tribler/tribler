@@ -59,6 +59,7 @@ class ChannelPage(QWidget):
         self.channel_info = channel_info
         self.model.channel_pk = channel_info['public_key']
         self.model.channel_id = channel_info['id']
+        self.model.my_channel = channel_info['state'] == 'Personal'
 
         self.window().channel_preview_button.setHidden(channel_info['state'] in ('Complete', 'Legacy', 'Personal'))
         self.window().channel_back_button.setIcon(QIcon(get_image_path('page_back.png')))
@@ -76,7 +77,7 @@ class ChannelPage(QWidget):
         self.window().subscribe_button.setStyleSheet('border:none; color: %s' % color)
         self.window().subscribe_button.setText(format_votes(self.channel_info['votes']))
 
-        self.window().channel_state_label.setText(self.channel_info["state"])
+        self.window().channel_state_label.setText("(%s)" % self.channel_info["state"])
         self.window().subscription_widget.initialize_with_channel(self.channel_info)
 
     def _on_query_complete(self, data):

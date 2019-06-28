@@ -111,6 +111,7 @@ def define_binding(db):
         def update_metadata(self, update_dict=None):
             channel_dict = self.to_dict()
             channel_dict.update(update_dict or {})
+            channel_dict.update({'num_entries': self.contents_len})
             self.set(**channel_dict)
             self.sign()
 
@@ -250,6 +251,7 @@ def define_binding(db):
                         g.delete()
 
                 # Write the channel mdblob to disk
+                self.update_metadata(update_dict)
                 self.to_file(os.path.join(self._channels_dir, self.dir_name + BLOB_EXTENSION))
 
                 self._logger.info("Channel %s committed with %i new entries. New version is %i",
