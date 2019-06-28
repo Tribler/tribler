@@ -60,7 +60,7 @@ class ChannelPage(QWidget):
         self.model.channel_pk = channel_info['public_key']
         self.model.channel_id = channel_info['id']
 
-        self.window().channel_preview_button.setHidden(channel_info['state'] in ('Complete', 'Legacy'))
+        self.window().channel_preview_button.setHidden(channel_info['state'] in ('Complete', 'Legacy', 'Personal'))
         self.window().channel_back_button.setIcon(QIcon(get_image_path('page_back.png')))
         self.window().channel_page_container.content_table.setFocus()
         self.window().channel_page_container.details_container.hide()
