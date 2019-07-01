@@ -81,8 +81,13 @@ class ChannelPage(QWidget):
         self.window().subscription_widget.initialize_with_channel(self.channel_info)
 
     def _on_query_complete(self, data):
-        self.window().channel_num_torrents_label.setText(
-            "{}/{} torrents".format(data['total'], self.channel_info['torrents']))
+        # Sometimes the total torrents returned by the query is higher than what is present in the channel metadata,
+        # this happens if the channel is not completely updated and processed. For now, we just put a cap on the max
+        # value and show the channel status as outdated.
+        if data['total'] > self.channel_info['torrents']:
+            self.window().channel_state_label.setText("(Outdated)")
+        max_torrents = max(data['total'], self.channel_info['torrents'])
+        self.window().channel_num_torrents_label.setText("{}/{} torrents".format(data['total'], max_torrents))
 
     def load_torrents(self):
         self.controller.model.reset()
