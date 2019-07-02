@@ -139,7 +139,7 @@ class TestMetadataStore(TriblerCoreTest):
         self.assertTrue(len(os.listdir(channel_dir)) > 1)  # make sure it was broken into more than one .mdblob file
         # allow processing of personal metadata into channel
         self.mds.skip_received_personal_metadata_payload = False
-        self.mds.process_channel_dir(channel_dir, channel.public_key, channel.id_)
+        self.mds.process_channel_dir(channel_dir, channel.public_key, channel.id_, skip_personal_metadata_payload=False)
         self.assertEqual(num_entries, len(channel.contents))
 
     @db_session
@@ -164,7 +164,7 @@ class TestMetadataStore(TriblerCoreTest):
         # Enable processing of personal channel torrent metadata
         channel.local_version = 0
         self.mds.skip_received_personal_metadata_payload = False
-        self.mds.process_channel_dir(channel_dir, channel.public_key, channel.id_)
+        self.mds.process_channel_dir(channel_dir, channel.public_key, channel.id_, skip_personal_metadata_payload=False)
         self.assertEqual(1, len(channel.contents))
 
     @db_session
