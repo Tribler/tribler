@@ -50,6 +50,9 @@ class TriblerTableViewController(QObject):
         self.query_uuid = None
 
     def _on_view_sort(self, column, ascending):
+        if not column:
+            self.table_view.horizontalHeader().setSortIndicator(-1, Qt.AscendingOrder)
+            return
         self.model.reset()
         self.perform_query(first=1, last=50)
 
