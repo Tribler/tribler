@@ -225,7 +225,8 @@ class TorrentsTableView(ItemClickedMixin, DeleteButtonMixin, DownloadButtonMixin
         # Mix-in connects
         self.clicked.connect(self.on_table_item_clicked)
         self.delegate.play_button.clicked.connect(self.on_play_button_clicked)
-        self.delegate.commit_control.clicked.connect(self.on_commit_control_clicked)
+        # TODO: implement undo stack in the gui to use with commit_control, then re-enable this
+        #self.delegate.commit_control.clicked.connect(self.on_commit_control_clicked)
         self.delegate.delete_button.clicked.connect(self.on_delete_button_clicked)
         self.delegate.download_button.clicked.connect(self.on_download_button_clicked)
 

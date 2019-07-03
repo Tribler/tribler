@@ -355,7 +355,7 @@ class MyTorrentsTableViewController(TorrentsTableViewController):
         self.model.row_edited.connect(self._on_row_edited)
 
     def _on_row_edited(self, index, new_value):
-        # FIXME: check the real response status and properly update the row on it
+        # FIXME: check the REST response and update the row from it
         infohash = self.model.data_items[index.row()][u'infohash']
         attribute_name = self.model.columns[index.column()]
         self.model.data_items[index.row()][u'status'] = COMMIT_STATUS_UPDATED
