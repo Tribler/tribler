@@ -17,7 +17,7 @@ from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import (
     CHANNEL_DIR_NAME_LENGTH, ROOT_CHANNEL_ID, entries_to_chunk)
-from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import COMMITTED, NEW, TODELETE
+from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import NEW, TODELETE, UPDATED
 from Tribler.Core.Modules.MetadataStore.serialization import ChannelMetadataPayload, REGULAR_TORRENT
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.TorrentDef import TorrentDef
@@ -240,7 +240,7 @@ class TestChannelMetadata(TriblerCoreTest):
         # Check correct re-add
         md.status = TODELETE
         md_updated = channel_metadata.add_torrent_to_channel(tdef, None)
-        self.assertEqual(md.status, COMMITTED)
+        self.assertEqual(UPDATED, md.status)
         self.assertEqual(md_updated, md)
         self.assertTrue(md.has_valid_signature)
 
@@ -250,7 +250,7 @@ class TestChannelMetadata(TriblerCoreTest):
         tdef.torrent_parameters['announce'] = new_tracker_address
         md_updated = channel_metadata.add_torrent_to_channel(tdef, None)
         self.assertEqual(md_updated, md)
-        self.assertEqual(md.status, NEW)
+        self.assertEqual(md.status, UPDATED)
         self.assertEqual(md.tracker_info, new_tracker_address)
         self.assertTrue(md.has_valid_signature)
         # In addition, check that the trackers table was properly updated

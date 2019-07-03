@@ -293,16 +293,12 @@ def define_binding(db):
             if old_torrent:
                 # If it is there, check if we were going to delete it
                 if old_torrent.status == TODELETE:
-                    if old_torrent.metadata_conflicting(new_entry_dict):
-                        # Metadata from torrent we're trying to add is conflicting with the
-                        # deleted old torrent's metadata. We will replace the old metadata.
-                        new_timestamp = self._clock.tick()
-                        old_torrent.set(timestamp=new_timestamp, **new_entry_dict)
-                        old_torrent.sign()
-                    else:
-                        # No conflict. This means the user is trying to replace the deleted torrent
-                        # with the same one. Just recover the old one.
-                        old_torrent.status = COMMITTED
+                    new_timestamp = self._clock.tick()
+                    old_torrent.set(timestamp=new_timestamp, **new_entry_dict)
+                    old_torrent.sign()
+                    # As we really don't know what status this torrent had _before_ it got its TODELETE status,
+                    # we _must_ set its status to UPDATED, for safety
+                    old_torrent.status = UPDATED
                     torrent_metadata = old_torrent
                 else:
                     raise DuplicateTorrentFileError()
