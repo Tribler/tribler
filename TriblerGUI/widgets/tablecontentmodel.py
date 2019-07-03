@@ -19,6 +19,9 @@ class RemoteTableModel(QAbstractTableModel):
     """
     on_sort = pyqtSignal(str, bool)
 
+    columns = []
+    unsortable_columns = []
+
     def __init__(self, parent=None):
         super(RemoteTableModel, self).__init__(parent)
         self.data_items = []
@@ -40,9 +43,12 @@ class RemoteTableModel(QAbstractTableModel):
         self.total_items = None
         self.endResetModel()
 
-    def sort(self, column, order):
+    def sort(self, column_index, order):
+        if self.columns[column_index] in self.unsortable_columns:
+            self.on_sort.emit(None, False)
+            return
         self.reset()
-        self.on_sort.emit(self.columns[column], bool(order))
+        self.on_sort.emit(self.columns[column_index], bool(order))
 
     def add_items(self, new_items, remote=False):
         """
@@ -202,6 +208,7 @@ class SearchResultsContentModel(VotesAlignmentMixin, TriblerContentModel):
         u'state': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         ACTION_BUTTONS: Qt.ItemIsEnabled | Qt.ItemIsSelectable
     }
+    unsortable_columns = [u'state', ACTION_BUTTONS]
 
     column_display_filters = {
         u'size': lambda data: (format_size(float(data)) if data != '' else ''),
@@ -229,6 +236,7 @@ class ChannelsContentModel(VotesAlignmentMixin, TriblerContentModel):
         u'state': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         ACTION_BUTTONS: Qt.ItemIsEnabled | Qt.ItemIsSelectable
     }
+    unsortable_columns = [u'state']
 
     column_display_filters = {
         u'updated': pretty_date,
@@ -252,6 +260,7 @@ class TorrentsContentModel(TriblerContentModel):
         u'updated': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         ACTION_BUTTONS: Qt.ItemIsEnabled | Qt.ItemIsSelectable
     }
+    unsortable_columns = [ACTION_BUTTONS]
 
     column_display_filters = {
         u'size': lambda data: format_size(float(data)),
@@ -262,6 +271,7 @@ class TorrentsContentModel(TriblerContentModel):
         TriblerContentModel.__init__(self, **kwargs)
         self.channel_pk = channel_pk
         self.channel_id = channel_id
+        self.my_channel = False
 
 
 class MyTorrentsContentModel(TorrentsContentModel):
@@ -275,6 +285,7 @@ class MyTorrentsContentModel(TorrentsContentModel):
         u'updated': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         ACTION_BUTTONS: Qt.ItemIsEnabled | Qt.ItemIsSelectable
     }
+    unsortable_columns = [u'status', u'updated', ACTION_BUTTONS]
 
     row_edited = pyqtSignal(QModelIndex, str)
 

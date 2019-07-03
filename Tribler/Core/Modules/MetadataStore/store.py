@@ -202,10 +202,12 @@ class MetadataStore(object):
         self._shutting_down = True
         self._db.disconnect()
 
-    def process_channel_dir(self, dirname, public_key, id_, external_thread=True):
+    def process_channel_dir(self, dirname, public_key, id_, skip_personal_metadata_payload=True, external_thread=True):
         """
         Load all metadata blobs in a given directory.
         :param dirname: The directory containing the metadata blobs.
+        :param skip_personal_metadata_payload: if this is set to True, personal torrent metadata payload received
+                through gossip will be ignored. The default value is True.
         :param external_thread: indicate to lower levels that this is running on a background thread
         :param public_key: public_key of the channel.
         :param id_: id_ of the channel.
@@ -244,7 +246,7 @@ class MetadataStore(object):
                             blob_sequence_number > channel.timestamp:
                         continue
                 try:
-                    self.process_mdblob_file(full_filename, external_thread)
+                    self.process_mdblob_file(full_filename, skip_personal_metadata_payload, external_thread)
                     # If we stopped mdblob processing due to shutdown flag, we should stop
                     # processing immediately, so that channel local version will not increase
                     if self._shutting_down:
@@ -267,10 +269,12 @@ class MetadataStore(object):
                            dirname, hexlify(str(channel.public_key)), channel.local_version,
                                channel.timestamp)
 
-    def process_mdblob_file(self, filepath, external_thread=False):
+    def process_mdblob_file(self, filepath, skip_personal_metadata_payload=True, external_thread=False):
         """
         Process a file with metadata in a channel directory.
         :param filepath: The path to the file
+        :param skip_personal_metadata_payload: if this is set to True, personal torrent metadata payload received
+                through gossip will be ignored. The default value is True.
         :param external_thread: indicate to the lower lever that we're running in the backround thread,
             to possibly pace down the upload process
         :return ChannelNode objects list if we can correctly load the metadata
@@ -278,24 +282,27 @@ class MetadataStore(object):
         with open(filepath, 'rb') as f:
             serialized_data = f.read()
 
-        return (self.process_compressed_mdblob(serialized_data, external_thread) if filepath.endswith('.lz4') else
-                self.process_squashed_mdblob(serialized_data, external_thread))
+        if filepath.endswith('.lz4'):
+            return self.process_compressed_mdblob(serialized_data, skip_personal_metadata_payload, external_thread)
+        return self.process_squashed_mdblob(serialized_data, skip_personal_metadata_payload, external_thread)
 
-    def process_compressed_mdblob(self, compressed_data, external_thread=False):
+    def process_compressed_mdblob(self, compressed_data, skip_personal_metadata_payload=True, external_thread=False):
         try:
             decompressed_data = lz4.frame.decompress(compressed_data)
         except RuntimeError:
             self._logger.warning("Unable to decompress mdblob")
             return []
-        return self.process_squashed_mdblob(decompressed_data, external_thread)
+        return self.process_squashed_mdblob(decompressed_data, skip_personal_metadata_payload, external_thread)
 
-    def process_squashed_mdblob(self, chunk_data, external_thread=False):
+    def process_squashed_mdblob(self, chunk_data, skip_personal_metadata_payload=True, external_thread=False):
         """
         Process raw concatenated payloads blob. This routine breaks the database access into smaller batches.
         It uses a congestion-control like algorithm to determine the optimal batch size, targeting the
         batch processing time value of self.reference_timedelta.
 
         :param chunk_data: the blob itself, consists of one or more GigaChannel payloads concatenated together
+        :param skip_personal_metadata_payload: if this is set to True, personal torrent metadata payload received
+                through gossip will be ignored. The default value is True.
         :param external_thread: if this is set to True, we add some sleep between batches to allow other threads
         to get the database lock. This is an ugly workaround for Python and Twisted asynchronous programming (locking)
         imperfections. It only makes sense to use it when this routine runs on a non-reactor thread.
@@ -318,7 +325,15 @@ class MetadataStore(object):
 
             # We separate the sessions to minimize database locking.
             with db_session:
+                my_channel = self.ChannelMetadata.get_my_channel()
                 for payload in batch:
+                    # If we received our metadata payload of torrent we have in our channel, we simply ignore it since
+                    # We always have the latest version ourselves.  This prevents from adding already deleted torrents
+                    # again in My channel.
+                    if skip_personal_metadata_payload and my_channel \
+                            and payload.public_key == str(my_channel.public_key) \
+                            and payload.metadata_type == REGULAR_TORRENT:
+                        continue
                     result.extend(self.process_payload(payload))
             if external_thread:
                 sleep(self.sleep_on_external_thread)

@@ -59,8 +59,9 @@ class ChannelPage(QWidget):
         self.channel_info = channel_info
         self.model.channel_pk = channel_info['public_key']
         self.model.channel_id = channel_info['id']
+        self.model.my_channel = channel_info['state'] == 'Personal'
 
-        self.window().channel_preview_button.setHidden(channel_info['state'] in ('Complete', 'Legacy'))
+        self.window().channel_preview_button.setHidden(channel_info['state'] in ('Complete', 'Legacy', 'Personal'))
         self.window().channel_back_button.setIcon(QIcon(get_image_path('page_back.png')))
         self.window().channel_page_container.content_table.setFocus()
         self.window().channel_page_container.details_container.hide()
@@ -76,12 +77,12 @@ class ChannelPage(QWidget):
         self.window().subscribe_button.setStyleSheet('border:none; color: %s' % color)
         self.window().subscribe_button.setText(format_votes(self.channel_info['votes']))
 
-        self.window().channel_state_label.setText(self.channel_info["state"])
+        self.window().channel_state_label.setText("(%s)" % self.channel_info["state"])
         self.window().subscription_widget.initialize_with_channel(self.channel_info)
 
     def _on_query_complete(self, data):
-        self.window().channel_num_torrents_label.setText(
-            "{}/{} torrents".format(data['total'], self.channel_info['torrents']))
+        max_torrents = max(data['total'], self.channel_info['torrents'])
+        self.window().channel_num_torrents_label.setText("{}/{} torrents".format(data['total'], max_torrents))
 
     def load_torrents(self):
         self.controller.model.reset()

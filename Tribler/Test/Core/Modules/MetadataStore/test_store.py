@@ -137,8 +137,35 @@ class TestMetadataStore(TriblerCoreTest):
 
         channel_dir = os.path.join(self.mds.channels_dir, channel.dir_name)
         self.assertTrue(len(os.listdir(channel_dir)) > 1)  # make sure it was broken into more than one .mdblob file
-        self.mds.process_channel_dir(channel_dir, channel.public_key, channel.id_)
+        # allow processing of personal metadata into channel
+        self.mds.skip_received_personal_metadata_payload = False
+        self.mds.process_channel_dir(channel_dir, channel.public_key, channel.id_, skip_personal_metadata_payload=False)
         self.assertEqual(num_entries, len(channel.contents))
+
+    @db_session
+    def test_skip_processing_of_received_personal_channel_torrents(self):
+        """
+        Test that personal torrent is ignored by default when processing the torrent metadata payload
+        """
+        channel = self.mds.ChannelMetadata.create_channel('testchan')
+        torrent_md = self.mds.TorrentMetadata(title='test', status=NEW, infohash=database_blob(os.urandom(20)))
+        channel.commit_channel_torrent()
+        torrent_md.delete()
+
+        channel_dir = os.path.join(self.mds.channels_dir, channel.dir_name)
+        self.assertTrue(len(os.listdir(channel_dir)) > 0)
+
+        # By default, personal channel torrent metadata processing is skipped so there should be no torrents
+        # added to the channel
+        channel.local_version = 0
+        self.mds.process_channel_dir(channel_dir, channel.public_key, channel.id_)
+        self.assertEqual(0, len(channel.contents))
+
+        # Enable processing of personal channel torrent metadata
+        channel.local_version = 0
+        self.mds.skip_received_personal_metadata_payload = False
+        self.mds.process_channel_dir(channel_dir, channel.public_key, channel.id_, skip_personal_metadata_payload=False)
+        self.assertEqual(1, len(channel.contents))
 
     @db_session
     def test_process_invalid_compressed_mdblob(self):
