@@ -8,8 +8,8 @@ from PyQt5.QtWidgets import QComboBox, QStyle, QStyledItemDelegate, QToolTip
 from six import text_type
 
 from TriblerGUI.defs import (
-    ACTION_BUTTONS, CATEGORY_LIST, COMMIT_STATUS_COMMITTED, COMMIT_STATUS_NEW, COMMIT_STATUS_TODELETE, HEALTH_CHECKING,
-    HEALTH_DEAD, HEALTH_ERROR, HEALTH_GOOD, HEALTH_MOOT, HEALTH_UNCHECKED)
+    ACTION_BUTTONS, CATEGORY_LIST, COMMIT_STATUS_COMMITTED, COMMIT_STATUS_NEW, COMMIT_STATUS_TODELETE,
+    COMMIT_STATUS_UPDATED, HEALTH_CHECKING, HEALTH_DEAD, HEALTH_ERROR, HEALTH_GOOD, HEALTH_MOOT, HEALTH_UNCHECKED)
 from TriblerGUI.utilities import format_votes, get_health, get_image_path
 from TriblerGUI.widgets.tableiconbuttons import DeleteIconButton, DownloadIconButton, PlayIconButton
 
@@ -421,6 +421,7 @@ class CommitStatusControl(QObject):
     new_icon = QIcon(get_image_path("plus.svg"))
     committed_icon = QIcon(get_image_path("check.svg"))
     todelete_icon = QIcon(get_image_path("minus.svg"))
+    updated_icon = QIcon(get_image_path("update.svg"))
 
     delete_action_icon = QIcon(get_image_path("delete.png"))
     restore_action_icon = QIcon(get_image_path("undo.svg"))
@@ -443,6 +444,8 @@ class CommitStatusControl(QObject):
             icon = self.new_icon
         elif state == COMMIT_STATUS_TODELETE:
             icon = self.todelete_icon
+        elif state == COMMIT_STATUS_UPDATED:
+            icon = self.updated_icon
 
         x = rect.left() + (rect.width() - self.w) / 2
         y = rect.top() + (rect.height() - self.h) / 2
@@ -452,6 +455,8 @@ class CommitStatusControl(QObject):
         self.rect = rect
 
     def paint_hover(self, painter, rect, index):
+        # FIXME: This should remain disabled until we implement the undo feature in the GUI.
+        """
         data_item = index.model().data_items[index.row()]
         if self.column_name not in data_item or data_item[self.column_name] == '':
             return
@@ -464,6 +469,8 @@ class CommitStatusControl(QObject):
             icon = self.delete_action_icon
         elif state == COMMIT_STATUS_TODELETE:
             icon = self.restore_action_icon
+        elif state == COMMIT_STATUS_UPDATED:
+            icon = self.delete_action_icon
 
         x = rect.left() + (rect.width() - self.w) / 2
         y = rect.top() + (rect.height() - self.h) / 2
@@ -471,6 +478,9 @@ class CommitStatusControl(QObject):
 
         icon.paint(painter, icon_rect)
         self.rect = rect
+        """
+        # This line must be removed when the above code is uncommented
+        return self.paint(painter, rect, index)
 
     def check_clicked(self, event, _, __, index):
         data_item = index.model().data_items[index.row()]
