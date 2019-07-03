@@ -52,7 +52,7 @@ class TestMetadata(TriblerCoreTest):
         metadata1.delete()
         orm.flush()
 
-        metadata2 = self.mds.ChannelNode.from_payload(ChannelNodePayload.from_signed_blob(serialized1))
+        metadata2 = self.mds.ChannelNode.from_payload(ChannelNodePayload.from_signed_blob(serialized1)[0])
         serialized2 = metadata2.serialized()
         self.assertEqual(serialized1, serialized2)
 
@@ -78,7 +78,7 @@ class TestMetadata(TriblerCoreTest):
         metadata1.delete()
         orm.flush()
 
-        metadata2 = self.mds.ChannelNode.from_payload(ChannelNodePayload.from_signed_blob(serialized1))
+        metadata2 = self.mds.ChannelNode.from_payload(ChannelNodePayload.from_signed_blob(serialized1)[0])
         serialized2 = metadata2.serialized()
         self.assertEqual(serialized1, serialized2)
 

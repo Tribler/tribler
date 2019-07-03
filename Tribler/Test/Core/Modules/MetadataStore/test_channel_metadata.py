@@ -130,7 +130,7 @@ class TestChannelMetadata(TriblerCoreTest):
         """
         Test whether a channel metadata payload is processed correctly
         """
-        payload = ChannelMetadataPayload.from_file(self.CHANNEL_METADATA)
+        payload = ChannelMetadataPayload.from_file(self.CHANNEL_METADATA)[0]
         channel_metadata = self.mds.ChannelMetadata.process_channel_metadata_payload(payload)
         self.assertTrue(channel_metadata)
 
