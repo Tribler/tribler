@@ -130,7 +130,7 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
 
             sanitized = self.sanitize_parameters(request.args)
             if b'exclude_deleted' in request.args:
-                sanitized['exclude_deleted'] = request.args[b'exclude_deleted']
+                sanitized['exclude_deleted'] = bool(int(request.args[b'exclude_deleted'][0]) > 0)
 
             sanitized.update(dict(channel_pk=database_blob(my_channel.public_key)))
 

@@ -12,6 +12,7 @@ from PyQt5.QtWidgets import QAction
 
 from six import text_type
 
+from TriblerGUI.defs import COMMIT_STATUS_UPDATED
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 
@@ -354,8 +355,10 @@ class MyTorrentsTableViewController(TorrentsTableViewController):
         self.model.row_edited.connect(self._on_row_edited)
 
     def _on_row_edited(self, index, new_value):
+        # FIXME: check the real response status and properly update the row on it
         infohash = self.model.data_items[index.row()][u'infohash']
         attribute_name = self.model.columns[index.column()]
+        self.model.data_items[index.row()][u'status'] = COMMIT_STATUS_UPDATED
         attribute_name = u'tags' if attribute_name == u'category' else attribute_name
         attribute_name = u'title' if attribute_name == u'name' else attribute_name
 
