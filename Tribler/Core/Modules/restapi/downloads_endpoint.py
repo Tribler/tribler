@@ -342,26 +342,24 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
         uri = ensure_unicode(parameters['uri'][0], 'utf-8')
         if uri.startswith("file:"):
             filename = url2pathname(uri[5:])
-            if uri.endswith(".mdblob"):
-                try:
-                    payload = ChannelMetadataPayload.from_file(filename)
-                except IOError:
-                    request.setResponseCode(http.BAD_REQUEST)
-                    return json.twisted_dumps({"error": "file not found"})
-                except InvalidSignatureException:
-                    request.setResponseCode(http.BAD_REQUEST)
-                    return json.twisted_dumps({"error": "Metadata has invalid signature"})
-
+            if uri.endswith(".mdblob") or uri.endswith(".mdblob.lz4"):
                 with db_session:
-                    result = self.session.lm.mds.process_payload(payload)
-                    if result:
-                        node, status = result[0]
-                        if (status == UNKNOWN_CHANNEL or
-                                (status == UPDATED_OUR_VERSION and node.metadata_type == CHANNEL_TORRENT)):
-                            node.subscribed = True
-                            return json.twisted_dumps(
-                                {"started": True, "infohash": hexlify(node.infohash)})
-                    return json.twisted_dumps({"error": "Already subscribed"})
+                    try:
+                        results = self.session.lm.mds.process_mdblob_file(filename)
+                        if results:
+                            node, status = results[0]
+                            if (status == UNKNOWN_CHANNEL or
+                                    (status == UPDATED_OUR_VERSION and node.metadata_type == CHANNEL_TORRENT)):
+                                node.subscribed = True
+                                return json.twisted_dumps(
+                                    {"started": True, "infohash": hexlify(node.infohash)})
+                        return json.twisted_dumps({"error": "Could not import Tribler metadata file"})
+                    except IOError:
+                        request.setResponseCode(http.BAD_REQUEST)
+                        return json.twisted_dumps({"error": "Metadata file not found"})
+                    except InvalidSignatureException:
+                        request.setResponseCode(http.BAD_REQUEST)
+                        return json.twisted_dumps({"error": "Metadata has invalid signature"})
             else:
                 download_uri = u"file:%s" % filename
         else:

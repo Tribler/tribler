@@ -7,6 +7,8 @@ import logging
 import os
 from binascii import hexlify, unhexlify
 
+from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import entries_to_chunk
+from Tribler.community.gigachannel.community import maximum_payload_size, max_entries
 from ipv8.database import database_blob
 
 from pony.orm import db_session
@@ -51,6 +53,7 @@ class MyChannelEndpoint(BaseMyChannelEndpoint):
         BaseMyChannelEndpoint.__init__(self, session)
         self.putChild(b"torrents", MyChannelTorrentsEndpoint(session))
         self.putChild(b"commit", MyChannelCommitEndpoint(session))
+        self.putChild(b"export", SpecificChannelExportEndpoint(session))
 
     def render_GET(self, request):
         with db_session:
@@ -112,6 +115,22 @@ class MyChannelEndpoint(BaseMyChannelEndpoint):
         return json.twisted_dumps({
             "added": hexlify(str(my_channel_pk)),
         })
+
+
+class SpecificChannelExportEndpoint(BaseMyChannelEndpoint):
+
+    def __init__(self, session):
+        BaseMyChannelEndpoint.__init__(self, session)
+
+    def render_GET(self, request):
+        with db_session:
+            channel = self.session.lm.mds.ChannelMetadata.get_my_channel()
+            random_channel_torrents = list(channel.get_random_torrents(max_entries))
+            serialized_data = entries_to_chunk([channel] + random_channel_torrents, maximum_payload_size)[0]
+
+        request.setHeader(b'content-type', 'application/x-bittorrent')
+        request.setHeader(b'Content-Disposition', 'attachment; filename=%s.mdblob.lz4' % hexlify(channel.public_key))
+        return serialized_data
 
 
 class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):

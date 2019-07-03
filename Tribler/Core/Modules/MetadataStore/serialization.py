@@ -132,7 +132,12 @@ class SignedPayload(Payload):
 
     @classmethod
     def from_signed_blob(cls, data, check_signature=True):
-        return cls.from_signed_blob_with_offset(data, check_signature)[0]
+        payload_list = []
+        offset = 0
+        while offset < len(data):
+            payload, offset = cls.from_signed_blob_with_offset(data, check_signature, offset=offset)
+            payload_list.append(payload)
+        return payload_list
 
     @classmethod
     def from_signed_blob_with_offset(cls, data, check_signature=True, offset=0):
