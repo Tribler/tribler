@@ -57,9 +57,7 @@ class GigaChannelManager(TaskManager):
                             tdef = TorrentDef.load(torrent_path)
                         except IOError:
                             self._logger.warning("Can't open personal channel torrent file. Will try to regenerate it.")
-                    if tdef and tdef.infohash == str(my_channel.infohash):
-                        tdef = tdef
-                    else:
+                    if not(tdef and tdef.infohash == str(my_channel.infohash)):
                         regenerated = my_channel.consolidate_channel_torrent()
                         # If the user created their channel, but added no torrents to it, the channel torrent will not
                         # be created.

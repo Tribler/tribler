@@ -25,7 +25,6 @@ from Tribler.Core.exceptions import DuplicateChannelIdError, DuplicateTorrentFil
 CHANNEL_DIR_NAME_LENGTH = 32  # Its not 40 so it could be distinguished from infohash
 BLOB_EXTENSION = '.mdblob'
 LZ4_END_MARK_SIZE = 4  # in bytes, from original specification. We don't use CRC
-ROOT_CHANNEL_ID = 0
 
 
 def chunks(l, n):
@@ -151,7 +150,7 @@ def define_binding(db):
             if ChannelMetadata.exists(lambda g: g.public_key == database_blob(cls._my_key.pub().key_to_bin()[10:])):
                 raise DuplicateChannelIdError()
 
-            my_channel = cls(id_=ROOT_CHANNEL_ID, public_key=database_blob(cls._my_key.pub().key_to_bin()[10:]),
+            my_channel = cls(origin_id=0, public_key=database_blob(cls._my_key.pub().key_to_bin()[10:]),
                              title=title, tags=description, subscribed=True, share=True,
                              infohash=str(random.getrandbits(160)))
             # random infohash is necessary to avoid triggering DB uniqueness constraints
@@ -189,11 +188,12 @@ def define_binding(db):
 
             return self.commit_channel_torrent(new_start_timestamp=start_timestamp)
 
-        def update_channel_torrent(self, metadata_list):
+        def update_channel_torrent(self, metadata_list, final_timestamp):
             """
             Channel torrents are append-only to support seeding the old versions
             from the same dir and avoid updating already downloaded blobs.
             :param metadata_list: The list of metadata entries to add to the torrent dir
+            :param final_timestamp: The timestamp that will be used as the filename of the last mdblob in the update
             :return The new infohash, should be used to update the downloads
             """
             # Create dir for metadata files
@@ -202,12 +202,13 @@ def define_binding(db):
                 os.makedirs(channel_dir)
 
             index = 0
-            new_timestamp = self.timestamp
             while index < len(metadata_list):
                 # Squash several serialized and signed metadata entries into a single file
                 data, index = entries_to_chunk(metadata_list, self._CHUNK_SIZE_LIMIT, start_index=index)
-                new_timestamp = self._clock.tick()
-                blob_filename = str(new_timestamp).zfill(12) + BLOB_EXTENSION + '.lz4'
+                # The final file in the sequence should get the same (new) timestamp as the channel entry itself.
+                # Otherwise, the local channel version will never become equal to its timestamp.
+                blob_timestamp = metadata_list[index-1].timestamp if index < len(metadata_list) else final_timestamp
+                blob_filename = str(blob_timestamp).zfill(12) + BLOB_EXTENSION + '.lz4'
                 with open(os.path.join(channel_dir, blob_filename), 'wb') as f:
                     f.write(data)
 
@@ -219,7 +220,7 @@ def define_binding(db):
             torrent_date = datetime.utcfromtimestamp(torrent['creation date'])
 
             return {"infohash": infohash, "num_entries": self.contents_len,
-                    "timestamp": new_timestamp, "torrent_date": torrent_date}, torrent
+                    "timestamp": final_timestamp, "torrent_date": torrent_date}, torrent
 
         def commit_channel_torrent(self, new_start_timestamp=None):
             """
@@ -228,12 +229,19 @@ def define_binding(db):
             :return The new infohash, should be used to update the downloads
             """
             torrent = None
-            md_list = self.staged_entries_list
+
+            with db_session:
+                # The list must be sorted in ascending order on timestamp, otherwise blob filenames can get wrong
+                # filenames. Blob files must only contain entries with the same of lesser timestamps.
+                md_list = list(
+                    self.contents.where(lambda g: g.status in [NEW, UPDATED, TODELETE]).sort_by(lambda g: g.timestamp))
+
             if not md_list:
                 return None
 
+            final_timestamp = self._clock.tick()
             try:
-                update_dict, torrent = self.update_channel_torrent(md_list)
+                update_dict, torrent = self.update_channel_torrent(md_list, final_timestamp)
             except IOError:
                 self._logger.error(
                     "Error during channel torrent commit, not going to garbage collect the channel. Channel %s",
@@ -296,7 +304,7 @@ def define_binding(db):
                 # If it is there, check if we were going to delete it
                 if old_torrent.status == TODELETE:
                     new_timestamp = self._clock.tick()
-                    old_torrent.set(timestamp=new_timestamp, **new_entry_dict)
+                    old_torrent.set(timestamp=new_timestamp, origin_id=self.id_, **new_entry_dict)
                     old_torrent.sign()
                     # As we really don't know what status this torrent had _before_ it got its TODELETE status,
                     # we _must_ set its status to UPDATED, for safety
@@ -305,12 +313,12 @@ def define_binding(db):
                 else:
                     raise DuplicateTorrentFileError()
             else:
-                torrent_metadata = db.TorrentMetadata.from_dict(new_entry_dict)
+                torrent_metadata = db.TorrentMetadata.from_dict(dict(origin_id=self.id_, **new_entry_dict))
             return torrent_metadata
 
         @db_session
         def copy_to_channel(self, infohash):
-            return db.TorrentMetadata.copy_to_channel(infohash)
+            return db.TorrentMetadata.copy_to_channel(infohash, self.id_)
 
         @property
         def dirty(self):
@@ -334,11 +342,6 @@ def define_binding(db):
         def dir_name(self):
             # Have to limit this to support Windows file path length limit
             return hexlify(self.public_key)[:CHANNEL_DIR_NAME_LENGTH]
-
-        @property
-        @db_session
-        def staged_entries_list(self):
-            return list(self.deleted_contents) + list(self.uncommitted_contents)
 
         @property
         @db_session

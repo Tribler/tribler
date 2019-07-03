@@ -21,7 +21,6 @@ from Tribler.Core.Modules.MetadataStore.store import (
     UPDATED_OUR_VERSION)
 from Tribler.Test.Core.base_test import TriblerCoreTest
 
-
 def make_wrong_payload(filename):
     key = default_eccrypto.generate_key(u"curve25519")
     metadata_payload = SignedPayload(666, 0, database_blob(key.pub().key_to_bin()[10:]),
@@ -72,13 +71,13 @@ class TestMetadataStore(TriblerCoreTest):
         test_node_metadata.to_file(metadata_path)
         # We delete this TorrentMeta info now, it should be added again to the database when loading it
         test_node_metadata.delete()
-        loaded_metadata = self.mds.process_mdblob_file(metadata_path)
+        loaded_metadata = self.mds.process_mdblob_file(metadata_path, skip_personal_metadata_payload=False)
         self.assertEqual(loaded_metadata[0][0].title, 'test')
 
         # Test whether we delete existing metadata when loading a DeletedMetadata blob
         metadata = self.mds.TorrentMetadata(infohash='1' * 20)
         metadata.to_delete_file(metadata_path)
-        loaded_metadata = self.mds.process_mdblob_file(metadata_path)
+        loaded_metadata = self.mds.process_mdblob_file(metadata_path, skip_personal_metadata_payload=False)
         # Make sure the original metadata is deleted
         self.assertEqual(loaded_metadata[0], (None, 6))
         self.assertIsNone(self.mds.TorrentMetadata.get(infohash='1' * 20))
@@ -86,7 +85,8 @@ class TestMetadataStore(TriblerCoreTest):
         # Test an unknown metadata type, this should raise an exception
         invalid_metadata = os.path.join(self.session_base_dir, 'invalidtype.mdblob')
         make_wrong_payload(invalid_metadata)
-        self.assertRaises(UnknownBlobTypeException, self.mds.process_mdblob_file, invalid_metadata)
+        self.assertRaises(UnknownBlobTypeException, self.mds.process_mdblob_file, invalid_metadata,
+                          skip_personal_metadata_payload=False)
 
     @db_session
     def test_squash_mdblobs(self):
@@ -98,8 +98,9 @@ class TestMetadataStore(TriblerCoreTest):
         dict_list = [d.to_dict()["signature"] for d in md_list]
         for d in md_list:
             d.delete()
-        self.assertListEqual(dict_list, [d[0].to_dict()["signature"]
-                                         for d in self.mds.process_compressed_mdblob(chunk)])
+        self.assertListEqual(dict_list,
+                             [d[0].to_dict()["signature"] for d in
+                              self.mds.process_compressed_mdblob(chunk, skip_personal_metadata_payload=False)])
 
     @db_session
     def test_squash_mdblobs_multiple_chunks(self):
@@ -113,10 +114,14 @@ class TestMetadataStore(TriblerCoreTest):
         dict_list = [d.to_dict()["signature"] for d in md_list]
         for d in md_list:
             d.delete()
-        self.assertListEqual(dict_list[:index], [d[0].to_dict()["signature"]
-                                                 for d in self.mds.process_compressed_mdblob(chunk)])
-        self.assertListEqual(dict_list[index:], [d[0].to_dict()["signature"]
-                                                 for d in self.mds.process_compressed_mdblob(chunk2)])
+        self.assertListEqual(dict_list[:index],
+                             [d[0].to_dict()["signature"]
+                              for d in self.mds.process_compressed_mdblob(chunk,
+                                                                          skip_personal_metadata_payload=False)])
+        self.assertListEqual(dict_list[index:],
+                             [d[0].to_dict()["signature"]
+                              for d in self.mds.process_compressed_mdblob(chunk2,
+                                                                          skip_personal_metadata_payload=False)])
 
     @db_session
     def test_multiple_squashed_commit_and_read(self):
@@ -127,7 +132,8 @@ class TestMetadataStore(TriblerCoreTest):
 
         num_entries = 10
         channel = self.mds.ChannelMetadata.create_channel('testchan')
-        md_list = [self.mds.TorrentMetadata(title='test' + str(x), status=NEW, infohash=database_blob(os.urandom(20)))
+        md_list = [self.mds.TorrentMetadata(origin_id=channel.id_,
+                                            title='test' + str(x), status=NEW, infohash=database_blob(os.urandom(20)))
                    for x in range(0, num_entries)]
         channel.commit_channel_torrent()
 
@@ -137,8 +143,6 @@ class TestMetadataStore(TriblerCoreTest):
 
         channel_dir = os.path.join(self.mds.channels_dir, channel.dir_name)
         self.assertTrue(len(os.listdir(channel_dir)) > 1)  # make sure it was broken into more than one .mdblob file
-        # allow processing of personal metadata into channel
-        self.mds.skip_received_personal_metadata_payload = False
         self.mds.process_channel_dir(channel_dir, channel.public_key, channel.id_, skip_personal_metadata_payload=False)
         self.assertEqual(num_entries, len(channel.contents))
 
@@ -148,7 +152,8 @@ class TestMetadataStore(TriblerCoreTest):
         Test that personal torrent is ignored by default when processing the torrent metadata payload
         """
         channel = self.mds.ChannelMetadata.create_channel('testchan')
-        torrent_md = self.mds.TorrentMetadata(title='test', status=NEW, infohash=database_blob(os.urandom(20)))
+        torrent_md = self.mds.TorrentMetadata(origin_id=channel.id_,
+                                              title='test', status=NEW, infohash=database_blob(os.urandom(20)))
         channel.commit_channel_torrent()
         torrent_md.delete()
 
@@ -163,7 +168,6 @@ class TestMetadataStore(TriblerCoreTest):
 
         # Enable processing of personal channel torrent metadata
         channel.local_version = 0
-        self.mds.skip_received_personal_metadata_payload = False
         self.mds.process_channel_dir(channel_dir, channel.public_key, channel.id_, skip_personal_metadata_payload=False)
         self.assertEqual(1, len(channel.contents))
 
@@ -197,6 +201,7 @@ class TestMetadataStore(TriblerCoreTest):
 
         _, node_payload, node_deleted_payload = get_payloads(self.mds.ChannelNode)
 
+        self.mds.ChannelNode._my_key = default_eccrypto.generate_key(u"curve25519")
         self.assertFalse(self.mds.process_payload(node_payload))
         self.assertEqual([(None, DELETED_METADATA)], self.mds.process_payload(node_deleted_payload))
         # Do nothing in case it is unknown/abstract payload type, like ChannelNode
@@ -223,7 +228,7 @@ class TestMetadataStore(TriblerCoreTest):
 
     @db_session
     def test_process_payload_ffa(self):
-        infohash = "1"*20
+        infohash = "1" * 20
         ffa_torrent = self.mds.TorrentMetadata.add_ffa_from_dict(dict(infohash=infohash, title='abc'))
         ffa_payload = self.mds.TorrentMetadata._payload_class.from_signed_blob(ffa_torrent.serialized())
         ffa_torrent.delete()
@@ -242,8 +247,8 @@ class TestMetadataStore(TriblerCoreTest):
         # Assert that older FFAs are never replaced by newer ones with the same infohash
         self.assertEqual([(None, NO_ACTION)], self.mds.process_payload(ffa_payload))
 
-        # Assert that FFA entry is replaced by a signed entry when we recieve one with the same infohash
-        self.mds.process_payload(signed_md_payload)
+        # Assert that FFA entry is replaced by a signed entry when we receive one with the same infohash
+        self.mds.process_payload(signed_md_payload, skip_personal_metadata_payload=False)
         self.assertEqual(database_blob(signed_md_payload.signature),
                          self.mds.TorrentMetadata.get(infohash=infohash).signature)
 
@@ -267,7 +272,7 @@ class TestMetadataStore(TriblerCoreTest):
         self.mds.TorrentMetadata(**node_dict)
         self.mds.TorrentMetadata(**node2_dict)
 
-        result = self.mds.process_payload(node_updated_payload)
+        result = self.mds.process_payload(node_updated_payload, skip_personal_metadata_payload=False)
         self.assertIn((None, DELETED_METADATA), result)
         self.assertIn((self.mds.TorrentMetadata.get(), UPDATED_OUR_VERSION), result)
         self.assertEqual(database_blob(self.mds.TorrentMetadata.select()[:][0].signature),
@@ -277,13 +282,13 @@ class TestMetadataStore(TriblerCoreTest):
     def test_process_payload_reject_older(self):
         # Check there is no action if the processed payload has a timestamp that is less than the
         # local_version of the corresponding local channel. (I.e. remote peer trying to push back a deleted entry)
-        channel = self.mds.ChannelMetadata(title='bla', version=123, local_version=12,
+        channel = self.mds.ChannelMetadata(title='bla', version=123, timestamp=10, local_version=12,
                                            infohash=database_blob(os.urandom(20)))
         torrent = self.mds.TorrentMetadata(title='blabla', timestamp=11, origin_id=channel.id_,
                                            infohash=database_blob(os.urandom(20)))
         payload = torrent._payload_class(**torrent.to_dict())
         torrent.delete()
-        self.assertFalse(self.mds.process_payload(payload))
+        self.assertEqual([(None, NO_ACTION)], self.mds.process_payload(payload, skip_personal_metadata_payload=False))
 
     @db_session
     def test_process_payload_reject_older_entry_with_known_infohash_or_merge(self):
@@ -304,13 +309,14 @@ class TestMetadataStore(TriblerCoreTest):
         payload3 = torrent._payload_class(**torrent3.to_dict())
         torrent3.delete()
 
-        self.mds.process_payload(payload2)
-        self.assertEqual(GOT_NEWER_VERSION, self.mds.process_payload(payload)[0][1])
+        self.mds.process_payload(payload2, skip_personal_metadata_payload=False)
+        self.assertEqual(GOT_NEWER_VERSION, self.mds.process_payload(payload,
+                                                                     skip_personal_metadata_payload=False)[0][1])
 
         # In this corner case the newly arrived payload contains a newer node
         # that has the same infohash as the one that is already there.
         # The older one should be deleted, and the newer one should be installed instead.
-        results = self.mds.process_payload(payload3)
+        results = self.mds.process_payload(payload3, skip_personal_metadata_payload=False)
         self.assertIn((None, DELETED_METADATA), results)
         self.assertIn((self.mds.TorrentMetadata.get(), UNKNOWN_TORRENT), results)
 

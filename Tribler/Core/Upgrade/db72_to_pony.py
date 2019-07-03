@@ -9,7 +9,7 @@ import sqlite3
 from ipv8.database import database_blob
 
 from pony import orm
-from pony.orm import CacheIndexError, TransactionIntegrityError, db_session
+from pony.orm import db_session
 
 from six import text_type
 
@@ -251,15 +251,17 @@ class DispersyToPonyMigration(object):
         if self.personal_channel_id and not self.mds.ChannelMetadata.get_my_channel():
             total_to_convert = self.get_personal_channel_torrents_count()
 
+
+            with db_session:
+                my_channel = self.mds.ChannelMetadata.create_channel(title=self.personal_channel_title, description='')
+
             def get_old_stuff(batch_size, offset):
                 return self.get_old_torrents(personal_channel_only=True, sign=True,
                                              batch_size=batch_size, offset=offset)
 
             def add_to_pony(t):
-                return self.mds.TorrentMetadata(**t)
+                return self.mds.TorrentMetadata(origin_id=my_channel.id_, **t)
 
-            with db_session:
-                self.mds.ChannelMetadata.create_channel(title=self.personal_channel_title, description='')
             yield self.convert_async(add_to_pony, get_old_stuff, total_to_convert,
                                      offset=0, message="Converting personal channel torrents.")
 
