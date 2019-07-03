@@ -12,7 +12,8 @@ from six.moves import xrange
 
 from twisted.internet.defer import inlineCallbacks
 
-from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import COMMITTED, NEW
+from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import NEW
+from Tribler.Core.Modules.MetadataStore.serialization import REGULAR_TORRENT
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.Utilities.random_utils import random_infohash
 from Tribler.Test.Core.base_test import MockObject
@@ -72,9 +73,11 @@ class TestGigaChannelUnits(TestBase):
         """
         Test whether sending a single channel with a multiple torrents to another peer works correctly
         """
+        # We set gossip renewal period to 2 for this test, so the 3rd packet will renew the cache
+        self.nodes[0].overlay.gossip_renewal_period = 2
         with db_session:
             channel = self.nodes[0].overlay.metadata_store.ChannelMetadata.create_channel("test", "bla")
-            for _ in xrange(20):
+            for _ in xrange(10):
                 self.add_random_torrent(self.nodes[0].overlay.metadata_store.TorrentMetadata)
             channel.commit_channel_torrent()
 
@@ -83,9 +86,40 @@ class TestGigaChannelUnits(TestBase):
         yield self.deliver_messages(timeout=0.5)
 
         with db_session:
-            self.assertEqual(len(self.nodes[1].overlay.metadata_store.ChannelMetadata.select()), 1)
-            channel = self.nodes[1].overlay.metadata_store.ChannelMetadata.select()[:][0]
-            self.assertLess(channel.contents_len, 20)
+            channel = self.nodes[1].overlay.metadata_store.ChannelMetadata.get()
+            torrents1 = self.nodes[1].overlay.metadata_store.TorrentMetadata.select()[:]
+            self.assertLess(channel.contents_len, 10)
+            self.assertLess(0, channel.contents_len)
+
+        # We must delete the old and create all-new torrent entries for the next test.
+        # Otherwise, it becomes non-deterministic.
+        with db_session:
+            channel = self.nodes[0].overlay.metadata_store.ChannelMetadata.get()
+            self.nodes[0].overlay.metadata_store.TorrentMetadata.select(
+                lambda g: g.metadata_type == REGULAR_TORRENT).delete()
+            self.nodes[1].overlay.metadata_store.TorrentMetadata.select().delete()
+
+            for _ in xrange(10):
+                self.add_random_torrent(self.nodes[0].overlay.metadata_store.TorrentMetadata)
+            channel.commit_channel_torrent()
+
+        self.assertEqual(1, self.nodes[0].overlay.gossip_sequence_count)
+
+        # Initiate the gossip again. This time, it should be sent from the blob cache
+        # so the torrents on the receiving end should not change this time.
+        self.nodes[0].overlay.send_random_to(Peer(self.nodes[1].my_peer.public_key, self.nodes[1].endpoint.wan_address))
+
+        yield self.deliver_messages(timeout=0.5)
+        with db_session:
+            torrents2 = self.nodes[1].overlay.metadata_store.TorrentMetadata.select()[:]
+            self.assertEqual(len(torrents1), len(torrents2))
+
+        self.nodes[0].overlay.send_random_to(Peer(self.nodes[1].my_peer.public_key, self.nodes[1].endpoint.wan_address))
+
+        yield self.deliver_messages(timeout=0.5)
+        with db_session:
+            torrents3 = self.nodes[1].overlay.metadata_store.TorrentMetadata.select()[:]
+            self.assertLess(len(torrents2), len(torrents3))
 
     @inlineCallbacks
     def test_send_and_get_channel_update_back(self):
