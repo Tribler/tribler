@@ -288,7 +288,7 @@ class EditChannelPage(QWidget):
             if action == 0:
                 dest_path = os.path.join(export_dir, dialog.dialog_widget.dialog_input.text())
                 request_mgr = TriblerRequestManager()
-                request_mgr.download_file("channels/discovered/%s/mdblob" % mdblob_name,
+                request_mgr.download_file("mychannel/export",
                                           lambda data: on_export_download_request_done(dest_path, data))
 
             dialog.close_dialog()
@@ -299,14 +299,14 @@ class EditChannelPage(QWidget):
                 torrent_file.write(data)
                 torrent_file.close()
             except IOError as exc:
-                ConfirmationDialog.show_error(self.window(),
-                                              "Error when exporting file",
-                                              "An error occurred when exporting the torrent file: %s" % str(exc))
+                ConfirmationDialog.show_error(self.window(), "Failure! Exporting channel failed",
+                                              "The following occurred when exporting your channel: %s" % str(exc))
             else:
-                self.window().tray_show_message("Torrent file exported", "Torrent file exported to %s" % dest_path)
+                self.window().tray_show_message("Success! Your channel is exported",
+                                                "Your channel metadata file is stored in %s" % dest_path)
 
         dialog.dialog_widget.dialog_input.setPlaceholderText('Channel file name')
-        dialog.dialog_widget.dialog_input.setText("%s.mdblob" % mdblob_name)
+        dialog.dialog_widget.dialog_input.setText("%s.mdblob.lz4" % mdblob_name)
         dialog.dialog_widget.dialog_input.setFocus()
         dialog.button_clicked.connect(on_export_download_dialog_done)
         dialog.show()

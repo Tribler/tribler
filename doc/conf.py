@@ -43,7 +43,8 @@ MOCK_MODULES = ['twisted', 'twisted.web', 'twisted.web.error', 'twisted.web.serv
                 'Tribler.community.tunnel.crypto.cryptowrapper',
                 'psutil', 'meliae', 'libnacl',
                 'decorator', 'libnacl.dual', 'libnacl.sign', 'libnacl.encode', 'libnacl.public', 'networkx',
-                'netifaces', 'ipv8.messaging.anonymization.tunnel', 'networkx', 'networkx.readwrite']
+                'netifaces', 'ipv8.messaging.anonymization.tunnel', 'Tribler.community.gigachannel.community',
+                'networkx', 'networkx.readwrite']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 

@@ -646,7 +646,7 @@ class TestMetadataDownloadEndpoint(AbstractApiTest):
         with db_session:
             self.session.lm.mds.process_mdblob_file(os.path.join(TESTS_DIR, 'Core/data/sample_channel/channel.mdblob'))
         post_data = {'uri': 'file:%s' % os.path.join(TESTS_DIR, 'Core/data/sample_channel/channel.mdblob')}
-        expected_json = {u'error': u'Already subscribed'}
+        expected_json = {u'error': u'Could not import Tribler metadata file'}
         return self.do_request('downloads', expected_code=200, request_type='PUT', post_data=post_data,
                                expected_json=expected_json)
 

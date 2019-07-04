@@ -20,10 +20,12 @@ from twisted.web.error import SchemeNotSupported
 from twisted.web.server import NOT_DONE_YET
 
 import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import entries_to_chunk
 from Tribler.Core.Modules.restapi.metadata_endpoint import SpecificChannelTorrentsEndpoint
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.utilities import http_get, is_infohash, parse_magnetlink
 from Tribler.Core.exceptions import DuplicateTorrentFileError
+from Tribler.community.gigachannel.community import max_entries, maximum_payload_size
 
 
 class BaseMyChannelEndpoint(SpecificChannelTorrentsEndpoint):
@@ -51,6 +53,7 @@ class MyChannelEndpoint(BaseMyChannelEndpoint):
         BaseMyChannelEndpoint.__init__(self, session)
         self.putChild(b"torrents", MyChannelTorrentsEndpoint(session))
         self.putChild(b"commit", MyChannelCommitEndpoint(session))
+        self.putChild(b"export", SpecificChannelExportEndpoint(session))
 
     def render_GET(self, request):
         with db_session:
@@ -112,6 +115,26 @@ class MyChannelEndpoint(BaseMyChannelEndpoint):
         return json.twisted_dumps({
             "added": hexlify(str(my_channel_pk)),
         })
+
+
+class SpecificChannelExportEndpoint(BaseMyChannelEndpoint):
+
+    def __init__(self, session):
+        BaseMyChannelEndpoint.__init__(self, session)
+
+    def render_GET(self, request):
+        with db_session:
+            my_channel = self.session.lm.mds.ChannelMetadata.get_my_channel()
+            if not my_channel:
+                request.setResponseCode(http.NOT_FOUND)
+                return json.twisted_dumps({"error": "your channel has not been created"})
+
+            random_channel_torrents = list(my_channel.get_random_torrents(max_entries))
+            serialized_data = entries_to_chunk([my_channel] + random_channel_torrents, maximum_payload_size)[0]
+
+        request.setHeader(b'content-type', 'application/x-bittorrent')
+        request.setHeader(b'Content-Disposition', 'attachment; filename=%s.mdblob.lz4' % hexlify(my_channel.public_key))
+        return serialized_data
 
 
 class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):

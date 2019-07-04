@@ -401,7 +401,7 @@ class TriblerWindow(QMainWindow):
 
         # TODO: create a proper confirmation dialog to show results of adding .mdblob files
         # the case for .mdblob files is handled without torrentinfo endpoint
-        if uri.startswith('file') and uri.endswith('.mdblob'):
+        if uri.startswith('file') and (uri.endswith('.mdblob') or uri.endswith('.mdblob.lz4')):
             request_mgr = TriblerRequestManager()
             request_mgr.perform_request("downloads", lambda _: None, method='PUT', data={"uri": uri})
             return
@@ -690,7 +690,7 @@ class TriblerWindow(QMainWindow):
         filenames = QFileDialog.getOpenFileNames(self,
                                                  "Please select the .mdblob file",
                                                  QDir.homePath(),
-                                                 "Tribler metadata files (*.mdblob)")
+                                                 "Tribler metadata files (*.mdblob.lz4)")
         if len(filenames[0]) > 0:
             for filename in filenames[0]:
                 self.pending_uri_requests.append(u"file:%s" % filename)
