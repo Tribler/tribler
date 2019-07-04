@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import random
 from binascii import hexlify
 from datetime import datetime
 
@@ -104,11 +105,11 @@ def define_binding(db, logger=None, key=None, clock=None):
             # For putting legacy/test stuff in
             skip_key_check = kwargs.pop("skip_key_check", skip_key_check)
 
-            if "id_" not in kwargs:
-                kwargs["id_"] = self._clock.tick()
-
             if "timestamp" not in kwargs:
-                kwargs["timestamp"] = kwargs["id_"]
+                kwargs["timestamp"] = self._clock.tick()
+
+            if "id_" not in kwargs:
+                kwargs["id_"] = int(random.getrandbits(63))
 
             if not private_key_override and not skip_key_check:
                 # No key/signature given, sign with our own key.

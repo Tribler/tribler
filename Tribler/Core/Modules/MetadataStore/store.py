@@ -394,13 +394,12 @@ class MetadataStore(object):
             return [(None, NO_ACTION)]
 
         # Check if we already have this payload
-        node = self.ChannelNode.get_for_update(signature=payload.signature, public_key=payload.public_key)
+        node = self.ChannelNode.get(signature=payload.signature, public_key=payload.public_key)
         if node:
             return [(node, NO_ACTION)]
 
         # Signed entry > FFA entry. Old FFA entry > new FFA entry
-        ffa_node = self.TorrentMetadata.get_for_update(public_key=database_blob(""),
-                                                       infohash=database_blob(payload.infohash))
+        ffa_node = self.TorrentMetadata.get(public_key=database_blob(""), infohash=database_blob(payload.infohash))
         if ffa_node:
             ffa_node.delete()
 
