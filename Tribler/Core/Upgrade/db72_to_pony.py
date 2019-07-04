@@ -267,7 +267,7 @@ class DispersyToPonyMigration(object):
 
             with db_session:
                 my_channel = self.mds.ChannelMetadata.get_my_channel()
-                folder = os.path.join(my_channel._channels_dir, my_channel.dir_name)
+                folder = os.path.join(my_channel._channels_dir, my_channel.dirname)
 
                 # We check if we need to re-create the channel dir in case it was deleted for some reason
                 if not os.path.isdir(folder):

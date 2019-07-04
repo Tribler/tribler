@@ -37,7 +37,7 @@ class TestChannelDownload(TestAsServer):
         old_payload = ChannelMetadataPayload.from_file(CHANNEL_METADATA)
         with db_session:
             old_channel = self.session.lm.mds.ChannelMetadata.from_payload(old_payload)
-            chan_dir = os.path.join(CHANNEL_DIR, old_channel.dir_name)
+            chan_dir = os.path.join(CHANNEL_DIR, old_channel.dirname)
 
         self.session.lm.mds.process_channel_dir(chan_dir, old_payload.public_key, old_payload.id_)
 

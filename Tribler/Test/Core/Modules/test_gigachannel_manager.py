@@ -183,16 +183,16 @@ class TestGigaChannelManager(TriblerCoreTest):
         # Double conversion is required to make sure that buffers signatures are not the same
         mock_dl_list = [
             # Downloads for the personal channel
-            MockDownload(database_blob(bytes(my_chan_old_infohash)), my_chan.dir_name),
-            MockDownload(database_blob(bytes(my_chan.infohash)), my_chan.dir_name),
+            MockDownload(database_blob(bytes(my_chan_old_infohash)), my_chan.dirname),
+            MockDownload(database_blob(bytes(my_chan.infohash)), my_chan.dirname),
 
             # Downloads for the updated external channel: "old ones" and "recent"
-            MockDownload(database_blob(bytes(str(12331244))), chan2.dir_name),
-            MockDownload(database_blob(bytes(chan2.infohash)), chan2.dir_name),
+            MockDownload(database_blob(bytes(str(12331244))), chan2.dirname),
+            MockDownload(database_blob(bytes(chan2.infohash)), chan2.dirname),
 
             # Downloads for the unsubscribed external channel
-            MockDownload(database_blob(bytes(str(1231551))), chan3.dir_name),
-            MockDownload(database_blob(bytes(chan3.infohash)), chan3.dir_name),
+            MockDownload(database_blob(bytes(str(1231551))), chan3.dirname),
+            MockDownload(database_blob(bytes(chan3.infohash)), chan3.dirname),
             # Orphaned download
             MockDownload(database_blob(str(333)), u"blabla")]
 

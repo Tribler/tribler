@@ -22,7 +22,9 @@ from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.unicode import ensure_unicode
 from Tribler.Core.exceptions import DuplicateChannelIdError, DuplicateTorrentFileError
 
-CHANNEL_DIR_NAME_LENGTH = 32  # Its not 40 so it could be distinguished from infohash
+CHANNEL_DIR_NAME_PK_LENGTH = 32  # Its not 40 so it could be distinguished from infohash
+CHANNEL_DIR_NAME_ID_LENGTH = 16  # Zero-padded long int in hex form
+CHANNEL_DIR_NAME_LENGTH = CHANNEL_DIR_NAME_PK_LENGTH + CHANNEL_DIR_NAME_ID_LENGTH
 BLOB_EXTENSION = '.mdblob'
 LZ4_END_MARK_SIZE = 4  # in bytes, from original specification. We don't use CRC
 
@@ -168,7 +170,7 @@ def define_binding(db):
             # Cleanup entries marked for deletion
             self.deleted_contents.delete(bulk=True)
 
-            folder = os.path.join(self._channels_dir, self.dir_name)
+            folder = os.path.join(self._channels_dir, self.dirname)
             # We check if we need to re-create the channel dir in case it was deleted for some reason
             if not os.path.isdir(folder):
                 os.makedirs(folder)
@@ -197,7 +199,7 @@ def define_binding(db):
             :return The new infohash, should be used to update the downloads
             """
             # Create dir for metadata files
-            channel_dir = os.path.abspath(os.path.join(self._channels_dir, self.dir_name))
+            channel_dir = os.path.abspath(os.path.join(self._channels_dir, self.dirname))
             if not os.path.isdir(channel_dir):
                 os.makedirs(channel_dir)
 
@@ -216,7 +218,7 @@ def define_binding(db):
 
             # Make torrent out of dir with metadata files
             torrent, infohash = create_torrent_from_dir(channel_dir,
-                                                        os.path.join(self._channels_dir, self.dir_name + ".torrent"))
+                                                        os.path.join(self._channels_dir, self.dirname + ".torrent"))
             torrent_date = datetime.utcfromtimestamp(torrent['creation date'])
 
             return {"infohash": infohash, "num_entries": self.contents_len,
@@ -260,7 +262,7 @@ def define_binding(db):
 
                 # Write the channel mdblob to disk
                 self.update_metadata(update_dict)
-                self.to_file(os.path.join(self._channels_dir, self.dir_name + BLOB_EXTENSION))
+                self.to_file(os.path.join(self._channels_dir, self.dirname + BLOB_EXTENSION))
 
                 self._logger.info("Channel %s committed with %i new entries. New version is %i",
                                   hexlify(str(self.public_key)), len(md_list), update_dict['timestamp'])
@@ -339,9 +341,9 @@ def define_binding(db):
             return self.contents.where(lambda g: g.status == TODELETE)
 
         @property
-        def dir_name(self):
+        def dirname(self):
             # Have to limit this to support Windows file path length limit
-            return hexlify(self.public_key)[:CHANNEL_DIR_NAME_LENGTH]
+            return hexlify(self.public_key)[:CHANNEL_DIR_NAME_PK_LENGTH]+"{:0>16x}".format(self.id_)
 
         @property
         @db_session
@@ -394,20 +396,26 @@ def define_binding(db):
             return cls.select(lambda g: g.public_key == database_blob(public_key)).sort_by(
                 lambda g: desc(g.id_)).first() or None
 
+
         @classmethod
         @db_session
         def get_channel_with_dirname(cls, dirname):
-            # It is impossible to use LIKE queries on BLOBs, so we have to use comparisons
+            # Parse the public key part of the dirname
+            pk_part = dirname[:-CHANNEL_DIR_NAME_ID_LENGTH]
+
             def extend_to_bitmask(txt):
                 return txt + "0" * (PUBLIC_KEY_LEN * 2 - CHANNEL_DIR_NAME_LENGTH)
+            pk_binmask_start = "x'" + extend_to_bitmask(pk_part) + "'"
+            pk_plus_one = ("%X" % (int(pk_part, 16) + 1)).zfill(len(pk_part))
+            pk_binmask_end = "x'" + extend_to_bitmask(pk_plus_one) + "'"
+            # It is impossible to use LIKE queries on BLOBs, so we have to use comparisons
+            sql = "g.public_key >= " + pk_binmask_start + " AND g.public_key < " + pk_binmask_end
 
-            dirname_binmask_start = "x'" + extend_to_bitmask(dirname) + "'"
+            # Parse the id part of the dirname
+            id_part = dirname[-CHANNEL_DIR_NAME_ID_LENGTH:]
+            id_ = int(id_part, 16)
 
-            binmask_plus_one = ("%X" % (int(dirname, 16) + 1)).zfill(len(dirname))
-            dirname_binmask_end = "x'" + extend_to_bitmask(binmask_plus_one) + "'"
-
-            sql = "g.public_key >= " + dirname_binmask_start + " AND g.public_key < " + dirname_binmask_end
-            return orm.select(g for g in cls if raw_sql(sql)).first()
+            return orm.select(g for g in cls if g.id_ == id_ and raw_sql(sql)).first()
 
         @classmethod
         @db_session

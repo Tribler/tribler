@@ -153,19 +153,19 @@ class TestChannelMetadata(TriblerCoreTest):
         sample_channel_dict = TestChannelMetadata.get_sample_channel_dict(self.my_key)
         channel_metadata = self.mds.ChannelMetadata.from_dict(sample_channel_dict)
 
-        self.assertEqual(len(channel_metadata.dir_name), CHANNEL_DIR_NAME_LENGTH)
+        self.assertEqual(len(channel_metadata.dirname), CHANNEL_DIR_NAME_LENGTH)
 
     @db_session
     def test_get_channel_with_dirname(self):
         sample_channel_dict = TestChannelMetadata.get_sample_channel_dict(self.my_key)
         channel_metadata = self.mds.ChannelMetadata.from_dict(sample_channel_dict)
-        dirname = channel_metadata.dir_name
+        dirname = channel_metadata.dirname
         channel_result = self.mds.ChannelMetadata.get_channel_with_dirname(dirname)
         self.assertEqual(channel_metadata, channel_result)
 
         # Test for corner-case of channel PK starting with zeroes
         channel_metadata.public_key = database_blob(unhexlify('0' * 128))
-        channel_result = self.mds.ChannelMetadata.get_channel_with_dirname(channel_metadata.dir_name)
+        channel_result = self.mds.ChannelMetadata.get_channel_with_dirname(channel_metadata.dirname)
         self.assertEqual(channel_metadata, channel_result)
 
     @db_session
@@ -311,7 +311,7 @@ class TestChannelMetadata(TriblerCoreTest):
         Test completely re-commit your channel
         """
         channel = self.mds.ChannelMetadata.create_channel('test', 'test')
-        my_dir = os.path.abspath(os.path.join(self.mds.channels_dir, channel.dir_name))
+        my_dir = os.path.abspath(os.path.join(self.mds.channels_dir, channel.dirname))
         tdef = TorrentDef.load(TORRENT_UBUNTU_FILE)
 
         # 1st torrent
@@ -370,7 +370,7 @@ class TestChannelMetadata(TriblerCoreTest):
         infohash = "\x00" * 20
         title = "testchan"
         chan = self.mds.ChannelMetadata(title=title, infohash=database_blob(infohash))
-        dirname = chan.dir_name
+        dirname = chan.dirname
 
         self.assertEqual(title, self.mds.ChannelMetadata.get_channel_name(dirname, infohash))
         chan.infohash = "\x11" * 20

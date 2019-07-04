@@ -48,8 +48,8 @@ def gen_sample_channel(mds):
     my_channel.commit_channel_torrent()
 
     # Rename files to stable names
-    mdblob_name = os.path.join(SAMPLE_DIR, my_channel.dir_name + ".mdblob")
-    torrent_name = os.path.join(SAMPLE_DIR, my_channel.dir_name + ".torrent")
+    mdblob_name = os.path.join(SAMPLE_DIR, my_channel.dirname + ".mdblob")
+    torrent_name = os.path.join(SAMPLE_DIR, my_channel.dirname + ".torrent")
 
     os.rename(mdblob_name, CHANNEL_METADATA)
     os.rename(torrent_name, CHANNEL_TORRENT)

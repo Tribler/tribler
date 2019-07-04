@@ -141,7 +141,7 @@ class TestMetadataStore(TriblerCoreTest):
         for md in md_list:
             md.delete()
 
-        channel_dir = os.path.join(self.mds.channels_dir, channel.dir_name)
+        channel_dir = os.path.join(self.mds.channels_dir, channel.dirname)
         self.assertTrue(len(os.listdir(channel_dir)) > 1)  # make sure it was broken into more than one .mdblob file
         self.mds.process_channel_dir(channel_dir, channel.public_key, channel.id_, skip_personal_metadata_payload=False)
         self.assertEqual(num_entries, len(channel.contents))
@@ -157,7 +157,7 @@ class TestMetadataStore(TriblerCoreTest):
         channel.commit_channel_torrent()
         torrent_md.delete()
 
-        channel_dir = os.path.join(self.mds.channels_dir, channel.dir_name)
+        channel_dir = os.path.join(self.mds.channels_dir, channel.dirname)
         self.assertTrue(len(os.listdir(channel_dir)) > 0)
 
         # By default, personal channel torrent metadata processing is skipped so there should be no torrents
