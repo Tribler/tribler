@@ -39,14 +39,17 @@ class TestGigaChannelUnits(TestBase):
         self.count += 1
         return node
 
-    def add_random_torrent(self, metadata_cls, name="test"):
-        torrent_metadata = metadata_cls.from_dict({
+    def add_random_torrent(self, metadata_cls, name="test", channel=None):
+        d = {
             "infohash": random_infohash(),
             "title": name,
             "tags": "",
             "size": 1234,
             "status": NEW
-        })
+        }
+        if channel:
+            d.update({"origin_id": channel.id_})
+        torrent_metadata = metadata_cls.from_dict(d)
         torrent_metadata.sign()
 
     @inlineCallbacks
@@ -56,7 +59,7 @@ class TestGigaChannelUnits(TestBase):
         """
         with db_session:
             channel = self.nodes[0].overlay.metadata_store.ChannelMetadata.create_channel("test", "bla")
-            self.add_random_torrent(self.nodes[0].overlay.metadata_store.TorrentMetadata)
+            self.add_random_torrent(self.nodes[0].overlay.metadata_store.TorrentMetadata, channel=channel)
             channel.commit_channel_torrent()
 
         self.nodes[0].overlay.send_random_to(Peer(self.nodes[1].my_peer.public_key, self.nodes[1].endpoint.wan_address))
@@ -78,7 +81,7 @@ class TestGigaChannelUnits(TestBase):
         with db_session:
             channel = self.nodes[0].overlay.metadata_store.ChannelMetadata.create_channel("test", "bla")
             for _ in xrange(10):
-                self.add_random_torrent(self.nodes[0].overlay.metadata_store.TorrentMetadata)
+                self.add_random_torrent(self.nodes[0].overlay.metadata_store.TorrentMetadata, channel=channel)
             channel.commit_channel_torrent()
 
         self.nodes[0].overlay.send_random_to(Peer(self.nodes[1].my_peer.public_key, self.nodes[1].endpoint.wan_address))
@@ -100,7 +103,7 @@ class TestGigaChannelUnits(TestBase):
             self.nodes[1].overlay.metadata_store.TorrentMetadata.select().delete()
 
             for _ in xrange(10):
-                self.add_random_torrent(self.nodes[0].overlay.metadata_store.TorrentMetadata)
+                self.add_random_torrent(self.nodes[0].overlay.metadata_store.TorrentMetadata, channel=channel)
             channel.commit_channel_torrent()
 
         self.assertEqual(1, self.nodes[0].overlay.gossip_sequence_count)
@@ -130,13 +133,14 @@ class TestGigaChannelUnits(TestBase):
             # Add channel to node 0
             channel = self.nodes[0].overlay.metadata_store.ChannelMetadata.create_channel("test", "bla")
             for _ in xrange(20):
-                self.add_random_torrent(self.nodes[0].overlay.metadata_store.TorrentMetadata)
+                self.add_random_torrent(self.nodes[0].overlay.metadata_store.TorrentMetadata, channel=channel)
             channel.commit_channel_torrent()
             channel_v1_dict = channel.to_dict()
             channel_v1_dict.pop("health")
-            self.add_random_torrent(self.nodes[0].overlay.metadata_store.TorrentMetadata)
+            self.add_random_torrent(self.nodes[0].overlay.metadata_store.TorrentMetadata, channel=channel)
             channel.commit_channel_torrent()
 
+        with db_session:
             # Add the outdated version of the channel to node 1
             self.nodes[1].overlay.metadata_store.ChannelMetadata.from_dict(channel_v1_dict)
 
@@ -174,7 +178,8 @@ class TestGigaChannelUnits(TestBase):
                                                                  public_key="", status=LEGACY, id_=0)
             channel = self.nodes[0].overlay.metadata_store.ChannelMetadata.create_channel("ubuntu", "ubuntu")
             for i in xrange(20):
-                self.add_random_torrent(self.nodes[0].overlay.metadata_store.TorrentMetadata, name="ubuntu %s" % i)
+                self.add_random_torrent(self.nodes[0].overlay.metadata_store.TorrentMetadata, name="ubuntu %s" % i,
+                                        channel=channel)
             channel.commit_channel_torrent()
 
         # Node 1 has no torrents and searches for 'ubuntu'
@@ -210,9 +215,11 @@ class TestGigaChannelUnits(TestBase):
         with db_session:
             channel = self.nodes[0].overlay.metadata_store.ChannelMetadata.create_channel("linux", "ubuntu")
             for i in xrange(10):
-                self.add_random_torrent(self.nodes[0].overlay.metadata_store.TorrentMetadata, name="ubuntu %s" % i)
+                self.add_random_torrent(self.nodes[0].overlay.metadata_store.TorrentMetadata, name="ubuntu %s" % i,
+                                        channel=channel)
             for i in xrange(10):
-                self.add_random_torrent(self.nodes[0].overlay.metadata_store.TorrentMetadata, name="debian %s" % i)
+                self.add_random_torrent(self.nodes[0].overlay.metadata_store.TorrentMetadata, name="debian %s" % i,
+                                        channel=channel)
             channel.commit_channel_torrent()
 
         # Assert Node 1 has no previous torrents in the database

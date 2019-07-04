@@ -149,10 +149,11 @@ class TestGigaChannelManager(TriblerCoreTest):
             my_chan = self.generate_personal_channel()
             my_chan.commit_channel_torrent()
             my_chan_old_infohash = my_chan.infohash
-            _ = self.mock_session.lm.mds.TorrentMetadata.from_dict(dict(self.torrent_template, status=NEW))
+            _ = self.mock_session.lm.mds.TorrentMetadata.from_dict(dict(self.torrent_template, origin_id=my_chan.id_,
+                                                                        status=NEW))
             my_chan.commit_channel_torrent()
 
-            # Now we add external channel we are subscribed to.
+            # Now we add an external channel we are subscribed to.
             chan2 = self.mock_session.lm.mds.ChannelMetadata(title="bla1", infohash=database_blob(str(123)),
                                                              public_key=database_blob(str(123)),
                                                              signature=database_blob(str(345)), skip_key_check=True,
@@ -181,7 +182,7 @@ class TestGigaChannelManager(TriblerCoreTest):
 
         # Double conversion is required to make sure that buffers signatures are not the same
         mock_dl_list = [
-            # Downloads for our personal channel
+            # Downloads for the personal channel
             MockDownload(database_blob(bytes(my_chan_old_infohash)), my_chan.dir_name),
             MockDownload(database_blob(bytes(my_chan.infohash)), my_chan.dir_name),
 

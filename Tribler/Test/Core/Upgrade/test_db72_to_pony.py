@@ -53,6 +53,7 @@ class TestUpgradeDB72ToPony(TriblerCoreTest):
         def check_channel():
             self.m.convert_personal_channel()
             my_channel = self.mds.ChannelMetadata.get_my_channel()
+
             self.assertEqual(len(my_channel.contents_list), 2)
             self.assertEqual(my_channel.num_entries, 2)
             for t in my_channel.contents_list:

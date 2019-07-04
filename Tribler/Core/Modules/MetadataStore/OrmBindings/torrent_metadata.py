@@ -277,7 +277,7 @@ def define_binding(db):
 
         @classmethod
         @db_session
-        def copy_to_channel(cls, infohash, public_key=None):
+        def copy_to_channel(cls, infohash, channel_id, public_key=None):
             """
             Create a new signed copy of the given torrent metadata
             :param infohash:
@@ -298,7 +298,8 @@ def define_binding(db):
                 "size": existing.size,
                 "torrent_date": existing.torrent_date,
                 "tracker_info": existing.tracker_info,
-                "status": NEW
+                "status": NEW,
+                "origin_id": channel_id
             }
             return db.TorrentMetadata.from_dict(new_entry_dict)
 

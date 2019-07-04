@@ -16,7 +16,7 @@ from six.moves import xrange
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import (
-    CHANNEL_DIR_NAME_LENGTH, ROOT_CHANNEL_ID, entries_to_chunk)
+    CHANNEL_DIR_NAME_LENGTH, entries_to_chunk)
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import NEW, TODELETE, UPDATED
 from Tribler.Core.Modules.MetadataStore.serialization import ChannelMetadataPayload, REGULAR_TORRENT
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
@@ -175,10 +175,9 @@ class TestChannelMetadata(TriblerCoreTest):
         """
         channel_metadata = self.mds.ChannelMetadata.create_channel('test', 'test')
         original_channel = channel_metadata.to_dict()
-        md = self.mds.TorrentMetadata.from_dict(dict(self.torrent_template, status=NEW))
+        md = self.mds.TorrentMetadata.from_dict(dict(self.torrent_template, status=NEW, origin_id=channel_metadata.id_))
         channel_metadata.commit_channel_torrent()
 
-        self.assertEqual(channel_metadata.id_, ROOT_CHANNEL_ID)
         self.assertLess(original_channel["timestamp"], channel_metadata.timestamp)
         self.assertLess(md.timestamp, channel_metadata.timestamp)
         self.assertEqual(channel_metadata.num_entries, 1)
@@ -214,7 +213,7 @@ class TestChannelMetadata(TriblerCoreTest):
         self.mds.TorrentMetadata.from_dict(dict(self.torrent_template, infohash="1", origin_id=channel1.id_))
 
         self.mds.ChannelNode._my_key = default_eccrypto.generate_key('low')
-        channel2 = self.mds.ChannelMetadata(infohash=str(random.getrandbits(160)), id_=ROOT_CHANNEL_ID)
+        channel2 = self.mds.ChannelMetadata(infohash=str(random.getrandbits(160)))
 
         # Trying copying existing torrent to channel
         new_torrent = channel2.copy_to_channel("1")
@@ -321,7 +320,7 @@ class TestChannelMetadata(TriblerCoreTest):
 
         # 2nd torrent
         md = self.mds.TorrentMetadata.from_dict(
-            dict(self.torrent_template, public_key=channel.public_key, status=NEW))
+            dict(self.torrent_template, public_key=channel.public_key, origin_id=channel.id_, status=NEW))
         channel.commit_channel_torrent()
 
         # Delete entry

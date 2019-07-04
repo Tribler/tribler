@@ -31,7 +31,8 @@ class TestCreditMiningSources(TestAsServer):
 
         with db_session:
             my_channel = self.session.lm.mds.ChannelMetadata.create_channel('test', 'test')
-            _ = self.session.lm.mds.TorrentMetadata(title='testtorrent', infohash=str(random.getrandbits(160)))
+            self.session.lm.mds.TorrentMetadata(origin_id=my_channel.id_, title='testtorrent',
+                                                infohash=str(random.getrandbits(160)))
 
         source = ChannelSource(self.session, str(my_channel.public_key), lambda *_: test_deferred.callback(None))
         source.start()

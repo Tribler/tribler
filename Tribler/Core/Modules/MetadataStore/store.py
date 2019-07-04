@@ -122,7 +122,6 @@ class MetadataStore(object):
         # !!! ACHTUNG !!! This should be used only for special cases (e.g. DB upgrades), because
         # losing power during a write will corrupt the database.
         if disable_sync:
-
             # This attribute is internally called by Pony on startup, though pylint cannot detect it
             # with the static analysis.
             # pylint: disable=unused-variable
@@ -202,7 +201,7 @@ class MetadataStore(object):
         self._shutting_down = True
         self._db.disconnect()
 
-    def process_channel_dir(self, dirname, public_key, id_, skip_personal_metadata_payload=True, external_thread=True):
+    def process_channel_dir(self, dirname, public_key, id_, skip_personal_metadata_payload=True, external_thread=False):
         """
         Load all metadata blobs in a given directory.
         :param dirname: The directory containing the metadata blobs.
@@ -266,7 +265,7 @@ class MetadataStore(object):
             if not channel:
                 return
             self._logger.debug("Finished processing channel dir %s. Channel %s local/max version %i/%i",
-                           dirname, hexlify(str(channel.public_key)), channel.local_version,
+                               dirname, hexlify(str(channel.public_key)), channel.local_version,
                                channel.timestamp)
 
     def process_mdblob_file(self, filepath, skip_personal_metadata_payload=True, external_thread=False):
@@ -325,16 +324,9 @@ class MetadataStore(object):
 
             # We separate the sessions to minimize database locking.
             with db_session:
-                my_channel = self.ChannelMetadata.get_my_channel()
                 for payload in batch:
-                    # If we received our metadata payload of torrent we have in our channel, we simply ignore it since
-                    # We always have the latest version ourselves.  This prevents from adding already deleted torrents
-                    # again in My channel.
-                    if skip_personal_metadata_payload and my_channel \
-                            and payload.public_key == str(my_channel.public_key) \
-                            and payload.metadata_type == REGULAR_TORRENT:
-                        continue
-                    result.extend(self.process_payload(payload))
+                    result.extend(self.process_payload(payload,
+                                                       skip_personal_metadata_payload=skip_personal_metadata_payload))
             if external_thread:
                 sleep(self.sleep_on_external_thread)
 
@@ -357,13 +349,15 @@ class MetadataStore(object):
         return result
 
     @db_session
-    def process_payload(self, payload):
+    def process_payload(self, payload, skip_personal_metadata_payload=True):
         """
         This routine decides what to do with a given payload and executes the necessary actions.
         To do so, it looks into the database, compares version numbers, etc.
         It returns a list of tuples each of which contain the corresponding new/old object and the actions
         that were performed on that object.
         :param payload: payload to work on
+        :param skip_personal_metadata_payload: if this is set to True, personal torrent metadata payload received
+                through gossip will be ignored. The default value is True.
         :return: a list of tuples of (<metadata or payload>, <action type>)
         """
 
@@ -385,14 +379,10 @@ class MetadataStore(object):
         # update conditions:
         # A: (pk, id1, ih1)
         # B: (pk, id2, ih2)
-        # Now, when we receive the payload C1:(pk, id1, ih2) or C2:(pk, id2, ih1), we have to
+        # When we receive the payload C1:(pk, id1, ih2) or C2:(pk, id2, ih1), we have to
         # replace _both_ entries with a single one, to honor the DB uniqueness constraints.
 
         if payload.metadata_type not in [CHANNEL_TORRENT, REGULAR_TORRENT]:
-            return []
-
-        # Check the payload timestamp<->id_ correctness
-        if payload.timestamp < payload.id_:
             return []
 
         # FFA payloads get special treatment:
@@ -404,18 +394,36 @@ class MetadataStore(object):
             return [(None, NO_ACTION)]
 
         # Check if we already have this payload
-        node = self.ChannelNode.get_for_update(signature=payload.signature, public_key=payload.public_key)
+        node = self.ChannelNode.get(signature=payload.signature, public_key=payload.public_key)
         if node:
             return [(node, NO_ACTION)]
 
         # Signed entry > FFA entry. Old FFA entry > new FFA entry
-        ffa_node = self.TorrentMetadata.get_for_update(public_key=database_blob(""),
-                                                       infohash=database_blob(payload.infohash))
+        ffa_node = self.TorrentMetadata.get(public_key=database_blob(""), infohash=database_blob(payload.infohash))
         if ffa_node:
             ffa_node.delete()
 
-        # Check for a node with the same infohash
+        def check_update_opportunity():
+            # Check for possible update sending opportunity.
+            node = self.TorrentMetadata.get(lambda g: g.public_key == database_blob(payload.public_key) and \
+                                                      g.id_ == payload.id_ and \
+                                                      g.timestamp > payload.timestamp)
+            return [(node, GOT_NEWER_VERSION)] if node else [(None, NO_ACTION)]
+
+        # Check if the received payload is a deleted entry from a channel that we already have
+        parent_channel = self.ChannelMetadata.get(public_key=database_blob(payload.public_key),
+                                                  id_=payload.origin_id)
+        if parent_channel and parent_channel.local_version > payload.timestamp:
+            return check_update_opportunity()
+
+        # If we received a metadata payload signed by ourselves we simply ignore it since we are the only authoritative
+        # source of information about our own channel.
+        if skip_personal_metadata_payload and \
+                payload.public_key == str(database_blob(self.my_key.pub().key_to_bin()[10:])):
+            return check_update_opportunity()
+
         result = []
+        # Check for a node with the same infohash
         node = self.TorrentMetadata.get_for_update(public_key=database_blob(payload.public_key),
                                                    infohash=database_blob(payload.infohash))
         if node:
