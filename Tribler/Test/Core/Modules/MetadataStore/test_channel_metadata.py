@@ -126,26 +126,6 @@ class TestChannelMetadata(TriblerCoreTest):
         self.assertDictContainsSubset(update_dict, channel_metadata.to_dict())
 
     @db_session
-    def test_process_channel_metadata_payload(self):
-        """
-        Test whether a channel metadata payload is processed correctly
-        """
-        payload = ChannelMetadataPayload.from_file(self.CHANNEL_METADATA)
-        channel_metadata = self.mds.ChannelMetadata.process_channel_metadata_payload(payload)
-        self.assertTrue(channel_metadata)
-
-        # Check that we do not add it again
-        self.mds.ChannelMetadata.process_channel_metadata_payload(payload)
-        self.assertEqual(len(self.mds.ChannelMetadata.select()), 1)
-
-        # Check that we always take the latest version
-        channel_metadata.timestamp -= 1
-        self.assertEqual(channel_metadata.timestamp, 1551110113006)
-        channel_metadata = self.mds.ChannelMetadata.process_channel_metadata_payload(payload)
-        self.assertEqual(channel_metadata.timestamp, 1551110113007)
-        self.assertEqual(len(self.mds.ChannelMetadata.select()), 1)
-
-    @db_session
     def test_get_dirname(self):
         """
         Test whether the correct directory name is returned for channel metadata

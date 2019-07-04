@@ -118,22 +118,6 @@ def define_binding(db):
 
         @classmethod
         @db_session
-        def process_channel_metadata_payload(cls, payload):
-            """
-            Process some channel metadata.
-            :param payload: The channel metadata, in serialized form.
-            :return: The ChannelMetadata object that contains the latest version of the channel
-            """
-            channel = ChannelMetadata.get(public_key=database_blob(payload.public_key), id_=payload.origin_id)
-            if not channel:
-                return ChannelMetadata.from_payload(payload)
-
-            if payload.timestamp > channel.timestamp:
-                channel.set(**payload.to_dict())
-            return channel
-
-        @classmethod
-        @db_session
         def get_my_channel(cls):
             # return ChannelMetadata.get(public_key=database_blob(cls._my_key.pub().key_to_bin()[10:]), id_=0)
             # This is a workaround to fetch the most current personal channel

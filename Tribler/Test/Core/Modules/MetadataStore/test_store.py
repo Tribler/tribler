@@ -21,6 +21,7 @@ from Tribler.Core.Modules.MetadataStore.store import (
     UPDATED_OUR_VERSION)
 from Tribler.Test.Core.base_test import TriblerCoreTest
 
+
 def make_wrong_payload(filename):
     key = default_eccrypto.generate_key(u"curve25519")
     metadata_payload = SignedPayload(666, 0, database_blob(key.pub().key_to_bin()[10:]),
@@ -184,11 +185,11 @@ class TestMetadataStore(TriblerCoreTest):
         Test processing a directory containing metadata blobs
         """
         payload = ChannelMetadataPayload.from_file(self.CHANNEL_METADATA)
-        channel = self.mds.ChannelMetadata.process_channel_metadata_payload(payload)
+        channel = self.mds.process_payload(payload)[0][0]
         self.assertFalse(channel.contents_list)
         self.mds.process_channel_dir(self.CHANNEL_DIR, channel.public_key, channel.id_)
         self.assertEqual(len(channel.contents_list), 3)
-        self.assertEqual(channel.timestamp, 1551110113007)
+        self.assertEqual(channel.timestamp, 1562257279008)
         self.assertEqual(channel.local_version, channel.timestamp)
 
     @db_session
