@@ -124,12 +124,16 @@ class SpecificChannelExportEndpoint(BaseMyChannelEndpoint):
 
     def render_GET(self, request):
         with db_session:
-            channel = self.session.lm.mds.ChannelMetadata.get_my_channel()
-            random_channel_torrents = list(channel.get_random_torrents(max_entries))
-            serialized_data = entries_to_chunk([channel] + random_channel_torrents, maximum_payload_size)[0]
+            my_channel = self.session.lm.mds.ChannelMetadata.get_my_channel()
+            if not my_channel:
+                request.setResponseCode(http.NOT_FOUND)
+                return json.twisted_dumps({"error": "your channel has not been created"})
+
+            random_channel_torrents = list(my_channel.get_random_torrents(max_entries))
+            serialized_data = entries_to_chunk([my_channel] + random_channel_torrents, maximum_payload_size)[0]
 
         request.setHeader(b'content-type', 'application/x-bittorrent')
-        request.setHeader(b'Content-Disposition', 'attachment; filename=%s.mdblob.lz4' % hexlify(channel.public_key))
+        request.setHeader(b'Content-Disposition', 'attachment; filename=%s.mdblob.lz4' % hexlify(my_channel.public_key))
         return serialized_data
 
 

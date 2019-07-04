@@ -150,6 +150,31 @@ class TestMyChannelCommitEndpoint(BaseTestMyChannelEndpoint):
         return self.do_request('mychannel/commit', expected_code=200, request_type='POST')
 
 
+class TestMyChannelExportEndpoint(BaseTestMyChannelEndpoint):
+
+    @trial_timeout(10)
+    def test_export_no_channel(self):
+        """
+        Test whether we get an error if we try to export the personal channel without it being created.
+        """
+        self.should_check_equality = False
+        return self.do_request('mychannel/export', expected_code=404, request_type='GET')
+
+    @trial_timeout(10)
+    def test_export_channel(self):
+        """
+        Test whether we can successfully export the personal channel.
+        """
+
+        def verify_export_channel(result):
+            self.assertTrue(result)
+
+        self.should_check_equality = False
+        self.create_my_channel()
+        return self.do_request('mychannel/export', expected_code=200, request_type='GET')\
+            .addCallback(verify_export_channel)
+
+
 class TestMyChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
 
     @inlineCallbacks
