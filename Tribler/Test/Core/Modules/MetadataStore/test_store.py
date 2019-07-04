@@ -179,8 +179,8 @@ class TestMetadataStore(TriblerCoreTest):
         """
         Test processing a directory containing metadata blobs
         """
-        payloads = ChannelMetadataPayload.from_file(self.CHANNEL_METADATA)
-        channel = self.mds.ChannelMetadata.process_channel_metadata_payload(payloads[0])
+        payload = ChannelMetadataPayload.from_file(self.CHANNEL_METADATA)
+        channel = self.mds.ChannelMetadata.process_channel_metadata_payload(payload)
         self.assertFalse(channel.contents_list)
         self.mds.process_channel_dir(self.CHANNEL_DIR, channel.public_key, channel.id_)
         self.assertEqual(len(channel.contents_list), 3)
@@ -191,8 +191,8 @@ class TestMetadataStore(TriblerCoreTest):
     def test_process_payload(self):
         def get_payloads(entity_class):
             c = entity_class(infohash=database_blob(os.urandom(20)))
-            payload = c._payload_class.from_signed_blob(c.serialized())[0]
-            deleted_payload = DeletedMetadataPayload.from_signed_blob(c.serialized_delete())[0]
+            payload = c._payload_class.from_signed_blob(c.serialized())
+            deleted_payload = DeletedMetadataPayload.from_signed_blob(c.serialized_delete())
             return c, payload, deleted_payload
 
         _, node_payload, node_deleted_payload = get_payloads(self.mds.ChannelNode)
@@ -225,12 +225,12 @@ class TestMetadataStore(TriblerCoreTest):
     def test_process_payload_ffa(self):
         infohash = "1"*20
         ffa_torrent = self.mds.TorrentMetadata.add_ffa_from_dict(dict(infohash=infohash, title='abc'))
-        ffa_payload = self.mds.TorrentMetadata._payload_class.from_signed_blob(ffa_torrent.serialized())[0]
+        ffa_payload = self.mds.TorrentMetadata._payload_class.from_signed_blob(ffa_torrent.serialized())
         ffa_torrent.delete()
 
         # Assert that FFA is never added to DB if there is already a signed entry with the same infohash
         signed_md = self.mds.TorrentMetadata(infohash=infohash, title="sdfsdfsdf")
-        signed_md_payload = self.mds.TorrentMetadata._payload_class.from_signed_blob(signed_md.serialized())[0]
+        signed_md_payload = self.mds.TorrentMetadata._payload_class.from_signed_blob(signed_md.serialized())
         self.assertEqual([(None, NO_ACTION)], self.mds.process_payload(ffa_payload))
         signed_md.delete()
 
@@ -261,7 +261,7 @@ class TestMetadataStore(TriblerCoreTest):
 
         node_updated = self.mds.TorrentMetadata(infohash=node_dict["infohash"], id_=node2_dict["id_"],
                                                 timestamp=node2_dict["timestamp"] + 1)
-        node_updated_payload = node_updated._payload_class.from_signed_blob(node_updated.serialized())[0]
+        node_updated_payload = node_updated._payload_class.from_signed_blob(node_updated.serialized())
         node_updated.delete()
 
         self.mds.TorrentMetadata(**node_dict)

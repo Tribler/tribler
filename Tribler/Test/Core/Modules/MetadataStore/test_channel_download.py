@@ -34,7 +34,7 @@ class TestChannelDownload(TestAsServer):
         Test whether we can successfully update a channel and download the new version
         """
         # First we have to manually add the old version
-        old_payload = ChannelMetadataPayload.from_file(CHANNEL_METADATA)[0]
+        old_payload = ChannelMetadataPayload.from_file(CHANNEL_METADATA)
         with db_session:
             old_channel = self.session.lm.mds.ChannelMetadata.from_payload(old_payload)
             chan_dir = os.path.join(CHANNEL_DIR, old_channel.dir_name)
@@ -45,7 +45,7 @@ class TestChannelDownload(TestAsServer):
         libtorrent_port = get_random_port()
         yield self.setup_seeder(channel_tdef, CHANNEL_DIR, libtorrent_port)
 
-        payload = ChannelMetadataPayload.from_file(CHANNEL_METADATA_UPDATED)[0]
+        payload = ChannelMetadataPayload.from_file(CHANNEL_METADATA_UPDATED)
         # Download the channel in our session
         with db_session:
             self.session.lm.mds.process_payload(payload)
