@@ -14,7 +14,8 @@ from six import text_type
 from Tribler.Core.Category.Category import default_category_filter
 from Tribler.Core.Category.FamilyFilter import default_xxx_filter
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import COMMITTED, LEGACY_ENTRY, NEW, TODELETE, UPDATED
-from Tribler.Core.Modules.MetadataStore.serialization import EPOCH, REGULAR_TORRENT, TorrentMetadataPayload
+from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, EPOCH, REGULAR_TORRENT, \
+    TorrentMetadataPayload
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
 from Tribler.Core.Utilities.utilities import is_channel_public_key, is_hex_string, is_infohash
 
@@ -236,7 +237,8 @@ def define_binding(db):
                 "num_leechers": self.health.leechers,
                 "last_tracker_check": self.health.last_check,
                 "updated": int((self.torrent_date - epoch).total_seconds()),
-                "status": self.status
+                "status": self.status,
+                "type": {REGULAR_TORRENT: 'torrent', CHANNEL_TORRENT: 'channel'}[self.metadata_type]
             }
 
             if include_trackers:

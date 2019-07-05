@@ -246,11 +246,12 @@ class ContextMenuMixin(object):
         # Add menu separater for channel stuff
         menu.addSeparator()
 
-        if isinstance(self, MyTorrentsTableViewController):
-            self.add_menu_item(menu, ' Remove from My Channel ', item_index, self.table_view.on_delete_button_clicked)
-        elif not self.model.my_channel and self.selection_has_torrents():
+        if not isinstance(self, MyTorrentsTableViewController):
+            if self.selection_has_torrents():
                 self.add_menu_item(menu, ' Add to My Channel ', item_index,
                                    self.table_view.on_add_to_channel_button_clicked)
+        else:
+            self.add_menu_item(menu, ' Remove from My Channel ', item_index, self.table_view.on_delete_button_clicked)
 
         menu.exec_(QCursor.pos())
 
