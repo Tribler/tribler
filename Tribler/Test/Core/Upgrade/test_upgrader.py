@@ -7,8 +7,10 @@ from pony.orm import db_session
 
 from twisted.internet.defer import Deferred, inlineCallbacks
 
+from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
-from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
+from Tribler.Core.Upgrade.upgrade import TriblerUpgrader, cleanup_noncompliant_channel_torrents
+from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.simpledefs import NTFY_STARTED, NTFY_UPGRADER_TICK
 from Tribler.Test.Core.Upgrade.upgrade_base import AbstractUpgrader
 from Tribler.Test.tools import trial_timeout
@@ -67,3 +69,25 @@ class TestUpgrader(AbstractUpgrader):
             self.assertEqual(mds.TorrentMetadata.select().count(), 0)
             self.assertEqual(mds.ChannelMetadata.select().count(), 0)
         mds.shutdown()
+
+    def test_delete_noncompliant_state(self):
+        STATE_DIR = os.path.abspath(os.path.join(os.path.abspath(
+            os.path.dirname(os.path.realpath(__file__))), '..', 'data', 'noncompliant_state_dir'))
+        tmpdir = os.path.join(self.temporary_directory(), os.path.basename(STATE_DIR))
+        shutil.copytree(STATE_DIR, tmpdir)
+        cleanup_noncompliant_channel_torrents(tmpdir)
+
+        # Check cleanup of the channels dir
+        dir_listing = os.listdir(os.path.join(tmpdir, "channels"))
+        self.assertEqual(3, len(dir_listing))
+        for f in os.listdir(os.path.join(tmpdir, "channels")):
+            self.assertEqual(CHANNEL_DIR_NAME_LENGTH, len(os.path.splitext(f)[0]))
+
+        # Check cleanup of torrent state dir
+        checkpoints_dir = os.path.join(tmpdir, "dlcheckpoints")
+        dir_listing = os.listdir(checkpoints_dir)
+        self.assertEqual(1, len(dir_listing))
+        file_path = os.path.join(checkpoints_dir, dir_listing[0])
+        pstate = CallbackConfigParser()
+        pstate.read_file(file_path)
+        self.assertEqual(CHANNEL_DIR_NAME_LENGTH, len(pstate.get('state', 'metainfo')['info']['name']))

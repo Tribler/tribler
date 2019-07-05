@@ -2,13 +2,47 @@ from __future__ import absolute_import
 
 import logging
 import os
+import shutil
 
 from twisted.internet.defer import succeed
 
+from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.Upgrade.config_converter import convert_config_to_tribler71
 from Tribler.Core.Upgrade.db72_to_pony import DispersyToPonyMigration, cleanup_pony_experimental_db, should_upgrade
+from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.simpledefs import NTFY_FINISHED, NTFY_STARTED, NTFY_UPGRADER, NTFY_UPGRADER_TICK
+
+
+def cleanup_noncompliant_channel_torrents(state_dir):
+    channels_dir = os.path.join(state_dir, "channels")
+    # Remove torrents contents
+    if os.path.exists(channels_dir):
+        for d in os.listdir(channels_dir):
+            if len(os.path.splitext(d)[0]) != CHANNEL_DIR_NAME_LENGTH:
+                dir_path = os.path.join(channels_dir, d)
+                # We remove both malformed channel dirs and .torrent and .mdblob files for personal channel
+                if os.path.isdir(dir_path):
+                    shutil.rmtree(dir_path, ignore_errors=True)
+                elif os.path.isfile(dir_path):
+                    os.unlink(dir_path)
+
+    # Remove .state torrent resume files
+    resume_dir = os.path.join(state_dir, "dlcheckpoints")
+    if os.path.exists(resume_dir):
+        for f in os.listdir(resume_dir):
+            file_path = os.path.join(resume_dir, f)
+            pstate = CallbackConfigParser()
+            pstate.read_file(file_path)
+
+            if pstate and pstate.has_option('download_defaults', 'channel_download') and \
+                    pstate.get('download_defaults', 'channel_download'):
+                try:
+                    name = pstate.get('state', 'metainfo')['info']['name']
+                    if name and len(name) != CHANNEL_DIR_NAME_LENGTH:
+                        os.unlink(file_path)
+                except (TypeError, KeyError, ValueError):
+                    pass
 
 
 class TriblerUpgrader(object):
@@ -51,6 +85,7 @@ class TriblerUpgrader(object):
 
         if os.path.exists(new_database_path):
             cleanup_pony_experimental_db(new_database_path)
+            cleanup_noncompliant_channel_torrents(self.session.config.get_state_dir())
 
         self._dtp72 = DispersyToPonyMigration(old_database_path, self.update_status, logger=self._logger)
         if not should_upgrade(old_database_path, new_database_path, logger=self._logger):

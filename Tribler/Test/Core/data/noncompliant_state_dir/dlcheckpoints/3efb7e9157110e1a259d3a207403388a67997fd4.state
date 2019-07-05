@@ -1,0 +1,18 @@
+[download_defaults]
+mode = 0
+hops = 0
+selected_files = []
+correctedfilename = None
+safe_seeding = False
+user_stopped = False
+time_added = 1562337604
+credit_mining = False
+saveas = channels
+channel_download = True
+
+[state]
+version = 5
+metainfo = {'creation date': 1562337604, 'info': {'files': [{'path': ['1562337581003.mdblob.lz4'], 'length': 295}], 'piece length': 16384, 'name': '5263ec553e7a062ac4f75eb6f7bf26f7400b800d74b575f6', 'pieces': '\x17\x18u\xcd\xae\xa2\xc9f*g3\x13u\xda{c\xab\xbc\xae\xc8'}}
+dlstate = {'status': 1, 'progress': 0, 'swarmcache': None}
+engineresumedata = {'active_time': 0, 'num_incomplete': 16777215, 'announce_to_lsd': 1, 'seed_mode': 0, 'paused': 0, 'seeding_time': 0, 'info-hash': '>\xfb~\x91W\x11\x0e\x1a%\x9d: t\x038\x8ag\x99\x7f\xd4', 'upload_rate_limit': -1, 'max_uploads': 16777215, 'max_connections': 16777215, 'unfinished': [], 'num_downloaded': 16777215, 'total_downloaded': 0, 'file-format': 'libtorrent resume file', 'peers6': '', 'added_time': 1562337604, 'banned_peers6': '', 'file_priority': [1], 'last_seen_complete': 0, 'total_uploaded': 0, 'file-version': 1, 'auto_managed': 0, 'save_path': u'channels', 'peers': '', 'completed_time': 0, 'blocks per piece': 1, 'download_rate_limit': -1, 'libtorrent-version': '1.1.5.0', 'banned_peers': '', 'sequential_download': 0, 'announce_to_trackers': 1, 'num_complete': 16777215, 'finished_time': 0, 'announce_to_dht': 1, 'trackers': [[]], 'super_seeding': 0}
+
