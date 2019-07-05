@@ -144,7 +144,7 @@ class GigaChannelCommunity(Community):
         :return: None
         """
         with db_session:
-            new_channels = [(dict(type='channel', **(md.to_simple_dict()))) for md, result in md_list
+            new_channels = [md.to_simple_dict() for md, result in md_list
                             if md and md.metadata_type == CHANNEL_TORRENT and result == UNKNOWN_CHANNEL]
 
         if self.notifier and new_channels:
