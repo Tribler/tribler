@@ -11,6 +11,7 @@ import time
 from traceback import print_exc
 
 import requests
+
 from six.moves import xrange
 
 # These env varialble should be set by Jenkins.
@@ -71,6 +72,6 @@ try:
                 print("Status: FAILED")
                 exit(1)
 
-except Exception:
+except Exception:  # pylint: disable=broad-except
     print_exc()
     exit(1)
