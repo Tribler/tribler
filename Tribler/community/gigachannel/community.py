@@ -38,8 +38,8 @@ class GigaChannelCommunity(Community):
     Community to gossip around gigachannels.
     """
 
-    master_peer = Peer(unhexlify("4c69624e61434c504b3ab5791362b5e98090310c10194e7406a553134e3e2f88bcc5c8a2e1dd249d323"
-                                 "ebb20ca9528cb8b1b0db890ef876589a6d6ba80ded85e5ebab33acd57c8ead9db"))
+    master_peer = Peer(unhexlify("4c69624e61434c504b3affe527cce8f49b1fb6e5aa0a9f78848ad3726df343b94abc563493fd463d1d7"
+                                 "523344cf757aed58faf4916236dee9966135aca6b99a52f87bfad416160c0d846"))
 
     NEWS_PUSH_MESSAGE = 1
     SEARCH_REQUEST = 2

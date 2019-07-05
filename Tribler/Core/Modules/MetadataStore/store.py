@@ -22,8 +22,8 @@ from Tribler.Core.Modules.MetadataStore.serialization import (
 from Tribler.Core.exceptions import InvalidSignatureException
 
 
-BETA_DB_VERSIONS = [0, 1, 2, 3, 4]
-CURRENT_DB_VERSION = 5
+BETA_DB_VERSIONS = [0, 1, 2, 3, 4, 5]
+CURRENT_DB_VERSION = 6
 
 CLOCK_STATE_FILE = "clock.state"
 
