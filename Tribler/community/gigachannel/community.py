@@ -221,8 +221,7 @@ class GigaChannelCommunity(Community):
                 self._logger.error("DB transaction error when tried to process search payload: %s", str(err))
                 return
 
-            search_results = [(dict(type={REGULAR_TORRENT: 'torrent', CHANNEL_TORRENT: 'channel'}[md.metadata_type],
-                                    **(md.to_simple_dict()))) for (md, action) in metadata_result if
+            search_results = [md.to_simple_dict() for (md, action) in metadata_result if
                               (md and (md.metadata_type == CHANNEL_TORRENT or md.metadata_type == REGULAR_TORRENT) and
                                action in [UNKNOWN_CHANNEL, UNKNOWN_TORRENT, UPDATED_OUR_VERSION])]
         if self.notifier and search_results:

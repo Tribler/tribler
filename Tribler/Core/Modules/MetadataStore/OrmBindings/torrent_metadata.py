@@ -14,8 +14,8 @@ from six import text_type
 from Tribler.Core.Category.Category import default_category_filter
 from Tribler.Core.Category.FamilyFilter import default_xxx_filter
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import COMMITTED, LEGACY_ENTRY, NEW, TODELETE, UPDATED
-from Tribler.Core.Modules.MetadataStore.serialization import EPOCH, REGULAR_TORRENT, TorrentMetadataPayload, \
-    CHANNEL_TORRENT
+from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, EPOCH, REGULAR_TORRENT, \
+    TorrentMetadataPayload
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
 from Tribler.Core.Utilities.utilities import is_channel_public_key, is_hex_string, is_infohash
 

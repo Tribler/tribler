@@ -15,7 +15,6 @@ from six import text_type
 from TriblerGUI.defs import COMMIT_STATUS_UPDATED
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
-from TriblerGUI.widgets.tablecontentmodel import TorrentsContentModel
 
 
 def sanitize_for_fts(text):
