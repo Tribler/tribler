@@ -49,8 +49,8 @@ class GigaChannelManager(TaskManager):
                 my_channel = self.session.lm.mds.ChannelMetadata.get_my_channel()
                 if my_channel and my_channel.status == COMMITTED and \
                         not self.session.has_download(str(my_channel.infohash)):
-                    torrent_path = os.path.join(self.session.lm.mds.channels_dir, my_channel.dir_name + ".torrent")
-                    mdblob_path = os.path.join(self.session.lm.mds.channels_dir, my_channel.dir_name + ".mdblob")
+                    torrent_path = os.path.join(self.session.lm.mds.channels_dir, my_channel.dirname + ".torrent")
+                    mdblob_path = os.path.join(self.session.lm.mds.channels_dir, my_channel.dirname + ".mdblob")
                     tdef = None
                     if os.path.exists(torrent_path) and os.path.exists(mdblob_path):
                         try:
@@ -91,7 +91,7 @@ class GigaChannelManager(TaskManager):
             # FIXME: if someone is subscribed to more than 1000 channels, they are in trouble...
             channels = self.session.lm.mds.ChannelMetadata.get_entries(last=1000, subscribed=True)
             subscribed_infohashes = [bytes(c.infohash) for c in list(channels)]
-            dirnames = [c.dir_name for c in channels]
+            dirnames = [c.dirname for c in channels]
 
         # TODO: add some more advanced logic for removal of older channel versions
         cruft_list = [(d, d.get_def().get_name_utf8() not in dirnames)
@@ -220,7 +220,7 @@ class GigaChannelManager(TaskManager):
         dcfg = DownloadStartupConfig(state_dir=self.session.config.get_state_dir())
         dcfg.set_dest_dir(self.session.lm.mds.channels_dir)
         dcfg.set_channel_download(True)
-        tdef = TorrentDefNoMetainfo(infohash=str(channel.infohash), name=channel.dir_name)
+        tdef = TorrentDefNoMetainfo(infohash=str(channel.infohash), name=channel.dirname)
         download = self.session.start_download_from_tdef(tdef, dcfg)
 
         def _add_channel_to_processing_queue(_):
@@ -233,7 +233,7 @@ class GigaChannelManager(TaskManager):
     def process_channel_dir_threaded(self, channel):
 
         def _process_download():
-            channel_dirname = os.path.join(self.session.lm.mds.channels_dir, channel.dir_name)
+            channel_dirname = os.path.join(self.session.lm.mds.channels_dir, channel.dirname)
             self.session.lm.mds.process_channel_dir(channel_dirname, channel.public_key, channel.id_,
                                                     external_thread=True)
             self.session.lm.mds._db.disconnect()

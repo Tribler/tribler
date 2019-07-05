@@ -37,7 +37,7 @@ class TestChannelDownload(TestAsServer):
         old_payload = ChannelMetadataPayload.from_file(CHANNEL_METADATA)
         with db_session:
             old_channel = self.session.lm.mds.ChannelMetadata.from_payload(old_payload)
-            chan_dir = os.path.join(CHANNEL_DIR, old_channel.dir_name)
+            chan_dir = os.path.join(CHANNEL_DIR, old_channel.dirname)
 
         self.session.lm.mds.process_channel_dir(chan_dir, old_payload.public_key, old_payload.id_)
 
@@ -60,5 +60,5 @@ class TestChannelDownload(TestAsServer):
             # There should be 4 torrents + 1 channel torrent
             channel2 = self.session.lm.mds.ChannelMetadata.get(public_key=database_blob(payload.public_key))
             self.assertEqual(5, len(list(self.session.lm.mds.TorrentMetadata.select())))
-            self.assertEqual(1551110113009, channel2.timestamp)
+            self.assertEqual(1562257279010, channel2.timestamp)
             self.assertEqual(channel2.timestamp, channel2.local_version)

@@ -21,6 +21,7 @@ from Tribler.Core.Modules.MetadataStore.store import (
     UPDATED_OUR_VERSION)
 from Tribler.Test.Core.base_test import TriblerCoreTest
 
+
 def make_wrong_payload(filename):
     key = default_eccrypto.generate_key(u"curve25519")
     metadata_payload = SignedPayload(666, 0, database_blob(key.pub().key_to_bin()[10:]),
@@ -141,7 +142,7 @@ class TestMetadataStore(TriblerCoreTest):
         for md in md_list:
             md.delete()
 
-        channel_dir = os.path.join(self.mds.channels_dir, channel.dir_name)
+        channel_dir = os.path.join(self.mds.channels_dir, channel.dirname)
         self.assertTrue(len(os.listdir(channel_dir)) > 1)  # make sure it was broken into more than one .mdblob file
         self.mds.process_channel_dir(channel_dir, channel.public_key, channel.id_, skip_personal_metadata_payload=False)
         self.assertEqual(num_entries, len(channel.contents))
@@ -157,7 +158,7 @@ class TestMetadataStore(TriblerCoreTest):
         channel.commit_channel_torrent()
         torrent_md.delete()
 
-        channel_dir = os.path.join(self.mds.channels_dir, channel.dir_name)
+        channel_dir = os.path.join(self.mds.channels_dir, channel.dirname)
         self.assertTrue(len(os.listdir(channel_dir)) > 0)
 
         # By default, personal channel torrent metadata processing is skipped so there should be no torrents
@@ -184,11 +185,11 @@ class TestMetadataStore(TriblerCoreTest):
         Test processing a directory containing metadata blobs
         """
         payload = ChannelMetadataPayload.from_file(self.CHANNEL_METADATA)
-        channel = self.mds.ChannelMetadata.process_channel_metadata_payload(payload)
+        channel = self.mds.process_payload(payload)[0][0]
         self.assertFalse(channel.contents_list)
         self.mds.process_channel_dir(self.CHANNEL_DIR, channel.public_key, channel.id_)
         self.assertEqual(len(channel.contents_list), 3)
-        self.assertEqual(channel.timestamp, 1551110113007)
+        self.assertEqual(channel.timestamp, 1562257279008)
         self.assertEqual(channel.local_version, channel.timestamp)
 
     @db_session

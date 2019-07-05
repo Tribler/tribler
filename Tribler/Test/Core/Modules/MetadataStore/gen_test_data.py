@@ -36,26 +36,26 @@ def gen_random_entry():
 def gen_sample_channel(mds):
     my_channel = mds.ChannelMetadata.create_channel('test_channel', 'test description')
 
-    _ = my_channel.add_torrent_to_channel(TorrentDef.load(TORRENT_UBUNTU_FILE), None)
+    my_channel.add_torrent_to_channel(TorrentDef.load(TORRENT_UBUNTU_FILE), None)
     my_channel.commit_channel_torrent()
 
     t2 = my_channel.add_torrent_to_channel(TorrentDef.load(TORRENT_VIDEO_FILE), None)
-    _ = mds.TorrentMetadata.from_dict(gen_random_entry())
-    _ = mds.TorrentMetadata.from_dict(gen_random_entry())
+    mds.TorrentMetadata.from_dict(dict(origin_id=my_channel.id_, **gen_random_entry()))
+    mds.TorrentMetadata.from_dict(dict(origin_id=my_channel.id_, **gen_random_entry()))
     my_channel.commit_channel_torrent()
 
     my_channel.delete_torrent(t2.infohash)
     my_channel.commit_channel_torrent()
 
     # Rename files to stable names
-    mdblob_name = os.path.join(SAMPLE_DIR, my_channel.dir_name + ".mdblob")
-    torrent_name = os.path.join(SAMPLE_DIR, my_channel.dir_name + ".torrent")
+    mdblob_name = os.path.join(SAMPLE_DIR, my_channel.dirname + ".mdblob")
+    torrent_name = os.path.join(SAMPLE_DIR, my_channel.dirname + ".torrent")
 
     os.rename(mdblob_name, CHANNEL_METADATA)
     os.rename(torrent_name, CHANNEL_TORRENT)
 
     # Update channel
-    _ = mds.TorrentMetadata.from_dict(gen_random_entry())
+    mds.TorrentMetadata.from_dict(dict(origin_id=my_channel.id_, **gen_random_entry()))
     my_channel.commit_channel_torrent()
 
     # Rename updated files to stable names

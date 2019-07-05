@@ -634,7 +634,7 @@ class TestMetadataDownloadEndpoint(AbstractApiTest):
             self.assertTrue(self.session.lm.mds.ChannelMetadata.get().subscribed)
 
         post_data = {'uri': 'file:%s' % os.path.join(TESTS_DIR, 'Core/data/sample_channel/channel.mdblob')}
-        expected_json = {'started': True, 'infohash': '8e1cfb5b832e124b681497578c3715b63df01b50'}
+        expected_json = {'started': True, 'infohash': '0e6ada538eb2a30ec3a69a2d9cb2f455fcfdf58a'}
         return self.do_request('downloads', expected_code=200, request_type='PUT', post_data=post_data,
                                expected_json=expected_json).addCallback(verify_download)
 
