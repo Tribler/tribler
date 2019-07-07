@@ -51,11 +51,11 @@ def define_binding(db):
         _discriminator_ = REGULAR_TORRENT
 
         # Serializable
-        infohash = orm.Required(database_blob)
-        size = orm.Optional(int, size=64, default=0)
-        torrent_date = orm.Optional(datetime, default=datetime.utcnow)
-        title = orm.Optional(str, default='')
-        tags = orm.Optional(str, default='')
+        infohash = orm.Required(database_blob, index=True)
+        size = orm.Optional(int, size=64, default=0, index=True)
+        torrent_date = orm.Optional(datetime, default=datetime.utcnow, index=True)
+        title = orm.Optional(str, default='', index=True)
+        tags = orm.Optional(str, default='', index=True)
         tracker_info = orm.Optional(str, default='')
 
         orm.composite_key(db.ChannelNode.public_key, infohash)
@@ -266,9 +266,9 @@ def define_binding(db):
                 self._logger.error("Assigning properties other than tags, title and status is not supported yet.")
                 raise NotImplementedError
 
-            if "status" in update_dict:
+            if "status" in update_dict and update_dict["status"] != self.status:
                 self.set(**update_dict)
-                return
+                return update_dict["status"] != COMMITTED
 
             if (("tags" in update_dict and self.tags != update_dict["tags"]) or
                     ("title" in update_dict and self.title != update_dict["title"])):
@@ -276,6 +276,7 @@ def define_binding(db):
                 self.status = UPDATED
                 self.timestamp = self._clock.tick()
                 self.sign()
+                return True
 
         @classmethod
         @db_session

@@ -334,6 +334,8 @@ class EditChannelPage(QWidget):
         if 'success' in json_result and json_result['success']:
             self.on_all_torrents_removed.emit()
             self.load_my_torrents()
+            self.channel_dirty = True
+            self.update_channel_commit_views()
 
     # Torrent addition-related methods
     def on_add_torrents_browse_dir(self):
@@ -392,8 +394,8 @@ class EditChannelPage(QWidget):
             try:
                 if overview and overview['mychannel']['dirty']:
                     self.editchannel_request_mgr = TriblerRequestManager()
-                    self.editchannel_request_mgr.perform_request("mychannel/commit", lambda _: None, method='POST',
-                                                                 capture_errors=False)
+                    self.editchannel_request_mgr.perform_request("mychannel/commit", self.on_channel_committed,
+                                                                 method='POST', capture_errors=False)
             except KeyError:
                 return
 
@@ -447,4 +449,6 @@ class EditChannelPage(QWidget):
             return
 
         if 'added' in result:
+            self.channel_dirty = True
+            self.update_channel_commit_views()
             self.load_my_torrents()
