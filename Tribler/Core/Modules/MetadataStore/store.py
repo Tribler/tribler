@@ -60,10 +60,6 @@ sql_add_fts_trigger_update = """
         INSERT INTO FtsIndex(rowid, title) VALUES (new.rowid, new.title);
     END;"""
 
-sql_add_signature_index = "CREATE INDEX SignatureIndex ON ChannelNode(signature);"
-sql_add_public_key_index = "CREATE INDEX PublicKeyIndex ON ChannelNode(public_key);"
-sql_add_infohash_index = "CREATE INDEX InfohashIndex ON ChannelNode(infohash);"
-
 
 class BadChunkException(Exception):
     pass
@@ -158,9 +154,6 @@ class MetadataStore(object):
                 self._db.execute(sql_add_fts_trigger_insert)
                 self._db.execute(sql_add_fts_trigger_delete)
                 self._db.execute(sql_add_fts_trigger_update)
-                self._db.execute(sql_add_signature_index)
-                self._db.execute(sql_add_public_key_index)
-                self._db.execute(sql_add_infohash_index)
 
         if create_db:
             with db_session:

@@ -91,13 +91,13 @@ def define_binding(db):
         _discriminator_ = CHANNEL_TORRENT
 
         # Serializable
-        num_entries = orm.Optional(int, size=64, default=0)
+        num_entries = orm.Optional(int, size=64, default=0, index=True)
         start_timestamp = orm.Optional(int, size=64, default=0)
 
         # Local
-        subscribed = orm.Optional(bool, default=False)
-        share = orm.Optional(bool, default=False)
-        votes = orm.Optional(float, default=0.0)
+        subscribed = orm.Optional(bool, default=False, index=True)
+        share = orm.Optional(bool, default=False, index=True)
+        votes = orm.Optional(float, default=0.0, index=True)
         individual_votes = orm.Set("ChannelVote", reverse="channel")
         local_version = orm.Optional(int, size=64, default=0)
 

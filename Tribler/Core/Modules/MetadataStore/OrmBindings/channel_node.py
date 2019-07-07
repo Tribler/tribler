@@ -48,9 +48,9 @@ def define_binding(db, logger=None, key=None, clock=None):
         # Serializable
         metadata_type = orm.Discriminator(int, size=16)
         reserved_flags = orm.Optional(int, size=16, default=0)
-        origin_id = orm.Optional(int, size=64, default=0)
+        origin_id = orm.Optional(int, size=64, default=0, index=True)
 
-        public_key = orm.Required(database_blob)
+        public_key = orm.Required(database_blob, index=True)
         id_ = orm.Required(int, size=64)
         orm.composite_key(public_key, id_)
 
@@ -62,7 +62,7 @@ def define_binding(db, logger=None, key=None, clock=None):
 
         # Local
         added_on = orm.Optional(datetime, default=datetime.utcnow)
-        status = orm.Optional(int, default=COMMITTED)
+        status = orm.Optional(int, default=COMMITTED, index=True)
 
         # Special properties
         _payload_class = ChannelNodePayload

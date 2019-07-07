@@ -12,7 +12,7 @@ from PyQt5.QtWidgets import QAction
 
 from six import text_type
 
-from TriblerGUI.defs import COMMIT_STATUS_UPDATED
+from TriblerGUI.defs import COMMIT_STATUS_COMMITTED, COMMIT_STATUS_UPDATED
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 
@@ -378,7 +378,9 @@ class MyTorrentsTableViewController(TorrentsTableViewController):
 
     def _on_row_update_results(self, response):
         if response:
-            self.table_view.window().edit_channel_page.channel_dirty = response['dirty']
+            self.table_view.window().edit_channel_page.channel_dirty = \
+                self.table_view.window().edit_channel_page.channel_dirty or \
+                (response['new_status'] != COMMIT_STATUS_COMMITTED)
             self.table_view.window().edit_channel_page.update_channel_commit_views()
 
     def perform_query(self, **kwargs):
@@ -386,8 +388,3 @@ class MyTorrentsTableViewController(TorrentsTableViewController):
             "rest_endpoint_url": "mychannel/torrents",
             "exclude_deleted": self.model.exclude_deleted})
         super(MyTorrentsTableViewController, self).perform_query(**kwargs)
-
-    def on_query_results(self, response):
-        if super(MyTorrentsTableViewController, self).on_query_results(response):
-            self.table_view.window().edit_channel_page.channel_dirty = response['dirty']
-            self.table_view.window().edit_channel_page.update_channel_commit_views()

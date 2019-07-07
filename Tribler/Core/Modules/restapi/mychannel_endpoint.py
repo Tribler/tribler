@@ -165,8 +165,7 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
                 "first": sanitized['first'],
                 "last": sanitized['last'],
                 "sort_by": sanitized['sort_by'],
-                "sort_asc": int(sanitized['sort_asc']),
-                "dirty": my_channel.dirty
+                "sort_asc": int(sanitized['sort_asc'])
             })
 
     def render_POST(self, request):
@@ -326,7 +325,7 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
             if not torrents_dir:
                 request.setResponseCode(http.BAD_REQUEST)
                 return json.twisted_dumps({"error": "the torrents_dir parameter should be provided when the recursive "
-                                            "parameter is set"})
+                                                    "parameter is set"})
 
         if torrents_dir:
             torrents_list, errors_list = my_channel.add_torrents_from_dir(torrents_dir, recursive)
@@ -376,7 +375,6 @@ class MyChannelSpecificTorrentEndpoint(BaseMyChannelEndpoint):
         BaseMyChannelEndpoint.__init__(self, session)
         self.infohash = unhexlify(infohash)
 
-    @db_session
     def render_PATCH(self, request):
         """
         .. http:put:: /mychannel/torrents/(string: torrent infohash)
@@ -399,7 +397,6 @@ class MyChannelSpecificTorrentEndpoint(BaseMyChannelEndpoint):
                 {
                     "success": 1,
                     "new_status": 6,
-                    "dirty": 1
                 }
 
             :statuscode 404: if your channel or the infohash does not exist.
@@ -424,15 +421,17 @@ class MyChannelSpecificTorrentEndpoint(BaseMyChannelEndpoint):
             request.setResponseCode(http.NOT_FOUND)
             return json.twisted_dumps({"error": "your channel has not been created"})
 
-        torrent = my_channel.get_torrent(self.infohash)
-        if not torrent:
-            request.setResponseCode(http.NOT_FOUND)
-            return json.twisted_dumps({"error": "torrent with the specified infohash could not be found"})
+        with db_session:
+            torrent = my_channel.get_torrent(self.infohash)
+            if not torrent:
+                request.setResponseCode(http.NOT_FOUND)
+                return json.twisted_dumps({"error": "torrent with the specified infohash could not be found"})
 
-        torrent.update_properties(dict([(attribute, parameters[attribute][0]) for attribute in
-                                        ['status', 'tags', 'title'] if attribute in parameters]))
+            status = torrent.update_properties({attribute: parameters[attribute][0] for attribute in
+                                                ['status', 'tags', 'title'] if attribute in parameters})
 
-        return json.twisted_dumps({"success": True, "new_status": torrent.status, "dirty": my_channel.dirty})
+        return json.twisted_dumps({"success": True,
+                                   "new_status": status})
 
 
 class MyChannelCommitEndpoint(BaseMyChannelEndpoint):
