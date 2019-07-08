@@ -462,7 +462,7 @@ class LibtorrentMgr(TaskManager):
             atp = {
                 'save_path': self.metadata_tmpdir,
                 'flags': (lt.add_torrent_params_flags_t.flag_upload_mode),
-                'info_hash': lt.sha1_hash(infohash)
+                'info_hash': lt.sha1_hash(infohash).to_bytes()
             }
 
             try:
@@ -503,7 +503,8 @@ class LibtorrentMgr(TaskManager):
 
         handle, metainfo_deferreds = self.metainfo_requests.pop(infohash)
         if not handle.is_valid() or not handle.has_metadata():
-            self._logger.warning("Handle is not valid - returning None as metainfo lookup result")
+            self._logger.warning("Handle (valid:%s, metadata:%s) - returning None as metainfo lookup result",
+                                 handle.is_valid(), handle.has_metadata())
             for metainfo_deferred in metainfo_deferreds:
                 metainfo_deferred.callback(None)
             return

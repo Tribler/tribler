@@ -67,6 +67,7 @@ class TorrentInfoEndpoint(resource.Resource):
                 # If the above request.write failed, the request will have already been finished
                 if not request.finished:
                     self.finish_request(request)
+                    return
 
             if not isinstance(metainfo, dict) or 'info' not in metainfo:
                 self._logger.warning("Received metainfo is not a valid dictionary")
