@@ -137,20 +137,11 @@ COLOR_RED = "#ff0000"
 COLOR_GREEN = "#2ca01c"
 COLOR_NEUTRAL = "#cdcdcd"
 COLOR_DEFAULT = "#150507"
+COLOR_ROOT = "#FE6D01"
 COLOR_SELECTED = "#5c58ee"
 COLOR_BACKGROUND = "#202020"
 HTML_SPACE = '&nbsp;'
-TRUST_GRAPH_HEADER_MESSAGE = "<hr/><i><strong>Tribler</strong> is about helping others. You become trusted if " \
-                             "you give away bandwidth. Such acts of kindness are registered in the " \
-                             "<a href='https://explorer.tribler.org' style='color:#ffffff'>Tribler blockchain</a>.  " \
-                             "The graph below shows your trust graph based on your blockchain records. In the graph, " \
-                             "you are positioned at the center and the peers you have directly interacted with are " \
-                             "placed closer to you. The color code indicates the net balance of the peer. Positive " \
-                             "balance is painted in green, negative in red and unknown balance in grey. You can " \
-                             "also click any node and view its details at the bottom panel.</i><hr/>" \
-                             "<i>A note on privacy: We respect your privacy and never actively share what content " \
-                             "you download or seed. Instead, the accounting of bandwidth given or taken is recorded " \
-                             "in the blockchain so graphs like this can be built.</i>"
+TRUST_GRAPH_HEADER_MESSAGE = "Trust graph based on your Trustchain records"
 TRUST_GRAPH_PEER_LEGENDS = u"( <span style='color:%s'>\u25CF Good </span> " \
                            u"<span style='color:%s'>\u25CF Bad </span> " \
                            u"<span style='color:%s'>\u25CF Unknown </span> " \

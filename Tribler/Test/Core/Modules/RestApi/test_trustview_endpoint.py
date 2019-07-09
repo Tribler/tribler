@@ -50,9 +50,9 @@ class TestTrustViewEndpoint(AbstractApiTest):
 
         def verify_response(response):
             response_json = json.twisted_loads(response)
-            self.assertIsNotNone(response_json['graph_data'])
+            self.assertIsNotNone(response_json['graph'])
             self.assertEqual(response_json['num_tx'], 1)
-            self.assertEqual(len(response_json['graph_data']['nodes']), 2)
+            self.assertEqual(len(response_json['graph']['node']), 2)
 
         transaction = {'up': 100, 'down': 0, 'total_up': 100, 'total_down': 0}
         test_block = TrustChainBlock()
