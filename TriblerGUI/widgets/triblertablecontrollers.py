@@ -94,7 +94,7 @@ class TriblerTableViewController(QObject):
         if 'query_filter' in kwargs:
             kwargs.update({"filter": to_fts_query(kwargs.pop('query_filter'))})
         elif self.query_text:
-            kwargs.update({"filter": self.query_text})
+            kwargs.update({"filter": to_fts_query(self.query_text)})
 
         if self.model.hide_xxx is not None:
             kwargs.update({"hide_xxx": self.model.hide_xxx})
