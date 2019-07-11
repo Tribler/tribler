@@ -38,13 +38,15 @@ class BaseTestMetadataEndpoint(AbstractApiTest):
         with db_session:
             for ind in xrange(10):
                 self.session.lm.mds.ChannelNode._my_key = default_eccrypto.generate_key('curve25519')
-                _ = self.session.lm.mds.ChannelMetadata(title='channel%d' % ind, subscribed=(ind % 2 == 0),
-                                                        num_entries=torrents_per_channel, infohash=random_infohash(),
-                                                        id_=0)
+                channel = self.session.lm.mds.ChannelMetadata(title='channel%d' % ind, subscribed=(ind % 2 == 0),
+                                                              num_entries=torrents_per_channel,
+                                                              infohash=random_infohash(),
+                                                              id_=123)
                 for torrent_ind in xrange(torrents_per_channel):
                     rand_infohash = random_infohash()
                     self.infohashes.append(rand_infohash)
-                    _ = self.session.lm.mds.TorrentMetadata(title='torrent%d' % torrent_ind, infohash=rand_infohash)
+                    self.session.lm.mds.TorrentMetadata(origin_id=channel.id_, title='torrent%d' % torrent_ind,
+                                                        infohash=rand_infohash)
 
     def setUpPreSession(self):
         super(BaseTestMetadataEndpoint, self).setUpPreSession()
@@ -63,7 +65,7 @@ class TestChannelsEndpoint(BaseTestMetadataEndpoint):
             self.assertEqual(len(json_dict['results']), 10)
 
         self.should_check_equality = False
-        return self.do_request('metadata/channels?sort_by=title', expected_code=200).addCallback(on_response)
+        return self.do_request('metadata/channels?sort_by=title').addCallback(on_response)
 
     @skipIf(sys.platform == "darwin", "Skipping this test on Mac due to Pony bug")
     def test_get_channels_sort_by_health(self):
@@ -72,7 +74,7 @@ class TestChannelsEndpoint(BaseTestMetadataEndpoint):
             self.assertEqual(len(json_dict['results']), 10)
 
         self.should_check_equality = False
-        return self.do_request('metadata/channels?sort_by=health', expected_code=200).addCallback(on_response)
+        return self.do_request('metadata/channels?sort_by=health').addCallback(on_response)
 
     def test_get_channels_invalid_sort(self):
         """
@@ -84,7 +86,7 @@ class TestChannelsEndpoint(BaseTestMetadataEndpoint):
             self.assertEqual(len(json_dict['results']), 10)
 
         self.should_check_equality = False
-        return self.do_request('metadata/channels?sort_by=fdsafsdf', expected_code=200).addCallback(on_response)
+        return self.do_request('metadata/channels?sort_by=fdsafsdf').addCallback(on_response)
 
     def test_get_subscribed_channels(self):
         """
@@ -96,7 +98,7 @@ class TestChannelsEndpoint(BaseTestMetadataEndpoint):
             self.assertEqual(len(json_dict['results']), 5)
 
         self.should_check_equality = False
-        return self.do_request('metadata/channels?subscribed=1', expected_code=200).addCallback(on_response)
+        return self.do_request('metadata/channels?subscribed=1').addCallback(on_response)
 
 
 class TestChannelsCountEndpoint(BaseTestMetadataEndpoint):
@@ -105,7 +107,7 @@ class TestChannelsCountEndpoint(BaseTestMetadataEndpoint):
     def test_get_channels_count(self):
         # Test getting total count of results
         self.should_check_equality = False
-        result = yield self.do_request('metadata/channels/count?subscribed=1', expected_code=200)
+        result = yield self.do_request('metadata/channels/count?subscribed=1')
         json_dict = json.twisted_loads(result)
         self.assertEqual(json_dict['total'], 5)
 
@@ -118,7 +120,7 @@ class TestSpecificChannelEndpoint(BaseTestMetadataEndpoint):
         """
         self.should_check_equality = False
         channel_pk = hexlify(self.session.lm.mds.ChannelNode._my_key.pub().key_to_bin()[10:])
-        return self.do_request('metadata/channels/%s/0' % channel_pk, expected_code=400, request_type='POST')
+        return self.do_request('metadata/channels/%s/123' % channel_pk, expected_code=400, request_type='POST')
 
     def test_subscribe_no_channel(self):
         """
@@ -126,7 +128,8 @@ class TestSpecificChannelEndpoint(BaseTestMetadataEndpoint):
         """
         self.should_check_equality = False
         post_params = {'subscribe': '1'}
-        return self.do_request('metadata/channels/aa/0', expected_code=404, request_type='POST', post_data=post_params)
+        return self.do_request(
+            'metadata/channels/aa/123', expected_code=404, request_type='POST', post_data=post_params)
 
     def test_subscribe(self):
         """
@@ -135,7 +138,7 @@ class TestSpecificChannelEndpoint(BaseTestMetadataEndpoint):
         self.should_check_equality = False
         post_params = {'subscribe': '1'}
         channel_pk = hexlify(self.session.lm.mds.ChannelNode._my_key.pub().key_to_bin()[10:])
-        return self.do_request('metadata/channels/%s/0' % channel_pk, expected_code=200,
+        return self.do_request('metadata/channels/%s/123' % channel_pk,
                                request_type='POST', post_data=post_params)
 
     def test_unsubscribe(self):
@@ -163,7 +166,7 @@ class TestSpecificChannelEndpoint(BaseTestMetadataEndpoint):
                     yield async_sleep(0.2)
             self.assertTrue(result)
 
-        return self.do_request('metadata/channels/%s/0' % channel_pk, expected_code=200,
+        return self.do_request('metadata/channels/%s/123' % channel_pk,
                                request_type='POST', post_data=post_params).addCallback(on_response)
 
 
@@ -180,8 +183,25 @@ class TestSpecificChannelTorrentsEndpoint(BaseTestMetadataEndpoint):
 
         self.should_check_equality = False
         channel_pk = hexlify(self.session.lm.mds.ChannelNode._my_key.pub().key_to_bin()[10:])
-        return self.do_request('metadata/channels/%s/0/torrents' % channel_pk, expected_code=200).addCallback(
+        return self.do_request('metadata/channels/%s/123/torrents' % channel_pk).addCallback(
             on_response)
+
+    def test_get_torrents_ffa_channel(self):
+        """
+        Test whether we can query channel contents for unsigned (legacy/FFA) channels
+        """
+        with db_session:
+            channel = self.session.lm.mds.ChannelMetadata(title='ffa', infohash=random_infohash(),
+                                                          public_key="", id_=123)
+            self.session.lm.mds.TorrentMetadata(public_key="", id_=333333,
+                                                origin_id=channel.id_, title='torrent', infohash=random_infohash())
+
+        def on_response(response):
+            json_dict = json.twisted_loads(response)
+            self.assertEqual(len(json_dict['results']), 1)
+
+        self.should_check_equality = False
+        return self.do_request('metadata/channels//123/torrents').addCallback(on_response)
 
 
 class TestSpecificChannelTorrentsCountEndpoint(BaseTestMetadataEndpoint):
@@ -190,8 +210,7 @@ class TestSpecificChannelTorrentsCountEndpoint(BaseTestMetadataEndpoint):
         # Test getting total count of results
         self.should_check_equality = False
         channel_pk = hexlify(self.session.lm.mds.ChannelNode._my_key.pub().key_to_bin()[10:])
-        result = yield self.do_request('metadata/channels/%s/0/torrents/count' % channel_pk,
-                                       expected_code=200)
+        result = yield self.do_request('metadata/channels/%s/123/torrents/count' % channel_pk)
         json_dict = json.twisted_loads(result)
         self.assertEqual(json_dict['total'], 5)
 
@@ -215,7 +234,7 @@ class TestPopularChannelsEndpoint(BaseTestMetadataEndpoint):
             self.assertEqual(len(json_dict['channels']), 5)
 
         self.should_check_equality = False
-        return self.do_request('metadata/channels/popular?limit=5', expected_code=200).addCallback(on_response)
+        return self.do_request('metadata/channels/popular?limit=5').addCallback(on_response)
 
 
 class TestSpecificTorrentEndpoint(BaseTestMetadataEndpoint):
@@ -232,7 +251,7 @@ class TestSpecificTorrentEndpoint(BaseTestMetadataEndpoint):
         Test whether we can successfully query information about a torrent with the REST API
         """
         self.should_check_equality = False
-        return self.do_request('metadata/torrents/%s' % hexlify(self.infohashes[0]), expected_code=200)
+        return self.do_request('metadata/torrents/%s' % hexlify(self.infohashes[0]))
 
 
 class TestRandomTorrentsEndpoint(BaseTestMetadataEndpoint):
@@ -254,7 +273,7 @@ class TestRandomTorrentsEndpoint(BaseTestMetadataEndpoint):
             self.assertEqual(len(json_dict['torrents']), 5)
 
         self.should_check_equality = False
-        return self.do_request('metadata/torrents/random?limit=5', expected_code=200).addCallback(on_response)
+        return self.do_request('metadata/torrents/random?limit=5').addCallback(on_response)
 
 
 class TestTorrentHealthEndpoint(AbstractApiTest):
@@ -330,11 +349,11 @@ class TestTorrentHealthEndpoint(AbstractApiTest):
         # Left for compatibility with other tests in this object
         self.udp_tracker.start()
         self.http_tracker.start()
-        yield self.do_request(url, expected_code=200, request_type='GET').addCallback(verify_response_no_trackers)
+        yield self.do_request(url).addCallback(verify_response_no_trackers)
 
         def verify_response_nowait(response):
             json_response = json.twisted_loads(response)
             self.assertDictEqual(json_response, {u'checking': u'1'})
 
-        yield self.do_request(url + '&nowait=1', expected_code=200, request_type='GET').addCallback(
+        yield self.do_request(url + '&nowait=1').addCallback(
             verify_response_nowait)
