@@ -94,7 +94,7 @@ class TriblerTableViewController(QObject):
         if 'query_filter' in kwargs:
             kwargs.update({"filter": to_fts_query(kwargs.pop('query_filter'))})
         elif self.query_text:
-            kwargs.update({"filter": self.query_text})
+            kwargs.update({"filter": to_fts_query(self.query_text)})
 
         if self.model.hide_xxx is not None:
             kwargs.update({"hide_xxx": self.model.hide_xxx})
@@ -337,10 +337,13 @@ class TorrentsTableViewController(TableSelectionMixin, FilterInputMixin, Context
         self.enable_context_menu(self.table_view)
 
     def perform_query(self, **kwargs):
+        # On some systems, URLs containing double slashes are handled incorrectly.
+        # To circumvent this limitation, for empty public key we use a special substitute
         if "rest_endpoint_url" not in kwargs:
             kwargs.update({
-                "rest_endpoint_url": "metadata/channels/%s/%i/torrents" % (self.model.channel_pk,
-                                                                           self.model.channel_id)})
+                "rest_endpoint_url": "metadata/channels/%s/%i/torrents" %
+                                     (self.model.channel_pk,
+                                      self.model.channel_id)})
         super(TorrentsTableViewController, self).perform_query(**kwargs)
 
     def fetch_preview(self):

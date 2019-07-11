@@ -19,6 +19,8 @@ from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, EP
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
 from Tribler.Core.Utilities.utilities import is_channel_public_key, is_hex_string, is_infohash
 
+NULL_KEY_SUBST = b"\00"
+
 
 # This function is used to devise id_ from infohash in deterministic way. Used in FFA channels.
 def infohash_to_id(infohash):
@@ -155,7 +157,7 @@ def define_binding(db):
 
         @classmethod
         @db_session
-        def get_entries_query(cls, metadata_type=REGULAR_TORRENT, channel_pk=None,
+        def get_entries_query(cls, metadata_type=None, channel_pk=None,
                               exclude_deleted=False, hide_xxx=False, exclude_legacy=False, origin_id=None,
                               sort_by=None, sort_asc=True, query_filter=None, infohash=None):
             # Warning! For Pony magic to work, iteration variable name (e.g. 'g') should be the same everywhere!
@@ -183,10 +185,12 @@ def define_binding(db):
             if isinstance(metadata_type, list):
                 pony_query = pony_query.where(lambda g: g.metadata_type in metadata_type)
             else:
-                pony_query = pony_query.where(metadata_type=metadata_type)
+                pony_query = pony_query.where(
+                    metadata_type=metadata_type if metadata_type is not None else cls._discriminator_)
 
-            pony_query = pony_query.where(public_key=channel_pk) if channel_pk else pony_query
-            # origin_id can be zero, for e.g. root channel
+            # Note that origin_id and channel_pk can be 0 and "" respectively, for, say, root channel and FFA entry
+            pony_query = pony_query.where(public_key=(b"" if channel_pk == NULL_KEY_SUBST else channel_pk))\
+                if channel_pk is not None else pony_query
             pony_query = pony_query.where(origin_id=origin_id) if origin_id is not None else pony_query
             pony_query = pony_query.where(lambda g: g.status != TODELETE) if exclude_deleted else pony_query
             pony_query = pony_query.where(lambda g: g.xxx == 0) if hide_xxx else pony_query
@@ -228,7 +232,7 @@ def define_binding(db):
             epoch = datetime.utcfromtimestamp(0)
             simple_dict = {
                 "id": self.id_,
-                "public_key": hexlify(self.public_key),
+                "public_key": hexlify(self.public_key or NULL_KEY_SUBST),
                 "name": self.title,
                 "infohash": hexlify(self.infohash),
                 "size": self.size,
