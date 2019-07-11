@@ -19,6 +19,8 @@ from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, EP
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
 from Tribler.Core.Utilities.utilities import is_channel_public_key, is_hex_string, is_infohash
 
+NULL_KEY_SUBST = b"\00"
+
 
 # This function is used to devise id_ from infohash in deterministic way. Used in FFA channels.
 def infohash_to_id(infohash):
@@ -187,7 +189,8 @@ def define_binding(db):
                     metadata_type=metadata_type if metadata_type is not None else cls._discriminator_)
 
             # Note that origin_id and channel_pk can be 0 and "" respectively, for, say, root channel and FFA entry
-            pony_query = pony_query.where(public_key=channel_pk) if channel_pk is not None else pony_query
+            pony_query = pony_query.where(public_key=(b"" if channel_pk == NULL_KEY_SUBST else channel_pk))\
+                if channel_pk is not None else pony_query
             pony_query = pony_query.where(origin_id=origin_id) if origin_id is not None else pony_query
             pony_query = pony_query.where(lambda g: g.status != TODELETE) if exclude_deleted else pony_query
             pony_query = pony_query.where(lambda g: g.xxx == 0) if hide_xxx else pony_query
@@ -229,7 +232,7 @@ def define_binding(db):
             epoch = datetime.utcfromtimestamp(0)
             simple_dict = {
                 "id": self.id_,
-                "public_key": hexlify(self.public_key),
+                "public_key": hexlify(self.public_key or NULL_KEY_SUBST),
                 "name": self.title,
                 "infohash": hexlify(self.infohash),
                 "size": self.size,

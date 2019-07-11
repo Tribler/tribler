@@ -186,6 +186,7 @@ class TestSpecificChannelTorrentsEndpoint(BaseTestMetadataEndpoint):
         return self.do_request('metadata/channels/%s/123/torrents' % channel_pk).addCallback(
             on_response)
 
+    @inlineCallbacks
     def test_get_torrents_ffa_channel(self):
         """
         Test whether we can query channel contents for unsigned (legacy/FFA) channels
@@ -201,7 +202,9 @@ class TestSpecificChannelTorrentsEndpoint(BaseTestMetadataEndpoint):
             self.assertEqual(len(json_dict['results']), 1)
 
         self.should_check_equality = False
-        return self.do_request('metadata/channels//123/torrents').addCallback(on_response)
+        # We test for both forms of querying null-key channels
+        yield self.do_request('metadata/channels//123/torrents').addCallback(on_response)
+        yield self.do_request('metadata/channels/00/123/torrents').addCallback(on_response)
 
 
 class TestSpecificChannelTorrentsCountEndpoint(BaseTestMetadataEndpoint):
