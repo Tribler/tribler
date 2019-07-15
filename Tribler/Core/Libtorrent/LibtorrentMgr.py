@@ -57,6 +57,7 @@ class LibtorrentMgr(TaskManager):
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.tribler_session = tribler_session
+        self.ltsettings = {} # Stores a copy of the settings dict for each libtorrent session
         self.ltsessions = {}
         self.ltsession_metainfo = None  # We have a dedicated libtorrent session for metainfo/DHT health lookups
         self.dht_health_manager = None
@@ -181,9 +182,7 @@ class LibtorrentMgr(TaskManager):
                 ltsession.set_pe_settings(pe_settings)
 
             mid = self.tribler_session.trustchain_keypair.key_to_hash()
-            # FIXME: if we put in bytes here, subsequent calls to get_settings may, and probably will,
-            #        give UnicodeDecodeErrors
-            settings['peer_fingerprint'] = hexlify(mid).decode('utf-8')
+            settings['peer_fingerprint'] = mid
             settings['handshake_client_version'] = 'Tribler/' + version_id + '/' + hexlify(mid).decode('utf-8')
         else:
             settings['enable_outgoing_utp'] = True
@@ -230,10 +229,9 @@ class LibtorrentMgr(TaskManager):
             ltsession.listen_on(self.tribler_session.config.get_anon_listen_port(),
                                 self.tribler_session.config.get_anon_listen_port() + 20)
 
-            ltsession_settings = ltsession.get_settings()
-            ltsession_settings['upload_rate_limit'] = self.tribler_session.config.get_libtorrent_max_upload_rate()
-            ltsession_settings['download_rate_limit'] = self.tribler_session.config.get_libtorrent_max_download_rate()
-            self.set_session_settings(ltsession, ltsession_settings)
+            settings = {'upload_rate_limit': self.tribler_session.config.get_libtorrent_max_upload_rate(),
+                        'download_rate_limit': self.tribler_session.config.get_libtorrent_max_download_rate()}
+            self.set_session_settings(ltsession, settings)
 
         if self.tribler_session.config.get_libtorrent_dht_enabled():
             ltsession.start_dht()
@@ -257,7 +255,7 @@ class LibtorrentMgr(TaskManager):
         Apply the proxy settings to a libtorrent session. This mechanism changed significantly in libtorrent 1.1.0.
         """
         if LooseVersion(self.get_libtorrent_version()) >= LooseVersion("1.1.0"):
-            settings = ltsession.get_settings()
+            settings = {}
             settings["proxy_type"] = ptype
             settings["proxy_hostnames"] = True
             settings["proxy_peer_connections"] = True
@@ -686,6 +684,12 @@ class LibtorrentMgr(TaskManager):
         :param lt_session: The libtorrent session to apply the settings to.
         :param new_settings: The new settings to apply.
         """
+
+        # Keeping a copy of the settings because subsequent calls to get_settings are likely to fail
+        # when libtorrent will try to decode peer_fingerprint to unicode.
+        self.ltsettings[lt_session] = self.ltsettings.get(lt_session, {})
+        self.ltsettings[lt_session].update(new_settings)
+
         if hasattr(lt_session, "apply_settings"):
             lt_session.apply_settings(new_settings)
         else:
@@ -699,10 +703,9 @@ class LibtorrentMgr(TaskManager):
         :return:
         """
         for lt_session in self.ltsessions.values():
-            ltsession_settings = lt_session.get_settings()
-            ltsession_settings['download_rate_limit'] = self.tribler_session.config.get_libtorrent_max_download_rate()
-            ltsession_settings['upload_rate_limit'] = self.tribler_session.config.get_libtorrent_max_upload_rate()
-            self.set_session_settings(lt_session, ltsession_settings)
+            settings = {'download_rate_limit': self.tribler_session.config.get_libtorrent_max_download_rate(),
+                        'upload_rate_limit': self.tribler_session.config.get_libtorrent_max_upload_rate()}
+            self.set_session_settings(lt_session, settings)
 
     def post_session_stats(self, hops=None):
         if hops is None:

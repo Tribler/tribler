@@ -70,7 +70,13 @@ class LibTorrentSettingsEndpoint(resource.Resource):
         if hop not in self.session.lm.ltmgr.ltsessions:
             return json.twisted_dumps({'hop': hop, "settings": {}})
 
-        lt_settings = self.session.lm.ltmgr.ltsessions[hop].get_settings()
+        lt_session = self.session.lm.ltmgr.ltsessions[hop]
+        if hop == 0:
+            lt_settings = self.session.lm.ltmgr.ltsettings[lt_session]
+            lt_settings['peer_fingerprint'] = hexlify(lt_settings['peer_fingerprint']).decode('utf-8')
+        else:
+            lt_settings = lt_session.get_settings()
+
         return json.twisted_dumps({'hop': hop, "settings": lt_settings})
 
 
