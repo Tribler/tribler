@@ -204,7 +204,6 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
 
         return json.twisted_dumps({"success": True})
 
-    @db_session
     def render_PUT(self, request):
         """
         .. http:put:: /mychannel/torrents
@@ -248,10 +247,11 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
             :statuscode 404: if your channel does not exist.
             :statuscode 500: if the passed torrent data is corrupt.
         """
-        my_channel = self.session.lm.mds.ChannelMetadata.get_my_channel()
-        if not my_channel:
-            request.setResponseCode(http.NOT_FOUND)
-            return json.twisted_dumps({"error": "your channel has not been created yet"})
+        with db_session:
+            my_channel = self.session.lm.mds.ChannelMetadata.get_my_channel()
+            if not my_channel:
+                request.setResponseCode(http.NOT_FOUND)
+                return json.twisted_dumps({"error": "your channel has not been created yet"})
 
         parameters = recursive_unicode(http.parse_qs(request.content.read(), 1))
 
@@ -259,6 +259,8 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
             extra_info = {}
         else:
             extra_info = {'description': parameters['description'][0]}
+
+        title = parameters['title'][0] if 'title' in parameters and parameters['title'] else None
 
         def _on_url_fetched(data):
             return TorrentDef.load_from_memory(data)
@@ -346,7 +348,7 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
             return json.twisted_dumps({"error": "invalid torrent file"})
 
         try:
-            my_channel.add_torrent_to_channel(torrent_def, extra_info)
+            my_channel.add_torrent_to_channel(torrent_def, extra_info, title=title)
         except DuplicateTorrentFileError:
             request.setResponseCode(http.INTERNAL_SERVER_ERROR)
             return json.twisted_dumps({"error": "this torrent already exists in your channel"})
