@@ -371,11 +371,6 @@ def define_binding(db):
 
         @classmethod
         @db_session
-        def get_channel_with_infohash(cls, infohash):
-            return cls.get(infohash=database_blob(infohash))
-
-        @classmethod
-        @db_session
         def get_recent_channel_with_public_key(cls, public_key):
             return cls.select(lambda g: g.public_key == database_blob(public_key)).sort_by(
                 lambda g: desc(g.id_)).first() or None
@@ -483,7 +478,7 @@ def define_binding(db):
             :param infohash - infohash of the download.
             :return: Channel title as a string, prefixed with 'OLD:' for older versions
             """
-            channel = cls.get_channel_with_infohash(infohash)
+            channel = cls.get_with_infohash(infohash)
             if not channel:
                 try:
                     channel = cls.get_channel_with_dirname(name)
