@@ -21,7 +21,6 @@ from PyQt5.QtWidgets import (
 
 import six
 from six.moves.urllib.parse import unquote, urlparse
-from six.moves.urllib.request import pathname2url
 
 from Tribler.Core.Modules.process_checker import ProcessChecker
 
@@ -781,8 +780,7 @@ class TriblerWindow(QMainWindow):
             if self.dialog.checkbox.isChecked():
                 self.add_dir_to_channel(self.chosen_dir, callback=self.on_dir_added_to_channel)
             for torrent_file in self.selected_torrent_files:
-                escaped_uri = u"file:%s" % pathname2url(torrent_file.encode('utf-8'))
-                self.perform_start_download_request(escaped_uri,
+                self.perform_start_download_request(u"file:%s" % torrent_file,
                                                     self.window().tribler_settings['download_defaults'][
                                                         'anonymity_enabled'],
                                                     self.window().tribler_settings['download_defaults'][
