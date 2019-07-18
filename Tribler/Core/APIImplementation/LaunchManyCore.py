@@ -604,6 +604,10 @@ class TriblerLaunchMany(TaskManager):
         if not metainfo:
             self._logger.error("tlm: could not resume checkpoint %s; metainfo not found", filename)
             return
+        if not isinstance(metainfo, dict):
+            self._logger.error("tlm: could not resume checkpoint %s; metainfo is not dict %s %s",
+                               filename, type(metainfo), repr(metainfo))
+            return
 
         try:
             tdef = (TorrentDefNoMetainfo(metainfo['infohash'], metainfo['name'], metainfo.get('url', None))
