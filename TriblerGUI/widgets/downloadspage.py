@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import os
 import time
 
-from PyQt5.QtCore import QTimer, QUrl, pyqtSignal
+from PyQt5.QtCore import QTimer, QUrl, Qt, pyqtSignal
 from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtWidgets import QAbstractItemView, QAction, QFileDialog, QTreeWidgetItem, QWidget
 
@@ -70,6 +70,7 @@ class DownloadsPage(QWidget):
 
         self.window().downloads_filter_input.textChanged.connect(self.on_filter_text_changed)
 
+        self.window().downloads_list.header().setSortIndicator(12, Qt.AscendingOrder)
         self.window().downloads_list.header().resizeSection(12, 146)
 
         if not self.window().vlc_available:
