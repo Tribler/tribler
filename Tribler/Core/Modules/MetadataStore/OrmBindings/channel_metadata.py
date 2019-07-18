@@ -274,7 +274,7 @@ def define_binding(db):
                                              and g.infohash == database_blob(infohash))
 
         @db_session
-        def add_torrent_to_channel(self, tdef, extra_info=None):
+        def add_torrent_to_channel(self, tdef, extra_info=None, title=None):
             """
             Add a torrent to your channel.
             :param tdef: The torrent definition file of the torrent to add
@@ -283,6 +283,8 @@ def define_binding(db):
             new_entry_dict = dict(tdef_to_metadata_dict(tdef), status=NEW)
             if extra_info:
                 new_entry_dict['tags'] = extra_info.get('description', '')
+            if title:
+                new_entry_dict['title'] = title
 
             # See if the torrent is already in the channel
             old_torrent = self.get_torrent(tdef.get_infohash())

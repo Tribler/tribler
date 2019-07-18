@@ -46,6 +46,7 @@ class CreateTorrentDialog(DialogContainer):
         self.on_main_window_resize()
 
         self.request_mgr = None
+        self.name = None
 
     def close_dialog(self):
         if self.request_mgr:
@@ -106,10 +107,10 @@ class CreateTorrentDialog(DialogContainer):
                                           "Error: %s" % error)
             return
 
-        name = self.dialog_widget.create_torrent_name_field.text()
+        self.name = self.dialog_widget.create_torrent_name_field.text()
         description = self.dialog_widget.create_torrent_description_field.toPlainText()
         post_data = {
-            "name": name,
+            "name": self.name,
             "description": description,
             "files": files_list,
             "export_dir": export_dir
@@ -134,8 +135,11 @@ class CreateTorrentDialog(DialogContainer):
 
     def add_torrent_to_channel(self, torrent):
         self.request_mgr = TriblerRequestManager()
+        data = {"torrent": torrent}
+        if self.name:
+            data.update({"title": self.name.decode('utf-8')})
         self.request_mgr.perform_request("mychannel/torrents", self.on_torrent_to_channel_added,
-                                         data={"torrent": torrent}, method='PUT')
+                                         data=data, method='PUT')
 
     def on_torrent_to_channel_added(self, result):
         if not result:

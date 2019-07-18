@@ -29,6 +29,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
     def setUpPreSession(self):
         super(TestDownloadsEndpoint, self).setUpPreSession()
         self.config.set_libtorrent_enabled(True)
+        self.config.set_chant_enabled(True)
 
     @trial_timeout(10)
     def test_get_downloads_no_downloads(self):
