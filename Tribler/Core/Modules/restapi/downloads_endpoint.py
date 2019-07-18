@@ -234,8 +234,12 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
             num_seeds, num_peers = state.get_num_seeds_peers()
             num_connected_seeds, num_connected_peers = download.get_num_connected_seeds_peers()
 
-            download_name = self.session.lm.mds.ChannelMetadata.get_channel_name(
-                tdef.get_name_utf8(), tdef.get_infohash()) if download.get_channel_download() else tdef.get_name_utf8()
+            if download.get_channel_download():
+                download_name = self.session.lm.mds.ChannelMetadata.get_channel_name(
+                    tdef.get_name_utf8(), tdef.get_infohash())
+            else:
+                download_name = self.session.lm.mds.TorrentMetadata.get_torrent_title(tdef.get_infohash()) or \
+                                tdef.get_name_utf8()
 
             download_json = {
                 "name": download_name,
@@ -535,7 +539,7 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
                 return json.twisted_dumps({"error": "unknown state parameter"})
 
         return json.twisted_dumps({"modified": True,
-                           "infohash": hexlify(download.get_def().get_infohash())})
+                                   "infohash": hexlify(download.get_def().get_infohash())})
 
 
 class DownloadExportTorrentEndpoint(DownloadBaseEndpoint):

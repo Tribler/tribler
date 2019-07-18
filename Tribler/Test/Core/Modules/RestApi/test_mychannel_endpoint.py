@@ -355,7 +355,7 @@ class TestMyChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
             base64_content = base64.b64encode(torrent_file.read())
 
             self.should_check_equality = False
-            post_params = {'torrent': base64_content}
+            post_params = {'torrent': base64_content, 'title': 'bla'}
             return self.do_request('mychannel/torrents', request_type='PUT', post_data=post_params, expected_code=200)
 
     @trial_timeout(10)

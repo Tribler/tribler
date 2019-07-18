@@ -310,4 +310,15 @@ def define_binding(db):
             }
             return db.TorrentMetadata.from_dict(new_entry_dict)
 
+        @classmethod
+        @db_session
+        def get_with_infohash(cls, infohash):
+            return cls.select(lambda g: g.infohash == database_blob(infohash)).first()
+
+        @classmethod
+        @db_session
+        def get_torrent_title(cls, infohash):
+            md = cls.get_with_infohash(infohash)
+            return md.title if md else None
+
     return TorrentMetadata
