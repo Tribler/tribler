@@ -1,7 +1,6 @@
 from __future__ import absolute_import, division
 
 import struct
-from binascii import hexlify
 from datetime import datetime, timedelta
 
 from ipv8.database import database_blob
@@ -9,8 +8,7 @@ from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.messaging.payload import Payload
 from ipv8.messaging.serialization import default_serializer
 
-from six import binary_type
-
+from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.exceptions import InvalidSignatureException
 
 EPOCH = datetime(1970, 1, 1)
@@ -257,7 +255,7 @@ class TorrentMetadataPayload(ChannelNodePayload):
     # TODO:  DRY!(copypasted from TorrentMetadata)
     def get_magnet(self):
         return ("magnet:?xt=urn:btih:%s&dn=%s" %
-                (hexlify(self.infohash).decode('utf-8'), self.title.encode('utf8'))) + \
+                (hexlify(self.infohash), self.title.encode('utf8'))) + \
                ("&tr=%s" % (self.tracker_info).encode('utf8') if self.tracker_info else "")
 
 

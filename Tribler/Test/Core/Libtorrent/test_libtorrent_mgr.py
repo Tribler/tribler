@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import os
 import shutil
 import tempfile
-from binascii import hexlify, unhexlify
+from binascii import unhexlify
 
 import libtorrent
 from libtorrent import bencode
@@ -16,6 +16,7 @@ from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImp
 from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 from Tribler.Core.Notifier import Notifier
 from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.exceptions import TorrentFileException
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.common import TESTS_DATA_DIR
@@ -202,7 +203,7 @@ class TestLibtorrentMgr(AbstractServer):
         download_impl = MockObject()
         download_impl.handle = mock_handle
 
-        hex_infohash = hexlify(torrent_def.infohash).decode('utf-8')
+        hex_infohash = hexlify(torrent_def.infohash)
 
         mock_ltsession = MockObject()
         self.ltmgr.initialize()
@@ -478,7 +479,7 @@ class TestLibtorrentMgr(AbstractServer):
 
         download = self.ltmgr.start_download_from_magnet("magnet:?xt=urn:btih:" + ('1'*40))
 
-        basename = hexlify(download.get_def().get_infohash()).decode('utf-8') + '.conf'
+        basename = hexlify(download.get_def().get_infohash()) + '.conf'
         filename = os.path.join(download.session.get_downloads_config_dir(), basename)
 
         self.assertTrue(os.path.isfile(filename))

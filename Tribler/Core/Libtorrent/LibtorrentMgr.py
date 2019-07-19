@@ -9,7 +9,7 @@ import logging
 import os
 import tempfile
 import time
-from binascii import hexlify, unhexlify
+from binascii import unhexlify
 from distutils.version import LooseVersion
 from shutil import rmtree
 
@@ -18,7 +18,7 @@ from ipv8.taskmanager import TaskManager
 import libtorrent as lt
 from libtorrent import bdecode, torrent_handle
 
-from six import binary_type, text_type
+from six import text_type
 from six.moves.urllib.request import url2pathname
 
 from twisted.internet import reactor
@@ -30,6 +30,7 @@ from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.Modules.dht_health_manager import DHTHealthManager
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
+from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.Utilities.utilities import has_bep33_support, parse_magnetlink
 from Tribler.Core.exceptions import TorrentFileException
 from Tribler.Core.simpledefs import NTFY_INSERT, NTFY_REACHABLE
@@ -183,7 +184,7 @@ class LibtorrentMgr(TaskManager):
 
             mid = self.tribler_session.trustchain_keypair.key_to_hash()
             settings['peer_fingerprint'] = mid
-            settings['handshake_client_version'] = 'Tribler/' + version_id + '/' + hexlify(mid).decode('utf-8')
+            settings['handshake_client_version'] = 'Tribler/' + version_id + '/' + hexlify(mid)
         else:
             settings['enable_outgoing_utp'] = True
             settings['enable_incoming_utp'] = True
@@ -318,7 +319,7 @@ class LibtorrentMgr(TaskManager):
         if 'ti' in atp:
             infohash = str(atp['ti'].info_hash())
         elif 'url' in atp:
-            infohash = hexlify(parse_magnetlink(atp['url'])[1]).decode('utf-8')
+            infohash = hexlify(parse_magnetlink(atp['url'])[1])
         else:
             raise ValueError('No ti or url key in add_torrent_params')
 
@@ -443,7 +444,7 @@ class LibtorrentMgr(TaskManager):
         :param timeout: A timeout in seconds.
         :return: A deferred that fires with the queried metainfo, or None if the lookup failed.
         """
-        infohash_hex = hexlify(infohash).decode('utf-8')
+        infohash_hex = hexlify(infohash)
 
         # Check if we already cached the results, if so, return them
         if infohash in self.metainfo_cache:

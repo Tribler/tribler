@@ -3,7 +3,7 @@ from __future__ import absolute_import, division
 import logging
 import os
 import time
-from binascii import hexlify, unhexlify
+from binascii import unhexlify
 from glob import glob
 
 from ipv8.taskmanager import TaskManager
@@ -19,7 +19,7 @@ from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.CreditMining.CreditMiningPolicy import InvestmentPolicy, MB
 from Tribler.Core.CreditMining.CreditMiningSource import ChannelSource
 from Tribler.Core.TorrentDef import TorrentDefNoMetainfo
-from Tribler.Core.Utilities.unicode import ensure_unicode
+from Tribler.Core.Utilities.unicode import ensure_unicode, hexlify
 from Tribler.Core.simpledefs import (
     DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR, DOWNLOAD, NTFY_CREDIT_MINING,
     NTFY_ERROR, UPLOAD)
@@ -226,8 +226,7 @@ class CreditMiningManager(TaskManager):
 
         # If a download already exists or already has a checkpoint, skip this torrent
         if self.session.get_download(unhexlify(infohash)) or \
-                os.path.exists(os.path.join(self.session.get_downloads_config_dir(),
-                                            infohash.decode('utf-8') + '.state')):
+                os.path.exists(os.path.join(self.session.get_downloads_config_dir(), infohash + '.state')):
             self._logger.debug('Skipping torrent %s (download already running or scheduled to run)', infohash)
             return
 

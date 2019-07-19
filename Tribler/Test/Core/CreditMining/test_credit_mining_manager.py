@@ -101,7 +101,7 @@ class TestCreditMiningManager(TestAsServer):
         super(TestCreditMiningManager, self).__init__(*argv, **kwargs)
         # Some fake data for convenience
         self.cid = '0' * 64
-        self.infohash = b'0' * 40
+        self.infohash = '0' * 40
         self.infohash_bin = b'\00' * 20
         self.name = u'torrent'
 
@@ -418,7 +418,7 @@ class TestCreditMiningManager(TestAsServer):
         self.assertTrue(self.credit_mining_manager.shutdown_called)
 
     def test_add_download_while_credit_mining(self):
-        infohash_str = b'00' * 20
+        infohash_str = '00' * 20
         infohash_bin = b'\00' * 20
         magnet = 'magnet:?xt=urn:btih:' + ('00' * 20)
 

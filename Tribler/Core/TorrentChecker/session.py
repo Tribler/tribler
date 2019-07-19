@@ -7,7 +7,6 @@ import struct
 import sys
 import time
 from abc import ABCMeta, abstractmethod
-from binascii import hexlify
 
 from ipv8.messaging.deprecated.encoding import add_url_params
 from ipv8.taskmanager import TaskManager
@@ -21,6 +20,7 @@ from twisted.python.failure import Failure
 from twisted.web.client import Agent, HTTPConnectionPool, RedirectAgent, readBody
 
 from Tribler.Core.Utilities.tracker_utils import parse_tracker_url
+from Tribler.Core.Utilities.unicode import hexlify
 
 # Although these are the actions for UDP trackers, they can still be used as
 # identifiers.
@@ -584,7 +584,7 @@ class UdpTrackerSession(TrackerSession):
             # Store the information in the hash dict to be returned.
             # Sow complete as seeders. "complete: number of peers with the entire file, i.e. seeders (integer)"
             #  - https://wiki.theory.org/BitTorrentSpecification#Tracker_.27scrape.27_Convention
-            response_list.append({'infohash': hexlify(infohash).decode('utf-8'),
+            response_list.append({'infohash': hexlify(infohash),
                                   'seeders': complete, 'leechers': incomplete})
 
         # close this socket and remove its transaction ID from the list

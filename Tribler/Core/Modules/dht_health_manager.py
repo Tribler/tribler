@@ -1,7 +1,6 @@
 from __future__ import absolute_import, division
 
 import math
-from binascii import hexlify
 
 from ipv8.dht.routing import distance, id_to_binary_string
 from ipv8.taskmanager import TaskManager
@@ -10,6 +9,8 @@ import libtorrent as lt
 
 from twisted.internet import reactor
 from twisted.internet.defer import Deferred
+
+from Tribler.Core.Utilities.unicode import hexlify
 
 
 class DHTHealthManager(TaskManager):

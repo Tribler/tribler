@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 import os
-from binascii import hexlify, unhexlify
+from binascii import unhexlify
 
 from pony.orm import db_session
 
@@ -15,6 +15,7 @@ from Tribler.Core import TorrentDef
 from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.DownloadState import DownloadState
 from Tribler.Core.Utilities.network_utils import get_random_port
+from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.common import TESTS_DATA_DIR, TESTS_DIR, UBUNTU_1504_INFOHASH
@@ -22,7 +23,7 @@ from Tribler.Test.tools import trial_timeout
 
 
 def get_hex_infohash(tdef):
-    return hexlify(tdef.get_infohash()).decode('utf-8')
+    return hexlify(tdef.get_infohash())
 
 
 class TestDownloadsEndpoint(AbstractApiTest):
@@ -269,7 +270,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
             self.assertGreaterEqual(len(self.session.get_downloads()), 1)
             self.assertEqual(self.session.get_downloads()[0].get_def().get_name(), 'Unknown name')
 
-        post_data = {'uri': 'magnet:?xt=urn:btih:%s' % hexlify(UBUNTU_1504_INFOHASH).decode('utf-8')}
+        post_data = {'uri': 'magnet:?xt=urn:btih:%s' % hexlify(UBUNTU_1504_INFOHASH)}
         expected_json = {'started': True, 'infohash': 'fc8a15a2faf2734dbb1dc5f7afdc5c9beaeb1f59'}
         return self.do_request('downloads', expected_code=200, request_type='PUT', post_data=post_data,
                                expected_json=expected_json).addCallback(verify_download)
@@ -518,7 +519,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         def check_response(json_str_response):
             response_dict = json.loads(json_str_response.decode('utf-8'))
             self.assertTrue(response_dict.get("modified", False))
-            self.assertEqual(hexlify(video_tdef.infohash).decode('utf-8'), response_dict["infohash"])
+            self.assertEqual(hexlify(video_tdef.infohash), response_dict["infohash"])
 
         self.should_check_equality = False
         return self.do_request('downloads/%s' % get_hex_infohash(video_tdef), expected_code=200,
@@ -660,7 +661,7 @@ class TestMetadataDownloadEndpoint(AbstractApiTest):
             with db_session:
                 my_channel = self.session.lm.mds.ChannelMetadata.create_channel('test', 'test')
 
-            hexed = hexlify(my_channel.serialized())[:-5] + b"aaaaa"
+            hexed = hexlify(my_channel.serialized()).encode('utf-8')[:-5] + b"aaaaa"
             out_file.write(unhexlify(hexed))
 
         post_data = {u'uri': u'file:%s' % file_path, u'metadata_download': u'1'}

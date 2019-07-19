@@ -1,13 +1,12 @@
 from __future__ import absolute_import
 
 import logging
-from binascii import hexlify
 
 from twisted.web import resource
 from twisted.web.server import NOT_DONE_YET
 
 import Tribler.Core.Utilities.json_util as json
-from Tribler.Core.Utilities.unicode import recursive_unicode
+from Tribler.Core.Utilities.unicode import hexlify, recursive_unicode
 
 
 class LibTorrentEndpoint(resource.Resource):
@@ -73,7 +72,7 @@ class LibTorrentSettingsEndpoint(resource.Resource):
         lt_session = self.session.lm.ltmgr.ltsessions[hop]
         if hop == 0:
             lt_settings = self.session.lm.ltmgr.ltsettings[lt_session]
-            lt_settings['peer_fingerprint'] = hexlify(lt_settings['peer_fingerprint']).decode('utf-8')
+            lt_settings['peer_fingerprint'] = hexlify(lt_settings['peer_fingerprint'])
         else:
             lt_settings = lt_session.get_settings()
 

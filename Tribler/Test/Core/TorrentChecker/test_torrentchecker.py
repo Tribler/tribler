@@ -3,7 +3,6 @@ from __future__ import absolute_import
 import os
 import socket
 import time
-from binascii import hexlify
 
 from pony.orm import db_session
 
@@ -16,6 +15,7 @@ from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import LEGACY_E
 from Tribler.Core.Modules.tracker_manager import TrackerManager
 from Tribler.Core.TorrentChecker.session import HttpTrackerSession, UdpSocketManager
 from Tribler.Core.TorrentChecker.torrent_checker import TorrentChecker
+from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.tools import trial_timeout

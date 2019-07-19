@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from binascii import hexlify, unhexlify
+from binascii import unhexlify
 
 from anydex.wallet.tc_wallet import TrustchainWallet
 
@@ -12,6 +12,7 @@ from ipv8.test.mocking.ipv8 import MockIPv8
 from twisted.internet.defer import inlineCallbacks
 
 import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.tools import trial_timeout
 
@@ -65,7 +66,7 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
             self.assertTrue("statistics" in response_json)
             stats = response_json["statistics"]
             self.assertEqual(stats["id"], hexlify(self.session.lm.trustchain_community.
-                                                  my_peer.public_key.key_to_bin()).decode('utf-8'))
+                                                  my_peer.public_key.key_to_bin()))
             self.assertEqual(stats["total_blocks"], 3)
             self.assertEqual(stats["total_up"], 1024)
             self.assertEqual(stats["total_down"], 2048)
@@ -73,7 +74,7 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
             self.assertEqual(stats["peers_that_helped_pk"], 1)
             self.assertIn("latest_block", stats)
             self.assertNotEqual(stats["latest_block"]["insert_time"], "")
-            self.assertEqual(stats["latest_block"]["hash"], hexlify(block.hash).decode('utf-8'))
+            self.assertEqual(stats["latest_block"]["hash"], hexlify(block.hash))
             self.assertEqual(stats["latest_block"]["link_public_key"], "deadbeef")
             self.assertEqual(stats["latest_block"]["link_sequence_number"], 21)
             self.assertEqual(stats["latest_block"]["up"], 42)
@@ -93,7 +94,7 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
             self.assertTrue("statistics" in response_json)
             stats = response_json["statistics"]
             self.assertEqual(stats["id"], hexlify(self.session.lm.trustchain_community.my_peer.
-                                                  public_key.key_to_bin()).decode('utf-8'))
+                                                  public_key.key_to_bin()))
             self.assertEqual(stats["total_blocks"], 0)
             self.assertEqual(stats["total_up"], 0)
             self.assertEqual(stats["total_down"], 0)

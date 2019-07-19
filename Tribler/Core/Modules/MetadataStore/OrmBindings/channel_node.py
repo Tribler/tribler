@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import random
-from binascii import hexlify
 from datetime import datetime
 
 from ipv8.database import database_blob
@@ -10,10 +9,9 @@ from ipv8.keyvault.crypto import default_eccrypto
 from pony import orm
 from pony.orm.core import DEFAULT
 
-from six import binary_type
-
 from Tribler.Core.Modules.MetadataStore.serialization import (
     CHANNEL_NODE, ChannelNodePayload, DELETED, DeletedMetadataPayload)
+from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.exceptions import InvalidChannelNodeException, InvalidSignatureException
 
 # Metadata, torrents and channel statuses
@@ -128,9 +126,9 @@ def define_binding(db, logger=None, key=None, clock=None):
                         raise InvalidSignatureException(
                             ("Attempted to create %s object with invalid signature/PK: " % str(
                                 self.__class__.__name__)) +
-                            (hexlify(kwargs["signature"]).decode('utf-8')
+                            (hexlify(kwargs["signature"])
                              if "signature" in kwargs else "empty signature ") + " / " +
-                            (hexlify(kwargs["public_key"]).decode('utf-8') if "public_key" in kwargs else " empty PK"))
+                            (hexlify(kwargs["public_key"]) if "public_key" in kwargs else " empty PK"))
 
             if private_key_override:
                 # Get default values for Pony class attributes. We have to do it manually because we need

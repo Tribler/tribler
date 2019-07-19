@@ -3,7 +3,6 @@ from __future__ import absolute_import
 import base64
 import os
 import shutil
-from binascii import hexlify
 
 from pony.orm import db_session
 
@@ -15,6 +14,7 @@ import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import NEW, TODELETE, UPDATED
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.network_utils import get_random_port
+from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.common import TORRENT_UBUNTU_FILE
@@ -264,7 +264,7 @@ class TestMyChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
 
         self.should_check_equality = False
         self.create_my_channel()
-        post_params = {'status': TODELETE, 'infohashes': hexlify(b'1' * 20).decode('utf-8')}
+        post_params = {'status': TODELETE, 'infohashes': hexlify(b'1' * 20)}
         return self.do_request('mychannel/torrents', request_type='POST', post_data=post_params, expected_code=200)\
             .addCallback(on_response)
 
@@ -479,5 +479,5 @@ class TestMyChannelSpecificTorrentEndpoint(BaseTestMyChannelEndpoint):
         self.should_check_equality = False
         self.create_my_channel()
         post_params = {'title': new_title, 'tags': new_tags}
-        return self.do_request('mychannel/torrents/%s' % hexlify(b'0' * 20).decode('utf-8'),
+        return self.do_request('mychannel/torrents/%s' % hexlify(b'0' * 20),
                                post_data=post_params, request_type='PATCH', expected_code=200).addCallback(on_response)

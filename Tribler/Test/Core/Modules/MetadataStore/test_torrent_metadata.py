@@ -2,7 +2,7 @@
 from __future__ import absolute_import
 
 import os
-from binascii import hexlify, unhexlify
+from binascii import unhexlify
 from datetime import datetime
 
 from ipv8.keyvault.crypto import default_eccrypto
@@ -18,6 +18,7 @@ from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import TODELETE
 from Tribler.Core.Modules.MetadataStore.OrmBindings.torrent_metadata import tdef_to_metadata_dict
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Test.Core.base_test import TriblerCoreTest
 from Tribler.Test.common import TORRENT_UBUNTU_FILE
 from Tribler.pyipv8.ipv8.database import database_blob
@@ -200,7 +201,7 @@ class TestTorrentMetadata(TriblerCoreTest):
         channel = self.mds.ChannelMetadata(title='My channel', infohash=os.urandom(20))
 
         # Search with the hex encoded channel public key
-        query = '"%s"*' % hexlify(channel.public_key).decode('utf-8')
+        query = '"%s"*' % hexlify(channel.public_key)
         results = self.mds.ChannelMetadata.get_entries(query_filter=query)[:]
         self.assertEqual(results[0], channel)
 

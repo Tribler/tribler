@@ -1,9 +1,10 @@
 from __future__ import absolute_import
 
 import logging
-from binascii import hexlify
 
 from ipv8.taskmanager import TaskManager
+
+from Tribler.Core.Utilities.unicode import hexlify
 
 
 class BaseSource(TaskManager):
@@ -58,9 +59,9 @@ class ChannelSource(BaseSource):
 
         # Add torrents from database
         for torrent in channel.contents_list:
-            self.torrent_insert_callback(hexlify(self.source).decode('utf-8'),
-                                         hexlify(torrent.infohash).decode('utf-8'),
+            self.torrent_insert_callback(hexlify(self.source),
+                                         hexlify(torrent.infohash),
                                          torrent.title)
 
     def __str__(self):
-        return 'channel:' + hexlify(self.source).decode('utf-8')
+        return 'channel:' + hexlify(self.source)

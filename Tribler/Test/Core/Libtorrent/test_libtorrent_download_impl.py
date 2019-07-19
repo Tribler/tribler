@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import binascii
 import os
 import shutil
 
@@ -17,6 +16,7 @@ from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImp
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
+from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.simpledefs import DLMODE_VOD, DLSTATUS_DOWNLOADING
 from Tribler.Test.Core.base_test import MockObject, TriblerCoreTest
 from Tribler.Test.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE
@@ -186,7 +186,7 @@ class TestLibtorrentDownloadImpl(TestAsServer):
             """
             check if resume data is ready
             """
-            basename = binascii.hexlify(tdef.get_infohash()).decode('utf-8') + '.conf'
+            basename = hexlify(tdef.get_infohash()) + '.conf'
             filename = os.path.join(self.session.get_downloads_config_dir(), basename)
 
             dcfg = DownloadConfig.load(filename)
@@ -219,7 +219,7 @@ class TestLibtorrentDownloadImpl(TestAsServer):
             """
             callback after finishing setup in LibtorrentDownloadImpl
             """
-            basename = binascii.hexlify(tdef.get_infohash()).decode('utf-8') + '.state'
+            basename = hexlify(tdef.get_infohash()) + '.state'
             filename = os.path.join(self.session.get_downloads_config_dir(), basename)
 
             self.assertFalse(os.path.isfile(filename))

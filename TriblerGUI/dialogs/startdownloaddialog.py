@@ -6,7 +6,6 @@ from PyQt5 import uic
 from PyQt5.QtCore import QTimer, Qt, pyqtSignal
 from PyQt5.QtWidgets import QFileDialog, QSizePolicy, QTreeWidgetItem
 
-from six import ensure_binary
 from six.moves import xrange
 from six.moves.urllib.parse import unquote_plus
 

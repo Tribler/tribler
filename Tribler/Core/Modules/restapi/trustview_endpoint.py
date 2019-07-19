@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 import logging
-from binascii import hexlify, unhexlify
+from binascii import unhexlify
 
 from networkx.readwrite import json_graph
 
@@ -9,6 +9,7 @@ from twisted.web import resource
 
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.TrustCalculation.local_view import NodeVision
+from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD
 
 
@@ -32,7 +33,7 @@ class TrustViewEndpoint(resource.Resource):
     def initialize_graph(self):
         if not self.initialized and self.session.lm.trustchain_community and not self.local_view:
             pub_key = self.session.lm.trustchain_community.my_peer.public_key.key_to_bin()
-            self.root_public_key = hexlify(pub_key).decode('utf-8')
+            self.root_public_key = hexlify(pub_key)
             self.local_view = NodeVision(self.root_public_key)
             self.trustchain_db = self.session.lm.trustchain_community.persistence
             self.initialized = True
@@ -48,12 +49,12 @@ class TrustViewEndpoint(resource.Resource):
 
         diff = block.transaction[b'up'] - block.transaction[b'down']
         if diff < 0:
-            return {'downloader': hexlify(block.public_key).decode('utf-8'),
-                    'uploader': hexlify(block.link_public_key).decode('utf-8'),
+            return {'downloader': hexlify(block.public_key),
+                    'uploader': hexlify(block.link_public_key),
                     'amount': diff * -1
                    }
-        return {'downloader': hexlify(block.link_public_key).decode('utf-8'),
-                'uploader': hexlify(block.public_key).decode('utf-8'),
+        return {'downloader': hexlify(block.link_public_key),
+                'uploader': hexlify(block.public_key),
                 'amount': diff
                }
 
@@ -61,7 +62,7 @@ class TrustViewEndpoint(resource.Resource):
         if block.hash not in self.transactions and block.type == b'tribler_bandwidth':
             self.transactions[block.hash] = self.block_to_edge(block)
             # Update token balance
-            hex_public_key = hexlify(block.public_key).decode('utf-8')
+            hex_public_key = hexlify(block.public_key)
             node_balance = self.token_balance.get(hex_public_key, dict())
             if block.sequence_number > node_balance.get('sequence_number', 0):
                 node_balance['sequence_number'] = block.sequence_number

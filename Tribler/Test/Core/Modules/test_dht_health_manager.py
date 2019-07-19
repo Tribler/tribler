@@ -1,10 +1,11 @@
 from __future__ import absolute_import
 
-from binascii import hexlify, unhexlify
+from binascii import unhexlify
 
 from twisted.internet.defer import Deferred, inlineCallbacks
 
 from Tribler.Core.Modules.dht_health_manager import DHTHealthManager
+from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Test.Core.base_test import MockObject, TriblerCoreTest
 from Tribler.Test.tools import trial_timeout
 

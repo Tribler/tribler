@@ -5,7 +5,7 @@ import codecs
 import json
 import logging
 import os
-from binascii import hexlify, unhexlify
+from binascii import unhexlify
 
 from ipv8.database import database_blob
 
@@ -23,7 +23,7 @@ import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import entries_to_chunk
 from Tribler.Core.Modules.restapi.metadata_endpoint import SpecificChannelTorrentsEndpoint
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.Utilities.unicode import recursive_unicode
+from Tribler.Core.Utilities.unicode import hexlify, recursive_unicode
 from Tribler.Core.Utilities.utilities import http_get, is_infohash, parse_magnetlink
 from Tribler.Core.exceptions import DuplicateTorrentFileError
 from Tribler.community.gigachannel.community import max_entries, maximum_payload_size
@@ -65,7 +65,7 @@ class MyChannelEndpoint(BaseMyChannelEndpoint):
 
             return json.twisted_dumps({
                 'mychannel': {
-                    'public_key': hexlify(my_channel.public_key).decode('utf-8'),
+                    'public_key': hexlify(my_channel.public_key),
                     'name': my_channel.title,
                     'description': my_channel.tags,
                     'dirty': my_channel.dirty
@@ -113,7 +113,7 @@ class MyChannelEndpoint(BaseMyChannelEndpoint):
         title = unquote(parameters['name'][0])
         self.session.lm.mds.ChannelMetadata.create_channel(title, description)
         return json.twisted_dumps({
-            "added": hexlify(my_channel_pk).decode('utf-8'),
+            "added": hexlify(my_channel_pk),
         })
 
 
@@ -133,7 +133,8 @@ class SpecificChannelExportEndpoint(BaseMyChannelEndpoint):
             serialized_data = entries_to_chunk([my_channel] + random_channel_torrents, maximum_payload_size)[0]
 
         request.setHeader(b'content-type', 'application/x-bittorrent')
-        request.setHeader(b'Content-Disposition', 'attachment; filename=%s.mdblob.lz4' % hexlify(my_channel.public_key))
+        request.setHeader(b'Content-Disposition', 'attachment; filename=%s.mdblob.lz4'
+                          % hexlify(my_channel.public_key).encode('utf-8'))
         return serialized_data
 
 

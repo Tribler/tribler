@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import os
-from binascii import hexlify
 
 from ipv8.database import database_blob
 from ipv8.keyvault.crypto import default_eccrypto
@@ -14,6 +13,7 @@ from twisted.internet.defer import inlineCallbacks
 from Tribler.Core.Modules.MetadataStore.serialization import (
     CHANNEL_NODE, ChannelNodePayload, KeysMismatchException, NULL_KEY, NULL_SIG)
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
+from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.exceptions import InvalidChannelNodeException, InvalidSignatureException
 from Tribler.Test.Core.base_test import TriblerCoreTest
 

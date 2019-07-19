@@ -4,7 +4,6 @@ import logging
 import random
 import socket
 import time
-from binascii import hexlify
 
 from ipv8.database import database_blob
 from ipv8.taskmanager import TaskManager
@@ -23,6 +22,7 @@ from Tribler.Core.Modules.MetadataStore.serialization import REGULAR_TORRENT
 from Tribler.Core.TorrentChecker.session import FakeBep33DHTSession, FakeDHTSession, UdpSocketManager, \
     create_tracker_session
 from Tribler.Core.Utilities.tracker_utils import MalformedTrackerURLException
+from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.Utilities.utilities import has_bep33_support, is_valid_url
 from Tribler.Core.simpledefs import NTFY_TORRENT, NTFY_UPDATE
 
@@ -275,12 +275,12 @@ class TorrentChecker(TaskManager):
                 time_diff = time.time() - last_check
                 if time_diff < MIN_TORRENT_CHECK_INTERVAL and not scrape_now:
                     self._logger.debug("time interval too short, not doing torrent health check for %s",
-                                       hexlify(infohash).decode('utf-8'))
+                                       hexlify(infohash))
                     return succeed({
                         "db": {
                             "seeders": result.seeders,
                             "leechers": result.leechers,
-                            "infohash": hexlify(infohash).decode('utf-8')
+                            "infohash": hexlify(infohash)
                         }
                     })
 
@@ -363,7 +363,7 @@ class TorrentChecker(TaskManager):
         leechers = response['leechers']
         last_check = response['last_check']
 
-        self._logger.debug(u"Update result %s/%s for %s", seeders, leechers, hexlify(infohash).decode('utf-8'))
+        self._logger.debug(u"Update result %s/%s for %s", seeders, leechers, hexlify(infohash))
 
         with db_session:
             # Update torrent state

@@ -11,7 +11,6 @@ import os
 import shutil
 import sys
 import time
-from binascii import hexlify
 from threading import RLock
 
 import libtorrent as lt
@@ -29,7 +28,7 @@ from Tribler.Core.Libtorrent import checkHandleAndSynchronize
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities import maketorrent
 from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
-from Tribler.Core.Utilities.unicode import ensure_unicode
+from Tribler.Core.Utilities.unicode import ensure_unicode, hexlify
 from Tribler.Core.exceptions import SaveResumeDataError
 from Tribler.Core.osutils import fix_filebasename
 from Tribler.Core.simpledefs import DLMODE_VOD, DLSTATUS_SEEDING, DLSTATUS_STOPPED
@@ -288,7 +287,7 @@ class LibtorrentDownloadImpl(TaskManager):
                     atp["resume_data"] = lt.bencode(resume_data)
             else:
                 atp["url"] = self.tdef.get_url() or \
-                             "magnet:?xt=urn:btih:" + hexlify(self.tdef.get_infohash()).decode('utf-8')
+                             "magnet:?xt=urn:btih:" + hexlify(self.tdef.get_infohash())
                 atp["name"] = self.tdef.get_name_as_unicode()
 
         def on_torrent_added(handle):
@@ -515,7 +514,7 @@ class LibtorrentDownloadImpl(TaskManager):
         self.config.set_engineresumedata(resume_data)
 
         # Save it to file
-        basename = hexlify(resume_data[b'info-hash']).decode('utf-8') + '.conf'
+        basename = hexlify(resume_data[b'info-hash']) + '.conf'
         filename = os.path.join(self.session.get_downloads_config_dir(), basename)
         self.config.write(filename)
         self._logger.debug('Saving download config to file %s', filename)
@@ -725,7 +724,7 @@ class LibtorrentDownloadImpl(TaskManager):
                 else:
                     filepriorities.append(0)
                     new_path = os.path.join(self.unwanted_directory_name,
-                                            '%s%d' % (hexlify(self.tdef.get_infohash()).decode('utf-8'), index))
+                                            '%s%d' % (hexlify(self.tdef.get_infohash()), index))
 
                 # as from libtorrent 1.0, files returning file_storage (lazy-iterable)
                 if hasattr(lt, 'file_storage') and isinstance(torrent_storage, lt.file_storage):
@@ -861,7 +860,7 @@ class LibtorrentDownloadImpl(TaskManager):
                 extended_version = peer_info.client
             except:
                 extended_version = 'unknown'
-            peer_dict = {'id': hexlify(peer_info.pid.to_bytes()).decode('utf-8'),
+            peer_dict = {'id': hexlify(peer_info.pid.to_bytes()),
                          'extended_version': extended_version,
                          'ip': peer_info.ip[0],
                          'port': peer_info.ip[1],
@@ -1044,7 +1043,7 @@ class LibtorrentDownloadImpl(TaskManager):
         if not self.handle or not self.handle.is_valid():
             # Libtorrent hasn't received or initialized this download yet
             # 1. Check if we have data for this infohash already (don't overwrite it if we do!)
-            basename = hexlify(self.tdef.get_infohash()).decode('utf-8') + '.state'
+            basename = hexlify(self.tdef.get_infohash()) + '.state'
             filename = os.path.join(self.session.get_downloads_config_dir(), basename)
             if not os.path.isfile(filename):
                 # 2. If there is no saved data for this infohash, checkpoint it without data so we do not

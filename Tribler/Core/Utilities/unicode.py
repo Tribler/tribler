@@ -5,7 +5,7 @@ Author(s): Arno Bakker
 """
 from __future__ import absolute_import
 
-import sys
+import binascii
 
 import chardet
 
@@ -66,3 +66,6 @@ def recursive_bytes(obj):
     elif isinstance(obj, text_type):
         return obj.encode('utf8')
     return obj
+
+def hexlify(binary):
+    return binascii.hexlify(binary).decode('utf-8')

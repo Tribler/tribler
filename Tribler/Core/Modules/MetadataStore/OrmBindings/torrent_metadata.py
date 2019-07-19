@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from binascii import hexlify, unhexlify
+from binascii import unhexlify
 from datetime import datetime
 from struct import unpack
 
@@ -17,6 +17,7 @@ from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import COMMITTE
 from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, EPOCH, REGULAR_TORRENT, \
     TorrentMetadataPayload
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
+from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.Utilities.utilities import is_channel_public_key, is_hex_string, is_infohash
 
 NULL_KEY_SUBST = b"\00"
@@ -91,7 +92,7 @@ def define_binding(db):
 
         def get_magnet(self):
             return ("magnet:?xt=urn:btih:%s&dn=%s" %
-                    (hexlify(self.infohash).decode('utf-8'), self.title)) + \
+                    (hexlify(self.infohash), self.title)) + \
                    ("&tr=%s" % self.tracker_info if self.tracker_info else "")
 
         @classmethod
@@ -234,9 +235,9 @@ def define_binding(db):
             epoch = datetime.utcfromtimestamp(0)
             simple_dict = {
                 "id": self.id_,
-                "public_key": hexlify(self.public_key or NULL_KEY_SUBST).decode('utf-8'),
+                "public_key": hexlify(self.public_key or NULL_KEY_SUBST),
                 "name": self.title,
-                "infohash": hexlify(self.infohash).decode('utf-8'),
+                "infohash": hexlify(self.infohash),
                 "size": self.size,
                 "category": self.tags,
                 "num_seeders": self.health.seeders,

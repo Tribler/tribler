@@ -1,11 +1,12 @@
 from __future__ import absolute_import
 
 import logging
-from binascii import hexlify
 
 from anydex.wallet.tc_wallet import TrustchainWallet
 
 from ipv8.util import addCallback
+
+from Tribler.Core.Utilities.unicode import hexlify
 
 
 class PayoutManager(object):
@@ -38,7 +39,7 @@ class PayoutManager(object):
                 addCallback(deferred, lambda _: None)
 
         if total_bytes >= 1024 * 1024:  # Do at least 1MB payouts
-            self.logger.info("Doing direct payout to %s (%d bytes)", hexlify(mid).decode('utf-8'), total_bytes)
+            self.logger.info("Doing direct payout to %s (%d bytes)", hexlify(mid), total_bytes)
             self.dht.connect_peer(mid).addCallbacks(on_nodes, lambda _: on_nodes([]))
 
         # Remove the outstanding bytes; otherwise we will payout again
@@ -48,8 +49,8 @@ class PayoutManager(object):
         """
         Update a peer with a specific mid for a specific infohash.
         """
-        self.logger.debug("Updating peer with mid %s and ih %s (balance: %d)", hexlify(mid).decode('utf-8'),
-                          hexlify(infohash).decode('utf-8'), balance)
+        self.logger.debug("Updating peer with mid %s and ih %s (balance: %d)", hexlify(mid),
+                          hexlify(infohash), balance)
 
         if mid not in self.tribler_peers:
             self.tribler_peers[mid] = {}

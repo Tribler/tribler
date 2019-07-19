@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import logging
 import os
-from binascii import hexlify, unhexlify
+from binascii import unhexlify
 
 from libtorrent import bencode, create_torrent
 
@@ -21,7 +21,7 @@ from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, Ch
 from Tribler.Core.Modules.MetadataStore.store import UNKNOWN_CHANNEL, UPDATED_OUR_VERSION
 from Tribler.Core.Modules.restapi.util import return_handled_exception
 from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
-from Tribler.Core.Utilities.unicode import recursive_unicode
+from Tribler.Core.Utilities.unicode import hexlify, recursive_unicode
 from Tribler.Core.Utilities.utilities import unichar_string
 from Tribler.Core.exceptions import InvalidSignatureException
 from Tribler.Core.simpledefs import DLMODE_VOD, DOWNLOAD, UPLOAD, dlstatus_strings
@@ -239,7 +239,7 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
             download_json = {
                 "name": download_name,
                 "progress": state.get_progress(),
-                "infohash": hexlify(tdef.get_infohash()).decode('utf-8'),
+                "infohash": hexlify(tdef.get_infohash()),
                 "speed_down": state.get_current_payload_speed(DOWNLOAD),
                 "speed_up": state.get_current_payload_speed(UPLOAD),
                 "status": dlstatus_strings[state.get_status()],
@@ -329,7 +329,7 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
 
         def download_added(download):
             request.write(json.twisted_dumps({"started": True,
-                                              "infohash": hexlify(download.get_def().get_infohash()).decode('utf-8')}))
+                                              "infohash": hexlify(download.get_def().get_infohash())}))
             request.finish()
 
         def on_error(error):
@@ -350,7 +350,7 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                                     (status == UPDATED_OUR_VERSION and node.metadata_type == CHANNEL_TORRENT)):
                                 node.subscribed = True
                                 return json.twisted_dumps(
-                                    {"started": True, "infohash": hexlify(node.infohash).decode('utf-8')})
+                                    {"started": True, "infohash": hexlify(node.infohash)})
                         return json.twisted_dumps({"error": "Could not import Tribler metadata file"})
                     except IOError:
                         request.setResponseCode(http.BAD_REQUEST)
@@ -417,7 +417,7 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
             Success callback
             """
             request.write(json.twisted_dumps({"removed": True,
-                                              "infohash": hexlify(download.get_def().get_infohash()).decode('utf-8')}))
+                                              "infohash": hexlify(download.get_def().get_infohash())}))
             request.finish()
 
         def _on_remove_failure(failure):
@@ -485,7 +485,7 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
                 """
                 request.write(json.twisted_dumps(
                     {"modified": True,
-                     "infohash": hexlify(download.get_def().get_infohash()).decode('utf-8')})
+                     "infohash": hexlify(download.get_def().get_infohash())})
                 )
                 request.finish()
 
@@ -535,7 +535,7 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
                 return json.twisted_dumps({"error": "unknown state parameter"})
 
         return json.twisted_dumps({"modified": True,
-                                   "infohash": hexlify(download.get_def().get_infohash()).decode('utf-8')})
+                                   "infohash": hexlify(download.get_def().get_infohash())})
 
 
 class DownloadExportTorrentEndpoint(DownloadBaseEndpoint):
@@ -576,7 +576,8 @@ class DownloadExportTorrentEndpoint(DownloadBaseEndpoint):
         bencoded_torrent = bencode(torrent)
 
         request.setHeader(b'content-type', 'application/x-bittorrent')
-        request.setHeader(b'Content-Disposition', 'attachment; filename=%s.torrent' % hexlify(self.infohash))
+        request.setHeader(b'Content-Disposition', 'attachment; filename=%s.torrent'
+                          % hexlify(self.infohash).encode('utf-8'))
         return bencoded_torrent
 
 

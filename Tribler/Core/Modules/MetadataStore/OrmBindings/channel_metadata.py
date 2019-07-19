@@ -1,7 +1,6 @@
 from __future__ import absolute_import, division
 
 import os
-from binascii import hexlify
 from datetime import datetime
 
 from ipv8.database import database_blob
@@ -18,7 +17,7 @@ from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import (
 from Tribler.Core.Modules.MetadataStore.OrmBindings.torrent_metadata import tdef_to_metadata_dict
 from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, ChannelMetadataPayload, REGULAR_TORRENT
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.Utilities.unicode import ensure_unicode
+from Tribler.Core.Utilities.unicode import ensure_unicode, hexlify
 from Tribler.Core.exceptions import DuplicateChannelIdError, DuplicateTorrentFileError
 
 CHANNEL_DIR_NAME_PK_LENGTH = 32  # Its not 40 so it could be distinguished from infohash
@@ -80,7 +79,7 @@ def entries_to_chunk(metadata_list, chunk_size, start_index=0):
     chunk = b''.join(out_list)
     if last_entry_index is None:
         raise Exception('Serialized entry size > blob size limit!',
-                        hexlify(metadata_list[start_index].signature).decode('utf-8'))
+                        hexlify(metadata_list[start_index].signature))
     return chunk, last_entry_index + 1
 
 
@@ -229,7 +228,7 @@ def define_binding(db):
             except IOError:
                 self._logger.error(
                     "Error during channel torrent commit, not going to garbage collect the channel. Channel %s",
-                    hexlify(self.public_key).decode('utf-8'))
+                    hexlify(self.public_key))
             else:
                 if new_start_timestamp:
                     update_dict['start_timestamp'] = new_start_timestamp
@@ -247,7 +246,7 @@ def define_binding(db):
                 self.to_file(os.path.join(self._channels_dir, self.dirname + BLOB_EXTENSION))
 
                 self._logger.info("Channel %s committed with %i new entries. New version is %i",
-                                  hexlify(self.public_key).decode('utf-8'), len(md_list), update_dict['timestamp'])
+                                  hexlify(self.public_key), len(md_list), update_dict['timestamp'])
             return torrent
 
         @db_session
@@ -325,7 +324,7 @@ def define_binding(db):
         @property
         def dirname(self):
             # Have to limit this to support Windows file path length limit
-            return hexlify(self.public_key)[:CHANNEL_DIR_NAME_PK_LENGTH].decode('utf-8') + "{:0>16x}".format(self.id_)
+            return hexlify(self.public_key)[:CHANNEL_DIR_NAME_PK_LENGTH] + "{:0>16x}".format(self.id_)
 
         @property
         @db_session

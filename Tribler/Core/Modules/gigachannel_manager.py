@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import os
-from binascii import hexlify
 
 from ipv8.taskmanager import TaskManager
 
@@ -14,6 +13,7 @@ from twisted.internet.threads import deferToThread
 from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import COMMITTED
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
+from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.simpledefs import DLSTATUS_SEEDING, NTFY_CHANNEL_ENTITY, NTFY_UPDATE
 
 
@@ -143,7 +143,7 @@ class GigaChannelManager(TaskManager):
             try:
                 if not self.session.has_download(channel.infohash):
                     self._logger.info("Downloading new channel version %s ver %i->%i",
-                                      hexlify(channel.public_key).decode('utf-8'),
+                                      hexlify(channel.public_key),
                                       channel.local_version, channel.timestamp)
                     self.download_channel(channel)
                 elif self.session.get_download(channel.infohash).get_state().get_status() == DLSTATUS_SEEDING:
@@ -153,7 +153,7 @@ class GigaChannelManager(TaskManager):
                     self.channels_processing_queue[channel.infohash] = (PROCESS_CHANNEL_DIR, channel)
             except Exception:
                 self._logger.exception("Error when tried to download a newer version of channel %s",
-                                       hexlify(channel.public_key).decode('utf-8'))
+                                       hexlify(channel.public_key))
 
     # TODO: finish this routine
     # This thing should check if the files in the torrent we're going to delete are used in another torrent for
@@ -200,7 +200,7 @@ class GigaChannelManager(TaskManager):
         deferred = self.session.remove_download(d, remove_content=remove_content)
         deferred.addCallbacks(_on_success, _on_failure)
         self.register_task(u'remove_channel' + d.tdef.get_name_utf8() + u'-' +
-                           hexlify(d.tdef.get_infohash()).decode('utf-8'), deferred)
+                           hexlify(d.tdef.get_infohash()), deferred)
 
         """
         def _on_torrents_removed(torrent):

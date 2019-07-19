@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import struct
-from binascii import hexlify
 
 from libtorrent import bencode
 
@@ -12,6 +11,7 @@ from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.Session import Session
 from Tribler.Core.TorrentChecker.session import FakeBep33DHTSession, FakeDHTSession, HttpTrackerSession, \
     UdpTrackerSession
+from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Test.Core.base_test import MockObject, TriblerCoreTest
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.tools import trial_timeout

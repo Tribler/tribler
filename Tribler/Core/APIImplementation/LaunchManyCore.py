@@ -10,7 +10,7 @@ import os
 import sys
 import time
 import time as timemod
-from binascii import hexlify, unhexlify
+from binascii import unhexlify
 from glob import iglob
 from threading import Event, enumerate as enumerate_threads
 from traceback import print_exc
@@ -48,6 +48,7 @@ from Tribler.Core.TorrentChecker.torrent_checker import TorrentChecker
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.Utilities.install_dir import get_lib_path
+from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.Video.VideoServer import VideoServer
 from Tribler.Core.bootstrap import Bootstrap
 from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_STOPPED_ON_ERROR, NTFY_ERROR,
@@ -650,7 +651,7 @@ class TriblerLaunchMany(TaskManager):
                 config_dir = self.session.get_downloads_config_dir()
 
                 # Remove checkpoint
-                hexinfohash = hexlify(infohash).decode('utf-8')
+                hexinfohash = hexlify(infohash)
                 try:
                     basename = hexinfohash + '.conf'
                     filename = os.path.join(config_dir, basename)
@@ -792,7 +793,7 @@ class TriblerLaunchMany(TaskManager):
 
     def load_download_config_by_infohash(self, infohash):
         try:
-            basename = hexlify(infohash).decode('utf-8') + '.conf'
+            basename = hexlify(infohash) + '.conf'
             filename = os.path.join(self.session.get_downloads_config_dir(), basename)
             if os.path.exists(filename):
                 return self.load_download_config(filename)

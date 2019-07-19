@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import hashlib
 import logging
-from binascii import hexlify
 from copy import deepcopy
 
 from libtorrent import bdecode, bencode
@@ -16,7 +15,7 @@ from twisted.web.server import NOT_DONE_YET
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.MetadataStore.OrmBindings.torrent_metadata import tdef_to_metadata_dict
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.Utilities.unicode import recursive_unicode
+from Tribler.Core.Utilities.unicode import hexlify, recursive_unicode
 from Tribler.Core.Utilities.utilities import  http_get, parse_magnetlink, unichar_string
 from Tribler.Core.exceptions import HttpError
 
@@ -88,9 +87,9 @@ class TorrentInfoEndpoint(resource.Resource):
             encoded_metainfo['download_exists'] = infohash in self.session.lm.downloads
             # FIXME: json.dumps garbles binary data that is used by the 'pieces' field
             # However, this is fine as long as the GUI does not use this field.
-            encoded_metainfo[b'info'][b'pieces'] = hexlify(encoded_metainfo[b'info'][b'pieces'])
+            encoded_metainfo[b'info'][b'pieces'] = hexlify(encoded_metainfo[b'info'][b'pieces']).encode('utf-8')
             encoded_metainfo = hexlify(json.dumps(recursive_unicode(encoded_metainfo), ensure_ascii=False)
-                                       .encode('utf-8')).decode('utf-8')
+                                       .encode('utf-8'))
 
             request.write(json.twisted_dumps({"metainfo": encoded_metainfo}))
             self.finish_request(request)
