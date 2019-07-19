@@ -3,4 +3,6 @@ if which pip >/dev/null 2>&1; then
     pip install --user pony>=0.7.9
     # 2019-02-13; Add lz4 compression ; Remove this once this library is updated in Debian repo
     pip install --user lz4
+    # We need the latest version of six for the ensure_str method
+    pip install --user six
 fi
