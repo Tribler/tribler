@@ -4,8 +4,6 @@ import os
 from multiprocessing import Process, Value
 from time import sleep
 
-from six import text_type
-
 from Tribler.Core.Modules.process_checker import LOCK_FILE_NAME, ProcessChecker
 from Tribler.Test.test_as_server import AbstractServer
 
@@ -31,8 +29,8 @@ class TestProcessChecker(AbstractServer):
         self.state_dir = self.getStateDir()
 
     def create_lock_file_with_pid(self, pid):
-        with open(os.path.join(self.state_dir, LOCK_FILE_NAME), 'wb') as lock_file:
-            lock_file.write(text_type(pid).encode())
+        with open(os.path.join(self.state_dir, LOCK_FILE_NAME), 'w') as lock_file:
+            lock_file.write(str(pid))
 
     def test_create_lock_file(self):
         """

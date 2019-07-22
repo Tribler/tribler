@@ -34,9 +34,11 @@ class BaseTestMyChannelEndpoint(AbstractApiTest):
         with db_session:
             _ = self.session.lm.mds.ChannelMetadata.create_channel('test', 'test')
             for ind in xrange(5):
-                _ = self.session.lm.mds.TorrentMetadata(title='torrent%d' % ind, status=NEW, infohash=str(ind).encode()*20)
+                _ = self.session.lm.mds.TorrentMetadata(title='torrent%d' % ind, status=NEW,
+                                                        infohash=str(ind).encode() * 20)
             for ind in xrange(5, 9):
-                _ = self.session.lm.mds.TorrentMetadata(title='torrent%d' % ind, infohash=str(ind).encode()*20)
+                _ = self.session.lm.mds.TorrentMetadata(title='torrent%d' % ind,
+                                                        infohash=str(ind).encode() * 20)
 
     def setUpPreSession(self):
         super(BaseTestMyChannelEndpoint, self).setUpPreSession()

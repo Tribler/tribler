@@ -2,7 +2,8 @@ from __future__ import absolute_import
 
 import os
 
-from six import text_type, quote_plus
+from six import text_type
+from six.moves.urllib.parse import quote_plus
 
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, succeed

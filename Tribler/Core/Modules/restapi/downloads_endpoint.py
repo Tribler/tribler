@@ -483,10 +483,8 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
                 """
                 Success callback
                 """
-                request.write(json.twisted_dumps(
-                    {"modified": True,
-                     "infohash": hexlify(download.get_def().get_infohash())})
-                )
+                request.write(json.twisted_dumps({"modified": True,
+                                                  "infohash": hexlify(download.get_def().get_infohash())}))
                 request.finish()
 
             def _on_download_readd_failure(failure):

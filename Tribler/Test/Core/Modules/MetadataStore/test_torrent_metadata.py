@@ -23,6 +23,8 @@ from Tribler.Test.Core.base_test import TriblerCoreTest
 from Tribler.Test.common import TORRENT_UBUNTU_FILE
 from Tribler.pyipv8.ipv8.database import database_blob
 
+EMPTY_BLOB = database_blob(b"")
+
 
 def rnd_torrent():
     return {"title": "",
@@ -61,17 +63,16 @@ class TestTorrentMetadata(TriblerCoreTest):
         Test creating a free-for-all torrent entry
         """
         tdef = TorrentDef.load(TORRENT_UBUNTU_FILE)
-        pk_blob = database_blob(b"")
 
         # Make sure that FFA entry with the infohash that is already known to GigaChannel cannot be created
         signed_entry = self.mds.TorrentMetadata.from_dict(tdef_to_metadata_dict(tdef))
         self.mds.TorrentMetadata.add_ffa_from_dict(tdef_to_metadata_dict(tdef))
-        self.assertEqual(self.mds.TorrentMetadata.select(lambda g: g.public_key == pk_blob).count(), 0)
+        self.assertEqual(self.mds.TorrentMetadata.select(lambda g: g.public_key == EMPTY_BLOB).count(), 0)
 
         signed_entry.delete()
         # Create FFA entry
         self.mds.TorrentMetadata.add_ffa_from_dict(tdef_to_metadata_dict(tdef))
-        self.assertEqual(self.mds.TorrentMetadata.select(lambda g: g.public_key == pk_blob).count(), 1)
+        self.assertEqual(self.mds.TorrentMetadata.select(lambda g: g.public_key == EMPTY_BLOB).count(), 1)
 
     @db_session
     def test_sanitize_tdef(self):

@@ -20,6 +20,8 @@ from Tribler.Test.Core.base_test import MockObject
 from Tribler.community.gigachannel.community import GigaChannelCommunity
 from Tribler.pyipv8.ipv8.database import database_blob
 
+EMPTY_BLOB = database_blob(b"")
+
 
 class TestGigaChannelUnits(TestBase):
     """
@@ -195,13 +197,12 @@ class TestGigaChannelUnits(TestBase):
             self.assertEqual(len(torrents), 5)
 
             # Only non-legacy FFA torrents should be sent on search
-            empty_pk = database_blob(b"")
             torrents_ffa = self.nodes[1].overlay.metadata_store.TorrentMetadata.select(
-                lambda g: g.public_key == empty_pk)[:]
+                lambda g: g.public_key == EMPTY_BLOB)[:]
             self.assertEqual(len(torrents_ffa), 1)
             # Legacy FFA channel should not be sent
             channels_ffa = self.nodes[1].overlay.metadata_store.ChannelMetadata.select(
-                lambda g: g.public_key == empty_pk)[:]
+                lambda g: g.public_key == EMPTY_BLOB)[:]
             self.assertEqual(len(channels_ffa), 0)
         self.assertTrue(self.nodes[1].overlay.notified_results)
 

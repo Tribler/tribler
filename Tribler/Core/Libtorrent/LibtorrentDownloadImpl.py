@@ -50,7 +50,7 @@ class VODFile(object):
         self._download = d
 
         pieces = self._download.tdef.get_pieces()
-        self.pieces = [pieces[x:x + 20] for x in list(range(0, len(pieces), 20))]
+        self.pieces = [pieces[x:x + 20] for x in range(0, len(pieces), 20)]
         self.piecesize = self._download.tdef.get_piece_length()
 
         self.startpiece = get_info_from_handle(self._download.handle).map_file(
@@ -858,7 +858,7 @@ class LibtorrentDownloadImpl(TaskManager):
         for peer_info in peer_infos:
             try:
                 extended_version = peer_info.client
-            except:
+            except UnicodeDecodeError:
                 extended_version = 'unknown'
             peer_dict = {'id': hexlify(peer_info.pid.to_bytes()),
                          'extended_version': extended_version,

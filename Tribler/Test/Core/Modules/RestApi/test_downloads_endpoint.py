@@ -69,10 +69,10 @@ class TestDownloadsEndpoint(AbstractApiTest):
             downloads_json = json.twisted_loads(downloads)
             assertCountEqual(self, [downloads_json['downloads'][0][u'files'],
                                     downloads_json['downloads'][1][u'files']],
-                                   [[{u'included': True, u'index': 0, u'size': 1583233,
-                                      u'name': u'Tribler_4.1.7_src.zip', u'progress': 0.0}],
-                                    [{u'included': True, u'index': 0, u'size': 1942100,
-                                      u'name': u'video.avi', u'progress': 0.0}]])
+                             [[{u'included': True, u'index': 0, u'size': 1583233,
+                                u'name': u'Tribler_4.1.7_src.zip', u'progress': 0.0}],
+                              [{u'included': True, u'index': 0, u'size': 1942100,
+                                u'name': u'video.avi', u'progress': 0.0}]])
 
         video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
         self.session.start_download_from_tdef(video_tdef, DownloadConfig())
@@ -316,8 +316,8 @@ class TestDownloadsEndpoint(AbstractApiTest):
 
         request_deferred = self.do_request('downloads/%s' % infohash, post_data={"remove_data": True},
                                            expected_code=200, request_type='DELETE',
-                                           expected_json={u"removed": True,
-                                                          u"infohash": u"c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5"})
+                                           expected_json={"removed": True,
+                                                          "infohash": "c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5"})
         return request_deferred.addCallback(verify_removed)
 
     @trial_timeout(10)
@@ -351,8 +351,8 @@ class TestDownloadsEndpoint(AbstractApiTest):
 
         request_deferred = self.do_request('downloads/%s' % infohash, post_data={"state": "stop"},
                                            expected_code=200, request_type='PATCH',
-                                           expected_json={u"modified": True,
-                                                          u"infohash": u"c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5"})
+                                           expected_json={"modified": True,
+                                                          "infohash": "c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5"})
         return request_deferred.addCallback(verify_removed)
 
     @trial_timeout(10)
@@ -389,8 +389,8 @@ class TestDownloadsEndpoint(AbstractApiTest):
 
         return self.do_request('downloads/%s' % infohash, post_data={"selected_files": 0},
                                expected_code=200, request_type='PATCH',
-                               expected_json={u"modified": True,
-                                              u"infohash": u"c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5"}) \
+                               expected_json={"modified": True,
+                                              "infohash": "c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5"}) \
             .addCallback(verify_method_called)
 
     @trial_timeout(10)
@@ -422,8 +422,8 @@ class TestDownloadsEndpoint(AbstractApiTest):
 
         request_deferred = self.do_request('downloads/%s' % infohash, post_data={"state": "resume"},
                                            expected_code=200, request_type='PATCH',
-                                           expected_json={u"modified": True,
-                                                          u"infohash": u"c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5"})
+                                           expected_json={"modified": True,
+                                                          "infohash": "c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5"})
         return request_deferred.addCallback(verify_resumed)
 
     @trial_timeout(10)
@@ -447,8 +447,8 @@ class TestDownloadsEndpoint(AbstractApiTest):
 
         request_deferred = self.do_request('downloads/%s' % infohash, post_data={"state": "recheck"},
                                            expected_code=200, request_type='PATCH',
-                                           expected_json={u"modified": True,
-                                                          u"infohash": u"c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5"})
+                                           expected_json={"modified": True,
+                                                          "infohash": "c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5"})
         return request_deferred.addCallback(verify_rechecked)
 
     @trial_timeout(10)
