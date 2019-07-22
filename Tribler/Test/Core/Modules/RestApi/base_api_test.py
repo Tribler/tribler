@@ -2,6 +2,8 @@ from __future__ import absolute_import
 
 import os
 
+from six import text_type
+from six.moves.urllib.parse import quote_plus
 
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, succeed
@@ -17,7 +19,27 @@ from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.version import version_id
 from Tribler.Test.test_as_server import TestAsServer
 
-from TriblerGUI.tribler_request_manager import tribler_urlencode
+
+def tribler_urlencode(data):
+    # Convert all keys and values in the data to utf-8 unicode strings
+    utf8_items = []
+    for key, value in data.items():
+        if isinstance(value, list):
+            utf8_items.extend([tribler_urlencode_single(key, list_item) for list_item in value if value])
+        else:
+            utf8_items.append(tribler_urlencode_single(key, value))
+
+    data = "&".join(utf8_items)
+    return data
+
+
+def tribler_urlencode_single(key, value):
+    utf8_key = quote_plus(text_type(key).encode('utf-8'))
+    # Convert bool values to ints
+    if isinstance(value, bool):
+        value = int(value)
+    utf8_value = quote_plus(text_type(value).encode('utf-8'))
+    return "%s=%s" % (utf8_key, utf8_value)
 
 
 @implementer(IBodyProducer)
