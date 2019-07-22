@@ -176,7 +176,11 @@ def decode_request(orig_offset, data):
     assert version == SOCKS_VERSION, (version, SOCKS_VERSION)
     assert rsv == 0
 
-    offset, destination_address = __decode_address(address_type, offset, data)
+    try:
+        offset, destination_address = __decode_address(address_type, offset, data)
+    except IPV6AddrError:
+        logger.error("Not supporting IPv6 address in datagrams yet")
+        return orig_offset, None
 
     # Check if we could decode address, if not bail out
     if not destination_address:
