@@ -341,6 +341,10 @@ class TriblerLaunchMany(TaskManager):
         if self.session.config.get_ipv8_enabled() and self.session.config.get_trustchain_enabled():
             self.payout_manager = PayoutManager(self.trustchain_community, self.dht_community)
 
+        # Start bootstrap download if not already done
+        if not self.session.lm.bootstrap:
+            self.session.lm.start_bootstrap_download()
+
         self.initComplete = True
 
     def add(self, tdef, config, setupDelay=0, hidden=False,
@@ -359,6 +363,7 @@ class TriblerLaunchMany(TaskManager):
             if config.get_time_added() == 0:
                 config.set_time_added(int(timemod.time()))
 
+            hidden_torrent = hidden or config.get_bootstrap_download()
             # Check if running or saved on disk
             if infohash in self.downloads:
                 self._logger.info("Torrent already exists in the downloads. Infohash:%s", hexlify(infohash))
@@ -371,7 +376,7 @@ class TriblerLaunchMany(TaskManager):
             # Store in list of Downloads, always.
             self.downloads[infohash] = d
             setup_deferred = d.setup(config, wrapperDelay=setupDelay,
-                                     share_mode=share_mode, checkpoint_disabled=checkpoint_disabled, hidden=hidden)
+                                     share_mode=share_mode, checkpoint_disabled=checkpoint_disabled, hidden=hidden_torrent)
             setup_deferred.addCallback(self.on_download_handle_created)
 
         return d
