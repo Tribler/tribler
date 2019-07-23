@@ -7777,12 +7777,12 @@ padding-left: 2px;</string>
                    </column>
                    <column>
                     <property name="text">
-                     <string>↓ SPEED</string>
+                     <string>SPEED (DOWN)</string>
                     </property>
                    </column>
                    <column>
                     <property name="text">
-                     <string>↑ SPEED</string>
+                     <string>SPEED (UP)</string>
                     </property>
                    </column>
                    <column>
@@ -8404,12 +8404,12 @@ background-color: #303030;
                     </column>
                     <column>
                      <property name="text">
-                      <string>↓ SPEED</string>
+                      <string>SPEED (DOWN)</string>
                      </property>
                     </column>
                     <column>
                      <property name="text">
-                      <string>↑ SPEED</string>
+                      <string>SPEED (UP)</string>
                      </property>
                     </column>
                     <column>
