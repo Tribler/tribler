@@ -162,7 +162,7 @@ class DownloadState(object):
         """
         completion = []
 
-        if self.lt_status:
+        if self.lt_status and self.download.handle:
             files = self.download.get_def().get_files_with_length()
             progress = self.download.handle.file_progress(flags=1)
             for index, (path, size) in enumerate(files):
