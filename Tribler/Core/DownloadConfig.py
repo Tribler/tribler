@@ -114,7 +114,7 @@ class DownloadConfigInterface(object):
 
     def set_bootstrap_download(self, value):
         self.dlconfig.set('download_defaults', 'bootstrap_download', value)
-    
+
     def get_bootstrap_download(self):
         return self.dlconfig.get('download_defaults', 'bootstrap_download')
 

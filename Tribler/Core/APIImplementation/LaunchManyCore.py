@@ -379,7 +379,8 @@ class TriblerLaunchMany(TaskManager):
             # Store in list of Downloads, always.
             self.downloads[infohash] = d
             setup_deferred = d.setup(dscfg, pstate, wrapperDelay=setupDelay,
-                                     share_mode=share_mode, checkpoint_disabled=checkpoint_disabled, hidden=hidden_torrent)
+                                     share_mode=share_mode, checkpoint_disabled=checkpoint_disabled,
+                                     hidden=hidden_torrent)
             setup_deferred.addCallback(self.on_download_handle_created)
 
         return d
