@@ -15,7 +15,7 @@ from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, returnValue
 from twisted.internet.task import deferLater
 
-from Tribler.Core.DownloadConfig import DownloadStartupConfig
+from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import dlstatus_strings
 from Tribler.Test.test_as_server import TESTS_DATA_DIR, TestAsServer
@@ -171,7 +171,7 @@ class TestTunnelBase(TestAsServer):
         else:
             self.sanitize_network(self.session2)
 
-        dscfg = DownloadStartupConfig()
+        dscfg = DownloadConfig()
         dscfg.set_dest_dir(TESTS_DATA_DIR)  # basedir of the file we are seeding
         dscfg.set_hops(hops)
         d = self.session2.start_download_from_tdef(tdef, dscfg)
@@ -193,7 +193,7 @@ class TestTunnelBase(TestAsServer):
         """
         Start an anonymous download in the main Tribler session.
         """
-        dscfg = DownloadStartupConfig()
+        dscfg = DownloadConfig()
         dscfg.set_dest_dir(self.getDestDir())
         dscfg.set_hops(hops)
         download = self.session.start_download_from_tdef(self.seed_tdef, dscfg)

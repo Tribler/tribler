@@ -9,7 +9,7 @@ import logging
 import os
 import tempfile
 import time
-from binascii import hexlify, unhexlify
+from binascii import unhexlify
 from distutils.version import LooseVersion
 from shutil import rmtree
 
@@ -26,10 +26,11 @@ from twisted.internet.defer import Deferred, fail, succeed
 from twisted.internet.task import LoopingCall
 from twisted.python.failure import Failure
 
-from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
+from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.Modules.dht_health_manager import DHTHealthManager
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
+from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.Utilities.utilities import has_bep33_support, parse_magnetlink
 from Tribler.Core.exceptions import TorrentFileException
 from Tribler.Core.simpledefs import NTFY_INSERT, NTFY_REACHABLE
@@ -57,6 +58,7 @@ class LibtorrentMgr(TaskManager):
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.tribler_session = tribler_session
+        self.ltsettings = {} # Stores a copy of the settings dict for each libtorrent session
         self.ltsessions = {}
         self.ltsession_metainfo = None  # We have a dedicated libtorrent session for metainfo/DHT health lookups
         self.dht_health_manager = None
@@ -182,7 +184,7 @@ class LibtorrentMgr(TaskManager):
 
             mid = self.tribler_session.trustchain_keypair.key_to_hash()
             settings['peer_fingerprint'] = mid
-            settings['handshake_client_version'] = 'Tribler/' + version_id + '/' + str(hexlify(mid))
+            settings['handshake_client_version'] = 'Tribler/' + version_id + '/' + hexlify(mid)
         else:
             settings['enable_outgoing_utp'] = True
             settings['enable_incoming_utp'] = True
@@ -228,10 +230,9 @@ class LibtorrentMgr(TaskManager):
             ltsession.listen_on(self.tribler_session.config.get_anon_listen_port(),
                                 self.tribler_session.config.get_anon_listen_port() + 20)
 
-            ltsession_settings = ltsession.get_settings()
-            ltsession_settings['upload_rate_limit'] = self.tribler_session.config.get_libtorrent_max_upload_rate()
-            ltsession_settings['download_rate_limit'] = self.tribler_session.config.get_libtorrent_max_download_rate()
-            self.set_session_settings(ltsession, ltsession_settings)
+            settings = {'upload_rate_limit': self.tribler_session.config.get_libtorrent_max_upload_rate(),
+                        'download_rate_limit': self.tribler_session.config.get_libtorrent_max_download_rate()}
+            self.set_session_settings(ltsession, settings)
 
         if self.tribler_session.config.get_libtorrent_dht_enabled():
             ltsession.start_dht()
@@ -255,7 +256,7 @@ class LibtorrentMgr(TaskManager):
         Apply the proxy settings to a libtorrent session. This mechanism changed significantly in libtorrent 1.1.0.
         """
         if LooseVersion(self.get_libtorrent_version()) >= LooseVersion("1.1.0"):
-            settings = ltsession.get_settings()
+            settings = {}
             settings["proxy_type"] = ptype
             settings["proxy_hostnames"] = True
             settings["proxy_peer_connections"] = True
@@ -419,7 +420,7 @@ class LibtorrentMgr(TaskManager):
 
         elif alert_type == 'peer_disconnected_alert' and \
                 self.tribler_session and self.tribler_session.lm.payout_manager:
-            self.tribler_session.lm.payout_manager.do_payout(alert.pid.to_string())
+            self.tribler_session.lm.payout_manager.do_payout(alert.pid.to_bytes())
 
         elif alert_type == 'session_stats_alert':
             queued_disk_jobs = alert.values['disk.queued_disk_jobs']
@@ -510,7 +511,7 @@ class LibtorrentMgr(TaskManager):
             return
 
         # There seems to be metainfo
-        metainfo = {"info": lt.bdecode(get_info_from_handle(handle).metadata())}
+        metainfo = {b"info": lt.bdecode(get_info_from_handle(handle).metadata())}
         trackers = [tracker.url for tracker in get_info_from_handle(handle).trackers()]
         peers = []
         leechers = 0
@@ -524,13 +525,13 @@ class LibtorrentMgr(TaskManager):
 
         if trackers:
             if len(trackers) > 1:
-                metainfo["announce-list"] = [trackers]
-            metainfo["announce"] = trackers[0]
+                metainfo[b"announce-list"] = [trackers]
+            metainfo[b"announce"] = trackers[0]
         else:
-            metainfo["nodes"] = []
+            metainfo[b"nodes"] = []
 
-        metainfo["leechers"] = leechers
-        metainfo["seeders"] = seeders
+        metainfo[b"leechers"] = leechers
+        metainfo[b"seeders"] = seeders
 
         self.metainfo_cache[infohash] = {'time': time.time(), 'meta_info': metainfo}
         for metainfo_deferred in metainfo_deferreds:
@@ -542,8 +543,8 @@ class LibtorrentMgr(TaskManager):
     def _task_cleanup_metainfo_cache(self):
         oldest_time = time.time() - METAINFO_CACHE_PERIOD
 
-        for info_hash, values in self.metainfo_cache.items():
-            last_time, _ = values
+        for info_hash, cache_entry in list(self.metainfo_cache.items()):
+            last_time = cache_entry['time']
             if last_time < oldest_time:
                 del self.metainfo_cache[info_hash]
 
@@ -591,7 +592,7 @@ class LibtorrentMgr(TaskManager):
 
     def start_download_from_uri(self, uri, dconfig=None):
         if uri.startswith("http"):
-            return self.start_download_from_url(bytes(uri), dconfig=dconfig)
+            return self.start_download_from_url(uri, dconfig=dconfig)
         if uri.startswith("magnet:"):
             return succeed(self.start_download_from_magnet(uri, dconfig=dconfig))
         if uri.startswith("file:"):
@@ -642,8 +643,7 @@ class LibtorrentMgr(TaskManager):
 
         assert tdef is not None, "tdef MUST not be None after loading torrent"
 
-        default_dl_config = DefaultDownloadStartupConfig.getInstance()
-        dscfg = default_dl_config.copy()
+        dscfg = DownloadConfig()
 
         if dconfig is not None:
             dscfg = dconfig
@@ -652,9 +652,9 @@ class LibtorrentMgr(TaskManager):
         if d:
             # If there is an existing credit mining download with the same infohash
             # then move to the user download directory and checkpoint the download immediately.
-            if d.get_credit_mining():
+            if d.config.get_credit_mining():
                 self.tribler_session.lm.credit_mining_manager.torrents.pop(hexlify(tdef.get_infohash()), None)
-                d.set_credit_mining(False)
+                d.config.set_credit_mining(False)
                 d.move_storage(dscfg.get_dest_dir())
                 d.checkpoint()
 
@@ -685,6 +685,12 @@ class LibtorrentMgr(TaskManager):
         :param lt_session: The libtorrent session to apply the settings to.
         :param new_settings: The new settings to apply.
         """
+
+        # Keeping a copy of the settings because subsequent calls to get_settings are likely to fail
+        # when libtorrent will try to decode peer_fingerprint to unicode.
+        self.ltsettings[lt_session] = self.ltsettings.get(lt_session, {})
+        self.ltsettings[lt_session].update(new_settings)
+
         if hasattr(lt_session, "apply_settings"):
             lt_session.apply_settings(new_settings)
         else:
@@ -698,10 +704,9 @@ class LibtorrentMgr(TaskManager):
         :return:
         """
         for lt_session in self.ltsessions.values():
-            ltsession_settings = lt_session.get_settings()
-            ltsession_settings['download_rate_limit'] = self.tribler_session.config.get_libtorrent_max_download_rate()
-            ltsession_settings['upload_rate_limit'] = self.tribler_session.config.get_libtorrent_max_upload_rate()
-            self.set_session_settings(lt_session, ltsession_settings)
+            settings = {'download_rate_limit': self.tribler_session.config.get_libtorrent_max_download_rate(),
+                        'upload_rate_limit': self.tribler_session.config.get_libtorrent_max_upload_rate()}
+            self.set_session_settings(lt_session, settings)
 
     def post_session_stats(self, hops=None):
         if hops is None:

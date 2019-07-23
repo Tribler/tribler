@@ -25,21 +25,23 @@ from Tribler.Test.Core.base_test import TriblerCoreTest
 def make_wrong_payload(filename):
     key = default_eccrypto.generate_key(u"curve25519")
     metadata_payload = SignedPayload(666, 0, database_blob(key.pub().key_to_bin()[10:]),
-                                     signature='\x00' * 64, skip_key_check=True)
+                                     signature=b'\x00' * 64, skip_key_check=True)
     with open(filename, 'wb') as output_file:
-        output_file.write(''.join(metadata_payload.serialized()))
+        output_file.write(metadata_payload.serialized())
+
+
+DATA_DIR = os.path.join(os.path.abspath(os.path.dirname(os.path.realpath(__file__))), '..', '..', 'data')
+SAMPLE_DIR = os.path.join(DATA_DIR, 'sample_channel')
+# Just get the first and only subdir there, and assume it is the sample channel dir
+CHANNEL_DIR = [os.path.join(SAMPLE_DIR, subdir) for subdir in os.listdir(SAMPLE_DIR) if
+               os.path.isdir(os.path.join(SAMPLE_DIR, subdir)) and len(subdir) == CHANNEL_DIR_NAME_LENGTH][0]
+CHANNEL_METADATA = os.path.join(DATA_DIR, 'sample_channel', 'channel.mdblob')
 
 
 class TestMetadataStore(TriblerCoreTest):
     """
     This class contains tests for the metadata store.
     """
-    DATA_DIR = os.path.join(os.path.abspath(os.path.dirname(os.path.realpath(__file__))), '..', '..', 'data')
-    SAMPLE_DIR = os.path.join(DATA_DIR, 'sample_channel')
-    # Just get the first and only subdir there, and assume it is the sample channel dir
-    CHANNEL_DIR = [os.path.join(SAMPLE_DIR, subdir) for subdir in os.listdir(SAMPLE_DIR) if
-                   os.path.isdir(os.path.join(SAMPLE_DIR, subdir)) and len(subdir) == CHANNEL_DIR_NAME_LENGTH][0]
-    CHANNEL_METADATA = os.path.join(DATA_DIR, 'sample_channel', 'channel.mdblob')
 
     @inlineCallbacks
     def setUp(self):
@@ -76,12 +78,12 @@ class TestMetadataStore(TriblerCoreTest):
         self.assertEqual(loaded_metadata[0][0].title, 'test')
 
         # Test whether we delete existing metadata when loading a DeletedMetadata blob
-        metadata = self.mds.TorrentMetadata(infohash='1' * 20)
+        metadata = self.mds.TorrentMetadata(infohash=b'1' * 20)
         metadata.to_delete_file(metadata_path)
         loaded_metadata = self.mds.process_mdblob_file(metadata_path, skip_personal_metadata_payload=False)
         # Make sure the original metadata is deleted
         self.assertEqual(loaded_metadata[0], (None, 6))
-        self.assertIsNone(self.mds.TorrentMetadata.get(infohash='1' * 20))
+        self.assertIsNone(self.mds.TorrentMetadata.get(infohash=b'1' * 20))
 
         # Test an unknown metadata type, this should raise an exception
         invalid_metadata = os.path.join(self.session_base_dir, 'invalidtype.mdblob')
@@ -177,17 +179,17 @@ class TestMetadataStore(TriblerCoreTest):
         """
         Test whether processing an invalid compressed mdblob does not crash Tribler
         """
-        self.assertFalse(self.mds.process_compressed_mdblob("abcdefg"))
+        self.assertFalse(self.mds.process_compressed_mdblob(b"abcdefg"))
 
     @db_session
     def test_process_channel_dir(self):
         """
         Test processing a directory containing metadata blobs
         """
-        payload = ChannelMetadataPayload.from_file(self.CHANNEL_METADATA)
+        payload = ChannelMetadataPayload.from_file(CHANNEL_METADATA)
         channel = self.mds.process_payload(payload)[0][0]
         self.assertFalse(channel.contents_list)
-        self.mds.process_channel_dir(self.CHANNEL_DIR, channel.public_key, channel.id_)
+        self.mds.process_channel_dir(CHANNEL_DIR, channel.public_key, channel.id_)
         self.assertEqual(len(channel.contents_list), 3)
         self.assertEqual(channel.timestamp, 1562257279008)
         self.assertEqual(channel.local_version, channel.timestamp)
@@ -229,7 +231,7 @@ class TestMetadataStore(TriblerCoreTest):
 
     @db_session
     def test_process_payload_ffa(self):
-        infohash = "1" * 20
+        infohash = b"1" * 20
         ffa_torrent = self.mds.TorrentMetadata.add_ffa_from_dict(dict(infohash=infohash, title='abc'))
         ffa_payload = self.mds.TorrentMetadata._payload_class.from_signed_blob(ffa_torrent.serialized())
         ffa_torrent.delete()

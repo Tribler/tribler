@@ -5,7 +5,7 @@ from tempfile import mkstemp
 
 from twisted.internet.defer import Deferred, inlineCallbacks
 
-from Tribler.Core.DownloadConfig import DownloadStartupConfig
+from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import VODFile
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import DLMODE_VOD, DOWNLOAD, UPLOAD, dlstatus_strings
@@ -38,7 +38,7 @@ class TestVideoOnDemand(TestAsServer):
 
     def create_torrent(self):
         [srchandle, sourcefn] = mkstemp()
-        self.content = '0' * self.contentlen
+        self.content = b'0' * self.contentlen
         os.write(srchandle, self.content)
         os.close(srchandle)
 
@@ -49,7 +49,7 @@ class TestVideoOnDemand(TestAsServer):
         torrentfn = os.path.join(self.session.config.get_state_dir(), "gen.torrent")
         self.tdef.save(torrentfn)
 
-        dscfg = DownloadStartupConfig()
+        dscfg = DownloadConfig()
         destdir = os.path.dirname(sourcefn)
         dscfg.set_dest_dir(destdir)
         dscfg.set_mode(DLMODE_VOD)
@@ -81,7 +81,7 @@ class TestVideoOnDemand(TestAsServer):
             stream = VODFile(open(download.get_content_dest(), 'rb'), download)
 
             # Read last piece
-            lastpieceoff = ((self.contentlen - 1) / self.piecelen) * self.piecelen
+            lastpieceoff = ((self.contentlen - 1) // self.piecelen) * self.piecelen
             lastpiecesize = self.contentlen - lastpieceoff
             self._logger.debug("stream: lastpieceoff %s %s", lastpieceoff, lastpiecesize)
             self.stream_read(stream, lastpieceoff, lastpiecesize, self.piecelen)

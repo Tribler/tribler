@@ -4,7 +4,9 @@ import logging
 import os
 from binascii import hexlify, unhexlify
 
-from Tribler.Core.DownloadConfig import DownloadStartupConfig
+from six import b
+
+from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 
 
@@ -16,7 +18,8 @@ class Bootstrap(object):
 
     def __init__(self, config_dir, dht=None):
         self._logger = logging.getLogger(self.__class__.__name__)
-        self.dcfg = DownloadStartupConfig(is_bootstrap_download=True, state_dir=config_dir)
+        self.dcfg = DownloadConfig(state_dir=config_dir)
+        self.dcfg.set_bootstrap_download(True)
         self.bootstrap_dir = os.path.join(config_dir, 'bootstrap')
         if not os.path.exists(self.bootstrap_dir):
             os.mkdir(self.bootstrap_dir)
@@ -41,7 +44,7 @@ class Bootstrap(object):
         tdef.set_piece_length(2 ** 16)
         tdef.save()
         self._logger.debug("Seeding bootstrap file %s", hexlify(tdef.infohash))
-        self.download = download_function(tdef, download_startup_config=self.dcfg, hidden=True)
+        self.download = download_function(tdef, download_config=self.dcfg, hidden=True)
         self.infohash = tdef.get_infohash()
 
     def start_by_infohash(self, download_function, infohash):
@@ -52,7 +55,7 @@ class Bootstrap(object):
         """
         self._logger.debug("Starting bootstrap downloading %s", infohash)
         tdef = TorrentDefNoMetainfo(unhexlify(infohash), name='bootstrap.block')
-        self.download = download_function(tdef, download_startup_config=self.dcfg, hidden=True)
+        self.download = download_function(tdef, download_config=self.dcfg, hidden=True)
         self.infohash = infohash
 
     def fetch_bootstrap_peers(self):
@@ -82,7 +85,7 @@ class Bootstrap(object):
         with open(self.nodes_file, "wb") as boot_file:
             for mid, public_key in self.bootstrap_nodes.items():
                 if mid != "0000000000000000000000000000000000000000" and public_key:
-                    boot_file.write("%s:%s\n" % (mid, public_key))
+                    boot_file.write(b"%s:%s\n" % (mid, public_key))
 
     def load_bootstrap_nodes(self):
         if not os.path.exists(self.nodes_file):
@@ -91,4 +94,4 @@ class Bootstrap(object):
             for line in boot_file:
                 if line and ":" in line:
                     mid, pub_key = line.rstrip().split(":")
-                    self.bootstrap_nodes[mid] = pub_key
+                    self.bootstrap_nodes[b(mid)] = b(pub_key)

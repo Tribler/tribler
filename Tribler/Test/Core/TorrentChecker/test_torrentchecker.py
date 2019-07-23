@@ -1,9 +1,8 @@
 from __future__ import absolute_import
 
-import random
+import os
 import socket
 import time
-from binascii import hexlify
 
 from pony.orm import db_session
 
@@ -16,6 +15,7 @@ from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import LEGACY_E
 from Tribler.Core.Modules.tracker_manager import TrackerManager
 from Tribler.Core.TorrentChecker.session import HttpTrackerSession, UdpSocketManager
 from Tribler.Core.TorrentChecker.torrent_checker import TorrentChecker
+from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.tools import trial_timeout
@@ -81,7 +81,7 @@ class TestTorrentChecker(TestAsServer):
         """
         with db_session:
             tracker = self.session.lm.mds.TrackerState(url="http://localhost/tracker")
-            self.session.lm.mds.TorrentState(infohash='a' * 20, seeders=5, leechers=10, trackers={tracker},
+            self.session.lm.mds.TorrentState(infohash=b'a' * 20, seeders=5, leechers=10, trackers={tracker},
                                              last_check=int(time.time()))
 
         def verify_response(result):
@@ -91,7 +91,7 @@ class TestTorrentChecker(TestAsServer):
 
         self.session.lm.tracker_manager.blacklist.append("http://localhost/tracker")
 
-        return self.torrent_checker.check_torrent_health('a' * 20).addCallback(verify_response)
+        return self.torrent_checker.check_torrent_health(b'a' * 20).addCallback(verify_response)
 
     def test_health_check_cached(self):
         """
@@ -99,7 +99,7 @@ class TestTorrentChecker(TestAsServer):
         """
         with db_session:
             tracker = self.session.lm.mds.TrackerState(url="http://localhost/tracker")
-            self.session.lm.mds.TorrentState(infohash='a' * 20, seeders=5, leechers=10, trackers={tracker},
+            self.session.lm.mds.TorrentState(infohash=b'a' * 20, seeders=5, leechers=10, trackers={tracker},
                                              last_check=int(time.time()))
 
         def verify_response(result):
@@ -107,7 +107,7 @@ class TestTorrentChecker(TestAsServer):
             self.assertEqual(result['db']['seeders'], 5)
             self.assertEqual(result['db']['leechers'], 10)
 
-        return self.torrent_checker.check_torrent_health('a' * 20).addCallback(verify_response)
+        return self.torrent_checker.check_torrent_health(b'a' * 20).addCallback(verify_response)
 
     @trial_timeout(10)
     def test_task_select_no_tracker(self):
@@ -116,7 +116,7 @@ class TestTorrentChecker(TestAsServer):
     def test_task_select_tracker(self):
         with db_session:
             tracker = self.session.lm.mds.TrackerState(url="http://localhost/tracker")
-            self.session.lm.mds.TorrentState(infohash='a' * 20, seeders=5, leechers=10, trackers={tracker})
+            self.session.lm.mds.TorrentState(infohash=b'a' * 20, seeders=5, leechers=10, trackers={tracker})
 
         controlled_session = HttpTrackerSession(None, None, None, None)
         controlled_session.connect_to_tracker = lambda: Deferred()
@@ -138,7 +138,7 @@ class TestTorrentChecker(TestAsServer):
 
         with db_session:
             tracker = self.session.lm.mds.TrackerState(url="http://localhost/tracker")
-            self.session.lm.mds.TorrentState(infohash='a' * 20, seeders=5, leechers=10, trackers={tracker},
+            self.session.lm.mds.TorrentState(infohash=b'a' * 20, seeders=5, leechers=10, trackers={tracker},
                                              last_check=int(time.time()))
         return self.torrent_checker.check_random_tracker().addCallback(verify_cleanup)
 
@@ -171,7 +171,7 @@ class TestTorrentChecker(TestAsServer):
     def test_on_health_check_completed(self):
         tracker1 = 'udp://localhost:2801'
         tracker2 = "http://badtracker.org/announce"
-        infohash_bin = '\xee'*20
+        infohash_bin = b'\xee'*20
         infohash_hex = hexlify(infohash_bin)
 
         failure = Failure()
@@ -214,7 +214,7 @@ class TestTorrentChecker(TestAsServer):
         """
         Test whether legacy torrents are not health checked
         """
-        torrent1 = self.session.lm.mds.TorrentMetadata(title='torrent1', infohash=str(random.getrandbits(160)))
+        torrent1 = self.session.lm.mds.TorrentMetadata(title='torrent1', infohash=os.urandom(20))
         torrent1.status = LEGACY_ENTRY
 
         self.assertFalse(self.torrent_checker.check_random_torrent())
@@ -225,7 +225,7 @@ class TestTorrentChecker(TestAsServer):
         Test that the random torrent health checking mechanism picks the right torrents
         """
         for ind in xrange(1, 20):
-            torrent = self.session.lm.mds.TorrentMetadata(title='torrent1', infohash=str(random.getrandbits(160)))
+            torrent = self.session.lm.mds.TorrentMetadata(title='torrent1', infohash=os.urandom(20))
             torrent.health.last_check = ind
 
         self.torrent_checker.check_torrent_health = lambda _: None
@@ -234,6 +234,6 @@ class TestTorrentChecker(TestAsServer):
         self.assertTrue(random_infohashes)
 
         # Now we should only check a single torrent
-        self.torrent_checker.torrents_checked.add(('a' * 20, 5, 5, int(time.time())))
+        self.torrent_checker.torrents_checked.add((b'a' * 20, 5, 5, int(time.time())))
         random_infohashes = self.torrent_checker.check_random_torrent()
         self.assertEqual(len(random_infohashes), 1)

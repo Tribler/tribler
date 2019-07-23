@@ -1,7 +1,6 @@
 from __future__ import absolute_import, division
 
 import struct
-from binascii import hexlify
 from datetime import datetime, timedelta
 
 from ipv8.database import database_blob
@@ -9,6 +8,7 @@ from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.messaging.payload import Payload
 from ipv8.messaging.serialization import default_serializer
 
+from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.exceptions import InvalidSignatureException
 
 EPOCH = datetime(1970, 1, 1)
@@ -86,8 +86,8 @@ class SignedPayload(Payload):
         super(SignedPayload, self).__init__()
         self.metadata_type = metadata_type
         self.reserved_flags = reserved_flags
-        self.public_key = str(public_key)
-        self.signature = str(kwargs["signature"]) if "signature" in kwargs and kwargs["signature"] else None
+        self.public_key = bytes(public_key)
+        self.signature = bytes(kwargs["signature"]) if "signature" in kwargs and kwargs["signature"] else None
 
         # Special case: free-for-all entries are allowed to go with zero key and without sig check
         if "unsigned" in kwargs and kwargs["unsigned"]:
@@ -108,8 +108,8 @@ class SignedPayload(Payload):
         serialized_data = default_serializer.pack_multiple(self.to_pack_list())[0]
         if "key" in kwargs and kwargs["key"]:
             key = kwargs["key"]
-            if self.public_key != str(key.pub().key_to_bin()[10:]):
-                raise KeysMismatchException(self.public_key, str(key.pub().key_to_bin()[10:]))
+            if self.public_key != key.pub().key_to_bin()[10:]:
+                raise KeysMismatchException(self.public_key, key.pub().key_to_bin()[10:])
             self.signature = default_eccrypto.create_signature(key, serialized_data)
         elif "signature" in kwargs:
             # This check ensures that an entry with a wrong signature will not proliferate further
@@ -155,10 +155,10 @@ class SignedPayload(Payload):
 
     def _serialized(self):
         serialized_data = default_serializer.pack_multiple(self.to_pack_list())[0]
-        return str(serialized_data), str(self.signature)
+        return serialized_data, self.signature
 
     def serialized(self):
-        return ''.join(self._serialized())
+        return b''.join(self._serialized())
 
     @classmethod
     def from_file(cls, filepath):
@@ -202,7 +202,6 @@ class ChannelNodePayload(SignedPayload):
         })
         return dct
 
-
 class TorrentMetadataPayload(ChannelNodePayload):
     """
     Payload for metadata that stores a torrent.
@@ -213,12 +212,12 @@ class TorrentMetadataPayload(ChannelNodePayload):
                  id_, origin_id, timestamp,
                  infohash, size, torrent_date, title, tags, tracker_info,
                  **kwargs):
-        self.infohash = str(infohash)
+        self.infohash = bytes(infohash)
         self.size = size
         self.torrent_date = time2int(torrent_date) if isinstance(torrent_date, datetime) else torrent_date
-        self.title = title.decode('utf-8') if isinstance(title, str) else title
-        self.tags = tags.decode('utf-8') if isinstance(tags, str) else tags
-        self.tracker_info = tracker_info.decode('utf-8') if isinstance(tracker_info, str) else tracker_info
+        self.title = title.decode('utf-8') if isinstance(title, bytes) else title
+        self.tags = tags.decode('utf-8') if isinstance(tags, bytes) else tags
+        self.tracker_info = tracker_info.decode('utf-8') if isinstance(tracker_info, bytes) else tracker_info
         super(TorrentMetadataPayload, self).__init__(metadata_type, reserved_flags, public_key,
                                                      id_, origin_id, timestamp,
                                                      **kwargs)
@@ -256,8 +255,8 @@ class TorrentMetadataPayload(ChannelNodePayload):
     # TODO:  DRY!(copypasted from TorrentMetadata)
     def get_magnet(self):
         return ("magnet:?xt=urn:btih:%s&dn=%s" %
-                (hexlify(str(self.infohash)), str(self.title).encode('utf8'))) + \
-               ("&tr=%s" % (str(self.tracker_info).encode('utf8')) if self.tracker_info else "")
+                (hexlify(self.infohash), self.title.encode('utf8'))) + \
+               ("&tr=%s" % (self.tracker_info).encode('utf8') if self.tracker_info else "")
 
 
 class ChannelMetadataPayload(TorrentMetadataPayload):
@@ -312,7 +311,7 @@ class DeletedMetadataPayload(SignedPayload):
     def __init__(self, metadata_type, reserved_flags, public_key,
                  delete_signature,
                  **kwargs):
-        self.delete_signature = str(delete_signature)
+        self.delete_signature = bytes(delete_signature)
         super(DeletedMetadataPayload, self).__init__(metadata_type, reserved_flags, public_key,
                                                      **kwargs)
 

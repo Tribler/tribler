@@ -5,11 +5,12 @@ import shutil
 
 from configobj import ConfigObj
 
+from six import ensure_str
 from six.moves.configparser import RawConfigParser
 
 from Tribler.Core.Config.tribler_config import CONFIG_SPEC_PATH, TriblerConfig
 from Tribler.Core.Upgrade.config_converter import add_libtribler_config, add_tribler_config, convert_config_to_tribler71
-from Tribler.Core.simpledefs import STATEDIR_DLPSTATE_DIR
+from Tribler.Core.simpledefs import STATEDIR_CHECKPOINT_DIR
 from Tribler.Test.Core.base_test import TriblerCoreTest
 
 
@@ -34,7 +35,7 @@ class TestConfigUpgrade70to71(TriblerCoreTest):
         """
         Test upgrading a libtribler configuration from 7.0 to 7.1
         """
-        os.environ['TSTATEDIR'] = self.session_base_dir.encode('utf-8')
+        os.environ['TSTATEDIR'] = ensure_str(self.session_base_dir)
         old_config = RawConfigParser()
         old_config.read(os.path.join(self.CONFIG_PATH, "libtribler70.conf"))
         new_config = TriblerConfig()
@@ -80,15 +81,15 @@ class TestConfigUpgrade70to71(TriblerCoreTest):
         """
         Test whether the existing pstate files are correctly updated to 7.1.
         """
-        os.makedirs(os.path.join(self.state_dir, STATEDIR_DLPSTATE_DIR))
+        os.makedirs(os.path.join(self.state_dir, STATEDIR_CHECKPOINT_DIR))
 
         # Copy an old pstate file
         src_path = os.path.join(self.CONFIG_PATH, "download_pstate_70.state")
-        shutil.copyfile(src_path, os.path.join(self.state_dir, STATEDIR_DLPSTATE_DIR, "download.state"))
+        shutil.copyfile(src_path, os.path.join(self.state_dir, STATEDIR_CHECKPOINT_DIR, "download.state"))
 
         # Copy a corrupt pstate file
         src_path = os.path.join(self.CONFIG_PATH, "download_pstate_70_corrupt.state")
-        corrupt_dest_path = os.path.join(self.state_dir, STATEDIR_DLPSTATE_DIR, "downloadcorrupt.state")
+        corrupt_dest_path = os.path.join(self.state_dir, STATEDIR_CHECKPOINT_DIR, "downloadcorrupt.state")
         shutil.copyfile(src_path, corrupt_dest_path)
 
         old_config = RawConfigParser()
@@ -97,7 +98,7 @@ class TestConfigUpgrade70to71(TriblerCoreTest):
 
         # Verify whether the section is correctly renamed
         download_config = RawConfigParser()
-        download_config.read(os.path.join(self.state_dir, STATEDIR_DLPSTATE_DIR, "download.state"))
+        download_config.read(os.path.join(self.state_dir, STATEDIR_CHECKPOINT_DIR, "download.state"))
         self.assertTrue(download_config.has_section("download_defaults"))
         self.assertFalse(download_config.has_section("downloadconfig"))
         self.assertFalse(os.path.exists(corrupt_dest_path))

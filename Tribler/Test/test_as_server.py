@@ -33,8 +33,8 @@ from twisted.web.http import HTTPChannel
 from twisted.web.server import Site
 from twisted.web.static import File
 
+from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.Config.tribler_config import CONFIG_SPEC_PATH, TriblerConfig
-from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Session import Session
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.instrumentation import WatchDog
@@ -46,6 +46,9 @@ TESTS_DIR = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
 TESTS_DATA_DIR = os.path.abspath(os.path.join(TESTS_DIR, u"data"))
 TESTS_API_DIR = os.path.abspath(os.path.join(TESTS_DIR, u"API"))
 OUTPUT_DIR = os.path.abspath(os.environ.get('OUTPUT_DIR', 'output'))
+
+if six.PY2:
+    FileExistsError = OSError
 
 
 class BaseTestCase(unittest.TestCase):
@@ -77,11 +80,15 @@ class BaseTestCase(unittest.TestCase):
             os.chmod(temp_dir, 0o700)
             shutil.rmtree(six.text_type(temp_dir), ignore_errors=False)
 
-    def temporary_directory(self, suffix=''):
+    def temporary_directory(self, suffix='', exist_ok=False):
         random_string = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(6))
         temp = os.path.join(TESTS_DIR, "temp", self.__class__.__name__ + suffix + random_string)
         self._tempdirs.append(temp)
-        os.makedirs(temp)
+        try:
+            os.makedirs(temp)
+        except FileExistsError as e:
+            if not exist_ok:
+                raise e
         return temp
 
 
@@ -364,7 +371,7 @@ class TestAsServer(AbstractServer):
             self.seed_config.set_libtorrent_port(port)
 
         def start_seed_download(_):
-            self.dscfg_seed = DownloadStartupConfig()
+            self.dscfg_seed = DownloadConfig()
             self.dscfg_seed.set_dest_dir(seed_dir)
             d = self.seeder_session.start_download_from_tdef(tdef, self.dscfg_seed)
             d.set_state_callback(self.seeder_state_callback)

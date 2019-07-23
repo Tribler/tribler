@@ -20,6 +20,8 @@ from Tribler.Test.Core.base_test import MockObject
 from Tribler.community.gigachannel.community import GigaChannelCommunity
 from Tribler.pyipv8.ipv8.database import database_blob
 
+EMPTY_BLOB = database_blob(b"")
+
 
 class TestGigaChannelUnits(TestBase):
     """
@@ -173,9 +175,9 @@ class TestGigaChannelUnits(TestBase):
         with db_session:
             # add some free-for-all entries
             self.nodes[0].overlay.metadata_store.TorrentMetadata.add_ffa_from_dict(dict(title="ubuntu legacy",
-                                                                                        infohash=random_infohash()))
-            self.nodes[0].overlay.metadata_store.ChannelMetadata(title="ubuntu legacy chan", infohash=random_infohash(),
-                                                                 public_key="", status=LEGACY, id_=0)
+                                                                                        infohash=os.urandom(20)))
+            self.nodes[0].overlay.metadata_store.ChannelMetadata(title="ubuntu legacy chan", infohash=os.urandom(20),
+                                                                 public_key=b"", status=LEGACY, id_=0)
             channel = self.nodes[0].overlay.metadata_store.ChannelMetadata.create_channel("ubuntu", "ubuntu")
             for i in xrange(20):
                 self.add_random_torrent(self.nodes[0].overlay.metadata_store.TorrentMetadata, name="ubuntu %s" % i,
@@ -196,11 +198,11 @@ class TestGigaChannelUnits(TestBase):
 
             # Only non-legacy FFA torrents should be sent on search
             torrents_ffa = self.nodes[1].overlay.metadata_store.TorrentMetadata.select(
-                lambda g: g.public_key == database_blob(""))[:]
+                lambda g: g.public_key == EMPTY_BLOB)[:]
             self.assertEqual(len(torrents_ffa), 1)
             # Legacy FFA channel should not be sent
             channels_ffa = self.nodes[1].overlay.metadata_store.ChannelMetadata.select(
-                lambda g: g.public_key == database_blob(""))[:]
+                lambda g: g.public_key == EMPTY_BLOB)[:]
             self.assertEqual(len(channels_ffa), 0)
         self.assertTrue(self.nodes[1].overlay.notified_results)
 

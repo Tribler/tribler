@@ -1,12 +1,12 @@
 from __future__ import absolute_import
 
 import logging
-from binascii import hexlify
 
 from twisted.web import resource
 from twisted.web.server import NOT_DONE_YET
 
 import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.Utilities.unicode import hexlify, recursive_unicode
 
 
 class LibTorrentEndpoint(resource.Resource):
@@ -61,15 +61,20 @@ class LibTorrentSettingsEndpoint(resource.Resource):
                         }
                     }
         """
+        args = recursive_unicode(request.args)
         hop = 0
-        if b'hop' in request.args and request.args[b'hop']:
-            hop = int(request.args[b'hop'][0])
+        if 'hop' in args and args['hop']:
+            hop = int(args['hop'][0])
 
         if hop not in self.session.lm.ltmgr.ltsessions:
             return json.twisted_dumps({'hop': hop, "settings": {}})
 
-        lt_settings = self.session.lm.ltmgr.ltsessions[hop].get_settings()
-        lt_settings['peer_fingerprint'] = hexlify(lt_settings['peer_fingerprint'])
+        lt_session = self.session.lm.ltmgr.ltsessions[hop]
+        if hop == 0:
+            lt_settings = self.session.lm.ltmgr.ltsettings[lt_session]
+            lt_settings['peer_fingerprint'] = hexlify(lt_settings['peer_fingerprint'])
+        else:
+            lt_settings = lt_session.get_settings()
 
         return json.twisted_dumps({'hop': hop, "settings": lt_settings})
 
@@ -116,9 +121,10 @@ class LibTorrentSessionEndpoint(resource.Resource):
             request.write(json.twisted_dumps({'hop': hop, 'session': alert.values}))
             request.finish()
 
+        args = recursive_unicode(request.args)
         hop = 0
-        if b'hop' in request.args and request.args[b'hop']:
-            hop = int(request.args[b'hop'][0])
+        if 'hop' in args and args['hop']:
+            hop = int(args['hop'][0])
 
         if hop not in self.session.lm.ltmgr.ltsessions or \
                 not hasattr(self.session.lm.ltmgr.ltsessions[hop], "post_session_stats"):

@@ -5,7 +5,6 @@ Author(s): Arno Bakker
 """
 from __future__ import absolute_import
 
-import binascii
 import os
 
 from twisted.internet import reactor
@@ -13,9 +12,10 @@ from twisted.internet.defer import Deferred, inlineCallbacks
 from twisted.internet.endpoints import TCP4ClientEndpoint, connectProtocol
 from twisted.internet.protocol import Protocol, connectionDone
 
-from Tribler.Core.DownloadConfig import DownloadStartupConfig
+from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.network_utils import get_random_port
+from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.Video.VideoServer import VideoServer
 from Tribler.Test.Core.base_test import MockObject, TriblerCoreTest
 from Tribler.Test.common import TESTS_DATA_DIR
@@ -35,11 +35,11 @@ class VideoServerProtocol(Protocol):
         self.exp_byte_range = exp_byte_range
 
     def sendMessage(self, msg):
-        self.transport.write("%s" % msg)
+        self.transport.write(msg.encode('utf8'))
 
     def dataReceived(self, data):
         if not self.has_header:
-            for line in data.split('\r\n'):
+            for line in data.split(b'\r\n'):
                 if len(line) == 0 and self.seen_empty_line:
                     self.has_header = True
                 elif len(line) == 0:
@@ -55,27 +55,30 @@ class VideoServerProtocol(Protocol):
         self.finished.callback(None)
 
     def check_header(self, line):
-        if line.startswith("HTTP"):
+        if not self.transport.connected or self.transport.disconnecting:
+            return
+
+        if line.startswith(b"HTTP"):
             if not self.setset:
                 # Python returns "HTTP/1.0 206 Partial Content\r\n" HTTP 1.0???
-                assert line.startswith("HTTP/1.")
-                assert line.find("206") != -1  # Partial content
+                assert line.startswith(b"HTTP/1.")
+                assert line.find(b"206") != -1  # Partial content
             else:
-                assert line.startswith("HTTP/1.")
-                assert line.find("416") != -1  # Requested Range Not Satisfiable
+                assert line.startswith(b"HTTP/1.")
+                assert line.find(b"416") != -1  # Requested Range Not Satisfiable
                 self.transport.loseConnection()
 
-        elif line.startswith("Content-Range:"):
+        elif line.startswith(b"Content-Range:"):
             expline = "Content-Range: bytes " + TestVideoServerSession.create_range_str(
                 self.exp_byte_range[0], self.exp_byte_range[1]) + "/" + str(self.content_size)
-            assert expline == line
+            assert expline.encode() == line
 
-        elif line.startswith("Content-Type:") and not self.setset:
+        elif line.startswith(b"Content-Type:") and not self.setset:
             # We do not check for an exact content-type since that might differ between platforms.
-            assert line.startswith("Content-Type: video")
+            assert line.startswith(b"Content-Type: video")
 
-        elif line.startswith("Content-Length:"):
-            assert line == "Content-Length: " + str(len(self.expected_content))
+        elif line.startswith(b"Content-Length:"):
+            assert line == b"Content-Length: " + str(len(self.expected_content)).encode()
 
 
 class TestVideoServer(TriblerCoreTest):
@@ -151,14 +154,14 @@ class TestVideoServerSession(TestAsServer):
         self.tdef.set_tracker("http://127.0.0.1:12/announce")
         self.tdef.save()
 
-        dscfg = DownloadStartupConfig()
+        dscfg = DownloadConfig()
         dscfg.set_dest_dir(os.path.dirname(self.sourcefn))
 
         download = self.session.start_download_from_tdef(self.tdef, dscfg)
         return download.get_handle()
 
     def get_std_header(self):
-        msg = "GET /%s/0 HTTP/1.1\r\n" % binascii.hexlify(self.tdef.get_infohash())
+        msg = "GET /%s/0 HTTP/1.1\r\n" % hexlify(self.tdef.get_infohash())
         msg += "Host: 127.0.0.1:" + str(self.port) + "\r\n"
         return msg
 

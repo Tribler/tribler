@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import os
-from binascii import hexlify
 
 from ipv8.database import database_blob
 from ipv8.keyvault.crypto import default_eccrypto
@@ -14,6 +13,7 @@ from twisted.internet.defer import inlineCallbacks
 from Tribler.Core.Modules.MetadataStore.serialization import (
     CHANNEL_NODE, ChannelNodePayload, KeysMismatchException, NULL_KEY, NULL_SIG)
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
+from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.exceptions import InvalidChannelNodeException, InvalidSignatureException
 from Tribler.Test.Core.base_test import TriblerCoreTest
 
@@ -61,7 +61,7 @@ class TestMetadata(TriblerCoreTest):
         metadata2_dict.pop("signature")
         self.assertRaises(InvalidSignatureException, ChannelNodePayload, **metadata2_dict)
 
-        serialized3 = serialized2[:-5] + "\xee" * 5
+        serialized3 = serialized2[:-5] + b"\xee" * 5
         self.assertRaises(InvalidSignatureException, ChannelNodePayload.from_signed_blob, serialized3)
         # Test bypass signature check
         ChannelNodePayload.from_signed_blob(serialized3, check_signature=False)
@@ -71,7 +71,7 @@ class TestMetadata(TriblerCoreTest):
         """
         Test converting free-for-all (unsigned) torrent metadata to payload and back
         """
-        metadata1 = self.mds.ChannelNode.from_dict({"public_key": "", "id_": "123"})
+        metadata1 = self.mds.ChannelNode.from_dict({"public_key": b"", "id_": "123"})
         serialized1 = metadata1.serialized()
         # Make sure sig is really zeroes
         self.assertTrue(hexlify(serialized1).endswith(hexlify(NULL_SIG)))
@@ -83,13 +83,13 @@ class TestMetadata(TriblerCoreTest):
         self.assertEqual(serialized1, serialized2)
 
         # Check that it is impossible to create FFA node without specifying id_
-        self.assertRaises(InvalidChannelNodeException, self.mds.ChannelNode.from_dict, {"public_key": ""})
+        self.assertRaises(InvalidChannelNodeException, self.mds.ChannelNode.from_dict, {"public_key": b""})
         # Check that it is impossible to create FFA payload with non-null signature
         self.assertRaises(InvalidSignatureException, ChannelNodePayload, CHANNEL_NODE, 0, NULL_KEY, 0, 0, 0,
-                          signature="123")
+                          signature=b"123")
         # Check that creating a pair of metadata entries do not trigger uniqueness constraints error
-        self.mds.ChannelNode.from_dict({"public_key": "", "id_": "124"})
-        self.mds.ChannelNode.from_dict({"public_key": "", "id_": "125"})
+        self.mds.ChannelNode.from_dict({"public_key": b"", "id_": "124"})
+        self.mds.ChannelNode.from_dict({"public_key": b"", "id_": "125"})
 
     @db_session
     def test_key_mismatch_exception(self):
@@ -118,12 +118,12 @@ class TestMetadata(TriblerCoreTest):
         md_dict = metadata.to_dict()
 
         # Mess with the signature
-        metadata.signature = 'a'
+        metadata.signature = b'a'
         self.assertFalse(metadata.has_valid_signature())
 
         # Create metadata with wrong key
         metadata.delete()
-        md_dict.update(public_key=database_blob("aaa"))
+        md_dict.update(public_key=database_blob(b"aaa"))
         md_dict.pop("rowid")
 
         metadata = self.mds.ChannelNode(skip_key_check=True, **md_dict)

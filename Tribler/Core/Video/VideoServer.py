@@ -63,7 +63,7 @@ class VideoServer(ThreadingMixIn, HTTPServer):
         the old download.
         """
         if self.vod_download:
-            self.vod_download.set_mode(DLMODE_NORMAL)
+            self.vod_download.config.set_mode(DLMODE_NORMAL)
             vi_dict = self.vod_info.pop(self.vod_download.get_def().get_infohash(), None)
             if vi_dict and 'stream' in vi_dict:
                 vi_dict['stream'][0].close()
@@ -142,7 +142,7 @@ class VideoRequestHandler(BaseHTTPRequestHandler):
         fileindex = int(fileindex)
         filename, length = download.get_def().get_files_with_length()[fileindex]
 
-        requested_range = get_ranges(self.headers.getheader('range'), length)
+        requested_range = get_ranges(self.headers.get('range'), length)
         if requested_range is not None and len(requested_range) != 1:
             self.send_error(416, "Requested Range Not Satisfiable")
             return
@@ -157,7 +157,7 @@ class VideoRequestHandler(BaseHTTPRequestHandler):
             self.wait_for_handle(download)
             if download.get_def().is_multifile_torrent():
                 download.set_selected_files([filename])
-            download.set_mode(DLMODE_VOD)
+            download.config.set_mode(DLMODE_VOD)
             download.restart()
 
         piecelen = download.get_def().get_piece_length()

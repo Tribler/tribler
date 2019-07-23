@@ -5,7 +5,7 @@ Author(s): Arno Bakker
 """
 from __future__ import absolute_import
 
-import sys
+import binascii
 
 import chardet
 
@@ -36,3 +36,36 @@ def ensure_unicode_detect_encoding(s):
         return s
     else:
         raise TypeError("not expecting type '%s'" % type(s))
+
+
+def recursive_unicode(obj):
+    """
+    Converts any bytes within a data structure to unicode strings. Bytes are assumed to be UTF-8 encoded text.
+    :param obj: object comprised of lists/dicts/strings/bytes
+    :return: obj: object comprised of lists/dicts/strings
+    """
+    if isinstance(obj, dict):
+        return {recursive_unicode(k):recursive_unicode(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [recursive_unicode(i) for i in obj]
+    elif isinstance(obj, binary_type):
+        return obj.decode('utf8')
+    return obj
+
+
+def recursive_bytes(obj):
+    """
+    Converts any unicode strings within a Python data structure to bytes. Strings will be encoded using UTF-8.
+    :param obj: object comprised of lists/dicts/strings/bytes
+    :return: obj: object comprised of lists/dicts/bytes
+    """
+    if isinstance(obj, dict):
+        return {recursive_bytes(k):recursive_bytes(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [recursive_bytes(i) for i in obj]
+    elif isinstance(obj, text_type):
+        return obj.encode('utf8')
+    return obj
+
+def hexlify(binary):
+    return binascii.hexlify(binary).decode('utf-8')

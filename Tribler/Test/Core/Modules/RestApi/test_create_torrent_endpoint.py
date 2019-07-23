@@ -39,8 +39,8 @@ class TestMyChannelCreateTorrentEndpoint(AbstractApiTest):
 
             # Copy expected creation date and created by (Tribler version) from actual result
             creation_date = tdef.get_creation_date()
-            expected_tdef.metainfo["creation date"] = creation_date
-            expected_tdef.metainfo["created by"] = tdef.metainfo['created by']
+            expected_tdef.metainfo[b"creation date"] = creation_date
+            expected_tdef.metainfo[b"created by"] = tdef.metainfo[b'created by']
 
             self.assertEqual(dir(expected_tdef), dir(tdef))
             self.assertTrue(os.path.exists(os.path.join(export_dir, "test_torrent.torrent")))
@@ -67,11 +67,11 @@ class TestMyChannelCreateTorrentEndpoint(AbstractApiTest):
             expected_response = {
                 u"error": {
                     u"handled": True,
-                    u"code": u"IOError",
                     u"message": u"Path does not exist: %s" % post_data["files"]
                 }
             }
             self.assertDictContainsSubset(expected_response[u"error"], error_response[u"error"])
+            self.assertIn(error_response[u"error"][u"code"], [u"IOError", u"OSError"])
 
         post_data = {
             "files": "non_existing_file.avi"

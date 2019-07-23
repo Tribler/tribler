@@ -2,13 +2,12 @@ from __future__ import absolute_import
 
 import logging
 import os
-from binascii import hexlify, unhexlify
+from binascii import unhexlify
 
 from libtorrent import bencode, create_torrent
 
 from pony.orm import db_session
 
-import six
 from six import unichr  # pylint: disable=redefined-builtin
 from six.moves.urllib.parse import unquote_plus
 from six.moves.urllib.request import url2pathname
@@ -17,12 +16,12 @@ from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
 
 import Tribler.Core.Utilities.json_util as json
-from Tribler.Core.DownloadConfig import DownloadStartupConfig
+from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, ChannelMetadataPayload
 from Tribler.Core.Modules.MetadataStore.store import UNKNOWN_CHANNEL, UPDATED_OUR_VERSION
 from Tribler.Core.Modules.restapi.util import return_handled_exception
 from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
-from Tribler.Core.Utilities.unicode import ensure_unicode
+from Tribler.Core.Utilities.unicode import hexlify, recursive_unicode
 from Tribler.Core.Utilities.utilities import unichar_string
 from Tribler.Core.exceptions import InvalidSignatureException
 from Tribler.Core.simpledefs import DLMODE_VOD, DOWNLOAD, UPLOAD, dlstatus_strings
@@ -73,7 +72,7 @@ class DownloadBaseEndpoint(resource.Resource):
         - safe_seeding: whether the seeding of the download should be anonymous or not (0 = off, 1 = on)
         - destination: the destination path of the torrent (where it is saved on disk)
         """
-        download_config = DownloadStartupConfig()
+        download_config = DownloadConfig()
 
         anon_hops = 0
         if 'anon_hops' in parameters and len(parameters['anon_hops']) > 0:
@@ -95,11 +94,11 @@ class DownloadBaseEndpoint(resource.Resource):
             download_config.set_safe_seeding(True)
 
         if 'destination' in parameters and len(parameters['destination']) > 0:
-            dest_dir = cast_to_unicode_utf8(parameters['destination'][0])
+            dest_dir = parameters['destination'][0]
             download_config.set_dest_dir(dest_dir)
 
         if 'selected_files' in parameters:
-            selected_files_list = [cast_to_unicode_utf8(f) for f in parameters['selected_files']]
+            selected_files_list = [f for f in parameters['selected_files']]
             download_config.set_selected_files(selected_files_list)
 
         return download_config, None
@@ -110,7 +109,7 @@ class DownloadBaseEndpoint(resource.Resource):
         """
         files_json = []
         files_completion = dict((name, progress) for name, progress in download.get_state().get_files_completion())
-        selected_files = download.get_selected_files()
+        selected_files = download.config.get_selected_files()
         file_index = 0
         for fn, size in download.get_def().get_files_with_length():
             files_json.append({
@@ -206,17 +205,16 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                     }
                 }, ...]
         """
+        args = recursive_unicode(request.args)
         get_peers = False
-        if b'get_peers' in request.args and len(request.args[b'get_peers']) > 0 \
-                and request.args[b'get_peers'][0] == "1":
+        if 'get_peers' in args and args['get_peers'] and args['get_peers'][0] == "1":
             get_peers = True
 
         get_pieces = False
-        if b'get_pieces' in request.args and len(request.args[b'get_pieces']) > 0 \
-                and request.args[b'get_pieces'][0] == "1":
+        if 'get_pieces' in args and args['get_pieces'] and args['get_pieces'][0] == "1":
             get_pieces = True
 
-        get_files = b'get_files' in request.args and request.args[b'get_files'] and request.args[b'get_files'][0] == "1"
+        get_files = 'get_files' in args and args['get_files'] and args['get_files'][0] == "1"
 
         downloads_json = []
         downloads = self.session.get_downloads()
@@ -235,7 +233,8 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
             num_connected_seeds, num_connected_peers = download.get_num_connected_seeds_peers()
 
             download_name = self.session.lm.mds.ChannelMetadata.get_channel_name(
-                tdef.get_name_utf8(), tdef.get_infohash()) if download.get_channel_download() else tdef.get_name_utf8()
+                tdef.get_name_utf8(),
+                tdef.get_infohash()) if download.config.get_channel_download() else tdef.get_name_utf8()
 
             download_json = {
                 "name": download_name,
@@ -254,22 +253,22 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                 "total_down": state.get_total_transferred(DOWNLOAD),
                 "ratio": state.get_seeding_ratio(),
                 "trackers": tracker_info,
-                "hops": download.get_hops(),
+                "hops": download.config.get_hops(),
                 "anon_download": download.get_anon_mode(),
-                "safe_seeding": download.get_safe_seeding(),
+                "safe_seeding": download.config.get_safe_seeding(),
                 # Maximum upload/download rates are set for entire sessions
                 "max_upload_speed": self.session.config.get_libtorrent_max_upload_rate(),
                 "max_download_speed": self.session.config.get_libtorrent_max_download_rate(),
-                "destination": download.get_dest_dir(),
+                "destination": download.config.get_dest_dir(),
                 "availability": state.get_availability(),
                 "total_pieces": tdef.get_nr_pieces(),
-                "vod_mode": download.get_mode() == DLMODE_VOD,
+                "vod_mode": download.config.get_mode() == DLMODE_VOD,
                 "vod_prebuffering_progress": state.get_vod_prebuffering_progress(),
                 "vod_prebuffering_progress_consec": state.get_vod_prebuffering_progress_consec(),
                 "error": repr(state.get_error()) if state.get_error() else "",
-                "time_added": download.get_time_added(),
-                "credit_mining": download.get_credit_mining(),
-                "channel_download": download.get_channel_download()
+                "time_added": download.config.get_time_added(),
+                "credit_mining": download.config.get_credit_mining(),
+                "channel_download": download.config.get_channel_download()
             }
 
             # Add peers information if requested
@@ -279,13 +278,12 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                     del peer_info['have']
                     if 'extended_version' in peer_info:
                         peer_info['extended_version'] = _safe_extended_peer_info(peer_info['extended_version'])
-                    peer_info['id'] = hexlify(peer_info['id'])
 
                 download_json["peers"] = peer_list
 
             # Add piece information if requested
             if get_pieces:
-                download_json["pieces"] = download.get_pieces_base64()
+                download_json["pieces"] = download.get_pieces_base64().decode('utf-8')
 
             # Add files if requested
             if get_files:
@@ -318,7 +316,7 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
 
                     {"started": True, "infohash": "4344503b7e797ebf31582327a5baae35b11bda01"}
         """
-        parameters = http.parse_qs(request.content.read(), 1)
+        parameters = recursive_unicode(http.parse_qs(request.content.read(), 1))
 
         if 'uri' not in parameters or len(parameters['uri']) == 0:
             request.setResponseCode(http.BAD_REQUEST)
@@ -331,7 +329,7 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
 
         def download_added(download):
             request.write(json.twisted_dumps({"started": True,
-                                      "infohash": hexlify(download.get_def().get_infohash())}))
+                                              "infohash": hexlify(download.get_def().get_infohash())}))
             request.finish()
 
         def on_error(error):
@@ -339,7 +337,7 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
             request.write(json.twisted_dumps({"error": unichar_string(error.getErrorMessage())}))
             request.finish()
 
-        uri = ensure_unicode(parameters['uri'][0], 'utf-8')
+        uri = parameters['uri'][0]
         if uri.startswith("file:"):
             filename = url2pathname(uri[5:])
             if uri.endswith(".mdblob") or uri.endswith(".mdblob.lz4"):
@@ -402,7 +400,7 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
 
                     {"removed": True, "infohash": "4344503b7e797ebf31582327a5baae35b11bda01"}
         """
-        parameters = http.parse_qs(request.content.read(), 1)
+        parameters = recursive_unicode(http.parse_qs(request.content.read(), 1))
 
         if 'remove_data' not in parameters or len(parameters['remove_data']) == 0:
             request.setResponseCode(http.BAD_REQUEST)
@@ -419,7 +417,7 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
             Success callback
             """
             request.write(json.twisted_dumps({"removed": True,
-                                      "infohash": hexlify(download.get_def().get_infohash())}))
+                                              "infohash": hexlify(download.get_def().get_infohash())}))
             request.finish()
 
         def _on_remove_failure(failure):
@@ -472,7 +470,7 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
         if not download:
             return DownloadSpecificEndpoint.return_404(request)
 
-        parameters = http.parse_qs(request.content.read(), 1)
+        parameters = recursive_unicode(http.parse_qs(request.content.read(), 1))
 
         if len(parameters) > 1 and 'anon_hops' in parameters:
             request.setResponseCode(http.BAD_REQUEST)
@@ -486,7 +484,7 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
                 Success callback
                 """
                 request.write(json.twisted_dumps({"modified": True,
-                                          "infohash": hexlify(download.get_def().get_infohash())}))
+                                                  "infohash": hexlify(download.get_def().get_infohash())}))
                 request.finish()
 
             def _on_download_readd_failure(failure):
@@ -535,7 +533,7 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
                 return json.twisted_dumps({"error": "unknown state parameter"})
 
         return json.twisted_dumps({"modified": True,
-                           "infohash": hexlify(download.get_def().get_infohash())})
+                                   "infohash": hexlify(download.get_def().get_infohash())})
 
 
 class DownloadExportTorrentEndpoint(DownloadBaseEndpoint):
@@ -576,7 +574,8 @@ class DownloadExportTorrentEndpoint(DownloadBaseEndpoint):
         bencoded_torrent = bencode(torrent)
 
         request.setHeader(b'content-type', 'application/x-bittorrent')
-        request.setHeader(b'Content-Disposition', 'attachment; filename=%s.torrent' % hexlify(self.infohash))
+        request.setHeader(b'Content-Disposition', 'attachment; filename=%s.torrent'
+                          % hexlify(self.infohash).encode('utf-8'))
         return bencoded_torrent
 
 

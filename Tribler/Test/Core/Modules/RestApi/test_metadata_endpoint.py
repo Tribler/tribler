@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import sys
-from binascii import hexlify
 from unittest import skipIf
 
 from ipv8.keyvault.crypto import default_eccrypto
@@ -18,6 +17,7 @@ import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.TorrentChecker.torrent_checker import TorrentChecker
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.Utilities.random_utils import random_infohash
+from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.Utilities.utilities import has_bep33_support
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.Core.base_test import MockObject
@@ -193,8 +193,8 @@ class TestSpecificChannelTorrentsEndpoint(BaseTestMetadataEndpoint):
         """
         with db_session:
             channel = self.session.lm.mds.ChannelMetadata(title='ffa', infohash=random_infohash(),
-                                                          public_key="", id_=123)
-            self.session.lm.mds.TorrentMetadata(public_key="", id_=333333,
+                                                          public_key=b"", id_=123)
+            self.session.lm.mds.TorrentMetadata(public_key=b"", id_=333333,
                                                 origin_id=channel.id_, title='torrent', infohash=random_infohash())
 
         def on_response(response):
@@ -312,7 +312,7 @@ class TestTorrentHealthEndpoint(AbstractApiTest):
         """
         Test the endpoint to fetch the health of a chant-managed, infohash-only torrent
         """
-        infohash = 'a' * 20
+        infohash = b'a' * 20
         tracker_url = 'udp://localhost:%s/announce' % self.udp_port
         self.udp_tracker.tracker_info.add_info_about_infohash(infohash, 12, 11, 1)
 

@@ -327,7 +327,7 @@ class TriblerRequestManager(QObject):
 
         data = reply.readAll()
         try:
-            json_result = json.loads(str(data), encoding='latin_1')
+            json_result = json.loads(bytes(data), encoding='latin_1')
 
             if 'error' in json_result and capture_errors \
                     and not TriblerRequestManager.window.core_manager.shutting_down:
@@ -422,6 +422,9 @@ class TriblerRequestWorker(QNetworkAccessManager):
         else:
             url = self.get_base_url() + endpoint
 
+        if data:
+            data = data.encode('utf8')
+
         log = [endpoint, method, data, time(), 0]
         performed_requests.append(log)
         network_reply = self.dispatch_map.get(method, lambda x, y, z: None)(endpoint, data, url)
@@ -441,7 +444,7 @@ class TriblerRequestWorker(QNetworkAccessManager):
         buf.setData(data)
         buf.open(QIODevice.ReadOnly)
         get_request = QNetworkRequest(QUrl(url))
-        reply = self.sendCustomRequest(get_request, "GET", buf)
+        reply = self.sendCustomRequest(get_request, b"GET", buf)
         buf.setParent(reply)
         return reply
 
@@ -457,7 +460,7 @@ class TriblerRequestWorker(QNetworkAccessManager):
         buf.setData(data)
         buf.open(QIODevice.ReadOnly)
         patch_request = QNetworkRequest(QUrl(url))
-        reply = self.sendCustomRequest(patch_request, "PATCH", buf)
+        reply = self.sendCustomRequest(patch_request, b"PATCH", buf)
         buf.setParent(reply)
         return reply
 
@@ -486,7 +489,7 @@ class TriblerRequestWorker(QNetworkAccessManager):
         buf.setData(data)
         buf.open(QIODevice.ReadOnly)
         delete_request = QNetworkRequest(QUrl(url))
-        reply = self.sendCustomRequest(delete_request, "DELETE", buf)
+        reply = self.sendCustomRequest(delete_request, b"DELETE", buf)
         buf.setParent(reply)
         return reply
 

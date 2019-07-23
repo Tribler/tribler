@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import random
-from binascii import hexlify
 from datetime import datetime
 
 from ipv8.database import database_blob
@@ -12,6 +11,7 @@ from pony.orm.core import DEFAULT
 
 from Tribler.Core.Modules.MetadataStore.serialization import (
     CHANNEL_NODE, ChannelNodePayload, DELETED, DeletedMetadataPayload)
+from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.exceptions import InvalidChannelNodeException, InvalidSignatureException
 
 # Metadata, torrents and channel statuses
@@ -87,7 +87,7 @@ def define_binding(db, logger=None, key=None, clock=None):
                 private_key_override = kwargs.pop("sign_with")
 
             # Free-for-all entries require special treatment
-            if "public_key" in kwargs and kwargs["public_key"] == "":
+            if "public_key" in kwargs and kwargs["public_key"] == b"":
                 # We have to give the entry an unique sig to honor the DB constraints. We use the entry's id_
                 # as the sig to keep it unique and short. The uniqueness is guaranteed by DB as it already
                 # imposes uniqueness constraints on the id_+public_key combination.
@@ -126,7 +126,8 @@ def define_binding(db, logger=None, key=None, clock=None):
                         raise InvalidSignatureException(
                             ("Attempted to create %s object with invalid signature/PK: " % str(
                                 self.__class__.__name__)) +
-                            (hexlify(kwargs["signature"]) if "signature" in kwargs else "empty signature ") + " / " +
+                            (hexlify(kwargs["signature"])
+                             if "signature" in kwargs else "empty signature ") + " / " +
                             (hexlify(kwargs["public_key"]) if "public_key" in kwargs else " empty PK"))
 
             if private_key_override:
@@ -135,7 +136,7 @@ def define_binding(db, logger=None, key=None, clock=None):
                 kwargs = generate_dict_from_pony_args(self.__class__, skip_list=["signature", "public_key"], **kwargs)
                 payload = self._payload_class(
                     **dict(kwargs,
-                           public_key=str(private_key_override.pub().key_to_bin()[10:]),
+                           public_key=private_key_override.pub().key_to_bin()[10:],
                            key=private_key_override,
                            metadata_type=self.metadata_type))
                 kwargs["public_key"] = payload.public_key
@@ -157,7 +158,7 @@ def define_binding(db, logger=None, key=None, clock=None):
             :param key: private key to sign object with
             :return: serialized_data+signature binary string
             """
-            return ''.join(self._serialized(key))
+            return b''.join(self._serialized(key))
 
         def _serialized_delete(self):
             """
@@ -174,7 +175,7 @@ def define_binding(db, logger=None, key=None, clock=None):
             Create a special command to delete this metadata and encode it for transfer (blob output).
             :return: serialized_data+signature binary string
             """
-            return ''.join(self._serialized_delete())
+            return b''.join(self._serialized_delete())
 
         def to_file(self, filename, key=None):
             with open(filename, 'wb') as output_file:
@@ -193,7 +194,7 @@ def define_binding(db, logger=None, key=None, clock=None):
         def has_valid_signature(self):
             crypto = default_eccrypto
             signature_correct = False
-            key_correct = crypto.is_valid_public_bin(b"LibNaCLPK:" + str(self.public_key))
+            key_correct = crypto.is_valid_public_bin(b"LibNaCLPK:" + bytes(self.public_key))
 
             if key_correct:
                 try:

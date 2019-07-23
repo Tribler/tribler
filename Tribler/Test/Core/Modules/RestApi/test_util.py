@@ -35,7 +35,7 @@ class TestRestApiUtil(TriblerCoreTest):
         """
         arr1 = ['a', 'b', 'c', u'd']
         self.assertListEqual(fix_unicode_array(arr1), ['a', 'b', 'c', 'd'])
-        arr2 = ['a', '\xa1']
+        arr2 = ['a', b'\xa1']
         self.assertListEqual(fix_unicode_array(arr2), ['a', ''])
         arr3 = [1, 2, 3, '4']
         self.assertListEqual(fix_unicode_array(arr3), [1, 2, 3, '4'])
@@ -48,15 +48,15 @@ class TestRestApiUtil(TriblerCoreTest):
         """
         dict1 = {'a': 'b', 'c': 'd'}
         self.assertDictEqual(fix_unicode_dict(dict1), {'a': 'b', 'c': 'd'})
-        dict2 = {'a': '\xa2'}
+        dict2 = {'a': b'\xa2'}
         self.assertDictEqual(fix_unicode_dict(dict2), {'a': ''})
         dict3 = {'a': [1, 2], 'b': ['1', '2']}
         self.assertDictEqual(fix_unicode_dict(dict3), {'a': [1, 2], 'b': ['1', '2']})
-        dict4 = {'a': ['1', '2\xa3']}
+        dict4 = {'a': ['1', b'2\xa3']}
         self.assertDictEqual(fix_unicode_dict(dict4), {'a': ['1', '2']})
-        dict5 = {'a': ('1', '2\xa3')}
+        dict5 = {'a': ('1', b'2\xa3')}
         self.assertDictEqual(fix_unicode_dict(dict5), {'a': ['1', '2']})
-        dict6 = {'a': {'b': 'c\xa4'}}
+        dict6 = {'a': {'b': b'c\xa4'}}
         self.assertDictEqual(fix_unicode_dict(dict6), {'a': {'b': 'c'}})
         dict7 = {'a': 'ѡ'}
         self.assertDictEqual(fix_unicode_dict(dict7), {'a': u'ѡ'})

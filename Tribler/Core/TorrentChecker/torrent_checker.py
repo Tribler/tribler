@@ -4,7 +4,6 @@ import logging
 import random
 import socket
 import time
-from binascii import hexlify
 
 from ipv8.database import database_blob
 from ipv8.taskmanager import TaskManager
@@ -23,6 +22,7 @@ from Tribler.Core.Modules.MetadataStore.serialization import REGULAR_TORRENT
 from Tribler.Core.TorrentChecker.session import FakeBep33DHTSession, FakeDHTSession, UdpSocketManager, \
     create_tracker_session
 from Tribler.Core.Utilities.tracker_utils import MalformedTrackerURLException
+from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.Utilities.utilities import has_bep33_support, is_valid_url
 from Tribler.Core.simpledefs import NTFY_TORRENT, NTFY_UPDATE
 
@@ -157,10 +157,10 @@ class TorrentChecker(TaskManager):
         Perform a full health check on a random torrent in the database.
         We prioritize torrents that have no health info attached.
         """
-        random_torrents = self.tribler_session.lm.mds.TorrentState.select(
+        random_torrents = list(self.tribler_session.lm.mds.TorrentState.select(
             lambda g: (metadata for metadata in g.metadata if metadata.status != LEGACY_ENTRY and
                        metadata.metadata_type == REGULAR_TORRENT))\
-            .order_by(lambda g: g.last_check).limit(10)
+            .order_by(lambda g: g.last_check).limit(10))
 
         if not random_torrents:
             self._logger.info("Could not find any eligible torrent for random torrent check")
@@ -171,13 +171,13 @@ class TorrentChecker(TaskManager):
             random_torrents = random.sample(random_torrents, min(3, len(random_torrents)))
             infohashes = []
             for random_torrent in random_torrents:
-                self.check_torrent_health(str(random_torrent.infohash))
-                infohashes.append(str(random_torrent.infohash))
+                self.check_torrent_health(bytes(random_torrent.infohash))
+                infohashes.append(random_torrent.infohash)
             return infohashes
 
         random_torrent = random.choice(random_torrents)
-        self.check_torrent_health(str(random_torrent.infohash))
-        return [random_torrent.infohash]
+        self.check_torrent_health(bytes(random_torrent.infohash))
+        return [bytes(random_torrent.infohash)]
 
     def get_callbacks_for_session(self, session):
         success_lambda = lambda info_dict: self._on_result_from_session(session, info_dict)
@@ -207,8 +207,8 @@ class TorrentChecker(TaskManager):
     def get_valid_trackers_of_torrent(self, torrent_id):
         """ Get a set of valid trackers for torrent. Also remove any invalid torrent."""
         db_tracker_list = self.tribler_session.lm.mds.TorrentState.get(infohash=database_blob(torrent_id)).trackers
-        return set([str(tracker.url) for tracker in db_tracker_list
-                    if is_valid_url(str(tracker.url)) and not self.is_blacklisted_tracker(str(tracker.url))])
+        return set([tracker.url for tracker in db_tracker_list
+                    if is_valid_url(tracker.url) and not self.is_blacklisted_tracker(tracker.url)])
 
     def update_torrents_checked(self, new_result):
         """
@@ -234,10 +234,11 @@ class TorrentChecker(TaskManager):
             if not success and isinstance(response, Failure):
                 final_response[response.tracker_url] = {'error': response.getErrorMessage()}
                 continue
-            final_response[response.keys()[0]] = response[response.keys()[0]][0]
+            keys = list(response.keys())
+            final_response[keys[0]] = response[keys[0]][0]
 
-            s = response[response.keys()[0]][0]['seeders']
-            l = response[response.keys()[0]][0]['leechers']
+            s = response[keys[0]][0]['seeders']
+            l = response[keys[0]][0]['leechers']
 
             # More leeches is better, because undefined peers are marked as leeches in DHT
             if s > torrent_update_dict['seeders'] or \
@@ -269,7 +270,7 @@ class TorrentChecker(TaskManager):
         with db_session:
             result = self.tribler_session.lm.mds.TorrentState.get(infohash=database_blob(infohash))
             if result:
-                torrent_id = str(result.infohash)
+                torrent_id = result.infohash
                 last_check = result.last_check
                 time_diff = time.time() - last_check
                 if time_diff < MIN_TORRENT_CHECK_INTERVAL and not scrape_now:

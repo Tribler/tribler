@@ -3,8 +3,9 @@ from __future__ import absolute_import
 from twisted.internet.defer import inlineCallbacks
 
 import Tribler.Core.Utilities.json_util as json
-from Tribler.Core.DownloadConfig import DownloadConfigInterface
+from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
+from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.tools import trial_timeout
 
 
@@ -94,13 +95,16 @@ class TestSettingsEndpoint(AbstractApiTest):
         """
         Testing whether settings in the API can be successfully set
         """
-        download = DownloadConfigInterface()
-        download.get_credit_mining = lambda: False
+
+        dcfg = DownloadConfig()
+        dcfg.get_credit_mining = lambda: False
+        download = MockObject()
+        download.config = dcfg
         self.session.get_downloads = lambda: [download]
 
         def verify_response1(_):
-            self.assertEqual(download.get_seeding_mode(), 'time')
-            self.assertEqual(download.get_seeding_time(), 100)
+            self.assertEqual(dcfg.get_seeding_mode(), 'time')
+            self.assertEqual(dcfg.get_seeding_time(), 100)
 
         self.should_check_equality = False
         post_data = json.dumps({'libtorrent': {'utp': False, 'max_download_rate': 50},
@@ -109,17 +113,17 @@ class TestSettingsEndpoint(AbstractApiTest):
             .addCallback(verify_response1)
 
         def verify_response2(_):
-            self.assertEqual(download.get_seeding_mode(), 'ratio')
-            self.assertEqual(download.get_seeding_ratio(), 3)
+            self.assertEqual(dcfg.get_seeding_mode(), 'ratio')
+            self.assertEqual(dcfg.get_seeding_ratio(), 3)
 
         post_data = json.dumps({'download_defaults': {'seeding_mode': 'ratio', 'seeding_ratio': 3}})
         yield self.do_request('settings', expected_code=200, request_type='POST', raw_data=post_data) \
             .addCallback(verify_response2)
 
-        download.get_credit_mining = lambda: True
+        dcfg.get_credit_mining = lambda: True
 
         def verify_response3(_):
-            self.assertNotEqual(download.get_seeding_mode(), 'never')
+            self.assertNotEqual(dcfg.get_seeding_mode(), 'never')
 
         post_data = json.dumps({'download_defaults': {'seeding_mode': 'never'}})
         yield self.do_request('settings', expected_code=200, request_type='POST', raw_data=post_data) \

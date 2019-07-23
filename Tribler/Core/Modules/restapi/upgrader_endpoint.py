@@ -7,6 +7,7 @@ from six import viewitems
 from twisted.web import http, resource
 
 import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.Utilities.unicode import recursive_unicode
 
 SKIP_DB_UPGRADE_STR = "skip_db_upgrade"
 
@@ -47,13 +48,7 @@ class UpgraderEndpoint(resource.Resource):
                 }
         """
 
-        parameters_raw = http.parse_qs(request.content.read(), 1)
-        parameters = {}
-
-        # FIXME: make all endpoints Unicode-compatible in a unified way
-        for param, val in viewitems(parameters_raw):
-            parameters.update({param: [item.decode('utf-8') for item in val]})
-
+        parameters = recursive_unicode(http.parse_qs(request.content.read(), 1))
         if SKIP_DB_UPGRADE_STR not in parameters:
             request.setResponseCode(http.BAD_REQUEST)
             return json.twisted_dumps({"error": "attribute to change is missing"})

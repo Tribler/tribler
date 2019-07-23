@@ -77,7 +77,7 @@ def http_get(uri):
         raise HttpError(response)
 
     try:
-        uri = uri.encode('utf-8')  # Try converting uri to bytes
+        uri = six.ensure_binary(uri)
     except AttributeError:
         pass
     try:

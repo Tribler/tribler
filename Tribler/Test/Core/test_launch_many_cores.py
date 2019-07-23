@@ -11,6 +11,7 @@ from ipv8.attestation.trustchain.community import TrustChainCommunity
 from twisted.internet.defer import Deferred, inlineCallbacks
 
 from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
+from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.Modules.payout_manager import PayoutManager
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.bootstrap_util import create_dummy_tdef
@@ -52,32 +53,34 @@ class TestLaunchManyCore(TriblerCoreTest):
         Create a fake download and state which can be passed to the global download callback.
         """
         tdef = TorrentDef()
-        tdef.get_infohash = lambda: 'aaaa'
+        tdef.get_infohash = lambda: b'aaaa'
         fake_peer = {'extended_version': 'Tribler', 'id': 'a' * 20, 'dtotal': 10 * 1024 * 1024}
         fake_download = MockObject()
         fake_download.get_def = lambda: tdef
         fake_download.get_def().get_name_as_unicode = lambda: "test.iso"
-        fake_download.get_hops = lambda: 0
-        fake_download.get_safe_seeding = lambda: True
         fake_download.get_peerlist = lambda: [fake_peer]
         fake_download.hidden = False
         dl_state = MockObject()
-        dl_state.get_infohash = lambda: 'aaaa'
+        dl_state.get_infohash = lambda: b'aaaa'
         dl_state.get_status = lambda: DLSTATUS_SEEDING
         dl_state.get_download = lambda: fake_download
+        fake_config = MockObject()
+        fake_config.get_hops = lambda: 0
+        fake_config.get_safe_seeding = lambda: True
+        fake_download.config = fake_config
 
         return fake_download, dl_state
 
     def test_resume_download(self):
         good = []
 
-        def mock_add(tdef, dscfg, pstate, setupDelay=None):
+        def mock_add(tdef, dscfg, setupDelay=None):
             good.append(1)
         self.lm.add = mock_add
 
         # Try opening real state file
         state = os.path.abspath(os.path.join(self.DATA_DIR, u"config_files",
-                                             u"13a25451c761b1482d3e85432f07c4be05ca8a56.state"))
+                                             u"13a25451c761b1482d3e85432f07c4be05ca8a56.conf"))
         self.lm.resume_download(state)
         self.assertTrue(good)
 
@@ -92,14 +95,14 @@ class TestLaunchManyCore(TriblerCoreTest):
         self.lm.resume_download(config_file_path)
         self.assertFalse(good)
 
-    def test_load_download_pstate(self):
+    def test_load_download_config(self):
         """
-        Testing whether a pstate is successfully loaded
+        Testing whether a DownloadConfig is successfully loaded
         """
         config_file_path = os.path.abspath(os.path.join(self.DATA_DIR, u"config_files", u"config1.conf"))
-        config = self.lm.load_download_pstate(config_file_path)
-        self.assertIsInstance(config, CallbackConfigParser)
-        self.assertEqual(config.get('general', 'version'), 11)
+        config = self.lm.load_download_config(config_file_path)
+        self.assertIsInstance(config, DownloadConfig)
+        self.assertEqual(int(config.config['general']['version']), 11)
 
     @trial_timeout(10)
     def test_dlstates_cb_error(self):
@@ -116,7 +119,7 @@ class TestLaunchManyCore(TriblerCoreTest):
         fake_error_state.get_status = lambda: DLSTATUS_STOPPED_ON_ERROR
         fake_error_state.get_error = lambda: "test error"
 
-        self.lm.downloads = {'aaaa': fake_error_download}
+        self.lm.downloads = {b'aaaa': fake_error_download}
         self.lm.sesscb_states_callback([fake_error_state])
 
         return error_stop_deferred
@@ -150,7 +153,7 @@ class TestLaunchManyCore(TriblerCoreTest):
         self.lm.payout_manager = PayoutManager(fake_tc, None)
 
         self.lm.state_cb_count = 4
-        self.lm.downloads = {'aaaa': fake_download}
+        self.lm.downloads = {b'aaaa': fake_download}
         self.lm.sesscb_states_callback([dl_state])
 
         self.assertTrue(self.lm.payout_manager.tribler_peers)
@@ -161,14 +164,14 @@ class TestLaunchManyCore(TriblerCoreTest):
         """
 
         def mocked_resume_download(filename, setupDelay=3):
-            self.assertTrue(filename.endswith('abcd.state'))
+            self.assertTrue(filename.endswith('abcd.conf'))
             self.assertEqual(setupDelay, 0)
             mocked_resume_download.called = True
 
         mocked_resume_download.called = False
-        self.lm.session.get_downloads_pstate_dir = lambda: self.session_base_dir
+        self.lm.session.get_downloads_config_dir = lambda: self.session_base_dir
 
-        with open(os.path.join(self.lm.session.get_downloads_pstate_dir(), 'abcd.state'), 'wb') as state_file:
+        with open(os.path.join(self.lm.session.get_downloads_config_dir(), 'abcd.conf'), 'wb') as state_file:
             state_file.write(b"hi")
 
         self.lm.initComplete = True

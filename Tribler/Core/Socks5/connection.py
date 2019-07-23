@@ -34,7 +34,7 @@ class Socks5Connection(Protocol):
 
         self._udp_socket = None
         self.state = ConnectionState.BEFORE_METHOD_REQUEST
-        self.buffer = ''
+        self.buffer = b''
 
         self.destinations = {}
 

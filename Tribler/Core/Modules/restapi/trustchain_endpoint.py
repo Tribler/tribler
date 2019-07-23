@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from twisted.web import http, resource
 
 import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.Utilities.unicode import recursive_unicode
 
 
 class TrustchainEndpoint(resource.Resource):
@@ -84,7 +85,7 @@ class TrustchainStatsEndpoint(TrustchainBaseEndpoint):
             request.setResponseCode(http.NOT_FOUND)
             return json.twisted_dumps({"error": "TrustChain community not found"})
 
-        return json.twisted_dumps({'statistics': self.session.lm.wallets['MB'].get_statistics()})
+        return json.twisted_dumps({'statistics': recursive_unicode(self.session.lm.wallets['MB'].get_statistics())})
 
 
 class TrustchainBootstrapEndpoint(TrustchainBaseEndpoint):
@@ -130,9 +131,10 @@ class TrustchainBootstrapEndpoint(TrustchainBaseEndpoint):
 
         available_tokens = bandwidth_wallet.get_bandwidth_tokens()
 
-        if 'amount' in request.args:
+        args = recursive_unicode(request.args)
+        if 'amount' in args:
             try:
-                amount = int(request.args[b'amount'][0])
+                amount = int(args['amount'][0])
             except ValueError:
                 request.setResponseCode(http.BAD_REQUEST)
                 return json.twisted_dumps({"error": "Provided token amount is not a number"})
@@ -148,4 +150,6 @@ class TrustchainBootstrapEndpoint(TrustchainBaseEndpoint):
             return json.twisted_dumps({"error": "Not enough bandwidth tokens available"})
 
         result = bandwidth_wallet.bootstrap_new_identity(amount)
+        result['private_key'] = result['private_key'].decode('utf-8')
+        result['block']['block_hash'] = result['block']['block_hash'].decode('utf-8')
         return json.twisted_dumps(result)

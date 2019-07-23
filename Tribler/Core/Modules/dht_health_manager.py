@@ -1,7 +1,6 @@
 from __future__ import absolute_import, division
 
 import math
-from binascii import hexlify
 
 from ipv8.dht.routing import distance, id_to_binary_string
 from ipv8.taskmanager import TaskManager
@@ -10,6 +9,8 @@ import libtorrent as lt
 
 from twisted.internet import reactor
 from twisted.internet.defer import Deferred
+
+from Tribler.Core.Utilities.unicode import hexlify
 
 
 class DHTHealthManager(TaskManager):
@@ -44,7 +45,7 @@ class DHTHealthManager(TaskManager):
         self.bf_peers[infohash] = bytearray(256)
 
         # Perform a get_peers request. This should result in get_peers responses with the BEP33 bloom filters.
-        self.lt_session.dht_get_peers(lt.sha1_hash(infohash))
+        self.lt_session.dht_get_peers(lt.sha1_hash(bytes(infohash)))
 
         self.register_task("lookup_%s" % hexlify(infohash), reactor.callLater(timeout, self.finalize_lookup, infohash))
 
@@ -97,12 +98,13 @@ class DHTHealthManager(TaskManager):
         def tobits(s):
             result = []
             for c in s:
-                bits = bin(ord(c))[2:]
+                num = ord(c) if isinstance(c, str) else c
+                bits = bin(num)[2:]
                 bits = '00000000'[len(bits):] + bits
                 result.extend([int(b) for b in bits])
             return result
 
-        bits_array = tobits(str(bf))
+        bits_array = tobits(bytes(bf))
         total_zeros = 0
         for bit in bits_array:
             if bit == 0:

@@ -1,7 +1,10 @@
 from __future__ import absolute_import
+
 import random
 import struct
+
 from six.moves import xrange
+
 from twisted.internet import reactor
 from twisted.internet.defer import maybeDeferred
 from twisted.internet.protocol import DatagramProtocol
@@ -42,11 +45,11 @@ class UDPTrackerProtocol(DatagramProtocol):
                 self.send_error(host, port, "no infohash")
                 return
 
-            num_infohashes = (len(response) - 16) / LENGTH_INFOHASH
+            num_infohashes = (len(response) - 16) // LENGTH_INFOHASH
             infohashes = []
             for ind in xrange(num_infohashes):
                 tup = struct.unpack_from('!' + str(LENGTH_INFOHASH) + 'c', response, 16 + ind * LENGTH_INFOHASH)
-                infohash = ''.join(tup)
+                infohash = b''.join(tup)
                 if not self.tracker_session.tracker_info.has_info_about_infohash(infohash):
                     self.send_error(host, port, "no info about hash %s" % infohash)
                     return

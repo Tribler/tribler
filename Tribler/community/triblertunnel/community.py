@@ -219,10 +219,10 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         def on_transaction_completed(blocks):
             # Send the next payout
-            if blocks and payload.circuit_id in self.relay_from_to and block.transaction['down'] > payload.base_amount:
+            if blocks and payload.circuit_id in self.relay_from_to and block.transaction[b'down'] > payload.base_amount:
                 relay = self.relay_from_to[payload.circuit_id]
                 self._logger.info("Sending next payout to peer %s", relay.peer)
-                self.do_payout(relay.peer, relay.circuit_id, block.transaction['down'] - payload.base_amount * 2,
+                self.do_payout(relay.peer, relay.circuit_id, block.transaction[b'down'] - payload.base_amount * 2,
                                payload.base_amount)
 
         block = TriblerBandwidthBlock.from_payload(payload, self.serializer)
@@ -261,7 +261,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         # Get the latest block
         latest_block = self.bandwidth_wallet.trustchain.persistence.get_latest(self.my_peer.public_key.key_to_bin(),
-                                                                               block_type='tribler_bandwidth')
+                                                                               block_type=b'tribler_bandwidth')
         if not latest_block:
             latest_block = TriblerBandwidthBlock()
         latest_block.public_key = EMPTY_PK  # We hide the public key
@@ -286,7 +286,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             self.on_token_balance(payload.circuit_id, 0)
         else:
             self.on_token_balance(payload.circuit_id,
-                                  block.transaction["total_up"] - block.transaction["total_down"])
+                                  block.transaction[b"total_up"] - block.transaction[b"total_down"])
 
     def on_relay_balance_response_cell(self, source_address, data, _):
         payload = self._ez_unpack_noauth(BalanceResponsePayload, data, global_time=False)
@@ -301,7 +301,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                                BalanceResponsePayload.from_half_block(block, cache.to_circuit_id))
 
     def readd_bittorrent_peers(self):
-        for torrent, peers in self.bittorrent_peers.items():
+        for torrent, peers in list(self.bittorrent_peers.items()):
             infohash = hexlify(torrent.tdef.get_infohash())
             for peer in peers:
                 self.logger.info("Re-adding peer %s to torrent %s", peer, infohash)
@@ -331,8 +331,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         self.logger.info("Sending payout of %d (base: %d) to %s (cid: %s)", amount, base_amount, peer, circuit_id)
 
         block = TriblerBandwidthBlock.create(
-            'tribler_bandwidth',
-            {'up': 0, 'down': amount},
+            b'tribler_bandwidth',
+            {b'up': 0, b'down': amount},
             self.bandwidth_wallet.trustchain.persistence,
             self.my_peer.public_key.key_to_bin(),
             link_pk=peer.public_key.key_to_bin())
@@ -393,7 +393,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                 if self.tribler_session and self.tribler_session.config.get_libtorrent_enabled() else None
             if ltmgr:
                 for d, s in ltmgr.torrents.values():
-                    if s == ltmgr.get_session(d.get_hops()):
+                    if s == ltmgr.get_session(d.config.get_hops()):
                         d.get_handle().addCallback(lambda handle, download=d:
                                                    self.update_torrent(affected_peers, handle, download))
 
@@ -456,7 +456,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         for ds in dslist:
             download = ds.get_download()
-            hop_count = download.get_hops()
+            hop_count = download.config.get_hops()
             if hop_count > 0:
                 # Convert the real infohash to the infohash used for looking up introduction points
                 real_info_hash = download.get_def().get_infohash()
@@ -524,7 +524,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             if LooseVersion(self.tribler_session.lm.ltmgr.get_libtorrent_version()) < LooseVersion("1.2.0"):
                 download.add_peer(('1.1.1.1', 1024))
             else:
-                hops = download.get_hops()
+                hops = download.config.get_hops()
                 lt_listen_port = self.tribler_session.lm.ltmgr.get_session(hops).listen_port()
                 for session in self.socks_servers[hops - 1].sessions:
                     session.get_udp_socket().remote_udp_address = ("127.0.0.1", lt_listen_port)

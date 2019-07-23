@@ -11,7 +11,7 @@ from twisted.web.server import NOT_DONE_YET
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, REGULAR_TORRENT
 from Tribler.Core.Modules.restapi.metadata_endpoint import BaseMetadataEndpoint
-from Tribler.Core.Utilities.unicode import ensure_unicode
+from Tribler.Core.Utilities.unicode import recursive_unicode
 
 class SearchEndpoint(BaseMetadataEndpoint):
     """
@@ -90,7 +90,8 @@ class SearchEndpoint(BaseMetadataEndpoint):
                    "chant_dirty":false
                 }
         """
-        sanitized = self.sanitize_parameters(request.args)
+        args = recursive_unicode(request.args)
+        sanitized = self.sanitize_parameters(args)
 
         if not sanitized["query_filter"]:
             request.setResponseCode(http.BAD_REQUEST)
@@ -100,12 +101,12 @@ class SearchEndpoint(BaseMetadataEndpoint):
             request.setResponseCode(http.BAD_REQUEST)
             return json.twisted_dumps({"error": "Trying to query for unknown type of metadata"})
 
-        search_uuid = SearchEndpoint.get_uuid(request.args)
+        search_uuid = SearchEndpoint.get_uuid(args)
 
         # Apart from the local search results, we also do remote search to get search results from peers in the
         # Giga channel community.
         if self.session.lm.gigachannel_community and sanitized["first"] == 1:
-            raw_metadata_type = request.args[b'metadata_type'][0] if b'metadata_type' in request.args else ''
+            raw_metadata_type = args['metadata_type'][0] if 'metadata_type' in args else ''
             self.session.lm.gigachannel_community.send_search_request(sanitized['query_filter'],
                                                                       metadata_type=raw_metadata_type,
                                                                       sort_by=sanitized['sort_by'],
@@ -146,8 +147,9 @@ class SearchCountEndpoint(SearchEndpoint):
         self.session = session
 
     def render_GET(self, request):
-        sanitized = self.sanitize_parameters(request.args)
-        search_uuid = SearchEndpoint.get_uuid(request.args)
+        args = recursive_unicode(request.args)
+        sanitized = self.sanitize_parameters(args)
+        search_uuid = SearchEndpoint.get_uuid(args)
         if not sanitized["query_filter"]:
             request.setResponseCode(http.BAD_REQUEST)
             return json.twisted_dumps({"error": "filter parameter missing"})
@@ -190,11 +192,12 @@ class SearchCompletionsEndpoint(resource.Resource):
                     "completions": ["pioneer one", "pioneer movie"]
                 }
         """
-        if 'q' not in request.args:
+        args = recursive_unicode(request.args)
+        if 'q' not in args:
             request.setResponseCode(http.BAD_REQUEST)
             return json.twisted_dumps({"error": "query parameter missing"})
 
-        keywords = ensure_unicode(request.args[b'q'][0], 'utf-8').lower()
+        keywords = args['q'][0].lower()
         # TODO: add XXX filtering for completion terms
         results = self.session.lm.mds.TorrentMetadata.get_auto_complete_terms(keywords, max_terms=5)
         return json.twisted_dumps({"completions": results})

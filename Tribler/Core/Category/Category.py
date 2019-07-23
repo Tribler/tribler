@@ -45,29 +45,33 @@ class Category(object):
         Calculate the category for a given torrent_dict of a torrent file.
         :return a list of categories this torrent belongs to.
         """
+        files_list = [{'path': file_dict[b'path'].decode('utf-8'),
+                       'length': file_dict[b'length']}
+                      for file_dict in torrent_dict[b'info'][b"files"]] if b"files" in torrent_dict[b'info'] else []
         is_xxx = default_xxx_filter.isXXXTorrent(
-            files_list=torrent_dict['info']["files"] if "files" in torrent_dict['info'] else [],
-            torrent_name=torrent_dict['info'].get("name"),
-            tracker=torrent_dict['info'].get("announce"))
+            files_list=files_list,
+            torrent_name=torrent_dict[b'info'].get(b"name", b'').decode('utf-8'),
+            tracker=torrent_dict[b'info'].get(b"announce", b'').decode('utf-8'))
         if is_xxx:
             return "xxx"
         files_list = []
         try:
             # the multi-files mode
-            for ifiles in torrent_dict['info']["files"]:
-                files_list.append((ifiles['path'][-1], ifiles['length'] / float(self.__size_change)))
+            for ifiles in torrent_dict[b'info'][b"files"]:
+                files_list.append((ifiles[b'path'][-1:].decode('utf-8'), ifiles[b'length'] / float(self.__size_change)))
         except KeyError:
             # single mode
             files_list.append(
-                (torrent_dict['info']["name"], torrent_dict['info']['length'] / float(self.__size_change)))
+                (torrent_dict[b'info'][b"name"].decode('utf-8'),
+                 torrent_dict[b'info'][b'length'] / float(self.__size_change)))
 
-        tracker = torrent_dict.get('announce')
+        tracker = torrent_dict.get(b'announce')
         if not tracker:
-            announce_list = torrent_dict.get('announce-list', [['']])
+            announce_list = torrent_dict.get(b'announce-list', [['']])
             if announce_list and announce_list[0]:
                 tracker = announce_list[0][0]
 
-        comment = torrent_dict.get('comment')
+        comment = torrent_dict.get(b'comment')
         return self.calculateCategoryNonDict(files_list, display_name, tracker, comment)
 
     def calculateCategoryNonDict(self, files_list, display_name, tracker, comment):

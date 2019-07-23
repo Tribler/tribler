@@ -220,7 +220,7 @@ class TrustAnimationCanvas(FigureCanvas):
         # Example value for enclosing nodes: (True, {'ind': array([ 71, 340], dtype=int32)})
         if enclosing_nodes[0]:
             index = enclosing_nodes[1]['ind'][-1]
-            self.selected_node['public_key'] = self.node_positions.keys()[index]
+            self.selected_node['public_key'] = list(self.node_positions.keys())[index]
             self.redraw = True
 
     def on_mouse_release_event(self, _):

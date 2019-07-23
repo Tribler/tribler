@@ -3,7 +3,7 @@ from __future__ import absolute_import, division
 import logging
 import os
 import time
-from binascii import hexlify, unhexlify
+from binascii import unhexlify
 from glob import glob
 
 from ipv8.taskmanager import TaskManager
@@ -15,11 +15,11 @@ from six import string_types
 from twisted.internet.defer import Deferred, DeferredList, succeed
 from twisted.internet.task import LoopingCall
 
+from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.CreditMining.CreditMiningPolicy import InvestmentPolicy, MB
 from Tribler.Core.CreditMining.CreditMiningSource import ChannelSource
-from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.TorrentDef import TorrentDefNoMetainfo
-from Tribler.Core.Utilities.unicode import ensure_unicode
+from Tribler.Core.Utilities.unicode import ensure_unicode, hexlify
 from Tribler.Core.simpledefs import (
     DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR, DOWNLOAD, NTFY_CREDIT_MINING,
     NTFY_ERROR, UPLOAD)
@@ -92,7 +92,7 @@ class CreditMiningManager(TaskManager):
 
         self.register_task('check_disk_space', LoopingCall(self.check_disk_space)).start(30, now=False)
         self.select_lc = self.register_task('select_torrents', LoopingCall(self.select_torrents))
-        self.num_checkpoints = len(glob(os.path.join(self.session.get_downloads_pstate_dir(), '*.state')))
+        self.num_checkpoints = len(glob(os.path.join(self.session.get_downloads_config_dir(), '*.state')))
 
         def add_sources(_):
             for source in self.session.config.get_credit_mining_sources():
@@ -106,7 +106,7 @@ class CreditMiningManager(TaskManager):
         """
         self._logger.info('Shutting down CreditMiningManager')
 
-        deferreds = [self.remove_source(source) for source in self.sources.keys()] if remove_downloads else []
+        deferreds = [self.remove_source(source) for source in list(self.sources.keys())] if remove_downloads else []
 
         self.shutdown_task_manager()
 
@@ -152,7 +152,7 @@ class CreditMiningManager(TaskManager):
                 handle.set_upload_mode(is_low)
 
             for download in self.session.get_downloads():
-                if download.get_credit_mining():
+                if download.config.get_credit_mining():
                     download.get_handle().addCallback(set_upload_mode)
 
     def add_source(self, source_str):
@@ -189,7 +189,7 @@ class CreditMiningManager(TaskManager):
             self._logger.info('Removed source %s', source_str)
 
             deferreds = []
-            for infohash, torrent in self.torrents.items():
+            for infohash, torrent in list(self.torrents.items()):
                 if source_str in torrent.sources:
                     torrent.sources.remove(source_str)
                     if not torrent.sources:
@@ -226,7 +226,7 @@ class CreditMiningManager(TaskManager):
 
         # If a download already exists or already has a checkpoint, skip this torrent
         if self.session.get_download(unhexlify(infohash)) or \
-                os.path.exists(os.path.join(self.session.get_downloads_pstate_dir(), infohash + '.state')):
+                os.path.exists(os.path.join(self.session.get_downloads_config_dir(), infohash + '.state')):
             self._logger.debug('Skipping torrent %s (download already running or scheduled to run)', infohash)
             return
 
@@ -240,7 +240,7 @@ class CreditMiningManager(TaskManager):
 
         magnet = u'magnet:?xt=urn:btih:%s&dn=%s' % (infohash, name)
 
-        dl_config = DownloadStartupConfig()
+        dl_config = DownloadConfig()
         dl_config.set_hops(self.settings.hops)
         dl_config.set_dest_dir(self.settings.save_path)
         dl_config.set_credit_mining(True)
@@ -312,7 +312,7 @@ class CreditMiningManager(TaskManager):
         for ds in dslist:
             download = ds.get_download()
 
-            if download.get_credit_mining():
+            if download.config.get_credit_mining():
                 tdef = download.get_def()
                 infohash = hexlify(tdef.get_infohash())
 

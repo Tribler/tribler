@@ -13,9 +13,9 @@ from six.moves import xrange
 
 from twisted.internet.defer import inlineCallbacks, succeed
 
+from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.CreditMining.CreditMiningManager import CreditMiningTorrent
 from Tribler.Core.CreditMining.CreditMiningPolicy import BasePolicy, MB
-from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
 from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_STOPPED, DOWNLOAD, \
     NTFY_CREDIT_MINING, NTFY_ERROR
 from Tribler.Test.Core.base_test import MockObject
@@ -34,7 +34,9 @@ class FakeTorrent(object):
         self.download.restart = lambda: setattr(self.download, 'running', True)
         self.download.stop = lambda: setattr(self.download, 'running', False)
         self.download.credit_mining = True
-        self.download.get_credit_mining = lambda dl=self.download: dl.credit_mining
+        self.download.config = MockObject()
+        self.download.config.get_credit_mining = lambda dl=self.download: dl.credit_mining
+        self.download.config.set_credit_mining = lambda enable, dl=self.download: setattr(dl, 'credit_mining', enable)
         self.download.get_handle = lambda: succeed(self.handle)
         self.download.checkpoint = lambda: None
         self.download.move_storage = lambda _: None
@@ -100,7 +102,7 @@ class TestCreditMiningManager(TestAsServer):
         # Some fake data for convenience
         self.cid = '0' * 64
         self.infohash = '0' * 40
-        self.infohash_bin = '\00' * 20
+        self.infohash_bin = b'\00' * 20
         self.name = u'torrent'
 
     @inlineCallbacks
@@ -137,7 +139,7 @@ class TestCreditMiningManager(TestAsServer):
             torrent.sources = set([self.cid])
         self.credit_mining_manager.remove_source(self.cid)
         self.assertTrue(len(self.credit_mining_manager.torrents) == 0)
-        self.assertItemsEqual(torrents.keys(), removed)
+        self.assertEqual(list(torrents.keys()), removed)
 
     def test_torrent_insert(self):
         self.credit_mining_manager.add_source(self.cid)
@@ -153,7 +155,7 @@ class TestCreditMiningManager(TestAsServer):
     def test_torrent_insert_duplicate(self):
         self.credit_mining_manager.torrents[self.infohash] = CreditMiningTorrent(self.infohash, self.name)
         self.credit_mining_manager.on_torrent_insert(self.cid, self.infohash, self.name)
-        torrent = self.credit_mining_manager.torrents.values()[0]
+        torrent = list(self.credit_mining_manager.torrents.values())[0]
 
         self.credit_mining_manager.on_torrent_insert(self.cid, self.infohash, self.name)
         self.assertIn(torrent, self.credit_mining_manager.torrents.values())
@@ -247,7 +249,8 @@ class TestCreditMiningManager(TestAsServer):
         download = MockObject()
         download.get_def = lambda: tdef
         download.force_recheck = lambda: None
-        download.get_credit_mining = lambda: True
+        download.config = MockObject()
+        download.config.get_credit_mining = lambda: True
 
         ds = MockObject()
         ds.get_download = lambda: download
@@ -263,7 +266,8 @@ class TestCreditMiningManager(TestAsServer):
         infohash2_bin = '\01' * 20
         infohash2 = '01' * 20
         tdef.get_infohash = lambda: infohash2_bin
-        download.get_credit_mining = lambda: False
+        download.config = MockObject()
+        download.config.get_credit_mining = lambda: False
         self.credit_mining_manager.monitor_downloads([ds])
         self.assertNotIn(infohash2, self.credit_mining_manager.torrents)
 
@@ -292,11 +296,12 @@ class TestCreditMiningManager(TestAsServer):
 
         download = MockObject()
         download.tdef = MockObject()
-        download.tdef.get_infohash = lambda: '\00' * 20
+        download.tdef.get_infohash = lambda: b'\00' * 20
         download.tdef.get_name = lambda: self.name + str(i)
         download.get_def = lambda _download=download: _download.tdef
         download.force_recheck = lambda: None
-        download.get_credit_mining = lambda: True
+        download.config = MockObject()
+        download.config.get_credit_mining = lambda: True
         download.handle = None
 
         download_states = []
@@ -414,8 +419,8 @@ class TestCreditMiningManager(TestAsServer):
 
     def test_add_download_while_credit_mining(self):
         infohash_str = '00' * 20
-        infohash_bin = '\00' * 20
-        magnet = 'magnet:?xt=urn:btih:' + infohash_str
+        infohash_bin = b'\00' * 20
+        magnet = 'magnet:?xt=urn:btih:' + ('00' * 20)
 
         def fake_move_storage(dl, dest_dir):
             dl.dest_dir = dest_dir
@@ -428,8 +433,8 @@ class TestCreditMiningManager(TestAsServer):
             dl.credit_mining = value
 
         # Default download directory
-        default_dl_config = DefaultDownloadStartupConfig.getInstance()
-        download_dir = default_dl_config.get_dest_dir()
+        dl_config = DownloadConfig()
+        download_dir = dl_config.get_dest_dir()
 
         torrent = FakeTorrent(infohash_bin, self.name)
         torrent.download.move_storage_called = False
@@ -451,7 +456,8 @@ class TestCreditMiningManager(TestAsServer):
         # Non credit mining downloads should not get removed
         torrent.download.move_storage_called = False
         torrent.download.checkpoint_called = False
-        torrent.download.get_credit_mining = lambda: False
+        torrent.download.config = MockObject()
+        torrent.download.config.get_credit_mining = lambda: False
         self.session.get_download = lambda _: torrent.download
         self.assertFalse(torrent.download.move_storage_called)
         self.assertFalse(torrent.download.checkpoint_called)

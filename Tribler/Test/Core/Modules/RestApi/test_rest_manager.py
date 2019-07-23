@@ -22,11 +22,13 @@ class RestRequestTest(AbstractApiTest):
         """
 
         def verify_error_message(body):
+            SettingsEndpoint.parse_settings_dict = orig_parse_settings_dict
             error_response = json.twisted_loads(body)['error']
             self.assertFalse(error_response['handled'])
             self.assertEqual(error_response['code'], "TriblerException")
 
         post_data = json.dumps({"settings": "bla", "ports": "bla"})
+        orig_parse_settings_dict = SettingsEndpoint.parse_settings_dict
         SettingsEndpoint.parse_settings_dict = RaiseException
         self.should_check_equality = False
         return self.do_request('settings', expected_code=500, raw_data=post_data, expected_json=None,

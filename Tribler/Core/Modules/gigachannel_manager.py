@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import os
-from binascii import hexlify
 
 from ipv8.taskmanager import TaskManager
 
@@ -11,9 +10,10 @@ from twisted.internet.defer import inlineCallbacks
 from twisted.internet.task import LoopingCall
 from twisted.internet.threads import deferToThread
 
-from Tribler.Core.DownloadConfig import DownloadStartupConfig
+from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import COMMITTED
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
+from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.simpledefs import DLSTATUS_SEEDING, NTFY_CHANNEL_ENTITY, NTFY_UPDATE
 
 
@@ -48,7 +48,7 @@ class GigaChannelManager(TaskManager):
             with db_session:
                 my_channel = self.session.lm.mds.ChannelMetadata.get_my_channel()
                 if my_channel and my_channel.status == COMMITTED and \
-                        not self.session.has_download(str(my_channel.infohash)):
+                        not self.session.has_download(bytes(my_channel.infohash)):
                     torrent_path = os.path.join(self.session.lm.mds.channels_dir, my_channel.dirname + ".torrent")
                     mdblob_path = os.path.join(self.session.lm.mds.channels_dir, my_channel.dirname + ".mdblob")
                     tdef = None
@@ -57,7 +57,7 @@ class GigaChannelManager(TaskManager):
                             tdef = TorrentDef.load(torrent_path)
                         except IOError:
                             self._logger.warning("Can't open personal channel torrent file. Will try to regenerate it.")
-                    if not(tdef and tdef.infohash == str(my_channel.infohash)):
+                    if not(tdef and tdef.infohash == bytes(my_channel.infohash)):
                         regenerated = my_channel.consolidate_channel_torrent()
                         # If the user created their channel, but added no torrents to it, the channel torrent will not
                         # be created.
@@ -141,14 +141,14 @@ class GigaChannelManager(TaskManager):
 
         for channel in channels:
             try:
-                if not self.session.has_download(str(channel.infohash)):
+                if not self.session.has_download(channel.infohash):
                     self._logger.info("Downloading new channel version %s ver %i->%i",
-                                      hexlify(str(channel.public_key)),
+                                      hexlify(channel.public_key),
                                       channel.local_version, channel.timestamp)
                     self.download_channel(channel)
-                elif self.session.get_download(str(channel.infohash)).get_state().get_status() == DLSTATUS_SEEDING:
+                elif self.session.get_download(channel.infohash).get_state().get_status() == DLSTATUS_SEEDING:
                     self._logger.info("Processing previously downloaded, but unprocessed channel torrent %s ver %i->%i",
-                                      hexlify(str(channel.public_key)),
+                                      hexlify(channel.public_key),
                                       channel.local_version, channel.timestamp)
                     self.channels_processing_queue[channel.infohash] = (PROCESS_CHANNEL_DIR, channel)
             except Exception:
@@ -199,8 +199,8 @@ class GigaChannelManager(TaskManager):
         d, remove_content = to_remove
         deferred = self.session.remove_download(d, remove_content=remove_content)
         deferred.addCallbacks(_on_success, _on_failure)
-        self.register_task(u'remove_channel' + d.tdef.get_name_utf8() + u'-' + hexlify(d.tdef.get_infohash()),
-                           deferred)
+        self.register_task(u'remove_channel' + d.tdef.get_name_utf8() + u'-' +
+                           hexlify(d.tdef.get_infohash()), deferred)
 
         """
         def _on_torrents_removed(torrent):
@@ -217,10 +217,10 @@ class GigaChannelManager(TaskManager):
         Download a channel with a given infohash and title.
         :param channel: The channel metadata ORM object.
         """
-        dcfg = DownloadStartupConfig(state_dir=self.session.config.get_state_dir())
+        dcfg = DownloadConfig(state_dir=self.session.config.get_state_dir())
         dcfg.set_dest_dir(self.session.lm.mds.channels_dir)
         dcfg.set_channel_download(True)
-        tdef = TorrentDefNoMetainfo(infohash=str(channel.infohash), name=channel.dirname)
+        tdef = TorrentDefNoMetainfo(infohash=bytes(channel.infohash), name=channel.dirname)
         download = self.session.start_download_from_tdef(tdef, dcfg)
 
         def _add_channel_to_processing_queue(_):
@@ -259,8 +259,8 @@ class GigaChannelManager(TaskManager):
         """
         with db_session:
             my_channel = self.session.lm.mds.ChannelMetadata.get_my_channel()
-        if my_channel and my_channel.status == COMMITTED and not self.session.has_download(str(my_channel.infohash)):
-            dcfg = DownloadStartupConfig(state_dir=self.session.config.get_state_dir())
+        if my_channel and my_channel.status == COMMITTED and not self.session.has_download(my_channel.infohash):
+            dcfg = DownloadConfig(state_dir=self.session.config.get_state_dir())
             dcfg.set_dest_dir(self.session.lm.mds.channels_dir)
             dcfg.set_channel_download(True)
             self.session.lm.add(tdef, dcfg)

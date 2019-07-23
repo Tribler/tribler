@@ -1,11 +1,12 @@
 from __future__ import absolute_import
 
 import logging
-from binascii import hexlify
 
 from anydex.wallet.tc_wallet import TrustchainWallet
 
 from ipv8.util import addCallback
+
+from Tribler.Core.Utilities.unicode import hexlify
 
 
 class PayoutManager(object):
@@ -33,7 +34,7 @@ class PayoutManager(object):
             if nodes:
                 deferred = self.bandwidth_wallet.trustchain.sign_block(nodes[0],
                                                                        public_key=nodes[0].public_key.key_to_bin(),
-                                                                       block_type='tribler_bandwidth',
+                                                                       block_type=b'tribler_bandwidth',
                                                                        transaction={'up': 0, 'down': total_bytes})
                 addCallback(deferred, lambda _: None)
 

@@ -1,7 +1,8 @@
 from __future__ import absolute_import
 
 import six
-from Tribler.Core.Utilities.random_utils import random_string, random_infohash, random_utf8_string
+
+from Tribler.Core.Utilities.random_utils import random_infohash, random_string, random_utf8_string
 from Tribler.Test.test_as_server import BaseTestCase
 
 
@@ -30,5 +31,5 @@ class TestRandomUtils(BaseTestCase):
     def test_infohash(self):
         test_infohash = random_infohash()
         self.assertIsNotNone(test_infohash)
-        self.assertTrue(isinstance(test_infohash, str))
-        self.assertEqual(len(test_infohash), 20)
+        self.assertTrue(isinstance(test_infohash, six.binary_type))
+        self.assertEqual(len(test_infohash), 40)

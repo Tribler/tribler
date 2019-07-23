@@ -60,7 +60,7 @@ class TestTorrentDef(BaseTestCase):
         """
         invalid_metainfo = {}
         self.assertRaises(ValueError, TorrentDef.load_from_memory, bencode(invalid_metainfo))
-        invalid_metainfo = {'info': {}}
+        invalid_metainfo = {b'info': {}}
         self.assertRaises(ValueError, TorrentDef.load_from_memory, bencode(invalid_metainfo))
 
     def test_add_content_dir(self):
@@ -74,7 +74,7 @@ class TestTorrentDef(BaseTestCase):
         t.save()
 
         metainfo = t.get_metainfo()
-        self.assertEqual(len(metainfo['info']['files']), 2)
+        self.assertEqual(len(metainfo[b'info'][b'files']), 2)
 
     def test_add_single_file(self):
         """
@@ -86,15 +86,15 @@ class TestTorrentDef(BaseTestCase):
         t.save()
 
         metainfo = t.get_metainfo()
-        self.assertEqual(metainfo['info']['name'], 'file.txt')
+        self.assertEqual(metainfo[b'info'][b'name'], b'file.txt')
 
     def test_get_name_utf8_unknown(self):
         """
         Test whether we can succesfully get the UTF-8 name
         """
         t = TorrentDef()
-        t.set_name('\xA1\xC0')
-        t.torrent_parameters['encoding'] = 'euc_kr'
+        t.set_name(b'\xA1\xC0')
+        t.torrent_parameters[b'encoding'] = 'euc_kr'
         self.assertEqual(t.get_name_utf8(), u'\xf7')
 
     def test_get_name_utf8(self):
@@ -102,7 +102,7 @@ class TestTorrentDef(BaseTestCase):
         Check whether we can successfully get the UTF-8 encoded torrent name when using a different encoding
         """
         t = TorrentDef()
-        t.set_name('\xA1\xC0')
+        t.set_name(b'\xA1\xC0')
         self.assertEqual(t.get_name_utf8(), u'\xa1\xc0')
 
     def test_add_content_piece_length(self):
@@ -116,7 +116,7 @@ class TestTorrentDef(BaseTestCase):
         t.save()
 
         metainfo = t.get_metainfo()
-        self.assertEqual(metainfo['info']['piece length'], 2 ** 16)
+        self.assertEqual(metainfo[b'info'][b'piece length'], 2 ** 16)
 
     def test_is_private(self):
         """
@@ -184,7 +184,7 @@ class TestTorrentDef(BaseTestCase):
     def test_set_tracker_strip_slash(self):
         t = TorrentDef()
         t.set_tracker("http://tracker.org/")
-        self.assertEqual(t.torrent_parameters['announce'], "http://tracker.org")
+        self.assertEqual(t.torrent_parameters[b'announce'], "http://tracker.org")
 
     def test_set_tracker(self):
         t = TorrentDef()
@@ -199,7 +199,7 @@ class TestTorrentDef(BaseTestCase):
         tdef = TorrentDef()
         self.assertEqual(tdef.get_nr_pieces(), 0)
 
-        tdef.metainfo = {'info': {'pieces': 'a' * 40}}
+        tdef.metainfo = {b'info': {b'pieces': b'a' * 40}}
         self.assertEqual(tdef.get_nr_pieces(), 2)
 
     def test_is_multifile(self):
@@ -212,7 +212,7 @@ class TestTorrentDef(BaseTestCase):
         tdef.metainfo = {}
         self.assertFalse(tdef.is_multifile_torrent())
 
-        tdef.metainfo = {'info': {'files': ['a']}}
+        tdef.metainfo = {b'info': {b'files': [b'a']}}
         self.assertTrue(tdef.is_multifile_torrent())
 
     @raises(ValueError)
@@ -251,10 +251,10 @@ class TestTorrentDef(BaseTestCase):
         Test whether we can successfully get the index of a file in a torrent.
         """
         t = TorrentDef()
-        t.metainfo = {'info': {'files': [{'path': ['a.txt'], 'length': 123}]}}
+        t.metainfo = {b'info': {b'files': [{b'path': [b'a.txt'], b'length': 123}]}}
         self.assertEqual(t.get_index_of_file_in_files('a.txt'), 0)
-        self.assertRaises(ValueError, t.get_index_of_file_in_files, 'b.txt')
+        self.assertRaises(ValueError, t.get_index_of_file_in_files, b'b.txt')
         self.assertRaises(ValueError, t.get_index_of_file_in_files, None)
 
-        t.metainfo = {'info': {'files': [{'path': ['a.txt'], 'path.utf-8': ['b.txt'], 'length': 123}]}}
+        t.metainfo = {b'info': {b'files': [{b'path': [b'a.txt'], b'path.utf-8': [b'b.txt'], b'length': 123}]}}
         self.assertEqual(t.get_index_of_file_in_files('b.txt'), 0)

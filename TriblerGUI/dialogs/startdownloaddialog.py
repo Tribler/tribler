@@ -183,7 +183,7 @@ class StartDownloadDialog(DialogContainer):
         self.dialog_widget.files_list_view.clear()
         for filename in files:
             item = DownloadFileTreeWidgetItem(self.dialog_widget.files_list_view)
-            item.setText(0, '/'.join(filename['path']).encode('raw_unicode_escape'))
+            item.setText(0, '/'.join(filename['path']).encode('raw_unicode_escape').decode('utf-8'))
             item.setText(1, format_size(float(filename['length'])))
             item.setData(0, Qt.UserRole, filename)
             item.setCheckState(2, Qt.Checked)

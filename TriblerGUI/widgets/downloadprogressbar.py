@@ -45,7 +45,10 @@ class DownloadProgressBar(QWidget):
         self.repaint()
 
     def decode_pieces(self, pieces):
-        byte_array = map(ord, base64.b64decode(pieces))
+        byte_array = base64.b64decode(pieces)
+        # On Python 3, iterating over bytes already returns integers
+        if byte_array and not isinstance(byte_array[0], int):
+            byte_array = list(map(ord, byte_array))
         byte_string = ''.join(bin(num)[2:].zfill(8) for num in byte_array)
         return [i == '1' for i in byte_string]
 

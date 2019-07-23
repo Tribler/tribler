@@ -12,6 +12,7 @@ from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
 
 import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.Utilities.unicode import recursive_unicode
 from Tribler.util import cast_to_unicode_utf8
 
 
@@ -110,8 +111,8 @@ class ChannelsEndpoint(BaseChannelsEndpoint):
         return ChannelPublicKeyEndpoint(self.session, path)
 
     def render_GET(self, request):
-        sanitized = self.sanitize_parameters(request.args)
-
+        args = recursive_unicode(request.args)
+        sanitized = self.sanitize_parameters(args)
         with db_session:
             channels = self.session.lm.mds.ChannelMetadata.get_entries(**sanitized)
             channels_list = [channel.to_simple_dict() for channel in channels]
@@ -128,7 +129,8 @@ class ChannelsEndpoint(BaseChannelsEndpoint):
 class ChannelsCountEndpoint(BaseChannelsEndpoint):
 
     def render_GET(self, request):
-        sanitized = self.sanitize_parameters(request.args)
+        args = recursive_unicode(request.args)
+        sanitized = self.sanitize_parameters(args)
         return self.get_total_count(self.session.lm.mds.ChannelMetadata, sanitized)
 
 class ChannelsPopularEndpoint(BaseChannelsEndpoint):
@@ -136,8 +138,9 @@ class ChannelsPopularEndpoint(BaseChannelsEndpoint):
     def render_GET(self, request):
         limit_channels = 10
 
-        if b'limit' in request.args and request.args[b'limit']:
-            limit_channels = int(request.args[b'limit'][0])
+        args = recursive_unicode(request.args)
+        if 'limit' in args and args['limit']:
+            limit_channels = int(args['limit'][0])
 
             if limit_channels <= 0:
                 request.setResponseCode(http.BAD_REQUEST)
@@ -169,12 +172,12 @@ class SpecificChannelEndpoint(BaseChannelsEndpoint):
         self.putChild(b"torrents", SpecificChannelTorrentsEndpoint(session, self.channel_pk, self.channel_id))
 
     def render_POST(self, request):
-        parameters = http.parse_qs(request.content.read(), 1)
+        parameters = recursive_unicode(http.parse_qs(request.content.read(), 1))
         if 'subscribe' not in parameters:
             request.setResponseCode(http.BAD_REQUEST)
             return json.twisted_dumps({"success": False, "error": "subscribe parameter missing"})
 
-        to_subscribe = bool(int(parameters['subscribe'][0]))
+        to_subscribe = int(parameters['subscribe'][0]) == '1'
         with db_session:
             channel = self.session.lm.mds.ChannelMetadata.get_for_update(public_key=database_blob(self.channel_pk),
                                                                          id_=self.channel_id)
@@ -213,9 +216,9 @@ class SpecificChannelTorrentsEndpoint(BaseMetadataEndpoint):
         self.putChild(b"count", SpecificChannelTorrentsCountEndpoint(session, self.channel_pk, self.channel_id))
 
     def render_GET(self, request):
-        sanitized = self.sanitize_parameters(request.args)
+        args = recursive_unicode(request.args)
+        sanitized = self.sanitize_parameters(args)
         sanitized.update(dict(channel_pk=self.channel_pk, origin_id=self.channel_id))
-
         with db_session:
             torrents = self.session.lm.mds.TorrentMetadata.get_entries(**sanitized)
             torrents_list = [torrent.to_simple_dict() for torrent in torrents]
@@ -237,7 +240,8 @@ class SpecificChannelTorrentsCountEndpoint(SpecificChannelTorrentsEndpoint):
         self.channel_id = channel_id
 
     def render_GET(self, request):
-        sanitized = self.sanitize_parameters(request.args)
+        args = recursive_unicode(request.args)
+        sanitized = self.sanitize_parameters(args)
         sanitized.update(dict(channel_pk=self.channel_pk, origin_id=self.channel_id))
         return self.get_total_count(self.session.lm.mds.TorrentMetadata, sanitized)
 
@@ -282,8 +286,9 @@ class TorrentsRandomEndpoint(BaseMetadataEndpoint):
     def render_GET(self, request):
         limit_torrents = 10
 
-        if b'limit' in request.args and request.args[b'limit']:
-            limit_torrents = int(request.args[b'limit'][0])
+        args = recursive_unicode(request.args)
+        if 'limit' in args and args['limit']:
+            limit_torrents = int(args['limit'][0])
 
             if limit_torrents <= 0:
                 request.setResponseCode(http.BAD_REQUEST)
@@ -347,16 +352,17 @@ class TorrentHealthEndpoint(resource.Resource):
 
             :statuscode 404: if the torrent is not found in the database
         """
+        args = recursive_unicode(request.args)
         timeout = 20
-        if b'timeout' in request.args:
-            timeout = int(request.args[b'timeout'][0])
+        if 'timeout' in args:
+            timeout = int(args['timeout'][0])
 
         refresh = False
-        if b'refresh' in request.args and request.args[b'refresh'] and request.args[b'refresh'][0] == "1":
+        if 'refresh' in args and args['refresh'] and args['refresh'][0] == "1":
             refresh = True
 
         nowait = False
-        if b'nowait' in request.args and request.args[b'nowait'] and request.args[b'nowait'][0] == "1":
+        if 'nowait' in args and args['nowait'] and args['nowait'][0] == "1":
             nowait = True
 
         def on_health_result(result):

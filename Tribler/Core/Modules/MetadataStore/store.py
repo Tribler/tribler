@@ -2,7 +2,6 @@ from __future__ import absolute_import, division
 
 import logging
 import os
-from binascii import hexlify
 from datetime import datetime, timedelta
 from time import sleep
 
@@ -19,6 +18,7 @@ from Tribler.Core.Modules.MetadataStore.OrmBindings import (
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import BLOB_EXTENSION
 from Tribler.Core.Modules.MetadataStore.serialization import (
     CHANNEL_TORRENT, DELETED, NULL_KEY, REGULAR_TORRENT, read_payload_with_offset, time2int)
+from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.exceptions import InvalidSignatureException
 
 
@@ -211,7 +211,7 @@ class MetadataStore(object):
             if not channel:
                 return
             self._logger.debug("Starting processing channel dir %s. Channel %s local/max version %i/%i",
-                               dirname, hexlify(str(channel.public_key)), channel.local_version,
+                               dirname, hexlify(channel.public_key), channel.local_version,
                                channel.timestamp)
 
         for filename in sorted(os.listdir(dirname)):
@@ -258,7 +258,7 @@ class MetadataStore(object):
             if not channel:
                 return
             self._logger.debug("Finished processing channel dir %s. Channel %s local/max version %i/%i",
-                               dirname, hexlify(str(channel.public_key)), channel.local_version,
+                               dirname, hexlify(bytes(channel.public_key)), channel.local_version,
                                channel.timestamp)
 
     def process_mdblob_file(self, filepath, skip_personal_metadata_payload=True, external_thread=False):
@@ -392,7 +392,7 @@ class MetadataStore(object):
             return [(node, NO_ACTION)]
 
         # Signed entry > FFA entry. Old FFA entry > new FFA entry
-        ffa_node = self.TorrentMetadata.get(public_key=database_blob(""), infohash=database_blob(payload.infohash))
+        ffa_node = self.TorrentMetadata.get(public_key=database_blob(b""), infohash=database_blob(payload.infohash))
         if ffa_node:
             ffa_node.delete()
 
@@ -412,7 +412,7 @@ class MetadataStore(object):
         # If we received a metadata payload signed by ourselves we simply ignore it since we are the only authoritative
         # source of information about our own channel.
         if skip_personal_metadata_payload and \
-                payload.public_key == str(database_blob(self.my_key.pub().key_to_bin()[10:])):
+                payload.public_key == bytes(database_blob(self.my_key.pub().key_to_bin()[10:])):
             return check_update_opportunity()
 
         result = []

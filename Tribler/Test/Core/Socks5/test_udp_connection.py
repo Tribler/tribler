@@ -25,18 +25,18 @@ class TestSocks5UDPConnection(AbstractServer):
         """
 
         # We don't support IPV6 data
-        self.assertFalse(self.connection.datagramReceived('aaa\x04', ("1.1.1.1", 1234)))
+        self.assertFalse(self.connection.datagramReceived(b'aaa\x04', ("1.1.1.1", 1234)))
 
         # We don't support fragmented data
-        self.assertFalse(self.connection.datagramReceived('aa\x01aaa', ("1.1.1.1", 1234)))
+        self.assertFalse(self.connection.datagramReceived(b'aa\x01aaa', ("1.1.1.1", 1234)))
 
         # Receiving data from somewhere that is not our remote address
-        self.assertFalse(self.connection.datagramReceived('aaaaaa', ("1.2.3.4", 1234)))
+        self.assertFalse(self.connection.datagramReceived(b'aaaaaa', ("1.2.3.4", 1234)))
 
     def test_send_diagram(self):
         """
         Test sending a diagram over the SOCKS5 UDP connection
         """
-        self.assertTrue(self.connection.sendDatagram('a'))
+        self.assertTrue(self.connection.sendDatagram(b'a'))
         self.connection.remote_udp_address = None
-        self.assertFalse(self.connection.sendDatagram('a'))
+        self.assertFalse(self.connection.sendDatagram(b'a'))

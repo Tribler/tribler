@@ -13,7 +13,7 @@ from twisted.plugin import IPlugin
 from twisted.python import usage
 from twisted.python.log import msg
 
-from zope.interface import implements
+from zope.interface import implementer
 
 from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.Modules.process_checker import ProcessChecker
@@ -32,8 +32,8 @@ class Options(usage.Options):
     ]
 
 
+@implementer(IPlugin, IServiceMaker)
 class MarketServiceMaker(object):
-    implements(IServiceMaker, IPlugin)
     tapname = "market"
     description = "Run a liteweight Tribler with the Market community"
     options = Options

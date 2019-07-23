@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import os
 import shutil
-from binascii import hexlify, unhexlify
+from binascii import unhexlify
 
 from pony.orm import db_session
 
@@ -14,6 +14,7 @@ from twisted.internet.defer import inlineCallbacks, succeed
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.network_utils import get_random_port
+from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.common import TORRENT_UBUNTU_FILE, UBUNTU_1504_INFOHASH
@@ -58,11 +59,11 @@ class TestTorrentInfoEndpoint(AbstractApiTest):
         yield self.do_request('torrentinfo', expected_code=400)
         yield self.do_request('torrentinfo?uri=def', expected_code=400)
 
-        path = "file:" + pathname2url(os.path.join(TESTS_DATA_DIR, "bak_single.torrent")).encode('utf-8')
+        path = "file:" + pathname2url(os.path.join(TESTS_DATA_DIR, "bak_single.torrent"))
         yield self.do_request('torrentinfo?uri=%s' % path, expected_code=200).addCallback(verify_valid_dict)
 
         # Corrupt file
-        path = "file:" + pathname2url(os.path.join(TESTS_DATA_DIR, "test_rss.xml")).encode('utf-8')
+        path = "file:" + pathname2url(os.path.join(TESTS_DATA_DIR, "test_rss.xml"))
         yield self.do_request('torrentinfo?uri=%s' % path, expected_code=500)
 
         # FIXME: !!! HTTP query for torrent produces dicts with unicode. TorrentDef creation can't handle unicode. !!!
@@ -78,7 +79,8 @@ class TestTorrentInfoEndpoint(AbstractApiTest):
         def get_metainfo_timeout(*args, **kwargs):
             return succeed(None)
 
-        path = 'magnet:?xt=urn:btih:%s&dn=%s' % (hexlify(UBUNTU_1504_INFOHASH), quote_plus('test torrent'))
+        path = 'magnet:?xt=urn:btih:%s&dn=%s' % (hexlify(UBUNTU_1504_INFOHASH),
+                                                 quote_plus('test torrent'))
         self.session.lm.ltmgr = MockObject()
         self.session.lm.ltmgr.get_metainfo = get_metainfo
         self.session.lm.ltmgr.shutdown = lambda: None

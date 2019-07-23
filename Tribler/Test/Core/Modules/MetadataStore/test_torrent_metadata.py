@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
-import codecs
-import random
+import os
+from binascii import unhexlify
 from datetime import datetime
 
 from ipv8.keyvault.crypto import default_eccrypto
@@ -18,14 +18,17 @@ from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import TODELETE
 from Tribler.Core.Modules.MetadataStore.OrmBindings.torrent_metadata import tdef_to_metadata_dict
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Test.Core.base_test import TriblerCoreTest
 from Tribler.Test.common import TORRENT_UBUNTU_FILE
 from Tribler.pyipv8.ipv8.database import database_blob
 
+EMPTY_BLOB = database_blob(b"")
+
 
 def rnd_torrent():
     return {"title": "",
-            "infohash": str(random.getrandbits(160)),
+            "infohash": os.urandom(20),
             "torrent_date": datetime(1970, 1, 1),
             "tags": "video"}
 
@@ -51,7 +54,7 @@ class TestTorrentMetadata(TriblerCoreTest):
         """
         Test converting torrent metadata to serialized data
         """
-        torrent_metadata = self.mds.TorrentMetadata.from_dict({"infohash": str(random.getrandbits(160))})
+        torrent_metadata = self.mds.TorrentMetadata.from_dict({"infohash": os.urandom(20)})
         self.assertTrue(torrent_metadata.serialized())
 
     @db_session
@@ -64,12 +67,12 @@ class TestTorrentMetadata(TriblerCoreTest):
         # Make sure that FFA entry with the infohash that is already known to GigaChannel cannot be created
         signed_entry = self.mds.TorrentMetadata.from_dict(tdef_to_metadata_dict(tdef))
         self.mds.TorrentMetadata.add_ffa_from_dict(tdef_to_metadata_dict(tdef))
-        self.assertEqual(self.mds.TorrentMetadata.select(lambda g: g.public_key == database_blob("")).count(), 0)
+        self.assertEqual(self.mds.TorrentMetadata.select(lambda g: g.public_key == EMPTY_BLOB).count(), 0)
 
         signed_entry.delete()
         # Create FFA entry
         self.mds.TorrentMetadata.add_ffa_from_dict(tdef_to_metadata_dict(tdef))
-        self.assertEqual(self.mds.TorrentMetadata.select(lambda g: g.public_key == database_blob("")).count(), 1)
+        self.assertEqual(self.mds.TorrentMetadata.select(lambda g: g.public_key == EMPTY_BLOB).count(), 1)
 
     @db_session
     def test_sanitize_tdef(self):
@@ -82,10 +85,10 @@ class TestTorrentMetadata(TriblerCoreTest):
         """
         Test converting torrent metadata to a magnet link
         """
-        torrent_metadata = self.mds.TorrentMetadata.from_dict({"infohash": str(random.getrandbits(160))})
+        torrent_metadata = self.mds.TorrentMetadata.from_dict({"infohash": os.urandom(20)})
         self.assertTrue(torrent_metadata.get_magnet())
         torrent_metadata2 = self.mds.TorrentMetadata.from_dict(
-            {'title': u'\U0001f4a9', "infohash": str(random.getrandbits(160))})
+            {'title': u'\U0001f4a9', "infohash": os.urandom(20)})
         self.assertTrue(torrent_metadata2.get_magnet())
 
     @db_session
@@ -182,11 +185,11 @@ class TestTorrentMetadata(TriblerCoreTest):
         Test searching for torrents with infohash through text filter works.
         """
         infohash = b"e84213a794f3ccd890382a54a64ca68b7e925433"
-        torrent = self.mds.TorrentMetadata.from_dict(dict(rnd_torrent(), infohash=codecs.decode(infohash, 'hex'),
+        torrent = self.mds.TorrentMetadata.from_dict(dict(rnd_torrent(), infohash=unhexlify(infohash),
                                                           title="mountains sheep", tags="video"))
 
         # Search with the hex encoded infohash
-        query = '"%s"*' % infohash
+        query = '"%s"*' % infohash.decode('utf-8')
         results = self.mds.TorrentMetadata.get_entries(query_filter=query)[:]
         self.assertEqual(torrent, results[0])
 
@@ -196,10 +199,10 @@ class TestTorrentMetadata(TriblerCoreTest):
         Test searching for channels with public key through text filter works.
         """
         self.mds.ChannelNode._my_key = default_eccrypto.generate_key('curve25519')
-        channel = self.mds.ChannelMetadata(title='My channel', infohash=str(random.getrandbits(160)))
+        channel = self.mds.ChannelMetadata(title='My channel', infohash=os.urandom(20))
 
         # Search with the hex encoded channel public key
-        query = '"%s"*' % codecs.encode(channel.public_key, 'hex')
+        query = '"%s"*' % hexlify(channel.public_key)
         results = self.mds.ChannelMetadata.get_entries(query_filter=query)[:]
         self.assertEqual(results[0], channel)
 
@@ -250,9 +253,9 @@ class TestTorrentMetadata(TriblerCoreTest):
         for ind in xrange(5):
             self.mds.ChannelNode._my_key = default_eccrypto.generate_key('curve25519')
             _ = self.mds.ChannelMetadata(title='channel%d' % ind, subscribed=(ind % 2 == 0),
-                                         infohash=str(random.getrandbits(160)))
+                                         infohash=os.urandom(20))
             tlist.extend(
-                [self.mds.TorrentMetadata(title='torrent%d' % torrent_ind, infohash=str(random.getrandbits(160))) for
+                [self.mds.TorrentMetadata(title='torrent%d' % torrent_ind, infohash=os.urandom(20)) for
                  torrent_ind in xrange(5)])
         tlist[-1].xxx = 1
         tlist[-2].status = TODELETE
@@ -282,7 +285,7 @@ class TestTorrentMetadata(TriblerCoreTest):
 
     @db_session
     def test_metadata_conflicting(self):
-        tdict = dict(rnd_torrent(), title="lakes sheep", tags="video", infohash='\x00\xff')
+        tdict = dict(rnd_torrent(), title="lakes sheep", tags="video", infohash=b'\x00\xff')
         md = self.mds.TorrentMetadata.from_dict(tdict)
         self.assertFalse(md.metadata_conflicting(tdict))
         self.assertTrue(md.metadata_conflicting(dict(tdict, title="bla")))
@@ -294,7 +297,7 @@ class TestTorrentMetadata(TriblerCoreTest):
         """
         Test the updating of several properties of a TorrentMetadata object
         """
-        metadata = self.mds.TorrentMetadata(title='torrent', infohash=str(random.getrandbits(160)))
+        metadata = self.mds.TorrentMetadata(title='torrent', infohash=os.urandom(20))
         self.assertRaises(NotImplementedError, metadata.update_properties, {"status": 3, "name": "bla"})
         self.assertRaises(NotImplementedError, metadata.update_properties, {"name": "bla"})
 

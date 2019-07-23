@@ -1,5 +1,9 @@
+from __future__ import absolute_import
+
+import os
 import random
 import string
+from binascii import hexlify
 
 
 def random_string(size=6, chars=string.ascii_uppercase + string.digits):
@@ -9,7 +13,7 @@ def random_string(size=6, chars=string.ascii_uppercase + string.digits):
 
 def random_infohash():
     """ Generates a random torrent infohash string """
-    return ''.join(random.choice('0123456789abcdef') for _ in range(20))
+    return hexlify(os.urandom(20))
 
 
 def random_utf8_string(length=6):

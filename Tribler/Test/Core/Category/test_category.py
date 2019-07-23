@@ -18,23 +18,23 @@ class TriblerCategoryTest(AbstractServer):
         self.assertEquals(len(self.category.category_info), 10)
 
     def test_calculate_category_multi_file(self):
-        torrent_info = {"info": {"files": [{"path": "/my/path/video.avi", "length": 1234}]},
-                        "announce": "http://tracker.org", "comment": "lorem ipsum"}
+        torrent_info = {b"info": {b"files": [{b"path": b"/my/path/video.avi", b"length": 1234}]},
+                        b"announce": b"http://tracker.org", b"comment": b"lorem ipsum"}
         self.assertEquals(self.category.calculateCategory(torrent_info, "my torrent"), 'other')
 
     def test_calculate_category_single_file(self):
-        torrent_info = {"info": {"name": "my_torrent", "length": 1234},
-                        "announce-list": [["http://tracker.org"]], "comment": "lorem ipsum"}
+        torrent_info = {b"info": {b"name": b"my_torrent", b"length": 1234},
+                        b"announce-list": [[b"http://tracker.org"]], b"comment": b"lorem ipsum"}
         self.assertEquals(self.category.calculateCategory(torrent_info, "my torrent"), 'other')
 
     def test_calculate_category_xxx(self):
-        torrent_info = {"info": {"name": "term1", "length": 1234},
-                        "announce-list": [["http://tracker.org"]], "comment": "lorem ipsum"}
+        torrent_info = {b"info": {b"name": b"term1", b"length": 1234},
+                        b"announce-list": [[b"http://tracker.org"]], b"comment": b"lorem ipsum"}
         self.assertEquals('xxx', self.category.calculateCategory(torrent_info, "my torrent"))
 
     def test_calculate_category_invalid_announce_list(self):
-        torrent_info = {"info": {"name": "term1", "length": 1234},
-                        "announce-list": [[]], "comment": "lorem ipsum"}
+        torrent_info = {b"info": {b"name": b"term1", b"length": 1234},
+                        b"announce-list": [[]], b"comment": b"lorem ipsum"}
         self.assertEquals(self.category.calculateCategory(torrent_info, "my torrent"), 'xxx')
 
     def test_cmp_rank(self):

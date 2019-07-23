@@ -30,12 +30,13 @@ class TestDownloadState(TriblerCoreTest):
         """
         Testing various getters and setters in DownloadState
         """
-        self.mock_download.get_hops = lambda: 0
         self.mock_download.get_peerlist = lambda: []
         self.mock_download.session = MockObject()
         self.mock_download.session.lm = MockObject()
         self.mock_download.session.lm.tunnel_community = MockObject()
         self.mock_download.session.lm.tunnel_community.get_candidates = lambda _: []
+        self.mock_download.config = MockObject()
+        self.mock_download.config.get_hops = lambda: 0
         download_state = DownloadState(self.mock_download, None, None)
 
         self.assertEqual(download_state.get_download(), self.mock_download)
@@ -50,7 +51,7 @@ class TestDownloadState(TriblerCoreTest):
         self.assertFalse(download_state.is_vod())
         self.assertEqual(download_state.get_peerlist(), [])
 
-        self.mock_download.get_hops = lambda: 1
+        self.mock_download.config.get_hops = lambda: 1
         download_state = DownloadState(self.mock_download, None, None)
         self.assertEqual(download_state.get_status(), DLSTATUS_EXIT_NODES)
 
@@ -99,7 +100,8 @@ class TestDownloadState(TriblerCoreTest):
         self.assertEqual(download_state.get_pieces_complete(), [1, 1, 1, 0, 0, 0])
         self.assertEqual(download_state.get_pieces_total_complete(), (6, 3))
 
-        self.mock_download.get_selected_files = lambda: ['test']
+        self.mock_download.config = MockObject()
+        self.mock_download.config.get_selected_files = lambda: ['test']
         self.assertEqual(download_state.get_selected_files(), ['test'])
         self.assertEqual(download_state.get_progress(), 0.75)
 

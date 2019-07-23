@@ -122,6 +122,13 @@ class TestUpgradePreconditionChecker(TriblerCoreTest):
         self.assertFalse(old_db_version_ok(old_db))
 
     def test_cleanup_pony_experimental_db(self):
+        # Assert True is returned for a garbled db and nothing is done with it
+        garbled_db = os.path.join(self.session_base_dir, 'garbled.db')
+        with open(garbled_db, 'w') as f:
+            f.write("123")
+        self.assertRaises(sqlite3.DatabaseError, cleanup_pony_experimental_db, garbled_db)
+        self.assertTrue(os.path.exists(garbled_db))
+
         # Create a Pony database of older experimental version
         pony_db = os.path.join(self.session_base_dir, 'pony.db')
         pony_db_bak = os.path.join(self.session_base_dir, 'pony2.db')
@@ -143,13 +150,6 @@ class TestUpgradePreconditionChecker(TriblerCoreTest):
         # Assert recent database version is left untouched
         cleanup_pony_experimental_db(pony_db_bak)
         self.assertTrue(os.path.exists(pony_db_bak))
-
-        # Assert True is returned for a garbled db and nothing is done with it
-        garbled_db = os.path.join(self.session_base_dir, 'garbled.db')
-        with open(garbled_db, 'w') as f:
-            f.write("123")
-        self.assertRaises(sqlite3.DatabaseError, cleanup_pony_experimental_db, garbled_db)
-        self.assertTrue(os.path.exists(garbled_db))
 
     def test_new_db_version_ok(self):
         pony_db = os.path.join(self.session_base_dir, 'pony.db')

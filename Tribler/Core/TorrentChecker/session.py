@@ -7,14 +7,11 @@ import struct
 import sys
 import time
 from abc import ABCMeta, abstractmethod
-from binascii import hexlify
 
 from ipv8.messaging.deprecated.encoding import add_url_params
 from ipv8.taskmanager import TaskManager
 
 from libtorrent import bdecode
-
-from six import text_type
 
 from twisted.internet import defer, reactor
 from twisted.internet.defer import Deferred, inlineCallbacks
@@ -23,6 +20,7 @@ from twisted.python.failure import Failure
 from twisted.web.client import Agent, HTTPConnectionPool, RedirectAgent, readBody
 
 from Tribler.Core.Utilities.tracker_utils import parse_tracker_url
+from Tribler.Core.Utilities.unicode import hexlify
 
 # Although these are the actions for UDP trackers, they can still be used as
 # identifiers.
@@ -194,7 +192,7 @@ class HttpTrackerSession(TrackerSession):
 
         agent = RedirectAgent(Agent(reactor, connectTimeout=self.timeout, pool=self._connection_pool))
         try:
-            self.request = self.register_task("request", agent.request('GET', bytes(url)))
+            self.request = self.register_task("request", agent.request(b'GET', url.encode('ascii')))
             self.request.addCallback(self.on_response)
             self.request.addErrback(self.on_error)
             self._logger.debug(u"%s HTTP SCRAPE message sent: %s", self, url)
@@ -247,7 +245,7 @@ class HttpTrackerSession(TrackerSession):
         if self.result_deferred and not self.result_deferred.called:
             result_msg = "HTTP tracker failed for url %s" % self._tracker_url
             if msg:
-                result_msg += " (error: %s)" % text_type(msg, errors='replace')
+                result_msg += " (error: %s)" % msg
             self.result_deferred.errback(ValueError(result_msg))
 
     def _process_scrape_response(self, body):
@@ -268,10 +266,10 @@ class HttpTrackerSession(TrackerSession):
         response_list = []
 
         unprocessed_infohash_list = self._infohash_list[:]
-        if 'files' in response_dict and isinstance(response_dict['files'], dict):
-            for infohash in response_dict['files']:
-                complete = response_dict['files'][infohash].get('complete', 0)
-                incomplete = response_dict['files'][infohash].get('incomplete', 0)
+        if b'files' in response_dict and isinstance(response_dict[b'files'], dict):
+            for infohash in response_dict[b'files']:
+                complete = response_dict[b'files'][infohash].get(b'complete', 0)
+                incomplete = response_dict[b'files'][infohash].get(b'incomplete', 0)
 
                 # Sow complete as seeders. "complete: number of peers with the entire file, i.e. seeders (integer)"
                 #  - https://wiki.theory.org/BitTorrentSpecification#Tracker_.27scrape.27_Convention
@@ -285,9 +283,9 @@ class HttpTrackerSession(TrackerSession):
                 if infohash in unprocessed_infohash_list:
                     unprocessed_infohash_list.remove(infohash)
 
-        elif 'failure reason' in response_dict:
-            self._logger.info(u"%s Failure as reported by tracker [%s]", self, repr(response_dict['failure reason']))
-            self.failed(msg=repr(response_dict['failure reason']))
+        elif b'failure reason' in response_dict:
+            self._logger.info(u"%s Failure as reported by tracker [%s]", self, repr(response_dict[b'failure reason']))
+            self.failed(msg=repr(response_dict[b'failure reason']))
             return
 
         # handle the infohashes with no result (seeders/leechers = 0/0)
@@ -407,7 +405,7 @@ class UdpTrackerSession(TrackerSession):
         if self.result_deferred and not self.result_deferred.called and not self._is_failed:
             result_msg = "UDP tracker failed for url %s" % self._tracker_url
             if msg:
-                result_msg += " (error: %s)" % text_type(msg, errors='replace')
+                result_msg += " (error: %s)" % msg
             self.result_deferred.errback(ValueError(result_msg))
 
         self._is_failed = True
@@ -520,11 +518,11 @@ class UdpTrackerSession(TrackerSession):
         if action != self.action or transaction_id != self.transaction_id:
             # get error message
             errmsg_length = len(response) - 8
-            error_message = struct.unpack_from('!' + str(errmsg_length) + 's', response, 8)
+            error_message, = struct.unpack_from('!' + str(errmsg_length) + 's', response, 8)
 
             self._logger.info(u"%s Error response for UDP CONNECT [%s]: %s",
                               self, repr(response), repr(error_message))
-            self.failed(msg=''.join(error_message))
+            self.failed(msg=error_message.decode('utf8', errors='ignore'))
             return
 
         # update action and IDs
@@ -562,11 +560,11 @@ class UdpTrackerSession(TrackerSession):
         if action != self.action or transaction_id != self.transaction_id:
             # get error message
             errmsg_length = len(response) - 8
-            error_message = struct.unpack_from('!' + str(errmsg_length) + 's', response, 8)
+            error_message, = struct.unpack_from('!' + str(errmsg_length) + 's', response, 8)
 
             self._logger.info(u"%s Error response for UDP SCRAPE: [%s] [%s]",
                               self, repr(response), repr(error_message))
-            self.failed(msg=''.join(error_message))
+            self.failed(msg=error_message.decode('utf8', errors='ignore'))
             return
 
         # get results
@@ -586,7 +584,8 @@ class UdpTrackerSession(TrackerSession):
             # Store the information in the hash dict to be returned.
             # Sow complete as seeders. "complete: number of peers with the entire file, i.e. seeders (integer)"
             #  - https://wiki.theory.org/BitTorrentSpecification#Tracker_.27scrape.27_Convention
-            response_list.append({'infohash': hexlify(infohash), 'seeders': complete, 'leechers': incomplete})
+            response_list.append({'infohash': hexlify(infohash),
+                                  'seeders': complete, 'leechers': incomplete})
 
         # close this socket and remove its transaction ID from the list
         self.remove_transaction_id()
@@ -657,4 +656,4 @@ class FakeBep33DHTSession(FakeDHTSession):
         Fakely connects to a tracker.
         :return: A deferred that fires with the health information.
         """
-        return self._session.lm.ltmgr.dht_health_manager.get_health(bytes(self.infohash))
+        return self._session.lm.ltmgr.dht_health_manager.get_health(self.infohash)

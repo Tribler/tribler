@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import time
-from binascii import hexlify
 
 from ipv8.messaging.anonymization.tunnel import Circuit
 
@@ -9,6 +8,7 @@ from twisted.web import resource, server
 
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.restapi.util import fix_unicode_dict
+from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.simpledefs import (
     NTFY_CHANNEL, NTFY_CHANNEL_ENTITY, NTFY_CREDIT_MINING, NTFY_DISCOVERED, NTFY_ERROR, NTFY_FINISHED, NTFY_INSERT,
     NTFY_MARKET_ON_ASK, NTFY_MARKET_ON_ASK_TIMEOUT, NTFY_MARKET_ON_BID, NTFY_MARKET_ON_BID_TIMEOUT,
@@ -119,7 +119,7 @@ class EventsEndpoint(resource.Resource):
         if len(self.events_requests) == 0:
             return
         else:
-            [request.write(message_str + '\n') for request in self.events_requests]
+            [request.write(message_str + b'\n') for request in self.events_requests]
 
     # An exception has occurred in Tribler. The event includes a readable string of the error.
     def on_tribler_exception(self, exception_text):
@@ -144,6 +144,6 @@ class EventsEndpoint(resource.Resource):
         request.notifyFinish().addCallbacks(on_request_finished, on_request_finished)
 
         request.write(json.twisted_dumps({"type": "events_start", "event": {
-            "tribler_started": self.session.lm.initComplete, "version": version_id}}) + '\n')
+            "tribler_started": self.session.lm.initComplete, "version": version_id}}) + b'\n')
 
         return server.NOT_DONE_YET
