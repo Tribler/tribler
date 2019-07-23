@@ -36,7 +36,6 @@ class TestTrustViewEndpoint(AbstractApiTest):
     def setUpPreSession(self):
         super(TestTrustViewEndpoint, self).setUpPreSession()
         self.config.set_trustchain_enabled(True)
-        self.config.set_bootstrap_enabled(True)
 
     @inlineCallbacks
     def tearDown(self):
