@@ -18,9 +18,9 @@ class TriblerCategoryTest(AbstractServer):
         self.assertEquals(len(self.category.category_info), 10)
 
     def test_calculate_category_multi_file(self):
-        torrent_info = {b"info": {b"files": [{b"path": b"/my/path/video.avi", b"length": 1234}]},
+        torrent_info = {b"info": {b"files": [{b"path": [b"my", b"path", b"video.avi"], b"length": 1234}]},
                         b"announce": b"http://tracker.org", b"comment": b"lorem ipsum"}
-        self.assertEquals(self.category.calculateCategory(torrent_info, "my torrent"), 'other')
+        self.assertEquals(self.category.calculateCategory(torrent_info, "my torrent"), 'VideoClips')
 
     def test_calculate_category_single_file(self):
         torrent_info = {b"info": {b"name": b"my_torrent", b"length": 1234},

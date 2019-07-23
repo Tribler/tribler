@@ -13,6 +13,7 @@ from functools import cmp_to_key
 from Tribler.Core.Category.FamilyFilter import default_xxx_filter
 from Tribler.Core.Category.init_category import getCategoryInfo
 from Tribler.Core.Utilities.install_dir import get_lib_path
+from Tribler.Core.Utilities.unicode import recursive_unicode
 
 CATEGORY_CONFIG_FILE = "category.conf"
 
@@ -45,11 +46,8 @@ class Category(object):
         Calculate the category for a given torrent_dict of a torrent file.
         :return a list of categories this torrent belongs to.
         """
-        files_list = [{'path': file_dict[b'path'].decode('utf-8'),
-                       'length': file_dict[b'length']}
-                      for file_dict in torrent_dict[b'info'][b"files"]] if b"files" in torrent_dict[b'info'] else []
         is_xxx = default_xxx_filter.isXXXTorrent(
-            files_list=files_list,
+            files_list=recursive_unicode(torrent_dict[b'info'][b"files"] if b"files" in torrent_dict[b'info'] else []),
             torrent_name=torrent_dict[b'info'].get(b"name", b'').decode('utf-8'),
             tracker=torrent_dict[b'info'].get(b"announce", b'').decode('utf-8'))
         if is_xxx:
@@ -58,7 +56,7 @@ class Category(object):
         try:
             # the multi-files mode
             for ifiles in torrent_dict[b'info'][b"files"]:
-                files_list.append((ifiles[b'path'][-1:].decode('utf-8'), ifiles[b'length'] / float(self.__size_change)))
+                files_list.append((ifiles[b'path'][-1].decode('utf-8'), ifiles[b'length'] / float(self.__size_change)))
         except KeyError:
             # single mode
             files_list.append(
