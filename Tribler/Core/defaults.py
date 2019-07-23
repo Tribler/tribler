@@ -43,6 +43,7 @@ dldefaults['download_defaults']['hops'] = 0
 dldefaults['download_defaults']['selected_files'] = []
 dldefaults['download_defaults']['correctedfilename'] = None
 dldefaults['download_defaults']['safe_seeding'] = False
+dldefaults['download_defaults']['bootstrap_download'] = False
 # Valid values: 'forever', 'never', 'ratio', 'time'
 dldefaults['download_defaults']['user_stopped'] = False
 dldefaults['download_defaults']['time_added'] = 0
