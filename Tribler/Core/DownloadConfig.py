@@ -112,6 +112,12 @@ class DownloadConfigInterface(object):
     def set_safe_seeding(self, value):
         self.dlconfig.set('download_defaults', 'safe_seeding', value)
 
+    def set_bootstrap_download(self, value):
+        self.dlconfig.set('download_defaults', 'bootstrap_download', value)
+
+    def get_bootstrap_download(self):
+        return self.dlconfig.get('download_defaults', 'bootstrap_download')
+
     def get_safe_seeding(self):
         return self.dlconfig.get('download_defaults', 'safe_seeding')
 
@@ -207,6 +213,8 @@ class DownloadStartupConfig(DownloadConfigInterface):
         used internally) """
         is_bootstrap_download = kwargs.pop("is_bootstrap_download") if "is_bootstrap_download" in kwargs else False
         DownloadConfigInterface.__init__(self, *args, **kwargs)
+        if is_bootstrap_download:
+            self.set_bootstrap_download(True)
         self.is_bootstrap_download = is_bootstrap_download
     #
     # Class method
