@@ -31,6 +31,8 @@ def cleanup_noncompliant_channel_torrents(state_dir):
     resume_dir = os.path.join(state_dir, "dlcheckpoints")
     if os.path.exists(resume_dir):
         for f in os.listdir(resume_dir):
+            if not f.endswith('.state'):
+                continue
             file_path = os.path.join(resume_dir, f)
             pstate = CallbackConfigParser()
             pstate.read_file(file_path)
