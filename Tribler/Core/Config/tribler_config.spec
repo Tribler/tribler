@@ -27,7 +27,7 @@ live_edges_enabled = boolean(default=True)
 [bootstrap]
 enabled = boolean(default=True)
 max_download_rate = integer(min=1, default=1000000)
-infohash = string(default='15961a6ff7770be9aa3f2fab9a9a823a3607a222')
+infohash = string(default='b496932f32daad964e1b63188faabf74d22b45ea')
 
 [wallets]
 bitcoinlib_enabled = boolean(default=True)
