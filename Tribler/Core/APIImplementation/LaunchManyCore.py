@@ -18,7 +18,6 @@ from traceback import print_exc
 from anydex.wallet.dummy_wallet import DummyWallet1, DummyWallet2
 from anydex.wallet.tc_wallet import TrustchainWallet
 
-
 from ipv8.dht.provider import DHTCommunityProvider
 from ipv8.messaging.anonymization.community import TunnelSettings
 from ipv8.peer import Peer
@@ -538,6 +537,15 @@ class TriblerLaunchMany(TaskManager):
                 seeding_download_list.append({u'infohash': infohash,
                                               u'download': download})
 
+                if self.bootstrap and not self.bootstrap.bootstrap_finished and hexlify(
+                        infohash) == self.session.config.get_bootstrap_infohash() and self.trustchain_community:
+                    self.bootstrap.bootstrap_finished = True
+                    with open(self.bootstrap.bootstrap_file, 'r') as f:
+                        sql_dumb = text_type(f.read())
+                        self._logger.info("Executing script for trustchain bootstrap")
+                        self.trustchain_community.persistence.executescript(sql_dumb)
+                        self.trustchain_community.persistence.commit()
+
                 if infohash in self.previous_active_downloads:
                     self.session.notifier.notify(NTFY_TORRENT, NTFY_FINISHED, infohash, safename, is_hidden)
                     do_checkpoint = True
@@ -703,7 +711,8 @@ class TriblerLaunchMany(TaskManager):
             self.bootstrap = Bootstrap(self.session.config.get_state_dir(), dht=self.dht_community)
             if os.path.exists(self.bootstrap.bootstrap_file):
                 self.bootstrap.start_initial_seeder(self.session.start_download_from_tdef,
-                                                    self.bootstrap.bootstrap_file)
+                                                    self.bootstrap.bootstrap_file,
+                                                    self.session.config.get_bootstrap_infohash())
             else:
                 self.bootstrap.start_by_infohash(self.session.start_download_from_tdef,
                                                  self.session.config.get_bootstrap_infohash())
