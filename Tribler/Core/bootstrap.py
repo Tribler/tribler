@@ -25,7 +25,6 @@ class Bootstrap(object):
         self.nodes_file = os.path.join(self.bootstrap_dir, "bootstrap.nodes")
         self.dht = dht
 
-
         self.bootstrap_finished = False
         self.infohash = None
         self.download = None
@@ -47,9 +46,8 @@ class Bootstrap(object):
         self.infohash = tdef.get_infohash()
         if self.infohash != system_infohash:
             self._logger.error(
-                "Infohash is not consistent with a system infohash {} != {}".format(hexlify(self.infohash),
-                                                                                    system_infohash))
-            
+                "Infohash is not consistent with a system infohash %s != %s", hexlify(self.infohash),
+                system_infohash)
 
     def start_by_infohash(self, download_function, infohash):
         """

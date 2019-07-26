@@ -1,23 +1,19 @@
 from __future__ import absolute_import
 
-import os
-import random
-
-from six.moves import xrange
-
 from Tribler.Core.TorrentDef import TorrentDef
 
 
-def create_dummy_tdef(file_name, length=25, seed=42):
+def create_dummy_sql_dumb(file_name):
     """
-    Create torrent def for dummy file of length MB
-    :param file_name: path to save test file
-    :param length: Length in MB, e.g. length=15 will generate file of 15 MB
-    :return: torrent def with test file
+    Create a TorrentDef with a dummy sql dumb file
+    :param file_name: full path to the file
+    :return: tdef
     """
-    random.seed(seed)
-    with open(file_name, 'wb') as fp:
-        fp.write(bytearray(random.getrandbits(8) for _ in xrange(length * 1024 * 1024)))
+    with open(file_name, 'w') as fp:
+        fp.write("BEGIN TRANSACTION;")
+        fp.write("CREATE TABLE IF NOT EXISTS option(key TEXT PRIMARY KEY, value BLOB);")
+        fp.write("INSERT OR REPLACE INTO option(key, value) VALUES('database_version', '0');")
+        fp.write("COMMIT;")
     tdef = TorrentDef()
     tdef.add_content(file_name)
     tdef.set_piece_length(2 ** 16)

@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 import os
-from binascii import unhexlify
+from binascii import hexlify, unhexlify
 from threading import RLock
 
 from anydex.core.community import MarketCommunity
@@ -13,7 +13,7 @@ from twisted.internet.defer import Deferred, inlineCallbacks
 from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
 from Tribler.Core.Modules.payout_manager import PayoutManager
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.Utilities.bootstrap_util import create_dummy_tdef
+from Tribler.Core.Utilities.bootstrap_util import create_dummy_sql_dumb
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.bootstrap import Bootstrap
 from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_METADATA, DLSTATUS_SEEDING, DLSTATUS_STOPPED_ON_ERROR
@@ -235,18 +235,25 @@ class TestLaunchManyCoreSeederBootstrapSession(TestAsServer):
         TestAsServer.setUpPreSession(self)
 
         # Enable all communities
-        config_sections = ['libtorrent', 'bootstrap']
+        config_sections = ['libtorrent', 'bootstrap', 'trustchain', 'ipv8']
 
         for section in config_sections:
             self.config.config[section]['enabled'] = True
 
         self.bootstrap = Bootstrap(self.config.get_state_dir())
-        self.tdef = create_dummy_tdef(self.bootstrap.bootstrap_file, 10, 666)
+        self.tdef = create_dummy_sql_dumb(self.bootstrap.bootstrap_file)
+        self.config.set_bootstrap_infohash(hexlify(self.tdef.infohash))
+
+        self.config.set_tunnel_community_socks5_listen_ports(self.get_socks5_ports())
+        self.config.set_ipv8_bootstrap_override("127.0.0.1:12345")  # So we do not contact the real trackers
 
     def downloader_state_callback(self, ds):
         if ds.get_status() == DLSTATUS_SEEDING:
-            os.remove(self.bootstrap.bootstrap_file)
             self.test_deferred.callback(None)
+            try:
+                os.remove(self.bootstrap.bootstrap_file)
+            except OSError:
+                pass
             return 0.0
         return 0.5
 
