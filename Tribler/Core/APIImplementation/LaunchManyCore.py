@@ -537,12 +537,14 @@ class TriblerLaunchMany(TaskManager):
                 seeding_download_list.append({u'infohash': infohash,
                                               u'download': download})
 
-                if self.bootstrap and hexlify(
+                if self.bootstrap and  not self.bootstrap.bootstrap_finished and hexlify(
                         infohash) == self.session.config.get_bootstrap_infohash() and self.trustchain_community:
-                    f = open(self.bootstrap.bootstrap_file, 'r')
-                    sql_dumb = f.read()
-                    self.trustchain_community.persistence.executescript(sql_dumb)
-                    self.trustchain_community.persistence.commit()
+                    self.bootstrap.bootstrap_finished = True
+                    with open(self.bootstrap.bootstrap_file, 'r') as f:
+                        sql_dumb = unicode(f.read())
+                        self._logger.info("Executing script for trustchain bootstrap")
+                        self.trustchain_community.persistence.executescript(sql_dumb)
+                        self.trustchain_community.persistence.commit()
 
                 if infohash in self.previous_active_downloads:
                     self.session.notifier.notify(NTFY_TORRENT, NTFY_FINISHED, infohash, safename, is_hidden)

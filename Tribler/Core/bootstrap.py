@@ -25,6 +25,8 @@ class Bootstrap(object):
         self.nodes_file = os.path.join(self.bootstrap_dir, "bootstrap.nodes")
         self.dht = dht
 
+
+        self.bootstrap_finished = False
         self.infohash = None
         self.download = None
         self.bootstrap_nodes = {}
