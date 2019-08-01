@@ -113,6 +113,7 @@ def define_binding(db):
             channel_dict = self.to_dict()
             channel_dict.update(update_dict or {})
             channel_dict.update({'num_entries': self.contents_len})
+            channel_dict["status"] = UPDATED
             self.set(**channel_dict)
             self.sign()
 
@@ -137,7 +138,7 @@ def define_binding(db):
                 raise DuplicateChannelIdError()
 
             my_channel = cls(origin_id=0, public_key=database_blob(cls._my_key.pub().key_to_bin()[10:]),
-                             title=title, tags=description, subscribed=True, share=True,
+                             title=title, tags=description, subscribed=True, share=True, status=NEW,
                              infohash=str(random.getrandbits(160)))
             # random infohash is necessary to avoid triggering DB uniqueness constraints
             my_channel.sign()
@@ -246,6 +247,7 @@ def define_binding(db):
 
                 # Write the channel mdblob to disk
                 self.update_metadata(update_dict)
+                self.status = COMMITTED
                 self.to_file(os.path.join(self._channels_dir, self.dirname + BLOB_EXTENSION))
 
                 self._logger.info("Channel %s committed with %i new entries. New version is %i",
