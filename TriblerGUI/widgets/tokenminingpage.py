@@ -147,7 +147,7 @@ class TokenMiningPage(QWidget):
             self.downloads_request_mgr.perform_request(url, self.on_received_downloads, priority="LOW")
 
     def on_received_downloads(self, downloads):
-        if not downloads:
+        if not downloads or "downloads" not in downloads:
             return  # This might happen when closing Tribler
 
         bytes_max = self.window().tribler_settings["credit_mining"]["max_disk_space"]
