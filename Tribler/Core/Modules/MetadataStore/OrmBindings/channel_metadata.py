@@ -412,7 +412,7 @@ def define_binding(db):
             query = db.ChannelMetadata.select(
                 lambda g: g.status not in [LEGACY_ENTRY, NEW, UPDATED, TODELETE] and g.num_entries > 0)
             query = query.where(subscribed=True) if only_subscribed else query
-            query = query.where(lambda g: g.local_version > 0) if only_downloaded else query
+            query = query.where(lambda g: g.local_version == g.timestamp) if only_downloaded else query
             return query.random(limit)
 
         @db_session
