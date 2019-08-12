@@ -11,8 +11,6 @@ from pony.orm import db_session
 
 from six.moves import xrange
 
-from twisted.internet.defer import inlineCallbacks
-
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import TODELETE
 from Tribler.Core.Modules.MetadataStore.OrmBindings.torrent_metadata import tdef_to_metadata_dict
 from Tribler.Core.Modules.MetadataStore.serialization import REGULAR_TORRENT
@@ -35,16 +33,14 @@ class TestTorrentMetadata(TriblerCoreTest):
     Contains various tests for the torrent metadata type.
     """
 
-    @inlineCallbacks
-    def setUp(self):
-        yield super(TestTorrentMetadata, self).setUp()
+    async def setUp(self):
+        await super(TestTorrentMetadata, self).setUp()
         self.my_key = default_eccrypto.generate_key(u"curve25519")
         self.mds = MetadataStore(':memory:', self.session_base_dir, self.my_key)
 
-    @inlineCallbacks
-    def tearDown(self):
+    async def tearDown(self):
         self.mds.shutdown()
-        yield super(TestTorrentMetadata, self).tearDown()
+        await super(TestTorrentMetadata, self).tearDown()
 
     @db_session
     def test_serialization(self):

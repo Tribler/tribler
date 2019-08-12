@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
-from twisted.web import resource
-
+from Tribler.Core.Modules.restapi.rest_endpoint import RESTEndpoint
 from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 from Tribler.util import cast_to_unicode_utf8
 
@@ -39,10 +38,7 @@ def convert_sort_param_to_pony_col(sort_param):
     return json2pony_columns[sort_param] if sort_param in json2pony_columns else None
 
 
-class MetadataEndpointBase(resource.Resource):
-    def __init__(self, session):
-        resource.Resource.__init__(self)
-        self.session = session
+class MetadataEndpointBase(RESTEndpoint):
 
     @classmethod
     def sanitize_parameters(cls, parameters):
@@ -50,22 +46,22 @@ class MetadataEndpointBase(resource.Resource):
         Sanitize the parameters for a request that fetches channels.
         """
         sanitized = {
-            "first": 1 if 'first' not in parameters else int(parameters['first'][0]),
-            "last": 50 if 'last' not in parameters else int(parameters['last'][0]),
+            "first": 1 if 'first' not in parameters else int(parameters['first']),
+            "last": 50 if 'last' not in parameters else int(parameters['last']),
             "sort_by": None
             if 'sort_by' not in parameters
-            else convert_sort_param_to_pony_col(parameters['sort_by'][0]),
-            "sort_desc": True if 'sort_desc' not in parameters else bool(int(parameters['sort_desc'][0])),
-            "query_filter": None if 'filter' not in parameters else cast_to_unicode_utf8(parameters['filter'][0]),
-            "hide_xxx": False if 'hide_xxx' not in parameters else bool(int(parameters['hide_xxx'][0]) > 0),
-            "category": None if 'category' not in parameters else cast_to_unicode_utf8(parameters['category'][0]),
+            else convert_sort_param_to_pony_col(parameters['sort_by']),
+            "sort_desc": True if 'sort_desc' not in parameters else bool(int(parameters['sort_desc'])),
+            "query_filter": None if 'filter' not in parameters else parameters['filter'],
+            "hide_xxx": False if 'hide_xxx' not in parameters else bool(int(parameters['hide_xxx']) > 0),
+            "category": None if 'category' not in parameters else parameters['category'],
             "exclude_deleted": None
             if 'exclude_deleted' not in parameters
-            else bool(int(parameters['exclude_deleted'][0]) > 0),
+            else bool(int(parameters['exclude_deleted']) > 0),
         }
         if 'metadata_type' in parameters:
             mtypes = []
-            for arg in parameters['metadata_type']:
+            for arg in parameters.getall('metadata_type'):
                 mtypes.extend(metadata_type_to_search_scope[arg])
             sanitized['metadata_type'] = mtypes
         return sanitized

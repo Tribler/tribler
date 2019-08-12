@@ -1,13 +1,12 @@
 from __future__ import absolute_import
 
+from asyncio import Future
 from binascii import unhexlify
-
-from twisted.internet.defer import Deferred, inlineCallbacks
 
 from Tribler.Core.Modules.dht_health_manager import DHTHealthManager
 from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Test.Core.base_test import MockObject, TriblerCoreTest
-from Tribler.Test.tools import trial_timeout
+from Tribler.Test.tools import timeout
 
 
 class TestDHTHealthManager(TriblerCoreTest):
@@ -15,40 +14,36 @@ class TestDHTHealthManager(TriblerCoreTest):
     This class contains various tests for the DHT health manager.
     """
 
-    @inlineCallbacks
-    def setUp(self):
-        yield super(TestDHTHealthManager, self).setUp()
+    async def setUp(self):
+        await super(TestDHTHealthManager, self).setUp()
 
         self.mock_lt_session = MockObject()
         self.mock_lt_session.dht_get_peers = lambda _: None
 
         self.dht_health_manager = DHTHealthManager(self.mock_lt_session)
 
-    @inlineCallbacks
-    def tearDown(self):
-        self.dht_health_manager.shutdown_task_manager()
-        yield super(TestDHTHealthManager, self).tearDown()
+    async def tearDown(self):
+        await self.dht_health_manager.shutdown_task_manager()
+        await super(TestDHTHealthManager, self).tearDown()
 
-    @trial_timeout(10)
-    def test_get_health(self):
+    @timeout(10)
+    async def test_get_health(self):
         """
         Test fetching the health of a trackerless torrent.
         """
-        def verify_health(response):
-            self.assertIsInstance(response, dict)
-            self.assertIn('DHT', response)
-            self.assertEqual(response['DHT'][0]['infohash'], hexlify(b'a' * 20))
+        response = await self.dht_health_manager.get_health(b'a' * 20, timeout=0.1)
+        self.assertIsInstance(response, dict)
+        self.assertIn('DHT', response)
+        self.assertEqual(response['DHT'][0]['infohash'], hexlify(b'a' * 20))
 
-        return self.dht_health_manager.get_health(b'a' * 20, timeout=0.1).addCallback(verify_health)
+    @timeout(10)
+    async def test_existing_get_health(self):
+        lookup_future = self.dht_health_manager.get_health(b'a' * 20, timeout=0.1)
+        self.assertEqual(self.dht_health_manager.get_health(b'a' * 20, timeout=0.1), lookup_future)
+        await lookup_future
 
-    @trial_timeout(10)
-    def test_existing_get_health(self):
-        lookup_deferred = self.dht_health_manager.get_health(b'a' * 20, timeout=0.1)
-        self.assertEqual(self.dht_health_manager.get_health(b'a' * 20, timeout=0.1), lookup_deferred)
-        return lookup_deferred
-
-    @trial_timeout(10)
-    def test_combine_bloom_filters(self):
+    @timeout(10)
+    async def test_combine_bloom_filters(self):
         """
         Test combining two bloom filters
         """
@@ -60,8 +55,8 @@ class TestDHTHealthManager(TriblerCoreTest):
         bf2 = bytearray(b'b' * 256)
         self.assertEqual(self.dht_health_manager.combine_bloomfilters(bf1, bf2), bf2)
 
-    @trial_timeout(10)
-    def test_get_size_from_bloom_filter(self):
+    @timeout(10)
+    async def test_get_size_from_bloom_filter(self):
         """
         Test whether we can successfully estimate the size from a bloom filter
         """
@@ -80,8 +75,8 @@ class TestDHTHealthManager(TriblerCoreTest):
         bf = bytearray(b'\xff' * 256)
         self.assertEqual(self.dht_health_manager.get_size_from_bloomfilter(bf), 6000)
 
-    @trial_timeout(10)
-    def test_receive_bloomfilters(self):
+    @timeout(10)
+    async def test_receive_bloomfilters(self):
         """
         Test whether the right operations happen when receiving a bloom filter
         """
@@ -90,7 +85,7 @@ class TestDHTHealthManager(TriblerCoreTest):
         self.assertFalse(self.dht_health_manager.bf_seeders)
         self.assertFalse(self.dht_health_manager.bf_peers)
 
-        self.dht_health_manager.lookup_deferreds[infohash] = Deferred()
+        self.dht_health_manager.lookup_futures[infohash] = Future()
         self.dht_health_manager.bf_seeders[infohash] = bytearray(256)
         self.dht_health_manager.bf_peers[infohash] = bytearray(256)
         self.dht_health_manager.received_bloomfilters(b'b' * 20,

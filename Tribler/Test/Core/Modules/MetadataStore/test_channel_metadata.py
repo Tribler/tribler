@@ -13,8 +13,6 @@ from pony.orm import ObjectNotFound, db_session
 
 from six.moves import xrange
 
-from twisted.internet.defer import inlineCallbacks
-
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH, entries_to_chunk
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import COMMITTED, NEW, TODELETE, UPDATED
 from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
@@ -34,17 +32,15 @@ class TestChannelMetadata(TriblerCoreTest):
     DATA_DIR = os.path.join(os.path.abspath(os.path.dirname(os.path.realpath(__file__))), '..', '..', 'data')
     CHANNEL_METADATA = os.path.join(DATA_DIR, 'sample_channel', 'channel.mdblob')
 
-    @inlineCallbacks
-    def setUp(self):
-        yield super(TestChannelMetadata, self).setUp()
+    async def setUp(self):
+        await super(TestChannelMetadata, self).setUp()
         self.torrent_template = {"title": "", "infohash": b"", "torrent_date": datetime(1970, 1, 1), "tags": "video"}
         self.my_key = default_eccrypto.generate_key(u"curve25519")
         self.mds = MetadataStore(":memory:", self.session_base_dir, self.my_key)
 
-    @inlineCallbacks
-    def tearDown(self):
+    async def tearDown(self):
         self.mds.shutdown()
-        yield super(TestChannelMetadata, self).tearDown()
+        await super(TestChannelMetadata, self).tearDown()
 
     @staticmethod
     def get_sample_torrent_dict(my_key):

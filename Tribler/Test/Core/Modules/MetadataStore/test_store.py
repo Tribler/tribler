@@ -10,8 +10,6 @@ from ipv8.keyvault.crypto import default_eccrypto
 
 from pony.orm import db_session, flush
 
-from twisted.internet.defer import inlineCallbacks
-
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH, entries_to_chunk
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import NEW
 from Tribler.Core.Modules.MetadataStore.serialization import (
@@ -57,16 +55,14 @@ class TestMetadataStore(TriblerCoreTest):
     This class contains tests for the metadata store.
     """
 
-    @inlineCallbacks
-    def setUp(self):
-        yield super(TestMetadataStore, self).setUp()
+    async def setUp(self):
+        await super(TestMetadataStore, self).setUp()
         my_key = default_eccrypto.generate_key(u"curve25519")
         self.mds = MetadataStore(":memory:", self.session_base_dir, my_key)
 
-    @inlineCallbacks
-    def tearDown(self):
+    async def tearDown(self):
         self.mds.shutdown()
-        yield super(TestMetadataStore, self).tearDown()
+        await super(TestMetadataStore, self).tearDown()
 
     def test_store_clock(self):
         my_key = default_eccrypto.generate_key(u"curve25519")

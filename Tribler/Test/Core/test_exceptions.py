@@ -12,7 +12,7 @@ class TriblerCoreTestExceptions(TriblerCoreTest):
     @raises(TriblerException)
     def test_tribler_exception(self):
         exception = TriblerException("TriblerException")
-        self.assertEquals(str(exception), "<class 'Tribler.Core.exceptions.TriblerException'>: TriblerException")
+        self.assertEqual(str(exception), "<class 'Tribler.Core.exceptions.TriblerException'>: TriblerException")
         raise exception
 
     @raises(OperationNotPossibleAtRuntimeException)

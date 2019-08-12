@@ -4,8 +4,6 @@ from ipv8.keyvault.crypto import default_eccrypto
 
 from pony.orm import db_session
 
-from twisted.internet.defer import inlineCallbacks
-
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.Utilities.tracker_utils import MalformedTrackerURLException
 from Tribler.Test.Core.base_test import TriblerCoreTest
@@ -15,16 +13,15 @@ class TestTrackerState(TriblerCoreTest):
     """
     Contains various tests for the TrackerState class.
     """
-    @inlineCallbacks
-    def setUp(self):
-        yield super(TestTrackerState, self).setUp()
+
+    async def setUp(self):
+        await super(TestTrackerState, self).setUp()
         self.my_key = default_eccrypto.generate_key(u"curve25519")
         self.mds = MetadataStore(":memory:", self.session_base_dir, self.my_key)
 
-    @inlineCallbacks
-    def tearDown(self):
+    async def tearDown(self):
         self.mds.shutdown()
-        yield super(TestTrackerState, self).tearDown()
+        await super(TestTrackerState, self).tearDown()
 
     @db_session
     def test_create_tracker_state(self):

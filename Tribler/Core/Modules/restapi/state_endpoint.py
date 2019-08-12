@@ -1,26 +1,28 @@
 from __future__ import absolute_import
 
-from twisted.web import resource
+from aiohttp import web
 
-import Tribler.Core.Utilities.json_util as json
-from Tribler.Core.simpledefs import NTFY_FINISHED, NTFY_STARTED, NTFY_TRIBLER, NTFY_UPGRADER, STATE_EXCEPTION,\
-    STATE_STARTED, STATE_STARTING, STATE_UPGRADING
+from Tribler.Core.Modules.restapi.rest_endpoint import RESTEndpoint, RESTResponse
+from Tribler.Core.simpledefs import (NTFY_FINISHED, NTFY_STARTED, NTFY_TRIBLER, NTFY_UPGRADER, STATE_EXCEPTION,
+                                     STATE_STARTED, STATE_STARTING, STATE_UPGRADING)
 
 
-class StateEndpoint(resource.Resource):
+class StateEndpoint(RESTEndpoint):
     """
     This endpoint is responsible for handing all requests regarding the state of Tribler.
     """
 
     def __init__(self, session):
-        resource.Resource.__init__(self)
-        self.session = session
+        super(StateEndpoint, self).__init__(session)
         self.tribler_state = STATE_STARTING
         self.last_exception = None
 
         self.session.add_observer(self.on_tribler_upgrade_started, NTFY_UPGRADER, [NTFY_STARTED])
         self.session.add_observer(self.on_tribler_upgrade_finished, NTFY_UPGRADER, [NTFY_FINISHED])
         self.session.add_observer(self.on_tribler_started, NTFY_TRIBLER, [NTFY_STARTED])
+
+    def setup_routes(self):
+        self.app.add_routes([web.get('', self.get_state)])
 
     def on_tribler_upgrade_started(self, subject, changetype, objectID, *args):
         self.tribler_state = STATE_UPGRADING
@@ -35,7 +37,7 @@ class StateEndpoint(resource.Resource):
         self.tribler_state = STATE_EXCEPTION
         self.last_exception = exception_text
 
-    def render_GET(self, request):
+    async def get_state(self, request):
         """
         .. http:get:: /state
 
@@ -61,7 +63,7 @@ class StateEndpoint(resource.Resource):
                     "readable_state": ""
                 }
         """
-        return json.twisted_dumps({
+        return RESTResponse({
             "state": self.tribler_state,
             "last_exception": self.last_exception,
             "readable_state": self.session.readable_status

@@ -5,7 +5,7 @@ import shutil
 
 from configobj import ConfigObj
 
-from ipv8.util import ensure_str
+from six import ensure_str
 
 from six.moves.configparser import RawConfigParser
 

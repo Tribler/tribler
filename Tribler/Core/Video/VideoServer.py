@@ -10,6 +10,7 @@ import mimetypes
 import os
 import socket
 import time
+from asyncio import ensure_future
 from binascii import unhexlify
 from collections import defaultdict
 from threading import Event, RLock, Thread
@@ -158,7 +159,7 @@ class VideoRequestHandler(BaseHTTPRequestHandler):
             if download.get_def().is_multifile_torrent():
                 download.set_selected_files([filename])
             download.config.set_mode(DLMODE_VOD)
-            download.restart()
+            ensure_future(download.restart())
 
         piecelen = download.get_def().get_piece_length()
         blocksize = piecelen

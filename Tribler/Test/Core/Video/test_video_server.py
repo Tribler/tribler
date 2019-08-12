@@ -6,11 +6,7 @@ Author(s): Arno Bakker
 from __future__ import absolute_import
 
 import os
-
-from twisted.internet import reactor
-from twisted.internet.defer import Deferred, inlineCallbacks
-from twisted.internet.endpoints import TCP4ClientEndpoint, connectProtocol
-from twisted.internet.protocol import Protocol, connectionDone
+from asyncio import Future, Protocol, get_event_loop
 
 from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.TorrentDef import TorrentDef
@@ -19,7 +15,7 @@ from Tribler.Core.Video.VideoServer import VideoServer
 from Tribler.Test.Core.base_test import MockObject, TriblerCoreTest
 from Tribler.Test.common import TESTS_DATA_DIR
 from Tribler.Test.test_as_server import TestAsServer
-from Tribler.Test.tools import trial_timeout
+from Tribler.Test.tools import timeout
 
 
 class VideoServerProtocol(Protocol):
@@ -32,11 +28,19 @@ class VideoServerProtocol(Protocol):
         self.expected_content = expected_content
         self.setset = setset
         self.exp_byte_range = exp_byte_range
+        self.data = b''
 
-    def sendMessage(self, msg):
+    def connection_made(self, transport):
+        self.transport = transport
+
+    def send(self, msg):
         self.transport.write(msg.encode('utf8'))
 
-    def dataReceived(self, data):
+    def data_received(self, data):
+        self.data += data
+
+    def eof_received(self):
+        data = self.data
         if not self.has_header:
             for line in data.split(b'\r\n'):
                 if len(line) == 0 and self.seen_empty_line:
@@ -48,13 +52,14 @@ class VideoServerProtocol(Protocol):
                     self.check_header(line)
         else:
             assert self.expected_content == data
-            self.transport.loseConnection()
+            self.transport.close()
 
-    def connectionLost(self, reason=connectionDone):
-        self.finished.callback(None)
+    def connection_lost(self, _):
+        if not self.finished.done():
+            self.finished.set_result(None)
 
     def check_header(self, line):
-        if not self.transport.connected or self.transport.disconnecting:
+        if not self.transport.is_closing():
             return
 
         if line.startswith(b"HTTP"):
@@ -65,7 +70,7 @@ class VideoServerProtocol(Protocol):
             else:
                 assert line.startswith(b"HTTP/1.")
                 assert line.find(b"416") != -1  # Requested Range Not Satisfiable
-                self.transport.loseConnection()
+                self.transport.close()
 
         elif line.startswith(b"Content-Range:"):
             expline = "Content-Range: bytes " + TestVideoServerSession.create_range_str(
@@ -82,8 +87,8 @@ class VideoServerProtocol(Protocol):
 
 class TestVideoServer(TriblerCoreTest):
 
-    def setUp(self):
-        TriblerCoreTest.setUp(self)
+    async def setUp(self):
+        await TriblerCoreTest.setUp(self)
         self.mock_session = MockObject()
         self.video_server = VideoServer(self.get_port(), self.mock_session)
 
@@ -115,39 +120,38 @@ class TestVideoServerSession(TestAsServer):
 
     Mainly HTTP range queries.
     """
-    @inlineCallbacks
-    def setUp(self):
+    async def setUp(self):
         """ unittest test setup code """
-        yield super(TestVideoServerSession, self).setUp()
+        await super(TestVideoServerSession, self).setUp()
         self.port = self.session.config.get_video_server_port()
         self.sourcefn = os.path.join(TESTS_DATA_DIR, "video.avi")
         self.sourcesize = os.path.getsize(self.sourcefn)
         self.tdef = None
         self.expsize = 0
-        yield self.start_vod_download()
+        await self.start_vod_download()
 
     def setUpPreSession(self):
         TestAsServer.setUpPreSession(self)
         self.config.set_libtorrent_enabled(True)
         self.config.set_video_server_enabled(True)
 
-    @trial_timeout(10)
-    def test_specific_range(self):
-        return self.range_check(115, 214)
+    @timeout(10)
+    async def test_specific_range(self):
+        await self.range_check(115, 214)
 
-    @trial_timeout(10)
-    def test_last_100(self):
-        return self.range_check(self.sourcesize - 100, None)
+    @timeout(10)
+    async def test_last_100(self):
+        await self.range_check(self.sourcesize - 100, None)
 
-    @trial_timeout(10)
-    def test_first_100(self):
-        return self.range_check(None, 100)
+    @timeout(10)
+    async def test_first_100(self):
+        await self.range_check(None, 100)
 
-    @trial_timeout(10)
-    def test_combined(self):
-        return self.range_check(115, 214, setset=True)
+    @timeout(10)
+    async def test_combined(self):
+        await self.range_check(115, 214, setset=True)
 
-    def start_vod_download(self):
+    async def start_vod_download(self):
         self.tdef = TorrentDef()
         self.tdef.add_content(self.sourcefn)
         self.tdef.set_tracker("http://127.0.0.1:12/announce")
@@ -157,7 +161,7 @@ class TestVideoServerSession(TestAsServer):
         dscfg.set_dest_dir(os.path.dirname(self.sourcefn))
 
         download = self.session.start_download_from_tdef(self.tdef, dscfg)
-        return download.get_handle()
+        await download.get_handle()
 
     def get_std_header(self):
         msg = "GET /%s/0 HTTP/1.1\r\n" % hexlify(self.tdef.get_infohash())
@@ -189,8 +193,8 @@ class TestVideoServerSession(TestAsServer):
 
         return head + "\r\n"
 
-    def range_check(self, firstbyte, lastbyte, setset=False):
-        test_deferred = Deferred()
+    async def range_check(self, firstbyte, lastbyte, setset=False):
+        test_future = Future()
         self._logger.debug("range_test: %s %s %s setset %s", firstbyte, lastbyte, self.sourcesize, setset)
 
         if firstbyte is not None and lastbyte is None:
@@ -208,10 +212,8 @@ class TestVideoServerSession(TestAsServer):
         expdata = f.read(self.expsize)
         f.close()
 
-        def on_connected(p):
-            p.sendMessage(self.get_header(firstbyte, lastbyte, setset))
-
-        endpoint = TCP4ClientEndpoint(reactor, "localhost", self.port)
-        connectProtocol(endpoint, VideoServerProtocol(test_deferred, self.sourcesize, expdata, setset, exp_byte_range))\
-            .addCallback(on_connected)
-        return test_deferred
+        protocol = VideoServerProtocol(test_future, self.sourcesize, expdata, setset, exp_byte_range)
+        transport, _ = await get_event_loop().create_connection(lambda: protocol, "localhost", self.port)
+        protocol.send(self.get_header(firstbyte, lastbyte, setset))
+        await test_future
+        transport.close()

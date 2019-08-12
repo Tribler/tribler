@@ -51,7 +51,7 @@ def convert_config_to_tribler71(current_config, state_dir=None):
         download_cfg = RawConfigParser()
         try:
             with open(filename) as cfg_file:
-                download_cfg.readfp(cfg_file, filename=filename)
+                download_cfg.read_file(cfg_file, source=filename)
         except MissingSectionHeaderError:
             logger.error("Removing download state file %s since it appears to be corrupt", filename)
             os.remove(filename)

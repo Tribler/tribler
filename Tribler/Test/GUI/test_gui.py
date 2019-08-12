@@ -6,12 +6,15 @@ import subprocess
 import sys
 import threading
 import time
+from asyncio import new_event_loop, set_event_loop
 from unittest import TestCase, skipIf, skipUnless
 
 from PyQt5.QtCore import QPoint, QTimer, Qt
 from PyQt5.QtGui import QPixmap, QRegion
 from PyQt5.QtTest import QTest
 from PyQt5.QtWidgets import QApplication, QListWidget, QTableView, QTextEdit, QTreeWidget
+
+from aiohttp import web
 
 from six import text_type
 from six.moves import xrange
@@ -41,12 +44,15 @@ else:
     window = None
 
 
-def start_fake_core(port):
-    from twisted.internet import reactor
-    from twisted.web.server import Site
+def start_loop(task, *args):
+    loop = new_event_loop()
+    set_event_loop(loop)
 
+    loop.run_until_complete(task(*args))
+    loop.close()
+
+def start_fake_core(port):
     from Tribler.Test.GUI.FakeTriblerAPI.endpoints.root_endpoint import RootEndpoint
-    from Tribler.Test.GUI.FakeTriblerAPI.endpoints.video_root_endpoint import VideoRootEndpoint
     from Tribler.Test.GUI.FakeTriblerAPI.tribler_data import TriblerData
     import Tribler.Test.GUI.FakeTriblerAPI.tribler_utils as tribler_utils
 
@@ -61,15 +67,12 @@ def start_fake_core(port):
     logger.info("Generating random Tribler data")
     generate_tribler_data()
 
-    site = Site(RootEndpoint())
+    loop = new_event_loop()
+    set_event_loop(loop)
+
     logger.info("Starting fake Tribler API on port %d", port)
-
-    video_site = Site(VideoRootEndpoint())
-    logger.info("Starting video API on port %d", tribler_utils.tribler_data.video_player_port)
-
-    reactor.listenTCP(port, site)
-    reactor.listenTCP(tribler_utils.tribler_data.video_player_port, video_site)
-    reactor.run(installSignalHandlers=False)
+    root_endpoint = RootEndpoint(None)
+    web.run_app(root_endpoint.app, host='localhost', port=port)
 
 
 if os.environ.get("TEST_GUI") == "yes":

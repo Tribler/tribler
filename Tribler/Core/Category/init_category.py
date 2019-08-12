@@ -41,7 +41,8 @@ def __get_default():
 
 def getCategoryInfo(filename):
     config = configparser.ConfigParser()
-    config.readfp(open(filename))
+    with open(filename) as fp:
+        config.read_file(fp)
 
     cate_list = []
     sections = config.sections()

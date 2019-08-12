@@ -10,8 +10,6 @@ from ipv8.peer import Peer
 
 from pony.orm import db_session
 
-from twisted.internet.task import LoopingCall
-
 from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.community.popularity.payload import TorrentsHealthPayload
 
@@ -40,8 +38,7 @@ class PopularityCommunity(Community):
         })
 
         self.logger.info('Popularity Community initialized (peer mid %s)', hexlify(self.my_peer.mid))
-        self.publish_lc = self.register_task("publish", LoopingCall(self.gossip_torrents_health))
-        self.publish_lc.start(PUBLISH_INTERVAL, now=False)
+        self.register_task("publish", self.gossip_torrents_health, interval=PUBLISH_INTERVAL)
 
     @db_session
     def gossip_torrents_health(self):

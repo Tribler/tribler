@@ -3,13 +3,12 @@ from __future__ import absolute_import
 import logging
 import os
 import shutil
-
-from twisted.internet.defer import Deferred
+from asyncio import Future
 
 from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, dlstatus_strings
 from Tribler.Test.common import TORRENT_UBUNTU_FILE
 from Tribler.Test.test_as_server import TestAsServer
-from Tribler.Test.tools import trial_timeout
+from Tribler.Test.tools import timeout
 
 
 class TestDownload(TestAsServer):
@@ -21,7 +20,7 @@ class TestDownload(TestAsServer):
     def __init__(self, *argv, **kwargs):
         super(TestDownload, self).__init__(*argv, **kwargs)
         self._logger = logging.getLogger(self.__class__.__name__)
-        self.test_deferred = Deferred()
+        self.test_future = Future()
 
     def setUpPreSession(self):
         super(TestDownload, self).setUpPreSession()
@@ -33,25 +32,25 @@ class TestDownload(TestAsServer):
         self._logger.debug("Download started: %s", download)
         download.set_state_callback(self.downloader_state_callback)
 
-    @trial_timeout(60)
-    def test_download_torrent_from_url(self):
+    @timeout(60)
+    async def test_download_torrent_from_url(self):
         # Setup file server to serve torrent file
         files_path = os.path.join(self.session_base_dir, 'http_torrent_files')
         os.mkdir(files_path)
         shutil.copyfile(TORRENT_UBUNTU_FILE, os.path.join(files_path, 'ubuntu.torrent'))
         file_server_port = self.get_port()
-        self.setUpFileServer(file_server_port, files_path)
+        await self.setUpFileServer(file_server_port, files_path)
 
-        d = self.session.start_download_from_uri('http://localhost:%s/ubuntu.torrent' % file_server_port)
-        d.addCallback(self.on_download)
-        return self.test_deferred
+        d = await self.session.start_download_from_uri('http://localhost:%s/ubuntu.torrent' % file_server_port)
+        self.on_download(d)
+        return self.test_future
 
-    @trial_timeout(60)
-    def test_download_torrent_from_file(self):
+    @timeout(60)
+    async def test_download_torrent_from_file(self):
         from six.moves.urllib.request import pathname2url
-        d = self.session.start_download_from_uri('file:' + pathname2url(TORRENT_UBUNTU_FILE))
-        d.addCallback(self.on_download)
-        return self.test_deferred
+        d = await self.session.start_download_from_uri('file:' + pathname2url(TORRENT_UBUNTU_FILE))
+        self.on_download(d)
+        return self.test_future
 
     def downloader_state_callback(self, ds):
         d = ds.get_download()
@@ -61,7 +60,7 @@ class TestDownload(TestAsServer):
                            ds.get_progress())
 
         if ds.get_status() == DLSTATUS_DOWNLOADING:
-            self.test_deferred.callback(None)
+            self.test_future.set_result(None)
             return 0.0
 
         return 1.0

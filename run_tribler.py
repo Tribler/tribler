@@ -4,6 +4,7 @@ import logging.config
 import os
 import signal
 import sys
+from asyncio import ensure_future, get_event_loop
 
 from Tribler.dependencies import check_for_missing_dependencies
 
@@ -35,7 +36,6 @@ def start_tribler_core(base_path, api_port):
     through the HTTP API.
     """
     from check_os import check_and_enable_code_tracing, set_process_priority, setup_core_logging
-    from twisted.internet import reactor
     setup_core_logging()
 
     from Tribler.Core.Config.tribler_config import TriblerConfig
@@ -44,18 +44,19 @@ def start_tribler_core(base_path, api_port):
 
     trace_logger = None
 
-    def on_tribler_shutdown(_):
-        reactor.stop()
+    def on_tribler_shutdown(future):
+        future.result()
+        get_event_loop().stop()
         if trace_logger:
             trace_logger.close()
 
     def shutdown(session, *_):
         logging.info("Stopping Tribler core")
-        session.shutdown().addCallback(on_tribler_shutdown)
+        ensure_future(session.shutdown()).add_done_callback(on_tribler_shutdown)
 
     sys.path.insert(0, base_path)
 
-    def start_tribler():
+    async def start_tribler():
         config = TriblerConfig()
         global trace_logger
 
@@ -78,10 +79,10 @@ def start_tribler_core(base_path, api_port):
         session = Session(config)
 
         signal.signal(signal.SIGTERM, lambda signum, stack: shutdown(session, signum, stack))
-        session.start()
+        await session.start()
 
-    reactor.callWhenRunning(start_tribler)
-    reactor.run()
+    get_event_loop().create_task(start_tribler())
+    get_event_loop().run_forever()
 
 
 if __name__ == "__main__":

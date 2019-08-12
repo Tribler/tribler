@@ -461,6 +461,7 @@ class TriblerRequestWorker(QNetworkAccessManager):
         buf.setData(data)
         buf.open(QIODevice.ReadOnly)
         patch_request = QNetworkRequest(QUrl(url))
+        patch_request.setHeader(QNetworkRequest.ContentTypeHeader, "application/x-www-form-urlencoded")
         reply = self.sendCustomRequest(patch_request, b"PATCH", buf)
         buf.setParent(reply)
         return reply
@@ -490,6 +491,7 @@ class TriblerRequestWorker(QNetworkAccessManager):
         buf.setData(data)
         buf.open(QIODevice.ReadOnly)
         delete_request = QNetworkRequest(QUrl(url))
+        delete_request.setHeader(QNetworkRequest.ContentTypeHeader, "application/x-www-form-urlencoded")
         reply = self.sendCustomRequest(delete_request, b"DELETE", buf)
         buf.setParent(reply)
         return reply

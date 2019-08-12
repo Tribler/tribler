@@ -2,21 +2,30 @@ from __future__ import absolute_import
 
 import logging
 import os
-from traceback import format_tb
+
+from aiohttp import web
 
 from ipv8.taskmanager import TaskManager
 
-from six import text_type
-
-from twisted.internet import reactor
-from twisted.internet.defer import maybeDeferred
-from twisted.internet.error import CannotListenError
-from twisted.python.compat import intToBytes
-from twisted.python.failure import Failure
-from twisted.web import http, server
-
-import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.Modules.restapi.events_endpoint import EventsEndpoint
+from Tribler.Core.Modules.restapi.rest_endpoint import RESTResponse, HTTP_INTERNAL_SERVER_ERROR
 from Tribler.Core.Modules.restapi.root_endpoint import RootEndpoint
+from Tribler.Core.Modules.restapi.state_endpoint import StateEndpoint
+
+
+@web.middleware
+async def error_middleware(request, handler):
+    try:
+        if os.environ.get('TRIBLER_SHUTTING_DOWN', "FALSE") == "TRUE":
+            raise Exception('Tribler is shutting down')
+        response = await handler(request)
+    except Exception as e:
+        return RESTResponse({"error": {
+            "handled": False,
+            "code": e.__class__.__name__,
+            "message": str(e)
+        }}, status=HTTP_INTERNAL_SERVER_ERROR)
+    return response
 
 
 class RESTManager(TaskManager):
@@ -27,32 +36,39 @@ class RESTManager(TaskManager):
     def __init__(self, session):
         super(RESTManager, self).__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
+        self.root_endpoint = None
         self.session = session
         self.site = None
-        self.root_endpoint = None
 
-    def start(self):
+    def get_endpoint(self, name):
+        return self.root_endpoint.endpoints['/' + name]
+
+    def set_ipv8_session(self, ipv8_session):
+        self.root_endpoint.set_ipv8_session(ipv8_session)
+
+    async def start(self):
         """
         Starts the HTTP API with the listen port as specified in the session configuration.
         """
-        self.root_endpoint = RootEndpoint(self.session)
-        site = server.Site(resource=self.root_endpoint)
-        site.requestFactory = RESTRequest
-        api_port = self.session.config.get_http_api_port()
+        self.root_endpoint = RootEndpoint(self.session, middlewares=[error_middleware])
+        runner = web.AppRunner(self.root_endpoint.app, access_log=None)
+        await runner.setup()
 
+        api_port = self.session.config.get_http_api_port()
         if not self.session.config.get_http_api_retry_port():
-            self.site = reactor.listenTCP(api_port, site, interface="127.0.0.1")
+            self.site = web.TCPSite(runner, 'localhost', api_port)
         else:
             bind_attempts = 0
             while bind_attempts < 10:
                 try:
-                    self.site = reactor.listenTCP(api_port + bind_attempts, site, interface="127.0.0.1")
+                    self.site = web.TCPSite(runner, 'localhost', api_port + bind_attempts)
                     self.session.config.set_http_api_port(api_port + bind_attempts)
                     break
-                except CannotListenError:
+                except OSError:
                     bind_attempts += 1
+        await self.site.start()
 
-        self._logger.info("Starting REST API on port %d", self.site.port)
+        self._logger.info("Starting REST API on port %d", self.site._port)
 
         # REST Manager does not accept any new requests if Tribler is shutting down.
         # Note that environment variable 'TRIBLER_SHUTTING_DOWN' is set to 'TRUE' (string)
@@ -61,58 +77,9 @@ class RESTManager(TaskManager):
         # variable is set to 'FALSE' (string).
         os.environ['TRIBLER_SHUTTING_DOWN'] = "FALSE"
 
-    def stop(self):
+    async def stop(self):
         """
         Stop the HTTP API and return a deferred that fires when the server has shut down.
         """
-        return maybeDeferred(self.site.stopListening)
-
-
-class RESTRequest(server.Request):
-    """
-    This class overrides the write(data) method to do a safe write only when channel is not None and gracefully
-    takes care of unhandled exceptions raised during the processing of any request.
-    """
-    defaultContentType = b"text/json"
-
-    def __init__(self, *args, **kw):
-        server.Request.__init__(self, *args, **kw)
-        self._logger = logging.getLogger(self.__class__.__name__)
-
-    def processingFailed(self, failure):
-        self._logger.exception(failure)
-        failure_message = failure.value.message if hasattr(failure.value, 'message') else text_type(failure.value)
-        response = {
-            "error": {
-                "handled": False,
-                "code": failure.value.__class__.__name__,
-                "message": failure_message
-            }
-        }
-        if self.site and self.site.displayTracebacks:
-            response["error"]["trace"] = format_tb(failure.getTracebackObject())
-
-        body = json.twisted_dumps(response)
-        self.setResponseCode(http.INTERNAL_SERVER_ERROR)
-        self.setHeader(b'content-type', self.defaultContentType)
-        self.setHeader(b'content-length', intToBytes(len(body)))
-        self.write(body)
-        self.finish()
-        return failure
-
-    def write(self, data):
-        """
-        Writes data only if request has not finished and channel is not None
-        """
-        if not self.finished and self.channel:
-            server.Request.write(self, data)
-
-    def process(self):
-        """
-        Reject all requests if the shutdown sequence has already started.
-        """
-        if os.environ.get('TRIBLER_SHUTTING_DOWN', "FALSE") == "TRUE":
-            self._logger.error("Tribler shutdown in process. Not accepting any more request - %s", self)
-            self.processingFailed(Failure(Exception("Tribler is shutting down")))
-        else:
-            server.Request.process(self)
+        await self.root_endpoint.stop()
+        await self.site.stop()

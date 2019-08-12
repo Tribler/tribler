@@ -16,14 +16,14 @@ def process_dummy_function(stop_flag):
 
 class TestProcessChecker(AbstractServer):
     """A test class for the ProcessChecker which checks if the Tribler Core is already running."""
-    def tearDown(self):
-        super(TestProcessChecker, self).tearDown()
+    async def tearDown(self):
+        await super(TestProcessChecker, self).tearDown()
         if self.process:
             self.stop_flag.value = 1
             self.process.join()
 
-    def setUp(self):
-        super(TestProcessChecker, self).setUp()
+    async def setUp(self):
+        await super(TestProcessChecker, self).setUp()
         self.process = None
         self.stop_flag = Value('b', 0)
         self.state_dir = self.getStateDir()

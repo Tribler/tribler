@@ -9,11 +9,13 @@ import logging
 import os
 import sys
 import time as timemod
+from asyncio import ensure_future, gather, iscoroutine
 from binascii import unhexlify
 from glob import iglob
 from threading import Event, enumerate as enumerate_threads
 from traceback import print_exc
 
+from Tribler.Core.Utilities.utilities import succeed
 from anydex.wallet.dummy_wallet import DummyWallet1, DummyWallet2
 from anydex.wallet.tc_wallet import TrustchainWallet
 
@@ -28,12 +30,6 @@ from ipv8.taskmanager import TaskManager
 from ipv8_service import IPv8
 
 from six import text_type
-
-from twisted.internet import reactor
-from twisted.internet.defer import Deferred, DeferredList, inlineCallbacks, succeed
-from twisted.internet.task import LoopingCall
-from twisted.internet.threads import deferToThread
-from twisted.python.threadable import isInIOThread
 
 from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
@@ -75,7 +71,6 @@ class TriblerLaunchMany(TaskManager):
         self.ipv8_start_time = 0
         self.state_cb_count = 0
         self.previous_active_downloads = []
-        self.download_states_lc = None
         self.get_peer_list = []
 
         self._logger = logging.getLogger(self.__class__.__name__)
@@ -110,17 +105,13 @@ class TriblerLaunchMany(TaskManager):
         self.popularity_community = None
         self.gigachannel_community = None
 
-        self.startup_deferred = Deferred()
-
         self.credit_mining_manager = None
         self.market_community = None
         self.dht_community = None
         self.payout_manager = None
         self.mds = None
 
-    def register(self, session, session_lock):
-        assert isInIOThread()
-
+    async def register(self, session, session_lock):
         self.session = session
         self.session_lock = session_lock
 
@@ -150,11 +141,12 @@ class TriblerLaunchMany(TaskManager):
                 community_file._DNS_ADDRESSES = []
 
             self.ipv8 = IPv8(ipv8_config, enable_statistics=self.session.config.get_ipv8_statistics())
+            await self.ipv8.start()
 
             self.session.config.set_anon_proxy_settings(2, ("127.0.0.1",
                                                             self.session.
                                                             config.get_tunnel_community_socks5_listen_ports()))
-        self.init()
+        await self.init()
 
     def load_ipv8_overlays(self):
         if self.session.config.get_testnet():
@@ -263,7 +255,7 @@ class TriblerLaunchMany(TaskManager):
             for overlay in self.ipv8.overlays:
                 self.ipv8.endpoint.enable_community_statistics(overlay.get_prefix(), True)
 
-    def init(self):
+    async def init(self):
         # Wallets
         if self.session.config.get_bitcoinlib_enabled():
             try:
@@ -293,12 +285,14 @@ class TriblerLaunchMany(TaskManager):
         if self.session.config.get_torrent_checking_enabled():
             self.session.readable_status = STATE_START_TORRENT_CHECKER
             self.torrent_checker = TorrentChecker(self.session)
-            self.torrent_checker.initialize()
+            await self.torrent_checker.initialize()
 
         if self.ipv8:
             self.ipv8_start_time = timemod.time()
             self.load_ipv8_overlays()
             self.enable_ipv8_statistics()
+            if self.api_manager:
+                self.api_manager.set_ipv8_session(self.ipv8)
 
         tunnel_community_ports = self.session.config.get_tunnel_community_socks5_listen_ports()
         self.session.config.set_anon_proxy_settings(2, ("127.0.0.1", tunnel_community_ports))
@@ -315,10 +309,6 @@ class TriblerLaunchMany(TaskManager):
             self.gigachannel_manager = GigaChannelManager(self.session)
             # GigaChannel Manager startup routines are started asynchronously by Session
             # after resuming Libtorrent downloads.
-
-        if self.api_manager:
-            self.session.readable_status = STATE_START_API_ENDPOINTS
-            self.api_manager.root_endpoint.start_endpoints()
 
         if self.session.config.get_watch_folder_enabled():
             self.session.readable_status = STATE_START_WATCH_FOLDER
@@ -367,36 +357,22 @@ class TriblerLaunchMany(TaskManager):
                 self._logger.info("Torrent already exists in the downloads. Infohash:%s", hexlify(infohash))
 
             from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
-            d = LibtorrentDownloadImpl(self.session, tdef)
+            download = LibtorrentDownloadImpl(self.session, tdef)
 
             config = config or self.load_download_config_by_infohash(infohash)  # not already resuming
 
             # Store in list of Downloads, always.
-            self.downloads[infohash] = d
-            setup_deferred = d.setup(config, wrapperDelay=setupDelay,
-                                     share_mode=share_mode, checkpoint_disabled=checkpoint_disabled,
-                                     hidden=hidden_torrent)
-            setup_deferred.addCallback(self.on_download_handle_created)
+            self.downloads[infohash] = download
+            download.setup(config, delay=setupDelay, share_mode=share_mode,
+                           checkpoint_disabled=checkpoint_disabled, hidden=hidden_torrent)
+        return download
 
-        return d
-
-    def on_download_handle_created(self, download):
-        """
-        This method is called when the download handle has been created.
-        Immediately checkpoint the download and write the resume data.
-        """
-        return download.checkpoint()
-
-    def remove(self, d, removecontent=False, removestate=True, hidden=False):
-        """ Called by any thread """
-        out = None
+    async def remove(self, download, removecontent=False, removestate=True, hidden=False):
         with self.session_lock:
-            out = d.stop_remove(removestate=removestate, removecontent=removecontent)
-            infohash = d.get_def().get_infohash()
+            await download.stop_remove(removestate=removestate, removecontent=removecontent)
+            infohash = download.get_def().get_infohash()
             if infohash in self.downloads:
                 del self.downloads[infohash]
-
-        return out or succeed(None)
 
     def get_downloads(self):
         """ Called by any thread """
@@ -416,15 +392,14 @@ class TriblerLaunchMany(TaskManager):
         with self.session_lock:
             return infohash in self.downloads
 
-    @inlineCallbacks
-    def update_download_hops(self, download, new_hops):
+    async def update_download_hops(self, download, new_hops):
         """
         Update the amount of hops for a specified download. This can be done on runtime.
         """
         infohash = hexlify(download.tdef.get_infohash())
         self._logger.info("Updating the amount of hops of download %s", infohash)
-        download.config.set_engineresumedata((yield download.save_resume_data()))
-        yield self.session.remove_download(download)
+        download.config.set_engineresumedata((await download.save_resume_data()))
+        await self.session.remove_download(download)
 
         # copy the old download_config and change the hop count
         config = download.config.copy()
@@ -464,7 +439,7 @@ class TriblerLaunchMany(TaskManager):
 
                 # Set TorrentDef + checkpoint
                 dl.set_def(new_def)
-                dl.checkpoint()
+                ensure_future(dl.checkpoint())
 
     #
     # State retrieval
@@ -474,35 +449,31 @@ class TriblerLaunchMany(TaskManager):
         Stop any download states callback if present.
         """
         if self.is_pending_task_active("download_states_lc"):
-            self.cancel_pending_task("download_states_lc")
+            return self.cancel_pending_task("download_states_lc")
+        return succeed(None)
 
     def set_download_states_callback(self, user_callback, interval=1.0):
         """
         Set the download state callback. Remove any old callback if it's present.
         """
-        self.stop_download_states_callback()
         self._logger.debug("Starting the download state callback with interval %f", interval)
-        self.download_states_lc = self.register_task("download_states_lc",
-                                                     LoopingCall(self._invoke_states_cb, user_callback))
-        self.download_states_lc.start(interval)
+        self.replace_task("download_states_lc", self._invoke_states_cb, user_callback, interval=interval)
 
-    def _invoke_states_cb(self, callback):
+    async def _invoke_states_cb(self, callback):
         """
         Invoke the download states callback with a list of the download states.
         """
         dslist = []
-        for d in self.downloads.values():
-            d.set_moreinfo_stats(True in self.get_peer_list or d.get_def().get_infohash() in
-                                 self.get_peer_list)
-            ds = d.network_get_state(None)
+        for download in self.downloads.values():
+            download.set_moreinfo_stats(True in self.get_peer_list
+                                        or download.get_def().get_infohash() in self.get_peer_list)
+            ds = download.get_state()
             dslist.append(ds)
+        result = callback(dslist)
+        if iscoroutine(result):
+            await result
 
-        def on_cb_done(new_get_peer_list):
-            self.get_peer_list = new_get_peer_list
-
-        return deferToThread(callback, dslist).addCallback(on_cb_done)
-
-    def sesscb_states_callback(self, states_list):
+    async def sesscb_states_callback(self, states_list):
         """
         This method is periodically (every second) called with a list of the download states of the active downloads.
         """
@@ -526,7 +497,7 @@ class TriblerLaunchMany(TaskManager):
             elif state == DLSTATUS_STOPPED_ON_ERROR:
                 self._logger.error("Error during download: %s", repr(ds.get_error()))
                 if self.download_exists(infohash):
-                    self.get_download(infohash).stop()
+                    await self.get_download(infohash).stop()
                     self.session.notifier.notify(NTFY_TORRENT, NTFY_ERROR, infohash, repr(ds.get_error()), is_hidden)
             elif state == DLSTATUS_SEEDING:
                 seeding_download_list.append({u'infohash': infohash,
@@ -534,7 +505,7 @@ class TriblerLaunchMany(TaskManager):
 
                 if self.bootstrap and not self.bootstrap.bootstrap_finished and hexlify(
                         infohash) == self.session.config.get_bootstrap_infohash() and self.trustchain_community:
-                    if download.deferred_flushed.called:
+                    if download.future_flushed.done():
                         with open(self.bootstrap.bootstrap_file, 'r') as f:
                             sql_dumb = text_type(f.read())
                         self._logger.info("Executing script for trustchain bootstrap")
@@ -559,11 +530,12 @@ class TriblerLaunchMany(TaskManager):
                     if str(peer["extended_version"]).startswith('Tribler'):
                         self.payout_manager.update_peer(unhexlify(peer["id"]), infohash, peer["dtotal"])
                         if self.bootstrap and hexlify(infohash) == self.session.config.get_bootstrap_infohash():
-                            self.bootstrap.fetch_bootstrap_peers()
+                            if not self.is_pending_task_active('fetch_bootstrap_peers'):
+                                self.register_task('fetch_bootstrap_peers', self.bootstrap.fetch_bootstrap_peers)
 
         self.previous_active_downloads = new_active_downloads
         if do_checkpoint:
-            self.session.checkpoint_downloads()
+            await self.session.checkpoint_downloads()
 
         if self.state_cb_count % 4 == 0:
             if self.tunnel_community:
@@ -577,8 +549,6 @@ class TriblerLaunchMany(TaskManager):
     # Persistence methods
     #
     def load_checkpoint(self):
-        """ Called by any thread """
-
         def do_load_checkpoint():
             with self.session_lock:
                 for i, filename in enumerate(iglob(os.path.join(self.session.get_downloads_config_dir(), '*.conf'))):
@@ -587,10 +557,9 @@ class TriblerLaunchMany(TaskManager):
         if self.initComplete:
             do_load_checkpoint()
         else:
-            self.register_task("load_checkpoint", reactor.callLater(1, do_load_checkpoint))
+            self.register_task("load_checkpoint", do_load_checkpoint, delay=1)
 
     def resume_download(self, filename, setupDelay=0):
-
         try:
             config = self.load_download_config(filename)
             if not config:
@@ -644,60 +613,52 @@ class TriblerLaunchMany(TaskManager):
         except Exception as e:
             self._logger.exception("tlm: load check_point: exception while adding download %s", tdef)
 
-    def checkpoint_downloads(self):
+    async def checkpoint_downloads(self):
         """
         Checkpoints all running downloads in Tribler.
         Even if the list of Downloads changes in the mean time this is no problem.
         For removals, dllist will still hold a pointer to the download, and additions are no problem
         (just won't be included in list of states returned via callback).
         """
-        downloads = self.downloads.values()
-        deferred_list = []
-        self._logger.debug("tlm: checkpointing %s downloads", len(downloads))
-        for download in downloads:
-            deferred_list.append(download.checkpoint())
+        self._logger.debug("tlm: checkpointing %s downloads", len(self.downloads))
+        if self.downloads:
+            await gather(*[download.checkpoint() for download in self.downloads.values()])
 
-        return DeferredList(deferred_list)
-
-    def shutdown_downloads(self):
+    async def shutdown_downloads(self):
         """
         Shutdown all downloads in Tribler.
         """
-        for download in self.downloads.values():
-            download.stop()
+        if self.downloads:
+            await gather(*[download.stop() for download in self.downloads.values()])
 
     def remove_download_config(self, infohash):
-        def do_remove():
-            if not self.download_exists(infohash):
-                config_dir = self.session.get_downloads_config_dir()
+        if not self.download_exists(infohash):
+            config_dir = self.session.get_downloads_config_dir()
 
-                # Remove checkpoint
-                hexinfohash = hexlify(infohash)
-                try:
-                    basename = hexinfohash + '.conf'
-                    filename = os.path.join(config_dir, basename)
-                    self._logger.debug("remove download config: removing dlcheckpoint entry %s", filename)
-                    if os.access(filename, os.F_OK):
-                        os.remove(filename)
-                except:
-                    # Show must go on
-                    self._logger.exception("Could not remove state")
-            else:
-                self._logger.warning("remove download config: download is back, restarted? Canceling removal! %s",
-                                     repr(infohash))
-
-        reactor.callFromThread(do_remove)
+            # Remove checkpoint
+            hexinfohash = hexlify(infohash)
+            try:
+                basename = hexinfohash + '.conf'
+                filename = os.path.join(config_dir, basename)
+                self._logger.debug("remove download config: removing dlcheckpoint entry %s", filename)
+                if os.access(filename, os.F_OK):
+                    os.remove(filename)
+            except:
+                # Show must go on
+                self._logger.exception("Could not remove state")
+        else:
+            self._logger.warning("remove download config: download is back, restarted? Canceling removal! %s",
+                                 repr(infohash))
 
     def start_bootstrap_download(self):
         if self.session.config.get_bootstrap_enabled():
             if not self.payout_manager:
-                self._logger.warn("Running bootstrap without payout enabled")
+                self._logger.warning("Running bootstrap without payout enabled")
             self.bootstrap = Bootstrap(self.session.config.get_state_dir(), dht=self.dht_community)
             self.bootstrap.start_by_infohash(self.session.start_download_from_tdef,
                                              self.session.config.get_bootstrap_infohash())
 
-    @inlineCallbacks
-    def early_shutdown(self):
+    async def early_shutdown(self):
         """ Called as soon as Session shutdown is initiated. Used to start
         shutdown tasks that takes some time and that can run in parallel
         to checkpointing, etc.
@@ -705,38 +666,38 @@ class TriblerLaunchMany(TaskManager):
         """
         self._logger.info("tlm: early_shutdown")
 
-        self.shutdown_task_manager()
+        await self.shutdown_task_manager()
 
         # Note: session_lock not held
         self.shutdownstarttime = timemod.time()
         if self.credit_mining_manager:
             self.session.notify_shutdown_state("Shutting down Credit Mining...")
-            yield self.credit_mining_manager.shutdown()
+            await self.credit_mining_manager.shutdown()
         self.credit_mining_manager = None
 
         if self.torrent_checker:
             self.session.notify_shutdown_state("Shutting down Torrent Checker...")
-            yield self.torrent_checker.shutdown()
+            await self.torrent_checker.shutdown()
         self.torrent_checker = None
 
         if self.gigachannel_manager:
             self.session.notify_shutdown_state("Shutting down Gigachannel Manager...")
-            yield self.gigachannel_manager.shutdown()
+            await self.gigachannel_manager.shutdown()
         self.gigachannel_manager = None
 
         if self.video_server:
             self.session.notify_shutdown_state("Shutting down Video Server...")
-            yield self.video_server.shutdown_server()
+            self.video_server.shutdown_server()
         self.video_server = None
 
         if self.version_check_manager:
             self.session.notify_shutdown_state("Shutting down Version Checker...")
-            self.version_check_manager.stop()
+            await self.version_check_manager.stop()
         self.version_check_manager = None
 
         if self.resource_monitor:
             self.session.notify_shutdown_state("Shutting down Resource Monitor...")
-            self.resource_monitor.stop()
+            await self.resource_monitor.stop()
         self.resource_monitor = None
 
         self.tracker_manager = None
@@ -746,22 +707,22 @@ class TriblerLaunchMany(TaskManager):
             tunnel_community = self.tunnel_community
             self.tunnel_community = None
             self.session.notify_shutdown_state("Unloading Tunnel Community...")
-            yield self.ipv8.unload_overlay(tunnel_community)
+            await self.ipv8.unload_overlay(tunnel_community)
             trustchain_community = self.trustchain_community
             self.trustchain_community = None
             self.session.notify_shutdown_state("Shutting down TrustChain Community...")
-            yield self.ipv8.unload_overlay(trustchain_community)
+            await self.ipv8.unload_overlay(trustchain_community)
 
         if self.ipv8:
             self.session.notify_shutdown_state("Shutting down IPv8...")
-            yield self.ipv8.stop(stop_reactor=False)
+            await self.ipv8.stop(stop_loop=False)
 
         if self.watch_folder is not None:
             self.session.notify_shutdown_state("Shutting down Watch Folder...")
-            yield self.watch_folder.stop()
+            await self.watch_folder.stop()
         self.watch_folder = None
 
-    def network_shutdown(self):
+    async def network_shutdown(self):
         try:
             self._logger.info("tlm: network_shutdown")
 
@@ -777,7 +738,7 @@ class TriblerLaunchMany(TaskManager):
 
         # Shutdown libtorrent session after checkpoints have been made
         if self.ltmgr is not None:
-            self.ltmgr.shutdown()
+            await self.ltmgr.shutdown()
             self.ltmgr = None
 
     def load_download_config(self, filename):

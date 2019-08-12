@@ -5,8 +5,6 @@ import os
 
 from ipv8.taskmanager import TaskManager
 
-from twisted.internet.task import LoopingCall
-
 from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import NTFY_INSERT, NTFY_WATCH_FOLDER_CORRUPT_TORRENT
@@ -23,11 +21,10 @@ class WatchFolder(TaskManager):
         self.session = session
 
     def start(self):
-        self.register_task("check watch folder", LoopingCall(self.check_watch_folder))\
-            .start(WATCH_FOLDER_CHECK_INTERVAL, now=False)
+        self.register_task("check watch folder", self.check_watch_folder, interval=WATCH_FOLDER_CHECK_INTERVAL)
 
-    def stop(self):
-        self.shutdown_task_manager()
+    async def stop(self):
+        await self.shutdown_task_manager()
 
     def cleanup_torrent_file(self, root, name):
         if not os.path.exists(os.path.join(root, name)):

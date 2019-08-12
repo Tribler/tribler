@@ -8,26 +8,13 @@ from __future__ import absolute_import
 import binascii
 import logging
 import re
+from asyncio import Future
 from base64 import b32decode
 
-from ipv8.util import ensure_binary
-
 import libtorrent
-from libtorrent import bdecode, bencode
 
 import six
 from six.moves.urllib.parse import parse_qsl, urlsplit
-
-from twisted.internet import reactor
-from twisted.internet.defer import fail, succeed
-from twisted.internet.ssl import ClientContextFactory
-from twisted.python.failure import Failure
-from twisted.web import http
-from twisted.web.client import Agent, readBody
-from twisted.web.http_headers import Headers
-
-from Tribler.Core.exceptions import HttpError
-from Tribler.Core.version import version_id
 
 logger = logging.getLogger(__name__)
 
@@ -48,49 +35,6 @@ def is_valid_url(url):
     split_url = urlsplit(url)
 
     return not(split_url[0] == '' or split_url[1] == '')
-
-
-class WebClientContextFactory(ClientContextFactory):
-    def getContext(self, hostname, port):
-        return ClientContextFactory.getContext(self)
-
-
-def http_get(uri):
-    """
-    Performs a GET request
-    :param uri: The URL to perform a GET request to
-    :return: A deferred firing the body of the response.
-    :raises HttpError: When the HTTP response code is not OK (i.e. not the HTTP Code 200)
-    """
-    def _on_response(response):
-        if response.code == http.OK:
-            return readBody(response)
-        if response.code == http.FOUND:
-            # Check if location header contains magnet link
-            location_headers = response.headers.getRawHeaders("location")
-            if not location_headers:
-                return fail(Failure(RuntimeError("HTTP redirect response does not contain location header")))
-            new_uri = location_headers[0]
-            if new_uri.startswith('magnet'):
-                _, infohash, _ = parse_magnetlink(new_uri)
-                if infohash:
-                    return succeed(new_uri)
-            return http_get(new_uri)
-        raise HttpError(response)
-
-    try:
-        uri = ensure_binary(uri)
-    except AttributeError:
-        pass
-    try:
-        contextFactory = WebClientContextFactory()
-        agent = Agent(reactor, contextFactory)
-        headers = Headers({'User-Agent': ['Tribler ' + version_id]})
-        deferred = agent.request(b'GET', uri, headers, None)
-        deferred.addCallback(_on_response)
-        return deferred
-    except:
-        return fail()
 
 
 def parse_magnetlink(url):
@@ -225,3 +169,15 @@ def is_hex_string(text):
         return True
     except ValueError:
         return False
+
+
+def succeed(result):
+    future = Future()
+    future.set_result(result)
+    return future
+
+
+def fail(exception):
+    future = Future()
+    future.set_exception(exception)
+    return future

@@ -5,9 +5,7 @@ from __future__ import absolute_import
 
 from six import binary_type
 
-from twisted.web import http
-
-import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.Modules.restapi.rest_endpoint import RESTResponse, HTTP_INTERNAL_SERVER_ERROR
 
 
 def return_handled_exception(request, exception):
@@ -16,14 +14,13 @@ def return_handled_exception(request, exception):
     :param exception: the handled exception
     :return: JSON dictionary describing the exception
     """
-    request.setResponseCode(http.INTERNAL_SERVER_ERROR)
-    return json.twisted_dumps({
+    return RESTResponse({
         "error": {
             "handled": True,
             "code": exception.__class__.__name__,
             "message": str(exception)
         }
-    })
+    }, status=HTTP_INTERNAL_SERVER_ERROR)
 
 
 def get_parameter(parameters, name):

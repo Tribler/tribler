@@ -1,28 +1,21 @@
 from __future__ import absolute_import
 
-import logging
+from aiohttp import web
 
-from six import viewitems
-
-from twisted.web import http, resource
-
-import Tribler.Core.Utilities.json_util as json
-from Tribler.Core.Utilities.unicode import recursive_unicode
+from Tribler.Core.Modules.restapi.rest_endpoint import RESTEndpoint, RESTResponse, HTTP_BAD_REQUEST, HTTP_NOT_FOUND
 
 SKIP_DB_UPGRADE_STR = "skip_db_upgrade"
 
 
-class UpgraderEndpoint(resource.Resource):
+class UpgraderEndpoint(RESTEndpoint):
     """
     With this endpoint you can control DB upgrade process of Tribler.
     """
 
-    def __init__(self, session):
-        resource.Resource.__init__(self)
-        self._logger = logging.getLogger(self.__class__.__name__)
-        self.session = session
+    def setup_routes(self):
+        self.app.add_routes([web.post('', self.skip_upgrade)])
 
-    def render_POST(self, request):
+    async def skip_upgrade(self, request):
         """
         .. http:post:: /upgrader
 
@@ -47,16 +40,13 @@ class UpgraderEndpoint(resource.Resource):
                     "skip_db_upgrade": true
                 }
         """
-
-        parameters = recursive_unicode(http.parse_qs(request.content.read(), 1))
+        parameters = await request.post()
         if SKIP_DB_UPGRADE_STR not in parameters:
-            request.setResponseCode(http.BAD_REQUEST)
-            return json.twisted_dumps({"error": "attribute to change is missing"})
+            return RESTResponse({"error": "attribute to change is missing"}, status=HTTP_BAD_REQUEST)
         elif not self.session.upgrader:
-            request.setResponseCode(http.NOT_FOUND)
-            return json.twisted_dumps({"error": "upgrader is not running"})
+            return RESTResponse({"error": "upgrader is not running"}, status=HTTP_NOT_FOUND)
 
         if self.session.upgrader and parameters[SKIP_DB_UPGRADE_STR]:
             self.session.upgrader.skip()
 
-        return json.twisted_dumps({SKIP_DB_UPGRADE_STR: True})
+        return RESTResponse({SKIP_DB_UPGRADE_STR: True})

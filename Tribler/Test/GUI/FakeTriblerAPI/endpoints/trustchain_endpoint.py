@@ -2,33 +2,22 @@ from __future__ import absolute_import
 
 from random import randint
 
-from twisted.web import resource
+from aiohttp import web
 
-import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.Modules.restapi.rest_endpoint import RESTEndpoint, RESTResponse
 from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Test.GUI.FakeTriblerAPI import tribler_utils
 
 
-class TrustchainEndpoint(resource.Resource):
+class TrustchainEndpoint(RESTEndpoint):
 
-    def __init__(self):
-        resource.Resource.__init__(self)
+    def setup_routes(self):
+        self.app.add_routes([web.get('/statistics', self.get_statistics)])
 
-        child_handler_dict = {b"statistics": TrustchainStatsEndpoint}
-
-        for path, child_cls in child_handler_dict.items():
-            self.putChild(path, child_cls())
-
-
-class TrustchainStatsEndpoint(resource.Resource):
-    """
-    This class handles requests regarding the TrustChain community information.
-    """
-
-    def render_GET(self, _request):
+    async def get_statistics(self, _):
         last_block = tribler_utils.tribler_data.trustchain_blocks[-1]
 
-        return json.twisted_dumps({'statistics': {
+        return RESTResponse({'statistics': {
             "id": hexlify(b'a' * 20),
             "total_blocks": len(tribler_utils.tribler_data.trustchain_blocks),
             "total_down": last_block.total_down,

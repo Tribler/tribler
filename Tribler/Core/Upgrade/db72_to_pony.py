@@ -5,6 +5,7 @@ import datetime
 import logging
 import os
 import sqlite3
+from asyncio import sleep
 
 from ipv8.database import database_blob
 
@@ -12,10 +13,6 @@ from pony import orm
 from pony.orm import db_session
 
 from six import text_type
-
-from twisted.internet import reactor
-from twisted.internet.defer import inlineCallbacks
-from twisted.internet.task import deferLater
 
 from Tribler.Core.Category.l2_filter import is_forbidden
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import BLOB_EXTENSION
@@ -226,8 +223,7 @@ class DispersyToPonyMigration(object):
         connection.close()
         return torrents if batch_not_empty else None
 
-    @inlineCallbacks
-    def convert_personal_channel(self):
+    async def convert_personal_channel(self):
         with db_session:
             # Reflect conversion state
             v = self.mds.MiscData.get_for_update(name=CONVERSION_FROM_72_PERSONAL)
@@ -259,7 +255,7 @@ class DispersyToPonyMigration(object):
             def add_to_pony(t):
                 return self.mds.TorrentMetadata(origin_id=my_channel.id_, **t)
 
-            yield self.convert_async(add_to_pony, get_old_stuff, total_to_convert,
+            await self.convert_async(add_to_pony, get_old_stuff, total_to_convert,
                                      offset=0, message="Converting personal channel torrents.")
 
             with db_session:
@@ -280,16 +276,14 @@ class DispersyToPonyMigration(object):
             v = self.mds.MiscData.get_for_update(name=CONVERSION_FROM_72_PERSONAL)
             v.value = CONVERSION_FINISHED
 
-    @inlineCallbacks
-    def update_convert_total(self, amount, elapsed):
+    async def update_convert_total(self, amount, elapsed):
         if self.notifier_callback:
             elapsed = 0.0001 if elapsed == 0.0 else elapsed
             self.notifier_callback("%i entries converted in %i seconds (%i e/s)" % (amount, int(elapsed),
                                                                                     int(amount / elapsed)))
-            yield deferLater(reactor, 0.001, lambda: None)
+            await sleep(0.001)
 
-    @inlineCallbacks
-    def update_convert_progress(self, amount, total, elapsed, message=""):
+    async def update_convert_progress(self, amount, total, elapsed, message=""):
         if self.notifier_callback:
             elapsed = 0.0001 if elapsed == 0.0 else elapsed
             amount = amount or 1
@@ -297,10 +291,9 @@ class DispersyToPonyMigration(object):
             eta = str(datetime.timedelta(seconds=int((total - amount) / est_speed)))
             self.notifier_callback("%s\nConverted: %i/%i (%i%%).\nTime remaining: %s" %
                                    (message, amount, total, (amount * 100) // total, eta))
-            yield deferLater(reactor, 0.001, lambda: None)
+            await sleep(0.001)
 
-    @inlineCallbacks
-    def convert_async(self, add_to_pony, get_old_stuff, total_to_convert, offset=0, message=""):
+    async def convert_async(self, add_to_pony, get_old_stuff, total_to_convert, offset=0, message=""):
         """
         This method converts old stuff into the pony database splitting the process into chunks dynamically.
         Chunks splitting uses congestion-control-like algorithm. Yields are necessary so Twisted
@@ -336,7 +329,7 @@ class DispersyToPonyMigration(object):
             batch_end_time = datetime.datetime.now() - batch_start_time
 
             elapsed = (datetime.datetime.utcnow() - start_time).total_seconds()
-            yield self.update_convert_progress(start, total_to_convert, elapsed, message)
+            await self.update_convert_progress(start, total_to_convert, elapsed, message)
             target_coeff = (batch_end_time.total_seconds() / reference_timedelta.total_seconds())
             if len(batch) == batch_size:
                 # Adjust batch size only for full batches
@@ -350,10 +343,9 @@ class DispersyToPonyMigration(object):
                               start + batch_size, total_to_convert, float(batch_end_time.total_seconds()))
             start = end
 
-        yield self.update_convert_total(start, elapsed)
+        await self.update_convert_total(start, elapsed)
 
-    @inlineCallbacks
-    def convert_discovered_torrents(self):
+    async def convert_discovered_torrents(self):
         offset = 0
         # Reflect conversion state
         with db_session:
@@ -366,7 +358,7 @@ class DispersyToPonyMigration(object):
             else:
                 self.mds.MiscData(name=CONVERSION_FROM_72_DISCOVERED, value=CONVERSION_STARTED)
 
-        yield self.convert_async(self.mds.TorrentMetadata.add_ffa_from_dict,
+        await self.convert_async(self.mds.TorrentMetadata.add_ffa_from_dict,
                                  self.get_old_torrents,
                                  self.get_old_torrents_count(),
                                  offset=offset,
@@ -432,11 +424,10 @@ class DispersyToPonyMigration(object):
             else:
                 self.mds.MiscData(name=CONVERSION_FROM_72, value=CONVERSION_FINISHED)
 
-    @inlineCallbacks
-    def do_migration(self):
-        yield self.convert_personal_channel()
+    async def do_migration(self):
+        await self.convert_personal_channel()
         self.mds.clock = None  # We should never touch the clock during legacy conversions
-        yield self.convert_discovered_torrents()
+        await self.convert_discovered_torrents()
         self.convert_discovered_channels()
         self.update_trackers_info()
         self.mark_conversion_finished()

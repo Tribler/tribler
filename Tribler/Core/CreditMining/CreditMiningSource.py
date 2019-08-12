@@ -27,11 +27,11 @@ class BaseSource(TaskManager):
         """
         self._logger.debug('Start mining %s', str(self))
 
-    def stop(self):
+    async def stop(self):
         """
         Kill tasks on this source
         """
-        self.shutdown_task_manager()
+        await self.shutdown_task_manager()
         self._logger.debug('Stop mining %s', str(self))
 
     def __str__(self):

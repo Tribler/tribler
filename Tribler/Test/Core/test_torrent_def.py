@@ -7,20 +7,15 @@ from tempfile import mkdtemp
 
 from libtorrent import bdecode, bencode
 
+from aiohttp import web, ClientResponseError
 from nose.tools import raises
 
 import six
 
-from twisted.internet import reactor
-from twisted.internet.defer import inlineCallbacks
-from twisted.web.server import Site
-from twisted.web.static import File
-
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
-from Tribler.Core.exceptions import HttpError
 from Tribler.Test.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE
 from Tribler.Test.test_as_server import BaseTestCase
-from Tribler.Test.tools import trial_timeout
+from Tribler.Test.tools import timeout
 
 TRACKER = 'http://www.tribler.org/announce'
 VIDEO_FILE_NAME = "video.avi"
@@ -31,20 +26,22 @@ class TestTorrentDef(BaseTestCase):
     def __init__(self, *argv, **kwargs):
         super(TestTorrentDef, self).__init__(*argv, **kwargs)
         self._logger = logging.getLogger(self.__class__.__name__)
-        self.file_server = None
+        self.site = None
 
-    def setUpFileServer(self, port, path):
+    async def setUpFileServer(self, port, path):
         # Create a local file server, can be used to serve local files. This is preferred over an external network
         # request in order to get files.
-        resource = File(path)
-        factory = Site(resource)
-        self.file_server = reactor.listenTCP(port, factory)
+        app = web.Application()
+        app.add_routes([web.static('/', path)])
+        runner = web.AppRunner(app, access_log=None)
+        await runner.setup()
+        self.site = web.TCPSite(runner, 'localhost', port)
+        await self.site.start()
 
-    @inlineCallbacks
-    def tearDown(self):
+    async def tearDown(self):
         super(TestTorrentDef, self).tearDown()
-        if self.file_server:
-            yield self.file_server.stopListening()
+        if self.site:
+            await self.site.stop()
 
     def test_tdef_init(self):
         """
@@ -130,8 +127,8 @@ class TestTorrentDef(BaseTestCase):
         self.assertTrue(t1.is_private())
         self.assertFalse(t2.is_private())
 
-    @trial_timeout(10)
-    def test_load_from_url(self):
+    @timeout(10)
+    async def test_load_from_url(self):
         # Setup file server to serve torrent file
         self.session_base_dir = mkdtemp(suffix="_tribler_test_load_from_url")
         files_path = os.path.join(self.session_base_dir, 'http_torrent_files')
@@ -139,19 +136,15 @@ class TestTorrentDef(BaseTestCase):
         shutil.copyfile(TORRENT_UBUNTU_FILE, os.path.join(files_path, 'ubuntu.torrent'))
 
         file_server_port = self.get_port()
-        self.setUpFileServer(file_server_port, files_path)
-
-        def _on_load(torrent_def):
-            self.assertEqual(torrent_def.get_metainfo(), TorrentDef.load(TORRENT_UBUNTU_FILE).get_metainfo())
-            self.assertEqual(torrent_def.infohash, TorrentDef.load(TORRENT_UBUNTU_FILE).infohash)
+        await self.setUpFileServer(file_server_port, files_path)
 
         torrent_url = 'http://localhost:%d/ubuntu.torrent' % file_server_port
-        deferred = TorrentDef.load_from_url(torrent_url)
-        deferred.addCallback(_on_load)
-        return deferred
+        torrent_def = await TorrentDef.load_from_url(torrent_url)
+        self.assertEqual(torrent_def.get_metainfo(), TorrentDef.load(TORRENT_UBUNTU_FILE).get_metainfo())
+        self.assertEqual(torrent_def.infohash, TorrentDef.load(TORRENT_UBUNTU_FILE).infohash)
 
-    @trial_timeout(10)
-    def test_load_from_url_404(self):
+    @timeout(10)
+    async def test_load_from_url_404(self):
         # Setup file server to serve torrent file
         self.session_base_dir = mkdtemp(suffix="_tribler_test_load_from_url")
         files_path = os.path.join(self.session_base_dir, 'http_torrent_files')
@@ -159,16 +152,13 @@ class TestTorrentDef(BaseTestCase):
         # Do not copy the torrent file to produce 404
 
         file_server_port = self.get_port()
-        self.setUpFileServer(file_server_port, files_path)
-
-        def _on_error(failure):
-            failure.trap(HttpError)
-            self.assertEqual(failure.value.response.code, 404)
+        await self.setUpFileServer(file_server_port, files_path)
 
         torrent_url = 'http://localhost:%d/ubuntu.torrent' % file_server_port
-        deferred = TorrentDef.load_from_url(torrent_url)
-        deferred.addErrback(_on_error)
-        return deferred
+        try:
+            await TorrentDef.load_from_url(torrent_url)
+        except ClientResponseError as e:
+            self.assertEqual(e.status, 404)
 
     def test_torrent_encoding(self):
         t = TorrentDef()

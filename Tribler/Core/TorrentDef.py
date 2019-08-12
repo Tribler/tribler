@@ -3,11 +3,12 @@ Author(s): Arno Bakker
 """
 from __future__ import absolute_import, division
 
+import aiohttp
 import logging
 import os
 from hashlib import sha1
 
-from ipv8.util import ensure_binary
+from six import ensure_binary
 
 import libtorrent as lt
 from libtorrent import bdecode, bencode
@@ -17,7 +18,7 @@ from six import binary_type, integer_types, text_type
 from Tribler.Core.Utilities import maketorrent
 from Tribler.Core.Utilities.torrent_utils import create_torrent_file
 from Tribler.Core.Utilities.unicode import ensure_unicode
-from Tribler.Core.Utilities.utilities import http_get, is_valid_url, parse_magnetlink
+from Tribler.Core.Utilities.utilities import is_valid_url, parse_magnetlink
 from Tribler.Core.simpledefs import INFOHASH_LENGTH
 
 
@@ -140,18 +141,15 @@ class TorrentDef(object):
         return TorrentDef(metainfo=metainfo)
 
     @staticmethod
-    def load_from_url(url):
+    async def load_from_url(url):
         """
         Create a TorrentDef with information from a remote source.
         :param url: The HTTP/HTTPS url where to fetch the torrent info from.
         """
-        # Class method, no locking required
-        def _on_response(data):
-            return TorrentDef.load_from_memory(data)
-
-        deferred = http_get(url)
-        deferred.addCallback(_on_response)
-        return deferred
+        async with aiohttp.ClientSession(raise_for_status=True) as session:
+            response = await session.get(url)
+            body = await response.read()
+        return TorrentDef.load_from_memory(body)
 
     def add_content(self, file_path):
         """

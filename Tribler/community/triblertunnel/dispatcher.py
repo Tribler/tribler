@@ -43,6 +43,7 @@ class TunnelDispatcher(object):
 
         sock_server = self.socks_servers[session_hops - 1]
 
+        sent = False
         destinations = self.destinations[session_hops]
         if circuit in destinations.values() or force:
             destinations[origin] = circuit
@@ -54,9 +55,10 @@ class TunnelDispatcher(object):
                 if session._udp_socket:
                     socks5_data = conversion.encode_udp_packet(
                         0, 0, conversion.ADDRESS_TYPE_IPV4, origin[0], origin[1], data)
-                    return session._udp_socket.sendDatagram(socks5_data)
+                    session._udp_socket.sendDatagram(socks5_data)
+                    sent = True
 
-        return False
+        return sent
 
     def on_socks5_udp_data(self, udp_connection, request):
         """

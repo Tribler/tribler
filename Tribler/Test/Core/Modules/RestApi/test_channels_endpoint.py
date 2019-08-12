@@ -13,28 +13,25 @@ from pony.orm import db_session
 
 from six.moves import xrange
 
-from twisted.internet.defer import inlineCallbacks, succeed
-
-import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import NEW
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.Utilities.random_utils import random_infohash
 from Tribler.Core.Utilities.unicode import hexlify
+from Tribler.Core.Utilities.utilities import succeed
+from Tribler.Test.tools import timeout
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.Core.Modules.RestApi.test_metadata_endpoint import BaseTestMetadataEndpoint
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.common import TORRENT_UBUNTU_FILE
-from Tribler.Test.tools import trial_timeout
 
 
 class BaseTestMyChannelEndpoint(BaseTestMetadataEndpoint):
-    @inlineCallbacks
-    def setUp(self):
-        yield super(BaseTestMyChannelEndpoint, self).setUp()
+
+    async def setUp(self):
+        await super(BaseTestMyChannelEndpoint, self).setUp()
         self.session.lm.gigachannel_manager = MockObject()
-        self.session.lm.gigachannel_manager.shutdown = lambda: None
-        self.session.lm.gigachannel_manager.updated_my_channel = lambda _: None
+        self.session.lm.gigachannel_manager.shutdown = lambda: succeed(None)
+        self.session.lm.gigachannel_manager.updated_my_channel = lambda _: succeed(None)
 
     def setUpPreSession(self):
         super(BaseTestMyChannelEndpoint, self).setUpPreSession()
@@ -65,172 +62,138 @@ class BaseTestMyChannelEndpoint(BaseTestMetadataEndpoint):
 
 
 class TestChannelsEndpoint(BaseTestMetadataEndpoint):
-    def test_get_channels(self):
+    async def test_get_channels(self):
         """
         Test whether we can query some channels in the database with the REST API
         """
-
-        def on_response(response):
-            json_dict = json.twisted_loads(response)
-            self.assertEqual(len(json_dict['results']), 10)
-
-        return self.do_request('channels?sort_by=title').addCallback(on_response)
+        json_dict = await self.do_request('channels?sort_by=title')
+        self.assertEqual(len(json_dict['results']), 10)
 
     @skipIf(sys.platform == "darwin", "Skipping this test on Mac due to Pony bug")
-    def test_get_channels_sort_by_health(self):
-        def on_response(response):
-            json_dict = json.twisted_loads(response)
-            self.assertEqual(len(json_dict['results']), 10)
+    async def test_get_channels_sort_by_health(self):
+        json_dict = await self.do_request('channels?sort_by=health')
+        self.assertEqual(len(json_dict['results']), 10)
 
-        return self.do_request('channels?sort_by=health').addCallback(on_response)
-
-    def test_get_channels_invalid_sort(self):
+    async def test_get_channels_invalid_sort(self):
         """
         Test whether we can query some channels in the database with the REST API and an invalid sort parameter
         """
+        json_dict = await self.do_request('channels?sort_by=fdsafsdf')
+        self.assertEqual(len(json_dict['results']), 10)
 
-        def on_response(response):
-            json_dict = json.twisted_loads(response)
-            self.assertEqual(len(json_dict['results']), 10)
-
-        return self.do_request('channels?sort_by=fdsafsdf').addCallback(on_response)
-
-    def test_get_subscribed_channels(self):
+    async def test_get_subscribed_channels(self):
         """
         Test whether we can successfully query channels we are subscribed to with the REST API
         """
-
-        def on_response(response):
-            json_dict = json.twisted_loads(response)
-            self.assertEqual(len(json_dict['results']), 5)
-
-        return self.do_request('channels?subscribed=1').addCallback(on_response)
+        json_dict = await self.do_request('channels?subscribed=1')
+        self.assertEqual(len(json_dict['results']), 5)
 
 
 class TestChannelsCountEndpoint(BaseTestMetadataEndpoint):
-    @inlineCallbacks
-    def test_get_channels_count(self):
+    async def test_get_channels_count(self):
         # Test getting total count of results
-        result = yield self.do_request('channels?subscribed=1&include_total=1')
-        json_dict = json.twisted_loads(result)
+        json_dict = await self.do_request('channels?subscribed=1&include_total=1')
         self.assertEqual(json_dict['total'], 5)
 
 
 class TestSpecificChannelEndpoint(BaseTestMetadataEndpoint):
-    @inlineCallbacks
-    def setUp(self):
-        yield super(TestSpecificChannelEndpoint, self).setUp()
+    async def setUp(self):
+        await super(TestSpecificChannelEndpoint, self).setUp()
         self.session.lm.ltmgr = MockObject()
-        self.session.lm.ltmgr.shutdown = lambda: True
+        self.session.lm.ltmgr.shutdown = lambda: succeed(True)
 
-    @trial_timeout(10)
-    def test_create_channel(self):
+    @timeout(10)
+    async def test_create_channel(self):
         """
         Test creating a channel in your channel with REST API POST request
         """
+        await self.do_request('channels/mychannel/0/channels', request_type='POST', expected_code=200)
+        with db_session:
+            my_channel = self.session.lm.mds.ChannelMetadata.get(title="New channel")
+            self.assertTrue(my_channel)
+            self.assertEqual(my_channel.title, 'New channel')
 
-        def on_response(_):
-            with db_session:
-                my_channel = self.session.lm.mds.ChannelMetadata.get(title="New channel")
-                self.assertTrue(my_channel)
-                self.assertEqual(my_channel.title, 'New channel')
-
-        return self.do_request('channels/mychannel/0/channels', request_type='POST', expected_code=200).addCallback(
-            on_response
-        )
-
-    @inlineCallbacks
-    def test_get_contents_count(self):
+    async def test_get_contents_count(self):
         # Test getting total count of results
         with db_session:
             chan = self.session.lm.mds.ChannelMetadata.select().first()
-        result = yield self.do_request('channels/%s/123?include_total=1' % hexlify(chan.public_key))
-        json_dict = json.twisted_loads(result)
+            json_dict = await self.do_request('channels/%s/123?include_total=1' % hexlify(chan.public_key))
         self.assertEqual(json_dict['total'], 5)
 
-    @trial_timeout(10)
-    @inlineCallbacks
-    def test_get_channel_contents(self):
+    @timeout(10)
+    async def test_get_channel_contents(self):
         """
         Test whether we can query torrents from a channel
         """
         with db_session:
             chan = self.session.lm.mds.ChannelMetadata.select().first()
-        result = yield self.do_request('channels/%s/123' % hexlify(chan.public_key), expected_code=200)
-        parsed = json.twisted_loads(result)
-        self.assertEqual(len(parsed['results']), 5)
-        self.assertIn('status', parsed['results'][0])
+        json_dict = await self.do_request('channels/%s/123' % hexlify(chan.public_key), expected_code=200)
+        self.assertEqual(len(json_dict['results']), 5)
+        self.assertIn('status', json_dict['results'][0])
 
-    @trial_timeout(10)
-    @inlineCallbacks
-    def test_get_channel_contents_by_type(self):
+    @timeout(10)
+    async def test_get_channel_contents_by_type(self):
         # Test filtering channel contents by a list of data types
         with db_session:
             chan = self.session.lm.mds.ChannelMetadata.select(lambda g: g.public_key == database_blob(self.ext_key.pub().key_to_bin()[10:])).first()
             self.session.lm.mds.CollectionNode(title='some_folder', origin_id=chan.id_, sign_with=self.ext_key)
 
-        result = yield self.do_request('channels/%s/123?metadata_type=220&metadata_type=300' % hexlify(chan.public_key), expected_code=200)
-        parsed = json.twisted_loads(result)
-        self.assertEqual(len(parsed['results']), 6)
-        self.assertIn('status', parsed['results'][0])
+            json_dict = await self.do_request('channels/%s/123?metadata_type=220&metadata_type=300' % hexlify(chan.public_key), expected_code=200)
+        self.assertEqual(len(json_dict['results']), 6)
+        self.assertIn('status', json_dict['results'][0])
 
 
 class TestPopularChannelsEndpoint(BaseTestMetadataEndpoint):
-    def test_get_popular_channels_neg_limit(self):
+    async def test_get_popular_channels_neg_limit(self):
         """
         Test whether an error is returned if we use a negative value for the limit parameter
         """
-        return self.do_request('channels/popular?limit=-1', expected_code=400)
+        await self.do_request('channels/popular?limit=-1', expected_code=400)
 
-    def test_get_popular_channels(self):
+    async def test_get_popular_channels(self):
         """
         Test whether we can retrieve popular channels with the REST API
         """
-
-        def on_response(response):
-            json_dict = json.twisted_loads(response)
-            self.assertEqual(len(json_dict['channels']), 5)
-
-        return self.do_request('channels/popular?limit=5').addCallback(on_response)
+        json_dict = await self.do_request('channels/popular?limit=5')
+        self.assertEqual(len(json_dict['channels']), 5)
 
 
 class TestSpecificChannelCommitEndpoint(BaseTestMyChannelEndpoint):
-    @trial_timeout(10)
-    def test_commit_no_channel(self):
+    @timeout(10)
+    async def test_commit_no_channel(self):
         """
         Test whether we get an error if we try to commit a channel without it being created
         """
-        return self.do_request('channels/mychannel/123/commit', expected_code=404, request_type='POST')
+        await self.do_request('channels/mychannel/123/commit', expected_code=404, request_type='POST')
 
-    @trial_timeout(10)
-    def test_commit_single_channel(self):
+    @timeout(10)
+    async def test_commit_single_channel(self):
         """
         Test whether we can successfully commit changes to a single personal channel with the REST API
         """
         chan = self.create_my_channel()
-        return self.do_request('channels/mychannel/%i/commit' % chan.id_, request_type='POST')
+        await self.do_request('channels/mychannel/%i/commit' % chan.id_, request_type='POST')
 
-    @trial_timeout(10)
-    def test_commit_all_channels(self):
+    @timeout(10)
+    async def test_commit_all_channels(self):
         """
         Test whether we can successfully commit changes to all personal channels with the REST API
         """
         self.create_my_channel()
-        return self.do_request('channels/mychannel/0/commit', request_type='POST')
+        await self.do_request('channels/mychannel/0/commit', request_type='POST')
 
-    @trial_timeout(10)
-    def test_get_commit_state(self):
+    @timeout(10)
+    async def test_get_commit_state(self):
         """
         Test getting dirty status of a channel through its commit endpoint
         """
         self.create_my_channel()
-        return self.do_request('channels/mychannel/0/commit', expected_json={'dirty': True})
+        await self.do_request('channels/mychannel/0/commit', expected_json={'dirty': True})
 
 
 class TestSpecificChannelCopyEndpoint(BaseTestMyChannelEndpoint):
-    @inlineCallbacks
-    @trial_timeout(10)
-    def test_copy_torrents_to_collection(self):
+    @timeout(10)
+    async def test_copy_torrents_to_collection(self):
         """
         Test if we can copy torrents from an external channel(s) to a personal channel/collection
         """
@@ -245,31 +208,31 @@ class TestSpecificChannelCopyEndpoint(BaseTestMyChannelEndpoint):
             )
 
         request_data = [external_metadata1.to_simple_dict(), external_metadata2_ffa.to_simple_dict()]
-        yield self.do_request(
+        await self.do_request(
             'collections/%s/%i/copy' % (hexlify(channel.public_key), channel.id_),
-            raw_data=json.dumps(request_data),
+            json_data=request_data,
             request_type='POST',
         )
         with db_session:
             self.assertEqual(len(channel.contents), 2)
 
-        yield self.do_request(
+        await self.do_request(
             'collections/%s/%i/copy' % (hexlify(b"0" * 64), 777),
-            raw_data=json.dumps(request_data),
+            json_data=request_data,
             request_type='POST',
             expected_code=404,
         )
 
-        yield self.do_request(
+        await self.do_request(
             'collections/%s/%i/copy' % (hexlify(channel.public_key), channel.id_),
             request_type='POST',
             expected_code=400,
         )
 
         request_data = [{'public_key': hexlify(b"1" * 64), 'id': 12333}]
-        yield self.do_request(
+        await self.do_request(
             'collections/%s/%i/copy' % (hexlify(channel.public_key), channel.id_),
-            raw_data=json.dumps(request_data),
+            json_data=request_data,
             request_type='POST',
             expected_code=400,
         )
@@ -280,136 +243,134 @@ class TestSpecificChannelChannelsEndpoint(AbstractApiTest):
         super(TestSpecificChannelChannelsEndpoint, self).setUpPreSession()
         self.config.set_chant_enabled(True)
 
-    @inlineCallbacks
-    @trial_timeout(10)
-    def test_create_subchannel_and_collection(self):
+    @timeout(10)
+    async def test_create_subchannel_and_collection(self):
         """
         Test if we can create subchannels/collections in a personal channel
         """
-        yield self.do_request('channels/mychannel/0/channels', request_type='POST', expected_code=200)
+        await self.do_request('channels/mychannel/0/channels', request_type='POST', expected_code=200)
         with db_session:
             channel = self.session.lm.mds.ChannelMetadata.get()
             self.assertTrue(channel)
-        yield self.do_request('channels/mychannel/%i/collections' % channel.id_, request_type='POST', expected_code=200)
+        await self.do_request('channels/mychannel/%i/collections' % channel.id_, request_type='POST', expected_code=200)
         with db_session:
             coll = self.session.lm.mds.CollectionNode.get(lambda g: g.origin_id == channel.id_)
             self.assertTrue(coll)
 
 
 class TestSpecificChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
-    @inlineCallbacks
-    def setUp(self):
-        yield super(TestSpecificChannelTorrentsEndpoint, self).setUp()
+    async def setUp(self):
+        await super(TestSpecificChannelTorrentsEndpoint, self).setUp()
         self.session.lm.ltmgr = MockObject()
-        self.session.lm.ltmgr.shutdown = lambda: True
+        self.session.lm.ltmgr.shutdown = lambda: succeed(True)
 
-    @db_session
-    @trial_timeout(10)
-    def test_add_torrents_no_channel(self):
+    @timeout(10)
+    async def test_add_torrents_no_channel(self):
         """
         Test whether an error is returned when we try to add a torrent to your unexisting channel
         """
-        channel = self.create_my_channel()
-        channel.delete()
-        return self.do_request(
-            'channels/%s/%s/torrents' % (hexlify(channel.public_key), channel.id_),
-            request_type='PUT',
-            expected_code=404,
-        )
+        with db_session:
+            channel = self.create_my_channel()
+            channel.delete()
+            await self.do_request(
+                'channels/%s/%s/torrents' % (hexlify(channel.public_key), channel.id_),
+                request_type='PUT',
+                expected_code=404,
+            )
 
-    @trial_timeout(10)
-    def test_add_torrents_no_dir(self):
+    @timeout(10)
+    async def test_add_torrents_no_dir(self):
         """
         Test whether an error is returned when pointing to a file instead of a directory when adding torrents
         """
         channel = self.create_my_channel()
         post_params = {'torrents_dir': 'nonexisting'}
-        return self.do_request(
+        await self.do_request(
             'channels/%s/%s/torrents' % (hexlify(channel.public_key), channel.id_),
             request_type='PUT',
             post_data=post_params,
             expected_code=400,
         )
 
-    @trial_timeout(10)
-    def test_add_torrents_recursive_no_dir(self):
+    @timeout(10)
+    async def test_add_torrents_recursive_no_dir(self):
         """
         Test whether an error is returned when recursively adding torrents without a specified directory
         """
         channel = self.create_my_channel()
         post_params = {'recursive': True}
-        return self.do_request(
+        await self.do_request(
             'channels/%s/%s/torrents' % (hexlify(channel.public_key), channel.id_),
             request_type='PUT',
             post_data=post_params,
             expected_code=400,
         )
 
-    @trial_timeout(10)
-    def test_add_torrents_from_dir(self):
+    @timeout(10)
+    async def test_add_torrents_from_dir(self):
         """
         Test whether adding torrents from a directory to your channels works
         """
         channel = self.create_my_channel()
         post_params = {'torrents_dir': self.session_base_dir, 'recursive': True}
-        return self.do_request(
+        await self.do_request(
             'channels/%s/%s/torrents' % (hexlify(channel.public_key), channel.id_),
             request_type='PUT',
             post_data=post_params,
         )
 
-    @trial_timeout(10)
-    def test_add_torrent_missing_torrent(self):
+    @timeout(10)
+    async def test_add_torrent_missing_torrent(self):
         """
         Test whether an error is returned when adding a torrent to your channel but with a missing torrent parameter
         """
         channel = self.create_my_channel()
         post_params = {}
-        return self.do_request(
+        await self.do_request(
             'channels/%s/%s/torrents' % (hexlify(channel.public_key), channel.id_),
             request_type='PUT',
             post_data=post_params,
             expected_code=400,
         )
 
-    @trial_timeout(10)
-    def test_add_invalid_torrent(self):
+    @timeout(10)
+    async def test_add_invalid_torrent(self):
         """
         Test whether an error is returned when adding an invalid torrent file to your channel
         """
         channel = self.create_my_channel()
         post_params = {'torrent': 'bla'}
-        return self.do_request(
+        await self.do_request(
             'channels/%s/%s/torrents' % (hexlify(channel.public_key), channel.id_),
             request_type='PUT',
             post_data=post_params,
             expected_code=500,
         )
 
-    @trial_timeout(10)
-    @db_session
-    def test_add_torrent_duplicate(self):
+    @timeout(10)
+    async def test_add_torrent_duplicate(self):
         """
         Test whether adding a duplicate torrent to you channel results in an error
         """
-        channel = self.create_my_channel()
-        my_channel = self.session.lm.mds.ChannelMetadata.get_my_channel()
-        tdef = TorrentDef.load(TORRENT_UBUNTU_FILE)
-        my_channel.add_torrent_to_channel(tdef, {'description': 'blabla'})
+        with db_session:
+            channel = self.create_my_channel()
+            my_channel = self.session.lm.mds.ChannelMetadata.get_my_channel()
+            tdef = TorrentDef.load(TORRENT_UBUNTU_FILE)
+            my_channel.add_torrent_to_channel(tdef, {'description': 'blabla'})
 
-        with open(TORRENT_UBUNTU_FILE, "rb") as torrent_file:
-            base64_content = base64.b64encode(torrent_file.read())
+            with open(TORRENT_UBUNTU_FILE, "rb") as torrent_file:
+                base64_content = base64.b64encode(torrent_file.read())
 
-            post_params = {'torrent': base64_content}
-            return self.do_request(
-                'channels/%s/%s/torrents' % (hexlify(channel.public_key), channel.id_),
-                request_type='PUT',
-                post_data=post_params,
-                expected_code=500,
-            )
+                post_params = {'torrent': base64_content}
+                await self.do_request(
+                    'channels/%s/%s/torrents' % (hexlify(channel.public_key), channel.id_),
+                    request_type='PUT',
+                    post_data=post_params,
+                    expected_code=500,
+                )
 
-    @trial_timeout(10)
-    def test_add_torrent(self):
+    @timeout(10)
+    async def test_add_torrent(self):
         """
         Test adding a torrent to your channel
         """
@@ -419,29 +380,29 @@ class TestSpecificChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
             base64_content = base64.b64encode(torrent_file.read())
 
             post_params = {'torrent': base64_content.decode('utf-8')}
-            return self.do_request(
+            await self.do_request(
                 'channels/%s/%s/torrents' % (hexlify(channel.public_key), channel.id_),
                 request_type='PUT',
                 post_data=post_params,
             )
 
-    @trial_timeout(10)
-    def test_add_torrent_invalid_uri(self):
+    @timeout(10)
+    async def test_add_torrent_invalid_uri(self):
         """
         Test whether adding a torrent to your channel with an invalid URI results in an error
         """
         channel = self.create_my_channel()
 
         post_params = {'uri': 'thisisinvalid'}
-        return self.do_request(
+        await self.do_request(
             'channels/%s/%s/torrents' % (hexlify(channel.public_key), channel.id_),
             request_type='PUT',
             post_data=post_params,
             expected_code=400,
         )
 
-    @trial_timeout(10)
-    def test_add_torrent_from_url(self):
+    @timeout(10)
+    async def test_add_torrent_from_url(self):
         """
         Test whether we can add a torrent to your channel from an URL
         """
@@ -451,18 +412,18 @@ class TestSpecificChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
         files_path = os.path.join(self.session_base_dir, 'http_torrent_files')
         os.mkdir(files_path)
         shutil.copyfile(TORRENT_UBUNTU_FILE, os.path.join(files_path, 'ubuntu.torrent'))
-        file_server_port = get_random_port()
-        self.setUpFileServer(file_server_port, files_path)
+        file_server_port = self.get_port()
+        await self.setUpFileServer(file_server_port, files_path)
 
         post_params = {'uri': 'http://localhost:%d/ubuntu.torrent' % file_server_port}
-        return self.do_request(
+        await self.do_request(
             'channels/%s/%s/torrents' % (hexlify(channel.public_key), channel.id_),
             request_type='PUT',
             post_data=post_params,
         )
 
-    @trial_timeout(10)
-    def test_add_torrent_from_magnet(self):
+    @timeout(10)
+    async def test_add_torrent_from_magnet(self):
         """
         Test whether we can add a torrent to your channel from a magnet link
         """
@@ -475,14 +436,14 @@ class TestSpecificChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
         self.session.lm.ltmgr.get_metainfo = fake_get_metainfo
 
         post_params = {'uri': 'magnet:?fake'}
-        return self.do_request(
+        await self.do_request(
             'channels/%s/%s/torrents' % (hexlify(channel.public_key), channel.id_),
             request_type='PUT',
             post_data=post_params,
         )
 
-    @trial_timeout(10)
-    def test_add_torrent_from_magnet_error(self):
+    @timeout(10)
+    async def test_add_torrent_from_magnet_error(self):
         """
         Test whether an error while adding magnets to your channel results in a proper 500 error
         """
@@ -494,28 +455,23 @@ class TestSpecificChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
         self.session.lm.ltmgr.get_metainfo = fake_get_metainfo
 
         post_params = {'uri': 'magnet:?fake'}
-        return self.do_request(
+        await self.do_request(
             'channels/%s/%s/torrents' % (hexlify(channel.public_key), channel.id_),
             request_type='PUT',
             post_data=post_params,
             expected_code=500,
         )
 
-    def test_get_torrents(self):
+    async def test_get_torrents(self):
         """
         Test whether we can query some torrents in the database with the REST API
         """
-
-        def on_response(response):
-            json_dict = json.twisted_loads(response)
-            self.assertEqual(len(json_dict['results']), 5)
-
         with db_session:
             chan = self.session.lm.mds.ChannelMetadata.select().first()
-        return self.do_request('channels/%s/123' % hexlify(chan.public_key)).addCallback(on_response)
+        json_dict = await self.do_request('channels/%s/123' % hexlify(chan.public_key))
+        self.assertEqual(len(json_dict['results']), 5)
 
-    @inlineCallbacks
-    def test_get_torrents_ffa_channel(self):
+    async def test_get_torrents_ffa_channel(self):
         """
         Test whether we can query channel contents for unsigned (legacy/FFA) channels
         """
@@ -527,10 +483,9 @@ class TestSpecificChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
                 public_key=b"", id_=333333, origin_id=channel.id_, title='torrent', infohash=random_infohash()
             )
 
-        def on_response(response):
-            json_dict = json.twisted_loads(response)
+        def on_response(json_dict):
             self.assertEqual(len(json_dict['results']), 1)
 
         # We test for both forms of querying null-key channels
-        yield self.do_request('channels//123').addCallback(on_response)
-        yield self.do_request('channels/00/123').addCallback(on_response)
+        on_response(await self.do_request('channels//123'))
+        on_response(await self.do_request('channels/00/123'))

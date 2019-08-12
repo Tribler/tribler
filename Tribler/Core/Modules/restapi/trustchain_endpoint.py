@@ -1,44 +1,21 @@
 from __future__ import absolute_import
 
-from twisted.web import http, resource
+from aiohttp import web
 
-import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Utilities.unicode import recursive_unicode
+from Tribler.Core.Modules.restapi.rest_endpoint import RESTEndpoint, RESTResponse, HTTP_NOT_FOUND, HTTP_BAD_REQUEST
 
 
-class TrustchainEndpoint(resource.Resource):
+class TrustchainEndpoint(RESTEndpoint):
     """
     This endpoint is responsible for handing requests for trustchain data.
     """
 
-    def __init__(self, session):
-        resource.Resource.__init__(self)
+    def setup_routes(self):
+        self.app.add_routes([web.get('/statistics', self.get_statistics),
+                             web.get('/bootstrap', self.bootstrap)])
 
-        child_handler_dict = {
-            b"statistics": TrustchainStatsEndpoint,
-            b"bootstrap": TrustchainBootstrapEndpoint
-        }
-
-        for path, child_cls in child_handler_dict.items():
-            self.putChild(path, child_cls(session))
-
-
-class TrustchainBaseEndpoint(resource.Resource):
-    """
-    This class represents the base class of the trustchain community.
-    """
-
-    def __init__(self, session):
-        resource.Resource.__init__(self)
-        self.session = session
-
-
-class TrustchainStatsEndpoint(TrustchainBaseEndpoint):
-    """
-    This class handles requests regarding the trustchain community information.
-    """
-
-    def render_GET(self, request):
+    async def get_statistics(self, request):
         """
         .. http:get:: /trustchain/statistics
 
@@ -82,18 +59,10 @@ class TrustchainStatsEndpoint(TrustchainBaseEndpoint):
                 }
         """
         if 'MB' not in self.session.lm.wallets:
-            request.setResponseCode(http.NOT_FOUND)
-            return json.twisted_dumps({"error": "TrustChain community not found"})
+            return RESTResponse({"error": "TrustChain community not found"}, status=HTTP_NOT_FOUND)
+        return RESTResponse({'statistics': recursive_unicode(self.session.lm.wallets['MB'].get_statistics())})
 
-        return json.twisted_dumps({'statistics': recursive_unicode(self.session.lm.wallets['MB'].get_statistics())})
-
-
-class TrustchainBootstrapEndpoint(TrustchainBaseEndpoint):
-    """
-    Bootstrap a new identity and transfer some bandwidth tokens to the new key.
-    """
-
-    def render_GET(self, request):
+    async def bootstrap(self, request):
         """
         .. http:get:: /trustchain/bootstrap?amount=int
 
@@ -125,31 +94,27 @@ class TrustchainBootstrapEndpoint(TrustchainBaseEndpoint):
         """
 
         if 'MB' not in self.session.lm.wallets:
-            request.setResponseCode(http.NOT_FOUND)
-            return json.twisted_dumps({"error": "bandwidth wallet not found"})
+            return RESTResponse({"error": "bandwidth wallet not found"}, status=HTTP_NOT_FOUND)
         bandwidth_wallet = self.session.lm.wallets['MB']
 
         available_tokens = bandwidth_wallet.get_bandwidth_tokens()
 
-        args = recursive_unicode(request.args)
+        args = request.query
         if 'amount' in args:
             try:
-                amount = int(args['amount'][0])
+                amount = int(args['amount'])
             except ValueError:
-                request.setResponseCode(http.BAD_REQUEST)
-                return json.twisted_dumps({"error": "Provided token amount is not a number"})
+                return RESTResponse({"error": "Provided token amount is not a number"}, status=HTTP_BAD_REQUEST)
 
             if amount <= 0:
-                request.setResponseCode(http.BAD_REQUEST)
-                return json.twisted_dumps({"error": "Provided token amount is zero or negative"})
+                return RESTResponse({"error": "Provided token amount is zero or negative"}, status=HTTP_BAD_REQUEST)
         else:
             amount = available_tokens
 
         if amount <= 0 or amount > available_tokens:
-            request.setResponseCode(http.BAD_REQUEST)
-            return json.twisted_dumps({"error": "Not enough bandwidth tokens available"})
+            return RESTResponse({"error": "Not enough bandwidth tokens available"}, status=HTTP_BAD_REQUEST)
 
         result = bandwidth_wallet.bootstrap_new_identity(amount)
         result['private_key'] = result['private_key'].decode('utf-8')
         result['block']['block_hash'] = result['block']['block_hash'].decode('utf-8')
-        return json.twisted_dumps(result)
+        return RESTResponse(result)

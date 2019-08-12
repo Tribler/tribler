@@ -1,34 +1,31 @@
 from __future__ import absolute_import
 
 import base64
-import logging
+import json
 import os
+
+from aiohttp import web
 
 from libtorrent import bdecode
 
-from twisted.web import http, resource
-from twisted.web.server import NOT_DONE_YET
-
-import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.Modules.restapi.util import return_handled_exception
+from Tribler.Core.Modules.restapi.rest_endpoint import RESTEndpoint, RESTResponse, HTTP_BAD_REQUEST
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.Utilities.unicode import ensure_unicode, recursive_bytes, recursive_unicode
+from Tribler.Core.Utilities.unicode import ensure_unicode, recursive_bytes
 from Tribler.Core.exceptions import DuplicateDownloadException
 
 
-class CreateTorrentEndpoint(resource.Resource):
+class CreateTorrentEndpoint(RESTEndpoint):
     """
     Create a torrent file from local files.
     See: http://www.bittorrent.org/beps/bep_0012.html
     """
 
-    def __init__(self, session):
-        resource.Resource.__init__(self)
-        self._logger = logging.getLogger(self.__class__.__name__)
-        self.session = session
+    def setup_routes(self):
+        self.app.add_routes([web.post('', self.create_torrent)])
 
-    def render_POST(self, request):
+    async def create_torrent(self, request):
         """
         .. http:post:: /createtorrent?download=(boolean: download)
 
@@ -60,18 +57,16 @@ class CreateTorrentEndpoint(resource.Resource):
 
             :statuscode 500: if source files do not exist.
         """
-        content = request.content.read()
-        parameters = recursive_unicode(http.parse_qs(content, 1))
+        parameters = await request.post()
         params = {}
 
         if 'files' in parameters and parameters['files']:
-            file_path_list = [ensure_unicode(f, 'utf-8') for f in parameters['files']]
+            file_path_list = [ensure_unicode(f, 'utf-8') for f in parameters.getall('files')]
         else:
-            request.setResponseCode(http.BAD_REQUEST)
-            return json.twisted_dumps({"error": "files parameter missing"})
+            return RESTResponse({"error": "files parameter missing"}, status=HTTP_BAD_REQUEST)
 
         if 'description' in parameters and parameters['description']:
-            params['comment'] = parameters['description'][0]
+            params['comment'] = parameters['description']
 
         if 'trackers' in parameters and parameters['trackers']:
             tracker_url_list = parameters['trackers']
@@ -80,12 +75,12 @@ class CreateTorrentEndpoint(resource.Resource):
 
         name = 'unknown'
         if 'name' in parameters and parameters['name']:
-            name = parameters['name'][0]
+            name = parameters['name']
             params['name'] = name
 
         export_dir = None
         if 'export_dir' in parameters and parameters['export_dir']:
-            export_dir = parameters['export_dir'][0]
+            export_dir = parameters['export_dir']
 
         from Tribler.Core.version import version_id
         params['created by'] = '%s version: %s' % ('Tribler', version_id)
@@ -95,46 +90,27 @@ class CreateTorrentEndpoint(resource.Resource):
         params['encoding'] = False
         params['piece length'] = 0  # auto
 
-        def _on_torrent_created(result):
-            """
-            Success callback
-            :param result: from create_torrent_file
-            """
-            metainfo_dict = bdecode(result['metainfo'])
+        try:
+            result = await self.session.create_torrent_file(file_path_list, recursive_bytes(params))
+        except (IOError, UnicodeDecodeError, RuntimeError) as e:
+            self._logger.exception(e)
+            return return_handled_exception(request, e)
 
-            if export_dir and os.path.exists(export_dir):
-                save_path = os.path.join(export_dir, "%s.torrent" % name)
-                with open(save_path, "wb") as fd:
-                    fd.write(result['metainfo'])
+        metainfo_dict = bdecode(result['metainfo'])
 
-            # Download this torrent if specified
-            if 'download' in request.args and request.args['download'] and request.args['download'][0] == "1":
-                download_config = DownloadConfig()
-                download_config.set_dest_dir(result['base_path'] if len(file_path_list) == 1 else result['base_dir'])
-                try:
-                    self.session.lm.ltmgr.start_download(
-                        tdef=TorrentDef(metainfo=metainfo_dict), dconfig=download_config)
-                except DuplicateDownloadException:
-                    self._logger.warning("The created torrent is already being downloaded.")
+        if export_dir and os.path.exists(export_dir):
+            save_path = os.path.join(export_dir, "%s.torrent" % name)
+            with open(save_path, "wb") as fd:
+                fd.write(result['metainfo'])
 
-            request.write(json.twisted_dumps({"torrent": base64.b64encode(result['metainfo']).decode('utf-8')}))
-            # If the above request.write failed, the request will have already been finished
-            if not request.finished:
-                request.finish()
+        # Download this torrent if specified
+        if 'download' in request.query and request.query['download'] and request.query['download'] == "1":
+            download_config = DownloadConfig()
+            download_config.set_dest_dir(result['base_path'] if len(file_path_list) == 1 else result['base_dir'])
+            try:
+                self.session.lm.ltmgr.start_download(
+                    tdef=TorrentDef(metainfo=metainfo_dict), dconfig=download_config)
+            except DuplicateDownloadException:
+                self._logger.warning("The created torrent is already being downloaded.")
 
-        def _on_create_failure(failure):
-            """
-            Error callback
-            :param failure: from create_torrent_file
-            """
-            failure.trap(IOError, UnicodeDecodeError, RuntimeError)
-            self._logger.exception(failure)
-            request.write(return_handled_exception(request, failure.value))
-            # If the above request.write failed, the request will have already been finished
-            if not request.finished:
-                request.finish()
-
-        deferred = self.session.create_torrent_file(file_path_list, recursive_bytes(params))
-        deferred.addCallback(_on_torrent_created)
-        deferred.addErrback(_on_create_failure)
-        return NOT_DONE_YET
+        return RESTResponse(json.dumps({"torrent": base64.b64encode(result['metainfo']).decode('utf-8')}))

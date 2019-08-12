@@ -1,8 +1,7 @@
 import logging
+from asyncio import get_event_loop, DatagramProtocol
 
 from Tribler.Core.Socks5 import conversion
-from twisted.internet import reactor
-from twisted.internet.protocol import DatagramProtocol
 
 
 class SocksUDPConnection(DatagramProtocol):
@@ -10,26 +9,30 @@ class SocksUDPConnection(DatagramProtocol):
     def __init__(self, socksconnection, remote_udp_address):
         self._logger = logging.getLogger(self.__class__.__name__)
         self.socksconnection = socksconnection
+        self.transport = None
 
         if remote_udp_address != ("0.0.0.0", 0):
             self.remote_udp_address = remote_udp_address
         else:
             self.remote_udp_address = None
 
-        self.listen_port = reactor.listenUDP(0, self)
+    async def open(self):
+        self.transport, _ = await get_event_loop().create_datagram_endpoint(lambda: self,
+                                                                            local_addr=('127.0.0.1', 0))
 
     def get_listen_port(self):
-        return self.listen_port.getHost().port
+        _, port = self.transport.get_extra_info('sockname')
+        return port
 
     def sendDatagram(self, data):
         if self.remote_udp_address:
-            self.transport.write(data, self.remote_udp_address)
+            self.transport.sendto(data, self.remote_udp_address)
             return True
         else:
             self._logger.error("cannot send data, no clue where to send it to")
             return False
 
-    def datagramReceived(self, data, source):
+    def datagram_received(self, data, source):
         # if remote_address was not set before, use first one
         if self.remote_udp_address is None:
             self.remote_udp_address = source
@@ -52,6 +55,6 @@ class SocksUDPConnection(DatagramProtocol):
         return False
 
     def close(self):
-        exit_value = self.listen_port.stopListening()
-        self.listen_port = None
-        return exit_value
+        if self.transport:
+            self.transport.close()
+            self.transport = None

@@ -9,15 +9,6 @@ from PyQt5.QtWidgets import QApplication
 
 from six import PY3, text_type
 
-from twisted.internet.error import ReactorAlreadyInstalledError
-
-# We always use a selectreactor
-try:
-    from twisted.internet import selectreactor
-    selectreactor.install()
-except ReactorAlreadyInstalledError:
-    pass
-
 from TriblerGUI.event_request_manager import EventRequestManager
 from TriblerGUI.tribler_request_manager import QueuePriorityEnum, TriblerRequestManager
 from TriblerGUI.utilities import get_base_path, is_frozen

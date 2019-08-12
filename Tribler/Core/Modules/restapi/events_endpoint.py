@@ -1,12 +1,16 @@
 from __future__ import absolute_import
 
+import asyncio
+import json
 import time
+from asyncio import CancelledError, ensure_future
+
+from aiohttp import web
 
 from ipv8.messaging.anonymization.tunnel import Circuit
+from ipv8.taskmanager import TaskManager
 
-from twisted.web import resource, server
-
-import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.Modules.restapi.rest_endpoint import RESTEndpoint, RESTStreamResponse
 from Tribler.Core.Modules.restapi.util import fix_unicode_dict
 from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.simpledefs import (
@@ -19,16 +23,17 @@ from Tribler.Core.simpledefs import (
 from Tribler.Core.version import version_id
 
 
-class EventsEndpoint(resource.Resource):
+class EventsEndpoint(RESTEndpoint, TaskManager):
     """
     Important events in Tribler are returned over the events endpoint. This connection is held open. Each event is
     pushed over this endpoint in the form of a JSON dictionary. Each JSON dictionary contains a type field that
     indicates the type of the event. Individual events are separated by a newline character.
     """
+
     def __init__(self, session):
-        resource.Resource.__init__(self)
-        self.session = session
-        self.events_requests = []
+        RESTEndpoint.__init__(self, session)
+        TaskManager.__init__(self)
+        self.events_responses = []
 
         self.infohashes_sent = set()
         self.channel_cids_sent = set()
@@ -99,6 +104,9 @@ class EventsEndpoint(resource.Resource):
         # Tribler tunnel circuit has been removed
         self.session.add_observer(on_circuit_removed, NTFY_TUNNEL, [NTFY_REMOVE])
 
+    def setup_routes(self):
+        self.app.add_routes([web.get('', self.get_events)])
+
     def relay_notification(self, subject, changetype, objectID, *args):
         """
         This is a universal callback responsible for relaying notifications over the events endpoint.
@@ -110,22 +118,23 @@ class EventsEndpoint(resource.Resource):
         """
         Write data over the event socket if it's open.
         """
+        if not self.events_responses:
+            return
+
         try:
-            message_str = json.twisted_dumps(message)
+            message = json.dumps(message)
         except UnicodeDecodeError:
             # The message contains invalid characters; fix them
-            message_str = json.twisted_dumps(fix_unicode_dict(message))
-
-        if len(self.events_requests) == 0:
-            return
-        else:
-            [request.write(message_str + b'\n') for request in self.events_requests]
+            message = json.dumps(fix_unicode_dict(message))
+        message_bytes = message.encode('utf-8') + b'\n'
+        for request in self.events_responses:
+            ensure_future(request.write(message_bytes))
 
     # An exception has occurred in Tribler. The event includes a readable string of the error.
     def on_tribler_exception(self, exception_text):
         self.write_data({"type": "tribler_exception", "event": {"text": exception_text}})
 
-    def render_GET(self, request):
+    async def get_events(self, request):
         """
         .. http:get:: /events
 
@@ -137,13 +146,19 @@ class EventsEndpoint(resource.Resource):
 
                     curl -X GET http://localhost:8085/events
         """
-        def on_request_finished(_):
-            self.events_requests.remove(request)
 
-        self.events_requests.append(request)
-        request.notifyFinish().addCallbacks(on_request_finished, on_request_finished)
-
-        request.write(json.twisted_dumps({"type": "events_start", "event": {
-            "tribler_started": self.session.lm.initComplete, "version": version_id}}) + b'\n')
-
-        return server.NOT_DONE_YET
+        # Setting content-type to text/html to ensure browsers will display the content properly
+        response = RESTStreamResponse(status=200,
+                                      reason='OK',
+                                      headers={'Content-Type': 'text/html'})
+        await response.prepare(request)
+        await response.write(json.dumps({"type": "events_start",
+                                         "event": {"tribler_started": self.session.lm.initComplete,
+                                                   "version": version_id}}).encode('utf-8') + b'\n')
+        self.events_responses.append(response)
+        try:
+            while True:
+                await self.register_anonymous_task('event_sleep', lambda: None, delay=3600)
+        except CancelledError:
+            self.events_responses.remove(response)
+            return response

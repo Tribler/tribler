@@ -8,8 +8,6 @@ from ipv8.taskmanager import TaskManager
 
 import psutil
 
-from twisted.internet.task import LoopingCall
-
 from Tribler.Core.simpledefs import SIGNAL_LOW_SPACE, SIGNAL_RESOURCE_CHECK
 
 # Attempt to import yappi
@@ -48,14 +46,14 @@ class ResourceMonitor(TaskManager):
         """
         Start the resource monitor by scheduling a LoopingCall.
         """
-        self.register_task("check_resources", LoopingCall(self.check_resources)).start(
-            self.session.config.get_resource_monitor_poll_interval(), now=False)
+        self.register_task("check_resources", self.check_resources,
+                           interval=self.session.config.get_resource_monitor_poll_interval())
 
-    def stop(self):
+    async def stop(self):
         if HAS_YAPPI and self.profiler_running:
             self.stop_profiler()
 
-        self.shutdown_task_manager()
+        await self.shutdown_task_manager()
 
     def start_profiler(self):
         """
@@ -144,7 +142,7 @@ class ResourceMonitor(TaskManager):
 
         # Notify session if less than 100MB of disk space is available
         if disk_usage.free < 100 * (1024 * 1024):
-            self._logger.warn("Warning! Less than 100MB of disk space available")
+            self._logger.warning("Warning! Less than 100MB of disk space available")
             self.session.notifier.notify(SIGNAL_RESOURCE_CHECK, SIGNAL_LOW_SPACE, None, self.disk_usage_data[-1])
 
         # Write resource logs

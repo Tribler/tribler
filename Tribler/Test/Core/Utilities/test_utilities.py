@@ -1,14 +1,11 @@
 from __future__ import absolute_import
 
-from twisted.internet import reactor
-from twisted.internet.defer import inlineCallbacks, maybeDeferred
-from twisted.web.server import Site
-from twisted.web.util import Redirect
+from aiohttp import web, ClientSession
 
-from Tribler.Core.Utilities.utilities import http_get, is_channel_public_key, is_infohash, is_simple_match_query, \
+from Tribler.Core.Utilities.utilities import is_channel_public_key, is_infohash, is_simple_match_query, \
     is_valid_url, parse_magnetlink
+from Tribler.Test.tools import timeout
 from Tribler.Test.test_as_server import AbstractServer
-from Tribler.Test.tools import trial_timeout
 
 
 class TestMakeTorrent(AbstractServer):
@@ -17,14 +14,21 @@ class TestMakeTorrent(AbstractServer):
         super(TestMakeTorrent, self).__init__(*argv, **kwargs)
         self.http_server = None
 
-    def setUpHttpRedirectServer(self, port, redirect_url):
-        self.http_server = reactor.listenTCP(port, Site(Redirect(redirect_url)))
+    async def setUpHttpRedirectServer(self, port, redirect_url):
+        async def redirect_handler(_):
+            return web.HTTPFound(redirect_url)
 
-    @inlineCallbacks
-    def tearDown(self):
+        app = web.Application()
+        app.add_routes([web.get('/', redirect_handler)])
+        runner = web.AppRunner(app, access_log=None)
+        await runner.setup()
+        self.http_server = web.TCPSite(runner, 'localhost', port)
+        await self.http_server.start()
+
+    async def tearDown(self):
         if self.http_server:
-            yield maybeDeferred(self.http_server.stopListening)
-        yield super(TestMakeTorrent, self).tearDown()
+            await self.http_server.stop()
+        await super(TestMakeTorrent, self).tearDown()
 
     def test_parse_magnetlink_lowercase(self):
         """
@@ -56,25 +60,21 @@ class TestMakeTorrent(AbstractServer):
         test_url4 = "udp://localhost:1264"
         self.assertTrue(is_valid_url(test_url4))
 
-    @trial_timeout(5)
-    def test_http_get_with_redirect(self):
+    @timeout(5)
+    async def test_http_get_with_redirect(self):
         """
         Test if http_get is working properly if url redirects to a magnet link.
         """
-
-        def on_callback(response):
-            self.assertEqual(response, magnet_link)
-
         # Setup a redirect server which redirects to a magnet link
         magnet_link = "magnet:?xt=urn:btih:DC4B96CF85A85CEEDB8ADC4B96CF85A85CEEDB8A"
         port = self.get_port()
 
-        self.setUpHttpRedirectServer(port, magnet_link.encode())
+        await self.setUpHttpRedirectServer(port, magnet_link)
 
         test_url = "http://localhost:%d" % port
-        http_deferred = http_get(test_url).addCallback(on_callback)
-
-        return http_deferred
+        async with ClientSession() as session:
+            response = await session.get(test_url, allow_redirects=False)
+        self.assertEqual(response.headers['Location'], magnet_link)
 
     def test_simple_search_query(self):
         query = '"\xc1ubuntu"* AND "debian"*'

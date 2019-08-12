@@ -65,7 +65,7 @@ class TrackerManager(object):
         """
         sanitized_tracker_url = get_uniformed_tracker_url(tracker_url)
         if sanitized_tracker_url is None:
-            self._logger.warn(u"skip invalid tracker: %s", repr(tracker_url))
+            self._logger.warning(u"skip invalid tracker: %s", repr(tracker_url))
             return
 
         with db_session:

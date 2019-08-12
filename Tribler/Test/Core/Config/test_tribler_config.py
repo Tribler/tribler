@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import asyncio
 import os
 
 from configobj import ConfigObj
@@ -14,11 +15,11 @@ class TestTriblerConfig(TriblerCoreTest):
     This class contains tests for the tribler configuration file.
     """
 
-    def setUp(self):
+    async def setUp(self):
         """
         Create a new TriblerConfig instance
         """
-        super(TestTriblerConfig, self).setUp()
+        await super(TestTriblerConfig, self).setUp()
 
         state_dir = self.getStateDir()
         self.tribler_config = TriblerConfig(ConfigObj(configspec=CONFIG_SPEC_PATH, default_encoding='utf-8'))

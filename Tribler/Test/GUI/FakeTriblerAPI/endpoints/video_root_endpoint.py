@@ -2,23 +2,15 @@ from __future__ import absolute_import
 
 import os
 
-from twisted.web import resource
-from twisted.web.static import File
+from aiohttp import web
 
 import Tribler.Test.GUI.FakeTriblerAPI
+from Tribler.Core.Modules.restapi.rest_endpoint import RESTEndpoint
 
 
-class VideoRootEndpoint(resource.Resource):
+class VideoRootEndpoint(RESTEndpoint):
 
-    def getChild(self, path, request):
-        return VideoEndpoint(path)
-
-
-class VideoEndpoint(resource.Resource):
-
-    def __init__(self, infohash):
-        resource.Resource.__init__(self)
-        self.infohash = infohash
-
-    def getChild(self, path, request):
-        return File(os.path.join(os.path.dirname(Tribler.Test.GUI.FakeTriblerAPI.__file__), "data", "video.avi"))
+    def setup_routes(self):
+        self.app.add_routes([web.static('/{anything:.*}',
+                                        os.path.join(os.path.dirname(Tribler.Test.GUI.FakeTriblerAPI.__file__),
+                                                     "data", "video.avi"))])

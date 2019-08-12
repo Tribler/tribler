@@ -2,9 +2,8 @@ from __future__ import absolute_import
 
 from ipv8.messaging.deprecated.encoding import add_url_params
 
-from Tribler.Core.Utilities.utilities import http_get, parse_magnetlink
+from Tribler.Core.Utilities.utilities import parse_magnetlink
 from Tribler.Test.Core.base_test import TriblerCoreTest
-from Tribler.Test.tools import trial_timeout
 
 
 class TriblerCoreTestUtilities(TriblerCoreTest):
@@ -36,19 +35,3 @@ class TriblerCoreTestUtilities(TriblerCoreTest):
         result = add_url_params(url, new_params)
         self.assertIn("data=some", result)
         self.assertIn("data=values", result)
-
-    @trial_timeout(10)
-    def test_http_get_expired(self):
-        uri = "https://expired.badssl.com"
-
-        def cbResponse(_):
-            self.fail("Error was expected.")
-
-        def cbErrorResponse(response):
-            self.assertIsNotNone(response)
-
-        http_deferred = http_get(uri)
-        http_deferred.addCallback(cbResponse)
-        http_deferred.addErrback(cbErrorResponse)
-
-        return http_deferred

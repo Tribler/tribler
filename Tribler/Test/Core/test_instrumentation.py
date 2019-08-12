@@ -129,4 +129,4 @@ class TriblerCoreTestWatchDog(TriblerCoreTest):
         """
         Test thread names outputted by watchdog
         """
-        self.assertEquals("Unknown", self.watchdog.get_thread_name(-1))
+        self.assertEqual("Unknown", self.watchdog.get_thread_name(-1))

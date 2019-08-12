@@ -3,15 +3,9 @@ from __future__ import absolute_import
 import logging
 from distutils.version import LooseVersion
 
+from aiohttp import ServerConnectionError, ContentTypeError, ClientResponseError, ClientConnectionError, ClientSession
 from ipv8.taskmanager import TaskManager
 
-from twisted.internet.error import ConnectError, DNSLookupError
-from twisted.internet.task import LoopingCall
-from twisted.web.error import SchemeNotSupported
-
-import Tribler.Core.Utilities.json_util as json
-from Tribler.Core.Utilities.utilities import http_get
-from Tribler.Core.exceptions import HttpError
 from Tribler.Core.simpledefs import NTFY_INSERT, NTFY_NEW_VERSION
 from Tribler.Core.version import version_id
 
@@ -29,31 +23,29 @@ class VersionCheckManager(TaskManager):
 
     def start(self, interval=VERSION_CHECK_INTERVAL):
         if 'GIT' not in version_id:
-            self.register_task("tribler version check", LoopingCall(self.check_new_version)).start(interval, now=True)
+            self.register_task("tribler version check", self.check_new_version, interval=interval)
 
-    def stop(self):
-        self.shutdown_task_manager()
+    async def stop(self):
+        await self.shutdown_task_manager()
 
-    def check_new_version(self):
-        def parse_body(body):
-            if not body:
-                return
-            try:
-                version = json.loads(body)['name'][1:]
-                if LooseVersion(version) > LooseVersion(version_id):
-                    self.session.notifier.notify(NTFY_NEW_VERSION, NTFY_INSERT, None, version)
-            except ValueError as ve:
-                raise ValueError("Failed to parse Tribler version response:%s\nError:%s" % (body, ve))
+    async def check_new_version(self):
+        try:
+            async with ClientSession(raise_for_status=True) as session:
+                response = await session.get(VERSION_CHECK_URL)
+                response_dict = await response.json(content_type=None)
+        except (ServerConnectionError, ClientConnectionError) as e:
+            self._logger.error("Error when performing version check request: %s", e)
+            return
+        except ClientResponseError as e:
+            self._logger.warning("Got response code %s when performing version check request", e.status)
+            return
+        except ContentTypeError as e:
+            self._logger.warning("Response was not in JSON format")
+            return
 
-        def on_request_error(failure):
-            failure.trap(SchemeNotSupported, ConnectError, DNSLookupError)
-            self._logger.error("Error when performing version check request: %s", failure)
-
-        def on_response_error(failure):
-            failure.trap(HttpError)
-            self._logger.warning("Got response code %s when performing version check request",
-                                 failure.value.response.code)
-
-        deferred = http_get(VERSION_CHECK_URL)
-        deferred.addErrback(on_response_error).addCallback(parse_body).addErrback(on_request_error)
-        return deferred
+        try:
+            version = response_dict['name'][1:]
+            if LooseVersion(version) > LooseVersion(version_id):
+                self.session.notifier.notify(NTFY_NEW_VERSION, NTFY_INSERT, None, version)
+        except ValueError as ve:
+            raise ValueError("Failed to parse Tribler version response:%s\nError:%s" % (body, ve))

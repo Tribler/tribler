@@ -1,13 +1,16 @@
 from __future__ import absolute_import
 
-from twisted.web import resource
+from aiohttp import web
 
-import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.Modules.restapi.rest_endpoint import RESTEndpoint, RESTResponse
 
 
-class WalletsEndpoint(resource.Resource):
+class WalletsEndpoint(RESTEndpoint):
 
-    def render_GET(self, _request):
+    def setup_routes(self):
+        self.app.add_routes([web.get('', self.get_wallets)])
+
+    async def get_wallets(self, _):
         wallets = {
             "DUM1": {
                 "created": True,
@@ -32,4 +35,4 @@ class WalletsEndpoint(resource.Resource):
                 "precision": 1
             }
         }
-        return json.twisted_dumps({"wallets": wallets})
+        return RESTResponse({"wallets": wallets})
