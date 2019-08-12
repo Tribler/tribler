@@ -209,6 +209,15 @@ class TestTorrentChecker(TestAsServer):
             self.assertEqual(result[2][1]['DHT'][0]['seeders'], ts.seeders)
             self.assertLess(previous_check, ts.last_check)
 
+    def test_on_health_check_failed(self):
+        """
+        Check whether there is no crash when the torrent health check failed and the response is None
+        """
+        infohash_bin = '\xee' * 20
+        self.torrent_checker.on_torrent_health_check_completed(infohash_bin, [(True, None)])
+        self.assertEqual(1, len(self.torrent_checker.torrents_checked))
+        self.assertEqual(0, list(self.torrent_checker.torrents_checked)[0][1])
+
     @db_session
     def test_check_random_torrent_legacy(self):
         """

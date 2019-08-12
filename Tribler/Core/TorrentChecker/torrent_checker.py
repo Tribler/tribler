@@ -234,6 +234,9 @@ class TorrentChecker(TaskManager):
             if not success and isinstance(response, Failure):
                 final_response[response.tracker_url] = {'error': response.getErrorMessage()}
                 continue
+            elif response is None:
+                self._logger.warning("Torrent health response is none!")
+                continue
             final_response[response.keys()[0]] = response[response.keys()[0]][0]
 
             s = response[response.keys()[0]][0]['seeders']
