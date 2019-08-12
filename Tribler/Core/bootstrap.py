@@ -47,7 +47,7 @@ class Bootstrap(object):
         self._logger.debug("Seeding bootstrap file %s", hexlify(tdef.infohash))
         self.download = download_function(tdef, download_config=self.dcfg, hidden=True)
         self.infohash = tdef.get_infohash()
-        if self.infohash != system_infohash:
+        if hexlify(self.infohash) != system_infohash:
             self._logger.error(
                 "Infohash is not consistent with a system infohash %s != %s", hexlify(self.infohash),
                 system_infohash)
