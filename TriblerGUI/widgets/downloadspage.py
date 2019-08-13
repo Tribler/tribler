@@ -124,7 +124,7 @@ class DownloadsPage(QWidget):
             self.downloads_request_mgr.perform_request(url, self.on_received_downloads, priority=priority)
 
     def on_received_downloads(self, downloads):
-        if not downloads:
+        if not downloads or "downloads" not in downloads:
             return  # This might happen when closing Tribler
         loading_widget_index = self.window().downloads_list.indexOfTopLevelItem(self.loading_message_widget)
         if loading_widget_index > -1:
