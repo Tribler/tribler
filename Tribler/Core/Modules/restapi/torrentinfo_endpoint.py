@@ -108,7 +108,12 @@ class TorrentInfoEndpoint(resource.Resource):
                     return
 
             # Otherwise, we directly invoke the on_got_metainfo method
-            on_got_metainfo(bdecode(response))
+            try:
+                decoded_response = bdecode(response)
+                on_got_metainfo(decoded_response)
+            except RuntimeError:
+                # The decoding failed - handle it like a None metainfo
+                on_got_metainfo(None)
 
         def on_file():
             try:
