@@ -8,7 +8,6 @@ from libtorrent import bencode, create_torrent
 
 from pony.orm import db_session
 
-import six
 from six import unichr  # pylint: disable=redefined-builtin
 from six.moves.urllib.parse import unquote_plus
 from six.moves.urllib.request import url2pathname
@@ -221,7 +220,8 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
         downloads_json = []
         downloads = self.session.get_downloads()
         for download in downloads:
-            if download.hidden:
+            if download.hidden and not download.get_channel_download():
+                # We still want to send channel downloads since they are displayed in the GUI
                 continue
             state = download.get_state()
             tdef = download.get_def()
