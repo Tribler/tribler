@@ -341,6 +341,10 @@ class TriblerLaunchMany(TaskManager):
         if self.session.config.get_ipv8_enabled() and self.session.config.get_trustchain_enabled():
             self.payout_manager = PayoutManager(self.trustchain_community, self.dht_community)
 
+        # Start bootstrap download if not already done
+        if not self.session.lm.bootstrap:
+            self.session.lm.start_bootstrap_download()
+
         self.initComplete = True
 
     def add(self, tdef, config, setupDelay=0, hidden=False,
@@ -359,6 +363,7 @@ class TriblerLaunchMany(TaskManager):
             if config.get_time_added() == 0:
                 config.set_time_added(int(timemod.time()))
 
+            hidden_torrent = hidden or config.get_bootstrap_download()
             # Check if running or saved on disk
             if infohash in self.downloads:
                 self._logger.info("Torrent already exists in the downloads. Infohash:%s", hexlify(infohash))
@@ -371,7 +376,8 @@ class TriblerLaunchMany(TaskManager):
             # Store in list of Downloads, always.
             self.downloads[infohash] = d
             setup_deferred = d.setup(config, wrapperDelay=setupDelay,
-                                     share_mode=share_mode, checkpoint_disabled=checkpoint_disabled, hidden=hidden)
+                                     share_mode=share_mode, checkpoint_disabled=checkpoint_disabled,
+                                     hidden=hidden_torrent)
             setup_deferred.addCallback(self.on_download_handle_created)
 
         return d
@@ -528,6 +534,15 @@ class TriblerLaunchMany(TaskManager):
                 seeding_download_list.append({u'infohash': infohash,
                                               u'download': download})
 
+                if self.bootstrap and not self.bootstrap.bootstrap_finished and hexlify(
+                        infohash) == self.session.config.get_bootstrap_infohash() and self.trustchain_community:
+                    self.bootstrap.bootstrap_finished = True
+                    with open(self.bootstrap.bootstrap_file, 'r') as f:
+                        sql_dumb = text_type(f.read())
+                        self._logger.info("Executing script for trustchain bootstrap")
+                        self.trustchain_community.persistence.executescript(sql_dumb)
+                        self.trustchain_community.persistence.commit()
+
                 if infohash in self.previous_active_downloads:
                     self.session.notifier.notify(NTFY_TORRENT, NTFY_FINISHED, infohash, safename, is_hidden)
                     do_checkpoint = True
@@ -674,7 +689,8 @@ class TriblerLaunchMany(TaskManager):
             self.bootstrap = Bootstrap(self.session.config.get_state_dir(), dht=self.dht_community)
             if os.path.exists(self.bootstrap.bootstrap_file):
                 self.bootstrap.start_initial_seeder(self.session.start_download_from_tdef,
-                                                    self.bootstrap.bootstrap_file)
+                                                    self.bootstrap.bootstrap_file,
+                                                    self.session.config.get_bootstrap_infohash())
             else:
                 self.bootstrap.start_by_infohash(self.session.start_download_from_tdef,
                                                  self.session.config.get_bootstrap_infohash())

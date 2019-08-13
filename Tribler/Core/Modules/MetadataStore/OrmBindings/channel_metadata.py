@@ -110,6 +110,7 @@ def define_binding(db):
             channel_dict = self.to_dict()
             channel_dict.update(update_dict or {})
             channel_dict.update({'num_entries': self.contents_len})
+            channel_dict["status"] = UPDATED
             self.set(**channel_dict)
             self.sign()
 
@@ -134,7 +135,7 @@ def define_binding(db):
                 raise DuplicateChannelIdError()
 
             my_channel = cls(origin_id=0, public_key=database_blob(cls._my_key.pub().key_to_bin()[10:]),
-                             title=title, tags=description, subscribed=True, share=True,
+                             title=title, tags=description, subscribed=True, share=True, status=NEW,
                              infohash=os.urandom(20))
             # random infohash is necessary to avoid triggering DB uniqueness constraints
             my_channel.sign()
@@ -243,6 +244,7 @@ def define_binding(db):
 
                 # Write the channel mdblob to disk
                 self.update_metadata(update_dict)
+                self.status = COMMITTED
                 self.to_file(os.path.join(self._channels_dir, self.dirname + BLOB_EXTENSION))
 
                 self._logger.info("Channel %s committed with %i new entries. New version is %i",
@@ -271,7 +273,7 @@ def define_binding(db):
                                              and g.infohash == database_blob(infohash))
 
         @db_session
-        def add_torrent_to_channel(self, tdef, extra_info=None):
+        def add_torrent_to_channel(self, tdef, extra_info=None, title=None):
             """
             Add a torrent to your channel.
             :param tdef: The torrent definition file of the torrent to add
@@ -280,6 +282,8 @@ def define_binding(db):
             new_entry_dict = dict(tdef_to_metadata_dict(tdef), status=NEW)
             if extra_info:
                 new_entry_dict['tags'] = extra_info.get('description', '')
+            if title:
+                new_entry_dict['title'] = title
 
             # See if the torrent is already in the channel
             old_torrent = self.get_torrent(tdef.get_infohash())
@@ -368,11 +372,6 @@ def define_binding(db):
 
         @classmethod
         @db_session
-        def get_channel_with_infohash(cls, infohash):
-            return cls.get(infohash=database_blob(infohash))
-
-        @classmethod
-        @db_session
         def get_recent_channel_with_public_key(cls, public_key):
             return cls.select(lambda g: g.public_key == database_blob(public_key)).sort_by(
                 lambda g: desc(g.id_)).first() or None
@@ -413,7 +412,7 @@ def define_binding(db):
             query = db.ChannelMetadata.select(
                 lambda g: g.status not in [LEGACY_ENTRY, NEW, UPDATED, TODELETE] and g.num_entries > 0)
             query = query.where(subscribed=True) if only_subscribed else query
-            query = query.where(lambda g: g.local_version > 0) if only_downloaded else query
+            query = query.where(lambda g: g.local_version == g.timestamp) if only_downloaded else query
             return query.random(limit)
 
         @db_session
@@ -480,7 +479,7 @@ def define_binding(db):
             :param infohash - infohash of the download.
             :return: Channel title as a string, prefixed with 'OLD:' for older versions
             """
-            channel = cls.get_channel_with_infohash(infohash)
+            channel = cls.get_with_infohash(infohash)
             if not channel:
                 try:
                     channel = cls.get_channel_with_dirname(name)

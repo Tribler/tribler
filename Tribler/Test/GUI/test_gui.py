@@ -288,8 +288,7 @@ class TriblerGUITest(AbstractTriblerGUITest):
         window.subscribed_channels_list.sortByColumn(1, 1)
         self.wait_for_list_populated(window.subscribed_channels_list)
         self.screenshot(window, name="subscriptions_sorted")
-        max_items = min(window.subscribed_channels_list.model().total_items, 50)
-        self.assertLessEqual(window.subscribed_channels_list.verticalHeader().count(), max_items)
+        self.assertLessEqual(window.subscribed_channels_list.verticalHeader().count(), 50)
 
         # Filter
         old_num_items = window.subscribed_channels_list.verticalHeader().count()
@@ -317,8 +316,7 @@ class TriblerGUITest(AbstractTriblerGUITest):
         window.discovered_channels_list.sortByColumn(1, 1)
         self.wait_for_list_populated(window.discovered_channels_list)
         self.screenshot(window, name="discovered_sorted")
-        max_items = min(window.discovered_channels_list.model().total_items, 50)
-        self.assertLessEqual(window.discovered_channels_list.verticalHeader().count(), max_items)
+        self.assertLessEqual(window.discovered_channels_list.verticalHeader().count(), 50)
 
         # Filter
         old_num_items = window.discovered_channels_list.verticalHeader().count()
@@ -371,8 +369,7 @@ class TriblerGUITest(AbstractTriblerGUITest):
         self.wait_for_list_populated(window.edit_channel_torrents_container.content_table)
         self.screenshot(window, name="edit_channel_torrents_sorted")
         self.wait_for_something(window.edit_channel_torrents_container.content_table.model().total_items)
-        max_items = min(window.edit_channel_torrents_container.content_table.model().total_items, 50)
-        self.assertLessEqual(window.discovered_channels_list.verticalHeader().count(), max_items)
+        self.assertLessEqual(window.discovered_channels_list.verticalHeader().count(), 50)
 
         # Filter
         old_num_items = window.edit_channel_torrents_container.content_table.verticalHeader().count()

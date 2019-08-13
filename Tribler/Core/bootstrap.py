@@ -24,16 +24,17 @@ class Bootstrap(object):
         if not os.path.exists(self.bootstrap_dir):
             os.mkdir(self.bootstrap_dir)
         self.dcfg.set_dest_dir(self.bootstrap_dir)
-        self.bootstrap_file = os.path.join(self.bootstrap_dir, "bootstrap.block")
+        self.bootstrap_file = os.path.join(self.bootstrap_dir, "bootstrap.blocks")
         self.nodes_file = os.path.join(self.bootstrap_dir, "bootstrap.nodes")
         self.dht = dht
 
+        self.bootstrap_finished = False
         self.infohash = None
         self.download = None
         self.bootstrap_nodes = {}
         self.load_bootstrap_nodes()
 
-    def start_initial_seeder(self, download_function, bootstrap_file):
+    def start_initial_seeder(self, download_function, bootstrap_file, system_infohash):
         """
         Start as initial seeder for bootstrap_file
         :param download_function: function to download via tdef
@@ -46,6 +47,10 @@ class Bootstrap(object):
         self._logger.debug("Seeding bootstrap file %s", hexlify(tdef.infohash))
         self.download = download_function(tdef, download_config=self.dcfg, hidden=True)
         self.infohash = tdef.get_infohash()
+        if hexlify(self.infohash) != system_infohash:
+            self._logger.error(
+                "Infohash is not consistent with a system infohash %s != %s", hexlify(self.infohash),
+                system_infohash)
 
     def start_by_infohash(self, download_function, infohash):
         """
@@ -54,7 +59,7 @@ class Bootstrap(object):
         :return: download on bootstrap file
         """
         self._logger.debug("Starting bootstrap downloading %s", infohash)
-        tdef = TorrentDefNoMetainfo(unhexlify(infohash), name='bootstrap.block')
+        tdef = TorrentDefNoMetainfo(unhexlify(infohash), name='bootstrap.blocks')
         self.download = download_function(tdef, download_config=self.dcfg, hidden=True)
         self.infohash = infohash
 

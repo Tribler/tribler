@@ -4,6 +4,8 @@ import logging
 import os
 import shutil
 
+from six.moves.configparser import MissingSectionHeaderError, ParsingError
+
 from twisted.internet.defer import succeed
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH
@@ -15,6 +17,7 @@ from Tribler.Core.simpledefs import NTFY_FINISHED, NTFY_STARTED, NTFY_UPGRADER, 
 
 
 def cleanup_noncompliant_channel_torrents(state_dir):
+    logger = logging.getLogger(__name__)
     channels_dir = os.path.join(state_dir, "channels")
     # Remove torrents contents
     if os.path.exists(channels_dir):
@@ -35,7 +38,12 @@ def cleanup_noncompliant_channel_torrents(state_dir):
                 continue
             file_path = os.path.join(resume_dir, f)
             pstate = CallbackConfigParser()
-            pstate.read_file(file_path)
+            try:
+                pstate.read_file(file_path)
+            except (ParsingError, MissingSectionHeaderError):
+                logger.warning("Parsing channel torrent resume file %s failed, deleting", file_path)
+                os.unlink(file_path)
+                continue
 
             if pstate and pstate.has_option('download_defaults', 'channel_download') and \
                     pstate.get('download_defaults', 'channel_download'):
