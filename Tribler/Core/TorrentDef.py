@@ -97,12 +97,12 @@ class TorrentDef(object):
         """
         for key in ["comment", "created by", "creation date", "announce", "announce-list", "nodes",
                     "httpseeds", "urllist"]:
-            if key in self.metainfo:
+            if self.metainfo and key in self.metainfo:
                 self.torrent_parameters[key] = self.metainfo[key]
 
         infokeys = ['name', 'piece length']
         for key in infokeys:
-            if key in self.metainfo[b'info']:
+            if self.metainfo and key in self.metainfo[b'info']:
                 self.torrent_parameters[key] = self.metainfo[b'info'][key]
 
     @staticmethod
@@ -274,7 +274,7 @@ class TorrentDef(object):
     def get_name_as_unicode(self):
         """ Returns the info['name'] field as Unicode string.
         @return Unicode string. """
-        if "name.utf-8" in self.metainfo["info"]:
+        if self.metainfo and "name.utf-8" in self.metainfo["info"]:
             # There is an utf-8 encoded name.  We assume that it is
             # correctly encoded and use it normally
             try:
@@ -282,7 +282,7 @@ class TorrentDef(object):
             except UnicodeError:
                 pass
 
-        if "name" in self.metainfo["info"]:
+        if self.metainfo and "name" in self.metainfo["info"]:
             # Try to use the 'encoding' field.  If it exists, it
             # should contain something like 'utf-8'
             if "encoding" in self.metainfo:
@@ -345,7 +345,7 @@ class TorrentDef(object):
         list of filenames.
         @return A unicode filename generator.
         """
-        if "files" in self.metainfo["info"]:
+        if self.metainfo and "files" in self.metainfo["info"]:
             # Multi-file torrent
             join = os.path.join
             files = self.metainfo["info"]["files"]
@@ -416,7 +416,7 @@ class TorrentDef(object):
                     except UnicodeError:
                         pass
 
-        else:
+        elif self.metainfo:
             # Single-file torrent
             yield self.get_name_as_unicode(), self.metainfo["info"]["length"]
 
@@ -444,13 +444,15 @@ class TorrentDef(object):
         the total size of only those files.
         @return A length (long)
         """
-        return maketorrent.get_length_from_metainfo(self.metainfo, selectedfiles)
+        if self.metainfo:
+            return maketorrent.get_length_from_metainfo(self.metainfo, selectedfiles)
+        return 0
 
     def get_creation_date(self):
         """
         Returns the creation date of the torrent.
         """
-        return self.metainfo.get("creation date", 0)
+        return self.metainfo.get("creation date", 0) if self.metainfo else 0
 
     def is_multifile_torrent(self):
         """
@@ -464,9 +466,11 @@ class TorrentDef(object):
         """
         Returns whether this TorrentDef is a private torrent (and is not announced in the DHT).
         """
-        return int(self.metainfo[b'info'].get(b'private', 0)) == 1
+        return (int(self.metainfo[b'info'].get(b'private', 0)) == 1) if self.metainfo else False
 
     def get_index_of_file_in_files(self, file):
+        if not self.metainfo:
+            raise ValueError("TorrentDef does not have metainfo")
         info = self.metainfo[b'info']
 
         if file is not None and 'files' in info:
