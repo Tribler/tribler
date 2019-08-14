@@ -133,7 +133,7 @@ CATEGORY_LIST = [
 ]
 
 # Trust Graph constants
-COLOR_RED = "#db352c"
+COLOR_RED = "#b37477"
 COLOR_GREEN = "#23cc2b"
 COLOR_NEUTRAL = "#cdcdcd"
 COLOR_DEFAULT = "#150507"
