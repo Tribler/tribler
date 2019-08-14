@@ -74,7 +74,7 @@ class TrustGraph(nx.DiGraph):
         index_mapper = {}
 
         node_id = 0
-        max_x = max_y = 0
+        max_x = max_y = 0.0001
         for _id, (theta, r) in pos.items():
             index_mapper[_id] = node_id
             node = gr_undirected.node[_id]
