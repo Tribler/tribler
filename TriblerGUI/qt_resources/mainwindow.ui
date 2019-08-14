@@ -3878,7 +3878,7 @@ color: #B5B5B5;</string>
               </spacer>
              </item>
              <item>
-              <widget class="QToolButton" name="channel_preview_button">
+              <widget class="EllipseButton" name="channel_preview_button">
                <property name="minimumSize">
                 <size>
                  <width>28</width>
@@ -12143,12 +12143,10 @@ border: none;
                </property>
                <property name="styleSheet">
                 <string notr="true">color: #eee;
-                                            background-color: transparent;
-                                            font-size: 20px;
-                                            font-weight: bold;
-                                            margin: 10px;
-margin-right: 4px;
-margin-top: 9px;</string>
+background-color: transparent;
+font-size: 20px;
+font-weight: bold;
+margin: 10px 4px 2px 10px;</string>
                </property>
                <property name="text">
                 <string>Trust Graph</string>
@@ -12170,6 +12168,41 @@ margin-top: 9px;</string>
                 </size>
                </property>
               </spacer>
+             </item>
+             <item>
+              <widget class="QToolButton" name="tr_control_refresh_btn">
+               <property name="minimumSize">
+                <size>
+                 <width>64</width>
+                 <height>28</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>64</width>
+                 <height>28</height>
+                </size>
+               </property>
+               <property name="cursor">
+                <cursorShape>PointingHandCursor</cursorShape>
+               </property>
+               <property name="styleSheet">
+                <string notr="true">margin-right:16px</string>
+               </property>
+               <property name="text">
+                <string>REFRESH</string>
+               </property>
+               <property name="icon">
+                <iconset>
+                 <normaloff>../images/refresh.png</normaloff>../images/refresh.png</iconset>
+               </property>
+               <property name="iconSize">
+                <size>
+                 <width>18</width>
+                 <height>18</height>
+                </size>
+               </property>
+              </widget>
              </item>
              <item>
               <spacer name="trust_graph_spacer_20">
@@ -12208,13 +12241,16 @@ margin-top: 9px;</string>
           </item>
           <item>
            <widget class="QLabel" name="trust_graph_explanation_label">
+            <property name="font">
+             <font>
+              <italic>true</italic>
+             </font>
+            </property>
             <property name="styleSheet">
              <string notr="true">padding-left: 10px; padding-right: 10px;margin-bottom:8px;</string>
             </property>
             <property name="text">
-             <string>Tribler is about helping others. You become trusted if you give bandwidth away. Such acts of kindness are registered in the Tribler blockchain.  The graph below shows your trust graph based on the blockchain records. 
-
-A note on privacy: We respect your privacy and do not record what you're downloading but the amount of bandwidth shared.</string>
+             <string>The graph below is based on your historical interactions with other users in the network.</string>
             </property>
             <property name="textFormat">
              <enum>Qt::RichText</enum>
@@ -12323,67 +12359,13 @@ A note on privacy: We respect your privacy and do not record what you're downloa
                 <string notr="true">margin:8px 16px 0 16px</string>
                </property>
                <property name="text">
-                <string>Peers: 0</string>
+                <string/>
                </property>
                <property name="textFormat">
                 <enum>Qt::RichText</enum>
                </property>
                <property name="margin">
                 <number>0</number>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QCheckBox" name="tr_control_auto_refresh_checkbox">
-               <property name="styleSheet">
-                <string notr="true">color:#ffffff;</string>
-               </property>
-               <property name="text">
-                <string>Auto refresh</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QToolButton" name="tr_control_refresh_btn">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                 <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-               <property name="minimumSize">
-                <size>
-                 <width>100</width>
-                 <height>20</height>
-                </size>
-               </property>
-               <property name="styleSheet">
-                <string notr="true">color:#ffffff;margin:0 8px;padding:2px 16px;</string>
-               </property>
-               <property name="text">
-                <string> Refresh </string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QToolButton" name="tr_control_reset_btn">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                 <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-               <property name="minimumSize">
-                <size>
-                 <width>100</width>
-                 <height>20</height>
-                </size>
-               </property>
-               <property name="styleSheet">
-                <string notr="true">color:#ffffff; padding:2px 16px;margin-right:16px; margin-left:0px;</string>
-               </property>
-               <property name="text">
-                <string> Reset </string>
                </property>
               </widget>
              </item>

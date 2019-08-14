@@ -133,19 +133,19 @@ CATEGORY_LIST = [
 ]
 
 # Trust Graph constants
-COLOR_RED = "#ff0000"
-COLOR_GREEN = "#2ca01c"
+COLOR_RED = "#db352c"
+COLOR_GREEN = "#23cc2b"
 COLOR_NEUTRAL = "#cdcdcd"
 COLOR_DEFAULT = "#150507"
 COLOR_ROOT = "#FE6D01"
 COLOR_SELECTED = "#5c58ee"
 COLOR_BACKGROUND = "#202020"
 HTML_SPACE = '&nbsp;'
-TRUST_GRAPH_HEADER_MESSAGE = "Trust graph based on your Trustchain records"
-TRUST_GRAPH_PEER_LEGENDS = u"( <span style='color:%s'>\u25CF Good </span> " \
-                           u"<span style='color:%s'>\u25CF Bad </span> " \
-                           u"<span style='color:%s'>\u25CF Unknown </span> " \
-                           u"<span style='color:%s'>\u25CF Selected</span> )" \
+TRUST_GRAPH_HEADER_MESSAGE = "<i>The graph below is based on your historical interactions with other users in the network. </i>"
+TRUST_GRAPH_PEER_LEGENDS = u"<span style='color:%s'>\u25CF Helpful user </span> &nbsp;&nbsp;&nbsp;" \
+                           u"<span style='color:%s'>\u25CF Selfish user </span> &nbsp;&nbsp;&nbsp;" \
+                           u"<span style='color:%s'>\u25CF Unknown </span> &nbsp;&nbsp;&nbsp;" \
+                           u"<span style='color:%s'>\u25CF Selected</span>" \
                            % (COLOR_GREEN, COLOR_RED, COLOR_NEUTRAL, COLOR_SELECTED)
 
 CONTEXT_MENU_WIDTH = 200

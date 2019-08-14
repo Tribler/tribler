@@ -79,7 +79,6 @@ class TrustGraphPage(QWidget):
 
     def __init__(self):
         QWidget.__init__(self)
-        self.trust_plot = None
         self.fetch_data_timer = QTimer()
         self.fetch_data_timeout_timer = QTimer()
         self.fetch_data_last_update = 0
@@ -112,21 +111,19 @@ class TrustGraphPage(QWidget):
         self.graph_view.setMenuEnabled(False)
         self.reset_graph()
 
+        # To disable zoom in the graph, wheel event is overridden. To enable it again, remove the statement below.
+        self.graph_view.wheelEvent = lambda evt: None
+
         self.trust_graph = TrustGraph()
         self.trust_graph.set_node_selection_listener(self.on_node_clicked)
         self.graph_view.addItem(self.trust_graph)
         self.graph_view.addItem(pg.TextItem(text='YOU'))
         self.window().trust_graph_plot_widget.layout().addWidget(graph_layout)
-        self.window().trust_graph_explanation_label.setText(TRUST_GRAPH_HEADER_MESSAGE)
         self.window().tr_control_refresh_btn.clicked.connect(self.fetch_graph_data)
-        self.window().tr_control_reset_btn.clicked.connect(self.reset_graph)
-        self.window().tr_control_auto_refresh_checkbox.stateChanged.connect(self.on_auto_refresh_changed)
 
         self.window().tr_selected_node_pub_key.setHidden(True)
         self.window().tr_selected_node_stats.setHidden(True)
-
-        self.graph_view.setLimits(xMin=-2, xMax=2, yMin=-2, yMax=2,
-                                  minXRange=-4, maxXRange=4, minYRange=-4, maxYRange=4)
+        self.window().trust_graph_progress_bar.setHidden(True)
 
     def on_node_clicked(self, points):
         clicked_node_data = points.ptsClicked[0].data()
@@ -152,7 +149,7 @@ class TrustGraphPage(QWidget):
         if not selected_node:
             return
 
-        peer_message = "<b>Peer</b> %s%s..." % (HTML_SPACE * 16, selected_node.get('public_key', '')[:74])
+        peer_message = "<b>User</b> %s%s..." % (HTML_SPACE * 16, selected_node.get('public_key', '')[:74])
         self.window().tr_selected_node_pub_key.setHidden(False)
         self.window().tr_selected_node_pub_key.setText(peer_message)
 
@@ -188,13 +185,6 @@ class TrustGraphPage(QWidget):
     def reset_graph(self):
         self.graph_view.setXRange(-1, 1)
         self.graph_view.setYRange(-1, 1)
-
-    def on_auto_refresh_changed(self, value):
-        self.auto_refresh = value != 0
-        if self.auto_refresh:
-            self.schedule_fetch_data_timer()
-        else:
-            self.stop_fetch_data_request()
 
     def fetch_graph_data(self):
         if time.time() - self.fetch_data_last_update > self.REFRESH_INTERVAL_MS / 1000:
@@ -246,14 +236,8 @@ class TrustGraphPage(QWidget):
         return size
 
     def update_gui_labels(self, data):
-        bootstrap_progress = int(data['bootstrap']['progress'] * 100)
-        if bootstrap_progress == 100:
-            self.window().trust_graph_progress_bar.setHidden(True)
-        else:
-            self.window().trust_graph_progress_bar.setHidden(False)
-            self.window().trust_graph_progress_bar.setValue(bootstrap_progress)
-
-        status_message = u"<strong style='font-size:14px'>Transactions : %s | Peers : %s</strong> %s" \
-                         % (data['num_tx'], len(data['graph']['node']), TRUST_GRAPH_PEER_LEGENDS)
-
-        self.window().trust_graph_status_bar.setText(status_message)
+        header_message = "The graph below is based on your historical interactions with other users in the " \
+                         "network. It shows <strong>%s</strong> interactions made by <strong>%s</strong> users." \
+                         "<br/>" % (data['num_tx'], len(data['graph']['node']))
+        self.window().trust_graph_explanation_label.setText(header_message)
+        self.window().trust_graph_status_bar.setText(TRUST_GRAPH_PEER_LEGENDS)

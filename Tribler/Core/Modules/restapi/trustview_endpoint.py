@@ -136,17 +136,16 @@ class TrustViewEndpoint(resource.Resource):
         blocks = self.trustchain_db.get_latest_blocks(pub_key)
         self.trust_graph.add_blocks(blocks)
 
-        # Load 5 latest blocks of all the connected users in the database
-        connected_blocks = self.trustchain_db.get_connected_users(pub_key)
+        # Load 25 latest blocks of max 100 connected users in the database
+        connected_blocks = self.trustchain_db.get_connected_users(pub_key, limit=100)
         for connected_block in connected_blocks:
-            blocks = self.trustchain_db.get_latest_blocks(unhexlify(connected_block['public_key']), limit=5)
+            blocks = self.trustchain_db.get_latest_blocks(unhexlify(connected_block['public_key']), limit=25)
             self.trust_graph.add_blocks(blocks)
 
-        # Load 5 latest blocks of all the users in the database
-        user_blocks = self.trustchain_db.get_users(limit=-1)
-        for user_block in user_blocks:
-            blocks = self.trustchain_db.get_latest_blocks(unhexlify(user_block['public_key']), limit=5)
-            self.trust_graph.add_blocks(blocks)
+            degree2_users = self.trustchain_db.get_connected_users(connected_block['public_key'], limit=25)
+            for degree2_user in degree2_users:
+                degree_blocks = self.trustchain_db.get_latest_blocks(unhexlify(degree2_user['public_key']), limit=5)
+                self.trust_graph.add_blocks(degree_blocks)
 
         graph_data = self.trust_graph.compute_node_graph()
 
