@@ -67,20 +67,34 @@ class TrustGraph(nx.DiGraph):
         bfs_tree = nx.bfs_tree(gr_undirected, self.root_node)
 
         # Position the nodes in a circular fashion according to the bfs tree
-        pos = gpos.hierarchy_pos(bfs_tree, root=self.root_node, width=num_nodes, xcenter=0.5)
+        pos = gpos.hierarchy_pos(bfs_tree, root=self.root_node, width=2 * math.pi, xcenter=0.5)
 
         graph_nodes = []
         graph_edges = []
         index_mapper = {}
 
         node_id = 0
+        max_x = max_y = 0
         for _id, (theta, r) in pos.items():
             index_mapper[_id] = node_id
             node = gr_undirected.node[_id]
-            node['pos'] = [r * math.sin(theta) * num_nodes, r * math.cos(theta) * num_nodes]
             node['id'] = node_id
-            graph_nodes.append(node)
             node_id += 1
+
+            # convert from polar coordinates to cartesian coordinates
+            x = r * math.sin(theta) * num_nodes
+            y = r * math.cos(theta) * num_nodes
+            node['pos'] = [x, y]
+            graph_nodes.append(node)
+
+            # max values to be used for normalization
+            max_x = max(abs(x), max_x)
+            max_y = max(abs(y), max_y)
+
+        # Normalize the positions
+        for node in graph_nodes:
+            node['pos'][0] /= max_x
+            node['pos'][1] /= max_y
 
         for edge in gr_undirected.edges():
             graph_edges.append((index_mapper[edge[0]], index_mapper[edge[1]]))
@@ -122,10 +136,10 @@ class TrustViewEndpoint(resource.Resource):
         blocks = self.trustchain_db.get_latest_blocks(pub_key)
         self.trust_graph.add_blocks(blocks)
 
-        # Load 25 latest blocks of all the connected users in the database
+        # Load 5 latest blocks of all the connected users in the database
         connected_blocks = self.trustchain_db.get_connected_users(pub_key)
         for connected_block in connected_blocks:
-            blocks = self.trustchain_db.get_latest_blocks(unhexlify(connected_block['public_key']), limit=25)
+            blocks = self.trustchain_db.get_latest_blocks(unhexlify(connected_block['public_key']), limit=5)
             self.trust_graph.add_blocks(blocks)
 
         # Load 5 latest blocks of all the users in the database

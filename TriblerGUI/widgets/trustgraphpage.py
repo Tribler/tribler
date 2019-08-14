@@ -109,6 +109,7 @@ class TrustGraphPage(QWidget):
         graph_layout = pg.GraphicsLayoutWidget()
         self.graph_view = graph_layout.addViewBox()
         self.graph_view.setAspectLocked()
+        self.graph_view.setMenuEnabled(False)
         self.reset_graph()
 
         self.trust_graph = TrustGraph()
@@ -124,9 +125,8 @@ class TrustGraphPage(QWidget):
         self.window().tr_selected_node_pub_key.setHidden(True)
         self.window().tr_selected_node_stats.setHidden(True)
 
-        self.graph_view.setLimits(xMin=-5000, xMax=5000, yMin=-5000, yMax=5000,
-                                  minXRange=-10000, maxXRange=10000, minYRange=-10000,
-                                  maxYRange=10000)
+        self.graph_view.setLimits(xMin=-2, xMax=2, yMin=-2, yMax=2,
+                                  minXRange=-4, maxXRange=4, minYRange=-4, maxYRange=4)
 
     def on_node_clicked(self, points):
         clicked_node_data = points.ptsClicked[0].data()
@@ -186,8 +186,8 @@ class TrustGraphPage(QWidget):
         self.fetch_data_timeout_timer.stop()
 
     def reset_graph(self):
-        self.graph_view.setXRange(-1000, 1000)
-        self.graph_view.setYRange(-1000, 1000)
+        self.graph_view.setXRange(-1, 1)
+        self.graph_view.setYRange(-1, 1)
 
     def on_auto_refresh_changed(self, value):
         self.auto_refresh = value != 0
@@ -234,13 +234,16 @@ class TrustGraphPage(QWidget):
         return COLOR_GREEN if diff > 0 else COLOR_NEUTRAL if diff == 0 else COLOR_RED
 
     def get_node_size(self, node):
-        # Make user node visible if it is too small
-        min_size = 1 if node[u'key'] != self.root_public_key else 50
-        max_size = 200
+        # User root node is bigger than normal nodes
+        min_size = 0.01 if node[u'key'] != self.root_public_key else 0.05
 
-        diff = abs(node.get('total_up', 0) - node.get('total_down', 0)) + 1
-        size = 16 * math.log(diff, 1024) + min_size
-        return size if size < max_size else max_size
+        diff = abs(node.get('total_up', 0) - node.get('total_down', 0))
+        if diff == 0:
+            return min_size
+
+        # magic function to set the node size based on their balance
+        size = math.log(diff/(1024 * 1024), 2)/512 + min_size
+        return size
 
     def update_gui_labels(self, data):
         bootstrap_progress = int(data['bootstrap']['progress'] * 100)
