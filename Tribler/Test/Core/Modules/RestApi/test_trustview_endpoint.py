@@ -16,7 +16,6 @@ from Tribler.Test.tools import trial_timeout
 
 
 class TestTrustViewEndpoint(AbstractApiTest):
-
     @inlineCallbacks
     def setUp(self):
         yield super(TestTrustViewEndpoint, self).setUp()
@@ -63,5 +62,4 @@ class TestTrustViewEndpoint(AbstractApiTest):
         test_block.hash = test_block.calculate_hash()
         self.session.lm.trustchain_community.persistence.add_block(test_block)
 
-        self.should_check_equality = False
         return self.do_request(b'trustview', expected_code=200).addCallback(verify_response)

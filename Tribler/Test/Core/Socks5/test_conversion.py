@@ -3,11 +3,11 @@ from __future__ import absolute_import
 import struct
 
 from Tribler.Core.Socks5.conversion import decode_request
+from Tribler.Core.Socks5.conversion import decode_request
 from Tribler.Test.test_as_server import AbstractServer
 
 
 class TestSocks5Conversion(AbstractServer):
-
     def test_decode_request(self):
         """
         Test the decoding process of a request

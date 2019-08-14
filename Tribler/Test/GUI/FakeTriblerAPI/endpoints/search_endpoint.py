@@ -9,12 +9,10 @@ import Tribler.Test.GUI.FakeTriblerAPI.tribler_utils as tribler_utils
 
 
 class SearchEndpoint(resource.Resource):
-
     def __init__(self):
         resource.Resource.__init__(self)
 
         self.putChild("completions", SearchCompletionsEndpoint())
-        self.putChild("count", SearchCountEndpoint())
 
     @staticmethod
     def sanitize_parameters(parameters):
@@ -24,7 +22,7 @@ class SearchEndpoint(resource.Resource):
         first = 1 if 'first' not in parameters else int(parameters['first'][0])  # TODO check integer!
         last = 50 if 'last' not in parameters else int(parameters['last'][0])  # TODO check integer!
         sort_by = None if 'sort_by' not in parameters else parameters['sort_by'][0]  # TODO check integer!
-        sort_asc = True if 'sort_asc' not in parameters else bool(int(parameters['sort_asc'][0]))
+        sort_asc = True if 'sort_desc' not in parameters else bool(int(parameters['sort_desc'][0]))
         query_filter = None if 'filter' not in parameters else parameters['filter'][0]
         md_type = None if 'type' not in parameters else parameters['type'][0]
 
@@ -75,27 +73,21 @@ class SearchEndpoint(resource.Resource):
         return first, last, sort_by, sort_asc, search_results
 
     def render_GET(self, request):
+        include_total = request.args['include_total'][0] if 'include_total' in request.args else ''
         first, last, sort_by, sort_asc, search_results = self.base_get(request)
-        return json.dumps({
-            "results": search_results[first-1:last],
+        result = {
+            "results": search_results[first - 1 : last],
             "first": first,
             "last": last,
             "sort_by": sort_by,
-            "sort_asc": sort_asc,
-        })
-
-
-class SearchCountEndpoint(SearchEndpoint):
-    def __init__(self):
-        resource.Resource.__init__(self)
-
-    def render_GET(self, request):
-        _, _, _, _, search_results = self.base_get(request)
-        return json.dumps({"total": len(search_results)})
+            "sort_desc": sort_asc,
+        }
+        if include_total:
+            result.update({"total": len(search_results)})
+        return json.dumps(result)
 
 
 class SearchCompletionsEndpoint(resource.Resource):
-
     def render_GET(self, request):
         if 'q' not in request.args:
             request.setResponseCode(http.BAD_REQUEST)

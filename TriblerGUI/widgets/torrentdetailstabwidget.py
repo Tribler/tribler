@@ -3,13 +3,15 @@ from __future__ import absolute_import
 import logging
 import time
 
-from PyQt5.QtCore import QModelIndex
+from PyQt5.QtCore import QModelIndex, QTimer
 from PyQt5.QtWidgets import QLabel, QTabWidget, QToolButton, QTreeWidget, QTreeWidgetItem
 
 from TriblerGUI.defs import HEALTH_CHECKING, HEALTH_GOOD, HEALTH_MOOT, HEALTH_UNCHECKED
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.utilities import compose_magnetlink, copy_to_clipboard, format_size, get_health
 from TriblerGUI.widgets.ellipsebutton import EllipseButton
+
+HEALTHCHECK_DELAY = 500
 
 
 class TorrentDetailsTabWidget(QTabWidget):
@@ -36,6 +38,23 @@ class TorrentDetailsTabWidget(QTabWidget):
         self.is_health_checking = False
         self.index = QModelIndex()
 
+        self.healthcheck_timer = QTimer()
+        self.healthcheck_timer.setSingleShot(True)
+        self.healthcheck_timer.timeout.connect(self.check_torrent_health)
+        self.currentChanged.connect(self.on_tab_changed)
+
+    def on_tab_changed(self, index):
+        if index == 1 and self.torrent_info:
+            if "trackers" in self.torrent_info:
+                for tracker in self.torrent_info["trackers"]:
+                    item = QTreeWidgetItem(self.torrent_detail_trackers_list)
+                    item.setText(0, tracker)
+            else:
+                self.request_mgr = TriblerRequestManager()
+                self.request_mgr.perform_request(
+                    "metadata/%s/%s" % (self.torrent_info["public_key"], self.torrent_info["id"]), self.on_torrent_info
+                )
+
     def initialize_details_widget(self):
         """
         Initialize the details widget. We need to manually assign these attributes since we're dynamically loading
@@ -55,31 +74,16 @@ class TorrentDetailsTabWidget(QTabWidget):
         self.copy_magnet_button.clicked.connect(self.on_copy_magnet_clicked)
 
     def on_torrent_info(self, torrent_info):
-        if not torrent_info or "torrent" not in torrent_info:
+        # TODO: DRY this with on_tab_changed
+        if not torrent_info or "infohash" not in torrent_info:
             return
 
-        if self.torrent_info["infohash"] != torrent_info['torrent']['infohash']:
+        if self.torrent_info["infohash"] != torrent_info['infohash']:
             return
-        self.setTabEnabled(1, True)
-        self.torrent_info.update(torrent_info['torrent'])
-
-        self.torrent_detail_trackers_list.clear()
-
-        for tracker in torrent_info["torrent"]["trackers"]:
+        self.torrent_info.update(torrent_info)
+        for tracker in torrent_info["trackers"]:
             item = QTreeWidgetItem(self.torrent_detail_trackers_list)
             item.setText(0, tracker)
-
-        if self.is_health_checking:
-            self.health_request_mgr.cancel_request()
-            self.is_health_checking = False
-
-        self.update_health_label(torrent_info["torrent"]['num_seeders'],
-                                 torrent_info["torrent"]['num_leechers'],
-                                 torrent_info["torrent"]['last_tracker_check'])
-
-        # If we do not have the health of this torrent, query it
-        if torrent_info['torrent']['last_tracker_check'] == 0:
-            self.check_torrent_health()
 
     def update_with_torrent(self, index, torrent_info):
         self.torrent_info = torrent_info
@@ -95,16 +99,29 @@ class TorrentDetailsTabWidget(QTabWidget):
         else:
             self.torrent_detail_size_label.setText("%s" % format_size(float(self.torrent_info["size"])))
 
-        self.update_health_label(torrent_info['num_seeders'], torrent_info['num_leechers'],
-                                 torrent_info['last_tracker_check'])
+        self.update_health_label(
+            torrent_info['num_seeders'], torrent_info['num_leechers'], torrent_info['last_tracker_check']
+        )
 
         self.torrent_detail_infohash_label.setText(self.torrent_info["infohash"])
 
         self.setCurrentIndex(0)
-        self.setTabEnabled(1, False)
+        self.setTabEnabled(1, True)
 
-        self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("metadata/torrents/%s" % self.torrent_info["infohash"], self.on_torrent_info)
+        # If we do not have the health of this torrent, query it, but do it delayed.
+        # When the user scrolls the list, we only want to trigger health checks on the line
+        # that the user stopped on, so we do not generate excessive health checks.
+        if self.is_health_checking:
+            self.health_request_mgr.cancel_request()
+            self.is_health_checking = False
+        if torrent_info['last_tracker_check'] == 0:
+            self.healthcheck_timer.stop()
+            self.healthcheck_timer.start(HEALTHCHECK_DELAY)
+        self.update_health_label(
+            torrent_info['num_seeders'], torrent_info['num_leechers'], torrent_info['last_tracker_check']
+        )
+
+        self.torrent_detail_trackers_list.clear()
 
     def on_check_health_clicked(self):
         if not self.is_health_checking:
@@ -126,6 +143,8 @@ class TorrentDetailsTabWidget(QTabWidget):
             self._logger.error("The underlying GUI widget has already been removed.")
 
     def check_torrent_health(self):
+        if not self.torrent_info:
+            return
         infohash = self.torrent_info[u'infohash']
 
         def on_cancel_health_check():
@@ -146,12 +165,14 @@ class TorrentDetailsTabWidget(QTabWidget):
 
         self.torrent_detail_health_label.setText("Checking...")
         self.health_request_mgr = TriblerRequestManager()
-        self.health_request_mgr.perform_request("metadata/torrents/%s/health" % infohash,
-                                                self.on_health_response,
-                                                url_params={"nowait": True,
-                                                            "refresh": True},
-                                                capture_errors=False, priority="LOW",
-                                                on_cancel=on_cancel_health_check)
+        self.health_request_mgr.perform_request(
+            "metadata/torrents/%s/health" % infohash,
+            self.on_health_response,
+            url_params={"nowait": True, "refresh": True},
+            capture_errors=False,
+            priority="LOW",
+            on_cancel=on_cancel_health_check,
+        )
 
     def on_health_response(self, response):
         total_seeders = 0
@@ -183,19 +204,24 @@ class TorrentDetailsTabWidget(QTabWidget):
         data_item[u'num_seeders'] = seeders
         data_item[u'num_leechers'] = leechers
         data_item[u'last_tracker_check'] = time.time()
-        data_item[u'health'] = get_health(data_item[u'num_seeders'], data_item[u'num_leechers'],
-                                          data_item[u'last_tracker_check'])
+        data_item[u'health'] = get_health(
+            data_item[u'num_seeders'], data_item[u'num_leechers'], data_item[u'last_tracker_check']
+        )
 
         if u'health' in self.index.model().column_position:
             index = self.index.model().index(self.index.row(), self.index.model().column_position[u'health'])
             self.index.model().dataChanged.emit(index, index, [])
 
         # Update the health label of the detail widget
-        self.update_health_label(data_item[u'num_seeders'], data_item[u'num_leechers'],
-                                 data_item[u'last_tracker_check'])
+        self.update_health_label(
+            data_item[u'num_seeders'], data_item[u'num_leechers'], data_item[u'last_tracker_check']
+        )
 
     def on_copy_magnet_clicked(self):
-        magnet_link = compose_magnetlink(self.torrent_info['infohash'], name=self.torrent_info.get('name', None),
-                                         trackers=self.torrent_info.get('trackers', None))
+        magnet_link = compose_magnetlink(
+            self.torrent_info['infohash'],
+            name=self.torrent_info.get('name', None),
+            trackers=self.torrent_info.get('trackers', None),
+        )
         copy_to_clipboard(magnet_link)
         self.window().tray_show_message("Copying magnet link", magnet_link)

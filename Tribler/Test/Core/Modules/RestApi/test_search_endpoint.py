@@ -12,11 +12,11 @@ from twisted.internet.defer import inlineCallbacks
 
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
+from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.tools import trial_timeout
 
 
 class TestSearchEndpoint(AbstractApiTest):
-
     def setUpPreSession(self):
         super(TestSearchEndpoint, self).setUpPreSession()
         self.config.set_chant_enabled(True)
@@ -26,7 +26,6 @@ class TestSearchEndpoint(AbstractApiTest):
         """
         Testing whether the API returns an error 400 if no query is passed when doing a search
         """
-        self.should_check_equality = False
         return self.do_request('search', expected_code=400)
 
     @trial_timeout(10)
@@ -34,8 +33,24 @@ class TestSearchEndpoint(AbstractApiTest):
         """
         Testing whether the API returns an error 400 if wrong metadata type is passed in the query
         """
-        self.should_check_equality = False
         return self.do_request('search?filter=bla&metadata_type=ddd', expected_code=400)
+
+    @trial_timeout(10)
+    @inlineCallbacks
+    def test_search_remote(self):
+        """
+        Test that remote search call is sent on a REST API search request
+        """
+        self.session.lm.gigachannel_community = MockObject()
+
+        sent = []
+
+        def mock_send(*_, **__):
+            sent.append(True)
+
+        self.session.lm.gigachannel_community.send_search_request = mock_send
+        yield self.do_request('search?filter=needle', expected_code=200)
+        self.assertTrue(sent)
 
     @trial_timeout(10)
     @inlineCallbacks
@@ -45,13 +60,11 @@ class TestSearchEndpoint(AbstractApiTest):
         """
         num_hay = 100
         with db_session:
-            _ = self.session.lm.mds.ChannelMetadata(title='test', tags='test', subscribed=True,
-                                                    infohash=os.urandom(20))
+            _ = self.session.lm.mds.ChannelMetadata(title='test', tags='test', subscribed=True, infohash=os.urandom(20))
             for x in xrange(0, num_hay):
                 self.session.lm.mds.TorrentMetadata(title='hay ' + str(x), infohash=os.urandom(20))
             self.session.lm.mds.TorrentMetadata(title='needle', infohash=database_blob(bytearray(os.urandom(20))))
-
-        self.should_check_equality = False
+            self.session.lm.mds.TorrentMetadata(title='needle2', infohash=database_blob(bytearray(os.urandom(20))))
 
         result = yield self.do_request('search?filter=needle', expected_code=200)
         parsed = json.twisted_loads(result)
@@ -73,13 +86,18 @@ class TestSearchEndpoint(AbstractApiTest):
         parsed = json.twisted_loads(result)
         self.assertEqual(len(parsed["results"]), 1)
 
+        result = yield self.do_request('search?filter=needle%2A&sort_by=name&sort_desc=1', expected_code=200)
+        parsed = json.twisted_loads(result)
+        self.assertEqual(len(parsed["results"]), 2)
+        self.assertEqual(parsed["results"][0][u'name'], "needle2")
+
         # Test getting total count of results
-        result = yield self.do_request('search/count?filter=needle', expected_code=200)
+        result = yield self.do_request('search?filter=needle&include_total=1', expected_code=200)
         parsed = json.twisted_loads(result)
         self.assertEqual(parsed["total"], 1)
 
         # Test getting total count of results
-        result = yield self.do_request('search/count?filter=hay', expected_code=200)
+        result = yield self.do_request('search?filter=hay&include_total=1', expected_code=200)
         parsed = json.twisted_loads(result)
         self.assertEqual(parsed["total"], 100)
 
@@ -94,7 +112,6 @@ class TestSearchEndpoint(AbstractApiTest):
         """
         Testing whether the API returns an error 400 if no query is passed when getting search completion terms
         """
-        self.should_check_equality = False
         return self.do_request('search/completions', expected_code=400)
 
     @trial_timeout(10)
@@ -107,5 +124,4 @@ class TestSearchEndpoint(AbstractApiTest):
             json_response = json.twisted_loads(response)
             self.assertEqual(json_response['completions'], [])
 
-        self.should_check_equality = False
         return self.do_request('search/completions?q=tribler', expected_code=200).addCallback(on_response)

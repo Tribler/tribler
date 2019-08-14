@@ -4,7 +4,6 @@ from Tribler.Test.tools import trial_timeout
 
 
 class TestLibTorrentSettingsEndpoint(AbstractApiTest):
-
     def setUpPreSession(self):
         super(TestLibTorrentSettingsEndpoint, self).setUpPreSession()
         self.config.set_libtorrent_enabled(True)
@@ -26,7 +25,6 @@ class TestLibTorrentSettingsEndpoint(AbstractApiTest):
             self.assertEqual(settings_json['outgoing_port'], 0)
             self.assertEqual(settings_json['num_outgoing_ports'], 1)
 
-        self.should_check_equality = False
         return self.do_request('libtorrent/settings?hop=%d' % hop, expected_code=200).addCallback(verify_settings)
 
     @trial_timeout(5)
@@ -44,7 +42,6 @@ class TestLibTorrentSettingsEndpoint(AbstractApiTest):
             settings_json = result_json['settings']
             self.assertEqual(settings_json, {})
 
-        self.should_check_equality = False
         return self.do_request('libtorrent/settings?hop=%d' % hop, expected_code=200).addCallback(verify_settings)
 
     @trial_timeout(5)
@@ -63,12 +60,10 @@ class TestLibTorrentSettingsEndpoint(AbstractApiTest):
             self.assertEqual(settings_json['outgoing_port'], 0)
             self.assertEqual(settings_json['num_outgoing_ports'], 1)
 
-        self.should_check_equality = False
         return self.do_request('libtorrent/settings?hop=%d' % hop, expected_code=200).addCallback(verify_settings)
 
 
 class TestLibTorrentSessionEndpoint(AbstractApiTest):
-
     def setUpPreSession(self):
         super(TestLibTorrentSessionEndpoint, self).setUpPreSession()
         self.config.set_libtorrent_enabled(True)
@@ -81,9 +76,17 @@ class TestLibTorrentSessionEndpoint(AbstractApiTest):
         """
         hop = 0
         # expected sample stats
-        expected_stats = [u'dht.dht_peers', u'dht.dht_torrents', u'disk.num_jobs', u'net.recv_bytes', u'net.sent_bytes',
-                          u'peer.perm_peers', u'peer.disconnected_peers', u'ses.num_seeding_torrents',
-                          u'ses.num_incoming_choke']
+        expected_stats = [
+            u'dht.dht_peers',
+            u'dht.dht_torrents',
+            u'disk.num_jobs',
+            u'net.recv_bytes',
+            u'net.sent_bytes',
+            u'peer.perm_peers',
+            u'peer.disconnected_peers',
+            u'ses.num_seeding_torrents',
+            u'ses.num_incoming_choke',
+        ]
 
         def verify_stats(result):
             result_json = json.twisted_loads(result)
@@ -91,7 +94,6 @@ class TestLibTorrentSessionEndpoint(AbstractApiTest):
             self.assertEqual(result_json['hop'], hop)
             self.assertTrue(set(expected_stats) < set(session_json.keys()))
 
-        self.should_check_equality = False
         return self.do_request('libtorrent/session?hop=%d' % hop, expected_code=200).addCallback(verify_stats)
 
     @trial_timeout(5)
@@ -109,7 +111,6 @@ class TestLibTorrentSessionEndpoint(AbstractApiTest):
             session_json = result_json['session']
             self.assertEqual(session_json, {})
 
-        self.should_check_equality = False
         return self.do_request('libtorrent/session?hop=%d' % hop, expected_code=200).addCallback(verify_stats)
 
     @trial_timeout(5)
@@ -121,9 +122,17 @@ class TestLibTorrentSessionEndpoint(AbstractApiTest):
         self.session.lm.ltmgr.get_session(hops=hop)
 
         # expected sample stats
-        expected_stats = [u'dht.dht_peers', u'dht.dht_torrents', u'disk.num_jobs', u'net.recv_bytes', u'net.sent_bytes',
-                          u'peer.perm_peers', u'peer.disconnected_peers', u'ses.num_seeding_torrents',
-                          u'ses.num_incoming_choke']
+        expected_stats = [
+            u'dht.dht_peers',
+            u'dht.dht_torrents',
+            u'disk.num_jobs',
+            u'net.recv_bytes',
+            u'net.sent_bytes',
+            u'peer.perm_peers',
+            u'peer.disconnected_peers',
+            u'ses.num_seeding_torrents',
+            u'ses.num_incoming_choke',
+        ]
 
         def verify_stats(result):
             result_json = json.twisted_loads(result)
@@ -131,5 +140,4 @@ class TestLibTorrentSessionEndpoint(AbstractApiTest):
             self.assertEqual(result_json['hop'], hop)
             self.assertTrue(set(expected_stats) < set(session_json.keys()))
 
-        self.should_check_equality = False
         return self.do_request('libtorrent/session?hop=%d' % hop, expected_code=200).addCallback(verify_stats)

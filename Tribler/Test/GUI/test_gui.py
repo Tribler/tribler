@@ -11,8 +11,7 @@ from unittest import TestCase, skipIf, skipUnless
 from PyQt5.QtCore import QPoint, QTimer, Qt
 from PyQt5.QtGui import QPixmap, QRegion
 from PyQt5.QtTest import QTest
-from PyQt5.QtWidgets import QApplication, QListWidget, QTextEdit, QTreeWidget
-from PyQt5.QtWidgets import QTableView
+from PyQt5.QtWidgets import QApplication, QListWidget, QTableView, QTextEdit, QTreeWidget
 
 from six import text_type
 from six.moves import xrange
@@ -241,6 +240,7 @@ class TriblerGUITest(AbstractTriblerGUITest):
         Tests running a second instance of Tribler with a torrent file. Simulates user clicking on a Ubuntu torrent
         file.
         """
+
         def on_app_message(msg):
             self.assertEqual(msg, "file:%s" % TORRENT_UBUNTU_FILE)
 
@@ -248,14 +248,17 @@ class TriblerGUITest(AbstractTriblerGUITest):
 
         # Start a second Tribler instance with a torrent file
         system_encoding = sys.getfilesystemencoding()
-        test_env = {(k.encode(system_encoding) if isinstance(k, text_type) else str(k))
-                    : (v.encode(system_encoding) if isinstance(v, text_type) else str(v))
-                    for k, v in os.environ.copy().items()}
+        test_env = {
+            (k.encode(system_encoding) if isinstance(k, text_type) else str(k)): (
+                v.encode(system_encoding) if isinstance(v, text_type) else str(v)
+            )
+            for k, v in os.environ.copy().items()
+        }
         test_env['TRIBLER_APP_NAME'] = 'triblerapp-guitest'
 
         tribler_executable = os.path.join(os.path.dirname(os.path.dirname(TriblerGUI.__file__)), "run_tribler.py")
         tribler_instance_2 = subprocess.Popen(['python', tribler_executable, TORRENT_UBUNTU_FILE], env=test_env)
-        _process_stream = tribler_instance_2.communicate()[0]
+        tribler_instance_2.communicate()[0]
         self.assertEqual(tribler_instance_2.returncode, 1)
 
         QTest.qWait(200)
@@ -278,112 +281,63 @@ class TriblerGUITest(AbstractTriblerGUITest):
         self.wait_for_home_page_table_populated()
         self.screenshot(window, name="home_page_channels")
 
-    def test_subscriptions(self):
-        QTest.mouseClick(window.left_menu_button_subscriptions, Qt.LeftButton)
-        self.screenshot(window, name="subscriptions_loading")
-        self.wait_for_list_populated(window.subscribed_channels_list)
-        self.screenshot(window, name="subscriptions")
+    def tst_channels_widget(self, widget, widget_name, sort_column=1):
+        self.wait_for_list_populated(widget.content_table)
+        self.screenshot(window, name="%s-page" % widget_name)
 
         # Sort
-        window.subscribed_channels_list.sortByColumn(1, 1)
-        self.wait_for_list_populated(window.subscribed_channels_list)
-        self.screenshot(window, name="subscriptions_sorted")
-        self.assertLessEqual(window.subscribed_channels_list.verticalHeader().count(), 50)
+        widget.content_table.sortByColumn(sort_column, 1)
+        self.wait_for_list_populated(widget.content_table)
+        self.screenshot(window, name="%s-sorted" % widget_name)
+        max_items = min(widget.content_table.model().channel_info["total"], 50)
+        self.assertLessEqual(widget.content_table.verticalHeader().count(), max_items)
 
         # Filter
-        old_num_items = window.subscribed_channels_list.verticalHeader().count()
-        QTest.keyClick(window.subscribed_channels_filter_input, '1')
-        self.wait_for_list_populated(window.subscribed_channels_list)
-        self.screenshot(window, name="subscriptions_filtered")
-        self.assertLessEqual(window.subscribed_channels_list.verticalHeader().count(), old_num_items)
-        window.subscribed_channels_filter_input.setText('')
-        self.wait_for_list_populated(window.subscribed_channels_list)
+        old_num_items = widget.content_table.verticalHeader().count()
+        QTest.keyClick(widget.channel_torrents_filter_input, '1')
+        self.wait_for_list_populated(widget.content_table)
+        self.screenshot(window, name="%s-filtered" % widget_name)
+        self.assertLessEqual(widget.content_table.verticalHeader().count(), old_num_items)
 
         # Unsubscribe and subscribe again
-        index = self.get_index_of_row(window.subscribed_channels_list, 0)
-        window.subscribed_channels_list.on_subscribe_control_clicked(index)
+        index = self.get_index_of_row(widget.content_table, 0)
+        widget.content_table.on_subscribe_control_clicked(index)
         QTest.qWait(200)
-        self.screenshot(window, name="unsubscribed")
-        window.subscribed_channels_list.on_subscribe_control_clicked(index)
+        self.screenshot(window, name="%s-unsubscribed" % widget_name)
+        widget.content_table.on_subscribe_control_clicked(index)
         QTest.qWait(200)
+
+        # Test channel view
+        index = self.get_index_of_row(widget.content_table, 0)
+        widget.content_table.on_table_item_clicked(index)
+        self.wait_for_list_populated(widget.content_table)
+        self.screenshot(window, name="%s-channel_loaded" % widget_name)
+
+        # FIXME: credit mining for collections!
+        # Toggle credit mining
+        # QTest.mouseClick(widget.credit_mining_button, Qt.LeftButton)
+        # self.wait_for_signal(widget.subscription_widget.credit_mining_toggled)
+
+        # Click the first torrent
+        index = self.get_index_of_row(widget.content_table, 0)
+        widget.content_table.on_table_item_clicked(index)
+        QTest.qWait(100)
+        self.screenshot(window, name="%s-torrent_details" % widget_name)
+
+    def test_subscriptions(self):
+        QTest.mouseClick(window.left_menu_button_subscriptions, Qt.LeftButton)
+        self.tst_channels_widget(window.subscribed_channels_page, "subscriptions", sort_column=2)
 
     def test_discovered_page(self):
         QTest.mouseClick(window.left_menu_button_discovered, Qt.LeftButton)
-        self.wait_for_list_populated(window.discovered_channels_list)
-        self.screenshot(window, name="discovered_page")
-
-        # Sort
-        window.discovered_channels_list.sortByColumn(1, 1)
-        self.wait_for_list_populated(window.discovered_channels_list)
-        self.screenshot(window, name="discovered_sorted")
-        self.assertLessEqual(window.discovered_channels_list.verticalHeader().count(), 50)
-
-        # Filter
-        old_num_items = window.discovered_channels_list.verticalHeader().count()
-        QTest.keyClick(window.discovered_channels_filter_input, '1')
-        self.wait_for_list_populated(window.discovered_channels_list)
-        self.screenshot(window, name="discovered_filtered")
-        self.assertLessEqual(window.discovered_channels_list.verticalHeader().count(), old_num_items)
-
-    def test_channel_torrents(self):
-        QTest.mouseClick(window.left_menu_button_subscriptions, Qt.LeftButton)
-        self.wait_for_list_populated(window.subscribed_channels_list)
-        index = self.get_index_of_row(window.subscribed_channels_list, 0)
-        window.subscribed_channels_list.on_table_item_clicked(index)
-        self.wait_for_list_populated(window.channel_page_container.content_table)
-        self.screenshot(window, name="channel_torrents_loaded")
-
-        # Toggle credit mining
-        QTest.mouseClick(window.credit_mining_button, Qt.LeftButton)
-        self.wait_for_signal(window.subscription_widget.credit_mining_toggled)
-
-        # Click the first torrent
-        index = self.get_index_of_row(window.channel_page_container.content_table, 0)
-        window.channel_page_container.content_table.on_table_item_clicked(index)
-        QTest.qWait(100)
-        self.screenshot(window, name="channel_overview_details")
-
-    def test_edit_channel_overview(self):
-        QTest.mouseClick(window.left_menu_button_my_channel, Qt.LeftButton)
-        QTest.mouseClick(window.edit_channel_overview_button, Qt.LeftButton)
-        self.screenshot(window, name="channel_loading")
-        self.wait_for_variable("edit_channel_page.channel_overview")
-        self.screenshot(window, name="channel_overview")
-
-    def test_edit_channel_settings(self):
-        QTest.mouseClick(window.left_menu_button_my_channel, Qt.LeftButton)
-        self.wait_for_variable("edit_channel_page.channel_overview")
-        QTest.mouseClick(window.edit_channel_settings_button, Qt.LeftButton)
-        self.screenshot(window, name="channel_settings")
+        self.tst_channels_widget(window.discovered_page, "discovered_page", sort_column=2)
 
     def test_edit_channel_torrents(self):
         QTest.mouseClick(window.left_menu_button_my_channel, Qt.LeftButton)
-        self.wait_for_variable("edit_channel_page.channel_overview")
-        QTest.mouseClick(window.edit_channel_torrents_button, Qt.LeftButton)
-        self.screenshot(window, name="edit_channel_torrents_loading")
-        self.wait_for_list_populated(window.edit_channel_torrents_container.content_table)
-        self.screenshot(window, name="edit_channel_torrents")
-
-        # Sort
-        window.edit_channel_torrents_container.content_table.sortByColumn(2, 1)  # Size
-        self.wait_for_list_populated(window.edit_channel_torrents_container.content_table)
-        self.screenshot(window, name="edit_channel_torrents_sorted")
-        self.wait_for_something(window.edit_channel_torrents_container.content_table.model().total_items)
-        self.assertLessEqual(window.discovered_channels_list.verticalHeader().count(), 50)
-
-        # Filter
-        old_num_items = window.edit_channel_torrents_container.content_table.verticalHeader().count()
-        QTest.keyClick(window.edit_channel_torrents_filter, 'a')
-        self.wait_for_list_populated(window.edit_channel_torrents_container.content_table)
-        self.screenshot(window, name="edit_channel_torrents_filtered")
-        self.assertLessEqual(window.edit_channel_torrents_container.content_table.verticalHeader().count(),
-                             old_num_items)
-        window.edit_channel_torrents_filter.setText('')
-        self.wait_for_list_populated(window.edit_channel_torrents_container.content_table)
-
+        self.tst_channels_widget(window.personal_channel_page, "personal_channels_page", sort_column=0)
         # Commit the result
-        QTest.mouseClick(window.edit_channel_commit_button, Qt.LeftButton)
-        self.wait_for_signal(window.edit_channel_page.on_commit, no_args=True)
+        QTest.mouseClick(window.personal_channel_page.edit_channel_commit_button, Qt.LeftButton)
+        # self.wait_for_signal(window.personal_channel_page.model.dataChanged, no_args=True)
         self.screenshot(window, name="edit_channel_committed")
 
     def test_settings(self):
@@ -446,16 +400,7 @@ class TriblerGUITest(AbstractTriblerGUITest):
     def test_search(self):
         window.top_search_bar.setText("trib")
         QTest.keyClick(window.top_search_bar, Qt.Key_Enter)
-        self.wait_for_list_populated(window.search_results_list)
-        self.screenshot(window, name="search_results_all")
-        self.wait_for_something(window.search_results_list.model().total_items)
-
-        QTest.mouseClick(window.search_results_channels_button, Qt.LeftButton)
-        self.wait_for_list_populated(window.search_results_list)
-        self.screenshot(window, name="search_results_channels")
-        QTest.mouseClick(window.search_results_torrents_button, Qt.LeftButton)
-        self.wait_for_list_populated(window.search_results_list)
-        self.screenshot(window, name="search_results_torrents")
+        self.tst_channels_widget(window.search_results_page, "search_results", sort_column=2)
 
     @skipIf(sys.platform == "win32", "This test is unreliable on Windows")
     def test_add_download_url(self):
@@ -642,20 +587,11 @@ class TriblerGUITest(AbstractTriblerGUITest):
         ask = {
             "trader_id": 'a' * 40,
             "order_number": 3,
-            "assets": {
-                "first": {
-                    "amount": 12345,
-                    "type": 'DUM1'
-                },
-                "second": {
-                    "amount": 1,
-                    "type": 'DUM2'
-                }
-            },
+            "assets": {"first": {"amount": 12345, "type": 'DUM1'}, "second": {"amount": 1, "type": 'DUM2'}},
             "timeout": 3600,
             "timestamp": time.time(),
             "traded": 0,
-            "block_hash": '0' * 40
+            "block_hash": '0' * 40,
         }
         old_amount = window.asks_list.topLevelItemCount()
         window.core_manager.events_manager.received_market_ask.emit(ask)
@@ -702,13 +638,13 @@ class TriblerGUITest(AbstractTriblerGUITest):
             "transaction_number": transaction['transaction_number'],
             "transferred": {
                 "amount": transaction['assets']['second']['amount'],
-                "type": transaction['assets']['second']['type']
+                "type": transaction['assets']['second']['type'],
             },
             "payment_id": 'test',
             "address_from": 'a',
             "address_to": 'b',
             "timestamp": transaction['timestamp'] + 10,
-            "success": True
+            "success": True,
         }
         window.core_manager.events_manager.market_payment_received.emit(payment)
         self.screenshot(window, name="market_page_transactions_newpayment")

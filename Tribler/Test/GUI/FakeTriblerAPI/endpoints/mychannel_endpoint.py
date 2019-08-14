@@ -12,7 +12,6 @@ from Tribler.Test.GUI.FakeTriblerAPI.models.channel import Channel
 
 
 class MyChannelBaseEndpoint(resource.Resource):
-
     @staticmethod
     def return_404(request, message="your channel has not been created"):
         request.setResponseCode(http.NOT_FOUND)
@@ -20,7 +19,6 @@ class MyChannelBaseEndpoint(resource.Resource):
 
 
 class MyChannelEndpoint(MyChannelBaseEndpoint):
-
     def __init__(self):
         MyChannelBaseEndpoint.__init__(self)
         self.putChild("torrents", MyChannelTorrentsEndpoint())
@@ -31,22 +29,25 @@ class MyChannelEndpoint(MyChannelBaseEndpoint):
         if my_channel is None:
             return MyChannelBaseEndpoint.return_404(request)
 
-        return json.dumps({
-            'mychannel': {
-                'public_key': hexlify(my_channel.public_key),
-                'name': my_channel.name,
-                'description': my_channel.description,
-                'dirty': my_channel.is_dirty()
+        return json.dumps(
+            {
+                'mychannel': {
+                    'public_key': hexlify(my_channel.public_key),
+                    'name': my_channel.name,
+                    'description': my_channel.description,
+                    'dirty': my_channel.is_dirty(),
+                }
             }
-        })
+        )
 
     def render_PUT(self, request):
         parameters = http.parse_qs(request.content.read(), 1)
         channel_name = parameters['name'][0]
         channel_description = parameters['description'][0]
 
-        my_channel = Channel(len(tribler_utils.tribler_data.channels) - 1,
-                             name=channel_name, description=channel_description)
+        my_channel = Channel(
+            len(tribler_utils.tribler_data.channels) - 1, name=channel_name, description=channel_description
+        )
         tribler_utils.tribler_data.channels.append(my_channel)
         tribler_utils.tribler_data.my_channel = my_channel.id
 
@@ -65,7 +66,6 @@ class MyChannelEndpoint(MyChannelBaseEndpoint):
 
 
 class MyChannelCommitEndpoint(MyChannelBaseEndpoint):
-
     def render_POST(self, request):
         my_channel = tribler_utils.tribler_data.get_my_channel()
         if my_channel is None:
@@ -87,7 +87,6 @@ class MyChannelCommitEndpoint(MyChannelBaseEndpoint):
 
 
 class MyChannelTorrentsEndpoint(MyChannelBaseEndpoint):
-
     def getChild(self, path, request):
         if path == b"count":
             return MyChannelTorrentsCountEndpoint()
@@ -100,19 +99,23 @@ class MyChannelTorrentsEndpoint(MyChannelBaseEndpoint):
             return "your channel has not been created"
 
         request.args['channel'] = [hexlify(my_channel.public_key)]
-        first, last, sort_by, sort_asc, query_filter, channel = \
-            SpecificChannelTorrentsEndpoint.sanitize_parameters(request.args)
+        first, last, sort_by, sort_asc, query_filter, channel = SpecificChannelTorrentsEndpoint.sanitize_parameters(
+            request.args
+        )
 
-        torrents, total = tribler_utils.tribler_data.get_torrents(first, last, sort_by, sort_asc, query_filter, channel,
-                                                                  include_status=True)
-        return json.dumps({
-            "results": torrents,
-            "first": first,
-            "last": last,
-            "sort_by": sort_by,
-            "sort_asc": int(sort_asc),
-            "dirty": my_channel.is_dirty()
-        })
+        torrents, total = tribler_utils.tribler_data.get_torrents(
+            first, last, sort_by, sort_asc, query_filter, channel, include_status=True
+        )
+        return json.dumps(
+            {
+                "results": torrents,
+                "first": first,
+                "last": last,
+                "sort_by": sort_by,
+                "sort_desc": int(sort_asc),
+                "dirty": my_channel.is_dirty(),
+            }
+        )
 
     def render_POST(self, request):
         my_channel = tribler_utils.tribler_data.get_my_channel()
@@ -147,7 +150,6 @@ class MyChannelTorrentsEndpoint(MyChannelBaseEndpoint):
 
 
 class MyChannelTorrentsCountEndpoint(MyChannelBaseEndpoint):
-
     def render_GET(self, request):
         my_channel = tribler_utils.tribler_data.get_my_channel()
         if my_channel is None:
@@ -155,16 +157,17 @@ class MyChannelTorrentsCountEndpoint(MyChannelBaseEndpoint):
             return "your channel has not been created"
 
         request.args['channel'] = [hexlify(my_channel.public_key)]
-        first, last, sort_by, sort_asc, query_filter, channel = \
-            SpecificChannelTorrentsEndpoint.sanitize_parameters(request.args)
+        first, last, sort_by, sort_asc, query_filter, channel = SpecificChannelTorrentsEndpoint.sanitize_parameters(
+            request.args
+        )
 
-        _, total = tribler_utils.tribler_data.get_torrents(first, last, sort_by, sort_asc, query_filter, channel,
-                                                           include_status=True)
+        _, total = tribler_utils.tribler_data.get_torrents(
+            first, last, sort_by, sort_asc, query_filter, channel, include_status=True
+        )
         return json.dumps({"total": total})
 
 
 class MyChannelSpecificTorrentEndpoint(MyChannelBaseEndpoint):
-
     def __init__(self, infohash):
         MyChannelBaseEndpoint.__init__(self)
         self.infohash = infohash

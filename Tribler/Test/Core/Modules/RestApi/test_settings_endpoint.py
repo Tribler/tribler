@@ -10,7 +10,6 @@ from Tribler.Test.tools import trial_timeout
 
 
 class TestSettingsEndpoint(AbstractApiTest):
-
     def setUpPreSession(self):
         super(TestSettingsEndpoint, self).setUpPreSession()
         self.config.set_libtorrent_enabled(True)
@@ -19,8 +18,15 @@ class TestSettingsEndpoint(AbstractApiTest):
         """
         Verify that the expected sections are present.
         """
-        check_section = ['libtorrent', 'general', 'torrent_checking',
-                         'tunnel_community', 'http_api', 'trustchain', 'watch_folder']
+        check_section = [
+            'libtorrent',
+            'general',
+            'torrent_checking',
+            'tunnel_community',
+            'http_api',
+            'trustchain',
+            'watch_folder',
+        ]
 
         settings_json = json.twisted_loads(settings)
         self.assertTrue(settings_json['settings'])
@@ -33,7 +39,6 @@ class TestSettingsEndpoint(AbstractApiTest):
         """
         Test setting watch_folder to a unicode path.
         """
-        self.should_check_equality = False
         post_data_dict = {'watch_folder': {'directory': u'\u2588'}}
         post_data = json.dumps(post_data_dict, ensure_ascii=False)
 
@@ -45,15 +50,15 @@ class TestSettingsEndpoint(AbstractApiTest):
             getter_deferred = self.do_request('settings')
             return getter_deferred.addCallback(check_settings)
 
-        return self.do_request('settings', expected_code=200, request_type='POST',
-                               raw_data=post_data).addCallback(verify_response)
+        return self.do_request('settings', expected_code=200, request_type='POST', raw_data=post_data).addCallback(
+            verify_response
+        )
 
     @trial_timeout(10)
     def test_get_settings(self):
         """
         Testing whether the API returns a correct settings dictionary when the settings are requested
         """
-        self.should_check_equality = False
         return self.do_request('settings', expected_code=200).addCallback(self.verify_settings)
 
     @trial_timeout(10)
@@ -61,14 +66,15 @@ class TestSettingsEndpoint(AbstractApiTest):
         """
         Testing whether an error is returned if we are passing an invalid dictionary that is too deep
         """
+
         def verify_response(response):
             json_dict = json.twisted_loads(response)
             self.assertTrue('error' in json_dict)
 
-        self.should_check_equality = False
         post_data = json.dumps({'a': {'b': {'c': 'd'}}})
-        return self.do_request('settings', expected_code=500, request_type='POST', raw_data=post_data)\
-            .addCallback(verify_response)
+        return self.do_request('settings', expected_code=500, request_type='POST', raw_data=post_data).addCallback(
+            verify_response
+        )
 
     @trial_timeout(10)
     @inlineCallbacks
@@ -76,18 +82,20 @@ class TestSettingsEndpoint(AbstractApiTest):
         """
         Testing whether an error is returned when we try to set a non-existing key
         """
+
         def verify_response(response):
             json_dict = json.twisted_loads(response)
             self.assertTrue('error' in json_dict)
 
-        self.should_check_equality = False
         post_data = json.dumps({'general': {'b': 'c'}})
-        yield self.do_request('settings', expected_code=500, request_type='POST', raw_data=post_data)\
-            .addCallback(verify_response)
+        yield self.do_request('settings', expected_code=500, request_type='POST', raw_data=post_data).addCallback(
+            verify_response
+        )
 
         post_data = json.dumps({'Tribler': {'b': 'c'}})
-        yield self.do_request('settings', expected_code=500, request_type='POST', raw_data=post_data)\
-            .addCallback(verify_response)
+        yield self.do_request('settings', expected_code=500, request_type='POST', raw_data=post_data).addCallback(
+            verify_response
+        )
 
     @trial_timeout(10)
     @inlineCallbacks
@@ -106,19 +114,24 @@ class TestSettingsEndpoint(AbstractApiTest):
             self.assertEqual(dcfg.get_seeding_mode(), 'time')
             self.assertEqual(dcfg.get_seeding_time(), 100)
 
-        self.should_check_equality = False
-        post_data = json.dumps({'libtorrent': {'utp': False, 'max_download_rate': 50},
-                                'download_defaults': {'seeding_mode': 'time', 'seeding_time': 100}})
-        yield self.do_request('settings', expected_code=200, request_type='POST', raw_data=post_data) \
-            .addCallback(verify_response1)
+        post_data = json.dumps(
+            {
+                'libtorrent': {'utp': False, 'max_download_rate': 50},
+                'download_defaults': {'seeding_mode': 'time', 'seeding_time': 100},
+            }
+        )
+        yield self.do_request('settings', expected_code=200, request_type='POST', raw_data=post_data).addCallback(
+            verify_response1
+        )
 
         def verify_response2(_):
             self.assertEqual(dcfg.get_seeding_mode(), 'ratio')
             self.assertEqual(dcfg.get_seeding_ratio(), 3)
 
         post_data = json.dumps({'download_defaults': {'seeding_mode': 'ratio', 'seeding_ratio': 3}})
-        yield self.do_request('settings', expected_code=200, request_type='POST', raw_data=post_data) \
-            .addCallback(verify_response2)
+        yield self.do_request('settings', expected_code=200, request_type='POST', raw_data=post_data).addCallback(
+            verify_response2
+        )
 
         dcfg.get_credit_mining = lambda: True
 
@@ -126,5 +139,6 @@ class TestSettingsEndpoint(AbstractApiTest):
             self.assertNotEqual(dcfg.get_seeding_mode(), 'never')
 
         post_data = json.dumps({'download_defaults': {'seeding_mode': 'never'}})
-        yield self.do_request('settings', expected_code=200, request_type='POST', raw_data=post_data) \
-            .addCallback(verify_response3)
+        yield self.do_request('settings', expected_code=200, request_type='POST', raw_data=post_data).addCallback(
+            verify_response3
+        )

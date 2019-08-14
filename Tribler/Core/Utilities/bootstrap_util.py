@@ -1,5 +1,9 @@
 from __future__ import absolute_import
 
+import random
+
+from six.moves import xrange
+
 from Tribler.Core.TorrentDef import TorrentDef
 
 

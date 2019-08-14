@@ -1,12 +1,13 @@
 from __future__ import absolute_import
 
 import os
-from binascii import hexlify
+from binascii import hexlify, unhexlify
 from random import randint, sample
 from time import time
 
 from six.moves import xrange
 
+from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import UPDATED
 from Tribler.Test.GUI.FakeTriblerAPI.constants import NEW, TODELETE
 from Tribler.Test.GUI.FakeTriblerAPI.models.channel import Channel
 from Tribler.Test.GUI.FakeTriblerAPI.models.download import Download
@@ -20,9 +21,10 @@ from Tribler.Test.GUI.FakeTriblerAPI.utils.network import get_random_port
 
 CREATE_MY_CHANNEL = True
 
+PERSONAL_CHANNEL_PK = unhexlify("a" * 64)
+
 
 class TriblerData(object):
-
     def __init__(self):
         self.channels = []
         self.torrents = []
@@ -55,15 +57,8 @@ class TriblerData(object):
         # Create settings
         self.settings = {
             "settings": {
-                "general": {
-                    "family_filter": True,
-                    "minport": 1234,
-                    "log_dir": "/Users/tribleruser/log",
-                },
-                "video_server": {
-                    "enabled": True,
-                    "port": "-1",
-                },
+                "general": {"family_filter": True, "minport": 1234, "log_dir": "/Users/tribleruser/log"},
+                "video_server": {"enabled": True, "port": "-1"},
                 "libtorrent": {
                     "enabled": True,
                     "port": 1234,
@@ -75,10 +70,7 @@ class TriblerData(object):
                     "max_download_rate": 200,
                     "max_connections_download": 5,
                 },
-                "watch_folder": {
-                    "enabled": True,
-                    "directory": "/Users/tribleruser/watchfolder",
-                },
+                "watch_folder": {"enabled": True, "directory": "/Users/tribleruser/watchfolder"},
                 "download_defaults": {
                     "seeding_mode": "ratio",
                     "seeding_time": 60,
@@ -87,41 +79,20 @@ class TriblerData(object):
                     "number_hops": 1,
                     "anonymity_enabled": True,
                     "safeseeding_enabled": True,
-                    "add_download_to_channel": False
+                    "add_download_to_channel": False,
                 },
-                "ipv8": {
-                    "enabled": True,
-                    "use_testnet": False,
-                    "statistics": True
-                },
-                "trustchain": {
-                    "enabled": True,
-                },
-                "tunnel_community": {
-                    "exitnode_enabled": True,
-                },
-                "search_community": {
-                    "enabled": True,
-                },
-                "credit_mining": {
-                    "enabled": True,
-                    "sources": [],
-                    "max_disk_space": 100,
-                },
-                "resource_monitor": {
-                    "enabled": True
-                },
-                "chant": {
-                    "enabled": True,
-                    "channel_edit": True
-                }
+                "ipv8": {"enabled": True, "use_testnet": False, "statistics": True},
+                "trustchain": {"enabled": True},
+                "tunnel_community": {"exitnode_enabled": True},
+                "search_community": {"enabled": True},
+                "credit_mining": {"enabled": True, "sources": [], "max_disk_space": 100},
+                "resource_monitor": {"enabled": True},
+                "chant": {"enabled": True, "channel_edit": True},
             },
-            "ports": {
-                "video_server~port": self.video_player_port
-            }
+            "ports": {"video_server~port": self.video_player_port},
         }
 
-    def get_channels(self, first=1, last=50, sort_by=None, sort_asc=True, filter=None, subscribed=False):
+    def get_channels(self, first=1, last=50, sort_by=None, sort_asc=True, filter=None, subscribed=False, **kwargs):
         """
         Return channels, based on various parameters.
         """
@@ -132,15 +103,29 @@ class TriblerData(object):
         # Filter on search term
         if filter:
             results = [result for result in results if filter in result['name'].lower()]
+        if sort_by == 'title':
+            sort_by = 'name'
+        if sort_by == 'tags':
+            sort_by = 'category'
 
         # Sort accordingly
         if sort_by:
             results.sort(key=lambda result: result[sort_by], reverse=not sort_asc)
 
-        return results[first-1:last], len(results)
+        return results[first - 1 : last], len(results)
 
-    def get_torrents(self, first=1, last=50, sort_by=None, sort_asc=True, filter=None, channel_pk=None,
-                     include_status=False):
+    def get_torrents(
+        self,
+        first=1,
+        last=50,
+        sort_by=None,
+        sort_asc=True,
+        filter=None,
+        channel_pk=None,
+        include_status=False,
+        category=None,
+        **kwargs
+    ):
         """
         Return torrents, based on various parameters.
         """
@@ -151,15 +136,20 @@ class TriblerData(object):
         results = self.torrents if not channel_pk else self.get_channel_with_public_key(channel_pk).torrents
         results = [result.get_json(include_status=include_status) for result in results]
 
-        # Filter on search term
         if filter:
             results = [result for result in results if filter in result['name'].lower()]
+
+        # FIXME: instead, unify attribute names between ORM, GUI, and REST endpoints
+        if sort_by == 'title':
+            sort_by = 'name'
+        if sort_by == 'tags':
+            sort_by = 'category'
 
         # Sort accordingly
         if sort_by:
             results.sort(key=lambda result: result[sort_by], reverse=not sort_asc)
 
-        return results[first-1:last], len(results)
+        return results[first - 1 : last], len(results)
 
     # Generate channels from the random_channels file
     def generate_channels(self):
@@ -171,13 +161,9 @@ class TriblerData(object):
             # Pick one of these channels as your channel
             self.my_channel = randint(0, len(self.channels) - 1)
             channel_obj = self.channels[self.my_channel]
-            new_torrents = sample(channel_obj.torrents, min(len(channel_obj.torrents), 10))
-            for torrent in new_torrents:
-                torrent.status = NEW
-
-            delete_torrents = sample(channel_obj.torrents, min(len(channel_obj.torrents), 10))
-            for torrent in delete_torrents:
-                torrent.status = TODELETE
+            for status in [NEW, TODELETE, UPDATED]:
+                for torrent in sample(channel_obj.torrents, min(len(channel_obj.torrents), 10)):
+                    torrent.status = status
 
     def assign_subscribed_channels(self):
         # Make between 10 and 50 channels subscribed channels
@@ -191,12 +177,6 @@ class TriblerData(object):
         # Create random torrents in channels
         for _ in xrange(1000):
             self.torrents.append(Torrent.random())
-
-    def get_channel_with_id(self, cid):
-        for channel in self.channels:
-            if str(channel.id) == cid:
-                return channel
-        return None
 
     def get_channel_with_public_key(self, public_key):
         for channel in self.channels:
@@ -225,13 +205,9 @@ class TriblerData(object):
         random_torrent = Torrent.random()
         download = Download(random_torrent)
         if media:
-            download.files.append({
-                "name": "video.avi",
-                "size": randint(1000, 10000000),
-                "progress": 1.0,
-                "included": True,
-                "index": 0
-            })
+            download.files.append(
+                {"name": "video.avi", "size": randint(1000, 10000000), "progress": 1.0, "included": True, "index": 0}
+            )
         self.downloads.append(download)
 
     def generate_downloads(self):
@@ -258,8 +234,9 @@ class TriblerData(object):
         self.trustchain_blocks.append(TrustchainBlock(my_id=my_id, timestamp=cur_timestamp))
         for _ in xrange(100):
             cur_timestamp += 24 * 3600
-            self.trustchain_blocks.append(TrustchainBlock(my_id=my_id, timestamp=cur_timestamp, last_block=
-                                                          self.trustchain_blocks[-1]))
+            self.trustchain_blocks.append(
+                TrustchainBlock(my_id=my_id, timestamp=cur_timestamp, last_block=self.trustchain_blocks[-1])
+            )
 
     def generate_order_book(self):
         # Generate some ask/bid ticks
@@ -288,7 +265,7 @@ class TriblerData(object):
             "num_peers_in_store": {},
             "node_id": hexlify(os.urandom(20)),
             "peer_id": hexlify(os.urandom(20)),
-            "routing_table_size": randint(10, 50)
+            "routing_table_size": randint(10, 50),
         }
 
     def generate_tunnels(self):

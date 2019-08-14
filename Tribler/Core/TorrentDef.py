@@ -88,8 +88,16 @@ class TorrentDef(object):
         """
         Populate the torrent_parameters dictionary with information from the metainfo.
         """
-        for key in [b"comment", b"created by", b"creation date", b"announce", b"announce-list", b"nodes",
-                    b"httpseeds", b"urllist"]:
+        for key in [
+            b"comment",
+            b"created by",
+            b"creation date",
+            b"announce",
+            b"announce-list",
+            b"nodes",
+            b"httpseeds",
+            b"urllist",
+        ]:
             if key in self.metainfo:
                 self.torrent_parameters[key] = self.metainfo[key]
 
@@ -115,6 +123,8 @@ class TorrentDef(object):
         :param bencoded_data: The bencoded data to decode and use as metainfo
         """
         metainfo = bdecode(bencoded_data)
+        if not metainfo:
+            raise ValueError("Cannot create tdef from bencoded data: empty metainfo dict")
         return TorrentDef.load_from_dict(metainfo)
 
     @staticmethod
@@ -196,7 +206,7 @@ class TorrentDef(object):
             return tuple(trackers)
         tracker = self.get_tracker()
         if tracker:
-            return tracker,
+            return (tracker,)
         return ()
 
     def set_piece_length(self, piece_length):
@@ -300,6 +310,7 @@ class TorrentDef(object):
             # all characters that may -even remotely- cause problems
             # with the '?' character
             try:
+
                 def filter_characters(name):
                     def filter_character(char):
                         if 0 < ord(char) < 128:
@@ -307,7 +318,9 @@ class TorrentDef(object):
                         else:
                             self._logger.debug("Bad character filter %s, isalnum? %s", ord(char), char.isalnum())
                             return u"?"
+
                     return u"".join([filter_character(char) for char in name])
+
                 return text_type(filter_characters(self.metainfo[b"info"][b"name"]))
             except UnicodeError:
                 pass
@@ -342,8 +355,10 @@ class TorrentDef(object):
                     # We assume that it is correctly encoded and use
                     # it normally
                     try:
-                        yield (join(*[ensure_unicode(element, "UTF-8") for element in file_dict[b"path.utf-8"]]),
-                               file_dict[b"length"])
+                        yield (
+                            join(*[ensure_unicode(element, "UTF-8") for element in file_dict[b"path.utf-8"]]),
+                            file_dict[b"length"],
+                        )
                         continue
                     except UnicodeError:
                         pass
@@ -354,8 +369,10 @@ class TorrentDef(object):
                     if "encoding" in self.metainfo:
                         encoding = self.metainfo[b"encoding"]
                         try:
-                            yield (join(*[ensure_unicode(element, encoding) for element in file_dict[b"path"]]),
-                                   file_dict["length"])
+                            yield (
+                                join(*[ensure_unicode(element, encoding) for element in file_dict[b"path"]]),
+                                file_dict["length"],
+                            )
                             continue
                         except UnicodeError:
                             pass
@@ -377,8 +394,10 @@ class TorrentDef(object):
                     # Try to convert the names in path to unicode,
                     # assuming that it was encoded as utf-8
                     try:
-                        yield (join(*[ensure_unicode(element, "UTF-8") for element in file_dict[b"path"]]),
-                               file_dict[b"length"])
+                        yield (
+                            join(*[ensure_unicode(element, "UTF-8") for element in file_dict[b"path"]]),
+                            file_dict[b"length"],
+                        )
                         continue
                     except UnicodeError:
                         pass
@@ -387,17 +406,23 @@ class TorrentDef(object):
                     # replacing out all characters that may -even
                     # remotely- cause problems with the '?' character
                     try:
+
                         def filter_characters(name):
                             def filter_character(char):
                                 if 0 < ord(char) < 128:
                                     return char
                                 else:
                                     self._logger.debug(
-                                        "Bad character filter %s, isalnum? %s", ord(char), char.isalnum())
+                                        "Bad character filter %s, isalnum? %s", ord(char), char.isalnum()
+                                    )
                                     return u"?"
+
                             return u"".join([filter_character(char) for char in name])
-                        yield (join(*[text_type(filter_characters(element)) for element in file_dict[b"path"]]),
-                               file_dict[b"length"])
+
+                        yield (
+                            join(*[text_type(filter_characters(element)) for element in file_dict[b"path"]]),
+                            file_dict[b"length"],
+                        )
                         continue
                     except UnicodeError:
                         pass

@@ -11,8 +11,8 @@ from Tribler.Test.GUI.FakeTriblerAPI.utils import get_random_filename, get_rando
 
 
 class Torrent(object):
-
     def __init__(self, infohash, name, length, category, status=COMMITTED):
+        self.id_ = randint(10000, 100000000)
         self.infohash = infohash
         self.name = name
         self.length = length
@@ -41,13 +41,14 @@ class Torrent(object):
     def get_json(self, include_status=False, include_trackers=False):
         result = {
             "name": self.name,
+            "id": self.id_,
             "infohash": hexlify(self.infohash),
             "size": self.length,
             "category": self.category,
             "relevance_score": self.relevance_score,
             "num_seeders": self.num_seeders,
             "num_leechers": self.num_leechers,
-            "last_tracker_check": self.last_tracker_check
+            "last_tracker_check": self.last_tracker_check,
         }
 
         if include_status:

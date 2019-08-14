@@ -18,14 +18,11 @@ from Tribler.Test.tools import trial_timeout
 
 
 class TestTrustchainStatsEndpoint(AbstractApiTest):
-
     @inlineCallbacks
     def setUp(self):
         yield super(TestTrustchainStatsEndpoint, self).setUp()
 
-        self.mock_ipv8 = MockIPv8(u"low",
-                                  TrustChainCommunity,
-                                  working_directory=self.session.config.get_state_dir())
+        self.mock_ipv8 = MockIPv8(u"low", TrustChainCommunity, working_directory=self.session.config.get_state_dir())
         self.session.lm.trustchain_community = self.mock_ipv8.overlay
         self.session.lm.wallets['MB'] = TrustchainWallet(self.session.lm.trustchain_community)
 
@@ -52,8 +49,13 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         block.link_public_key = unhexlify(b"deadbeef")
         block.link_sequence_number = 21
         block.type = b'tribler_bandwidth'
-        block.transaction = {b"up": 42, b"down": 8, b"total_up": 1024,
-                             b"total_down": 2048, b"type": b"tribler_bandwidth"}
+        block.transaction = {
+            b"up": 42,
+            b"down": 8,
+            b"total_up": 1024,
+            b"total_down": 2048,
+            b"type": b"tribler_bandwidth",
+        }
         block._transaction = encode(block.transaction)
         block.sequence_number = 3
         block.previous_hash = unhexlify(b"babecafe")
@@ -65,8 +67,7 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
             response_json = json.twisted_loads(response)
             self.assertTrue("statistics" in response_json)
             stats = response_json["statistics"]
-            self.assertEqual(stats["id"], hexlify(self.session.lm.trustchain_community.
-                                                  my_peer.public_key.key_to_bin()))
+            self.assertEqual(stats["id"], hexlify(self.session.lm.trustchain_community.my_peer.public_key.key_to_bin()))
             self.assertEqual(stats["total_blocks"], 3)
             self.assertEqual(stats["total_up"], 1024)
             self.assertEqual(stats["total_down"], 2048)
@@ -80,7 +81,6 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
             self.assertEqual(stats["latest_block"]["up"], 42)
             self.assertEqual(stats["latest_block"]["down"], 8)
 
-        self.should_check_equality = False
         return self.do_request('trustchain/statistics', expected_code=200).addCallback(verify_response)
 
     @trial_timeout(10)
@@ -93,8 +93,7 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
             response_json = json.twisted_loads(response)
             self.assertTrue("statistics" in response_json)
             stats = response_json["statistics"]
-            self.assertEqual(stats["id"], hexlify(self.session.lm.trustchain_community.my_peer.
-                                                  public_key.key_to_bin()))
+            self.assertEqual(stats["id"], hexlify(self.session.lm.trustchain_community.my_peer.public_key.key_to_bin()))
             self.assertEqual(stats["total_blocks"], 0)
             self.assertEqual(stats["total_up"], 0)
             self.assertEqual(stats["total_down"], 0)
@@ -102,7 +101,6 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
             self.assertEqual(stats["peers_that_helped_pk"], 0)
             self.assertNotIn("latest_block", stats)
 
-        self.should_check_equality = False
         return self.do_request('trustchain/statistics', expected_code=200).addCallback(verify_response)
 
     @trial_timeout(10)
@@ -133,7 +131,6 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         test_block.hash = test_block.calculate_hash()
         self.session.lm.trustchain_community.persistence.add_block(test_block)
 
-        self.should_check_equality = False
         return self.do_request('trustchain/bootstrap', expected_code=200).addCallback(verify_response)
 
     @trial_timeout(10)
@@ -156,7 +153,6 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         test_block.hash = test_block.calculate_hash()
         self.session.lm.trustchain_community.persistence.add_block(test_block)
 
-        self.should_check_equality = False
         return self.do_request('trustchain/bootstrap?amount=50', expected_code=200).addCallback(verify_response)
 
     @trial_timeout(10)
@@ -173,7 +169,6 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         test_block.hash = test_block.calculate_hash()
         self.session.lm.trustchain_community.persistence.add_block(test_block)
 
-        self.should_check_equality = False
         return self.do_request('trustchain/bootstrap?amount=200', expected_code=400)
 
     @trial_timeout(10)
@@ -190,7 +185,6 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         test_block.hash = test_block.calculate_hash()
         self.session.lm.trustchain_community.persistence.add_block(test_block)
 
-        self.should_check_equality = False
         return self.do_request('trustchain/bootstrap?amount=10', expected_code=400)
 
     @trial_timeout(10)
@@ -198,7 +192,6 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         """
         Testing whether the API returns error 400 if amount is zero when bootstrapping a new identity
         """
-        self.should_check_equality = False
         return self.do_request('trustchain/bootstrap?amount=0', expected_code=400)
 
     @trial_timeout(10)
@@ -206,7 +199,6 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         """
         Testing whether the API returns error 400 if amount is negative when bootstrapping a new identity
         """
-        self.should_check_equality = False
         return self.do_request('trustchain/bootstrap?amount=-1', expected_code=400)
 
     @trial_timeout(10)
@@ -214,5 +206,4 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         """
         Testing whether the API returns error 400 if amount is string when bootstrapping a new identity
         """
-        self.should_check_equality = False
         return self.do_request('trustchain/bootstrap?amount=aaa', expected_code=400)
