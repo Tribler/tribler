@@ -13,7 +13,6 @@ from twisted.internet.defer import inlineCallbacks
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.Core.base_test import MockObject
-from Tribler.Test.tools import trial_timeout
 
 
 class TestTrustViewEndpoint(AbstractApiTest):
@@ -42,7 +41,7 @@ class TestTrustViewEndpoint(AbstractApiTest):
         yield self.mock_ipv8.unload()
         yield super(TestTrustViewEndpoint, self).tearDown()
 
-    @trial_timeout(10)
+    @inlineCallbacks
     def test_trustview_response(self):
         """
         Test whether the trust graph response is correctly returned.
@@ -128,9 +127,12 @@ class TestTrustViewEndpoint(AbstractApiTest):
                 self.session.lm.trustchain_community.persistence.add_block(test_block)
 
         self.should_check_equality = False
-        self.do_request(b'trustview?depth=1', expected_code=200).addCallback(lambda res: verify_response(res, 4, 3))
-        self.do_request(b'trustview?depth=2', expected_code=200).addCallback(lambda res: verify_response(res, 7, 12))
-        self.do_request(b'trustview?depth=3', expected_code=200).addCallback(lambda res: verify_response(res, 10, 21))
-        return self.do_request(b'trustview?depth=4', expected_code=200).addCallback(
-            lambda res: verify_response(res, 10, 21)
-        )
+        yield self.do_request(b'trustview?depth=1', expected_code=200)\
+            .addCallback(lambda res: verify_response(res, 4, 3))
+        yield self.do_request(b'trustview?depth=2', expected_code=200)\
+            .addCallback(lambda res: verify_response(res, 7, 12))
+        yield self.do_request(b'trustview?depth=3', expected_code=200)\
+            .addCallback(lambda res: verify_response(res, 10, 21))
+        yield self.do_request(b'trustview?depth=4', expected_code=200)\
+            .addCallback(lambda res: verify_response(res, 10, 21))
+        return
