@@ -1,19 +1,18 @@
 from __future__ import absolute_import
 
-import math
 from binascii import hexlify, unhexlify
-
-import networkx as nx
+import math
 
 from twisted.web import resource
 
-import Tribler.Core.Utilities.json_util as json
+import networkx as nx
+
 from Tribler.Core.Modules.TrustCalculation.graph_positioning import GraphPositioning as gpos
 from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD
+import Tribler.Core.Utilities.json_util as json
 
 
 class TrustGraph(nx.DiGraph):
-
     def __init__(self, root_node):
         nx.DiGraph.__init__(self)
         self.root_node = 0
@@ -102,7 +101,6 @@ class TrustGraph(nx.DiGraph):
 
 
 class TrustViewEndpoint(resource.Resource):
-
     def __init__(self, session):
         resource.Resource.__init__(self)
         self.session = session
@@ -125,10 +123,10 @@ class TrustViewEndpoint(resource.Resource):
         if not self.trust_graph:
             self.initialize_graph()
 
-        def get_bandwidth_blocks(public_key, limit=100):
+        def get_bandwidth_blocks(public_key, limit=64):
             return self.trustchain_db.get_latest_blocks(public_key, limit=limit, block_types=['tribler_bandwidth'])
 
-        def get_friend(public_key, limit=100):
+        def get_friends(public_key, limit=64):
             return self.trustchain_db.get_connected_users(public_key, limit=limit)
 
         depth = 0
@@ -141,11 +139,12 @@ class TrustViewEndpoint(resource.Resource):
         if fetch_all or depth == 1:
             self.trust_graph.add_blocks(get_bandwidth_blocks(self.public_key))
         if fetch_all or depth == 2:
-            for friend in get_friend(self.public_key):
+            for friend in get_friends(self.public_key):
                 self.trust_graph.add_blocks(get_bandwidth_blocks(unhexlify(friend['public_key'])))
         if fetch_all or depth == 3:
-            for friend in get_friend(self.public_key):
-                for fof in get_friend(friend['public_key']):
+            for friend in get_friends(self.public_key):
+                self.trust_graph.add_blocks(get_bandwidth_blocks(unhexlify(friend['public_key'])))
+                for fof in get_friends(unhexlify(friend['public_key'])):
                     self.trust_graph.add_blocks(get_bandwidth_blocks(unhexlify(fof['public_key'])))
         if fetch_all or depth == 4:
             for user_block in self.trustchain_db.get_users():
@@ -153,18 +152,22 @@ class TrustViewEndpoint(resource.Resource):
 
         graph_data = self.trust_graph.compute_node_graph()
 
-        return json.twisted_dumps({'root_public_key': hexlify(self.public_key),
-                                   'graph': graph_data,
-                                   'bootstrap': self.get_bootstrap_info(),
-                                   'num_tx': len(graph_data['edge']),
-                                   'depth': depth
-                                  })
+        return json.twisted_dumps(
+            {
+                'root_public_key': hexlify(self.public_key),
+                'graph': graph_data,
+                'bootstrap': self.get_bootstrap_info(),
+                'num_tx': len(graph_data['edge']),
+                'depth': depth,
+            }
+        )
 
     def get_bootstrap_info(self):
         if self.session.lm.bootstrap.download and self.session.lm.bootstrap.download.get_state():
             state = self.session.lm.bootstrap.download.get_state()
-            return {'download': state.get_total_transferred(DOWNLOAD),
-                    'upload': state.get_total_transferred(UPLOAD),
-                    'progress': state.get_progress()
-                   }
+            return {
+                'download': state.get_total_transferred(DOWNLOAD),
+                'upload': state.get_total_transferred(UPLOAD),
+                'progress': state.get_progress(),
+            }
         return {'download': 0, 'upload': 0, 'progress': 0}

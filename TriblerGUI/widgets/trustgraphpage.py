@@ -7,17 +7,22 @@ from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import QWidget
 
 import numpy as np
-
 import pyqtgraph as pg
-
-from TriblerGUI.defs import COLOR_DEFAULT, COLOR_GREEN, COLOR_NEUTRAL, COLOR_RED, COLOR_ROOT, \
-    COLOR_SELECTED, HTML_SPACE, TRUST_GRAPH_PEER_LEGENDS
+from TriblerGUI.defs import (
+    COLOR_DEFAULT,
+    COLOR_GREEN,
+    COLOR_NEUTRAL,
+    COLOR_RED,
+    COLOR_ROOT,
+    COLOR_SELECTED,
+    HTML_SPACE,
+    TRUST_GRAPH_PEER_LEGENDS,
+)
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.utilities import format_size, html_label
 
 
 class TrustGraph(pg.GraphItem):
-
     def __init__(self):
         pg.GraphItem.__init__(self)
         self.data = None
@@ -74,7 +79,7 @@ class TrustGraph(pg.GraphItem):
 
 class TrustGraphPage(QWidget):
     REFRESH_INTERVAL_MS = 2000
-    TIMEOUT_INTERVAL_MS = 5000
+    TIMEOUT_INTERVAL_MS = 30000
 
     def __init__(self):
         QWidget.__init__(self)
@@ -156,10 +161,19 @@ class TrustGraphPage(QWidget):
 
         diff = selected_node.get('total_up', 0) - selected_node.get('total_down', 0)
         color = COLOR_GREEN if diff > 0 else COLOR_RED if diff < 0 else COLOR_DEFAULT
-        bandwidth_message = "<b>Bandwidth</b> " + HTML_SPACE * 2 \
-                            + " Given " + HTML_SPACE + html_label(format_size(selected_node.get('total_up', 0))) \
-                            + " Taken " + HTML_SPACE + html_label(format_size(selected_node.get('total_down', 0))) \
-                            + " Balance " + HTML_SPACE + html_label(format_size(diff), color=color)
+        bandwidth_message = (
+            "<b>Bandwidth</b> "
+            + HTML_SPACE * 2
+            + " Given "
+            + HTML_SPACE
+            + html_label(format_size(selected_node.get('total_up', 0)))
+            + " Taken "
+            + HTML_SPACE
+            + html_label(format_size(selected_node.get('total_down', 0)))
+            + " Balance "
+            + HTML_SPACE
+            + html_label(format_size(diff), color=color)
+        )
         self.window().tr_selected_node_stats.setHidden(False)
         self.window().tr_selected_node_stats.setText(bandwidth_message)
 
@@ -241,12 +255,13 @@ class TrustGraphPage(QWidget):
             return min_size
 
         # magic function to set the node size based on their balance
-        size = math.log(diff/(1024 * 1024), 2)/512 + min_size
-        return size
+        return math.log(diff / (1024 * 1024), 2) / 512 + min_size
 
     def update_gui_labels(self, data):
-        header_message = "The graph below is based on your historical interactions with other users in the " \
-                         "network. It shows <strong>%s</strong> interactions made by <strong>%s</strong> users." \
-                         "<br/>" % (data['num_tx'], len(data['graph']['node']))
+        header_message = (
+            "The graph below is based on your historical interactions with other users in the "
+            "network. It shows <strong>%s</strong> interactions made by <strong>%s</strong> users."
+            "<br/>" % (data['num_tx'], len(data['graph']['node']))
+        )
         self.window().trust_graph_explanation_label.setText(header_message)
         self.window().trust_graph_status_bar.setText(TRUST_GRAPH_PEER_LEGENDS)
