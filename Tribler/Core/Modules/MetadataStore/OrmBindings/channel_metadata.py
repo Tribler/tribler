@@ -88,6 +88,13 @@ def entries_to_chunk(metadata_list, chunk_size, start_index=0):
 
 def define_binding(db):
     class ChannelMetadata(db.TorrentMetadata, db.CollectionNode):
+        """
+        This ORM binding represents Channel entries in the GigaChannel system. Each channel is a Collection that
+        additionally has Torrent properties, such as infohash, etc. The torrent properties are used to associate
+        a torrent that holds the contents of the channel dumped on the disk in the serialized form.
+        Methods for committing channels into the torrent form are implemented in this class.
+        """
+
         _discriminator_ = CHANNEL_TORRENT
 
         # Serializable
@@ -111,7 +118,7 @@ def define_binding(db):
             : _payload_class.__init__.func_code.co_argcount
         ][1:]
 
-        # As channel metadata depends on public key, we can't include the infohash in nonpersonal_attributes
+        # As channel metadata depends on the public key, we can't include the infohash in nonpersonal_attributes
         nonpersonal_attributes = set(db.CollectionNode.nonpersonal_attributes)
 
         @classmethod
@@ -238,6 +245,8 @@ def define_binding(db):
             """
             Collect new/uncommitted and marked for deletion metadata entries, commit them to a channel torrent and
             remove the obsolete entries if the commit succeeds.
+            :param new_start_timestamp: change the start_timestamp of the commited channel entry to this value
+            :param commit_list: the list of ORM objects to commit into this channel torrent
             :return The new infohash, should be used to update the downloads
             """
             md_list = commit_list or self.get_contents_to_commit()

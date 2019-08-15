@@ -185,11 +185,6 @@ class ChannelContentsWidget(QWidget):
     def on_channel_clicked(self, channel_dict):
         self.initialize_with_channel(channel_dict)
 
-    # FIXME: do we even need this?
-    def showEvent(self, _event):
-        super(ChannelContentsWidget, self).showEvent(_event)
-        # self.update_labels()
-
     # def on_copy_channel_id(self):
     #    copy_to_clipboard(self.channel_info["public_key"])
     #    self.tray_show_message("Copied channel ID", self.channel_info["public_key"])

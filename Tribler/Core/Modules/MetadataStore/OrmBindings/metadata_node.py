@@ -16,6 +16,12 @@ from Tribler.Test.GUI.FakeTriblerAPI.constants import TODELETE
 
 def define_binding(db):
     class MetadataNode(db.ChannelNode):
+        """
+        This ORM class extends ChannelNode by adding metadata-storing attributes such as "title" and "tags".
+        It implements methods for indexed text search based on the "title" field.
+        It is not intended for direct use. Instead, other classes should derive from it.
+        """
+
         _discriminator_ = METADATA_NODE
 
         # Serializable
@@ -67,6 +73,11 @@ def define_binding(db):
             query_filter=None,
             category=None,
         ):
+            """
+            This method implements REST-friendly way to get entries from the database. It is overloaded by the higher
+            level classes to add some more conditions to the query.
+            :return: PonyORM query object corresponding to the given params.
+            """
             # Warning! For Pony magic to work, iteration variable name (e.g. 'g') should be the same everywhere!
             # Filter the results on a keyword or some keywords
 

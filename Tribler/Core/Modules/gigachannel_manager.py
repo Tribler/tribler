@@ -306,7 +306,7 @@ class GigaChannelManager(TaskManager):
     def cleanup_channel(self, to_cleanup):
         self.processing = True
         public_key, id_ = to_cleanup
-        # Maybe run it threaded?
+        # TODO: Maybe run it threaded?
         try:
             with db_session:
                 channel = self.session.lm.mds.ChannelMetadata.get_for_update(public_key=public_key, id_=id_)
@@ -314,5 +314,7 @@ class GigaChannelManager(TaskManager):
                     return
                 channel.local_version = 0
                 channel.contents.delete(bulk=True)
+        except Exception as e:
+            self._logger.warning("Exception while cleaning unsubscribed channel: %", str(e))
         finally:
             self.processing = False

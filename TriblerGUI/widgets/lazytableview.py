@@ -4,6 +4,8 @@ from PyQt5.QtCore import QModelIndex, QPoint, QRect, Qt, pyqtSignal
 from PyQt5.QtGui import QGuiApplication
 from PyQt5.QtWidgets import QTableView
 
+from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, COLLECTION_NODE
+
 from TriblerGUI.defs import ACTION_BUTTONS, COMMIT_STATUS_COMMITTED
 from TriblerGUI.utilities import index2uri
 from TriblerGUI.widgets.tablecontentdelegate import TriblerContentDelegate
@@ -99,13 +101,9 @@ class TriblerContentTableView(QTableView):
             return
 
         content_info = self.model().data_items[item.row()]
-        # TODO: change this to use 'type' instead
         # Safely determine if the thing is a channel. A little bit hackish
-        if 'torrents' in content_info:
+        if content_info.get('type', None) in [CHANNEL_TORRENT, COLLECTION_NODE]:
             self.channel_clicked.emit(content_info)
-            # self.window().channel_page.initialize_with_channel(content_info)
-            # self.window().navigation_stack.append(self.window().stackedWidget.currentIndex())
-            # self.window().stackedWidget.setCurrentIndex(PAGE_CHANNEL_DETAILS)
 
     def on_torrent_status_updated(self, json_result, index):
         if not json_result:

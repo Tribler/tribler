@@ -28,10 +28,6 @@ class AddToChannelDialog(DialogContainer):
         self.dialog_widget.btn_move.clicked.connect(self.on_move_clicked)
         self.dialog_widget.btn_new_channel.clicked.connect(self.on_create_new_channel_clicked)
 
-        # self.dialog_widget.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
-        # self.dialog_widget.adjustSize()
-        # self.on_main_window_resize()
-
         self.entries_to_act_on = []
 
         self.root_mgr_list = []

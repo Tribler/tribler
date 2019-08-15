@@ -48,6 +48,10 @@ def tdef_to_metadata_dict(tdef):
 
 def define_binding(db):
     class TorrentMetadata(db.MetadataNode):
+        """
+        This ORM binding class is intended to store Torrent objects, i.e. infohashes along with some related metadata.
+        """
+
         _discriminator_ = REGULAR_TORRENT
 
         # Serializable

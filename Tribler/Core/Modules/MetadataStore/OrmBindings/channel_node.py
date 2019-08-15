@@ -47,6 +47,12 @@ def generate_dict_from_pony_args(cls, skip_list=None, **kwargs):
 
 def define_binding(db, logger=None, key=None, clock=None):
     class ChannelNode(db.Entity):
+        """
+        This is the base class of our ORM bindings. It implements methods for signing and serialization of ORM objects.
+        All other GigaChannel-related ORM classes are derived from it. It is not intended for direct use.
+        Instead, other classes should derive from it.
+        """
+
         _discriminator_ = CHANNEL_NODE
 
         rowid = orm.PrimaryKey(int, size=64, auto=True)
@@ -75,9 +81,16 @@ def define_binding(db, logger=None, key=None, clock=None):
         _my_key = key
         _logger = logger
         _clock = clock
+
+        # This attribute holds the names of the class attributes that are used by the serializer for the
+        # corresponding payload type. We only initialize it once on class creation as an optimization.
         payload_arguments = _payload_class.__init__.__code__.co_varnames[
             : _payload_class.__init__.func_code.co_argcount
         ][1:]
+
+        # A non - personal attribute of an entry is an attribute that would have the same value regardless of where,
+        # when and who created the entry.
+        # In other words, it does not depend on the Tribler instance that created it.
         # ACHTUNG! On object creation, Pony does not check if discriminator is wrong for the created ORM type!
         nonpersonal_attributes = ('metadata_type',)
 
@@ -234,6 +247,7 @@ def define_binding(db, logger=None, key=None, clock=None):
         @property
         @db_session
         def is_personal(self):
+            # TODO: optimize this by stopping doing blob comparisons on each call, and instead remember rowid?
             return database_blob(self._my_key.pub().key_to_bin()[10:]) == database_blob(self.public_key)
 
         @db_session
@@ -259,14 +273,14 @@ def define_binding(db, logger=None, key=None, clock=None):
 
             return self
 
-        def get_parents_ids(self, recursion_depth=15):
-            if not recursion_depth:
+        def get_parents_ids(self, max_recursion_depth=15):
+            if not max_recursion_depth:
                 return tuple()
             if self.origin_id == 0:
                 return (0,)
             parent = db.CollectionNode.get(public_key=self.public_key, id_=self.origin_id)
             if parent:
-                result = parent.get_parents_ids(recursion_depth=recursion_depth - 1)
+                result = parent.get_parents_ids(max_recursion_depth=max_recursion_depth - 1)
             return result + (parent.id_,)
 
         def make_copy(self, tgt_parent_id, attributes_override=None):

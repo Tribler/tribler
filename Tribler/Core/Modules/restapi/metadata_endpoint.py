@@ -20,17 +20,17 @@ class UpdateEntryMixin(object):
     def update_entry(self, public_key, id_, update_dict):
         entry = self.session.lm.mds.ChannelNode.get(public_key=public_key, id_=id_)
         if not entry:
-            return http.NOT_FOUND, {"error": "Object with the specified pk+id could not be found"}
+            return http.NOT_FOUND, {"error": "Object with the specified pk+id could not be found."}
 
         signed_parameters_to_change = set(entry.payload_arguments).intersection(set(update_dict.keys()))
         if signed_parameters_to_change:
             if 'status' in update_dict:
-                return http.BAD_REQUEST, {"error": "Cannot set status manually when changing signed attributes"}
+                return http.BAD_REQUEST, {"error": "Cannot set status manually when changing signed attributes."}
             if not entry.is_personal:
-                return http.BAD_REQUEST, {"error": "Changing signed parameters in non-personal entries not supported."}
-
-        # if "subscribed" in update_dict:
-        #    self.subscribed = int(update_dict["subscribed"]) == 1
+                return (
+                    http.BAD_REQUEST,
+                    {"error": "Changing signed parameters in non-personal entries is not supported."},
+                )
 
         return None, entry.update_properties(update_dict).to_simple_dict()
 

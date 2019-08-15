@@ -25,6 +25,12 @@ from Tribler.Core.exceptions import DuplicateTorrentFileError
 
 def define_binding(db):
     class CollectionNode(db.MetadataNode):
+        """
+        This ORM class represents a generic named container, i.e. a folder. It is used as an intermediary node
+        in building the nested channels tree.
+        Methods for copying stuff recursively are bound to it.
+        """
+
         _discriminator_ = COLLECTION_NODE
 
         # FIXME: ACHTUNG! PONY BUG! attributes inherited from multiple inheritance are not cached!
@@ -42,7 +48,6 @@ def define_binding(db):
         @property
         @db_session
         def state(self):
-            # TODO: optimize this by stopping doing blob comparisons on each call, and instead remember rowid?
             if self.is_personal:
                 return "Personal"
             return "Preview"
@@ -74,9 +79,9 @@ def define_binding(db):
         @db_session
         def copy_torrent_from_infohash(self, infohash):
             """
-            Create a new signed copy of the given torrent metadata
+            Search the database for a given infohash and create a copy of the matching entry in the current channel
             :param infohash:
-            :return: New TorrentMetadata signed with your key
+            :return: New TorrentMetadata signed with your key.
             """
 
             existing = db.TorrentMetadata.select(lambda g: g.infohash == database_blob(infohash)).first()
@@ -175,7 +180,6 @@ def define_binding(db):
 
         @db_session
         def add_torrents_from_dir(self, torrents_dir, recursive=False):
-            # TODO: Optimize this properly!!!!
             torrents_list = []
             errors_list = []
 
@@ -246,7 +250,7 @@ def define_binding(db):
             children = {}
             # TODO: optimize me by rewriting in pure SQL with recursive CTEs
 
-            def upd_node_info(n):
+            def update_node_info(n):
                 # Add the node to its parent's set of children
                 if n.origin_id not in children:
                     children[n.origin_id] = {n}
@@ -257,12 +261,12 @@ def define_binding(db):
             dead_parents = set()
             # First we traverse the tree upwards from changed leaves to find all nodes affected by changes
             for node in db.ChannelNode.select(lambda g: g.status in DIRTY_STATUSES):
-                upd_node_info(node)
+                update_node_info(node)
                 # This process resolves the parents completely.
                 # Therefore, if a parent is already in the dict, its path has already been resolved.
                 while node and (node.origin_id not in upd_dict):
                     # Add the node to its parent's set of children
-                    upd_node_info(node)
+                    update_node_info(node)
                     # Get parent node
                     parent = db.CollectionNode.get(public_key=node.public_key, id_=node.origin_id)
                     if not parent:

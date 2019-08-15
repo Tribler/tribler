@@ -239,6 +239,9 @@ class TestChannelMetadata(TriblerCoreTest):
 
     @db_session
     def test_vsids(self):
+        """
+        Test VSIDS-based channel popularity system.
+        """
         peer_key = default_eccrypto.generate_key(u"curve25519")
         self.assertEqual(1.0, self.mds.Vsids[0].bump_amount)
 
@@ -276,7 +279,7 @@ class TestChannelMetadata(TriblerCoreTest):
                 result.extend(list(combinations(status_types, card)))
             return result
 
-        def gen_coll(parent, collection_status, contents_statuses, recurse=False):
+        def generate_collection(parent, collection_status, contents_statuses, recurse=False):
             chan = self.mds.CollectionNode(
                 title=parent.title + '->child_new_nonempty', origin_id=parent.id_, status=collection_status
             )
@@ -284,17 +287,17 @@ class TestChannelMetadata(TriblerCoreTest):
                 self.mds.TorrentMetadata(infohash=random_infohash(), origin_id=chan.id_, status=s)
                 if recurse:
                     for status in status_types:
-                        gen_coll(chan, status, [NEW])
+                        generate_collection(chan, status, [NEW])
             return chan
 
-        def gen_chan(recurse=False, status=NEW):
+        def generate_channel(recurse=False, status=NEW):
             toplevel_channel = self.mds.ChannelMetadata.create_channel('root', 'test')
             toplevel_channel.status = status
             for s in status_types:
                 self.mds.TorrentMetadata(infohash=random_infohash(), origin_id=toplevel_channel.id_, status=s)
                 if recurse:
                     for status_combination in all_status_combinations():
-                        gen_coll(toplevel_channel, s, status_combination, recurse=recurse)
+                        generate_collection(toplevel_channel, s, status_combination, recurse=recurse)
             return toplevel_channel
 
         # Make sure running commit on empty channels produces no error
@@ -304,20 +307,20 @@ class TestChannelMetadata(TriblerCoreTest):
         for s in status_types:
             empty_chan = self.mds.ChannelMetadata.create_channel('root', 'test')
             empty_chan.status = s
-            gen_chan(status=s)
+            generate_channel(status=s)
 
         # A committed channel with a single deleted collection in it. It should not be deleted
         single_del_cont_chan = self.mds.ChannelMetadata.create_channel('root', 'test')
         self.mds.CollectionNode(status=TODELETE, origin_id=single_del_cont_chan.id_)
 
         # Create some orphaned MDs
-        chan = gen_chan()
+        chan = generate_channel()
         orphaned_contents_rowids = [c.rowid for c in chan.get_contents_recursive()]
         self.mds.ChannelNode.delete(chan)  # We use it to delete non-recursively
 
         # Create a top-level collection node
         coll = self.mds.CollectionNode(origin_id=0, status=NEW)
-        gen_coll(coll, NEW, [NEW, UPDATED, TODELETE])
+        generate_collection(coll, NEW, [NEW, UPDATED, TODELETE])
 
         commit_results = self.mds.CollectionNode.commit_all_channels()
         # Check that commit results in the correct number of torrents produced
@@ -328,7 +331,7 @@ class TestChannelMetadata(TriblerCoreTest):
         self.assertFalse(self.mds.ChannelNode.exists(lambda g: g.rowid in orphaned_contents_rowids))
 
         # Create a single nested channel
-        chan = gen_chan(recurse=True)
+        chan = generate_channel(recurse=True)
 
         chan.commit_channel_torrent()
         chan.local_version = 0
@@ -413,6 +416,9 @@ class TestChannelMetadata(TriblerCoreTest):
 
     @db_session
     def test_get_channel_name(self):
+        """
+        Test getting torrent name for a channel to be displayed in the downloads list
+        """
         infohash = b"\x00" * 20
         title = "testchan"
         chan = self.mds.ChannelMetadata(title=title, infohash=database_blob(infohash))
@@ -445,6 +451,9 @@ class TestChannelMetadata(TriblerCoreTest):
 
     @db_session
     def test_make_copy(self):
+        """
+        Test copying if recursive copying an external channel to a personal channel works as expected
+        """
         src_chan = self.create_ext_chan(default_eccrypto.generate_key(u"curve25519"))
 
         tgt_chan = self.mds.ChannelMetadata(title='our chan', infohash=random_infohash(), status=NEW)
@@ -457,6 +466,9 @@ class TestChannelMetadata(TriblerCoreTest):
 
     @db_session
     def test_update_properties_move(self):
+        """
+        Test moving a Channel/Collection into another Channel/Collection or at the top of channel hierachy.
+        """
         src_chan = self.create_ext_chan(self.mds.ChannelMetadata._my_key)
         src_chan_contents = src_chan.get_contents_recursive()
         tgt_chan = self.mds.ChannelMetadata.create_channel('dstchan')
@@ -476,6 +488,9 @@ class TestChannelMetadata(TriblerCoreTest):
 
     @db_session
     def test_delete_recursive(self):
+        """
+        Test deleting channel and its contents recursively
+        """
         src_chan = self.create_ext_chan(default_eccrypto.generate_key(u"curve25519"))
         src_chan.delete()
         self.assertEqual(0, self.mds.ChannelNode.select().count())
@@ -488,6 +503,9 @@ class TestChannelMetadata(TriblerCoreTest):
 
     @db_session
     def test_get_parent_ids(self):
+        """
+        Test the routine that gets the full set (path) of a node's predecessors in the channels tree
+        """
         src_chan = self.create_ext_chan(default_eccrypto.generate_key(u"curve25519"))
         coll1 = self.mds.CollectionNode.select(lambda g: g.origin_id == src_chan.id_).first()
         self.assertEqual((0, src_chan.id_, coll1.id_), coll1.contents.first().get_parents_ids())

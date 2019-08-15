@@ -57,7 +57,7 @@ class TestChannelDownload(TestAsServer):
         yield self.session.lm.gigachannel_manager.process_queued_channels()
 
         with db_session:
-            # There should be 4 torrents + 1 channel torrent
+            # There should be 8 torrents + 1 channel torrent
             channel2 = self.session.lm.mds.ChannelMetadata.get(public_key=database_blob(payload.public_key))
             self.assertEqual(8, self.session.lm.mds.ChannelNode.select().count())
             self.assertEqual(1565621688018, channel2.timestamp)
