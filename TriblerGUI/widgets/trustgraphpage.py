@@ -1,7 +1,6 @@
 from __future__ import absolute_import, division
 
 import math
-import time
 
 from PyQt5 import QtCore
 from PyQt5.QtCore import QTimer
@@ -11,8 +10,8 @@ import numpy as np
 
 import pyqtgraph as pg
 
-from TriblerGUI.defs import COLOR_DEFAULT, COLOR_GREEN, COLOR_NEUTRAL, COLOR_RED, COLOR_ROOT, COLOR_SELECTED, \
-    HTML_SPACE, TRUST_GRAPH_HEADER_MESSAGE, TRUST_GRAPH_PEER_LEGENDS
+from TriblerGUI.defs import COLOR_DEFAULT, COLOR_GREEN, COLOR_NEUTRAL, COLOR_RED, COLOR_ROOT, \
+    COLOR_SELECTED, HTML_SPACE, TRUST_GRAPH_PEER_LEGENDS
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.utilities import format_size, html_label
 
@@ -74,15 +73,15 @@ class TrustGraph(pg.GraphItem):
 
 
 class TrustGraphPage(QWidget):
-    REFRESH_INTERVAL_MS = 1000
+    REFRESH_INTERVAL_MS = 2000
     TIMEOUT_INTERVAL_MS = 5000
 
     def __init__(self):
         QWidget.__init__(self)
+
+        self.graph_request_mgr = TriblerRequestManager()
         self.fetch_data_timer = QTimer()
         self.fetch_data_timeout_timer = QTimer()
-        self.fetch_data_last_update = 0
-        self.graph_request_mgr = TriblerRequestManager()
 
         self.trust_graph = None
         self.graph_view = None
@@ -90,7 +89,8 @@ class TrustGraphPage(QWidget):
 
         self.root_public_key = None
         self.graph_data = None
-        self.auto_refresh = False
+        self.graph_depth_to_fetch = 1
+        self.refresh_graph_data = False
 
     def showEvent(self, QShowEvent):
         super(TrustGraphPage, self).showEvent(QShowEvent)
@@ -119,7 +119,8 @@ class TrustGraphPage(QWidget):
         self.graph_view.addItem(self.trust_graph)
         self.graph_view.addItem(pg.TextItem(text='YOU'))
         self.window().trust_graph_plot_widget.layout().addWidget(graph_layout)
-        self.window().tr_control_refresh_btn.clicked.connect(self.fetch_graph_data)
+
+        self.window().tr_control_refresh_btn.clicked.connect(self.refresh_graph)
 
         self.window().tr_selected_node_pub_key.setHidden(True)
         self.window().tr_selected_node_stats.setHidden(True)
@@ -175,8 +176,7 @@ class TrustGraphPage(QWidget):
 
     def on_fetch_data_request_timeout(self):
         self.graph_request_mgr.cancel_request()
-        if self.auto_refresh:
-            self.schedule_fetch_data_timer()
+        self.schedule_fetch_data_timer()
 
     def stop_fetch_data_request(self):
         self.fetch_data_timer.stop()
@@ -186,12 +186,14 @@ class TrustGraphPage(QWidget):
         self.graph_view.setXRange(-1, 1)
         self.graph_view.setYRange(-1, 1)
 
+    def refresh_graph(self):
+        self.graph_depth_to_fetch = 0
+        self.schedule_fetch_data_timer(now=True)
+
     def fetch_graph_data(self):
-        if time.time() - self.fetch_data_last_update > self.REFRESH_INTERVAL_MS / 1000:
-            self.fetch_data_last_update = time.time()
-            self.graph_request_mgr.cancel_request()
-            self.graph_request_mgr = TriblerRequestManager()
-            self.graph_request_mgr.perform_request("trustview", self.on_received_data, priority="LOW")
+        self.graph_request_mgr.cancel_request()
+        self.graph_request_mgr.perform_request("trustview?depth=%d" % self.graph_depth_to_fetch,
+                                               self.on_received_data, priority="LOW")
 
     def on_received_data(self, data):
         if data is None:
@@ -214,6 +216,13 @@ class TrustGraphPage(QWidget):
             plot_data['adj'] = np.array(data['graph']['edge'])
 
         self.trust_graph.setData(**plot_data)
+
+        # if depth is less than 4, fetch the next batch
+        if 0 < data['depth'] < 4:
+            self.graph_depth_to_fetch = data['depth'] + 1
+            self.schedule_fetch_data_timer()
+        else:
+            self.stop_fetch_data_request()
 
     def get_node_color(self, node, selected=False):
         if not selected and self.root_public_key == node['key']:

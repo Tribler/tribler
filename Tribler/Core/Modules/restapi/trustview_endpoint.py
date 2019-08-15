@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import logging
 import math
 from binascii import hexlify, unhexlify
 
@@ -107,52 +106,58 @@ class TrustViewEndpoint(resource.Resource):
     def __init__(self, session):
         resource.Resource.__init__(self)
         self.session = session
-        self._logger = logging.getLogger(self.__class__.__name__)
 
-        self.root_public_key = None
-        self.bootstrap = None
-        self.initialized = False
         self.trustchain_db = None
         self.trust_graph = None
+        self.public_key = None
 
     def initialize_graph(self):
-        if not self.initialized and self.session.lm.trustchain_community:
-            pub_key = self.session.lm.trustchain_community.my_peer.public_key.key_to_bin()
-            self.root_public_key = hexlify(pub_key)
-            self.trust_graph = TrustGraph(self.root_public_key)
-
+        if self.session.lm.trustchain_community:
             self.trustchain_db = self.session.lm.trustchain_community.persistence
-            self.initialized = True
+            self.public_key = self.session.lm.trustchain_community.my_peer.public_key.key_to_bin()
+            self.trust_graph = TrustGraph(hexlify(self.public_key))
 
             # Start bootstrap download if not already done
             if not self.session.lm.bootstrap:
                 self.session.lm.start_bootstrap_download()
 
-    def render_GET(self, _):
-        self.initialize_graph()
+    def render_GET(self, request):
+        if not self.trust_graph:
+            self.initialize_graph()
 
-        # Load your 25 latest trustchain blocks
-        pub_key = self.session.lm.trustchain_community.my_peer.public_key.key_to_bin()
-        blocks = self.trustchain_db.get_latest_blocks(pub_key)
-        self.trust_graph.add_blocks(blocks)
+        def get_bandwidth_blocks(public_key, limit=100):
+            return self.trustchain_db.get_latest_blocks(public_key, limit=limit, block_types=['tribler_bandwidth'])
 
-        # Load 25 latest blocks of max 100 connected users in the database
-        connected_blocks = self.trustchain_db.get_connected_users(pub_key, limit=100)
-        for connected_block in connected_blocks:
-            blocks = self.trustchain_db.get_latest_blocks(unhexlify(connected_block['public_key']), limit=25)
-            self.trust_graph.add_blocks(blocks)
+        def get_friend(public_key, limit=100):
+            return self.trustchain_db.get_connected_users(public_key, limit=limit)
 
-            degree2_users = self.trustchain_db.get_connected_users(connected_block['public_key'], limit=25)
-            for degree2_user in degree2_users:
-                degree_blocks = self.trustchain_db.get_latest_blocks(unhexlify(degree2_user['public_key']), limit=5)
-                self.trust_graph.add_blocks(degree_blocks)
+        depth = 0
+        if 'depth' in request.args:
+            depth = int(request.args['depth'][0])
+
+        # If depth is zero or not provided then fetch all depth levels
+        fetch_all = depth == 0
+
+        if fetch_all or depth == 1:
+            self.trust_graph.add_blocks(get_bandwidth_blocks(self.public_key))
+        if fetch_all or depth == 2:
+            for friend in get_friend(self.public_key):
+                self.trust_graph.add_blocks(get_bandwidth_blocks(unhexlify(friend['public_key'])))
+        if fetch_all or depth == 3:
+            for friend in get_friend(self.public_key):
+                for fof in get_friend(friend['public_key']):
+                    self.trust_graph.add_blocks(get_bandwidth_blocks(unhexlify(fof['public_key'])))
+        if fetch_all or depth == 4:
+            for user_block in self.trustchain_db.get_users():
+                self.trust_graph.add_blocks(get_bandwidth_blocks(unhexlify(user_block['public_key'])))
 
         graph_data = self.trust_graph.compute_node_graph()
 
-        return json.twisted_dumps({'root_public_key': self.root_public_key,
+        return json.twisted_dumps({'root_public_key': hexlify(self.public_key),
                                    'graph': graph_data,
                                    'bootstrap': self.get_bootstrap_info(),
-                                   'num_tx': len(graph_data['edge'])
+                                   'num_tx': len(graph_data['edge']),
+                                   'depth': depth
                                   })
 
     def get_bootstrap_info(self):
