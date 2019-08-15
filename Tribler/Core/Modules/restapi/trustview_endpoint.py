@@ -1,18 +1,19 @@
 from __future__ import absolute_import
 
-from binascii import hexlify, unhexlify
 import math
-
-from twisted.web import resource
+from binascii import hexlify, unhexlify
 
 import networkx as nx
 
+from twisted.web import resource
+
+import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.TrustCalculation.graph_positioning import GraphPositioning as gpos
 from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD
-import Tribler.Core.Utilities.json_util as json
 
 
 class TrustGraph(nx.DiGraph):
+
     def __init__(self, root_node):
         nx.DiGraph.__init__(self)
         self.root_node = 0

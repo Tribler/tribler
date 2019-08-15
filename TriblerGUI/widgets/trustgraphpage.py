@@ -7,7 +7,9 @@ from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import QWidget
 
 import numpy as np
+
 import pyqtgraph as pg
+
 from TriblerGUI.defs import (
     COLOR_DEFAULT,
     COLOR_GREEN,
