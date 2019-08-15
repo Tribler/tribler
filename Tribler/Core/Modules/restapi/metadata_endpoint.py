@@ -35,12 +35,16 @@ class UpdateEntryMixin(object):
         return None, entry.update_properties(update_dict).to_simple_dict()
 
 
-# /metadata
-#          /channels
-#          /torrents
-#          /<public_key>
-# This is the top-level endpoint class that serves other endpoints
 class MetadataEndpoint(resource.Resource, UpdateEntryMixin):
+    """
+    This is the top-level endpoint class that serves other endpoints.
+
+    # /metadata
+    #          /channels
+    #          /torrents
+    #          /<public_key>
+    """
+
     def __init__(self, session):
         self.session = session
         resource.Resource.__init__(self)
@@ -88,10 +92,14 @@ class MetadataEndpoint(resource.Resource, UpdateEntryMixin):
         return json.twisted_dumps(results_list)
 
 
-# /<public_key>
-#              /<id_>
-# Intermediate endpoint for parsing public_key part of the request
 class MetadataPublicKeyEndpoint(resource.Resource):
+    """
+    Intermediate endpoint for parsing public_key part of the request.
+
+    # /<public_key>
+    #              /<id_>
+    """
+
     def getChild(self, path, request):
         return SpecificMetadataEndpoint(self.session, self.channel_pk, path)
 
@@ -101,8 +109,13 @@ class MetadataPublicKeyEndpoint(resource.Resource):
         self.channel_pk = unhexlify(path)
 
 
-# /<id_>
 class SpecificMetadataEndpoint(resource.Resource, UpdateEntryMixin):
+    """
+    The endpoint to modify and get individual metadata entries.
+
+    # /<id_>
+    """
+
     def __init__(self, session, public_key, path):
         self._logger = logging.getLogger(self.__class__.__name__)
 
@@ -113,7 +126,6 @@ class SpecificMetadataEndpoint(resource.Resource, UpdateEntryMixin):
 
     def render_PATCH(self, request):
         # TODO: unify checks for parts of the path, i.e. proper hex for public key, etc.
-
         try:
             parameters = recursive_unicode(json.twisted_loads(request.content.read()))
         except ValueError:
@@ -141,9 +153,14 @@ class SpecificMetadataEndpoint(resource.Resource, UpdateEntryMixin):
         return json.twisted_dumps(entry_dict)
 
 
-# /torrents
-#          /random
 class TorrentsEndpoint(MetadataEndpointBase):
+    """
+    The endpoint that provides and interface to torrent objects in the metadata database.
+
+    # /torrents
+    #          /random
+    """
+
     def __init__(self, session):
         MetadataEndpointBase.__init__(self, session)
         self.putChild(b"random", TorrentsRandomEndpoint(session))
@@ -154,7 +171,7 @@ class TorrentsEndpoint(MetadataEndpointBase):
 
 class SpecificTorrentEndpoint(resource.Resource):
     """
-    This class handles requests for a specific torrent.
+    This class handles requests for a specific torrent, based on infohash.
     """
 
     def __init__(self, session, infohash):
@@ -166,6 +183,10 @@ class SpecificTorrentEndpoint(resource.Resource):
 
 
 class TorrentsRandomEndpoint(MetadataEndpointBase):
+    """
+    A specialized endpoint to get a random torrent from the metadata database.
+    """
+
     def render_GET(self, request):
         limit_torrents = 10
 

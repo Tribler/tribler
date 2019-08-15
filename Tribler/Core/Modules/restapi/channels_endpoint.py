@@ -27,10 +27,15 @@ class ChannelsEndpointBase(MetadataEndpointBase):
     pass
 
 
-# /channels
-#                   /popular
-#                   /<public_key>
 class ChannelsEndpoint(ChannelsEndpointBase):
+    """
+    The channels endpoint.
+
+    # /channels
+    #                   /popular
+    #                   /<public_key>
+    """
+
     def getChild(self, path, request):
         if path == b"popular":
             return ChannelsPopularEndpoint(self.session)
@@ -66,8 +71,13 @@ class ChannelsEndpoint(ChannelsEndpointBase):
         return json.twisted_dumps(response_dict)
 
 
-# /popular
 class ChannelsPopularEndpoint(ChannelsEndpointBase):
+    """
+    The endpoint to serve the most popular channels
+
+    # /popular
+    """
+
     def render_GET(self, request):
         limit_channels = 10
 
@@ -84,9 +94,14 @@ class ChannelsPopularEndpoint(ChannelsEndpointBase):
         return json.twisted_dumps({"channels": results})
 
 
-# /<public_key>
-#              /<id_>
 class ChannelsPublicKeyEndpoint(ChannelsEndpointBase):
+    """
+    An intermediate endpoint parsing the public_key part of the path to specific objects.
+
+    # /<public_key>
+    #              /<id_>
+    """
+
     def getChild(self, path, request):
         return SpecificChannelEndpoint(self.session, self.channel_pk, path)
 
@@ -106,10 +121,15 @@ class SpecificChannelEndpointBase(ChannelsEndpointBase):
         self.channel_id = int(path)
 
 
-# /<id>
-#      /torrents
-#      /commit
 class SpecificChannelEndpoint(SpecificChannelEndpointBase):
+    """
+    The endpoint that serves contents of specific channels.
+
+    # /<id>
+    #      /torrents
+    #      /commit
+    """
+
     def __init__(self, session, channel_pk, path):
         SpecificChannelEndpointBase.__init__(self, session, channel_pk, path)
 
@@ -141,8 +161,12 @@ class SpecificChannelEndpoint(SpecificChannelEndpointBase):
         return json.twisted_dumps(response_dict)
 
 
-# /copy
 class SpecificChannelCopyEndpoint(SpecificChannelEndpointBase):
+    """
+    The endpoint to create copy objects in a specific channel.
+
+    # /copy
+    """
 
     # Create a copy of an entry/entries from another channel
     @db_session
@@ -188,8 +212,13 @@ class SpecificChannelCopyEndpoint(SpecificChannelEndpointBase):
         return json.twisted_dumps(results_list)
 
 
-# /channels
 class SpecificChannelChannelsEndpoint(SpecificChannelEndpointBase):
+    """
+    The endpoint that serves sub-channel for a specific channel.
+    Currently, the only correct usage for this is to use it to create top-level personal channels.
+
+    # /channels
+    """
 
     # Create a new channel entry in this channel
     @db_session
@@ -198,8 +227,12 @@ class SpecificChannelChannelsEndpoint(SpecificChannelEndpointBase):
         return json.twisted_dumps({"results": [md.to_simple_dict()]})
 
 
-# /collections
 class SpecificChannelCollectionsEndpoint(SpecificChannelEndpointBase):
+    """
+    The endpoint that serves collection objects for a specific channel.
+
+    # /collections
+    """
 
     # Create a new collection entry in this channel
     @db_session
@@ -208,8 +241,13 @@ class SpecificChannelCollectionsEndpoint(SpecificChannelEndpointBase):
         return json.twisted_dumps({"results": [md.to_simple_dict()]})
 
 
-# /torrents
 class SpecificChannelTorrentsEndpoint(SpecificChannelEndpointBase):
+    """
+    The endpoint that serves torrent objects for a specific channel.
+
+    # /torrents
+    """
+
     def return_500(self, request, exception):
         self._logger.exception(exception)
         request.setResponseCode(http.INTERNAL_SERVER_ERROR)
@@ -365,8 +403,13 @@ class SpecificChannelTorrentsEndpoint(SpecificChannelEndpointBase):
         return json.twisted_dumps({"added": 1})
 
 
-# /commit
 class SpecificChannelCommitEndpoint(SpecificChannelEndpointBase):
+    """
+    The endpoint to trigger commit events by POSTing commit objects.
+
+    # /commit
+    """
+
     def render_POST(self, request):
         with db_session:
             if self.channel_id == 0:
