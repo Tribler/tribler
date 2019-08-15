@@ -8,7 +8,7 @@ from binascii import unhexlify
 from ipv8.database import database_blob
 from ipv8.keyvault.crypto import default_eccrypto
 
-from pony.orm import db_session
+from pony.orm import db_session, flush
 
 from twisted.internet.defer import inlineCallbacks
 
@@ -310,6 +310,7 @@ class TestMetadataStore(TriblerCoreTest):
         payload3 = torrent._payload_class(**torrent3.to_dict())
         torrent3.delete()
 
+        # Test rejecting older entry with the same infohash
         self.mds.process_payload(payload2, skip_personal_metadata_payload=False)
         self.assertEqual(GOT_NEWER_VERSION, self.mds.process_payload(payload,
                                                                      skip_personal_metadata_payload=False)[0][1])
@@ -320,6 +321,25 @@ class TestMetadataStore(TriblerCoreTest):
         results = self.mds.process_payload(payload3, skip_personal_metadata_payload=False)
         self.assertIn((None, DELETED_METADATA), results)
         self.assertIn((self.mds.TorrentMetadata.get(), UNKNOWN_TORRENT), results)
+
+    @db_session
+    def test_process_payload_reject_older_entry(self):
+        torrent_old = self.mds.TorrentMetadata(title='blabla', timestamp=11, id_=3,
+                                               infohash=database_blob(os.urandom(20)))
+        payload_old = torrent_old._payload_class(**torrent_old.to_dict())
+        torrent_old.delete()
+
+        torrent_updated = self.mds.TorrentMetadata(title='blabla', timestamp=12, id_=3,
+                                                   infohash=database_blob(os.urandom(20)))
+        torrent_updated_dict = torrent_updated.to_dict()
+        torrent_updated.delete()
+        flush()
+
+        self.mds.TorrentMetadata.from_dict(torrent_updated_dict)
+
+        # Test rejecting older version of the same entry with a different infohash
+        self.assertEqual(GOT_NEWER_VERSION, self.mds.process_payload(payload_old,
+                                                                     skip_personal_metadata_payload=False)[0][1])
 
     @db_session
     def test_get_num_channels_nodes(self):
