@@ -234,10 +234,8 @@ class TriblerWindow(QMainWindow):
             )
         )
         self.discovered_page.model.channel_info["name"] = "Discovered channels"
-        # self.discovered_page.model.default_sort_column = self.columns.index(u'votes')
         self.core_manager.events_manager.discovered_channel.connect(self.discovered_page.model.on_new_entry_received)
 
-        # self.channel_page.initialize_channel_page(self.gui_settings)
         self.trust_page.initialize_trust_page()
         self.token_mining_page.initialize_token_mining_page()
         self.trust_graph_page.initialize_trust_graph()
@@ -337,7 +335,6 @@ class TriblerWindow(QMainWindow):
 
         self.show()
 
-        # self.mychannel_treewidget = QtWidgets.QTreeWidget()
         self.add_to_channel_dialog = AddToChannelDialog(self.window())
 
     def update_tray_icon(self, use_monochrome_icon):
@@ -448,6 +445,7 @@ class TriblerWindow(QMainWindow):
 
         self.initialize_personal_channels_page()
         self.add_to_channel_dialog.load_channel(0)
+        self.discovered_page.reset_view()
 
     def initialize_personal_channels_page(self):
         self.personal_channel_page.initialize_content_page(self.gui_settings, edit_enabled=True)
@@ -908,12 +906,14 @@ class TriblerWindow(QMainWindow):
             if self.dialog.checkbox.isChecked():
                 self.add_dir_to_channel(self.chosen_dir, callback=self.on_dir_added_to_channel)
             for torrent_file in self.selected_torrent_files:
-                self.perform_start_download_request(u"file:%s" % torrent_file,
-                                                    self.window().tribler_settings['download_defaults'][
-                                                        'anonymity_enabled'],
-                                                    self.window().tribler_settings['download_defaults'][
-                                                        'safeseeding_enabled'],
-                                                    self.tribler_settings['download_defaults']['saveas'], [], 0)
+                self.perform_start_download_request(
+                    u"file:%s" % torrent_file,
+                    self.window().tribler_settings['download_defaults']['anonymity_enabled'],
+                    self.window().tribler_settings['download_defaults']['safeseeding_enabled'],
+                    self.tribler_settings['download_defaults']['saveas'],
+                    [],
+                    0,
+                )
 
         if self.dialog:
             self.dialog.close_dialog()
@@ -1000,7 +1000,7 @@ class TriblerWindow(QMainWindow):
     def clicked_menu_button_search(self):
         self.deselect_all_menu_buttons(self.left_menu_button_search)
         self.stackedWidget.setCurrentIndex(PAGE_SEARCH_RESULTS)
-        self.discovered_page.content_table.setFocus()
+        self.search_results_page.content_table.setFocus()
         self.navigation_stack = []
         self.hide_left_menu_playlist()
 

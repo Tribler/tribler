@@ -185,6 +185,7 @@ class ChannelContentsWidget(QWidget):
     def on_channel_clicked(self, channel_dict):
         self.initialize_with_channel(channel_dict)
 
+    # TODO: restore the method and button to copy channel_id to the clipboard
     # def on_copy_channel_id(self):
     #    copy_to_clipboard(self.channel_info["public_key"])
     #    self.tray_show_message("Copied channel ID", self.channel_info["public_key"])

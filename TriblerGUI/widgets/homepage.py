@@ -5,6 +5,7 @@ from PyQt5.QtWidgets import QWidget
 
 from six.moves import xrange
 
+from TriblerGUI.defs import PAGE_DISCOVERED
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.widgets.home_recommended_item import HomeRecommendedItem
 
@@ -105,6 +106,7 @@ class HomePage(QWidget):
         cell_widget = self.window().home_page_table_view.cellWidget(row, col)
         if self.show_channels and isinstance(cell_widget, HomeRecommendedItem):
             channel_info = cell_widget.channel_info
-            self.window().channel_page.initialize_with_channel(channel_info)
+            self.window().discovered_page.initialize_with_channel(channel_info)
             self.window().navigation_stack.append(self.window().stackedWidget.currentIndex())
-            # self.window().stackedWidget.setCurrentIndex(PAGE_CHANNEL_DETAILS)
+            self.window().discovered_page.content_table.setFocus()
+            self.window().stackedWidget.setCurrentIndex(PAGE_DISCOVERED)

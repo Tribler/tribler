@@ -42,9 +42,6 @@ class TriblerContentTableView(QTableView):
         # TODO: status changing feature should remain turned off until we fix the undo mess
         self.delegate.delete_button.clicked.connect(self.on_delete_button_clicked)
 
-    # def mousePressEvent(self, event):
-    #    print event.modifiers()
-
     def mouseMoveEvent(self, event):
         index = QModelIndex(self.indexAt(event.pos()))
         self.mouse_moved.emit(event.pos(), index)
