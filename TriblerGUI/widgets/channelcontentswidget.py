@@ -238,10 +238,6 @@ class ChannelContentsWidget(QWidget):
                 self.channel_state_label.setText(self.model.channel_info["state"])
                 self.subscription_widget.update_subscribe_button(self.model.channel_info)
 
-        # self.total_items = response['total']
-        # if self.num_results_label:
-        #    self.num_results_label.setText("%d results" % self.total_items)
-
         if not self.autocommit_enabled:
             if dirty:
                 self.commit_control_bar.setHidden(False)

@@ -3,7 +3,6 @@ from __future__ import absolute_import
 import struct
 
 from Tribler.Core.Socks5.conversion import decode_request
-from Tribler.Core.Socks5.conversion import decode_request
 from Tribler.Test.test_as_server import AbstractServer
 
 

@@ -239,7 +239,6 @@ class MetadataStore(object):
                 channel.timestamp,
             )
 
-        result = []
         for filename in sorted(os.listdir(dirname)):
             full_filename = os.path.join(dirname, filename)
 
@@ -266,9 +265,7 @@ class MetadataStore(object):
                     ):
                         continue
                 try:
-                    result.extend(
-                        self.process_mdblob_file(full_filename, skip_personal_metadata_payload, external_thread)
-                    )
+                    self.process_mdblob_file(full_filename, skip_personal_metadata_payload, external_thread)
 
                     # If we stopped mdblob processing due to shutdown flag, we should stop
                     # processing immediately, so that channel local version will not increase
@@ -294,7 +291,6 @@ class MetadataStore(object):
                 channel.local_version,
                 channel.timestamp,
             )
-        return result
 
     def process_mdblob_file(self, filepath, skip_personal_metadata_payload=True, external_thread=False):
         """

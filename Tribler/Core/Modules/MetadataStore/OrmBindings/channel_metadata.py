@@ -191,8 +191,6 @@ def define_binding(db):
             # Channel should get a new starting timestamp and its contents should get higher timestamps
             start_timestamp = self._clock.tick()
 
-            stuff = []
-
             def update_timestamps_recursive(node):
                 if issubclass(type(node), db.CollectionNode):
                     for child in node.contents:
@@ -201,7 +199,6 @@ def define_binding(db):
                     node.status = UPDATED
                     node.timestamp = self._clock.tick()
                     node.sign()
-                    stuff.append(node)
 
             update_timestamps_recursive(self)
 

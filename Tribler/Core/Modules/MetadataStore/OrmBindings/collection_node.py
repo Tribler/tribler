@@ -338,7 +338,10 @@ def define_binding(db):
                 if issubclass(type(node), db.CollectionNode) and node.status != TODELETE:
                     # Update recursive count of actual non-collection contents
                     node.num_entries = select(
-                        (g.num_entries if g.metadata_type == COLLECTION_NODE else 1) for g in node.actual_contents
+                        # For each subnode, if it is a collection, add the count of its contents to the recursive sum.
+                        # Otherwise, add just 1 to the sum (to count the subnode itself).
+                        (g.num_entries if g.metadata_type == COLLECTION_NODE else 1)
+                        for g in node.actual_contents
                     ).sum()
                     node.timestamp = db.ChannelNode._clock.tick()
                     node.sign()
