@@ -1,0 +1,14 @@
+[tool.black]
+line-length = 120
+py27 = true
+skip-string-normalization = true
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.venv
+  | \.idea 
+  | snap
+  | doc
+)/
+'''

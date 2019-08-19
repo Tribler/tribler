@@ -1,0 +1,5 @@
+[flake8]
+jobs = auto 
+max-line-length = 120 
+select=E901,E999,F821,F822,F823,I100,I101,I201,I202
+ignore=E203,W503,C0330

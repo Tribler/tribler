@@ -1,0 +1,21 @@
+repos:
+-   repo: https://github.com/Tribler/mirrors-autoflake
+    rev: v1.1
+    hooks:
+      - id: autoflake
+        args: ['--in-place', '--remove-all-unused-imports', '--remove-unused-variable']
+
+-   repo: https://github.com/Tribler/isort
+    rev: 4.3.21-2-tribler
+    hooks:
+    - id: isort
+
+-   repo: https://github.com/ambv/black
+    rev: 19.3b0
+    hooks:
+    - id: black
+
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v2.2.3
+    hooks:
+    -  id: flake8
