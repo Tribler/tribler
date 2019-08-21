@@ -13,6 +13,7 @@ class TriblerApplication(QtSingleApplication):
     """
     This class represents the main Tribler application.
     """
+
     def __init__(self, app_name, args):
         QtSingleApplication.__init__(self, app_name, args)
         self.code_executor = None
@@ -30,7 +31,7 @@ class TriblerApplication(QtSingleApplication):
     def parse_sys_args(self, args):
         for arg in args[1:]:
             if os.path.exists(arg):
-                self.handle_uri('file:%s' % arg)
+                self.handle_uri(u'file:%s' % arg.decode('utf-8'))
             elif arg.startswith('magnet'):
                 self.handle_uri(arg)
 
