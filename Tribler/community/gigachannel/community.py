@@ -38,8 +38,8 @@ class GigaChannelCommunity(Community):
     Community to gossip around gigachannels.
     """
 
-    master_peer = Peer(unhexlify("4c69624e61434c504b3affe527cce8f49b1fb6e5aa0a9f78848ad3726df343b94abc563493fd463d1d7"
-                                 "523344cf757aed58faf4916236dee9966135aca6b99a52f87bfad416160c0d846"))
+    master_peer = Peer(unhexlify("4c69624e61434c504b3a75d4e05e6e1eff04861806a3ca7af9e5dbb43ef212eb60e319449fc7b9f7d20"
+                                 "f67503f32c822d4333694bf9862756c5c04552585f820af2ce2e153389fa35fee"))
 
     NEWS_PUSH_MESSAGE = 1
     SEARCH_REQUEST = 2
@@ -236,5 +236,6 @@ class GigaChannelTestnetCommunity(GigaChannelCommunity):
     """
     This community defines a testnet for the giga channels, used for testing purposes.
     """
-    master_peer = Peer(unhexlify("4c69624e61434c504b3afbd79020aa61795d1186ea505cf80fe2ac7f42dfc32b830ebade5d78479cbb4"
-                                 "35bdbfda7b04e156f5515d1b0bbdafa5c67279e25937201ef6b31f7eeded20423"))
+
+    master_peer = Peer(unhexlify("4c69624e61434c504b3ac09348a8b6a0a27ebbd1848f2fc1d171bb3206507b7f57a5fe889af81585c77"
+                                 "18dece7a99358d7b94855c1d52d7e04639306e0be7b7b482ef59f38a043a0a353"))
