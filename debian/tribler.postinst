@@ -1,4 +1,6 @@
 if which pip >/dev/null 2>&1; then
+    # 2019-08-26 wheel is necessary for other pip installs
+    pip install --user wheel
     # Install pony orm with pip since it is not available in Debian repository
     pip install --user pony>=0.7.9
     # 2019-02-13; Add lz4 compression ; Remove this once this library is updated in Debian repo
