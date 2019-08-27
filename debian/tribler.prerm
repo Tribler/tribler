@@ -3,4 +3,6 @@ if which pip >/dev/null 2>&1; then
     pip uninstall -y pony
     # Remove lz4 from pip
     pip uninstall -y lz4
+    # Remove wheel the last
+    pip uninstall -y wheel
 fi
