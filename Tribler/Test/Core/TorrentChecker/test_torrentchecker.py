@@ -213,7 +213,7 @@ class TestTorrentChecker(TestAsServer):
         """
         Check whether there is no crash when the torrent health check failed and the response is None
         """
-        infohash_bin = '\xee' * 20
+        infohash_bin = b'\xee' * 20
         self.torrent_checker.on_torrent_health_check_completed(infohash_bin, [(True, None)])
         self.assertEqual(1, len(self.torrent_checker.torrents_checked))
         self.assertEqual(0, list(self.torrent_checker.torrents_checked)[0][1])
