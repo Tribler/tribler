@@ -436,11 +436,13 @@ class MetadataStore(object):
             if node.timestamp < payload.timestamp:
                 node.set(**payload.to_dict())
                 result.append((node, UPDATED_OUR_VERSION))
+                return result
             elif node.timestamp > payload.timestamp:
                 result.append((node, GOT_NEWER_VERSION))
+                return result
             # Otherwise, we got the same version locally and do nothing.
-            # The situation when something was marked for deletion, and then we got here (i.e. we have the same
-            # version) should never happen, because this version should have removed the above mentioned node earlier
+            # The situation when something was marked for deletion, and then we got here (i.e. we have the same or
+            # newer version) should never happen, because this version should have removed the node we deleted earlier
             if result:
                 self._logger.warning("Broken DB state!")
             return result

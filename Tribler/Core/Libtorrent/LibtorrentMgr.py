@@ -452,8 +452,11 @@ class LibtorrentMgr(TaskManager):
         elif infohash not in self.metainfo_requests:
             metainfo_deferred = Deferred()
 
-            # Are we already downloading the torrent? If so, use that handle
-            if infohash_hex in self.torrents and self.torrents[infohash_hex][0].handle:
+            # Are we already downloading the torrent? If so, use that handle.
+            # Note that if the download is already in credit mining mode and has not started then it will not
+            # have metadata.
+            if infohash_hex in self.torrents and self.torrents[infohash_hex][0].handle \
+                    and self.torrents[infohash_hex][0].handle.has_metadata():
                 handle = self.torrents[infohash_hex][0].handle
                 self.metainfo_requests[infohash] = (handle, [metainfo_deferred])
                 self.check_metainfo(infohash_hex)

@@ -3,7 +3,6 @@ from __future__ import absolute_import
 import logging
 from datetime import datetime
 
-from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QProgressBar, QTreeWidgetItem, QVBoxLayout, QWidget
 
 from TriblerGUI.defs import *
@@ -56,12 +55,6 @@ class DownloadWidgetItem(QTreeWidgetItem):
 
     def update_item(self):
         self.setText(0, self.download_info["name"])
-        if self.download_info["name"] == u"<old version of your channel>":
-            itfont = QFont(self.font(0))
-            itfont.setItalic(True)
-            self.setFont(0, itfont)
-        else:
-            self.font(0).setItalic(False)
 
         if self.download_info["size"] == 0 and self.get_raw_download_status() == DLSTATUS_METADATA:
             self.setText(1, "unknown")

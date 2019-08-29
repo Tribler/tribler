@@ -219,7 +219,8 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
         downloads_json = []
         downloads = self.session.get_downloads()
         for download in downloads:
-            if download.hidden:
+            if download.hidden and not download.config.get_channel_download():
+                # We still want to send channel downloads since they are displayed in the GUI
                 continue
             state = download.get_state()
             tdef = download.get_def()

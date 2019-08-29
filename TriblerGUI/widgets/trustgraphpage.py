@@ -1,257 +1,103 @@
 from __future__ import absolute_import, division
 
 import math
-import time
 
-from PyQt5.QtCore import QTimer, Qt
-from PyQt5.QtWidgets import QSizePolicy, QWidget
+from PyQt5 import QtCore
+from PyQt5.QtCore import QTimer
+from PyQt5.QtWidgets import QWidget
 
-import matplotlib
-from matplotlib.backends.backend_qt5agg import FigureCanvas
-from matplotlib.pyplot import Figure
+import numpy as np
 
-from networkx.readwrite import json_graph
+import pyqtgraph as pg
 
-from TriblerGUI.defs import COLOR_BACKGROUND, COLOR_DEFAULT, COLOR_GREEN, COLOR_NEUTRAL, COLOR_RED, COLOR_SELECTED, \
-    HTML_SPACE, TRUST_GRAPH_HEADER_MESSAGE, TRUST_GRAPH_PEER_LEGENDS
+from TriblerGUI.defs import (
+    COLOR_DEFAULT,
+    COLOR_GREEN,
+    COLOR_NEUTRAL,
+    COLOR_RED,
+    COLOR_ROOT,
+    COLOR_SELECTED,
+    HTML_SPACE,
+    TRUST_GRAPH_PEER_LEGENDS,
+)
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.utilities import format_size, html_label
 
-matplotlib.use('Qt5Agg')
 
+class TrustGraph(pg.GraphItem):
+    def __init__(self):
+        pg.GraphItem.__init__(self)
+        self.data = None
 
-class TrustAnimationCanvas(FigureCanvas):
+        # Support dragging the nodes
+        self.dragPoint = None
+        self.dragOffset = None
 
-    def __init__(self, parent=None, width=5, height=5, dpi=100):
-        self.fig = Figure(figsize=(width, height), dpi=dpi, frameon=False)
-        self.fig.set_tight_layout(True)
+    def set_node_selection_listener(self, listener):
+        self.scatter.sigClicked.connect(listener)
 
-        self.axes = self.fig.add_subplot(111)
-        self.axes.tick_params(which='both', bottom=False, top=False, left=False, labelbottom=False, labelleft=False)
-        self.axes.set_xlim(0, 1)
-        self.axes.set_ylim(0, 1)
-        self.axes.set_xticks([], [])
-        self.axes.set_yticks([], [])
-        self.axes.set_facecolor(COLOR_BACKGROUND)
+    def setData(self, **data):
+        self.data = data
+        if 'pos' in self.data:
+            num_nodes = self.data['pos'].shape[0]
+            self.data['data'] = np.empty(num_nodes, dtype=[('index', int)])
+            self.data['data']['index'] = np.arange(num_nodes)
+            pg.GraphItem.setData(self, **self.data)
 
-        FigureCanvas.__init__(self, self.fig)
-        self.setParent(parent)
-
-        FigureCanvas.setSizePolicy(self, QSizePolicy.Expanding, QSizePolicy.Expanding)
-        FigureCanvas.updateGeometry(self)
-
-        # User interaction
-        self.fig.canvas.setFocusPolicy(Qt.ClickFocus)
-        self.fig.canvas.setFocus()
-        self.fig.canvas.mpl_connect('button_press_event', self.on_mouse_press_event)
-        self.fig.canvas.mpl_connect('button_release_event', self.on_mouse_release_event)
-        self.fig.canvas.mpl_connect("motion_notify_event", self.on_drag_event)
-
-        self.root_public_key = None
-        self.token_balance = {}
-
-        # Reference to nodes in the plotted graph
-        self.root_node = None
-        self.scatter_nodes = None
-
-        self.graph = None
-        self.pos = None
-        self.old_pos = None
-        self.node_positions = None
-        self.redraw = False
-
-        self.animation_frame = 0
-        self.max_frames = 20
-        self.translation = {'x': 0, 'y': 0}
-
-        self.selected_node = {'public_key': '', 'up': 0, 'down': 0}
-        self.node_selection_callback = None
-
-    def showEvent(self, QShowEvent):
-        super(TrustAnimationCanvas, self).showEvent(QShowEvent)
-        self.translation = {'x': 0, 'y': 0}
-        self.redraw = True
-        self.animation_frame = 1
-        self.update_canvas()
-
-    def update_canvas(self):
-        if not self.graph or not self.animation_frame or not self.should_redraw_graph():
+    def mouseDragEvent(self, event):
+        if event.button() != QtCore.Qt.LeftButton:
+            event.ignore()
             return
 
-        self.axes.clear()
-        self.axes.set_xlim(0, 1)
-        self.axes.set_ylim(0, 1)
-        self.axes.set_xticks([], [])
-        self.axes.set_yticks([], [])
-        self.axes.set_facecolor(COLOR_BACKGROUND)
+        if event.isStart():
+            clicked_position = event.buttonDownPos()
+            clicked_nodes = self.scatter.pointsAt(clicked_position)
+            if not clicked_nodes:
+                event.ignore()
+                return
 
-        # To support animation, new positions of the nodes are calculated based on the frame rate.
-        move_frame_fraction = 1 - (self.animation_frame - 1) / (1.0 * self.max_frames)
-        self.node_positions = self.compute_node_positions_and_color(self.pos, self.old_pos, move_frame_fraction)
+            self.dragPoint = clicked_nodes[0]
+            clicked_index = clicked_nodes[0].data()[0]
+            self.dragOffset = self.data['pos'][clicked_index] - clicked_position
 
-        # Draw the graph based on the current positions of the nodes
-        self.draw_graph(self.root_public_key, self.node_positions)
-
-    def compute_node_positions_and_color(self, target_position, old_position, move_fraction):
-        """
-        Computes the new position of the nodes to animate the graph based on frame rate (represented by move fraction).
-        :param target_position: Final position of the nodes
-        :param old_position: Previous position of the nodes
-        :param move_fraction: Represents how close the current position should be from the target position.
-        :return: Position, color and size of the nodes to render in the graph
-        """
-        current_position = {}
-
-        if old_position is None:
-            for n in self.graph.node:
-                current_position[n] = ((target_position[n][0]), (target_position[n][1]),
-                                       self.get_node_color(n), self.get_node_size(n))
-        else:
-            for n in set(old_position.keys()).difference(target_position.keys()):
-                old_position[n] = (1.0, 0.0)
-            for n in set(target_position.keys()).difference(old_position.keys()):
-                target_position[n] = (0.0, 0.0)
-
-            for n in self.graph.node:
-                if n not in target_position:
-                    target_position[n] = (0.0, 0.0)
-                if n not in old_position:
-                    old_position[n] = (0.0, 1.0)
-                current_position[n] = ((((target_position[n][0] - old_position[n][0]) * move_fraction)
-                                        + old_position[n][0] + self.translation['x']),
-                                       (((target_position[n][1] - old_position[n][1]) * move_fraction)
-                                        + old_position[n][1] + self.translation['y']),
-                                       self.get_node_color(n), self.get_node_size(n))
-        return current_position
-
-    def draw_graph(self, root_node, node_positions):
-        """
-        Draws graph using the nodes and edges provided from root_node perspective.
-        :param root_node: Central node
-        :param node_positions: List of positions (x,y) of all the graph nodes.
-        :return: None
-        """
-        # Compute the co-ordinates for the nodes and (array) index as edges: (x1, y1) ---> (x2, y2)
-        x1s, x2s, y1s, y2s = [], [], [], []
-        for edge in self.graph.edges():
-            x1s.append(node_positions[str(edge[0])][0])
-            y1s.append(node_positions[str(edge[0])][1])
-            x2s.append(node_positions[str(edge[1])][0])
-            y2s.append(node_positions[str(edge[1])][1])
-
-        # Plot the graph edges but nodes are set to have zero marker size. Nodes are plotted separately later.
-        self.axes.plot([x1s, x2s], [y1s, y2s], color='#e0e0e0', alpha=0.5, linestyle='--', lw=0.1, markersize=0)
-        self.axes.text(node_positions[root_node][0], node_positions[root_node][1], "You", color='#ffffff',
-                       verticalalignment='center', horizontalalignment='center', fontsize=8)
-
-        # Plot the root (center) node
-        root_color = COLOR_SELECTED if self.selected_node.get('public_key', None) == self.root_public_key else '#e67300'
-        self.root_node = self.axes.plot(node_positions[root_node][0], node_positions[root_node][1], marker='o',
-                                        color=root_color, alpha=1.0, linestyle='--', lw=1, markersize=24,
-                                        markeredgecolor='#e67300', markeredgewidth=1)[0]
-
-        # Plot all the nodes as scatter plot to support clicking on the nodes
-        nodes_x, nodes_y, colors, sizes = zip(*node_positions.values())
-        self.scatter_nodes = self.axes.scatter(nodes_x, nodes_y, c=colors, s=sizes, alpha=0.6, edgecolors=colors)
-
-        # Draw the canvas and invoke the callback for showing the info about the selected node
-        self.figure.canvas.draw()
-        self.show_selected_node_info()
-
-        # At the end reset the redraw flag
-        self.redraw = False
-
-    def show_selected_node_info(self):
-        """
-        Invokes the registered callback to show the information about the selected node.
-        """
-        if not self.selected_node or not self.selected_node.get('public_key', None):
-            self.selected_node = dict()
-            self.selected_node['public_key'] = self.root_public_key
-
-        node_balance = self.token_balance.get(self.selected_node['public_key'], dict())
-        self.selected_node['total_up'] = node_balance.get('total_up', 0)
-        self.selected_node['total_down'] = node_balance.get('total_down', 0)
-
-        if self.node_selection_callback:
-            self.node_selection_callback(self.selected_node)
-
-    def get_node_color(self, node_public_key):
-        if self.selected_node.get('public_key', None) == node_public_key:
-            return COLOR_SELECTED
-        node_balance = self.token_balance.get(node_public_key, {'total_up': 0, 'total_down': 0})
-        if node_balance['total_up'] > node_balance['total_down']:
-            return COLOR_GREEN
-        elif node_balance['total_up'] < node_balance['total_down']:
-            return COLOR_RED
-        return COLOR_NEUTRAL
-
-    def get_node_size(self, node_public_key):
-        """
-        Returns the size for a given node based on its Trustchain balance.
-        The lower threshold is 1 GigaByte and the upper threshold is 1 TeraByte.
-        """
-        node_balance = self.token_balance.get(node_public_key, {'total_up': 0, 'total_down': 0})
-        diff_balance = abs(node_balance['total_up'] - node_balance['total_down'])
-        if diff_balance < 1024 ** 3:
-            return 100
-        size = 10 * math.log(diff_balance, 2) + 100
-        if size > 500:
-            size = 500
-        return size
-
-    def should_redraw_graph(self):
-        if not self.old_pos or self.redraw:
-            return True
-        if len(self.old_pos.keys()) != len(self.pos.keys()):
-            return True
-        for node_id in self.pos.keys():
-            if node_id not in self.old_pos:
-                return True
-            if self.old_pos[node_id] != self.pos[node_id]:
-                return True
-        return False
-
-    def on_mouse_press_event(self, event):
-        if not self.scatter_nodes:
+        elif event.isFinish():
+            self.dragPoint = None
             return
-        self.selected_node = dict()
-        enclosing_nodes = self.scatter_nodes.contains(event)
-        # Example value for enclosing nodes: (True, {'ind': array([ 71, 340], dtype=int32)})
-        if enclosing_nodes[0]:
-            index = enclosing_nodes[1]['ind'][-1]
-            self.selected_node['public_key'] = list(self.node_positions.keys())[index]
-            self.redraw = True
 
-    def on_mouse_release_event(self, _):
-        self.update_canvas()
+        elif self.dragPoint is None:
+            event.ignore()
+            return
 
-    def on_drag_event(self, event):
-        if event.button == 1 and self.selected_node.get('public_key', '') == self.root_public_key:
-            self.translation['x'] += event.xdata - self.root_node.get_xdata()[0]
-            self.translation['y'] += event.ydata - self.root_node.get_ydata()[0]
-            self.animation_frame = 1
-            self.redraw = True
-            self.update_canvas()
+        # Update position of the node and re-render the graph
+        clicked_index = self.dragPoint.data()[0]
+        if clicked_index == 0:
+            event.ignore()
+            return
+        self.data['pos'][clicked_index] = event.pos() + self.dragOffset
+
+        pg.GraphItem.setData(self, **self.data)
+        event.accept()
 
 
 class TrustGraphPage(QWidget):
-    REFRESH_INTERVAL_MS = 1000
-    TIMEOUT_INTERVAL_MS = 5000
-
-    MAX_FRAMES = 3
-    ANIMATION_DURATION = 3000
+    REFRESH_INTERVAL_MS = 2000
+    TIMEOUT_INTERVAL_MS = 30000
 
     def __init__(self):
         QWidget.__init__(self)
-        self.trust_plot = None
+
+        self.graph_request_mgr = TriblerRequestManager()
         self.fetch_data_timer = QTimer()
         self.fetch_data_timeout_timer = QTimer()
-        self.fetch_data_last_update = 0
-        self.graph_request_mgr = TriblerRequestManager()
 
-        self.animation_timer = None
-        self.animation_refresh_interval = self.ANIMATION_DURATION/self.MAX_FRAMES
+        self.trust_graph = None
+        self.graph_view = None
+        self.selected_node = dict()
+
+        self.root_public_key = None
+        self.graph_data = None
+        self.graph_depth_to_fetch = 1
+        self.refresh_graph_data = False
 
     def showEvent(self, QShowEvent):
         super(TrustGraphPage, self).showEvent(QShowEvent)
@@ -262,27 +108,75 @@ class TrustGraphPage(QWidget):
         self.stop_fetch_data_request()
 
     def initialize_trust_graph(self):
-        vlayout = self.window().trust_graph_plot_widget.layout()
-        self.trust_plot = TrustAnimationCanvas(self.window().trust_graph_plot_widget, dpi=100)
-        self.trust_plot.node_selection_callback = self.on_node_selection_callback
-        vlayout.addWidget(self.trust_plot)
-        self.window().trust_graph_explanation_label.setText(TRUST_GRAPH_HEADER_MESSAGE)
-        self.window().trust_graph_progress_bar.setHidden(True)
-        self.trust_plot.max_frames = self.MAX_FRAMES
+        pg.setConfigOption('background', '222222')
+        pg.setConfigOption('foreground', '555')
+        pg.setConfigOption('antialias', True)
 
-    def on_node_selection_callback(self, selected_node):
+        graph_layout = pg.GraphicsLayoutWidget()
+        self.graph_view = graph_layout.addViewBox()
+        self.graph_view.setAspectLocked()
+        self.graph_view.setMenuEnabled(False)
+        self.reset_graph()
+
+        # To disable zoom in the graph, wheel event is overridden. To enable it again, remove the statement below.
+        self.graph_view.wheelEvent = lambda evt: None
+
+        self.trust_graph = TrustGraph()
+        self.trust_graph.set_node_selection_listener(self.on_node_clicked)
+        self.graph_view.addItem(self.trust_graph)
+        self.graph_view.addItem(pg.TextItem(text='YOU'))
+        self.window().trust_graph_plot_widget.layout().addWidget(graph_layout)
+
+        self.window().tr_control_refresh_btn.clicked.connect(self.refresh_graph)
+
+        self.window().tr_selected_node_pub_key.setHidden(True)
+        self.window().tr_selected_node_stats.setHidden(True)
+        self.window().trust_graph_progress_bar.setHidden(True)
+
+    def on_node_clicked(self, points):
+        clicked_node_data = points.ptsClicked[0].data()
+        clicked_node = self.graph_data['node'][clicked_node_data[0]]
+
+        if not self.selected_node:
+            self.selected_node = dict()
+        elif 'spot' in self.selected_node and self.selected_node['spot']:
+            self.selected_node['spot'].setBrush(self.selected_node['color'])
+
+        self.selected_node['public_key'] = clicked_node['key']
+        self.selected_node['total_up'] = clicked_node.get('total_up', 0)
+        self.selected_node['total_down'] = clicked_node.get('total_down', 0)
+        self.selected_node['color'] = self.get_node_color(clicked_node)
+        self.selected_node['spot'] = points.ptsClicked[0]
+
+        spot = points.ptsClicked[0]
+        spot.setBrush(COLOR_SELECTED)
+
+        self.update_status_bar(self.selected_node)
+
+    def update_status_bar(self, selected_node):
         if not selected_node:
             return
 
-        peer_message = "<b>Peer</b> %s%s..." % (HTML_SPACE * 16, selected_node.get('public_key', '')[:74])
+        peer_message = "<b>User</b> %s%s..." % (HTML_SPACE * 16, selected_node.get('public_key', '')[:74])
+        self.window().tr_selected_node_pub_key.setHidden(False)
         self.window().tr_selected_node_pub_key.setText(peer_message)
 
         diff = selected_node.get('total_up', 0) - selected_node.get('total_down', 0)
         color = COLOR_GREEN if diff > 0 else COLOR_RED if diff < 0 else COLOR_DEFAULT
-        bandwidth_message = "<b>Bandwidth</b> " + HTML_SPACE * 2 \
-                            + " Given " + HTML_SPACE + html_label(format_size(selected_node.get('total_up', 0))) \
-                            + " Taken " + HTML_SPACE + html_label(format_size(selected_node.get('total_down', 0))) \
-                            + " Balance " + HTML_SPACE + html_label(format_size(diff), color=color)
+        bandwidth_message = (
+            "<b>Bandwidth</b> "
+            + HTML_SPACE * 2
+            + " Given "
+            + HTML_SPACE
+            + html_label(format_size(selected_node.get('total_up', 0)))
+            + " Taken "
+            + HTML_SPACE
+            + html_label(format_size(selected_node.get('total_down', 0)))
+            + " Balance "
+            + HTML_SPACE
+            + html_label(format_size(diff), color=color)
+        )
+        self.window().tr_selected_node_stats.setHidden(False)
         self.window().tr_selected_node_stats.setText(bandwidth_message)
 
     def schedule_fetch_data_timer(self, now=False):
@@ -303,52 +197,73 @@ class TrustGraphPage(QWidget):
     def stop_fetch_data_request(self):
         self.fetch_data_timer.stop()
         self.fetch_data_timeout_timer.stop()
-        if self.animation_timer:
-            self.animation_timer.stop()
+
+    def reset_graph(self):
+        self.graph_view.setXRange(-1, 1)
+        self.graph_view.setYRange(-1, 1)
+
+    def refresh_graph(self):
+        self.graph_depth_to_fetch = 0
+        self.schedule_fetch_data_timer(now=True)
 
     def fetch_graph_data(self):
-        if time.time() - self.fetch_data_last_update > self.REFRESH_INTERVAL_MS / 1000:
-            self.fetch_data_last_update = time.time()
-            self.graph_request_mgr.cancel_request()
-            self.graph_request_mgr = TriblerRequestManager()
-            self.graph_request_mgr.perform_request("trustview", self.on_received_data, priority="LOW")
+        self.graph_request_mgr.cancel_request()
+        self.graph_request_mgr.perform_request("trustview?depth=%d" % self.graph_depth_to_fetch,
+                                               self.on_received_data, priority="LOW")
 
     def on_received_data(self, data):
         if data is None:
             return
         self.update_gui_labels(data)
-        self.trust_plot.graph = json_graph.node_link_graph(data['graph_data'])
-        self.trust_plot.old_pos = None if self.trust_plot.pos is None else dict(self.trust_plot.pos)
-        self.trust_plot.pos = data['positions']
-        self.trust_plot.root_public_key = data['root_public_key']
-        self.trust_plot.token_balance = data['token_balance']
 
-        if not self.trust_plot.should_redraw_graph():
-            return
+        self.root_public_key = data['root_public_key']
+        self.graph_data = data['graph']
 
-        self.trust_plot.animation_frame = self.MAX_FRAMES
-        self.animation_timer = QTimer()
-        self.animation_timer.timeout.connect(self.redraw_graph)
-        self.animation_timer.setInterval(self.ANIMATION_DURATION/self.MAX_FRAMES)
-        self.animation_timer.start(0)
+        plot_data = dict()
+        plot_data['pxMode'] = False
+        plot_data['pen'] = (100, 100, 100, 150)
+        plot_data['brush'] = (255, 0, 0, 255)
+        plot_data['pos'] = np.array([node[u'pos'] for node in data['graph']['node']])
+        plot_data['size'] = np.array([self.get_node_size(node) for node in data['graph']['node']])
+        plot_data['symbolBrush'] = np.array([self.get_node_color(node) for node in data['graph']['node']])
 
-    def redraw_graph(self):
-        self.trust_plot.animation_frame -= 1
-        if self.trust_plot.animation_frame:
-            self.trust_plot.update_canvas()
-        else:
-            self.animation_timer.stop()
+        # If there are edges, only then set 'adj' keyword
+        if data['graph']['edge']:
+            plot_data['adj'] = np.array(data['graph']['edge'])
+
+        self.trust_graph.setData(**plot_data)
+
+        # if depth is less than 4, fetch the next batch
+        if 0 < data['depth'] < 4:
+            self.graph_depth_to_fetch = data['depth'] + 1
             self.schedule_fetch_data_timer()
+        else:
+            self.stop_fetch_data_request()
+
+    def get_node_color(self, node, selected=False):
+        if not selected and self.root_public_key == node['key']:
+            return COLOR_ROOT
+        if selected and self.selected_node and self.selected_node.get('public_key', None) == node['key']:
+            return COLOR_SELECTED
+        diff = node.get('total_up', 0) - node.get('total_down', 0)
+        return COLOR_GREEN if diff > 0 else COLOR_NEUTRAL if diff == 0 else COLOR_RED
+
+    def get_node_size(self, node):
+        # User root node is bigger than normal nodes
+        min_size = 0.01 if node[u'key'] != self.root_public_key else 0.05
+
+        diff = abs(node.get('total_up', 0) - node.get('total_down', 0))
+        if diff == 0:
+            return min_size
+
+        # magic function to set the node size based on their balance
+        return math.log(diff / (1024 * 1024), 2) / 512 + min_size
 
     def update_gui_labels(self, data):
-        bootstrap_progress = int(data['bootstrap']['progress'] * 100)
-        if bootstrap_progress == 100:
-            self.window().trust_graph_progress_bar.setHidden(True)
-        else:
-            self.window().trust_graph_progress_bar.setHidden(False)
-            self.window().trust_graph_progress_bar.setValue(bootstrap_progress)
-
-        status_message = u"<strong style='font-size:14px'>Transactions : %s | Peers : %s</strong> %s" \
-                         % (data['num_tx'], len(data['positions']), TRUST_GRAPH_PEER_LEGENDS)
-
-        self.window().trust_graph_status_bar.setText(status_message)
+        header_message = (
+            "The graph below is based on your historical interactions with other users in the "
+            "network. It shows <strong>%s</strong> interactions made by <strong>%s</strong> users."
+            "<br/>" % (data['num_tx'], len(data['graph']['node']))
+        )
+        self.window().trust_graph_explanation_label.setText(header_message)
+        self.window().trust_graph_status_bar.setText(TRUST_GRAPH_PEER_LEGENDS)

@@ -221,7 +221,7 @@ class GigaChannelManager(TaskManager):
         dcfg.set_dest_dir(self.session.lm.mds.channels_dir)
         dcfg.set_channel_download(True)
         tdef = TorrentDefNoMetainfo(infohash=bytes(channel.infohash), name=channel.dirname)
-        download = self.session.start_download_from_tdef(tdef, dcfg)
+        download = self.session.start_download_from_tdef(tdef, dcfg, hidden=True)
 
         def _add_channel_to_processing_queue(_):
             self.channels_processing_queue[channel.infohash] = (PROCESS_CHANNEL_DIR, channel)

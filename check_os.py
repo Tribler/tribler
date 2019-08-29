@@ -1,5 +1,6 @@
 from __future__ import absolute_import, print_function
 
+import importlib
 import logging.config
 import os
 import sys
@@ -84,6 +85,7 @@ def check_environment():
     """
     Perform all of the pre-Tribler checks to see if we can run on this platform.
     """
+    check_pip_dependencies()
     check_read_write()
 
 
@@ -356,3 +358,26 @@ def trace_exceptions(file_handler, frame, event, args):
             exc_type.__name__, exc_value, "".join(traceback.format_tb(exc_traceback)))
         file_handler.write(trace_line)
         file_handler.flush()
+
+
+def check_pip_dependencies():
+    """
+    Checks modules installed with pip, especially via linux post installation script.
+    Program exits with a dialog if there are any missing dependencies.
+
+    TODO: Right now with TKinter dialog, it is not possible to copy the missing dependencies
+    scripts shown in the dialog box. When we update the dialog, we should support that as well.
+    """
+    required_deps = ['pony', 'lz4']
+    missing_deps = []
+
+    for dep in required_deps:
+        try:
+            importlib.import_module(dep)
+        except ImportError:
+            missing_deps.append(dep)
+
+    if missing_deps:
+        error_and_exit("Dependencies missing!",
+                       "Please report to the developers and install the following missing dependencies "
+                       "to continue:\n\n pip install --user %s \n\n" % " ".join(missing_deps))

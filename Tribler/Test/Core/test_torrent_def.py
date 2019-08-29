@@ -246,6 +246,20 @@ class TestTorrentDef(BaseTestCase):
         torrent2 = TorrentDefNoMetainfo(b"12345678901234567890", VIDEO_FILE_NAME, "magnet:")
         self.assertFalse(torrent2.get_trackers_as_single_tuple())
 
+    def test_files_no_metainfo(self):
+        """
+        Test whether a TorrentDef without metainfo has no files.
+        """
+        t = TorrentDef()
+        self.assertEqual(0, len(t.get_files_with_length()))
+
+    def test_get_length_no_metainfo(self):
+        """
+        Test whether a TorrentDef without metainfo has 0 length.
+        """
+        t = TorrentDef()
+        self.assertEqual(0, t.get_length())
+
     def test_get_index(self):
         """
         Test whether we can successfully get the index of a file in a torrent.
@@ -258,3 +272,10 @@ class TestTorrentDef(BaseTestCase):
 
         t.metainfo = {b'info': {b'files': [{b'path': [b'a.txt'], b'path.utf-8': [b'b.txt'], b'length': 123}]}}
         self.assertEqual(t.get_index_of_file_in_files('b.txt'), 0)
+
+    def test_get_index_no_metainfo(self):
+        """
+        Test whether a ValueError is raised when attempting index access on TorrentDefs without metainfo.
+        """
+        t = TorrentDef()
+        self.assertRaises(ValueError, t.get_index_of_file_in_files, u'?')

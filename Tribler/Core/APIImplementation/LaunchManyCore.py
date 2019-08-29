@@ -277,7 +277,8 @@ class TriblerLaunchMany(TaskManager):
 
         if self.session.config.get_chant_enabled():
             channels_dir = os.path.join(self.session.config.get_chant_channels_dir())
-            database_path = os.path.join(self.session.config.get_state_dir(), 'sqlite', 'metadata.db')
+            metadata_db_name = 'metadata.db' if not self.session.config.get_testnet() else 'metadata_testnet.db'
+            database_path = os.path.join(self.session.config.get_state_dir(), 'sqlite', metadata_db_name)
             self.mds = MetadataStore(database_path, channels_dir, self.session.trustchain_keypair)
 
         if self.session.config.get_dummy_wallets_enabled():

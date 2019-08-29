@@ -47,7 +47,7 @@ class Category(object):
         :return a list of categories this torrent belongs to.
         """
         is_xxx = default_xxx_filter.isXXXTorrent(
-            files_list=recursive_unicode(torrent_dict[b'info'][b"files"] if b"files" in torrent_dict[b'info'] else []),
+            files_list=recursive_unicode(torrent_dict[b'info']["files"] if "files" in torrent_dict[b'info'] else []),
             torrent_name=torrent_dict[b'info'].get(b"name", b'').decode('utf-8'),
             tracker=torrent_dict[b'info'].get(b"announce", b'').decode('utf-8'))
         if is_xxx:
@@ -55,7 +55,7 @@ class Category(object):
         files_list = []
         try:
             # the multi-files mode
-            for ifiles in torrent_dict[b'info'][b"files"]:
+            for ifiles in torrent_dict[b'info']["files"]:
                 files_list.append((ifiles[b'path'][-1].decode('utf-8'), ifiles[b'length'] / float(self.__size_change)))
         except KeyError:
             # single mode
