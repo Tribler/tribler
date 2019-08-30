@@ -55,7 +55,7 @@ class Category(object):
         files_list = []
         try:
             # the multi-files mode
-            for ifiles in torrent_dict[b'info']["files"]:
+            for ifiles in torrent_dict[b'info'][b"files"]:
                 files_list.append((ifiles[b'path'][-1].decode('utf-8'), ifiles[b'length'] / float(self.__size_change)))
         except KeyError:
             # single mode

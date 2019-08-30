@@ -237,10 +237,11 @@ class TorrentChecker(TaskManager):
             elif response is None:
                 self._logger.warning("Torrent health response is none!")
                 continue
-            final_response[response.keys()[0]] = response[response.keys()[0]][0]
+            response_keys = list(response.keys())
+            final_response[response_keys[0]] = response[response_keys[0]][0]
 
-            s = response[response.keys()[0]][0]['seeders']
-            l = response[response.keys()[0]][0]['leechers']
+            s = response[response_keys[0]][0]['seeders']
+            l = response[response_keys[0]][0]['leechers']
 
             # More leeches is better, because undefined peers are marked as leeches in DHT
             if s > torrent_update_dict['seeders'] or \

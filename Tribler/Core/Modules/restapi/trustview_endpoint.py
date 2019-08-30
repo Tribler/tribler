@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 import math
-from binascii import hexlify, unhexlify
+from binascii import unhexlify
 
 import networkx as nx
 
@@ -9,6 +9,7 @@ from twisted.web import resource
 
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.TrustCalculation.graph_positioning import GraphPositioning as gpos
+from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD
 
 
@@ -32,7 +33,7 @@ class TrustGraph(nx.DiGraph):
         return self.node[self.peers.index(peer_key)]
 
     def add_block(self, block):
-        if block.hash not in self.transactions and block.type == 'tribler_bandwidth':
+        if block.hash not in self.transactions and block.type == b'tribler_bandwidth':
             peer1_key = hexlify(block.public_key)
             peer2_key = hexlify(block.link_public_key)
 
@@ -41,10 +42,10 @@ class TrustGraph(nx.DiGraph):
 
             if block.sequence_number > peer1.get('sequence_number', 0):
                 peer1['sequence_number'] = block.sequence_number
-                peer1['total_up'] = block.transaction["total_up"]
-                peer1['total_down'] = block.transaction["total_down"]
+                peer1['total_up'] = block.transaction[b"total_up"]
+                peer1['total_down'] = block.transaction[b"total_down"]
 
-            diff = block.transaction['up'] - block.transaction['down']
+            diff = block.transaction[b'up'] - block.transaction[b'down']
             if peer2['id'] not in self.successors(peer1['id']):
                 self.add_edge(peer1['id'], peer2['id'], weight=diff)
 
@@ -125,14 +126,14 @@ class TrustViewEndpoint(resource.Resource):
             self.initialize_graph()
 
         def get_bandwidth_blocks(public_key, limit=64):
-            return self.trustchain_db.get_latest_blocks(public_key, limit=limit, block_types=['tribler_bandwidth'])
+            return self.trustchain_db.get_latest_blocks(public_key, limit=limit, block_types=[b'tribler_bandwidth'])
 
         def get_friends(public_key, limit=64):
             return self.trustchain_db.get_connected_users(public_key, limit=limit)
 
         depth = 0
-        if 'depth' in request.args:
-            depth = int(request.args['depth'][0])
+        if b'depth' in request.args:
+            depth = int(request.args[b'depth'][0])
 
         # If depth is zero or not provided then fetch all depth levels
         fetch_all = depth == 0

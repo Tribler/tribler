@@ -556,7 +556,7 @@ class TriblerLaunchMany(TaskManager):
             # this peer runs a Tribler instance
             if self.state_cb_count % 5 == 0 and download.config.get_hops() == 0 and self.payout_manager:
                 for peer in download.get_peerlist():
-                    if peer["extended_version"].startswith('Tribler'):
+                    if str(peer["extended_version"]).startswith('Tribler'):
                         self.payout_manager.update_peer(unhexlify(peer["id"]), infohash, peer["dtotal"])
                         if self.bootstrap and hexlify(infohash) == self.session.config.get_bootstrap_infohash():
                             self.bootstrap.fetch_bootstrap_peers()
