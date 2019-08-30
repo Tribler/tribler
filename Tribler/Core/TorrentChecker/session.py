@@ -637,8 +637,8 @@ class FakeDHTSession(TrackerSession):
             self.result_deferred.callback({
                 "DHT": [{
                     "infohash": hexlify(self.infohash),
-                    "seeders": metainfo[b"seeders"],
-                    "leechers": metainfo[b"leechers"]
+                    "seeders": metainfo["seeders"],
+                    "leechers": metainfo["leechers"]
                 }]
             })
 
