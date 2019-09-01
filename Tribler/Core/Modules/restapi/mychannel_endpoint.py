@@ -155,7 +155,7 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
             args = recursive_unicode(request.args)
             sanitized = self.sanitize_parameters(args)
             if 'exclude_deleted' in args:
-                sanitized['exclude_deleted'] = bool(int(request.args['exclude_deleted'][0]) > 0)
+                sanitized['exclude_deleted'] = args['exclude_deleted']
 
             sanitized.update(dict(channel_pk=database_blob(my_channel.public_key)))
 
@@ -365,9 +365,10 @@ class MyChannelTorrentsCountEndpoint(BaseMyChannelEndpoint):
                 request.setResponseCode(http.NOT_FOUND)
                 return json.twisted_dumps({"error": "your channel has not been created"})
 
-            sanitized = self.sanitize_parameters(request.args)
-            if b'exclude_deleted' in request.args:
-                sanitized['exclude_deleted'] = request.args[b'exclude_deleted']
+            args = recursive_unicode(request.args)
+            sanitized = self.sanitize_parameters(args)
+            if 'exclude_deleted' in args:
+                sanitized['exclude_deleted'] = args['exclude_deleted']
 
             sanitized.update(dict(channel_pk=database_blob(my_channel.public_key)))
             return self.get_total_count(self.session.lm.mds.TorrentMetadata, sanitized)
