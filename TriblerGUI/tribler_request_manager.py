@@ -262,7 +262,7 @@ class TriblerRequestManager(QObject):
     def set_reply_handle(self, reply):
         self.reply = reply
 
-    def perform_request(self, endpoint, read_callback, url_params=None, data=None, raw_data="", method='GET',
+    def perform_request(self, endpoint, read_callback, url_params=None, data=None, raw_data=b"", method='GET',
                         capture_errors=True, priority=QueuePriorityEnum.CRITICAL, on_cancel=lambda: None):
         """
         Perform a HTTP request.
@@ -422,7 +422,7 @@ class TriblerRequestWorker(QNetworkAccessManager):
         else:
             url = self.get_base_url() + endpoint
 
-        if data:
+        if data and not issubclass(type(data), bytes):
             data = data.encode('utf8')
 
         log = [endpoint, method, data, time(), 0]
