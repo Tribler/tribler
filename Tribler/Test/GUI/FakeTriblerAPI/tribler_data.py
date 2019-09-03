@@ -1,11 +1,9 @@
 from __future__ import absolute_import
 
 import os
-
 from random import randint, sample
 from time import time
 
-from six import text_type
 from six.moves import xrange
 
 from Tribler.Core.Utilities.unicode import hexlify

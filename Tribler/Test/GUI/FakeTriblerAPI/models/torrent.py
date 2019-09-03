@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import time
 from binascii import unhexlify
-from datetime import datetime
 from random import choice, randint, uniform
 
 from six.moves import xrange

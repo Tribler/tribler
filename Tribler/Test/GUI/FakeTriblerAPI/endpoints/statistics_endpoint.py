@@ -1,9 +1,10 @@
 from __future__ import absolute_import
 
-import Tribler.Core.Utilities.json_util as json
 from random import randint
 
 from twisted.web import resource
+
+import Tribler.Core.Utilities.json_util as json
 
 
 class StatisticsEndpoint(resource.Resource):

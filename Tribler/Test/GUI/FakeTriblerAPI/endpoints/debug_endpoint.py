@@ -1,11 +1,12 @@
 from __future__ import absolute_import
 
-import Tribler.Core.Utilities.json_util as json
 import time
 
 from six.moves import xrange
 
 from twisted.web import resource
+
+import Tribler.Core.Utilities.json_util as json
 
 
 class DebugEndpoint(resource.Resource):

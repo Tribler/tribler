@@ -1,12 +1,13 @@
 from __future__ import absolute_import
 
-import Tribler.Core.Utilities.json_util as json
+
 from random import choice, randint
 
 from six.moves import xrange
 
 from twisted.web import resource
 
+import Tribler.Core.Utilities.json_util as json
 from Tribler.Test.GUI.FakeTriblerAPI import tribler_utils
 
 
@@ -60,20 +61,21 @@ class IPv8CircuitsEndpoint(resource.Resource):
 
     def render_GET(self, _request):
         return json.twisted_dumps({"circuits": [circuit.to_dictionary()
-                                        for circuit in tribler_utils.tribler_data.tunnel_circuits]})
+                                                for circuit in tribler_utils.tribler_data.tunnel_circuits]})
 
 
 class IPv8RelaysEndpoint(resource.Resource):
 
     def render_GET(self, _request):
-        return json.twisted_dumps({"relays": [relay.to_dictionary() for relay in tribler_utils.tribler_data.tunnel_relays]})
+        return json.twisted_dumps({"relays": [relay.to_dictionary()
+                                              for relay in tribler_utils.tribler_data.tunnel_relays]})
 
 
 class IPv8ExitsEndpoint(resource.Resource):
 
     def render_GET(self, _request):
         return json.twisted_dumps({"exits": [exit_socket.to_dictionary()
-                                     for exit_socket in tribler_utils.tribler_data.tunnel_exits]})
+                                             for exit_socket in tribler_utils.tribler_data.tunnel_exits]})
 
 
 class IPv8DHTEndpoint(resource.Resource):

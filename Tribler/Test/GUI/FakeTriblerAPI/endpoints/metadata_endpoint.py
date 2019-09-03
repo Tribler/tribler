@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import Tribler.Core.Utilities.json_util as json
 from binascii import unhexlify
 from random import randint, sample
 
@@ -8,8 +7,8 @@ from twisted.internet import reactor
 from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
 
+import Tribler.Core.Utilities.json_util as json
 import Tribler.Test.GUI.FakeTriblerAPI.tribler_utils as tribler_utils
-from Tribler.Core.Utilities.unicode import hexlify
 
 
 class MetadataEndpoint(resource.Resource):

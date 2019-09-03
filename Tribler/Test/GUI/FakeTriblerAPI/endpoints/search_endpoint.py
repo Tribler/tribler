@@ -1,10 +1,10 @@
 from __future__ import absolute_import
 
-import Tribler.Core.Utilities.json_util as json
 from random import Random
 
 from twisted.web import http, resource
 
+import Tribler.Core.Utilities.json_util as json
 import Tribler.Test.GUI.FakeTriblerAPI.tribler_utils as tribler_utils
 
 

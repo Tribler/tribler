@@ -5,6 +5,7 @@ from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.QtWidgets import QWidget
 
 import Tribler.Core.Utilities.json_util as json
+
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.utilities import format_votes, get_image_path
 
