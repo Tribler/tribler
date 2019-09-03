@@ -26,16 +26,16 @@ class RootEndpoint(resource.Resource):
         resource.Resource.__init__(self)
 
         self.events_endpoint = EventsEndpoint()
-        self.putChild("events", self.events_endpoint)
+        self.putChild(b"events", self.events_endpoint)
 
-        child_handler_dict = {"metadata": MetadataEndpoint, "mychannel": MyChannelEndpoint,
-                              "settings": SettingsEndpoint, "search": SearchEndpoint,
-                              "downloads": DownloadsEndpoint,
-                              "trustchain": TrustchainEndpoint, "statistics": StatisticsEndpoint,
-                              "state": StateEndpoint, "torrentinfo": TorrentInfoEndpoint,
-                              "wallets": WalletsEndpoint, "market": MarketEndpoint, "shutdown": ShutdownEndpoint,
-                              "debug": DebugEndpoint, "ipv8": IPv8Endpoint,
-                              "libtorrent": LibTorrentEndpoint}
+        child_handler_dict = {b"metadata": MetadataEndpoint, b"mychannel": MyChannelEndpoint,
+                              b"settings": SettingsEndpoint, b"search": SearchEndpoint,
+                              b"downloads": DownloadsEndpoint,
+                              b"trustchain": TrustchainEndpoint, b"statistics": StatisticsEndpoint,
+                              b"state": StateEndpoint, b"torrentinfo": TorrentInfoEndpoint,
+                              b"wallets": WalletsEndpoint, b"market": MarketEndpoint, b"shutdown": ShutdownEndpoint,
+                              b"debug": DebugEndpoint, b"ipv8": IPv8Endpoint,
+                              b"libtorrent": LibTorrentEndpoint}
 
         for path, child_cls in child_handler_dict.items():
             self.putChild(path, child_cls())

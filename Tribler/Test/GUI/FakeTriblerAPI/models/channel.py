@@ -1,10 +1,11 @@
 from __future__ import absolute_import
 
 import time
-from binascii import hexlify, unhexlify
+from binascii import unhexlify
 from random import choice, randint
 
 import Tribler.Test.GUI.FakeTriblerAPI.tribler_utils as tribler_utils
+from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Test.GUI.FakeTriblerAPI.constants import NEW, TODELETE
 from Tribler.Test.GUI.FakeTriblerAPI.utils import get_random_hex_string
 from Tribler.pyipv8.ipv8.util import old_round

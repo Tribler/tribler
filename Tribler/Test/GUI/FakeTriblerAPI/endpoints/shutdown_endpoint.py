@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-import json
+import Tribler.Core.Utilities.json_util as json
 
 from twisted.internet import reactor, task
 from twisted.web import resource
@@ -16,4 +16,4 @@ class ShutdownEndpoint(resource.Resource):
         Shuts down the fake API
         """
         task.deferLater(reactor, 0, reactor.stop)
-        return json.dumps({"shutdown": True})
+        return json.twisted_dumps({"shutdown": True})

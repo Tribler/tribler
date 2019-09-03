@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-import json
+import Tribler.Core.Utilities.json_util as json
 
 from twisted.web import resource
 
@@ -32,4 +32,4 @@ class WalletsEndpoint(resource.Resource):
                 "precision": 1
             }
         }
-        return json.dumps({"wallets": wallets})
+        return json.twisted_dumps({"wallets": wallets})
