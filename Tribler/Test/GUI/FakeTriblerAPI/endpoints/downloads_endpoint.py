@@ -7,8 +7,8 @@ from six import text_type
 
 from twisted.web import http, resource
 
-import Tribler.Test.GUI.FakeTriblerAPI.tribler_utils as tribler_utils
 import Tribler.Core.Utilities.json_util as json
+import Tribler.Test.GUI.FakeTriblerAPI.tribler_utils as tribler_utils
 from Tribler.Core.Utilities.unicode import hexlify
 
 
