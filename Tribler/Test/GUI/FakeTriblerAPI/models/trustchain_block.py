@@ -1,8 +1,9 @@
 from __future__ import absolute_import
 
 import datetime
-from binascii import hexlify
 from random import randint, random
+
+from Tribler.Core.Utilities.unicode import hexlify
 
 
 class TrustchainBlock(object):
@@ -15,10 +16,10 @@ class TrustchainBlock(object):
         self.total_up = (last_block.total_up if last_block else 0) + self.up
         self.total_down = (last_block.total_down if last_block else 0) + self.down
         self.transaction = {"up": self.up, "down": self.down, "total_up": self.total_up, "total_down": self.total_down}
-        self.link_public_key = 'b' * 20
+        self.link_public_key = b'b' * 20
         self.link_sequence_number = 0 if random() < 0.5 else randint(1, 1000)
-        self.previous_hash = 'c' * 20
-        self.signature = 'd' * 20
+        self.previous_hash = b'c' * 20
+        self.signature = b'd' * 20
         self.insert_time = datetime.datetime.fromtimestamp(int(timestamp)).strftime('%Y-%m-%d %H:%M:%S')
         self.type = 'tribler_bandwidth'
 
@@ -36,6 +37,6 @@ class TrustchainBlock(object):
             "previous_hash": hexlify(self.previous_hash),
             "signature": hexlify(self.signature),
             "insert_time": self.insert_time,
-            "hash": hexlify('e' * 20),
+            # "hash": hexlify(b'e' * 20),
             "type": self.type
         }

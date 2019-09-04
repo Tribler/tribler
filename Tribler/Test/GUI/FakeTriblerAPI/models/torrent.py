@@ -1,11 +1,12 @@
 from __future__ import absolute_import
 
 import time
-from binascii import hexlify, unhexlify
+from binascii import unhexlify
 from random import choice, randint, uniform
 
 from six.moves import xrange
 
+from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Test.GUI.FakeTriblerAPI.constants import COMMITTED
 from Tribler.Test.GUI.FakeTriblerAPI.utils import get_random_filename, get_random_hex_string
 
@@ -25,6 +26,7 @@ class Torrent(object):
         self.last_tracker_check = 0
         self.num_seeders = 0
         self.num_leechers = 0
+        self.updated = int(time.time())
 
         if randint(0, 1) == 0:
             # Give this torrent some health
@@ -47,7 +49,8 @@ class Torrent(object):
             "relevance_score": self.relevance_score,
             "num_seeders": self.num_seeders,
             "num_leechers": self.num_leechers,
-            "last_tracker_check": self.last_tracker_check
+            "last_tracker_check": self.last_tracker_check,
+            "updated": self.updated
         }
 
         if include_status:

@@ -1,12 +1,12 @@
 from __future__ import absolute_import
 
 import os
-from binascii import hexlify
 from random import randint, sample
 from time import time
 
 from six.moves import xrange
 
+from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Test.GUI.FakeTriblerAPI.constants import NEW, TODELETE
 from Tribler.Test.GUI.FakeTriblerAPI.models.channel import Channel
 from Tribler.Test.GUI.FakeTriblerAPI.models.download import Download
@@ -135,7 +135,7 @@ class TriblerData(object):
 
         # Sort accordingly
         if sort_by:
-            results.sort(key=lambda result: result[sort_by], reverse=not sort_asc)
+            results.sort(key=lambda result: result[sort_by.decode('utf-8')], reverse=not sort_asc)
 
         return results[first-1:last], len(results)
 
@@ -157,7 +157,7 @@ class TriblerData(object):
 
         # Sort accordingly
         if sort_by:
-            results.sort(key=lambda result: result[sort_by], reverse=not sort_asc)
+            results.sort(key=lambda result: result[sort_by.decode('utf-8')], reverse=not sort_asc)
 
         return results[first-1:last], len(results)
 
@@ -200,7 +200,7 @@ class TriblerData(object):
 
     def get_channel_with_public_key(self, public_key):
         for channel in self.channels:
-            if str(channel.public_key) == public_key:
+            if channel.public_key == public_key:
                 return channel
         return None
 
@@ -253,7 +253,7 @@ class TriblerData(object):
 
     def generate_trustchain_blocks(self):
         # Generate a chain of 100 blocks
-        my_id = 'a' * 20
+        my_id = b'a' * 20
         cur_timestamp = time() - 100 * 24 * 3600  # 100 days in the past
         self.trustchain_blocks.append(TrustchainBlock(my_id=my_id, timestamp=cur_timestamp))
         for _ in xrange(100):

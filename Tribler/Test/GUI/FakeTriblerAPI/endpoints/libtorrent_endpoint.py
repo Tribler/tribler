@@ -1,22 +1,22 @@
 from __future__ import absolute_import
 
-import json
-
 from twisted.web import resource
+
+import Tribler.Core.Utilities.json_util as json
 
 
 class LibTorrentEndpoint(resource.Resource):
 
     def __init__(self):
         resource.Resource.__init__(self)
-        self.putChild("settings", LibTorrentSettingsEndpoint())
-        self.putChild("session", LibTorrentSessionEndpoint())
+        self.putChild(b"settings", LibTorrentSettingsEndpoint())
+        self.putChild(b"session", LibTorrentSessionEndpoint())
 
 
 class LibTorrentSettingsEndpoint(resource.Resource):
 
     def render_GET(self, _request):
-        return json.dumps({
+        return json.twisted_dumps({
             "hop": 0,
             "settings": {
                 "urlseed_wait_retry": 30,
@@ -31,7 +31,7 @@ class LibTorrentSettingsEndpoint(resource.Resource):
 class LibTorrentSessionEndpoint(resource.Resource):
 
     def render_GET(self, _request):
-        return json.dumps({
+        return json.twisted_dumps({
             "hop": 0,
             "session": {
                 "peer.num_peers_end_game": 0,

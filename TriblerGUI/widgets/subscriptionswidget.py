@@ -1,10 +1,10 @@
 from __future__ import absolute_import
 
-import json
-
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.QtWidgets import QWidget
+
+import Tribler.Core.Utilities.json_util as json
 
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.utilities import format_votes, get_image_path
@@ -78,7 +78,7 @@ class SubscriptionsWidget(QWidget):
 
         self.request_mgr = TriblerRequestManager()
         self.request_mgr.perform_request("settings", self.on_credit_mining_sources,
-                                         method='POST', raw_data=json.dumps(settings))
+                                         method='POST', raw_data=json.twisted_dumps(settings).decode('utf-8'))
 
     def on_credit_mining_sources(self, json_result):
         if not json_result:

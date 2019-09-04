@@ -1,9 +1,9 @@
 from __future__ import absolute_import
 
-import json
-from binascii import hexlify
-
 from twisted.web import resource
+
+import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.Utilities.unicode import hexlify
 
 
 class TorrentInfoEndpoint(resource.Resource):
@@ -18,5 +18,5 @@ class TorrentInfoEndpoint(resource.Resource):
                 }]
             }
         }
-        metainfo_dict = {"metainfo": hexlify(json.dumps(metainfo, ensure_ascii=False))}
-        return json.dumps(metainfo_dict)
+        metainfo_dict = {"metainfo": hexlify(json.twisted_dumps(metainfo, ensure_ascii=False))}
+        return json.twisted_dumps(metainfo_dict)

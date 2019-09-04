@@ -1,11 +1,12 @@
 from __future__ import absolute_import, division
 
 import base64
-from binascii import hexlify
 from random import randint, random, uniform
 
+from six import int2byte
 from six.moves import xrange
 
+from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Test.GUI.FakeTriblerAPI.constants import DLSTATUS_STRINGS
 from Tribler.Test.GUI.FakeTriblerAPI.models.download_peer import DownloadPeer
 
@@ -52,13 +53,13 @@ class Download(object):
                                "progress": random(), "included": True if random() > 0.5 else False})
 
     def get_pieces_base64(self):
-        bitstr = ""
+        bitstr = b""
         for bit in self.has_pieces:
-            bitstr += '1' if bit else '0'
+            bitstr += b'1' if bit else b'0'
 
-        encoded_str = ""
+        encoded_str = b""
         for i in range(0, len(bitstr), 8):
-            encoded_str += chr(int(bitstr[i:i+8].ljust(8, '0'), 2))
+            encoded_str += int2byte(int(bitstr[i:i + 8].ljust(8, b'0'), 2))
         return base64.b64encode(encoded_str)
 
     def get_json(self, get_peers=False, get_pieces=False):
@@ -97,6 +98,6 @@ class Download(object):
             download["peers"] = [peer.get_info_dict() for peer in self.peers]
 
         if get_pieces:
-            download["pieces"] = self.get_pieces_base64()
+            download["pieces"] = self.get_pieces_base64().decode('utf-8')
 
         return download

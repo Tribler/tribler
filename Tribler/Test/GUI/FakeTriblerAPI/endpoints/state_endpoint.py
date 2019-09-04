@@ -1,11 +1,11 @@
 from __future__ import absolute_import
 
-import json
-
 from twisted.web import resource
+
+import Tribler.Core.Utilities.json_util as json
 
 
 class StateEndpoint(resource.Resource):
 
     def render_GET(self, _request):
-        return json.dumps({"state": "STARTED", "last_exception": None, "readable_state": "Starting..."})
+        return json.twisted_dumps({"state": "STARTED", "last_exception": None, "readable_state": "Starting..."})

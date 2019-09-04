@@ -1,14 +1,15 @@
 from __future__ import absolute_import
 
 import cgi
-import json
-from binascii import hexlify, unhexlify
+from binascii import unhexlify
 
 from six import text_type
 
 from twisted.web import http, resource
 
+import Tribler.Core.Utilities.json_util as json
 import Tribler.Test.GUI.FakeTriblerAPI.tribler_utils as tribler_utils
+from Tribler.Core.Utilities.unicode import hexlify
 
 
 class DownloadsEndpoint(resource.Resource):
@@ -18,27 +19,27 @@ class DownloadsEndpoint(resource.Resource):
 
     def render_GET(self, request):
         get_peers = False
-        if 'get_peers' in request.args and request.args['get_peers'] \
-                and request.args['get_peers'][0] == "1":
+        if b'get_peers' in request.args and request.args[b'get_peers'] \
+                and request.args[b'get_peers'][0] == b"1":
             get_peers = True
 
         get_pieces = False
-        if 'get_pieces' in request.args and request.args['get_pieces'] \
-                and request.args['get_pieces'][0] == "1":
+        if b'get_pieces' in request.args and request.args[b'get_pieces'] \
+                and request.args[b'get_pieces'][0] == b"1":
             get_pieces = True
 
-        return json.dumps({"downloads": [download.get_json(get_peers=get_peers, get_pieces=get_pieces)
-                                         for download in tribler_utils.tribler_data.downloads]})
+        return json.twisted_dumps({"downloads": [download.get_json(get_peers=get_peers, get_pieces=get_pieces)
+                                                 for download in tribler_utils.tribler_data.downloads]})
 
     def render_PUT(self, request):
         headers = request.getAllHeaders()
         cgi.FieldStorage(fp=request.content, headers=headers,
-                         environ={'REQUEST_METHOD': 'POST', 'CONTENT_TYPE': headers['content-type']})
+                         environ={'REQUEST_METHOD': 'POST', 'CONTENT_TYPE': headers[b'content-type']})
 
         # Just start a fake download
         tribler_utils.tribler_data.start_random_download()
 
-        return json.dumps({"added": True})
+        return json.twisted_dumps({"added": True})
 
 
 class DownloadEndpoint(resource.Resource):
@@ -46,29 +47,29 @@ class DownloadEndpoint(resource.Resource):
     def __init__(self, infohash):
         resource.Resource.__init__(self)
         self.infohash = unhexlify(infohash)
-        self.putChild("files", DownloadFilesEndpoint(self.infohash))
+        self.putChild(b"files", DownloadFilesEndpoint(self.infohash))
 
     def render_PATCH(self, request):
         download = tribler_utils.tribler_data.get_download_with_infohash(self.infohash)
         parameters = http.parse_qs(request.content.read(), 1)
 
-        if 'selected_files[]' in parameters:
-            selected_files_list = [text_type(f, 'utf-8') for f in parameters['selected_files[]']]
+        if b'selected_files[]' in parameters:
+            selected_files_list = [text_type(f, 'utf-8') for f in parameters[b'selected_files[]']]
             download.set_selected_files(selected_files_list)
 
-        if 'state' in parameters and parameters['state']:
-            state = parameters['state'][0]
-            if state == "resume":
+        if b'state' in parameters and parameters[b'state']:
+            state = parameters[b'state'][0]
+            if state == b"resume":
                 download.status = 3
-            elif state == "stop":
+            elif state == b"stop":
                 download.status = 5
-            elif state == "recheck":
+            elif state == b"recheck":
                 download.status = 2
             else:
                 request.setResponseCode(http.BAD_REQUEST)
-                return json.dumps({"error": "unknown state parameter"})
+                return json.twisted_dumps({"error": "unknown state parameter"})
 
-        return json.dumps({"modified": True, "infohash": hexlify(self.infohash)})
+        return json.twisted_dumps({"modified": True, "infohash": hexlify(self.infohash)})
 
 
 class DownloadBaseEndpoint(resource.Resource):
@@ -83,7 +84,7 @@ class DownloadBaseEndpoint(resource.Resource):
         Returns a 404 response code if your channel has not been created.
         """
         request.setResponseCode(http.NOT_FOUND)
-        return json.dumps({"error": message})
+        return json.twisted_dumps({"error": message})
 
 
 class DownloadFilesEndpoint(DownloadBaseEndpoint):
@@ -93,4 +94,4 @@ class DownloadFilesEndpoint(DownloadBaseEndpoint):
         self.infohash = infohash
 
     def render_GET(self, _):
-        return json.dumps({"files": tribler_utils.tribler_data.get_download_with_infohash(self.infohash).files})
+        return json.twisted_dumps({"files": tribler_utils.tribler_data.get_download_with_infohash(self.infohash).files})

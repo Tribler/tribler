@@ -286,7 +286,7 @@ class TriblerRequestManager(QObject):
         if data and not raw_data:
             data = tribler_urlencode(data)
         elif raw_data:
-            data = raw_data.encode('utf-8')
+            data = raw_data
 
         def reply_callback(reply, log):
             log[-1] = reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)
