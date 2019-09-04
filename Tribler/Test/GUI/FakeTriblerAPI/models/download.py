@@ -3,7 +3,7 @@ from __future__ import absolute_import, division
 import base64
 from random import randint, random, uniform
 
-from six import text_type, int2byte
+from six import int2byte
 from six.moves import xrange
 
 from Tribler.Core.Utilities.unicode import hexlify
