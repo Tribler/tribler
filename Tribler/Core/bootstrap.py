@@ -4,8 +4,6 @@ import logging
 import os
 from binascii import hexlify, unhexlify
 
-from six import b
-
 from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 
@@ -90,7 +88,7 @@ class Bootstrap(object):
         with open(self.nodes_file, "wb") as boot_file:
             for mid, public_key in self.bootstrap_nodes.items():
                 if mid != "0000000000000000000000000000000000000000" and public_key:
-                    boot_file.write(b"%s:%s\n" % (mid, public_key))
+                    boot_file.write((u"%s:%s\n" % (mid, public_key)).encode('utf-8'))
 
     def load_bootstrap_nodes(self):
         if not os.path.exists(self.nodes_file):
@@ -99,4 +97,4 @@ class Bootstrap(object):
             for line in boot_file:
                 if line and ":" in line:
                     mid, pub_key = line.rstrip().split(":")
-                    self.bootstrap_nodes[b(mid)] = b(pub_key)
+                    self.bootstrap_nodes[mid] = pub_key
