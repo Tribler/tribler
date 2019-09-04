@@ -4,7 +4,7 @@ import hashlib
 import os
 import sys
 import time
-from binascii import hexlify, unhexlify
+from binascii import unhexlify
 from collections import Counter
 from distutils.version import LooseVersion
 
@@ -15,19 +15,36 @@ from ipv8.messaging.anonymization.caches import CreateRequestCache
 from ipv8.messaging.anonymization.community import message_to_payload
 from ipv8.messaging.anonymization.hidden_services import HiddenTunnelCommunity
 from ipv8.messaging.anonymization.payload import LinkedE2EPayload, NO_CRYPTO_PACKETS
-from ipv8.messaging.anonymization.tunnel import CIRCUIT_STATE_CLOSING, CIRCUIT_STATE_READY, \
-                                                               CIRCUIT_TYPE_DATA, CIRCUIT_TYPE_IP_SEEDER,\
-                                                               CIRCUIT_TYPE_RP_DOWNLOADER, CIRCUIT_TYPE_RP_SEEDER,\
-                                                               EXIT_NODE, PEER_FLAG_EXIT_ANY, RelayRoute
+from ipv8.messaging.anonymization.tunnel import (
+    CIRCUIT_STATE_CLOSING,
+    CIRCUIT_STATE_READY,
+    CIRCUIT_TYPE_DATA,
+    CIRCUIT_TYPE_IP_SEEDER,
+    CIRCUIT_TYPE_RP_DOWNLOADER,
+    CIRCUIT_TYPE_RP_SEEDER,
+    EXIT_NODE,
+    PEER_FLAG_EXIT_ANY,
+    RelayRoute,
+)
 from ipv8.peer import Peer
 from ipv8.peerdiscovery.network import Network
 
 from twisted.internet.defer import Deferred, inlineCallbacks, succeed
 
 from Tribler.Core.Socks5.server import Socks5Server
-from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, DLSTATUS_METADATA, DLSTATUS_SEEDING, DLSTATUS_STOPPED,
-                                     NTFY_CREATED, NTFY_EXTENDED, NTFY_IP_RECREATE, NTFY_JOINED, NTFY_REMOVE,
-                                     NTFY_TUNNEL)
+from Tribler.Core.Utilities.unicode import hexlify
+from Tribler.Core.simpledefs import (
+    DLSTATUS_DOWNLOADING,
+    DLSTATUS_METADATA,
+    DLSTATUS_SEEDING,
+    DLSTATUS_STOPPED,
+    NTFY_CREATED,
+    NTFY_EXTENDED,
+    NTFY_IP_RECREATE,
+    NTFY_JOINED,
+    NTFY_REMOVE,
+    NTFY_TUNNEL,
+)
 from Tribler.community.triblertunnel.caches import BalanceRequestCache
 from Tribler.community.triblertunnel.discovery import GoldenRatioStrategy
 from Tribler.community.triblertunnel.dispatcher import TunnelDispatcher
@@ -554,7 +571,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         super(TriblerTunnelCommunity, self).unload()
 
     def get_lookup_info_hash(self, info_hash):
-        return hashlib.sha1(b'tribler anonymous download' + hexlify(info_hash)).digest()
+        return hashlib.sha1(b'tribler anonymous download' + hexlify(info_hash).encode('utf-8')).digest()
 
 
 class TriblerTunnelTestnetCommunity(TriblerTunnelCommunity):

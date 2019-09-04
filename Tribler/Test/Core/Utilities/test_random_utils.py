@@ -32,4 +32,4 @@ class TestRandomUtils(BaseTestCase):
         test_infohash = random_infohash()
         self.assertIsNotNone(test_infohash)
         self.assertTrue(isinstance(test_infohash, six.binary_type))
-        self.assertEqual(len(test_infohash), 40)
+        self.assertEqual(len(test_infohash), 20)

@@ -24,12 +24,14 @@ Ippolito <bob@redivi.com>.  Simplified, and optimized to use just python code.
 from __future__ import absolute_import, division
 
 import logging
-from binascii import hexlify, unhexlify
+from binascii import unhexlify
 from hashlib import md5, sha1, sha256, sha384, sha512
 from math import ceil, log
 from struct import Struct
 
 from six import binary_type, integer_types
+
+from Tribler.Core.Utilities.unicode import hexlify
 
 logger = logging.getLogger(__name__)
 

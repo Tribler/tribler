@@ -2,10 +2,11 @@ from __future__ import absolute_import
 
 import logging
 import os
-from binascii import hexlify, unhexlify
+from binascii import unhexlify
 
 from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
+from Tribler.Core.Utilities.unicode import hexlify
 
 
 class Bootstrap(object):

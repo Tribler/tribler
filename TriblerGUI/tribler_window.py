@@ -8,29 +8,64 @@ import sys
 import time
 import traceback
 from base64 import b64encode
-from binascii import hexlify
-
 
 from PyQt5 import uic
 from PyQt5.QtCore import (
-    QCoreApplication, QDir, QObject, QPoint, QSettings, QStringListModel, QTimer, QUrl, Qt, pyqtSignal, pyqtSlot)
+    QCoreApplication,
+    QDir,
+    QObject,
+    QPoint,
+    QSettings,
+    QStringListModel,
+    QTimer,
+    QUrl,
+    Qt,
+    pyqtSignal,
+    pyqtSlot,
+)
 from PyQt5.QtGui import QDesktopServices, QIcon, QKeySequence, QPixmap
 from PyQt5.QtWidgets import (
-    QAction, QApplication, QCompleter, QFileDialog, QLineEdit, QListWidget, QMainWindow, QShortcut, QStyledItemDelegate,
-    QSystemTrayIcon, QTreeWidget)
+    QAction,
+    QApplication,
+    QCompleter,
+    QFileDialog,
+    QLineEdit,
+    QListWidget,
+    QMainWindow,
+    QShortcut,
+    QStyledItemDelegate,
+    QSystemTrayIcon,
+    QTreeWidget,
+)
 
 import six
 from six.moves.urllib.parse import unquote, urlparse
 
 from Tribler.Core.Modules.process_checker import ProcessChecker
+from Tribler.Core.Utilities.unicode import hexlify
 
 from TriblerGUI.core_manager import CoreManager
 from TriblerGUI.debug_window import DebugWindow
 from TriblerGUI.defs import (
-    BUTTON_TYPE_CONFIRM, BUTTON_TYPE_NORMAL, CONTEXT_MENU_WIDTH, DEFAULT_API_PORT, PAGE_CHANNEL_DETAILS,
-    PAGE_DISCOVERED, PAGE_DISCOVERING, PAGE_DOWNLOADS, PAGE_EDIT_CHANNEL, PAGE_HOME, PAGE_LOADING,
-    PAGE_SEARCH_RESULTS, PAGE_SETTINGS, PAGE_SUBSCRIBED_CHANNELS, PAGE_TRUST, PAGE_TRUST_GRAPH_PAGE,
-    PAGE_VIDEO_PLAYER, SHUTDOWN_WAITING_PERIOD)
+    BUTTON_TYPE_CONFIRM,
+    BUTTON_TYPE_NORMAL,
+    CONTEXT_MENU_WIDTH,
+    DEFAULT_API_PORT,
+    PAGE_CHANNEL_DETAILS,
+    PAGE_DISCOVERED,
+    PAGE_DISCOVERING,
+    PAGE_DOWNLOADS,
+    PAGE_EDIT_CHANNEL,
+    PAGE_HOME,
+    PAGE_LOADING,
+    PAGE_SEARCH_RESULTS,
+    PAGE_SETTINGS,
+    PAGE_SUBSCRIBED_CHANNELS,
+    PAGE_TRUST,
+    PAGE_TRUST_GRAPH_PAGE,
+    PAGE_VIDEO_PLAYER,
+    SHUTDOWN_WAITING_PERIOD,
+)
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.dialogs.createtorrentdialog import CreateTorrentDialog
 from TriblerGUI.dialogs.feedbackdialog import FeedbackDialog

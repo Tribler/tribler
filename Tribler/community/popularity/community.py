@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 import random
-from binascii import hexlify, unhexlify
+from binascii import unhexlify
 
 from ipv8.community import Community
 from ipv8.lazy_community import lazy_wrapper
@@ -12,8 +12,8 @@ from pony.orm import db_session
 
 from twisted.internet.task import LoopingCall
 
+from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.community.popularity.payload import TorrentsHealthPayload
-
 
 PUBLISH_INTERVAL = 5
 

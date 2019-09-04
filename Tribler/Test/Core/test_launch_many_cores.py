@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 import os
-from binascii import hexlify, unhexlify
+from binascii import unhexlify
 from threading import RLock
 
 from anydex.core.community import MarketCommunity
@@ -15,9 +15,14 @@ from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.Modules.payout_manager import PayoutManager
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.bootstrap_util import create_dummy_sql_dumb
-from Tribler.Core.Utilities.configparser import CallbackConfigParser
+from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.bootstrap import Bootstrap
-from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_METADATA, DLSTATUS_SEEDING, DLSTATUS_STOPPED_ON_ERROR
+from Tribler.Core.simpledefs import (
+    DLSTATUS_DOWNLOADING,
+    DLSTATUS_METADATA,
+    DLSTATUS_SEEDING,
+    DLSTATUS_STOPPED_ON_ERROR,
+)
 from Tribler.Test.Core.base_test import MockObject, TriblerCoreTest
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.tools import trial_timeout

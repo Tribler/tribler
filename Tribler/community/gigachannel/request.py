@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 
-from binascii import hexlify
-
 from ipv8.requestcache import RandomNumberCache
+
+from Tribler.Core.Utilities.unicode import hexlify
 
 
 class SearchRequestCache(RandomNumberCache):

@@ -1,13 +1,12 @@
 from __future__ import absolute_import
 
-from binascii import hexlify
-
 from libtorrent import bencode
 
 from twisted.internet import reactor
 from twisted.internet.defer import maybeDeferred
 from twisted.web import http, resource, server
 
+from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Test.util.Tracker.TrackerInfo import TrackerInfo
 
 
