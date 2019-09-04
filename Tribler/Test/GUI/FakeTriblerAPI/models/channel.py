@@ -22,7 +22,7 @@ class Channel(object):
         self.torrents = set()
         self.subscribed = False
         self.state = choice([u"Downloading", u"Personal", u"Legacy", u"Complete", u"Updating", u"Preview"])
-        self.timestamp = int(old_round(time.time() * 1000)) - randint(0, 3600 * 24 * 7 * 1000)
+        self.timestamp = int(old_round(time.time())) - randint(0, 3600 * 24 * 7)
 
         self.add_random_torrents()
 
