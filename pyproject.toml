@@ -1,0 +1,16 @@
+[tool.black]
+line-length = 120
+py27 = true
+skip-string-normalization = true
+include = 'Tribler\Core\Modules\MetadataStore\*.pyi?$'
+include = 'TriblerGUI\*.pyi?$'
+
+exclude = '''
+/(
+    \.git
+  | \.venv
+  | \.idea 
+  | snap
+  | doc
+)/
+'''
