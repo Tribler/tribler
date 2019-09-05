@@ -11,7 +11,6 @@ from six.moves.urllib.request import pathname2url
 from twisted.internet.defer import fail
 
 import Tribler.Core.Utilities.json_util as json
-from Tribler.Core import TorrentDef
 from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.DownloadState import DownloadState
 from Tribler.Core.Utilities.network_utils import get_random_port
@@ -686,7 +685,7 @@ class TestMetadataDownloadEndpoint(AbstractApiTest):
         Testing whether the API returns the right download when a download is added
         """
 
-        test_channel_name = 'testchan'
+        test_channel_name = 'test_channel'
 
         def verify_download(downloads):
             downloads_json = json.twisted_loads(downloads)
@@ -698,12 +697,9 @@ class TestMetadataDownloadEndpoint(AbstractApiTest):
         self.session.start_download_from_tdef(video_tdef, DownloadConfig())
         self.session.start_download_from_uri("file:" + pathname2url(
             os.path.join(TESTS_DATA_DIR, "bak_single.torrent")))
-
         with db_session:
-            my_channel = self.session.lm.mds.ChannelMetadata.create_channel(test_channel_name, 'test')
-            my_channel.add_torrent_to_channel(video_tdef)
-            torrent_dict = my_channel.commit_channel_torrent()
-            self.session.lm.gigachannel_manager.updated_my_channel(TorrentDef.TorrentDef.load_from_dict(torrent_dict))
+            channel = self.session.lm.mds.ChannelMetadata.create_channel(test_channel_name, 'bla')
+            self.session.lm.gigachannel_manager.download_channel(channel)
 
         self.should_check_equality = False
         return self.do_request('downloads?get_peers=1&get_pieces=1',
