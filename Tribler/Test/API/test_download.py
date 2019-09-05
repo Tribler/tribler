@@ -3,13 +3,12 @@ from __future__ import absolute_import
 import logging
 import os
 import shutil
-from binascii import hexlify
 
 from twisted.internet.defer import Deferred
 
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, dlstatus_strings
-from Tribler.Test.common import TORRENT_UBUNTU_FILE, UBUNTU_1504_INFOHASH
+from Tribler.Test.common import TORRENT_UBUNTU_FILE
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.tools import trial_timeout
 

@@ -52,7 +52,7 @@ class POSTDataProducer(object):
         if data_dict and not raw_data:
             self.body = tribler_urlencode(data_dict)
         elif raw_data:
-            self.body = raw_data.encode('utf-8')
+            self.body = raw_data if isinstance(raw_data, bytes) else raw_data.encode('utf-8')
         self.body = self.body.encode() if isinstance(self.body, text_type) else self.body
         self.length = len(self.body)
 
