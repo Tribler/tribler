@@ -483,7 +483,7 @@ class TriblerWindow(QMainWindow):
         recent_locations = current_settings.split(",") if len(current_settings) > 0 else []
         if isinstance(destination, six.text_type):
             destination = destination.encode('utf-8')
-        encoded_destination = hexlify(destination).decode('utf-8')
+        encoded_destination = hexlify(destination)
         if encoded_destination in recent_locations:
             recent_locations.remove(encoded_destination)
         recent_locations.insert(0, encoded_destination)
