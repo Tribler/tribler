@@ -360,7 +360,7 @@ class TestDHTSession(TriblerCoreTest):
         """
         Test the metainfo lookup of the DHT session
         """
-        metainfo = {'seeders': 42, 'leechers': 42}
+        metainfo = {b'seeders': 42, b'leechers': 42}
         self.session.lm.ltmgr.get_metainfo = lambda *_, **__: succeed(metainfo)
 
         def verify_metainfo(metainfo):
