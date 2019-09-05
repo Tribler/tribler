@@ -2,8 +2,7 @@
 line-length = 120
 py27 = true
 skip-string-normalization = true
-include = 'Tribler\Core\Modules\MetadataStore\*.pyi?$'
-include = 'TriblerGUI\*.pyi?$'
+include = 'Tribler\/Core\/Modules\/MetadataStore\/*.pyi?$|TriblerGUI\/*.pyi?$'
 
 exclude = '''
 /(
