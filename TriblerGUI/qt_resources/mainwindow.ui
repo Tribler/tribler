@@ -1138,7 +1138,7 @@ background-color: #e67300;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>4</number>
+         <number>7</number>
         </property>
         <widget class="HomePage" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -6991,6 +6991,11 @@ color: #B5B5B5;</string>
          </layout>
         </widget>
         <widget class="DownloadsPage" name="downloads_page">
+         <property name="styleSheet">
+          <string notr="true">QTreeWidget {
+background-color: #202020;
+}</string>
+         </property>
          <layout class="QVBoxLayout" name="verticalLayout">
           <property name="spacing">
            <number>0</number>
@@ -7829,7 +7834,7 @@ QTabBar::tab:selected {
 }</string>
                 </property>
                 <property name="currentIndex">
-                 <number>3</number>
+                 <number>0</number>
                 </property>
                 <property name="movable">
                  <bool>false</bool>
@@ -7857,7 +7862,9 @@ QTabBar::tab:selected {
                   <item>
                    <widget class="QScrollArea" name="scrollArea_2">
                     <property name="styleSheet">
-                     <string notr="true">border: none;</string>
+                     <string notr="true">border: none;
+background-color: #202020;
+color: white</string>
                     </property>
                     <property name="widgetResizable">
                      <bool>true</bool>
@@ -7867,8 +7874,8 @@ QTabBar::tab:selected {
                       <rect>
                        <x>0</x>
                        <y>0</y>
-                       <width>308</width>
-                       <height>276</height>
+                       <width>856</width>
+                       <height>387</height>
                       </rect>
                      </property>
                      <layout class="QFormLayout" name="formLayout_4">
@@ -10123,11 +10130,11 @@ font-weight: bold;</string>
                       <property name="sortingEnabled">
                        <bool>true</bool>
                       </property>
-                      <attribute name="headerDefaultSectionSize">
-                       <number>120</number>
-                      </attribute>
                       <attribute name="headerMinimumSectionSize">
                        <number>50</number>
+                      </attribute>
+                      <attribute name="headerDefaultSectionSize">
+                       <number>120</number>
                       </attribute>
                       <attribute name="headerStretchLastSection">
                        <bool>true</bool>

@@ -98,7 +98,8 @@ QTabBar::tab:selected {
      </property>
      <widget class="QWidget" name="tab">
       <property name="styleSheet">
-       <string notr="true">background-color: #202020;</string>
+       <string notr="true">background-color: #202020;
+color: white;</string>
       </property>
       <attribute name="title">
        <string>Details</string>
