@@ -164,13 +164,18 @@ def should_kill_other_tribler_instances():
             restart_tribler_properly()
             return
 
-        import Tkinter
-        import tkMessageBox
-        window = Tkinter.Tk()
+        try:
+            from Tkinter import Tk
+            import tkMessageBox as messagebox
+        except ImportError:
+            # For python 3
+            from tkinter import Tk, messagebox
+
+        window = Tk()
         window.withdraw()
 
         message = FORCE_RESTART_MESSAGE % old_pid
-        result = tkMessageBox.askquestion("Warning", message, icon='warning')
+        result = messagebox.askquestion("Warning", message, icon='warning')
         if result == 'yes':
             kill_tribler_process(old_process)
             window.update()
