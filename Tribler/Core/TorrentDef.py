@@ -331,7 +331,7 @@ class TorrentDef(object):
         list of filenames.
         @return A unicode filename generator.
         """
-        if self.metainfo and "files" in self.metainfo[b"info"]:
+        if self.metainfo and b"files" in self.metainfo[b"info"]:
             # Multi-file torrent
             join = os.path.join
             files = self.metainfo[b"info"][b"files"]
@@ -348,14 +348,14 @@ class TorrentDef(object):
                     except UnicodeError:
                         pass
 
-                if "path" in file_dict:
+                if b"path" in file_dict:
                     # Try to use the 'encoding' field.  If it exists,
                     # it should contain something like 'utf-8'
-                    if "encoding" in self.metainfo:
+                    if b"encoding" in self.metainfo:
                         encoding = self.metainfo[b"encoding"]
                         try:
                             yield (join(*[ensure_unicode(element, encoding) for element in file_dict[b"path"]]),
-                                   file_dict["length"])
+                                   file_dict[b"length"])
                             continue
                         except UnicodeError:
                             pass
