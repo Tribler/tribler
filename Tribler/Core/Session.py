@@ -536,18 +536,6 @@ class Session(object):
         params = params or {}
         return threads.deferToThread(torrent_utils.create_torrent_file, file_path_list, params)
 
-    def create_channel(self, name, description, mode=u'closed'):
-        """
-        Creates a new Channel.
-
-        :param name: name of the Channel
-        :param description: description of the Channel
-        :param mode: mode of the Channel ('open', 'semi-open', or 'closed')
-        :return: a channel ID
-        :raises a DuplicateChannelIdError if name already exists
-        """
-        return self.lm.channel_manager.create_channel(name, description, mode)
-
     def check_torrent_health(self, infohash, timeout=20, scrape_now=False):
         """
         Checks the given torrent's health on its trackers.
