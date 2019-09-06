@@ -236,8 +236,10 @@ class VideoPlayerPage(QWidget):
         self.active_index = -1
         self.window().left_menu_playlist.clear()
         self.window().video_player_header_label.setText("")
-        self.mediaplayer.stop()
-        self.mediaplayer.set_media(None)
+
+        if self.mediaplayer:
+            self.mediaplayer.stop()
+            self.mediaplayer.set_media(None)
         self.media = None
         self.window().video_player_play_pause_button.setIcon(self.play_icon)
         self.window().video_player_play_pause_button.setEnabled(False)
