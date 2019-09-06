@@ -17,6 +17,22 @@ FORCE_RESTART_MESSAGE = "An existing Tribler core process (PID:%s) is already ru
                         "Do you want to stop the process and do a clean restart instead?"
 
 
+def _do_popup(title, text):
+    """
+    Create a native pop-up without any third party dependency.
+
+    :param title: the pop-up title
+    :param text: the pop-up body
+    """
+    try:
+        import win32api
+        win32api.MessageBox(0, text, title)
+    except ImportError:
+        os.system('xmessage -center "$(printf "%s")"' % (text))
+    sep = "*" * 20
+    print('\n'.join([sep, title, sep, text, sep]), file=sys.stderr)
+
+
 def error_and_exit(title, main_text):
     """
     Show a pop-up window and sys.exit() out of Python.
@@ -24,46 +40,7 @@ def error_and_exit(title, main_text):
     :param title: the short error description
     :param main_text: the long error description
     """
-    # NOTE: We don't want to load all of these imports normally.
-    #       Otherwise we will have these unused GUI modules loaded in the main process.
-    try:
-        from Tkinter import Tk, Canvas, DISABLED, INSERT, Label, Text, WORD
-    except ImportError:
-        # For python 3
-        from tkinter import Tk, Canvas, DISABLED, INSERT, Label, Text, WORD
-
-    root = Tk()
-    root.wm_title("Tribler: Critical Error!")
-    root.wm_minsize(500, 300)
-    root.wm_maxsize(500, 300)
-    root.configure(background='#535252')
-
-    # Place the window at the center
-    root.update_idletasks()
-    w = root.winfo_screenwidth()
-    h = root.winfo_screenheight()
-    size = tuple(int(_) for _ in root.geometry().split('+')[0].split('x'))
-    x = w / 2 - 250
-    y = h / 2 - 150
-    root.geometry("%dx%d+%d+%d" % (size + (x, y)))
-
-    Canvas(root, width=500, height=50, bd=0, highlightthickness=0, relief='ridge', background='#535252').pack()
-    pane = Canvas(root, width=400, height=200, bd=0, highlightthickness=0, relief='ridge', background='#333333')
-    Canvas(pane, width=400, height=20, bd=0, highlightthickness=0, relief='ridge', background='#333333').pack()
-    Label(pane, text=title, width=40, background='#333333', foreground='#fcffff', font=("Helvetica", 11)).pack()
-    Canvas(pane, width=400, height=20, bd=0, highlightthickness=0, relief='ridge', background='#333333').pack()
-
-    main_text_label = Text(pane, width=45, height=6, bd=0, highlightthickness=0, relief='ridge', background='#333333',
-                           foreground='#b5b5b5', font=("Helvetica", 11), wrap=WORD)
-    main_text_label.tag_configure("center", justify='center')
-    main_text_label.insert(INSERT, main_text)
-    main_text_label.tag_add("center", "1.0", "end")
-    main_text_label.config(state=DISABLED)
-    main_text_label.pack()
-
-    pane.pack()
-
-    root.mainloop()
+    _do_popup(title, main_text)
 
     # Exit the program
     sys.exit(1)
@@ -164,26 +141,20 @@ def should_kill_other_tribler_instances():
             restart_tribler_properly()
             return
 
-        try:
-            from Tkinter import Tk
-            import tkMessageBox as messagebox
-        except ImportError:
-            # For python 3
-            from tkinter import Tk, messagebox
+        from PyQt5.QtWidgets import QApplication, QMessageBox
+        app = QApplication(sys.argv)  # pylint: disable=W0612
+        message_box = QMessageBox()
+        message_box.setWindowTitle("Warning")
+        message_box.setText("Warning")
+        message_box.setInformativeText(FORCE_RESTART_MESSAGE % old_pid)
+        message_box.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+        message_box.setDefaultButton(QMessageBox.Save)
+        result = message_box.exec_()
 
-        window = Tk()
-        window.withdraw()
-
-        message = FORCE_RESTART_MESSAGE % old_pid
-        result = messagebox.askquestion("Warning", message, icon='warning')
-        if result == 'yes':
+        if result == QMessageBox.Yes:
             kill_tribler_process(old_process)
-            window.update()
-            window.quit()
             restart_tribler_properly()
         else:
-            window.update()
-            window.quit()
             sys.exit(0)
 
 
