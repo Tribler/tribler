@@ -7,7 +7,7 @@ import os
 import sys
 import shutil
 
-sys.path.insert(0, os.getcwdu())
+sys.path.insert(0, os.getcwd())
 
 from Tribler.Core.version import version_id
 
@@ -55,7 +55,7 @@ a = Analysis(['run_tribler.py'],
              pathex=['/Users/martijndevos/Documents/tribler'],
              binaries=None,
              datas=data_to_copy,
-             hiddenimports=['csv', 'ecdsa', 'pyaes', 'scrypt', '_scrypt', 'sqlalchemy', 'sqlalchemy.ext.baked', 'sqlalchemy.ext.declarative', 'requests', 'PyQt5.QtTest'] + widget_files + pony_deps,
+             hiddenimports=['csv', 'lib2to3', 'lib2to3.fixes', 'ecdsa', 'pyaes', 'scrypt', '_scrypt', 'sqlalchemy', 'sqlalchemy.ext.baked', 'sqlalchemy.ext.declarative', 'requests', 'PyQt5.QtTest', 'pyqtgraph'] + widget_files + pony_deps,
              hookspath=[],
              runtime_hooks=[],
              excludes=excluded_libs,
