@@ -5,6 +5,8 @@ from datetime import datetime
 
 from PyQt5.QtWidgets import QProgressBar, QTreeWidgetItem, QVBoxLayout, QWidget
 
+from Tribler.Core.simpledefs import dlstatus_strings
+
 from TriblerGUI.defs import *
 from TriblerGUI.utilities import duration_to_string, format_size, format_speed
 
@@ -26,7 +28,8 @@ class DownloadWidgetItem(QTreeWidgetItem):
         self.progress_slider = QProgressBar()
 
         # We have to set a zero pixel border to get the background working on Mac.
-        self.progress_slider.setStyleSheet("""
+        self.progress_slider.setStyleSheet(
+            """
         QProgressBar {
             background-color: white;
             color: black;
@@ -38,7 +41,8 @@ class DownloadWidgetItem(QTreeWidgetItem):
         QProgressBar::chunk {
             background-color: #e67300;
         }
-        """)
+        """
+        )
 
         bar_container.layout().addWidget(self.progress_slider)
         bar_container.layout().setContentsMargins(4, 4, 8, 4)
@@ -51,7 +55,7 @@ class DownloadWidgetItem(QTreeWidgetItem):
         self.update_item()
 
     def get_raw_download_status(self):
-        return eval(self.download_info["status"])
+        return dlstatus_strings.index(self.download_info["status"])
 
     def update_item(self):
         self.setText(0, self.download_info["name"])
@@ -69,7 +73,7 @@ class DownloadWidgetItem(QTreeWidgetItem):
         if self.download_info["vod_mode"]:
             self.setText(3, "Streaming")
         else:
-            self.setText(3, DLSTATUS_STRINGS[eval(self.download_info["status"])])
+            self.setText(3, DLSTATUS_STRINGS[dlstatus_strings.index(self.download_info["status"])])
         self.setText(4, "%s (%s)" % (self.download_info["num_connected_seeds"], self.download_info["num_seeds"]))
         self.setText(5, "%s (%s)" % (self.download_info["num_connected_peers"], self.download_info["num_peers"]))
         self.setText(6, format_speed(self.download_info["speed_down"]))
@@ -108,8 +112,9 @@ class DownloadWidgetItem(QTreeWidgetItem):
             return float(self.download_info["ratio"]) > float(other.download_info["ratio"])
         elif column == 11:
             # Put finished downloads with an ETA of 0 after all other downloads
-            return ((float(self.download_info["eta"]) or float('inf')) >
-                    (float(other.download_info["eta"]) or float('inf')))
+            return (float(self.download_info["eta"]) or float('inf')) > (
+                float(other.download_info["eta"]) or float('inf')
+            )
         elif column == 12:
             return int(self.download_info["time_added"]) > int(other.download_info["time_added"])
         return self.text(column) > other.text(column)
