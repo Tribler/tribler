@@ -28,7 +28,8 @@ def _do_popup(title, text):
         import win32api
         win32api.MessageBox(0, text, title)
     except ImportError:
-        os.system('xmessage -center "$(printf "%s")"' % (text))
+        import subprocess
+        subprocess.Popen(['xmessage', '-center', text], shell=False)
     sep = "*" * 20
     print('\n'.join([sep, title, sep, text, sep]), file=sys.stderr)
 
