@@ -135,15 +135,27 @@ class TestSpecificChannelEndpoint(BaseTestMetadataEndpoint):
         """
         Test whether we can subscribe to a channel with the REST API
         """
+        with db_session:
+            channel = self.session.lm.mds.ChannelMetadata.select()[:][0]
+            channel.subscribed = False
+
         self.should_check_equality = False
         post_params = {'subscribe': '1'}
-        channel_pk = hexlify(self.session.lm.mds.ChannelNode._my_key.pub().key_to_bin()[10:])
+        channel_pk = hexlify(channel.public_key)
+
+        @db_session
+        def on_response(_):
+            # stupid workaround for polling results of a background process
+            c = self.session.lm.mds.ChannelMetadata[channel.rowid]
+            self.assertTrue(c.subscribed)
+
         return self.do_request('metadata/channels/%s/123' % channel_pk,
-                               request_type='POST', post_data=post_params)
+                               request_type='POST', post_data=post_params).addCallback(on_response)
 
     def test_unsubscribe(self):
         with db_session:
             channel = self.session.lm.mds.ChannelMetadata.select()[:][0]
+            self.assertTrue(channel.contents.count())
             channel.subscribed = True
 
         self.should_check_equality = False
@@ -156,11 +168,14 @@ class TestSpecificChannelEndpoint(BaseTestMetadataEndpoint):
         @inlineCallbacks
         def on_response(_):
             # stupid workaround for polling results of a background process
-            result = False
+            with db_session:
+                c = self.session.lm.mds.ChannelMetadata[channel.rowid]
+                self.assertFalse(c.subscribed)
             for _ in range(0, 30):
                 with db_session:
-                    c = self.session.lm.mds.ChannelMetadata.select()[:][0]
-                    if c.contents.count() == 0:
+                    # Check that the channel contents were deleted on unsubscribe
+                    c = self.session.lm.mds.ChannelMetadata[channel.rowid]
+                    if not c.contents.count():
                         result = True
                         break
                     yield async_sleep(0.2)
