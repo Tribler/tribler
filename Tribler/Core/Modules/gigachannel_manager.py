@@ -57,7 +57,7 @@ class GigaChannelManager(TaskManager):
                             tdef = TorrentDef.load(torrent_path)
                         except IOError:
                             self._logger.warning("Can't open personal channel torrent file. Will try to regenerate it.")
-                    if not(tdef and tdef.infohash == bytes(my_channel.infohash)):
+                    if not(tdef and bytes(tdef.infohash) == bytes(my_channel.infohash)):
                         regenerated = my_channel.consolidate_channel_torrent()
                         # If the user created their channel, but added no torrents to it, the channel torrent will not
                         # be created.
@@ -141,12 +141,12 @@ class GigaChannelManager(TaskManager):
 
         for channel in channels:
             try:
-                if not self.session.has_download(channel.infohash):
+                if not self.session.has_download(bytes(channel.infohash)):
                     self._logger.info("Downloading new channel version %s ver %i->%i",
                                       hexlify(channel.public_key),
                                       channel.local_version, channel.timestamp)
                     self.download_channel(channel)
-                elif self.session.get_download(channel.infohash).get_state().get_status() == DLSTATUS_SEEDING:
+                elif self.session.get_download(bytes(channel.infohash)).get_state().get_status() == DLSTATUS_SEEDING:
                     self._logger.info("Processing previously downloaded, but unprocessed channel torrent %s ver %i->%i",
                                       hexlify(channel.public_key),
                                       channel.local_version, channel.timestamp)
@@ -259,7 +259,7 @@ class GigaChannelManager(TaskManager):
         """
         with db_session:
             my_channel = self.session.lm.mds.ChannelMetadata.get_my_channel()
-        if my_channel and my_channel.status == COMMITTED and not self.session.has_download(my_channel.infohash):
+        if my_channel and my_channel.status == COMMITTED and not self.session.has_download(bytes(my_channel.infohash)):
             dcfg = DownloadConfig(state_dir=self.session.config.get_state_dir())
             dcfg.set_dest_dir(self.session.lm.mds.channels_dir)
             dcfg.set_channel_download(True)
