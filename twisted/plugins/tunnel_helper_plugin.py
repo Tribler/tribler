@@ -192,6 +192,7 @@ class Tunnel(object):
         config.set_popularity_community_enabled(False)
         config.set_testnet(bool(self.options["testnet"]))
         config.set_chant_enabled(False)
+        config.set_bootstrap_enabled(False)
 
         if not self.options['no-rest-api']:
             config.set_http_api_enabled(True)
