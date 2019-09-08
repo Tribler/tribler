@@ -177,7 +177,7 @@ class SpecificChannelEndpoint(BaseChannelsEndpoint):
             request.setResponseCode(http.BAD_REQUEST)
             return json.twisted_dumps({"success": False, "error": "subscribe parameter missing"})
 
-        to_subscribe = int(parameters['subscribe'][0]) == '1'
+        to_subscribe = int(parameters['subscribe'][0]) == 1
         with db_session:
             channel = self.session.lm.mds.ChannelMetadata.get_for_update(public_key=database_blob(self.channel_pk),
                                                                          id_=self.channel_id)
