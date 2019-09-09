@@ -14,6 +14,11 @@ repos:
     rev: 19.3b0
     hooks:
     - id: black
+      files: |
+          (?x)(
+          ^TriblerGUI/|
+          ^Tribler/Core/Modules/MetadataStore/
+          )
 
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v2.2.3
