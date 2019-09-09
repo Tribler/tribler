@@ -443,7 +443,7 @@ class SettingsPage(QWidget):
                 selected_mode = seeding_mode
                 break
         settings_data['download_defaults']['seeding_mode'] = selected_mode
-        settings_data['download_defaults']['seeding_ratio'] = self.window().seeding_ratio_combobox.currentText()
+        settings_data['download_defaults']['seeding_ratio'] = float(self.window().seeding_ratio_combobox.currentText())
 
         try:
             settings_data['download_defaults']['seeding_time'] = string_to_seconds(
