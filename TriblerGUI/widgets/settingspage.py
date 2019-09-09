@@ -365,7 +365,7 @@ class SettingsPage(QWidget):
         settings_data = {'general': {}, 'Tribler': {}, 'download_defaults': {}, 'libtorrent': {}, 'watch_folder': {},
                          'tunnel_community': {}, 'trustchain': {}, 'credit_mining': {}, 'resource_monitor': {},
                          'ipv8': {}, 'chant': {}}
-        settings_data['download_defaults']['saveas'] = self.window().download_location_input.text().encode('utf-8')
+        settings_data['download_defaults']['saveas'] = self.window().download_location_input.text()
         settings_data['general']['log_dir'] = self.window().log_location_input.text()
 
         settings_data['watch_folder']['enabled'] = self.window().watchfolder_enabled_checkbox.isChecked()
