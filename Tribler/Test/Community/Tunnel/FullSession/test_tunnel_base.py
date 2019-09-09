@@ -61,6 +61,9 @@ class TestTunnelBase(TestAsServer):
         for session in self.sessions:
             yield session.shutdown()
 
+        for tunnel_community in self.tunnel_communities:
+            yield tunnel_community.unload()
+
         yield TestAsServer.tearDown(self)
 
     @inlineCallbacks
