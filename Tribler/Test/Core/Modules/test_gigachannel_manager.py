@@ -73,7 +73,7 @@ class TestGigaChannelManager(TriblerCoreTest):
         self.chanman.shutdown()
 
         # Check skip already added personal channel
-        self.mock_session.has_download = lambda x: x == chan.infohash
+        self.mock_session.has_download = lambda x: bytes(x) == bytes(chan.infohash)
         self.torrents_added = False
         self.chanman.start()
         self.chanman.check_channels_updates()
