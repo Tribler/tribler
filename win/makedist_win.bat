@@ -9,7 +9,19 @@ IF NOT EXIST Tribler\Main (
 )
 
 REM locate Python directory and set up Python environment
-python win\locate-python.py > tmp_pythonhome.txt
+SET BUILDER_PYTHON_VERSION="2"
+IF [%1] NEQ [] (
+  SET BUILDER_PYTHON_VERSION="%~1"
+)
+
+ECHO Builder Python version: %BUILDER_PYTHON_VERSION%
+IF %BUILDER_PYTHON_VERSION% == "2" (
+  python win\locate-python.py > tmp_pythonhome.txt
+)
+IF %BUILDER_PYTHON_VERSION% == "3" (
+  python3 win\locate-python.py > tmp_pythonhome.txt
+)
+
 SET /p PYTHONHOME= < tmp_pythonhome.txt
 DEL /f /q tmp_pythonhome.txt
 REM Arno: Add . to find our core
