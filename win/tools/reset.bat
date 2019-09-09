@@ -14,11 +14,3 @@ set TDIR="%USERPROFILE%\%APPDIR%\.Tribler"
 set DDIR="%USERPROFILE%\Downloads\TriblerDownloads"
 rmdir %TDIR% /S /Q
 rmdir %DDIR% /S /Q
-
-REM SwarmPlayer
-set TDIR="%USERPROFILE%\%APPDIR%\.SwarmPlayer"
-rmdir %TDIR% /S /Q
-
-REM SwarmPlugin
-set TDIR="%USERPROFILE%\%APPDIR%\.SwarmPlugin"
-rmdir %TDIR% /S /Q
