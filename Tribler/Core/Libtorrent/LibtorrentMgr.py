@@ -699,6 +699,9 @@ class LibtorrentMgr(TaskManager):
         else:
             lt_session.set_settings(new_settings)
 
+    def get_session_settings(self, lt_session):
+        return self.ltsettings.get(lt_session, {})
+
     def update_max_rates_from_config(self):
         """
         Set the maximum download and maximum upload rate limits with the value in the config.

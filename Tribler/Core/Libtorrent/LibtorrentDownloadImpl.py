@@ -600,8 +600,9 @@ class LibtorrentDownloadImpl(TaskManager):
 
         # When the send buffer watermark is too low, double the buffer size to a
         # maximum of 50MiB. This is the same mechanism as Deluge uses.
+        lt_session = self.ltmgr.get_session(self.config.get_hops())
+        settings = self.ltmgr.get_session_settings(lt_session)
         if alert.message().endswith("send buffer watermark too low (upload rate will suffer)"):
-            settings = self.ltmgr.get_session().get_settings()
             if settings['send_buffer_watermark'] <= 26214400:
                 self._logger.info(
                     "LibtorrentDownloadImpl: setting send_buffer_watermark to %s",
@@ -611,7 +612,6 @@ class LibtorrentDownloadImpl(TaskManager):
         # When the write cache is too small, double the buffer size to a maximum
         # of 64MiB. Again, this is the same mechanism as Deluge uses.
         elif alert.message().endswith("max outstanding disk writes reached"):
-            settings = self.ltmgr.get_session().get_settings()
             if settings['max_queued_disk_bytes'] <= 33554432:
                 self._logger.info(
                     "LibtorrentDownloadImpl: setting max_queued_disk_bytes to %s",
