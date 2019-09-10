@@ -365,7 +365,7 @@ class SettingsPage(QWidget):
         settings_data = {'general': {}, 'Tribler': {}, 'download_defaults': {}, 'libtorrent': {}, 'watch_folder': {},
                          'tunnel_community': {}, 'trustchain': {}, 'credit_mining': {}, 'resource_monitor': {},
                          'ipv8': {}, 'chant': {}}
-        settings_data['download_defaults']['saveas'] = self.window().download_location_input.text().encode('utf-8')
+        settings_data['download_defaults']['saveas'] = self.window().download_location_input.text()
         settings_data['general']['log_dir'] = self.window().log_location_input.text()
 
         settings_data['watch_folder']['enabled'] = self.window().watchfolder_enabled_checkbox.isChecked()
@@ -443,7 +443,7 @@ class SettingsPage(QWidget):
                 selected_mode = seeding_mode
                 break
         settings_data['download_defaults']['seeding_mode'] = selected_mode
-        settings_data['download_defaults']['seeding_ratio'] = self.window().seeding_ratio_combobox.currentText()
+        settings_data['download_defaults']['seeding_ratio'] = float(self.window().seeding_ratio_combobox.currentText())
 
         try:
             settings_data['download_defaults']['seeding_time'] = string_to_seconds(
