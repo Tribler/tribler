@@ -708,7 +708,7 @@ class TriblerWindow(QMainWindow):
         plus_btn_geometry = self.add_torrent_button.geometry()
         plus_btn_pos.setX(plus_btn_pos.x() - CONTEXT_MENU_WIDTH)
         plus_btn_pos.setY(plus_btn_pos.y() + plus_btn_geometry.height())
-        self.create_add_torrent_menu().exec_(self.mapToGlobal(plus_btn_pos))
+        self.create_add_torrent_menu().exec_(self.mapToParent(plus_btn_pos))
 
     def on_add_torrent_browse_file(self):
         filenames = QFileDialog.getOpenFileNames(self,
