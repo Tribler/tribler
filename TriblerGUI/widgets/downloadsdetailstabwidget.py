@@ -3,6 +3,8 @@ from __future__ import absolute_import
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QAction, QTabWidget, QTreeWidgetItem
 
+from Tribler.Core.simpledefs import dlstatus_strings
+
 from TriblerGUI.defs import *
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
@@ -20,7 +22,7 @@ class DownloadsDetailsTabWidget(QTabWidget):
         QTabWidget.__init__(self, parent)
         self.current_download = None
         self.request_mgr = None
-        self.files_widgets = {}    # dict of file name -> widget
+        self.files_widgets = {}  # dict of file name -> widget
 
     def initialize_details_widget(self):
         self.window().download_files_list.customContextMenuRequested.connect(self.on_right_click_file_item)
@@ -97,24 +99,27 @@ class DownloadsDetailsTabWidget(QTabWidget):
         if self.current_download["vod_mode"]:
             self.window().download_detail_status_label.setText('Streaming')
         else:
-            status_string = DLSTATUS_STRINGS[eval(self.current_download["status"])]
-            if eval(self.current_download["status"]) == DLSTATUS_STOPPED_ON_ERROR:
+            status_string = DLSTATUS_STRINGS[dlstatus_strings.index(self.current_download["status"])]
+            if dlstatus_strings.index(self.current_download["status"]) == DLSTATUS_STOPPED_ON_ERROR:
                 status_string += " (error: %s)" % self.current_download["error"]
             self.window().download_detail_status_label.setText(status_string)
 
-        self.window().download_detail_filesize_label.setText("%s in %d files" %
-                                                             (format_size(float(self.current_download["size"])),
-                                                              len(self.current_download["files"])))
-        self.window().download_detail_health_label.setText("%d seeders, %d leechers" %
-                                                           (self.current_download["num_seeds"],
-                                                            self.current_download["num_peers"]))
+        self.window().download_detail_filesize_label.setText(
+            "%s in %d files" % (format_size(float(self.current_download["size"])), len(self.current_download["files"]))
+        )
+        self.window().download_detail_health_label.setText(
+            "%d seeders, %d leechers" % (self.current_download["num_seeds"], self.current_download["num_peers"])
+        )
         self.window().download_detail_infohash_label.setText(self.current_download['infohash'])
         self.window().download_detail_destination_label.setText(self.current_download["destination"])
         self.window().download_detail_ratio_label.setText(
-            "%.3f, up: %s, down: %s" % (
+            "%.3f, up: %s, down: %s"
+            % (
                 self.current_download["ratio"],
                 format_size(self.current_download["total_up"]),
-                format_size(self.current_download["total_down"])))
+                format_size(self.current_download["total_down"]),
+            )
+        )
         self.window().download_detail_availability_label.setText("%.2f" % self.current_download['availability'])
 
         if new_download or len(self.current_download["files"]) != len(self.files_widgets.keys()):
@@ -186,8 +191,11 @@ class DownloadsDetailsTabWidget(QTabWidget):
         menu.addAction(include_action)
         menu.addAction(exclude_action)
 
-        if len(selected_files_info) == 1 and is_video_file(selected_files_info[0]['name'])\
-                and self.window().vlc_available:
+        if (
+            len(selected_files_info) == 1
+            and is_video_file(selected_files_info[0]['name'])
+            and self.window().vlc_available
+        ):
             play_action = QAction('Play', self)
             play_action.triggered.connect(lambda: self.on_play_file(selected_files_info[0]))
             menu.addAction(play_action)
@@ -222,19 +230,23 @@ class DownloadsDetailsTabWidget(QTabWidget):
 
     def on_play_file(self, file_info):
         self.window().left_menu_button_video_player.click()
-        self.window().video_player_page.play_media_item(self.current_download["infohash"],
-                                                        self.get_video_file_index(file_info["index"]))
+        self.window().video_player_page.play_media_item(
+            self.current_download["infohash"], self.get_video_file_index(file_info["index"])
+        )
 
     def set_included_files(self, files):
         post_data = {"selected_files": [ind for ind in files]}
         self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("downloads/%s" % self.current_download['infohash'], lambda _: None,
-                                         method='PATCH', data=post_data)
+        self.request_mgr.perform_request(
+            "downloads/%s" % self.current_download['infohash'], lambda _: None, method='PATCH', data=post_data
+        )
 
     def on_copy_magnet_clicked(self):
-        trackers = [tr['url'] for tr in self.current_download['trackers']
-                    if 'url' in tr and tr['url'] not in ['[DHT]', '[PeX]']]
-        magnet_link = compose_magnetlink(self.current_download['infohash'],
-                                         name=self.current_download.get('name', None), trackers=trackers)
+        trackers = [
+            tr['url'] for tr in self.current_download['trackers'] if 'url' in tr and tr['url'] not in ['[DHT]', '[PeX]']
+        ]
+        magnet_link = compose_magnetlink(
+            self.current_download['infohash'], name=self.current_download.get('name', None), trackers=trackers
+        )
         copy_to_clipboard(magnet_link)
         self.window().tray_show_message("Copying magnet link", magnet_link)
