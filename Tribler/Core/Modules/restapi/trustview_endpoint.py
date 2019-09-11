@@ -20,12 +20,19 @@ MAX_TRANSACTIONS = 2500
 
 class TrustGraph(nx.DiGraph):
 
-    def __init__(self, root_node):
+    def __init__(self, root_key):
         nx.DiGraph.__init__(self)
         self.root_node = 0
 
         self.peers = []
-        self.get_node(root_node)
+        self.get_node(root_key)
+
+        self.transactions = {}
+        self.token_balance = {}
+
+    def reset(self, root_key):
+        self.peers = []
+        self.get_node(root_key)
 
         self.transactions = {}
         self.token_balance = {}
@@ -154,6 +161,8 @@ class TrustViewEndpoint(resource.Resource):
         fetch_all = depth == 0
 
         try:
+            if fetch_all:
+                self.trust_graph.reset(hexlify(self.public_key))
             if fetch_all or depth == 1:
                 self.trust_graph.add_blocks(get_bandwidth_blocks(self.public_key, limit=100))
             if fetch_all or depth == 2:
