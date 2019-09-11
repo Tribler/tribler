@@ -72,13 +72,6 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
             self.assertEqual(stats["total_down"], 2048)
             self.assertEqual(stats["peers_that_pk_helped"], 1)
             self.assertEqual(stats["peers_that_helped_pk"], 1)
-            self.assertIn("latest_block", stats)
-            self.assertNotEqual(stats["latest_block"]["insert_time"], "")
-            self.assertEqual(stats["latest_block"]["hash"], hexlify(block.hash))
-            self.assertEqual(stats["latest_block"]["link_public_key"], "deadbeef")
-            self.assertEqual(stats["latest_block"]["link_sequence_number"], 21)
-            self.assertEqual(stats["latest_block"]["up"], 42)
-            self.assertEqual(stats["latest_block"]["down"], 8)
 
         self.should_check_equality = False
         return self.do_request('trustchain/statistics', expected_code=200).addCallback(verify_response)
