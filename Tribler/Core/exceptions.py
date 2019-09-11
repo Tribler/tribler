@@ -44,14 +44,12 @@ class InvalidSignatureException(TriblerException):
     """
     Raised when encountering an invalid signature.
     """
-    pass
 
 
 class InvalidChannelNodeException(TriblerException):
     """
     Raised when trying to create an inconsistent GigaChannel entry
     """
-    pass
 
 
 class DuplicateChannelIdError(TriblerException):
@@ -59,17 +57,14 @@ class DuplicateChannelIdError(TriblerException):
     The Channel name already exists in the ChannelManager channel list,
     i.e., one of your own Channels with the same name already exists.
     """
-    pass
 
 
 class DuplicateTorrentFileError(TriblerException):
     """The Torrent already exists in the Channel you try to add it to."""
-    pass
 
 
 class SaveResumeDataError(TriblerException):
     """This error is used when the resume data of a download fails to save."""
-    pass
 
 
 class DuplicateDownloadException(TriblerException):
@@ -89,5 +84,12 @@ class TorrentFileException(TriblerException):
 
 class InvalidConfigException(TriblerException):
     """The config file doesn't adhere to the config specification."""
+    def __init__(self, msg=None):
+        TriblerException.__init__(self, msg)
+
+
+class TrustGraphException(TriblerException):
+    """Exception specific to Trust graph."""
+
     def __init__(self, msg=None):
         TriblerException.__init__(self, msg)

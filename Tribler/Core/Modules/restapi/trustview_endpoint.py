@@ -1,16 +1,21 @@
 from __future__ import absolute_import
 
+import logging
 import math
 from binascii import unhexlify
-
-import networkx as nx
 
 from twisted.web import resource
 
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.TrustCalculation.graph_positioning import GraphPositioning as gpos
 from Tribler.Core.Utilities.unicode import hexlify
+from Tribler.Core.exceptions import TrustGraphException
 from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD
+
+import networkx as nx
+
+MAX_PEERS = 500
+MAX_TRANSACTIONS = 2500
 
 
 class TrustGraph(nx.DiGraph):
@@ -25,20 +30,28 @@ class TrustGraph(nx.DiGraph):
         self.transactions = {}
         self.token_balance = {}
 
-    def get_node(self, peer_key):
-        if peer_key not in self.peers:
-            node_id = len(self.peers)
+    def get_node(self, peer_key, add_if_not_exist=True):
+        if peer_key in self.peers:
+            return self.node[self.peers.index(peer_key)]
+        if add_if_not_exist:
+            next_node_id = len(self.peers)
+            if next_node_id > MAX_PEERS:
+                raise TrustGraphException("Max node peers reached in graph")
+            super(TrustGraph, self).add_node(next_node_id, id=next_node_id, key=peer_key)
             self.peers.append(peer_key)
-            super(TrustGraph, self).add_node(node_id, id=node_id, key=peer_key)
-        return self.node[self.peers.index(peer_key)]
+            return self.node[self.peers.index(peer_key)]
+        return None
 
     def add_block(self, block):
+        if len(self.transactions) > MAX_TRANSACTIONS:
+            raise TrustGraphException("Max transactions reached in the graph")
+
         if block.hash not in self.transactions and block.type == b'tribler_bandwidth':
             peer1_key = hexlify(block.public_key)
             peer2_key = hexlify(block.link_public_key)
 
-            peer1 = self.get_node(peer1_key)
-            peer2 = self.get_node(peer2_key)
+            peer1 = self.get_node(peer1_key, add_if_not_exist=True)
+            peer2 = self.get_node(peer2_key, add_if_not_exist=True)
 
             if block.sequence_number > peer1.get('sequence_number', 0):
                 peer1['sequence_number'] = block.sequence_number
@@ -48,6 +61,7 @@ class TrustGraph(nx.DiGraph):
             diff = block.transaction[b'up'] - block.transaction[b'down']
             if peer2['id'] not in self.successors(peer1['id']):
                 self.add_edge(peer1['id'], peer2['id'], weight=diff)
+            self.transactions[block.hash] = block
 
     def add_blocks(self, blocks):
         for block in blocks:
@@ -105,6 +119,7 @@ class TrustGraph(nx.DiGraph):
 class TrustViewEndpoint(resource.Resource):
     def __init__(self, session):
         resource.Resource.__init__(self)
+        self.logger = logging.getLogger(self.__class__.__name__)
         self.session = session
 
         self.trustchain_db = None
@@ -125,10 +140,10 @@ class TrustViewEndpoint(resource.Resource):
         if not self.trust_graph:
             self.initialize_graph()
 
-        def get_bandwidth_blocks(public_key, limit=64):
+        def get_bandwidth_blocks(public_key, limit=5):
             return self.trustchain_db.get_latest_blocks(public_key, limit=limit, block_types=[b'tribler_bandwidth'])
 
-        def get_friends(public_key, limit=64):
+        def get_friends(public_key, limit=5):
             return self.trustchain_db.get_connected_users(public_key, limit=limit)
 
         depth = 0
@@ -138,19 +153,22 @@ class TrustViewEndpoint(resource.Resource):
         # If depth is zero or not provided then fetch all depth levels
         fetch_all = depth == 0
 
-        if fetch_all or depth == 1:
-            self.trust_graph.add_blocks(get_bandwidth_blocks(self.public_key))
-        if fetch_all or depth == 2:
-            for friend in get_friends(self.public_key):
-                self.trust_graph.add_blocks(get_bandwidth_blocks(unhexlify(friend['public_key'])))
-        if fetch_all or depth == 3:
-            for friend in get_friends(self.public_key):
-                self.trust_graph.add_blocks(get_bandwidth_blocks(unhexlify(friend['public_key'])))
-                for fof in get_friends(unhexlify(friend['public_key'])):
-                    self.trust_graph.add_blocks(get_bandwidth_blocks(unhexlify(fof['public_key'])))
-        if fetch_all or depth == 4:
-            for user_block in self.trustchain_db.get_users():
-                self.trust_graph.add_blocks(get_bandwidth_blocks(unhexlify(user_block['public_key'])))
+        try:
+            if fetch_all or depth == 1:
+                self.trust_graph.add_blocks(get_bandwidth_blocks(self.public_key, limit=100))
+            if fetch_all or depth == 2:
+                for friend in get_friends(self.public_key):
+                    self.trust_graph.add_blocks(get_bandwidth_blocks(unhexlify(friend['public_key']), limit=10))
+            if fetch_all or depth == 3:
+                for friend in get_friends(self.public_key):
+                    self.trust_graph.add_blocks(get_bandwidth_blocks(unhexlify(friend['public_key'])))
+                    for fof in get_friends(unhexlify(friend['public_key'])):
+                        self.trust_graph.add_blocks(get_bandwidth_blocks(unhexlify(fof['public_key'])))
+            if fetch_all or depth == 4:
+                for user_block in self.trustchain_db.get_users():
+                    self.trust_graph.add_blocks(get_bandwidth_blocks(unhexlify(user_block['public_key'])))
+        except TrustGraphException as tgex:
+            self.logger.warn(tgex)
 
         graph_data = self.trust_graph.compute_node_graph()
 
