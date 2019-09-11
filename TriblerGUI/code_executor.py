@@ -5,7 +5,7 @@ import code
 import io
 import logging
 import sys
-from base64 import b64encode
+from base64 import b64decode, b64encode
 
 from PyQt5.QtNetwork import QTcpServer
 
@@ -58,27 +58,27 @@ class CodeExecutor(object):
 
         # Determine the return value
         if 'return_value' not in self.shell.console.locals:
-            return_value = ''.encode('base64')
+            return_value = b64encode(b'')
         else:
-            return_value = str(self.shell.console.locals['return_value']).encode('base64')
+            return_value = b64encode(self.shell.console.locals['return_value'].encode('utf-8'))
 
         for socket in self.sockets:
-            socket.write("result %s %s\n" % (return_value, task_id))
+            socket.write(b"result %s %s\n" % (return_value, task_id))
 
     def on_crash(self, exception_text):
         self.stack_trace = exception_text
         for socket in self.sockets:
-            socket.write("crash %s\n" % exception_text.encode('base64'))
+            socket.write(b"crash %s\n" % b64encode(exception_text))
 
     def _on_socket_read_ready(self):
-        data = str(self.sockets[0].readAll())
-        parts = data.split(" ")
+        data = bytes(self.sockets[0].readAll())
+        parts = data.split(b" ")
         if len(parts) != 2:
             return
 
         try:
-            code = parts[0].decode('base64')
-            task_id = parts[1].replace('\n', '')
+            code = b64decode(parts[0])
+            task_id = parts[1].replace(b'\n', b'')
             self.run_code(code, task_id)
         except binascii.Error:
             self.logger.error("Invalid base64 code string received!")
@@ -89,11 +89,11 @@ class CodeExecutor(object):
 
 class Stream(object):
     def __init__(self):
-        self.stream = io.BytesIO()
+        self.stream = io.StringIO()
 
     def read(self, *args, **kwargs):
         result = self.stream.read(*args, **kwargs)
-        self.stream = io.BytesIO(self.stream.read())
+        self.stream = io.StringIO(self.stream.read())
 
         return result
 
@@ -125,6 +125,8 @@ class Console(object):
             result = self.console.runcode(*args, **kwargs)
         except SyntaxError:
             self.console.showsyntaxerror()
+        except SystemExit:
+            pass
         except:
             self.console.showtraceback()
 
