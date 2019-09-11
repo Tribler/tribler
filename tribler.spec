@@ -34,6 +34,13 @@ try:
 except ImportError:
     pass
 
+# Importing lib2to3 as hidden import does not import all the necessary files for some reason so had to import as data.
+try:
+    lib2to3_dir = imp.find_module('lib2to3')[1]
+    data_to_copy += [(lib2to3_dir, 'lib2to3')]
+except ImportError:
+    pass
+
 if sys.platform.startswith('darwin'):
     data_to_copy += [('/Applications/VLC.app/Contents/MacOS/lib', 'vlc/lib'), ('/Applications/VLC.app/Contents/MacOS/plugins', 'vlc/plugins')]
 
@@ -46,16 +53,18 @@ if sys.platform.startswith('darwin'):
     with open('Tribler/Main/Build/Mac/Info.plist', 'w') as f:
         f.write(content)
 
-excluded_libs = ['wx', 'bitcoinlib', 'PyQt4']
+excluded_libs = ['wx', 'bitcoinlib', 'PyQt4', 'FixTk', 'tcl', 'tk', '_tkinter', 'tkinter', 'Tkinter']
 
 # Pony dependencies; each packages need to be added separatedly; added as hidden import
 pony_deps = ['pony', 'pony.orm', 'pony.orm.dbproviders', 'pony.orm.dbproviders.sqlite']
+
+sys.modules['FixTk'] = None
 
 a = Analysis(['run_tribler.py'],
              pathex=['/Users/martijndevos/Documents/tribler'],
              binaries=None,
              datas=data_to_copy,
-             hiddenimports=['csv', 'lib2to3', 'lib2to3.fixes', 'ecdsa', 'pyaes', 'scrypt', '_scrypt', 'sqlalchemy', 'sqlalchemy.ext.baked', 'sqlalchemy.ext.declarative', 'requests', 'PyQt5.QtTest', 'pyqtgraph'] + widget_files + pony_deps,
+             hiddenimports=['csv', 'ecdsa', 'pyaes', 'scrypt', '_scrypt', 'sqlalchemy', 'sqlalchemy.ext.baked', 'sqlalchemy.ext.declarative', 'requests', 'PyQt5.QtTest', 'pyqtgraph'] + widget_files + pony_deps,
              hookspath=[],
              runtime_hooks=[],
              excludes=excluded_libs,
@@ -97,7 +106,9 @@ app = BUNDLE(coll,
 shutil.rmtree(os.path.join(DISTPATH, 'tribler', 'tribler_source', 'Tribler', 'Test'))
 
 # Remove the second IPv8 submodule
-shutil.rmtree(os.path.join(DISTPATH, 'tribler', 'tribler_source', 'Tribler', 'anydex', 'pyipv8'))
+anydex_ipv8_dir = os.path.join(DISTPATH, 'tribler', 'tribler_source', 'Tribler', 'anydex', 'pyipv8')
+if os.path.exists(anydex_ipv8_dir):
+    shutil.rmtree(anydex_ipv8_dir)
 
 # Replace the Info.plist file on MacOS
 if sys.platform == 'darwin':
