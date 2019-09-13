@@ -9,7 +9,6 @@ from twisted.web import resource, server
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules import versioncheck_manager
 from Tribler.Core.Modules.versioncheck_manager import VersionCheckManager
-from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.tools import trial_timeout
 
@@ -32,7 +31,7 @@ class TestVersionCheck(TestAsServer):
 
     @inlineCallbacks
     def setUp(self):
-        self.port = get_random_port()
+        self.port = self.get_port()
         self.server = None
         self.should_call_new_version_callback = False
         self.new_version_called = False

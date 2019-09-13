@@ -5,7 +5,6 @@ from twisted.internet.defer import inlineCallbacks, maybeDeferred
 from twisted.web.server import Site
 from twisted.web.util import Redirect
 
-from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.Utilities.utilities import http_get, is_channel_public_key, is_infohash, is_simple_match_query, \
     is_valid_url, parse_magnetlink
 from Tribler.Test.test_as_server import AbstractServer
@@ -68,7 +67,7 @@ class TestMakeTorrent(AbstractServer):
 
         # Setup a redirect server which redirects to a magnet link
         magnet_link = "magnet:?xt=urn:btih:DC4B96CF85A85CEEDB8ADC4B96CF85A85CEEDB8A"
-        port = get_random_port()
+        port = self.get_port()
 
         self.setUpHttpRedirectServer(port, magnet_link.encode())
 

@@ -6,7 +6,6 @@ import shutil
 
 from twisted.internet.defer import Deferred
 
-from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, dlstatus_strings
 from Tribler.Test.common import TORRENT_UBUNTU_FILE
 from Tribler.Test.test_as_server import TestAsServer
@@ -40,7 +39,7 @@ class TestDownload(TestAsServer):
         files_path = os.path.join(self.session_base_dir, 'http_torrent_files')
         os.mkdir(files_path)
         shutil.copyfile(TORRENT_UBUNTU_FILE, os.path.join(files_path, 'ubuntu.torrent'))
-        file_server_port = get_random_port()
+        file_server_port = self.get_port()
         self.setUpFileServer(file_server_port, files_path)
 
         d = self.session.start_download_from_uri('http://localhost:%s/ubuntu.torrent' % file_server_port)

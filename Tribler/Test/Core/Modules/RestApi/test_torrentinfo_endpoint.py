@@ -13,7 +13,6 @@ from twisted.internet.defer import inlineCallbacks, succeed
 
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.Core.base_test import MockObject
@@ -42,7 +41,7 @@ class TestTorrentInfoEndpoint(AbstractApiTest):
         os.mkdir(files_path)
         shutil.copyfile(TORRENT_UBUNTU_FILE, os.path.join(files_path, 'ubuntu.torrent'))
 
-        file_server_port = get_random_port()
+        file_server_port = self.get_port()
         self.setUpFileServer(file_server_port, files_path)
 
         def verify_valid_dict(data):

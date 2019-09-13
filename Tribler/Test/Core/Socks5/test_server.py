@@ -1,7 +1,9 @@
-from Tribler.Core.Socks5.server import Socks5Server
-from Tribler.Core.Utilities.network_utils import get_random_port
-from Tribler.Test.test_as_server import AbstractServer
+from __future__ import absolute_import
+
 from twisted.internet.defer import inlineCallbacks
+
+from Tribler.Core.Socks5.server import Socks5Server
+from Tribler.Test.test_as_server import AbstractServer
 
 
 class TestSocks5Server(AbstractServer):
@@ -12,7 +14,7 @@ class TestSocks5Server(AbstractServer):
     @inlineCallbacks
     def setUp(self):
         yield super(TestSocks5Server, self).setUp()
-        self.socks5_server = Socks5Server(get_random_port(), None)
+        self.socks5_server = Socks5Server(self.get_port(), None)
 
     @inlineCallbacks
     def tearDown(self):

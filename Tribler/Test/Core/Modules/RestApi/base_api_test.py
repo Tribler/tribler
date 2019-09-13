@@ -15,7 +15,6 @@ from zope.interface import implementer
 
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.restapi import get_param
-from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.version import version_id
 from Tribler.Test.test_as_server import TestAsServer
 
@@ -89,9 +88,7 @@ class AbstractBaseApiTest(TestAsServer):
         self.config.set_trustchain_enabled(False)
 
         # Make sure we select a random port for the HTTP API
-        min_base_port = 1000 if not os.environ.get("TEST_BUCKET", None) \
-            else int(os.environ['TEST_BUCKET']) * 2000 + 2000
-        self.config.set_http_api_port(get_random_port(min_port=min_base_port, max_port=min_base_port + 2000))
+        self.config.set_http_api_port(self.get_port())
 
     def do_request(self, endpoint, req_type, post_data, raw_data):
         try:
