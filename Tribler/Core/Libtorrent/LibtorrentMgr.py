@@ -691,7 +691,8 @@ class LibtorrentMgr(TaskManager):
 
         # Keeping a copy of the settings because subsequent calls to get_settings are likely to fail
         # when libtorrent will try to decode peer_fingerprint to unicode.
-        self.ltsettings[lt_session] = self.ltsettings.get(lt_session, {})
+        if lt_session not in self.ltsettings:
+            self.ltsettings[lt_session] = lt_session.get_settings()
         self.ltsettings[lt_session].update(new_settings)
 
         if hasattr(lt_session, "apply_settings"):
