@@ -4,6 +4,8 @@ import logging
 import math
 from binascii import unhexlify
 
+import networkx as nx
+
 from twisted.web import resource
 
 import Tribler.Core.Utilities.json_util as json
@@ -11,8 +13,6 @@ from Tribler.Core.Modules.TrustCalculation.graph_positioning import GraphPositio
 from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.exceptions import TrustGraphException
 from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD
-
-import networkx as nx
 
 MAX_PEERS = 500
 MAX_TRANSACTIONS = 2500
