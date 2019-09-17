@@ -78,7 +78,7 @@ class TestTrustGraph(BaseTestCase):
         db = MockDatabase()
         block = TestBlock()
 
-        for _i in xrange(MAX_TRANSACTIONS):
+        for _ in xrange(MAX_TRANSACTIONS):
             tx = {b"total_up": random.randint(1, 100), b"total_down": random.randint(1, 100),
                   b"up": random.randint(1, 100), b"down": random.randint(1, 100)}
             new_block = TrustChainBlock.create(b'tribler_bandwidth', tx, db, block.public_key)

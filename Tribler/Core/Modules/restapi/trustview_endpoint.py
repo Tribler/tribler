@@ -4,6 +4,8 @@ import logging
 import math
 from binascii import unhexlify
 
+import networkx as nx
+
 from twisted.web import resource
 
 import Tribler.Core.Utilities.json_util as json
@@ -12,7 +14,6 @@ from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.exceptions import TrustGraphException
 from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD
 
-import networkx as nx
 
 MAX_PEERS = 500
 MAX_TRANSACTIONS = 2500
@@ -69,9 +70,6 @@ class TrustGraph(nx.DiGraph):
             if peer2['id'] not in self.successors(peer1['id']):
                 self.add_edge(peer1['id'], peer2['id'], weight=diff)
             self.transactions[block.hash] = block
-        else:
-            print("not a correct block:", block.type)
-            print("already in tx:", block.hash in self.transactions, block.hash)
 
     def add_blocks(self, blocks):
         for block in blocks:
