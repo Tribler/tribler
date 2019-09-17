@@ -5,14 +5,100 @@ from binascii import unhexlify
 
 from ipv8.attestation.trustchain.block import TrustChainBlock
 from ipv8.attestation.trustchain.community import TrustChainCommunity
+from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.messaging.deprecated.encoding import encode
+from ipv8.test.attestation.trustchain.test_block import MockDatabase, TestBlock
 from ipv8.test.mocking.ipv8 import MockIPv8
+
+from six.moves import xrange
 
 from twisted.internet.defer import inlineCallbacks
 
 import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.Modules.restapi.trustview_endpoint import MAX_PEERS, MAX_TRANSACTIONS, TrustGraph
+from Tribler.Core.Utilities.unicode import hexlify
+from Tribler.Core.exceptions import TrustGraphException
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.Core.base_test import MockObject
+from Tribler.Test.test_as_server import BaseTestCase
+
+
+class TestTrustGraph(BaseTestCase):
+
+    def setUp(self):
+        self.root_key = default_eccrypto.generate_key(u"very-low")
+        self.trust_graph = TrustGraph(hexlify(self.root_key.pub().key_to_bin()))
+
+    def test_initialize(self):
+        """
+        Tests the initialization of the Trust graph. At least root node should be in the graph.
+        """
+        self.assertGreaterEqual(len(self.trust_graph.peers), 1)
+
+    def test_get_node(self):
+        test_node1_key = hexlify(default_eccrypto.generate_key(u"very-low").pub().key_to_bin())
+        test_node1 = self.trust_graph.get_node(test_node1_key)
+        self.assertIsNotNone(test_node1)
+
+        # check that node is added by default if not available in the graph
+        self.assertGreaterEqual(len(self.trust_graph.peers), 2)
+
+        # Get node without adding to the graph
+        test_node2_key = hexlify(default_eccrypto.generate_key(u"very-low").pub().key_to_bin())
+        test_node2 = self.trust_graph.get_node(test_node2_key, add_if_not_exist=False)
+        self.assertIsNone(test_node2)
+
+    def test_maximum_nodes_in_graph(self):
+        """
+        Tests the maximum nodes that can be present in the graph.
+        """
+        # Added the MAX_PEERS nodes in the graph (including the root node)
+        for _ in xrange(MAX_PEERS-1):
+            test_node_key = hexlify(default_eccrypto.generate_key(u"very-low").pub().key_to_bin())
+            test_node = self.trust_graph.get_node(test_node_key)
+            self.assertIsNotNone(test_node)
+
+        self.assertEqual(len(self.trust_graph.peers), MAX_PEERS)
+
+        # If we try to add more than MAX_PEERS, we expect to get an exception
+        try:
+            test_node_key = hexlify(default_eccrypto.generate_key(u"very-low").pub().key_to_bin())
+            self.trust_graph.get_node(test_node_key)
+        except TrustGraphException as tge:
+            exception_msg = getattr(tge, 'message', repr(tge))
+            self.assertTrue('Max node peers reached in graph' in exception_msg)
+        else:
+            self.fail("Expected to fail but did not.")
+
+    def test_add_blocks(self):
+        """
+        Tests the maximum blocks/transactions that be be present in the graph.
+        :return:
+        """
+        db = MockDatabase()
+        block = TestBlock()
+
+        for _i in xrange(MAX_TRANSACTIONS):
+            tx = {b"total_up": random.randint(1, 100), b"total_down": random.randint(1, 100),
+                  b"up": random.randint(1, 100), b"down": random.randint(1, 100)}
+            new_block = TrustChainBlock.create(b'tribler_bandwidth', tx, db, block.public_key)
+            db.add_block(new_block)
+            self.trust_graph.add_block(new_block)
+
+        self.assertEqual(len(self.trust_graph.transactions), MAX_TRANSACTIONS)
+
+        # Already max transactions are added to the graph, adding more should raise an exception
+        try:
+            tx = {b"total_up": random.randint(1, 100), b"total_down": random.randint(1, 100),
+                  b"up": random.randint(1, 100), b"down": random.randint(1, 100)}
+            new_block = TrustChainBlock.create(b'tribler_bandwidth', tx, db, block.public_key)
+            db.add_block(new_block)
+            self.trust_graph.add_block(new_block)
+        except TrustGraphException as tge:
+            exception_msg = getattr(tge, 'message', repr(tge))
+            self.assertTrue('Max transactions reached in the graph' in exception_msg)
+        else:
+            self.fail("Expected to fail but did not.")
 
 
 class TestTrustViewEndpoint(AbstractApiTest):
