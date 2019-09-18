@@ -46,6 +46,7 @@ class RootEndpoint(resource.Resource):
         self.putChild(b"state", self.state_endpoint)
         self.putChild(b"shutdown", self.shutdown_endpoint)
         self.putChild(b"upgrader", self.upgrader_endpoint)
+        self.trustview_endpoint = None
 
     def start_endpoints(self):
         """
@@ -58,7 +59,6 @@ class RootEndpoint(resource.Resource):
             b"createtorrent": CreateTorrentEndpoint,
             b"debug": DebugEndpoint,
             b"trustchain": TrustchainEndpoint,
-            b"trustview": TrustViewEndpoint,
             b"statistics": StatisticsEndpoint,
             b"libtorrent": LibTorrentEndpoint,
             b"torrentinfo": TorrentInfoEndpoint,
@@ -79,3 +79,6 @@ class RootEndpoint(resource.Resource):
         self.putChild(b"wallets", WalletsEndpoint(self.session.lm.ipv8))
 
         self.getChildWithDefault(b"search", None).events_endpoint = self.events_endpoint
+
+        self.trustview_endpoint = TrustViewEndpoint(self.session)
+        self.putChild(b"trustview", self.trustview_endpoint)

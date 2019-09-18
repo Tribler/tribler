@@ -21,8 +21,11 @@ MAX_TRANSACTIONS = 2500
 
 class TrustGraph(nx.DiGraph):
 
-    def __init__(self, root_key):
+    def __init__(self, root_key, max_peers=MAX_PEERS, max_transactions=MAX_TRANSACTIONS):
         nx.DiGraph.__init__(self)
+        self.max_peers = max_peers
+        self.max_transactions = max_transactions
+
         self.root_node = 0
 
         self.peers = []
@@ -38,12 +41,16 @@ class TrustGraph(nx.DiGraph):
         self.transactions = {}
         self.token_balance = {}
 
+    def set_limits(self, max_peers, max_transactions):
+        self.max_peers = max_peers
+        self.max_transactions = max_transactions
+
     def get_node(self, peer_key, add_if_not_exist=True):
         if peer_key in self.peers:
             return self.node[self.peers.index(peer_key)]
         if add_if_not_exist:
             next_node_id = len(self.peers)
-            if next_node_id >= MAX_PEERS:
+            if next_node_id >= self.max_peers:
                 raise TrustGraphException("Max node peers reached in graph")
             super(TrustGraph, self).add_node(next_node_id, id=next_node_id, key=peer_key)
             self.peers.append(peer_key)
@@ -51,7 +58,7 @@ class TrustGraph(nx.DiGraph):
         return None
 
     def add_block(self, block):
-        if len(self.transactions) >= MAX_TRANSACTIONS:
+        if len(self.transactions) >= self.max_transactions:
             raise TrustGraphException("Max transactions reached in the graph")
 
         if block.hash not in self.transactions and block.type == b'tribler_bandwidth':

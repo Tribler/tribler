@@ -15,7 +15,7 @@ from six.moves import xrange
 from twisted.internet.defer import inlineCallbacks
 
 import Tribler.Core.Utilities.json_util as json
-from Tribler.Core.Modules.restapi.trustview_endpoint import MAX_PEERS, MAX_TRANSACTIONS, TrustGraph
+from Tribler.Core.Modules.restapi.trustview_endpoint import TrustGraph
 from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.exceptions import TrustGraphException
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
@@ -27,7 +27,7 @@ class TestTrustGraph(BaseTestCase):
 
     def setUp(self):
         self.root_key = default_eccrypto.generate_key(u"very-low")
-        self.trust_graph = TrustGraph(hexlify(self.root_key.pub().key_to_bin()))
+        self.trust_graph = TrustGraph(hexlify(self.root_key.pub().key_to_bin()), max_peers=20, max_transactions=200)
 
     def test_initialize(self):
         """
@@ -35,7 +35,11 @@ class TestTrustGraph(BaseTestCase):
         """
         self.assertGreaterEqual(len(self.trust_graph.peers), 1)
 
-    def test_get_node(self):
+    def test_get_node_and_reset(self):
+        """
+        Tests get node with and without adding to the graph.
+        Also tests the reset of the graph.
+        """
         test_node1_key = hexlify(default_eccrypto.generate_key(u"very-low").pub().key_to_bin())
         test_node1 = self.trust_graph.get_node(test_node1_key)
         self.assertIsNotNone(test_node1)
@@ -48,17 +52,21 @@ class TestTrustGraph(BaseTestCase):
         test_node2 = self.trust_graph.get_node(test_node2_key, add_if_not_exist=False)
         self.assertIsNone(test_node2)
 
+        # After resetting the graph, there should only be one root node
+        self.trust_graph.reset(self.root_key)
+        self.assertEqual(len(self.trust_graph.peers), 1)
+
     def test_maximum_nodes_in_graph(self):
         """
         Tests the maximum nodes that can be present in the graph.
         """
         # Added the MAX_PEERS nodes in the graph (including the root node)
-        for _ in xrange(MAX_PEERS-1):
+        for _ in xrange(self.trust_graph.max_peers-1):
             test_node_key = hexlify(default_eccrypto.generate_key(u"very-low").pub().key_to_bin())
             test_node = self.trust_graph.get_node(test_node_key)
             self.assertIsNotNone(test_node)
 
-        self.assertEqual(len(self.trust_graph.peers), MAX_PEERS)
+        self.assertEqual(len(self.trust_graph.peers), self.trust_graph.max_peers)
 
         # If we try to add more than MAX_PEERS, we expect to get an exception
         try:
@@ -78,14 +86,14 @@ class TestTrustGraph(BaseTestCase):
         db = MockDatabase()
         block = TestBlock()
 
-        for _ in xrange(MAX_TRANSACTIONS):
+        for _ in xrange(self.trust_graph.max_transactions):
             tx = {b"total_up": random.randint(1, 100), b"total_down": random.randint(1, 100),
                   b"up": random.randint(1, 100), b"down": random.randint(1, 100)}
             new_block = TrustChainBlock.create(b'tribler_bandwidth', tx, db, block.public_key)
             db.add_block(new_block)
             self.trust_graph.add_block(new_block)
 
-        self.assertEqual(len(self.trust_graph.transactions), MAX_TRANSACTIONS)
+        self.assertEqual(len(self.trust_graph.transactions), self.trust_graph.max_transactions)
 
         # Already max transactions are added to the graph, adding more should raise an exception
         try:
@@ -117,6 +125,8 @@ class TestTrustViewEndpoint(AbstractApiTest):
         bootstrap_download_state.get_progress = lambda: random.randint(10, 100)
 
         self.session.lm.bootstrap.download.get_state = lambda: bootstrap_download_state
+
+        self.endpoint = self.session.lm.api_manager.root_endpoint.trustview_endpoint
 
     def setUpPreSession(self):
         super(TestTrustViewEndpoint, self).setUpPreSession()
@@ -220,4 +230,46 @@ class TestTrustViewEndpoint(AbstractApiTest):
             .addCallback(lambda res: verify_response(res, 10, 21))
         yield self.do_request(b'trustview?depth=4', expected_code=200)\
             .addCallback(lambda res: verify_response(res, 10, 21))
+        return
+
+    @inlineCallbacks
+    def test_trustview_max_response(self):
+        """
+        Test whether the trust graph response is limited.
+        Here we redefine the max peers and max transactions limit for trust graph and add more peers and transactions,
+        then test if the endpoint response is limited.
+        """
+        max_peers = 10
+        max_tx = 10
+        self.endpoint.initialize_graph()
+        self.endpoint.trust_graph.set_limits(max_peers, max_tx)
+
+        def get_dummy_tx():
+            return {
+                b'up': random.randint(1, 101),
+                b'down': random.randint(1, 101),
+                b'total_up': random.randint(1, 101),
+                b'total_down': random.randint(1, 101),
+            }
+
+        def verify_response(response):
+            response_json = json.twisted_loads(response)
+            self.assertIsNotNone(response_json['graph'])
+            self.assertLessEqual(response_json['num_tx'], max_tx)
+            self.assertLessEqual(len(response_json['graph']['node']), max_peers)
+
+        test_block = TestBlock(key=self.session.lm.trustchain_community.my_peer.key)
+        test_block.sequence_number = 0
+        test_block.type = b'tribler_bandwidth'
+        for _ in xrange(max_peers * 2):
+            test_block.transaction = get_dummy_tx()
+            test_block._transaction = encode(test_block.transaction)
+            test_block.link_public_key = default_eccrypto.generate_key(u"very-low").pub().key_to_bin()
+            test_block.hash = test_block.calculate_hash()
+            self.session.lm.trustchain_community.persistence.add_block(test_block)
+            test_block.sequence_number = test_block.sequence_number + 1
+
+        self.should_check_equality = False
+        yield self.do_request(b'trustview?depth=0', expected_code=200) \
+            .addCallback(verify_response)
         return
