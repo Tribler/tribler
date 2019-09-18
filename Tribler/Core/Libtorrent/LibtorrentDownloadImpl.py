@@ -159,6 +159,7 @@ class LibtorrentDownloadImpl(TaskManager):
         self.deferreds_handle = []
         self.deferred_added = Deferred()
         self.deferred_removed = Deferred()
+        self.deferred_flushed = Deferred()
 
         self.handle_check_lc = self.register_task("handle_check", LoopingCall(self.check_handle))
 
@@ -482,10 +483,14 @@ class LibtorrentDownloadImpl(TaskManager):
 
         alert_types = ('tracker_reply_alert', 'tracker_error_alert', 'tracker_warning_alert', 'metadata_received_alert',
                        'file_renamed_alert', 'performance_alert', 'torrent_checked_alert', 'torrent_finished_alert',
-                       'save_resume_data_alert', 'save_resume_data_failed_alert')
+                       'save_resume_data_alert', 'save_resume_data_failed_alert', 'cache_flushed_alert')
 
         if alert_type in alert_types:
             getattr(self, 'on_' + alert_type)(alert)
+
+    def on_cache_flushed_alert(self, alert):
+        if not self.deferred_flushed.called:
+            self.deferred_flushed.callback(None)
 
     def on_save_resume_data_alert(self, alert):
         """

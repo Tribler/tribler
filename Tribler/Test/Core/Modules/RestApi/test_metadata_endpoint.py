@@ -15,7 +15,6 @@ from twisted.internet.task import deferLater
 
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.TorrentChecker.torrent_checker import TorrentChecker
-from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.Utilities.random_utils import random_infohash
 from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.Utilities.utilities import has_bep33_support
@@ -304,12 +303,10 @@ class TestTorrentHealthEndpoint(AbstractApiTest):
     def setUp(self):
         yield super(TestTorrentHealthEndpoint, self).setUp()
 
-        min_base_port, max_base_port = self.get_bucket_range_port()
-
-        self.udp_port = get_random_port(min_port=min_base_port, max_port=max_base_port)
+        self.udp_port = self.get_port()
         self.udp_tracker = UDPTracker(self.udp_port)
 
-        self.http_port = get_random_port(min_port=min_base_port, max_port=max_base_port)
+        self.http_port = self.get_port()
         self.http_tracker = HTTPTracker(self.http_port)
 
     @inlineCallbacks

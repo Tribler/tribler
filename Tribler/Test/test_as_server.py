@@ -55,6 +55,7 @@ class BaseTestCase(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
         super(BaseTestCase, self).__init__(*args, **kwargs)
+        self.selected_ports = set()
         self._tempdirs = []
         self.maxDiff = None  # So we see full diffs when using assertEquals
 
@@ -91,6 +92,36 @@ class BaseTestCase(unittest.TestCase):
                 raise e
         return temp
 
+    def get_bucket_range_port(self):
+        """
+        Return the port range of the test bucket assigned.
+        """
+        test_bucket = os.environ.get("TEST_BUCKET", None)
+        if test_bucket is not None:
+            test_bucket = int(test_bucket) + int(os.environ.get('TEST_BUCKET_OFFSET', 0))
+
+        min_base_port = 1024 if test_bucket is None else test_bucket * 2000 + 2000
+        return min_base_port, min_base_port + 2000
+
+    def get_ports(self, count):
+        """
+        Return random, free ports.
+        This is here to make sure that tests in different buckets get assigned different listen ports.
+        Also, make sure that we have no duplicates in selected ports.
+        """
+        ports = []
+        for _ in xrange(count):
+            min_base_port, max_base_port = self.get_bucket_range_port()
+            selected_port = get_random_port(min_port=min_base_port, max_port=max_base_port)
+            while selected_port in self.selected_ports:
+                selected_port = get_random_port(min_port=min_base_port, max_port=max_base_port)
+            self.selected_ports.add(selected_port)
+            ports.append(selected_port)
+        return ports
+
+    def get_port(self):
+        return self.get_ports(1)[0]
+
 
 class AbstractServer(BaseTestCase):
 
@@ -101,7 +132,6 @@ class AbstractServer(BaseTestCase):
         twisted.internet.base.DelayedCall.debug = True
 
         self.watchdog = WatchDog()
-        self.selected_socks5_ports = set()
 
         # Enable Deferred debugging
         from twisted.internet.defer import setDebugging
@@ -236,31 +266,6 @@ class AbstractServer(BaseTestCase):
 
             f.write("%s %s %s\n" % (_annotation, self.annotate_dict[annotation], time.time()))
             f.close()
-
-    def get_bucket_range_port(self):
-        """
-        Return the port range of the test bucket assigned.
-        """
-        min_base_port = 1000 if not os.environ.get("TEST_BUCKET", None) \
-            else int(os.environ['TEST_BUCKET']) * 2000 + 2000
-        return min_base_port, min_base_port + 2000
-
-    def get_socks5_ports(self):
-        """
-        Return five random, free socks5 ports.
-        This is here to make sure that tests in different buckets get assigned different SOCKS5 listen ports.
-        Also, make sure that we have no duplicates in selected socks5 ports.
-        """
-        socks5_ports = []
-        for _ in xrange(0, 5):
-            min_base_port, max_base_port = self.get_bucket_range_port()
-            selected_port = get_random_port(min_port=min_base_port, max_port=max_base_port)
-            while selected_port in self.selected_socks5_ports:
-                selected_port = get_random_port(min_port=min_base_port, max_port=max_base_port)
-            self.selected_socks5_ports.add(selected_port)
-            socks5_ports.append(selected_port)
-
-        return socks5_ports
 
 
 class TestAsServer(AbstractServer):

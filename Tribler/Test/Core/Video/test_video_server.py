@@ -14,7 +14,6 @@ from twisted.internet.protocol import Protocol, connectionDone
 
 from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.Video.VideoServer import VideoServer
 from Tribler.Test.Core.base_test import MockObject, TriblerCoreTest
@@ -86,7 +85,7 @@ class TestVideoServer(TriblerCoreTest):
     def setUp(self):
         TriblerCoreTest.setUp(self)
         self.mock_session = MockObject()
-        self.video_server = VideoServer(get_random_port(), self.mock_session)
+        self.video_server = VideoServer(self.get_port(), self.mock_session)
 
     def test_get_vod_dest_dir(self):
         """

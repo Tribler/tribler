@@ -8,7 +8,6 @@ from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Modules.MetadataStore.serialization import ChannelMetadataPayload
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.tools import trial_timeout
 from Tribler.pyipv8.ipv8.database import database_blob
@@ -42,7 +41,7 @@ class TestChannelDownload(TestAsServer):
         self.session.lm.mds.process_channel_dir(chan_dir, old_payload.public_key, old_payload.id_)
 
         channel_tdef = TorrentDef.load(CHANNEL_TORRENT_UPDATED)
-        libtorrent_port = get_random_port()
+        libtorrent_port = self.get_port()
         yield self.setup_seeder(channel_tdef, CHANNEL_DIR, libtorrent_port)
 
         payload = ChannelMetadataPayload.from_file(CHANNEL_METADATA_UPDATED)

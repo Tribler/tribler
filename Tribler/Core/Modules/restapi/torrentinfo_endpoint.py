@@ -10,6 +10,7 @@ from six.moves.urllib.request import url2pathname
 
 from twisted.internet.error import ConnectError, ConnectionLost, DNSLookupError
 from twisted.web import http, resource
+from twisted.web.error import SchemeNotSupported
 from twisted.web.server import NOT_DONE_YET
 
 import Tribler.Core.Utilities.json_util as json
@@ -95,7 +96,7 @@ class TorrentInfoEndpoint(resource.Resource):
             self.finish_request(request)
 
         def on_lookup_error(failure):
-            failure.trap(ConnectError, DNSLookupError, HttpError, ConnectionLost)
+            failure.trap(ConnectError, DNSLookupError, HttpError, ConnectionLost, SchemeNotSupported)
             request.setResponseCode(http.INTERNAL_SERVER_ERROR)
             request.write(json.twisted_dumps({"error": unichar_string(failure.getErrorMessage())}))
             self.finish_request(request)

@@ -17,7 +17,6 @@ from twisted.web.server import Site
 from twisted.web.static import File
 
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
-from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.exceptions import HttpError
 from Tribler.Test.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE
 from Tribler.Test.test_as_server import BaseTestCase
@@ -139,7 +138,7 @@ class TestTorrentDef(BaseTestCase):
         os.mkdir(files_path)
         shutil.copyfile(TORRENT_UBUNTU_FILE, os.path.join(files_path, 'ubuntu.torrent'))
 
-        file_server_port = get_random_port()
+        file_server_port = self.get_port()
         self.setUpFileServer(file_server_port, files_path)
 
         def _on_load(torrent_def):
@@ -159,7 +158,7 @@ class TestTorrentDef(BaseTestCase):
         os.mkdir(files_path)
         # Do not copy the torrent file to produce 404
 
-        file_server_port = get_random_port()
+        file_server_port = self.get_port()
         self.setUpFileServer(file_server_port, files_path)
 
         def _on_error(failure):

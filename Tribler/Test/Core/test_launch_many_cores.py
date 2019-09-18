@@ -219,7 +219,7 @@ class TestLaunchManyCoreFullSession(TestAsServer):
         for section in config_sections:
             self.config.config[section]['enabled'] = True
 
-        self.config.set_tunnel_community_socks5_listen_ports(self.get_socks5_ports())
+        self.config.set_tunnel_community_socks5_listen_ports(self.get_ports(5))
         self.config.set_ipv8_bootstrap_override("127.0.0.1:12345")  # So we do not contact the real trackers
 
     def get_community(self, overlay_cls):
@@ -252,7 +252,7 @@ class TestLaunchManyCoreSeederBootstrapSession(TestAsServer):
         self.tdef = create_dummy_sql_dumb(self.bootstrap.bootstrap_file)
         self.config.set_bootstrap_infohash(hexlify(self.tdef.infohash))
 
-        self.config.set_tunnel_community_socks5_listen_ports(self.get_socks5_ports())
+        self.config.set_tunnel_community_socks5_listen_ports(self.get_ports(5))
         self.config.set_ipv8_bootstrap_override("127.0.0.1:12345")  # So we do not contact the real trackers
 
     def downloader_state_callback(self, ds):

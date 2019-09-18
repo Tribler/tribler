@@ -51,7 +51,7 @@ class TestTunnelBase(TestAsServer):
         self.config.set_ipv8_port(-1)
         self.config.set_libtorrent_enabled(True)
         self.config.set_trustchain_enabled(False)
-        self.config.set_tunnel_community_socks5_listen_ports(self.get_socks5_ports())
+        self.config.set_tunnel_community_socks5_listen_ports(self.get_ports(5))
 
     @inlineCallbacks
     def tearDown(self):
@@ -140,7 +140,7 @@ class TestTunnelBase(TestAsServer):
         config = self.config.copy()
         config.set_libtorrent_enabled(True)
         config.set_state_dir(self.getStateDir(index))
-        config.set_tunnel_community_socks5_listen_ports(self.get_socks5_ports())
+        config.set_tunnel_community_socks5_listen_ports(self.get_ports(5))
 
         session = Session(config)
         yield session.start()
@@ -156,7 +156,7 @@ class TestTunnelBase(TestAsServer):
 
         self.seed_config = self.config.copy()
         self.seed_config.set_state_dir(self.getStateDir(2))
-        self.seed_config.set_tunnel_community_socks5_listen_ports(self.get_socks5_ports())
+        self.seed_config.set_tunnel_community_socks5_listen_ports(self.get_ports(5))
         if self.session2 is None:
             self.session2 = Session(self.seed_config)
             self.session2.start()

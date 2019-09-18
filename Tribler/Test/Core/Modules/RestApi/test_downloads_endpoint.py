@@ -13,7 +13,6 @@ from twisted.internet.defer import fail
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.DownloadState import DownloadState
-from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.Core.base_test import MockObject
@@ -280,7 +279,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         Testing whether starting a download from a unexisting URL gives an error
         """
-        post_data = {'uri': 'http://localhost:%d/test.torrent' % get_random_port()}
+        post_data = {'uri': 'http://localhost:%d/test.torrent' % self.get_port()}
         self.should_check_equality = False
         return self.do_request('downloads', expected_code=500, request_type='PUT', post_data=post_data)
 
