@@ -9,9 +9,9 @@ import traceback
 
 import psutil
 
-from Tribler.dependencies import show_system_popup
 from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.Modules.process_checker import ProcessChecker
+from Tribler.dependencies import show_system_popup
 
 FORCE_RESTART_MESSAGE = "An existing Tribler core process (PID:%s) is already running. \n\n" \
                         "Do you want to stop the process and do a clean restart instead?"

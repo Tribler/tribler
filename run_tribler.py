@@ -34,6 +34,7 @@ def start_tribler_core(base_path, api_port):
     Note that there is no direct communication between the GUI process and the core: all communication is performed
     through the HTTP API.
     """
+    from check_os import check_and_enable_code_tracing, set_process_priority, setup_core_logging
     from twisted.internet import reactor
     setup_core_logging()
 
@@ -88,7 +89,6 @@ if __name__ == "__main__":
     if 'CORE_PROCESS' in os.environ:
         # Check for missing Core dependencies
         check_for_missing_dependencies(scope='core')
-        from check_os import *
 
         base_path = os.environ['CORE_BASE_PATH']
         api_port = os.environ['CORE_API_PORT']
@@ -97,7 +97,9 @@ if __name__ == "__main__":
         # Check for missing GUI dependencies
         check_for_missing_dependencies(scope='gui')
 
-        from check_os import *
+        # Do imports only after dependencies check
+        from check_os import check_and_enable_code_tracing, check_environment, check_free_space, enable_fault_handler, \
+            error_and_exit, setup_gui_logging, should_kill_other_tribler_instances
         from Tribler.Core.exceptions import TriblerException
 
         try:
