@@ -94,8 +94,8 @@ if __name__ == "__main__":
         api_port = os.environ['CORE_API_PORT']
         start_tribler_core(base_path, api_port)
     else:
-        # Check for missing GUI dependencies
-        check_for_missing_dependencies(scope='gui')
+        # Check for missing both(GUI, Core) dependencies
+        check_for_missing_dependencies(scope='both')
 
         # Do imports only after dependencies check
         from check_os import check_and_enable_code_tracing, check_environment, check_free_space, enable_fault_handler, \

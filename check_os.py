@@ -11,7 +11,7 @@ import psutil
 
 from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.Modules.process_checker import ProcessChecker
-from Tribler.dependencies import show_system_popup
+from Tribler.dependencies import _show_system_popup
 
 FORCE_RESTART_MESSAGE = "An existing Tribler core process (PID:%s) is already running. \n\n" \
                         "Do you want to stop the process and do a clean restart instead?"
@@ -24,7 +24,7 @@ def error_and_exit(title, main_text):
     :param title: the short error description
     :param main_text: the long error description
     """
-    show_system_popup(title, main_text)
+    _show_system_popup(title, main_text)
 
     # Exit the program
     sys.exit(1)
