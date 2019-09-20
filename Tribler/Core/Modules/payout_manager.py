@@ -35,7 +35,7 @@ class PayoutManager(object):
                 deferred = self.bandwidth_wallet.trustchain.sign_block(nodes[0],
                                                                        public_key=nodes[0].public_key.key_to_bin(),
                                                                        block_type=b'tribler_bandwidth',
-                                                                       transaction={'up': 0, 'down': total_bytes})
+                                                                       transaction={b'up': 0, b'down': total_bytes})
                 addCallback(deferred, lambda _: None)
 
         if total_bytes >= 1024 * 1024:  # Do at least 1MB payouts

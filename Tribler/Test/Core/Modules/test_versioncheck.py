@@ -4,6 +4,7 @@ from six import ensure_binary
 
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, maybeDeferred
+from twisted.internet.task import deferLater
 from twisted.web import resource, server
 
 import Tribler.Core.Utilities.json_util as json
@@ -54,6 +55,20 @@ class TestVersionCheck(TestAsServer):
 
     def check_version(self):
         return self.session.lm.version_check_manager.check_new_version().addCallback(self.assert_new_version_called)
+
+    def test_start(self):
+        """
+        Test whether the periodic version lookup works as expected
+        """
+        self.setup_version_server(json.dumps({'name': 'v1.0'}))
+        self.session.lm.version_check_manager.start()
+        self.assertFalse(self.session.lm.version_check_manager.is_pending_task_active("tribler version check"))
+
+        import Tribler.Core.Modules.versioncheck_manager as vcm
+        vcm.version_id = "7.0.0"
+        self.session.lm.version_check_manager.start()
+        yield deferLater(reactor, 0.4, lambda: None)  # Wait a bit for the check to complete
+        self.assertTrue(self.session.lm.version_check_manager.is_pending_task_active("tribler version check"))
 
     @trial_timeout(10)
     def test_old_version(self):

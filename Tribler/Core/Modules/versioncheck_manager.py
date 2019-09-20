@@ -28,7 +28,8 @@ class VersionCheckManager(TaskManager):
         self.session = session
 
     def start(self, interval=VERSION_CHECK_INTERVAL):
-        self.register_task("tribler version check", LoopingCall(self.check_new_version)).start(interval, now=True)
+        if 'GIT' not in version_id:
+            self.register_task("tribler version check", LoopingCall(self.check_new_version)).start(interval, now=True)
 
     def stop(self):
         self.shutdown_task_manager()

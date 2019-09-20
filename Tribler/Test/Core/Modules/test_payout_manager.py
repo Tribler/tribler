@@ -36,7 +36,7 @@ class TestPayoutManager(TriblerCoreTest):
 
         def mocked_sign_block(*_, **kwargs):
             tx = kwargs.pop('transaction')
-            self.assertEqual(tx['down'], 10 * 1024 * 1024 + 1337)
+            self.assertEqual(tx[b'down'], 10 * 1024 * 1024 + 1337)
             return succeed((None, None))
 
         self.payout_manager.bandwidth_wallet.trustchain.sign_block = mocked_sign_block
