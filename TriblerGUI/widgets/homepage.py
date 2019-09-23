@@ -39,14 +39,16 @@ class HomePage(QWidget):
 
     def load_popular_torrents(self):
         self.recommended_request_mgr = TriblerRequestManager()
-        self.recommended_request_mgr.perform_request("metadata/torrents/random?limit=50",
-                                                     self.received_popular_torrents)
+        self.recommended_request_mgr.perform_request(
+            "metadata/torrents/random?limit=50", self.received_popular_torrents
+        )
 
     def clicked_tab_button(self, tab_button_name):
         if tab_button_name == "home_tab_channels_button":
             self.recommended_request_mgr = TriblerRequestManager()
-            self.recommended_request_mgr.perform_request("metadata/channels/popular?limit=50",
-                                                         self.received_popular_channels)
+            self.recommended_request_mgr.perform_request(
+                "metadata/channels/popular?limit=50", self.received_popular_channels
+            )
         elif tab_button_name == "home_tab_torrents_button":
             self.load_popular_torrents()
 
@@ -74,7 +76,7 @@ class HomePage(QWidget):
         self.window().home_page_no_items_label.setHidden(has_results)
 
     def received_popular_torrents(self, result):
-        if not result:
+        if not result or "torrents" not in result:
             return
         self.show_channels = False
 
