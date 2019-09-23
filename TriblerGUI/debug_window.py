@@ -4,6 +4,7 @@ import datetime
 import logging
 import os
 import socket
+import sys
 from time import localtime, strftime, time
 
 from PyQt5 import QtGui, uic
@@ -221,6 +222,7 @@ class DebugWindow(QMainWindow):
         data = data["tribler_statistics"]
         self.window().general_tree_widget.clear()
         self.create_and_add_widget_item("Tribler version", self.tribler_version, self.window().general_tree_widget)
+        self.create_and_add_widget_item("Python version", sys.version, self.window().general_tree_widget)
         self.create_and_add_widget_item("Number of channels", data["num_channels"], self.window().general_tree_widget)
         self.create_and_add_widget_item("Database size", format_size(data["db_size"]),
                                         self.window().general_tree_widget)
