@@ -315,7 +315,7 @@ class LibtorrentDownloadImpl(TaskManager):
                 if self.config.get_bootstrap_download():
                     self.handle.set_download_limit(self.session.config.get_bootstrap_max_download_rate())
 
-                return self
+            return self
 
         def on_torrent_failed(failure):
             self._logger.error("Could not add torrent to LibtorrentManager %s", self.tdef.get_name_as_unicode())
