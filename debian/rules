@@ -7,6 +7,7 @@
 # This has to be exported to make some magic below work.
 export DH_OPTIONS
 DPKG_EXPORT_BUILDFLAGS = 1
+export PYBUILD_DISABLE=test
 include /usr/share/dpkg/buildflags.mk
 
 DEB_SOURCE := $(shell dpkg-parsechangelog | grep Source: | sed -e 's/Source: //')
@@ -15,7 +16,7 @@ DEB_UPSTREAM_VERSION := $(shell echo $(DEB_VERSION) | sed -e 's/-[^-]*$$//')
 GIT_URL = https://github.com/Tribler/tribler.git
 
 %:
-	dh $@ --with python2
+	dh $@ --with python3 --buildsystem=pybuild
 
 override_dh_auto_configure:
 	dh_auto_configure
