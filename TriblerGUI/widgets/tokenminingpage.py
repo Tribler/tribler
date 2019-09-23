@@ -1,5 +1,4 @@
-from __future__ import absolute_import
-from __future__ import division
+from __future__ import absolute_import, division
 
 import time
 
@@ -95,9 +94,8 @@ class TokenMiningPage(QWidget):
             self.downloads_request_mgr.perform_request(url, self.on_received_downloads, priority="LOW")
 
     def on_received_downloads(self, downloads):
-        if not downloads or "downloads" not in downloads:
-            return  # This might happen when closing Tribler
-
+        if not downloads or "downloads" not in downloads or not self.window().tribler_settings:
+            return  # This might happen when just starting or closing Tribler
         bytes_max = self.window().tribler_settings["credit_mining"]["max_disk_space"]
         bytes_used = 0
         total_up = total_down = 0
