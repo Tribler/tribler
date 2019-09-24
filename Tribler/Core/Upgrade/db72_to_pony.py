@@ -17,6 +17,7 @@ from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
 from twisted.internet.task import deferLater
 
+from Tribler.Core.Category.l2_filter import is_forbidden
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import BLOB_EXTENSION
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import LEGACY_ENTRY, NEW
 from Tribler.Core.Modules.MetadataStore.OrmBindings.torrent_metadata import infohash_to_id
@@ -190,11 +191,11 @@ class DispersyToPonyMigration(object):
             except UnicodeDecodeError:
                 continue
 
-
             try:
                 if (len(base64.decodestring(infohash.encode('utf-8'))) != 20) or \
                         (not torrent_id or int(torrent_id) == 0) or \
                         (not length or (int(length) <= 0) or (int(length) > (1 << 45))) or \
+                        (is_forbidden(name)) or \
                         not name:
                     continue
 
@@ -407,7 +408,10 @@ class DispersyToPonyMigration(object):
         with db_session:
             for c in self.mds.ChannelMetadata.select().for_update()[:]:
                 contents_len = c.contents_len
-                if contents_len:
+                title = c.title
+                if is_forbidden(title):
+                    c.delete()
+                elif contents_len:
                     c.num_entries = contents_len
                 else:
                     c.delete()

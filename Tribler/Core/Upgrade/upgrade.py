@@ -4,10 +4,13 @@ import logging
 import os
 import shutil
 
+from pony.orm import db_session
+
 from six.moves.configparser import MissingSectionHeaderError, ParsingError
 
 from twisted.internet.defer import succeed
 
+from Tribler.Core.Category.l2_filter import is_forbidden
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.Upgrade.config_converter import convert_config_to_tribler71, convert_config_to_tribler74
@@ -82,8 +85,38 @@ class TriblerUpgrader(object):
         after upgrading to Tribler 7.
         """
         d = self.upgrade_72_to_pony()
+        d.addCallback(self.upgrade_pony_db_6to7)
         self.upgrade_config_to_74()
         return d
+
+    def upgrade_pony_db_6to7(self, _):
+        """
+        Upgrade GigaChannel DB from version 6 (7.3.0) to version 7 (7.3.1).
+        Migration should be relatively fast, so we do it in the foreground, without notifying the user
+        and breaking it in smaller chunks as we do with 72_to_pony.
+        """
+        # We have to create the Metadata Store object because the LaunchManyCore has not been started yet
+        database_path = os.path.join(self.session.config.get_state_dir(), 'sqlite', 'metadata.db')
+        channels_dir = os.path.join(self.session.config.get_chant_channels_dir())
+        if not os.path.exists(database_path):
+            return succeed(None)
+        mds = MetadataStore(database_path, channels_dir, self.session.trustchain_keypair, disable_sync=True)
+        with db_session:
+            db_version = mds.MiscData.get(name="db_version")
+            if int(db_version.value) != 6:
+                return succeed(None)
+            for c in mds.ChannelMetadata.select():
+                if is_forbidden(c.title+c.tags):
+                    c.contents.delete()
+                    c.delete()
+                    # The channel torrent will be removed by GigaChannel manager during the cruft cleanup
+
+            for t in mds.TorrentMetadata.select():
+                if is_forbidden(t.title+t.tags):
+                    t.delete()
+            db_version.value = str(7)
+        mds.shutdown()
+        return succeed(None)
 
     def update_status(self, status_text):
         self.session.notifier.notify(NTFY_UPGRADER_TICK, NTFY_STARTED, None, status_text)
