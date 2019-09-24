@@ -12,6 +12,7 @@ import lz4.frame
 from pony import orm
 from pony.orm import db_session
 
+from Tribler.Core.Category.l2_filter import is_forbidden
 from Tribler.Core.Modules.MetadataStore.OrmBindings import (
     channel_metadata, channel_node, channel_peer, channel_vote, misc, torrent_metadata, torrent_state, tracker_state,
     vsids)
@@ -377,6 +378,10 @@ class MetadataStore(object):
 
         if payload.metadata_type not in [CHANNEL_TORRENT, REGULAR_TORRENT]:
             return []
+
+        # Check for offending words stop-list
+        if is_forbidden(payload.title + payload.tags):
+            return [(None, NO_ACTION)]
 
         # FFA payloads get special treatment:
         if payload.public_key == NULL_KEY:

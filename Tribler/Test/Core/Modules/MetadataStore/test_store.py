@@ -175,6 +175,17 @@ class TestMetadataStore(TriblerCoreTest):
         self.assertEqual(1, len(channel.contents))
 
     @db_session
+    def test_skip_processing_mdblob_with_forbidden_terms(self):
+        """
+        Test that an mdblob with forbidden terms cannot ever get into the local database
+        """
+        key = default_eccrypto.generate_key(u"curve25519")
+        chan_entry = self.mds.ChannelMetadata(title=u"12yo", infohash=database_blob(os.urandom(20)), sign_with=key)
+        chan_payload = chan_entry._payload_class(**chan_entry.to_dict())
+        chan_entry.delete()
+        self.assertEqual(self.mds.process_payload(chan_payload), [(None, NO_ACTION)])
+
+    @db_session
     def test_process_invalid_compressed_mdblob(self):
         """
         Test whether processing an invalid compressed mdblob does not crash Tribler
