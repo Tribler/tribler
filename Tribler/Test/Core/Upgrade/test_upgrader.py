@@ -42,13 +42,35 @@ class TestUpgrader(AbstractUpgrader):
             os.path.dirname(os.path.realpath(__file__))), '..', 'data', 'upgrade_databases', 'tribler_v29.sdb'))
         old_database_path = os.path.join(self.session.config.get_state_dir(), 'sqlite', 'tribler.sdb')
         new_database_path = os.path.join(self.session.config.get_state_dir(), 'sqlite', 'metadata.db')
-        channels_dir = os.path.join(self.session.config.get_chant_channels_dir())
-
         shutil.copyfile(OLD_DB_SAMPLE, old_database_path)
+
         yield self.upgrader.run()
+        channels_dir = os.path.join(self.session.config.get_chant_channels_dir())
         mds = MetadataStore(new_database_path, channels_dir, self.session.trustchain_keypair)
         with db_session:
             self.assertEqual(mds.TorrentMetadata.select().count(), 24)
+        mds.shutdown()
+
+    @trial_timeout(10)
+    @inlineCallbacks
+    def test_upgrade_pony_db_6to7(self):
+        """
+        Test that channels and torrents with forbidden words are cleaned up during upgrade from Pony db ver 6 to 7.
+        Also, check that the DB version is upgraded.
+        :return:
+        """
+        OLD_DB_SAMPLE = os.path.abspath(os.path.join(os.path.abspath(
+            os.path.dirname(os.path.realpath(__file__))), '..', 'data', 'upgrade_databases', 'pony_v6.db'))
+        old_database_path = os.path.join(self.session.config.get_state_dir(), 'sqlite', 'metadata.db')
+        shutil.copyfile(OLD_DB_SAMPLE, old_database_path)
+
+        yield self.upgrader.run()
+        channels_dir = os.path.join(self.session.config.get_chant_channels_dir())
+        mds = MetadataStore(old_database_path, channels_dir, self.session.trustchain_keypair)
+        with db_session:
+            self.assertEqual(mds.TorrentMetadata.select().count(), 23)
+            self.assertEqual(mds.ChannelMetadata.select().count(), 2)
+            self.assertEqual(int(mds.MiscData.get(name="db_version").value), 7)
         mds.shutdown()
 
     @trial_timeout(10)
