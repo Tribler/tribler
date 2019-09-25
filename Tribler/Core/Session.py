@@ -435,7 +435,13 @@ class Session(object):
             # TODO: move GigaChannel torrents into a separate session
             if self.lm.gigachannel_manager:
                 self.lm.gigachannel_manager.start()
-        return startup_deferred.addCallback(load_checkpoint).addCallback(start_gigachannel_manager)
+
+        def start_bootstrap_download(_):
+            if not self.lm.bootstrap:
+                self.lm.start_bootstrap_download()
+
+        return startup_deferred.addCallback(load_checkpoint).addCallback(start_gigachannel_manager)\
+            .addCallback(start_bootstrap_download)
 
     def shutdown(self):
         """

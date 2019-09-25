@@ -341,10 +341,6 @@ class TriblerLaunchMany(TaskManager):
         if self.session.config.get_ipv8_enabled() and self.session.config.get_trustchain_enabled():
             self.payout_manager = PayoutManager(self.trustchain_community, self.dht_community)
 
-        # Start bootstrap download if not already done
-        if not self.session.lm.bootstrap:
-            self.session.lm.start_bootstrap_download()
-
         self.initComplete = True
 
     def add(self, tdef, dscfg, pstate=None, setupDelay=0, hidden=False,
@@ -634,6 +630,11 @@ class TriblerLaunchMany(TaskManager):
             self._logger.exception("tlm: could not restore tdef from metainfo dict: %s %s ", e, text_type(metainfo))
             return
 
+        if pstate.get('download_defaults', 'bootstrap_download'):
+            if hexlify(tdef.get_infohash()) != self.session.config.get_bootstrap_infohash():
+                self.remove_pstate(tdef.get_infohash())
+                return
+
         if (pstate.has_option('download_defaults', 'saveas') and
                 isinstance(pstate.get('download_defaults', 'saveas'), tuple)):
             pstate.set('download_defaults', 'saveas', pstate.get('download_defaults', 'saveas')[-1])
@@ -713,13 +714,13 @@ class TriblerLaunchMany(TaskManager):
             if not self.payout_manager:
                 self._logger.warn("Running bootstrap without payout enabled")
             self.bootstrap = Bootstrap(self.session.config.get_state_dir(), dht=self.dht_community)
-            if os.path.exists(self.bootstrap.bootstrap_file):
-                self.bootstrap.start_initial_seeder(self.session.start_download_from_tdef,
-                                                    self.bootstrap.bootstrap_file,
-                                                    self.session.config.get_bootstrap_infohash())
-            else:
-                self.bootstrap.start_by_infohash(self.session.start_download_from_tdef,
-                                                 self.session.config.get_bootstrap_infohash())
+            # if os.path.exists(self.bootstrap.bootstrap_file):
+            #     self.bootstrap.start_initial_seeder(self.session.start_download_from_tdef,
+            #                                         self.bootstrap.bootstrap_file,
+            #                                         self.session.config.get_bootstrap_infohash())
+            # else:
+            self.bootstrap.start_by_infohash(self.session.start_download_from_tdef,
+                                             self.session.config.get_bootstrap_infohash())
 
     @inlineCallbacks
     def early_shutdown(self):
