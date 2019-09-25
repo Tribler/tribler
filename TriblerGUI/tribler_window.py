@@ -638,12 +638,9 @@ class TriblerWindow(QMainWindow):
         self.trust_page.received_trustchain_statistics(statistics)
 
         statistics = statistics["statistics"]
-        if 'latest_block' in statistics:
-            balance = (statistics["latest_block"]["transaction"]["total_up"] -
-                       statistics["latest_block"]["transaction"]["total_down"])
-            self.set_token_balance(balance)
-        else:
-            self.token_balance_label.setText("0 MB")
+        balance = (statistics.get("total_up", 0) -
+                   statistics.get("total_down", 0))
+        self.set_token_balance(balance)
 
         # If trust page is currently visible, then load the graph as well
         if self.stackedWidget.currentIndex() == PAGE_TRUST:
