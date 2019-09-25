@@ -5,12 +5,7 @@ import os
 import signal
 import sys
 
-from check_os import check_and_enable_code_tracing, check_environment, check_free_space, enable_fault_handler, \
-    error_and_exit, set_process_priority, setup_gui_logging, should_kill_other_tribler_instances
-
-from Tribler.Core.Config.tribler_config import TriblerConfig
-from Tribler.Core.exceptions import TriblerException
-
+from Tribler.dependencies import check_for_missing_dependencies
 
 # https://github.com/Tribler/tribler/issues/3702
 # We need to make sure that anyone running cp65001 can print to the stdout before we print anything.
@@ -39,10 +34,11 @@ def start_tribler_core(base_path, api_port):
     Note that there is no direct communication between the GUI process and the core: all communication is performed
     through the HTTP API.
     """
+    from check_os import check_and_enable_code_tracing, set_process_priority, setup_core_logging
     from twisted.internet import reactor
-    from check_os import setup_core_logging
     setup_core_logging()
 
+    from Tribler.Core.Config.tribler_config import TriblerConfig
     from Tribler.Core.Modules.process_checker import ProcessChecker
     from Tribler.Core.Session import Session
 
@@ -91,10 +87,21 @@ def start_tribler_core(base_path, api_port):
 if __name__ == "__main__":
     # Check whether we need to start the core or the user interface
     if 'CORE_PROCESS' in os.environ:
+        # Check for missing Core dependencies
+        check_for_missing_dependencies(scope='core')
+
         base_path = os.environ['CORE_BASE_PATH']
         api_port = os.environ['CORE_API_PORT']
         start_tribler_core(base_path, api_port)
     else:
+        # Check for missing both(GUI, Core) dependencies
+        check_for_missing_dependencies(scope='both')
+
+        # Do imports only after dependencies check
+        from check_os import check_and_enable_code_tracing, check_environment, check_free_space, enable_fault_handler, \
+            error_and_exit, setup_gui_logging, should_kill_other_tribler_instances
+        from Tribler.Core.exceptions import TriblerException
+
         try:
             # Enable tracer using commandline args: --trace-debug or --trace-exceptions
             trace_logger = check_and_enable_code_tracing('gui')

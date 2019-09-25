@@ -1,6 +1,5 @@
 from __future__ import absolute_import, print_function
 
-import importlib
 import logging.config
 import os
 import sys
@@ -12,26 +11,10 @@ import psutil
 
 from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.Modules.process_checker import ProcessChecker
+from Tribler.dependencies import _show_system_popup
 
 FORCE_RESTART_MESSAGE = "An existing Tribler core process (PID:%s) is already running. \n\n" \
                         "Do you want to stop the process and do a clean restart instead?"
-
-
-def _do_popup(title, text):
-    """
-    Create a native pop-up without any third party dependency.
-
-    :param title: the pop-up title
-    :param text: the pop-up body
-    """
-    try:
-        import win32api
-        win32api.MessageBox(0, text, title)
-    except ImportError:
-        import subprocess
-        subprocess.Popen(['xmessage', '-center', text], shell=False)
-    sep = "*" * 20
-    print('\n'.join([sep, title, sep, text, sep]), file=sys.stderr)
 
 
 def error_and_exit(title, main_text):
@@ -41,7 +24,7 @@ def error_and_exit(title, main_text):
     :param title: the short error description
     :param main_text: the long error description
     """
-    _do_popup(title, main_text)
+    _show_system_popup(title, main_text)
 
     # Exit the program
     sys.exit(1)
@@ -63,13 +46,11 @@ def check_environment():
     """
     Perform all of the pre-Tribler checks to see if we can run on this platform.
     """
-    check_pip_dependencies()
     check_read_write()
 
 
 def check_free_space():
     try:
-        import psutil
         free_space = psutil.disk_usage(".").free/(1024 * 1024.0)
         if free_space < 100:
             error_and_exit("Insufficient disk space",
@@ -335,26 +316,3 @@ def trace_exceptions(file_handler, frame, event, args):
             exc_type.__name__, exc_value, "".join(traceback.format_tb(exc_traceback)))
         file_handler.write(trace_line)
         file_handler.flush()
-
-
-def check_pip_dependencies():
-    """
-    Checks modules installed with pip, especially via linux post installation script.
-    Program exits with a dialog if there are any missing dependencies.
-
-    TODO: Right now with TKinter dialog, it is not possible to copy the missing dependencies
-    scripts shown in the dialog box. When we update the dialog, we should support that as well.
-    """
-    required_deps = ['pony', 'lz4']
-    missing_deps = []
-
-    for dep in required_deps:
-        try:
-            importlib.import_module(dep)
-        except ImportError:
-            missing_deps.append(dep)
-
-    if missing_deps:
-        error_and_exit("Dependencies missing!",
-                       "Please report to the developers and install the following missing dependencies "
-                       "to continue:\n\n pip install --user %s \n\n" % " ".join(missing_deps))
