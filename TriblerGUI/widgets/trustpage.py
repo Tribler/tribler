@@ -1,4 +1,5 @@
 from __future__ import absolute_import
+from __future__ import division
 
 import datetime
 import gc
@@ -141,8 +142,8 @@ class TrustPage(QWidget):
         total_up = statistics.get("total_up", 0)
         total_down = statistics.get("total_down", 0)
 
-        self.window().trust_contribution_amount_label.setText("%s MBytes" % (total_up / self.byte_scale))
-        self.window().trust_consumption_amount_label.setText("%s MBytes" % (total_down / self.byte_scale))
+        self.window().trust_contribution_amount_label.setText("%s MBytes" % (total_up // self.byte_scale))
+        self.window().trust_consumption_amount_label.setText("%s MBytes" % (total_down // self.byte_scale))
 
         self.window().trust_people_helped_label.setText("%d" % statistics["peers_that_pk_helped"])
         self.window().trust_people_helped_you_label.setText("%d" % statistics["peers_that_helped_pk"])
