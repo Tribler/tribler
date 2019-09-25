@@ -237,48 +237,6 @@ class TestLaunchManyCoreFullSession(TestAsServer):
         self.assertTrue(self.get_community(TrustChainCommunity))
 
 
-class TestLaunchManyCoreSeederBootstrapSession(TestAsServer):
-
-    def setUpPreSession(self):
-        TestAsServer.setUpPreSession(self)
-
-        # Enable all communities
-        config_sections = ['libtorrent', 'bootstrap', 'trustchain', 'ipv8']
-
-        for section in config_sections:
-            self.config.config[section]['enabled'] = True
-
-        self.bootstrap = Bootstrap(self.config.get_state_dir())
-        self.tdef = create_dummy_sql_dumb(self.bootstrap.bootstrap_file)
-        self.config.set_bootstrap_infohash(hexlify(self.tdef.infohash))
-
-        self.config.set_tunnel_community_socks5_listen_ports(self.get_ports(5))
-        self.config.set_ipv8_bootstrap_override("127.0.0.1:12345")  # So we do not contact the real trackers
-
-    def downloader_state_callback(self, ds):
-        if ds.get_status() == DLSTATUS_SEEDING:
-            self.test_deferred.callback(None)
-            try:
-                os.remove(self.bootstrap.bootstrap_file)
-            except OSError:
-                pass
-            return 0.0
-        return 0.5
-
-    @trial_timeout(20)
-    def test_bootstrap_seeder(self):
-        self.session.lm.start_bootstrap_download()
-        self.assertTrue(self.tdef.infohash in self.session.lm.downloads)
-        self.assertIsNotNone(self.session.lm.bootstrap.download)
-        self.session.lm.bootstrap.download.set_state_callback(self.downloader_state_callback)
-        return self.test_deferred
-
-    @inlineCallbacks
-    def setUp(self):
-        yield super(TestLaunchManyCoreSeederBootstrapSession, self).setUp()
-        self.test_deferred = Deferred()
-
-
 class TestLaunchManyCoreBootstrapSession(TestAsServer):
 
     @inlineCallbacks
