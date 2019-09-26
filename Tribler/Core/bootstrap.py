@@ -33,24 +33,6 @@ class Bootstrap(object):
         self.bootstrap_nodes = {}
         self.load_bootstrap_nodes()
 
-    def start_initial_seeder(self, download_function, bootstrap_file, system_infohash):
-        """
-        Start as initial seeder for bootstrap_file
-        :param download_function: function to download via tdef
-        :return: download on bootstrap file
-        """
-        tdef = TorrentDef()
-        tdef.add_content(bootstrap_file)
-        tdef.set_piece_length(2 ** 16)
-        tdef.save()
-        self._logger.debug("Seeding bootstrap file %s", hexlify(tdef.infohash))
-        self.download = download_function(tdef, download_config=self.dcfg, hidden=True)
-        self.infohash = tdef.get_infohash()
-        if hexlify(self.infohash) != system_infohash:
-            self._logger.error(
-                "Infohash is not consistent with a system infohash %s != %s", hexlify(self.infohash),
-                system_infohash)
-
     def start_by_infohash(self, download_function, infohash):
         """
         Download bootstrap file from current seeders
