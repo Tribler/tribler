@@ -111,9 +111,19 @@ class TriblerUpgrader(object):
                     c.delete()
                     # The channel torrent will be removed by GigaChannel manager during the cruft cleanup
 
-            for t in mds.TorrentMetadata.select():
-                if is_forbidden(t.title+t.tags):
-                    t.delete()
+        # The process is broken down into batches to limit memory usage
+        batch_size = 10000
+        with db_session:
+            total_entries = mds.TorrentMetadata.select().count()
+            page_num = total_entries // batch_size
+        while page_num >= 0:
+            with db_session:
+                for t in mds.TorrentMetadata.select().page(page_num, pagesize=batch_size):
+                    if is_forbidden(t.title+t.tags):
+                        t.delete()
+            page_num -= 1
+        with db_session:
+            db_version = mds.MiscData.get(name="db_version")
             db_version.value = str(7)
         mds.shutdown()
         return succeed(None)
