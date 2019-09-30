@@ -6,7 +6,7 @@ from ipv8.taskmanager import TaskManager
 
 from pony.orm import db_session
 
-from twisted.internet.defer import inlineCallbacks
+from twisted.internet.defer import inlineCallbacks, returnValue
 from twisted.internet.task import LoopingCall
 from twisted.internet.threads import deferToThread
 
@@ -141,7 +141,9 @@ class GigaChannelManager(TaskManager):
 
         for channel in channels:
             try:
-                if not self.session.has_download(bytes(channel.infohash)):
+                if self.session.lm.ltmgr.metainfo_requests.get(bytes(channel.infohash)):
+                    continue
+                elif not self.session.has_download(bytes(channel.infohash)):
                     self._logger.info("Downloading new channel version %s ver %i->%i",
                                       hexlify(channel.public_key),
                                       channel.local_version, channel.timestamp)
@@ -212,6 +214,7 @@ class GigaChannelManager(TaskManager):
 
         return deferred
 
+    @inlineCallbacks
     def download_channel(self, channel):
         """
         Download a channel with a given infohash and title.
@@ -221,14 +224,23 @@ class GigaChannelManager(TaskManager):
         dcfg.set_dest_dir(self.session.lm.mds.channels_dir)
         dcfg.set_channel_download(True)
         tdef = TorrentDefNoMetainfo(infohash=bytes(channel.infohash), name=channel.dirname)
+
+        metainfo = yield self.session.lm.ltmgr.get_metainfo(bytes(channel.infohash), timeout=60)
+        if metainfo is None:
+            # Timeout looking for the channel metainfo. Probably, there are no seeds.
+            # TODO: count the number of tries we had with the channel, so we can stop trying eventually
+            returnValue(None)
+        try:
+            if metainfo['info']['name'] != channel.dirname:
+                # Malformed channel
+                # TODO: stop trying to download this channel until it is updated with a new infohash
+                returnValue(None)
+        except (KeyError, TypeError):
+            returnValue(None)
+
         download = self.session.start_download_from_tdef(tdef, dcfg, hidden=True)
-
-        def _add_channel_to_processing_queue(_):
-            self.channels_processing_queue[channel.infohash] = (PROCESS_CHANNEL_DIR, channel)
-
-        finished_deferred = download.finished_deferred.addCallback(_add_channel_to_processing_queue)
-
-        return download, finished_deferred
+        yield download.finished_deferred
+        self.channels_processing_queue[channel.infohash] = (PROCESS_CHANNEL_DIR, channel)
 
     def process_channel_dir_threaded(self, channel):
 

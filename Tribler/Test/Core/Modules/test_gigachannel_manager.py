@@ -10,7 +10,7 @@ from pony.orm import db_session
 
 from six import assertCountEqual
 
-from twisted.internet.defer import Deferred, inlineCallbacks
+from twisted.internet.defer import Deferred, inlineCallbacks, succeed
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import NEW
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
@@ -19,6 +19,7 @@ from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import DLSTATUS_SEEDING
 from Tribler.Test.Core.base_test import MockObject, TriblerCoreTest
 from Tribler.Test.common import TORRENT_UBUNTU_FILE
+from Tribler.Test.tools import trial_timeout
 
 
 class TestGigaChannelManager(TriblerCoreTest):
@@ -88,6 +89,7 @@ class TestGigaChannelManager(TriblerCoreTest):
         chan = self.generate_personal_channel()
         chan.commit_channel_torrent()
         chan.local_version -= 1
+
         # Subscribed, not updated
         self.mock_session.lm.mds.ChannelMetadata(title="bla1", public_key=database_blob(b'123'),
                                                  signature=database_blob(b'345'), skip_key_check=True,
@@ -111,6 +113,15 @@ class TestGigaChannelManager(TriblerCoreTest):
             self.assertEqual(chan, chan3)
 
         self.chanman.download_channel = mock_download_channel
+
+        @db_session
+        def fake_get_metainfo(infohash, timeout=30):
+            return {'info': {'name': self.mock_session.lm.mds.
+                    ChannelMetadata.get(infohash=database_blob(infohash)).dirname}}
+
+        self.mock_session.lm.ltmgr = MockObject()
+        self.mock_session.lm.ltmgr.get_metainfo = fake_get_metainfo
+        self.mock_session.lm.ltmgr.metainfo_requests = {}
 
         # Manually fire the channel updates checking routine
         self.chanman.check_channels_updates()
@@ -223,3 +234,39 @@ class TestGigaChannelManager(TriblerCoreTest):
                           (mock_dl_list[4], True),
                           (mock_dl_list[5], True),
                           (mock_dl_list[6], True)])
+
+
+    @trial_timeout(20)
+    @inlineCallbacks
+    def test_reject_malformed_channel(self):
+        with db_session:
+            channel = self.mock_session.lm.mds.ChannelMetadata(title="bla1", public_key=database_blob(b'123'),
+                                                               infohash=os.urandom(20))
+        self.mock_session.config = MockObject()
+        self.mock_session.config.get_state_dir = lambda: None
+        self.mock_session.lm.ltmgr = MockObject()
+
+        def mock_get_metainfo_bad(_, timeout=None):
+            return {'info': {'name': "bla"}}
+
+        def mock_get_metainfo_good(_, timeout=None):
+            return {'info': {'name': channel.dirname}}
+
+        self.initiated_download = False
+
+        def mock_download_from_tdef(_, __, hidden=None):
+            self.initiated_download = True
+            mock_dl = MockObject()
+            mock_dl.finished_deferred = succeed(None)
+            return mock_dl
+        self.mock_session.start_download_from_tdef = mock_download_from_tdef
+
+        # Check that we skip channels with incorrect dirnames
+        self.mock_session.lm.ltmgr.get_metainfo = mock_get_metainfo_bad
+        yield self.chanman.download_channel(channel)
+        self.assertFalse(self.initiated_download)
+
+        # Check that we download channels with correct dirname
+        self.mock_session.lm.ltmgr.get_metainfo = mock_get_metainfo_good
+        yield self.chanman.download_channel(channel)
+        self.assertTrue(self.initiated_download)
