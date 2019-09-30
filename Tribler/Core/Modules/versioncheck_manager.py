@@ -36,11 +36,14 @@ class VersionCheckManager(TaskManager):
 
     def check_new_version(self):
         def parse_body(body):
-            if body is None:
+            if not body:
                 return
-            version = json.loads(body)['name'][1:]
-            if LooseVersion(version) > LooseVersion(version_id):
-                self.session.notifier.notify(NTFY_NEW_VERSION, NTFY_INSERT, None, version)
+            try:
+                version = json.loads(body)['name'][1:]
+                if LooseVersion(version) > LooseVersion(version_id):
+                    self.session.notifier.notify(NTFY_NEW_VERSION, NTFY_INSERT, None, version)
+            except ValueError as ve:
+                raise ValueError("Failed to parse Tribler version response:%s\nError:%s" % (body, ve))
 
         def on_request_error(failure):
             failure.trap(SchemeNotSupported, ConnectError, DNSLookupError)

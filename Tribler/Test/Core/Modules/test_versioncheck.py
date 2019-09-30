@@ -49,7 +49,7 @@ class TestVersionCheck(TestAsServer):
         site = server.Site(VersionResource(ensure_binary(response), response_code))
         self.server = reactor.listenTCP(self.port, site)
 
-    def assert_new_version_called(self, _):
+    def assert_new_version_called(self, res):
         self.assertTrue(self.new_version_called == self.should_call_new_version_callback)
         return maybeDeferred(self.server.stopListening)
 
@@ -91,3 +91,16 @@ class TestVersionCheck(TestAsServer):
         self.setup_version_server(json.dumps({'name': 'v1.0'}))
         versioncheck_manager.VERSION_CHECK_URL = "http://this.will.not.exist"
         return self.check_version()
+
+    @trial_timeout(20)
+    def test_non_json_response(self):
+        def on_error(_err):
+            versioncheck_manager.check_failed = True
+
+        self.setup_version_server('hello world - not json')
+
+        versioncheck_manager.check_failed = False
+        yield self.check_version().addErrback(on_error)
+
+        self.assertTrue(versioncheck_manager.check_failed)
+        return
