@@ -699,11 +699,12 @@ class TestMetadataDownloadEndpoint(AbstractApiTest):
             os.path.join(TESTS_DATA_DIR, "bak_single.torrent")))
 
         with db_session:
-            my_channel = self.session.lm.mds.ChannelMetadata.create_channel(test_channel_name, 'test')
-            my_channel.add_torrent_to_channel(video_tdef)
-            torrent_dict = my_channel.commit_channel_torrent()
-            self.session.lm.gigachannel_manager.updated_my_channel(TorrentDef.TorrentDef.load_from_dict(torrent_dict))
+            channel = self.session.lm.mds.ChannelMetadata.create_channel(test_channel_name, 'bla')
+            def fake_get_metainfo(_infohash):
+                return {'info': {'name': channel.dirname}}
+            self.session.lm.ltmgr.get_metainfo = fake_get_metainfo
+        yield self.session.lm.gigachannel_manager.download_channel(channel)
 
         self.should_check_equality = False
-        return self.do_request('downloads?get_peers=1&get_pieces=1',
+        yield self.do_request('downloads?get_peers=1&get_pieces=1',
                                expected_code=200).addCallback(verify_download)
