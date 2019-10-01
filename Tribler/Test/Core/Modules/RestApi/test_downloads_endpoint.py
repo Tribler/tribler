@@ -696,8 +696,12 @@ class TestMetadataDownloadEndpoint(AbstractApiTest):
         self.session.start_download_from_tdef(video_tdef, DownloadConfig())
         self.session.start_download_from_uri("file:" + pathname2url(
             os.path.join(TESTS_DATA_DIR, "bak_single.torrent")))
+
         with db_session:
             channel = self.session.lm.mds.ChannelMetadata.create_channel(test_channel_name, 'bla')
+            def fake_get_metainfo(infohash, timeout=30):
+                return {'info': {'name': channel.dirname}}
+            self.session.lm.ltmgr.get_metainfo = fake_get_metainfo
             self.session.lm.gigachannel_manager.download_channel(channel)
 
         self.should_check_equality = False
