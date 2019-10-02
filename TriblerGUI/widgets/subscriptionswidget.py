@@ -47,19 +47,19 @@ class SubscriptionsWidget(QWidget):
         self.subscribe_button.setStyleSheet('border:none; color: %s' % color)
         self.subscribe_button.setText(format_votes(self.channel_info['votes']))
 
+        # Disable channel control buttons for LEGACY_ENTRY channels
+        hide_controls = (self.channel_info["status"] == 1000)
+        self.subscribe_button.setHidden(hide_controls)
+
         if self.window().tribler_settings:  # It could be that the settings are not loaded yet
-            self.credit_mining_button.setHidden(not self.window().tribler_settings["credit_mining"]["enabled"])
+            self.credit_mining_button.setHidden(not self.window().tribler_settings["credit_mining"]["enabled"]
+                                                or hide_controls)
             self.credit_mining_button.setIcon(QIcon(QPixmap(get_image_path(
                 'credit_mining_yes.png'
                 if self.channel_info["public_key"] in self.window().tribler_settings["credit_mining"]["sources"] else
                 'credit_mining_not.png'))))
         else:
             self.credit_mining_button.hide()
-
-        # Disable channel control buttons for LEGACY_ENTRY channels
-        hide_controls = (self.channel_info["status"] == 1000)
-        self.subscribe_button.setHidden(hide_controls)
-        self.credit_mining_button.setHidden(hide_controls)
 
     def on_subscribe_button_click(self):
         if self.channel_info["state"] == "Personal" or self.channel_info["status"] == 1000:

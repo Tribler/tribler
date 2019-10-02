@@ -94,6 +94,15 @@ class TrustPage(QWidget):
         # Timer for garbage collection
         self.gc_timer = 0
 
+    def showEvent(self, QShowEvent):
+        super(TrustPage, self).showEvent(QShowEvent)
+        if self.window().tribler_settings:  # It could be that the settings are not loaded yet
+            self.window().mine_button.setHidden(not self.window().tribler_settings["credit_mining"]["enabled"])
+            self.window().trade_button.setHidden(not self.window().tribler_settings["market_community"]["enabled"])
+        else:
+            self.window().mine_button.hide()
+            self.window().trade_button.hide()
+
     def initialize_trust_page(self):
         vlayout = self.window().plot_widget.layout()
         if vlayout.isEmpty():
