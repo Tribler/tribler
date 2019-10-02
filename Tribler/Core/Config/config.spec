@@ -97,7 +97,7 @@ poll_interval = integer(min=1, default=5)
 history_size = integer(min=1, default=20)
 
 [credit_mining]
-enabled = boolean(default=True)
+enabled = boolean(default=False)
 sources = string_list(default=list())
 max_disk_space = integer(min=0, default=53687091200)
 
