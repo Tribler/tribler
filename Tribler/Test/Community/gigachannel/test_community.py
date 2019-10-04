@@ -55,7 +55,7 @@ class TestGigaChannelUnits(TestBase):
         torrent_metadata.sign()
 
     @inlineCallbacks
-    def test_send_random_one_channel(self):
+    def test_send_random_subscribed_channel(self):
         """
         Test whether sending a single channel with a single torrent to another peer works correctly
         """
@@ -63,15 +63,58 @@ class TestGigaChannelUnits(TestBase):
             channel = self.nodes[0].overlay.metadata_store.ChannelMetadata.create_channel("test", "bla")
             self.add_random_torrent(self.nodes[0].overlay.metadata_store.TorrentMetadata, channel=channel)
             channel.commit_channel_torrent()
+        # We must change the key for the first node so the created channel becomes foreign
+        self.nodes[0].overlay.metadata_store.ChannelNode._my_key = default_eccrypto.generate_key(u"curve25519")
 
         self.nodes[0].overlay.send_random_to(Peer(self.nodes[1].my_peer.public_key, self.nodes[1].endpoint.wan_address))
-
         yield self.deliver_messages(timeout=0.5)
-
         with db_session:
             self.assertEqual(len(self.nodes[1].overlay.metadata_store.ChannelMetadata.select()), 1)
             channel = self.nodes[1].overlay.metadata_store.ChannelMetadata.select()[:][0]
             self.assertEqual(channel.contents_len, 1)
+
+    @inlineCallbacks
+    def test_send_random_personal_channel(self):
+        """
+        Test whether sending the personal channel works correctly
+        """
+        with db_session:
+            channel = self.nodes[0].overlay.metadata_store.ChannelMetadata.create_channel("test", "bla")
+            self.add_random_torrent(self.nodes[0].overlay.metadata_store.TorrentMetadata, channel=channel)
+            channel.commit_channel_torrent()
+
+        self.nodes[0].overlay.send_random_to(Peer(self.nodes[1].my_peer.public_key, self.nodes[1].endpoint.wan_address))
+        yield self.deliver_messages(timeout=0.5)
+        with db_session:
+            self.assertEqual(len(self.nodes[1].overlay.metadata_store.ChannelMetadata.select()), 1)
+            channel = self.nodes[1].overlay.metadata_store.ChannelMetadata.select()[:][0]
+            self.assertEqual(channel.contents_len, 1)
+
+    @inlineCallbacks
+    def test_send_personal_and_random_channels(self):
+        """
+        Test whether sending the personal channel works correctly
+        """
+        with db_session:
+            # Add non-personal channel
+            channel = self.nodes[0].overlay.metadata_store.ChannelMetadata.create_channel("non-personal", "bla")
+            self.add_random_torrent(self.nodes[0].overlay.metadata_store.TorrentMetadata, channel=channel)
+            channel.commit_channel_torrent()
+
+            # Add personal channel
+            self.nodes[0].overlay.metadata_store.ChannelNode._my_key = default_eccrypto.generate_key(u"curve25519")
+            # After the previous line the previously created channel becomes non-personal
+            channel = self.nodes[0].overlay.metadata_store.ChannelMetadata.create_channel("personal", "bla")
+            self.add_random_torrent(self.nodes[0].overlay.metadata_store.TorrentMetadata, channel=channel)
+            channel.commit_channel_torrent()
+
+        self.nodes[0].overlay.send_random_to(Peer(self.nodes[1].my_peer.public_key, self.nodes[1].endpoint.wan_address))
+        yield self.deliver_messages(timeout=0.5)
+        with db_session:
+            self.assertEqual(len(self.nodes[1].overlay.metadata_store.ChannelMetadata.select()), 2)
+            channels = self.nodes[1].overlay.metadata_store.ChannelMetadata.select()[:]
+            self.assertEqual(channels[0].contents_len, 1)
+            self.assertEqual(channels[1].contents_len, 1)
 
     @inlineCallbacks
     def test_send_random_multiple_torrents(self):
