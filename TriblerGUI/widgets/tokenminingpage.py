@@ -1,75 +1,49 @@
 from __future__ import absolute_import
 from __future__ import division
 
-import datetime
-import gc
 import time
 
 from PyQt5.QtCore import QTimer
 from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QSizePolicy, QWidget
+from PyQt5.QtWidgets import QWidget
 
-import matplotlib
-from matplotlib.backends.backend_qt5agg import FigureCanvas
-from matplotlib.dates import DateFormatter
-from matplotlib.figure import Figure
+import pyqtgraph as pg
 
-from TriblerGUI.defs import GC_TIMEOUT
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.utilities import format_size, get_image_path
+from TriblerGUI.widgets.graphs.DateAxisItem import DateAxisItem
 
-matplotlib.use('Qt5Agg')
 
+class TokenMiningPlot(pg.PlotWidget):
 
-class TokenMiningPlotMplCanvas(FigureCanvas):
+    def __init__(self, parent, **kargs):
+        axisItems = {'bottom': DateAxisItem('bottom')}
+        super(TokenMiningPlot, self).__init__(parent=parent, name='Token Mining', axisItems=axisItems, **kargs)
+        self.plot_data = {'download': [], 'upload': [], 'ts': []}
+        self.download_plot = self.plot(pen=(255, 0, 0), symbolBrush=(255, 0, 0), symbolPen='w')
+        self.upload_plot = self.plot(pen=(0, 255, 0), symbolBrush=(0, 255, 0), symbolPen='w')
+        self.setup_graph()
 
-    def __init__(self, parent=None, width=5, height=5, dpi=100):
-        fig = Figure(figsize=(width, height), dpi=dpi)
-        fig.set_facecolor("#00000000")
+    def setup_graph(self):
+        self.getPlotItem().showGrid(x=True, y=True)
+        self.setLabel('left', 'Mined Data (MB)', units='%')
 
-        fig.set_tight_layout({"pad": 1})
-        self.axes = fig.add_subplot(111)
-        self.plot_data = [[[0], [0]], [datetime.datetime.now()]]
+        legend = pg.LegendItem((150, 60), offset=(70, 30))
+        legend.setParentItem(self.graphicsItem())
+        legend.addItem(self.upload_plot, 'Upload (MB)')
+        legend.addItem(self.download_plot, 'Download (MB)')
 
-        FigureCanvas.__init__(self, fig)
-        self.setParent(parent)
+    def reset_plot(self):
+        self.plot_data = {'download': [], 'upload': [], 'ts': []}
 
-        FigureCanvas.setSizePolicy(self, QSizePolicy.Expanding, QSizePolicy.Expanding)
-        FigureCanvas.updateGeometry(self)
-        self.compute_initial_figure()
+    def add_data(self, download, upload, timestamp):
+        self.plot_data['download'].append(download)
+        self.plot_data['upload'].append(upload)
+        self.plot_data['ts'].append(timestamp)
 
-    def compute_initial_figure(self):
-        self.axes.cla()
-        self.axes.set_title("Token Mining stats of the current session", color="#e0e0e0")
-        self.axes.set_xlabel("Date")
-        self.axes.set_ylabel("Mined Data (MB)")
-
-        self.axes.xaxis.set_major_formatter(DateFormatter('%y-%m-%d'))
-
-        self.axes.plot(self.plot_data[1], self.plot_data[0][0], label="Upload(MB)", marker='o')
-        self.axes.plot(self.plot_data[1], self.plot_data[0][1], label="Download(MB)", marker='o')
-        self.axes.grid(True)
-
-        for line in self.axes.get_xgridlines() + self.axes.get_ygridlines():
-            line.set_linestyle('--')
-
-        # Color the axes
-        if hasattr(self.axes, 'set_facecolor'):  # Not available on Linux
-            self.axes.set_facecolor('#464646')
-        self.axes.xaxis.label.set_color('#e0e0e0')
-        self.axes.yaxis.label.set_color('#e0e0e0')
-        self.axes.tick_params(axis='x', colors='#e0e0e0')
-        self.axes.tick_params(axis='y', colors='#e0e0e0')
-
-        # Create the legend
-        handles, labels = self.axes.get_legend_handles_labels()
-        self.axes.legend(handles, labels)
-
-        if len(self.plot_data[0][0]) == 1:  # If we only have one data point, don't show negative axis
-            self.axes.set_ylim(-0.3, 10)
-            self.axes.set_xlim(datetime.datetime.now() - datetime.timedelta(hours=1),
-                               datetime.datetime.now() + datetime.timedelta(days=4))
-        self.draw()
+    def render_plot(self):
+        self.upload_plot.setData(y=pg.np.array(self.plot_data['upload']), x=pg.np.array(self.plot_data['ts']))
+        self.download_plot.setData(y=pg.np.array(self.plot_data['download']), x=pg.np.array(self.plot_data['ts']))
 
 
 class TokenMiningPage(QWidget):
@@ -88,15 +62,13 @@ class TokenMiningPage(QWidget):
         self.byte_scale = 1024 * 1024
         self.dialog = None
 
-        # Timer for garbage collection
-        self.gc_timer = 0
-
         self.downloads_timer = QTimer()
         self.downloads_timeout_timer = QTimer()
         self.downloads_last_update = 0
         self.downloads_request_mgr = TriblerRequestManager()
 
         self.plot_data = [[[], []], []]
+        self.start_time = time.time()
 
     def showEvent(self, QShowEvent):
         """
@@ -110,7 +82,7 @@ class TokenMiningPage(QWidget):
         self.window().token_mining_back_button.setIcon(QIcon(get_image_path('page_back.png')))
         vlayout = self.window().token_mining_plot_widget.layout()
         if vlayout.isEmpty():
-            self.trust_plot = TokenMiningPlotMplCanvas(self.window().token_mining_plot_widget, dpi=100)
+            self.trust_plot = TokenMiningPlot(self.window().token_mining_plot_widget)
             vlayout.addWidget(self.trust_plot)
 
     def on_received_stats(self, stats):
@@ -166,27 +138,6 @@ class TokenMiningPage(QWidget):
         self.window().token_mining_disk_usage_label.setText("%s / %s" % (format_size(float(bytes_used)),
                                                                          format_size(float(bytes_max))))
 
-        self.push_data_to_plot(total_up, total_down)
-        self.trust_plot.plot_data = self.plot_data
-        self.trust_plot.compute_initial_figure()
-
+        self.trust_plot.add_data(total_down, total_up, time.time())
+        self.trust_plot.render_plot()
         self.schedule_downloads_timer()
-
-        # Matplotlib is leaking memory on re-plotting. Refer: https://github.com/matplotlib/matplotlib/issues/8528
-        # Note that gc is called every 10 minutes.
-        if self.gc_timer == GC_TIMEOUT:
-            gc.collect()
-            self.gc_timer = 0
-        else:
-            self.gc_timer += 1
-
-    def push_data_to_plot(self, upload, download):
-        # Keep only last 100 records to show in graph
-        if len(self.plot_data[1]) > 100:
-            self.plot_data[1] = self.plot_data[1][-100:]
-            self.plot_data[0][0] = self.plot_data[0][0][-100:]
-            self.plot_data[0][1] = self.plot_data[0][1][-100:]
-
-        self.plot_data[1].append(datetime.datetime.now())
-        self.plot_data[0][0].append(upload / self.byte_scale)
-        self.plot_data[0][1].append(download / self.byte_scale)
