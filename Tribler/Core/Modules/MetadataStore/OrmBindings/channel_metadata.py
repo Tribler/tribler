@@ -413,7 +413,8 @@ def define_binding(db):
             :rtype: list
             """
             query = db.ChannelMetadata.select(
-                lambda g: g.status not in [LEGACY_ENTRY, NEW, UPDATED, TODELETE] and g.num_entries > 0)
+                lambda g: g.status not in [LEGACY_ENTRY, NEW, UPDATED, TODELETE] and g.num_entries > 0 and
+                g.public_key != database_blob(cls._my_key.pub().key_to_bin()[10:]))
             query = query.where(subscribed=True) if only_subscribed else query
             query = query.where(lambda g: g.local_version == g.timestamp) if only_downloaded else query
             return query.random(limit)

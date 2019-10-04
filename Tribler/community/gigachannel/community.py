@@ -56,6 +56,7 @@ class GigaChannelCommunity(Community):
 
         self.gossip_sequence_count = 0
         self.gossip_blob = None
+        self.gossip_blob_personal_channel = None
         self.gossip_renewal_period = 30
 
     @inlineCallbacks
@@ -67,23 +68,41 @@ class GigaChannelCommunity(Community):
         """
         Send random entries from our subscribed channels to another peer.
 
+        To speed-up propagation of original content, we send two distinct packets on each walk step:
+        the first packet contains user's personal channel, the second one contains a random subscribed channel.
+
         :param peer: the peer to send to
         :type peer: Peer
         :returns: None
         """
-        if self.gossip_blob is None or (self.gossip_sequence_count % self.gossip_renewal_period) == 0:
+
+        # We regularly regenerate the gossip blobs to account for changes in the local DB
+        if (self.gossip_sequence_count % self.gossip_renewal_period) == 0:
             # Choose some random entries and try to pack them into maximum_payload_size bytes
             with db_session:
+                # Generate and cache the gossip blob for the personal channel
+                personal_channel = self.metadata_store.ChannelMetadata.get_my_channel()
+                md_list = [personal_channel] + list(
+                    personal_channel.get_random_torrents(max_entries - 1)) if personal_channel else None
+                self.gossip_blob_personal_channel = entries_to_chunk(md_list, maximum_payload_size)[0] \
+                    if md_list else None
+
+                # Generate and cache the gossip blob for a subscribed channel
                 # TODO: when the health table will be there, send popular torrents instead
                 channel_l = list(self.metadata_store.ChannelMetadata.get_random_channels(1, only_subscribed=True,
                                                                                          only_downloaded=True))
-                if not channel_l:
-                    return
-                md_list = channel_l + list(channel_l[0].get_random_torrents(max_entries - 1))
+                md_list = channel_l + list(channel_l[0].get_random_torrents(max_entries - 1)) if channel_l else None
                 self.gossip_blob = entries_to_chunk(md_list, maximum_payload_size)[0] if md_list else None
 
         self.gossip_sequence_count += 1
-        self.endpoint.send(peer.address, self.ezr_pack(self.NEWS_PUSH_MESSAGE, RawBlobPayload(self.gossip_blob)))
+        # Send personal channel
+        if self.gossip_blob_personal_channel:
+            self.endpoint.send(peer.address, self.ezr_pack(self.NEWS_PUSH_MESSAGE, RawBlobPayload(
+                self.gossip_blob_personal_channel)))
+
+        # Send subscribed channel
+        if self.gossip_blob:
+            self.endpoint.send(peer.address, self.ezr_pack(self.NEWS_PUSH_MESSAGE, RawBlobPayload(self.gossip_blob)))
 
     @lazy_wrapper(RawBlobPayload)
     def on_blob(self, peer, blob):
