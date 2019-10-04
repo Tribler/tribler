@@ -7,43 +7,22 @@ from PyQt5.QtCore import QTimer
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QWidget
 
-import pyqtgraph as pg
-
+from TriblerGUI.defs import TB
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.utilities import format_size, get_image_path
-from TriblerGUI.widgets.graphs.DateAxisItem import DateAxisItem
+from TriblerGUI.widgets.graphs.timeseriesplot import TimeSeriesPlot
 
 
-class TokenMiningPlot(pg.PlotWidget):
+class TokenMiningSeriesPlot(TimeSeriesPlot):
 
     def __init__(self, parent, **kargs):
-        axisItems = {'bottom': DateAxisItem('bottom')}
-        super(TokenMiningPlot, self).__init__(parent=parent, name='Token Mining', axisItems=axisItems, **kargs)
-        self.plot_data = {'download': [], 'upload': [], 'ts': []}
-        self.download_plot = self.plot(pen=(255, 0, 0), symbolBrush=(255, 0, 0), symbolPen='w')
-        self.upload_plot = self.plot(pen=(0, 255, 0), symbolBrush=(0, 255, 0), symbolPen='w')
-        self.setup_graph()
-
-    def setup_graph(self):
-        self.getPlotItem().showGrid(x=True, y=True)
-        self.setLabel('left', 'Mined Data (MB)', units='%')
-
-        legend = pg.LegendItem((150, 60), offset=(70, 30))
-        legend.setParentItem(self.graphicsItem())
-        legend.addItem(self.upload_plot, 'Upload (MB)')
-        legend.addItem(self.download_plot, 'Download (MB)')
-
-    def reset_plot(self):
-        self.plot_data = {'download': [], 'upload': [], 'ts': []}
-
-    def add_data(self, download, upload, timestamp):
-        self.plot_data['download'].append(download)
-        self.plot_data['upload'].append(upload)
-        self.plot_data['ts'].append(timestamp)
-
-    def render_plot(self):
-        self.upload_plot.setData(y=pg.np.array(self.plot_data['upload']), x=pg.np.array(self.plot_data['ts']))
-        self.download_plot.setData(y=pg.np.array(self.plot_data['download']), x=pg.np.array(self.plot_data['ts']))
+        series = [
+            {'name': 'Download', 'pen': (255, 0, 0), 'symbolBrush': (255, 0, 0), 'symbolPen': 'w'},
+            {'name': 'Upload  ', 'pen': (0, 255, 0), 'symbolBrush': (0, 255, 0), 'symbolPen': 'w'},
+        ]
+        super(TokenMiningSeriesPlot, self).__init__(parent, 'Token Mining', series, **kargs)
+        self.setLabel('left', 'Mined Data', units='bytes')
+        self.setLimits(yMin=0, yMax=TB)
 
 
 class TokenMiningPage(QWidget):
@@ -82,7 +61,7 @@ class TokenMiningPage(QWidget):
         self.window().token_mining_back_button.setIcon(QIcon(get_image_path('page_back.png')))
         vlayout = self.window().token_mining_plot_widget.layout()
         if vlayout.isEmpty():
-            self.trust_plot = TokenMiningPlot(self.window().token_mining_plot_widget)
+            self.trust_plot = TokenMiningSeriesPlot(self.window().token_mining_plot_widget)
             vlayout.addWidget(self.trust_plot)
 
     def on_received_stats(self, stats):
@@ -133,11 +112,11 @@ class TokenMiningPage(QWidget):
                 total_up += download["total_up"]
                 total_down += download["total_down"]
 
-        self.window().token_mining_upload_amount_label.setText(format_size(total_up))
-        self.window().token_mining_download_amount_label.setText(format_size(total_down))
+        self.window().token_mining_upload_amount_label.setText(format_size(total_up + 1))
+        self.window().token_mining_download_amount_label.setText(format_size(total_down + 1))
         self.window().token_mining_disk_usage_label.setText("%s / %s" % (format_size(float(bytes_used)),
                                                                          format_size(float(bytes_max))))
 
-        self.trust_plot.add_data(total_down, total_up, time.time())
+        self.trust_plot.add_data(time.time(), [total_down, total_up])
         self.trust_plot.render_plot()
         self.schedule_downloads_timer()

@@ -11,6 +11,8 @@ from PyQt5.QtCore import QTimer, Qt, pyqtSignal
 from PyQt5.QtGui import QBrush, QColor, QTextCursor
 from PyQt5.QtWidgets import (QDesktopWidget, QFileDialog, QHeaderView, QMainWindow, QMessageBox, QTreeWidgetItem)
 
+from TriblerGUI.widgets.tokenminingpage import TimeSeriesPlot
+
 try:
     from meliae import scanner
 except ImportError:
@@ -53,18 +55,37 @@ class BaseResourcePlot(pg.PlotWidget):
         self.resource_plot.setData(y=pg.np.array(self.plot_data['y']), x=pg.np.array(self.plot_data['x']))
 
 
-class CPUPlot(BaseResourcePlot):
+# class CPUPlot(BaseResourcePlot):
+#
+#     def __init__(self, parent, **kargs):
+#         super(CPUPlot, self).__init__(parent, 'CPU Plot', **kargs)
+#         self.setLabel('left', 'CPU', units='%')
+
+
+# class MemoryPlot(BaseResourcePlot):
+#
+#     def __init__(self, parent, **kargs):
+#         super(MemoryPlot, self).__init__(parent, 'Memory Plot', **kargs)
+#         self.setLabel('left', 'Memory', units='MB')
+
+class MemoryPlot(TimeSeriesPlot):
 
     def __init__(self, parent, **kargs):
-        super(CPUPlot, self).__init__(parent, 'CPU Plot', **kargs)
+        series = [{'name': 'Memory', 'pen': (0, 153, 255), 'symbolBrush': (0, 153, 255), 'symbolPen': 'w'}]
+        super(MemoryPlot, self).__init__(parent, 'Memory Usage', series, **kargs)
+        self.setLabel('left', 'Memory', units='bytes')
+        # set limits
+        self.setLimits(yMin=0, yMax=10 * 1024 * 1024 * 1024)
+
+
+class CPUPlot(TimeSeriesPlot):
+
+    def __init__(self, parent, **kargs):
+        series = [{'name': 'CPU', 'pen': (0, 153, 255), 'symbolBrush': (0, 153, 255), 'symbolPen': 'w'}]
+        super(CPUPlot, self).__init__(parent, 'CPU Usage', series, **kargs)
         self.setLabel('left', 'CPU', units='%')
-
-
-class MemoryPlot(BaseResourcePlot):
-
-    def __init__(self, parent, **kargs):
-        super(MemoryPlot, self).__init__(parent, 'Memory Plot', **kargs)
-        self.setLabel('left', 'Memory', units='MB')
+        # set limits
+        self.setLimits(yMin=0, yMax=200)
 
 
 class DebugWindow(QMainWindow):
@@ -550,7 +571,7 @@ class DebugWindow(QMainWindow):
 
         self.cpu_plot.reset_plot()
         for cpu_info in data["cpu_history"]:
-            self.cpu_plot.add_data(cpu_info["time"], cpu_info["cpu"])
+            self.cpu_plot.add_data(cpu_info["time"], [round(cpu_info["cpu"], 2)])
         self.cpu_plot.render_plot()
 
     def load_memory_tab(self):
@@ -611,7 +632,7 @@ class DebugWindow(QMainWindow):
             return
         self.memory_plot.reset_plot()
         for mem_info in data["memory_history"]:
-            self.memory_plot.add_data(mem_info["time"], mem_info["mem"])
+            self.memory_plot.add_data(mem_info["time"], [round(mem_info["mem"], 2)])
         self.memory_plot.render_plot()
 
     def on_memory_dump_button_clicked(self, dump_core):
