@@ -411,8 +411,9 @@ class LibtorrentMgr(TaskManager):
             infohash = str(alert.info_hash)
             if infohash in self.torrents:
                 deferred = self.torrents[infohash][0].deferred_removed
-                del self.torrents[infohash]
-                deferred.callback(None)
+                self.torrents.pop(infohash, None)
+                if deferred and not deferred.called:
+                    deferred.callback(None)
                 self._logger.debug("Removed torrent %s", infohash)
             else:
                 self._logger.debug("Removed alert for unknown torrent")
