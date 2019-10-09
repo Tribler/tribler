@@ -21,61 +21,25 @@ except ImportError:
 
 import psutil
 
-import pyqtgraph as pg
-
 from six.moves import xrange
 
 import Tribler.Core.Utilities.json_util as json
 
-from TriblerGUI.defs import DEBUG_PANE_REFRESH_TIMEOUT
+from TriblerGUI.defs import DEBUG_PANE_REFRESH_TIMEOUT, GB, MB
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.event_request_manager import received_events as tribler_received_events
 from TriblerGUI.tribler_request_manager import TriblerRequestManager, performed_requests as tribler_performed_requests
 from TriblerGUI.utilities import format_size, get_ui_file_path
-from TriblerGUI.widgets.graphs.DateAxisItem import DateAxisItem
 
-
-class BaseResourcePlot(pg.PlotWidget):
-
-    def __init__(self, parent, name, **kargs):
-        axisItems = {'bottom': DateAxisItem('bottom')}
-        super(BaseResourcePlot, self).__init__(parent=parent, name=name, axisItems=axisItems, **kargs)
-        self.plot_data = {'x': [], 'y': []}
-        self.resource_plot = self.plot(pen=(0, 153, 255), symbolBrush=(0, 153, 255))
-        self.getPlotItem().showGrid(x=True, y=True)
-
-    def reset_plot(self):
-        self.plot_data = {'x': [], 'y': []}
-
-    def add_data(self, x, y):
-        self.plot_data['x'].append(x)
-        self.plot_data['y'].append(y)
-
-    def render_plot(self):
-        self.resource_plot.setData(y=pg.np.array(self.plot_data['y']), x=pg.np.array(self.plot_data['x']))
-
-
-# class CPUPlot(BaseResourcePlot):
-#
-#     def __init__(self, parent, **kargs):
-#         super(CPUPlot, self).__init__(parent, 'CPU Plot', **kargs)
-#         self.setLabel('left', 'CPU', units='%')
-
-
-# class MemoryPlot(BaseResourcePlot):
-#
-#     def __init__(self, parent, **kargs):
-#         super(MemoryPlot, self).__init__(parent, 'Memory Plot', **kargs)
-#         self.setLabel('left', 'Memory', units='MB')
 
 class MemoryPlot(TimeSeriesPlot):
 
     def __init__(self, parent, **kargs):
         series = [{'name': 'Memory', 'pen': (0, 153, 255), 'symbolBrush': (0, 153, 255), 'symbolPen': 'w'}]
         super(MemoryPlot, self).__init__(parent, 'Memory Usage', series, **kargs)
+        self.setBackground('#FCF9F6')
         self.setLabel('left', 'Memory', units='bytes')
-        # set limits
-        self.setLimits(yMin=0, yMax=10 * 1024 * 1024 * 1024)
+        self.setLimits(yMin=-MB, yMax=10 * GB)
 
 
 class CPUPlot(TimeSeriesPlot):
@@ -83,9 +47,9 @@ class CPUPlot(TimeSeriesPlot):
     def __init__(self, parent, **kargs):
         series = [{'name': 'CPU', 'pen': (0, 153, 255), 'symbolBrush': (0, 153, 255), 'symbolPen': 'w'}]
         super(CPUPlot, self).__init__(parent, 'CPU Usage', series, **kargs)
+        self.setBackground('#FCF9F6')
         self.setLabel('left', 'CPU', units='%')
-        # set limits
-        self.setLimits(yMin=0, yMax=200)
+        self.setLimits(yMin=-10, yMax=200)
 
 
 class DebugWindow(QMainWindow):
