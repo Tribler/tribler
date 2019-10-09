@@ -4554,8 +4554,8 @@ border-top: 1px solid #555;
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>854</width>
-               <height>710</height>
+               <width>300</width>
+               <height>646</height>
               </rect>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_22">
@@ -9117,7 +9117,7 @@ border-radius: 10px;
           <item>
            <widget class="QWidget" name="trust_top_container" native="true">
             <property name="sizePolicy">
-             <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+             <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
@@ -9231,6 +9231,9 @@ border: none;
                  <spacer name="verticalSpacer_15">
                   <property name="orientation">
                    <enum>Qt::Vertical</enum>
+                  </property>
+                  <property name="sizeType">
+                   <enum>QSizePolicy::Expanding</enum>
                   </property>
                   <property name="sizeHint" stdset="0">
                    <size>
@@ -9378,7 +9381,7 @@ border: none;
              <item>
               <widget class="QWidget" name="widget_10" native="true">
                <property name="styleSheet">
-                <string notr="true">background-color: #282828; border: 1px solid #555;</string>
+                <string notr="true"/>
                </property>
                <layout class="QVBoxLayout" name="verticalLayout_13">
                 <property name="spacing">
