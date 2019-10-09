@@ -6,9 +6,7 @@ import time
 import pyqtgraph as pg
 
 from TriblerGUI.defs import BITTORRENT_BIRTHDAY
-from TriblerGUI.widgets.graphs.DateAxisItem import DateAxisItem
-
-YEAR_SECONDS = 365 * 24 * 3600
+from TriblerGUI.widgets.graphs.DateAxisItem import DateAxisItem, YEAR_SPACING
 
 
 class TimeSeriesPlot(pg.PlotWidget):
@@ -38,7 +36,7 @@ class TimeSeriesPlot(pg.PlotWidget):
             legend.addItem(plot, serie['name'])
 
         # Limit the date range
-        self.setLimits(xMin=BITTORRENT_BIRTHDAY, xMax=time.time()+YEAR_SECONDS)
+        self.setLimits(xMin=BITTORRENT_BIRTHDAY, xMax=time.time() + YEAR_SPACING)
 
     def setup_labels(self):
         pass
@@ -57,4 +55,3 @@ class TimeSeriesPlot(pg.PlotWidget):
     def render_plot(self):
         for i, plot in enumerate(self.plots):
             plot.setData(y=pg.np.array(self.plot_data[1][i]), x=pg.np.array(self.plot_data[0]))
-

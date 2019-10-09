@@ -5,7 +5,7 @@ import time
 
 from PyQt5.QtWidgets import QWidget
 
-from TriblerGUI.defs import PAGE_MARKET, PAGE_TOKEN_MINING_PAGE, TB, GB
+from TriblerGUI.defs import GB, PAGE_MARKET, PAGE_TOKEN_MINING_PAGE, TB
 from TriblerGUI.dialogs.trustexplanationdialog import TrustExplanationDialog
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.widgets.tokenminingpage import TimeSeriesPlot
@@ -102,9 +102,7 @@ class TrustPage(QWidget):
         # Convert all dates to a datetime object
         num_bandwidth_blocks = 0
         for block in self.blocks:
-            print("received blocks:", repr(block["type"]))
             if block["type"] != "tribler_bandwidth":
-                print("continue:", repr(block["type"]))
                 continue
 
             num_bandwidth_blocks += 1

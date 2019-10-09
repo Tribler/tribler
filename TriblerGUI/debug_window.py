@@ -11,8 +11,6 @@ from PyQt5.QtCore import QTimer, Qt, pyqtSignal
 from PyQt5.QtGui import QBrush, QColor, QTextCursor
 from PyQt5.QtWidgets import (QDesktopWidget, QFileDialog, QHeaderView, QMainWindow, QMessageBox, QTreeWidgetItem)
 
-from TriblerGUI.widgets.tokenminingpage import TimeSeriesPlot
-
 try:
     from meliae import scanner
 except ImportError:
@@ -30,6 +28,7 @@ from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.event_request_manager import received_events as tribler_received_events
 from TriblerGUI.tribler_request_manager import TriblerRequestManager, performed_requests as tribler_performed_requests
 from TriblerGUI.utilities import format_size, get_ui_file_path
+from TriblerGUI.widgets.tokenminingpage import TimeSeriesPlot
 
 
 class MemoryPlot(TimeSeriesPlot):
@@ -119,7 +118,6 @@ class DebugWindow(QMainWindow):
 
         # Refresh timer
         self.refresh_timer = None
-        self.start_time = time()
 
     def hideEvent(self, hide_event):
         self.stop_timer()

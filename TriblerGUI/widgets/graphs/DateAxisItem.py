@@ -1,15 +1,16 @@
 """
 This class is derived from pull request #74 submitted by @3rdcycle to pyqtgraph.
-As time of this writing the PR is still open so we can removed this file later
+As time of this writing the PR is still open so we can remove this file later
 when the PR is merged.
 https://github.com/pyqtgraph/pyqtgraph/pull/74
 """
 from __future__ import absolute_import
 from __future__ import division
 
-import numpy as np
 import time
 from datetime import datetime
+
+import numpy as np
 
 from pyqtgraph import AxisItem
 
@@ -65,7 +66,7 @@ def makeYStepper(stepSize):
 class TickSpec(object):
     """ Specifies the properties for a set of date ticks and computes ticks
     within a given utc timestamp range """
-    def __init__(self, spacing, stepper, format, autoSkip=None):
+    def __init__(self, spacing, stepper, timeFormat, autoSkip=None):
         """
         ============= ==========================================================
         Arguments
@@ -74,7 +75,7 @@ class TickSpec(object):
                       steps number n to compute the start of the next unit. You
                       can use the make_X_stepper functions to create common
                       steppers.
-        format        a strftime compatible format string which will be used to
+        timeFormat    a strftime compatible format string which will be used to
                       convert tick locations to date/time strings
         autoSkip      list of step size multipliers to be applied when the tick
                       density becomes too high. The tick spec automatically
@@ -85,7 +86,7 @@ class TickSpec(object):
         """
         self.spacing = spacing
         self.step = stepper
-        self.format = format
+        self.format = timeFormat
         self.autoSkip = autoSkip
 
     def makeTicks(self, minVal, maxVal, minSpc):

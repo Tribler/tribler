@@ -46,9 +46,6 @@ class TokenMiningPage(QWidget):
         self.downloads_last_update = 0
         self.downloads_request_mgr = TriblerRequestManager()
 
-        self.plot_data = [[[], []], []]
-        self.start_time = time.time()
-
     def showEvent(self, QShowEvent):
         """
         When the downloads tab is clicked, we want to update the downloads list immediately.
@@ -112,8 +109,8 @@ class TokenMiningPage(QWidget):
                 total_up += download["total_up"]
                 total_down += download["total_down"]
 
-        self.window().token_mining_upload_amount_label.setText(format_size(total_up + 1))
-        self.window().token_mining_download_amount_label.setText(format_size(total_down + 1))
+        self.window().token_mining_upload_amount_label.setText(format_size(total_up))
+        self.window().token_mining_download_amount_label.setText(format_size(total_down))
         self.window().token_mining_disk_usage_label.setText("%s / %s" % (format_size(float(bytes_used)),
                                                                          format_size(float(bytes_max))))
 
