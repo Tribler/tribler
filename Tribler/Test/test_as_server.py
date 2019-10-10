@@ -120,6 +120,7 @@ class AbstractServer(BaseTestCase):
         self.annotate(self._testMethodName, start=True)
         self.watchdog.start()
         yield reactor_deferred
+        random.seed(123)
 
     def setUpFileServer(self, port, path):
         # Create a local file server, can be used to serve local files. This is preferred over an external network
@@ -179,6 +180,7 @@ class AbstractServer(BaseTestCase):
 
     @inlineCallbacks
     def tearDown(self):
+        random.seed()
         self.annotate(self._testMethodName, start=False)
 
         process_unhandled_exceptions()
