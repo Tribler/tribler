@@ -7,8 +7,6 @@ import socket
 import sys
 from time import localtime, strftime, time
 
-import libtorrent
-
 from PyQt5 import QtGui, uic
 from PyQt5.QtCore import QTimer, Qt, pyqtSignal
 from PyQt5.QtGui import QBrush, QColor, QTextCursor
@@ -19,6 +17,7 @@ try:
 except ImportError:
     scanner = None
 
+import libtorrent
 
 import psutil
 

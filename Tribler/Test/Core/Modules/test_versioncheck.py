@@ -49,7 +49,7 @@ class TestVersionCheck(TestAsServer):
         site = server.Site(VersionResource(ensure_binary(response), response_code))
         self.server = reactor.listenTCP(self.port, site)
 
-    def assert_new_version_called(self, res):
+    def assert_new_version_called(self, _res):
         self.assertTrue(self.new_version_called == self.should_call_new_version_callback)
         return maybeDeferred(self.server.stopListening)
 
