@@ -9,14 +9,7 @@ from time import localtime, strftime, time
 from PyQt5 import QtGui, uic
 from PyQt5.QtCore import QTimer, Qt, pyqtSignal
 from PyQt5.QtGui import QBrush, QColor, QTextCursor
-from PyQt5.QtWidgets import (QDesktopWidget, QFileDialog, QHeaderView, QMainWindow, QMessageBox, QSizePolicy,
-                             QTreeWidgetItem)
-
-import matplotlib
-matplotlib.use('Qt5Agg')
-from matplotlib.backends.backend_qt5agg import FigureCanvas
-from matplotlib.dates import DateFormatter
-from matplotlib.figure import Figure
+from PyQt5.QtWidgets import (QDesktopWidget, QFileDialog, QHeaderView, QMainWindow, QMessageBox, QTreeWidgetItem)
 
 try:
     from meliae import scanner
@@ -30,84 +23,32 @@ from six.moves import xrange
 
 import Tribler.Core.Utilities.json_util as json
 
-from TriblerGUI.defs import DEBUG_PANE_REFRESH_TIMEOUT
+from TriblerGUI.defs import DEBUG_PANE_REFRESH_TIMEOUT, GB, MB
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.event_request_manager import received_events as tribler_received_events
 from TriblerGUI.tribler_request_manager import TriblerRequestManager, performed_requests as tribler_performed_requests
 from TriblerGUI.utilities import format_size, get_ui_file_path
+from TriblerGUI.widgets.tokenminingpage import TimeSeriesPlot
 
 
-class MplCanvas(FigureCanvas):
-    """Ultimately, this is a QWidget."""
+class MemoryPlot(TimeSeriesPlot):
 
-    def __init__(self, parent=None, width=5, height=5, dpi=100):
-        fig = Figure(figsize=(width, height), dpi=dpi)
-
-        fig.set_tight_layout({"pad": 1})
-        self.axes = fig.add_subplot(111)
-        self.plot_data = None
-
-        FigureCanvas.__init__(self, fig)
-        self.setParent(parent)
-
-        FigureCanvas.setSizePolicy(self, QSizePolicy.Expanding, QSizePolicy.Expanding)
-        FigureCanvas.updateGeometry(self)
-
-    def compute_initial_figure(self):
-        pass
+    def __init__(self, parent, **kargs):
+        series = [{'name': 'Memory', 'pen': (0, 153, 255), 'symbolBrush': (0, 153, 255), 'symbolPen': 'w'}]
+        super(MemoryPlot, self).__init__(parent, 'Memory Usage', series, **kargs)
+        self.setBackground('#FCF9F6')
+        self.setLabel('left', 'Memory', units='bytes')
+        self.setLimits(yMin=-MB, yMax=10 * GB)
 
 
-class CPUPlotMplCanvas(MplCanvas):
+class CPUPlot(TimeSeriesPlot):
 
-    def compute_initial_figure(self):
-        self.axes.cla()
-        self.axes.set_title("CPU Usage (refreshes every 5 sec)", color="#e0e0e0")
-        self.axes.set_xlabel("Time")
-        self.axes.set_ylabel("CPU utilization (%)")
-
-        self.axes.xaxis.set_major_formatter(DateFormatter('%H:%M:%S'))
-
-        self.axes.plot(self.plot_data[0], self.plot_data[1], label="CPU usage (core)", marker='o')
-        self.axes.grid(True)
-
-        for line in self.axes.get_xgridlines() + self.axes.get_ygridlines():
-            line.set_linestyle('--')
-
-        # Create the legend
-        handles, labels = self.axes.get_legend_handles_labels()
-        self.axes.legend(handles, labels)
-
-        self.axes.set_ylim(0, 100)
-        self.axes.set_xlim(self.plot_data[0][0] - datetime.timedelta(seconds=10),
-                           self.plot_data[0][0] + datetime.timedelta(seconds=100))
-
-        self.draw()
-
-
-class MemoryPlotMplCanvas(MplCanvas):
-
-    def compute_initial_figure(self):
-        self.axes.cla()
-        self.axes.set_title("Memory Usage (refreshes every 5 sec)", color="#e0e0e0")
-        self.axes.set_xlabel("Time")
-        self.axes.set_ylabel("Memory usage (MB)")
-
-        self.axes.xaxis.set_major_formatter(DateFormatter('%H:%M:%S'))
-
-        self.axes.plot(self.plot_data[0], self.plot_data[1], label="Memory usage (core)", marker='o')
-        self.axes.grid(True)
-
-        for line in self.axes.get_xgridlines() + self.axes.get_ygridlines():
-            line.set_linestyle('--')
-
-        # Create the legend
-        handles, labels = self.axes.get_legend_handles_labels()
-        self.axes.legend(handles, labels)
-
-        self.axes.set_xlim(self.plot_data[0][0] - datetime.timedelta(seconds=10),
-                           self.plot_data[0][0] + datetime.timedelta(seconds=100))
-
-        self.draw()
+    def __init__(self, parent, **kargs):
+        series = [{'name': 'CPU', 'pen': (0, 153, 255), 'symbolBrush': (0, 153, 255), 'symbolPen': 'w'}]
+        super(CPUPlot, self).__init__(parent, 'CPU Usage', series, **kargs)
+        self.setBackground('#FCF9F6')
+        self.setLabel('left', 'CPU', units='%')
+        self.setLimits(yMin=-10, yMax=200)
 
 
 class DebugWindow(QMainWindow):
@@ -571,7 +512,7 @@ class DebugWindow(QMainWindow):
     def load_cpu_tab(self):
         if not self.initialized_cpu_plot:
             vlayout = self.window().cpu_plot_widget.layout()
-            self.cpu_plot = CPUPlotMplCanvas(self.window().cpu_plot_widget, dpi=100)
+            self.cpu_plot = CPUPlot(self.window().cpu_plot_widget)
             vlayout.addWidget(self.cpu_plot)
             self.initialized_cpu_plot = True
 
@@ -589,23 +530,16 @@ class DebugWindow(QMainWindow):
     def on_core_cpu_history(self, data):
         if not data:
             return
-        plot_data = [[], []]
+
+        self.cpu_plot.reset_plot()
         for cpu_info in data["cpu_history"]:
-            if cpu_info["cpu"] == 0.0:
-                continue  # Ignore the initial measurement, is always zero
-            plot_data[0].append(datetime.datetime.fromtimestamp(cpu_info["time"]))
-            plot_data[1].append(cpu_info["cpu"])
-
-        if len(plot_data[0]) == 0:
-            plot_data = [[datetime.datetime.now()], [0]]
-
-        self.cpu_plot.plot_data = plot_data
-        self.cpu_plot.compute_initial_figure()
+            self.cpu_plot.add_data(cpu_info["time"], [round(cpu_info["cpu"], 2)])
+        self.cpu_plot.render_plot()
 
     def load_memory_tab(self):
         if not self.initialized_memory_plot:
             vlayout = self.window().memory_plot_widget.layout()
-            self.memory_plot = MemoryPlotMplCanvas(self.window().memory_plot_widget, dpi=100)
+            self.memory_plot = MemoryPlot(self.window().memory_plot_widget)
             vlayout.addWidget(self.memory_plot)
             self.initialized_memory_plot = True
 
@@ -658,16 +592,10 @@ class DebugWindow(QMainWindow):
     def on_core_memory_history(self, data):
         if not data:
             return
-        plot_data = [[], []]
+        self.memory_plot.reset_plot()
         for mem_info in data["memory_history"]:
-            plot_data[0].append(datetime.datetime.fromtimestamp(mem_info["time"]))
-            plot_data[1].append(mem_info["mem"] / 1024 / 1024)
-
-        if len(plot_data[0]) == 0:
-            plot_data = [[datetime.datetime.now()], [0]]
-
-        self.memory_plot.plot_data = plot_data
-        self.memory_plot.compute_initial_figure()
+            self.memory_plot.add_data(mem_info["time"], [round(mem_info["mem"], 2)])
+        self.memory_plot.render_plot()
 
     def on_memory_dump_button_clicked(self, dump_core):
         self.export_dir = QFileDialog.getExistingDirectory(self, "Please select the destination directory", "",
