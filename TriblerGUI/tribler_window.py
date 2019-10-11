@@ -728,6 +728,7 @@ class TriblerWindow(QMainWindow):
             self.process_uri_request()
 
     def start_download_from_uri(self, uri):
+        uri = uri.decode('utf-8') if isinstance(uri, six.binary_type) else uri
         self.download_uri = uri
 
         if get_gui_setting(self.gui_settings, "ask_download_settings", True, is_bool=True):

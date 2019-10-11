@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import logging
 from binascii import unhexlify
 
 from PyQt5 import uic
@@ -15,12 +16,18 @@ from TriblerGUI.defs import METAINFO_MAX_RETRIES, METAINFO_TIMEOUT
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.dialogs.dialogcontainer import DialogContainer
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
-from TriblerGUI.utilities import format_size, get_checkbox_style, get_gui_setting, get_image_path, get_ui_file_path, \
-    is_dir_writable, quote_plus_unicode
+from TriblerGUI.utilities import (
+    format_size,
+    get_checkbox_style,
+    get_gui_setting,
+    get_image_path,
+    get_ui_file_path,
+    is_dir_writable,
+    quote_plus_unicode,
+)
 
 
 class DownloadFileTreeWidgetItem(QTreeWidgetItem):
-
     def __init__(self, parent):
         QTreeWidgetItem.__init__(self, parent)
 
@@ -55,7 +62,8 @@ class StartDownloadDialog(DialogContainer):
         self.dialog_widget.deselect_all_files_button.clicked.connect(self.on_all_files_deselected_clicked)
         self.dialog_widget.loading_files_label.clicked.connect(self.on_reload_torrent_info)
 
-        self.dialog_widget.destination_input.setStyleSheet("""
+        self.dialog_widget.destination_input.setStyleSheet(
+            """
         QComboBox {
             background-color: #444;
             border: none;
@@ -76,12 +84,17 @@ class StartDownloadDialog(DialogContainer):
             height: 12px;
             image: url('%s');
         }
-        """ % get_image_path('down_arrow_input.png'))
+        """
+            % get_image_path('down_arrow_input.png')
+        )
 
         # self.dialog_widget.add_to_channel_checkbox.setStyleSheet(get_checkbox_style())
         checkbox_style = get_checkbox_style()
-        for checkbox in [self.dialog_widget.add_to_channel_checkbox, self.dialog_widget.safe_seed_checkbox,
-                         self.dialog_widget.anon_download_checkbox]:
+        for checkbox in [
+            self.dialog_widget.add_to_channel_checkbox,
+            self.dialog_widget.safe_seed_checkbox,
+            self.dialog_widget.anon_download_checkbox,
+        ]:
             checkbox.setStyleSheet(checkbox_style)
 
         if self.window().tribler_settings:
@@ -92,17 +105,21 @@ class StartDownloadDialog(DialogContainer):
                 self.dialog_widget.destination_input.addItems(recent_locations)
             else:
                 self.dialog_widget.destination_input.setCurrentText(
-                    self.window().tribler_settings['download_defaults']['saveas'])
+                    self.window().tribler_settings['download_defaults']['saveas']
+                )
 
         self.dialog_widget.torrent_name_label.setText(torrent_name)
 
         self.dialog_widget.anon_download_checkbox.stateChanged.connect(self.on_anon_download_state_changed)
-        self.dialog_widget.anon_download_checkbox\
-            .setChecked(self.window().tribler_settings['download_defaults']['anonymity_enabled'])
-        self.dialog_widget.safe_seed_checkbox\
-            .setChecked(self.window().tribler_settings['download_defaults']['safeseeding_enabled'])
-        self.dialog_widget.add_to_channel_checkbox\
-            .setChecked(self.window().tribler_settings['download_defaults']['add_download_to_channel'])
+        self.dialog_widget.anon_download_checkbox.setChecked(
+            self.window().tribler_settings['download_defaults']['anonymity_enabled']
+        )
+        self.dialog_widget.safe_seed_checkbox.setChecked(
+            self.window().tribler_settings['download_defaults']['safeseeding_enabled']
+        )
+        self.dialog_widget.add_to_channel_checkbox.setChecked(
+            self.window().tribler_settings['download_defaults']['add_download_to_channel']
+        )
 
         self.dialog_widget.safe_seed_checkbox.setEnabled(self.dialog_widget.anon_download_checkbox.isChecked())
 
@@ -120,6 +137,14 @@ class StartDownloadDialog(DialogContainer):
             self.request_mgr.cancel_request()
             self.request_mgr = None
 
+        # Loading files label is a clickable label with pyqtsignal which could leak,
+        # so delete the widget while closing the dialog.
+        if self.dialog_widget and self.dialog_widget.loading_files_label:
+            try:
+                self.dialog_widget.loading_files_label.deleteLater()
+            except RuntimeError:
+                logging.debug("Deleting loading files widget in the dialog widget failed.")
+
         super(StartDownloadDialog, self).close_dialog()
 
     def get_selected_files(self):
@@ -133,12 +158,18 @@ class StartDownloadDialog(DialogContainer):
 
     def perform_files_request(self):
         self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("torrentinfo?uri=%s" % quote_plus_unicode(self.download_uri),
-                                         self.on_received_metainfo, capture_errors=False)
+        self.request_mgr.perform_request(
+            "torrentinfo?uri=%s" % quote_plus_unicode(self.download_uri),
+            self.on_received_metainfo,
+            capture_errors=False,
+        )
 
         if self.metainfo_retries <= METAINFO_MAX_RETRIES:
-            loading_message = "Loading torrent files..." if not self.metainfo_retries else \
-                "Timeout in fetching files. Retrying (%s/%s)" % (self.metainfo_retries, METAINFO_MAX_RETRIES)
+            loading_message = (
+                "Loading torrent files..."
+                if not self.metainfo_retries
+                else "Timeout in fetching files. Retrying (%s/%s)" % (self.metainfo_retries, METAINFO_MAX_RETRIES)
+            )
             self.dialog_widget.loading_files_label.setText(loading_message)
 
             self.metainfo_fetch_timer = QTimer()
@@ -175,8 +206,9 @@ class StartDownloadDialog(DialogContainer):
 
         # Show if the torrent already exists in the downloads
         if 'download_exists' in metainfo and metainfo['download_exists']:
-            self.dialog_widget.existing_download_info_label.setText("Note: this torrent already exists in "
-                                                                    "the Downloads")
+            self.dialog_widget.existing_download_info_label.setText(
+                "Note: this torrent already exists in " "the Downloads"
+            )
         else:
             self.dialog_widget.existing_download_info_label.setText("")
 
@@ -209,17 +241,19 @@ class StartDownloadDialog(DialogContainer):
             self.perform_files_request()
 
     def on_browse_dir_clicked(self):
-        chosen_dir = QFileDialog.getExistingDirectory(self.window(), "Please select the destination directory of your "
-                                                                     "download", "", QFileDialog.ShowDirsOnly)
+        chosen_dir = QFileDialog.getExistingDirectory(
+            self.window(), "Please select the destination directory of your " "download", "", QFileDialog.ShowDirsOnly
+        )
 
         if len(chosen_dir) != 0:
             self.dialog_widget.destination_input.setCurrentText(chosen_dir)
 
             is_writable, error = is_dir_writable(chosen_dir)
             if not is_writable:
-                gui_error_message = "Tribler cannot download to <i>%s</i> directory. Please add proper write " \
-                                    "permissions to the directory or choose another download directory. [%s]" \
-                                    % (chosen_dir, error)
+                gui_error_message = (
+                    "Tribler cannot download to <i>%s</i> directory. Please add proper write "
+                    "permissions to the directory or choose another download directory. [%s]" % (chosen_dir, error)
+                )
                 ConfirmationDialog.show_message(self.dialog_widget, "Insufficient Permissions", gui_error_message, "OK")
 
     def on_anon_download_state_changed(self, _):
@@ -229,15 +263,18 @@ class StartDownloadDialog(DialogContainer):
 
     def on_download_clicked(self):
         if self.has_metainfo and len(self.get_selected_files()) == 0:  # User deselected all torrents
-            ConfirmationDialog.show_error(self.window(), "No files selected",
-                                          "Please select at least one file to download.")
+            ConfirmationDialog.show_error(
+                self.window(), "No files selected", "Please select at least one file to download."
+            )
         else:
             download_dir = self.dialog_widget.destination_input.currentText()
             is_writable, error = is_dir_writable(download_dir)
             if not is_writable:
-                gui_error_message = "Tribler cannot download to <i>%s</i> directory. Please add proper write " \
-                                    "permissions to the directory or choose another download directory and try " \
-                                    "to download again. [%s]" % (download_dir, error)
+                gui_error_message = (
+                    "Tribler cannot download to <i>%s</i> directory. Please add proper write "
+                    "permissions to the directory or choose another download directory and try "
+                    "to download again. [%s]" % (download_dir, error)
+                )
                 ConfirmationDialog.show_message(self.dialog_widget, "Insufficient Permissions", gui_error_message, "OK")
             else:
                 self.button_clicked.emit(1)
