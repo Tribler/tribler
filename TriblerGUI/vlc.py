@@ -1,5 +1,6 @@
-#! /usr/bin/python
 # -*- coding: utf-8 -*-
+# fmt: off
+from __future__ import absolute_import, print_function
 
 # Python ctypes bindings for VLC
 #
@@ -9011,3 +9012,4 @@ if __name__ == '__main__':
             elif k.isdigit():
                 # jump to fraction of the movie.
                 player.set_position(float('0.' + k))
+# fmt: on
