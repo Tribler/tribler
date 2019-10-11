@@ -263,8 +263,8 @@ class TestChannelMetadata(TriblerCoreTest):
 
         channel = self.mds.ChannelMetadata.create_channel('test', 'test')
         self.mds.vote_bump(channel.public_key, channel.id_, peer_key.pub().key_to_bin()[10:])
-        self.mds.vote_bump(channel.public_key, channel.id_, peer_key.pub().key_to_bin()[10:])
         sleep(0.1)  # Necessary mostly on Windows, because of the lower timer resolution
+        self.mds.vote_bump(channel.public_key, channel.id_, peer_key.pub().key_to_bin()[10:])
         self.assertLess(0.0, channel.votes)
         self.assertLess(1.0, self.mds.Vsids[0].bump_amount)
 
