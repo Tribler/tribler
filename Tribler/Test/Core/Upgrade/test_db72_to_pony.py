@@ -137,11 +137,9 @@ class TestUpgradePreconditionChecker(TriblerCoreTest):
         mds.shutdown()
         shutil.copyfile(pony_db, pony_db_bak)
 
-        connection = sqlite3.connect(pony_db)
-        with connection:
+        with sqlite3.connect(pony_db)as connection:
             cursor = connection.cursor()
             cursor.execute("DROP TABLE MiscData")
-        connection.close()
 
         # Assert older experimental version is deleted
         cleanup_pony_experimental_db(pony_db)

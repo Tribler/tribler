@@ -88,55 +88,54 @@ class DispersyToPonyMigration(object):
             self._logger.info("No personal channel found")
 
     def get_old_channels(self):
-        connection = sqlite3.connect(self.tribler_db)
-        cursor = connection.cursor()
+        with sqlite3.connect(self.tribler_db) as connection:
+            cursor = connection.cursor()
 
-        channels = []
-        for id_, name, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam in cursor.execute(
-                self.select_channels_sql):
-            if nr_torrents and nr_torrents > 0:
-                channels.append({"id_": infohash_to_id(dispersy_cid),
-                                 # converting this to str is a workaround for python 2.7 'writable buffers not hashable'
-                                 # problem with Pony
-                                 "infohash": bytes(dispersy_cid),
-                                 "title": name or '',
-                                 "public_key": b"",
-                                 "timestamp": final_timestamp(),
-                                 "origin_id": 0,
-                                 "size": 0,
-                                 "subscribed": False,
-                                 "status": LEGACY_ENTRY,
-                                 "votes": -1,
-                                 "num_entries": int(nr_torrents or 0)})
-        connection.close()
+            channels = []
+            # Avoids the need to declare the following unused variables:
+            # id_, modified, nr_favorite, nr_spam
+            for name, dispersy_cid, nr_torrents in ((result[1], result[2], result[4]) for result in cursor.execute(
+                self.select_channels_sql)):
+                if nr_torrents and nr_torrents > 0:
+                    channels.append({"id_": infohash_to_id(dispersy_cid),
+                                     # converting this to str is a workaround for python 2.7
+                                     # 'writable buffers not hashable' problem with Pony
+                                     "infohash": bytes(dispersy_cid),
+                                     "title": name or '',
+                                     "public_key": b"",
+                                     "timestamp": final_timestamp(),
+                                     "origin_id": 0,
+                                     "size": 0,
+                                     "subscribed": False,
+                                     "status": LEGACY_ENTRY,
+                                     "votes": -1,
+                                     "num_entries": int(nr_torrents or 0)})
         return channels
 
     def get_personal_channel_id_title(self):
-        connection = sqlite3.connect(self.tribler_db)
-        cursor = connection.cursor()
-        cursor.execute('SELECT id,name FROM Channels WHERE peer_id ISNULL LIMIT 1')
-        result = cursor.fetchone()
-        connection.close()
+        with sqlite3.connect(self.tribler_db) as connection:
+            cursor = connection.cursor()
+            cursor.execute('SELECT id,name FROM Channels WHERE peer_id ISNULL LIMIT 1')
+            result = cursor.fetchone()
         return result
 
     def get_old_trackers(self):
-        connection = sqlite3.connect(self.tribler_db)
-        cursor = connection.cursor()
+        with sqlite3.connect(self.tribler_db) as connection:
+            cursor = connection.cursor()
 
-        trackers = {}
-        for tracker_id, tracker, last_check, failures, is_alive in cursor.execute(self.select_trackers_sql):
-            try:
-                tracker_url_sanitized = get_uniformed_tracker_url(tracker)
-                if not tracker_url_sanitized:
+            trackers = {}
+            for _, tracker, last_check, failures, is_alive in cursor.execute(self.select_trackers_sql):
+                try:
+                    tracker_url_sanitized = get_uniformed_tracker_url(tracker)
+                    if not tracker_url_sanitized:
+                        continue
+                except:
+                    # Skip malformed trackers
                     continue
-            except:
-                # Skip malformed trackers
-                continue
-            trackers[tracker_url_sanitized] = ({
-                "last_check": last_check,
-                "failures": failures,
-                "alive": is_alive})
-        connection.close()
+                trackers[tracker_url_sanitized] = ({
+                    "last_check": last_check,
+                    "failures": failures,
+                    "alive": is_alive})
         return trackers
 
     def get_old_torrents_count(self, personal_channel_only=False):
@@ -146,88 +145,86 @@ class DispersyToPonyMigration(object):
                                       (" == " if personal_channel_only else " != ") + \
                                       (" %i " % self.personal_channel_id)
 
-        connection = sqlite3.connect(self.tribler_db)
-        cursor = connection.cursor()
-        cursor.execute("SELECT COUNT(*) FROM (SELECT t.torrent_id " + self.select_torrents_sql + \
-                       personal_channel_filter + "group by infohash )")
-        result = cursor.fetchone()[0]
-        connection.close()
+        with sqlite3.connect(self.tribler_db) as connection:
+            cursor = connection.cursor()
+            cursor.execute("SELECT COUNT(*) FROM (SELECT t.torrent_id " + self.select_torrents_sql + \
+                           personal_channel_filter + "group by infohash )")
+            result = cursor.fetchone()[0]
         return result
 
     def get_personal_channel_torrents_count(self):
-        connection = sqlite3.connect(self.tribler_db)
-        cursor = connection.cursor()
-        cursor.execute("SELECT COUNT(*) FROM (SELECT t.torrent_id " + self.select_torrents_sql + \
-                       (" AND ct.channel_id == %s " % self.personal_channel_id) + \
-                       " group by infohash )")
-        result = cursor.fetchone()[0]
-        connection.close()
+        with sqlite3.connect(self.tribler_db) as connection:
+            cursor = connection.cursor()
+            cursor.execute("SELECT COUNT(*) FROM (SELECT t.torrent_id " + self.select_torrents_sql + \
+                           (" AND ct.channel_id == %s " % self.personal_channel_id) + \
+                           " group by infohash )")
+            result = cursor.fetchone()[0]
         return result
 
     def get_old_torrents(self, personal_channel_only=False, batch_size=10000, offset=0,
                          sign=False):
-        connection = sqlite3.connect(self.tribler_db)
-        cursor = connection.cursor()
-        cursor.execute("PRAGMA temp_store = 2")
+        with sqlite3.connect(self.tribler_db) as connection:
+            cursor = connection.cursor()
+            cursor.execute("PRAGMA temp_store = 2")
 
-        personal_channel_filter = ""
-        if self.personal_channel_id:
-            personal_channel_filter = " AND ct.channel_id " + \
-                                      (" == " if personal_channel_only else " != ") + \
-                                      (" %i " % self.personal_channel_id)
+            personal_channel_filter = ""
+            if self.personal_channel_id:
+                personal_channel_filter = " AND ct.channel_id " + \
+                                          (" == " if personal_channel_only else " != ") + \
+                                          (" %i " % self.personal_channel_id)
 
-        torrents = []
-        batch_not_empty = False # This is a dumb way to indicate that this batch got zero entries from DB
+            torrents = []
+            batch_not_empty = False # This is a dumb way to indicate that this batch got zero entries from DB
 
-        for tracker_url, channel_id, name, infohash, length, creation_date, torrent_id, category, num_seeders, \
-            num_leechers, last_tracker_check in \
-                cursor.execute(
-                    self.select_full + personal_channel_filter + " group by infohash" +
-                    (" LIMIT " + str(batch_size) + " OFFSET " + str(offset))):
-            batch_not_empty = True
-            # check if name is valid unicode data
-            try:
-                name = text_type(name)
-            except UnicodeDecodeError:
-                continue
-
-            try:
-                if (len(base64.decodestring(infohash.encode('utf-8'))) != 20) or \
-                        (not torrent_id or int(torrent_id) == 0) or \
-                        (not length or (int(length) <= 0) or (int(length) > (1 << 45))) or \
-                        (is_forbidden(name)) or \
-                        not name:
+            for tracker_url, channel_id, name, infohash, length, creation_date, torrent_id, category, num_seeders, \
+                num_leechers, last_tracker_check in \
+                    cursor.execute(
+                        self.select_full + personal_channel_filter + " group by infohash" +
+                        (" LIMIT " + str(batch_size) + " OFFSET " + str(offset))):
+                batch_not_empty = True
+                # check if name is valid unicode data
+                try:
+                    name = text_type(name)
+                except UnicodeDecodeError:
                     continue
 
-                infohash = base64.decodestring(infohash.encode())
+                try:
+                    invalid_base64 = len(base64.decodestring(infohash.encode('utf-8'))) != 20
+                    invalid_torrent_id = not torrent_id or int(torrent_id) == 0
+                    invalid_len = not length or (int(length) <= 0) or (int(length) > (1 << 45))
+                    invalid_name = not name or is_forbidden(name)
 
-                torrent_date = datetime.datetime.utcfromtimestamp(creation_date or 0)
-                torrent_date = torrent_date if 0 <= time2int(torrent_date) <= self.conversion_start_timestamp_int \
-                    else int2time(0)
-                torrent_dict = {
-                    "status": NEW,
-                    "infohash": infohash,
-                    "size": int(length),
-                    "torrent_date": torrent_date,
-                    "title": name or '',
-                    "tags": category or '',
-                    "tracker_info": tracker_url or '',
-                    "xxx": int(category == u'xxx')}
-                if not sign:
-                    torrent_dict.update({"origin_id": infohash_to_id(channel_id)})
-                seeders = int(num_seeders or 0)
-                leechers = int(num_leechers or 0)
-                last_tracker_check = int(last_tracker_check or 0)
-                health_dict = {
-                    "seeders": seeders,
-                    "leechers": leechers,
-                    "last_check": last_tracker_check
-                } if (last_tracker_check >= 0 and seeders >= 0 and leechers >= 0) else None
-                torrents.append((torrent_dict, health_dict))
-            except:
-                continue
+                    if invalid_base64 or invalid_torrent_id or invalid_len or invalid_name:
+                        continue
 
-        connection.close()
+                    infohash = base64.decodestring(infohash.encode())
+
+                    torrent_date = datetime.datetime.utcfromtimestamp(creation_date or 0)
+                    torrent_date = torrent_date if 0 <= time2int(torrent_date) <= self.conversion_start_timestamp_int \
+                        else int2time(0)
+                    torrent_dict = {
+                        "status": NEW,
+                        "infohash": infohash,
+                        "size": int(length),
+                        "torrent_date": torrent_date,
+                        "title": name or '',
+                        "tags": category or '',
+                        "tracker_info": tracker_url or '',
+                        "xxx": int(category == u'xxx')}
+                    if not sign:
+                        torrent_dict.update({"origin_id": infohash_to_id(channel_id)})
+                    seeders = int(num_seeders or 0)
+                    leechers = int(num_leechers or 0)
+                    last_tracker_check = int(last_tracker_check or 0)
+                    health_dict = {
+                        "seeders": seeders,
+                        "leechers": leechers,
+                        "last_check": last_tracker_check
+                    } if (last_tracker_check >= 0 and seeders >= 0 and leechers >= 0) else None
+                    torrents.append((torrent_dict, health_dict))
+                except:
+                    continue
+
         return torrents if batch_not_empty else None
 
     @inlineCallbacks
@@ -448,22 +445,19 @@ class DispersyToPonyMigration(object):
 
 def old_db_version_ok(old_database_path):
     # Check the old DB version
-    connection = sqlite3.connect(old_database_path)
-    with connection:
+    with sqlite3.connect(old_database_path) as connection:
         cursor = connection.cursor()
         cursor.execute('SELECT value FROM MyInfo WHERE entry == "version"')
         version = int(cursor.fetchone()[0])
         if version == 29:
             return True
-    connection.close()
     return False
 
 
 def cleanup_pony_experimental_db(new_database_path):
     # Check for the old experimental version database
     # ACHTUNG!!! NUCLEAR OPTION!!! DO NOT MESS WITH IT!!!
-    connection = sqlite3.connect(new_database_path)
-    with connection:
+    with sqlite3.connect(new_database_path) as connection:
         cursor = connection.cursor()
         cursor.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'MiscData'")
         result = cursor.fetchone()
@@ -472,7 +466,6 @@ def cleanup_pony_experimental_db(new_database_path):
             cursor.execute('SELECT value FROM MiscData WHERE name == "db_version"')
             version = int(cursor.fetchone()[0])
             delete_old_pony_db = version in BETA_DB_VERSIONS  # Delete the older betas DB
-    connection.close()
     # We're looking at the old experimental version database. Delete it.
     if delete_old_pony_db:
         os.unlink(new_database_path)
@@ -480,20 +473,17 @@ def cleanup_pony_experimental_db(new_database_path):
 
 def new_db_version_ok(new_database_path):
     # Let's check if we converted all/some entries before
-    connection = sqlite3.connect(new_database_path)
-    with connection:
+    with sqlite3.connect(new_database_path) as connection:
         cursor = connection.cursor()
         cursor.execute('SELECT value FROM MiscData WHERE name == "db_version"')
         version = int(cursor.fetchone()[0])
         if version != CURRENT_DB_VERSION:
             return False
-    connection.close()
     return True
 
 
 def already_upgraded(new_database_path):
-    connection = sqlite3.connect(new_database_path)
-    with connection:
+    with sqlite3.connect(new_database_path) as connection:
         # Check if already upgraded
         cursor = connection.cursor()
         cursor.execute('SELECT value FROM MiscData WHERE name == "%s"' % CONVERSION_FROM_72)
@@ -502,7 +492,6 @@ def already_upgraded(new_database_path):
             state = result[0]
             if state == CONVERSION_FINISHED:
                 return True
-    connection.close()
     return False
 
 
