@@ -55,7 +55,7 @@ def cleanup_noncompliant_channel_torrents(state_dir):
                     if name and len(name) != CHANNEL_DIR_NAME_LENGTH:
                         os.unlink(file_path)
                 except (TypeError, KeyError, ValueError):
-                    pass
+                    logger.debug("Malformed .pstate file %s", file_path)
 
 
 class TriblerUpgrader(object):
