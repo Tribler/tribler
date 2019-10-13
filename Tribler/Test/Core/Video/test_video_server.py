@@ -202,11 +202,9 @@ class TestVideoServerSession(TestAsServer):
 
         # the amount of bytes actually requested. (Content-length)
         self.expsize = exp_byte_range[1] - exp_byte_range[0] + 1
-        f = open(self.sourcefn, "rb")
-        f.seek(exp_byte_range[0])
-
-        expdata = f.read(self.expsize)
-        f.close()
+        with open(self.sourcefn, "rb") as f:
+            f.seek(exp_byte_range[0])
+            expdata = f.read(self.expsize)
 
         def on_connected(p):
             p.sendMessage(self.get_header(firstbyte, lastbyte, setset))

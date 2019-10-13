@@ -73,9 +73,8 @@ class TestLibtorrentMgr(AbstractServer):
         self.assertTrue(ltsession)
 
     def test_get_session_zero_hops_corrupt_lt_state(self):
-        file = open(os.path.join(self.session_base_dir, 'lt.state'), "w")
-        file.write("Lorem ipsum")
-        file.close()
+        with open(os.path.join(self.session_base_dir, 'lt.state'), "w") as f:
+            f.write("Lorem ipsum")
 
         self.ltmgr.initialize()
         ltsession = self.ltmgr.get_session(0)

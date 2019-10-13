@@ -294,9 +294,8 @@ class EditChannelPage(QWidget):
 
         def on_export_download_request_done(dest_path, data):
             try:
-                torrent_file = open(dest_path, "wb")
-                torrent_file.write(data)
-                torrent_file.close()
+                with open(dest_path, "wb") as torrent_file:
+                    torrent_file.write(data)
             except IOError as exc:
                 ConfirmationDialog.show_error(self.window(), "Failure! Exporting channel failed",
                                               "The following occurred when exporting your channel: %s" % str(exc))
