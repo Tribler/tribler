@@ -86,18 +86,15 @@ def _test_port(family, sock_type, port):
 
     s = None
     try:
-        s = socket.socket(family, sock_type)
-        if sock_type == socket.SOCK_STREAM:
-            s.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER, struct.pack('ii', 1, 0))
-        s.bind(('', port))
-        is_port_working = True
+        with socket.socket(family, sock_type) as s:
+            if sock_type == socket.SOCK_STREAM:
+                s.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER, struct.pack('ii', 1, 0))
+            s.bind(('', port))
+            is_port_working = True
     except socket.error as e:
         logger.debug("Port test failed (port=%s, family=%s, type=%s): %s",
                      port, family, sock_type, e)
         is_port_working = False
-    finally:
-        if s:
-            s.close()
     return is_port_working
 
 
@@ -106,9 +103,8 @@ def autodetect_socket_style():
         return 1
     else:
         try:
-            f = open('/proc/sys/net/ipv6/bindv6only', 'r')
-            dual_socket_style = int(f.read())
-            f.close()
+            with open('/proc/sys/net/ipv6/bindv6only', 'r') as f:
+                dual_socket_style = int(f.read())
             return int(not dual_socket_style)
         except (IOError, ValueError):
             return 0
