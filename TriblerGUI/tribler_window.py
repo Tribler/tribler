@@ -134,6 +134,8 @@ class TriblerWindow(QMainWindow):
         QCoreApplication.setOrganizationName("TUDelft")
         QCoreApplication.setApplicationName("Tribler")
         QCoreApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
+        QCoreApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
+        os.environ['QT_AUTO_SCREEN_SCALE_FACTOR'] = "1"
 
         self.gui_settings = QSettings()
         api_port = api_port or int(get_gui_setting(self.gui_settings, "api_port", DEFAULT_API_PORT))
