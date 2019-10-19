@@ -47,8 +47,7 @@ def convert_config_to_tribler71(current_config, state_dir=None):
 
     # We also have to update all existing downloads, in particular, rename the section 'downloadconfig' to
     # 'download_defaults'.
-    for _, filename in enumerate(iglob(
-            os.path.join(state_dir, STATEDIR_CHECKPOINT_DIR, '*.state'))):
+    for filename in iglob(os.path.join(state_dir, STATEDIR_CHECKPOINT_DIR, '*.state')):
         download_cfg = RawConfigParser()
         try:
             with open(filename) as cfg_file:
