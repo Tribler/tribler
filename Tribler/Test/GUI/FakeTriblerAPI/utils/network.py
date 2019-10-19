@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import contextlib
 import random
 import socket
 import struct
@@ -78,14 +79,15 @@ def _test_port(family, sock_type, port):
 
     s = None
     try:
-        s = socket.socket(family, sock_type)
-        if sock_type == socket.SOCK_STREAM:
-            s.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER, struct.pack('ii', 1, 0))
-        s.bind(('', port))
-        is_port_working = True
+        # Needed for py2 and py3 compatibility. When the migration of
+        # this file to py3 is completed, socket can be used directly
+        # with a "with" statement (in py2 it lacks the needed __exit__
+        # dunder method)
+        with contextlib.closing(socket.socket(family, sock_type)) as s:
+            if sock_type == socket.SOCK_STREAM:
+                s.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER, struct.pack('ii', 1, 0))
+            s.bind(('', port))
+            is_port_working = True
     except socket.error:
         is_port_working = False
-    finally:
-        if s:
-            s.close()
     return is_port_working
