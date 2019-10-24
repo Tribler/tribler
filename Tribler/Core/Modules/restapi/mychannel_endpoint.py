@@ -263,26 +263,13 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
 
         title = parameters['title'][0] if 'title' in parameters and parameters['title'] else None
 
-        # This is required to determine if the connection can be closed by the server
-        can_close = [True]
-
-        def _faulty_req_termination(failure, can_close):
-            # If this callback was triggered, then the connection is guaranteed to have been closed.
-            can_close[0] = False
-            if failure is not None:
-                failure.trap(ConnectionDone)
-                self._logger.exception("Connection did not close properly: %s %s", failure.getErrorMessage(),
-                                       failure.type)
-
-        request.notifyFinish().addBoth(_faulty_req_termination, can_close)
-
         def _on_url_fetched(data):
             return TorrentDef.load_from_memory(data)
 
         def _on_magnet_fetched(meta_info):
             if not meta_info:
-                request.write(self.return_500(request, RuntimeError("Metainfo timeout")))
-                if can_close[0]:
+                if not request.finished and not request._disconnected:
+                    request.write(self.return_500(request, RuntimeError("Metainfo timeout")))
                     request.finish()
                 return
 
@@ -298,15 +285,15 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
             return 1
 
         def _on_added(added):
-            request.write(json.twisted_dumps({"added": added}))
-            if can_close[0]:
+            if not request.finished and not request._disconnected:
+                request.write(json.twisted_dumps({"added": added}))
                 request.finish()
 
         def _on_add_failed(failure):
             failure.trap(ValueError, DuplicateTorrentFileError, SchemeNotSupported)
             self._logger.exception(failure.value)
-            request.write(self.return_500(request, failure.value))
-            if can_close[0]:
+            if not request.finished and not request._disconnected:
+                request.write(self.return_500(request, failure.value))
                 request.finish()
 
         # First, check whether we did upload a magnet link or URL

@@ -60,12 +60,10 @@ class TorrentInfoEndpoint(resource.Resource):
 
         def on_got_metainfo(metainfo):
             if not metainfo:
-                if not request.finished:
+                if not request.finished and not request._disconnected:
                     request.setResponseCode(http.INTERNAL_SERVER_ERROR)
                     request.write(json.twisted_dumps({"error": "metainfo error"}))
-                # If the above request.write failed, the request will have already been finished
-                if not request.finished:
-                    self.finish_request(request)
+                    request.finish(request)
                     return
 
             if not isinstance(metainfo, dict) or b'info' not in metainfo:

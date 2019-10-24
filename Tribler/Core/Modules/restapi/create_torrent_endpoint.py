@@ -119,7 +119,7 @@ class CreateTorrentEndpoint(resource.Resource):
 
             request.write(json.twisted_dumps({"torrent": base64.b64encode(result['metainfo']).decode('utf-8')}))
             # If the above request.write failed, the request will have already been finished
-            if not request.finished:
+            if not request.finished and not request._disconnected:
                 request.finish()
 
         def _on_create_failure(failure):
@@ -131,7 +131,7 @@ class CreateTorrentEndpoint(resource.Resource):
             self._logger.exception(failure)
             request.write(return_handled_exception(request, failure.value))
             # If the above request.write failed, the request will have already been finished
-            if not request.finished:
+            if not request.finished and not request._disconnected:
                 request.finish()
 
         deferred = self.session.create_torrent_file(file_path_list, recursive_bytes(params))

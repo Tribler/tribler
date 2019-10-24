@@ -250,7 +250,7 @@ class SpecificTorrentHealthEndpoint(resource.Resource):
             return json.twisted_dumps({"error": "the torrent with the specific infohash cannot be found"})
 
         def update_health():
-            if not request.finished:
+            if not request.finished and not request._disconnected:
                 torrent.update_health()
                 request.write(json.twisted_dumps({
                     "health": {

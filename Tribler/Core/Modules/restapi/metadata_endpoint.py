@@ -370,12 +370,10 @@ class TorrentHealthEndpoint(resource.Resource):
             self.finish_request(request)
 
         def on_request_error(failure):
-            if not request.finished:
+            if not request.finished and not request._disconnected:
                 request.setResponseCode(http.BAD_REQUEST)
                 request.write(json.twisted_dumps({"error": failure.getErrorMessage()}))
-            # If the above request.write failed, the request will have already been finished
-            if not request.finished:
-                self.finish_request(request)
+                request.finish()
 
         result_deferred = self.session.check_torrent_health(self.infohash, timeout=timeout, scrape_now=refresh)
         # return immediately. Used by GUI to schedule health updates through the EventsEndpoint

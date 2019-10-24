@@ -432,7 +432,7 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
             self._logger.exception(failure)
             request.write(return_handled_exception(request, failure.value))
             # If the above request.write failed, the request will have already been finished
-            if not request.finished:
+            if not request.finished and not request._disconnected:
                 request.finish()
 
         deferred = self.session.remove_download(download, remove_content=remove_data)
@@ -499,7 +499,7 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
                 self._logger.exception(failure)
                 request.write(return_handled_exception(request, failure.value))
                 # If the above request.write failed, the request will have already been finished
-                if not request.finished:
+                if not request.finished and not request._disconnected:
                     request.finish()
 
             deferred.addCallback(_on_download_readded)
