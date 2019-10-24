@@ -231,7 +231,7 @@ class GigaChannelManager(TaskManager):
             # TODO: count the number of tries we had with the channel, so we can stop trying eventually
             returnValue(None)
         try:
-            if metainfo['info']['name'] != channel.dirname:
+            if metainfo[b'info'][b'name'].decode('utf-8') != channel.dirname:
                 # Malformed channel
                 # TODO: stop trying to download this channel until it is updated with a new infohash
                 returnValue(None)

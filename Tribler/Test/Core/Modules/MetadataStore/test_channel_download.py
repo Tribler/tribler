@@ -51,7 +51,7 @@ class TestChannelDownload(TestAsServer):
             channel = self.session.lm.mds.ChannelMetadata.get(signature=payload.signature)
 
         def fake_get_metainfo(infohash, timeout=30):
-            return {'info': {'name': channel.dirname}}
+            return {b'info': {b'name': channel.dirname.encode('utf-8')}}
 
         self.session.lm.ltmgr.get_metainfo = fake_get_metainfo
         # The leecher should be hinted to leech from localhost. Thus, we must extend start_downoload_from_tdef
