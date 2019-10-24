@@ -11,7 +11,12 @@ from pony.orm import db_session
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Modules.MetadataStore.serialization import (
-    CHANNEL_NODE, ChannelNodePayload, KeysMismatchException, NULL_KEY, NULL_SIG)
+    CHANNEL_NODE,
+    ChannelNodePayload,
+    KeysMismatchException,
+    NULL_KEY,
+    NULL_SIG,
+)
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.exceptions import InvalidChannelNodeException, InvalidSignatureException
@@ -47,24 +52,26 @@ class TestMetadata(TriblerCoreTest):
         """
         Test converting metadata to serialized data and back
         """
-        metadata1 = self.mds.ChannelNode.from_dict({})
-        serialized1 = metadata1.serialized()
-        metadata1.delete()
-        orm.flush()
+        for md_type in [self.mds.ChannelNode, self.mds.MetadataNode, self.mds.CollectionNode]:
 
-        metadata2 = self.mds.ChannelNode.from_payload(ChannelNodePayload.from_signed_blob(serialized1))
-        serialized2 = metadata2.serialized()
-        self.assertEqual(serialized1, serialized2)
+            metadata1 = md_type()
+            serialized1 = metadata1.serialized()
+            metadata1.delete()
+            orm.flush()
 
-        # Test no signature exception
-        metadata2_dict = metadata2.to_dict()
-        metadata2_dict.pop("signature")
-        self.assertRaises(InvalidSignatureException, ChannelNodePayload, **metadata2_dict)
+            metadata2 = md_type.from_payload(md_type._payload_class.from_signed_blob(serialized1))
+            serialized2 = metadata2.serialized()
+            self.assertEqual(serialized1, serialized2)
 
-        serialized3 = serialized2[:-5] + b"\xee" * 5
-        self.assertRaises(InvalidSignatureException, ChannelNodePayload.from_signed_blob, serialized3)
-        # Test bypass signature check
-        ChannelNodePayload.from_signed_blob(serialized3, check_signature=False)
+            # Test no signature exception
+            metadata2_dict = metadata2.to_dict()
+            metadata2_dict.pop("signature")
+            self.assertRaises(InvalidSignatureException, md_type._payload_class, **metadata2_dict)
+
+            serialized3 = serialized2[:-5] + b"\xee" * 5
+            self.assertRaises(InvalidSignatureException, md_type._payload_class.from_signed_blob, serialized3)
+            # Test bypass signature check
+            md_type._payload_class.from_signed_blob(serialized3, check_signature=False)
 
     @db_session
     def test_ffa_serialization(self):
@@ -85,8 +92,9 @@ class TestMetadata(TriblerCoreTest):
         # Check that it is impossible to create FFA node without specifying id_
         self.assertRaises(InvalidChannelNodeException, self.mds.ChannelNode.from_dict, {"public_key": b""})
         # Check that it is impossible to create FFA payload with non-null signature
-        self.assertRaises(InvalidSignatureException, ChannelNodePayload, CHANNEL_NODE, 0, NULL_KEY, 0, 0, 0,
-                          signature=b"123")
+        self.assertRaises(
+            InvalidSignatureException, ChannelNodePayload, CHANNEL_NODE, 0, NULL_KEY, 0, 0, 0, signature=b"123"
+        )
         # Check that creating a pair of metadata entries do not trigger uniqueness constraints error
         self.mds.ChannelNode.from_dict({"public_key": b"", "id_": "124"})
         self.mds.ChannelNode.from_dict({"public_key": b"", "id_": "125"})

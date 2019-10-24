@@ -40,7 +40,8 @@ def random_utf8_string(length=6):
     ]
 
     alphabet = [
-        get_char(code_point) for current_range in include_ranges
+        get_char(code_point)
+        for current_range in include_ranges
         for code_point in range(current_range[0], current_range[1] + 1)
     ]
     return ''.join(random.choice(alphabet) for i in range(length))

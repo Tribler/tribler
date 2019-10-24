@@ -10,17 +10,16 @@ from Tribler.Test.tools import trial_timeout
 
 
 class TestMyChannelCreateTorrentEndpoint(AbstractApiTest):
-
     def setUpPreSession(self):
         super(TestMyChannelCreateTorrentEndpoint, self).setUpPreSession()
         # Create temporary test directory with test files
         self.files_path = os.path.join(self.session_base_dir, 'TestMyChannelCreateTorrentEndpoint')
         if not os.path.exists(self.files_path):
             os.mkdir(self.files_path)
-        shutil.copyfile(os.path.join(TESTS_DATA_DIR, 'video.avi'),
-                        os.path.join(self.files_path, 'video.avi'))
-        shutil.copyfile(os.path.join(TESTS_DATA_DIR, 'video.avi.torrent'),
-                        os.path.join(self.files_path, 'video.avi.torrent'))
+        shutil.copyfile(os.path.join(TESTS_DATA_DIR, 'video.avi'), os.path.join(self.files_path, 'video.avi'))
+        shutil.copyfile(
+            os.path.join(TESTS_DATA_DIR, 'video.avi.torrent'), os.path.join(self.files_path, 'video.avi.torrent')
+        )
         self.config.set_libtorrent_enabled(True)
 
     @trial_timeout(10)
@@ -46,14 +45,12 @@ class TestMyChannelCreateTorrentEndpoint(AbstractApiTest):
             self.assertTrue(os.path.exists(os.path.join(export_dir, "test_torrent.torrent")))
 
         post_data = {
-            "files": [os.path.join(self.files_path, "video.avi"),
-                      os.path.join(self.files_path, "video.avi.torrent")],
+            "files": [os.path.join(self.files_path, "video.avi"), os.path.join(self.files_path, "video.avi.torrent")],
             "description": "Video of my cat",
             "trackers": "http://localhost/announce",
             "name": "test_torrent",
-            "export_dir": export_dir
+            "export_dir": export_dir,
         }
-        self.should_check_equality = False
         return self.do_request('createtorrent?download=1', 200, None, 'POST', post_data).addCallback(verify_torrent)
 
     @trial_timeout(10)
@@ -65,18 +62,12 @@ class TestMyChannelCreateTorrentEndpoint(AbstractApiTest):
         def verify_error_message(body):
             error_response = json.twisted_loads(body)
             expected_response = {
-                u"error": {
-                    u"handled": True,
-                    u"message": u"Path does not exist: %s" % post_data["files"]
-                }
+                u"error": {u"handled": True, u"message": u"Path does not exist: %s" % post_data["files"]}
             }
             self.assertDictContainsSubset(expected_response[u"error"], error_response[u"error"])
             self.assertIn(error_response[u"error"][u"code"], [u"IOError", u"OSError"])
 
-        post_data = {
-            "files": "non_existing_file.avi"
-        }
-        self.should_check_equality = False
+        post_data = {"files": "non_existing_file.avi"}
         return self.do_request('createtorrent', 500, None, 'POST', post_data).addCallback(verify_error_message)
 
     @trial_timeout(10)

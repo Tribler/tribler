@@ -7,13 +7,13 @@ from ipv8.REST.root_endpoint import RootEndpoint as IPV8RootEndpoint
 
 from twisted.web import resource
 
+from Tribler.Core.Modules.restapi.channels_endpoint import ChannelsEndpoint
 from Tribler.Core.Modules.restapi.create_torrent_endpoint import CreateTorrentEndpoint
 from Tribler.Core.Modules.restapi.debug_endpoint import DebugEndpoint
 from Tribler.Core.Modules.restapi.downloads_endpoint import DownloadsEndpoint
 from Tribler.Core.Modules.restapi.events_endpoint import EventsEndpoint
 from Tribler.Core.Modules.restapi.libtorrent_endpoint import LibTorrentEndpoint
 from Tribler.Core.Modules.restapi.metadata_endpoint import MetadataEndpoint
-from Tribler.Core.Modules.restapi.mychannel_endpoint import MyChannelEndpoint
 from Tribler.Core.Modules.restapi.search_endpoint import SearchEndpoint
 from Tribler.Core.Modules.restapi.settings_endpoint import SettingsEndpoint
 from Tribler.Core.Modules.restapi.shutdown_endpoint import ShutdownEndpoint
@@ -63,8 +63,9 @@ class RootEndpoint(resource.Resource):
             b"libtorrent": LibTorrentEndpoint,
             b"torrentinfo": TorrentInfoEndpoint,
             b"metadata": MetadataEndpoint,
-            b"mychannel": MyChannelEndpoint,
-            b"search": SearchEndpoint
+            b"channels": ChannelsEndpoint,
+            b"collections": ChannelsEndpoint,  # FIXME: evil hack! Implement the real CollectionsEndpoint!
+            b"search": SearchEndpoint,
         }
 
         for path, child_cls in child_handler_dict.items():

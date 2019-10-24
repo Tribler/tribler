@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import QWidget
 
 from six.moves import xrange
 
-from TriblerGUI.defs import PAGE_CHANNEL_DETAILS
+from TriblerGUI.defs import PAGE_DISCOVERED
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.widgets.home_recommended_item import HomeRecommendedItem
 
@@ -46,9 +46,7 @@ class HomePage(QWidget):
     def clicked_tab_button(self, tab_button_name):
         if tab_button_name == "home_tab_channels_button":
             self.recommended_request_mgr = TriblerRequestManager()
-            self.recommended_request_mgr.perform_request(
-                "metadata/channels/popular?limit=50", self.received_popular_channels
-            )
+            self.recommended_request_mgr.perform_request("channels/popular?limit=50", self.received_popular_channels)
         elif tab_button_name == "home_tab_torrents_button":
             self.load_popular_torrents()
 
@@ -108,6 +106,7 @@ class HomePage(QWidget):
         cell_widget = self.window().home_page_table_view.cellWidget(row, col)
         if self.show_channels and isinstance(cell_widget, HomeRecommendedItem):
             channel_info = cell_widget.channel_info
-            self.window().channel_page.initialize_with_channel(channel_info)
+            self.window().discovered_page.initialize_with_channel(channel_info)
             self.window().navigation_stack.append(self.window().stackedWidget.currentIndex())
-            self.window().stackedWidget.setCurrentIndex(PAGE_CHANNEL_DETAILS)
+            self.window().discovered_page.content_table.setFocus()
+            self.window().stackedWidget.setCurrentIndex(PAGE_DISCOVERED)

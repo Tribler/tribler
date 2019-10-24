@@ -15,22 +15,20 @@ from Tribler.Test.tools import trial_timeout
 
 
 class TestStatisticsEndpoint(AbstractApiTest):
-
     @inlineCallbacks
     def setUp(self):
         yield super(TestStatisticsEndpoint, self).setUp()
 
-        self.mock_ipv8 = MockIPv8(u"low",
-                                  TrustChainCommunity,
-                                  working_directory=self.session.config.get_state_dir())
+        self.mock_ipv8 = MockIPv8(u"low", TrustChainCommunity, working_directory=self.session.config.get_state_dir())
         self.mock_ipv8.overlays = [self.mock_ipv8.overlay]
         self.mock_ipv8.endpoint.bytes_up = 100
         self.mock_ipv8.endpoint.bytes_down = 20
         self.session.lm.ipv8 = self.mock_ipv8
         self.session.config.set_ipv8_enabled(True)
         my_key = default_eccrypto.generate_key(u"curve25519")
-        self.session.lm.mds = MetadataStore(os.path.join(self.session_base_dir, 'test.db'), self.session_base_dir,
-                                            my_key)
+        self.session.lm.mds = MetadataStore(
+            os.path.join(self.session_base_dir, 'test.db'), self.session_base_dir, my_key
+        )
 
     @inlineCallbacks
     def tearDown(self):
@@ -48,7 +46,6 @@ class TestStatisticsEndpoint(AbstractApiTest):
         def verify_dict(data):
             self.assertIn("tribler_statistics", json.twisted_loads(data))
 
-        self.should_check_equality = False
         return self.do_request('statistics/tribler', expected_code=200).addCallback(verify_dict)
 
     @trial_timeout(10)
@@ -60,7 +57,6 @@ class TestStatisticsEndpoint(AbstractApiTest):
         def verify_dict(data):
             self.assertTrue(json.twisted_loads(data)["ipv8_statistics"])
 
-        self.should_check_equality = False
         return self.do_request('statistics/ipv8', expected_code=200).addCallback(verify_dict)
 
     @trial_timeout(10)
@@ -73,5 +69,4 @@ class TestStatisticsEndpoint(AbstractApiTest):
         def verify_dict(data):
             self.assertFalse(json.twisted_loads(data)["ipv8_statistics"])
 
-        self.should_check_equality = False
         return self.do_request('statistics/ipv8', expected_code=200).addCallback(verify_dict)

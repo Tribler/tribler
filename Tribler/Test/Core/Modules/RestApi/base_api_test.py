@@ -46,6 +46,7 @@ class POSTDataProducer(object):
     """
     This class is used for posting data by the requests made during the tests.
     """
+
     def __init__(self, data_dict, raw_data):
         self.body = {}
         if data_dict and not raw_data:
@@ -67,6 +68,7 @@ class AbstractBaseApiTest(TestAsServer):
     """
     Tests for the Tribler HTTP API should create a subclass of this class.
     """
+
     @inlineCallbacks
     def setUp(self):
         yield super(AbstractBaseApiTest, self).setUp()
@@ -97,10 +99,12 @@ class AbstractBaseApiTest(TestAsServer):
         except AttributeError:
             pass
         agent = Agent(reactor, pool=self.connection_pool)
-        return agent.request(req_type, b'http://localhost:%d/%s' % (self.session.config.get_http_api_port(), endpoint),
-                             Headers({'User-Agent': ['Tribler ' + version_id],
-                                      "Content-Type": ["text/plain; charset=utf-8"]}),
-                             POSTDataProducer(post_data, raw_data))
+        return agent.request(
+            req_type,
+            b'http://localhost:%d/%s' % (self.session.config.get_http_api_port(), endpoint),
+            Headers({'User-Agent': ['Tribler ' + version_id], "Content-Type": ["text/plain; charset=utf-8"]}),
+            POSTDataProducer(post_data, raw_data),
+        )
 
 
 class AbstractApiTest(AbstractBaseApiTest):
@@ -113,7 +117,6 @@ class AbstractApiTest(AbstractBaseApiTest):
         super(AbstractApiTest, self).__init__(*args, **kwargs)
         self.expected_response_code = 200
         self.expected_response_json = None
-        self.should_check_equality = True
 
     def parse_body(self, body):
         if body is not None and self.should_check_equality:
@@ -126,14 +129,19 @@ class AbstractApiTest(AbstractBaseApiTest):
             return readBody(response)
         return succeed(None)
 
-    def do_request(self, endpoint, expected_code=200, expected_json=None,
-                   request_type='GET', post_data='', raw_data=False):
+    def do_request(
+        self, endpoint, expected_code=200, expected_json=None, request_type='GET', post_data='', raw_data=False
+    ):
+        self.should_check_equality = expected_json is not None
         self.expected_response_code = expected_code
         self.expected_response_json = expected_json
 
-        return super(AbstractApiTest, self).do_request(endpoint, request_type, post_data, raw_data)\
-                                           .addCallback(self.parse_response)\
-                                           .addCallback(self.parse_body)
+        return (
+            super(AbstractApiTest, self)
+            .do_request(endpoint, request_type, post_data, raw_data)
+            .addCallback(self.parse_response)
+            .addCallback(self.parse_body)
+        )
 
 
 class TestBaseApi(TestAsServer):

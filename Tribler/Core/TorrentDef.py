@@ -90,8 +90,16 @@ class TorrentDef(object):
         """
         Populate the torrent_parameters dictionary with information from the metainfo.
         """
-        for key in [b"comment", b"created by", b"creation date", b"announce", b"announce-list", b"nodes",
-                    b"httpseeds", b"urllist"]:
+        for key in [
+            b"comment",
+            b"created by",
+            b"creation date",
+            b"announce",
+            b"announce-list",
+            b"nodes",
+            b"httpseeds",
+            b"urllist",
+        ]:
             if self.metainfo and key in self.metainfo:
                 self.torrent_parameters[key] = self.metainfo[key]
 

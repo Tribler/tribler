@@ -7,10 +7,14 @@ from ipv8.database import database_blob
 from ipv8.keyvault.crypto import default_eccrypto
 
 from pony import orm
-from pony.orm.core import DEFAULT
+from pony.orm.core import DEFAULT, db_session
 
 from Tribler.Core.Modules.MetadataStore.serialization import (
-    CHANNEL_NODE, ChannelNodePayload, DELETED, DeletedMetadataPayload)
+    CHANNEL_NODE,
+    ChannelNodePayload,
+    DELETED,
+    DeletedMetadataPayload,
+)
 from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.exceptions import InvalidChannelNodeException, InvalidSignatureException
 
@@ -21,13 +25,15 @@ COMMITTED = 2  # The entry is committed and seeded.
 UPDATED = 6  # One of the entry's properties was updated. It will be committed at the next commit.
 LEGACY_ENTRY = 1000  # The entry was converted from the old Tribler DB. It has no signature and should not be shared.
 
+DIRTY_STATUSES = (NEW, TODELETE, UPDATED)
+
 PUBLIC_KEY_LEN = 64
 
 
 def generate_dict_from_pony_args(cls, skip_list=None, **kwargs):
     """
-    Note: this is a way to manually define Pony entity default attributes in case we really
-    have to generate the signature before creating the object
+    Note: this is a way to manually define Pony entity default attributes in case we
+    have to generate the signature before creating an object
     """
     d = {}
     skip_list = skip_list or []
@@ -41,6 +47,12 @@ def generate_dict_from_pony_args(cls, skip_list=None, **kwargs):
 
 def define_binding(db, logger=None, key=None, clock=None):
     class ChannelNode(db.Entity):
+        """
+        This is the base class of our ORM bindings. It implements methods for signing and serialization of ORM objects.
+        All other GigaChannel-related ORM classes are derived from it. It is not intended for direct use.
+        Instead, other classes should derive from it.
+        """
+
         _discriminator_ = CHANNEL_NODE
 
         rowid = orm.PrimaryKey(int, size=64, auto=True)
@@ -64,11 +76,23 @@ def define_binding(db, logger=None, key=None, clock=None):
         added_on = orm.Optional(datetime, default=datetime.utcnow)
         status = orm.Optional(int, default=COMMITTED, index=True)
 
-        # Special properties
+        # Special class-level properties
         _payload_class = ChannelNodePayload
         _my_key = key
         _logger = logger
         _clock = clock
+
+        # This attribute holds the names of the class attributes that are used by the serializer for the
+        # corresponding payload type. We only initialize it once on class creation as an optimization.
+        payload_arguments = _payload_class.__init__.__code__.co_varnames[
+            : _payload_class.__init__.__code__.co_argcount
+        ][1:]
+
+        # A non - personal attribute of an entry is an attribute that would have the same value regardless of where,
+        # when and who created the entry.
+        # In other words, it does not depend on the Tribler instance that created it.
+        # ACHTUNG! On object creation, Pony does not check if discriminator is wrong for the created ORM type!
+        nonpersonal_attributes = ('metadata_type',)
 
         def __init__(self, *args, **kwargs):
             """
@@ -99,8 +123,11 @@ def define_binding(db, logger=None, key=None, clock=None):
                     # because assigning id_ automatically by _clock breaks anonymity.
                     # FFA entries should be "timeless" and anonymous.
                     raise InvalidChannelNodeException(
-                        ("Attempted to create %s free-for-all (unsigned) object without specifying id_ : " %
-                         str(self.__class__.__name__)))
+                        (
+                            "Attempted to create %s free-for-all (unsigned) object without specifying id_ : "
+                            % str(self.__class__.__name__)
+                        )
+                    )
 
             # For putting legacy/test stuff in
             skip_key_check = kwargs.pop("skip_key_check", skip_key_check)
@@ -113,9 +140,10 @@ def define_binding(db, logger=None, key=None, clock=None):
 
             if not private_key_override and not skip_key_check:
                 # No key/signature given, sign with our own key.
-                if ("signature" not in kwargs) and \
-                        (("public_key" not in kwargs) or (
-                                kwargs["public_key"] == database_blob(self._my_key.pub().key_to_bin()[10:]))):
+                if ("signature" not in kwargs) and (
+                    ("public_key" not in kwargs)
+                    or (kwargs["public_key"] == database_blob(self._my_key.pub().key_to_bin()[10:]))
+                ):
                     private_key_override = self._my_key
 
                 # Key/signature given, check them for correctness
@@ -124,21 +152,24 @@ def define_binding(db, logger=None, key=None, clock=None):
                         self._payload_class(**kwargs)
                     except InvalidSignatureException:
                         raise InvalidSignatureException(
-                            ("Attempted to create %s object with invalid signature/PK: " % str(
-                                self.__class__.__name__)) +
-                            (hexlify(kwargs["signature"])
-                             if "signature" in kwargs else "empty signature ") + " / " +
-                            (hexlify(kwargs["public_key"]) if "public_key" in kwargs else " empty PK"))
+                            ("Attempted to create %s object with invalid signature/PK: " % str(self.__class__.__name__))
+                            + (hexlify(kwargs["signature"]) if "signature" in kwargs else "empty signature ")
+                            + " / "
+                            + (hexlify(kwargs["public_key"]) if "public_key" in kwargs else " empty PK")
+                        )
 
             if private_key_override:
                 # Get default values for Pony class attributes. We have to do it manually because we need
                 # to know the payload signature *before* creating the object.
                 kwargs = generate_dict_from_pony_args(self.__class__, skip_list=["signature", "public_key"], **kwargs)
                 payload = self._payload_class(
-                    **dict(kwargs,
-                           public_key=private_key_override.pub().key_to_bin()[10:],
-                           key=private_key_override,
-                           metadata_type=self.metadata_type))
+                    **dict(
+                        kwargs,
+                        public_key=private_key_override.pub().key_to_bin()[10:],
+                        key=private_key_override,
+                        metadata_type=self.metadata_type,
+                    )
+                )
                 kwargs["public_key"] = payload.public_key
                 kwargs["signature"] = payload.signature
 
@@ -166,8 +197,7 @@ def define_binding(db, logger=None, key=None, clock=None):
             :return: (serialized_data, signature) tuple
             """
             my_dict = ChannelNode.to_dict(self)
-            my_dict.update({"metadata_type": DELETED,
-                            "delete_signature": self.signature})
+            my_dict.update({"metadata_type": DELETED, "delete_signature": self.signature})
             return DeletedMetadataPayload(key=self._my_key, **my_dict)._serialized()
 
         def serialized_delete(self):
@@ -213,5 +243,52 @@ def define_binding(db, logger=None, key=None, clock=None):
         @classmethod
         def from_dict(cls, dct):
             return cls(**dct)
+
+        @property
+        @db_session
+        def is_personal(self):
+            # TODO: optimize this by stopping doing blob comparisons on each call, and instead remember rowid?
+            return database_blob(self._my_key.pub().key_to_bin()[10:]) == database_blob(self.public_key)
+
+        @db_session
+        def soft_delete(self):
+            if self.status == NEW:
+                # Uncommited metadata. Delete immediately
+                self.delete()
+            else:
+                self.status = TODELETE
+
+        def update_properties(self, update_dict):
+            signed_attribute_changed = False
+            for k, value in update_dict.items():
+                if getattr(self, k) != value:
+                    setattr(self, k, value)
+                    signed_attribute_changed = signed_attribute_changed or (k in self.payload_arguments)
+
+            if signed_attribute_changed:
+                if self.status != NEW:
+                    self.status = UPDATED
+                self.timestamp = self._clock.tick()
+                self.sign()
+
+            return self
+
+        def get_parents_ids(self, max_recursion_depth=15):
+            if not max_recursion_depth:
+                return tuple()
+            if self.origin_id == 0:
+                return (0,)
+            parent = db.CollectionNode.get(public_key=self.public_key, id_=self.origin_id)
+            if parent:
+                result = parent.get_parents_ids(max_recursion_depth=max_recursion_depth - 1)
+            return result + (parent.id_,)
+
+        def make_copy(self, tgt_parent_id, attributes_override=None):
+            dst_dict = attributes_override or {}
+
+            for k in self.nonpersonal_attributes:
+                dst_dict[k] = getattr(self, k)
+            dst_dict.update({"origin_id": tgt_parent_id, "status": NEW})
+            return self.__class__(**dst_dict)
 
     return ChannelNode

@@ -2,7 +2,6 @@
 from __future__ import absolute_import
 
 import os
-from binascii import unhexlify
 from datetime import datetime
 
 from ipv8.keyvault.crypto import default_eccrypto
@@ -16,6 +15,7 @@ from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import TODELETE
 from Tribler.Core.Modules.MetadataStore.OrmBindings.torrent_metadata import tdef_to_metadata_dict
+from Tribler.Core.Modules.MetadataStore.serialization import REGULAR_TORRENT
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.unicode import hexlify
@@ -27,10 +27,7 @@ EMPTY_BLOB = database_blob(b"")
 
 
 def rnd_torrent():
-    return {"title": "",
-            "infohash": os.urandom(20),
-            "torrent_date": datetime(1970, 1, 1),
-            "tags": "video"}
+    return {"title": "", "infohash": os.urandom(20), "torrent_date": datetime(1970, 1, 1), "tags": "video"}
 
 
 class TestTorrentMetadata(TriblerCoreTest):
@@ -87,8 +84,7 @@ class TestTorrentMetadata(TriblerCoreTest):
         """
         torrent_metadata = self.mds.TorrentMetadata.from_dict({"infohash": os.urandom(20)})
         self.assertTrue(torrent_metadata.get_magnet())
-        torrent_metadata2 = self.mds.TorrentMetadata.from_dict(
-            {'title': u'\U0001f4a9', "infohash": os.urandom(20)})
+        torrent_metadata2 = self.mds.TorrentMetadata.from_dict({'title': u'\U0001f4a9', "infohash": os.urandom(20)})
         self.assertTrue(torrent_metadata2.get_magnet())
 
     @db_session
@@ -96,18 +92,12 @@ class TestTorrentMetadata(TriblerCoreTest):
         """
         Test searching in a database with some torrent metadata inserted
         """
-        torrent1 = self.mds.TorrentMetadata.from_dict(
-            dict(rnd_torrent(), title="foo bar 123"))
-        torrent2 = self.mds.TorrentMetadata.from_dict(
-            dict(rnd_torrent(), title="eee 123"))
-        self.mds.TorrentMetadata.from_dict(
-            dict(rnd_torrent(), title="xoxoxo bar"))
-        self.mds.TorrentMetadata.from_dict(
-            dict(rnd_torrent(), title="xoxoxo bar"))
-        self.mds.TorrentMetadata.from_dict(
-            dict(rnd_torrent(), title=u"\""))
-        self.mds.TorrentMetadata.from_dict(
-            dict(rnd_torrent(), title=u"\'"))
+        torrent1 = self.mds.TorrentMetadata.from_dict(dict(rnd_torrent(), title="foo bar 123"))
+        torrent2 = self.mds.TorrentMetadata.from_dict(dict(rnd_torrent(), title="eee 123"))
+        self.mds.TorrentMetadata.from_dict(dict(rnd_torrent(), title="xoxoxo bar"))
+        self.mds.TorrentMetadata.from_dict(dict(rnd_torrent(), title="xoxoxo bar"))
+        self.mds.TorrentMetadata.from_dict(dict(rnd_torrent(), title=u"\""))
+        self.mds.TorrentMetadata.from_dict(dict(rnd_torrent(), title=u"\'"))
         orm.flush()
 
         # Search for torrents with the keyword 'foo', it should return one result
@@ -168,8 +158,7 @@ class TestTorrentMetadata(TriblerCoreTest):
         """
         Test searching in the database with stemmed words
         """
-        torrent = self.mds.TorrentMetadata.from_dict(
-            dict(rnd_torrent(), title="mountains sheep", tags="video"))
+        torrent = self.mds.TorrentMetadata.from_dict(dict(rnd_torrent(), title="mountains sheep", tags="video"))
 
         # Search with the word 'mountain' should return the torrent with 'mountains' in the title
         results = self.mds.TorrentMetadata.search_keyword("mountain")[:]
@@ -178,20 +167,6 @@ class TestTorrentMetadata(TriblerCoreTest):
         # Search with the word 'sheeps' should return the torrent with 'sheep' in the title
         results = self.mds.TorrentMetadata.search_keyword("sheeps")[:]
         self.assertEqual(torrent.rowid, results[0].rowid)
-
-    @db_session
-    def test_infohash_text_search(self):
-        """
-        Test searching for torrents with infohash through text filter works.
-        """
-        infohash = b"e84213a794f3ccd890382a54a64ca68b7e925433"
-        torrent = self.mds.TorrentMetadata.from_dict(dict(rnd_torrent(), infohash=unhexlify(infohash),
-                                                          title="mountains sheep", tags="video"))
-
-        # Search with the hex encoded infohash
-        query = '"%s"*' % infohash.decode('utf-8')
-        results = self.mds.TorrentMetadata.get_entries(query_filter=query)[:]
-        self.assertEqual(torrent, results[0])
 
     @db_session
     def test_channel_public_key_text_search(self):
@@ -211,10 +186,8 @@ class TestTorrentMetadata(TriblerCoreTest):
         """
         Test fetching autocompletion terms from the database
         """
-        self.mds.TorrentMetadata.from_dict(
-            dict(rnd_torrent(), title="mountains sheep", tags="video"))
-        self.mds.TorrentMetadata.from_dict(
-            dict(rnd_torrent(), title="regular sheepish guy", tags="video"))
+        self.mds.TorrentMetadata.from_dict(dict(rnd_torrent(), title="mountains sheep", tags="video"))
+        self.mds.TorrentMetadata.from_dict(dict(rnd_torrent(), title="regular sheepish guy", tags="video"))
 
         autocomplete_terms = self.mds.TorrentMetadata.get_auto_complete_terms("shee", 10)
         self.assertIn('sheep', autocomplete_terms)
@@ -230,12 +203,9 @@ class TestTorrentMetadata(TriblerCoreTest):
         """
         Test fetching autocompletion terms from the database with a maximum number of terms
         """
-        self.mds.TorrentMetadata.from_dict(
-            dict(rnd_torrent(), title="mountains sheeps wolf", tags="video"))
-        self.mds.TorrentMetadata.from_dict(
-            dict(rnd_torrent(), title="lakes sheep", tags="video"))
-        self.mds.TorrentMetadata.from_dict(
-            dict(rnd_torrent(), title="regular sheepish guy", tags="video"))
+        self.mds.TorrentMetadata.from_dict(dict(rnd_torrent(), title="mountains sheeps wolf", tags="video"))
+        self.mds.TorrentMetadata.from_dict(dict(rnd_torrent(), title="lakes sheep", tags="video"))
+        self.mds.TorrentMetadata.from_dict(dict(rnd_torrent(), title="regular sheepish guy", tags="video"))
 
         autocomplete_terms = self.mds.TorrentMetadata.get_auto_complete_terms("sheep", 2)
         self.assertEqual(len(autocomplete_terms), 2)
@@ -252,31 +222,33 @@ class TestTorrentMetadata(TriblerCoreTest):
         tlist = []
         for ind in xrange(5):
             self.mds.ChannelNode._my_key = default_eccrypto.generate_key('curve25519')
-            _ = self.mds.ChannelMetadata(title='channel%d' % ind, subscribed=(ind % 2 == 0),
-                                         infohash=os.urandom(20))
+            _ = self.mds.ChannelMetadata(title='channel%d' % ind, subscribed=(ind % 2 == 0), infohash=os.urandom(20))
             tlist.extend(
-                [self.mds.TorrentMetadata(title='torrent%d' % torrent_ind, infohash=os.urandom(20)) for
-                 torrent_ind in xrange(5)])
+                [
+                    self.mds.TorrentMetadata(title='torrent%d' % torrent_ind, infohash=os.urandom(20))
+                    for torrent_ind in xrange(5)
+                ]
+            )
         tlist[-1].xxx = 1
         tlist[-2].status = TODELETE
 
         torrents = self.mds.TorrentMetadata.get_entries(first=1, last=5)
         self.assertEqual(5, len(torrents))
 
-        count = self.mds.TorrentMetadata.get_entries_count()
+        count = self.mds.TorrentMetadata.get_entries_count(metadata_type=REGULAR_TORRENT)
         self.assertEqual(25, count)
 
         # Test fetching torrents in a channel
         channel_pk = self.mds.ChannelNode._my_key.pub().key_to_bin()[10:]
 
-        args = dict(channel_pk=channel_pk, hide_xxx=True, exclude_deleted=True)
+        args = dict(channel_pk=channel_pk, hide_xxx=True, exclude_deleted=True, metadata_type=REGULAR_TORRENT)
         torrents = self.mds.TorrentMetadata.get_entries_query(**args)[:]
         self.assertListEqual(tlist[-5:-2], list(torrents))
 
         count = self.mds.TorrentMetadata.get_entries_count(**args)
         self.assertEqual(count, 3)
 
-        args = dict(sort_by='title', channel_pk=channel_pk, origin_id=0)
+        args = dict(sort_by='title', channel_pk=channel_pk, origin_id=0, metadata_type=REGULAR_TORRENT)
         torrents = self.mds.TorrentMetadata.get_entries(first=1, last=10, **args)
         self.assertEqual(5, len(torrents))
 
@@ -297,10 +269,8 @@ class TestTorrentMetadata(TriblerCoreTest):
         """
         Test the updating of several properties of a TorrentMetadata object
         """
-        metadata = self.mds.TorrentMetadata(title='torrent', infohash=os.urandom(20))
-        self.assertRaises(NotImplementedError, metadata.update_properties, {"status": 3, "name": "bla"})
-        self.assertRaises(NotImplementedError, metadata.update_properties, {"name": "bla"})
+        metadata = self.mds.TorrentMetadata(title='foo', infohash=os.urandom(20))
 
         # Test updating the status only
-        metadata.update_properties({"status": 456})
-        self.assertEqual(metadata.status, 456)
+        self.assertEqual(metadata.update_properties({"status": 456}).status, 456)
+        self.assertEqual(metadata.update_properties({"title": "bar"}).title, "bar")

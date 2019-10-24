@@ -221,7 +221,6 @@ class TestTrustViewEndpoint(AbstractApiTest):
                 test_block.hash = test_block.calculate_hash()
                 self.session.lm.trustchain_community.persistence.add_block(test_block)
 
-        self.should_check_equality = False
         yield self.do_request(b'trustview?depth=1', expected_code=200)\
             .addCallback(lambda res: verify_response(res, 4, 3))
         yield self.do_request(b'trustview?depth=2', expected_code=200)\

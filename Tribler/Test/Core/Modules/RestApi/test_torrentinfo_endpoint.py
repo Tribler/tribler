@@ -24,7 +24,6 @@ SAMPLE_CHANNEL_FILES_DIR = os.path.join(TESTS_DIR, "Core", "data", "sample_chann
 
 
 class TestTorrentInfoEndpoint(AbstractApiTest):
-
     def setUpPreSession(self):
         super(TestTorrentInfoEndpoint, self).setUpPreSession()
         self.config.set_chant_enabled(True)
@@ -51,10 +50,9 @@ class TestTorrentInfoEndpoint(AbstractApiTest):
             # To fix it, we must switch to some encoding scheme that is able to encode and decode raw binary
             # fields in the dicts.
             # However, for this works fine at the moment because we never use pieces data in the GUI.
-            #self.assertTrue(TorrentDef.load_from_dict(metainfo_dict))
+            # self.assertTrue(TorrentDef.load_from_dict(metainfo_dict))
             self.assertTrue('info' in metainfo_dict)
 
-        self.should_check_equality = False
         yield self.do_request('torrentinfo', expected_code=400)
         yield self.do_request('torrentinfo?uri=def', expected_code=400)
 
@@ -78,8 +76,7 @@ class TestTorrentInfoEndpoint(AbstractApiTest):
         def get_metainfo_timeout(*args, **kwargs):
             return succeed(None)
 
-        path = 'magnet:?xt=urn:btih:%s&dn=%s' % (hexlify(UBUNTU_1504_INFOHASH),
-                                                 quote_plus('test torrent'))
+        path = 'magnet:?xt=urn:btih:%s&dn=%s' % (hexlify(UBUNTU_1504_INFOHASH), quote_plus('test torrent'))
         self.session.lm.ltmgr = MockObject()
         self.session.lm.ltmgr.get_metainfo = get_metainfo
         self.session.lm.ltmgr.shutdown = lambda: None
@@ -106,6 +103,7 @@ class TestTorrentInfoEndpoint(AbstractApiTest):
         """
         Test whether the right operations happen when we receive an invalid metainfo object
         """
+
         def get_metainfo(infohash, callback, **_):
             callback("abcd")
 
@@ -114,5 +112,4 @@ class TestTorrentInfoEndpoint(AbstractApiTest):
         self.session.lm.ltmgr.shutdown = lambda: None
         path = 'magnet:?xt=urn:btih:%s&dn=%s' % (hexlify(UBUNTU_1504_INFOHASH), quote_plus('test torrent'))
 
-        self.should_check_equality = False
         return self.do_request('torrentinfo?uri=%s' % path, expected_code=500)

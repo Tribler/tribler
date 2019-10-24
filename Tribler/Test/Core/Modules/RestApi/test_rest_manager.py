@@ -14,7 +14,6 @@ def RaiseException(*args, **kwargs):
 
 
 class RestRequestTest(AbstractApiTest):
-
     @trial_timeout(10)
     def test_unhandled_exception(self):
         """
@@ -30,9 +29,9 @@ class RestRequestTest(AbstractApiTest):
         post_data = json.dumps({"settings": "bla", "ports": "bla"})
         orig_parse_settings_dict = SettingsEndpoint.parse_settings_dict
         SettingsEndpoint.parse_settings_dict = RaiseException
-        self.should_check_equality = False
-        return self.do_request('settings', expected_code=500, raw_data=post_data, expected_json=None,
-                               request_type='POST').addCallback(verify_error_message)
+        return self.do_request(
+            'settings', expected_code=500, raw_data=post_data, expected_json=None, request_type='POST'
+        ).addCallback(verify_error_message)
 
     @trial_timeout(10)
     def test_tribler_shutting_down(self):
@@ -43,16 +42,11 @@ class RestRequestTest(AbstractApiTest):
         def verify_error_message(body):
             error_response = json.twisted_loads(body)
             expected_response = {
-                u"error": {
-                    u"handled": False,
-                    u"code": u"Exception",
-                    u"message": u"Tribler is shutting down"
-                }
+                u"error": {u"handled": False, u"code": u"Exception", u"message": u"Tribler is shutting down"}
             }
             self.assertDictContainsSubset(expected_response[u"error"], error_response[u"error"])
 
         # Indicates tribler is shutting down
         os.environ['TRIBLER_SHUTTING_DOWN'] = 'TRUE'
 
-        self.should_check_equality = False
         return self.do_request('state', expected_code=500).addCallback(verify_error_message)

@@ -8,7 +8,6 @@ from __future__ import absolute_import
 import logging
 import os
 import sys
-import time
 import time as timemod
 from binascii import unhexlify
 from glob import iglob
@@ -46,15 +45,23 @@ from Tribler.Core.Modules.versioncheck_manager import VersionCheckManager
 from Tribler.Core.Modules.watch_folder import WatchFolder
 from Tribler.Core.TorrentChecker.torrent_checker import TorrentChecker
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
-from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.Utilities.install_dir import get_lib_path
 from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.Video.VideoServer import VideoServer
 from Tribler.Core.bootstrap import Bootstrap
-from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_STOPPED_ON_ERROR, NTFY_ERROR,
-                                     NTFY_FINISHED, NTFY_STARTED, NTFY_TORRENT, NTFY_TRIBLER,
-                                     STATE_START_API_ENDPOINTS, STATE_START_CREDIT_MINING,
-                                     STATE_START_LIBTORRENT, STATE_START_TORRENT_CHECKER, STATE_START_WATCH_FOLDER)
+from Tribler.Core.simpledefs import (
+    DLSTATUS_DOWNLOADING,
+    DLSTATUS_SEEDING,
+    DLSTATUS_STOPPED_ON_ERROR,
+    NTFY_ERROR,
+    NTFY_FINISHED,
+    NTFY_TORRENT,
+    STATE_START_API_ENDPOINTS,
+    STATE_START_CREDIT_MINING,
+    STATE_START_LIBTORRENT,
+    STATE_START_TORRENT_CHECKER,
+    STATE_START_WATCH_FOLDER,
+)
 
 
 class TriblerLaunchMany(TaskManager):
@@ -296,7 +303,7 @@ class TriblerLaunchMany(TaskManager):
             self.torrent_checker.initialize()
 
         if self.ipv8:
-            self.ipv8_start_time = time.time()
+            self.ipv8_start_time = timemod.time()
             self.load_ipv8_overlays()
             self.enable_ipv8_statistics()
 
@@ -311,7 +318,7 @@ class TriblerLaunchMany(TaskManager):
             for port, protocol in self.upnp_ports:
                 self.ltmgr.add_upnp_mapping(port, protocol)
 
-        if self.session.config.get_chant_enabled():
+        if self.session.config.get_chant_enabled() and self.session.config.get_chant_manager_enabled():
             self.gigachannel_manager = GigaChannelManager(self.session)
             # GigaChannel Manager startup routines are started asynchronously by Session
             # after resuming Libtorrent downloads.

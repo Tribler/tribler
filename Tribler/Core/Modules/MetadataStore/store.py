@@ -14,14 +14,30 @@ from pony.orm import db_session
 
 from Tribler.Core.Category.l2_filter import is_forbidden
 from Tribler.Core.Modules.MetadataStore.OrmBindings import (
-    channel_metadata, channel_node, channel_peer, channel_vote, misc, torrent_metadata, torrent_state, tracker_state,
-    vsids)
+    channel_metadata,
+    channel_node,
+    channel_peer,
+    channel_vote,
+    collection_node,
+    metadata_node,
+    misc,
+    torrent_metadata,
+    torrent_state,
+    tracker_state,
+    vsids,
+)
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import BLOB_EXTENSION
 from Tribler.Core.Modules.MetadataStore.serialization import (
-    CHANNEL_TORRENT, DELETED, NULL_KEY, REGULAR_TORRENT, read_payload_with_offset, time2int)
+    CHANNEL_TORRENT,
+    COLLECTION_NODE,
+    DELETED,
+    NULL_KEY,
+    REGULAR_TORRENT,
+    read_payload_with_offset,
+    time2int,
+)
 from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.exceptions import InvalidSignatureException
-
 
 BETA_DB_VERSIONS = [0, 1, 2, 3, 4, 5]
 CURRENT_DB_VERSION = 6
@@ -34,6 +50,7 @@ UPDATED_OUR_VERSION = 2
 GOT_NEWER_VERSION = 4
 UNKNOWN_TORRENT = 5
 DELETED_METADATA = 6
+UNKNOWN_COLLECTION = 7
 
 # This table should never be used from ORM directly.
 # It is created as a VIRTUAL table by raw SQL and
@@ -82,7 +99,7 @@ class DiscreteClock(object):
     def init_clock(self):
         if self.datastore:
             with db_session:
-                store_object = self.datastore.get_for_update(name=self.store_value_name, )
+                store_object = self.datastore.get_for_update(name=self.store_value_name)
                 if not store_object:
                     self.datastore(name=self.store_value_name, value=str(self.clock))
                 else:
@@ -108,7 +125,7 @@ class MetadataStore(object):
         self.reference_timedelta = timedelta(milliseconds=100)
         self.sleep_on_external_thread = 0.05  # sleep this amount of seconds between batches executed on external thread
 
-        create_db = (db_filename == ":memory:" or not os.path.isfile(self.db_filename))
+        create_db = db_filename == ":memory:" or not os.path.isfile(self.db_filename)
 
         # We have to dynamically define/init ORM-managed entities here to be able to support
         # multiple sessions in Tribler. ORM-managed classes are bound to the database instance
@@ -127,6 +144,7 @@ class MetadataStore(object):
                 cursor = connection.cursor()
                 cursor.execute("PRAGMA synchronous = 0")
                 cursor.execute("PRAGMA temp_store = 2")
+
             # pylint: enable=unused-variable
 
         self.MiscData = misc.define_binding(self._db)
@@ -137,6 +155,9 @@ class MetadataStore(object):
         self.clock = DiscreteClock(None if db_filename == ":memory:" else self.MiscData)
 
         self.ChannelNode = channel_node.define_binding(self._db, logger=self._logger, key=my_key, clock=self.clock)
+
+        self.MetadataNode = metadata_node.define_binding(self._db)
+        self.CollectionNode = collection_node.define_binding(self._db)
         self.TorrentMetadata = torrent_metadata.define_binding(self._db)
         self.ChannelMetadata = channel_metadata.define_binding(self._db)
         self.ChannelVote = channel_vote.define_binding(self._db)
@@ -211,18 +232,22 @@ class MetadataStore(object):
             channel = self.ChannelMetadata.get(public_key=public_key, id_=id_)
             if not channel:
                 return
-            self._logger.debug("Starting processing channel dir %s. Channel %s local/max version %i/%i",
-                               dirname, hexlify(channel.public_key), channel.local_version,
-                               channel.timestamp)
+            self._logger.debug(
+                "Starting processing channel dir %s. Channel %s local/max version %i/%i",
+                dirname,
+                hexlify(channel.public_key),
+                channel.local_version,
+                channel.timestamp,
+            )
 
         for filename in sorted(os.listdir(dirname)):
             full_filename = os.path.join(dirname, filename)
 
             blob_sequence_number = None
             if filename.endswith(BLOB_EXTENSION):
-                blob_sequence_number = int(filename[:-len(BLOB_EXTENSION)])
+                blob_sequence_number = int(filename[: -len(BLOB_EXTENSION)])
             elif filename.endswith(BLOB_EXTENSION + '.lz4'):
-                blob_sequence_number = int(filename[:-len(BLOB_EXTENSION + '.lz4')])
+                blob_sequence_number = int(filename[: -len(BLOB_EXTENSION + '.lz4')])
 
             if blob_sequence_number is not None:
                 # Skip blobs containing data we already have and those that are
@@ -234,12 +259,15 @@ class MetadataStore(object):
                     channel = self.ChannelMetadata.get(public_key=public_key, id_=id_)
                     if not channel:
                         return
-                    if blob_sequence_number <= channel.start_timestamp or \
-                            blob_sequence_number <= channel.local_version or \
-                            blob_sequence_number > channel.timestamp:
+                    if (
+                        blob_sequence_number <= channel.start_timestamp
+                        or blob_sequence_number <= channel.local_version
+                        or blob_sequence_number > channel.timestamp
+                    ):
                         continue
                 try:
                     self.process_mdblob_file(full_filename, skip_personal_metadata_payload, external_thread)
+
                     # If we stopped mdblob processing due to shutdown flag, we should stop
                     # processing immediately, so that channel local version will not increase
                     if self._shutting_down:
@@ -247,10 +275,9 @@ class MetadataStore(object):
                     # We track the local version of the channel while reading blobs
                     with db_session:
                         channel = self.ChannelMetadata.get_for_update(public_key=public_key, id_=id_)
-                        if channel:
-                            channel.local_version = blob_sequence_number
-                        else:
+                        if not channel:
                             return
+                        channel.local_version = blob_sequence_number
                 except InvalidSignatureException:
                     self._logger.error("Not processing metadata located at %s: invalid signature", full_filename)
 
@@ -258,9 +285,13 @@ class MetadataStore(object):
             channel = self.ChannelMetadata.get(public_key=public_key, id_=id_)
             if not channel:
                 return
-            self._logger.debug("Finished processing channel dir %s. Channel %s local/max version %i/%i",
-                               dirname, hexlify(bytes(channel.public_key)), channel.local_version,
-                               channel.timestamp)
+            self._logger.debug(
+                "Finished processing channel dir %s. Channel %s local/max version %i/%i",
+                dirname,
+                hexlify(bytes(channel.public_key)),
+                channel.local_version,
+                channel.timestamp,
+            )
 
     def process_mdblob_file(self, filepath, skip_personal_metadata_payload=True, external_thread=False):
         """
@@ -319,14 +350,15 @@ class MetadataStore(object):
             # We separate the sessions to minimize database locking.
             with db_session:
                 for payload in batch:
-                    result.extend(self.process_payload(payload,
-                                                       skip_personal_metadata_payload=skip_personal_metadata_payload))
+                    result.extend(
+                        self.process_payload(payload, skip_personal_metadata_payload=skip_personal_metadata_payload)
+                    )
             if external_thread:
                 sleep(self.sleep_on_external_thread)
 
             # Batch size adjustment
             batch_end_time = datetime.now() - batch_start_time
-            target_coeff = (batch_end_time.total_seconds() / self.reference_timedelta.total_seconds())
+            target_coeff = batch_end_time.total_seconds() / self.reference_timedelta.total_seconds()
             if len(batch) == self.batch_size:
                 # Adjust batch size only for full batches
                 if target_coeff < 0.8:
@@ -334,8 +366,12 @@ class MetadataStore(object):
                 elif target_coeff > 1.0:
                     self.batch_size = int(float(self.batch_size) / target_coeff)
                 self.batch_size += 1  # we want to guarantee that at least something will go through
-            self._logger.debug(("Added payload batch to DB (entries, seconds): %i %f",
-                                (self.batch_size, float(batch_end_time.total_seconds()))))
+            self._logger.debug(
+                (
+                    "Added payload batch to DB (entries, seconds): %i %f",
+                    (self.batch_size, float(batch_end_time.total_seconds())),
+                )
+            )
             start = end
             if self._shutting_down:
                 break
@@ -357,8 +393,7 @@ class MetadataStore(object):
 
         if payload.metadata_type == DELETED:
             # We only allow people to delete their own entries, thus PKs must match
-            node = self.ChannelNode.get_for_update(signature=payload.delete_signature,
-                                                   public_key=payload.public_key)
+            node = self.ChannelNode.get_for_update(signature=payload.delete_signature, public_key=payload.public_key)
             if node:
                 node.delete()
                 return [(None, DELETED_METADATA)]
@@ -376,7 +411,7 @@ class MetadataStore(object):
         # When we receive the payload C1:(pk, id1, ih2) or C2:(pk, id2, ih1), we have to
         # replace _both_ entries with a single one, to honor the DB uniqueness constraints.
 
-        if payload.metadata_type not in [CHANNEL_TORRENT, REGULAR_TORRENT]:
+        if payload.metadata_type not in [CHANNEL_TORRENT, REGULAR_TORRENT, COLLECTION_NODE]:
             return []
 
         # Check for offending words stop-list
@@ -396,47 +431,53 @@ class MetadataStore(object):
         if node:
             return [(node, NO_ACTION)]
 
-        # Signed entry > FFA entry. Old FFA entry > new FFA entry
-        ffa_node = self.TorrentMetadata.get(public_key=database_blob(b""), infohash=database_blob(payload.infohash))
-        if ffa_node:
-            ffa_node.delete()
-
-        def check_update_opportunity():
-            # Check for possible update sending opportunity.
-            node = self.TorrentMetadata.get(lambda g: g.public_key == database_blob(payload.public_key) and \
-                                                      g.id_ == payload.id_ and \
-                                                      g.timestamp > payload.timestamp)
-            return [(node, GOT_NEWER_VERSION)] if node else [(None, NO_ACTION)]
-
-        # Check if the received payload is a deleted entry from a channel that we already have
-        parent_channel = self.ChannelMetadata.get(public_key=database_blob(payload.public_key),
-                                                  id_=payload.origin_id)
-        if parent_channel and parent_channel.local_version > payload.timestamp:
-            return check_update_opportunity()
-
-        # If we received a metadata payload signed by ourselves we simply ignore it since we are the only authoritative
-        # source of information about our own channel.
-        if skip_personal_metadata_payload and \
-                payload.public_key == bytes(database_blob(self.my_key.pub().key_to_bin()[10:])):
-            return check_update_opportunity()
-
         result = []
-        # Check for a node with the same infohash
-        node = self.TorrentMetadata.get_for_update(public_key=database_blob(payload.public_key),
-                                                   infohash=database_blob(payload.infohash))
-        if node:
-            if node.timestamp < payload.timestamp:
-                node.delete()
-                result.append((None, DELETED_METADATA))
-            elif node.timestamp > payload.timestamp:
-                result.append((node, GOT_NEWER_VERSION))
-                return result
-            else:
-                return result
-            # Otherwise, we got the same version locally and do nothing.
+        if payload.metadata_type in [CHANNEL_TORRENT, REGULAR_TORRENT]:
+            # Signed entry > FFA entry. Old FFA entry > new FFA entry
+            ffa_node = self.TorrentMetadata.get(public_key=database_blob(b""), infohash=database_blob(payload.infohash))
+            if ffa_node:
+                ffa_node.delete()
+
+            def check_update_opportunity():
+                # Check for possible update sending opportunity.
+                node = self.TorrentMetadata.get(
+                    lambda g: g.public_key == database_blob(payload.public_key)
+                    and g.id_ == payload.id_
+                    and g.timestamp > payload.timestamp
+                )
+                return [(node, GOT_NEWER_VERSION)] if node else [(None, NO_ACTION)]
+
+            # Check if the received payload is a deleted entry from a channel that we already have
+            parent_channel = self.ChannelMetadata.get(
+                public_key=database_blob(payload.public_key), id_=payload.origin_id
+            )
+            if parent_channel and parent_channel.local_version > payload.timestamp:
+                return check_update_opportunity()
+
+            # If we received a metadata payload signed by ourselves we simply ignore it since we are the only
+            # authoritative source of information about our own channel.
+            if skip_personal_metadata_payload and payload.public_key == bytes(
+                database_blob(self.my_key.pub().key_to_bin()[10:])
+            ):
+                return check_update_opportunity()
+
+            # Check for a node with the same infohash
+            node = self.TorrentMetadata.get_for_update(
+                public_key=database_blob(payload.public_key), infohash=database_blob(payload.infohash)
+            )
+            if node:
+                if node.timestamp < payload.timestamp:
+                    node.delete()
+                    result.append((None, DELETED_METADATA))
+                elif node.timestamp > payload.timestamp:
+                    result.append((node, GOT_NEWER_VERSION))
+                    return result
+                else:
+                    return result
+                # Otherwise, we got the same version locally and do nothing.
 
         # Check for the older version of the same node
-        node = self.TorrentMetadata.get_for_update(public_key=database_blob(payload.public_key), id_=payload.id_)
+        node = self.ChannelNode.get_for_update(public_key=database_blob(payload.public_key), id_=payload.id_)
         if node:
             if node.timestamp < payload.timestamp:
                 node.set(**payload.to_dict())
@@ -456,8 +497,8 @@ class MetadataStore(object):
             result.append((self.TorrentMetadata.from_payload(payload), UNKNOWN_TORRENT))
         elif payload.metadata_type == CHANNEL_TORRENT:
             result.append((self.ChannelMetadata.from_payload(payload), UNKNOWN_CHANNEL))
-            return result
-
+        elif payload.metadata_type == COLLECTION_NODE:
+            result.append((self.CollectionNode.from_payload(payload), UNKNOWN_COLLECTION))
         return result
 
     @db_session
