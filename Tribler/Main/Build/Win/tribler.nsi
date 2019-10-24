@@ -123,8 +123,10 @@ Section "!Main EXE" SecMain
     SetOutPath "$INSTDIR"
 
     ; Libraries dependant on 2012 are: LibTorrent
-    File vc_redist_110.exe
-    ExecWait "$INSTDIR\vc_redist_110.exe /q /norestart"
+    ; 2019-10-24: Latest version is compiled against 2015 so we don't need this dependency here. Remove it completely
+    ; When python2 dependency is removed.
+    ; File vc_redist_110.exe
+    ; ExecWait "$INSTDIR\vc_redist_110.exe /q /norestart"
 
     ; Libraries dependant on 2015 are: Python, Qt5
     File vc_redist_140.exe
