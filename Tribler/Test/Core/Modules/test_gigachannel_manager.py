@@ -247,10 +247,10 @@ class TestGigaChannelManager(TriblerCoreTest):
         self.mock_session.lm.ltmgr = MockObject()
 
         def mock_get_metainfo_bad(_, timeout=None):
-            return {'info': {'name': "bla"}}
+            return {b'info': {b'name': b'bla'}}
 
         def mock_get_metainfo_good(_, timeout=None):
-            return {'info': {'name': channel.dirname}}
+            return {b'info': {b'name': channel.dirname.encode('utf-8')}}
 
         self.initiated_download = False
 
