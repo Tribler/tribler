@@ -208,6 +208,7 @@ class TriblerLaunchMany(TaskManager):
             self.tunnel_community = community_cls(peer, self.ipv8.endpoint, self.ipv8.network,
                                                   tribler_session=self.session,
                                                   dht_provider=dht_provider,
+                                                  ipv8=self.ipv8,
                                                   bandwidth_wallet=self.wallets["MB"],
                                                   random_slots=random_slots,
                                                   competing_slots=competing_slots,
