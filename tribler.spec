@@ -15,7 +15,7 @@ version_str = version_id.split('-')[0]
 
 # On macOS, we always show the console to prevent the double-dock bug (although the OS does not actually show the console).
 # See https://github.com/Tribler/tribler/issues/3817
-show_console = False
+show_console = os.environ.get('SHOW_CONSOLE', '0') == '1'
 if sys.platform == 'darwin':
     show_console = True
 
