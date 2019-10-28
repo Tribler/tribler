@@ -89,6 +89,8 @@ xcopy C:\build\vlc dist\tribler\VLC /s /e
 REM Make sure that there are no conflicting VLC DLLs in the Tribler root directory
 IF EXIST dist\tribler\libvlc.dll DEL /F dist\tribler\libvlc.dll
 IF EXIST dist\tribler\libvlccore.dll DEL /F dist\tribler\libvlccore.dll
+REM If there is a plugin cache (plugins.dat), remove it to avoid stale plugin warnings during runtime
+IF EXIST dist\tribler\VLC\plugins\plugins.dat DEL /F dist\tribler\VLC\plugins\plugins.dat
 
 
 @echo Running NSIS
