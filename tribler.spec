@@ -53,7 +53,7 @@ if sys.platform.startswith('darwin'):
     with open('Tribler/Main/Build/Mac/Info.plist', 'w') as f:
         f.write(content)
 
-excluded_libs = ['wx', 'bitcoinlib', 'PyQt4', 'FixTk', 'tcl', 'tk', '_tkinter', 'tkinter', 'Tkinter']
+excluded_libs = ['wx', 'bitcoinlib', 'PyQt4', 'FixTk', 'tcl', 'tk', '_tkinter', 'tkinter', 'Tkinter', 'matplotlib']
 
 # Pony dependencies; each packages need to be added separatedly; added as hidden import
 pony_deps = ['pony', 'pony.orm', 'pony.orm.dbproviders', 'pony.orm.dbproviders.sqlite']

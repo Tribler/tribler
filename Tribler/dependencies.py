@@ -21,7 +21,6 @@ dependencies = [
     {'module': 'psutil', 'install_type': 'pip3', 'package': 'psutil', 'optional': False, 'scope': 'both'},
     {'module': 'networkx', 'install_type': 'pip3', 'package': 'networkx', 'optional': False, 'scope': 'both'},
     {'module': 'pyqtgraph', 'install_type': 'pip3', 'package': 'pyqtgraph', 'optional': False, 'scope': 'gui'},
-    {'module': 'matplotlib', 'install_type': 'pip3', 'package': 'matplotlib', 'optional': False, 'scope': 'gui'},
     {'module': 'chardet', 'install_type': 'pip3', 'package': 'chardet', 'optional': False, 'scope': 'core'},
     {'module': 'cherrypy', 'install_type': 'pip3', 'package': 'cherrypy', 'optional': False, 'scope': 'core'},
     {'module': 'configobj', 'install_type': 'pip3', 'package': 'configobj', 'optional': False, 'scope': 'both'},
