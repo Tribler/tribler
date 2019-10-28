@@ -34,6 +34,7 @@ Depends: ${misc:Depends},
          python3-pyqt5.qtsvg,
          python3-twisted,
          python3-pyqtgraph,
+         python3-six,
          vlc (>= 1.1.0),
 Recommends: python-faulthandler,
 Description: Python based Bittorrent/Internet TV application
