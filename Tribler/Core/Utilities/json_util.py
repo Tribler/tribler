@@ -3,7 +3,9 @@ from __future__ import absolute_import
 import json
 from collections import Iterable
 
-from six import ensure_text, string_types
+from ipv8.util import ensure_text
+
+from six import string_types
 
 __all__ = ['dumps', 'loads']
 
