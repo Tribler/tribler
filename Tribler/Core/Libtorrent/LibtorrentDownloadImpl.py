@@ -13,11 +13,11 @@ import sys
 import time
 from threading import RLock
 
-from ipv8.util import ensure_text
+from ipv8.util import ensure_binary, ensure_text
 
 import libtorrent as lt
 
-from six import ensure_binary, int2byte, text_type
+from six import int2byte, text_type
 
 from twisted.internet import reactor
 from twisted.internet.defer import CancelledError, Deferred, succeed

@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from six import ensure_binary
+from ipv8.util import ensure_binary
 
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, maybeDeferred

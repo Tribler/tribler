@@ -5,7 +5,8 @@ import shutil
 
 from configobj import ConfigObj
 
-from six import ensure_str
+from ipv8.util import ensure_str
+
 from six.moves.configparser import RawConfigParser
 
 from Tribler.Core.Config.tribler_config import CONFIG_SPEC_PATH, TriblerConfig

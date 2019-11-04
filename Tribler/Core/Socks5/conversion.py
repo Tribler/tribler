@@ -5,7 +5,7 @@ import logging
 import socket
 import struct
 
-from six import ensure_str
+from ipv8.util import ensure_str
 
 SOCKS_VERSION = 0x05
 
