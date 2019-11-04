@@ -7,10 +7,12 @@ import logging
 import os
 from hashlib import sha1
 
+from ipv8.util import ensure_binary
+
 import libtorrent as lt
 from libtorrent import bdecode, bencode
 
-from six import binary_type, ensure_binary, integer_types, text_type
+from six import binary_type, integer_types, text_type
 
 from Tribler.Core.Utilities import maketorrent
 from Tribler.Core.Utilities.torrent_utils import create_torrent_file

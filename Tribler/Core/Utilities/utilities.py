@@ -10,6 +10,8 @@ import logging
 import re
 from base64 import b32decode
 
+from ipv8.util import ensure_binary
+
 import libtorrent
 from libtorrent import bdecode, bencode
 
@@ -77,7 +79,7 @@ def http_get(uri):
         raise HttpError(response)
 
     try:
-        uri = six.ensure_binary(uri)
+        uri = ensure_binary(uri)
     except AttributeError:
         pass
     try:
