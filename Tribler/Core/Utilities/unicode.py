@@ -53,6 +53,16 @@ def recursive_unicode(obj):
     return obj
 
 
+def recursive_ungarble_metainfo(obj):
+    if isinstance(obj, dict):
+        return {k:recursive_ungarble_metainfo(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [recursive_ungarble_metainfo(i) for i in obj]
+    elif isinstance(obj, text_type):
+        return bytes(ord(c) for c in obj)
+    return obj
+
+
 def recursive_bytes(obj):
     """
     Converts any unicode strings within a Python data structure to bytes. Strings will be encoded using UTF-8.
