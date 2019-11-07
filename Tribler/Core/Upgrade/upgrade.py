@@ -16,7 +16,10 @@ from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.Upgrade.config_converter import convert_config_to_tribler71, convert_config_to_tribler74
 from Tribler.Core.Upgrade.db72_to_pony import DispersyToPonyMigration, cleanup_pony_experimental_db, should_upgrade
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
-from Tribler.Core.simpledefs import NTFY_FINISHED, NTFY_STARTED, NTFY_UPGRADER, NTFY_UPGRADER_TICK
+from Tribler.Core.osutils import dir_copy
+from Tribler.Core.simpledefs import NTFY_FINISHED, NTFY_STARTED, NTFY_UPGRADER, NTFY_UPGRADER_TICK, \
+    STATEDIR_CHANNELS_DIR, STATEDIR_CHECKPOINT_DIR, STATEDIR_DB_DIR, STATEDIR_WALLET_DIR
+from Tribler.Core.version import version_id
 
 
 def cleanup_noncompliant_channel_torrents(state_dir):
@@ -88,6 +91,7 @@ class TriblerUpgrader(object):
         d = self.upgrade_72_to_pony()
         d.addCallback(self.upgrade_pony_db_6to7)
         self.upgrade_config_to_74()
+        self.backup_state_directory()
         return d
 
     def upgrade_pony_db_6to7(self, _):
@@ -173,6 +177,34 @@ class TriblerUpgrader(object):
         """
         self.session.config = convert_config_to_tribler71(self.session.config)
         self.session.config.write()
+
+    def backup_state_directory(self):
+        """
+        Backs up the current state directory if the version in the state directory and in the code is different.
+        """
+        if self.session.config.get_version_backup_enabled() and self.session.config.get_version() \
+                and not self.session.config.get_version() == version_id:
+
+            src_state_dir = self.session.config.get_state_dir()
+            dest_state_dir = self.session.config.get_state_dir(version=self.session.config.get_version())
+
+            # If only there is no tribler config already in the backup directory, then make the current version backup.
+            dest_conf_path = os.path.join(dest_state_dir, 'triblerd.conf')
+            if not os.path.exists(dest_conf_path):
+                # Backup selected directories
+                backup_dirs = [STATEDIR_DB_DIR, STATEDIR_CHECKPOINT_DIR, STATEDIR_WALLET_DIR, STATEDIR_CHANNELS_DIR]
+                src_sub_dirs = os.listdir(src_state_dir)
+                for backup_dir in backup_dirs:
+                    if backup_dir in src_sub_dirs:
+                        dir_copy(os.path.join(src_state_dir, backup_dir), os.path.join(dest_state_dir, backup_dir))
+                    else:
+                        os.makedirs(os.path.join(dest_state_dir, backup_dir))
+
+                # Backup keys and config files
+                backup_files = ['ec_multichain.pem', 'ecpub_multichain.pem', 'ec_trustchain_testnet.pem',
+                                'ecpub_trustchain_testnet.pem', 'triblerd.conf']
+                for backup_file in backup_files:
+                    dir_copy(os.path.join(src_state_dir, backup_file), os.path.join(dest_state_dir, backup_file))
 
     def notify_starting(self):
         """

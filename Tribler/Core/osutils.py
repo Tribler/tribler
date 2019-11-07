@@ -8,8 +8,10 @@ Author(s): Arno Bakker
 
 from __future__ import absolute_import
 
+import errno
 import logging
 import os
+import shutil
 import subprocess
 import sys
 
@@ -247,3 +249,14 @@ def startfile(filepath):
         subprocess.call(('xdg-open', filepath))
     elif hasattr(os, "startfile"):
         os.startfile(filepath)
+
+
+def dir_copy(src_dir, dest_dir):
+    try:
+        shutil.copytree(src_dir, dest_dir)
+    except OSError as e:
+        # If the error was caused because the source wasn't a directory
+        if e.errno == errno.ENOTDIR:
+            shutil.copy(src_dir, dest_dir)
+        else:
+            logging.error("Directory %s could not be imported", src_dir)
