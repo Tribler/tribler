@@ -4,7 +4,6 @@ import ast
 import base64
 import logging
 import os
-import re
 from glob import iglob
 
 from configobj import ConfigObj
@@ -16,6 +15,7 @@ from six.moves.configparser import DuplicateSectionError, MissingSectionHeaderEr
 
 from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
+from Tribler.Core.Utilities.unicode import recursive_ungarble_metainfo
 from Tribler.Core.exceptions import InvalidConfigException
 from Tribler.Core.simpledefs import STATEDIR_CHECKPOINT_DIR
 
@@ -221,12 +221,12 @@ def convert_config_to_tribler74(state_dir=None):
         # We first need to fix the .state file such that it has the correct metainfo/resumedata
         for section, option in [('state', 'metainfo'), ('state', 'engineresumedata')]:
             value = old_config.get(section, option, literal_eval=False)
+            ungarbled_dict = None
             if PY3:
-                value = re.sub(r":[^b]('|\").*?[^\\]\1", lambda x: ': b' + x.group(0)[2:], value)
-                value = re.sub(r"[{| ]('|\").*?[^\\]\1:", lambda x: x.group()[:1] + 'b' + x.group()[1:], value)
                 value = str(refactoring_tool.refactor_string(value+'\n', option + '_2to3'))
+                ungarbled_dict = recursive_ungarble_metainfo(ast.literal_eval(value))
             try:
-                value = ast.literal_eval(value)
+                value = ungarbled_dict or ast.literal_eval(value)
                 old_config.set(section, option, base64.b64encode(lt.bencode(value)).decode('utf-8'))
             except (ValueError, SyntaxError):
                 logger.error("Removing download state file %s since it could not be converted", filename)
