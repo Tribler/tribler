@@ -11,7 +11,8 @@ from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import CHAN
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.Upgrade.upgrade import TriblerUpgrader, cleanup_noncompliant_channel_torrents
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
-from Tribler.Core.simpledefs import NTFY_STARTED, NTFY_UPGRADER_TICK
+from Tribler.Core.simpledefs import NTFY_STARTED, NTFY_UPGRADER_TICK, STATEDIR_CHANNELS_DIR, STATEDIR_CHECKPOINT_DIR, \
+    STATEDIR_DB_DIR, STATEDIR_WALLET_DIR
 from Tribler.Test.Core.Upgrade.upgrade_base import AbstractUpgrader
 from Tribler.Test.tools import trial_timeout
 
@@ -113,3 +114,21 @@ class TestUpgrader(AbstractUpgrader):
         pstate = CallbackConfigParser()
         pstate.read_file(file_path)
         self.assertEqual(CHANNEL_DIR_NAME_LENGTH, len(pstate.get('state', 'metainfo')['info']['name']))
+
+    def test_backup_state_directory(self):
+        """
+        Test if backup of the state directory is done if the config version and the code version are different.
+        """
+        self.session.config.set_version('7.4.0')
+        self.session.config.set_version_backup_enabled(True)
+
+        self.upgrader.run()
+
+        # Check versioned state directory exists
+        version_state_dir = self.session.config.get_state_dir(version=self.config.get_version())
+        self.assertTrue(os.path.exists(version_state_dir))
+
+        version_state_sub_dirs = os.listdir(version_state_dir)
+        backup_dirs = [STATEDIR_DB_DIR, STATEDIR_CHECKPOINT_DIR, STATEDIR_WALLET_DIR, STATEDIR_CHANNELS_DIR]
+        for backup_dir in backup_dirs:
+            self.assertTrue(backup_dir in version_state_sub_dirs)

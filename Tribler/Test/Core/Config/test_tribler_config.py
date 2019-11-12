@@ -140,6 +140,13 @@ class TestTriblerConfig(TriblerCoreTest):
         self.tribler_config.set_state_dir("TEST")
         self.assertEqual(self.tribler_config.get_state_dir(), "TEST")
 
+        self.tribler_config.set_version('7.0.0-GIT')
+        self.assertLessEqual(self.tribler_config.get_version(), '7.0.0-GIT')
+
+        self.assertEqual(self.tribler_config.get_version_backup_enabled(), True)
+        self.tribler_config.set_version_backup_enabled(False)
+        self.assertEqual(self.tribler_config.get_version_backup_enabled(), False)
+
         self.assertEqual(self.tribler_config.get_trustchain_testnet_keypair_filename(),
                          os.path.join("TEST", "ec_trustchain_testnet.pem"))
         self.tribler_config.set_trustchain_testnet_keypair_filename("bla2")

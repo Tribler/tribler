@@ -1,4 +1,6 @@
 [general]
+version = string(default='')
+version_backup_enabled = boolean(default=True)
 log_dir = string(default='logs')
 testnet = boolean(default=False)
 version_checker_enabled = boolean(default=True)

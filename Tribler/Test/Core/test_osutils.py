@@ -1,7 +1,9 @@
 from __future__ import absolute_import
 
 import os
+import shutil
 import sys
+import tempfile
 
 import six
 
@@ -11,8 +13,8 @@ if os.path.exists('test_osutils.py'):
 elif os.path.exists('LICENSE'):
     BASE_DIR = '.'
 
-from Tribler.Core.osutils import (fix_filebasename, is_android, get_home_dir, get_appstate_dir, get_picture_dir,
-                                  get_desktop_dir)
+from Tribler.Core.osutils import (dir_copy, fix_filebasename, get_appstate_dir, get_desktop_dir, get_home_dir,
+                                  get_picture_dir, is_android)
 from Tribler.Test.test_as_server import BaseTestCase
 
 
@@ -90,3 +92,23 @@ class Test_OsUtils(BaseTestCase):
         desktop_dir = get_desktop_dir()
         self.assertIsInstance(desktop_dir, six.text_type)
         self.assertTrue(os.path.isdir(desktop_dir))
+
+    def test_dir_copy(self):
+        """
+        Tests copying a source directory to destination directory.
+        """
+        temp_dir = tempfile.mkdtemp()
+        src_dir = os.path.join(temp_dir, 'src')
+        dest_dir = os.path.join(temp_dir, 'dest')
+
+        src_sub_dirs = ['dir1', 'dir2', 'dir3']
+        os.makedirs(src_dir)
+        for sub_dir in src_sub_dirs:
+            os.makedirs(os.path.join(src_dir, sub_dir))
+        self.assertGreater(len(os.listdir(src_dir)), 1)
+
+        dir_copy(src_dir, dest_dir)
+
+        self.assertEqual(len(os.listdir(dest_dir)), len(os.listdir(src_dir)))
+
+        shutil.rmtree(temp_dir, ignore_errors=True)
