@@ -441,7 +441,8 @@ class TriblerRequestWorker(QNetworkAccessManager):
         :param url: the url to send the request to.
         """
         buf = QBuffer()
-        buf.setData(data)
+        if data:
+            buf.setData(data)
         buf.open(QIODevice.ReadOnly)
         get_request = QNetworkRequest(QUrl(url))
         reply = self.sendCustomRequest(get_request, b"GET", buf)
