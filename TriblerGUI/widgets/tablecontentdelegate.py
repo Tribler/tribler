@@ -7,9 +7,22 @@ from PyQt5.QtWidgets import QComboBox, QStyle, QStyledItemDelegate, QToolTip
 
 from six import text_type
 
+from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
+
 from TriblerGUI.defs import (
-    ACTION_BUTTONS, CATEGORY_LIST, COMMIT_STATUS_COMMITTED, COMMIT_STATUS_NEW, COMMIT_STATUS_TODELETE,
-    COMMIT_STATUS_UPDATED, HEALTH_CHECKING, HEALTH_DEAD, HEALTH_ERROR, HEALTH_GOOD, HEALTH_MOOT, HEALTH_UNCHECKED)
+    ACTION_BUTTONS,
+    CATEGORY_LIST,
+    COMMIT_STATUS_COMMITTED,
+    COMMIT_STATUS_NEW,
+    COMMIT_STATUS_TODELETE,
+    COMMIT_STATUS_UPDATED,
+    HEALTH_CHECKING,
+    HEALTH_DEAD,
+    HEALTH_ERROR,
+    HEALTH_GOOD,
+    HEALTH_MOOT,
+    HEALTH_UNCHECKED,
+)
 from TriblerGUI.utilities import format_votes, get_health, get_image_path
 from TriblerGUI.widgets.tableiconbuttons import DeleteIconButton, DownloadIconButton, PlayIconButton
 
@@ -85,8 +98,7 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
     def paint_exact(self, painter, option, index):
         data_item = index.model().data_items[index.row()]
         for column, drawing_action in self.column_drawing_actions:
-            if (column in index.model().column_position and
-                    index.column() == index.model().column_position[column]):
+            if column in index.model().column_position and index.column() == index.model().column_position[column]:
                 return drawing_action(painter, option, index, data_item)
 
     def editorEvent(self, event, model, option, index):
@@ -136,7 +148,7 @@ class ChannelStateMixin(object):
         # Draw empty cell as the background
         self.paint_empty_background(painter, option)
 
-        if u'type' in data_item and data_item[u'type'] != u'channel':
+        if u'type' in data_item and data_item[u'type'] != CHANNEL_TORRENT:
             return True
         if data_item[u'status'] == 1000:  # LEGACY ENTRIES!
             return True
@@ -154,7 +166,7 @@ class SubscribedControlMixin(object):
         # Draw empty cell as the background
         self.paint_empty_background(painter, option)
 
-        if u'type' in data_item and data_item[u'type'] != u'channel':
+        if u'type' in data_item and data_item[u'type'] != CHANNEL_TORRENT:
             return True
         if data_item[u'status'] == 1000:  # LEGACY ENTRIES!
             return True
@@ -174,17 +186,19 @@ class RatingControlMixin(object):
         # Draw empty cell as the background
         self.paint_empty_background(painter, option)
 
-        if u'type' in data_item and data_item[u'type'] != u'channel':
+        if u'type' in data_item and data_item[u'type'] != CHANNEL_TORRENT:
             return True
         if data_item[u'status'] == 1000:  # LEGACY ENTRIES!
             return True
 
         if index == self.hover_index:
-            self.rating_control.paint_hover(painter, option.rect, index, votes=data_item['votes'],
-                                            subscribed=data_item['subscribed'])
+            self.rating_control.paint_hover(
+                painter, option.rect, index, votes=data_item['votes'], subscribed=data_item['subscribed']
+            )
         else:
-            self.rating_control.paint(painter, option.rect, index, votes=data_item['votes'],
-                                      subscribed=data_item['subscribed'])
+            self.rating_control.paint(
+                painter, option.rect, index, votes=data_item['votes'], subscribed=data_item['subscribed']
+            )
 
         return True
 
@@ -194,13 +208,16 @@ class CategoryLabelMixin(object):
         # Draw empty cell as the background
         self.paint_empty_background(painter, option)
 
-        if 'type' in data_item and data_item['type'] == 'channel':
-            category = "My channel" if data_item['state'] == u'Personal' else data_item['type']
+        if 'type' in data_item and data_item['type'] == CHANNEL_TORRENT:
+            category = "My channel" if data_item['state'] == u'Personal' else u'Channel'
+        elif 'type' in data_item and data_item['type'] == COLLECTION_NODE:
+            category = u'Folder'
         else:
             category = data_item[u'category']
             # Precautions to safely draw wrong category descriptions
             if not category or text_type(category) not in CATEGORY_LIST:
                 category = "Unknown"
+        category = text_type(category)
         CategoryLabel(category).paint(painter, option, index)
         return True
 
@@ -215,14 +232,14 @@ class DownloadControlsMixin(object):
             self.button_box = QRect()
         if index.row() == self.hoverrow:
             extended_border_height = int(option.rect.height() * self.button_box_extended_border_ratio)
-            button_box_extended_rect = option.rect.adjusted(0, -extended_border_height,
-                                                            0, extended_border_height)
+            button_box_extended_rect = option.rect.adjusted(0, -extended_border_height, 0, extended_border_height)
             self.button_box = button_box_extended_rect
 
             active_buttons = [b for b in self.ondemand_container if b.should_draw(index)]
             if active_buttons:
-                for rect, button in ChannelsButtonsDelegate.split_rect_into_squares(
-                        button_box_extended_rect, active_buttons):
+                for rect, button in TriblerButtonsDelegate.split_rect_into_squares(
+                    button_box_extended_rect, active_buttons
+                ):
                     button.paint(painter, rect, index)
         return True
 
@@ -233,15 +250,20 @@ class HealthLabelMixin(object):
         self.paint_empty_background(painter, option)
 
         # This dumb check is required because some endpoints do not return entry type
-        if 'type' not in data_item or data_item['type'] == 'torrent':
+        if 'type' not in data_item or data_item['type'] == REGULAR_TORRENT:
             self.health_status_widget.paint(painter, option.rect, index)
 
         return True
 
 
-class SearchResultsDelegate(TriblerButtonsDelegate, CategoryLabelMixin, RatingControlMixin,
-                            DownloadControlsMixin, HealthLabelMixin, ChannelStateMixin):
-
+class TriblerContentDelegate(
+    TriblerButtonsDelegate,
+    CategoryLabelMixin,
+    RatingControlMixin,
+    DownloadControlsMixin,
+    HealthLabelMixin,
+    ChannelStateMixin,
+):
     def __init__(self, parent=None):
         # TODO: refactor this not to rely on inheritance order, but instead use interface method pattern
         TriblerButtonsDelegate.__init__(self, parent)
@@ -253,51 +275,30 @@ class SearchResultsDelegate(TriblerButtonsDelegate, CategoryLabelMixin, RatingCo
 
         self.play_button = PlayIconButton()
         self.download_button = DownloadIconButton()
-        self.ondemand_container = [self.play_button, self.download_button]
-        self.controls = [self.play_button, self.download_button, self.rating_control]
-        self.column_drawing_actions = [(u'votes', self.draw_rating_control),
-                                       (ACTION_BUTTONS, self.draw_action_column),
-                                       (u'category', self.draw_category_label),
-                                       (u'health', self.draw_health_column),
-                                       (u'state', self.draw_channel_state)]
-
-    def draw_action_column(self, painter, option, index, data_item):
-        if data_item['type'] != 'channel':
-            return self.draw_download_controls(painter, option, index, None)
-
-
-class ChannelsButtonsDelegate(TriblerButtonsDelegate, ChannelStateMixin, RatingControlMixin):
-    def __init__(self, parent=None):
-        TriblerButtonsDelegate.__init__(self, parent)
-        self.init_animation()
-
-        self.subscribe_control = SubscribeToggleControl(u'subscribed')
-        self.rating_control = RatingControl(u'votes')
-        self.controls = [self.rating_control]
-        self.column_drawing_actions = [(u'state', self.draw_channel_state),
-                                       (u'votes', self.draw_rating_control)]
-
-
-class TorrentsButtonsDelegate(TriblerButtonsDelegate, CategoryLabelMixin, DownloadControlsMixin,
-                              HealthLabelMixin):
-
-    def __init__(self, parent=None):
-        TriblerButtonsDelegate.__init__(self, parent)
-
-        # On-demand buttons
-        self.play_button = PlayIconButton()
-        self.download_button = DownloadIconButton()
         self.delete_button = DeleteIconButton()
         self.ondemand_container = [self.delete_button, self.play_button, self.download_button]
+
         self.commit_control = CommitStatusControl(u'status')
-
-        self.controls = [self.play_button, self.download_button, self.commit_control, self.delete_button]
-
+        self.controls = [
+            self.play_button,
+            self.download_button,
+            self.commit_control,
+            self.delete_button,
+            self.rating_control,
+        ]
         self.health_status_widget = HealthStatusDisplay()
-        self.column_drawing_actions = [(ACTION_BUTTONS, self.draw_download_controls),
-                                       (u'category', self.draw_category_label),
-                                       (u'status', self.draw_commit_status_column),
-                                       (u'health', self.draw_health_column)]
+        self.column_drawing_actions = [
+            (u'votes', self.draw_rating_control),
+            (ACTION_BUTTONS, self.draw_action_column),
+            (u'category', self.draw_category_label),
+            (u'health', self.draw_health_column),
+            (u'status', self.draw_commit_status_column),
+            (u'state', self.draw_channel_state),
+        ]
+
+    def draw_action_column(self, painter, option, index, data_item):
+        if data_item['type'] == REGULAR_TORRENT:
+            return self.draw_download_controls(painter, option, index, None)
 
     def draw_commit_status_column(self, painter, option, index, _):
         # Draw empty cell as the background
@@ -331,10 +332,12 @@ class CategoryLabel(QObject):
 
         painter.drawText(text_box, text_flags, self.category)
         bezel_thickness = 4
-        bezel_box = QRect(text_box.left() - bezel_thickness,
-                          text_box.top() - bezel_thickness,
-                          text_box.width() + bezel_thickness * 2,
-                          text_box.height() + bezel_thickness * 2)
+        bezel_box = QRect(
+            text_box.left() - bezel_thickness,
+            text_box.top() - bezel_thickness,
+            text_box.width() + bezel_thickness * 2,
+            text_box.height() + bezel_thickness * 2,
+        )
 
         painter.setRenderHint(QPainter.Antialiasing)
         painter.drawRoundedRect(bezel_box, 20, 80, mode=Qt.RelativeSize)
@@ -347,6 +350,7 @@ class ToggleControl(QObject):
     Column-level controls are stateless collections of methods for visualizing cell data and
     triggering corresponding events.
     """
+
     icon_border = 4
     icon_size = 16
     h = icon_size + 2 * icon_border
@@ -380,8 +384,10 @@ class ToggleControl(QObject):
         icon.paint(painter, icon_rect)
 
     def check_clicked(self, event, _, __, index):
-        if event.type() == QEvent.MouseButtonRelease and \
-                index.model().column_position[self.column_name] == index.column():
+        if (
+            event.type() == QEvent.MouseButtonRelease
+            and index.model().column_position.get(self.column_name, -1) == index.column()
+        ):
             self.clicked.emit(index)
             return True
         return False
@@ -392,20 +398,22 @@ class ToggleControl(QObject):
     def on_mouse_moved(self, pos, index):
         if self.last_index != index:
             # Handle the case when the cursor leaves the table
-            if not index.model() or (index.model().column_position[self.column_name] == index.column()):
+            if not index.model() or (index.model().column_position.get(self.column_name, -1) == index.column()):
                 self.last_index = index
                 return True
         return False
 
 
 class SubscribeToggleControl(ToggleControl):
-
     def __init__(self, column_name, parent=None):
-        ToggleControl.__init__(self, column_name,
-                               QIcon(get_image_path("subscribed_yes.png")),
-                               QIcon(get_image_path("subscribed_not.png")),
-                               QIcon(get_image_path("subscribed.png")),
-                               parent=parent)
+        ToggleControl.__init__(
+            self,
+            column_name,
+            QIcon(get_image_path("subscribed_yes.png")),
+            QIcon(get_image_path("subscribed_not.png")),
+            QIcon(get_image_path("subscribed.png")),
+            parent=parent,
+        )
 
 
 class CommitStatusControl(QObject):
@@ -438,6 +446,7 @@ class CommitStatusControl(QObject):
             return
         state = data_item[self.column_name]
         icon = QIcon()
+
         if state == COMMIT_STATUS_COMMITTED:
             icon = self.committed_icon
         elif state == COMMIT_STATUS_NEW:
@@ -484,9 +493,11 @@ class CommitStatusControl(QObject):
 
     def check_clicked(self, event, _, __, index):
         data_item = index.model().data_items[index.row()]
-        if event.type() == QEvent.MouseButtonRelease and \
-                index.model().column_position[self.column_name] == index.column() and \
-                data_item[self.column_name] != '':
+        if (
+            event.type() == QEvent.MouseButtonRelease
+            and index.model().column_position.get(self.column_name, -1) == index.column()
+            and data_item[self.column_name] != ''
+        ):
             self.clicked.emit(index)
             return True
         return False
@@ -500,7 +511,7 @@ class CommitStatusControl(QObject):
             if not index.model():
                 self.last_index = index
                 return True
-            elif index.model().column_position[self.column_name] == index.column():
+            elif index.model().column_position.get(self.column_name, -1) == index.column():
                 self.last_index = index
                 return True
         return False
@@ -515,8 +526,7 @@ class HealthStatusDisplay(QObject):
         HEALTH_MOOT: QColor(Qt.yellow),
         HEALTH_UNCHECKED: QColor("#B5B5B5"),
         HEALTH_CHECKING: QColor(Qt.yellow),
-        HEALTH_ERROR: QColor(Qt.red)
-
+        HEALTH_ERROR: QColor(Qt.red),
     }
 
     def draw_text(self, painter, rect, text, color=QColor("#B5B5B5"), font=None, alignment=Qt.AlignVCenter):
@@ -534,9 +544,9 @@ class HealthStatusDisplay(QObject):
         data_item = index.model().data_items[index.row()]
 
         if u'health' not in data_item or data_item[u'health'] == "updated":
-            data_item[u'health'] = get_health(data_item['num_seeders'],
-                                              data_item['num_leechers'],
-                                              data_item['last_tracker_check'])
+            data_item[u'health'] = get_health(
+                data_item['num_seeders'], data_item['num_leechers'], data_item['last_tracker_check']
+            )
         health = data_item[u'health']
 
         # ----------------
@@ -588,7 +598,7 @@ class RatingControl(QObject):
         "UNSUBSCRIBED": QColor("#888888"),
         "UNSUBSCRIBED_HOVER": QColor("#ffffff"),
         "SUBSCRIBED": QColor("#FE6D01"),
-        "SUBSCRIBED_HOVER": QColor("#FF5722")
+        "SUBSCRIBED_HOVER": QColor("#FF5722"),
     }
 
     clicked = pyqtSignal(QModelIndex)
@@ -618,8 +628,10 @@ class RatingControl(QObject):
         self.draw_text(painter, rect, format_votes(votes), color=color)
 
     def check_clicked(self, event, _, __, index):
-        if event.type() == QEvent.MouseButtonRelease and \
-                index.model().column_position[self.column_name] == index.column():
+        if (
+            event.type() == QEvent.MouseButtonRelease
+            and index.model().column_position.get(self.column_name, -1) == index.column()
+        ):
             self.clicked.emit(index)
             return True
         return False
@@ -630,7 +642,7 @@ class RatingControl(QObject):
     def on_mouse_moved(self, pos, index):
         if self.last_index != index:
             # Handle the case when the cursor leaves the table
-            if not index.model() or (index.model().column_position[self.column_name] == index.column()):
+            if not index.model() or (index.model().column_position.get(self.column_name, -1) == index.column()):
                 self.last_index = index
                 return True
         return False

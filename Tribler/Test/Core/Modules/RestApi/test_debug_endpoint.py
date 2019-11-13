@@ -13,7 +13,6 @@ from Tribler.Test.tools import trial_timeout
 
 
 class TestCircuitDebugEndpoint(AbstractApiTest):
-
     def setUpPreSession(self):
         super(TestCircuitDebugEndpoint, self).setUpPreSession()
         self.config.set_resource_monitor_enabled(True)
@@ -31,7 +30,6 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
             response_json = json.twisted_loads(response)
             self.assertEqual(len(response_json["slots"]["random"]), 4)
 
-        self.should_check_equality = False
         return self.do_request('debug/circuits/slots', expected_code=200).addCallback(verify_response)
 
     @trial_timeout(10)
@@ -39,11 +37,11 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
         """
         Test whether the API returns open files
         """
+
         def verify_response(response):
             response_json = json.twisted_loads(response)
             self.assertGreaterEqual(len(response_json['open_files']), 0)
 
-        self.should_check_equality = False
         return self.do_request('debug/open_files', expected_code=200).addCallback(verify_response)
 
     @trial_timeout(10)
@@ -56,7 +54,6 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
             response_json = json.twisted_loads(response)
             self.assertGreaterEqual(len(response_json['open_sockets']), 1)
 
-        self.should_check_equality = False
         return self.do_request('debug/open_sockets', expected_code=200).addCallback(verify_response)
 
     @trial_timeout(10)
@@ -69,7 +66,6 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
             response_json = json.twisted_loads(response)
             self.assertGreaterEqual(len(response_json['threads']), 1)
 
-        self.should_check_equality = False
         return self.do_request('debug/threads', expected_code=200).addCallback(verify_response)
 
     @trial_timeout(10)
@@ -83,7 +79,6 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
             self.assertGreaterEqual(len(response_json['cpu_history']), 1)
 
         self.session.lm.resource_monitor.check_resources()
-        self.should_check_equality = False
         return self.do_request('debug/cpu/history', expected_code=200).addCallback(verify_response)
 
     @skipIf(sys.version_info.major > 2, "getting memory info produces an AccessDenied error using Python 3")
@@ -98,7 +93,6 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
             self.assertGreaterEqual(len(response_json['memory_history']), 1)
 
         self.session.lm.resource_monitor.check_resources()
-        self.should_check_equality = False
         return self.do_request('debug/memory/history', expected_code=200).addCallback(verify_response)
 
     @skipIf(sys.version_info.major > 2, "meliae is not Python 3 compatible")
@@ -111,7 +105,6 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
         def verify_response(response):
             self.assertTrue(response)
 
-        self.should_check_equality = False
         return self.do_request('debug/memory/dump', expected_code=200).addCallback(verify_response)
 
     @trial_timeout(10)
@@ -147,10 +140,9 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
             log_exists = any((True for log in logs if test_core_log_message in log))
             self.assertTrue(log_exists, "Test log not found in the debug log response")
 
-        self.should_check_equality = False
-        return self.do_request('debug/log?process=core&max_lines=%d' % max_lines, expected_code=200)\
-            .addCallback(verify_log_exists)\
-
+        return self.do_request('debug/log?process=core&max_lines=%d' % max_lines, expected_code=200).addCallback(
+            verify_log_exists
+        )
 
     @trial_timeout(10)
     def test_debug_pane_default_num_logs(self):
@@ -168,7 +160,7 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
 
         # write 200 (greater than expected_num_lines) test logs in file
         with open(gui_info_log_file_path, "w") as core_info_log_file:
-            for log_index in xrange(200):   # write more logs
+            for log_index in xrange(200):  # write more logs
                 core_info_log_file.write("%s %d\n" % (test_core_log_message, log_index))
 
         # Check number of logs returned is as expected
@@ -177,20 +169,20 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
             logs = json_response['content'].strip().split("\n")
             self.assertEqual(len(logs), expected_num_lines)
 
-        self.should_check_equality = False
-        return self.do_request('debug/log?process=gui&max_lines=', expected_code=200)\
-            .addCallback(verify_max_logs_returned)
+        return self.do_request('debug/log?process=gui&max_lines=', expected_code=200).addCallback(
+            verify_max_logs_returned
+        )
 
     @trial_timeout(10)
     def test_get_profiler_state(self):
         """
         Test getting the state of the profiler
         """
+
         def verify_response(response):
             json_response = json.twisted_loads(response)
             self.assertIn('state', json_response)
 
-        self.should_check_equality = False
         return self.do_request('debug/profiler', expected_code=200).addCallback(verify_response)
 
     @trial_timeout(10)
@@ -201,6 +193,7 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
         Note that we mock the start/stop profiler methods since actually starting the profiler could influence the
         tests.
         """
+
         def mocked_start_profiler():
             self.session.lm.resource_monitor.profiler_running = True
 
@@ -216,8 +209,8 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
 
         def on_started_profiler(_):
             self.assertTrue(self.session.lm.resource_monitor.profiler_running)
-            return self.do_request('debug/profiler', expected_code=200, request_type='DELETE')\
-                .addCallback(on_stopped_profiler)
+            return self.do_request('debug/profiler', expected_code=200, request_type='DELETE').addCallback(
+                on_stopped_profiler
+            )
 
-        self.should_check_equality = False
         return self.do_request('debug/profiler', expected_code=200, request_type='PUT').addCallback(on_started_profiler)

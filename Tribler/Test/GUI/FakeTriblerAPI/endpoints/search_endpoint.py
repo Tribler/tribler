@@ -6,37 +6,37 @@ from twisted.web import http, resource
 
 import Tribler.Core.Utilities.json_util as json
 import Tribler.Test.GUI.FakeTriblerAPI.tribler_utils as tribler_utils
+from Tribler.Core.Utilities.unicode import recursive_unicode
 
 
 class SearchEndpoint(resource.Resource):
-
     def __init__(self):
         resource.Resource.__init__(self)
 
         self.putChild(b"completions", SearchCompletionsEndpoint())
-        self.putChild(b"count", SearchCountEndpoint())
 
     @staticmethod
     def sanitize_parameters(parameters):
         """
         Sanitize the parameters and check whether they exist
         """
-        first = 1 if b'first' not in parameters else int(parameters[b'first'][0])  # TODO check integer!
-        last = 50 if b'last' not in parameters else int(parameters[b'last'][0])  # TODO check integer!
-        sort_by = None if b'sort_by' not in parameters else parameters[b'sort_by'][0]  # TODO check integer!
-        sort_asc = True if b'sort_asc' not in parameters else bool(int(parameters[b'sort_asc'][0]))
-        query_filter = None if b'filter' not in parameters else parameters[b'filter'][0]
-        md_type = None if b'type' not in parameters else parameters[b'type'][0]
+        first = 1 if 'first' not in parameters else int(parameters['first'][0])  # TODO check integer!
+        last = 50 if 'last' not in parameters else int(parameters['last'][0])  # TODO check integer!
+        sort_by = None if 'sort_by' not in parameters else parameters['sort_by'][0]  # TODO check integer!
+        sort_asc = True if 'sort_desc' not in parameters else bool(int(parameters['sort_desc'][0]))
+        query_filter = None if 'filter' not in parameters else parameters['filter'][0]
+        md_type = None if 'type' not in parameters else parameters['type'][0]
 
         return first, last, sort_by, sort_asc, md_type, query_filter
 
     def base_get(self, request):
 
-        if b'filter' not in request.args:
+        args = recursive_unicode(request.args)
+        if 'filter' not in args:
             request.setResponseCode(http.BAD_REQUEST)
             return json.twisted_dumps({"error": "filter parameter missing"})
 
-        first, last, sort_by, sort_asc, md_type, query = SearchEndpoint.sanitize_parameters(request.args)
+        first, last, sort_by, sort_asc, md_type, query = SearchEndpoint.sanitize_parameters(args)
         random = Random()
         random.seed(hash(query))
 
@@ -60,7 +60,7 @@ class SearchEndpoint(resource.Resource):
             channel_json['type'] = 'channel'
             channels_json.append(channel_json)
 
-        if sort_by and sort_by != 'category':
+        if sort_by and sort_by not in ['category', 'size']:
             channels_json.sort(key=lambda result: result[sort_by] if sort_by in result else None, reverse=not sort_asc)
 
         if not md_type:
@@ -75,29 +75,25 @@ class SearchEndpoint(resource.Resource):
         return first, last, sort_by, sort_asc, search_results
 
     def render_GET(self, request):
+        args = recursive_unicode(request.args)
+        include_total = args['include_total'][0] if 'include_total' in args else ''
         first, last, sort_by, sort_asc, search_results = self.base_get(request)
-        return json.twisted_dumps({
-            "results": search_results[first-1:last],
+        result = {
+            "results": search_results[first - 1 : last],
             "first": first,
             "last": last,
             "sort_by": sort_by,
-            "sort_asc": sort_asc,
-        })
-
-
-class SearchCountEndpoint(SearchEndpoint):
-    def __init__(self):
-        resource.Resource.__init__(self)
-
-    def render_GET(self, request):
-        _, _, _, _, search_results = self.base_get(request)
-        return json.twisted_dumps({"total": len(search_results)})
+            "sort_desc": sort_asc,
+        }
+        if include_total:
+            result.update({"total": len(search_results)})
+        return json.twisted_dumps(result)
 
 
 class SearchCompletionsEndpoint(resource.Resource):
-
     def render_GET(self, request):
-        if b'q' not in request.args:
+        args = recursive_unicode(request.args)
+        if 'q' not in args:
             request.setResponseCode(http.BAD_REQUEST)
             return json.twisted_dumps({"error": "q parameter missing"})
 

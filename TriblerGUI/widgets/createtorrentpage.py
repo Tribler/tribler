@@ -57,8 +57,9 @@ class CreateTorrentPage(QWidget):
             self.window().create_torrent_files_list.addItem(filename)
 
     def on_choose_dir_clicked(self):
-        chosen_dir = QFileDialog.getExistingDirectory(self.window(), "Please select the directory containing the files",
-                                                      "", QFileDialog.ShowDirsOnly)
+        chosen_dir = QFileDialog.getExistingDirectory(
+            self.window(), "Please select the directory containing the files", "", QFileDialog.ShowDirsOnly
+        )
 
         if len(chosen_dir) == 0:
             return
@@ -74,8 +75,9 @@ class CreateTorrentPage(QWidget):
 
     def on_create_clicked(self):
         if self.window().create_torrent_files_list.count() == 0:
-            self.dialog = ConfirmationDialog(self, "Notice", "You should add at least one file to your torrent.",
-                                             [('CLOSE', BUTTON_TYPE_NORMAL)])
+            self.dialog = ConfirmationDialog(
+                self, "Notice", "You should add at least one file to your torrent.", [('CLOSE', BUTTON_TYPE_NORMAL)]
+            )
             self.dialog.button_clicked.connect(self.on_dialog_ok_clicked)
             self.dialog.show()
             return
@@ -89,11 +91,7 @@ class CreateTorrentPage(QWidget):
 
         name = self.window().create_torrent_name_field.text()
         description = self.window().create_torrent_description_field.toPlainText()
-        post_data = {
-            "name": name,
-            "description": description,
-            "files": files_list
-        }
+        post_data = {"name": name, "description": description, "files": files_list}
         url = "createtorrent?download=1" if self.window().seed_after_adding_checkbox.isChecked() else "createtorrent"
         self.request_mgr = TriblerRequestManager()
         self.request_mgr.perform_request(url, self.on_torrent_created, data=post_data, method='POST')
@@ -113,8 +111,9 @@ class CreateTorrentPage(QWidget):
 
     def add_torrent_to_channel(self, torrent):
         self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("mychannel/torrents", self.on_torrent_to_channel_added,
-                                         data={"torrent": torrent}, method='PUT')
+        self.request_mgr.perform_request(
+            "mychannel/torrents", self.on_torrent_to_channel_added, data={"torrent": torrent}, method='PUT'
+        )
 
     def on_torrent_to_channel_added(self, result):
         if not result:
@@ -122,7 +121,7 @@ class CreateTorrentPage(QWidget):
         self.window().edit_channel_create_torrent_progress_label.hide()
         if 'added' in result:
             self.window().edit_channel_details_stacked_widget.setCurrentIndex(PAGE_EDIT_CHANNEL_TORRENTS)
-            self.window().edit_channel_page.load_my_torrents()
+            self.window().personal_channel_page.load_my_torrents()
 
     def on_remove_entry(self):
         self.window().create_torrent_files_list.takeItem(self.selected_item_index)

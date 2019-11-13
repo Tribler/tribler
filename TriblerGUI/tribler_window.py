@@ -51,7 +51,6 @@ from TriblerGUI.defs import (
     BUTTON_TYPE_NORMAL,
     CONTEXT_MENU_WIDTH,
     DEFAULT_API_PORT,
-    PAGE_CHANNEL_DETAILS,
     PAGE_DISCOVERED,
     PAGE_DISCOVERING,
     PAGE_DOWNLOADS,
@@ -66,6 +65,7 @@ from TriblerGUI.defs import (
     PAGE_VIDEO_PLAYER,
     SHUTDOWN_WAITING_PERIOD,
 )
+from TriblerGUI.dialogs.addtopersonalchanneldialog import AddToChannelDialog
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.dialogs.createtorrentdialog import CreateTorrentDialog
 from TriblerGUI.dialogs.feedbackdialog import FeedbackDialog
@@ -73,7 +73,12 @@ from TriblerGUI.dialogs.startdownloaddialog import StartDownloadDialog
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
 from TriblerGUI.tribler_request_manager import TriblerRequestManager, dispatcher, request_queue
 from TriblerGUI.utilities import get_gui_setting, get_image_path, get_ui_file_path, is_dir_writable
-from TriblerGUI.widgets.triblertablecontrollers import sanitize_for_fts
+from TriblerGUI.widgets.tablecontentmodel import (
+    DiscoveredChannelsModel,
+    PersonalChannelsModel,
+    SearchResultsModel,
+    sanitize_for_fts,
+)
 
 # Pre-load form UI classes
 
@@ -193,22 +198,45 @@ class TriblerWindow(QMainWindow):
         for widget in self.findChildren(QLineEdit) + self.findChildren(QListWidget) + self.findChildren(QTreeWidget):
             widget.setAttribute(Qt.WA_MacShowFocusRect, 0)
 
-        self.menu_buttons = [self.left_menu_button_home, self.left_menu_button_search, self.left_menu_button_my_channel,
-                             self.left_menu_button_subscriptions, self.left_menu_button_video_player,
-                             self.left_menu_button_downloads, self.left_menu_button_discovered,
-                             self.left_menu_button_trust_graph]
+        self.menu_buttons = [
+            self.left_menu_button_home,
+            self.left_menu_button_search,
+            self.left_menu_button_my_channel,
+            self.left_menu_button_subscriptions,
+            self.left_menu_button_video_player,
+            self.left_menu_button_downloads,
+            self.left_menu_button_discovered,
+            self.left_menu_button_trust_graph,
+        ]
 
         self.video_player_page.initialize_player()
-        self.search_results_page.initialize_search_results_page(self.gui_settings)
+
+        self.search_results_page.initialize_content_page(self.gui_settings)
+        # TODO: make controls hiding depend on the current model
+        self.search_results_page.channel_torrents_filter_input.setHidden(True)
+
         self.settings_page.initialize_settings_page()
-        self.subscribed_channels_page.initialize()
-        self.edit_channel_page.initialize_edit_channel_page(self.gui_settings)
+        self.subscribed_channels_page.initialize_content_page(self.gui_settings)
+        self.subscribed_channels_page.initialize_root_model(
+            DiscoveredChannelsModel(endpoint_url="channels", subscribed_only=True)
+        )
+        self.subscribed_channels_page.model.channel_info["name"] = "Subscribed channels"
         self.downloads_page.initialize_downloads_page()
         self.home_page.initialize_home_page()
         self.loading_page.initialize_loading_page()
         self.discovering_page.initialize_discovering_page()
-        self.discovered_page.initialize_discovered_page(self.gui_settings)
-        self.channel_page.initialize_channel_page(self.gui_settings)
+
+        self.discovered_page.initialize_content_page(self.gui_settings)
+        self.discovered_page.initialize_root_model(
+            DiscoveredChannelsModel(
+                channel_info={"name": "Discovered channels", "dirty": 0},
+                endpoint_url="channels",
+                hide_xxx=get_gui_setting(self.gui_settings, "family_filter", True, is_bool=True),
+            )
+        )
+        self.discovered_page.model.channel_info["name"] = "Discovered channels"
+        self.core_manager.events_manager.discovered_channel.connect(self.discovered_page.model.on_new_entry_received)
+
         self.trust_page.initialize_trust_page()
         self.token_mining_page.initialize_token_mining_page()
         self.trust_graph_page.initialize_trust_graph()
@@ -256,7 +284,8 @@ class TriblerWindow(QMainWindow):
         completer.setCompletionMode(QCompleter.UnfilteredPopupCompletion)
         self.item_delegate = QStyledItemDelegate()
         completer.popup().setItemDelegate(self.item_delegate)
-        completer.popup().setStyleSheet("""
+        completer.popup().setStyleSheet(
+            """
         QListView {
             background-color: #404040;
         }
@@ -270,12 +299,14 @@ class TriblerWindow(QMainWindow):
         QListView::item:hover {
             background-color: #707070;
         }
-        """)
+        """
+        )
         self.top_search_bar.setCompleter(completer)
 
         # Toggle debug if developer mode is enabled
         self.window().left_menu_button_debug.setHidden(
-            not get_gui_setting(self.gui_settings, "debug", False, is_bool=True))
+            not get_gui_setting(self.gui_settings, "debug", False, is_bool=True)
+        )
 
         # Start Tribler
         self.core_manager.start(core_args=core_args, core_env=core_env)
@@ -286,8 +317,6 @@ class TriblerWindow(QMainWindow):
         self.core_manager.events_manager.low_storage_signal.connect(self.on_low_storage)
         self.core_manager.events_manager.credit_mining_signal.connect(self.on_credit_mining_error)
         self.core_manager.events_manager.tribler_shutdown_signal.connect(self.on_tribler_shutdown_state_update)
-
-        self.core_manager.events_manager.received_search_result.connect(self.search_results_page.received_search_result)
 
         # Install signal handler for ctrl+c events
         def sigint_handler(*_):
@@ -306,6 +335,8 @@ class TriblerWindow(QMainWindow):
         self.resize(size)
 
         self.show()
+
+        self.add_to_channel_dialog = AddToChannelDialog(self.window())
 
     def update_tray_icon(self, use_monochrome_icon):
         if not QSystemTrayIcon.isSystemTrayAvailable() or not self.tray_icon:
@@ -335,10 +366,13 @@ class TriblerWindow(QMainWindow):
         """
         self.downloads_page.stop_loading_downloads()
         self.core_manager.stop(False)
-        close_dialog = ConfirmationDialog(self.window(), "<b>CRITICAL ERROR</b>",
-                                          "You are running low on disk space (<100MB). Please make sure to have "
-                                          "sufficient free space available and restart Tribler again.",
-                                          [("Close Tribler", BUTTON_TYPE_NORMAL)])
+        close_dialog = ConfirmationDialog(
+            self.window(),
+            "<b>CRITICAL ERROR</b>",
+            "You are running low on disk space (<100MB). Please make sure to have "
+            "sufficient free space available and restart Tribler again.",
+            [("Close Tribler", BUTTON_TYPE_NORMAL)],
+        )
         close_dialog.button_clicked.connect(lambda _: self.close_tribler())
         close_dialog.show()
 
@@ -410,8 +444,28 @@ class TriblerWindow(QMainWindow):
         self.setAcceptDrops(True)
         self.setWindowTitle("Tribler %s" % self.tribler_version)
 
-        # Load channel if it exists
-        self.edit_channel_page.load_my_channel_overview()
+        self.initialize_personal_channels_page()
+        self.add_to_channel_dialog.load_channel(0)
+        self.discovered_page.reset_view()
+
+    def initialize_personal_channels_page(self):
+        self.personal_channel_page.initialize_content_page(self.gui_settings, edit_enabled=True)
+        self.personal_channel_page.default_channel_model = PersonalChannelsModel
+        self.personal_channel_page.initialize_root_model(
+            PersonalChannelsModel(
+                hide_xxx=False,
+                channel_info={"name": "Personal channels root", "state": "Personal"},
+                endpoint_url="channels/mychannel/0",
+                exclude_deleted=get_gui_setting(self.gui_settings, "autocommit_enabled", True, is_bool=True),
+            )
+        )
+
+        def on_dirty_response(response):
+            if response and "dirty" in response:
+                self.personal_channel_page.update_labels(dirty=response.get("dirty", False))
+
+        self.commit_mgr = TriblerRequestManager()
+        self.commit_mgr.perform_request("channels/mychannel/0/commit", on_dirty_response, method='GET')
 
     def on_events_started(self, json_dict):
         self.setWindowTitle("Tribler %s" % json_dict["version"])
@@ -442,21 +496,33 @@ class TriblerWindow(QMainWindow):
         if uri.startswith('file') or uri.startswith('magnet'):
             self.start_download_from_uri(uri)
 
-    def perform_start_download_request(self, uri, anon_download, safe_seeding, destination, selected_files,
-                                       total_files=0, add_to_channel=False, callback=None):
+    def perform_start_download_request(
+        self,
+        uri,
+        anon_download,
+        safe_seeding,
+        destination,
+        selected_files,
+        total_files=0,
+        add_to_channel=False,
+        callback=None,
+    ):
         # Check if destination directory is writable
         is_writable, error = is_dir_writable(destination)
         if not is_writable:
-            gui_error_message = "Insufficient write permissions to <i>%s</i> directory. Please add proper " \
-                                "write permissions on the directory and add the torrent again. %s" \
-                                % (destination, error)
+            gui_error_message = (
+                "Insufficient write permissions to <i>%s</i> directory. Please add proper "
+                "write permissions on the directory and add the torrent again. %s" % (destination, error)
+            )
             ConfirmationDialog.show_message(self.window(), "Download error <i>%s</i>" % uri, gui_error_message, "OK")
             return
 
-        if add_to_channel and not self.edit_channel_page.channel_overview:
-            error_message = "In the download options, you checked to add the torrent to your channel " \
-                            "but you do not have one yet. No worries, you can easily create your own channel by " \
-                            "navigating to My Channel section on the left sidebar."
+        if add_to_channel and not self.personal_channel_page.channel_overview:
+            error_message = (
+                "In the download options, you checked to add the torrent to your channel "
+                "but you do not have one yet. No worries, you can easily create your own channel by "
+                "navigating to My Channel section on the left sidebar."
+            )
             ConfirmationDialog.show_error(self.window(), "Download Error!", error_message)
             return
 
@@ -471,11 +537,12 @@ class TriblerWindow(QMainWindow):
             "anon_hops": anon_hops,
             "safe_seeding": safe_seeding,
             "destination": destination,
-            "selected_files": selected_files_list
+            "selected_files": selected_files_list,
         }
         request_mgr = TriblerRequestManager()
-        request_mgr.perform_request("downloads", callback if callback else self.on_download_added,
-                                    method='PUT', data=post_data)
+        request_mgr.perform_request(
+            "downloads", callback if callback else self.on_download_added, method='PUT', data=post_data
+        )
 
         # Save the download location to the GUI settings
         current_settings = get_gui_setting(self.gui_settings, "recent_download_locations", "")
@@ -505,17 +572,16 @@ class TriblerWindow(QMainWindow):
 
         if post_data:
             request_mgr = TriblerRequestManager()
-            request_mgr.perform_request("mychannel/torrents", callback if callback else lambda _: None,
-                                        method='PUT', data=post_data)
+            request_mgr.perform_request(
+                "mychannel/torrents", callback if callback else lambda _: None, method='PUT', data=post_data
+            )
 
     def add_dir_to_channel(self, dirname, recursive=False, callback=None):
-        post_data = {
-            "torrents_dir": dirname,
-            "recursive": int(recursive)
-        }
+        post_data = {"torrents_dir": dirname, "recursive": int(recursive)}
         request_mgr = TriblerRequestManager()
-        request_mgr.perform_request("mychannel/torrents", callback if callback else lambda _: None,
-                                    method='PUT', data=post_data)
+        request_mgr.perform_request(
+            "mychannel/torrents", callback if callback else lambda _: None, method='PUT', data=post_data
+        )
 
     def on_dir_added_to_channel(self):
         self.tray_show_message("Tribler update", "%s added to your channel" % self.chosen_dir)
@@ -524,11 +590,13 @@ class TriblerWindow(QMainWindow):
         if version == str(self.gui_settings.value('last_reported_version')):
             return
 
-        self.new_version_dialog = ConfirmationDialog(self, "New version available",
-                                                     "Version %s of Tribler is available.Do you want to visit the "
-                                                     "website to download the newest version?" % version,
-                                                     [('IGNORE', BUTTON_TYPE_NORMAL), ('LATER', BUTTON_TYPE_NORMAL),
-                                                      ('OK', BUTTON_TYPE_NORMAL)])
+        self.new_version_dialog = ConfirmationDialog(
+            self,
+            "New version available",
+            "Version %s of Tribler is available.Do you want to visit the "
+            "website to download the newest version?" % version,
+            [('IGNORE', BUTTON_TYPE_NORMAL), ('LATER', BUTTON_TYPE_NORMAL), ('OK', BUTTON_TYPE_NORMAL)],
+        )
         self.new_version_dialog.button_clicked.connect(lambda action: self.on_new_version_dialog_done(version, action))
         self.new_version_dialog.show()
 
@@ -537,6 +605,7 @@ class TriblerWindow(QMainWindow):
             self.gui_settings.setValue("last_reported_version", version)
         elif action == 2:  # ok
             import webbrowser
+
             webbrowser.open("https://tribler.org")
         if self.new_version_dialog:
             self.new_version_dialog.close_dialog()
@@ -545,7 +614,8 @@ class TriblerWindow(QMainWindow):
     def on_search_text_change(self, text):
         self.search_suggestion_mgr = TriblerRequestManager()
         self.search_suggestion_mgr.perform_request(
-            "search/completions", self.on_received_search_completions, url_params={'q': sanitize_for_fts(text)})
+            "search/completions", self.on_received_search_completions, url_params={'q': sanitize_for_fts(text)}
+        )
 
     def on_received_search_completions(self, completions):
         if completions is None:
@@ -594,19 +664,32 @@ class TriblerWindow(QMainWindow):
 
     def on_top_search_button_click(self):
         current_ts = time.time()
-        current_search_query = self.top_search_bar.text()
+        query = self.top_search_bar.text()
 
-        if self.last_search_query and self.last_search_time \
-                and self.last_search_query == self.top_search_bar.text() \
-                and current_ts - self.last_search_time < 1:
+        if (
+            self.last_search_query
+            and self.last_search_time
+            and self.last_search_query == self.top_search_bar.text()
+            and current_ts - self.last_search_time < 1
+        ):
             logging.info("Same search query already sent within 500ms so dropping this one")
             return
 
         self.left_menu_button_search.setChecked(True)
         self.has_search_results = True
+        self.search_results_page.initialize_root_model(
+            SearchResultsModel(
+                channel_info={"name": "Search results for %s" % query if len(query) < 50 else "%s..." % query[:50]},
+                endpoint_url="search",
+                hide_xxx=get_gui_setting(self.gui_settings, "family_filter", True, is_bool=True),
+                text_filter=query,
+            )
+        )
+        self.core_manager.events_manager.received_search_result.connect(
+            self.search_results_page.model.on_new_entry_received
+        )
         self.clicked_menu_button_search()
-        self.search_results_page.perform_search(current_search_query)
-        self.last_search_query = current_search_query
+        self.last_search_query = query
         self.last_search_time = current_ts
 
     def on_settings_button_click(self):
@@ -627,8 +710,9 @@ class TriblerWindow(QMainWindow):
 
     def load_token_balance(self):
         self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("trustchain/statistics", self.received_trustchain_statistics,
-                                         capture_errors=False)
+        self.request_mgr.perform_request(
+            "trustchain/statistics", self.received_trustchain_statistics, capture_errors=False
+        )
 
     def received_trustchain_statistics(self, statistics):
         if not statistics or "statistics" not in statistics:
@@ -637,8 +721,7 @@ class TriblerWindow(QMainWindow):
         self.trust_page.received_trustchain_statistics(statistics)
 
         statistics = statistics["statistics"]
-        balance = (statistics.get("total_up", 0) -
-                   statistics.get("total_down", 0))
+        balance = statistics.get("total_up", 0) - statistics.get("total_down", 0)
         self.set_token_balance(balance)
 
         # If trust page is currently visible, then load the graph as well
@@ -707,20 +790,18 @@ class TriblerWindow(QMainWindow):
         self.create_add_torrent_menu().exec_(self.mapToParent(plus_btn_pos))
 
     def on_add_torrent_browse_file(self):
-        filenames = QFileDialog.getOpenFileNames(self,
-                                                 "Please select the .torrent file",
-                                                 QDir.homePath(),
-                                                 "Torrent files (*.torrent)")
+        filenames = QFileDialog.getOpenFileNames(
+            self, "Please select the .torrent file", QDir.homePath(), "Torrent files (*.torrent)"
+        )
         if len(filenames[0]) > 0:
             for filename in filenames[0]:
                 self.pending_uri_requests.append(u"file:%s" % filename)
             self.process_uri_request()
 
     def on_add_mdblob_browse_file(self):
-        filenames = QFileDialog.getOpenFileNames(self,
-                                                 "Please select the .mdblob file",
-                                                 QDir.homePath(),
-                                                 "Tribler metadata files (*.mdblob.lz4)")
+        filenames = QFileDialog.getOpenFileNames(
+            self, "Please select the .mdblob file", QDir.homePath(), "Tribler metadata files (*.mdblob.lz4)"
+        )
         if len(filenames[0]) > 0:
             for filename in filenames[0]:
                 self.pending_uri_requests.append(u"file:%s" % filename)
@@ -735,8 +816,12 @@ class TriblerWindow(QMainWindow):
             # If tribler settings is not available, fetch the settings and inform the user to try again.
             if not self.tribler_settings:
                 self.fetch_settings()
-                self.dialog = ConfirmationDialog.show_error(self, "Download Error", "Tribler settings is not available\
-                                                                   yet. Fetching it now. Please try again later.")
+                self.dialog = ConfirmationDialog.show_error(
+                    self,
+                    "Download Error",
+                    "Tribler settings is not available\
+                                                                   yet. Fetching it now. Please try again later.",
+                )
                 # By re-adding the download uri to the pending list, the request is re-processed
                 # when the settings is received
                 self.pending_uri_requests.append(uri)
@@ -760,24 +845,28 @@ class TriblerWindow(QMainWindow):
                     self.pending_uri_requests.append(self.download_uri)
                 return
 
-            self.window().perform_start_download_request(self.download_uri,
-                                                         self.window().tribler_settings['download_defaults'][
-                                                             'anonymity_enabled'],
-                                                         self.window().tribler_settings['download_defaults'][
-                                                             'safeseeding_enabled'],
-                                                         self.tribler_settings['download_defaults']['saveas'], [], 0)
+            self.window().perform_start_download_request(
+                self.download_uri,
+                self.window().tribler_settings['download_defaults']['anonymity_enabled'],
+                self.window().tribler_settings['download_defaults']['safeseeding_enabled'],
+                self.tribler_settings['download_defaults']['saveas'],
+                [],
+                0,
+            )
             self.process_uri_request()
 
     def on_start_download_action(self, action):
         if action == 1:
             if self.dialog and self.dialog.dialog_widget:
                 self.window().perform_start_download_request(
-                    self.download_uri, self.dialog.dialog_widget.anon_download_checkbox.isChecked(),
+                    self.download_uri,
+                    self.dialog.dialog_widget.anon_download_checkbox.isChecked(),
                     self.dialog.dialog_widget.safe_seed_checkbox.isChecked(),
                     self.dialog.dialog_widget.destination_input.currentText(),
                     self.dialog.get_selected_files(),
                     self.dialog.dialog_widget.files_list_view.topLevelItemCount(),
-                    add_to_channel=self.dialog.dialog_widget.add_to_channel_checkbox.isChecked())
+                    add_to_channel=self.dialog.dialog_widget.add_to_channel_checkbox.isChecked(),
+                )
             else:
                 ConfirmationDialog.show_error(self, "Tribler UI Error", "Something went wrong. Please try again.")
                 logging.exception("Error while trying to download. Either dialog or dialog.dialog_widget is None")
@@ -791,19 +880,20 @@ class TriblerWindow(QMainWindow):
             self.process_uri_request()
 
     def on_add_torrent_browse_dir(self):
-        chosen_dir = QFileDialog.getExistingDirectory(self,
-                                                      "Please select the directory containing the .torrent files",
-                                                      QDir.homePath(),
-                                                      QFileDialog.ShowDirsOnly)
+        chosen_dir = QFileDialog.getExistingDirectory(
+            self, "Please select the directory containing the .torrent files", QDir.homePath(), QFileDialog.ShowDirsOnly
+        )
         self.chosen_dir = chosen_dir
         if len(chosen_dir) != 0:
             self.selected_torrent_files = [torrent_file for torrent_file in glob.glob(chosen_dir + "/*.torrent")]
-            self.dialog = ConfirmationDialog(self, "Add torrents from directory",
-                                             "Add %s torrent files from the following directory "
-                                             "to your Tribler channel:\n\n%s" %
-                                             (len(self.selected_torrent_files), chosen_dir),
-                                             [('ADD', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
-                                             checkbox_text="Add torrents to My Channel",)
+            self.dialog = ConfirmationDialog(
+                self,
+                "Add torrents from directory",
+                "Add %s torrent files from the following directory "
+                "to your Tribler channel:\n\n%s" % (len(self.selected_torrent_files), chosen_dir),
+                [('ADD', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
+                checkbox_text="Add torrents to My Channel",
+            )
             self.dialog.button_clicked.connect(self.on_confirm_add_directory_dialog)
             self.dialog.show()
 
@@ -812,12 +902,14 @@ class TriblerWindow(QMainWindow):
             if self.dialog.checkbox.isChecked():
                 self.add_dir_to_channel(self.chosen_dir, callback=self.on_dir_added_to_channel)
             for torrent_file in self.selected_torrent_files:
-                self.perform_start_download_request(u"file:%s" % torrent_file,
-                                                    self.window().tribler_settings['download_defaults'][
-                                                        'anonymity_enabled'],
-                                                    self.window().tribler_settings['download_defaults'][
-                                                        'safeseeding_enabled'],
-                                                    self.tribler_settings['download_defaults']['saveas'], [], 0)
+                self.perform_start_download_request(
+                    u"file:%s" % torrent_file,
+                    self.window().tribler_settings['download_defaults']['anonymity_enabled'],
+                    self.window().tribler_settings['download_defaults']['safeseeding_enabled'],
+                    self.tribler_settings['download_defaults']['saveas'],
+                    [],
+                    0,
+                )
 
         if self.dialog:
             self.dialog.close_dialog()
@@ -833,10 +925,13 @@ class TriblerWindow(QMainWindow):
             self.clicked_menu_button_home()
 
         if not self.add_torrent_url_dialog_active:
-            self.dialog = ConfirmationDialog(self, "Add torrent from URL/magnet link",
-                                             "Please enter the URL/magnet link in the field below:",
-                                             [('ADD', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
-                                             show_input=True)
+            self.dialog = ConfirmationDialog(
+                self,
+                "Add torrent from URL/magnet link",
+                "Please enter the URL/magnet link in the field below:",
+                [('ADD', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
+                show_input=True,
+            )
             self.dialog.dialog_widget.dialog_input.setPlaceholderText('URL/magnet link')
             self.dialog.dialog_widget.dialog_input.setFocus()
             self.dialog.button_clicked.connect(self.on_torrent_from_url_dialog_done)
@@ -901,21 +996,23 @@ class TriblerWindow(QMainWindow):
     def clicked_menu_button_search(self):
         self.deselect_all_menu_buttons(self.left_menu_button_search)
         self.stackedWidget.setCurrentIndex(PAGE_SEARCH_RESULTS)
+        self.search_results_page.content_table.setFocus()
         self.navigation_stack = []
         self.hide_left_menu_playlist()
 
     def clicked_menu_button_discovered(self):
         self.deselect_all_menu_buttons(self.left_menu_button_discovered)
         self.stackedWidget.setCurrentIndex(PAGE_DISCOVERED)
-        self.discovered_page.load_discovered_channels()
-        self.discovered_channels_list.setFocus()
+        self.discovered_page.reset_view()
+        self.discovered_page.content_table.setFocus()
         self.navigation_stack = []
         self.hide_left_menu_playlist()
 
     def clicked_menu_button_my_channel(self):
         self.deselect_all_menu_buttons(self.left_menu_button_my_channel)
         self.stackedWidget.setCurrentIndex(PAGE_EDIT_CHANNEL)
-        self.edit_channel_page.load_my_channel_overview()
+        self.personal_channel_page.reset_view()
+        self.personal_channel_page.content_table.setFocus()
         self.navigation_stack = []
         self.hide_left_menu_playlist()
 
@@ -947,7 +1044,8 @@ class TriblerWindow(QMainWindow):
     def clicked_menu_button_subscriptions(self):
         self.deselect_all_menu_buttons(self.left_menu_button_subscriptions)
         self.stackedWidget.setCurrentIndex(PAGE_SUBSCRIBED_CHANNELS)
-        self.subscribed_channels_page.load_subscribed_channels()
+        self.subscribed_channels_page.reset_view()
+        self.subscribed_channels_page.content_table.setFocus()
         self.navigation_stack = []
         self.hide_left_menu_playlist()
 
@@ -971,11 +1069,6 @@ class TriblerWindow(QMainWindow):
     def on_credit_mining_error(self, error):
         ConfirmationDialog.show_error(self, "Credit Mining Error", error[u'message'])
 
-    def on_edit_channel_clicked(self):
-        self.stackedWidget.setCurrentIndex(PAGE_EDIT_CHANNEL)
-        self.navigation_stack = []
-        self.channel_page.on_edit_channel_clicked()
-
     def resizeEvent(self, _):
         # Resize home page cells
         cell_width = self.home_page_table_view.width() / 3 - 3  # We have some padding to the right
@@ -995,6 +1088,7 @@ class TriblerWindow(QMainWindow):
 
     def close_tribler(self):
         if not self.core_manager.shutting_down:
+
             def show_force_shutdown():
                 self.window().force_shutdown_btn.show()
 
@@ -1044,8 +1138,9 @@ class TriblerWindow(QMainWindow):
             e.ignore()
 
     def dropEvent(self, e):
-        file_urls = ([(_qurl_to_path(url), url.toString()) for url in e.mimeData().urls()]
-                     if e.mimeData().hasUrls() else [])
+        file_urls = (
+            [(_qurl_to_path(url), url.toString()) for url in e.mimeData().urls()] if e.mimeData().hasUrls() else []
+        )
 
         for filename, fileurl in file_urls:
             if os.path.isfile(filename):
@@ -1062,12 +1157,14 @@ class TriblerWindow(QMainWindow):
         QApplication.quit()
 
     def clicked_skip_conversion(self):
-        self.dialog = ConfirmationDialog(self, "Abort the conversion of old channels",
-                                         "The upgrade procedure is now converting torrents in channels "
-                                         "collected by the previous installation of Tribler.\n\n"
-                                         "Are you sure you want to abort the conversion process?\n",
-                                         [('ABORT', BUTTON_TYPE_CONFIRM),
-                                          ('CONTINUE', BUTTON_TYPE_NORMAL)])
+        self.dialog = ConfirmationDialog(
+            self,
+            "Abort the conversion of old channels",
+            "The upgrade procedure is now converting torrents in channels "
+            "collected by the previous installation of Tribler.\n\n"
+            "Are you sure you want to abort the conversion process?\n",
+            [('ABORT', BUTTON_TYPE_CONFIRM), ('CONTINUE', BUTTON_TYPE_NORMAL)],
+        )
         self.dialog.button_clicked.connect(self.on_skip_conversion_dialog)
         self.dialog.show()
 

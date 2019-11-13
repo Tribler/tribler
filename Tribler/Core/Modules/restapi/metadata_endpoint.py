@@ -7,249 +7,162 @@ from ipv8.database import database_blob
 
 from pony.orm import db_session
 
-from twisted.internet import reactor
 from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
 
 import Tribler.Core.Utilities.json_util as json
-from Tribler.Core.Utilities.unicode import recursive_unicode
-from Tribler.util import cast_to_unicode_utf8
+from Tribler.Core.Modules.restapi.metadata_endpoint_base import MetadataEndpointBase
+from Tribler.Core.Utilities.unicode import hexlify, recursive_unicode
 
 
-# This is the top-level endpoint class that serves other endpoints
-class MetadataEndpoint(resource.Resource):
+class UpdateEntryMixin(object):
+    @db_session
+    def update_entry(self, public_key, id_, update_dict):
+        entry = self.session.lm.mds.ChannelNode.get(public_key=public_key, id_=id_)
+        if not entry:
+            return http.NOT_FOUND, {"error": "Object with the specified pk+id could not be found."}
+
+        signed_parameters_to_change = set(entry.payload_arguments).intersection(set(update_dict.keys()))
+        if signed_parameters_to_change:
+            if 'status' in update_dict:
+                return http.BAD_REQUEST, {"error": "Cannot set status manually when changing signed attributes."}
+            if not entry.is_personal:
+                return (
+                    http.BAD_REQUEST,
+                    {"error": "Changing signed parameters in non-personal entries is not supported."},
+                )
+
+        return None, entry.update_properties(update_dict).to_simple_dict()
+
+
+class MetadataEndpoint(resource.Resource, UpdateEntryMixin):
+    """
+    This is the top-level endpoint class that serves other endpoints.
+
+    # /metadata
+    #          /channels
+    #          /torrents
+    #          /<public_key>
+    """
 
     def __init__(self, session):
+        self.session = session
         resource.Resource.__init__(self)
 
-        child_handler_dict = {
-            b"channels": ChannelsEndpoint,
-            b"torrents": TorrentsEndpoint
-        }
+        child_handler_dict = {b"torrents": TorrentsEndpoint}
 
         for path, child_cls in child_handler_dict.items():
-            self.putChild(path, child_cls(session))
-
-
-class BaseMetadataEndpoint(resource.Resource):
-
-    def __init__(self, session):
-        resource.Resource.__init__(self)
-        self.session = session
-
-    @staticmethod
-    def sanitize_parameters(parameters):
-        """
-        Sanitize the parameters for a request that fetches channels.
-        """
-        sanitized = {
-            "first": 1 if 'first' not in parameters else int(parameters['first'][0]),
-            "last": 50 if 'last' not in parameters else int(parameters['last'][0]),
-            "sort_by": None if 'sort_by' not in parameters else BaseMetadataEndpoint.convert_sort_param_to_pony_col(
-                parameters['sort_by'][0]),
-            "sort_asc": True if 'sort_asc' not in parameters else bool(int(parameters['sort_asc'][0])),
-            "query_filter": None if 'filter' not in parameters else cast_to_unicode_utf8(parameters['filter'][0]),
-            "hide_xxx": False if 'hide_xxx' not in parameters else bool(int(parameters['hide_xxx'][0]) > 0),
-        }
-
-        return sanitized
-
-    @classmethod
-    def get_total_count(cls, md_class, sanitized, search_uuid=None):
-        for p in ["first", "last", "sort_by", "sort_asc"]:
-            sanitized.pop(p, None)
-        total_count = md_class.get_entries_count(**sanitized)
-        result = {"total": total_count}
-        if search_uuid:
-            result.update({"uuid": search_uuid})
-        return json.twisted_dumps(result)
-
-    @staticmethod
-    def convert_sort_param_to_pony_col(sort_param):
-        """
-        Convert an incoming sort parameter to a pony column in the database.
-        :return a string with the right column. None if there exists no value for the given key.
-        """
-        json2pony_columns = {
-            u'category': "tags",
-            u'id': "rowid",
-            u'name': "title",
-            u'size': "size",
-            u'infohash': "infohash",
-            u'date': "torrent_date",
-            u'updated': "torrent_date",
-            u'status': 'status',
-            u'torrents': 'num_entries',
-            u'votes': 'votes',
-            u'health': 'HEALTH'
-        }
-
-        return json2pony_columns[sort_param] if sort_param in json2pony_columns else None
-
-
-class BaseChannelsEndpoint(BaseMetadataEndpoint):
-    @staticmethod
-    def sanitize_parameters(parameters):
-        """
-        Sanitize the parameters for a request that fetches channels.
-        """
-        sanitized = BaseMetadataEndpoint.sanitize_parameters(parameters)
-
-        if 'subscribed' in parameters:
-            sanitized['subscribed'] = bool(int(parameters['subscribed'][0]))
-
-        return sanitized
-
-
-class ChannelsEndpoint(BaseChannelsEndpoint):
+            self.putChild(path, child_cls(self.session))
 
     def getChild(self, path, request):
-        if path == b"popular":
-            return ChannelsPopularEndpoint(self.session)
-        if path == b"count":
-            return ChannelsCountEndpoint(self.session)
-        return ChannelPublicKeyEndpoint(self.session, path)
+        return MetadataPublicKeyEndpoint(self.session, path)
 
-    def render_GET(self, request):
-        args = recursive_unicode(request.args)
-        sanitized = self.sanitize_parameters(args)
-        with db_session:
-            channels = self.session.lm.mds.ChannelMetadata.get_entries(**sanitized)
-            channels_list = [channel.to_simple_dict() for channel in channels]
+    def render_PATCH(self, request):
+        try:
+            request_parsed = recursive_unicode(json.twisted_loads(request.content.read()))
+        except ValueError:
+            request.setResponseCode(http.BAD_REQUEST)
+            return json.twisted_dumps({"error": "Bad JSON"})
+        results_list = []
+        for entry in request_parsed:
+            public_key = database_blob(unhexlify(entry.pop("public_key")))
+            id_ = entry.pop("id")
+            error, result = self.update_entry(public_key, id_, entry)
+            # TODO: handle the results for a list that contains some errors in a smarter way
+            if error:
+                request.setResponseCode(error)
+                return json.twisted_dumps(result)
+            results_list.append(result)
+        return json.twisted_dumps(results_list)
 
-        return json.twisted_dumps({
-            "results": channels_list,
-            "first": sanitized["first"],
-            "last": sanitized["last"],
-            "sort_by": sanitized["sort_by"],
-            "sort_asc": int(sanitized["sort_asc"]),
-        })
-
-
-class ChannelsCountEndpoint(BaseChannelsEndpoint):
-
-    def render_GET(self, request):
-        args = recursive_unicode(request.args)
-        sanitized = self.sanitize_parameters(args)
-        return self.get_total_count(self.session.lm.mds.ChannelMetadata, sanitized)
-
-class ChannelsPopularEndpoint(BaseChannelsEndpoint):
-
-    def render_GET(self, request):
-        limit_channels = 10
-
-        args = recursive_unicode(request.args)
-        if 'limit' in args and args['limit']:
-            limit_channels = int(args['limit'][0])
-
-            if limit_channels <= 0:
+    @db_session
+    def render_DELETE(self, request):
+        request_parsed = recursive_unicode(json.twisted_loads(request.content.read()))
+        results_list = []
+        for entry in request_parsed:
+            public_key = database_blob(unhexlify(entry.pop("public_key")))
+            id_ = entry.pop("id")
+            entry = self.session.lm.mds.ChannelNode.get(public_key=public_key, id_=id_)
+            if not entry:
                 request.setResponseCode(http.BAD_REQUEST)
-                return json.twisted_dumps({"error": "the limit parameter must be a positive number"})
+                return json.twisted_dumps({"error": "Entry %i not found" % id_})
+            entry.delete()
+            result = {"public_key": hexlify(public_key), "id": id_, "state": "Deleted"}
+            results_list.append(result)
+        return json.twisted_dumps(results_list)
 
-        with db_session:
-            popular_channels = self.session.lm.mds.ChannelMetadata.get_random_channels(limit=limit_channels)
-            results = [channel.to_simple_dict() for channel in popular_channels]
-        return json.twisted_dumps({"channels": results})
 
+class MetadataPublicKeyEndpoint(resource.Resource):
+    """
+    Intermediate endpoint for parsing public_key part of the request.
 
-class ChannelPublicKeyEndpoint(BaseChannelsEndpoint):
+    # /<public_key>
+    #              /<id_>
+    """
 
     def getChild(self, path, request):
-        return SpecificChannelEndpoint(self.session, self.channel_pk, path)
+        return SpecificMetadataEndpoint(self.session, self.channel_pk, path)
 
     def __init__(self, session, path):
-        BaseChannelsEndpoint.__init__(self, session)
+        resource.Resource.__init__(self)
+        self.session = session
         self.channel_pk = unhexlify(path)
 
 
-class SpecificChannelEndpoint(BaseChannelsEndpoint):
+class SpecificMetadataEndpoint(resource.Resource, UpdateEntryMixin):
+    """
+    The endpoint to modify and get individual metadata entries.
 
-    def __init__(self, session, channel_pk, path):
-        BaseChannelsEndpoint.__init__(self, session)
-        self.channel_pk = channel_pk
-        self.channel_id = int(path)
+    # /<id_>
+    """
 
-        self.putChild(b"torrents", SpecificChannelTorrentsEndpoint(session, self.channel_pk, self.channel_id))
+    def __init__(self, session, public_key, path):
+        self._logger = logging.getLogger(self.__class__.__name__)
 
-    def render_POST(self, request):
-        parameters = recursive_unicode(http.parse_qs(request.content.read(), 1))
-        if 'subscribe' not in parameters:
+        self.session = session
+        self.public_key = public_key
+        self.id_ = int(path)
+        resource.Resource.__init__(self)
+
+    def render_PATCH(self, request):
+        # TODO: unify checks for parts of the path, i.e. proper hex for public key, etc.
+        try:
+            parameters = recursive_unicode(json.twisted_loads(request.content.read()))
+        except ValueError:
             request.setResponseCode(http.BAD_REQUEST)
-            return json.twisted_dumps({"success": False, "error": "subscribe parameter missing"})
+            return json.twisted_dumps({"error": "bad JSON input data"})
 
-        to_subscribe = int(parameters['subscribe'][0]) == 1
+        error, result = self.update_entry(self.public_key, self.id_, parameters)
+        if error:
+            request.setResponseCode(error)
+        return json.twisted_dumps(result)
+
+    def render_GET(self, request):
         with db_session:
-            channel = self.session.lm.mds.ChannelMetadata.get_for_update(public_key=database_blob(self.channel_pk),
-                                                                         id_=self.channel_id)
-            if not channel:
+            entry = self.session.lm.mds.ChannelNode.get(public_key=database_blob(self.public_key), id_=self.id_)
+
+            if entry:
+                # TODO: handle costly attributes in a more graceful and generic way for all types of metadata
+                entry_dict = entry.to_simple_dict(
+                    include_trackers=isinstance(entry, self.session.lm.mds.TorrentMetadata)
+                )
+            else:
                 request.setResponseCode(http.NOT_FOUND)
-                return json.twisted_dumps({"error": "this channel cannot be found"})
+                return json.twisted_dumps({"error": "entry not found in database"})
 
-            channel.subscribed = to_subscribe
-            channel.share = to_subscribe
-            if not to_subscribe:
-                channel.local_version = 0
-            channel_state = channel.to_simple_dict()["state"]
-
-        def delete_channel():
-            # TODO: this should be eventually moved to a garbage-collector-like subprocess in MetadataStore
-            with db_session:
-                channel = self.session.lm.mds.ChannelMetadata.get_for_update(public_key=database_blob(self.channel_pk),
-                                                                             id_=self.channel_id)
-                contents = channel.contents
-                contents.delete(bulk=True)
-            self.session.lm.mds._db.disconnect()
-
-        if not to_subscribe:
-            reactor.callInThread(delete_channel)
-
-        return json.twisted_dumps({"success": True, "subscribed": to_subscribe, "state": channel_state})
+        return json.twisted_dumps(entry_dict)
 
 
-class SpecificChannelTorrentsEndpoint(BaseMetadataEndpoint):
+class TorrentsEndpoint(MetadataEndpointBase):
+    """
+    The endpoint that provides and interface to torrent objects in the metadata database.
 
-    def __init__(self, session, channel_pk, channel_id):
-        BaseMetadataEndpoint.__init__(self, session)
-        self.channel_pk = channel_pk
-        self.channel_id = channel_id
-
-        self.putChild(b"count", SpecificChannelTorrentsCountEndpoint(session, self.channel_pk, self.channel_id))
-
-    def render_GET(self, request):
-        args = recursive_unicode(request.args)
-        sanitized = self.sanitize_parameters(args)
-        sanitized.update(dict(channel_pk=self.channel_pk, origin_id=self.channel_id))
-        with db_session:
-            torrents = self.session.lm.mds.TorrentMetadata.get_entries(**sanitized)
-            torrents_list = [torrent.to_simple_dict() for torrent in torrents]
-
-        return json.twisted_dumps({
-            "results": torrents_list,
-            "first": sanitized['first'],
-            "last": sanitized['last'],
-            "sort_by": sanitized['sort_by'],
-            "sort_asc": int(sanitized['sort_asc']),
-        })
-
-
-class SpecificChannelTorrentsCountEndpoint(SpecificChannelTorrentsEndpoint):
-
-    def __init__(self, session, channel_pk, channel_id):
-        BaseMetadataEndpoint.__init__(self, session)
-        self.channel_pk = channel_pk
-        self.channel_id = channel_id
-
-    def render_GET(self, request):
-        args = recursive_unicode(request.args)
-        sanitized = self.sanitize_parameters(args)
-        sanitized.update(dict(channel_pk=self.channel_pk, origin_id=self.channel_id))
-        return self.get_total_count(self.session.lm.mds.TorrentMetadata, sanitized)
-
-
-class TorrentsEndpoint(BaseMetadataEndpoint):
+    # /torrents
+    #          /random
+    """
 
     def __init__(self, session):
-        BaseMetadataEndpoint.__init__(self, session)
+        MetadataEndpointBase.__init__(self, session)
         self.putChild(b"random", TorrentsRandomEndpoint(session))
 
     def getChild(self, path, request):
@@ -258,7 +171,7 @@ class TorrentsEndpoint(BaseMetadataEndpoint):
 
 class SpecificTorrentEndpoint(resource.Resource):
     """
-    This class handles requests for a specific torrent.
+    This class handles requests for a specific torrent, based on infohash.
     """
 
     def __init__(self, session, infohash):
@@ -268,20 +181,11 @@ class SpecificTorrentEndpoint(resource.Resource):
 
         self.putChild(b"health", TorrentHealthEndpoint(self.session, self.infohash))
 
-    def render_GET(self, request):
-        with db_session:
-            md = self.session.lm.mds.TorrentMetadata.select(lambda g: g.infohash == database_blob(self.infohash))[:1]
-            torrent_dict = md[0].to_simple_dict(include_trackers=True) if md else None
 
-        if not md:
-            request.setResponseCode(http.NOT_FOUND)
-            request.write(json.twisted_dumps({"error": "torrent not found in database"}))
-            return
-
-        return json.twisted_dumps({"torrent": torrent_dict})
-
-
-class TorrentsRandomEndpoint(BaseMetadataEndpoint):
+class TorrentsRandomEndpoint(MetadataEndpointBase):
+    """
+    A specialized endpoint to get a random torrent from the metadata database.
+    """
 
     def render_GET(self, request):
         limit_torrents = 10

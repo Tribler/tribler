@@ -31,6 +31,13 @@ def define_binding(db):
 
     # This binding is used to store normalization data and stats for VSIDS
     class Vsids(db.Entity):
+        """
+        This ORM class is used to hold persistent information for the state of VSIDS scoring system.
+        ACHTUNG! At all times there should be no more than one row/entity of this class. A single entity is
+        enough to keep the information for the whole GigaChannels.
+        In a sense, *this is a singleton*.
+        """
+
         rowid = orm.PrimaryKey(int)
         bump_amount = orm.Required(float)
         total_activity = orm.Required(float)
@@ -60,7 +67,7 @@ def define_binding(db):
             if not channel_count:
                 return
             if self.total_activity > 0.0:
-                self.rescale(self.total_activity/channel_count)
+                self.rescale(self.total_activity / channel_count)
                 self.bump_amount = 1.0
 
         @db_session
@@ -88,8 +95,11 @@ def define_binding(db):
         @classmethod
         @db_session
         def create_default_vsids(cls):
-            return cls(rowid=0,
-                       bump_amount=1.0,
-                       total_activity=(orm.sum(g.votes for g in db.ChannelMetadata) or 0.0),
-                       last_bump=datetime.utcnow())
+            return cls(
+                rowid=0,
+                bump_amount=1.0,
+                total_activity=(orm.sum(g.votes for g in db.ChannelMetadata) or 0.0),
+                last_bump=datetime.utcnow(),
+            )
+
     return Vsids

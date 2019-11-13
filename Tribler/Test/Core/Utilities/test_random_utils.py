@@ -7,7 +7,6 @@ from Tribler.Test.test_as_server import BaseTestCase
 
 
 class TestRandomUtils(BaseTestCase):
-
     def test_random_string(self):
         test_string = random_string()
         self.assertIsNotNone(test_string)
@@ -28,8 +27,8 @@ class TestRandomUtils(BaseTestCase):
         self.assertTrue(isinstance(test_string, six.text_type))
         self.assertEqual(len(test_string2), text_length)
 
-    def test_infohash(self):
+    def test_random_infohash(self):
         test_infohash = random_infohash()
         self.assertIsNotNone(test_infohash)
-        self.assertTrue(isinstance(test_infohash, six.binary_type))
+        self.assertTrue(isinstance(test_infohash, bytes))
         self.assertEqual(len(test_infohash), 20)

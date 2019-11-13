@@ -176,6 +176,12 @@ class TriblerConfig(object):
     def get_chant_enabled(self):
         return self.config['chant']['enabled']
 
+    def get_chant_manager_enabled(self):
+        return self.config['chant']['manager_enabled']
+
+    def set_chant_manager_enabled(self, value):
+        self.config['chant']['manager_enabled'] = value
+
     def set_chant_channels_dir(self, chant_db_filename):
         self.config['chant']['channels_dir'] = self.norm_path(chant_db_filename)
 
