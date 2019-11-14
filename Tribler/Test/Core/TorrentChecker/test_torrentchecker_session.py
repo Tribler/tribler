@@ -200,7 +200,7 @@ class TestTorrentCheckerSession(TestAsServer):
 
     def test_udpsession_handle_wrong_action_transaction(self):
         session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 0, self.socket_mgr)
-        session.on_ip_address_resolved("127.0.0.1", start_scraper=None)
+        session.on_ip_address_resolved("127.0.0.1")
         self.assertFalse(session.is_failed)
         packet = struct.pack("!qq4s", 123, 123, b"test")
         session.handle_connection_response(packet)
@@ -249,7 +249,7 @@ class TestTorrentCheckerSession(TestAsServer):
     @trial_timeout(5)
     def test_udpsession_correct_handle(self):
         session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 5, self.socket_mgr)
-        session.on_ip_address_resolved("127.0.0.1", start_scraper=False)
+        session.on_ip_address_resolved("127.0.0.1")
         session.result_deferred = Deferred()
         self.assertFalse(session.is_failed)
         session._infohash_list = [b"test"]

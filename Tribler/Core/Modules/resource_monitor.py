@@ -32,7 +32,6 @@ class ResourceMonitor(TaskManager):
 
         self._logger = logging.getLogger(self.__class__.__name__)
         self.session = session
-        self.check_interval = 5
         self.cpu_data = []
         self.memory_data = []
         self.disk_usage_data = []

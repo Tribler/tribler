@@ -57,13 +57,6 @@ class InvalidChannelNodeException(TriblerException):
     """
 
 
-class DuplicateChannelIdError(TriblerException):
-    """
-    The Channel name already exists in the ChannelManager channel list,
-    i.e., one of your own Channels with the same name already exists.
-    """
-
-
 class DuplicateTorrentFileError(TriblerException):
     """The Torrent already exists in the Channel you try to add it to."""
 
@@ -77,13 +70,6 @@ class DuplicateDownloadException(TriblerException):
     The Download already exists in the Session, i.e., a Download for
     a torrent with the same infohash already exists.
     """
-
-    def __init__(self, msg=None):
-        TriblerException.__init__(self, msg)
-
-
-class TorrentFileException(TriblerException):
-    """The torrent file that is used is corrupt or cannot be read."""
 
     def __init__(self, msg=None):
         TriblerException.__init__(self, msg)

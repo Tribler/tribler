@@ -12,7 +12,6 @@ from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.exceptions import InvalidSignatureException
 
 EPOCH = datetime(1970, 1, 1)
-INFOHASH_SIZE = 20  # bytes
 
 SIGNATURE_SIZE = 64
 NULL_SIG = b'\x00' * 64

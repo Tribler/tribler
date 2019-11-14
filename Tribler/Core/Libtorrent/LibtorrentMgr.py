@@ -37,7 +37,6 @@ from Tribler.Core.version import version_id
 
 LTSTATE_FILENAME = "lt.state"
 METAINFO_CACHE_PERIOD = 5 * 60
-DHT_CHECK_RETRIES = 1
 DEFAULT_DHT_ROUTERS = [
     ("dht.libtorrent.org", 25401),
     ("router.bittorrent.com", 6881),

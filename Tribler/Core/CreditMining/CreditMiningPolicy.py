@@ -18,8 +18,6 @@ MB = 1024 * 1024
 HOUR = 3600
 DAY = 86400
 WEEK = 7 * DAY
-DOWNLOAD_MODE = 0
-UPLOAD_MODE = 1
 
 
 class BasePolicy(object):
@@ -120,12 +118,11 @@ class InvestmentState(object):
     """
     Represents the credit mining state for a torrent.
     """
-    def __init__(self, state_id, upload_mode, bandwidth_limit, promotion_ratio=1, promotion_interval=5 * 60):
+    def __init__(self, state_id, upload_mode, bandwidth_limit, promotion_ratio=1):
         self.state_id = state_id
         self.bandwidth_limit = bandwidth_limit
         self.upload_mode = upload_mode
         self.promotion_ratio = promotion_ratio
-        self.promotion_interval = promotion_interval
 
     def is_promotion_ready(self, download, upload):
         """
@@ -146,7 +143,6 @@ class InvestmentPolicy(BasePolicy):
     def __init__(self, states=None):
         super(InvestmentPolicy, self).__init__()
         self.investment_states = states if states else self.get_default_investment_states()
-        self.mining_level = {}
         self.num_uploading_in_iteration = 0
         self.num_downloading_in_iteration = 0
 
