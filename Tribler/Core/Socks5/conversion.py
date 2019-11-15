@@ -5,7 +5,7 @@ import logging
 import socket
 import struct
 
-from ipv8.util import ensure_str
+from ipv8.util import ensure_binary, ensure_str
 
 SOCKS_VERSION = 0x05
 
@@ -134,7 +134,8 @@ def __encode_address(address_type, address):
     elif address_type == ADDRESS_TYPE_IPV6:
         raise IPV6AddrError()
     elif address_type == ADDRESS_TYPE_DOMAIN_NAME:
-        data = struct.pack("!B", len(address)) + address
+        bin_address = ensure_binary(address)
+        data = struct.pack("!B", len(bin_address)) + bin_address
     else:
         raise ValueError(
             "address_type must be either IPv4, IPv6 or a domain name")
@@ -149,8 +150,11 @@ def __decode_address(address_type, offset, data):
     elif address_type == ADDRESS_TYPE_DOMAIN_NAME:
         domain_length, = struct.unpack_from("!B", data, offset)
         offset += 1
-        destination_address = ensure_str(data[offset:offset + domain_length])
-        offset += domain_length
+        try:
+            destination_address = ensure_str(data[offset:offset + domain_length])
+            offset += domain_length
+        except UnicodeDecodeError as ude:
+            raise InvalidAddressException(data[offset:offset + domain_length], str(ude))
     elif address_type == ADDRESS_TYPE_IPV6:
         raise IPV6AddrError()
     else:
@@ -184,6 +188,9 @@ def decode_request(orig_offset, data):
         offset, destination_address = __decode_address(address_type, offset, data)
     except IPV6AddrError:
         logger.error("Not supporting IPv6 address in datagrams yet")
+        return orig_offset, None
+    except InvalidAddressException as ide:
+        logger.error("Failed to decode address: %s", str(ide))
         return orig_offset, None
 
     # Check if we could decode address, if not bail out
@@ -267,3 +274,13 @@ def encode_udp_packet(rsv, frag, address_type, address, port, payload):
 class IPV6AddrError(NotImplementedError):
     def __str__(self):
         return "IPV6 support not implemented"
+
+
+class InvalidAddressException(Exception):
+    def __init__(self, address, reason=None):
+        super(InvalidAddressException, self).__init__(address, reason)
+        self.address = address
+        self.reason = reason if reason else 'N/A'
+
+    def __str__(self):
+        return "Invalid address: %r\nException: %r" % (self.address, self.reason)

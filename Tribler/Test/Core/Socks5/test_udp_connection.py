@@ -1,3 +1,8 @@
+from __future__ import absolute_import
+
+import sys
+from unittest import skipIf
+
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Socks5.udp_connection import SocksUDPConnection
@@ -32,6 +37,12 @@ class TestSocks5UDPConnection(AbstractServer):
 
         # Receiving data from somewhere that is not our remote address
         self.assertFalse(self.connection.datagramReceived(b'aaaaaa', ("1.2.3.4", 1234)))
+
+    @skipIf(sys.version_info.major < 3, "Test for Python3 decoding of UDP packet")
+    def test_datagram_received_py3(self):
+        # Receiving data from an invalid destination address
+        invalid_udp_packet = b'\x00\x00\x00\x03\x1etracker1.invalid-tracker\xc4\xe95\x11$\x00\x1f\x940x000'
+        self.assertFalse(self.connection.datagramReceived(invalid_udp_packet, ("1.1.1.1", 1234)))
 
     def test_send_diagram(self):
         """
