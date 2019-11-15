@@ -386,13 +386,12 @@ class UdpTrackerSession(TrackerSession):
             "The result deferred of this UDP tracker session is being cancelled due to a session cleanup. UDP url: %s",
             self.tracker_url)
 
-    def on_ip_address_resolved(self, ip_address, start_scraper=True):
+    def on_ip_address_resolved(self, ip_address):
         """
         Called when a hostname has been resolved to an ip address.
         Constructs a scraper and opens a UDP port to listen on.
         Removes an old scraper if present.
         :param ip_address: The ip address that matches the hostname of the tracker_url.
-        :param start_scraper: Whether we should start the scraper immediately.
         """
         self.ip_address = ip_address
         self.connect()

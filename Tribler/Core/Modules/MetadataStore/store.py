@@ -79,10 +79,6 @@ sql_add_fts_trigger_update = """
     END;"""
 
 
-class BadChunkException(Exception):
-    pass
-
-
 class DiscreteClock(object):
     # Lamport-clock-like persistent counter
     # Horribly inefficient and stupid, but works

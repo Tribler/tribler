@@ -69,10 +69,8 @@ class TriblerUpgrader(object):
         self.session = session
 
         self.notified = False
-        self.is_done = False
         self.failed = True
 
-        self.current_status = u"Initializing"
         self._dtp72 = None
         self.skip_upgrade_called = False
 
@@ -135,7 +133,6 @@ class TriblerUpgrader(object):
 
     def update_status(self, status_text):
         self.session.notifier.notify(NTFY_UPGRADER_TICK, NTFY_STARTED, None, status_text)
-        self.current_status = status_text
 
     def upgrade_72_to_pony(self):
         old_database_path = os.path.join(self.session.config.get_state_dir(), 'sqlite', 'tribler.sdb')
@@ -170,13 +167,6 @@ class TriblerUpgrader(object):
         This method performs actions necessary to upgrade the configuration files to Tribler 7.4.
         """
         convert_config_to_tribler74()
-
-    def upgrade_config_to_71(self):
-        """
-        This method performs actions necessary to upgrade the configuration files to Tribler 7.1.
-        """
-        self.session.config = convert_config_to_tribler71(self.session.config)
-        self.session.config.write()
 
     def backup_state_directory(self):
         """

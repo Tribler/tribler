@@ -13,7 +13,7 @@ Secondly, install python packages
 
 .. code-block:: bash
 
- pip install bitcoinlib chardet configobj decorator dnspython ecdsa feedparser jsonrpclib leveldb matplotlib netifaces networkx pbkdf2 pony protobuf psutil pyaes pyasn1 pysocks requests lz4
+ pip install bitcoinlib chardet configobj decorator dnspython ecdsa feedparser jsonrpclib matplotlib netifaces networkx pbkdf2 pony protobuf psutil pyaes pyasn1 pysocks requests lz4
 
 Then, install py-ipv8 python dependencies
 

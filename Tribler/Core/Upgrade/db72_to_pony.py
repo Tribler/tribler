@@ -39,10 +39,6 @@ CONVERSION_FROM_72_DISCOVERED = "conversion_from_72_discovered"
 CONVERSION_FROM_72_CHANNELS = "conversion_from_72_channels"
 
 
-def pseudo_signature():
-    return database_blob(os.urandom(32))
-
-
 def final_timestamp():
     return 1 << 62
 

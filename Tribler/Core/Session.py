@@ -50,7 +50,7 @@ class Session(object):
     """
     __single = None
 
-    def __init__(self, config=None, autoload_discovery=True):
+    def __init__(self, config=None):
         """
         A Session object is created which is configured with the Tribler configuration object.
 
@@ -61,7 +61,6 @@ class Session(object):
         we can't find it, we create a new TriblerConfig() object to
         serve as startup config. Next, the config is saved in the directory
         indicated by its 'state_dir' attribute.
-        :param autoload_discovery: only false in the Tunnel community tests
         """
         addObserver(self.unhandled_error_observer)
 
@@ -88,7 +87,6 @@ class Session(object):
         self.upgrader = None
         self.readable_status = ''  # Human-readable string to indicate the status during startup/shutdown of Tribler
 
-        self.autoload_discovery = autoload_discovery
 
     def create_state_directory_structure(self):
         """Create directory structure of the state directory."""
@@ -241,18 +239,6 @@ class Session(object):
         if self.config.get_libtorrent_enabled():
             return self.lm.add(torrent_definition, download_config, hidden=hidden)
         raise OperationNotEnabledByConfigurationException()
-
-    def resume_download_from_file(self, filename):
-        """
-        Recreates Download from resume file.
-
-        Note: this cannot be made into a method of Download, as the Download
-        needs to be bound to a session, it cannot exist independently.
-
-        :return: a Download object
-        :raises: a NotYetImplementedException
-        """
-        raise NotYetImplementedException()
 
     def get_downloads(self):
         """

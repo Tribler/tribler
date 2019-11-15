@@ -20,25 +20,19 @@ class BaseSource(TaskManager):
         self.session = session
         self.source = source
         self.torrent_insert_callback = torrent_insert_cb
-        self.ready = False
 
     def start(self):
         """
         Start operating mining for this source
         """
-        self.ready = True
         self._logger.debug('Start mining %s', str(self))
 
     def stop(self):
         """
         Kill tasks on this source
         """
-        self.ready = False
         self.shutdown_task_manager()
         self._logger.debug('Stop mining %s', str(self))
-
-    def _on_err(self, err_msg):
-        self._logger.error(err_msg)
 
     def __str__(self):
         return self.source

@@ -97,13 +97,6 @@ class TriblerLaunchMany(TaskManager):
         self.version_check_manager = None
         self.resource_monitor = None
 
-        self.category = None
-        self.peer_db = None
-        self.torrent_db = None
-        self.mypref_db = None
-        self.votecast_db = None
-        self.channelcast_db = None
-
         self.gigachannel_manager = None
 
         self.video_server = None
@@ -762,31 +755,6 @@ class TriblerLaunchMany(TaskManager):
         if self.ipv8:
             self.session.notify_shutdown_state("Shutting down IPv8...")
             yield self.ipv8.stop(stop_reactor=False)
-
-        if self.channelcast_db is not None:
-            self.session.notify_shutdown_state("Shutting down ChannelCast DB...")
-            yield self.channelcast_db.close()
-        self.channelcast_db = None
-
-        if self.votecast_db is not None:
-            self.session.notify_shutdown_state("Shutting down VoteCast DB...")
-            yield self.votecast_db.close()
-        self.votecast_db = None
-
-        if self.mypref_db is not None:
-            self.session.notify_shutdown_state("Shutting down Preference DB...")
-            yield self.mypref_db.close()
-        self.mypref_db = None
-
-        if self.torrent_db is not None:
-            self.session.notify_shutdown_state("Shutting down Torrent DB...")
-            yield self.torrent_db.close()
-        self.torrent_db = None
-
-        if self.peer_db is not None:
-            self.session.notify_shutdown_state("Shutting down Peer DB...")
-            yield self.peer_db.close()
-        self.peer_db = None
 
         if self.watch_folder is not None:
             self.session.notify_shutdown_state("Shutting down Watch Folder...")
