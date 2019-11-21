@@ -97,7 +97,7 @@ class MetadataPublicKeyEndpoint(resource.Resource):
     Intermediate endpoint for parsing public_key part of the request.
 
     # /<public_key>
-    #              /<id_>
+    #              /<id\_>
     """
 
     def getChild(self, path, request):
@@ -113,7 +113,7 @@ class SpecificMetadataEndpoint(resource.Resource, UpdateEntryMixin):
     """
     The endpoint to modify and get individual metadata entries.
 
-    # /<id_>
+    # /<id\_>
     """
 
     def __init__(self, session, public_key, path):
