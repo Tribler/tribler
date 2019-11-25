@@ -373,18 +373,18 @@ class TorrentDef(object):
                             pass
 
                     # Try to convert the names in path to unicode,
-                    # without specifying the encoding
+                    # assuming that it was encoded as utf-8
                     try:
-                        yield join(*[text_type(element) for element in file_dict[b"path"]]), file_dict[b"length"]
+                        yield (join(*[ensure_unicode(element, "UTF-8") for element in file_dict[b"path"]]),
+                               file_dict[b"length"])
                         continue
                     except UnicodeError:
                         pass
 
                     # Try to convert the names in path to unicode,
-                    # assuming that it was encoded as utf-8
+                    # without specifying the encoding
                     try:
-                        yield (join(*[ensure_unicode(element, "UTF-8") for element in file_dict[b"path"]]),
-                               file_dict[b"length"])
+                        yield join(*[text_type(element) for element in file_dict[b"path"]]), file_dict[b"length"]
                         continue
                     except UnicodeError:
                         pass
