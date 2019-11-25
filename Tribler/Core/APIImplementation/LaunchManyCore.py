@@ -624,7 +624,6 @@ class TriblerLaunchMany(TaskManager):
 
         config.state_dir = self.session.config.get_state_dir()
 
-        self._logger.debug("tlm: load_checkpoint: resumedata %s", bool(config.get_engineresumedata()))
         if not (tdef and config):
             self._logger.info("tlm: could not resume checkpoint %s %s %s", filename, tdef, config)
             return
