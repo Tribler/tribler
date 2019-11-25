@@ -21,8 +21,6 @@ Ippolito <bob@redivi.com>.  Simplified, and optimized to use just python code.
 @organization: Technical University Delft
 @contact: dispersy@frayja.com
 """
-from __future__ import absolute_import, division
-
 import logging
 from binascii import unhexlify
 from hashlib import md5, sha1, sha256, sha384, sha512

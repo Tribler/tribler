@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from Tribler.Core.Socks5.server import Socks5Server
 from Tribler.Test.test_as_server import AbstractServer
 

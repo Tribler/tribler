@@ -3,8 +3,6 @@ install_dir.
 
 Author(s): Elric Milon
 """
-from __future__ import absolute_import
-
 import os.path
 import sys
 

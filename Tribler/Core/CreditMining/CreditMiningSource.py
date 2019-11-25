@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import logging
 
 from ipv8.taskmanager import TaskManager

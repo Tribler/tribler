@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from anydex.restapi.root_endpoint import RootEndpoint as AnyDexRootEndpoint
 from anydex.restapi.wallets_endpoint import WalletsEndpoint
 

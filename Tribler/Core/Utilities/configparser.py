@@ -3,8 +3,6 @@ A configparser.
 
 Author(s): Egbert Bouman
 """
-from __future__ import absolute_import
-
 import ast
 import codecs
 from threading import RLock

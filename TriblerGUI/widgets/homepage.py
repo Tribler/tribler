@@ -1,5 +1,3 @@
-from __future__ import absolute_import, division
-
 from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import QWidget
 

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import socket
 import struct
 from asyncio import start_server, ensure_future, Future, CancelledError, get_event_loop, DatagramProtocol

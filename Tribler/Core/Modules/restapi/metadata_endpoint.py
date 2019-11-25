@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from asyncio import ensure_future
 from binascii import unhexlify
 

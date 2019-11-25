@@ -1,8 +1,6 @@
 """
 Tribler is a privacy enhanced BitTorrent client with P2P content discovery.
 """
-from __future__ import absolute_import
-
 import os
 import sys
 

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import random
 import struct
 from asyncio import get_event_loop, DatagramProtocol

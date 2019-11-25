@@ -3,8 +3,6 @@ A wrapper around a libtorrent download.
 
 Author(s): Arno Bakker, Egbert Bouman
 """
-from __future__ import absolute_import, division
-
 import base64
 import logging
 import os

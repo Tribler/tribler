@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from ipv8.messaging.anonymization.tunnel import CIRCUIT_STATE_EXTENDING, CIRCUIT_STATE_READY, CIRCUIT_TYPE_DATA
 
 from Tribler.Test.Core.base_test import MockObject

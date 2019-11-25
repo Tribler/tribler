@@ -1,8 +1,6 @@
 """
 Configuration object for the Tribler Core.
 """
-from __future__ import absolute_import
-
 import logging
 import os
 

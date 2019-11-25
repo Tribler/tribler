@@ -2,9 +2,6 @@
 Supported credit mining policy.
 Author(s): Egbert Bouman, Mihai Capota, Elric Milon, Ardhi Putra
 """
-from __future__ import absolute_import
-from __future__ import division
-
 import logging
 import random
 import time

@@ -1,8 +1,6 @@
 """
 Author(s): Arno Bakker
 """
-from __future__ import absolute_import, division
-
 import aiohttp
 import logging
 import os

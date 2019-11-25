@@ -1,6 +1,4 @@
 # -*- coding:utf-8 -*-
-from __future__ import absolute_import
-
 from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.Modules.restapi.util import fix_unicode_array, fix_unicode_dict, get_parameter
 from Tribler.Core.Session import Session

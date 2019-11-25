@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import re
 
 from six import string_types, text_type

@@ -3,8 +3,6 @@ Video server.
 
 Author(s): Jan David Mol, Arno Bakker, Egbert Bouman
 """
-from __future__ import absolute_import
-
 import logging
 import mimetypes
 import os

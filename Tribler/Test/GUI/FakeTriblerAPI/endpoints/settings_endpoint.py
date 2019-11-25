@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from aiohttp import web
 
 import Tribler.Test.GUI.FakeTriblerAPI.tribler_utils as tribler_utils

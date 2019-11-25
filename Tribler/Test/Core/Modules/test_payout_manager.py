@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from Tribler.Core.Modules.payout_manager import PayoutManager
 from Tribler.Core.Utilities.utilities import succeed
 from Tribler.Test.Core.base_test import MockObject, TriblerCoreTest

@@ -2,8 +2,6 @@
 This file contains various controllers for table views.
 The responsibility of the controller is to populate the table view with some data, contained in a specific model.
 """
-from __future__ import absolute_import
-
 from PyQt5.QtCore import QObject, Qt
 from PyQt5.QtGui import QCursor
 from PyQt5.QtWidgets import QAction

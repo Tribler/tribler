@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from aiohttp import web
 
 from Tribler.Core.Modules.restapi.rest_endpoint import RESTEndpoint, RESTResponse, HTTP_BAD_REQUEST, HTTP_NOT_FOUND

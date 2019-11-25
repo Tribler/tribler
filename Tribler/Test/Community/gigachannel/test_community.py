@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import os
 
 from ipv8.keyvault.crypto import default_eccrypto

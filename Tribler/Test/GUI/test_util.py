@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import unittest
 
 from six.moves.urllib.parse import unquote_plus

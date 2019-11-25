@@ -1,6 +1,4 @@
 # Some constants used in the RFC 1928 specification
-from __future__ import absolute_import
-
 import logging
 import socket
 import struct

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from asyncio import get_event_loop
 
 from aiohttp import web

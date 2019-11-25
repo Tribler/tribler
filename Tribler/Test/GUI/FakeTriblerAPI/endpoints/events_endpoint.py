@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import json
 
 from asyncio import sleep, ensure_future, CancelledError

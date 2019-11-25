@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from nose.tools import raises
 
 from Tribler.Core.exceptions import DuplicateDownloadException, NotYetImplementedException, \

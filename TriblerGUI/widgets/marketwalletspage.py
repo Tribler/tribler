@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from PIL.ImageQt import ImageQt
 
 from PyQt5 import QtCore, QtGui

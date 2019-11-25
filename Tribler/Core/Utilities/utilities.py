@@ -3,8 +3,6 @@ This module mainly provides validation and correction for urls. This class
 provides a method for HTTP GET requests as well as a function to translate peers into health.
 Author(s): Jie Yang
 """
-from __future__ import absolute_import
-
 import binascii
 import logging
 import re

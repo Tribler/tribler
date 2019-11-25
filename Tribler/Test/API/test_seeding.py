@@ -3,8 +3,6 @@ Seeding tests.
 
 Author(s): Arno Bakker, Niels Zeilemaker
 """
-from __future__ import absolute_import
-
 import logging
 import os
 from asyncio import Future, ensure_future

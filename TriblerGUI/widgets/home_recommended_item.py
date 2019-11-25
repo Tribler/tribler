@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from PyQt5.QtCore import QPoint, QSize, Qt
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QLabel, QSizePolicy, QToolButton, QWidget

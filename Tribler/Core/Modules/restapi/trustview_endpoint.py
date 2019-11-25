@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import logging
 import math
 from binascii import unhexlify

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from aiohttp import web, ClientSession
 
 from Tribler.Core.Utilities.utilities import is_channel_public_key, is_infohash, is_simple_match_query, \

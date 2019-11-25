@@ -3,8 +3,6 @@ This script takes a Jenkins workspace and automatically fetches the Sonar Cloud 
 Next, it queries the SonarCloud API to get the status of the task. When the task is done, it fetches the status
 of the quality gate from the server and exits with a non-zero exit code if the quality gate has failed.
 """
-from __future__ import absolute_import, print_function
-
 import json
 import os
 import time

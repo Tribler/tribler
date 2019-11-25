@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from asyncio import Future
 
 from Tribler.Core.Notifier import Notifier

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from asyncio import Future, ensure_future, CancelledError
 from contextlib import suppress
 

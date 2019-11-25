@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from Tribler.Core.Modules.restapi.upgrader_endpoint import SKIP_DB_UPGRADE_STR
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.Core.base_test import MockObject

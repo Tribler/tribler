@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from Tribler.Core.DownloadState import DownloadState
 from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, DLSTATUS_EXIT_NODES, DLSTATUS_WAITING4HASHCHECK, DOWNLOAD,
                                      UPLOAD)

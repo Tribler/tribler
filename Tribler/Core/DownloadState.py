@@ -3,8 +3,6 @@ Contains a snapshot of the state of the Download at a specific point in time.
 
 Author(s): Arno Bakker
 """
-from __future__ import absolute_import
-
 import logging
 
 from ipv8.messaging.anonymization.tunnel import PEER_FLAG_EXIT_ANY

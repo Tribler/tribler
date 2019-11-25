@@ -3,8 +3,6 @@ Permanent Identifier.
 
 Author(s): Arno Bakker
 """
-from __future__ import absolute_import
-
 import logging
 
 from ipv8.keyvault.private.libnaclkey import LibNaCLSK

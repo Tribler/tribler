@@ -3,8 +3,6 @@ A wrapper around libtorrent
 
 Author(s): Egbert Bouman
 """
-from __future__ import absolute_import
-
 import asyncio
 import logging
 import os

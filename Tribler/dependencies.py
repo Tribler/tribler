@@ -3,8 +3,6 @@ This file lists the python dependencies for Tribler.
 
 Note that this file should not depend on any external modules itself other than builtin ones.
 """
-from __future__ import absolute_import, print_function
-
 import importlib
 import sys
 

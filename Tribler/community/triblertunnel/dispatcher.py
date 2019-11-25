@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import logging
 
 from ipv8.messaging.anonymization.tunnel import CIRCUIT_ID_PORT, CIRCUIT_STATE_READY,\

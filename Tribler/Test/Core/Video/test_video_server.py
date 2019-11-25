@@ -3,8 +3,6 @@ Tests for the video server.
 
 Author(s): Arno Bakker
 """
-from __future__ import absolute_import
-
 import os
 from asyncio import Future, Protocol, get_event_loop
 

@@ -3,8 +3,6 @@ A Session is a running instance of the Tribler Core and the Core's central class
 
 Author(s): Arno Bakker
 """
-from __future__ import absolute_import
-
 import asyncio
 import errno
 import logging

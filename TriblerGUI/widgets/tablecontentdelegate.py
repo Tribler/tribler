@@ -1,5 +1,3 @@
-from __future__ import absolute_import, division
-
 from PyQt5.QtCore import QEvent, QModelIndex, QObject, QRect, QRectF, QSize, Qt, pyqtSignal
 from PyQt5.QtGui import QBrush, QColor, QIcon, QPainter, QPen
 from PyQt5.QtSvg import QSvgRenderer

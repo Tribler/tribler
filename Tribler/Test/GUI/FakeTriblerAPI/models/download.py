@@ -1,5 +1,3 @@
-from __future__ import absolute_import, division
-
 import base64
 from random import randint, random, uniform
 

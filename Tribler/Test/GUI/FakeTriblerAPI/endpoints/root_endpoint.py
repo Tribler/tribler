@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from Tribler.Core.Modules.restapi.rest_endpoint import RESTEndpoint
 from Tribler.Test.GUI.FakeTriblerAPI.endpoints.channels_endpoint import ChannelsEndpoint
 from Tribler.Test.GUI.FakeTriblerAPI.endpoints.debug_endpoint import DebugEndpoint

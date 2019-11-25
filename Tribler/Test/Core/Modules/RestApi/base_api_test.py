@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from six import text_type
 from six.moves.urllib.parse import quote_plus
 

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import os
 import random
 from asyncio import all_tasks, gather, sleep

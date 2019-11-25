@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import json
 
 from Tribler.Core.Config.download_config import DownloadConfig

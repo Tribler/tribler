@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from asyncio import Future, wait_for
 from binascii import unhexlify
 

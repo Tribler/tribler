@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import json
 
 from PyQt5.QtCore import pyqtSignal

@@ -4,9 +4,6 @@ As time of this writing the PR is still open so we can remove this file later
 when the PR is merged.
 https://github.com/pyqtgraph/pyqtgraph/pull/74
 """
-from __future__ import absolute_import
-from __future__ import division
-
 import time
 from datetime import datetime
 

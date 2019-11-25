@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 # fmt: off
-from __future__ import absolute_import, print_function
-
 # Python ctypes bindings for VLC
 #
 # Copyright (C) 2009-2017 the VideoLAN team

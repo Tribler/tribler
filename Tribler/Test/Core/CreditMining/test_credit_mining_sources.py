@@ -3,8 +3,6 @@ Module of Credit mining function testing.
 
 Author(s): Mihai Capota, Ardhi Putra
 """
-from __future__ import absolute_import
-
 import os
 from asyncio import Future
 

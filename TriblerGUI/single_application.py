@@ -1,7 +1,5 @@
 # Copied and modified from http://stackoverflow.com/a/12712362/605356
 
-from __future__ import absolute_import
-
 import logging
 import sys
 

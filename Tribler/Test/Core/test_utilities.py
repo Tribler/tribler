@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from ipv8.messaging.deprecated.encoding import add_url_params
 
 from Tribler.Core.Utilities.utilities import parse_magnetlink

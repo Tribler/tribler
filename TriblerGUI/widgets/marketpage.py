@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import datetime
 
 from PyQt5.QtCore import Qt, pyqtSignal

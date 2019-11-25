@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import struct
 
 from ipv8.messaging.payload import Payload

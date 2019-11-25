@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from asyncio import gather
 
 from aiohttp import web

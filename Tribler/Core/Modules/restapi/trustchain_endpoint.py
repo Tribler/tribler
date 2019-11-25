@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from aiohttp import web
 
 from Tribler.Core.Utilities.unicode import recursive_unicode

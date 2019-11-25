@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from asyncio import sleep
 from binascii import unhexlify
 from random import randint, sample

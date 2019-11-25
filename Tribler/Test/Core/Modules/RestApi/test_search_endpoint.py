@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import os
 
 from ipv8.database import database_blob

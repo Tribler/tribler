@@ -3,8 +3,6 @@ Conversions to unicode.
 
 Author(s): Arno Bakker
 """
-from __future__ import absolute_import
-
 import binascii
 
 import chardet
