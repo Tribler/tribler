@@ -4,6 +4,8 @@ from Tribler.Core.Socks5 import conversion
 from twisted.internet import reactor
 from twisted.internet.protocol import DatagramProtocol
 
+from Tribler.Core.Socks5.conversion import IncorrectHostnameError
+
 
 class SocksUDPConnection(DatagramProtocol):
 
@@ -39,6 +41,9 @@ class SocksUDPConnection(DatagramProtocol):
                 request = conversion.decode_udp_packet(data)
             except conversion.IPV6AddrError:
                 self._logger.warning("Received an IPV6 udp datagram, dropping it (Not implemented yet)")
+                return False
+            except IncorrectHostnameError:
+                self._logger.error("Cannot decode hostname, dropping received datagram")
                 return False
 
             if request.frag == 0:

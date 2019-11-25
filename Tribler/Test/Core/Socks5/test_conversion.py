@@ -14,3 +14,6 @@ class TestSocks5Conversion(AbstractServer):
         """
         self.assertIsNone(decode_request(0, struct.pack("!BBBB", 5, 0, 0, 5))[1])  # Invalid address type
         self.assertIsNone(decode_request(0, struct.pack("!BBBB", 5, 0, 0, 4))[1])  # IPv6
+
+        # Hostname with invalid characters
+        self.assertIsNone(decode_request(0, struct.pack("!BBBBBB", 5, 0, 0, 3, 1,255))[1])

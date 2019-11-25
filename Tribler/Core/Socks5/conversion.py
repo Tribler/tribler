@@ -149,7 +149,10 @@ def __decode_address(address_type, offset, data):
     elif address_type == ADDRESS_TYPE_DOMAIN_NAME:
         domain_length, = struct.unpack_from("!B", data, offset)
         offset += 1
-        destination_address = ensure_str(data[offset:offset + domain_length])
+        try:
+            destination_address = ensure_str(data[offset:offset + domain_length])
+        except UnicodeDecodeError:
+            raise IncorrectHostnameError()
         offset += domain_length
     elif address_type == ADDRESS_TYPE_IPV6:
         raise IPV6AddrError()
@@ -184,6 +187,9 @@ def decode_request(orig_offset, data):
         offset, destination_address = __decode_address(address_type, offset, data)
     except IPV6AddrError:
         logger.error("Not supporting IPv6 address in datagrams yet")
+        return orig_offset, None
+    except IncorrectHostnameError:
+        logger.error("Cannot decode hostname in request, dropping")
         return orig_offset, None
 
     # Check if we could decode address, if not bail out
@@ -267,3 +273,8 @@ def encode_udp_packet(rsv, frag, address_type, address, port, payload):
 class IPV6AddrError(NotImplementedError):
     def __str__(self):
         return "IPV6 support not implemented"
+
+
+class IncorrectHostnameError(RuntimeError):
+    def __str__(self):
+        return "Hostname cannot be decoded to Unicode"
