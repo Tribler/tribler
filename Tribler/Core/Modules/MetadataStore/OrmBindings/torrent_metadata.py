@@ -17,7 +17,7 @@ from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import COMMITTE
 from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, EPOCH, REGULAR_TORRENT, \
     TorrentMetadataPayload
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
-from Tribler.Core.Utilities.unicode import hexlify, ensure_unicode
+from Tribler.Core.Utilities.unicode import ensure_unicode, hexlify
 from Tribler.Core.Utilities.utilities import is_channel_public_key, is_hex_string, is_infohash
 
 NULL_KEY_SUBST = b"\00"

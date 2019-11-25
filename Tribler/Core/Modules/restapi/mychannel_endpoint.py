@@ -11,7 +11,6 @@ from ipv8.database import database_blob
 
 from pony.orm import db_session
 
-from six import viewitems
 from six.moves.urllib.parse import unquote
 
 from twisted.internet.defer import Deferred
