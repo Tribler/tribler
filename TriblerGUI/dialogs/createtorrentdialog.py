@@ -8,6 +8,8 @@ from PyQt5.QtWidgets import QAction, QFileDialog, QSizePolicy, QTreeWidgetItem
 
 from six.moves import xrange
 
+from Tribler.Core.Utilities.unicode import ensure_unicode
+
 from TriblerGUI.defs import BUTTON_TYPE_NORMAL
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.dialogs.dialogcontainer import DialogContainer
@@ -137,7 +139,7 @@ class CreateTorrentDialog(DialogContainer):
         self.request_mgr = TriblerRequestManager()
         data = {"torrent": torrent}
         if self.name:
-            data.update({"title": self.name.decode('utf-8')})
+            data.update({"title": ensure_unicode(self.name, 'utf8')})
         self.request_mgr.perform_request("mychannel/torrents", self.on_torrent_to_channel_added,
                                          data=data, method='PUT')
 
