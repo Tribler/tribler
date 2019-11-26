@@ -268,8 +268,11 @@ class HttpTrackerSession(TrackerSession):
         unprocessed_infohash_list = self._infohash_list[:]
         if b'files' in response_dict and isinstance(response_dict[b'files'], dict):
             for infohash in response_dict[b'files']:
-                complete = response_dict[b'files'][infohash].get(b'complete', 0)
-                incomplete = response_dict[b'files'][infohash].get(b'incomplete', 0)
+                complete = 0
+                incomplete = 0
+                if isinstance(response_dict[b'files'][infohash], dict):
+                    complete = response_dict[b'files'][infohash].get(b'complete', 0)
+                    incomplete = response_dict[b'files'][infohash].get(b'incomplete', 0)
 
                 # Sow complete as seeders. "complete: number of peers with the entire file, i.e. seeders (integer)"
                 #  - https://wiki.theory.org/BitTorrentSpecification#Tracker_.27scrape.27_Convention
