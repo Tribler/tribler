@@ -1,7 +1,5 @@
 from threading import Event, Thread
 
-from six.moves import xrange
-
 from Tribler.Core.Utilities.instrumentation import synchronized, WatchDog
 from Tribler.Test.Core.base_test import TriblerCoreTest
 
@@ -42,12 +40,12 @@ class TriblerCoreTestSynchronized(TriblerCoreTest):
 
         def add_a_bunch():
             start_event.wait(1)
-            for _ in xrange(ADDER_ITERATIONS):
+            for _ in range(ADDER_ITERATIONS):
                 self._up()
 
         # Create a bunch of threads that will call adder() at the same time
         threads = []
-        for _ in xrange(THREADS_NUM):
+        for _ in range(THREADS_NUM):
             t = Thread(target=add_a_bunch)
             t.start()
             threads.append(t)

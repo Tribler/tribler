@@ -4,11 +4,9 @@ import os
 import re
 import sys
 from datetime import datetime, timedelta
+from urllib.parse import quote_plus
 
 from PyQt5.QtWidgets import QApplication
-
-from six import integer_types
-from six.moves.urllib.parse import quote_plus
 
 import TriblerGUI
 from TriblerGUI.defs import HEALTH_DEAD, HEALTH_GOOD, HEALTH_MOOT, HEALTH_UNCHECKED, VIDEO_EXTS
@@ -93,7 +91,7 @@ def pretty_date(time=False):
     'just now', etc
     """
     now = datetime.now()
-    if isinstance(time, integer_types):
+    if isinstance(time, int):
         try:
             diff = now - datetime.fromtimestamp(time)
         except ValueError:  # The time passed is out of range - return an empty string

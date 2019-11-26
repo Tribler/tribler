@@ -7,8 +7,6 @@ import time
 from PyQt5 import uic
 from PyQt5.QtWidgets import QAction, QApplication, QDialog, QMessageBox, QTreeWidgetItem
 
-from six.moves import xrange
-
 from TriblerGUI.event_request_manager import received_events
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
 from TriblerGUI.tribler_request_manager import TriblerRequestManager, performed_requests as tribler_performed_requests
@@ -123,7 +121,7 @@ class FeedbackDialog(QDialog):
         endpoint = 'http://reporter.tribler.org/report'
 
         sys_info = ""
-        for ind in xrange(self.env_variables_list.topLevelItemCount()):
+        for ind in range(self.env_variables_list.topLevelItemCount()):
             item = self.env_variables_list.topLevelItem(ind)
             sys_info += "%s\t%s\n" % (item.text(0), item.text(1))
 

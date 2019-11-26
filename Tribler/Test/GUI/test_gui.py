@@ -14,9 +14,6 @@ from PyQt5.QtWidgets import QApplication, QListWidget, QTableView, QTextEdit, QT
 
 from aiohttp import web
 
-from six import text_type
-from six.moves import xrange
-
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Test.common import TORRENT_UBUNTU_FILE
 
@@ -250,8 +247,8 @@ class TriblerGUITest(AbstractTriblerGUITest):
         # Start a second Tribler instance with a torrent file
         system_encoding = sys.getfilesystemencoding()
         test_env = {
-            (k.encode(system_encoding) if isinstance(k, text_type) else str(k)): (
-                v.encode(system_encoding) if isinstance(v, text_type) else str(v)
+            (k.encode(system_encoding) if isinstance(k, str) else str(k)): (
+                v.encode(system_encoding) if isinstance(v, str) else str(v)
             )
             for k, v in os.environ.copy().items()
         }
@@ -541,7 +538,7 @@ class TriblerGUITest(AbstractTriblerGUITest):
         # Logs shown in ui and from the debug endpoint should be same
         window.debug_window.debug_tab_widget.setCurrentIndex(9)
         # logs from FakeTriblerApi
-        fake_logs = ''.join(["Sample log [%d]\n" % i for i in xrange(10)]).strip()
+        fake_logs = ''.join(["Sample log [%d]\n" % i for i in range(10)]).strip()
 
         window.debug_window.log_tab_widget.setCurrentIndex(0)  # Core tab
         self.wait_for_qtext_edit_populated(window.debug_window.core_log_display_area)

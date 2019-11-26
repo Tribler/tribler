@@ -1,7 +1,6 @@
 import time
 
 from aiohttp import web
-from six.moves import xrange
 
 from Tribler.Core.Modules.restapi.rest_endpoint import RESTEndpoint, RESTResponse
 
@@ -54,5 +53,5 @@ class DebugEndpoint(RESTEndpoint):
             {"time": now + 30, "mem": 5150}]})
 
     async def get_log(self, _request):
-        sample_logs = ''.join(["Sample log [%d]\n" % i for i in xrange(10)])
+        sample_logs = ''.join(["Sample log [%d]\n" % i for i in range(10)])
         return RESTResponse({"content": sample_logs, "max_lines": 10})

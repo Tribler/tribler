@@ -3,8 +3,6 @@ from binascii import unhexlify
 from random import randint, sample
 from time import time
 
-from six.moves import xrange
-
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import UPDATED
 from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Test.GUI.FakeTriblerAPI.constants import NEW, TODELETE
@@ -174,7 +172,7 @@ class TriblerData(object):
 
     def generate_torrents(self):
         # Create random torrents in channels
-        for _ in xrange(1000):
+        for _ in range(1000):
             self.torrents.append(Torrent.random())
 
     def get_channel_with_public_key(self, public_key):
@@ -213,16 +211,16 @@ class TriblerData(object):
         # Make sure the first download is a media file (so we can play it)
         self.start_random_download(media=True)
 
-        for _ in xrange(randint(10, 30)):
+        for _ in range(randint(10, 30)):
             self.start_random_download()
 
         # Start some credit mining downloads
-        for _ in xrange(randint(1, 5)):
+        for _ in range(randint(1, 5)):
             random_torrent = sample(self.torrents, 1)[0]
             self.downloads.append(Download(random_torrent, is_credit_mining=True))
 
         # Start some channel downloads
-        for _ in xrange(randint(1, 5)):
+        for _ in range(randint(1, 5)):
             random_torrent = sample(self.torrents, 1)[0]
             self.downloads.append(Download(random_torrent, is_channel_download=True))
 
@@ -231,7 +229,7 @@ class TriblerData(object):
         my_id = b'a' * 20
         cur_timestamp = time() - 100 * 24 * 3600  # 100 days in the past
         self.trustchain_blocks.append(TrustchainBlock(my_id=my_id, timestamp=cur_timestamp))
-        for _ in xrange(100):
+        for _ in range(100):
             cur_timestamp += 24 * 3600
             self.trustchain_blocks.append(
                 TrustchainBlock(my_id=my_id, timestamp=cur_timestamp, last_block=self.trustchain_blocks[-1])
@@ -239,8 +237,8 @@ class TriblerData(object):
 
     def generate_order_book(self):
         # Generate some ask/bid ticks
-        ask_ticks = [Tick('DUM1', 'DUM2', is_ask=True) for _ in xrange(randint(20, 50))]
-        bid_ticks = [Tick('DUM1', 'DUM2', is_ask=False) for _ in xrange(randint(20, 50))]
+        ask_ticks = [Tick('DUM1', 'DUM2', is_ask=True) for _ in range(randint(20, 50))]
+        bid_ticks = [Tick('DUM1', 'DUM2', is_ask=False) for _ in range(randint(20, 50))]
         self.order_book = {'asks': ask_ticks, 'bids': bid_ticks}
 
     def get_transaction(self, trader_id, tx_number):
@@ -250,10 +248,10 @@ class TriblerData(object):
         return None
 
     def generate_transactions(self):
-        self.transactions = [Transaction('DUM1', 'DUM2') for _ in xrange(randint(20, 50))]
+        self.transactions = [Transaction('DUM1', 'DUM2') for _ in range(randint(20, 50))]
 
     def generate_orders(self):
-        self.orders = [Order('DUM1', 'DUM2') for _ in xrange(randint(20, 50))]
+        self.orders = [Order('DUM1', 'DUM2') for _ in range(randint(20, 50))]
 
     def generate_dht_stats(self):
         self.dht_stats = {
@@ -268,6 +266,6 @@ class TriblerData(object):
         }
 
     def generate_tunnels(self):
-        self.tunnel_circuits = [Circuit() for _ in xrange(randint(2, 10))]
-        self.tunnel_relays = [Relay() for _ in xrange(randint(2, 10))]
-        self.tunnel_exits = [Exit() for _ in xrange(randint(2, 10))]
+        self.tunnel_circuits = [Circuit() for _ in range(randint(2, 10))]
+        self.tunnel_relays = [Relay() for _ in range(randint(2, 10))]
+        self.tunnel_exits = [Exit() for _ in range(randint(2, 10))]

@@ -12,8 +12,6 @@ from aiodns import DNSResolver
 from aiohttp import ClientTimeout, ClientResponseError
 from async_timeout import timeout
 
-from six import ensure_text
-
 from ipv8.messaging.deprecated.encoding import add_url_params
 from ipv8.taskmanager import TaskManager
 
@@ -105,7 +103,7 @@ class TrackerSession(TaskManager):
             self.is_failed = True
             result_msg = "%s tracker failed for url %s" % (self.tracker_type, self.tracker_url)
             if msg:
-                result_msg += " (error: %s)" % ensure_text(msg)
+                result_msg += " (error: %s)" % msg
             raise ValueError(result_msg)
 
     @abstractmethod

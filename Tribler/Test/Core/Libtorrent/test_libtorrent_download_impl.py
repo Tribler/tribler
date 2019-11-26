@@ -5,9 +5,6 @@ from asyncio import Future, ensure_future
 import libtorrent as lt
 from libtorrent import bdecode, bencode
 
-from six import text_type
-from six.moves import xrange
-
 from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
 from Tribler.Core.TorrentDef import TorrentDef
@@ -154,11 +151,11 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         fake_status.share_mode = False
         # Create a dummy download config
         impl.config = DownloadConfig()
-        impl.config.set_engineresumedata({b"save_path": str(os.path.abspath(self.state_dir)),
+        impl.config.set_engineresumedata({b"save_path": os.path.abspath(self.state_dir),
                                           b"info-hash": b'\x00' * 20})
         await impl.create_handle()
 
-        impl.config.set_engineresumedata({b"save_path": text_type(os.path.abspath(self.state_dir)),
+        impl.config.set_engineresumedata({b"save_path": os.path.abspath(self.state_dir),
                                           b"info-hash": b'\x00' * 20})
         await impl.create_handle()
 
@@ -320,12 +317,12 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         """
         def get_peer_info(seeders, leechers):
             peer_info = []
-            for _ in xrange(seeders):
+            for _ in range(seeders):
                 seeder = MockObject()
                 seeder.flags = 140347   # some value where seed flag(1024) is true
                 seeder.seed = 1024
                 peer_info.append(seeder)
-            for _ in xrange(leechers):
+            for _ in range(leechers):
                 leecher = MockObject()
                 leecher.flags = 131242  # some value where seed flag(1024) is false
                 leecher.seed = 1024

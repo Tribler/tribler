@@ -5,8 +5,6 @@ from PyQt5.QtCore import QRect
 from PyQt5.QtGui import QColor, QPainter
 from PyQt5.QtWidgets import QStyle, QStyleOption, QWidget
 
-from six.moves import xrange
-
 
 class DownloadProgressBar(QWidget):
     """
@@ -62,17 +60,17 @@ class DownloadProgressBar(QWidget):
 
             if len(self.pieces) <= self.width():  # We have less pieces than pixels
                 piece_width = self.width() / float(len(self.pieces))
-                for i in xrange(len(self.pieces)):
+                for i in range(len(self.pieces)):
                     if self.pieces[i]:
                         painter.fillRect(QRect(float(i) * piece_width, 0, math.ceil(piece_width), self.height()),
                                          QColor(230, 115, 0))
             else:  # We have more pieces than pixels, group pieces
                 pieces_per_pixel = len(self.pieces) / float(self.width())
-                for i in xrange(self.width()):
+                for i in range(self.width()):
                     begin_piece = int(pieces_per_pixel * i)
                     end_piece = int(begin_piece + pieces_per_pixel)
                     piece_sum = 0
-                    for j in xrange(begin_piece, end_piece):
+                    for j in range(begin_piece, end_piece):
                         piece_sum += self.pieces[j]
                     qt_color = QColor()
                     qt_color.setHsl(26, 255, 128 + 127 * (1 - piece_sum / pieces_per_pixel))

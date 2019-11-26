@@ -8,11 +8,9 @@ import logging
 import re
 from asyncio import Future
 from base64 import b32decode
+from urllib.parse import parse_qsl, urlsplit
 
 import libtorrent
-
-import six
-from six.moves.urllib.parse import parse_qsl, urlsplit
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +66,7 @@ def parse_magnetlink(url):
         for key, value in parse_qsl(query):
             if key == "dn":
                 # convert to Unicode
-                dn = value.decode('utf-8') if not isinstance(value, six.text_type) else value
+                dn = value.decode('utf-8') if not isinstance(value, str) else value
 
             elif key == "xt" and value.startswith("urn:btih:"):
                 # vliegendhart: Adding support for base32 in magnet links (BEP 0009)
@@ -129,7 +127,7 @@ def translate_peers_into_health(peer_info_dicts):
 
 def unichar_string(text):
     """ Unicode character interpretation of text for Python 2.7 """
-    return u''.join(six.unichr(ord(t)) for t in text)
+    return u''.join(chr(ord(t)) for t in text)
 
 
 def is_simple_match_query(query):

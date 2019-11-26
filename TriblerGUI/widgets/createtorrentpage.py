@@ -4,8 +4,6 @@ from PyQt5.QtCore import QDir
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QAction, QFileDialog, QWidget
 
-from six.moves import xrange
-
 from TriblerGUI.defs import BUTTON_TYPE_NORMAL, PAGE_EDIT_CHANNEL_TORRENTS
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
@@ -83,7 +81,7 @@ class CreateTorrentPage(QWidget):
         self.window().edit_channel_create_torrent_button.setEnabled(False)
 
         files_list = []
-        for ind in xrange(self.window().create_torrent_files_list.count()):
+        for ind in range(self.window().create_torrent_files_list.count()):
             file_str = self.window().create_torrent_files_list.item(ind).text()
             files_list.append(file_str)
 

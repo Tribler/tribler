@@ -1,7 +1,6 @@
 from random import choice, randint
 
 from aiohttp import web
-from six.moves import xrange
 
 from Tribler.Core.Modules.restapi.rest_endpoint import RESTEndpoint, RESTResponse
 from Tribler.Test.GUI.FakeTriblerAPI import tribler_utils
@@ -38,8 +37,8 @@ class IPv8Endpoint(RESTEndpoint):
 
     async def get_overlays(self, _):
         return RESTResponse({'overlays': [{
-            "master_peer": ''.join(choice('0123456789abcdef') for _ in xrange(20)),
-            "my_peer": ''.join(choice('0123456789abcdef') for _ in xrange(20)),
+            "master_peer": ''.join(choice('0123456789abcdef') for _ in range(20)),
+            "my_peer": ''.join(choice('0123456789abcdef') for _ in range(20)),
             "global_time": randint(1, 10000),
             "peers": [],
             "overlay_name": "TestOverlay"

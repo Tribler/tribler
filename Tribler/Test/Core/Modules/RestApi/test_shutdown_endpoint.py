@@ -1,5 +1,3 @@
-from asyncio import get_event_loop, sleep
-
 from Tribler.Core.Utilities.utilities import succeed
 from Tribler.Test.tools import timeout
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
@@ -21,9 +19,7 @@ class TestShutdownEndpoint(AbstractApiTest):
             self.shutdown_called = True
             # Restore original shutdown for test teardown
             self.session.shutdown = self.orig_shutdown
-            loop = MockObject()
-            loop.stop = lambda: None
-            return succeed(loop)
+            return succeed(True)
 
         self.session.shutdown = fake_shutdown
 

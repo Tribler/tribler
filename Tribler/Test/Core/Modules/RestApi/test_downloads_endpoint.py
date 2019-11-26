@@ -1,11 +1,9 @@
 import os
 from asyncio import ensure_future
 from binascii import unhexlify
+from urllib.request import pathname2url
 
 from pony.orm import db_session
-
-from six import assertCountEqual
-from six.moves.urllib.request import pathname2url
 
 from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.DownloadState import DownloadState
@@ -58,12 +56,12 @@ class TestDownloadsEndpoint(AbstractApiTest):
         await self.session.start_download_from_uri("file:" + pathname2url(os.path.join(TESTS_DATA_DIR,
                                                                                        "bak_single.torrent")))
         downloads = await self.do_request('downloads?get_peers=1&get_pieces=1&&get_files=1', expected_code=200)
-        assertCountEqual(self, [downloads['downloads'][0][u'files'],
-                                downloads['downloads'][1][u'files']],
-                         [[{u'included': True, u'index': 0, u'size': 1583233,
-                            u'name': u'Tribler_4.1.7_src.zip', u'progress': 0.0}],
-                          [{u'included': True, u'index': 0, u'size': 1942100,
-                            u'name': u'video.avi', u'progress': 0.0}]])
+        self.assertCountEqual([downloads['downloads'][0][u'files'],
+                               downloads['downloads'][1][u'files']],
+                        [[{u'included': True, u'index': 0, u'size': 1583233,
+                           u'name': u'Tribler_4.1.7_src.zip', u'progress': 0.0}],
+                         [{u'included': True, u'index': 0, u'size': 1942100,
+                           u'name': u'video.avi', u'progress': 0.0}]])
 
     @timeout(10)
     async def test_start_download_no_uri(self):

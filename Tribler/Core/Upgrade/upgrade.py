@@ -1,10 +1,9 @@
 import logging
 import os
 import shutil
+from configparser import MissingSectionHeaderError, ParsingError
 
 from pony.orm import db_session
-
-from six.moves.configparser import MissingSectionHeaderError, ParsingError
 
 from Tribler.Core.Category.l2_filter import is_forbidden
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH

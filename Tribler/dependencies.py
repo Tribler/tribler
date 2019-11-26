@@ -23,7 +23,6 @@ dependencies = [
     {'module': 'cherrypy', 'install_type': 'pip3', 'package': 'cherrypy', 'optional': False, 'scope': 'core'},
     {'module': 'configobj', 'install_type': 'pip3', 'package': 'configobj', 'optional': False, 'scope': 'both'},
     {'module': 'netifaces', 'install_type': 'pip3', 'package': 'netifaces', 'optional': False, 'scope': 'core'},
-    {'module': 'six', 'install_type': 'pip3', 'package': 'six', 'optional': False, 'scope': 'both'},
     {'module': 'bitcoinlib', 'install_type': 'pip3', 'package': 'bitcoinlib', 'optional': True, 'scope': 'core'},
 ]
 

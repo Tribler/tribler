@@ -8,8 +8,6 @@ from ipv8.messaging.deprecated.encoding import encode
 from ipv8.test.attestation.trustchain.test_block import MockDatabase, TestBlock
 from ipv8.test.mocking.ipv8 import MockIPv8
 
-from six.moves import xrange
-
 from Tribler.Core.Modules.restapi.trustview_endpoint import TrustGraph
 from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.exceptions import TrustGraphException
@@ -57,7 +55,7 @@ class TestTrustGraph(BaseTestCase):
         Tests the maximum nodes that can be present in the graph.
         """
         # Added the MAX_PEERS nodes in the graph (including the root node)
-        for _ in xrange(self.trust_graph.max_peers-1):
+        for _ in range(self.trust_graph.max_peers-1):
             test_node_key = hexlify(default_eccrypto.generate_key(u"very-low").pub().key_to_bin())
             test_node = self.trust_graph.get_node(test_node_key)
             self.assertIsNotNone(test_node)
@@ -82,7 +80,7 @@ class TestTrustGraph(BaseTestCase):
         db = MockDatabase()
         block = TestBlock()
 
-        for _ in xrange(self.trust_graph.max_transactions):
+        for _ in range(self.trust_graph.max_transactions):
             tx = {b"total_up": random.randint(1, 100), b"total_down": random.randint(1, 100),
                   b"up": random.randint(1, 100), b"down": random.randint(1, 100)}
             new_block = TrustChainBlock.create(b'tribler_bandwidth', tx, db, block.public_key)
@@ -246,7 +244,7 @@ class TestTrustViewEndpoint(AbstractApiTest):
         test_block = TestBlock(key=self.session.lm.trustchain_community.my_peer.key)
         test_block.sequence_number = 0
         test_block.type = b'tribler_bandwidth'
-        for _ in xrange(max_peers * 2):
+        for _ in range(max_peers * 2):
             test_block.transaction = get_dummy_tx()
             test_block._transaction = encode(test_block.transaction)
             test_block.link_public_key = default_eccrypto.generate_key(u"very-low").pub().key_to_bin()

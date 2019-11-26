@@ -2,11 +2,10 @@ import os
 import json
 import shutil
 from binascii import unhexlify
+from urllib.parse import quote_plus
+from urllib.request import pathname2url
 
 from pony.orm import db_session
-
-from six.moves.urllib.parse import quote_plus
-from six.moves.urllib.request import pathname2url
 
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.unicode import hexlify

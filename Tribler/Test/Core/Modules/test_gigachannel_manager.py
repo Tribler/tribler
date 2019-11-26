@@ -7,8 +7,6 @@ from ipv8.keyvault.crypto import default_eccrypto
 
 from pony.orm import db_session
 
-from six import assertCountEqual
-
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import NEW
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.Modules.gigachannel_manager import GigaChannelManager
@@ -223,13 +221,12 @@ class TestGigaChannelManager(TriblerCoreTest):
         self.chanman.remove_cruft_channels()
         await self.chanman.process_queued_channels()
         # We want to remove torrents for (a) deleted channels and (b) unsubscribed channels
-        assertCountEqual(self,
-                         self.remove_list,
-                         [(mock_dl_list[0], False),
-                          (mock_dl_list[2], False),
-                          (mock_dl_list[4], True),
-                          (mock_dl_list[5], True),
-                          (mock_dl_list[6], True)])
+        self.assertCountEqual(self.remove_list,
+                              [(mock_dl_list[0], False),
+                               (mock_dl_list[2], False),
+                               (mock_dl_list[4], True),
+                               (mock_dl_list[5], True),
+                               (mock_dl_list[6], True)])
 
 
     @timeout(20)

@@ -7,8 +7,6 @@ from PyQt5.QtCore import QTextStream, Qt, pyqtSignal
 from PyQt5.QtNetwork import QLocalServer, QLocalSocket
 from PyQt5.QtWidgets import QApplication
 
-from six import text_type
-
 LOGVARSTR = "%25s = '%s'"
 
 
@@ -18,7 +16,7 @@ class QtSingleApplication(QApplication):
     When a user tries to open a second Tribler instance, the current active one will be brought to front.
     """
 
-    messageReceived = pyqtSignal(text_type)
+    messageReceived = pyqtSignal(str)
 
     def __init__(self, win_id, *argv):
 

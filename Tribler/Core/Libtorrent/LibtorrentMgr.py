@@ -12,14 +12,12 @@ from asyncio import ensure_future, Future
 from binascii import unhexlify
 from distutils.version import LooseVersion
 from shutil import rmtree
+from urllib.request import url2pathname
 
 from ipv8.taskmanager import TaskManager
 
 import libtorrent as lt
 from libtorrent import bdecode, torrent_handle
-
-from six import text_type
-from six.moves.urllib.request import url2pathname
 
 from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.Modules.dht_health_manager import DHTHealthManager
@@ -696,6 +694,6 @@ class LibtorrentMgr(TaskManager):
 
 def encode_atp(atp):
     for k, v in atp.items():
-        if isinstance(v, text_type):
+        if isinstance(v, str):
             atp[k] = v.encode('utf-8')
     return atp

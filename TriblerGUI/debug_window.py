@@ -19,8 +19,6 @@ import libtorrent
 
 import psutil
 
-from six.moves import xrange
-
 import Tribler.Core.Utilities.json_util as json
 
 from TriblerGUI.defs import DEBUG_PANE_REFRESH_TIMEOUT, GB, MB
@@ -320,7 +318,7 @@ class DebugWindow(QMainWindow):
                 item.setText(8, "N/A")
 
             self.window().communities_tree_widget.addTopLevelItem(item)
-            map(self.window().communities_tree_widget.resizeColumnToContents, xrange(10))
+            map(self.window().communities_tree_widget.resizeColumnToContents, range(10))
 
     def load_ipv8_community_details_tab(self):
         if self.ipv8_statistics_enabled:

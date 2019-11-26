@@ -2,6 +2,7 @@ import logging
 import os
 import shutil
 from asyncio import Future
+from urllib.request import pathname2url
 
 from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, dlstatus_strings
 from Tribler.Test.common import TORRENT_UBUNTU_FILE
@@ -45,7 +46,6 @@ class TestDownload(TestAsServer):
 
     @timeout(60)
     async def test_download_torrent_from_file(self):
-        from six.moves.urllib.request import pathname2url
         d = await self.session.start_download_from_uri('file:' + pathname2url(TORRENT_UBUNTU_FILE))
         self.on_download(d)
         return self.test_future

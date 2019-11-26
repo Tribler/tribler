@@ -5,8 +5,6 @@ Author(s): Mihai Capota, Ardhi Putra
 """
 import time
 
-from six.moves import xrange
-
 from Tribler.Core.CreditMining.CreditMiningManager import CreditMiningTorrent
 from Tribler.Core.CreditMining.CreditMiningPolicy import InvestmentPolicy, InvestmentState, MB, RandomPolicy, \
     SeederRatioPolicy, UploadPolicy, WEEK
@@ -198,7 +196,7 @@ class TestInvestmentPolicy(TriblerCoreTest):
         uploads = [0, 2, 3, 7, 15, 90, 180, 1000]
         expected_states = [0, 0, 1, 4, 6, 17, 18, 19]
 
-        for i in xrange(len(downloads)):
+        for i in range(len(downloads)):
             computed_state = self.policy.compute_state(downloads[i] * MB, uploads[i] * MB)
             self.assertEqual(expected_states[i], computed_state)
 

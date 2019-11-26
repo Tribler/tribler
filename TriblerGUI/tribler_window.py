@@ -6,6 +6,7 @@ import sys
 import time
 import traceback
 from base64 import b64encode
+from urllib.parse import unquote, urlparse
 
 from PyQt5 import uic
 from PyQt5.QtCore import (
@@ -35,9 +36,6 @@ from PyQt5.QtWidgets import (
     QSystemTrayIcon,
     QTreeWidget,
 )
-
-import six
-from six.moves.urllib.parse import unquote, urlparse
 
 from Tribler.Core.Modules.process_checker import ProcessChecker
 from Tribler.Core.Utilities.unicode import hexlify
@@ -545,7 +543,7 @@ class TriblerWindow(QMainWindow):
         # Save the download location to the GUI settings
         current_settings = get_gui_setting(self.gui_settings, "recent_download_locations", "")
         recent_locations = current_settings.split(",") if len(current_settings) > 0 else []
-        if isinstance(destination, six.text_type):
+        if isinstance(destination, str):
             destination = destination.encode('utf-8')
         encoded_destination = hexlify(destination)
         if encoded_destination in recent_locations:
@@ -806,7 +804,7 @@ class TriblerWindow(QMainWindow):
             self.process_uri_request()
 
     def start_download_from_uri(self, uri):
-        uri = uri.decode('utf-8') if isinstance(uri, six.binary_type) else uri
+        uri = uri.decode('utf-8') if isinstance(uri, bytes) else uri
         self.download_uri = uri
 
         if get_gui_setting(self.gui_settings, "ask_download_settings", True, is_bool=True):

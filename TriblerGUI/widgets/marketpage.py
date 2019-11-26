@@ -4,8 +4,6 @@ from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QCursor, QIcon
 from PyQt5.QtWidgets import QAction, QSizePolicy, QSpacerItem, QWidget
 
-from six.moves import xrange
-
 from TriblerGUI.defs import PAGE_MARKET_ORDERS, PAGE_MARKET_TRANSACTIONS, PAGE_MARKET_WALLETS
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.dialogs.newmarketorderdialog import NewMarketOrderDialog
@@ -365,7 +363,7 @@ class MarketPage(QWidget):
 
     def remove_tick_with_order_id(self, tick_list, trader_id, order_number):
         index_to_remove = -1
-        for ind in xrange(tick_list.topLevelItemCount()):
+        for ind in range(tick_list.topLevelItemCount()):
             item = tick_list.topLevelItem(ind)
             if item.tick["trader_id"] == trader_id and item.tick["order_number"] == order_number:
                 index_to_remove = ind

@@ -6,12 +6,8 @@ import logging
 import os
 from hashlib import sha1
 
-from six import ensure_binary
-
 import libtorrent as lt
 from libtorrent import bdecode, bencode
-
-from six import binary_type, integer_types, text_type
 
 from Tribler.Core.Utilities import maketorrent
 from Tribler.Core.Utilities.torrent_utils import create_torrent_file
@@ -46,11 +42,11 @@ def escape_as_utf8(string, encoding='utf8'):
 def convert_dict_unicode_to_bytes(orig_dict):
     result = {}
     for k, v in orig_dict.items():
-        k = k.encode('utf-8') if isinstance(k, text_type) else k
+        k = k.encode('utf-8') if isinstance(k, str) else k
         if isinstance(v, dict):
             result[k] = convert_dict_unicode_to_bytes(v)
         else:
-            result[k] = v.encode('utf-8') if isinstance(v, text_type) else v
+            result[k] = v.encode('utf-8') if isinstance(v, str) else v
     return result
 
 
@@ -216,7 +212,7 @@ class TorrentDef(object):
         it is transmitted, which is 16K by default. The default is automatic (value 0).
         :param piece_length: The piece length.
         """
-        if not isinstance(piece_length, integer_types):
+        if not isinstance(piece_length, int):
             raise ValueError("Piece length not an int/long")
 
         self.torrent_parameters[b'piece length'] = piece_length
@@ -318,7 +314,7 @@ class TorrentDef(object):
                             self._logger.debug("Bad character filter %s, isalnum? %s", ord(char), char.isalnum())
                             return u"?"
                     return u"".join([filter_character(char) for char in name])
-                return text_type(filter_characters(self.metainfo[b"info"][b"name"]))
+                return str(filter_characters(self.metainfo[b"info"][b"name"]))
             except UnicodeError:
                 pass
 
@@ -379,7 +375,7 @@ class TorrentDef(object):
                     # Try to convert the names in path to unicode,
                     # without specifying the encoding
                     try:
-                        yield join(*[text_type(element) for element in file_dict[b"path"]]), file_dict[b"length"]
+                        yield join(*[str(element) for element in file_dict[b"path"]]), file_dict[b"length"]
                         continue
                     except UnicodeError:
                         pass
@@ -406,7 +402,7 @@ class TorrentDef(object):
                                         "Bad character filter %s, isalnum? %s", ord(char), char.isalnum())
                                     return u"?"
                             return u"".join([filter_character(char) for char in name])
-                        yield (join(*[text_type(filter_characters(element)) for element in file_dict[b"path"]]),
+                        yield (join(*[str(filter_characters(element)) for element in file_dict[b"path"]]),
                                file_dict[b"length"])
                         continue
                     except UnicodeError:
@@ -494,7 +490,7 @@ class TorrentDefNoMetainfo(object):
     """
 
     def __init__(self, infohash, name, url=None):
-        assert isinstance(infohash, binary_type), "INFOHASH has invalid type: %s" % type(infohash)
+        assert isinstance(infohash, bytes), "INFOHASH has invalid type: %s" % type(infohash)
         assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
         self.infohash = infohash
         self.name = name
@@ -522,7 +518,7 @@ class TorrentDefNoMetainfo(object):
         """
         Not all names are utf-8, attempt to construct it as utf-8 anyway.
         """
-        return escape_as_utf8(ensure_binary(self.get_name()))
+        return escape_as_utf8(self.name.encode('utf-8 ')if isinstance(self.name, str) else self.name)
 
     def get_name_as_unicode(self):
         return ensure_unicode(self.name, 'utf-8')

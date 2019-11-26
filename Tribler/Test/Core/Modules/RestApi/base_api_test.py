@@ -1,5 +1,4 @@
-from six import text_type
-from six.moves.urllib.parse import quote_plus
+from urllib.parse import quote_plus
 
 from aiohttp import ClientSession
 
@@ -22,11 +21,11 @@ def tribler_urlencode(data):
 
 
 def tribler_urlencode_single(key, value):
-    utf8_key = quote_plus(text_type(key).encode('utf-8'))
+    utf8_key = quote_plus(key.encode('utf-8'))
     # Convert bool values to ints
     if isinstance(value, bool):
         value = int(value)
-    utf8_value = quote_plus(text_type(value).encode('utf-8'))
+    utf8_value = quote_plus(value.encode('utf-8'))
     return "%s=%s" % (utf8_key, utf8_value)
 
 

@@ -5,8 +5,6 @@ from configobj import ConfigObj
 
 import libtorrent as lt
 
-from six import string_types
-
 from validate import Validator
 
 from Tribler.Core.Utilities.install_dir import get_lib_path
@@ -61,7 +59,7 @@ class DownloadConfig(object):
             base_path = self.state_dir
             if base_path == os.path.commonprefix([path, base_path]):
                 path = os.path.relpath(path, base_path)
-        assert isinstance(path, string_types), path
+        assert isinstance(path, str), path
         self.config['download_defaults']['saveas'] = path
 
     def get_dest_dir(self):

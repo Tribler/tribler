@@ -17,10 +17,10 @@ from asyncio import get_event_loop, Future, current_task
 from threading import enumerate as enumerate_threads
 
 from aiohttp import web
-from configobj import ConfigObj
 
-import six
-from six.moves import xrange
+import asynctest
+
+from configobj import ConfigObj
 
 from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.Config.tribler_config import CONFIG_SPEC_PATH, TriblerConfig
@@ -36,10 +36,7 @@ TESTS_DATA_DIR = os.path.abspath(os.path.join(TESTS_DIR, u"data"))
 TESTS_API_DIR = os.path.abspath(os.path.join(TESTS_DIR, u"API"))
 OUTPUT_DIR = os.path.abspath(os.environ.get('OUTPUT_DIR', 'output'))
 
-if six.PY2:
-    FileExistsError = OSError
 
-import asynctest
 class BaseTestCase(asynctest.TestCase):
 
     def __init__(self, *args, **kwargs):
@@ -99,7 +96,7 @@ class BaseTestCase(asynctest.TestCase):
         Also, make sure that we have no duplicates in selected ports.
         """
         ports = []
-        for _ in xrange(count):
+        for _ in range(count):
             min_base_port, max_base_port = self.get_bucket_range_port()
             selected_port = get_random_port(min_port=min_base_port, max_port=max_base_port)
             while selected_port in self.selected_ports:

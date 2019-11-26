@@ -5,12 +5,8 @@ import os
 import sqlite3
 from asyncio import sleep
 
-from ipv8.database import database_blob
-
 from pony import orm
 from pony.orm import db_session
-
-from six import text_type
 
 from Tribler.Core.Category.l2_filter import is_forbidden
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import BLOB_EXTENSION
@@ -178,7 +174,7 @@ class DispersyToPonyMigration(object):
             batch_not_empty = True
             # check if name is valid unicode data
             try:
-                name = text_type(name)
+                name = str(name)
             except UnicodeDecodeError:
                 continue
 
@@ -322,8 +318,7 @@ class DispersyToPonyMigration(object):
                         if torrent and health:
                             torrent.health.set(**health)
                     except:
-                        self._logger.warning("Error while converting torrent entry: %s %s", text_type(torrent_dict),
-                                             text_type(health))
+                        self._logger.warning("Error while converting torrent entry: %s %s", torrent_dict, health)
             batch_end_time = datetime.datetime.now() - batch_start_time
 
             elapsed = (datetime.datetime.utcnow() - start_time).total_seconds()

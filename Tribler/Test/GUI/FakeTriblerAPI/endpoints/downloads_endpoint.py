@@ -2,7 +2,6 @@ import cgi
 from binascii import unhexlify
 
 from aiohttp import web
-from six import text_type
 
 import Tribler.Test.GUI.FakeTriblerAPI.tribler_utils as tribler_utils
 from Tribler.Core.Modules.restapi.rest_endpoint import RESTEndpoint, RESTResponse, HTTP_BAD_REQUEST, HTTP_NOT_FOUND
@@ -41,7 +40,7 @@ class DownloadsEndpoint(RESTEndpoint):
         parameters = request.query
 
         if 'selected_files' in parameters:
-            selected_files_list = [text_type(f, 'utf-8') for f in parameters['selected_files']]
+            selected_files_list = [str(f, 'utf-8') for f in parameters['selected_files']]
             download.set_selected_files(selected_files_list)
 
         if 'state' in parameters and parameters['state']:

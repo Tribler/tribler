@@ -7,8 +7,6 @@ from ipv8.keyvault.crypto import default_eccrypto
 from pony import orm
 from pony.orm import db_session
 
-from six.moves import xrange
-
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import TODELETE
 from Tribler.Core.Modules.MetadataStore.OrmBindings.torrent_metadata import tdef_to_metadata_dict
 from Tribler.Core.Modules.MetadataStore.serialization import REGULAR_TORRENT
@@ -214,13 +212,13 @@ class TestTorrentMetadata(TriblerCoreTest):
 
         # First we create a few channels and add some torrents to these channels
         tlist = []
-        for ind in xrange(5):
+        for ind in range(5):
             self.mds.ChannelNode._my_key = default_eccrypto.generate_key('curve25519')
             _ = self.mds.ChannelMetadata(title='channel%d' % ind, subscribed=(ind % 2 == 0), infohash=os.urandom(20))
             tlist.extend(
                 [
                     self.mds.TorrentMetadata(title='torrent%d' % torrent_ind, infohash=os.urandom(20))
-                    for torrent_ind in xrange(5)
+                    for torrent_ind in range(5)
                 ]
             )
         tlist[-1].xxx = 1

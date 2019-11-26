@@ -10,8 +10,6 @@ from traceback import print_exc
 
 import requests
 
-from six.moves import xrange
-
 # These env varialble should be set by Jenkins.
 SERVER_URL = os.environ.get('SONAR_SERVER_URL', "https://sonarcloud.io")
 PROJECT_KEY = os.environ.get('PROJECT_KEY', "org.sonarqube:tribler")
@@ -34,7 +32,7 @@ if not task_status_url:
 
 print("Task status URL: %s" % task_status_url)
 
-for _ in xrange(0, 30):
+for _ in range(0, 30):
     print("Fetching task status...")
     json_response = requests.get(task_status_url)
     data = json.loads(json_response.text)

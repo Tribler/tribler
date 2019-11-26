@@ -7,7 +7,7 @@ import logging
 import sys
 
 if sys.platform == 'win32':
-    from six.moves import winreg
+    import winreg
 
     # short for PyHKEY from "_winreg" module
     HKCR = winreg.HKEY_CLASSES_ROOT

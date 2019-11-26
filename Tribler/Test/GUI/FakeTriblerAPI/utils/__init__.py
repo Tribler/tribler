@@ -1,18 +1,11 @@
 import random
 
-from six import unichr  # pylint: disable=redefined-builtin
-
 
 def get_random_hex_string(length):
     return ''.join([random.choice('0123456789abcdef') for _ in range(length)])
 
 
 def get_random_unicode_string(length):
-    try:
-        get_char = unichr
-    except NameError:
-        get_char = chr
-
     # Update this to include code point ranges to be sampled
     include_ranges = [
         (0x0021, 0x0021),
@@ -30,7 +23,7 @@ def get_random_unicode_string(length):
         (0x038C, 0x038C),
     ]
 
-    alphabet = [get_char(code_point) for current_range in include_ranges
+    alphabet = [chr(code_point) for current_range in include_ranges
                 for code_point in range(current_range[0], current_range[1] + 1)]
     return ''.join(random.choice(alphabet) for _ in range(length))
 

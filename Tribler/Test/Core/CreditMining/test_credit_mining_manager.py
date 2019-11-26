@@ -8,12 +8,10 @@ import os
 import sys
 from asyncio import Future
 
-from Tribler.Core.Utilities.unicode import hexlify
-from six.moves import xrange
-
 from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.CreditMining.CreditMiningManager import CreditMiningTorrent
 from Tribler.Core.CreditMining.CreditMiningPolicy import BasePolicy, MB
+from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.Utilities.utilities import succeed
 from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_STOPPED, DOWNLOAD, \
     NTFY_CREDIT_MINING, NTFY_ERROR
@@ -293,8 +291,8 @@ class TestCreditMiningManager(TestAsServer):
         scenario = MockObject()
         scenario.status = [DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_STOPPED, DLSTATUS_DOWNLOADING,
                            DLSTATUS_SEEDING, DLSTATUS_DOWNLOADING]
-        scenario.downloads = [10 * i * MB for i in xrange(6)]
-        scenario.uploads = [(10 * i + 5) * MB for i in xrange(6)]
+        scenario.downloads = [10 * i * MB for i in range(6)]
+        scenario.uploads = [(10 * i + 5) * MB for i in range(6)]
 
         download = MockObject()
         download.tdef = MockObject()
@@ -307,7 +305,7 @@ class TestCreditMiningManager(TestAsServer):
         download.handle = None
 
         download_states = []
-        for i in xrange(6):
+        for i in range(6):
             ds = MockObject()
             ds.get_download = lambda: download
             ds.get_status = lambda _i=i: scenario.status[_i]
@@ -355,7 +353,7 @@ class TestCreditMiningManager(TestAsServer):
         max_space = self.credit_mining_manager.settings.max_disk_space
 
         downloads = []
-        for i in xrange(num_downloads):
+        for i in range(num_downloads):
             download = FakeTorrent(i, self.name + str(i)).download
             download.get_def().get_length = lambda: 100 * MB
             download.get_state().get_progress = lambda: 0.5

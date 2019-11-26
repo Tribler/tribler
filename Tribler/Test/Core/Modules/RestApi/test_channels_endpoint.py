@@ -9,8 +9,6 @@ from ipv8.keyvault.crypto import default_eccrypto
 
 from pony.orm import db_session
 
-from six.moves import xrange
-
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import NEW
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.random_utils import random_infohash
@@ -38,21 +36,21 @@ class BaseTestMyChannelEndpoint(BaseTestMetadataEndpoint):
     def create_my_channel(self):
         with db_session:
             chan = self.session.lm.mds.ChannelMetadata.create_channel('test', 'test')
-            for ind in xrange(5):
+            for ind in range(5):
                 _ = self.session.lm.mds.TorrentMetadata(
                     origin_id=chan.id_, title='torrent%d' % ind, status=NEW, infohash=random_infohash()
                 )
-            for ind in xrange(5, 9):
+            for ind in range(5, 9):
                 _ = self.session.lm.mds.TorrentMetadata(
                     origin_id=chan.id_, title='torrent%d' % ind, infohash=random_infohash()
                 )
 
             chan2 = self.session.lm.mds.ChannelMetadata.create_channel('test2', 'test2')
-            for ind in xrange(5):
+            for ind in range(5):
                 _ = self.session.lm.mds.TorrentMetadata(
                     origin_id=chan2.id_, title='torrentB%d' % ind, status=NEW, infohash=random_infohash()
                 )
-            for ind in xrange(5, 9):
+            for ind in range(5, 9):
                 _ = self.session.lm.mds.TorrentMetadata(
                     origin_id=chan2.id_, title='torrentB%d' % ind, infohash=random_infohash()
                 )

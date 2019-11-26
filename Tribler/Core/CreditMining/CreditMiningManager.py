@@ -9,8 +9,6 @@ from ipv8.taskmanager import TaskManager
 
 import psutil
 
-from six import string_types
-
 from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.CreditMining.CreditMiningPolicy import InvestmentPolicy, MB
 from Tribler.Core.CreditMining.CreditMiningSource import ChannelSource
@@ -156,7 +154,7 @@ class CreditMiningManager(TaskManager):
         if source_str not in self.sources:
             num_torrents = len(self.torrents)
 
-            if isinstance(source_str, string_types):
+            if isinstance(source_str, str):
                 source = ChannelSource(self.session, unhexlify(source_str), self.on_torrent_insert)
             else:
                 self._logger.error('Cannot add unknown source %s', source_str)

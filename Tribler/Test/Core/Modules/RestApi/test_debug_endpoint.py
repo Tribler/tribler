@@ -2,8 +2,6 @@ import os
 import sys
 from unittest import skipIf
 
-from six.moves import xrange
-
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.tools import timeout
@@ -97,7 +95,7 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
 
         # write 100 test lines which is used to test for its presence in the response
         with open(core_info_log_file_path, "w") as core_info_log_file:
-            for log_index in xrange(max_lines):
+            for log_index in range(max_lines):
                 core_info_log_file.write("%s %d\n" % (test_core_log_message, log_index))
 
         json_response = await self.do_request('debug/log?process=core&max_lines=%d' % max_lines, expected_code=200)
@@ -127,7 +125,7 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
 
         # write 200 (greater than expected_num_lines) test logs in file
         with open(gui_info_log_file_path, "w") as core_info_log_file:
-            for log_index in xrange(200):   # write more logs
+            for log_index in range(200):   # write more logs
                 core_info_log_file.write("%s %d\n" % (test_core_log_message, log_index))
 
         json_response = await self.do_request('debug/log?process=gui&max_lines=', expected_code=200)

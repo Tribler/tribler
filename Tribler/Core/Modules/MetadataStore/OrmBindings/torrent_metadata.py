@@ -6,8 +6,6 @@ from ipv8.database import database_blob
 from pony import orm
 from pony.orm import db_session
 
-from six import text_type
-
 from Tribler.Core.Category.Category import default_category_filter
 from Tribler.Core.Category.FamilyFilter import default_xxx_filter
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import COMMITTED, LEGACY_ENTRY
@@ -157,7 +155,7 @@ def define_binding(db):
             # WARNING! This does NOT check the INFOHASH
             a = self.to_dict()
             for comp in ["title", "size", "tags", "torrent_date", "tracker_info"]:
-                if (comp not in b) or (text_type(a[comp]) == text_type(b[comp])):
+                if (comp not in b) or (str(a[comp]) == str(b[comp])):
                     continue
                 return True
             return False

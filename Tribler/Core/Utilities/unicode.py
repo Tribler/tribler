@@ -7,15 +7,13 @@ import binascii
 
 import chardet
 
-from six import binary_type, text_type
-
 
 def ensure_unicode(s, encoding, errors='strict'):
     """Similar to six.ensure_text() except that the encoding parameter is *not* optional
     """
-    if isinstance(s, binary_type):
+    if isinstance(s, bytes):
         return s.decode(encoding, errors)
-    elif isinstance(s, text_type):
+    elif isinstance(s, str):
         return s
     else:
         raise TypeError("not expecting type '%s'" % type(s))
@@ -24,13 +22,13 @@ def ensure_unicode(s, encoding, errors='strict'):
 def ensure_unicode_detect_encoding(s):
     """Similar to ensure_unicode() but use chardet to detect the encoding
     """
-    if isinstance(s, binary_type):
+    if isinstance(s, bytes):
         try:
             return s.decode('utf-8')  # Try converting bytes --> Unicode utf-8
         except UnicodeDecodeError:
             charenc = chardet.detect(s)['encoding']
             return s.decode(charenc) if charenc else s  # Hope for the best
-    elif isinstance(s, text_type):
+    elif isinstance(s, str):
         return s
     else:
         raise TypeError("not expecting type '%s'" % type(s))
@@ -46,7 +44,7 @@ def recursive_unicode(obj):
         return {recursive_unicode(k):recursive_unicode(v) for k, v in obj.items()}
     elif isinstance(obj, list):
         return [recursive_unicode(i) for i in obj]
-    elif isinstance(obj, binary_type):
+    elif isinstance(obj, bytes):
         return obj.decode('utf8')
     return obj
 
@@ -56,7 +54,7 @@ def recursive_ungarble_metainfo(obj):
         return {k:recursive_ungarble_metainfo(v) for k, v in obj.items()}
     elif isinstance(obj, list):
         return [recursive_ungarble_metainfo(i) for i in obj]
-    elif isinstance(obj, text_type):
+    elif isinstance(obj, str):
         return bytes(ord(c) for c in obj)
     return obj
 
@@ -71,7 +69,7 @@ def recursive_bytes(obj):
         return {recursive_bytes(k):recursive_bytes(v) for k, v in obj.items()}
     elif isinstance(obj, list):
         return [recursive_bytes(i) for i in obj]
-    elif isinstance(obj, text_type):
+    elif isinstance(obj, str):
         return obj.encode('utf8')
     return obj
 

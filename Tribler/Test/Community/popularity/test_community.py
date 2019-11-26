@@ -7,8 +7,6 @@ from ipv8.test.mocking.ipv8 import MockIPv8
 
 from pony.orm import db_session
 
-from six.moves import xrange
-
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.community.popularity.community import PopularityCommunity
@@ -33,7 +31,7 @@ class TestPopularityCommunity(TestBase):
 
     @db_session
     def fill_database(self, metadata_store, last_check_now=False):
-        for torrent_ind in xrange(5):
+        for torrent_ind in range(5):
             last_check = int(time.time()) if last_check_now else 0
             metadata_store.TorrentState(
                 infohash=str(torrent_ind).encode() * 20, seeders=torrent_ind + 1, last_check=last_check)

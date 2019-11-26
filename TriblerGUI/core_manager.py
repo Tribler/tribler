@@ -5,8 +5,6 @@ import sys
 from PyQt5.QtCore import QObject, QTimer, pyqtSignal
 from PyQt5.QtWidgets import QApplication
 
-from six import PY3, text_type
-
 from TriblerGUI.event_request_manager import EventRequestManager
 from TriblerGUI.tribler_request_manager import QueuePriorityEnum, TriblerRequestManager
 from TriblerGUI.utilities import get_base_path, is_frozen
@@ -73,13 +71,7 @@ class CoreManager(QObject):
     def start_tribler_core(self, core_args=None, core_env=None):
         if not START_FAKE_API:
             if not core_env:
-                if PY3:
-                    core_env = os.environ.copy()
-                else:
-                    system_encoding = sys.getfilesystemencoding()
-                    core_env = {(k.encode(system_encoding) if isinstance(k, text_type) else str(k)):
-                                    (v.encode(system_encoding) if isinstance(v, text_type) else str(v))
-                                for k, v in os.environ.copy().items()}
+                core_env = os.environ.copy()
                 core_env["CORE_PROCESS"] = "1"
                 core_env["CORE_BASE_PATH"] = self.base_path
                 core_env["CORE_API_PORT"] = "%s" % self.api_port

@@ -1,15 +1,13 @@
 import json
 import os
 from binascii import unhexlify
+from urllib.parse import unquote_plus
+from urllib.request import url2pathname
 
 from aiohttp import web
 from libtorrent import bencode, create_torrent
 
 from pony.orm import db_session
-
-from six import unichr  # pylint: disable=redefined-builtin
-from six.moves.urllib.parse import unquote_plus
-from six.moves.urllib.request import url2pathname
 
 from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT
@@ -41,7 +39,7 @@ def _safe_extended_peer_info(ext_peer_info):
         return ext_peer_info
     except UnicodeDecodeError:
         # We might have some special unicode characters in here
-        return u''.join([unichr(ord(c)) for c in ext_peer_info])
+        return u''.join([chr(ord(c)) for c in ext_peer_info])
 
 
 class DownloadsEndpoint(RESTEndpoint):

@@ -2,12 +2,11 @@ import datetime
 import logging
 import os
 import sys
+from io import StringIO
 
 from aiohttp import web
 
 import psutil
-
-from six import StringIO
 
 from Tribler.Core.Utilities.instrumentation import WatchDog
 from Tribler.Core.Modules.restapi.rest_endpoint import RESTEndpoint, RESTResponse

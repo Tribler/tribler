@@ -3,8 +3,6 @@ import shutil
 import sys
 import tempfile
 
-import six
-
 if os.path.exists('test_osutils.py'):
     BASE_DIR = '..'
     sys.path.insert(1, os.path.abspath('..'))
@@ -73,22 +71,22 @@ class Test_OsUtils(BaseTestCase):
 
     def test_home_dir(self):
         home_dir = get_home_dir()
-        self.assertIsInstance(home_dir, six.text_type)
+        self.assertIsInstance(home_dir, str)
         self.assertTrue(os.path.isdir(home_dir))
 
     def test_appstate_dir(self):
         appstate_dir = get_appstate_dir()
-        self.assertIsInstance(appstate_dir, six.text_type)
+        self.assertIsInstance(appstate_dir, str)
         self.assertTrue(os.path.isdir(appstate_dir))
 
     def test_picture_dir(self):
         picture_dir = get_picture_dir()
-        self.assertIsInstance(picture_dir, six.text_type)
+        self.assertIsInstance(picture_dir, str)
         self.assertTrue(os.path.isdir(picture_dir))
 
     def test_desktop_dir(self):
         desktop_dir = get_desktop_dir()
-        self.assertIsInstance(desktop_dir, six.text_type)
+        self.assertIsInstance(desktop_dir, str)
         self.assertTrue(os.path.isdir(desktop_dir))
 
     def test_dir_copy(self):

@@ -3,7 +3,7 @@ Give the initial category information.
 
 Author(s): Yuan Yuan
 """
-from six.moves import configparser
+import configparser
 
 
 def __split_list(string):

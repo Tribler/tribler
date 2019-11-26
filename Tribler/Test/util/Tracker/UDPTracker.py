@@ -2,8 +2,6 @@ import random
 import struct
 from asyncio import get_event_loop, DatagramProtocol
 
-from six.moves import xrange
-
 from Tribler.Core.TorrentChecker.session import MAX_INT32
 from Tribler.Test.util.Tracker.TrackerInfo import TrackerInfo
 
@@ -42,7 +40,7 @@ class UDPTrackerProtocol(DatagramProtocol):
 
             num_infohashes = (len(response) - 16) // LENGTH_INFOHASH
             infohashes = []
-            for ind in xrange(num_infohashes):
+            for ind in range(num_infohashes):
                 tup = struct.unpack_from('!' + str(LENGTH_INFOHASH) + 'c', response, 16 + ind * LENGTH_INFOHASH)
                 infohash = b''.join(tup)
                 if not self.tracker_session.tracker_info.has_info_about_infohash(infohash):

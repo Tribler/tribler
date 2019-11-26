@@ -42,7 +42,7 @@ class ShutdownEndpoint(RESTEndpoint):
 
         async def shutdown():
             try:
-                await self.session.shutdown()
+                keep_loop_running = await self.session.shutdown()
             except Exception as e:
                 self._logger.error(e)
 
@@ -50,7 +50,8 @@ class ShutdownEndpoint(RESTEndpoint):
             # Flush the logs to the file before exiting
             for handler in logging.getLogger().handlers:
                 handler.flush()
-            get_event_loop().stop()
+            if not keep_loop_running:
+                get_event_loop().stop()
 
         ensure_future(shutdown())
         return RESTResponse({"shutdown": True})

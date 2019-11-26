@@ -1,8 +1,6 @@
 """
 This file contains some utility methods that are used by the API.
 """
-from six import binary_type
-
 from Tribler.Core.Modules.restapi.rest_endpoint import RESTResponse, HTTP_INTERNAL_SERVER_ERROR
 
 
@@ -45,7 +43,7 @@ def fix_unicode_dict(d):
             new_dict[key] = fix_unicode_array(list(value))
         elif isinstance(value, list):
             new_dict[key] = fix_unicode_array(value)
-        elif isinstance(value, binary_type):
+        elif isinstance(value, bytes):
             new_dict[key] = value.decode('utf-8', 'ignore')
         else:
             new_dict[key] = value
@@ -60,7 +58,7 @@ def fix_unicode_array(arr):
     new_arr = []
 
     for item in arr:
-        if isinstance(item, binary_type):
+        if isinstance(item, bytes):
             new_arr.append(item.decode('utf-8', 'ignore'))
         elif isinstance(item, dict):
             new_arr.append(fix_unicode_dict(item))

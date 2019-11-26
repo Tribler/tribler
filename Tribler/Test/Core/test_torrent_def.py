@@ -8,8 +8,6 @@ from libtorrent import bdecode, bencode
 from aiohttp import web, ClientResponseError
 from nose.tools import raises
 
-import six
-
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Test.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE
 from Tribler.Test.test_as_server import BaseTestCase
@@ -224,7 +222,7 @@ class TestTorrentDef(BaseTestCase):
         self.assertFalse(torrent.get_metainfo())
         self.assertEqual(torrent.get_url(), "http://google.com")
         self.assertFalse(torrent.is_multifile_torrent())
-        self.assertEqual(torrent.get_name_as_unicode(), six.text_type(VIDEO_FILE_NAME))
+        self.assertEqual(torrent.get_name_as_unicode(), VIDEO_FILE_NAME)
         self.assertFalse(torrent.get_files())
         self.assertFalse(torrent.get_files_with_length())
         self.assertFalse(torrent.get_trackers_as_single_tuple())

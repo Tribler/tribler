@@ -9,8 +9,6 @@ from ipv8.peerdiscovery.community import DiscoveryCommunity
 from ipv8.peerdiscovery.network import Network
 from ipv8.test.messaging.anonymization.test_community import MockDHTProvider
 
-from six.moves import xrange
-
 from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import dlstatus_strings
@@ -67,12 +65,12 @@ class TestTunnelBase(TestAsServer):
         Setup all required nodes, including the relays, exit nodes and seeder.
         """
         baseindex = 3
-        for i in xrange(baseindex, baseindex + num_relays):  # Normal relays
+        for i in range(baseindex, baseindex + num_relays):  # Normal relays
             proxy = await self.create_proxy(i)
             self.tunnel_communities.append(proxy)
 
         baseindex += num_relays + 1
-        for i in xrange(baseindex, baseindex + num_exitnodes):  # Exit nodes
+        for i in range(baseindex, baseindex + num_exitnodes):  # Exit nodes
             proxy = await self.create_proxy(i, exitnode=True)
             self.tunnel_communities.append(proxy)
 

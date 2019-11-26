@@ -6,8 +6,6 @@ from Tribler.Core.Utilities.utilities import succeed
 from Tribler.Test.tools import timeout
 from pony.orm import db_session
 
-from six.moves import xrange
-
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import LEGACY_ENTRY
 from Tribler.Core.Modules.tracker_manager import TrackerManager
 from Tribler.Core.TorrentChecker.session import HttpTrackerSession, UdpSocketManager
@@ -219,7 +217,7 @@ class TestTorrentChecker(TestAsServer):
         """
         Test that the random torrent health checking mechanism picks the right torrents
         """
-        for ind in xrange(1, 20):
+        for ind in range(1, 20):
             torrent = self.session.lm.mds.TorrentMetadata(title='torrent1', infohash=os.urandom(20))
             torrent.health.last_check = ind
 

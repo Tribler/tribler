@@ -27,8 +27,6 @@ from ipv8.taskmanager import TaskManager
 
 from ipv8_service import IPv8
 
-from six import text_type
-
 from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.Modules.gigachannel_manager import GigaChannelManager
@@ -505,7 +503,7 @@ class TriblerLaunchMany(TaskManager):
                         infohash) == self.session.config.get_bootstrap_infohash() and self.trustchain_community:
                     if download.future_flushed.done():
                         with open(self.bootstrap.bootstrap_file, 'r') as f:
-                            sql_dumb = text_type(f.read())
+                            sql_dumb = f.read()
                         self._logger.info("Executing script for trustchain bootstrap")
                         self.trustchain_community.persistence.executescript(sql_dumb)
                         self.trustchain_community.persistence.commit()
@@ -581,7 +579,7 @@ class TriblerLaunchMany(TaskManager):
             tdef = (TorrentDefNoMetainfo(metainfo[b'infohash'], metainfo[b'name'], url)
                     if b'infohash' in metainfo else TorrentDef.load_from_dict(metainfo))
         except ValueError as e:
-            self._logger.exception("tlm: could not restore tdef from metainfo dict: %s %s ", e, text_type(metainfo))
+            self._logger.exception("tlm: could not restore tdef from metainfo dict: %s %s ", e, metainfo)
             return
 
         if config.get_bootstrap_download():

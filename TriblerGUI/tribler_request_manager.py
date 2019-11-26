@@ -2,13 +2,10 @@ import logging
 from collections import deque, namedtuple
 from threading import RLock
 from time import time
+from urllib.parse import quote_plus
 
 from PyQt5.QtCore import QBuffer, QIODevice, QObject, QUrl, pyqtSignal
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
-
-from six import string_types, text_type
-from six.moves import xrange
-from six.moves.urllib.parse import quote_plus
 
 import Tribler.Core.Utilities.json_util as json
 
@@ -30,11 +27,11 @@ def tribler_urlencode(data):
 
 
 def tribler_urlencode_single(key, value):
-    utf8_key = quote_plus(text_type(key).encode('utf-8'))
+    utf8_key = quote_plus(str(key).encode('utf-8'))
     # Convert bool values to ints
     if isinstance(value, bool):
         value = int(value)
-    utf8_value = quote_plus(text_type(value).encode('utf-8'))
+    utf8_value = quote_plus(str(value).encode('utf-8'))
     return "%s=%s" % (utf8_key, utf8_value)
 
 
@@ -222,7 +219,7 @@ class TriblerRequestDispatcher(object):
 
         num_worker = len(self.request_workers)
         if num_worker < self.pool_size:
-            for _ in xrange(self.pool_size - num_worker):
+            for _ in range(self.pool_size - num_worker):
                 worker = TriblerRequestWorker()
                 self.request_workers.append(worker)
                 if self.default_protocol:
@@ -295,7 +292,7 @@ class TriblerRequestManager(QObject):
     @staticmethod
     def get_message_from_error(error):
         return_error = None
-        if isinstance(error['error'], string_types):
+        if isinstance(error['error'], str):
             return_error = error['error']
         elif 'message' in error['error']:
             return_error = error['error']['message']

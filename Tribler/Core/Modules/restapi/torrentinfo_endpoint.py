@@ -1,12 +1,11 @@
 import hashlib
 import json
 from copy import deepcopy
+from urllib.request import url2pathname
 
 from aiohttp import web, ClientSession, ServerConnectionError, ClientResponseError
 
 from libtorrent import bdecode, bencode
-
-from six.moves.urllib.request import url2pathname
 
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.MetadataStore.OrmBindings.torrent_metadata import tdef_to_metadata_dict

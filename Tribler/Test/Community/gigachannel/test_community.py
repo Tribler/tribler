@@ -6,8 +6,6 @@ from ipv8.test.base import TestBase
 
 from pony.orm import db_session
 
-from six.moves import xrange
-
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import NEW, LEGACY_ENTRY
 from Tribler.Core.Modules.MetadataStore.serialization import REGULAR_TORRENT
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
@@ -116,7 +114,7 @@ class TestGigaChannelUnits(TestBase):
         self.nodes[0].overlay.gossip_renewal_period = 2
         with db_session:
             channel = self.nodes[0].overlay.metadata_store.ChannelMetadata.create_channel("test", "bla")
-            for _ in xrange(10):
+            for _ in range(10):
                 self.add_random_torrent(self.nodes[0].overlay.metadata_store.TorrentMetadata, channel=channel)
             channel.commit_channel_torrent()
 
@@ -139,7 +137,7 @@ class TestGigaChannelUnits(TestBase):
             ).delete()
             self.nodes[1].overlay.metadata_store.TorrentMetadata.select().delete()
 
-            for _ in xrange(10):
+            for _ in range(10):
                 self.add_random_torrent(self.nodes[0].overlay.metadata_store.TorrentMetadata, channel=channel)
             channel.commit_channel_torrent()
 
@@ -168,7 +166,7 @@ class TestGigaChannelUnits(TestBase):
         with db_session:
             # Add channel to node 0
             channel = self.nodes[0].overlay.metadata_store.ChannelMetadata.create_channel("test", "bla")
-            for _ in xrange(20):
+            for _ in range(20):
                 self.add_random_torrent(self.nodes[0].overlay.metadata_store.TorrentMetadata, channel=channel)
             channel.commit_channel_torrent()
             channel_v1_dict = channel.to_dict()
@@ -216,7 +214,7 @@ class TestGigaChannelUnits(TestBase):
                 title="ubuntu legacy chan", infohash=os.urandom(20), public_key=b"", status=LEGACY_ENTRY, id_=0
             )
             channel = self.nodes[0].overlay.metadata_store.ChannelMetadata.create_channel("ubuntu", "ubuntu")
-            for i in xrange(20):
+            for i in range(20):
                 self.add_random_torrent(
                     self.nodes[0].overlay.metadata_store.TorrentMetadata, name="ubuntu %s" % i, channel=channel
                 )
@@ -255,11 +253,11 @@ class TestGigaChannelUnits(TestBase):
 
         with db_session:
             channel = self.nodes[0].overlay.metadata_store.ChannelMetadata.create_channel("linux", "ubuntu")
-            for i in xrange(10):
+            for i in range(10):
                 self.add_random_torrent(
                     self.nodes[0].overlay.metadata_store.TorrentMetadata, name="ubuntu %s" % i, channel=channel
                 )
-            for i in xrange(10):
+            for i in range(10):
                 self.add_random_torrent(
                     self.nodes[0].overlay.metadata_store.TorrentMetadata, name="debian %s" % i, channel=channel
                 )
