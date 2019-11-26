@@ -184,6 +184,10 @@ class Session(object):
                 self._logger.error("Connection forcibly closed by the remote host.")
                 return
 
+            if 'socket.gaierror' in text and '[Errno 10022]' in text:
+                self._logger.error("Failed to get address info. Error code: 10022")
+                return
+
             if 'exceptions.ValueError: Invalid DNS-ID' in text:
                 self._logger.error("Invalid DNS-ID")
                 return
