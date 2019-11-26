@@ -82,7 +82,6 @@ Endpoints
    events
    libtorrent
    metadata
-   mychannel
    search
    settings
    shutdown
