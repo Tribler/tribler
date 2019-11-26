@@ -56,7 +56,7 @@ class Bootstrap(object):
             self.persist_nodes()
 
         def on_failure(failure):
-            self._logger.error("Failed to get DHT response:%s", failure.value)
+            self._logger.debug("Failed to get DHT response:%s", failure.value)
 
         for peer in self.download.get_peerlist():
             mid = peer['id']
