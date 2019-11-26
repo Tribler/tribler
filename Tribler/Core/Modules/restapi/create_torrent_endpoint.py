@@ -62,6 +62,7 @@ class CreateTorrentEndpoint(resource.Resource):
         """
         content = request.content.read()
         parameters = recursive_unicode(http.parse_qs(content, 1))
+        args = recursive_unicode(request.args)
         params = {}
 
         if 'files' in parameters and parameters['files']:
@@ -108,7 +109,7 @@ class CreateTorrentEndpoint(resource.Resource):
                     fd.write(result['metainfo'])
 
             # Download this torrent if specified
-            if 'download' in request.args and request.args['download'] and request.args['download'][0] == "1":
+            if 'download' in args and args['download'] and args['download'][0] == "1":
                 download_config = DownloadConfig()
                 download_config.set_dest_dir(result['base_path'] if len(file_path_list) == 1 else result['base_dir'])
                 try:
