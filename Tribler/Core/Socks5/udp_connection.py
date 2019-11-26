@@ -1,8 +1,11 @@
+from __future__ import absolute_import
+
 import logging
 
-from Tribler.Core.Socks5 import conversion
 from twisted.internet import reactor
 from twisted.internet.protocol import DatagramProtocol
+
+from Tribler.Core.Socks5 import conversion
 
 
 class SocksUDPConnection(DatagramProtocol):
@@ -40,11 +43,14 @@ class SocksUDPConnection(DatagramProtocol):
             except conversion.IPV6AddrError:
                 self._logger.warning("Received an IPV6 udp datagram, dropping it (Not implemented yet)")
                 return False
+            except conversion.InvalidAddressException as ide:
+                self._logger.warning("Received an invalid host address. %r", ide)
+                return False
 
-            if request.frag == 0:
+            if request.frag == 0 and request.destination_host:
                 return self.socksconnection.socksserver.udp_output_stream.on_socks5_udp_data(self, request)
             else:
-                self._logger.debug("No support for fragmented data, dropping")
+                self._logger.debug("No support for fragmented data or without destination host, dropping")
         else:
             self._logger.debug("Ignoring data from %s:%d, is not %s:%d",
                                source[0], source[1], self.remote_udp_address[0], self.remote_udp_address[1])
