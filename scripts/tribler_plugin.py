@@ -7,9 +7,9 @@ import re
 import signal
 import sys
 import time
+from asyncio import ensure_future, get_event_loop, sleep
 from datetime import date
 from socket import inet_aton
-from asyncio import get_event_loop, ensure_future, sleep
 
 from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.Modules.process_checker import ProcessChecker
@@ -18,7 +18,7 @@ from Tribler.Core.Session import Session
 
 class IPPortAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
-        parsed = re.match(r"^([\d\.]+)\:(\d+)$", val)
+        parsed = re.match(r"^([\d\.]+)\:(\d+)$", values)
         if not parsed:
             raise argparse.ArgumentError("Invalid address:port")
 
@@ -62,7 +62,7 @@ class TriblerService(object):
                 self.process_checker.remove_lock_file()
 
         signal.signal(signal.SIGINT, lambda sig, _: ensure_future(signal_handler(sig)))
-        signal.signal(signal.SIGTERM, lambda sign, _: ensure_future(signal_handler(sig)))
+        signal.signal(signal.SIGTERM, lambda sig, _: ensure_future(signal_handler(sig)))
 
         config = TriblerConfig()
 

@@ -5,7 +5,7 @@ from aiohttp import web
 from pony.orm import db_session
 
 from Tribler.Core.Modules.restapi.metadata_endpoint import MetadataEndpointBase
-from Tribler.Core.Modules.restapi.rest_endpoint import RESTResponse, HTTP_BAD_REQUEST
+from Tribler.Core.Modules.restapi.rest_endpoint import HTTP_BAD_REQUEST, RESTResponse
 
 
 class SearchEndpoint(MetadataEndpointBase):

@@ -39,4 +39,3 @@ class LoadingPage(QWidget):
             self.upgrading = True
             self.window().skip_conversion_btn.show()
         self.window().loading_text_label.setText(text)
-

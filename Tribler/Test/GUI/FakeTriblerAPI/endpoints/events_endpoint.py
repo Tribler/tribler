@@ -1,6 +1,5 @@
 import json
-
-from asyncio import sleep, ensure_future, CancelledError
+from asyncio import CancelledError, sleep
 
 from aiohttp import web
 
@@ -38,4 +37,3 @@ class EventsEndpoint(RESTEndpoint):
             response = self.event_response
             self.event_response = None
             return response
-

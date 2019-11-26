@@ -3,9 +3,10 @@ import os
 import shutil
 from tempfile import mkdtemp
 
+from aiohttp import ClientResponseError, web
+
 from libtorrent import bdecode, bencode
 
-from aiohttp import web, ClientResponseError
 from nose.tools import raises
 
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo

@@ -1,8 +1,9 @@
 from PyQt5 import uic
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPainter
-from PyQt5.QtWidgets import QWidget, QStyleOption, QStyle
-from TriblerGUI.utilities import get_ui_file_path, format_speed
+from PyQt5.QtWidgets import QStyle, QStyleOption, QWidget
+
+from TriblerGUI.utilities import format_speed, get_ui_file_path
 
 
 class VideoPlayerInfoPopup(QWidget):

@@ -1,4 +1,5 @@
 import os
+
 from nose.tools import raises
 
 from Tribler.Core.Utilities.configparser import CallbackConfigParser

@@ -4,7 +4,6 @@ from tempfile import mkdtemp
 
 from anydex.wallet.tc_wallet import TrustchainWallet
 
-from Tribler.Core.Utilities.utilities import succeed
 from ipv8.attestation.trustchain.community import TrustChainCommunity
 from ipv8.messaging.anonymization.tunnel import CIRCUIT_TYPE_RP_DOWNLOADER, PEER_FLAG_EXIT_ANY
 from ipv8.peer import Peer
@@ -13,6 +12,7 @@ from ipv8.test.messaging.anonymization.test_community import MockDHTProvider
 from ipv8.test.mocking.exit_socket import MockTunnelExitSocket
 from ipv8.test.mocking.ipv8 import MockIPv8
 
+from Tribler.Core.Utilities.utilities import succeed
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.community.triblertunnel.community import TriblerTunnelCommunity
 

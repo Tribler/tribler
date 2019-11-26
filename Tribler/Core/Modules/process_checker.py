@@ -4,7 +4,6 @@ import psutil
 
 from Tribler.Core.Config.tribler_config import TriblerConfig
 
-
 LOCK_FILE_NAME = 'triblerd.lock'
 
 

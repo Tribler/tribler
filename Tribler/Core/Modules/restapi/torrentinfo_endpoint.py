@@ -3,14 +3,14 @@ import json
 from copy import deepcopy
 from urllib.request import url2pathname
 
-from aiohttp import web, ClientSession, ServerConnectionError, ClientResponseError
+from aiohttp import ClientResponseError, ClientSession, ServerConnectionError, web
 
 from libtorrent import bdecode, bencode
 
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.MetadataStore.OrmBindings.torrent_metadata import tdef_to_metadata_dict
-from Tribler.Core.Modules.restapi.rest_endpoint import (RESTEndpoint, RESTResponse,
-                                                        HTTP_BAD_REQUEST, HTTP_INTERNAL_SERVER_ERROR)
+from Tribler.Core.Modules.restapi.rest_endpoint import (HTTP_BAD_REQUEST, HTTP_INTERNAL_SERVER_ERROR,
+                                                        RESTEndpoint, RESTResponse)
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.unicode import hexlify, recursive_unicode
 from Tribler.Core.Utilities.utilities import parse_magnetlink

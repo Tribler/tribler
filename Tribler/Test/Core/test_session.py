@@ -6,11 +6,11 @@ from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.Session import SOCKET_BLOCK_ERRORCODE
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.utilities import succeed
-from Tribler.Test.tools import timeout
 from Tribler.Core.exceptions import OperationNotEnabledByConfigurationException
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.common import TORRENT_UBUNTU_FILE
 from Tribler.Test.test_as_server import TestAsServer
+from Tribler.Test.tools import timeout
 
 
 class TestSessionAsServer(TestAsServer):

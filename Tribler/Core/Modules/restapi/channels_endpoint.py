@@ -3,7 +3,7 @@ import codecs
 import os
 from binascii import unhexlify
 
-from aiohttp import web, ContentTypeError, ClientSession
+from aiohttp import ClientSession, ContentTypeError, web
 
 from ipv8.database import database_blob
 
@@ -11,7 +11,7 @@ from pony.orm import db_session
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import DIRTY_STATUSES, NEW
 from Tribler.Core.Modules.restapi.metadata_endpoint_base import MetadataEndpointBase
-from Tribler.Core.Modules.restapi.rest_endpoint import RESTResponse, HTTP_BAD_REQUEST, HTTP_NOT_FOUND
+from Tribler.Core.Modules.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_NOT_FOUND, RESTResponse
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.utilities import is_infohash, parse_magnetlink
 

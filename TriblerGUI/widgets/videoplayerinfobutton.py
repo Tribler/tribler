@@ -1,6 +1,7 @@
 from PyQt5.QtCore import QPoint
 from PyQt5.QtGui import QCursor
 from PyQt5.QtWidgets import QToolButton
+
 from TriblerGUI.widgets.videoplayerinfopopup import VideoPlayerInfoPopup
 
 

@@ -3,8 +3,7 @@ from random import Random
 from aiohttp import web
 
 import Tribler.Test.GUI.FakeTriblerAPI.tribler_utils as tribler_utils
-
-from Tribler.Core.Modules.restapi.rest_endpoint import RESTEndpoint, RESTResponse, HTTP_BAD_REQUEST
+from Tribler.Core.Modules.restapi.rest_endpoint import HTTP_BAD_REQUEST, RESTEndpoint, RESTResponse
 
 
 class SearchEndpoint(RESTEndpoint):

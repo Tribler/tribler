@@ -1,5 +1,4 @@
-from PyQt5.QtCore import QTimer
-from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtCore import QTimer, pyqtSignal
 from PyQt5.QtWidgets import QListWidget
 
 from TriblerGUI.tribler_request_manager import TriblerRequestManager

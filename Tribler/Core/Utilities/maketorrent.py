@@ -8,7 +8,6 @@ import os
 
 from Tribler.Core.Utilities.unicode import ensure_unicode_detect_encoding
 
-
 logger = logging.getLogger(__name__)
 
 

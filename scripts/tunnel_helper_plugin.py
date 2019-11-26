@@ -8,8 +8,8 @@ import re
 import signal
 import sys
 import time
+from asyncio import ensure_future, get_event_loop, sleep
 from socket import inet_aton
-from asyncio import get_event_loop, ensure_future, sleep
 
 from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.Session import Session
@@ -29,7 +29,7 @@ class PortAction(argparse.Action):
 class IPAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         try:
-            inet_aton(val)
+            inet_aton(values)
         except:
             raise argparse.ArgumentError(self, "Invalid IPv4 address")
         setattr(namespace, self.dest, values)
@@ -37,7 +37,7 @@ class IPAction(argparse.Action):
 
 class IPPortAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
-        parsed = re.match(r"^([\d\.]+)\:(\d+)$", val)
+        parsed = re.match(r"^([\d\.]+)\:(\d+)$", values)
         if not parsed:
             raise argparse.ArgumentError("Invalid address:port")
 

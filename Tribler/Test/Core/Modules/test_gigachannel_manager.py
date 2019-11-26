@@ -11,10 +11,10 @@ from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import NEW
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.Modules.gigachannel_manager import GigaChannelManager
 from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.Utilities.utilities import succeed
 from Tribler.Core.simpledefs import DLSTATUS_SEEDING
 from Tribler.Test.Core.base_test import MockObject, TriblerCoreTest
 from Tribler.Test.common import TORRENT_UBUNTU_FILE
-from Tribler.Core.Utilities.utilities import succeed
 from Tribler.Test.tools import timeout
 
 

@@ -1,3 +1,4 @@
+import asyncio
 import os
 from asyncio import Future
 from tempfile import mkstemp
@@ -9,8 +10,9 @@ from Tribler.Core.simpledefs import DLMODE_VOD, DOWNLOAD, UPLOAD, dlstatus_strin
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.tools import timeout
 
-import asyncio
 asyncio.get_event_loop().set_debug(True)
+
+
 class TestVideoOnDemand(TestAsServer):
 
     """

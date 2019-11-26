@@ -1,7 +1,7 @@
 """
 This file contains some utility methods that are used by the API.
 """
-from Tribler.Core.Modules.restapi.rest_endpoint import RESTResponse, HTTP_INTERNAL_SERVER_ERROR
+from Tribler.Core.Modules.restapi.rest_endpoint import HTTP_INTERNAL_SERVER_ERROR, RESTResponse
 
 
 def return_handled_exception(request, exception):

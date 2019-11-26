@@ -9,10 +9,10 @@ from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.DownloadState import DownloadState
 from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.Utilities.utilities import fail, succeed
-from Tribler.Test.tools import timeout
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.common import TESTS_DATA_DIR, TESTS_DIR, UBUNTU_1504_INFOHASH
+from Tribler.Test.tools import timeout
 
 
 def get_hex_infohash(tdef):

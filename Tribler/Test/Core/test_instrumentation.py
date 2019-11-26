@@ -1,6 +1,6 @@
 from threading import Event, Thread
 
-from Tribler.Core.Utilities.instrumentation import synchronized, WatchDog
+from Tribler.Core.Utilities.instrumentation import WatchDog, synchronized
 from Tribler.Test.Core.base_test import TriblerCoreTest
 
 

@@ -1,10 +1,10 @@
 import socket
 import struct
-from asyncio import start_server, ensure_future, Future, CancelledError, get_event_loop, DatagramProtocol
-
-from libtorrent import bencode
+from asyncio import CancelledError, DatagramProtocol, Future, ensure_future, get_event_loop, start_server
 
 from aiohttp.web_exceptions import HTTPBadRequest
+
+from libtorrent import bencode
 
 from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.Session import Session
@@ -12,9 +12,9 @@ from Tribler.Core.TorrentChecker.session import FakeBep33DHTSession, FakeDHTSess
     UdpTrackerSession
 from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.Utilities.utilities import succeed
-from Tribler.Test.tools import timeout
 from Tribler.Test.Core.base_test import MockObject, TriblerCoreTest
 from Tribler.Test.test_as_server import TestAsServer
+from Tribler.Test.tools import timeout
 
 
 class FakeUdpSocketManager(object):
@@ -106,7 +106,6 @@ class TestTorrentCheckerSession(TestAsServer):
         session = UdpTrackerSession("localhost", ("127.0.0.1", port), "/announce", 1, self.socket_mgr)
         with self.assertRaises(ValueError):
             await session.connect_to_tracker()
-        sleep_future.set_result(None)
         transport.close()
 
     @timeout(5)

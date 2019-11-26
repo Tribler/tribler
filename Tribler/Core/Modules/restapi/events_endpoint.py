@@ -1,4 +1,3 @@
-import asyncio
 import json
 import time
 from asyncio import CancelledError, ensure_future

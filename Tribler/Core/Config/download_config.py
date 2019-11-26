@@ -12,7 +12,6 @@ from Tribler.Core.exceptions import InvalidConfigException
 from Tribler.Core.osutils import get_home_dir
 from Tribler.Core.simpledefs import DLMODE_NORMAL, DLMODE_VOD
 
-
 SPEC_FILENAME = 'download_config.spec'
 CONFIG_SPEC_PATH = os.path.join(get_lib_path(), 'Core', 'Config', SPEC_FILENAME)
 NONPERSISTENT_DEFAULTS = {'mode': DLMODE_NORMAL}

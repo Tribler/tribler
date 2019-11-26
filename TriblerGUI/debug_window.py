@@ -8,12 +8,7 @@ from time import localtime, strftime, time
 from PyQt5 import QtGui, uic
 from PyQt5.QtCore import QTimer, Qt, pyqtSignal
 from PyQt5.QtGui import QBrush, QColor, QTextCursor
-from PyQt5.QtWidgets import (QDesktopWidget, QFileDialog, QHeaderView, QMainWindow, QMessageBox, QTreeWidgetItem)
-
-try:
-    from meliae import scanner
-except ImportError:
-    scanner = None
+from PyQt5.QtWidgets import QDesktopWidget, QFileDialog, QHeaderView, QMainWindow, QMessageBox, QTreeWidgetItem
 
 import libtorrent
 
@@ -27,6 +22,15 @@ from TriblerGUI.event_request_manager import received_events as tribler_received
 from TriblerGUI.tribler_request_manager import TriblerRequestManager, performed_requests as tribler_performed_requests
 from TriblerGUI.utilities import format_size, get_ui_file_path
 from TriblerGUI.widgets.tokenminingpage import TimeSeriesPlot
+
+try:
+    from meliae import scanner
+except ImportError:
+    scanner = None
+
+
+
+
 
 
 class MemoryPlot(TimeSeriesPlot):

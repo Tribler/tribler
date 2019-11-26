@@ -1,5 +1,4 @@
 import logging
-
 from asyncio import Protocol, ensure_future
 
 from Tribler.Core.Socks5 import conversion

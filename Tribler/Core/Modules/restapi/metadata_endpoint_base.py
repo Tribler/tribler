@@ -1,6 +1,5 @@
-from Tribler.Core.Modules.restapi.rest_endpoint import RESTEndpoint
 from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
-from Tribler.util import cast_to_unicode_utf8
+from Tribler.Core.Modules.restapi.rest_endpoint import RESTEndpoint
 
 json2pony_columns = {
     u'category': "tags",

@@ -1,5 +1,5 @@
 import logging
-from asyncio import get_event_loop, DatagramProtocol
+from asyncio import DatagramProtocol, get_event_loop
 
 from Tribler.Core.Socks5 import conversion
 

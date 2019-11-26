@@ -5,10 +5,8 @@ from aiohttp import web
 
 from ipv8.taskmanager import TaskManager
 
-from Tribler.Core.Modules.restapi.events_endpoint import EventsEndpoint
-from Tribler.Core.Modules.restapi.rest_endpoint import RESTResponse, HTTP_INTERNAL_SERVER_ERROR
+from Tribler.Core.Modules.restapi.rest_endpoint import HTTP_INTERNAL_SERVER_ERROR, RESTResponse
 from Tribler.Core.Modules.restapi.root_endpoint import RootEndpoint
-from Tribler.Core.Modules.restapi.state_endpoint import StateEndpoint
 
 
 @web.middleware

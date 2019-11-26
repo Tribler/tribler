@@ -14,11 +14,11 @@ from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.random_utils import random_infohash
 from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.Utilities.utilities import succeed
-from Tribler.Test.tools import timeout
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.Core.Modules.RestApi.test_metadata_endpoint import BaseTestMetadataEndpoint
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.common import TORRENT_UBUNTU_FILE
+from Tribler.Test.tools import timeout
 
 
 class BaseTestMyChannelEndpoint(BaseTestMetadataEndpoint):

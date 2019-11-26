@@ -7,8 +7,8 @@ from aiohttp import web
 from libtorrent import bdecode
 
 from Tribler.Core.Config.download_config import DownloadConfig
+from Tribler.Core.Modules.restapi.rest_endpoint import HTTP_BAD_REQUEST, RESTEndpoint, RESTResponse
 from Tribler.Core.Modules.restapi.util import return_handled_exception
-from Tribler.Core.Modules.restapi.rest_endpoint import RESTEndpoint, RESTResponse, HTTP_BAD_REQUEST
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.unicode import ensure_unicode, recursive_bytes
 from Tribler.Core.exceptions import DuplicateDownloadException

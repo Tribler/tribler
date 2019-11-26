@@ -12,7 +12,6 @@ from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.exceptions import TrustGraphException
 from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD
 
-
 MAX_PEERS = 500
 MAX_TRANSACTIONS = 2500
 

@@ -11,10 +11,10 @@ import time
 from asyncio import ensure_future
 from binascii import unhexlify
 from collections import defaultdict
-from threading import Event, RLock, Thread
-from traceback import print_exc
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from socketserver import ThreadingMixIn
+from threading import Event, RLock, Thread
+from traceback import print_exc
 
 from cherrypy.lib.httputil import get_ranges
 

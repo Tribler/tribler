@@ -1,6 +1,6 @@
 import random
 import struct
-from asyncio import get_event_loop, DatagramProtocol
+from asyncio import DatagramProtocol, get_event_loop
 
 from Tribler.Core.TorrentChecker.session import MAX_INT32
 from Tribler.Test.util.Tracker.TrackerInfo import TrackerInfo

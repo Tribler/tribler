@@ -1,7 +1,8 @@
-from asyncio import Future, ensure_future, CancelledError
+from asyncio import CancelledError, Future, ensure_future
 from contextlib import suppress
 
 from aiohttp import ClientSession
+
 from ipv8.messaging.anonymization.tunnel import Circuit
 
 from Tribler.Core.simpledefs import (

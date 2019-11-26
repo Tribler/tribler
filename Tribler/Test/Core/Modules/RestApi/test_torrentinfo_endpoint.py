@@ -1,5 +1,5 @@
-import os
 import json
+import os
 import shutil
 from binascii import unhexlify
 from urllib.parse import quote_plus
@@ -10,11 +10,11 @@ from pony.orm import db_session
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.Utilities.utilities import succeed
-from Tribler.Test.tools import timeout
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.common import TORRENT_UBUNTU_FILE, UBUNTU_1504_INFOHASH
 from Tribler.Test.test_as_server import TESTS_DATA_DIR, TESTS_DIR
+from Tribler.Test.tools import timeout
 
 SAMPLE_CHANNEL_FILES_DIR = os.path.join(TESTS_DIR, "Core", "data", "sample_channel")
 

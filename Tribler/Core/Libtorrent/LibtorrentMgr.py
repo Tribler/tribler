@@ -8,7 +8,7 @@ import logging
 import os
 import tempfile
 import time
-from asyncio import ensure_future, Future
+from asyncio import Future, ensure_future
 from binascii import unhexlify
 from distutils.version import LooseVersion
 from shutil import rmtree

@@ -1,7 +1,7 @@
 import logging
 import os
 import time
-from asyncio import ensure_future, gather, Future
+from asyncio import Future, ensure_future, gather
 from binascii import unhexlify
 from glob import glob
 

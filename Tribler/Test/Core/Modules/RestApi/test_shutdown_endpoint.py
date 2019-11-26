@@ -1,7 +1,6 @@
 from Tribler.Core.Utilities.utilities import succeed
-from Tribler.Test.tools import timeout
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
-from Tribler.Test.Core.base_test import MockObject
+from Tribler.Test.tools import timeout
 
 
 class TestShutdownEndpoint(AbstractApiTest):

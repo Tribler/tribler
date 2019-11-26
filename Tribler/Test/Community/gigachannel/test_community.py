@@ -6,7 +6,7 @@ from ipv8.test.base import TestBase
 
 from pony.orm import db_session
 
-from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import NEW, LEGACY_ENTRY
+from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import LEGACY_ENTRY, NEW
 from Tribler.Core.Modules.MetadataStore.serialization import REGULAR_TORRENT
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.Utilities.random_utils import random_infohash

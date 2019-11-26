@@ -2,8 +2,8 @@ from binascii import unhexlify
 
 from aiohttp import web
 
-from Tribler.Core.Modules.restapi.rest_endpoint import RESTEndpoint, RESTResponse, HTTP_NOT_FOUND, HTTP_BAD_REQUEST
 import Tribler.Test.GUI.FakeTriblerAPI.tribler_utils as tribler_utils
+from Tribler.Core.Modules.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_NOT_FOUND, RESTEndpoint, RESTResponse
 from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Test.GUI.FakeTriblerAPI.constants import COMMITTED, TODELETE
 from Tribler.Test.GUI.FakeTriblerAPI.endpoints.metadata_endpoint import MetadataEndpoint

@@ -1,14 +1,14 @@
 from asyncio import ensure_future
 from binascii import unhexlify
 
-from aiohttp import web, ContentTypeError
+from aiohttp import ContentTypeError, web
 
 from ipv8.database import database_blob
 
 from pony.orm import db_session
 
 from Tribler.Core.Modules.restapi.metadata_endpoint_base import MetadataEndpointBase
-from Tribler.Core.Modules.restapi.rest_endpoint import RESTResponse, HTTP_BAD_REQUEST, HTTP_NOT_FOUND
+from Tribler.Core.Modules.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_NOT_FOUND, RESTResponse
 from Tribler.Core.Utilities.unicode import hexlify
 
 

@@ -2,13 +2,8 @@ from base64 import b64decode
 
 from PyQt5 import uic
 from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtGui import QImage
-from PyQt5.QtGui import QPixmap
-from PyQt5.QtWidgets import QGraphicsScene
-from PyQt5.QtWidgets import QLabel
-from PyQt5.QtWidgets import QLineEdit
-from PyQt5.QtWidgets import QSizePolicy
-from PyQt5.QtWidgets import QVBoxLayout
+from PyQt5.QtGui import QImage, QPixmap
+from PyQt5.QtWidgets import QGraphicsScene, QLabel, QLineEdit, QSizePolicy, QVBoxLayout
 
 from TriblerGUI.dialogs.dialogcontainer import DialogContainer
 from TriblerGUI.utilities import get_ui_file_path

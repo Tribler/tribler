@@ -4,8 +4,8 @@ from asyncio import sleep
 from aiohttp import web
 
 from Tribler.Core.Modules import versioncheck_manager
-from Tribler.Core.Modules.versioncheck_manager import VersionCheckManager
 from Tribler.Core.Modules.restapi.rest_endpoint import RESTResponse
+from Tribler.Core.Modules.versioncheck_manager import VersionCheckManager
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.tools import timeout
 

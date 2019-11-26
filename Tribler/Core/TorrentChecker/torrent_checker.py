@@ -3,7 +3,7 @@ import logging
 import random
 import socket
 import time
-from asyncio import ensure_future, CancelledError, gather, coroutine
+from asyncio import CancelledError, ensure_future, gather
 
 from aiohttp import TCPConnector
 

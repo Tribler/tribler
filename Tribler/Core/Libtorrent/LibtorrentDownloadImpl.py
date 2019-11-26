@@ -9,10 +9,9 @@ import os
 import shutil
 import sys
 import time
-from asyncio import ensure_future, sleep, Future, CancelledError, iscoroutine
+from asyncio import CancelledError, Future, ensure_future, iscoroutine, sleep
 
 import libtorrent as lt
-
 
 from Tribler.Core.Config.download_config import DownloadConfig, get_default_dest_dir
 from Tribler.Core.DownloadState import DownloadState

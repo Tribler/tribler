@@ -8,8 +8,8 @@ from aiohttp import web
 
 import psutil
 
-from Tribler.Core.Utilities.instrumentation import WatchDog
 from Tribler.Core.Modules.restapi.rest_endpoint import RESTEndpoint, RESTResponse
+from Tribler.Core.Utilities.instrumentation import WatchDog
 
 HAS_MELIAE = True
 try:

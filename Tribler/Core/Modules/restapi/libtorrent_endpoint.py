@@ -2,8 +2,8 @@ from asyncio import Future
 
 from aiohttp import web
 
-from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.Modules.restapi.rest_endpoint import RESTEndpoint, RESTResponse
+from Tribler.Core.Utilities.unicode import hexlify
 
 
 class LibTorrentEndpoint(RESTEndpoint):

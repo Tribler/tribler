@@ -1,10 +1,11 @@
 """
 Author(s): Arno Bakker
 """
-import aiohttp
 import logging
 import os
 from hashlib import sha1
+
+import aiohttp
 
 import libtorrent as lt
 from libtorrent import bdecode, bencode

@@ -7,9 +7,9 @@ from Tribler.Core.TorrentChecker.torrent_checker import TorrentChecker
 from Tribler.Core.Utilities.random_utils import random_infohash
 from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.Utilities.utilities import has_bep33_support, succeed
-from Tribler.Test.tools import timeout
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.Core.base_test import MockObject
+from Tribler.Test.tools import timeout
 from Tribler.Test.util.Tracker.HTTPTracker import HTTPTracker
 from Tribler.Test.util.Tracker.UDPTracker import UDPTracker
 

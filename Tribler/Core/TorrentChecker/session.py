@@ -1,4 +1,3 @@
-import aiohttp
 import logging
 import random
 import socket
@@ -6,10 +5,10 @@ import struct
 import sys
 import time
 from abc import ABCMeta, abstractmethod
-from asyncio import DatagramProtocol, Future, TimeoutError
+from asyncio import DatagramProtocol, Future, TimeoutError, ensure_future, get_event_loop
 
-from aiodns import DNSResolver
-from aiohttp import ClientTimeout, ClientResponseError
+from aiohttp import ClientResponseError, ClientSession, ClientTimeout
+
 from async_timeout import timeout
 
 from ipv8.messaging.deprecated.encoding import add_url_params
@@ -115,8 +114,8 @@ class TrackerSession(TaskManager):
 class HttpTrackerSession(TrackerSession):
     def __init__(self, tracker_url, tracker_address, announce_page, timeout, connection_pool=None):
         super(HttpTrackerSession, self).__init__(u'http', tracker_url, tracker_address, announce_page, timeout)
-        self._session = aiohttp.ClientSession(raise_for_status=True, timeout=ClientTimeout(total=self.timeout),
-                                              connector=connection_pool)
+        self._session = ClientSession(raise_for_status=True, timeout=ClientTimeout(total=self.timeout),
+                                      connector=connection_pool)
 
     async def connect_to_tracker(self):
         # create the HTTP GET message
@@ -307,13 +306,13 @@ class UdpTrackerSession(TrackerSession):
         try:
             async with timeout(self.timeout):
                 # Resolve the hostname to an IP address if not done already
-                self.ip_address = await self.register_anonymous_task("resolve",  DNSResolver().query,
-                                                                     self.tracker_address[0], 'A')
-
+                resolve_coro = get_event_loop().getaddrinfo(self.tracker_address[0], 0, family=socket.AF_INET)
+                infos = await self.register_anonymous_task("resolve",  ensure_future(resolve_coro))
+                self.ip_address = infos[0][-1][0]
                 await self.connect()
                 return await self.scrape()
-        except TimeoutError as e:
-            self.failed(msg=str(e))
+        except TimeoutError:
+            self.failed(msg='request timed out')
 
     async def connect(self):
         """
@@ -461,5 +460,5 @@ class FakeBep33DHTSession(FakeDHTSession):
         try:
             async with timeout(self.timeout):
                 return await self._session.lm.ltmgr.dht_health_manager.get_health(self.infohash)
-        except TimeoutError as e:
-            self.failed(msg=str(e))
+        except TimeoutError:
+            self.failed(msg='request timed out')

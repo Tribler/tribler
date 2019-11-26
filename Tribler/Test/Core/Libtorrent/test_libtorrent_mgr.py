@@ -13,10 +13,10 @@ from Tribler.Core.Notifier import Notifier
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.Utilities.utilities import succeed
-from Tribler.Test.tools import timeout
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.common import TESTS_DATA_DIR
 from Tribler.Test.test_as_server import AbstractServer
+from Tribler.Test.tools import timeout
 
 
 class TestLibtorrentMgr(AbstractServer):

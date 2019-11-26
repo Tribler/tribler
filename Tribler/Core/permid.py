@@ -28,4 +28,3 @@ def save_keypair_trustchain(keypair, keypairfilename):
 def save_pub_key_trustchain(keypair, pubkeyfilename):
     with open(pubkeyfilename, 'wb') as keyfile:
         keyfile.write(keypair.key.pk)
-

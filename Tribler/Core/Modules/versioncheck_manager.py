@@ -1,7 +1,8 @@
 import logging
 from distutils.version import LooseVersion
 
-from aiohttp import ServerConnectionError, ContentTypeError, ClientResponseError, ClientConnectionError, ClientSession
+from aiohttp import ClientConnectionError, ClientResponseError, ClientSession, ContentTypeError, ServerConnectionError
+
 from ipv8.taskmanager import TaskManager
 
 from Tribler.Core.simpledefs import NTFY_INSERT, NTFY_NEW_VERSION
@@ -46,4 +47,4 @@ class VersionCheckManager(TaskManager):
             if LooseVersion(version) > LooseVersion(version_id):
                 self.session.notifier.notify(NTFY_NEW_VERSION, NTFY_INSERT, None, version)
         except ValueError as ve:
-            raise ValueError("Failed to parse Tribler version response:%s\nError:%s" % (body, ve))
+            raise ValueError("Failed to parse Tribler version response.\nError:%s" % ve)

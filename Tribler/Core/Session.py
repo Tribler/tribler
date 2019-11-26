@@ -19,7 +19,7 @@ from Tribler.Core.Notifier import Notifier
 from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
 from Tribler.Core.Utilities import torrent_utils
 from Tribler.Core.Utilities.crypto_patcher import patch_crypto_be_discovery
-from Tribler.Core.exceptions import NotYetImplementedException, OperationNotEnabledByConfigurationException
+from Tribler.Core.exceptions import OperationNotEnabledByConfigurationException
 from Tribler.Core.simpledefs import (
     NTFY_DELETE, NTFY_INSERT, NTFY_STARTED, NTFY_TRIBLER, NTFY_UPDATE, STATEDIR_CHANNELS_DIR, STATEDIR_CHECKPOINT_DIR,
     STATEDIR_DB_DIR, STATEDIR_WALLET_DIR, STATE_LOAD_CHECKPOINTS, STATE_READABLE_STARTED, STATE_SHUTDOWN,

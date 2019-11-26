@@ -1,6 +1,7 @@
 from binascii import hexlify
 
 from aiohttp import web
+
 from libtorrent import bencode
 
 from Tribler.Core.Modules.restapi.rest_endpoint import HTTP_BAD_REQUEST, RESTResponse

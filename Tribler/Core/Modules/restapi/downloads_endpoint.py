@@ -5,6 +5,7 @@ from urllib.parse import unquote_plus
 from urllib.request import url2pathname
 
 from aiohttp import web
+
 from libtorrent import bencode, create_torrent
 
 from pony.orm import db_session
@@ -12,16 +13,15 @@ from pony.orm import db_session
 from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT
 from Tribler.Core.Modules.MetadataStore.store import UNKNOWN_CHANNEL, UPDATED_OUR_VERSION
+from Tribler.Core.Modules.restapi.rest_endpoint import (HTTP_BAD_REQUEST, HTTP_INTERNAL_SERVER_ERROR, HTTP_NOT_FOUND,
+                                                        RESTEndpoint, RESTResponse)
 from Tribler.Core.Modules.restapi.util import return_handled_exception
-from Tribler.Core.Modules.restapi.rest_endpoint import (RESTEndpoint, RESTResponse,
-                                                        HTTP_BAD_REQUEST, HTTP_INTERNAL_SERVER_ERROR, HTTP_NOT_FOUND)
 from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
 from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.exceptions import InvalidSignatureException
 from Tribler.Core.simpledefs import DLMODE_VOD, DOWNLOAD, UPLOAD, dlstatus_strings
 from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import CIRCUIT_ID_PORT
 from Tribler.util import cast_to_unicode_utf8
-
 
 
 def _safe_extended_peer_info(ext_peer_info):

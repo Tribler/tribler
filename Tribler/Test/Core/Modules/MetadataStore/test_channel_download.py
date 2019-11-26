@@ -6,8 +6,8 @@ from pony.orm import db_session
 from Tribler.Core.Modules.MetadataStore.serialization import ChannelMetadataPayload
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.utilities import succeed
-from Tribler.Test.tools import timeout
 from Tribler.Test.test_as_server import TestAsServer
+from Tribler.Test.tools import timeout
 from Tribler.pyipv8.ipv8.database import database_blob
 
 DATA_DIR = os.path.join(os.path.abspath(os.path.dirname(os.path.realpath(__file__))), '..', '..', 'data')

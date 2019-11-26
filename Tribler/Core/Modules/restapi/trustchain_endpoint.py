@@ -1,7 +1,7 @@
 from aiohttp import web
 
+from Tribler.Core.Modules.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_NOT_FOUND, RESTEndpoint, RESTResponse
 from Tribler.Core.Utilities.unicode import recursive_unicode
-from Tribler.Core.Modules.restapi.rest_endpoint import RESTEndpoint, RESTResponse, HTTP_NOT_FOUND, HTTP_BAD_REQUEST
 
 
 class TrustchainEndpoint(RESTEndpoint):

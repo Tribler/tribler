@@ -1,7 +1,6 @@
 from aiohttp import web
 
 import Tribler.Test.GUI.FakeTriblerAPI.tribler_utils as tribler_utils
-
 from Tribler.Core.Modules.restapi.rest_endpoint import RESTEndpoint, RESTResponse
 
 

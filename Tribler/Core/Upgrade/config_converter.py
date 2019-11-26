@@ -2,8 +2,8 @@ import ast
 import base64
 import logging
 import os
-from glob import iglob
 from configparser import DuplicateSectionError, MissingSectionHeaderError, NoSectionError, RawConfigParser
+from glob import iglob
 
 from configobj import ConfigObj
 

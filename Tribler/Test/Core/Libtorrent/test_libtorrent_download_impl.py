@@ -11,12 +11,12 @@ from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
 from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.Utilities.utilities import succeed
-from Tribler.Test.tools import timeout
 from Tribler.Core.exceptions import SaveResumeDataError
 from Tribler.Core.simpledefs import DLMODE_VOD, DLSTATUS_DOWNLOADING
 from Tribler.Test.Core.base_test import MockObject, TriblerCoreTest
 from Tribler.Test.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE
 from Tribler.Test.test_as_server import TestAsServer
+from Tribler.Test.tools import timeout
 
 
 class TestLibtorrentDownloadImpl(TestAsServer):

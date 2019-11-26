@@ -2,10 +2,9 @@
 This script enables you to start Tribler headless.
 """
 import argparse
-import os
 import signal
 import sys
-from asyncio import get_event_loop, ensure_future, sleep
+from asyncio import ensure_future, get_event_loop, sleep
 
 from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.Modules.process_checker import ProcessChecker
@@ -34,7 +33,7 @@ class MarketService(object):
                 self.process_checker.remove_lock_file()
 
         signal.signal(signal.SIGINT, lambda sig, _: ensure_future(signal_handler(sig)))
-        signal.signal(signal.SIGTERM, lambda sign, _: ensure_future(signal_handler(sig)))
+        signal.signal(signal.SIGTERM, lambda sig, _: ensure_future(signal_handler(sig)))
 
         config = TriblerConfig()
         config.set_torrent_checking_enabled(False)

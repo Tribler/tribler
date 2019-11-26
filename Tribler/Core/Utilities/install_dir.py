@@ -6,7 +6,6 @@ Author(s): Elric Milon
 import os.path
 import sys
 
-
 import Tribler
 from Tribler.Core.osutils import is_android
 

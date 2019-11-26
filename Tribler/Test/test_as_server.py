@@ -13,7 +13,7 @@ import re
 import shutil
 import string
 import time
-from asyncio import get_event_loop, Future, current_task
+from asyncio import Future, current_task, get_event_loop
 from threading import enumerate as enumerate_threads
 
 from aiohttp import web

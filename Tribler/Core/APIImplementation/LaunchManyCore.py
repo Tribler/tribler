@@ -13,7 +13,6 @@ from glob import iglob
 from threading import Event, enumerate as enumerate_threads
 from traceback import print_exc
 
-from Tribler.Core.Utilities.utilities import succeed
 from anydex.wallet.dummy_wallet import DummyWallet1, DummyWallet2
 from anydex.wallet.tc_wallet import TrustchainWallet
 
@@ -39,6 +38,7 @@ from Tribler.Core.TorrentChecker.torrent_checker import TorrentChecker
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.install_dir import get_lib_path
 from Tribler.Core.Utilities.unicode import hexlify
+from Tribler.Core.Utilities.utilities import succeed
 from Tribler.Core.Video.VideoServer import VideoServer
 from Tribler.Core.bootstrap import Bootstrap
 from Tribler.Core.simpledefs import (

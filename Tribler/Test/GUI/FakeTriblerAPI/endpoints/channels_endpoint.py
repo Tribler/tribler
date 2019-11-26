@@ -4,7 +4,7 @@ from random import sample
 from aiohttp import web
 
 from Tribler.Core.Modules.restapi.metadata_endpoint_base import MetadataEndpointBase
-from Tribler.Core.Modules.restapi.rest_endpoint import RESTResponse, HTTP_BAD_REQUEST
+from Tribler.Core.Modules.restapi.rest_endpoint import HTTP_BAD_REQUEST, RESTResponse
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.GUI.FakeTriblerAPI import tribler_utils
 
