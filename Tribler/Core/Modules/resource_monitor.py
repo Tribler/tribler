@@ -45,6 +45,8 @@ class ResourceMonitor(TaskManager):
         self.profiler_start_time = None
         self.profiler_running = False
 
+        self.last_error = None
+
     def start(self):
         """
         Start the resource monitor by scheduling a LoopingCall.
@@ -131,7 +133,13 @@ class ResourceMonitor(TaskManager):
             except Exception as e:
                 # Can be MemoryError or WindowsError, which isn't defined on Linux
                 # Catching a WindowsError would therefore error out the error handler itself on Linux
-                self._logger.error("Failed to get memory full info: %s", str(e))
+                # We do not want to spam the log with errors in situation where e.g., memory info
+                # access is denied. So, we remember the string representation of the last error
+                # message and skip logging it if we have already seen it before
+                last_error_str = str(e)
+                if self.last_error != last_error_str:
+                    self._logger.error("Failed to get memory full info: %s", last_error_str)
+                    self.last_error = last_error_str
         elif hasattr(self.process, "memory_info") and callable(getattr(self.process, "memory_info")):
             self.memory_data.append((time_seconds, self.process.memory_info().rss))
 
