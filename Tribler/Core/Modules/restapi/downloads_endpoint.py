@@ -523,7 +523,7 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
             if state == "resume":
                 download.restart()
             elif state == "stop":
-                download.stop()
+                download.stop(user_stopped=True)
             elif state == "recheck":
                 download.force_recheck()
             elif state == "move_storage":

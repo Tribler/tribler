@@ -96,35 +96,14 @@ class TestSettingsEndpoint(AbstractApiTest):
         Testing whether settings in the API can be successfully set
         """
 
-        dcfg = DownloadConfig()
-        dcfg.get_credit_mining = lambda: False
-        download = MockObject()
-        download.config = dcfg
-        self.session.get_downloads = lambda: [download]
-
-        def verify_response1(_):
-            self.assertEqual(dcfg.get_seeding_mode(), 'time')
-            self.assertEqual(dcfg.get_seeding_time(), 100)
-
-        self.should_check_equality = False
-        post_data = json.dumps({'libtorrent': {'utp': False, 'max_download_rate': 50},
-                                'download_defaults': {'seeding_mode': 'time', 'seeding_time': 100}})
-        yield self.do_request('settings', expected_code=200, request_type='POST', raw_data=post_data) \
-            .addCallback(verify_response1)
-
         def verify_response2(_):
-            self.assertEqual(dcfg.get_seeding_mode(), 'ratio')
-            self.assertEqual(dcfg.get_seeding_ratio(), 3)
+            self.assertEqual(self.session.config.get_seeding_mode(), 'ratio')
+            self.assertEqual(self.session.config.get_seeding_ratio(), 3)
+            self.assertEqual(self.session.config.get_seeding_time(), 123)
 
-        post_data = json.dumps({'download_defaults': {'seeding_mode': 'ratio', 'seeding_ratio': 3}})
+        post_data = json.dumps({'download_defaults': {'seeding_mode': 'ratio',
+                                                      'seeding_ratio': 3,
+                                                      'seeding_time': 123}})
+        self.should_check_equality = False
         yield self.do_request('settings', expected_code=200, request_type='POST', raw_data=post_data) \
             .addCallback(verify_response2)
-
-        dcfg.get_credit_mining = lambda: True
-
-        def verify_response3(_):
-            self.assertNotEqual(dcfg.get_seeding_mode(), 'never')
-
-        post_data = json.dumps({'download_defaults': {'seeding_mode': 'never'}})
-        yield self.do_request('settings', expected_code=200, request_type='POST', raw_data=post_data) \
-            .addCallback(verify_response3)

@@ -540,6 +540,24 @@ class TriblerConfig(object):
     def get_default_add_download_to_channel(self):
         return self.config['download_defaults']['add_download_to_channel']
 
+    def set_seeding_mode(self, value):
+        self.config['download_defaults']['seeding_mode'] = value
+
+    def get_seeding_mode(self):
+        return self.config['download_defaults']['seeding_mode']
+
+    def set_seeding_time(self, value):
+        self.config['download_defaults']['seeding_time'] = value
+
+    def get_seeding_time(self):
+        return self.config['download_defaults']['seeding_time']
+
+    def set_seeding_ratio(self, value):
+        self.config['download_defaults']['seeding_ratio'] = value
+
+    def get_seeding_ratio(self):
+        return self.config['download_defaults']['seeding_ratio']
+
     # Market Community
 
     def set_market_community_enabled(self, value):

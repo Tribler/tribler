@@ -116,7 +116,7 @@ class TestLaunchManyCore(TriblerCoreTest):
         """
         error_stop_deferred = Deferred()
 
-        def mocked_stop():
+        def mocked_stop(user_stopped=None):
             error_stop_deferred.callback(None)
 
         fake_error_download, fake_error_state = TestLaunchManyCore.create_fake_download_and_state()

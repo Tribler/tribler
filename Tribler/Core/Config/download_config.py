@@ -114,24 +114,6 @@ class DownloadConfig(object):
     def get_safe_seeding(self):
         return self.config['download_defaults']['safe_seeding']
 
-    def set_seeding_mode(self, value):
-        self.config['download_defaults']['seeding_mode'] = value
-
-    def get_seeding_mode(self):
-        return self.config['download_defaults']['seeding_mode']
-
-    def set_seeding_time(self, value):
-        self.config['download_defaults']['seeding_time'] = value
-
-    def get_seeding_time(self):
-        return self.config['download_defaults']['seeding_time']
-
-    def set_seeding_ratio(self, value):
-        self.config['download_defaults']['seeding_ratio'] = value
-
-    def get_seeding_ratio(self):
-        return self.config['download_defaults']['seeding_ratio']
-
     def set_credit_mining(self, value):
         self.config['download_defaults']['credit_mining'] = value
 
