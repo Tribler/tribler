@@ -337,7 +337,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         infohash = get_hex_infohash(video_tdef)
         original_stop = download.stop
 
-        def mocked_stop():
+        def mocked_stop(user_stopped=None):
             download.should_stop = True
             download.stop = original_stop
 

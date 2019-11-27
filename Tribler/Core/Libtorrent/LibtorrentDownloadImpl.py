@@ -672,11 +672,14 @@ class LibtorrentDownloadImpl(TaskManager):
 
     def _stop_if_finished(self):
         state = self.get_state()
+        # Credit mining downloads are not affected by seeding policy
+        if self.config.get_credit_mining():
+            return
         if state.get_status() == DLSTATUS_SEEDING:
-            mode = self.config.get_seeding_mode()
+            mode = self.session.config.get_seeding_mode()
             if mode == 'never' \
-                    or (mode == 'ratio' and state.get_seeding_ratio() >= self.config.get_seeding_ratio()) \
-                    or (mode == 'time' and state.get_seeding_time() >= self.config.get_seeding_time()):
+                    or (mode == 'ratio' and state.get_seeding_ratio() >= self.session.config.get_seeding_ratio()) \
+                    or (mode == 'time' and state.get_seeding_time() >= self.session.config.get_seeding_time()):
                 self.stop()
 
     def set_corrected_infoname(self):
@@ -957,8 +960,9 @@ class LibtorrentDownloadImpl(TaskManager):
             else:
                 return ds
 
-    def stop(self):
-        self.config.set_user_stopped(True)
+    def stop(self, user_stopped=None):
+        if user_stopped:
+            self.config.set_user_stopped(True)
         return self.stop_remove(removestate=False, removecontent=False)
 
     def stop_remove(self, removestate=False, removecontent=False):
