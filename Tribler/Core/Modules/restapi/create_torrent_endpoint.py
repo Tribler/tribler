@@ -4,8 +4,6 @@ import base64
 import logging
 import os
 
-from libtorrent import bdecode
-
 from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
 
@@ -14,6 +12,7 @@ from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.Modules.restapi.util import return_handled_exception
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.unicode import ensure_unicode, recursive_bytes, recursive_unicode
+from Tribler.Core.Utilities.utilities import bdecode_compat
 from Tribler.Core.exceptions import DuplicateDownloadException
 
 
@@ -101,7 +100,7 @@ class CreateTorrentEndpoint(resource.Resource):
             Success callback
             :param result: from create_torrent_file
             """
-            metainfo_dict = bdecode(result['metainfo'])
+            metainfo_dict = bdecode_compat(result['metainfo'])
 
             if export_dir and os.path.exists(export_dir):
                 save_path = os.path.join(export_dir, "%s.torrent" % name)

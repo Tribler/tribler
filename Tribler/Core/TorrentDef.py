@@ -10,14 +10,14 @@ from hashlib import sha1
 from ipv8.util import ensure_binary
 
 import libtorrent as lt
-from libtorrent import bdecode, bencode
+from libtorrent import bencode
 
 from six import binary_type, integer_types, text_type
 
 from Tribler.Core.Utilities import maketorrent
 from Tribler.Core.Utilities.torrent_utils import create_torrent_file
 from Tribler.Core.Utilities.unicode import ensure_unicode
-from Tribler.Core.Utilities.utilities import http_get, is_valid_url, parse_magnetlink
+from Tribler.Core.Utilities.utilities import bdecode_compat, http_get, is_valid_url, parse_magnetlink
 from Tribler.Core.simpledefs import INFOHASH_LENGTH
 
 
@@ -116,7 +116,7 @@ class TorrentDef(object):
         Load some bencoded data into a TorrentDef.
         :param bencoded_data: The bencoded data to decode and use as metainfo
         """
-        metainfo = bdecode(bencoded_data)
+        metainfo = bdecode_compat(bencoded_data)
         # Some versions of libtorrent will not raise an exception when providing invalid data.
         # This issue is present in 1.0.8 (included with Tribler 7.3.0), but has been fixed since at least 1.2.1.
         if metainfo is None:
@@ -327,7 +327,7 @@ class TorrentDef(object):
         :param torrent_filepath: An optional absolute path to where to save the generated .torrent file.
         """
         torrent_dict = create_torrent_file(self.files_list, self.torrent_parameters, torrent_filepath=torrent_filepath)
-        self.metainfo = bdecode(torrent_dict['metainfo'])
+        self.metainfo = bdecode_compat(torrent_dict['metainfo'])
         self.copy_metainfo_to_torrent_parameters()
         self.infohash = torrent_dict['infohash']
 

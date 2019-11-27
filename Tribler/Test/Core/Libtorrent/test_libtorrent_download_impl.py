@@ -4,7 +4,7 @@ import os
 import shutil
 
 import libtorrent as lt
-from libtorrent import bdecode, bencode
+from libtorrent import bencode
 
 from six import text_type
 from six.moves import xrange
@@ -14,9 +14,9 @@ from twisted.internet.defer import Deferred, inlineCallbacks, succeed
 from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
 from Tribler.Core.Utilities.unicode import hexlify
+from Tribler.Core.Utilities.utilities import bdecode_compat
 from Tribler.Core.simpledefs import DLMODE_VOD, DLSTATUS_DOWNLOADING
 from Tribler.Test.Core.base_test import MockObject, TriblerCoreTest
 from Tribler.Test.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE
@@ -450,7 +450,7 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         self.libtorrent_download_impl.handle.rename_file = lambda *_: None
         with open(os.path.join(TESTS_DATA_DIR, "bak_single.torrent"), mode='rb') as torrent_file:
             encoded_metainfo = torrent_file.read()
-        decoded_metainfo = bdecode(encoded_metainfo)
+        decoded_metainfo = bdecode_compat(encoded_metainfo)
         get_info_from_handle(self.libtorrent_download_impl.handle).metadata = lambda: bencode(decoded_metainfo[b'info'])
         get_info_from_handle(self.libtorrent_download_impl.handle).files = lambda: [mocked_file]
 

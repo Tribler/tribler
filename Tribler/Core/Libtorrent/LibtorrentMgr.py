@@ -17,7 +17,7 @@ from ipv8.taskmanager import TaskManager
 from ipv8.util import ensure_binary
 
 import libtorrent as lt
-from libtorrent import bdecode, torrent_handle
+from libtorrent import torrent_handle
 
 from six import text_type
 from six.moves.urllib.request import url2pathname
@@ -32,8 +32,7 @@ from Tribler.Core.Modules.dht_health_manager import DHTHealthManager
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
 from Tribler.Core.Utilities.unicode import hexlify
-from Tribler.Core.Utilities.utilities import has_bep33_support, parse_magnetlink
-from Tribler.Core.exceptions import TorrentFileException
+from Tribler.Core.Utilities.utilities import bdecode_compat, has_bep33_support, parse_magnetlink
 from Tribler.Core.simpledefs import NTFY_INSERT, NTFY_REACHABLE
 from Tribler.Core.version import version_id
 
@@ -219,7 +218,7 @@ class LibtorrentMgr(TaskManager):
             if listen_port != ltsession.listen_port() and store_listen_port:
                 self.tribler_session.config.set_libtorrent_port_runtime(ltsession.listen_port())
             try:
-                lt_state = lt.bdecode(
+                lt_state = bdecode_compat(
                     open(os.path.join(self.tribler_session.config.get_state_dir(), LTSTATE_FILENAME)).read())
                 if lt_state is not None:
                     ltsession.load_state(lt_state)
@@ -516,7 +515,7 @@ class LibtorrentMgr(TaskManager):
             return
 
         # There seems to be metainfo
-        metainfo = {b"info": lt.bdecode(get_info_from_handle(handle).metadata())}
+        metainfo = {b"info": bdecode_compat(get_info_from_handle(handle).metadata())}
         trackers = [tracker.url for tracker in get_info_from_handle(handle).trackers()]
         peers = []
         leechers = 0
@@ -576,7 +575,7 @@ class LibtorrentMgr(TaskManager):
                     self.check_metainfo(str(alert.handle.info_hash()))
                 elif alert.__class__.__name__ == "dht_pkt_alert":
                     # We received a raw DHT message - decode it and check whether it is a BEP33 message.
-                    decoded = bdecode(alert.pkt_buf)
+                    decoded = bdecode_compat(alert.pkt_buf)
                     if decoded and 'r' in decoded:
                         if 'BFsd' in decoded['r'] and 'BFpe' in decoded['r']:
                             self.dht_health_manager.received_bloomfilters(decoded['r']['id'],
