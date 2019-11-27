@@ -213,7 +213,7 @@ class TrustGraphPage(QWidget):
                                                self.on_received_data, priority="LOW")
 
     def on_received_data(self, data):
-        if data is None:
+        if data is None or not isinstance(data, dict) or 'graph' not in data:
             return
         self.update_gui_labels(data)
 
