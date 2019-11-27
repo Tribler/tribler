@@ -24,7 +24,7 @@ def sanitize_for_fts(text):
 def to_fts_query(text):
     if not text:
         return ""
-    words = text.split(" ")
+    words = text.strip().split(" ")
 
     # TODO: add support for quoted exact searches
     query_list = [u'\"' + sanitize_for_fts(word) + u'\"*' for word in words]
