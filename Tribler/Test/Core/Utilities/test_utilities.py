@@ -80,6 +80,9 @@ class TestMakeTorrent(AbstractServer):
         query = '"\xc1ubuntu"* AND "debian"*'
         self.assertTrue(is_simple_match_query(query))
 
+        query = '""* AND "Petersburg"*'
+        self.assertFalse(is_simple_match_query(query))
+
         query2 = '"\xc1ubuntu"* OR "debian"*'
         self.assertFalse(is_simple_match_query(query2))
 
