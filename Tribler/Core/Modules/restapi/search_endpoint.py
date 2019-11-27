@@ -197,7 +197,7 @@ class SearchCompletionsEndpoint(resource.Resource):
             request.setResponseCode(http.BAD_REQUEST)
             return json.twisted_dumps({"error": "query parameter missing"})
 
-        keywords = args['q'][0].lower()
+        keywords = args['q'][0].strip().lower()
         # TODO: add XXX filtering for completion terms
         results = self.session.lm.mds.TorrentMetadata.get_auto_complete_terms(keywords, max_terms=5)
         return json.twisted_dumps({"completions": results})
