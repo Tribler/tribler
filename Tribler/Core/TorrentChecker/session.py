@@ -11,8 +11,6 @@ from abc import ABCMeta, abstractmethod
 from ipv8.messaging.deprecated.encoding import add_url_params
 from ipv8.taskmanager import TaskManager
 
-from libtorrent import bdecode
-
 from twisted.internet import defer, reactor
 from twisted.internet.defer import Deferred, inlineCallbacks
 from twisted.internet.protocol import DatagramProtocol
@@ -21,6 +19,7 @@ from twisted.web.client import Agent, HTTPConnectionPool, RedirectAgent, readBod
 
 from Tribler.Core.Utilities.tracker_utils import parse_tracker_url
 from Tribler.Core.Utilities.unicode import hexlify
+from Tribler.Core.Utilities.utilities import bdecode_compat
 
 # Although these are the actions for UDP trackers, they can still be used as
 # identifiers.
@@ -258,7 +257,7 @@ class HttpTrackerSession(TrackerSession):
             self.failed(msg="no response body")
             return
 
-        response_dict = bdecode(body)
+        response_dict = bdecode_compat(body)
         if not response_dict:
             self.failed(msg="no valid response")
             return

@@ -4,7 +4,7 @@ import hashlib
 import logging
 from copy import deepcopy
 
-from libtorrent import bdecode, bencode
+from libtorrent import bencode
 
 from six.moves.urllib.request import url2pathname
 
@@ -17,7 +17,7 @@ import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.MetadataStore.OrmBindings.torrent_metadata import tdef_to_metadata_dict
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.unicode import hexlify, recursive_unicode
-from Tribler.Core.Utilities.utilities import  http_get, parse_magnetlink, unichar_string
+from Tribler.Core.Utilities.utilities import bdecode_compat, http_get, parse_magnetlink, unichar_string
 from Tribler.Core.exceptions import HttpError
 
 
@@ -110,7 +110,7 @@ class TorrentInfoEndpoint(resource.Resource):
 
             # Otherwise, we directly invoke the on_got_metainfo method
             try:
-                decoded_response = bdecode(response)
+                decoded_response = bdecode_compat(response)
                 on_got_metainfo(decoded_response)
             except RuntimeError:
                 # The decoding failed - handle it like a None metainfo

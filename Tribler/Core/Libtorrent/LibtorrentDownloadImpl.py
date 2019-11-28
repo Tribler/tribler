@@ -31,6 +31,7 @@ from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities import maketorrent
 from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
 from Tribler.Core.Utilities.unicode import ensure_unicode, hexlify
+from Tribler.Core.Utilities.utilities import bdecode_compat
 from Tribler.Core.exceptions import SaveResumeDataError
 from Tribler.Core.osutils import fix_filebasename
 from Tribler.Core.simpledefs import DLMODE_VOD, DLSTATUS_SEEDING, DLSTATUS_STOPPED
@@ -568,7 +569,7 @@ class LibtorrentDownloadImpl(TaskManager):
         if not torrent_info:
             return
 
-        metadata = {b'info': lt.bdecode(torrent_info.metadata())}
+        metadata = {b'info': bdecode_compat(torrent_info.metadata())}
 
         trackers = [ensure_binary(tracker['url']) for tracker in self.handle.trackers()]
         if trackers:

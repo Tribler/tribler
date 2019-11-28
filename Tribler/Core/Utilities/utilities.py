@@ -13,7 +13,7 @@ from base64 import b32decode
 from ipv8.util import ensure_binary
 
 import libtorrent
-from libtorrent import bdecode, bencode
+from libtorrent import bdecode
 
 import six
 from six.moves.urllib.parse import parse_qsl, urlsplit
@@ -225,3 +225,14 @@ def is_hex_string(text):
         return True
     except ValueError:
         return False
+
+
+def bdecode_compat(packet_buffer):
+    """
+    Utility method to make libtorrent bdecode() with Python3 in the existing Tribler codebase.
+    We should change this when Libtorrent wrapper is refactored.
+    """
+    try:
+        return bdecode(packet_buffer)
+    except RuntimeError:
+        return None

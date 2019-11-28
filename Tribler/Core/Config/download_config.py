@@ -12,6 +12,7 @@ from six import string_types
 from validate import Validator
 
 from Tribler.Core.Utilities.install_dir import get_lib_path
+from Tribler.Core.Utilities.utilities import bdecode_compat
 from Tribler.Core.exceptions import InvalidConfigException
 from Tribler.Core.osutils import get_home_dir
 from Tribler.Core.simpledefs import DLMODE_NORMAL, DLMODE_VOD
@@ -205,13 +206,13 @@ class DownloadConfig(object):
         self.config['state']['metainfo'] = base64.b64encode(lt.bencode(metainfo)).decode('utf-8')
 
     def get_metainfo(self):
-        return lt.bdecode(base64.b64decode(self.config['state']['metainfo'].encode('utf-8')))
+        return bdecode_compat(base64.b64decode(self.config['state']['metainfo'].encode('utf-8')))
 
     def set_engineresumedata(self, engineresumedata):
         self.config['state']['engineresumedata'] = base64.b64encode(lt.bencode(engineresumedata)).decode('utf-8')
 
     def get_engineresumedata(self):
-        return lt.bdecode(base64.b64decode(self.config['state']['engineresumedata'].encode('utf-8')))
+        return bdecode_compat(base64.b64decode(self.config['state']['engineresumedata'].encode('utf-8')))
 
 
 def get_default_dest_dir():
