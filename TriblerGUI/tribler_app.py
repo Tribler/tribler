@@ -5,6 +5,8 @@ import sys
 
 from PyQt5.QtCore import QCoreApplication, QEvent, Qt
 
+from Tribler.Core.Utilities.unicode import ensure_unicode
+
 from TriblerGUI.code_executor import CodeExecutor
 from TriblerGUI.single_application import QtSingleApplication
 
@@ -37,7 +39,7 @@ class TriblerApplication(QtSingleApplication):
     def parse_sys_args(self, args):
         for arg in args[1:]:
             if os.path.exists(arg):
-                self.handle_uri(u'file:%s' % arg.decode('utf-8'))
+                self.handle_uri(u'file:%s' % ensure_unicode(arg, 'utf8'))
             elif arg.startswith('magnet'):
                 self.handle_uri(arg)
 
