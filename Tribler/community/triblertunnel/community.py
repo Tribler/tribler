@@ -544,7 +544,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                 hops = download.config.get_hops()
                 lt_listen_port = self.tribler_session.lm.ltmgr.get_session(hops).listen_port()
                 for session in self.socks_servers[hops - 1].sessions:
-                    session.get_udp_socket().remote_udp_address = ("127.0.0.1", lt_listen_port)
+                    if session.get_udp_socket():
+                        session.get_udp_socket().remote_udp_address = ("127.0.0.1", lt_listen_port)
         super(TriblerTunnelCommunity, self).create_introduction_point(info_hash, amount)
 
     def on_linked_e2e(self, source_address, data, circuit_id):
