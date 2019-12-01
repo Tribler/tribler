@@ -501,7 +501,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
             # Join/leave hidden swarm as needed.
             if state_changed and new_state in [DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING]:
-                self.join_swarm(info_hash, hops[info_hash], seeding=new_state == DLSTATUS_SEEDING)
+                self.join_swarm(info_hash, hops[info_hash], seeding=new_state == DLSTATUS_SEEDING,
+                                callback=lambda addr, ih=info_hash: self.on_e2e_finished(addr, ih))
             elif state_changed and new_state in [DLSTATUS_STOPPED, None]:
                 self.leave_swarm(info_hash)
 
@@ -514,6 +515,13 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                         self.tribler_session.notifier.notify(NTFY_TUNNEL, NTFY_IP_RECREATE, info_hash)
 
         self.download_states = new_states
+
+    def on_e2e_finished(self, address, info_hash):
+        dl = self.get_download(info_hash)
+        if dl:
+            dl.add_peer(address)
+        else:
+            self.logger.error('Could not find download for adding hidden services peer %s:%d!', *address)
 
     def get_download(self, lookup_info_hash):
         if not self.tribler_session:
@@ -540,17 +548,6 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                 for session in self.socks_servers[hops - 1].sessions:
                     session.get_udp_socket().remote_udp_address = ("127.0.0.1", lt_listen_port)
         super(TriblerTunnelCommunity, self).create_introduction_point(info_hash, amount)
-
-    def on_linked_e2e(self, source_address, data, circuit_id):
-        payload = self._ez_unpack_noauth(LinkedE2EPayload, data, global_time=False)
-        cache = self.request_cache.get(u"link-request", payload.identifier)
-        if cache:
-            download = self.get_download(cache.info_hash)
-            if download:
-                download.add_peer((self.circuit_id_to_ip(cache.circuit.circuit_id), 1024))
-            else:
-                self.logger.error('On linked e2e: could not find download!')
-        super(TriblerTunnelCommunity, self).on_linked_e2e(source_address, data, circuit_id)
 
     async def unload(self):
         if self.bandwidth_wallet:
