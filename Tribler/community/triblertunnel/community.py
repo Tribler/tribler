@@ -2,7 +2,7 @@ import hashlib
 import os
 import sys
 import time
-from asyncio import Future, ensure_future, gather
+from asyncio import Future, gather, sleep
 from binascii import unhexlify
 from collections import Counter
 from distutils.version import LooseVersion
@@ -117,6 +117,11 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         if self.exitnode_cache:
             self.restore_exitnodes_from_disk()
+
+    async def wait_for_socks_servers(self):
+        # Wait for the socks server to be ready. Otherwise, hidden services downloads may fail.
+        while any([name.startswith('start_socks_') for name in self._pending_tasks.keys()]):
+            await sleep(.05)
 
     def get_available_strategies(self):
         return super(TriblerTunnelCommunity, self).get_available_strategies().update({'GoldenRatioStrategy':

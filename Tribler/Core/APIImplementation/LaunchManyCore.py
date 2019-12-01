@@ -289,6 +289,8 @@ class TriblerLaunchMany(TaskManager):
             self.enable_ipv8_statistics()
             if self.api_manager:
                 self.api_manager.set_ipv8_session(self.ipv8)
+            if self.session.config.get_tunnel_community_enabled():
+                await self.tunnel_community.wait_for_socks_servers()
 
         tunnel_community_ports = self.session.config.get_tunnel_community_socks5_listen_ports()
         self.session.config.set_anon_proxy_settings(2, ("127.0.0.1", tunnel_community_ports))

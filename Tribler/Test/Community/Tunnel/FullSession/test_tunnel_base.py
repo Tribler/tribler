@@ -119,6 +119,8 @@ class TestTunnelBase(TestAsServer):
         overlay.settings.remove_tunnel_delay = 0
         session.lm.ipv8.overlays.append(overlay)
 
+        await overlay.wait_for_socks_servers()
+
         return overlay
 
     async def create_proxy(self, index, exitnode=False):
@@ -164,9 +166,6 @@ class TestTunnelBase(TestAsServer):
         if hops > 0:  # Safe seeding enabled
             self.tunnel_community_seeder = await self.load_tunnel_community_in_session(self.session2)
             self.tunnel_community_seeder.build_tunnels(hops)
-            # Wait for the socks server to be ready before starting the download
-            while any([name.startswith('start_socks') for name in self.tunnel_community_seeder._pending_tasks.keys()]):
-                await sleep(.1)
         else:
             await self.sanitize_network(self.session2)
 
@@ -192,15 +191,11 @@ class TestTunnelBase(TestAsServer):
         """
         Start an anonymous download in the main Tribler session.
         """
-        # Wait for the socks server to be ready before starting the download
-        tc = self.session.lm.tunnel_community
-        while any([name.startswith('start_socks') for name in tc._pending_tasks.keys()]):
-            await sleep(.1)
-
         dscfg = DownloadConfig()
         dscfg.set_dest_dir(self.getDestDir())
         dscfg.set_hops(hops)
         download = self.session.start_download_from_tdef(self.seed_tdef, dscfg)
+        tc = self.session.lm.tunnel_community
         tc.bittorrent_peers[download] = [("127.0.0.1", self.session2.config.get_libtorrent_port())]
         return download
 
