@@ -629,7 +629,7 @@ class LibtorrentMgr(TaskManager):
                 self.tribler_session.lm.credit_mining_manager.torrents.pop(hexlify(tdef.get_infohash()), None)
                 d.config.set_credit_mining(False)
                 d.move_storage(dscfg.get_dest_dir())
-                ensure_future(d.checkpoint())
+                d.checkpoint()
 
             new_trackers = list(set(tdef.get_trackers_as_single_tuple()) - set(
                 d.get_def().get_trackers_as_single_tuple()))

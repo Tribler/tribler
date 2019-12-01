@@ -321,7 +321,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             infohash = hexlify(torrent.tdef.get_infohash())
             for peer in peers:
                 self.logger.info("Re-adding peer %s to torrent %s", peer, infohash)
-                ensure_future(torrent.add_peer(peer))
+                torrent.add_peer(peer)
             del self.bittorrent_peers[torrent]
 
     async def update_torrent(self, peers, download):
@@ -533,7 +533,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             # This does not seem to work anymore in libtorrent 1.2.0 (and probably higher) so we manually associate
             # the connection and the libtorrent listen port.
             if LooseVersion(self.tribler_session.lm.ltmgr.get_libtorrent_version()) < LooseVersion("1.2.0"):
-                ensure_future(download.add_peer(('1.1.1.1', 1024)))
+                download.add_peer(('1.1.1.1', 1024))
             else:
                 hops = download.config.get_hops()
                 lt_listen_port = self.tribler_session.lm.ltmgr.get_session(hops).listen_port()
@@ -541,13 +541,13 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                     session.get_udp_socket().remote_udp_address = ("127.0.0.1", lt_listen_port)
         super(TriblerTunnelCommunity, self).create_introduction_point(info_hash, amount)
 
-    async def on_linked_e2e(self, source_address, data, circuit_id):
+    def on_linked_e2e(self, source_address, data, circuit_id):
         payload = self._ez_unpack_noauth(LinkedE2EPayload, data, global_time=False)
         cache = self.request_cache.get(u"link-request", payload.identifier)
         if cache:
             download = self.get_download(cache.info_hash)
             if download:
-                await download.add_peer((self.circuit_id_to_ip(cache.circuit.circuit_id), 1024))
+                download.add_peer((self.circuit_id_to_ip(cache.circuit.circuit_id), 1024))
             else:
                 self.logger.error('On linked e2e: could not find download!')
         super(TriblerTunnelCommunity, self).on_linked_e2e(source_address, data, circuit_id)

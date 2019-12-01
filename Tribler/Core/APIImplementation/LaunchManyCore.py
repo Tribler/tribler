@@ -435,7 +435,7 @@ class TriblerLaunchMany(TaskManager):
 
                 # Set TorrentDef + checkpoint
                 dl.set_def(new_def)
-                ensure_future(dl.checkpoint())
+                dl.checkpoint()
 
     #
     # State retrieval

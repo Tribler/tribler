@@ -9,13 +9,13 @@ import os
 import shutil
 import sys
 import time
-from asyncio import CancelledError, Future, ensure_future, iscoroutine, sleep
+from asyncio import CancelledError, Future, iscoroutine, sleep
 
 import libtorrent as lt
 
 from Tribler.Core.Config.download_config import DownloadConfig, get_default_dest_dir
 from Tribler.Core.DownloadState import DownloadState
-from Tribler.Core.Libtorrent import checkHandle
+from Tribler.Core.Libtorrent import check_handle, require_handle
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities import maketorrent
 from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
@@ -168,26 +168,25 @@ class LibtorrentDownloadImpl(TaskManager):
     def get_checkpoint_disabled(self):
         return self._checkpoint_disabled
 
-    async def check_handle(self):
+    async def wait_for_handle(self):
         """
-        Check whether the handle exists and is valid. If so, stop the looping call and fire the deferreds waiting
-        for the handle.
+        Wait until the handle exists and is valid. If so, fire the futures waiting for the handle.
         """
         while not self.handle or not self.handle.is_valid():
             await sleep(1)
         for future in self.futures_handle:
             future.set_result(self.handle)
 
-    async def get_handle(self):
+    def get_handle(self):
         """
         Returns a deferred that fires with a valid libtorrent download handle.
         """
         if self.handle and self.handle.is_valid():
-            return self.handle
+            return succeed(self.handle)
 
         future = Future()
         self.futures_handle.append(future)
-        return await future
+        return future
 
     def setup(self, dcfg=None, delay=0, share_mode=False, checkpoint_disabled=False, hidden=False):
         """
@@ -203,7 +202,7 @@ class LibtorrentDownloadImpl(TaskManager):
         self.set_checkpoint_disabled(checkpoint_disabled)
         self._logger.debug("Setup: %s", hexlify(self.tdef.get_infohash()))
         self.checkpoint()
-        self.register_task("handle_check", self.check_handle)
+        self.register_task("wait_for_handle", self.wait_for_handle)
         self.register_task("create_handle", self.create_handle, checkpoint_disabled, share_mode, delay=delay)
 
     async def create_handle(self, checkpoint_disabled=False, share_mode=False, upload_mode=False):
@@ -284,12 +283,13 @@ class LibtorrentDownloadImpl(TaskManager):
             if self.config.get_bootstrap_download():
                 self.handle.set_download_limit(self.session.config.get_bootstrap_max_download_rate())
 
-            await self.checkpoint()
+            self.checkpoint()
 
     def get_anon_mode(self):
         return self.config.get_hops() > 0
 
     def set_vod_mode(self, enable=True):
+
         self._logger.debug("LibtorrentDownloadImpl: set_vod_mode for %s (enable = %s)", self.tdef.get_name(), enable)
 
         if enable:
@@ -319,7 +319,7 @@ class LibtorrentDownloadImpl(TaskManager):
             return self.vod_index
         return -1
 
-    @checkHandle(0)
+    @check_handle(0)
     def get_vod_filesize(self):
         fileindex = self.get_vod_fileindex()
         torrent_info = get_info_from_handle(self.handle)
@@ -328,7 +328,7 @@ class LibtorrentDownloadImpl(TaskManager):
             return file_entry.size
         return 0
 
-    @checkHandle(0.0)
+    @check_handle(0.0)
     def get_piece_progress(self, pieces, consecutive=False):
         if not pieces:
             return 1.0
@@ -348,7 +348,7 @@ class LibtorrentDownloadImpl(TaskManager):
             return pieces_have / pieces_all
         return 0.0
 
-    @checkHandle(b'')
+    @check_handle(b'')
     def get_pieces_base64(self):
         """
         Returns a base64 encoded bitmask of the pieces that we have.
@@ -362,7 +362,7 @@ class LibtorrentDownloadImpl(TaskManager):
             encoded_str += int2byte(int(bitstr[i:i + 8].ljust(8, b'0'), 2))
         return base64.b64encode(encoded_str)
 
-    @checkHandle(0.0)
+    @check_handle(0.0)
     def get_byte_progress(self, byteranges, consecutive=False):
         pieces = []
         torrent_info = get_info_from_handle(self.handle)
@@ -389,7 +389,7 @@ class LibtorrentDownloadImpl(TaskManager):
         pieces = list(set(pieces))
         return self.get_piece_progress(pieces, consecutive)
 
-    @checkHandle()
+    @check_handle()
     def set_piece_priority(self, pieces_need, priority):
         do_prio = False
         pieces_have = self.handle.status().pieces
@@ -408,7 +408,7 @@ class LibtorrentDownloadImpl(TaskManager):
         else:
             self._logger.info("LibtorrentDownloadImpl: skipping set_piece_priority")
 
-    @checkHandle()
+    @check_handle()
     def set_byte_priority(self, byteranges, priority):
         pieces = []
         torrent_info = get_info_from_handle(self.handle)
@@ -436,7 +436,7 @@ class LibtorrentDownloadImpl(TaskManager):
             pieces = list(set(pieces))
             self.set_piece_priority(pieces, priority)
 
-    @checkHandle()
+    @check_handle()
     def process_alert(self, alert, alert_type):
         if alert.category() in [lt.alert.category_t.error_notification, lt.alert.category_t.performance_warning]:
             self._logger.debug("LibtorrentDownloadImpl: alert %s with message %s", alert_type, alert)
@@ -554,7 +554,7 @@ class LibtorrentDownloadImpl(TaskManager):
         self.set_filepieceranges()
         self.set_selected_files()
 
-        ensure_future(self.checkpoint())
+        self.checkpoint()
 
     def on_file_renamed_alert(self, alert):
         unwanteddir_abs = os.path.join(self.get_save_path(), self.unwanted_directory_name)
@@ -592,9 +592,9 @@ class LibtorrentDownloadImpl(TaskManager):
             self.handle.pause()
         if self.checkpoint_after_next_hashcheck:
             self.checkpoint_after_next_hashcheck = False
-            ensure_future(self.checkpoint())
+            self.checkpoint()
 
-    @checkHandle()
+    @check_handle()
     def on_torrent_finished_alert(self, alert):
         self.update_lt_status(self.handle.status())
         if self.future_finished.done():
@@ -660,7 +660,7 @@ class LibtorrentDownloadImpl(TaskManager):
         """
         return os.path.join(self.swarmname, u'.unwanted')
 
-    @checkHandle()
+    @check_handle()
     def set_selected_files(self, selected_files=None):
         if not isinstance(self.tdef, TorrentDefNoMetainfo):
 
@@ -718,14 +718,14 @@ class LibtorrentDownloadImpl(TaskManager):
             if not self.get_share_mode():
                 self.handle.prioritize_files(filepriorities)
 
-    @checkHandle(False)
+    @check_handle(False)
     def move_storage(self, new_dir):
         if not isinstance(self.tdef, TorrentDefNoMetainfo):
             self.handle.move_storage(new_dir)
             self.config.set_dest_dir(new_dir)
             return True
 
-    @checkHandle()
+    @check_handle()
     def get_save_path(self):
         if not isinstance(self.tdef, TorrentDefNoMetainfo):
             # torrent_handle.save_path() is deprecated in newer versions of Libtorrent. We should use
@@ -734,7 +734,7 @@ class LibtorrentDownloadImpl(TaskManager):
             status = self.handle.status()
             return status.save_path if hasattr(status, 'save_path') else self.handle.save_path()
 
-    @checkHandle()
+    @check_handle()
     def force_recheck(self):
         if not isinstance(self.tdef, TorrentDefNoMetainfo):
             if self.get_state().get_status() == DLSTATUS_STOPPED:
@@ -767,11 +767,9 @@ class LibtorrentDownloadImpl(TaskManager):
         try:
             await future_resume
         except (CancelledError, SaveResumeDataError) as e:
-            self._logger.error("Resume data failed to save: %s", str(e))
+            self._logger.error("Resume data failed to save: %s", e)
 
     def set_moreinfo_stats(self, enable):
-        """ Called by any thread """
-
         self.askmoreinfo = enable
 
     def calc_prebuf_frac(self, consecutive=False):
@@ -861,7 +859,7 @@ class LibtorrentDownloadImpl(TaskManager):
 
         return num_seeds, num_peers
 
-    @checkHandle(default={})
+    @check_handle(default={})
     def get_tracker_status(self):
         # Make sure all trackers are in the tracker_status dict
         for announce_entry in self.handle.trackers():
@@ -924,6 +922,7 @@ class LibtorrentDownloadImpl(TaskManager):
         if removestate:
             self.session.lm.remove_download_config(self.tdef.get_infohash())
 
+
     def get_content_dest(self):
         """ Returns the file to which the downloaded content is saved. """
         return os.path.join(self.config.get_dest_dir(), self.correctedinfoname)
@@ -949,7 +948,7 @@ class LibtorrentDownloadImpl(TaskManager):
             self.handle.resume()
             self.set_vod_mode(self.config.get_mode() == DLMODE_VOD)
 
-    @checkHandle([])
+    @check_handle([])
     def get_dest_files(self, exts=None):
         """
         You can give a list of extensions to return. If None: return all dest_files
@@ -991,59 +990,62 @@ class LibtorrentDownloadImpl(TaskManager):
                 self.on_save_resume_data_alert(alert)
             return succeed(resume_data)
 
-        return ensure_future(self.save_resume_data())
+        if self.is_pending_task_active('checkpoint'):
+            return self._pending_tasks.get('checkpoint')
+        else:
+            return self.register_task('checkpoint', self.save_resume_data)
 
     def set_def(self, tdef):
         self.tdef = tdef
 
-    @checkHandle()
+    @check_handle()
     def add_trackers(self, trackers):
         if hasattr(self.handle, 'add_tracker'):
             for tracker in trackers:
                 self.handle.add_tracker({'url': tracker, 'verified': False})
 
-    @checkHandle()
+    @check_handle()
     def get_magnet_link(self):
         return lt.make_magnet_uri(self.handle)
 
     #
     # External addresses
     #
-    async def add_peer(self, addr):
+    @require_handle
+    def add_peer(self, addr):
         """ Add a peer address from 3rd source (not tracker, not DHT) to this download.
         @param (hostname_ip,port) tuple
         """
-        handle = await self.get_handle()
-        handle.connect_peer(addr, 0)
+        self.handle.connect_peer(addr, 0)
 
-    async def set_priority(self, prio):
-        handle = await self.get_handle()
-        handle.set_priority(prio)
+    @require_handle
+    def set_priority(self, prio):
+        self.handle.set_priority(prio)
 
-    async def set_max_upload_rate(self, value):
-        handle = await self.get_handle()
-        handle.set_upload_limit(value * 1024)
+    @require_handle
+    def set_max_upload_rate(self, value):
+        self.handle.set_upload_limit(value * 1024)
 
-    async def set_max_download_rate(self, value):
-        handle = await self.get_handle()
-        handle.set_download_limit(value * 1024)
+    @require_handle
+    def set_max_download_rate(self, value):
+        self.handle.set_download_limit(value * 1024)
 
-    @checkHandle()
+    @check_handle()
     def get_share_mode(self):
         return self.handle.status().share_mode
 
-    async def set_share_mode(self, share_mode):
-        handle = await self.get_handle()
-        handle.set_share_mode(share_mode)
+    @require_handle
+    def set_share_mode(self, share_mode):
+        self.handle.set_share_mode(share_mode)
 
-    @checkHandle()
+    @check_handle()
     def get_upload_mode(self):
         return self.handle.status().upload_mode
 
-    async def set_upload_mode(self, upload_mode):
-        handle = await self.get_handle()
-        handle.set_upload_mode(upload_mode)
+    @require_handle
+    def set_upload_mode(self, upload_mode):
+        self.handle.set_upload_mode(upload_mode)
 
+    @check_handle
     def force_dht_announce(self):
-        if self.handle:
-            self.handle.force_dht_announce()
+        self.handle.force_dht_announce()

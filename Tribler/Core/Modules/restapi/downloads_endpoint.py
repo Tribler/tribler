@@ -454,7 +454,7 @@ class DownloadsEndpoint(RESTEndpoint):
                 if not os.path.exists(dest_dir):
                     return RESTResponse({"error": "Target directory (%s) does not exist" % dest_dir})
                 download.move_storage(dest_dir)
-                await download.checkpoint()
+                download.checkpoint()
             else:
                 return RESTResponse({"error": "unknown state parameter"}, status=HTTP_BAD_REQUEST)
 

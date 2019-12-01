@@ -57,7 +57,7 @@ class TestChannelDownload(TestAsServer):
 
         def hinted_start_download(torrent_definition, download_config=None, hidden=False, original_call=True):
             download = original_start_download_from_tdef(torrent_definition, download_config, hidden)
-            ensure_future(download.add_peer(("127.0.0.1", self.seeder_session.config.get_libtorrent_port())))
+            download.add_peer(("127.0.0.1", self.seeder_session.config.get_libtorrent_port()))
             return download
 
         self.session.start_download_from_tdef = hinted_start_download

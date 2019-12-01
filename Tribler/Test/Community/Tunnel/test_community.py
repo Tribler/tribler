@@ -141,7 +141,7 @@ class TestTriblerTunnelCommunity(TestBase):
         mock_tdef = MockObject()
         mock_tdef.get_infohash = lambda: b'a'
         mock_download.get_def = lambda: mock_tdef
-        mock_download.add_peer = lambda x: None
+        mock_download.add_peer = lambda _: succeed(None)
         mock_download.get_state = lambda: mock_state
         mock_download.config = MockObject()
         mock_download.config.get_hops = lambda: 1
