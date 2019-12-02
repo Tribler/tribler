@@ -10,6 +10,7 @@ import os
 import sys
 from asyncio import get_event_loop
 from threading import RLock
+from traceback import print_tb
 
 import Tribler.Core.permid as permid_module
 from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
@@ -177,9 +178,9 @@ class Session(object):
             self._logger.error("Invalid info-hash found")
             return
 
-        self._logger.error(text)
+        self._logger.error('Got unhandled error: %s', text)
         if context.get('exception', None):
-            raise context['exception']
+            print_tb(context['exception'].__traceback__)
 
         if self.lm.api_manager and len(text) > 0:
             self.lm.api_manager.get_endpoint('events').on_tribler_exception(text)

@@ -306,13 +306,15 @@ class UdpTrackerSession(TrackerSession):
         try:
             async with timeout(self.timeout):
                 # Resolve the hostname to an IP address if not done already
-                resolve_coro = get_event_loop().getaddrinfo(self.tracker_address[0], 0, family=socket.AF_INET)
-                infos = await self.register_anonymous_task("resolve",  ensure_future(resolve_coro))
+                task = ensure_future(get_event_loop().getaddrinfo(self.tracker_address[0], 0, family=socket.AF_INET))
+                infos = await self.register_anonymous_task("resolve",  task, ignore=(socket.gaierror,))
                 self.ip_address = infos[0][-1][0]
                 await self.connect()
                 return await self.scrape()
         except TimeoutError:
             self.failed(msg='request timed out')
+        except socket.gaierror as e:
+            self.failed(msg=str(e))
 
     async def connect(self):
         """
