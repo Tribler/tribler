@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import logging
 import math
 from binascii import unhexlify
+from distutils.version import LooseVersion
 
 import networkx as nx
 
@@ -18,8 +19,9 @@ from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD
 MAX_PEERS = 500
 MAX_TRANSACTIONS = 2500
 
-networkx_version = float('.'.join(nx.__version__.split('.')[:2]))
-if networkx_version >= 2.1:
+# Fix for supporting both 1.x and 2.x version of Networkx.
+# 1.x version is used in Ubuntu 18.04 or lower.
+if LooseVersion(nx.__version__) >= LooseVersion('2.1'):
     def get_nx_node(graph, index):
         return graph.nodes()[index]
 else:
