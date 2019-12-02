@@ -358,7 +358,7 @@ class TorrentDef(object):
                     # Try to use the 'encoding' field.  If it exists,
                     # it should contain something like 'utf-8'
                     if b"encoding" in self.metainfo:
-                        encoding = self.metainfo[b"encoding"]
+                        encoding = ensure_unicode(self.metainfo[b"encoding"], "utf8")
                         try:
                             yield (join(*[ensure_unicode(element, encoding) for element in file_dict[b"path"]]),
                                    file_dict[b"length"])
