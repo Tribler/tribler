@@ -365,12 +365,12 @@ class TriblerLaunchMany(TaskManager):
                            checkpoint_disabled=checkpoint_disabled, hidden=hidden_torrent)
         return download
 
-    async def remove(self, download, removecontent=False, removestate=True, hidden=False):
+    async def remove(self, download, removecontent=False, removestate=True):
         with self.session_lock:
-            await download.stop_remove(removestate=removestate, removecontent=removecontent)
             infohash = download.get_def().get_infohash()
             if infohash in self.downloads:
                 del self.downloads[infohash]
+            await download.stop(removestate=removestate, removecontent=removecontent)
 
     def get_downloads(self):
         """ Called by any thread """

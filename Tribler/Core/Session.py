@@ -251,7 +251,7 @@ class Session(object):
         """
         return self.lm.download_exists(infohash)
 
-    async def remove_download(self, download, remove_content=False, remove_state=True, hidden=False):
+    async def remove_download(self, download, remove_content=False, remove_state=True):
         """
         Stops the download and removes it from the session.
 
@@ -262,7 +262,7 @@ class Session(object):
         :param remove_state: whether to delete the metadata files of the downloaded content from disk
         :param hidden: whether this torrent is added to the mypreference table and this entry should be removed
         """
-        return await self.lm.remove(download, removecontent=remove_content, removestate=remove_state, hidden=hidden)
+        return await self.lm.remove(download, removecontent=remove_content, removestate=remove_state)
 
     def remove_download_by_id(self, infohash, remove_content=False, remove_state=True):
         """

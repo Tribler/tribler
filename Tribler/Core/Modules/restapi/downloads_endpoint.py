@@ -446,7 +446,7 @@ class DownloadsEndpoint(RESTEndpoint):
             if state == "resume":
                 await download.restart()
             elif state == "stop":
-                await download.stop()
+                await download.stop(user_stopped=True)
             elif state == "recheck":
                 download.force_recheck()
             elif state == "move_storage":

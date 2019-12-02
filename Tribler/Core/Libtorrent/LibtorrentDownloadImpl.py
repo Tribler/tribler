@@ -897,18 +897,17 @@ class LibtorrentDownloadImpl(TaskManager):
                         await sleep(when)
         return self.register_anonymous_task("downloads_cb", state_callback_loop)
 
-    async def stop(self):
-        self.config.set_user_stopped(True)
-        return await self.stop_remove(removestate=False, removecontent=False)
+    async def stop(self, removestate=False, removecontent=False, user_stopped=None):
+        if user_stopped is not None:
+            self.config.set_user_stopped(user_stopped)
 
-    async def stop_remove(self, removestate=False, removecontent=False):
         self.done = removestate
         await self.shutdown_task_manager()
 
-        self._logger.debug("LibtorrentDownloadImpl: stop_remove %s", self.tdef.get_name())
+        self._logger.debug("LibtorrentDownloadImpl: stop %s", self.tdef.get_name())
 
         if self.handle is not None:
-            self._logger.debug("LibtorrentDownloadImpl: stop_remove: engineresumedata from torrent handle")
+            self._logger.debug("LibtorrentDownloadImpl: stop: engineresumedata from torrent handle")
             if removestate:
                 await self.ltmgr.remove_torrent(self, removecontent)
                 self.handle = None
@@ -917,7 +916,7 @@ class LibtorrentDownloadImpl(TaskManager):
                 self.handle.pause()
                 await self.save_resume_data()
         else:
-            self._logger.debug("LibtorrentDownloadImpl: stop_remove: handle is None")
+            self._logger.debug("LibtorrentDownloadImpl: stop: handle is None")
 
         if removestate:
             self.session.lm.remove_download_config(self.tdef.get_infohash())

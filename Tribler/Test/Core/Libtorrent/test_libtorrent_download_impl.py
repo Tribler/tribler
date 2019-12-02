@@ -577,20 +577,6 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         self.libtorrent_download_impl.on_tracker_reply_alert(mock_alert)
         self.assertEqual(self.libtorrent_download_impl.tracker_status['http://google.com'], [42, 'Working'])
 
-    async def test_stop(self):
-        """
-        Testing whether the stop method in LibtorrentDownloadImpl invokes the correct method
-        """
-        async def mocked_stop_remove(removestate, removecontent):
-            self.assertFalse(removestate)
-            self.assertFalse(removecontent)
-            mocked_stop_remove.called = True
-
-        mocked_stop_remove.called = False
-        self.libtorrent_download_impl.stop_remove = mocked_stop_remove
-        await self.libtorrent_download_impl.stop()
-        self.assertTrue(mocked_stop_remove.called)
-
     def test_download_finish_alert(self):
         """
         Testing whether the right operations are performed when we get a torrent finished alert
