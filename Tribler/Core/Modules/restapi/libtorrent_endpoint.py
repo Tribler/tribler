@@ -71,7 +71,7 @@ class LibTorrentSettingsEndpoint(resource.Resource):
 
         lt_session = self.session.lm.ltmgr.ltsessions[hop]
         if hop == 0:
-            lt_settings = self.session.lm.ltmgr.ltsettings[lt_session]
+            lt_settings = self.session.lm.ltmgr.get_session_settings(lt_session)
             lt_settings['peer_fingerprint'] = hexlify(lt_settings['peer_fingerprint'])
         else:
             lt_settings = lt_session.get_settings()

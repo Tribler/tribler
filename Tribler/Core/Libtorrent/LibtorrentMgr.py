@@ -10,6 +10,7 @@ import os
 import tempfile
 import time
 from binascii import unhexlify
+from copy import deepcopy
 from distutils.version import LooseVersion
 from shutil import rmtree
 
@@ -703,7 +704,7 @@ class LibtorrentMgr(TaskManager):
             lt_session.set_settings(new_settings)
 
     def get_session_settings(self, lt_session):
-        return self.ltsettings.get(lt_session, {})
+        return deepcopy(self.ltsettings.get(lt_session, {}))
 
     def update_max_rates_from_config(self):
         """
