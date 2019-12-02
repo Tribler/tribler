@@ -18,6 +18,14 @@ from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD
 MAX_PEERS = 500
 MAX_TRANSACTIONS = 2500
 
+networkx_version = float('.'.join(nx.__version__.split('.')[:2]))
+if networkx_version >= 2.1:
+    def get_nx_node(graph, index):
+        return graph.nodes()[index]
+else:
+    def get_nx_node(graph, index):
+        return graph.node[index]
+
 
 class TrustGraph(nx.DiGraph):
 
@@ -47,14 +55,14 @@ class TrustGraph(nx.DiGraph):
 
     def get_node(self, peer_key, add_if_not_exist=True):
         if peer_key in self.peers:
-            return self.node[self.peers.index(peer_key)]
+            return get_nx_node(self, self.peers.index(peer_key))
         if add_if_not_exist:
             next_node_id = len(self.peers)
             if next_node_id >= self.max_peers:
                 raise TrustGraphException("Max node peers reached in graph")
             super(TrustGraph, self).add_node(next_node_id, id=next_node_id, key=peer_key)
             self.peers.append(peer_key)
-            return self.node[self.peers.index(peer_key)]
+            return get_nx_node(self, self.peers.index(peer_key))
         return None
 
     def add_block(self, block):
@@ -84,7 +92,7 @@ class TrustGraph(nx.DiGraph):
 
     def compute_node_graph(self):
         gr_undirected = self.to_undirected()
-        num_nodes = len(gr_undirected.node)
+        num_nodes = gr_undirected.number_of_nodes()
 
         # Remove disconnected nodes from the graph
         component_nodes = nx.node_connected_component(gr_undirected, self.root_node)
@@ -106,7 +114,7 @@ class TrustGraph(nx.DiGraph):
         max_x = max_y = 0.0001
         for _id, (theta, r) in pos.items():
             index_mapper[_id] = node_id
-            node = gr_undirected.node[_id]
+            node = get_nx_node(gr_undirected, _id)
             node['id'] = node_id
             node_id += 1
 
