@@ -668,7 +668,7 @@ class LibtorrentMgr(TaskManager):
                 self.tribler_session.update_trackers(tdef.get_infohash(), new_trackers)
             return d
 
-        self._logger.info('start_download: Starting in VOD mode')
+        self._logger.info('start_download: calling start_download_from_tdef')
         result = self.tribler_session.start_download_from_tdef(tdef, dscfg)
 
         return result
