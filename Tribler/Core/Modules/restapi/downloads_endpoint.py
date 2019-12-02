@@ -21,7 +21,7 @@ from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT
 from Tribler.Core.Modules.MetadataStore.store import UNKNOWN_CHANNEL, UPDATED_OUR_VERSION
 from Tribler.Core.Modules.restapi.util import return_handled_exception
 from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
-from Tribler.Core.Utilities.unicode import hexlify, recursive_unicode
+from Tribler.Core.Utilities.unicode import ensure_unicode, hexlify, recursive_unicode
 from Tribler.Core.Utilities.utilities import unichar_string
 from Tribler.Core.exceptions import InvalidSignatureException
 from Tribler.Core.simpledefs import DLMODE_VOD, DOWNLOAD, UPLOAD, dlstatus_strings
@@ -39,8 +39,7 @@ def _safe_extended_peer_info(ext_peer_info):
     if not ext_peer_info:
         ext_peer_info = u''
     try:
-        json.twisted_dumps(ext_peer_info)
-        return ext_peer_info
+        return ensure_unicode(ext_peer_info, "utf8")
     except UnicodeDecodeError:
         # We might have some special unicode characters in here
         return u''.join([unichr(ord(c)) for c in ext_peer_info])
