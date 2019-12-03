@@ -85,7 +85,7 @@ class GigaChannelCommunity(Community):
                 md_list = [personal_channel] + list(
                     personal_channel.get_random_torrents(max_entries - 1)) if personal_channel else None
                 self.gossip_blob_personal_channel = entries_to_chunk(md_list, maximum_payload_size)[0] \
-                    if md_list else None
+                    if md_list and len(md_list) > 1 else None
 
                 # Generate and cache the gossip blob for a subscribed channel
                 # TODO: when the health table will be there, send popular torrents instead
