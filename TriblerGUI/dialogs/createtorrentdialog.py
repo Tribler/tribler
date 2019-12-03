@@ -132,8 +132,7 @@ class CreateTorrentDialog(DialogContainer):
             self.create_torrent_notification.emit({"msg": "Torrent successfully created"})
             if self.dialog_widget.add_to_channel_checkbox.isChecked():
                 self.add_torrent_to_channel(result['torrent'])
-            else:
-                self.close_dialog()
+            self.close_dialog()
 
     def add_torrent_to_channel(self, torrent):
         self.request_mgr = TriblerRequestManager()
@@ -148,8 +147,6 @@ class CreateTorrentDialog(DialogContainer):
             return
         if 'added' in result:
             self.create_torrent_notification.emit({"msg": "Torrent successfully added to the channel"})
-            self.dialog_widget.edit_channel_create_torrent_progress_label.setText("Created torrent")
-        self.close_dialog()
 
     def on_select_save_directory(self):
         chosen_dir = QFileDialog.getExistingDirectory(self.window(), "Please select the directory containing the files",
