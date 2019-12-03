@@ -458,7 +458,7 @@ class TriblerWindow(QMainWindow):
                             "but you do not have one yet. No worries, you can easily create your own channel by " \
                             "navigating to My Channel section on the left sidebar."
             ConfirmationDialog.show_error(self.window(), "Download Error!", error_message)
-            return
+            add_to_channel = False
 
         selected_files_list = []
         if len(selected_files) != total_files:  # Not all files included
