@@ -499,7 +499,7 @@ class LibtorrentMgr(TaskManager):
 
         # There seems to be metainfo
         metainfo = {b"info": lt.bdecode(get_info_from_handle(handle).metadata())}
-        trackers = [tracker.url for tracker in get_info_from_handle(handle).trackers()]
+        trackers = [tracker.url.encode('utf-8') for tracker in get_info_from_handle(handle).trackers()]
         peers = []
         leechers = 0
         seeders = 0

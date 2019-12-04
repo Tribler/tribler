@@ -62,7 +62,7 @@ class RootEndpoint(RESTEndpoint):
         if '/ipv8' in self.endpoints:
             self.endpoints['/ipv8'].initialize(ipv8_session)
         if '/market' in self.endpoints:
-            self.endpoints['/market'].session = ipv8_session
+            self.endpoints['/market'].initialize(ipv8_session)
         self.endpoints['/wallets'].session = ipv8_session
 
     async def stop(self):

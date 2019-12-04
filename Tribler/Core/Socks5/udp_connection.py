@@ -18,7 +18,7 @@ class SocksUDPConnection(DatagramProtocol):
 
     async def open(self):
         self.transport, _ = await get_event_loop().create_datagram_endpoint(lambda: self,
-                                                                            local_addr=('127.0.0.1', 0))
+                                                                            local_addr=('0.0.0.0', 0))
 
     def get_listen_port(self):
         _, port = self.transport.get_extra_info('sockname')

@@ -489,7 +489,7 @@ class ChannelContentsWidget(widget_form, widget_class):
 
     def add_torrent_to_channel(self, filename):
         with open(filename, "rb") as torrent_file:
-            torrent_content = b64encode(torrent_file.read())
+            torrent_content = b64encode(torrent_file.read()).decode('utf-8')
         self._add_torrent_request({"torrent": torrent_content})
 
     def add_dir_to_channel(self, dirname, recursive=False):

@@ -29,10 +29,6 @@ except ImportError:
     scanner = None
 
 
-
-
-
-
 class MemoryPlot(TimeSeriesPlot):
 
     def __init__(self, parent, **kargs):

@@ -244,8 +244,8 @@ class TestLibtorrentMgr(AbstractServer):
             b'info': {
                 b'pieces': [b'a']
             },
-            b'announce': 'http://test1.com',
-            b'announce-list': [['http://test1.com', 'http://test2.com']],
+            b'announce': b'http://test1.com',
+            b'announce-list': [[b'http://test1.com', b'http://test2.com']],
             b'leechers': 1,
             b'seeders': 1
         }
