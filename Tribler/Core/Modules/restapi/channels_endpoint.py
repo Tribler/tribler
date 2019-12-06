@@ -118,7 +118,7 @@ class ChannelsEndpoint(ChannelsEndpointBase):
                 source = self.session.lm.mds.ChannelNode.get(public_key=public_key, id_=id_)
                 if not source:
                     return RESTResponse({"error": "Source entry not found"}, status=HTTP_BAD_REQUEST)
-                # We must upgrage Collections to Channels when moving them to root channel, and, vice-versa,
+                # We must upgrade Collections to Channels when moving them to root channel, and, vice-versa,
                 # downgrade Channels to Collections when moving them into existing channels
                 if isinstance(source, self.session.lm.mds.CollectionNode):
                     src_dict = source.to_dict()

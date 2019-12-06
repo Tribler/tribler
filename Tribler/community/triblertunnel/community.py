@@ -408,16 +408,16 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         async def _remove():
             # Now we actually remove the circuit
-            await super(TriblerTunnelCommunity, self).remove_circuit(circuit_id, additional_info=additional_info,
-                                                                     remove_now=remove_now, destroy=destroy)
+            super(TriblerTunnelCommunity, self).remove_circuit(circuit_id, additional_info=additional_info,
+                                                               remove_now=remove_now, destroy=destroy)
 
             if self.tribler_session and self.tribler_session.config.get_libtorrent_enabled():
                 ltmgr = self.tribler_session.lm.ltmgr
                 await gather(*[self.update_torrent(affected_peers, download)
                                for download, session in ltmgr.torrents.values()
                                if session == ltmgr.get_session(download.config.get_hops())])
-        if not self.is_pending_task_active('remove_circuit_%d' % circuit_id):
-            self.register_task('remove_circuit_%d' % circuit_id, _remove)
+        if not self.is_pending_task_active('schedule_remove_circuit_%d' % circuit_id):
+            self.register_task('schedule_remove_circuit_%d' % circuit_id, _remove)
 
     def remove_relay(self, circuit_id, additional_info='', remove_now=False, destroy=False, got_destroy_from=None,
                      both_sides=True):
