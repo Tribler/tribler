@@ -1,6 +1,7 @@
 import json
 import os
 
+from Tribler.Core.Modules.restapi.rest_endpoint import HTTP_UNAUTHORIZED
 from Tribler.Core.Modules.restapi.settings_endpoint import SettingsEndpoint
 from Tribler.Core.exceptions import TriblerException
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
@@ -12,6 +13,28 @@ def RaiseException(*args, **kwargs):
 
 
 class RestRequestTest(AbstractApiTest):
+
+    async def test_api_key_disabled(self):
+        self.session.config.set_http_api_key('')
+        await self.do_request('state')
+        await self.do_request('state?apikey=111')
+        await self.do_request('state', headers={'X-Api-Key': '111'})
+
+    async def test_api_key_success(self):
+        api_key = '0' * 32
+        self.session.config.set_http_api_key(api_key)
+        await self.do_request('state?apikey=' + api_key)
+        await self.do_request('state', headers={'X-Api-Key': api_key})
+
+    async def test_api_key_fail(self):
+        api_key = '0' * 32
+        self.session.config.set_http_api_key(api_key)
+        await self.do_request('state', expected_code=HTTP_UNAUTHORIZED, expected_json={'error': 'Unauthorized access'})
+        await self.do_request('state?apikey=111',
+                              expected_code=HTTP_UNAUTHORIZED, expected_json={'error': 'Unauthorized access'})
+        await self.do_request('state', headers={'X-Api-Key': '111'},
+                              expected_code=HTTP_UNAUTHORIZED, expected_json={'error': 'Unauthorized access'})
+
     @timeout(10)
     async def test_unhandled_exception(self):
         """

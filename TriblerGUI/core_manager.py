@@ -20,7 +20,7 @@ class CoreManager(QObject):
     tribler_stopped = pyqtSignal()
     core_state_update = pyqtSignal(str)
 
-    def __init__(self, api_port):
+    def __init__(self, api_port, api_key):
         QObject.__init__(self, None)
 
         self.base_path = get_base_path()
@@ -30,7 +30,8 @@ class CoreManager(QObject):
         self.request_mgr = None
         self.core_process = None
         self.api_port = api_port
-        self.events_manager = EventRequestManager(self.api_port)
+        self.api_key = api_key
+        self.events_manager = EventRequestManager(self.api_port, self.api_key)
 
         self.shutting_down = False
         self.recorded_stderr = ""
@@ -75,6 +76,7 @@ class CoreManager(QObject):
                 core_env["CORE_PROCESS"] = "1"
                 core_env["CORE_BASE_PATH"] = self.base_path
                 core_env["CORE_API_PORT"] = "%s" % self.api_port
+                core_env["CORE_API_KEY"] = self.api_key.decode('utf-8')
             if not core_args:
                 core_args = sys.argv
             self.core_process = subprocess.Popen([sys.executable] + core_args, env=core_env)

@@ -128,7 +128,7 @@ class TriblerWindow(QMainWindow):
         dialog = FeedbackDialog(self, exception_text, self.tribler_version, self.start_time)
         dialog.show()
 
-    def __init__(self, core_args=None, core_env=None, api_port=None):
+    def __init__(self, core_args=None, core_env=None, api_port=None, api_key=None):
         QMainWindow.__init__(self)
 
         QCoreApplication.setOrganizationDomain("nl")
@@ -137,14 +137,16 @@ class TriblerWindow(QMainWindow):
 
         self.gui_settings = QSettings()
         api_port = api_port or int(get_gui_setting(self.gui_settings, "api_port", DEFAULT_API_PORT))
-        dispatcher.update_worker_settings(port=api_port)
+        api_key = api_key or get_gui_setting(self.gui_settings, "api_key", hexlify(os.urandom(16)).encode('utf-8'))
+        self.gui_settings.setValue("api_key", api_key)
+        dispatcher.update_worker_settings(port=api_port, key=api_key)
 
         self.navigation_stack = []
         self.tribler_started = False
         self.tribler_settings = None
         self.tribler_version = None
         self.debug_window = None
-        self.core_manager = CoreManager(api_port)
+        self.core_manager = CoreManager(api_port, api_key)
         self.pending_requests = {}
         self.pending_uri_requests = []
         self.download_uri = None

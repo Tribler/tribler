@@ -27,7 +27,7 @@ if getattr(sys.stdout, 'encoding', None) == 'cp65001':
     codecs.register(remapped_mbcs)
 
 
-def start_tribler_core(base_path, api_port):
+def start_tribler_core(base_path, api_port, api_key):
     """
     This method will start a new Tribler session.
     Note that there is no direct communication between the GUI process and the core: all communication is performed
@@ -65,6 +65,9 @@ def start_tribler_core(base_path, api_port):
         set_process_priority(pid=os.getpid(), priority_order=priority_order)
 
         config.set_http_api_port(int(api_port))
+        # If the API key is set to an empty string, it will remain disabled
+        if config.get_http_api_key() != '':
+            config.set_http_api_key(api_key)
         config.set_http_api_enabled(True)
 
         # Check if we are already running a Tribler instance
@@ -91,7 +94,8 @@ if __name__ == "__main__":
 
         base_path = os.environ['CORE_BASE_PATH']
         api_port = os.environ['CORE_API_PORT']
-        start_tribler_core(base_path, api_port)
+        api_key = os.environ['CORE_API_KEY']
+        start_tribler_core(base_path, api_port, api_key)
     else:
         # Check for missing both(GUI, Core) dependencies
         check_for_missing_dependencies(scope='both')

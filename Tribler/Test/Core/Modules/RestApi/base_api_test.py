@@ -43,9 +43,9 @@ class AbstractBaseApiTest(TestAsServer):
         # Make sure we select a random port for the HTTP API
         self.config.set_http_api_port(self.get_port())
 
-    async def do_request(self, endpoint, req_type, post_data, json_data, json_response):
+    async def do_request(self, endpoint, req_type, post_data, headers, json_data, json_response):
         url = 'http://localhost:%d/%s' % (self.session.config.get_http_api_port(), endpoint)
-        headers = {'User-Agent': 'Tribler ' + version_id}
+        headers = headers or {'User-Agent': 'Tribler ' + version_id}
 
         async with ClientSession() as session:
             async with session.request(req_type, url, data=post_data, json=json_data, headers=headers) as response:
@@ -60,9 +60,11 @@ class AbstractApiTest(AbstractBaseApiTest):
     """
 
     async def do_request(self, endpoint, expected_code=200, expected_json=None,
-                         request_type='GET', post_data=None, json_data=None, json_response=True):
+                         request_type='GET', post_data=None, headers=None,
+                         json_data=None, json_response=True):
         status, response = await super(AbstractApiTest, self).do_request(endpoint, request_type,
-                                                                         post_data, json_data, json_response)
+                                                                         post_data, headers,
+                                                                         json_data, json_response)
         self.assertEqual(status, expected_code, response)
         if response is not None and expected_json is not None:
             self.assertDictEqual(expected_json, response)

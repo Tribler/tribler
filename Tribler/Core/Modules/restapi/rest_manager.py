@@ -5,8 +5,26 @@ from aiohttp import web
 
 from ipv8.taskmanager import TaskManager
 
-from Tribler.Core.Modules.restapi.rest_endpoint import HTTP_INTERNAL_SERVER_ERROR, RESTResponse
+from Tribler.Core.Modules.restapi.rest_endpoint import HTTP_INTERNAL_SERVER_ERROR, HTTP_UNAUTHORIZED, RESTResponse
 from Tribler.Core.Modules.restapi.root_endpoint import RootEndpoint
+
+
+@web.middleware
+class ApiKeyMiddleware(object):
+    def __init__(self, config):
+        self.config = config
+
+    async def __call__(self, request, handler):
+        if self.authenticate(request):
+            return await handler(request)
+        else:
+            return RESTResponse({'error': 'Unauthorized access'}, status=HTTP_UNAUTHORIZED)
+
+    def authenticate(self, request):
+        # The api key can either be in the headers or as part of the url query
+        api_key = request.headers.get('X-Api-Key') or request.query.get('apikey')
+        expected_api_key = self.config.get_http_api_key()
+        return not expected_api_key or expected_api_key == api_key
 
 
 @web.middleware
@@ -46,7 +64,8 @@ class RESTManager(TaskManager):
         """
         Starts the HTTP API with the listen port as specified in the session configuration.
         """
-        self.root_endpoint = RootEndpoint(self.session, middlewares=[error_middleware])
+        self.root_endpoint = RootEndpoint(self.session, middlewares=[ApiKeyMiddleware(self.session.config),
+                                                                     error_middleware])
         runner = web.AppRunner(self.root_endpoint.app, access_log=None)
         await runner.setup()
 
