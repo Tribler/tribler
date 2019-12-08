@@ -9,8 +9,6 @@ HTTP_NOT_FOUND = 404
 HTTP_CONFLICT = 409
 HTTP_INTERNAL_SERVER_ERROR = 500
 
-DEFAULT_HEADERS = {'Access-Control-Allow-Origin': '*'}
-
 
 class RESTEndpoint:
 
@@ -37,11 +35,11 @@ class RESTResponse(web.Response):
         if isinstance(body, (dict, list)):
             body = json.dumps(body)
             content_type = 'application/json'
-        super(RESTResponse, self).__init__(body=body, headers=headers or DEFAULT_HEADERS,
+        super(RESTResponse, self).__init__(body=body, headers=headers,
                                            content_type=content_type, status=status, **kwargs)
 
 
 class RESTStreamResponse(web.StreamResponse):
 
     def __init__(self, headers=None, **kwargs):
-        super(RESTStreamResponse, self).__init__(headers=headers or DEFAULT_HEADERS, **kwargs)
+        super(RESTStreamResponse, self).__init__(headers=headers, **kwargs)
