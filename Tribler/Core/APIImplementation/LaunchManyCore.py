@@ -106,6 +106,7 @@ class TriblerLaunchMany(TaskManager):
         self.torrent_checker = None
         self.tunnel_community = None
         self.trustchain_community = None
+        self.noodle_community = None
         self.wallets = {}
         self.popularity_community = None
         self.gigachannel_community = None
@@ -182,6 +183,17 @@ class TriblerLaunchMany(TaskManager):
 
             tc_wallet = TrustchainWallet(self.trustchain_community)
             self.wallets[tc_wallet.get_identifier()] = tc_wallet
+
+            # Noodle
+            from ipv8.attestation.noodle.community import NoodleCommunity, NoodleTestnetCommunity
+
+            community_cls = NoodleTestnetCommunity if self.session.config.get_testnet() else NoodleCommunity
+            self.noodle_community = community_cls(peer, self.ipv8.endpoint,
+                                                  self.ipv8.network,
+                                                  working_directory=self.session.config.get_state_dir(),
+                                                  ipv8=self.ipv8)
+            self.ipv8.overlays.append(self.noodle_community)
+            self.ipv8.strategies.append((RandomWalk(self.noodle_community), -1))
 
         # DHT Community
         if self.session.config.get_dht_enabled():
