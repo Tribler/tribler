@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import os
 import sys
 import time
@@ -13,8 +11,8 @@ from Tribler.Test.Core.base_test import MockObject, TriblerCoreTest
 
 class TestResourceMonitor(TriblerCoreTest):
 
-    def setUp(self):
-        super(TestResourceMonitor, self).setUp()
+    async def setUp(self):
+        await super(TestResourceMonitor, self).setUp()
 
         mock_session = MockObject()
         mock_session.config = MockObject()
@@ -84,8 +82,8 @@ class TestResourceMonitor(TriblerCoreTest):
             return namedtuple('sdiskusage', disk.keys())(*disk.values())
 
         def on_notify(subject, changeType, obj_id, *args):
-            self.assertEquals(subject, SIGNAL_RESOURCE_CHECK)
-            self.assertEquals(changeType, SIGNAL_LOW_SPACE)
+            self.assertEqual(subject, SIGNAL_RESOURCE_CHECK)
+            self.assertEqual(changeType, SIGNAL_LOW_SPACE)
 
         self.resource_monitor.get_free_disk_space = fake_get_free_disk_space
         self.resource_monitor.session.notifier.notify = on_notify

@@ -1,19 +1,19 @@
-from __future__ import absolute_import
+from aiohttp import web
 
-from twisted.web import resource
-
-import Tribler.Core.Utilities.json_util as json
 import Tribler.Test.GUI.FakeTriblerAPI.tribler_utils as tribler_utils
+from Tribler.Core.Modules.restapi.rest_endpoint import RESTEndpoint, RESTResponse
 
 
-class SettingsEndpoint(resource.Resource):
+class SettingsEndpoint(RESTEndpoint):
 
-    isLeaf = True
+    def setup_routes(self):
+        self.app.add_routes([web.get('', self.get_settings),
+                             web.post('', self.save_settings)])
 
     # Only contains the most necessary settings needed for the GUI
-    def render_GET(self, _request):
-        return json.twisted_dumps(tribler_utils.tribler_data.settings)
+    async def get_settings(self, _request):
+        return RESTResponse(tribler_utils.tribler_data.settings)
 
     # Do nothing when we are saving the settings
-    def render_POST(self, _request):
-        return json.twisted_dumps({"modified": True})
+    async def save_settings(self, _):
+        return RESTResponse({"modified": True})

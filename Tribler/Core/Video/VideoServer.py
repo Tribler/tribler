@@ -3,23 +3,20 @@ Video server.
 
 Author(s): Jan David Mol, Arno Bakker, Egbert Bouman
 """
-from __future__ import absolute_import
-
 import logging
 import mimetypes
 import os
 import socket
 import time
+from asyncio import ensure_future
 from binascii import unhexlify
 from collections import defaultdict
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from socketserver import ThreadingMixIn
 from threading import Event, RLock, Thread
 from traceback import print_exc
 
 from cherrypy.lib.httputil import get_ranges
-
-from six.moves import xrange
-from six.moves.BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
-from six.moves.socketserver import ThreadingMixIn
 
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import VODFile
 from Tribler.Core.simpledefs import DLMODE_NORMAL, DLMODE_VOD
@@ -36,7 +33,7 @@ class VideoServer(ThreadingMixIn, HTTPServer):
         self.vod_download = None
         self.vod_info = defaultdict(dict)  # A dictionary containing info about the requested VOD streams.
 
-        for _ in xrange(10000):
+        for _ in range(10000):
             try:
                 HTTPServer.__init__(self, ("127.0.0.1", self.port), VideoRequestHandler)
                 self._logger.debug("Listening at %d", self.port)
@@ -158,7 +155,7 @@ class VideoRequestHandler(BaseHTTPRequestHandler):
             if download.get_def().is_multifile_torrent():
                 download.set_selected_files([filename])
             download.config.set_mode(DLMODE_VOD)
-            download.restart()
+            ensure_future(download.restart())
 
         piecelen = download.get_def().get_piece_length()
         blocksize = piecelen

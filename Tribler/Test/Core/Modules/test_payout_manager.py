@@ -1,8 +1,5 @@
-from __future__ import absolute_import
-
-from twisted.internet.defer import inlineCallbacks, succeed
-
 from Tribler.Core.Modules.payout_manager import PayoutManager
+from Tribler.Core.Utilities.utilities import succeed
 from Tribler.Test.Core.base_test import MockObject, TriblerCoreTest
 
 
@@ -11,9 +8,8 @@ class TestPayoutManager(TriblerCoreTest):
     This class contains various tests for the payout manager.
     """
 
-    @inlineCallbacks
-    def setUp(self):
-        yield super(TestPayoutManager, self).setUp()
+    async def setUp(self):
+        await super(TestPayoutManager, self).setUp()
 
         fake_tc = MockObject()
         fake_tc.add_listener = lambda *_: None

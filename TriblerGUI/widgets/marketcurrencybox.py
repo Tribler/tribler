@@ -1,11 +1,7 @@
 # coding=utf-8
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPainter
-from PyQt5.QtWidgets import QLabel
-from PyQt5.QtWidgets import QStyle
-from PyQt5.QtWidgets import QStyleOption
-from PyQt5.QtWidgets import QVBoxLayout
-from PyQt5.QtWidgets import QWidget
+from PyQt5.QtWidgets import QLabel, QStyle, QStyleOption, QVBoxLayout, QWidget
 
 
 class MarketCurrencyBox(QWidget):

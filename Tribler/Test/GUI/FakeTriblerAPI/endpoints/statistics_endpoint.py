@@ -1,44 +1,28 @@
-from __future__ import absolute_import
-
 from random import randint
 
-from twisted.web import resource
+from aiohttp import web
 
-import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.Modules.restapi.rest_endpoint import RESTEndpoint, RESTResponse
 
 
-class StatisticsEndpoint(resource.Resource):
+class StatisticsEndpoint(RESTEndpoint):
     """
     This endpoint is responsible for handing requests regarding statistics in Tribler.
     """
 
-    def __init__(self):
-        resource.Resource.__init__(self)
+    def setup_routes(self):
+        self.app.add_routes([web.get('/tribler', self.get_tribler_stats),
+                             web.get('/ipv8', self.get_ipv8_stats)])
 
-        child_handler_dict = {b"tribler": StatisticsTriblerEndpoint, b"ipv8": StatisticsIPv8Endpoint}
-
-        for path, child_cls in child_handler_dict.items():
-            self.putChild(path, child_cls())
-
-
-class StatisticsTriblerEndpoint(resource.Resource):
-    """
-    This class handles requests regarding Tribler statistics.
-    """
-    def render_GET(self, _request):
-        return json.twisted_dumps({'tribler_statistics': {
+    async def get_tribler_stats(self, _request):
+        return RESTResponse({'tribler_statistics': {
             "db_size": randint(1000, 1000000),
             "num_channels": randint(1, 100),
             "num_torrents": randint(1000, 10000)
         }})
 
-
-class StatisticsIPv8Endpoint(resource.Resource):
-    """
-    This class handles requests regarding IPv8 statistics.
-    """
-    def render_GET(self, _request):
-        return json.twisted_dumps({'ipv8_statistics': {
+    async def get_ipv8_stats(self, _request):
+        return RESTResponse({'ipv8_statistics': {
             "total_up": 13423,
             "total_down": 3252
         }})

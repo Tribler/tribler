@@ -1,14 +1,11 @@
-from __future__ import absolute_import
-
 import os
+from asyncio import Future
 from binascii import unhexlify
 from threading import RLock
 
 from anydex.core.community import MarketCommunity
 
 from ipv8.attestation.trustchain.community import TrustChainCommunity
-
-from twisted.internet.defer import Deferred, inlineCallbacks
 
 from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
 from Tribler.Core.Config.download_config import DownloadConfig
@@ -22,7 +19,7 @@ from Tribler.Core.simpledefs import (
 )
 from Tribler.Test.Core.base_test import MockObject, TriblerCoreTest
 from Tribler.Test.test_as_server import TestAsServer
-from Tribler.Test.tools import trial_timeout
+from Tribler.Test.tools import timeout
 from Tribler.community.gigachannel.community import GigaChannelCommunity
 
 
@@ -32,8 +29,8 @@ class TestLaunchManyCore(TriblerCoreTest):
     """
     DATA_DIR = os.path.join(os.path.abspath(os.path.dirname(os.path.realpath(__file__))), 'data')
 
-    def setUp(self):
-        TriblerCoreTest.setUp(self)
+    async def setUp(self):
+        await TriblerCoreTest.setUp(self)
         self.lm = TriblerLaunchMany()
         self.lm.session_lock = RLock()
         self.lm.session = MockObject()
@@ -106,15 +103,15 @@ class TestLaunchManyCore(TriblerCoreTest):
         self.assertIsInstance(config, DownloadConfig)
         self.assertEqual(int(config.config['general']['version']), 11)
 
-    @trial_timeout(10)
-    def test_dlstates_cb_error(self):
+    @timeout(10)
+    async def test_dlstates_cb_error(self):
         """
         Testing whether a download is stopped on error in the download states callback in LaunchManyCore
         """
-        error_stop_deferred = Deferred()
+        error_stop_future = Future()
 
-        def mocked_stop():
-            error_stop_deferred.callback(None)
+        async def mocked_stop():
+            error_stop_future.set_result(None)
 
         fake_error_download, fake_error_state = TestLaunchManyCore.create_fake_download_and_state()
         fake_error_download.stop = mocked_stop
@@ -122,28 +119,28 @@ class TestLaunchManyCore(TriblerCoreTest):
         fake_error_state.get_error = lambda: "test error"
 
         self.lm.downloads = {b'aaaa': fake_error_download}
-        self.lm.sesscb_states_callback([fake_error_state])
+        await self.lm.sesscb_states_callback([fake_error_state])
 
-        return error_stop_deferred
+        return error_stop_future
 
-    def test_readd_download_safe_seeding(self):
+    async def test_readd_download_safe_seeding(self):
         """
         Test whether a download is re-added when doing safe seeding
         """
-        readd_deferred = Deferred()
+        readd_future = Future()
 
         def mocked_update_download_hops(*_):
-            readd_deferred.callback(None)
+            readd_future.set_result(None)
 
         self.lm.update_download_hops = mocked_update_download_hops
 
         fake_download, dl_state = TestLaunchManyCore.create_fake_download_and_state()
         self.lm.downloads = {'aaaa': fake_download}
-        self.lm.sesscb_states_callback([dl_state])
+        await self.lm.sesscb_states_callback([dl_state])
 
-        return readd_deferred
+        return readd_future
 
-    def test_update_payout_balance(self):
+    async def test_update_payout_balance(self):
         """
         Test whether the balance of peers is correctly updated
         """
@@ -156,15 +153,14 @@ class TestLaunchManyCore(TriblerCoreTest):
 
         self.lm.state_cb_count = 4
         self.lm.downloads = {b'aaaa': fake_download}
-        self.lm.sesscb_states_callback([dl_state])
+        await self.lm.sesscb_states_callback([dl_state])
 
         self.assertTrue(self.lm.payout_manager.tribler_peers)
 
-    def test_load_checkpoint(self):
+    async def test_load_checkpoint(self):
         """
         Test whether we are resuming downloads after loading checkpoint
         """
-
         def mocked_resume_download(filename, setupDelay=3):
             self.assertTrue(filename.endswith('abcd.conf'))
             self.assertEqual(setupDelay, 0)
@@ -236,10 +232,9 @@ class TestLaunchManyCoreFullSession(TestAsServer):
 
 class TestLaunchManyCoreBootstrapSession(TestAsServer):
 
-    @inlineCallbacks
-    def setUp(self):
-        yield super(TestLaunchManyCoreBootstrapSession, self).setUp()
-        self.test_deferred = Deferred()
+    async def setUp(self):
+        await super(TestLaunchManyCoreBootstrapSession, self).setUp()
+        self.test_future = Future()
 
     def setUpPreSession(self):
         TestAsServer.setUpPreSession(self)
@@ -253,16 +248,17 @@ class TestLaunchManyCoreBootstrapSession(TestAsServer):
 
     def downloader_state_callback(self, ds):
         if ds.get_status() == DLSTATUS_METADATA or ds.get_status() == DLSTATUS_DOWNLOADING:
-            self.test_deferred.callback(None)
+            self.test_future.set_result(None)
             return 0.0
         return 0.5
 
-    @trial_timeout(20)
-    def test_bootstrap_downloader(self):
-        infohash = self.config.get_bootstrap_infohash()
+    @timeout(20)
+    async def test_bootstrap_downloader(self):
         self.session.lm.start_bootstrap_download()
+        self.session.lm.bootstrap.download.set_state_callback(self.downloader_state_callback)
+
+        infohash = self.config.get_bootstrap_infohash()
         self.assertIsNotNone(self.session.lm.bootstrap)
         self.assertTrue(unhexlify(infohash) in self.session.lm.downloads,
                         "Infohash %s Should be in downloads" % infohash)
-        self.session.lm.bootstrap.download.set_state_callback(self.downloader_state_callback)
-        return self.test_deferred
+        await self.test_future

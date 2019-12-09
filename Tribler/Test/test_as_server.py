@@ -3,8 +3,7 @@ Testing as server.
 
 Author(s): Arno Bakker, Jie Yang, Niels Zeilemaker
 """
-from __future__ import absolute_import
-
+import asyncio
 import functools
 import inspect
 import logging
@@ -14,24 +13,14 @@ import re
 import shutil
 import string
 import time
+from asyncio import Future, current_task, get_event_loop
 from threading import enumerate as enumerate_threads
 
+from aiohttp import web
+
+import asynctest
+
 from configobj import ConfigObj
-
-import six
-from six.moves import xrange
-
-import twisted
-from twisted.internet import interfaces
-from twisted.internet import reactor
-from twisted.internet.base import BasePort
-from twisted.internet.defer import Deferred, inlineCallbacks, maybeDeferred, succeed
-from twisted.internet.task import deferLater
-from twisted.internet.tcp import Client
-from twisted.trial import unittest
-from twisted.web.http import HTTPChannel
-from twisted.web.server import Site
-from twisted.web.static import File
 
 from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.Config.tribler_config import CONFIG_SPEC_PATH, TriblerConfig
@@ -47,17 +36,14 @@ TESTS_DATA_DIR = os.path.abspath(os.path.join(TESTS_DIR, u"data"))
 TESTS_API_DIR = os.path.abspath(os.path.join(TESTS_DIR, u"API"))
 OUTPUT_DIR = os.path.abspath(os.environ.get('OUTPUT_DIR', 'output'))
 
-if six.PY2:
-    FileExistsError = OSError
 
-
-class BaseTestCase(unittest.TestCase):
+class BaseTestCase(asynctest.TestCase):
 
     def __init__(self, *args, **kwargs):
         super(BaseTestCase, self).__init__(*args, **kwargs)
         self.selected_ports = set()
         self._tempdirs = []
-        self.maxDiff = None  # So we see full diffs when using assertEquals
+        self.maxDiff = None  # So we see full diffs when using assertEqual
 
         def wrap(fun):
             @functools.wraps(fun)
@@ -79,7 +65,7 @@ class BaseTestCase(unittest.TestCase):
         while self._tempdirs:
             temp_dir = self._tempdirs.pop()
             os.chmod(temp_dir, 0o700)
-            shutil.rmtree(six.text_type(temp_dir), ignore_errors=False)
+            shutil.rmtree(temp_dir, ignore_errors=False)
 
     def temporary_directory(self, suffix='', exist_ok=False):
         random_string = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(6))
@@ -110,7 +96,7 @@ class BaseTestCase(unittest.TestCase):
         Also, make sure that we have no duplicates in selected ports.
         """
         ports = []
-        for _ in xrange(count):
+        for _ in range(count):
             min_base_port, max_base_port = self.get_bucket_range_port()
             selected_port = get_random_port(min_port=min_base_port, max_port=max_base_port)
             while selected_port in self.selected_ports:
@@ -129,25 +115,16 @@ class AbstractServer(BaseTestCase):
 
     def __init__(self, *args, **kwargs):
         super(AbstractServer, self).__init__(*args, **kwargs)
-        twisted.internet.base.DelayedCall.debug = True
+        get_event_loop().set_debug(True)
 
         self.watchdog = WatchDog()
 
-        # Enable Deferred debugging
-        from twisted.internet.defer import setDebugging
-        setDebugging(True)
-
-    @inlineCallbacks
-    def setUp(self):
+    async def setUp(self):
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.session_base_dir = self.temporary_directory(suffix=u"_tribler_test_session_")
         self.state_dir = os.path.join(self.session_base_dir, u"dot.Tribler")
         self.dest_dir = os.path.join(self.session_base_dir, u"TriblerDownloads")
-
-        # Wait until the reactor has started
-        reactor_deferred = Deferred()
-        reactor.callWhenRunning(reactor_deferred.callback, None)
 
         self.annotate_dict = {}
 
@@ -156,25 +133,19 @@ class AbstractServer(BaseTestCase):
 
         self.annotate(self._testMethodName, start=True)
         self.watchdog.start()
-        yield reactor_deferred
         random.seed(123)
 
-    def setUpFileServer(self, port, path):
+    async def setUpFileServer(self, port, path):
         # Create a local file server, can be used to serve local files. This is preferred over an external network
         # request in order to get files.
-        resource = File(path)
-        factory = Site(resource)
-        self.file_server = reactor.listenTCP(port, factory)
+        app = web.Application()
+        app.add_routes([web.static('/', path)])
+        runner = web.AppRunner(app, access_log=None)
+        await runner.setup()
+        self.site = web.TCPSite(runner, 'localhost', port)
+        await self.site.start()
 
-    @inlineCallbacks
-    def checkReactor(self, phase, *_):
-        delayed_calls = reactor.getDelayedCalls()
-        if delayed_calls:
-            self._logger.error("The reactor was dirty during %s:", phase)
-            for dc in delayed_calls:
-                self._logger.error(">     %s", dc)
-                dc.cancel()
-
+    async def checkLoop(self, phase, *_):
         from pony.orm.core import local
         if local.db_context_counter > 0:
             self._logger.error("Leftover pony db sessions found!")
@@ -182,41 +153,19 @@ class AbstractServer(BaseTestCase):
         for _ in range(local.db_context_counter):
             db_session.__exit__()
 
-        has_network_selectables = False
-        for item in reactor.getReaders() + reactor.getWriters():
-            if isinstance(item, HTTPChannel) or isinstance(item, Client):
-                has_network_selectables = True
-                break
+        # Only in Python 3.7+..
+        try:
+            from asyncio import all_tasks
+        except ImportError:
+            return
 
-        if has_network_selectables:
-            # TODO(Martijn): we wait a while before we continue the check since network selectables
-            # might take some time to cleanup. I'm not sure what's causing this.
-            yield deferLater(reactor, 0.2, lambda: None)
+        tasks = [t for t in all_tasks(get_event_loop()) if t is not current_task()]
+        if tasks:
+            self._logger.error("The event loop was dirty during %s:", phase)
+        for task in tasks:
+            self._logger.error(">     %s", task)
 
-        # This is the same check as in the _cleanReactor method of Twisted's Trial
-        selectable_strings = []
-        for sel in reactor.removeAll():
-            if interfaces.IProcessTransport.providedBy(sel):
-                self._logger.error("Sending kill signal to %s", repr(sel))
-                sel.signalProcess('KILL')
-            selectable_strings.append(repr(sel))
-
-        self.assertFalse(selectable_strings,
-                         "The reactor has leftover readers/writers during %s: %r" % (phase, selectable_strings))
-
-        # Check whether we have closed all the sockets
-        open_readers = reactor.getReaders()
-        for reader in open_readers:
-            self.assertNotIsInstance(reader, BasePort)
-
-        # Check whether the threadpool is clean
-        tp_items = len(reactor.getThreadPool().working)
-        if tp_items > 0:  # Print all stacks to debug this issue
-            self.watchdog.print_all_stacks()
-        self.assertEqual(tp_items, 0, "Still items left in the threadpool")
-
-    @inlineCallbacks
-    def tearDown(self):
+    async def tearDown(self):
         random.seed()
         self.annotate(self._testMethodName, start=False)
 
@@ -230,9 +179,8 @@ class AbstractServer(BaseTestCase):
             raise RuntimeError("Couldn't stop the WatchDog")
 
         if self.file_server:
-            yield maybeDeferred(self.file_server.stopListening).addCallback(self.checkReactor)
-        else:
-            yield self.checkReactor("tearDown")
+            await self.file_server.stop()
+        await self.checkLoop("tearDown")
 
         super(AbstractServer, self).tearDown()
 
@@ -276,21 +224,19 @@ class TestAsServer(AbstractServer):
     Parent class for testing the server-side of Tribler
     """
 
-    @inlineCallbacks
-    def setUp(self):
-        yield super(TestAsServer, self).setUp()
+    async def setUp(self):
+        await super(TestAsServer, self).setUp()
         self.setUpPreSession()
 
         self.quitting = False
-        self.seeding_deferred = Deferred()
+        self.seeding_future = Future()
         self.seeder_session = None
         self.seed_config = None
 
         self.session = Session(self.config)
         self.session.upgrader_enabled = False
 
-        self.tribler_started_deferred = self.session.start()
-        yield self.tribler_started_deferred
+        await self.session.start()
 
         self.assertTrue(self.session.lm.initComplete)
 
@@ -320,26 +266,25 @@ class TestAsServer(AbstractServer):
         self.config.set_bootstrap_enabled(False)
         self.config.set_trustchain_enabled(False)
 
-    @inlineCallbacks
-    def tearDown(self):
+    async def tearDown(self):
         self.annotate(self._testMethodName, start=False)
 
         """ unittest test tear down code """
         if self.session is not None:
             if self.session.lm.ltmgr:
                 self.session.lm.ltmgr.is_shutdown_ready = lambda: True
-            yield self.session.shutdown()
+            await self.session.shutdown()
             assert self.session.has_shutdown()
             self.session = None
 
-        yield self.stop_seeder()
+        await self.stop_seeder()
 
         ts = enumerate_threads()
         self._logger.debug("test_as_server: Number of threads still running %d", len(ts))
         for t in ts:
             self._logger.debug("Thread still running %s, daemon: %s, instance: %s", t.getName(), t.isDaemon(), t)
 
-        yield super(TestAsServer, self).tearDown()
+        await super(TestAsServer, self).tearDown()
 
     def create_local_torrent(self, source_file):
         """
@@ -356,7 +301,7 @@ class TestAsServer(AbstractServer):
 
         return tdef, torrent_path
 
-    def setup_seeder(self, tdef, seed_dir, port=None):
+    async def setup_seeder(self, tdef, seed_dir, port=None):
         self.seed_config = TriblerConfig()
         self.seed_config.set_torrent_checking_enabled(False)
         self.seed_config.set_ipv8_enabled(False)
@@ -377,27 +322,19 @@ class TestAsServer(AbstractServer):
         if port:
             self.seed_config.set_libtorrent_port(port)
 
-        def start_seed_download(_):
-            self.dscfg_seed = DownloadConfig()
-            self.dscfg_seed.set_dest_dir(seed_dir)
-            d = self.seeder_session.start_download_from_tdef(tdef, self.dscfg_seed)
-            d.set_state_callback(self.seeder_state_callback)
-
-        self._logger.debug("starting to wait for download to reach seeding state")
-
         self.seeder_session = Session(self.seed_config)
         self.seeder_session.upgrader_enabled = False
+        await self.seeder_session.start()
+        self.dscfg_seed = DownloadConfig()
+        self.dscfg_seed.set_dest_dir(seed_dir)
+        download = self.seeder_session.start_download_from_tdef(tdef, self.dscfg_seed)
+        download.set_state_callback(self.seeder_state_callback)
 
-        self.seeder_session.start().addCallback(start_seed_download)
-
-        return self.seeding_deferred
-
-    def stop_seeder(self):
+    async def stop_seeder(self):
         if self.seeder_session is not None:
             if self.seeder_session.lm.ltmgr:
                 self.seeder_session.lm.ltmgr.is_shutdown_ready = lambda: True
-            return self.seeder_session.shutdown()
-        return succeed(None)
+            return await self.seeder_session.shutdown()
 
     def seeder_state_callback(self, ds):
         d = ds.get_download()
@@ -405,7 +342,7 @@ class TestAsServer(AbstractServer):
                            ds.get_progress())
 
         if ds.get_status() == DLSTATUS_SEEDING:
-            self.seeding_deferred.callback(None)
+            self.seeding_future.set_result(None)
             return 0.0
 
         return 1.0

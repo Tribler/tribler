@@ -1,11 +1,8 @@
-from __future__ import absolute_import
-
 from anydex.restapi.root_endpoint import RootEndpoint as AnyDexRootEndpoint
 from anydex.restapi.wallets_endpoint import WalletsEndpoint
 
 from ipv8.REST.root_endpoint import RootEndpoint as IPV8RootEndpoint
-
-from twisted.web import resource
+from ipv8.taskmanager import TaskManager
 
 from Tribler.Core.Modules.restapi.channels_endpoint import ChannelsEndpoint
 from Tribler.Core.Modules.restapi.create_torrent_endpoint import CreateTorrentEndpoint
@@ -14,6 +11,7 @@ from Tribler.Core.Modules.restapi.downloads_endpoint import DownloadsEndpoint
 from Tribler.Core.Modules.restapi.events_endpoint import EventsEndpoint
 from Tribler.Core.Modules.restapi.libtorrent_endpoint import LibTorrentEndpoint
 from Tribler.Core.Modules.restapi.metadata_endpoint import MetadataEndpoint
+from Tribler.Core.Modules.restapi.rest_endpoint import RESTEndpoint
 from Tribler.Core.Modules.restapi.search_endpoint import SearchEndpoint
 from Tribler.Core.Modules.restapi.settings_endpoint import SettingsEndpoint
 from Tribler.Core.Modules.restapi.shutdown_endpoint import ShutdownEndpoint
@@ -25,61 +23,49 @@ from Tribler.Core.Modules.restapi.trustview_endpoint import TrustViewEndpoint
 from Tribler.Core.Modules.restapi.upgrader_endpoint import UpgraderEndpoint
 
 
-class RootEndpoint(resource.Resource):
+class RootEndpoint(RESTEndpoint):
     """
     The root endpoint of the Tribler HTTP API is the root resource in the request tree.
     It will dispatch requests regarding torrents, channels, settings etc to the right child endpoint.
     """
 
-    def __init__(self, session):
-        """
-        During the initialization of the REST API, we only start the event sockets and the state endpoint.
-        We enable the other endpoints when Tribler has completed the starting procedure.
-        """
-        resource.Resource.__init__(self)
-        self.session = session
-        self.events_endpoint = EventsEndpoint(self.session)
-        self.state_endpoint = StateEndpoint(self.session)
-        self.shutdown_endpoint = ShutdownEndpoint(self.session)
-        self.upgrader_endpoint = UpgraderEndpoint(self.session)
-        self.putChild(b"events", self.events_endpoint)
-        self.putChild(b"state", self.state_endpoint)
-        self.putChild(b"shutdown", self.shutdown_endpoint)
-        self.putChild(b"upgrader", self.upgrader_endpoint)
-        self.trustview_endpoint = None
-
-    def start_endpoints(self):
-        """
-        This method is only called when Tribler has started. It enables the other endpoints that are dependent
-        on a fully started Tribler.
-        """
-        child_handler_dict = {
-            b"settings": SettingsEndpoint,
-            b"downloads": DownloadsEndpoint,
-            b"createtorrent": CreateTorrentEndpoint,
-            b"debug": DebugEndpoint,
-            b"trustchain": TrustchainEndpoint,
-            b"statistics": StatisticsEndpoint,
-            b"libtorrent": LibTorrentEndpoint,
-            b"torrentinfo": TorrentInfoEndpoint,
-            b"metadata": MetadataEndpoint,
-            b"channels": ChannelsEndpoint,
-            b"collections": ChannelsEndpoint,  # FIXME: evil hack! Implement the real CollectionsEndpoint!
-            b"search": SearchEndpoint,
-        }
-
-        for path, child_cls in child_handler_dict.items():
-            self.putChild(path, child_cls(self.session))
+    def setup_routes(self):
+        endpoints = {'/events': EventsEndpoint,
+                     '/state': StateEndpoint,
+                     '/shutdown': ShutdownEndpoint,
+                     '/upgrader': UpgraderEndpoint,
+                     '/settings': SettingsEndpoint,
+                     '/downloads': DownloadsEndpoint,
+                     '/createtorrent': CreateTorrentEndpoint,
+                     '/debug': DebugEndpoint,
+                     '/trustchain': TrustchainEndpoint,
+                     '/trustview': TrustViewEndpoint,
+                     '/statistics': StatisticsEndpoint,
+                     '/libtorrent': LibTorrentEndpoint,
+                     '/torrentinfo': TorrentInfoEndpoint,
+                     '/metadata': MetadataEndpoint,
+                     '/channels': ChannelsEndpoint,
+                     '/collections': ChannelsEndpoint,  # FIXME: evil hack! Implement the real CollectionsEndpoint!
+                     '/search': SearchEndpoint}
+        for path, ep_cls in endpoints.items():
+            self.add_endpoint(path, ep_cls(self.session))
 
         if self.session.config.get_ipv8_enabled():
-            self.putChild(b"ipv8", IPV8RootEndpoint(self.session.lm.ipv8))
+            self.add_endpoint('/ipv8', IPV8RootEndpoint())
 
         if self.session.config.get_market_community_enabled():
-            self.putChild(b"market", AnyDexRootEndpoint(self.session.lm.ipv8, enable_ipv8_endpoints=False))
+            self.add_endpoint('/market', AnyDexRootEndpoint(enable_ipv8_endpoints=False))
 
-        self.putChild(b"wallets", WalletsEndpoint(self.session.lm.ipv8))
+        self.add_endpoint("/wallets", WalletsEndpoint())
 
-        self.getChildWithDefault(b"search", None).events_endpoint = self.events_endpoint
+    def set_ipv8_session(self, ipv8_session):
+        if '/ipv8' in self.endpoints:
+            self.endpoints['/ipv8'].initialize(ipv8_session)
+        if '/market' in self.endpoints:
+            self.endpoints['/market'].initialize(ipv8_session)
+        self.endpoints['/wallets'].session = ipv8_session
 
-        self.trustview_endpoint = TrustViewEndpoint(self.session)
-        self.putChild(b"trustview", self.trustview_endpoint)
+    async def stop(self):
+        for endpoint in self.endpoints.values():
+            if isinstance(endpoint, TaskManager):
+                await endpoint.shutdown_task_manager()

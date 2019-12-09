@@ -1,18 +1,15 @@
-from __future__ import absolute_import
-
-import logging
+from asyncio import ensure_future
 from binascii import unhexlify
+
+from aiohttp import ContentTypeError, web
 
 from ipv8.database import database_blob
 
 from pony.orm import db_session
 
-from twisted.web import http, resource
-from twisted.web.server import NOT_DONE_YET
-
-import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.restapi.metadata_endpoint_base import MetadataEndpointBase
-from Tribler.Core.Utilities.unicode import hexlify, recursive_unicode
+from Tribler.Core.Modules.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_NOT_FOUND, RESTResponse
+from Tribler.Core.Utilities.unicode import hexlify
 
 
 class UpdateEntryMixin(object):
@@ -20,22 +17,22 @@ class UpdateEntryMixin(object):
     def update_entry(self, public_key, id_, update_dict):
         entry = self.session.lm.mds.ChannelNode.get(public_key=public_key, id_=id_)
         if not entry:
-            return http.NOT_FOUND, {"error": "Object with the specified pk+id could not be found."}
+            return HTTP_NOT_FOUND, {"error": "Object with the specified pk+id could not be found."}
 
         signed_parameters_to_change = set(entry.payload_arguments).intersection(set(update_dict.keys()))
         if signed_parameters_to_change:
             if 'status' in update_dict:
-                return http.BAD_REQUEST, {"error": "Cannot set status manually when changing signed attributes."}
+                return HTTP_BAD_REQUEST, {"error": "Cannot set status manually when changing signed attributes."}
             if not entry.is_personal:
                 return (
-                    http.BAD_REQUEST,
+                    HTTP_BAD_REQUEST,
                     {"error": "Changing signed parameters in non-personal entries is not supported."},
                 )
 
         return None, entry.update_properties(update_dict).to_simple_dict()
 
 
-class MetadataEndpoint(resource.Resource, UpdateEntryMixin):
+class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
     """
     This is the top-level endpoint class that serves other endpoints.
 
@@ -45,24 +42,20 @@ class MetadataEndpoint(resource.Resource, UpdateEntryMixin):
     #          /<public_key>
     """
 
-    def __init__(self, session):
-        self.session = session
-        resource.Resource.__init__(self)
+    def setup_routes(self):
+        self.app.add_routes(
+            [web.patch('', self.update_channel_entries),
+             web.delete('', self.delete_channel_entries),
+             web.get('/torrents/random', self.get_random_torrents),
+             web.get('/torrents/{infohash}/health', self.get_torrent_health),
+             web.patch(r'/{public_key:\w*}/{id:\w*}', self.update_channel_entry),
+             web.get(r'/{public_key:\w*}/{id:\w*}', self.get_channel_entries)])
 
-        child_handler_dict = {b"torrents": TorrentsEndpoint}
-
-        for path, child_cls in child_handler_dict.items():
-            self.putChild(path, child_cls(self.session))
-
-    def getChild(self, path, request):
-        return MetadataPublicKeyEndpoint(self.session, path)
-
-    def render_PATCH(self, request):
+    async def update_channel_entries(self, request):
         try:
-            request_parsed = recursive_unicode(json.twisted_loads(request.content.read()))
-        except ValueError:
-            request.setResponseCode(http.BAD_REQUEST)
-            return json.twisted_dumps({"error": "Bad JSON"})
+            request_parsed = await request.json()
+        except (ContentTypeError, ValueError):
+            return RESTResponse({"error": "Bad JSON"}, status=HTTP_BAD_REQUEST)
         results_list = []
         for entry in request_parsed:
             public_key = database_blob(unhexlify(entry.pop("public_key")))
@@ -70,76 +63,42 @@ class MetadataEndpoint(resource.Resource, UpdateEntryMixin):
             error, result = self.update_entry(public_key, id_, entry)
             # TODO: handle the results for a list that contains some errors in a smarter way
             if error:
-                request.setResponseCode(error)
-                return json.twisted_dumps(result)
+                return RESTResponse(result, status=error)
             results_list.append(result)
-        return json.twisted_dumps(results_list)
+        return RESTResponse(results_list)
 
-    @db_session
-    def render_DELETE(self, request):
-        request_parsed = recursive_unicode(json.twisted_loads(request.content.read()))
-        results_list = []
-        for entry in request_parsed:
-            public_key = database_blob(unhexlify(entry.pop("public_key")))
-            id_ = entry.pop("id")
-            entry = self.session.lm.mds.ChannelNode.get(public_key=public_key, id_=id_)
-            if not entry:
-                request.setResponseCode(http.BAD_REQUEST)
-                return json.twisted_dumps({"error": "Entry %i not found" % id_})
-            entry.delete()
-            result = {"public_key": hexlify(public_key), "id": id_, "state": "Deleted"}
-            results_list.append(result)
-        return json.twisted_dumps(results_list)
+    async def delete_channel_entries(self, request):
+        with db_session:
+            request_parsed = await request.json()
+            results_list = []
+            for entry in request_parsed:
+                public_key = database_blob(unhexlify(entry.pop("public_key")))
+                id_ = entry.pop("id")
+                entry = self.session.lm.mds.ChannelNode.get(public_key=public_key, id_=id_)
+                if not entry:
+                    return RESTResponse({"error": "Entry %i not found" % id_}, status=HTTP_BAD_REQUEST)
+                entry.delete()
+                result = {"public_key": hexlify(public_key), "id": id_, "state": "Deleted"}
+                results_list.append(result)
+            return RESTResponse(results_list)
 
-
-class MetadataPublicKeyEndpoint(resource.Resource):
-    """
-    Intermediate endpoint for parsing public_key part of the request.
-
-    # /<public_key>
-    #              /<id\_>
-    """
-
-    def getChild(self, path, request):
-        return SpecificMetadataEndpoint(self.session, self.channel_pk, path)
-
-    def __init__(self, session, path):
-        resource.Resource.__init__(self)
-        self.session = session
-        self.channel_pk = unhexlify(path)
-
-
-class SpecificMetadataEndpoint(resource.Resource, UpdateEntryMixin):
-    """
-    The endpoint to modify and get individual metadata entries.
-
-    # /<id\_>
-    """
-
-    def __init__(self, session, public_key, path):
-        self._logger = logging.getLogger(self.__class__.__name__)
-
-        self.session = session
-        self.public_key = public_key
-        self.id_ = int(path)
-        resource.Resource.__init__(self)
-
-    def render_PATCH(self, request):
+    async def update_channel_entry(self, request):
         # TODO: unify checks for parts of the path, i.e. proper hex for public key, etc.
         try:
-            parameters = recursive_unicode(json.twisted_loads(request.content.read()))
-        except ValueError:
-            request.setResponseCode(http.BAD_REQUEST)
-            return json.twisted_dumps({"error": "bad JSON input data"})
+            parameters = await request.json()
+        except (ContentTypeError, ValueError):
+            return RESTResponse({"error": "Bad JSON input data"}, status=HTTP_BAD_REQUEST)
 
-        error, result = self.update_entry(self.public_key, self.id_, parameters)
-        if error:
-            request.setResponseCode(error)
-        return json.twisted_dumps(result)
+        public_key = unhexlify(request.match_info['public_key'])
+        id_ = request.match_info['id']
+        error, result = self.update_entry(public_key, id_, parameters)
+        return RESTResponse(result, status=error or 200)
 
-    def render_GET(self, request):
+    async def get_channel_entries(self, request):
+        public_key = unhexlify(request.match_info['public_key'])
+        id_ = request.match_info['id']
         with db_session:
-            entry = self.session.lm.mds.ChannelNode.get(public_key=database_blob(self.public_key), id_=self.id_)
+            entry = self.session.lm.mds.ChannelNode.get(public_key=database_blob(public_key), id_=id_)
 
             if entry:
                 # TODO: handle costly attributes in a more graceful and generic way for all types of metadata
@@ -147,81 +106,22 @@ class SpecificMetadataEndpoint(resource.Resource, UpdateEntryMixin):
                     include_trackers=isinstance(entry, self.session.lm.mds.TorrentMetadata)
                 )
             else:
-                request.setResponseCode(http.NOT_FOUND)
-                return json.twisted_dumps({"error": "entry not found in database"})
+                return RESTResponse({"error": "entry not found in database"}, status=HTTP_NOT_FOUND)
 
-        return json.twisted_dumps(entry_dict)
+        return RESTResponse(entry_dict)
 
-
-class TorrentsEndpoint(MetadataEndpointBase):
-    """
-    The endpoint that provides and interface to torrent objects in the metadata database.
-
-    # /torrents
-    #          /random
-    """
-
-    def __init__(self, session):
-        MetadataEndpointBase.__init__(self, session)
-        self.putChild(b"random", TorrentsRandomEndpoint(session))
-
-    def getChild(self, path, request):
-        return SpecificTorrentEndpoint(self.session, path)
-
-
-class SpecificTorrentEndpoint(resource.Resource):
-    """
-    This class handles requests for a specific torrent, based on infohash.
-    """
-
-    def __init__(self, session, infohash):
-        resource.Resource.__init__(self)
-        self.session = session
-        self.infohash = unhexlify(infohash)
-
-        self.putChild(b"health", TorrentHealthEndpoint(self.session, self.infohash))
-
-
-class TorrentsRandomEndpoint(MetadataEndpointBase):
-    """
-    A specialized endpoint to get a random torrent from the metadata database.
-    """
-
-    def render_GET(self, request):
-        limit_torrents = 10
-
-        args = recursive_unicode(request.args)
-        if 'limit' in args and args['limit']:
-            limit_torrents = int(args['limit'][0])
-
-            if limit_torrents <= 0:
-                request.setResponseCode(http.BAD_REQUEST)
-                return json.twisted_dumps({"error": "the limit parameter must be a positive number"})
+    async def get_random_torrents(self, request):
+        limit_torrents = int(request.query.get('limit', 10))
+        if limit_torrents <= 0:
+            return RESTResponse({"error": "the limit parameter must be a positive number"},
+                                status=HTTP_BAD_REQUEST)
 
         with db_session:
             random_torrents = self.session.lm.mds.TorrentMetadata.get_random_torrents(limit=limit_torrents)
             torrents = [torrent.to_simple_dict() for torrent in random_torrents]
-        return json.twisted_dumps({"torrents": torrents})
+        return RESTResponse({"torrents": torrents})
 
-
-class TorrentHealthEndpoint(resource.Resource):
-    """
-    This class is responsible for endpoints regarding the health of a torrent.
-    """
-
-    def __init__(self, session, infohash):
-        resource.Resource.__init__(self)
-        self.session = session
-        self.infohash = infohash
-        self._logger = logging.getLogger(self.__class__.__name__)
-
-    def finish_request(self, request):
-        try:
-            request.finish()
-        except RuntimeError:
-            self._logger.warning("Writing response failed, probably the client closed the connection already.")
-
-    def render_GET(self, request):
+    async def get_torrent_health(self, request):
         """
         .. http:get:: /torrents/(string: torrent infohash)/health
 
@@ -256,35 +156,17 @@ class TorrentHealthEndpoint(resource.Resource):
 
             :statuscode 404: if the torrent is not found in the database
         """
-        args = recursive_unicode(request.args)
-        timeout = 20
-        if 'timeout' in args:
-            timeout = int(args['timeout'][0])
+        timeout = request.query.get('timeout', 20)
+        refresh = request.query.get('refresh', '0') == '1'
+        nowait = request.query.get('nowait', '0') == '1'
 
-        refresh = False
-        if 'refresh' in args and args['refresh'] and args['refresh'][0] == "1":
-            refresh = True
-
-        nowait = False
-        if 'nowait' in args and args['nowait'] and args['nowait'][0] == "1":
-            nowait = True
-
-        def on_health_result(result):
-            request.write(json.twisted_dumps({'health': result}))
-            self.finish_request(request)
-
-        def on_request_error(failure):
-            if not request.finished:
-                request.setResponseCode(http.BAD_REQUEST)
-                request.write(json.twisted_dumps({"error": failure.getErrorMessage()}))
-            # If the above request.write failed, the request will have already been finished
-            if not request.finished:
-                self.finish_request(request)
-
-        result_deferred = self.session.check_torrent_health(self.infohash, timeout=timeout, scrape_now=refresh)
-        # return immediately. Used by GUI to schedule health updates through the EventsEndpoint
+        infohash = unhexlify(request.match_info['infohash'])
+        result_future = self.session.check_torrent_health(infohash, timeout=timeout, scrape_now=refresh)
+        # Return immediately. Used by GUI to schedule health updates through the EventsEndpoint
         if nowait:
-            return json.twisted_dumps({'checking': '1'})
-        result_deferred.addCallback(on_health_result).addErrback(on_request_error)
+            ensure_future(result_future)
+            return RESTResponse({'checking': '1'})
 
-        return NOT_DONE_YET
+        # Errors will be handled by error_middleware
+        result = await result_future
+        return RESTResponse({'health': result})

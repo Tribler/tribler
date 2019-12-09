@@ -1,13 +1,7 @@
 """
 This file contains some utility methods that are used by the API.
 """
-from __future__ import absolute_import
-
-from six import binary_type
-
-from twisted.web import http
-
-import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.Modules.restapi.rest_endpoint import HTTP_INTERNAL_SERVER_ERROR, RESTResponse
 
 
 def return_handled_exception(request, exception):
@@ -16,14 +10,13 @@ def return_handled_exception(request, exception):
     :param exception: the handled exception
     :return: JSON dictionary describing the exception
     """
-    request.setResponseCode(http.INTERNAL_SERVER_ERROR)
-    return json.twisted_dumps({
+    return RESTResponse({
         "error": {
             "handled": True,
             "code": exception.__class__.__name__,
             "message": str(exception)
         }
-    })
+    }, status=HTTP_INTERNAL_SERVER_ERROR)
 
 
 def get_parameter(parameters, name):
@@ -50,7 +43,7 @@ def fix_unicode_dict(d):
             new_dict[key] = fix_unicode_array(list(value))
         elif isinstance(value, list):
             new_dict[key] = fix_unicode_array(value)
-        elif isinstance(value, binary_type):
+        elif isinstance(value, bytes):
             new_dict[key] = value.decode('utf-8', 'ignore')
         else:
             new_dict[key] = value
@@ -65,7 +58,7 @@ def fix_unicode_array(arr):
     new_arr = []
 
     for item in arr:
-        if isinstance(item, binary_type):
+        if isinstance(item, bytes):
             new_arr.append(item.decode('utf-8', 'ignore'))
         elif isinstance(item, dict):
             new_arr.append(fix_unicode_dict(item))

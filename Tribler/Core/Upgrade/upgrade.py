@@ -1,14 +1,9 @@
-from __future__ import absolute_import
-
 import logging
 import os
 import shutil
+from configparser import MissingSectionHeaderError, ParsingError
 
 from pony.orm import db_session
-
-from six.moves.configparser import MissingSectionHeaderError, ParsingError
-
-from twisted.internet.defer import succeed
 
 from Tribler.Core.Category.l2_filter import is_forbidden
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH
@@ -79,20 +74,19 @@ class TriblerUpgrader(object):
         if self._dtp72:
             self._dtp72.shutting_down = True
 
-    def run(self):
+    async def run(self):
         """
         Run the upgrader if it is enabled in the config.
 
         Note that by default, upgrading is enabled in the config. It is then disabled
         after upgrading to Tribler 7.
         """
-        d = self.upgrade_72_to_pony()
-        d.addCallback(self.upgrade_pony_db_6to7)
+        await self.upgrade_72_to_pony()
+        await self.upgrade_pony_db_6to7()
         self.upgrade_config_to_74()
         self.backup_state_directory()
-        return d
 
-    def upgrade_pony_db_6to7(self, _):
+    async def upgrade_pony_db_6to7(self):
         """
         Upgrade GigaChannel DB from version 6 (7.3.0) to version 7 (7.3.1).
         Migration should be relatively fast, so we do it in the foreground, without notifying the user
@@ -102,12 +96,12 @@ class TriblerUpgrader(object):
         database_path = os.path.join(self.session.config.get_state_dir(), 'sqlite', 'metadata.db')
         channels_dir = os.path.join(self.session.config.get_chant_channels_dir())
         if not os.path.exists(database_path):
-            return succeed(None)
+            return
         mds = MetadataStore(database_path, channels_dir, self.session.trustchain_keypair, disable_sync=True)
         with db_session:
             db_version = mds.MiscData.get(name="db_version")
             if int(db_version.value) != 6:
-                return succeed(None)
+                return
             for c in mds.ChannelMetadata.select():
                 if is_forbidden(c.title+c.tags):
                     c.contents.delete()
@@ -129,12 +123,12 @@ class TriblerUpgrader(object):
             db_version = mds.MiscData.get(name="db_version")
             db_version.value = str(7)
         mds.shutdown()
-        return succeed(None)
+        return
 
     def update_status(self, status_text):
         self.session.notifier.notify(NTFY_UPGRADER_TICK, NTFY_STARTED, None, status_text)
 
-    def upgrade_72_to_pony(self):
+    async def upgrade_72_to_pony(self):
         old_database_path = os.path.join(self.session.config.get_state_dir(), 'sqlite', 'tribler.sdb')
         new_database_path = os.path.join(self.session.config.get_state_dir(), 'sqlite', 'metadata.db')
         channels_dir = os.path.join(self.session.config.get_chant_channels_dir())
@@ -146,7 +140,7 @@ class TriblerUpgrader(object):
         self._dtp72 = DispersyToPonyMigration(old_database_path, self.update_status, logger=self._logger)
         if not should_upgrade(old_database_path, new_database_path, logger=self._logger):
             self._dtp72 = None
-            return succeed(None)
+            return
         # This thing is here mostly for the skip upgrade test to work...
         self._dtp72.shutting_down = self.skip_upgrade_called
         self.notify_starting()
@@ -154,13 +148,13 @@ class TriblerUpgrader(object):
         mds = MetadataStore(new_database_path, channels_dir, self.session.trustchain_keypair, disable_sync=True)
         self._dtp72.initialize(mds)
 
-        def finish_migration(_):
-            mds.shutdown()
-            self.notify_done()
-
-        def log_error(failure):
-            self._logger.error("Error in Upgrader callback chain: %s", failure)
-        return self._dtp72.do_migration().addCallbacks(finish_migration, log_error)
+        try:
+            await self._dtp72.do_migration()
+        except Exception as e:
+            self._logger.error("Error in Upgrader callback chain: %s", e)
+            return
+        mds.shutdown()
+        self.notify_done()
 
     def upgrade_config_to_74(self):
         """

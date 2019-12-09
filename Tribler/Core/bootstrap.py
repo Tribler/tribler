@@ -1,11 +1,11 @@
-from __future__ import absolute_import
-
 import logging
 import os
 from binascii import unhexlify
 
+from ipv8.dht import DHTError
+
 from Tribler.Core.Config.download_config import DownloadConfig
-from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
+from Tribler.Core.TorrentDef import TorrentDefNoMetainfo
 from Tribler.Core.Utilities.unicode import hexlify
 
 
@@ -44,26 +44,25 @@ class Bootstrap(object):
         self.download = download_function(tdef, download_config=self.dcfg, hidden=True)
         self.infohash = infohash
 
-    def fetch_bootstrap_peers(self):
+    async def fetch_bootstrap_peers(self):
         if not self.download:
             return {}
 
-        def on_success(nodes):
-            if not nodes:
-                return
-            for node in nodes:
-                self.bootstrap_nodes[hexlify(node.mid)] = hexlify(node.public_key.key_to_bin())
-            self.persist_nodes()
-
-        def on_failure(failure):
-            self._logger.error("Failed to get DHT response:%s", failure.value)
-
         for peer in self.download.get_peerlist():
             mid = peer['id']
-            if (mid not in self.bootstrap_nodes or not self.bootstrap_nodes[mid]) \
-                    and mid != "0000000000000000000000000000000000000000":
+            if (mid not in self.bootstrap_nodes or not self.bootstrap_nodes[mid]) and mid != "0" * 40:
                 if self.dht:
-                    self.dht.connect_peer(bytes(unhexlify(mid))).addCallbacks(on_success, on_failure)
+                    try:
+                        nodes = await self.dht.connect_peer(bytes(unhexlify(mid)))
+                    except DHTError as e:
+                        self._logger.error("Failed to get DHT response:%s", e)
+                        continue
+
+                    if not nodes:
+                        return
+                    for node in nodes:
+                        self.bootstrap_nodes[hexlify(node.mid)] = hexlify(node.public_key.key_to_bin())
+                    self.persist_nodes()
 
         return self.bootstrap_nodes
 

@@ -1,17 +1,13 @@
-from __future__ import absolute_import
-
 import ast
 import base64
 import logging
 import os
+from configparser import DuplicateSectionError, MissingSectionHeaderError, NoSectionError, RawConfigParser
 from glob import iglob
 
 from configobj import ConfigObj
 
 import libtorrent as lt
-
-from six import PY3
-from six.moves.configparser import DuplicateSectionError, MissingSectionHeaderError, NoSectionError, RawConfigParser
 
 from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
@@ -51,7 +47,7 @@ def convert_config_to_tribler71(current_config, state_dir=None):
         download_cfg = RawConfigParser()
         try:
             with open(filename) as cfg_file:
-                download_cfg.readfp(cfg_file, filename=filename)
+                download_cfg.read_file(cfg_file, source=filename)
         except MissingSectionHeaderError:
             logger.error("Removing download state file %s since it appears to be corrupt", filename)
             os.remove(filename)
@@ -205,9 +201,8 @@ def convert_config_to_tribler74(state_dir=None):
     """
     Convert the download config files to Tribler 7.4 format. The extensions will also be renamed from .state to .conf
     """
-    if PY3:
-        from lib2to3.refactor import RefactoringTool, get_fixers_from_package
-        refactoring_tool = RefactoringTool(fixer_names=get_fixers_from_package('lib2to3.fixes'))
+    from lib2to3.refactor import RefactoringTool, get_fixers_from_package
+    refactoring_tool = RefactoringTool(fixer_names=get_fixers_from_package('lib2to3.fixes'))
 
     state_dir = state_dir or TriblerConfig.get_default_state_dir()
     for _, filename in enumerate(iglob(os.path.join(state_dir, STATEDIR_CHECKPOINT_DIR, '*.state'))):
@@ -221,10 +216,8 @@ def convert_config_to_tribler74(state_dir=None):
         # We first need to fix the .state file such that it has the correct metainfo/resumedata
         for section, option in [('state', 'metainfo'), ('state', 'engineresumedata')]:
             value = old_config.get(section, option, literal_eval=False)
-            ungarbled_dict = None
-            if PY3:
-                value = str(refactoring_tool.refactor_string(value+'\n', option + '_2to3'))
-                ungarbled_dict = recursive_ungarble_metainfo(ast.literal_eval(value))
+            value = str(refactoring_tool.refactor_string(value+'\n', option + '_2to3'))
+            ungarbled_dict = recursive_ungarble_metainfo(ast.literal_eval(value))
             try:
                 value = ungarbled_dict or ast.literal_eval(value)
                 old_config.set(section, option, base64.b64encode(lt.bencode(value)).decode('utf-8'))

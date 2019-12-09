@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
-
 import os
 from datetime import datetime
 
@@ -8,10 +6,6 @@ from ipv8.keyvault.crypto import default_eccrypto
 
 from pony import orm
 from pony.orm import db_session
-
-from six.moves import xrange
-
-from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import TODELETE
 from Tribler.Core.Modules.MetadataStore.OrmBindings.torrent_metadata import tdef_to_metadata_dict
@@ -35,16 +29,14 @@ class TestTorrentMetadata(TriblerCoreTest):
     Contains various tests for the torrent metadata type.
     """
 
-    @inlineCallbacks
-    def setUp(self):
-        yield super(TestTorrentMetadata, self).setUp()
+    async def setUp(self):
+        await super(TestTorrentMetadata, self).setUp()
         self.my_key = default_eccrypto.generate_key(u"curve25519")
         self.mds = MetadataStore(':memory:', self.session_base_dir, self.my_key)
 
-    @inlineCallbacks
-    def tearDown(self):
+    async def tearDown(self):
         self.mds.shutdown()
-        yield super(TestTorrentMetadata, self).tearDown()
+        await super(TestTorrentMetadata, self).tearDown()
 
     @db_session
     def test_serialization(self):
@@ -220,13 +212,13 @@ class TestTorrentMetadata(TriblerCoreTest):
 
         # First we create a few channels and add some torrents to these channels
         tlist = []
-        for ind in xrange(5):
+        for ind in range(5):
             self.mds.ChannelNode._my_key = default_eccrypto.generate_key('curve25519')
             _ = self.mds.ChannelMetadata(title='channel%d' % ind, subscribed=(ind % 2 == 0), infohash=os.urandom(20))
             tlist.extend(
                 [
                     self.mds.TorrentMetadata(title='torrent%d' % torrent_ind, infohash=os.urandom(20))
-                    for torrent_ind in xrange(5)
+                    for torrent_ind in range(5)
                 ]
             )
         tlist[-1].xxx = 1

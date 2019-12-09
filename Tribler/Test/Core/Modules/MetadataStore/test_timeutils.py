@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import datetime
 
 from Tribler.Core.Modules.MetadataStore.serialization import EPOCH, int2time, time2int

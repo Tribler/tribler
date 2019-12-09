@@ -1,5 +1,3 @@
-from __future__ import absolute_import, division
-
 import logging
 import os
 from datetime import datetime, timedelta

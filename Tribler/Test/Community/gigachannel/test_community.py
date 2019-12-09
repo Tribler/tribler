@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import os
 
 from ipv8.keyvault.crypto import default_eccrypto
@@ -7,10 +5,6 @@ from ipv8.peer import Peer
 from ipv8.test.base import TestBase
 
 from pony.orm import db_session
-
-from six.moves import xrange
-
-from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import LEGACY_ENTRY, NEW
 from Tribler.Core.Modules.MetadataStore.serialization import REGULAR_TORRENT
@@ -51,8 +45,7 @@ class TestGigaChannelUnits(TestBase):
         torrent_metadata = metadata_cls.from_dict(d)
         torrent_metadata.sign()
 
-    @inlineCallbacks
-    def test_send_random_subscribed_channel(self):
+    async def test_send_random_subscribed_channel(self):
         """
         Test whether sending a single channel with a single torrent to another peer works correctly
         """
@@ -64,14 +57,13 @@ class TestGigaChannelUnits(TestBase):
         self.nodes[0].overlay.metadata_store.ChannelNode._my_key = default_eccrypto.generate_key(u"curve25519")
 
         self.nodes[0].overlay.send_random_to(Peer(self.nodes[1].my_peer.public_key, self.nodes[1].endpoint.wan_address))
-        yield self.deliver_messages(timeout=0.5)
+        await self.deliver_messages(timeout=0.5)
         with db_session:
             self.assertEqual(len(self.nodes[1].overlay.metadata_store.ChannelMetadata.select()), 1)
             channel = self.nodes[1].overlay.metadata_store.ChannelMetadata.select()[:][0]
             self.assertEqual(channel.contents_len, 1)
 
-    @inlineCallbacks
-    def test_send_random_personal_channel(self):
+    async def test_send_random_personal_channel(self):
         """
         Test whether sending the personal channel works correctly
         """
@@ -81,14 +73,15 @@ class TestGigaChannelUnits(TestBase):
             channel.commit_channel_torrent()
 
         self.nodes[0].overlay.send_random_to(Peer(self.nodes[1].my_peer.public_key, self.nodes[1].endpoint.wan_address))
-        yield self.deliver_messages(timeout=0.5)
+
+        await self.deliver_messages(timeout=0.5)
+
         with db_session:
             self.assertEqual(len(self.nodes[1].overlay.metadata_store.ChannelMetadata.select()), 1)
             channel = self.nodes[1].overlay.metadata_store.ChannelMetadata.select()[:][0]
             self.assertEqual(channel.contents_len, 1)
 
-    @inlineCallbacks
-    def test_send_personal_and_random_channels(self):
+    async def test_send_personal_and_random_channels(self):
         """
         Test whether sending the personal channel works correctly
         """
@@ -106,15 +99,14 @@ class TestGigaChannelUnits(TestBase):
             channel.commit_channel_torrent()
 
         self.nodes[0].overlay.send_random_to(Peer(self.nodes[1].my_peer.public_key, self.nodes[1].endpoint.wan_address))
-        yield self.deliver_messages(timeout=0.5)
+        await self.deliver_messages(timeout=0.5)
         with db_session:
             self.assertEqual(len(self.nodes[1].overlay.metadata_store.ChannelMetadata.select()), 2)
             channels = self.nodes[1].overlay.metadata_store.ChannelMetadata.select()[:]
             self.assertEqual(channels[0].contents_len, 1)
             self.assertEqual(channels[1].contents_len, 1)
 
-    @inlineCallbacks
-    def test_send_random_multiple_torrents(self):
+    async def test_send_random_multiple_torrents(self):
         """
         Test whether sending a single channel with a multiple torrents to another peer works correctly
         """
@@ -122,13 +114,13 @@ class TestGigaChannelUnits(TestBase):
         self.nodes[0].overlay.gossip_renewal_period = 2
         with db_session:
             channel = self.nodes[0].overlay.metadata_store.ChannelMetadata.create_channel("test", "bla")
-            for _ in xrange(10):
+            for _ in range(10):
                 self.add_random_torrent(self.nodes[0].overlay.metadata_store.TorrentMetadata, channel=channel)
             channel.commit_channel_torrent()
 
         self.nodes[0].overlay.send_random_to(Peer(self.nodes[1].my_peer.public_key, self.nodes[1].endpoint.wan_address))
 
-        yield self.deliver_messages(timeout=0.5)
+        await self.deliver_messages(timeout=0.5)
 
         with db_session:
             channel = self.nodes[1].overlay.metadata_store.ChannelMetadata.get()
@@ -145,7 +137,7 @@ class TestGigaChannelUnits(TestBase):
             ).delete()
             self.nodes[1].overlay.metadata_store.TorrentMetadata.select().delete()
 
-            for _ in xrange(10):
+            for _ in range(10):
                 self.add_random_torrent(self.nodes[0].overlay.metadata_store.TorrentMetadata, channel=channel)
             channel.commit_channel_torrent()
 
@@ -155,27 +147,26 @@ class TestGigaChannelUnits(TestBase):
         # so the torrents on the receiving end should not change this time.
         self.nodes[0].overlay.send_random_to(Peer(self.nodes[1].my_peer.public_key, self.nodes[1].endpoint.wan_address))
 
-        yield self.deliver_messages(timeout=0.5)
+        await self.deliver_messages(timeout=0.5)
         with db_session:
             torrents2 = self.nodes[1].overlay.metadata_store.TorrentMetadata.select()[:]
             self.assertEqual(len(torrents1), len(torrents2))
 
         self.nodes[0].overlay.send_random_to(Peer(self.nodes[1].my_peer.public_key, self.nodes[1].endpoint.wan_address))
 
-        yield self.deliver_messages(timeout=0.5)
+        await self.deliver_messages(timeout=0.5)
         with db_session:
             torrents3 = self.nodes[1].overlay.metadata_store.TorrentMetadata.select()[:]
             self.assertLess(len(torrents2), len(torrents3))
 
-    @inlineCallbacks
-    def test_send_and_get_channel_update_back(self):
+    async def test_send_and_get_channel_update_back(self):
         """
         Test if sending back information on updated version of a channel works
         """
         with db_session:
             # Add channel to node 0
             channel = self.nodes[0].overlay.metadata_store.ChannelMetadata.create_channel("test", "bla")
-            for _ in xrange(20):
+            for _ in range(20):
                 self.add_random_torrent(self.nodes[0].overlay.metadata_store.TorrentMetadata, channel=channel)
             channel.commit_channel_torrent()
             channel_v1_dict = channel.to_dict()
@@ -190,7 +181,7 @@ class TestGigaChannelUnits(TestBase):
         # node1 --outdated_channel--> node0
         self.nodes[1].overlay.send_random_to(Peer(self.nodes[0].my_peer.public_key, self.nodes[0].endpoint.wan_address))
 
-        yield self.deliver_messages(timeout=0.5)
+        await self.deliver_messages(timeout=0.5)
 
         with db_session:
             self.assertEqual(
@@ -198,8 +189,7 @@ class TestGigaChannelUnits(TestBase):
                 self.nodes[0].overlay.metadata_store.ChannelMetadata.select()[:][0].timestamp,
             )
 
-    @inlineCallbacks
-    def test_gigachannel_search(self):
+    async def test_gigachannel_search(self):
         """
         Scenario: Node 0 is setup with a channel with 20 ubuntu related torrents. Node 1 searches for 'ubuntu' and
         expects to receive some results. The search results are processed by node 1 when it receives and adds to its
@@ -213,7 +203,7 @@ class TestGigaChannelUnits(TestBase):
         self.nodes[1].overlay.notifier = MockObject()
         self.nodes[1].overlay.notifier.notify = lambda sub, _type, _obj, args: mock_notify(self.nodes[1].overlay, args)
 
-        yield self.introduce_nodes()
+        await self.introduce_nodes()
 
         with db_session:
             # add some free-for-all entries
@@ -224,7 +214,7 @@ class TestGigaChannelUnits(TestBase):
                 title="ubuntu legacy chan", infohash=os.urandom(20), public_key=b"", status=LEGACY_ENTRY, id_=0
             )
             channel = self.nodes[0].overlay.metadata_store.ChannelMetadata.create_channel("ubuntu", "ubuntu")
-            for i in xrange(20):
+            for i in range(20):
                 self.add_random_torrent(
                     self.nodes[0].overlay.metadata_store.TorrentMetadata, name="ubuntu %s" % i, channel=channel
                 )
@@ -236,7 +226,7 @@ class TestGigaChannelUnits(TestBase):
             self.assertEqual(len(torrents), 0)
         self.nodes[1].overlay.send_search_request(u'"ubuntu"*')
 
-        yield self.deliver_messages(timeout=0.5)
+        await self.deliver_messages(timeout=0.5)
 
         with db_session:
             torrents = self.nodes[1].overlay.metadata_store.TorrentMetadata.select()[:]
@@ -254,21 +244,20 @@ class TestGigaChannelUnits(TestBase):
             self.assertEqual(len(channels_ffa), 0)
         self.assertTrue(self.nodes[1].overlay.notified_results)
 
-    @inlineCallbacks
-    def test_gigachannel_search_reject_stale_result(self):
+    async def test_gigachannel_search_reject_stale_result(self):
         """
         Scenario: If two search requests are sent one after another, the response for the first query becomes stale and
         is rejected.
         """
-        yield self.introduce_nodes()
+        await self.introduce_nodes()
 
         with db_session:
             channel = self.nodes[0].overlay.metadata_store.ChannelMetadata.create_channel("linux", "ubuntu")
-            for i in xrange(10):
+            for i in range(10):
                 self.add_random_torrent(
                     self.nodes[0].overlay.metadata_store.TorrentMetadata, name="ubuntu %s" % i, channel=channel
                 )
-            for i in xrange(10):
+            for i in range(10):
                 self.add_random_torrent(
                     self.nodes[0].overlay.metadata_store.TorrentMetadata, name="debian %s" % i, channel=channel
                 )
@@ -283,7 +272,7 @@ class TestGigaChannelUnits(TestBase):
         self.nodes[1].overlay.send_search_request(u'"ubuntu"*')
         self.nodes[1].overlay.send_search_request(u'"debian"*')
 
-        yield self.deliver_messages(timeout=0.5)
+        await self.deliver_messages(timeout=0.5)
 
         # Assert that only the last result is accepted
         with db_session:
@@ -292,12 +281,11 @@ class TestGigaChannelUnits(TestBase):
             for torrent in torrents:
                 self.assertIn("debian", torrent.to_simple_dict()['name'])
 
-    @inlineCallbacks
-    def test_gigachannel_search_with_no_result(self):
+    async def test_gigachannel_search_with_no_result(self):
         """
         Test giga channel search which yields no result
         """
-        yield self.introduce_nodes()
+        await self.introduce_nodes()
 
         # Both node 0 and node 1 have no torrents in the database
         with db_session:
@@ -310,7 +298,7 @@ class TestGigaChannelUnits(TestBase):
         query = u'"\xc1 ubuntu"*'
         self.nodes[1].overlay.send_search_request(query)
 
-        yield self.deliver_messages(timeout=0.5)
+        await self.deliver_messages(timeout=0.5)
 
         # Expect no data received in search and nothing processed to the database
         with db_session:

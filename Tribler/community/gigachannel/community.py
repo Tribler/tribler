@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from binascii import unhexlify
 
 from ipv8.community import Community
@@ -9,8 +7,6 @@ from ipv8.peer import Peer
 from ipv8.requestcache import RequestCache
 
 from pony.orm import CacheIndexError, TransactionIntegrityError, db_session
-
-from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import entries_to_chunk
 from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, REGULAR_TORRENT
@@ -68,10 +64,9 @@ class GigaChannelCommunity(Community):
         self.gossip_blob_personal_channel = None
         self.gossip_renewal_period = 30
 
-    @inlineCallbacks
-    def unload(self):
-        self.request_cache.clear()
-        yield super(GigaChannelCommunity, self).unload()
+    async def unload(self):
+        await self.request_cache.shutdown()
+        await super(GigaChannelCommunity, self).unload()
 
     def send_random_to(self, peer):
         """

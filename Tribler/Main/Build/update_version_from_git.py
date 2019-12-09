@@ -2,8 +2,8 @@
 
 import logging
 import sys
-from os import path, linesep
-from subprocess import Popen, PIPE
+from os import linesep, path
+from subprocess import PIPE, Popen
 from time import ctime
 
 logger = logging.getLogger(__name__)

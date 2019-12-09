@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from ipv8.database import database_blob
 
 from pony import orm

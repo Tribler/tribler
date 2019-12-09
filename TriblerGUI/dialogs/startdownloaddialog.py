@@ -1,14 +1,10 @@
-from __future__ import absolute_import
-
 import logging
 from binascii import unhexlify
+from urllib.parse import unquote_plus
 
 from PyQt5 import uic
 from PyQt5.QtCore import QTimer, Qt, pyqtSignal
 from PyQt5.QtWidgets import QFileDialog, QSizePolicy, QTreeWidgetItem
-
-from six.moves import xrange
-from six.moves.urllib.parse import unquote_plus
 
 import Tribler.Core.Utilities.json_util as json
 
@@ -149,7 +145,7 @@ class StartDownloadDialog(DialogContainer):
 
     def get_selected_files(self):
         included_files = []
-        for ind in xrange(self.dialog_widget.files_list_view.topLevelItemCount()):
+        for ind in range(self.dialog_widget.files_list_view.topLevelItemCount()):
             item = self.dialog_widget.files_list_view.topLevelItem(ind)
             if item.checkState(2) == Qt.Checked:
                 included_files.append(u'/'.join(item.data(0, Qt.UserRole)['path']))
@@ -280,11 +276,11 @@ class StartDownloadDialog(DialogContainer):
                 self.button_clicked.emit(1)
 
     def on_all_files_selected_clicked(self):
-        for ind in xrange(self.dialog_widget.files_list_view.topLevelItemCount()):
+        for ind in range(self.dialog_widget.files_list_view.topLevelItemCount()):
             item = self.dialog_widget.files_list_view.topLevelItem(ind)
             item.setCheckState(2, Qt.Checked)
 
     def on_all_files_deselected_clicked(self):
-        for ind in xrange(self.dialog_widget.files_list_view.topLevelItemCount()):
+        for ind in range(self.dialog_widget.files_list_view.topLevelItemCount()):
             item = self.dialog_widget.files_list_view.topLevelItem(ind)
             item.setCheckState(2, Qt.Unchecked)

@@ -1,11 +1,10 @@
-from __future__ import absolute_import
-
 import logging
 import os
 import subprocess
 import sys
 import threading
 import time
+from asyncio import new_event_loop, set_event_loop
 from unittest import TestCase, skipIf, skipUnless
 
 from PyQt5.QtCore import QPoint, QTimer, Qt
@@ -13,8 +12,7 @@ from PyQt5.QtGui import QPixmap, QRegion
 from PyQt5.QtTest import QTest
 from PyQt5.QtWidgets import QApplication, QListWidget, QTableView, QTextEdit, QTreeWidget
 
-from six import text_type
-from six.moves import xrange
+from aiohttp import web
 
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Test.common import TORRENT_UBUNTU_FILE
@@ -41,12 +39,15 @@ else:
     window = None
 
 
-def start_fake_core(port):
-    from twisted.internet import reactor
-    from twisted.web.server import Site
+def start_loop(task, *args):
+    loop = new_event_loop()
+    set_event_loop(loop)
 
+    loop.run_until_complete(task(*args))
+    loop.close()
+
+def start_fake_core(port):
     from Tribler.Test.GUI.FakeTriblerAPI.endpoints.root_endpoint import RootEndpoint
-    from Tribler.Test.GUI.FakeTriblerAPI.endpoints.video_root_endpoint import VideoRootEndpoint
     from Tribler.Test.GUI.FakeTriblerAPI.tribler_data import TriblerData
     import Tribler.Test.GUI.FakeTriblerAPI.tribler_utils as tribler_utils
 
@@ -61,15 +62,12 @@ def start_fake_core(port):
     logger.info("Generating random Tribler data")
     generate_tribler_data()
 
-    site = Site(RootEndpoint())
+    loop = new_event_loop()
+    set_event_loop(loop)
+
     logger.info("Starting fake Tribler API on port %d", port)
-
-    video_site = Site(VideoRootEndpoint())
-    logger.info("Starting video API on port %d", tribler_utils.tribler_data.video_player_port)
-
-    reactor.listenTCP(port, site)
-    reactor.listenTCP(tribler_utils.tribler_data.video_player_port, video_site)
-    reactor.run(installSignalHandlers=False)
+    root_endpoint = RootEndpoint(None)
+    web.run_app(root_endpoint.app, host='localhost', port=port)
 
 
 if os.environ.get("TEST_GUI") == "yes":
@@ -249,8 +247,8 @@ class TriblerGUITest(AbstractTriblerGUITest):
         # Start a second Tribler instance with a torrent file
         system_encoding = sys.getfilesystemencoding()
         test_env = {
-            (k.encode(system_encoding) if isinstance(k, text_type) else str(k)): (
-                v.encode(system_encoding) if isinstance(v, text_type) else str(v)
+            (k.encode(system_encoding) if isinstance(k, str) else str(k)): (
+                v.encode(system_encoding) if isinstance(v, str) else str(v)
             )
             for k, v in os.environ.copy().items()
         }
@@ -540,7 +538,7 @@ class TriblerGUITest(AbstractTriblerGUITest):
         # Logs shown in ui and from the debug endpoint should be same
         window.debug_window.debug_tab_widget.setCurrentIndex(9)
         # logs from FakeTriblerApi
-        fake_logs = ''.join(["Sample log [%d]\n" % i for i in xrange(10)]).strip()
+        fake_logs = ''.join(["Sample log [%d]\n" % i for i in range(10)]).strip()
 
         window.debug_window.log_tab_widget.setCurrentIndex(0)  # Core tab
         self.wait_for_qtext_edit_populated(window.debug_window.core_log_display_area)

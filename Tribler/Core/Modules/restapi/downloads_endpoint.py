@@ -1,36 +1,32 @@
-from __future__ import absolute_import
-
-import logging
+import json
 import os
 from binascii import unhexlify
+from urllib.parse import unquote_plus
+from urllib.request import url2pathname
+
+from aiohttp import web
 
 from libtorrent import bencode, create_torrent
 
 from pony.orm import db_session
 
-from six import unichr  # pylint: disable=redefined-builtin
-from six.moves.urllib.parse import unquote_plus
-from six.moves.urllib.request import url2pathname
-
-from twisted.web import http, resource
-from twisted.web.server import NOT_DONE_YET
-
-import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Config.download_config import DownloadConfig
-from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, ChannelMetadataPayload
+from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT
 from Tribler.Core.Modules.MetadataStore.store import UNKNOWN_CHANNEL, UPDATED_OUR_VERSION
+from Tribler.Core.Modules.restapi.rest_endpoint import (HTTP_BAD_REQUEST, HTTP_INTERNAL_SERVER_ERROR, HTTP_NOT_FOUND,
+                                                        RESTEndpoint, RESTResponse)
 from Tribler.Core.Modules.restapi.util import return_handled_exception
 from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
-from Tribler.Core.Utilities.unicode import hexlify, recursive_unicode
-from Tribler.Core.Utilities.utilities import unichar_string
+from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.exceptions import InvalidSignatureException
 from Tribler.Core.simpledefs import DLMODE_VOD, DOWNLOAD, UPLOAD, dlstatus_strings
+from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import CIRCUIT_ID_PORT
 from Tribler.util import cast_to_unicode_utf8
 
 
 def _safe_extended_peer_info(ext_peer_info):
     """
-    Given a string describing peer info, return a json.twisted_dumps() safe representation.
+    Given a string describing peer info, return a json.dumps() safe representation.
 
     :param ext_peer_info: the string to convert to a dumpable format
     :return: the safe string
@@ -39,30 +35,33 @@ def _safe_extended_peer_info(ext_peer_info):
     if not ext_peer_info:
         ext_peer_info = u''
     try:
-        json.twisted_dumps(ext_peer_info)
+        json.dumps(ext_peer_info)
         return ext_peer_info
     except UnicodeDecodeError:
         # We might have some special unicode characters in here
-        return u''.join([unichr(ord(c)) for c in ext_peer_info])
+        return u''.join([chr(ord(c)) for c in ext_peer_info])
 
 
-class DownloadBaseEndpoint(resource.Resource):
+class DownloadsEndpoint(RESTEndpoint):
     """
-    Base class for all endpoints related to fetching information about downloads or a specific download.
+    This endpoint is responsible for all requests regarding downloads. Examples include getting all downloads,
+    starting, pausing and stopping downloads.
     """
 
-    def __init__(self, session):
-        resource.Resource.__init__(self)
-        self.session = session
-        self._logger = logging.getLogger(self.__class__.__name__)
+    def setup_routes(self):
+        self.app.add_routes([web.get('', self.get_downloads),
+                             web.put('', self.add_download),
+                             web.delete('/{infohash}', self.delete_download),
+                             web.patch('/{infohash}', self.update_download),
+                             web.get('/{infohash}/torrent', self.get_torrent),
+                             web.get('/{infohash}/files', self.get_files)])
 
     @staticmethod
     def return_404(request, message="this download does not exist"):
         """
         Returns a 404 response code if your channel has not been created.
         """
-        request.setResponseCode(http.NOT_FOUND)
-        return json.twisted_dumps({"error": message})
+        return RESTResponse({"error": message}, status=HTTP_NOT_FOUND)
 
     @staticmethod
     def create_dconfig_from_params(parameters):
@@ -75,13 +74,12 @@ class DownloadBaseEndpoint(resource.Resource):
         download_config = DownloadConfig()
 
         anon_hops = 0
-        if 'anon_hops' in parameters and len(parameters['anon_hops']) > 0:
-            if parameters['anon_hops'][0].isdigit():
-                anon_hops = int(parameters['anon_hops'][0])
+        if parameters.get('anon_hops'):
+            if parameters['anon_hops'].isdigit():
+                anon_hops = int(parameters['anon_hops'])
 
         safe_seeding = False
-        if 'safe_seeding' in parameters and len(parameters['safe_seeding']) > 0 \
-                and parameters['safe_seeding'][0] == "1":
+        if parameters.get('safe_seeding') == "1":
             safe_seeding = True
 
         if anon_hops > 0 and not safe_seeding:
@@ -93,8 +91,8 @@ class DownloadBaseEndpoint(resource.Resource):
         if safe_seeding:
             download_config.set_safe_seeding(True)
 
-        if 'destination' in parameters and len(parameters['destination']) > 0:
-            dest_dir = parameters['destination'][0]
+        if parameters.get('destination'):
+            dest_dir = parameters['destination']
             download_config.set_dest_dir(dest_dir)
 
         if 'selected_files' in parameters:
@@ -122,17 +120,7 @@ class DownloadBaseEndpoint(resource.Resource):
             file_index += 1
         return files_json
 
-
-class DownloadsEndpoint(DownloadBaseEndpoint):
-    """
-    This endpoint is responsible for all requests regarding downloads. Examples include getting all downloads,
-    starting, pausing and stopping downloads.
-    """
-
-    def getChild(self, path, request):
-        return DownloadSpecificEndpoint(self.session, path)
-
-    def render_GET(self, request):
+    async def get_downloads(self, request):
         """
         .. http:get:: /downloads?get_peers=(boolean: get_peers)&get_pieces=(boolean: get_pieces)
 
@@ -205,16 +193,9 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                     }
                 }, ...]
         """
-        args = recursive_unicode(request.args)
-        get_peers = False
-        if 'get_peers' in args and args['get_peers'] and args['get_peers'][0] == "1":
-            get_peers = True
-
-        get_pieces = False
-        if 'get_pieces' in args and args['get_pieces'] and args['get_pieces'][0] == "1":
-            get_pieces = True
-
-        get_files = 'get_files' in args and args['get_files'] and args['get_files'][0] == "1"
+        get_peers = request.query.get('get_peers', '0') == '1'
+        get_pieces = request.query.get('get_pieces', '0') == '1'
+        get_files = request.query.get('get_files', '0') == '1'
 
         downloads_json = []
         downloads = self.session.get_downloads()
@@ -282,6 +263,13 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                     del peer_info['have']
                     if 'extended_version' in peer_info:
                         peer_info['extended_version'] = _safe_extended_peer_info(peer_info['extended_version'])
+                    # Does this peer represent a hidden servicecs circuit?
+                    if peer_info.get('port') == CIRCUIT_ID_PORT:
+                        tc = self.session.lm.tunnel_community
+                        circuit_id = tc.ip_to_circuit_id(peer_info['ip'])
+                        circuit = tc.circuits.get(circuit_id, None)
+                        if circuit:
+                            peer_info['circuit'] = circuit_id
 
                 download_json["peers"] = peer_list
 
@@ -294,9 +282,9 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                 download_json["files"] = self.get_files_info_json(download)
 
             downloads_json.append(download_json)
-        return json.twisted_dumps({"downloads": downloads_json})
+        return RESTResponse({"downloads": downloads_json})
 
-    def render_PUT(self, request):
+    async def add_download(self, request):
         """
         .. http:put:: /downloads
 
@@ -320,28 +308,15 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
 
                     {"started": True, "infohash": "4344503b7e797ebf31582327a5baae35b11bda01"}
         """
-        parameters = recursive_unicode(http.parse_qs(request.content.read(), 1))
-
-        if 'uri' not in parameters or len(parameters['uri']) == 0:
-            request.setResponseCode(http.BAD_REQUEST)
-            return json.twisted_dumps({"error": "uri parameter missing"})
+        parameters = await request.post()
+        if not parameters.get('uri'):
+            return RESTResponse({"error": "uri parameter missing"}, status=HTTP_BAD_REQUEST)
 
         download_config, error = DownloadsEndpoint.create_dconfig_from_params(parameters)
         if error:
-            request.setResponseCode(http.BAD_REQUEST)
-            return json.twisted_dumps({"error": error})
+            return RESTResponse({"error": error}, status=HTTP_BAD_REQUEST)
 
-        def download_added(download):
-            request.write(json.twisted_dumps({"started": True,
-                                              "infohash": hexlify(download.get_def().get_infohash())}))
-            request.finish()
-
-        def on_error(error):
-            request.setResponseCode(http.INTERNAL_SERVER_ERROR)
-            request.write(json.twisted_dumps({"error": unichar_string(error.getErrorMessage())}))
-            request.finish()
-
-        uri = parameters['uri'][0]
+        uri = parameters['uri']
         if uri.startswith("file:"):
             filename = url2pathname(uri[5:])
             if uri.endswith(".mdblob") or uri.endswith(".mdblob.lz4"):
@@ -353,38 +328,25 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                             if (status == UNKNOWN_CHANNEL or
                                     (status == UPDATED_OUR_VERSION and node.metadata_type == CHANNEL_TORRENT)):
                                 node.subscribed = True
-                                return json.twisted_dumps(
-                                    {"started": True, "infohash": hexlify(node.infohash)})
-                        return json.twisted_dumps({"error": "Could not import Tribler metadata file"})
+                                return RESTResponse({"started": True, "infohash": hexlify(node.infohash)})
+                        return RESTResponse({"error": "Could not import Tribler metadata file"})
                     except IOError:
-                        request.setResponseCode(http.BAD_REQUEST)
-                        return json.twisted_dumps({"error": "Metadata file not found"})
+                        return RESTResponse({"error": "Metadata file not found"}, status=HTTP_BAD_REQUEST)
                     except InvalidSignatureException:
-                        request.setResponseCode(http.BAD_REQUEST)
-                        return json.twisted_dumps({"error": "Metadata has invalid signature"})
+                        return RESTResponse({"error": "Metadata has invalid signature"}, status=HTTP_BAD_REQUEST)
             else:
                 download_uri = u"file:%s" % filename
         else:
             download_uri = unquote_plus(uri)
-        download_deferred = self.session.start_download_from_uri(download_uri, download_config)
-        download_deferred.addCallback(download_added)
-        download_deferred.addErrback(on_error)
 
-        return NOT_DONE_YET
+        try:
+            download = await self.session.start_download_from_uri(download_uri, download_config)
+        except Exception as e:
+            return RESTResponse({"error": str(e)}, status=HTTP_INTERNAL_SERVER_ERROR)
 
+        return RESTResponse({"started": True, "infohash": hexlify(download.get_def().get_infohash())})
 
-class DownloadSpecificEndpoint(DownloadBaseEndpoint):
-    """
-    This class is responsible for dispatching requests to perform operations in a specific discovered channel.
-    """
-
-    def __init__(self, session, infohash):
-        DownloadBaseEndpoint.__init__(self, session)
-        self.infohash = bytes(unhexlify(infohash))
-        self.putChild(b"torrent", DownloadExportTorrentEndpoint(session, self.infohash))
-        self.putChild(b"files", DownloadFilesEndpoint(session, self.infohash))
-
-    def render_DELETE(self, request):
+    async def delete_download(self, request):
         """
         .. http:delete:: /downloads/(string: infohash)
 
@@ -404,44 +366,26 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
 
                     {"removed": True, "infohash": "4344503b7e797ebf31582327a5baae35b11bda01"}
         """
-        parameters = recursive_unicode(http.parse_qs(request.content.read(), 1))
+        parameters = await request.post()
+        if 'remove_data' not in parameters:
+            return RESTResponse({"error": "remove_data parameter missing"}, status=HTTP_BAD_REQUEST)
 
-        if 'remove_data' not in parameters or len(parameters['remove_data']) == 0:
-            request.setResponseCode(http.BAD_REQUEST)
-            return json.twisted_dumps({"error": "remove_data parameter missing"})
-
-        download = self.session.get_download(self.infohash)
+        infohash = unhexlify(request.match_info['infohash'])
+        download = self.session.get_download(infohash)
         if not download:
-            return DownloadSpecificEndpoint.return_404(request)
+            return DownloadsEndpoint.return_404(request)
 
-        remove_data = parameters['remove_data'][0] == "1"
+        remove_data = parameters['remove_data'] == "1"
 
-        def _on_torrent_removed(_):
-            """
-            Success callback
-            """
-            request.write(json.twisted_dumps({"removed": True,
-                                              "infohash": hexlify(download.get_def().get_infohash())}))
-            request.finish()
+        try:
+            await self.session.remove_download(download, remove_content=remove_data)
+        except Exception as e:
+            self._logger.exception(e)
+            return return_handled_exception(request, e)
 
-        def _on_remove_failure(failure):
-            """
-            Error callback
-            :param failure: from remove_download
-            """
-            self._logger.exception(failure)
-            request.write(return_handled_exception(request, failure.value))
-            # If the above request.write failed, the request will have already been finished
-            if not request.finished:
-                request.finish()
+        return RESTResponse({"removed": True, "infohash": hexlify(download.get_def().get_infohash())})
 
-        deferred = self.session.remove_download(download, remove_content=remove_data)
-        deferred.addCallback(_on_torrent_removed)
-        deferred.addErrback(_on_remove_failure)
-
-        return NOT_DONE_YET
-
-    def render_PATCH(self, request):
+    async def update_download(self, request):
         """
         .. http:patch:: /downloads/(string: infohash)
 
@@ -470,43 +414,23 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
 
                     {"modified": True, "infohash": "4344503b7e797ebf31582327a5baae35b11bda01"}
         """
-        download = self.session.get_download(self.infohash)
+        infohash = unhexlify(request.match_info['infohash'])
+        download = self.session.get_download(infohash)
         if not download:
-            return DownloadSpecificEndpoint.return_404(request)
+            return DownloadsEndpoint.return_404(request)
 
-        parameters = recursive_unicode(http.parse_qs(request.content.read(), 1))
-
+        parameters = await request.post()
         if len(parameters) > 1 and 'anon_hops' in parameters:
-            request.setResponseCode(http.BAD_REQUEST)
-            return json.twisted_dumps({"error": "anon_hops must be the only parameter in this request"})
+            return RESTResponse({"error": "anon_hops must be the only parameter in this request"},
+                                status=HTTP_BAD_REQUEST)
         elif 'anon_hops' in parameters:
-            anon_hops = int(parameters['anon_hops'][0])
-            deferred = self.session.lm.update_download_hops(download, anon_hops)
-
-            def _on_download_readded(_):
-                """
-                Success callback
-                """
-                request.write(json.twisted_dumps({"modified": True,
-                                                  "infohash": hexlify(download.get_def().get_infohash())}))
-                request.finish()
-
-            def _on_download_readd_failure(failure):
-                """
-                Error callback
-                :param failure: from LibtorrentDownloadImp.setup()
-                """
-                self._logger.exception(failure)
-                request.write(return_handled_exception(request, failure.value))
-                # If the above request.write failed, the request will have already been finished
-                if not request.finished:
-                    request.finish()
-
-            deferred.addCallback(_on_download_readded)
-            deferred.addErrback(_on_download_readd_failure)
-            # As we already checked for len(parameters) > 1, we know there are no other parameters.
-            # As such, we can return immediately.
-            return NOT_DONE_YET
+            anon_hops = int(parameters['anon_hops'])
+            try:
+                await self.session.lm.update_download_hops(download, anon_hops)
+            except Exception as e:
+                self._logger.exception(e)
+                return return_handled_exception(request, e)
+            return RESTResponse({"modified": True, "infohash": hexlify(download.get_def().get_infohash())})
 
         if 'selected_files' in parameters:
             selected_files_list = []
@@ -514,42 +438,29 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
                 try:
                     selected_files_list.append(download.tdef.get_files()[int(ind)])
                 except IndexError:  # File could not be found
-                    request.setResponseCode(http.BAD_REQUEST)
-                    return json.twisted_dumps({"error": "index %s out of range" % ind})
+                    return RESTResponse({"error": "index %s out of range" % ind}, status=HTTP_BAD_REQUEST)
             download.set_selected_files(selected_files_list)
 
-        if 'state' in parameters and len(parameters['state']) > 0:
-            state = parameters['state'][0]
+        if parameters.get('state'):
+            state = parameters['state']
             if state == "resume":
-                download.restart()
+                await download.restart()
             elif state == "stop":
-                download.stop()
+                await download.stop(user_stopped=True)
             elif state == "recheck":
                 download.force_recheck()
             elif state == "move_storage":
-                dest_dir = cast_to_unicode_utf8(parameters['dest_dir'][0])
+                dest_dir = cast_to_unicode_utf8(parameters['dest_dir'])
                 if not os.path.exists(dest_dir):
-                    return json.twisted_dumps({"error": "Target directory (%s) does not exist" % dest_dir})
+                    return RESTResponse({"error": "Target directory (%s) does not exist" % dest_dir})
                 download.move_storage(dest_dir)
                 download.checkpoint()
             else:
-                request.setResponseCode(http.BAD_REQUEST)
-                return json.twisted_dumps({"error": "unknown state parameter"})
+                return RESTResponse({"error": "unknown state parameter"}, status=HTTP_BAD_REQUEST)
 
-        return json.twisted_dumps({"modified": True,
-                                   "infohash": hexlify(download.get_def().get_infohash())})
+        return RESTResponse({"modified": True, "infohash": hexlify(download.get_def().get_infohash())})
 
-
-class DownloadExportTorrentEndpoint(DownloadBaseEndpoint):
-    """
-    This class is responsible for requests that are exporting a download to a .torrent file.
-    """
-
-    def __init__(self, session, infohash):
-        DownloadBaseEndpoint.__init__(self, session)
-        self.infohash = infohash
-
-    def render_GET(self, request):
+    async def get_torrent(self, request):
         """
         .. http:get:: /download/(string: infohash)/torrent
 
@@ -565,34 +476,23 @@ class DownloadExportTorrentEndpoint(DownloadBaseEndpoint):
 
             The contents of the .torrent file.
         """
-        download = self.session.get_download(self.infohash)
+        infohash = unhexlify(request.match_info['infohash'])
+        download = self.session.get_download(infohash)
         if not download:
-            return DownloadSpecificEndpoint.return_404(request)
+            return DownloadsEndpoint.return_404(request)
 
         if not download.handle or not download.handle.is_valid() or not download.handle.has_metadata():
-            return DownloadSpecificEndpoint.return_404(request)
+            return DownloadsEndpoint.return_404(request)
 
         torrent_info = get_info_from_handle(download.handle)
         t = create_torrent(torrent_info)
         torrent = t.generate()
-        bencoded_torrent = bencode(torrent)
 
-        request.setHeader(b'content-type', 'application/x-bittorrent')
-        request.setHeader(b'Content-Disposition', 'attachment; filename=%s.torrent'
-                          % hexlify(self.infohash).encode('utf-8'))
-        return bencoded_torrent
+        return RESTResponse(bencode(torrent), headers={'content-type': 'application/x-bittorrent',
+                                                       'Content-Disposition': 'attachment; filename=%s.torrent'
+                                                                              % hexlify(infohash).encode('utf-8')})
 
-
-class DownloadFilesEndpoint(DownloadBaseEndpoint):
-    """
-    This class is responsible for requests that request the files of a specific torrent.
-    """
-
-    def __init__(self, session, infohash):
-        DownloadBaseEndpoint.__init__(self, session)
-        self.infohash = infohash
-
-    def render_GET(self, request):
+    async def get_files(self, request):
         """
         .. http:get:: /download/(string: infohash)/files
 
@@ -618,8 +518,8 @@ class DownloadFilesEndpoint(DownloadBaseEndpoint):
                     }, ...]
                 }
         """
-        download = self.session.get_download(self.infohash)
+        infohash = unhexlify(request.match_info['infohash'])
+        download = self.session.get_download(infohash)
         if not download:
-            return DownloadExportTorrentEndpoint.return_404(request)
-
-        return json.twisted_dumps({"files": self.get_files_info_json(download)})
+            return DownloadsEndpoint.return_404(request)
+        return RESTResponse({"files": self.get_files_info_json(download)})

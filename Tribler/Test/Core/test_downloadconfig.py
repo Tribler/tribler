@@ -1,12 +1,8 @@
-from __future__ import absolute_import
-
 import os
 
 from configobj import ConfigObjError
 
 from nose.tools import raises
-
-import six
 
 from Tribler.Core.Config.download_config import DownloadConfig, get_default_dest_dir
 from Tribler.Core.simpledefs import DLMODE_VOD
@@ -21,7 +17,7 @@ class TestConfigParser(TriblerCoreTest):
     def test_downloadconfig(self):
         dlcfg = DownloadConfig()
 
-        self.assertIsInstance(dlcfg.get_dest_dir(), six.text_type)
+        self.assertIsInstance(dlcfg.get_dest_dir(), str)
         dlcfg.set_dest_dir(self.session_base_dir)
         self.assertEqual(dlcfg.get_dest_dir(), self.session_base_dir)
 
@@ -77,7 +73,7 @@ class TestConfigParser(TriblerCoreTest):
         dlcfg.load(os.path.join(self.CONFIG_FILES_DIR, "corrupt_download_config.conf"))
 
     def test_get_default_dest_dir(self):
-        self.assertIsInstance(get_default_dest_dir(), six.text_type)
+        self.assertIsInstance(get_default_dest_dir(), str)
 
     def test_default_download_config_load(self):
         with open(os.path.join(self.session_base_dir, "dlconfig.conf"), 'wb') as conf_file:

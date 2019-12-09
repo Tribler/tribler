@@ -1,7 +1,4 @@
-from __future__ import absolute_import
-
-from twisted.web import resource
-
+from Tribler.Core.Modules.restapi.rest_endpoint import RESTEndpoint
 from Tribler.Test.GUI.FakeTriblerAPI.endpoints.channels_endpoint import ChannelsEndpoint
 from Tribler.Test.GUI.FakeTriblerAPI.endpoints.debug_endpoint import DebugEndpoint
 from Tribler.Test.GUI.FakeTriblerAPI.endpoints.downloads_endpoint import DownloadsEndpoint
@@ -20,31 +17,25 @@ from Tribler.Test.GUI.FakeTriblerAPI.endpoints.trustchain_endpoint import Trustc
 from Tribler.Test.GUI.FakeTriblerAPI.endpoints.wallets_endpoint import WalletsEndpoint
 
 
-class RootEndpoint(resource.Resource):
-    def __init__(self):
-        resource.Resource.__init__(self)
+class RootEndpoint(RESTEndpoint):
 
-        self.events_endpoint = EventsEndpoint()
-        self.putChild(b"events", self.events_endpoint)
-
-        child_handler_dict = {
-            b"metadata": MetadataEndpoint,
-            b"channels": ChannelsEndpoint,
-            b"collections": ChannelsEndpoint,
-            b"settings": SettingsEndpoint,
-            b"search": SearchEndpoint,
-            b"downloads": DownloadsEndpoint,
-            b"trustchain": TrustchainEndpoint,
-            b"statistics": StatisticsEndpoint,
-            b"state": StateEndpoint,
-            b"torrentinfo": TorrentInfoEndpoint,
-            b"wallets": WalletsEndpoint,
-            b"market": MarketEndpoint,
-            b"shutdown": ShutdownEndpoint,
-            b"debug": DebugEndpoint,
-            b"ipv8": IPv8Endpoint,
-            b"libtorrent": LibTorrentEndpoint,
-        }
-
-        for path, child_cls in child_handler_dict.items():
-            self.putChild(path, child_cls())
+    def setup_routes(self):
+        endpoints = {'/metadata': MetadataEndpoint,
+                     '/channels': ChannelsEndpoint,
+                     '/collections': ChannelsEndpoint,
+                     '/events': EventsEndpoint,
+                     '/state': StateEndpoint,
+                     '/shutdown': ShutdownEndpoint,
+                     '/settings': SettingsEndpoint,
+                     '/downloads': DownloadsEndpoint,
+                     '/debug': DebugEndpoint,
+                     '/trustchain': TrustchainEndpoint,
+                     '/statistics': StatisticsEndpoint,
+                     '/libtorrent': LibTorrentEndpoint,
+                     '/torrentinfo': TorrentInfoEndpoint,
+                     '/search': SearchEndpoint,
+                     '/ipv8': IPv8Endpoint,
+                     '/market': MarketEndpoint,
+                     '/wallets': WalletsEndpoint}
+        for path, ep_cls in endpoints.items():
+            self.add_endpoint(path, ep_cls(None))

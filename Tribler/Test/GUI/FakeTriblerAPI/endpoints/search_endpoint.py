@@ -1,42 +1,37 @@
-from __future__ import absolute_import
-
 from random import Random
 
-from twisted.web import http, resource
+from aiohttp import web
 
-import Tribler.Core.Utilities.json_util as json
 import Tribler.Test.GUI.FakeTriblerAPI.tribler_utils as tribler_utils
-from Tribler.Core.Utilities.unicode import recursive_unicode
+from Tribler.Core.Modules.restapi.rest_endpoint import HTTP_BAD_REQUEST, RESTEndpoint, RESTResponse
 
 
-class SearchEndpoint(resource.Resource):
-    def __init__(self):
-        resource.Resource.__init__(self)
+class SearchEndpoint(RESTEndpoint):
 
-        self.putChild(b"completions", SearchCompletionsEndpoint())
+    def setup_routes(self):
+        self.app.add_routes([web.get('', self.search),
+                             web.get('/completions', self.completions),
+                             web.get('/count', self.count)])
 
     @staticmethod
     def sanitize_parameters(parameters):
         """
         Sanitize the parameters and check whether they exist
         """
-        first = 1 if 'first' not in parameters else int(parameters['first'][0])  # TODO check integer!
-        last = 50 if 'last' not in parameters else int(parameters['last'][0])  # TODO check integer!
-        sort_by = None if 'sort_by' not in parameters else parameters['sort_by'][0]  # TODO check integer!
-        sort_asc = True if 'sort_desc' not in parameters else bool(int(parameters['sort_desc'][0]))
-        query_filter = None if 'filter' not in parameters else parameters['filter'][0]
-        md_type = None if 'type' not in parameters else parameters['type'][0]
+        first = 1 if 'first' not in parameters else int(parameters['first'])  # TODO check integer!
+        last = 50 if 'last' not in parameters else int(parameters['last'])  # TODO check integer!
+        sort_by = None if 'sort_by' not in parameters else parameters['sort_by']  # TODO check integer!
+        sort_asc = True if 'sort_desc' not in parameters else bool(int(parameters['sort_desc']))
+        query_filter = None if 'filter' not in parameters else parameters['filter']
+        md_type = None if 'type' not in parameters else parameters['type']
 
         return first, last, sort_by, sort_asc, md_type, query_filter
 
     def base_get(self, request):
+        if 'filter' not in request.query:
+            return RESTResponse({"error": "filter parameter missing"}, status=HTTP_BAD_REQUEST)
 
-        args = recursive_unicode(request.args)
-        if 'filter' not in args:
-            request.setResponseCode(http.BAD_REQUEST)
-            return json.twisted_dumps({"error": "filter parameter missing"})
-
-        first, last, sort_by, sort_asc, md_type, query = SearchEndpoint.sanitize_parameters(args)
+        first, last, sort_by, sort_asc, md_type, query = SearchEndpoint.sanitize_parameters(request.query)
         random = Random()
         random.seed(hash(query))
 
@@ -74,12 +69,11 @@ class SearchEndpoint(resource.Resource):
 
         return first, last, sort_by, sort_asc, search_results
 
-    def render_GET(self, request):
-        args = recursive_unicode(request.args)
-        include_total = args['include_total'][0] if 'include_total' in args else ''
+    async def search(self, request):
+        include_total = request.query.get('include_total', '')
         first, last, sort_by, sort_asc, search_results = self.base_get(request)
         result = {
-            "results": search_results[first - 1 : last],
+            "results": search_results[first-1:last],
             "first": first,
             "last": last,
             "sort_by": sort_by,
@@ -87,14 +81,14 @@ class SearchEndpoint(resource.Resource):
         }
         if include_total:
             result.update({"total": len(search_results)})
-        return json.twisted_dumps(result)
+        return RESTResponse(result)
 
+    async def count(self, request):
+        _, _, _, _, search_results = self.base_get(request)
+        return RESTResponse({"total": len(search_results)})
 
-class SearchCompletionsEndpoint(resource.Resource):
-    def render_GET(self, request):
-        args = recursive_unicode(request.args)
-        if 'q' not in args:
-            request.setResponseCode(http.BAD_REQUEST)
-            return json.twisted_dumps({"error": "q parameter missing"})
+    async def completions(self, request):
+        if 'q' not in request.query:
+            return RESTResponse({"error": "q parameter missing"}, status=HTTP_BAD_REQUEST)
 
-        return json.twisted_dumps({"completions": ["tribler1", "tribler2", "tribler3", "tribler4", "tribler5"]})
+        return RESTResponse({"completions": ["tribler1", "tribler2", "tribler3", "tribler4", "tribler5"]})

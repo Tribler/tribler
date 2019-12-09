@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from unittest import TestCase
 
 from ipv8.keyvault.crypto import default_eccrypto

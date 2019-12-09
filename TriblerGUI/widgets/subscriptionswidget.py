@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+import json
 
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtGui import QIcon, QPixmap
@@ -89,7 +89,7 @@ class SubscriptionsWidget(QWidget):
 
         self.request_mgr = TriblerRequestManager()
         self.request_mgr.perform_request(
-            "settings", self.on_credit_mining_sources, method='POST', raw_data=json.twisted_dumps(settings)
+            "settings", self.on_credit_mining_sources, method='POST', raw_data=json.dumps(settings)
         .decode('utf-8'))
 
     def on_credit_mining_sources(self, json_result):

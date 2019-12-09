@@ -1,26 +1,22 @@
-from __future__ import absolute_import
-
 import os
 import shutil
 import tempfile
+from asyncio import Future, get_event_loop, sleep
 from binascii import unhexlify
 
 import libtorrent
 from libtorrent import bencode
-
-from twisted.internet import reactor
-from twisted.internet.defer import Deferred, inlineCallbacks
-from twisted.internet.task import deferLater
 
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
 from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 from Tribler.Core.Notifier import Notifier
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.unicode import hexlify
+from Tribler.Core.Utilities.utilities import succeed
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.common import TESTS_DATA_DIR
 from Tribler.Test.test_as_server import AbstractServer
-from Tribler.Test.tools import trial_timeout
+from Tribler.Test.tools import timeout
 
 
 class TestLibtorrentMgr(AbstractServer):
@@ -28,9 +24,8 @@ class TestLibtorrentMgr(AbstractServer):
     FILE_DIR = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
     LIBTORRENT_FILES_DIR = os.path.abspath(os.path.join(FILE_DIR, u"../data/libtorrent/"))
 
-    @inlineCallbacks
-    def setUp(self):
-        yield super(TestLibtorrentMgr, self).setUp()
+    async def setUp(self):
+        await super(TestLibtorrentMgr, self).setUp()
 
         self.tribler_session = MockObject()
         self.tribler_session.lm = MockObject()
@@ -52,14 +47,14 @@ class TestLibtorrentMgr(AbstractServer):
         self.tribler_session.config.get_libtorrent_max_download_rate = lambda: 120
         self.tribler_session.config.get_libtorrent_dht_enabled = lambda: False
         self.tribler_session.config.set_libtorrent_port_runtime = lambda _: None
+        self.tribler_session.config.get_libtorrent_max_conn_download = lambda: 0
 
         self.ltmgr = LibtorrentMgr(self.tribler_session)
 
-    @inlineCallbacks
-    def tearDown(self):
-        self.ltmgr.shutdown(timeout=0)
+    async def tearDown(self):
+        await self.ltmgr.shutdown(timeout=0)
         self.assertTrue(os.path.exists(os.path.join(self.session_base_dir, 'lt.state')))
-        yield super(TestLibtorrentMgr, self).tearDown()
+        await super(TestLibtorrentMgr, self).tearDown()
 
     def test_get_session_zero_hops(self):
         self.ltmgr.initialize()
@@ -87,8 +82,8 @@ class TestLibtorrentMgr(AbstractServer):
         ltsession = self.ltmgr.get_session(0)
         self.assertTrue(ltsession)
 
-    @trial_timeout(20)
-    def test_get_metainfo_valid_metadata(self):
+    @timeout(20)
+    async def test_get_metainfo_valid_metadata(self):
         """
         Testing the get_metainfo method when the handle has valid metadata immediately
         """
@@ -108,14 +103,12 @@ class TestLibtorrentMgr(AbstractServer):
         self.ltmgr.ltsession_metainfo.add_torrent = lambda *_: fake_handle
         self.ltmgr.ltsession_metainfo.remove_torrent = lambda *_: None
 
-        def verify_metainfo(metainfo):
-            self.assertEqual(metainfo, {b'info': {b'pieces': [b'a']}, b'leechers': 0,
-                                        b'nodes': [], b'seeders': 0})
+        metainfo = await self.ltmgr.get_metainfo(unhexlify(infohash))
+        self.assertEqual(metainfo, {b'info': {b'pieces': [b'a']}, b'leechers': 0,
+                                    b'nodes': [], b'seeders': 0})
 
-        return self.ltmgr.get_metainfo(unhexlify(infohash)).addCallback(verify_metainfo)
-
-    @trial_timeout(20)
-    def test_get_metainfo_add_fail(self):
+    @timeout(20)
+    async def test_get_metainfo_add_fail(self):
         """
         Test whether we try to add a torrent again if the atp is rejected
         """
@@ -142,8 +135,8 @@ class TestLibtorrentMgr(AbstractServer):
         self.ltmgr.ltsession_metainfo.remove_torrent = lambda *_: None
         return self.ltmgr.get_metainfo(unhexlify(infohash), timeout=0.1)
 
-    @trial_timeout(20)
-    def test_get_metainfo_duplicate_request(self):
+    @timeout(20)
+    async def test_get_metainfo_duplicate_request(self):
         """
         Test whether the same request is returned when invoking get_metainfo twice with the same infohash
         """
@@ -168,21 +161,19 @@ class TestLibtorrentMgr(AbstractServer):
 
         self.assertEqual(len(self.ltmgr.metainfo_requests[infohash][1]), 2)
 
-    @trial_timeout(20)
-    def test_get_metainfo_cache(self):
+    @timeout(20)
+    async def test_get_metainfo_cache(self):
         """
         Testing whether cached metainfo is returned, if available
         """
         self.ltmgr.initialize()
-        self.ltmgr.metainfo_cache[b"a" * 20] = {'meta_info': 'test'}
+        self.ltmgr.metainfo_cache[b"a" * 20] = {'meta_info': 'test', 'time': 0}
 
-        def verify_cached_metainfo(metainfo):
-            self.assertEqual(metainfo, "test")
+        metainfo = await self.ltmgr.get_metainfo(b"a" * 20)
+        self.assertEqual(metainfo, "test")
 
-        return self.ltmgr.get_metainfo(b"a" * 20).addCallback(verify_cached_metainfo)
-
-    @trial_timeout(20)
-    def test_get_metainfo_with_already_added_torrent(self):
+    @timeout(20)
+    async def test_get_metainfo_with_already_added_torrent(self):
         """
         Testing metainfo fetching for a torrent which is already in session.
         """
@@ -208,14 +199,12 @@ class TestLibtorrentMgr(AbstractServer):
         self.ltmgr.initialize()
         self.ltmgr.torrents[hex_infohash] = (download_impl, mock_ltsession)
 
-        def verify_metainfo(metainfo):
-            self.assertTrue(metainfo)
-
         self.ltmgr.ltsession_metainfo.remove_torrent = lambda *_: None
-        return self.ltmgr.get_metainfo(torrent_def.infohash).addCallback(verify_metainfo)
+        metainfo = await self.ltmgr.get_metainfo(torrent_def.infohash)
+        self.assertTrue(metainfo)
 
-    @trial_timeout(20)
-    def test_check_metainfo(self):
+    @timeout(20)
+    async def test_check_metainfo(self):
         """
         Testing whether the check_metainfo method is doing the correct things
         """
@@ -246,34 +235,32 @@ class TestLibtorrentMgr(AbstractServer):
 
         self.ltmgr.ltsession_metainfo.remove_torrent = lambda *_: None
 
-        test_deferred = Deferred()
-        self.ltmgr.metainfo_requests[b'a' * 20] = (fake_handle, [test_deferred])
+        test_future = Future()
+        self.ltmgr.metainfo_requests[b'a' * 20] = (fake_handle, [test_future])
         self.ltmgr.check_metainfo(hexlify(b"a" * 20))
 
-        def verify_metainfo(metainfo):
-            expected = {
-                b'info': {
-                    b'pieces': [b'a']
-                },
-                b'announce': 'http://test1.com',
-                b'announce-list': [['http://test1.com', 'http://test2.com']],
-                b'leechers': 1,
-                b'seeders': 1
-            }
-            self.assertDictEqual(metainfo, expected)
+        metainfo = await test_future
+        expected = {
+            b'info': {
+                b'pieces': [b'a']
+            },
+            b'announce': b'http://test1.com',
+            b'announce-list': [[b'http://test1.com', b'http://test2.com']],
+            b'leechers': 1,
+            b'seeders': 1
+        }
+        self.assertDictEqual(metainfo, expected)
 
-        return test_deferred.addCallback(verify_metainfo)
-
-    @trial_timeout(20)
-    def test_check_metainfo_no_request(self):
+    @timeout(20)
+    async def test_check_metainfo_no_request(self):
         """
         Test whether None is returned as metainfo if there is no pending request
         """
         self.ltmgr.initialize()
         self.assertFalse(self.ltmgr.check_metainfo(hexlify(b"a" * 20)))
 
-    @trial_timeout(20)
-    def test_check_metainfo_invalid_handle(self):
+    @timeout(20)
+    async def test_check_metainfo_invalid_handle(self):
         """
         Test whether None is returned as metainfo if the handle is invalid
         """
@@ -283,23 +270,19 @@ class TestLibtorrentMgr(AbstractServer):
         fake_handle.is_valid = lambda: False
         fake_handle.has_metadata = lambda: True
 
-        test_deferred = Deferred()
-        self.ltmgr.metainfo_requests[b'a' * 20] = (fake_handle, [test_deferred])
-
-        def verify_metainfo(metainfo):
-            self.assertFalse(metainfo)
+        test_future = Future()
+        self.ltmgr.metainfo_requests[b'a' * 20] = (fake_handle, [test_future])
 
         self.ltmgr.check_metainfo(hexlify(b'a' * 20))
 
-        return test_deferred.addCallback(verify_metainfo)
+        metainfo = await test_future
+        self.assertFalse(metainfo)
 
-    @trial_timeout(20)
-    def test_add_torrent(self):
+    @timeout(20)
+    async def test_add_torrent(self):
         """
         Testing the addition of a torrent to the libtorrent manager
         """
-        test_deferred = Deferred()
-
         mock_handle = MockObject()
         mock_handle.info_hash = lambda: 'a' * 20
         mock_handle.is_valid = lambda: False
@@ -310,7 +293,8 @@ class TestLibtorrentMgr(AbstractServer):
         mock_alert = type('add_torrent_alert', (object,), dict(handle=mock_handle, error=mock_error))()
 
         mock_ltsession = MockObject()
-        mock_ltsession.async_add_torrent = lambda _: reactor.callLater(0.1, self.ltmgr.process_alert, mock_alert)
+        mock_ltsession.async_add_torrent = lambda _: get_event_loop().call_later(0.1, self.ltmgr.process_alert,
+                                                                                 mock_alert)
         mock_ltsession.find_torrent = lambda _: mock_handle
         mock_ltsession.get_torrents = lambda: []
         mock_ltsession.stop_upnp = lambda: None
@@ -323,18 +307,13 @@ class TestLibtorrentMgr(AbstractServer):
         infohash.info_hash = lambda: 'a' * 20
 
         mock_download = MockObject()
-        mock_download.deferred_added = Deferred()
+        mock_download.future_added = Future()
 
-        def cb_torrent_added(handle):
-            self.assertEqual(handle, mock_handle)
-            test_deferred.callback(None)
+        handle = await self.ltmgr.add_torrent(mock_download, {'ti': infohash})
+        self.assertEqual(handle, mock_handle)
 
-        self.ltmgr.add_torrent(mock_download, {'ti': infohash}).addCallback(cb_torrent_added)
-
-        return test_deferred
-
-    @trial_timeout(20)
-    def test_add_torrent_desync(self):
+    @timeout(20)
+    async def test_add_torrent_desync(self):
         """
         Testing the addition of a torrent to the libtorrent manager, if it already exists in the session.
         """
@@ -358,10 +337,9 @@ class TestLibtorrentMgr(AbstractServer):
         infohash.info_hash = lambda: 'a' * 20
 
         mock_download = MockObject()
-        mock_download.deferred_added = Deferred()
-        return self.ltmgr.add_torrent(mock_download, {'ti': infohash}).addCallback(
-            lambda handle: self.assertEqual(handle, mock_handle)
-        )
+        mock_download.Future_added = Future()
+        handle = await self.ltmgr.add_torrent(mock_download, {'ti': infohash})
+        self.assertEqual(handle, mock_handle)
 
     def test_add_torrent_no_ti_url(self):
         """
@@ -370,14 +348,14 @@ class TestLibtorrentMgr(AbstractServer):
         self.ltmgr.initialize()
         self.assertRaises(ValueError, self.ltmgr.add_torrent, None, {})
 
-    def test_remove_invalid_torrent(self):
+    async def test_remove_invalid_torrent(self):
         """
         Tests a successful removal status of torrents without a handle
         """
         self.ltmgr.initialize()
         mock_dl = MockObject()
         mock_dl.handle = None
-        self.assertTrue(self.ltmgr.remove_torrent(mock_dl).called)
+        self.assertTrue(self.ltmgr.remove_torrent(mock_dl).done())
 
     def test_remove_invalid_handle_torrent(self):
         """
@@ -388,7 +366,7 @@ class TestLibtorrentMgr(AbstractServer):
         mock_handle.is_valid = lambda: False
         mock_dl = MockObject()
         mock_dl.handle = mock_handle
-        self.assertTrue(self.ltmgr.remove_torrent(mock_dl).called)
+        self.assertTrue(self.ltmgr.remove_torrent(mock_dl).done())
 
     def test_remove_unregistered_torrent(self):
         """
@@ -402,7 +380,7 @@ class TestLibtorrentMgr(AbstractServer):
 
         self.assertNotIn('0'*20, self.ltmgr.torrents)
 
-    def test_start_download_duplicate(self):
+    async def test_start_download_duplicate(self):
         """
         Test the starting of a download when there are no new trackers
         """
@@ -451,7 +429,7 @@ class TestLibtorrentMgr(AbstractServer):
         self.ltmgr.metadata_tmpdir = tempfile.mkdtemp(suffix=u'tribler_metainfo_tmpdir')
         self.ltmgr.set_proxy_settings(mock_lt_session, 0, ('a', "1234"), ('abc', 'def'))
 
-    def test_save_resume_preresolved_magnet(self):
+    async def test_save_resume_preresolved_magnet(self):
         """
         Test whether a magnet link correctly writes save-resume data before it is resolved.
 
@@ -472,34 +450,32 @@ class TestLibtorrentMgr(AbstractServer):
         def dl_from_tdef(tdef, _):
             dl = LibtorrentDownloadImpl(self.tribler_session, tdef)
             dl.setup()
-            dl.cancel_all_pending_tasks()
             return dl
         self.tribler_session.start_download_from_tdef = dl_from_tdef
 
-        download = self.ltmgr.start_download_from_magnet("magnet:?xt=urn:btih:" + ('1'*40))
-
+        download = self.ltmgr.start_download_from_magnet("magnet:?xt=urn:btih:" + ('1' * 40))
+        await download.get_handle()
         basename = hexlify(download.get_def().get_infohash()) + '.conf'
         filename = os.path.join(download.session.get_downloads_config_dir(), basename)
-
         self.assertTrue(os.path.isfile(filename))
 
-    @trial_timeout(5)
-    def test_callback_on_alert(self):
+    @timeout(5)
+    async def test_callback_on_alert(self):
         """
         Test whether the alert callback is called when a libtorrent alert is posted
         """
         self.ltmgr.default_alert_mask = 0xffffffff
-        test_deferred = Deferred()
+        test_future = Future()
 
         def callback(*args):
             self.ltmgr.alert_callback = None
-            test_deferred.callback(None)
+            test_future.set_result(None)
 
         callback.called = False
         self.ltmgr.alert_callback = callback
         self.ltmgr.initialize()
         self.ltmgr._task_process_alerts()
-        return test_deferred
+        return test_future
 
     def test_payout_on_disconnect(self):
         """
@@ -524,14 +500,10 @@ class TestLibtorrentMgr(AbstractServer):
 
         self.assertTrue(mocked_do_payout.called)
 
-    def test_post_session_stats(self):
+    async def test_post_session_stats(self):
         """
         Test whether post_session_stats actually updates the state of libtorrent readiness for clean shutdown.
         """
-        def check_if_session_shutdown_is_ready():
-            self.ltmgr._task_process_alerts()
-            self.assertTrue(self.ltmgr.lt_session_shutdown_ready[0])
-
         self.ltmgr.default_alert_mask = 0xffffffff
         self.ltmgr.initialize()
 
@@ -542,4 +514,6 @@ class TestLibtorrentMgr(AbstractServer):
         self.ltmgr.post_session_stats(hops=0)
 
         # Wait sometime to get the alert and check the status
-        return deferLater(reactor, .01, check_if_session_shutdown_is_ready)
+        await sleep(0.01)
+        self.ltmgr._task_process_alerts()
+        self.assertTrue(self.ltmgr.lt_session_shutdown_ready[0])

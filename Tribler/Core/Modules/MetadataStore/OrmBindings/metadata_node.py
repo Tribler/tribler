@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from binascii import unhexlify
 
 from ipv8.database import database_blob

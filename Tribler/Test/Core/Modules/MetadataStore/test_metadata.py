@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import os
 
 from ipv8.database import database_blob
@@ -7,8 +5,6 @@ from ipv8.keyvault.crypto import default_eccrypto
 
 from pony import orm
 from pony.orm import db_session
-
-from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Modules.MetadataStore.serialization import (
     CHANNEL_NODE,
@@ -28,16 +24,14 @@ class TestMetadata(TriblerCoreTest):
     Contains various tests for the ChannelNode type.
     """
 
-    @inlineCallbacks
-    def setUp(self):
-        yield super(TestMetadata, self).setUp()
+    async def setUp(self):
+        await super(TestMetadata, self).setUp()
         self.my_key = default_eccrypto.generate_key(u"curve25519")
         self.mds = MetadataStore(':memory:', self.session_base_dir, self.my_key)
 
-    @inlineCallbacks
-    def tearDown(self):
+    async def tearDown(self):
         self.mds.shutdown()
-        yield super(TestMetadata, self).tearDown()
+        await super(TestMetadata, self).tearDown()
 
     @db_session
     def test_to_dict(self):

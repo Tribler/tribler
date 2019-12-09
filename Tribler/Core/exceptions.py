@@ -3,9 +3,6 @@ The Tribler-specifc Exceptions the Core may throw.
 
 Author(s): Arno Bakker
 """
-from __future__ import absolute_import
-
-
 class TriblerException(Exception):
     """Super class for all Tribler-specific Exceptions the Tribler Core throws."""
 

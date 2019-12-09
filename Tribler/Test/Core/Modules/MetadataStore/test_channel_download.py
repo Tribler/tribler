@@ -1,15 +1,13 @@
-from __future__ import absolute_import
-
 import os
+from asyncio import ensure_future
 
 from pony.orm import db_session
 
-from twisted.internet.defer import inlineCallbacks
-
 from Tribler.Core.Modules.MetadataStore.serialization import ChannelMetadataPayload
 from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.Utilities.utilities import succeed
 from Tribler.Test.test_as_server import TestAsServer
-from Tribler.Test.tools import trial_timeout
+from Tribler.Test.tools import timeout
 from Tribler.pyipv8.ipv8.database import database_blob
 
 DATA_DIR = os.path.join(os.path.abspath(os.path.dirname(os.path.realpath(__file__))), '..', '..', 'data')
@@ -26,9 +24,8 @@ class TestChannelDownload(TestAsServer):
         self.config.set_chant_enabled(True)
         self.config.set_libtorrent_enabled(True)
 
-    @trial_timeout(20)
-    @inlineCallbacks
-    def test_channel_update_and_download(self):
+    @timeout(20)
+    async def test_channel_update_and_download(self):
         """
         Test whether we can successfully update a channel and download the new version
         """
@@ -42,7 +39,7 @@ class TestChannelDownload(TestAsServer):
 
         channel_tdef = TorrentDef.load(CHANNEL_TORRENT_UPDATED)
         libtorrent_port = self.get_port()
-        yield self.setup_seeder(channel_tdef, CHANNEL_DIR, libtorrent_port)
+        await self.setup_seeder(channel_tdef, CHANNEL_DIR, libtorrent_port)
 
         payload = ChannelMetadataPayload.from_file(CHANNEL_METADATA_UPDATED)
         # Download the channel in our session
@@ -51,7 +48,7 @@ class TestChannelDownload(TestAsServer):
             channel = self.session.lm.mds.ChannelMetadata.get(signature=payload.signature)
 
         def fake_get_metainfo(infohash, timeout=30):
-            return {b'info': {b'name': channel.dirname.encode('utf-8')}}
+            return succeed({b'info': {b'name': channel.dirname.encode('utf-8')}})
 
         self.session.lm.ltmgr.get_metainfo = fake_get_metainfo
         # The leecher should be hinted to leech from localhost. Thus, we must extend start_downoload_from_tdef
@@ -64,8 +61,8 @@ class TestChannelDownload(TestAsServer):
             return download
 
         self.session.start_download_from_tdef = hinted_start_download
-        yield self.session.lm.gigachannel_manager.download_channel(channel)
-        yield self.session.lm.gigachannel_manager.process_queued_channels()
+        await self.session.lm.gigachannel_manager.download_channel(channel)
+        await self.session.lm.gigachannel_manager.process_queued_channels()
 
         with db_session:
             # There should be 8 torrents + 1 channel torrent

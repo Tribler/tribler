@@ -1,13 +1,9 @@
-from __future__ import absolute_import
-
+import json
 import uuid
 from abc import abstractmethod
 
 from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt, pyqtSignal
 
-from six import text_type
-
-import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import NEW
 from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 
@@ -17,7 +13,7 @@ from TriblerGUI.utilities import format_size, format_votes, pretty_date
 
 
 def sanitize_for_fts(text):
-    return text_type(text).translate({ord(u"\""): u"\"\"", ord(u"\'"): u"\'\'"})
+    return text.translate({ord(u"\""): u"\"\"", ord(u"\'"): u"\'\'"})
 
 
 def to_fts_query(text):
@@ -429,7 +425,7 @@ class ChannelContentModel(RemoteTableModel):
             "metadata/%s/%s" % (public_key, id_),
             on_row_update_results,
             method='PATCH',
-            raw_data=json.twisted_dumps({attribute_name: new_value}),
+            raw_data=json.dumps({attribute_name: new_value}),
         )
 
         # TODO: reload the whole row from DB instead of just changing the displayed value
@@ -488,12 +484,12 @@ class PersonalChannelsModel(ChannelContentModel):
         if patch_data:
             request_mgrp = TriblerRequestManager()
             request_mgrp.perform_request(
-                "metadata", on_torrents_deleted, raw_data=json.twisted_dumps(patch_data), method='PATCH'
+                "metadata", on_torrents_deleted, raw_data=json.dumps(patch_data), method='PATCH'
             )
         if delete_data:
             request_mgrp = TriblerRequestManager()
             request_mgrp.perform_request(
-                "metadata", on_torrents_deleted, raw_data=json.twisted_dumps(delete_data), method='DELETE'
+                "metadata", on_torrents_deleted, raw_data=json.dumps(delete_data), method='DELETE'
             )
 
     def create_new_channel(self):

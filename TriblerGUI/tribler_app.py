@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import os
 import sys
 
@@ -7,7 +5,6 @@ from PyQt5.QtCore import QCoreApplication, QEvent, Qt
 
 from TriblerGUI.code_executor import CodeExecutor
 from TriblerGUI.single_application import QtSingleApplication
-
 
 # Set the QT application parameters before creating any instances of the application.
 QCoreApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)

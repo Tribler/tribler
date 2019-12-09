@@ -1,8 +1,6 @@
 """
 This module contains some utility functions for networking.
 """
-from __future__ import absolute_import
-
 import logging
 import random
 import socket

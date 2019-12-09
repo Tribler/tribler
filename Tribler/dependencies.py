@@ -3,14 +3,13 @@ This file lists the python dependencies for Tribler.
 
 Note that this file should not depend on any external modules itself other than builtin ones.
 """
-from __future__ import absolute_import, print_function
-
 import importlib
 import sys
 
 dependencies = [
     {'module': 'PyQt5', 'install_type': 'pip3', 'package': 'PyQt5', 'optional': False, 'scope': 'gui'},
-    {'module': 'twisted', 'install_type': 'pip3', 'package': 'Twisted', 'optional': False, 'scope': 'core'},
+    {'module': 'aiohttp', 'install_type': 'pip3', 'package': 'aiohttp', 'optional': False, 'scope': 'core'},
+    {'module': 'aiohttp_apispec', 'install_type': 'pip3', 'package': 'aiohttp', 'optional': False, 'scope': 'core'},
     {'module': 'libtorrent', 'install_type': 'apt', 'package': 'python-libtorrent', 'optional': False,
      'scope': 'core'},
     {'module': 'cryptography', 'install_type': 'pip3', 'package': 'cryptograpy>=2.3', 'optional': False,
@@ -25,7 +24,6 @@ dependencies = [
     {'module': 'cherrypy', 'install_type': 'pip3', 'package': 'cherrypy', 'optional': False, 'scope': 'core'},
     {'module': 'configobj', 'install_type': 'pip3', 'package': 'configobj', 'optional': False, 'scope': 'both'},
     {'module': 'netifaces', 'install_type': 'pip3', 'package': 'netifaces', 'optional': False, 'scope': 'core'},
-    {'module': 'six', 'install_type': 'pip3', 'package': 'six', 'optional': False, 'scope': 'both'},
     {'module': 'bitcoinlib', 'install_type': 'pip3', 'package': 'bitcoinlib', 'optional': True, 'scope': 'core'},
 ]
 

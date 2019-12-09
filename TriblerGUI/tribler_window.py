@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import glob
 import logging
 import os
@@ -8,6 +6,7 @@ import sys
 import time
 import traceback
 from base64 import b64encode
+from urllib.parse import unquote, urlparse
 
 from PyQt5 import uic
 from PyQt5.QtCore import (
@@ -37,9 +36,6 @@ from PyQt5.QtWidgets import (
     QSystemTrayIcon,
     QTreeWidget,
 )
-
-import six
-from six.moves.urllib.parse import unquote, urlparse
 
 from Tribler.Core.Modules.process_checker import ProcessChecker
 from Tribler.Core.Utilities.unicode import hexlify
@@ -132,7 +128,7 @@ class TriblerWindow(QMainWindow):
         dialog = FeedbackDialog(self, exception_text, self.tribler_version, self.start_time)
         dialog.show()
 
-    def __init__(self, core_args=None, core_env=None, api_port=None):
+    def __init__(self, core_args=None, core_env=None, api_port=None, api_key=None):
         QMainWindow.__init__(self)
 
         QCoreApplication.setOrganizationDomain("nl")
@@ -141,14 +137,16 @@ class TriblerWindow(QMainWindow):
 
         self.gui_settings = QSettings()
         api_port = api_port or int(get_gui_setting(self.gui_settings, "api_port", DEFAULT_API_PORT))
-        dispatcher.update_worker_settings(port=api_port)
+        api_key = api_key or get_gui_setting(self.gui_settings, "api_key", hexlify(os.urandom(16)).encode('utf-8'))
+        self.gui_settings.setValue("api_key", api_key)
+        dispatcher.update_worker_settings(port=api_port, key=api_key)
 
         self.navigation_stack = []
         self.tribler_started = False
         self.tribler_settings = None
         self.tribler_version = None
         self.debug_window = None
-        self.core_manager = CoreManager(api_port)
+        self.core_manager = CoreManager(api_port, api_key)
         self.pending_requests = {}
         self.pending_uri_requests = []
         self.download_uri = None
@@ -547,7 +545,7 @@ class TriblerWindow(QMainWindow):
         # Save the download location to the GUI settings
         current_settings = get_gui_setting(self.gui_settings, "recent_download_locations", "")
         recent_locations = current_settings.split(",") if len(current_settings) > 0 else []
-        if isinstance(destination, six.text_type):
+        if isinstance(destination, str):
             destination = destination.encode('utf-8')
         encoded_destination = hexlify(destination)
         if encoded_destination in recent_locations:
@@ -808,7 +806,7 @@ class TriblerWindow(QMainWindow):
             self.process_uri_request()
 
     def start_download_from_uri(self, uri):
-        uri = uri.decode('utf-8') if isinstance(uri, six.binary_type) else uri
+        uri = uri.decode('utf-8') if isinstance(uri, bytes) else uri
         self.download_uri = uri
 
         if get_gui_setting(self.gui_settings, "ask_download_settings", True, is_bool=True):

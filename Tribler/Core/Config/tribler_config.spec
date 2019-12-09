@@ -92,6 +92,7 @@ directory = string(default='')
 enabled = boolean(default=False)
 port = integer(min=-1, max=65536, default=-1)
 retry_port = boolean(default=False)
+key = string(default=None)
 
 [resource_monitor]
 enabled = boolean(default=True)

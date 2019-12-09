@@ -1,9 +1,5 @@
-from __future__ import absolute_import, division
-
 from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import QWidget
-
-from six.moves import xrange
 
 from TriblerGUI.defs import PAGE_DISCOVERED
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
@@ -30,8 +26,8 @@ class HomePage(QWidget):
 
     def load_cells(self, num_items):
         self.window().home_page_table_view.clear()
-        for y in xrange(0, 3):
-            for x in xrange(0, 3):
+        for y in range(0, 3):
+            for x in range(0, 3):
                 widget_item = HomeRecommendedItem(self)
                 self.window().home_page_table_view.setCellWidget(y, x, widget_item)
                 if y * 3 + x >= num_items - 1:

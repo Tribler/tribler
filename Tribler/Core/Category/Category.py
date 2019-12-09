@@ -3,8 +3,6 @@ Category.
 
 Author(s):  Yuan Yuan, Jelle Roozenburg
 """
-from __future__ import absolute_import, division
-
 import logging
 import os
 import re

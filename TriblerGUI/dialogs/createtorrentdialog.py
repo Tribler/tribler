@@ -1,12 +1,8 @@
-from __future__ import absolute_import
-
 import os
 
 from PyQt5 import uic
 from PyQt5.QtCore import QDir, pyqtSignal
 from PyQt5.QtWidgets import QAction, QFileDialog, QSizePolicy, QTreeWidgetItem
-
-from six.moves import xrange
 
 from TriblerGUI.defs import BUTTON_TYPE_NORMAL
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
@@ -91,7 +87,7 @@ class CreateTorrentDialog(DialogContainer):
         self.dialog_widget.btn_create.setEnabled(False)
 
         files_list = []
-        for ind in xrange(self.dialog_widget.create_torrent_files_list.count()):
+        for ind in range(self.dialog_widget.create_torrent_files_list.count()):
             file_str = self.dialog_widget.create_torrent_files_list.item(ind).text()
             files_list.append(file_str)
 

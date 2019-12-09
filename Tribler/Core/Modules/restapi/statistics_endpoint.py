@@ -1,35 +1,18 @@
-from twisted.web import resource
+from aiohttp import web
 
-import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.Modules.restapi.rest_endpoint import RESTEndpoint, RESTResponse
 
 
-class StatisticsEndpoint(resource.Resource):
+class StatisticsEndpoint(RESTEndpoint):
     """
     This endpoint is responsible for handing requests regarding statistics in Tribler.
     """
 
-    def __init__(self, session):
-        resource.Resource.__init__(self)
+    def setup_routes(self):
+        self.app.add_routes([web.get('/tribler', self.get_tribler_stats),
+                             web.get('/ipv8', self.get_ipv8_stats)])
 
-        child_handler_dict = {
-            b"tribler": StatisticsTriblerEndpoint,
-            b"ipv8": StatisticsIPv8Endpoint,
-        }
-
-        for path, child_cls in child_handler_dict.items():
-            self.putChild(path, child_cls(session))
-
-
-class StatisticsTriblerEndpoint(resource.Resource):
-    """
-    This class handles requests regarding Tribler statistics.
-    """
-
-    def __init__(self, session):
-        resource.Resource.__init__(self)
-        self.session = session
-
-    def render_GET(self, request):
+    async def get_tribler_stats(self, request):
         """
         .. http:get:: /statistics/tribler
 
@@ -60,19 +43,9 @@ class StatisticsTriblerEndpoint(resource.Resource):
                     }
                 }
         """
-        return json.twisted_dumps({'tribler_statistics': self.session.get_tribler_statistics()})
+        return RESTResponse({'tribler_statistics': self.session.get_tribler_statistics()})
 
-
-class StatisticsIPv8Endpoint(resource.Resource):
-    """
-    This class handles requests regarding IPv8 statistics.
-    """
-
-    def __init__(self, session):
-        resource.Resource.__init__(self)
-        self.session = session
-
-    def render_GET(self, request):
+    async def get_ipv8_stats(self, request):
         """
         .. http:get:: /statistics/ipv8
 
@@ -95,6 +68,6 @@ class StatisticsIPv8Endpoint(resource.Resource):
                     }
                 }
         """
-        return json.twisted_dumps({
+        return RESTResponse({
             'ipv8_statistics': self.session.get_ipv8_statistics()
         })

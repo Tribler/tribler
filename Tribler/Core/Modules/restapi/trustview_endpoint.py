@@ -1,19 +1,16 @@
-from __future__ import absolute_import
-
 import logging
 import math
 from binascii import unhexlify
 
+from aiohttp import web
+
 import networkx as nx
 
-from twisted.web import resource
-
-import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.TrustCalculation.graph_positioning import GraphPositioning as gpos
+from Tribler.Core.Modules.restapi.rest_endpoint import RESTEndpoint, RESTResponse
 from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.exceptions import TrustGraphException
 from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD
-
 
 MAX_PEERS = 500
 MAX_TRANSACTIONS = 2500
@@ -131,15 +128,17 @@ class TrustGraph(nx.DiGraph):
         return {'node': graph_nodes, 'edge': graph_edges}
 
 
-class TrustViewEndpoint(resource.Resource):
+class TrustViewEndpoint(RESTEndpoint):
     def __init__(self, session):
-        resource.Resource.__init__(self)
+        super(TrustViewEndpoint, self).__init__(session)
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.session = session
 
         self.trustchain_db = None
         self.trust_graph = None
         self.public_key = None
+
+    def setup_routes(self):
+        self.app.add_routes([web.get('', self.get_view)])
 
     def initialize_graph(self):
         if self.session.lm.trustchain_community:
@@ -151,7 +150,7 @@ class TrustViewEndpoint(resource.Resource):
             if not self.session.lm.bootstrap:
                 self.session.lm.start_bootstrap_download()
 
-    def render_GET(self, request):
+    async def get_view(self, request):
         if not self.trust_graph:
             self.initialize_graph()
 
@@ -162,8 +161,8 @@ class TrustViewEndpoint(resource.Resource):
             return self.trustchain_db.get_connected_users(public_key, limit=limit)
 
         depth = 0
-        if b'depth' in request.args:
-            depth = int(request.args[b'depth'][0])
+        if 'depth' in request.query:
+            depth = int(request.query['depth'])
 
         # If depth is zero or not provided then fetch all depth levels
         fetch_all = depth == 0
@@ -185,11 +184,11 @@ class TrustViewEndpoint(resource.Resource):
                 for user_block in self.trustchain_db.get_users():
                     self.trust_graph.add_blocks(get_bandwidth_blocks(unhexlify(user_block['public_key'])))
         except TrustGraphException as tgex:
-            self.logger.warn(tgex)
+            self.logger.warning(tgex)
 
         graph_data = self.trust_graph.compute_node_graph()
 
-        return json.twisted_dumps(
+        return RESTResponse(
             {
                 'root_public_key': hexlify(self.public_key),
                 'graph': graph_data,

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import os
 
 from Tribler.Test.test_as_server import TestAsServer

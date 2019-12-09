@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from Tribler.Core.DownloadState import DownloadState
 from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, DLSTATUS_EXIT_NODES, DLSTATUS_WAITING4HASHCHECK, DOWNLOAD,
                                      UPLOAD)
@@ -11,8 +9,8 @@ class TestDownloadState(TriblerCoreTest):
     This class contains tests for the download state.
     """
 
-    def setUp(self):
-        TriblerCoreTest.setUp(self)
+    async def setUp(self):
+        await TriblerCoreTest.setUp(self)
         self.mock_download = MockObject()
         self.mocked_tdef = MockObject()
         self.mocked_tdef.get_name = lambda: "test"

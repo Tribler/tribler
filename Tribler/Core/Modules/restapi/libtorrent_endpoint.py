@@ -1,39 +1,21 @@
-from __future__ import absolute_import
+from asyncio import Future
 
-import logging
+from aiohttp import web
 
-from twisted.web import resource
-from twisted.web.server import NOT_DONE_YET
-
-import Tribler.Core.Utilities.json_util as json
-from Tribler.Core.Utilities.unicode import hexlify, recursive_unicode
+from Tribler.Core.Modules.restapi.rest_endpoint import RESTEndpoint, RESTResponse
+from Tribler.Core.Utilities.unicode import hexlify
 
 
-class LibTorrentEndpoint(resource.Resource):
+class LibTorrentEndpoint(RESTEndpoint):
     """
     Endpoint for getting information about libtorrent sessions and settings.
     """
 
-    def __init__(self, session):
-        resource.Resource.__init__(self)
-        self.session = session
-        self._logger = logging.getLogger(self.__class__.__name__)
+    def setup_routes(self):
+        self.app.add_routes([web.get('/settings', self.get_libtorrent_settings),
+                             web.get('/session', self.get_libtorrent_session_info)])
 
-        self.putChild(b"settings", LibTorrentSettingsEndpoint(self.session))
-        self.putChild(b"session", LibTorrentSessionEndpoint(self.session))
-
-
-class LibTorrentSettingsEndpoint(resource.Resource):
-    """
-    This endpoint is responsible for handing all requests regarding torrent info in Tribler.
-    """
-
-    def __init__(self, session):
-        resource.Resource.__init__(self)
-        self.session = session
-        self._logger = logging.getLogger(self.__class__.__name__)
-
-    def render_GET(self, request):
+    async def get_libtorrent_settings(self, request):
         """
         .. http:get:: /libtorrent/settings
 
@@ -61,13 +43,13 @@ class LibTorrentSettingsEndpoint(resource.Resource):
                         }
                     }
         """
-        args = recursive_unicode(request.args)
+        args = request.query
         hop = 0
         if 'hop' in args and args['hop']:
-            hop = int(args['hop'][0])
+            hop = int(args['hop'])
 
         if hop not in self.session.lm.ltmgr.ltsessions:
-            return json.twisted_dumps({'hop': hop, "settings": {}})
+            return RESTResponse({'hop': hop, "settings": {}})
 
         lt_session = self.session.lm.ltmgr.ltsessions[hop]
         if hop == 0:
@@ -76,20 +58,9 @@ class LibTorrentSettingsEndpoint(resource.Resource):
         else:
             lt_settings = lt_session.get_settings()
 
-        return json.twisted_dumps({'hop': hop, "settings": lt_settings})
+        return RESTResponse({'hop': hop, "settings": lt_settings})
 
-
-class LibTorrentSessionEndpoint(resource.Resource):
-    """
-    This endpoint is responsible for handing all requests regarding torrent info in Tribler.
-    """
-
-    def __init__(self, session):
-        resource.Resource.__init__(self)
-        self.session = session
-        self._logger = logging.getLogger(self.__class__.__name__)
-
-    def render_GET(self, request):
+    async def get_libtorrent_session_info(self, request):
         """
         .. http:get:: /libtorrent/session
 
@@ -117,20 +88,21 @@ class LibTorrentSessionEndpoint(resource.Resource):
                         }
                     }
         """
-        def on_session_stats_alert_received(alert):
-            request.write(json.twisted_dumps({'hop': hop, 'session': alert.values}))
-            request.finish()
+        session_stats = Future()
 
-        args = recursive_unicode(request.args)
+        def on_session_stats_alert_received(alert):
+            session_stats.set_result(alert.values)
+
+        args = request.query
         hop = 0
         if 'hop' in args and args['hop']:
-            hop = int(args['hop'][0])
+            hop = int(args['hop'])
 
         if hop not in self.session.lm.ltmgr.ltsessions or \
                 not hasattr(self.session.lm.ltmgr.ltsessions[hop], "post_session_stats"):
-            return json.twisted_dumps({'hop': hop, 'session': {}})
+            return RESTResponse({'hop': hop, 'session': {}})
 
         self.session.lm.ltmgr.session_stats_callback = on_session_stats_alert_received
         self.session.lm.ltmgr.ltsessions[hop].post_session_stats()
-
-        return NOT_DONE_YET
+        stats = await session_stats
+        return RESTResponse({'hop': hop, 'session': stats})

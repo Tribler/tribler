@@ -1,21 +1,17 @@
 """
 Configuration object for the Tribler Core.
 """
-from __future__ import absolute_import
-
 import logging
 import os
 
 from configobj import ConfigObj
-
-from six import text_type
 
 from validate import Validator
 
 from Tribler.Core.Config.download_config import get_default_dest_dir
 from Tribler.Core.Utilities.install_dir import get_lib_path
 from Tribler.Core.Utilities.network_utils import get_random_port
-from Tribler.Core.Utilities.unicode import ensure_unicode
+from Tribler.Core.Utilities.unicode import ensure_unicode, hexlify
 from Tribler.Core.exceptions import InvalidConfigException
 from Tribler.Core.osutils import get_appstate_dir
 from Tribler.Core.version import version_id
@@ -286,6 +282,12 @@ class TriblerConfig(object):
     def get_http_api_retry_port(self):
         return self.config['http_api']['retry_port']
 
+    def set_http_api_key(self, api_key):
+        self.config['http_api']['key'] = api_key
+
+    def get_http_api_key(self):
+        return self.config['http_api']['key']
+
     # IPv8
 
     def set_ipv8_enabled(self, value):
@@ -495,7 +497,7 @@ class TriblerConfig(object):
     def get_tunnel_community_socks5_listen_ports(self):
         ports = self.config['tunnel_community']['socks5_listen_ports']
         path = u'tunnel_community~socks5_listen_ports~'
-        return [self._get_random_port(path + text_type(index))
+        return [self._get_random_port(path + str(index))
                 if int(port) < 0 else int(port) for index, port in enumerate(ports)]
 
     def set_tunnel_community_exitnode_enabled(self, value):

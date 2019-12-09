@@ -1,10 +1,6 @@
-from __future__ import absolute_import
-
 import time
 from binascii import unhexlify
 from random import choice, randint, uniform
-
-from six.moves import xrange
 
 from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Test.GUI.FakeTriblerAPI.constants import COMMITTED
@@ -69,7 +65,7 @@ class Torrent(object):
         torrent = Torrent(infohash, name, randint(1024, 1024 * 3000), choice(categories))
 
         # Create the files
-        for _ in xrange(randint(1, 20)):
+        for _ in range(randint(1, 20)):
             torrent.files.append({"path": get_random_filename(), "length": randint(1024, 1024 * 3000)})
 
         return torrent

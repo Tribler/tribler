@@ -3,8 +3,6 @@ Notifier.
 
 Author(s): Jelle Roozenburg
 """
-from __future__ import absolute_import
-
 import logging
 import threading
 

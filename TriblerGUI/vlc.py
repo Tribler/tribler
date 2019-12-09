@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 # fmt: off
-from __future__ import absolute_import, print_function
-
 # Python ctypes bindings for VLC
 #
 # Copyright (C) 2009-2017 the VideoLAN team
@@ -42,15 +40,13 @@ C{get_instance} method of L{MediaPlayer} and L{MediaListPlayer}.
 """
 
 import ctypes
-from ctypes.util import find_library
+import functools
+import logging
 import os
 import sys
-import functools
-
+from ctypes.util import find_library
 # Used by EventManager in override.py
 from inspect import getargspec
-
-import logging
 
 logger = logging.getLogger(__name__)
 

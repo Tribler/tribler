@@ -1,36 +1,28 @@
-from __future__ import absolute_import
-
 from ipv8.keyvault.crypto import default_eccrypto
 
 from pony.orm import db_session
 
-from six.moves import xrange
-
-from twisted.internet.defer import inlineCallbacks, succeed
-
-import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import COMMITTED, TODELETE, UPDATED
 from Tribler.Core.TorrentChecker.torrent_checker import TorrentChecker
 from Tribler.Core.Utilities.random_utils import random_infohash
 from Tribler.Core.Utilities.unicode import hexlify
-from Tribler.Core.Utilities.utilities import has_bep33_support
+from Tribler.Core.Utilities.utilities import has_bep33_support, succeed
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.Core.base_test import MockObject
-from Tribler.Test.tools import trial_timeout
+from Tribler.Test.tools import timeout
 from Tribler.Test.util.Tracker.HTTPTracker import HTTPTracker
 from Tribler.Test.util.Tracker.UDPTracker import UDPTracker
 
 
 class BaseTestMetadataEndpoint(AbstractApiTest):
-    @inlineCallbacks
-    def setUp(self):
-        yield super(BaseTestMetadataEndpoint, self).setUp()
+    async def setUp(self):
+        await super(BaseTestMetadataEndpoint, self).setUp()
         self.infohashes = []
 
         torrents_per_channel = 5
         # Add a few channels
         with db_session:
-            for ind in xrange(10):
+            for ind in range(10):
                 self.ext_key = default_eccrypto.generate_key('curve25519')
                 channel = self.session.lm.mds.ChannelMetadata(
                     title='channel%d' % ind,
@@ -40,7 +32,7 @@ class BaseTestMetadataEndpoint(AbstractApiTest):
                     id_=123,
                     sign_with=self.ext_key,
                 )
-                for torrent_ind in xrange(torrents_per_channel):
+                for torrent_ind in range(torrents_per_channel):
                     rand_infohash = random_infohash()
                     self.infohashes.append(rand_infohash)
                     self.session.lm.mds.TorrentMetadata(
@@ -57,19 +49,18 @@ class TestMetadataEndpoint(AbstractApiTest):
         super(AbstractApiTest, self).setUpPreSession()
         self.config.set_chant_enabled(True)
 
-    @inlineCallbacks
-    @trial_timeout(10)
-    def test_update_multiple_metadata_entries(self):
+    @timeout(10)
+    async def test_update_multiple_metadata_entries(self):
         """
         Test updating attributes of several metadata entities at once with a PATCH request to REST API
         """
         # Test handling the wrong/empty JSON gracefully
-        yield self.do_request('metadata', expected_code=400, request_type='PATCH')
+        await self.do_request('metadata', expected_code=400, request_type='PATCH')
 
         # Test trying update a non-existing entry
-        yield self.do_request(
+        await self.do_request(
             'metadata',
-            raw_data=json.twisted_dumps([{'public_key': hexlify(b'1' * 64), 'id': 111}]),
+            json_data=[{'public_key': hexlify(b'1' * 64), 'id': 111}],
             expected_code=404,
             request_type='PATCH',
         )
@@ -83,8 +74,8 @@ class TestMetadataEndpoint(AbstractApiTest):
             {'public_key': hexlify(md1.public_key), 'id': md1.id_, 'title': NEW_NAME1},
             {'public_key': hexlify(md2.public_key), 'id': md2.id_, 'title': NEW_NAME2, 'subscribed': 1},
         ]
-        yield self.do_request(
-            'metadata', raw_data=json.twisted_dumps(patch_data), expected_code=200, request_type='PATCH'
+        await self.do_request(
+            'metadata', json_data=patch_data, expected_code=200, request_type='PATCH'
         )
         with db_session:
             entry1 = self.session.lm.mds.ChannelNode.get(rowid=md1.rowid)
@@ -96,9 +87,8 @@ class TestMetadataEndpoint(AbstractApiTest):
             self.assertEqual(UPDATED, entry2.status)
             self.assertTrue(entry2.subscribed)
 
-    @inlineCallbacks
-    @trial_timeout(10)
-    def test_delete_multiple_metadata_entries(self):
+    @timeout(10)
+    async def test_delete_multiple_metadata_entries(self):
         """
         Test deleting multiple entries with JSON REST API
         """
@@ -110,8 +100,8 @@ class TestMetadataEndpoint(AbstractApiTest):
             {'public_key': hexlify(md1.public_key), 'id': md1.id_},
             {'public_key': hexlify(md2.public_key), 'id': md2.id_},
         ]
-        yield self.do_request(
-            'metadata', raw_data=json.twisted_dumps(patch_data), expected_code=200, request_type='DELETE'
+        await self.do_request(
+            'metadata', json_data=patch_data, expected_code=200, request_type='DELETE'
         )
         with db_session:
             self.assertFalse(self.session.lm.mds.ChannelNode.select().count())
@@ -122,39 +112,37 @@ class TestSpecificMetadataEndpoint(AbstractApiTest):
         super(AbstractApiTest, self).setUpPreSession()
         self.config.set_chant_enabled(True)
 
-    def test_update_entry_missing_json(self):
+    async def test_update_entry_missing_json(self):
         """
         Test whether an error is returned if we try to change entry with the REST API and missing JSON data
         """
         channel_pk = hexlify(self.session.lm.mds.ChannelNode._my_key.pub().key_to_bin()[10:])
-        return self.do_request('metadata/%s/123' % channel_pk, expected_code=400, request_type='PATCH')
+        await self.do_request('metadata/%s/123' % channel_pk, expected_code=400, request_type='PATCH')
 
-    def test_update_entry_not_found(self):
+    async def test_update_entry_not_found(self):
         """
         Test whether an error is returned if we try to change some metadata entry that is not there
         """
         patch_params = {'subscribed': '1'}
-        return self.do_request(
-            'metadata/aa/123', expected_code=404, request_type='PATCH', raw_data=json.dumps(patch_params)
-        )
+        await self.do_request('metadata/aa/123', expected_code=404, request_type='PATCH', json_data=patch_params)
 
-    @trial_timeout(10)
-    def test_update_entry_status_and_name(self):
+    @timeout(10)
+    async def test_update_entry_status_and_name(self):
         """
         Test whether an error is returned if try to modify both the status and name of a torrent
         """
         with db_session:
             chan = self.session.lm.mds.ChannelMetadata.create_channel(title="bla")
         patch_params = {'status': TODELETE, 'title': 'test'}
-        return self.do_request(
+        await self.do_request(
             'metadata/%s/%i' % (hexlify(chan.public_key), chan.id_),
             request_type='PATCH',
-            raw_data=json.dumps(patch_params),
+            json_data=patch_params,
             expected_code=400,
         )
 
-    @trial_timeout(10)
-    def test_update_entry(self):
+    @timeout(10)
+    async def test_update_entry(self):
         """
         Test updating a metadata entry with REST API
         """
@@ -167,25 +155,21 @@ class TestSpecificMetadataEndpoint(AbstractApiTest):
 
         patch_params = {'title': new_title, 'tags': new_tags}
 
-        @db_session
-        def on_response(r):
-            result = json.loads(r)
-            self.assertEqual(new_title, result['name'])
-            self.assertEqual(new_tags, result['category'])
-            chan = self.session.lm.mds.ChannelMetadata.get_my_channel()
-            self.assertEqual(chan.status, UPDATED)
-            self.assertEqual(chan.tags, new_tags)
-            self.assertEqual(chan.title, new_title)
-
-        return self.do_request(
+        result = await self.do_request(
             'metadata/%s/%i' % (hexlify(chan.public_key), chan.id_),
             request_type='PATCH',
-            raw_data=json.dumps(patch_params),
+            json_data=patch_params,
             expected_code=200,
-        ).addCallback(on_response)
+        )
+        self.assertEqual(new_title, result['name'])
+        self.assertEqual(new_tags, result['category'])
+        chan = self.session.lm.mds.ChannelMetadata.get_my_channel()
+        self.assertEqual(chan.status, UPDATED)
+        self.assertEqual(chan.tags, new_tags)
+        self.assertEqual(chan.title, new_title)
 
-    @trial_timeout(10)
-    def test_get_entry(self):
+    @timeout(10)
+    async def test_get_entry(self):
         """
         Test getting an entry with REST API GET request
         """
@@ -194,36 +178,32 @@ class TestSpecificMetadataEndpoint(AbstractApiTest):
                 title="bla", infohash=random_infohash(), tracker_info="http://sometracker.local/announce"
             )
             chan.status = COMMITTED
-        return self.do_request(
+        await self.do_request(
             'metadata/%s/%i' % (hexlify(chan.public_key), chan.id_),
             expected_json=chan.to_simple_dict(include_trackers=True),
         )
 
-    @trial_timeout(10)
-    def test_get_entry_not_found(self):
+    @timeout(10)
+    async def test_get_entry_not_found(self):
         """
         Test trying to get a non-existing entry with the REST API GET request
         """
-        return self.do_request('metadata/%s/%i' % (hexlify(b"0" * 64), 123), expected_code=404)
+        await self.do_request('metadata/%s/%i' % (hexlify(b"0" * 64), 123), expected_code=404)
 
 
 class TestRandomTorrentsEndpoint(BaseTestMetadataEndpoint):
-    def test_get_random_torrents_neg_limit(self):
+    async def test_get_random_torrents_neg_limit(self):
         """
         Test if an error is returned if we query some random torrents with the REST API and a negative limit
         """
-        return self.do_request('metadata/torrents/random?limit=-5', expected_code=400)
+        await self.do_request('metadata/torrents/random?limit=-5', expected_code=400)
 
-    def test_get_random_torrents(self):
+    async def test_get_random_torrents(self):
         """
         Test whether we can retrieve some random torrents with the REST API
         """
-
-        def on_response(response):
-            json_dict = json.twisted_loads(response)
-            self.assertEqual(len(json_dict['torrents']), 5)
-
-        return self.do_request('metadata/torrents/random?limit=5').addCallback(on_response)
+        json_dict = await self.do_request('metadata/torrents/random?limit=5')
+        self.assertEqual(len(json_dict['torrents']), 5)
 
 
 class TestTorrentHealthEndpoint(AbstractApiTest):
@@ -231,9 +211,8 @@ class TestTorrentHealthEndpoint(AbstractApiTest):
         super(TestTorrentHealthEndpoint, self).setUpPreSession()
         self.config.set_chant_enabled(True)
 
-    @inlineCallbacks
-    def setUp(self):
-        yield super(TestTorrentHealthEndpoint, self).setUp()
+    async def setUp(self):
+        await super(TestTorrentHealthEndpoint, self).setUp()
 
         self.udp_port = self.get_port()
         self.udp_tracker = UDPTracker(self.udp_port)
@@ -241,18 +220,16 @@ class TestTorrentHealthEndpoint(AbstractApiTest):
         self.http_port = self.get_port()
         self.http_tracker = HTTPTracker(self.http_port)
 
-    @inlineCallbacks
-    def tearDown(self):
+    async def tearDown(self):
         self.session.lm.ltmgr = None
         if self.udp_tracker:
-            yield self.udp_tracker.stop()
+            await self.udp_tracker.stop()
         if self.http_tracker:
-            yield self.http_tracker.stop()
-        yield super(TestTorrentHealthEndpoint, self).tearDown()
+            await self.http_tracker.stop()
+        await super(TestTorrentHealthEndpoint, self).tearDown()
 
-    @trial_timeout(20)
-    @inlineCallbacks
-    def test_check_torrent_health(self):
+    @timeout(20)
+    async def test_check_torrent_health(self):
         """
         Test the endpoint to fetch the health of a chant-managed, infohash-only torrent
         """
@@ -270,14 +247,7 @@ class TestTorrentHealthEndpoint(AbstractApiTest):
 
         # Initialize the torrent checker
         self.session.lm.torrent_checker = TorrentChecker(self.session)
-        self.session.lm.torrent_checker.initialize()
-
-        def verify_response_no_trackers(response):
-            json_response = json.twisted_loads(response)
-            self.assertIn("health", json_response)
-            self.assertIn("udp://localhost:%s" % self.udp_port, json_response['health'])
-            if has_bep33_support():
-                self.assertIn("DHT", json_response['health'])
+        await self.session.lm.torrent_checker.initialize()
 
         # Add mock DHT response - we both need to account for the case when BEP33 is used and the old lookup method
         self.session.lm.ltmgr = MockObject()
@@ -287,12 +257,13 @@ class TestTorrentHealthEndpoint(AbstractApiTest):
         self.session.lm.ltmgr.dht_health_manager.get_health = lambda *_, **__: succeed({"DHT": [dht_health_dict]})
 
         # Left for compatibility with other tests in this object
-        self.udp_tracker.start()
-        self.http_tracker.start()
-        yield self.do_request(url).addCallback(verify_response_no_trackers)
+        await self.udp_tracker.start()
+        await self.http_tracker.start()
+        json_response = await self.do_request(url)
+        self.assertIn("health", json_response)
+        self.assertIn("udp://localhost:%s" % self.udp_port, json_response['health'])
+        if has_bep33_support():
+            self.assertIn("DHT", json_response['health'])
 
-        def verify_response_nowait(response):
-            json_response = json.twisted_loads(response)
-            self.assertDictEqual(json_response, {u'checking': u'1'})
-
-        yield self.do_request(url + '&nowait=1').addCallback(verify_response_nowait)
+        json_response = await self.do_request(url + '&nowait=1')
+        self.assertDictEqual(json_response, {u'checking': u'1'})

@@ -1,11 +1,7 @@
-from __future__ import absolute_import, division
-
 from PyQt5.QtCore import QEvent, QModelIndex, QObject, QRect, QRectF, QSize, Qt, pyqtSignal
 from PyQt5.QtGui import QBrush, QColor, QIcon, QPainter, QPen
 from PyQt5.QtSvg import QSvgRenderer
 from PyQt5.QtWidgets import QComboBox, QStyle, QStyledItemDelegate, QToolTip
-
-from six import text_type
 
 from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 
@@ -215,9 +211,8 @@ class CategoryLabelMixin(object):
         else:
             category = data_item[u'category']
             # Precautions to safely draw wrong category descriptions
-            if not category or text_type(category) not in CATEGORY_LIST:
+            if not category or category not in CATEGORY_LIST:
                 category = "Unknown"
-        category = text_type(category)
         CategoryLabel(category).paint(painter, option, index)
         return True
 

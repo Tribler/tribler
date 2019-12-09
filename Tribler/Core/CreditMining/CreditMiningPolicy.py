@@ -2,14 +2,9 @@
 Supported credit mining policy.
 Author(s): Egbert Bouman, Mihai Capota, Elric Milon, Ardhi Putra
 """
-from __future__ import absolute_import
-from __future__ import division
-
 import logging
 import random
 import time
-
-from six.moves import xrange
 
 from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_STOPPED, \
     DLSTATUS_STOPPED_ON_ERROR, DOWNLOAD, UPLOAD
@@ -162,7 +157,7 @@ class InvestmentPolicy(BasePolicy):
         """
         investment = 5
         states = {}
-        for level in xrange(10):
+        for level in range(10):
             download_state = 2 * level
             upload_state = download_state + 1
             states[download_state] = InvestmentState(download_state, download_state % 2, investment * MB)

@@ -1,15 +1,10 @@
-from __future__ import absolute_import
-
 import os
+from asyncio import get_event_loop
 
 from ipv8.database import database_blob
 from ipv8.taskmanager import TaskManager
 
 from pony.orm import db_session
-
-from twisted.internet.defer import inlineCallbacks, returnValue
-from twisted.internet.task import LoopingCall
-from twisted.internet.threads import deferToThread
 
 from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import COMMITTED
@@ -31,7 +26,6 @@ class GigaChannelManager(TaskManager):
     def __init__(self, session):
         super(GigaChannelManager, self).__init__()
         self.session = session
-        self.channels_lc = None
 
         # We queue up processing of the channels because we do it in a separate thread, and we don't want
         # to run more that one of these simultaneously
@@ -77,15 +71,14 @@ class GigaChannelManager(TaskManager):
             self._logger.exception("Error when tried to resume personal channel seeding on GigaChannel Manager startup")
 
         channels_check_interval = 5.0  # seconds
-        self.channels_lc = self.register_task(
-            "Process channels download queue and remove cruft", LoopingCall(self.service_channels)
-        ).start(channels_check_interval)
+        self.register_task("Process channels download queue and remove cruft",
+                           self.service_channels, interval=channels_check_interval)
 
-    def shutdown(self):
+    async def shutdown(self):
         """
         Stop the gigachannel manager.
         """
-        self.shutdown_task_manager()
+        await self.shutdown_task_manager()
 
     def remove_cruft_channels(self):
         """
@@ -112,7 +105,7 @@ class GigaChannelManager(TaskManager):
         for d, remove_content in cruft_list:
             self.channels_processing_queue[d.get_def().infohash] = (REMOVE_CHANNEL_DOWNLOAD, (d, remove_content))
 
-    def service_channels(self):
+    async def service_channels(self):
         if self.processing:
             return
         try:
@@ -124,29 +117,29 @@ class GigaChannelManager(TaskManager):
         except Exception:
             self._logger.exception("Error when tried to check for cruft channels")
         try:
-            self.check_channels_updates()
+            await self.check_channels_updates()
         except Exception:
             self._logger.exception("Error when checking for channel updates")
         try:
             if not self.processing:
-                return self.process_queued_channels()
+                await self.process_queued_channels()
+                return
         except Exception:
             self._logger.exception("Error when tried to start processing queued channel torrents changes")
 
-    @inlineCallbacks
-    def process_queued_channels(self):
+    async def process_queued_channels(self):
         while self.channels_processing_queue:
             infohash, (action, data) = next(iter(self.channels_processing_queue.items()))
             self.channels_processing_queue.pop(infohash)
             self.processing = True
             if action == PROCESS_CHANNEL_DIR:
-                yield self.process_channel_dir_threaded(data)  # data is a channel object (used read-only!)
+                await self.process_channel_dir_threaded(data)  # data is a channel object (used read-only!)
             elif action == REMOVE_CHANNEL_DOWNLOAD:
-                yield self.remove_channel_download(data)  # data is a tuple (download, remove_content bool)
+                await self.remove_channel_download(data)  # data is a tuple (download, remove_content bool)
             elif action == CLEANUP_UNSUBSCRIBED_CHANNEL:
-                yield self.cleanup_channel(data)  # data is a tuple (public_key, id_)
+                self.cleanup_channel(data)  # data is a tuple (public_key, id_)
 
-    def check_channels_updates(self):
+    async def check_channels_updates(self):
         """
         Check whether there are channels that are updated. If so, download the new version of the channel.
         """
@@ -166,7 +159,7 @@ class GigaChannelManager(TaskManager):
                         channel.local_version,
                         channel.timestamp,
                     )
-                    self.download_channel(channel)
+                    await self.download_channel(channel)
                 elif self.session.get_download(bytes(channel.infohash)).get_state().get_status() == DLSTATUS_SEEDING:
                     self._logger.info(
                         "Processing previously downloaded, but unprocessed channel torrent %s ver %i->%i",
@@ -201,7 +194,7 @@ class GigaChannelManager(TaskManager):
         return files_to_remove
     """
 
-    def remove_channel_download(self, to_remove):
+    async def remove_channel_download(self, to_remove):
         """
         :param to_remove: a tuple (download_to_remove=download, remove_files=Bool)
         """
@@ -214,17 +207,13 @@ class GigaChannelManager(TaskManager):
             files_to_remove.extend(self.safe_files_to_remove(download))
         """
 
-        def _on_failure(failure):
-            self._logger.error("Error when removing the channel download: %s", failure)
-            self.processing = False
-
-        def _on_success(_):
-            self.processing = False
-
         d, remove_content = to_remove
-        deferred = self.session.remove_download(d, remove_content=remove_content)
-        deferred.addCallbacks(_on_success, _on_failure)
-        self.register_task(u'remove_channel' + d.tdef.get_name_utf8() + u'-' + hexlify(d.tdef.get_infohash()), deferred)
+        try:
+            await self.session.remove_download(d, remove_content=remove_content)
+            self.processing = False
+        except Exception as e:
+            self._logger.error("Error when removing the channel download: %s", e)
+            self.processing = False
 
         """
         def _on_torrents_removed(torrent):
@@ -234,10 +223,7 @@ class GigaChannelManager(TaskManager):
         self.register_task(u'remove_channels_files-' + "_".join([d.tdef.get_name_utf8() for d in to_remove_list]), dl)
         """
 
-        return deferred
-
-    @inlineCallbacks
-    def download_channel(self, channel):
+    async def download_channel(self, channel):
         """
         Download a channel with a given infohash and title.
         :param channel: The channel metadata ORM object.
@@ -247,48 +233,49 @@ class GigaChannelManager(TaskManager):
         dcfg.set_channel_download(True)
         tdef = TorrentDefNoMetainfo(infohash=bytes(channel.infohash), name=channel.dirname)
 
-        metainfo = yield self.session.lm.ltmgr.get_metainfo(bytes(channel.infohash), timeout=60)
+        metainfo = await self.session.lm.ltmgr.get_metainfo(bytes(channel.infohash), timeout=60)
         if metainfo is None:
             # Timeout looking for the channel metainfo. Probably, there are no seeds.
             # TODO: count the number of tries we had with the channel, so we can stop trying eventually
-            returnValue(None)
+            return
         try:
             if metainfo[b'info'][b'name'].decode('utf-8') != channel.dirname:
                 # Malformed channel
                 # TODO: stop trying to download this channel until it is updated with a new infohash
-                returnValue(None)
+                return
         except (KeyError, TypeError):
-            returnValue(None)
+            return
 
         download = self.session.start_download_from_tdef(tdef, dcfg, hidden=True)
-        yield download.finished_deferred
+        await download.future_finished
         self.channels_processing_queue[channel.infohash] = (PROCESS_CHANNEL_DIR, channel)
+        return download
 
-    def process_channel_dir_threaded(self, channel):
+    async def process_channel_dir_threaded(self, channel):
+
         def _process_download():
-            channel_dirname = os.path.join(self.session.lm.mds.channels_dir, channel.dirname)
-            self.session.lm.mds.process_channel_dir(
-                channel_dirname, channel.public_key, channel.id_, external_thread=True
-            )
-            self.session.lm.mds._db.disconnect()
+            try:
+                channel_dirname = os.path.join(self.session.lm.mds.channels_dir, channel.dirname)
+                self.session.lm.mds.process_channel_dir(channel_dirname, channel.public_key, channel.id_,
+                                                        external_thread=True)
+                self.session.lm.mds._db.disconnect()
+            except Exception as e:
+                self._logger.error("Error when processing channel dir download: %s", e)
+                self.processing = False
+                return
 
-        def _on_failure(failure):
-            self._logger.error("Error when processing channel dir download: %s", failure)
-            self.processing = False
+        await get_event_loop().run_in_executor(None, _process_download)
 
-        def _on_success(_):
-            with db_session:
-                channel_upd = self.session.lm.mds.ChannelMetadata.get(public_key=channel.public_key, id_=channel.id_)
-                channel_upd_dict = channel_upd.to_simple_dict()
-            self.session.notifier.notify(
-                NTFY_CHANNEL_ENTITY,
-                NTFY_UPDATE,
-                "%s:%s".format(hexlify(channel.public_key), str(channel.id_)),
-                channel_upd_dict,
-            )
-            self.processing = False
-
-        return deferToThread(_process_download).addCallbacks(_on_success, _on_failure)
+        with db_session:
+            channel_upd = self.session.lm.mds.ChannelMetadata.get(public_key=channel.public_key, id_=channel.id_)
+            channel_upd_dict = channel_upd.to_simple_dict()
+        self.session.notifier.notify(
+            NTFY_CHANNEL_ENTITY,
+            NTFY_UPDATE,
+            "%s:%s".format(hexlify(channel.public_key), str(channel.id_)),
+            channel_upd_dict,
+        )
+        self.processing = False
 
     def updated_my_channel(self, tdef):
         """

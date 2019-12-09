@@ -1,16 +1,11 @@
-from __future__ import absolute_import
-
 import logging
 from collections import deque, namedtuple
 from threading import RLock
 from time import time
+from urllib.parse import quote_plus
 
 from PyQt5.QtCore import QBuffer, QIODevice, QObject, QUrl, pyqtSignal
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
-
-from six import string_types, text_type
-from six.moves import xrange
-from six.moves.urllib.parse import quote_plus
 
 import Tribler.Core.Utilities.json_util as json
 
@@ -32,11 +27,11 @@ def tribler_urlencode(data):
 
 
 def tribler_urlencode_single(key, value):
-    utf8_key = quote_plus(text_type(key).encode('utf-8'))
+    utf8_key = quote_plus(str(key).encode('utf-8'))
     # Convert bool values to ints
     if isinstance(value, bool):
         value = int(value)
-    utf8_value = quote_plus(text_type(value).encode('utf-8'))
+    utf8_value = quote_plus(str(value).encode('utf-8'))
     return "%s=%s" % (utf8_key, utf8_value)
 
 
@@ -212,11 +207,13 @@ class TriblerRequestDispatcher(object):
         self.default_protocol = None
         self.default_host = None
         self.default_port = None
+        self.default_key = None
 
-    def update_worker_settings(self, protocol=None, host=None, port=None):
+    def update_worker_settings(self, protocol=None, host=None, port=None, key=None):
         self.default_protocol = protocol
         self.default_host = host
         self.default_port = port
+        self.default_key = key
 
     def perform_request(self, request_manager, endpoint, reply_callback, data, method):
         self.num_requests += 1
@@ -224,7 +221,7 @@ class TriblerRequestDispatcher(object):
 
         num_worker = len(self.request_workers)
         if num_worker < self.pool_size:
-            for _ in xrange(self.pool_size - num_worker):
+            for _ in range(self.pool_size - num_worker):
                 worker = TriblerRequestWorker()
                 self.request_workers.append(worker)
                 if self.default_protocol:
@@ -233,6 +230,8 @@ class TriblerRequestDispatcher(object):
                     worker.update_host(self.default_host)
                 if self.default_port:
                     worker.update_port(self.default_port)
+                if self.default_key:
+                    worker.update_key(self.default_key)
 
         network_reply = self.request_workers[worker_index].perform_request(endpoint, reply_callback, data, method)
         request_manager.set_reply_handle(network_reply)
@@ -297,7 +296,7 @@ class TriblerRequestManager(QObject):
     @staticmethod
     def get_message_from_error(error):
         return_error = None
-        if isinstance(error['error'], string_types):
+        if isinstance(error['error'], str):
             return_error = error['error']
         elif 'message' in error['error']:
             return_error = error['error']['message']
@@ -396,12 +395,16 @@ class TriblerRequestWorker(QNetworkAccessManager):
         self.protocol = DEFAULT_API_PROTOCOL
         self.host = DEFAULT_API_HOST
         self.port = DEFAULT_API_PORT
+        self.key = b''
 
     def update_host(self, host):
         self.host = host
 
     def update_port(self, port):
         self.port = port
+
+    def update_key(self, key):
+        self.key = key
 
     def update_protocol(self, protocol):
         self.protocol = protocol
@@ -445,6 +448,7 @@ class TriblerRequestWorker(QNetworkAccessManager):
             buf.setData(data)
         buf.open(QIODevice.ReadOnly)
         get_request = QNetworkRequest(QUrl(url))
+        get_request.setRawHeader(b'X-Api-Key', self.key)
         reply = self.sendCustomRequest(get_request, b"GET", buf)
         buf.setParent(reply)
         return reply
@@ -461,6 +465,8 @@ class TriblerRequestWorker(QNetworkAccessManager):
         buf.setData(data)
         buf.open(QIODevice.ReadOnly)
         patch_request = QNetworkRequest(QUrl(url))
+        patch_request.setHeader(QNetworkRequest.ContentTypeHeader, "application/x-www-form-urlencoded")
+        patch_request.setRawHeader(b'X-Api-Key', self.key)
         reply = self.sendCustomRequest(patch_request, b"PATCH", buf)
         buf.setParent(reply)
         return reply
@@ -475,6 +481,7 @@ class TriblerRequestWorker(QNetworkAccessManager):
         """
         request = QNetworkRequest(QUrl(url))
         request.setHeader(QNetworkRequest.ContentTypeHeader, "application/x-www-form-urlencoded")
+        request.setRawHeader(b'X-Api-Key', self.key)
         reply = self.put(request, data)
         return reply
 
@@ -490,6 +497,8 @@ class TriblerRequestWorker(QNetworkAccessManager):
         buf.setData(data)
         buf.open(QIODevice.ReadOnly)
         delete_request = QNetworkRequest(QUrl(url))
+        delete_request.setHeader(QNetworkRequest.ContentTypeHeader, "application/x-www-form-urlencoded")
+        delete_request.setRawHeader(b'X-Api-Key', self.key)
         reply = self.sendCustomRequest(delete_request, b"DELETE", buf)
         buf.setParent(reply)
         return reply
@@ -505,5 +514,6 @@ class TriblerRequestWorker(QNetworkAccessManager):
 
         request = QNetworkRequest(QUrl(url))
         request.setHeader(QNetworkRequest.ContentTypeHeader, "application/x-www-form-urlencoded")
+        request.setRawHeader(b'X-Api-Key', self.key)
         reply = self.post(request, data)
         return reply

@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 from PyQt5 import QtWidgets, uic
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import QTreeWidgetItem

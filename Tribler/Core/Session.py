@@ -3,19 +3,14 @@ A Session is a running instance of the Tribler Core and the Core's central class
 
 Author(s): Arno Bakker
 """
-from __future__ import absolute_import
-
+import asyncio
 import errno
 import logging
 import os
 import sys
+from asyncio import get_event_loop
 from threading import RLock
-
-from twisted.internet import threads
-from twisted.internet.defer import fail, inlineCallbacks, succeed
-from twisted.python.failure import Failure
-from twisted.python.log import addObserver
-from twisted.python.threadable import isInIOThread
+from traceback import print_tb
 
 import Tribler.Core.permid as permid_module
 from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
@@ -25,7 +20,7 @@ from Tribler.Core.Notifier import Notifier
 from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
 from Tribler.Core.Utilities import torrent_utils
 from Tribler.Core.Utilities.crypto_patcher import patch_crypto_be_discovery
-from Tribler.Core.exceptions import NotYetImplementedException, OperationNotEnabledByConfigurationException
+from Tribler.Core.exceptions import OperationNotEnabledByConfigurationException
 from Tribler.Core.simpledefs import (
     NTFY_DELETE, NTFY_INSERT, NTFY_STARTED, NTFY_TRIBLER, NTFY_UPDATE, STATEDIR_CHANNELS_DIR, STATEDIR_CHECKPOINT_DIR,
     STATEDIR_DB_DIR, STATEDIR_WALLET_DIR, STATE_LOAD_CHECKPOINTS, STATE_READABLE_STARTED, STATE_SHUTDOWN,
@@ -62,7 +57,7 @@ class Session(object):
         serve as startup config. Next, the config is saved in the directory
         indicated by its 'state_dir' attribute.
         """
-        addObserver(self.unhandled_error_observer)
+        get_event_loop().set_exception_handler(self.unhandled_error_observer)
 
         patch_crypto_be_discovery()
 
@@ -138,71 +133,58 @@ class Session(object):
             permid_module.save_keypair_trustchain(self.trustchain_testnet_keypair, trustchain_testnet_pairfilename)
             permid_module.save_pub_key_trustchain(self.trustchain_testnet_keypair, trustchain_testnet_pubfilename)
 
-    def unhandled_error_observer(self, event):
+    def unhandled_error_observer(self, loop, context):
         """
         This method is called when an unhandled error in Tribler is observed.
         It broadcasts the tribler_exception event.
         """
-        if event['isError']:
-            text = ""
-            if 'log_legacy' in event and 'log_text' in event:
-                text = event['log_text']
-            elif 'log_failure' in event:
-                text = str(event['log_failure'])
+        text = str(context.get('exception', '')) or context['message']
 
-            # There are some errors that we are ignoring.
-            # No route to host: this issue is non-critical since Tribler can still function when a request fails.
-            if 'socket.error' in text and '[Errno 113]' in text:
-                self._logger.error("Observed no route to host error (but ignoring)."
-                                   "This might indicate a problem with your firewall.")
-                return
+        # There are some errors that we are ignoring.
+        # No route to host: this issue is non-critical since Tribler can still function when a request fails.
+        if 'socket.error' in text and '[Errno 113]' in text:
+            self._logger.error("Observed no route to host error (but ignoring)."
+                               "This might indicate a problem with your firewall.")
+            return
 
-            # Socket block: this sometimes occurres on Windows and is non-critical.
-            if 'socket.error' in text and '[Errno %s]' % SOCKET_BLOCK_ERRORCODE in text:
-                self._logger.error("Unable to send data due to socket.error %s", SOCKET_BLOCK_ERRORCODE)
-                return
+        # Socket block: this sometimes occurres on Windows and is non-critical.
+        if 'socket.error' in text and '[Errno %s]' % SOCKET_BLOCK_ERRORCODE in text:
+            self._logger.error("Unable to send data due to socket.error %s", SOCKET_BLOCK_ERRORCODE)
+            return
 
-            if 'socket.error' in text and '[Errno 51]' in text:
-                self._logger.error("Could not send data: network is unreachable.")
-                return
+        if 'socket.error' in text and '[Errno 51]' in text:
+            self._logger.error("Could not send data: network is unreachable.")
+            return
 
-            if 'socket.error' in text and '[Errno 16]' in text:
-                self._logger.error("Could not send data: socket is busy.")
-                return
+        if 'socket.error' in text and '[Errno 16]' in text:
+            self._logger.error("Could not send data: socket is busy.")
+            return
 
-            if 'socket.error' in text and '[Errno 11001]' in text:
-                self._logger.error("Unable to perform DNS lookup.")
-                return
+        if 'socket.error' in text and '[Errno 11001]' in text:
+            self._logger.error("Unable to perform DNS lookup.")
+            return
 
-            if 'socket.error' in text and '[Errno 10053]' in text:
-                self._logger.error("An established connection was aborted by the software in your host machine.")
-                return
+        if 'socket.error' in text and '[Errno 10053]' in text:
+            self._logger.error("An established connection was aborted by the software in your host machine.")
+            return
 
-            if 'socket.error' in text and '[Errno 10054]' in text:
-                self._logger.error("Connection forcibly closed by the remote host.")
-                return
+        if 'socket.error' in text and '[Errno 10054]' in text:
+            self._logger.error("Connection forcibly closed by the remote host.")
+            return
 
-            if 'exceptions.ValueError: Invalid DNS-ID' in text:
-                self._logger.error("Invalid DNS-ID")
-                return
+        # We already have a check for invalid infohash when adding a torrent, but if somehow we get this
+        # error then we simply log and ignore it.
+        if 'exceptions.RuntimeError: invalid info-hash' in text:
+            self._logger.error("Invalid info-hash found")
+            return
 
-            if 'twisted.web._newclient.ResponseNeverReceived' in text:
-                self._logger.error("Internal Twisted response error, consider updating your Twisted version.")
-                return
+        self._logger.error('Got unhandled error: %s', text)
+        if context.get('exception', None):
+            print_tb(context['exception'].__traceback__)
 
-            if 'twisted.internet.error.AlreadyCalled' in text:
-                self._logger.error("Tried to cancel an already called event\n%s", text)
-                return
-
-            # We already have a check for invalid infohash when adding a torrent, but if somehow we get this
-            # error then we simply log and ignore it.
-            if 'exceptions.RuntimeError: invalid info-hash' in text:
-                self._logger.error("Invalid info-hash found")
-                return
-
-            if self.lm.api_manager and len(text) > 0:
-                self.lm.api_manager.root_endpoint.events_endpoint.on_tribler_exception(text)
-                self.lm.api_manager.root_endpoint.state_endpoint.on_tribler_exception(text)
+        if self.lm.api_manager and len(text) > 0:
+            self.lm.api_manager.get_endpoint('events').on_tribler_exception(text)
+            self.lm.api_manager.get_endpoint('state').on_tribler_exception(text)
 
     def start_download_from_uri(self, uri, download_config=None):
         """
@@ -269,7 +251,7 @@ class Session(object):
         """
         return self.lm.download_exists(infohash)
 
-    def remove_download(self, download, remove_content=False, remove_state=True, hidden=False):
+    async def remove_download(self, download, remove_content=False, remove_state=True):
         """
         Stops the download and removes it from the session.
 
@@ -280,8 +262,7 @@ class Session(object):
         :param remove_state: whether to delete the metadata files of the downloaded content from disk
         :param hidden: whether this torrent is added to the mypreference table and this entry should be removed
         """
-        # locking by lm
-        return self.lm.remove(download, removecontent=remove_content, removestate=remove_state, hidden=hidden)
+        return await self.lm.remove(download, removecontent=remove_content, removestate=remove_state)
 
     def remove_download_by_id(self, infohash, remove_content=False, remove_state=True):
         """
@@ -314,7 +295,7 @@ class Session(object):
         :param user_callback: a function adhering to the above spec
         :param interval: time in between the download states callback's
         """
-        self.lm.set_download_states_callback(user_callback, interval)
+        return self.lm.set_download_states_callback(user_callback, interval)
 
     #
     # Notification of events in the Session
@@ -377,7 +358,7 @@ class Session(object):
         """
         self.lm.checkpoint_downloads()
 
-    def start(self):
+    async def start(self):
         """
         Start a Tribler session by initializing the LaunchManyCore class, opening the database and running the upgrader.
         Returns a deferred that fires when the Tribler session is ready for use.
@@ -386,90 +367,66 @@ class Session(object):
         if self.config.get_http_api_enabled():
             self.lm.api_manager = RESTManager(self)
             self.readable_status = STATE_START_API
-            self.lm.api_manager.start()
+            await self.lm.api_manager.start()
 
         if self.upgrader_enabled:
             self.upgrader = TriblerUpgrader(self)
             self.readable_status = STATE_UPGRADING_READABLE
-            upgrader_deferred = self.upgrader.run()
-        else:
-            upgrader_deferred = succeed(None)
+            try:
+                await self.upgrader.run()
+            except Exception as e:
+                self._logger.error("Error in Upgrader callback chain: %s", e)
 
-        def after_upgrade(_):
-            self.upgrader = None
+        await self.lm.register(self, self.session_lock)
+        self.notifier.notify(NTFY_TRIBLER, NTFY_STARTED, None)
 
-        def log_upgrader_error(failure):
-            self._logger.error("Error in Upgrader callback chain: %s", failure)
+        if self.config.get_libtorrent_enabled():
+            self.readable_status = STATE_LOAD_CHECKPOINTS
+            self.load_checkpoint()
+        self.readable_status = STATE_READABLE_STARTED
 
-        def on_tribler_started(_):
-            self.notifier.notify(NTFY_TRIBLER, NTFY_STARTED, None)
+        # GigaChannel Manager should be started *after* resuming the downloads,
+        # because it depends on the states of torrent downloads
+        # TODO: move GigaChannel torrents into a separate session
+        if self.lm.gigachannel_manager:
+            self.lm.gigachannel_manager.start()
 
-        startup_deferred = upgrader_deferred. \
-            addCallbacks(lambda _: self.lm.register(self, self.session_lock), log_upgrader_error). \
-            addCallbacks(after_upgrade, log_upgrader_error). \
-            addCallback(on_tribler_started)
+        if not self.lm.bootstrap:
+            self.lm.start_bootstrap_download()
 
-        def load_checkpoint(_):
-            if self.config.get_libtorrent_enabled():
-                self.readable_status = STATE_LOAD_CHECKPOINTS
-                self.load_checkpoint()
-            self.readable_status = STATE_READABLE_STARTED
-
-        def start_gigachannel_manager(_):
-            # GigaChannel Manager should be started *after* resuming the downloads,
-            # because it depends on the states of torrent downloads
-            # TODO: move GigaChannel torrents into a separate session
-            if self.lm.gigachannel_manager:
-                self.lm.gigachannel_manager.start()
-
-        def start_bootstrap_download(_):
-            if not self.lm.bootstrap:
-                self.lm.start_bootstrap_download()
-
-        return startup_deferred.addCallback(load_checkpoint).addCallback(start_gigachannel_manager)\
-            .addCallback(start_bootstrap_download)
-
-    def shutdown(self):
+    async def shutdown(self):
         """
         Checkpoints the session and closes it, stopping the download engine.
         This method has to be called from the reactor thread.
         """
-        assert isInIOThread()
-
-        @inlineCallbacks
-        def on_early_shutdown_complete(_):
-            """
-            Callback that gets called when the early shutdown has been completed.
-            Continues the shutdown procedure that is dependant on the early shutdown.
-            :param _: ignored parameter of the Deferred
-            """
-            self.notify_shutdown_state("Saving configuration...")
-            self.config.write()
-
-            self.notify_shutdown_state("Checkpointing Downloads...")
-            yield self.checkpoint_downloads()
-
-            self.notify_shutdown_state("Shutting down Downloads...")
-            self.lm.shutdown_downloads()
-
-            self.notify_shutdown_state("Shutting down Network...")
-            self.lm.network_shutdown()
-
-            if self.lm.mds:
-                self.notify_shutdown_state("Shutting down Metadata Store...")
-                self.lm.mds.shutdown()
-
-            # We close the API manager as late as possible during shutdown.
-            if self.lm.api_manager is not None:
-                self.notify_shutdown_state("Shutting down API Manager...")
-                yield self.lm.api_manager.stop()
-            self.lm.api_manager = None
 
         # Indicates we are shutting down core. With this environment variable set
         # to 'TRUE', RESTManager will no longer accepts any new requests.
         os.environ['TRIBLER_SHUTTING_DOWN'] = "TRUE"
 
-        return self.lm.early_shutdown().addCallback(on_early_shutdown_complete)
+        await self.lm.early_shutdown()
+
+        self.notify_shutdown_state("Saving configuration...")
+        self.config.write()
+
+        self.notify_shutdown_state("Checkpointing Downloads...")
+        await self.checkpoint_downloads()
+
+        self.notify_shutdown_state("Shutting down Downloads...")
+        await self.lm.shutdown_downloads()
+
+        self.notify_shutdown_state("Shutting down Network...")
+        await self.lm.network_shutdown()
+
+        if self.lm.mds:
+            self.notify_shutdown_state("Shutting down Metadata Store...")
+            self.lm.mds.shutdown()
+
+        # We close the API manager as late as possible during shutdown.
+        if self.lm.api_manager is not None:
+            self.notify_shutdown_state("Shutting down API Manager...")
+            await self.lm.api_manager.stop()
+        self.lm.api_manager = None
 
     def has_shutdown(self):
         """
@@ -517,7 +474,7 @@ class Session(object):
         return self.lm.update_trackers(infohash, trackers)
 
     @staticmethod
-    def create_torrent_file(file_path_list, params=None):
+    async def create_torrent_file(file_path_list, params=None):
         """
         Creates a torrent file.
 
@@ -525,10 +482,10 @@ class Session(object):
         :param params: optional parameters for torrent file
         :return: a Deferred that fires when the torrent file has been created
         """
-        params = params or {}
-        return threads.deferToThread(torrent_utils.create_torrent_file, file_path_list, params)
+        return await asyncio.get_event_loop().run_in_executor(None, torrent_utils.create_torrent_file,
+                                                              file_path_list, params or {})
 
-    def check_torrent_health(self, infohash, timeout=20, scrape_now=False):
+    async def check_torrent_health(self, infohash, timeout=20, scrape_now=False):
         """
         Checks the given torrent's health on its trackers.
 
@@ -537,8 +494,8 @@ class Session(object):
         :param scrape_now: flag to scrape immediately
         """
         if self.lm.torrent_checker:
-            return self.lm.torrent_checker.check_torrent_health(infohash, timeout=timeout, scrape_now=scrape_now)
-        return fail(Failure(RuntimeError("Torrent checker not available")))
+            return await self.lm.torrent_checker.check_torrent_health(infohash, timeout=timeout, scrape_now=scrape_now)
+        raise RuntimeError("Torrent checker not available")
 
     def notify_shutdown_state(self, state):
         self._logger.info("Tribler shutdown state notification:%s", state)

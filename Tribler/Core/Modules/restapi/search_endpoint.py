@@ -1,16 +1,11 @@
-from __future__ import absolute_import
+import asyncio
 
-import logging
+from aiohttp import web
 
 from pony.orm import db_session
 
-from twisted.internet.threads import deferToThread
-from twisted.web import http, resource
-from twisted.web.server import NOT_DONE_YET
-
-import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.restapi.metadata_endpoint import MetadataEndpointBase
-from Tribler.Core.Utilities.unicode import recursive_unicode
+from Tribler.Core.Modules.restapi.rest_endpoint import HTTP_BAD_REQUEST, RESTResponse
 
 
 class SearchEndpoint(MetadataEndpointBase):
@@ -19,19 +14,16 @@ class SearchEndpoint(MetadataEndpointBase):
     It also fires a remote search in the IPv8 channel community.
     """
 
-    def __init__(self, session):
-        resource.Resource.__init__(self)
-        self.session = session
-        self.events_endpoint = None
-        self._logger = logging.getLogger(self.__class__.__name__)
-
-        self.putChild(b"completions", SearchCompletionsEndpoint(session))
+    def setup_routes(self):
+        self.app.add_routes([web.get('', self.search),
+                             web.get('/count', self.count),
+                             web.get('/completions', self.completions)])
 
     @staticmethod
     def get_uuid(parameters):
-        return parameters['uuid'][0] if 'uuid' in parameters else None
+        return parameters['uuid'] if 'uuid' in parameters else None
 
-    def render_GET(self, request):
+    async def search(self, request):
         """
         .. http:get:: /search?q=(string:query)
 
@@ -77,23 +69,20 @@ class SearchEndpoint(MetadataEndpointBase):
                 }
         """
         try:
-            args = recursive_unicode(request.args)
-            sanitized = self.sanitize_parameters(args)
+            sanitized = self.sanitize_parameters(request.query)
         except (ValueError, KeyError):
-            request.setResponseCode(http.BAD_REQUEST)
-            return json.twisted_dumps({"error": "Error processing request parameters"})
+            return RESTResponse({"error": "Error processing request parameters"}, status=HTTP_BAD_REQUEST)
 
         if not sanitized["query_filter"]:
-            request.setResponseCode(http.BAD_REQUEST)
-            return json.twisted_dumps({"error": "filter parameter missing"})
+            return RESTResponse({"error": "Filter parameter missing"}, status=HTTP_BAD_REQUEST)
 
-        include_total = args['include_total'][0] if 'include_total' in args else ''
-        search_uuid = SearchEndpoint.get_uuid(args)
+        include_total = request.query.get('include_total', '')
+        search_uuid = SearchEndpoint.get_uuid(request.query)
 
         # Apart from the local search results, we also do remote search to get search results from peers in the
         # Giga channel community.
         if self.session.lm.gigachannel_community and sanitized["first"] == 1:
-            raw_metadata_type = args['metadata_type'][0] if 'metadata_type' in args else ''
+            raw_metadata_type = request.query.get('metadata_type', '')
             self.session.lm.gigachannel_community.send_search_request(
                 sanitized['query_filter'],
                 metadata_type=raw_metadata_type,
@@ -111,41 +100,39 @@ class SearchEndpoint(MetadataEndpointBase):
             self.session.lm.mds._db.disconnect()
             return search_results, total
 
-        def on_search_results(search_results_tuple):
-            search_results, total = search_results_tuple
-            response_dict = {
-                "uuid": search_uuid,
-                "results": search_results,
-                "first": sanitized["first"],
-                "last": sanitized["last"],
-                "sort_by": sanitized["sort_by"],
-                "sort_desc": sanitized["sort_desc"],
-            }
-            if total is not None:
-                response_dict.update({"total": total})
+        try:
+            search_results, total = await asyncio.get_event_loop().run_in_executor(None, search_db)
+        except Exception as e:
+            self._logger.error("Error while performing DB search: %s", e)
+            return RESTResponse(status=HTTP_BAD_REQUEST)
 
-            request.write(json.twisted_dumps(response_dict))
-            request.finish()
+        response_dict = {
+            "uuid": search_uuid,
+            "results": search_results,
+            "first": sanitized["first"],
+            "last": sanitized["last"],
+            "sort_by": sanitized["sort_by"],
+            "sort_desc": sanitized["sort_desc"],
+        }
+        if total is not None:
+            response_dict.update({"total": total})
 
-        def on_error(failure):
-            self._logger.error("Error while performing DB search: %s", failure)
-            request.setResponseCode(http.BAD_REQUEST)
-            request.finish()
+        return RESTResponse(response_dict)
 
-        deferToThread(search_db).addCallbacks(on_search_results, on_error)
-        return NOT_DONE_YET
+    async def count(self, request):
+        args = request.query
+        sanitized = self.sanitize_parameters(args)
+        search_uuid = SearchEndpoint.get_uuid(args)
+        if not sanitized["query_filter"]:
+            return RESTResponse({"error": "filter parameter missing"}, status=HTTP_BAD_REQUEST)
 
+        if not sanitized["metadata_type"]:
+            return RESTResponse({"error": "Trying to query for unknown type of metadata"}, status=HTTP_BAD_REQUEST)
 
-class SearchCompletionsEndpoint(resource.Resource):
-    """
-    This class is responsible for managing requests regarding the search completions terms of a query.
-    """
+        return RESTResponse(self.get_total_count(self.session.lm.mds.TorrentMetadata,
+                                                 sanitized, search_uuid=search_uuid))
 
-    def __init__(self, session):
-        resource.Resource.__init__(self)
-        self.session = session
-
-    def render_GET(self, request):
+    async def completions(self, request):
         """
         .. http:get:: /search/completions?q=(string:query)
 
@@ -167,12 +154,11 @@ class SearchCompletionsEndpoint(resource.Resource):
                     "completions": ["pioneer one", "pioneer movie"]
                 }
         """
-        args = recursive_unicode(request.args)
+        args = request.query
         if 'q' not in args:
-            request.setResponseCode(http.BAD_REQUEST)
-            return json.twisted_dumps({"error": "query parameter missing"})
+            return RESTResponse({"error": "query parameter missing"}, status=HTTP_BAD_REQUEST)
 
-        keywords = args['q'][0].lower()
+        keywords = args['q'].lower()
         # TODO: add XXX filtering for completion terms
-        results = self.session.lm.mds.MetadataNode.get_auto_complete_terms(keywords, max_terms=5)
-        return json.twisted_dumps({"completions": results})
+        results = self.session.lm.mds.TorrentMetadata.get_auto_complete_terms(keywords, max_terms=5)
+        return RESTResponse({"completions": results})

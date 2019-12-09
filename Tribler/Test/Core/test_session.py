@@ -1,34 +1,29 @@
-from __future__ import absolute_import
-
 from binascii import unhexlify
 
 from nose.tools import raises
 
-from twisted.internet.defer import inlineCallbacks
-
 from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.Session import SOCKET_BLOCK_ERRORCODE
 from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.Utilities.utilities import succeed
 from Tribler.Core.exceptions import OperationNotEnabledByConfigurationException
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.common import TORRENT_UBUNTU_FILE
 from Tribler.Test.test_as_server import TestAsServer
-from Tribler.Test.tools import trial_timeout
+from Tribler.Test.tools import timeout
 
 
 class TestSessionAsServer(TestAsServer):
 
-    @inlineCallbacks
-    def setUp(self):
-        yield super(TestSessionAsServer, self).setUp()
+    async def setUp(self):
+        await super(TestSessionAsServer, self).setUp()
         self.called = None
 
     def mock_endpoints(self):
         self.session.lm.api_manager = MockObject()
-        self.session.lm.api_manager.stop = lambda: None
-        self.session.lm.api_manager.root_endpoint = MockObject()
-        self.session.lm.api_manager.root_endpoint.events_endpoint = MockObject()
-        self.session.lm.api_manager.root_endpoint.state_endpoint = MockObject()
+        self.session.lm.api_manager.stop = lambda: succeed(None)
+        endpoint = MockObject()
+        self.session.lm.api_manager.get_endpoint = lambda _: endpoint
 
     def test_unhandled_error_observer(self):
         """
@@ -42,12 +37,10 @@ class TestSessionAsServer(TestAsServer):
             self.assertEqual(exception_text, expected_text)
 
         on_tribler_exception.called = 0
-        self.session.lm.api_manager.root_endpoint.events_endpoint.on_tribler_exception = on_tribler_exception
-        self.session.lm.api_manager.root_endpoint.state_endpoint.on_tribler_exception = on_tribler_exception
+        self.session.lm.api_manager.get_endpoint('events').on_tribler_exception = on_tribler_exception
+        self.session.lm.api_manager.get_endpoint('state').on_tribler_exception = on_tribler_exception
         expected_text = "abcd"
-        self.session.unhandled_error_observer({'isError': True, 'log_legacy': True, 'log_text': 'abcd'})
-        expected_text = "defg"
-        self.session.unhandled_error_observer({'isError': True, 'log_failure': 'defg'})
+        self.session.unhandled_error_observer(None, {'message': 'abcd'})
 
     def test_error_observer_ignored_error(self):
         """
@@ -58,22 +51,17 @@ class TestSessionAsServer(TestAsServer):
         def on_tribler_exception(_):
             raise RuntimeError("This method cannot be called!")
 
-        self.session.lm.api_manager.root_endpoint.events_endpoint.on_tribler_exception = on_tribler_exception
-        self.session.lm.api_manager.root_endpoint.state_endpoint.on_tribler_exception = on_tribler_exception
+        self.session.lm.api_manager.get_endpoint('events').on_tribler_exception = on_tribler_exception
+        self.session.lm.api_manager.get_endpoint('state').on_tribler_exception = on_tribler_exception
 
-        self.session.unhandled_error_observer({'isError': True, 'log_failure': 'socket.error: [Errno 113]'})
-        self.session.unhandled_error_observer({'isError': True, 'log_failure': 'socket.error: [Errno 51]'})
-        self.session.unhandled_error_observer({'isError': True, 'log_failure': 'socket.error: [Errno 16]'})
-        self.session.unhandled_error_observer({'isError': True, 'log_failure': 'socket.error: [Errno 11001]'})
-        self.session.unhandled_error_observer({'isError': True, 'log_failure': 'socket.error: [Errno 10053]'})
-        self.session.unhandled_error_observer({'isError': True, 'log_failure': 'socket.error: [Errno 10054]'})
-        self.session.unhandled_error_observer({'isError': True,
-                                               'log_failure': 'socket.error: [Errno %s]' % SOCKET_BLOCK_ERRORCODE})
-        self.session.unhandled_error_observer({'isError': True, 'log_failure': 'exceptions.ValueError: Invalid DNS-ID'})
-        self.session.unhandled_error_observer({'isError': True,
-                                               'log_failure': 'twisted.web._newclient.ResponseNeverReceived'})
-        self.session.unhandled_error_observer({'isError': True,
-                                               'log_failure': 'exceptions.RuntimeError: invalid info-hash'})
+        self.session.unhandled_error_observer(None, {'message': 'socket.error: [Errno 113]'})
+        self.session.unhandled_error_observer(None, {'message': 'socket.error: [Errno 51]'})
+        self.session.unhandled_error_observer(None, {'message': 'socket.error: [Errno 16]'})
+        self.session.unhandled_error_observer(None, {'message': 'socket.error: [Errno 11001]'})
+        self.session.unhandled_error_observer(None, {'message': 'socket.error: [Errno 10053]'})
+        self.session.unhandled_error_observer(None, {'message': 'socket.error: [Errno 10054]'})
+        self.session.unhandled_error_observer(None, {'message': 'socket.error: [Errno %s]' % SOCKET_BLOCK_ERRORCODE})
+        self.session.unhandled_error_observer(None, {'message': 'exceptions.RuntimeError: invalid info-hash'})
 
     def test_load_checkpoint(self):
         self.load_checkpoint_called = False
@@ -139,8 +127,8 @@ class TestSessionWithLibTorrent(TestSessionAsServer):
         return super(TestSessionWithLibTorrent, self).temporary_directory(suffix,
                                                                           exist_ok=suffix == u'_tribler_test_session_')
 
-    @trial_timeout(10)
-    def test_remove_torrent_id(self):
+    @timeout(10)
+    async def test_remove_torrent_id(self):
         """
         Test whether removing a torrent id works.
         """
@@ -151,6 +139,5 @@ class TestSessionWithLibTorrent(TestSessionAsServer):
         download = self.session.start_download_from_tdef(torrent_def, download_config=dcfg, hidden=True)
 
         # Create a deferred which forwards the unhexlified string version of the download's infohash
-        download_started = download.get_handle().addCallback(lambda handle: unhexlify(str(handle.info_hash())))
-
-        return download_started.addCallback(self.session.remove_download_by_id)
+        handle = await download.get_handle()
+        await self.session.remove_download_by_id(unhexlify(str(handle.info_hash())))
