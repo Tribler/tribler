@@ -150,7 +150,7 @@ class LibtorrentDownloadImpl(TaskManager):
         self.future_added = Future()
         self.future_removed = Future()
         self.future_finished = Future()
-        self.future_flushed = Future()
+        self.future_metainfo = Future()
 
     def __str__(self):
         return "LibtorrentDownloadImpl <name: '%s' hops: %d checkpoint_disabled: %d>" % \
@@ -188,7 +188,7 @@ class LibtorrentDownloadImpl(TaskManager):
         self.futures_handle.append(future)
         return future
 
-    def setup(self, dcfg=None, delay=0, share_mode=False, checkpoint_disabled=False, hidden=False):
+    def setup(self, dcfg=None, hidden=False, delay=0, checkpoint_disabled=False):
         """
         Create a Download object. Used internally by Session.
         @param config DownloadConfig or None (in which case a new DownloadConfig() is created
@@ -203,9 +203,9 @@ class LibtorrentDownloadImpl(TaskManager):
         self._logger.debug("Setup: %s", hexlify(self.tdef.get_infohash()))
         self.checkpoint()
         self.register_task("wait_for_handle", self.wait_for_handle)
-        self.register_task("create_handle", self.create_handle, checkpoint_disabled, share_mode, delay=delay)
+        self.register_task("create_handle", self.create_handle, delay=delay)
 
-    async def create_handle(self, checkpoint_disabled=False, share_mode=False, upload_mode=False):
+    async def create_handle(self):
         self.ltmgr = self.session.lm.ltmgr
 
         self._logger.debug("LibtorrentDownloadImpl: network_create_engine_wrapper()")
@@ -217,12 +217,10 @@ class LibtorrentDownloadImpl(TaskManager):
                         | lt.add_torrent_params_flags_t.flag_duplicate_is_error
                         | lt.add_torrent_params_flags_t.flag_update_subscribe}
 
-        if share_mode:
+        if self.config.get_share_mode():
             atp["flags"] = atp["flags"] | lt.add_torrent_params_flags_t.flag_share_mode
-        if upload_mode:
+        if self.config.get_upload_mode():
             atp["flags"] = atp["flags"] | lt.add_torrent_params_flags_t.flag_upload_mode
-
-        self.set_checkpoint_disabled(checkpoint_disabled)
 
         resume_data = self.config.get_engineresumedata()
         if not isinstance(self.tdef, TorrentDefNoMetainfo):
@@ -443,14 +441,10 @@ class LibtorrentDownloadImpl(TaskManager):
 
         alert_types = ('tracker_reply_alert', 'tracker_error_alert', 'tracker_warning_alert', 'metadata_received_alert',
                        'file_renamed_alert', 'performance_alert', 'torrent_checked_alert', 'torrent_finished_alert',
-                       'save_resume_data_alert', 'save_resume_data_failed_alert', 'cache_flushed_alert')
+                       'save_resume_data_alert', 'save_resume_data_failed_alert')
 
         if alert_type in alert_types:
             getattr(self, 'on_' + alert_type)(alert)
-
-    def on_cache_flushed_alert(self, alert):
-        if not self.future_flushed.done():
-            self.future_flushed.set_result(None)
 
     def on_save_resume_data_alert(self, alert):
         """
@@ -475,7 +469,6 @@ class LibtorrentDownloadImpl(TaskManager):
         } if isinstance(self.tdef, TorrentDefNoMetainfo) else self.tdef.get_metainfo()
 
         self.config.set_metainfo(metainfo)
-        self.config.set_share_mode(bool(self.get_share_mode()))
         self.config.set_engineresumedata(resume_data)
 
         # Save it to file
@@ -528,7 +521,7 @@ class LibtorrentDownloadImpl(TaskManager):
         if not torrent_info:
             return
 
-        metadata = {b'info': lt.bdecode(torrent_info.metadata())}
+        metadata = {b'info': lt.bdecode(torrent_info.metadata()), b'leechers': 0, b'seeders': 0}
 
         trackers = [tracker['url'].encode('utf-8') for tracker in self.handle.trackers()]
         if trackers:
@@ -536,6 +529,12 @@ class LibtorrentDownloadImpl(TaskManager):
                 metadata[b"announce-list"] = [trackers]
             else:
                 metadata[b"announce"] = trackers[0]
+
+        for peer in self.handle.get_peer_info():
+            if peer.progress == 1:
+                metadata[b"seeders"] += 1
+            else:
+                metadata[b"leechers"] += 1
 
         try:
             self.tdef = TorrentDef.load_from_dict(metadata)
@@ -548,6 +547,9 @@ class LibtorrentDownloadImpl(TaskManager):
         except RuntimeError:
             self._logger.warning("Torrent contains no files!")
             torrent_files = []
+
+        if not self.future_metainfo.done():
+            self.future_metainfo.set_result(metadata)
 
         self.orig_files = [torrent_file.path for torrent_file in torrent_files]
         self.set_corrected_infoname()
@@ -940,8 +942,7 @@ class LibtorrentDownloadImpl(TaskManager):
 
         if self.handle is None:
             await self.cancel_pending_task("create_handle")
-            await self.register_task("create_handle", self.create_handle,
-                                     self.get_share_mode(), self.get_upload_mode())
+            await self.register_task("create_handle", self.create_handle)
         else:
             self.handle.set_upload_mode(self.get_upload_mode())
             self.handle.resume()
@@ -969,7 +970,7 @@ class LibtorrentDownloadImpl(TaskManager):
         Checkpoint this download. Returns when the checkpointing is completed.
         """
         if self._checkpoint_disabled:
-            self._logger.warning("Ignoring checkpoint() call as checkpointing is disabled for this download")
+            self._logger.debug("Ignoring checkpoint() call as checkpointing is disabled for this download")
             return succeed(None)
 
         if not self.handle or not self.handle.is_valid():
@@ -1029,13 +1030,21 @@ class LibtorrentDownloadImpl(TaskManager):
     def set_max_download_rate(self, value):
         self.handle.set_download_limit(value * 1024)
 
-    @check_handle()
     def get_share_mode(self):
-        return self.handle.status().share_mode
+        return self.config.get_share_mode()
 
     @require_handle
     def set_share_mode(self, share_mode):
+        self.config.set_share_mode(share_mode)
         self.handle.set_share_mode(share_mode)
+
+    def get_upload_mode(self):
+        return self.config.get_upload_mode()
+
+    @require_handle
+    def set_upload_mode(self, upload_mode):
+        self.config.set_upload_mode(upload_mode)
+        self.handle.set_upload_mode(upload_mode)
 
     @check_handle()
     def get_upload_mode(self):

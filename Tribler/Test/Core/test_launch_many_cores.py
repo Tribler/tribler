@@ -73,7 +73,7 @@ class TestLaunchManyCore(TriblerCoreTest):
     def test_resume_download(self):
         good = []
 
-        def mock_add(tdef, dscfg, setupDelay=None):
+        def mock_add(tdef, dscfg, delay=None):
             good.append(1)
         self.lm.add = mock_add
 
@@ -161,9 +161,9 @@ class TestLaunchManyCore(TriblerCoreTest):
         """
         Test whether we are resuming downloads after loading checkpoint
         """
-        def mocked_resume_download(filename, setupDelay=3):
+        def mocked_resume_download(filename, delay=3):
             self.assertTrue(filename.endswith('abcd.conf'))
-            self.assertEqual(setupDelay, 0)
+            self.assertEqual(delay, 0)
             mocked_resume_download.called = True
 
         mocked_resume_download.called = False

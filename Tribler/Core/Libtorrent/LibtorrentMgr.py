@@ -8,8 +8,7 @@ import logging
 import os
 import tempfile
 import time
-from asyncio import Future, ensure_future
-from binascii import unhexlify
+from asyncio import CancelledError, TimeoutError, shield, wait_for
 from distutils.version import LooseVersion
 from shutil import rmtree
 from urllib.request import url2pathname
@@ -22,7 +21,6 @@ from libtorrent import bdecode, torrent_handle
 from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.Modules.dht_health_manager import DHTHealthManager
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
-from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
 from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.Utilities.utilities import has_bep33_support, parse_magnetlink, succeed
 from Tribler.Core.simpledefs import NTFY_INSERT, NTFY_REACHABLE
@@ -49,9 +47,8 @@ class LibtorrentMgr(TaskManager):
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.tribler_session = tribler_session
-        self.ltsettings = {} # Stores a copy of the settings dict for each libtorrent session
+        self.ltsettings = {}  # Stores a copy of the settings dict for each libtorrent session
         self.ltsessions = {}
-        self.ltsession_metainfo = None  # We have a dedicated libtorrent session for metainfo/DHT health lookups
         self.dht_health_manager = None
 
         self.notifier = tribler_session.notifier
@@ -64,8 +61,10 @@ class LibtorrentMgr(TaskManager):
         self.upnp_mapping_dict = {}
 
         self.metadata_tmpdir = None
-        self.metainfo_requests = {}  # Dictionary that maps infohashes to a list of metainfo deferred instances
-        self.metainfo_cache = {}     # Dictionary that maps infohashes to cached metainfo items
+        # Dictionary that maps infohashes to download instances. These include only downloads that have
+        # been made specifically for fetching metainfo, and will be removed afterwards.
+        self.metainfo_requests = {}
+        self.metainfo_cache = {}  # Dictionary that maps infohashes to cached metainfo items
 
         self.default_alert_mask = lt.alert.category_t.error_notification | lt.alert.category_t.status_notification | \
                                   lt.alert.category_t.storage_notification | lt.alert.category_t.performance_warning | \
@@ -79,12 +78,12 @@ class LibtorrentMgr(TaskManager):
     def initialize(self):
         # Start upnp
         self.get_session().start_upnp()
-        self.ltsession_metainfo = self.create_session(hops=0, store_listen_port=False)
 
         if has_bep33_support():
             # Also listen to DHT log notifications - we need the dht_pkt_alert and extract the BEP33 bloom filters
-            self.ltsession_metainfo.set_alert_mask(self.default_alert_mask | lt.alert.category_t.dht_log_notification)
-            self.dht_health_manager = DHTHealthManager(self.ltsession_metainfo)
+            dht_health_session = self.get_session(self.tribler_session.config.get_default_number_hops())
+            dht_health_session.set_alert_mask(self.default_alert_mask | lt.alert.category_t.dht_log_notification)
+            self.dht_health_manager = DHTHealthManager(dht_health_session)
 
         # Make temporary directory for metadata collecting through DHT
         self.metadata_tmpdir = tempfile.mkdtemp(suffix=u'tribler_metainfo_tmpdir')
@@ -124,7 +123,6 @@ class LibtorrentMgr(TaskManager):
         for ltsession in self.ltsessions.values():
             del ltsession
         self.ltsessions = None
-        self.ltsession_metainfo = None
 
         # Remove metadata temporary directory
         rmtree(self.metadata_tmpdir)
@@ -295,7 +293,7 @@ class LibtorrentMgr(TaskManager):
         libtorrent_rate = self.get_session(hops).download_rate_limit()
         return 0 if libtorrent_rate == -1 else (-1 if libtorrent_rate == 1 else libtorrent_rate / 1024)
 
-    def add_torrent(self, torrentdl, atp):
+    async def add_torrent(self, torrentdl, atp):
         # If we are collecting the torrent for this infohash, abort this first.
         ltsession = self.get_session(atp.pop('hops', 0))
 
@@ -306,12 +304,17 @@ class LibtorrentMgr(TaskManager):
         else:
             raise ValueError('No ti or url key in add_torrent_params')
 
+        if infohash in self.metainfo_requests:
+            self._logger.info("Cancelling metainfo request. Infohash:%s", infohash)
+            metainfo_dl, _ = self.metainfo_requests[infohash]
+            await metainfo_dl.stop(removestate=True, removecontent=True)
+
         # Check if we added this torrent before
         known = {str(h.info_hash()): h for h in ltsession.get_torrents()}
         existing_handle = known.get(infohash)
         if existing_handle:
             self.torrents[infohash] = (torrentdl, ltsession)
-            return succeed(existing_handle)
+            return existing_handle
 
         if infohash in self.torrents:
             self._logger.info("Torrent already exists in the downloads. Infohash:%s", infohash)
@@ -320,7 +323,7 @@ class LibtorrentMgr(TaskManager):
         ltsession.async_add_torrent(encode_atp(atp))
         self.torrents[infohash] = (torrentdl, ltsession)
         self._logger.debug("Adding torrent %s", infohash)
-        return torrentdl.future_added
+        return await torrentdl.future_added
 
     def remove_torrent(self, torrentdl, removecontent=False):
         """
@@ -418,114 +421,64 @@ class LibtorrentMgr(TaskManager):
             if self.session_stats_callback:
                 self.session_stats_callback(alert)
 
+        elif alert_type == "dht_pkt_alert":
+            # We received a raw DHT message - decode it and check whether it is a BEP33 message.
+            decoded = bdecode(alert.pkt_buf)
+            if decoded and 'r' in decoded:
+                if 'BFsd' in decoded['r'] and 'BFpe' in decoded['r']:
+                    self.dht_health_manager.received_bloomfilters(decoded['r']['id'],
+                                                                  bytearray(decoded['r']['BFsd']),
+                                                                  bytearray(decoded['r']['BFpe']))
+
         if self.alert_callback:
             self.alert_callback(alert)
 
-    def get_metainfo(self, infohash, timeout=30):
+    async def get_metainfo(self, infohash, timeout=30, hops=None):
         """
         Lookup metainfo for a given infohash. The mechanism works by joining the swarm for the infohash connecting
         to a few peers, and downloading the metadata for the torrent.
         :param infohash: The (binary) infohash to lookup metainfo for.
         :param timeout: A timeout in seconds.
-        :return: A deferred that fires with the queried metainfo, or None if the lookup failed.
+        :return: The metainfo
         """
         infohash_hex = hexlify(infohash)
-
-        # Check if we already cached the results, if so, return them
         if infohash in self.metainfo_cache:
-            return succeed(self.metainfo_cache[infohash]['meta_info'])
-        elif infohash not in self.metainfo_requests:
-            future_metainfo = Future()
+            self._logger.info('Returning metainfo from cache for %s', infohash_hex)
+            return self.metainfo_cache[infohash]['meta_info']
 
-            # Are we already downloading the torrent? If so, use that handle.
-            # Note that if the download is already in credit mining mode and has not started then it will not
-            # have metadata.
-            if infohash_hex in self.torrents and self.torrents[infohash_hex][0].handle \
-                    and self.torrents[infohash_hex][0].handle.has_metadata():
-                handle = self.torrents[infohash_hex][0].handle
-                self.metainfo_requests[infohash] = (handle, [future_metainfo])
-                self.check_metainfo(infohash_hex)
-                return future_metainfo
-
-            # Flags = 4 (upload mode), should prevent libtorrent from creating files
-            atp = {
-                'save_path': self.metadata_tmpdir,
-                'flags': (lt.add_torrent_params_flags_t.flag_upload_mode),
-                'info_hash': lt.sha1_hash(infohash).to_bytes()
-            }
-
+        self._logger.info('Trying to fetch metainfo for %s', infohash_hex)
+        if infohash in self.metainfo_requests:
+            download = self.metainfo_requests[infohash][0]
+            self.metainfo_requests[infohash][1] += 1
+        elif infohash_hex in self.torrents:
+            download = self.torrents[infohash_hex][0]
+        else:
+            tdef = TorrentDefNoMetainfo(infohash, 'metainfo request')
+            dcfg = DownloadConfig()
+            dcfg.set_hops(self.tribler_session.config.get_default_number_hops() if hops is None else hops)
+            dcfg.set_upload_mode(True)  # Upload mode should prevent libtorrent from creating files
+            dcfg.set_dest_dir(self.metadata_tmpdir)
             try:
-                handle = self.ltsession_metainfo.add_torrent(encode_atp(atp))
-            except TypeError as e:
-                self._logger.warning("Failed to add torrent with infohash %s, "
-                                     "attempting to use it as it is and hoping for the best", infohash_hex)
-                self._logger.warning("Error was: %s", e)
-                atp['info_hash'] = infohash
-                handle = self.ltsession_metainfo.add_torrent(encode_atp(atp))
+                download = self.tribler_session.lm.add(tdef, dcfg, hidden=True, checkpoint_disabled=True)
+            except TypeError:
+                return
+            self.metainfo_requests[infohash] = [download, 1]
 
-            self.metainfo_requests[infohash] = (handle, [future_metainfo])
+        try:
+            metainfo = await wait_for(shield(download.future_metainfo), timeout)
+            self._logger.info('Successfully retrieved metainfo for %s', infohash_hex)
+            self.metainfo_cache[infohash] = {'time': time.time(), 'meta_info': metainfo}
+        except (CancelledError, TimeoutError):
+            metainfo = None
+            self._logger.info('Failed to retrieve metainfo for %s', infohash_hex)
 
-            # if the handle is valid and already has metadata which is the case when torrent already exists in
-            # session then metadata_received_alert is not fired so we call self.check_metainfo() directly here
-            if handle.is_valid() and handle.has_metadata():
-                self.check_metainfo(infohash_hex)
-                return future_metainfo
+        if infohash in self.metainfo_requests:
+            self.metainfo_requests[infohash][1] -= 1
+            if self.metainfo_requests[infohash][1] <= 0:
+                self.metainfo_requests.pop(infohash)
+                await self.tribler_session.remove_download(download, remove_content=True, remove_state=True)
 
-            self.register_anonymous_task("schedule_check_metainfo", self.check_metainfo, infohash_hex, delay=timeout)
-            return future_metainfo
-        else:
-            # We already have a pending metainfo request for this infohash, add a new Future and return it
-            future = Future()
-            self.metainfo_requests[infohash][1].append(future)
-            return future
-
-    def check_metainfo(self, infohash_hex):
-        """
-        Check whether we have received metainfo for a given infohash.
-        :param infohash_hex: The infohash of the download to lookup, in hex format (because libtorrent gives us these
-                             infohashes in hex)
-        """
-        infohash = unhexlify(infohash_hex)
-        if infohash not in self.metainfo_requests:
-            return
-
-        handle, futures_metainfo = self.metainfo_requests.pop(infohash)
-        if not handle.is_valid() or not handle.has_metadata():
-            self._logger.warning("Handle (valid:%s, metadata:%s) - returning None as metainfo lookup result",
-                                 handle.is_valid(), handle.has_metadata())
-            for future_metainfo in futures_metainfo:
-                future_metainfo.set_result(None)
-            return
-
-        # There seems to be metainfo
-        metainfo = {b"info": lt.bdecode(get_info_from_handle(handle).metadata())}
-        trackers = [tracker.url.encode('utf-8') for tracker in get_info_from_handle(handle).trackers()]
-        peers = []
-        leechers = 0
-        seeders = 0
-        for peer in handle.get_peer_info():
-            peers.append(peer.ip)
-            if peer.progress == 1:
-                seeders += 1
-            else:
-                leechers += 1
-
-        if trackers:
-            if len(trackers) > 1:
-                metainfo[b"announce-list"] = [trackers]
-            metainfo[b"announce"] = trackers[0]
-        else:
-            metainfo[b"nodes"] = []
-
-        metainfo[b"leechers"] = leechers
-        metainfo[b"seeders"] = seeders
-
-        self.metainfo_cache[infohash] = {'time': time.time(), 'meta_info': metainfo}
-        for future_metainfo in futures_metainfo:
-            future_metainfo.set_result(metainfo)
-
-        # Remove the torrent from the metainfo session
-        self.ltsession_metainfo.remove_torrent(handle, 1)
+        return metainfo
 
     def _task_cleanup_metainfo_cache(self):
         oldest_time = time.time() - METAINFO_CACHE_PERIOD
@@ -549,21 +502,6 @@ class LibtorrentMgr(TaskManager):
             if ltsession:
                 for alert in ltsession.pop_alerts():
                     self.process_alert(alert, hops=hops)
-
-        # We have a separate session for metainfo requests.
-        # For this session we are only interested in the metadata_received_alert.
-        if self.ltsession_metainfo:
-            for alert in self.ltsession_metainfo.pop_alerts():
-                if alert.__class__.__name__ == "metadata_received_alert":
-                    self.check_metainfo(str(alert.handle.info_hash()))
-                elif alert.__class__.__name__ == "dht_pkt_alert":
-                    # We received a raw DHT message - decode it and check whether it is a BEP33 message.
-                    decoded = bdecode(alert.pkt_buf)
-                    if decoded and 'r' in decoded:
-                        if 'BFsd' in decoded['r'] and 'BFpe' in decoded['r']:
-                            self.dht_health_manager.received_bloomfilters(decoded['r']['id'],
-                                                                          bytearray(decoded['r']['BFsd']),
-                                                                          bytearray(decoded['r']['BFpe']))
 
     async def _check_reachability(self):
         while not self.get_session() and self.get_session().status().has_incoming_connections:

@@ -144,6 +144,12 @@ class DownloadConfig(object):
     def get_share_mode(self):
         return self.config['download_defaults']['share_mode']
 
+    def set_upload_mode(self, value):
+        self.config['download_defaults']['upload_mode'] = value
+
+    def get_upload_mode(self):
+        return self.config['download_defaults']['upload_mode']
+
     def set_time_added(self, value):
         self.config['download_defaults']['time_added'] = value
 
