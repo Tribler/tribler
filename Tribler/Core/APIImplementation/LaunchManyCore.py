@@ -194,6 +194,7 @@ class TriblerLaunchMany(TaskManager):
                                                   ipv8=self.ipv8)
             self.ipv8.overlays.append(self.noodle_community)
             self.ipv8.strategies.append((RandomWalk(self.noodle_community), -1))
+            self.noodle_community.start_making_random_transfers()
 
         # DHT Community
         if self.session.config.get_dht_enabled():
