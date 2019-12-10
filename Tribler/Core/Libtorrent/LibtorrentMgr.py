@@ -206,6 +206,9 @@ class LibtorrentMgr(TaskManager):
             if LooseVersion(self.get_libtorrent_version()) >= LooseVersion("1.1.0"):
                 settings["listen_interfaces"] = "0.0.0.0:%d" % self.tribler_session.config.get_anon_listen_port()
 
+            # By default block all IPs except 1.1.1.1 (which is used to ensure libtorrent makes a connection to us)
+            self.update_ip_filter(ltsession, ['1.1.1.1'])
+
         self.set_session_settings(ltsession, settings)
         ltsession.set_alert_mask(self.default_alert_mask)
 
@@ -461,6 +464,14 @@ class LibtorrentMgr(TaskManager):
 
         if self.alert_callback:
             self.alert_callback(alert)
+
+    def update_ip_filter(self, lt_session, ip_addresses):
+        self._logger.debug('Updating IP filter %s', ip_addresses)
+        ip_filter = lt.ip_filter()
+        ip_filter.add_rule('0.0.0.0', '255.255.255.255', 1)
+        for ip in ip_addresses:
+            ip_filter.add_rule(ip, ip, 0)
+        lt_session.set_ip_filter(ip_filter)
 
     async def get_metainfo(self, infohash, timeout=30, hops=None):
         """
