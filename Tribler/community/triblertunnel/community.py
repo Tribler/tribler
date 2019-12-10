@@ -481,6 +481,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                 info_hash = self.get_lookup_info_hash(real_info_hash)
                 hops[info_hash] = hop_count
                 new_states[info_hash] = ds.get_status()
+
                 if download.get_state().get_status() in [DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_METADATA]:
                     active_downloads_per_hop[hop_count] = active_downloads_per_hop.get(hop_count, 0) + 1
 
@@ -527,6 +528,20 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             dl.add_peer(address)
         else:
             self.logger.error('Could not find download for adding hidden services peer %s:%d!', *address)
+
+    def on_rendezvous_established(self, source_address, data, circuit_id):
+        super(TriblerTunnelCommunity, self).on_rendezvous_established(source_address, data, circuit_id)
+
+        circuit = self.circuits.get(circuit_id)
+        if circuit:
+            self.update_ip_filter(circuit.info_hash)
+
+    def update_ip_filter(self, info_hash):
+        download = self.get_download(info_hash)
+        lt_session = self.tribler_session.ltmgr.get_session(download.config.get_hops())
+        ip_addresses = [self.circuit_id_to_ip(c.circuit_id)
+                        for c in self.find_circuits(ctype=CIRCUIT_TYPE_RP_SEEDER)] + ['1.1.1.1']
+        self.tribler_session.ltmgr.update_ip_filter(lt_session, ip_addresses)
 
     def get_download(self, lookup_info_hash):
         if not self.tribler_session:

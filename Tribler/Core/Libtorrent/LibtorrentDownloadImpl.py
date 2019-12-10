@@ -277,6 +277,9 @@ class LibtorrentDownloadImpl(TaskManager):
             if self.config.get_bootstrap_download():
                 self.handle.set_download_limit(self.session.config.get_bootstrap_max_download_rate())
 
+            # By default don't apply the IP filter
+            self.apply_ip_filter(False)
+
             self.checkpoint()
 
     def get_anon_mode(self):
@@ -437,10 +440,15 @@ class LibtorrentDownloadImpl(TaskManager):
 
         alert_types = ('tracker_reply_alert', 'tracker_error_alert', 'tracker_warning_alert', 'metadata_received_alert',
                        'file_renamed_alert', 'performance_alert', 'torrent_checked_alert', 'torrent_finished_alert',
-                       'save_resume_data_alert', 'save_resume_data_failed_alert')
+                       'save_resume_data_alert', 'save_resume_data_failed_alert', 'state_changed_alert')
 
         if alert_type in alert_types:
             getattr(self, 'on_' + alert_type)(alert)
+
+    def on_state_changed_alert(self, alert):
+        enable = alert.state == lt.torrent_status.seeding and self.config.get_hops() > 0
+        self._logger.debug('Setting IP filter for %s to %s', hexlify(self.tdef.get_infohash()), enable)
+        self.apply_ip_filter(enable)
 
     def on_save_resume_data_alert(self, alert):
         """
@@ -1026,6 +1034,10 @@ class LibtorrentDownloadImpl(TaskManager):
     @require_handle
     def set_max_download_rate(self, value):
         self.handle.set_download_limit(value * 1024)
+
+    @require_handle
+    def apply_ip_filter(self, enable):
+        self.handle.apply_ip_filter(enable)
 
     def get_share_mode(self):
         return self.config.get_share_mode()
