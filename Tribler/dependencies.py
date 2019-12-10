@@ -9,7 +9,7 @@ import sys
 dependencies = [
     {'module': 'PyQt5', 'install_type': 'pip3', 'package': 'PyQt5', 'optional': False, 'scope': 'gui'},
     {'module': 'aiohttp', 'install_type': 'pip3', 'package': 'aiohttp', 'optional': False, 'scope': 'core'},
-    {'module': 'aiohttp_apispec', 'install_type': 'pip3', 'package': 'aiohttp', 'optional': False, 'scope': 'core'},
+    {'module': 'aiohttp_apispec', 'install_type': 'pip3', 'package': 'aiohttp_apispec', 'optional': False, 'scope': 'core'},
     {'module': 'libtorrent', 'install_type': 'apt', 'package': 'python-libtorrent', 'optional': False,
      'scope': 'core'},
     {'module': 'cryptography', 'install_type': 'pip3', 'package': 'cryptograpy>=2.3', 'optional': False,
