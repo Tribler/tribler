@@ -28,6 +28,7 @@ class Socks5Connection(Protocol):
     def __init__(self, socksserver):
         self._logger = logging.getLogger(self.__class__.__name__)
         self.socksserver = socksserver
+        self.transport = None
 
         self._udp_socket = None
         self.state = ConnectionState.BEFORE_METHOD_REQUEST
@@ -201,4 +202,5 @@ class Socks5Connection(Protocol):
             self._udp_socket.close()
             self._udp_socket = None
 
-        self.transport.close()
+        if self.transport:
+            self.transport.close()
