@@ -1,12 +1,12 @@
 import os
 
-from Tribler.Core.Config.download_config import DownloadConfig, get_default_dest_dir
-from Tribler.Core.simpledefs import DLMODE_VOD
-from Tribler.Test.Core.base_test import TriblerCoreTest
-
 from configobj import ConfigObjError
 
 from nose.tools import raises
+
+from Tribler.Core.Config.download_config import DownloadConfig, get_default_dest_dir
+from Tribler.Core.simpledefs import DLMODE_VOD
+from Tribler.Test.Core.base_test import TriblerCoreTest
 
 
 class TestConfigParser(TriblerCoreTest):

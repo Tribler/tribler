@@ -5,6 +5,8 @@ import logging
 import os
 from hashlib import sha1
 
+import aiohttp
+
 import libtorrent as lt
 from libtorrent import bencode
 
@@ -13,8 +15,6 @@ from Tribler.Core.Utilities.torrent_utils import create_torrent_file
 from Tribler.Core.Utilities.unicode import ensure_unicode
 from Tribler.Core.Utilities.utilities import bdecode_compat, is_valid_url, parse_magnetlink
 from Tribler.Core.simpledefs import INFOHASH_LENGTH
-
-import aiohttp
 
 
 def escape_as_utf8(string, encoding='utf8'):

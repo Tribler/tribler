@@ -60,3 +60,4 @@ class Bootstrap(object):
                         return
                     for node in nodes:
                         self.bootstrap_nodes[hexlify(node.mid)] = hexlify(node.public_key.key_to_bin())
+        return self.bootstrap_nodes

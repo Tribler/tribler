@@ -24,6 +24,8 @@ from ipv8.peerdiscovery.community import DiscoveryCommunity, PeriodicSimilarity
 from ipv8.peerdiscovery.discovery import EdgeWalk, RandomWalk
 from ipv8.taskmanager import TaskManager
 
+from ipv8_service import IPv8
+
 from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.Modules.gigachannel_manager import GigaChannelManager
@@ -52,8 +54,6 @@ from Tribler.Core.simpledefs import (
     STATE_START_TORRENT_CHECKER,
     STATE_START_WATCH_FOLDER,
 )
-
-from ipv8_service import IPv8
 
 
 class TriblerLaunchMany(TaskManager):

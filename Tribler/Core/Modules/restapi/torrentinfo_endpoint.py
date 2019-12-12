@@ -3,6 +3,8 @@ import json
 from copy import deepcopy
 from urllib.request import url2pathname
 
+from aiohttp import ClientResponseError, ClientSession, ServerConnectionError, web
+
 from libtorrent import bencode
 
 import Tribler.Core.Utilities.json_util as json
@@ -16,8 +18,6 @@ from Tribler.Core.Modules.restapi.rest_endpoint import (
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.unicode import hexlify, recursive_unicode
 from Tribler.Core.Utilities.utilities import bdecode_compat, parse_magnetlink
-
-from aiohttp import ClientResponseError, ClientSession, ServerConnectionError, web
 
 
 class TorrentInfoEndpoint(RESTEndpoint):

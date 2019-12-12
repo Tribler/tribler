@@ -1,11 +1,11 @@
 import asyncio
 
+from aiohttp import web
+
 from pony.orm import db_session
 
 from Tribler.Core.Modules.restapi.metadata_endpoint import MetadataEndpointBase
 from Tribler.Core.Modules.restapi.rest_endpoint import HTTP_BAD_REQUEST, RESTResponse
-
-from aiohttp import web
 
 
 class SearchEndpoint(MetadataEndpointBase):

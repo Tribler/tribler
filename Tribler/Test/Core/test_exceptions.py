@@ -1,7 +1,12 @@
 from nose.tools import raises
 
-from Tribler.Core.exceptions import DuplicateDownloadException, NotYetImplementedException, \
-    OperationNotEnabledByConfigurationException, OperationNotPossibleAtRuntimeException, TriblerException
+from Tribler.Core.exceptions import (
+    DuplicateDownloadException,
+    NotYetImplementedException,
+    OperationNotEnabledByConfigurationException,
+    OperationNotPossibleAtRuntimeException,
+    TriblerException,
+)
 from Tribler.Test.Core.base_test import TriblerCoreTest
 
 

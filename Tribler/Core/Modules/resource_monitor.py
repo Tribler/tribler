@@ -4,9 +4,9 @@ import time
 
 from ipv8.taskmanager import TaskManager
 
-from Tribler.Core.simpledefs import SIGNAL_LOW_SPACE, SIGNAL_RESOURCE_CHECK
-
 import psutil
+
+from Tribler.Core.simpledefs import SIGNAL_LOW_SPACE, SIGNAL_RESOURCE_CHECK
 
 # Attempt to import yappi
 try:

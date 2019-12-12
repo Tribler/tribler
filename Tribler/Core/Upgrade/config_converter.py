@@ -5,6 +5,8 @@ import os
 from configparser import DuplicateSectionError, MissingSectionHeaderError, NoSectionError, RawConfigParser
 from glob import iglob
 
+from configobj import ConfigObj
+
 import libtorrent as lt
 
 from Tribler.Core.Config.tribler_config import TriblerConfig
@@ -12,8 +14,6 @@ from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.Utilities.unicode import recursive_ungarble_metainfo
 from Tribler.Core.exceptions import InvalidConfigException
 from Tribler.Core.simpledefs import STATEDIR_CHECKPOINT_DIR
-
-from configobj import ConfigObj
 
 logger = logging.getLogger(__name__)
 

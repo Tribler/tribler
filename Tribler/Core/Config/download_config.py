@@ -1,17 +1,17 @@
 import base64
 import os
 
+from configobj import ConfigObj
+
 import libtorrent as lt
+
+from validate import Validator
 
 from Tribler.Core.Utilities.install_dir import get_lib_path
 from Tribler.Core.Utilities.utilities import bdecode_compat
 from Tribler.Core.exceptions import InvalidConfigException
 from Tribler.Core.osutils import get_home_dir
 from Tribler.Core.simpledefs import DLMODE_NORMAL, DLMODE_VOD
-
-from configobj import ConfigObj
-
-from validate import Validator
 
 SPEC_FILENAME = 'download_config.spec'
 CONFIG_SPEC_PATH = os.path.join(get_lib_path(), 'Core', 'Config', SPEC_FILENAME)

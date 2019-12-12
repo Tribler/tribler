@@ -1,9 +1,9 @@
 from asyncio import gather
 
+from aiohttp import web
+
 from Tribler.Core.CreditMining.CreditMiningManager import CreditMiningManager
 from Tribler.Core.Modules.restapi.rest_endpoint import RESTEndpoint, RESTResponse
-
-from aiohttp import web
 
 
 class SettingsEndpoint(RESTEndpoint):

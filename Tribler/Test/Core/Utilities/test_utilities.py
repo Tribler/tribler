@@ -1,3 +1,5 @@
+from aiohttp import ClientSession, web
+
 from Tribler.Core.Utilities.utilities import (
     is_channel_public_key,
     is_infohash,
@@ -7,8 +9,6 @@ from Tribler.Core.Utilities.utilities import (
 )
 from Tribler.Test.test_as_server import AbstractServer
 from Tribler.Test.tools import timeout
-
-from aiohttp import ClientSession, web
 
 
 class TestMakeTorrent(AbstractServer):

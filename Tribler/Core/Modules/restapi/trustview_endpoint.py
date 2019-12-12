@@ -3,15 +3,15 @@ import math
 from binascii import unhexlify
 from distutils.version import LooseVersion
 
+from aiohttp import web
+
+import networkx as nx
+
 from Tribler.Core.Modules.TrustCalculation.graph_positioning import GraphPositioning as gpos
 from Tribler.Core.Modules.restapi.rest_endpoint import RESTEndpoint, RESTResponse
 from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.exceptions import TrustGraphException
 from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD
-
-from aiohttp import web
-
-import networkx as nx
 
 MAX_PEERS = 500
 MAX_TRANSACTIONS = 2500

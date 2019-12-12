@@ -7,16 +7,16 @@ import time
 from abc import ABCMeta, abstractmethod
 from asyncio import DatagramProtocol, Future, TimeoutError, ensure_future, get_event_loop
 
+from aiohttp import ClientResponseError, ClientSession, ClientTimeout
+
+from async_timeout import timeout
+
 from ipv8.messaging.deprecated.encoding import add_url_params
 from ipv8.taskmanager import TaskManager
 
 from Tribler.Core.Utilities.tracker_utils import parse_tracker_url
 from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.Utilities.utilities import bdecode_compat
-
-from aiohttp import ClientResponseError, ClientSession, ClientTimeout
-
-from async_timeout import timeout
 
 # Although these are the actions for UDP trackers, they can still be used as
 # identifiers.

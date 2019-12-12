@@ -3,6 +3,8 @@ from binascii import unhexlify
 from urllib.parse import unquote_plus
 from urllib.request import url2pathname
 
+from aiohttp import web
+
 from libtorrent import bencode, create_torrent
 
 from pony.orm import db_session
@@ -24,8 +26,6 @@ from Tribler.Core.exceptions import InvalidSignatureException
 from Tribler.Core.simpledefs import DLMODE_VOD, DOWNLOAD, UPLOAD, dlstatus_strings
 from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import CIRCUIT_ID_PORT
 from Tribler.util import cast_to_unicode_utf8
-
-from aiohttp import web
 
 
 def _safe_extended_peer_info(ext_peer_info):

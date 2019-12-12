@@ -4,6 +4,10 @@ from PyQt5 import QtCore
 from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import QWidget
 
+import numpy as np
+
+import pyqtgraph as pg
+
 from TriblerGUI.defs import (
     COLOR_DEFAULT,
     COLOR_GREEN,
@@ -17,10 +21,6 @@ from TriblerGUI.defs import (
 )
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.utilities import format_size, html_label
-
-import numpy as np
-
-import pyqtgraph as pg
 
 
 class TrustGraph(pg.GraphItem):

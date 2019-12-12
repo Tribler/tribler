@@ -4,6 +4,10 @@ Configuration object for the Tribler Core.
 import logging
 import os
 
+from configobj import ConfigObj
+
+from validate import Validator
+
 from Tribler.Core.Config.download_config import get_default_dest_dir
 from Tribler.Core.Utilities.install_dir import get_lib_path
 from Tribler.Core.Utilities.network_utils import get_random_port
@@ -11,10 +15,6 @@ from Tribler.Core.Utilities.unicode import ensure_unicode
 from Tribler.Core.exceptions import InvalidConfigException
 from Tribler.Core.osutils import get_appstate_dir
 from Tribler.Core.version import version_id
-
-from configobj import ConfigObj
-
-from validate import Validator
 
 CONFIG_FILENAME = 'triblerd.conf'
 SPEC_FILENAME = 'tribler_config.spec'

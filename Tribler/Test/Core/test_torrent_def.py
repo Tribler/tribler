@@ -3,17 +3,17 @@ import os
 import shutil
 from tempfile import mkdtemp
 
+from aiohttp import ClientResponseError, web
+
 from libtorrent import bencode
+
+from nose.tools import raises
 
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.utilities import bdecode_compat
 from Tribler.Test.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE
 from Tribler.Test.test_as_server import BaseTestCase
 from Tribler.Test.tools import timeout
-
-from aiohttp import ClientResponseError, web
-
-from nose.tools import raises
 
 TRACKER = 'http://www.tribler.org/announce'
 VIDEO_FILE_NAME = "video.avi"
