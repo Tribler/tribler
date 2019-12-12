@@ -7,17 +7,16 @@ import time
 from abc import ABCMeta, abstractmethod
 from asyncio import DatagramProtocol, Future, TimeoutError, ensure_future, get_event_loop
 
-from aiohttp import ClientResponseError, ClientSession, ClientTimeout
-
-from async_timeout import timeout
-
 from ipv8.messaging.deprecated.encoding import add_url_params
 from ipv8.taskmanager import TaskManager
 
-from libtorrent import bdecode
-
 from Tribler.Core.Utilities.tracker_utils import parse_tracker_url
 from Tribler.Core.Utilities.unicode import hexlify
+from Tribler.Core.Utilities.utilities import bdecode_compat
+
+from aiohttp import ClientResponseError, ClientSession, ClientTimeout
+
+from async_timeout import timeout
 
 # Although these are the actions for UDP trackers, they can still be used as
 # identifiers.
@@ -108,7 +107,6 @@ class TrackerSession(TaskManager):
     @abstractmethod
     async def connect_to_tracker(self):
         """Does some work when a connection has been established."""
-        pass
 
 
 class HttpTrackerSession(TrackerSession):
@@ -157,7 +155,7 @@ class HttpTrackerSession(TrackerSession):
         if body is None:
             self.failed(msg="no response body")
 
-        response_dict = bdecode(body)
+        response_dict = bdecode_compat(body)
         if not response_dict:
             self.failed(msg="no valid response")
 
@@ -166,8 +164,11 @@ class HttpTrackerSession(TrackerSession):
         unprocessed_infohash_list = self.infohash_list[:]
         if b'files' in response_dict and isinstance(response_dict[b'files'], dict):
             for infohash in response_dict[b'files']:
-                complete = response_dict[b'files'][infohash].get(b'complete', 0)
-                incomplete = response_dict[b'files'][infohash].get(b'incomplete', 0)
+                complete = 0
+                incomplete = 0
+                if isinstance(response_dict[b'files'][infohash], dict):
+                    complete = response_dict[b'files'][infohash].get(b'complete', 0)
+                    incomplete = response_dict[b'files'][infohash].get(b'incomplete', 0)
 
                 # Sow complete as seeders. "complete: number of peers with the entire file, i.e. seeders (integer)"
                 #  - https://wiki.theory.org/BitTorrentSpecification#Tracker_.27scrape.27_Convention

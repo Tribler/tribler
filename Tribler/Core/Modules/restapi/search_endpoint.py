@@ -1,11 +1,11 @@
 import asyncio
 
-from aiohttp import web
-
 from pony.orm import db_session
 
 from Tribler.Core.Modules.restapi.metadata_endpoint import MetadataEndpointBase
 from Tribler.Core.Modules.restapi.rest_endpoint import HTTP_BAD_REQUEST, RESTResponse
+
+from aiohttp import web
 
 
 class SearchEndpoint(MetadataEndpointBase):
@@ -158,7 +158,7 @@ class SearchEndpoint(MetadataEndpointBase):
         if 'q' not in args:
             return RESTResponse({"error": "query parameter missing"}, status=HTTP_BAD_REQUEST)
 
-        keywords = args['q'].lower()
+        keywords = args['q'].strip().lower()
         # TODO: add XXX filtering for completion terms
         results = self.session.lm.mds.TorrentMetadata.get_auto_complete_terms(keywords, max_terms=5)
         return RESTResponse({"completions": results})

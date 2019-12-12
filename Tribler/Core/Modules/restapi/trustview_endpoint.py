@@ -1,10 +1,7 @@
 import logging
 import math
 from binascii import unhexlify
-
-from aiohttp import web
-
-import networkx as nx
+from distutils.version import LooseVersion
 
 from Tribler.Core.Modules.TrustCalculation.graph_positioning import GraphPositioning as gpos
 from Tribler.Core.Modules.restapi.rest_endpoint import RESTEndpoint, RESTResponse
@@ -12,8 +9,21 @@ from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.exceptions import TrustGraphException
 from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD
 
+from aiohttp import web
+
+import networkx as nx
+
 MAX_PEERS = 500
 MAX_TRANSACTIONS = 2500
+
+# Fix for supporting both 1.x and 2.x version of Networkx.
+# 1.x version is used in Ubuntu 18.04 or lower.
+if LooseVersion(nx.__version__) >= LooseVersion('2.1'):
+    def get_nx_node(graph, index):
+        return graph.nodes()[index]
+else:
+    def get_nx_node(graph, index):
+        return graph.node[index]
 
 
 class TrustGraph(nx.DiGraph):
@@ -44,14 +54,14 @@ class TrustGraph(nx.DiGraph):
 
     def get_node(self, peer_key, add_if_not_exist=True):
         if peer_key in self.peers:
-            return self.node[self.peers.index(peer_key)]
+            return get_nx_node(self, self.peers.index(peer_key))
         if add_if_not_exist:
             next_node_id = len(self.peers)
             if next_node_id >= self.max_peers:
                 raise TrustGraphException("Max node peers reached in graph")
             super(TrustGraph, self).add_node(next_node_id, id=next_node_id, key=peer_key)
             self.peers.append(peer_key)
-            return self.node[self.peers.index(peer_key)]
+            return get_nx_node(self, self.peers.index(peer_key))
         return None
 
     def add_block(self, block):
@@ -81,7 +91,7 @@ class TrustGraph(nx.DiGraph):
 
     def compute_node_graph(self):
         gr_undirected = self.to_undirected()
-        num_nodes = len(gr_undirected.node)
+        num_nodes = gr_undirected.number_of_nodes()
 
         # Remove disconnected nodes from the graph
         component_nodes = nx.node_connected_component(gr_undirected, self.root_node)
@@ -103,7 +113,7 @@ class TrustGraph(nx.DiGraph):
         max_x = max_y = 0.0001
         for _id, (theta, r) in pos.items():
             index_mapper[_id] = node_id
-            node = gr_undirected.node[_id]
+            node = get_nx_node(gr_undirected, _id)
             node['id'] = node_id
             node_id += 1
 

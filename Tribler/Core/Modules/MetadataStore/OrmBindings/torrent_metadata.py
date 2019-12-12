@@ -11,7 +11,7 @@ from Tribler.Core.Category.FamilyFilter import default_xxx_filter
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import COMMITTED, LEGACY_ENTRY
 from Tribler.Core.Modules.MetadataStore.serialization import EPOCH, REGULAR_TORRENT, TorrentMetadataPayload
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
-from Tribler.Core.Utilities.unicode import hexlify
+from Tribler.Core.Utilities.unicode import ensure_unicode, hexlify
 
 NULL_KEY_SUBST = b"\00"
 
@@ -38,7 +38,7 @@ def tdef_to_metadata_dict(tdef):
         "tags": tags[:200],  # TODO: do proper size checking based on bytes
         "size": tdef.get_length(),
         "torrent_date": torrent_date if torrent_date >= EPOCH else EPOCH,
-        "tracker_info": get_uniformed_tracker_url((tdef.get_tracker() or b'').decode('utf-8')) or '',
+        "tracker_info": get_uniformed_tracker_url(ensure_unicode(tdef.get_tracker() or '', 'utf-8')) or '',
     }
 
 

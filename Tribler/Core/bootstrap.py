@@ -24,14 +24,12 @@ class Bootstrap(object):
             os.mkdir(self.bootstrap_dir)
         self.dcfg.set_dest_dir(self.bootstrap_dir)
         self.bootstrap_file = os.path.join(self.bootstrap_dir, "bootstrap.blocks")
-        self.nodes_file = os.path.join(self.bootstrap_dir, "bootstrap.nodes")
         self.dht = dht
 
         self.bootstrap_finished = False
         self.infohash = None
         self.download = None
         self.bootstrap_nodes = {}
-        self.load_bootstrap_nodes()
 
     def start_by_infohash(self, download_function, infohash):
         """
@@ -62,21 +60,3 @@ class Bootstrap(object):
                         return
                     for node in nodes:
                         self.bootstrap_nodes[hexlify(node.mid)] = hexlify(node.public_key.key_to_bin())
-                    self.persist_nodes()
-
-        return self.bootstrap_nodes
-
-    def persist_nodes(self):
-        with open(self.nodes_file, "wb") as boot_file:
-            for mid, public_key in self.bootstrap_nodes.items():
-                if mid != "0000000000000000000000000000000000000000" and public_key:
-                    boot_file.write((u"%s:%s\n" % (mid, public_key)).encode('utf-8'))
-
-    def load_bootstrap_nodes(self):
-        if not os.path.exists(self.nodes_file):
-            return
-        with open(self.nodes_file, "r") as boot_file:
-            for line in boot_file:
-                if line and ":" in line:
-                    mid, pub_key = line.rstrip().split(":")
-                    self.bootstrap_nodes[mid] = pub_key

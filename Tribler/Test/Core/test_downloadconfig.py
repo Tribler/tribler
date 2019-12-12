@@ -1,12 +1,12 @@
 import os
 
-from configobj import ConfigObjError
-
-from nose.tools import raises
-
 from Tribler.Core.Config.download_config import DownloadConfig, get_default_dest_dir
 from Tribler.Core.simpledefs import DLMODE_VOD
 from Tribler.Test.Core.base_test import TriblerCoreTest
+
+from configobj import ConfigObjError
+
+from nose.tools import raises
 
 
 class TestConfigParser(TriblerCoreTest):
@@ -32,9 +32,6 @@ class TestConfigParser(TriblerCoreTest):
 
         dlcfg.set_safe_seeding(False)
         self.assertFalse(dlcfg.get_safe_seeding())
-
-        dlcfg.set_seeding_mode("abcd")
-        self.assertEqual(dlcfg.get_seeding_mode(), "abcd")
 
         dlcfg.set_selected_files("foo.bar")
         self.assertEqual(dlcfg.get_selected_files(), ["foo.bar"])

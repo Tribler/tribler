@@ -4,17 +4,17 @@ Configuration object for the Tribler Core.
 import logging
 import os
 
-from configobj import ConfigObj
-
-from validate import Validator
-
 from Tribler.Core.Config.download_config import get_default_dest_dir
 from Tribler.Core.Utilities.install_dir import get_lib_path
 from Tribler.Core.Utilities.network_utils import get_random_port
-from Tribler.Core.Utilities.unicode import ensure_unicode, hexlify
+from Tribler.Core.Utilities.unicode import ensure_unicode
 from Tribler.Core.exceptions import InvalidConfigException
 from Tribler.Core.osutils import get_appstate_dir
 from Tribler.Core.version import version_id
+
+from configobj import ConfigObj
+
+from validate import Validator
 
 CONFIG_FILENAME = 'triblerd.conf'
 SPEC_FILENAME = 'tribler_config.spec'
@@ -547,6 +547,24 @@ class TriblerConfig(object):
 
     def get_default_add_download_to_channel(self):
         return self.config['download_defaults']['add_download_to_channel']
+
+    def set_seeding_mode(self, value):
+        self.config['download_defaults']['seeding_mode'] = value
+
+    def get_seeding_mode(self):
+        return self.config['download_defaults']['seeding_mode']
+
+    def set_seeding_time(self, value):
+        self.config['download_defaults']['seeding_time'] = value
+
+    def get_seeding_time(self):
+        return self.config['download_defaults']['seeding_time']
+
+    def set_seeding_ratio(self, value):
+        self.config['download_defaults']['seeding_ratio'] = value
+
+    def get_seeding_ratio(self):
+        return self.config['download_defaults']['seeding_ratio']
 
     # Market Community
 

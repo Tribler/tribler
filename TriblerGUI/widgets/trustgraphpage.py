@@ -4,10 +4,6 @@ from PyQt5 import QtCore
 from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import QWidget
 
-import numpy as np
-
-import pyqtgraph as pg
-
 from TriblerGUI.defs import (
     COLOR_DEFAULT,
     COLOR_GREEN,
@@ -21,6 +17,10 @@ from TriblerGUI.defs import (
 )
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.utilities import format_size, html_label
+
+import numpy as np
+
+import pyqtgraph as pg
 
 
 class TrustGraph(pg.GraphItem):
@@ -207,11 +207,12 @@ class TrustGraphPage(QWidget):
 
     def fetch_graph_data(self):
         self.graph_request_mgr.cancel_request()
-        self.graph_request_mgr.perform_request("trustview?depth=%d" % self.graph_depth_to_fetch,
-                                               self.on_received_data, priority="LOW")
+        self.graph_request_mgr.perform_request(
+            "trustview?depth=%d" % self.graph_depth_to_fetch, self.on_received_data, priority="LOW"
+        )
 
     def on_received_data(self, data):
-        if data is None:
+        if data is None or not isinstance(data, dict) or 'graph' not in data:
             return
         self.update_gui_labels(data)
 
@@ -254,10 +255,10 @@ class TrustGraphPage(QWidget):
         diff = abs(node.get('total_up', 0) - node.get('total_down', 0))
         if diff == 0:
             return min_size
-        elif diff > 10 * TB:    # max token balance limit
+        elif diff > 10 * TB:  # max token balance limit
             return 0.06  # max node size in graph
         elif diff > TB:
-            return 0.05 + 0.005 * diff/TB  # 0.005 for each extra TB of balance
+            return 0.05 + 0.005 * diff / TB  # 0.005 for each extra TB of balance
         return math.log(diff / (1024 * 1024), 2) / 512 + min_size
 
     def update_gui_labels(self, data):

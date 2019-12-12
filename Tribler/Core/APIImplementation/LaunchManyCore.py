@@ -7,7 +7,7 @@ import logging
 import os
 import sys
 import time as timemod
-from asyncio import ensure_future, gather, iscoroutine
+from asyncio import gather, iscoroutine
 from binascii import unhexlify
 from glob import iglob
 from threading import Event, enumerate as enumerate_threads
@@ -23,8 +23,6 @@ from ipv8.peerdiscovery.churn import RandomChurn
 from ipv8.peerdiscovery.community import DiscoveryCommunity, PeriodicSimilarity
 from ipv8.peerdiscovery.discovery import EdgeWalk, RandomWalk
 from ipv8.taskmanager import TaskManager
-
-from ipv8_service import IPv8
 
 from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
@@ -54,6 +52,8 @@ from Tribler.Core.simpledefs import (
     STATE_START_TORRENT_CHECKER,
     STATE_START_WATCH_FOLDER,
 )
+
+from ipv8_service import IPv8
 
 
 class TriblerLaunchMany(TaskManager):
@@ -562,7 +562,7 @@ class TriblerLaunchMany(TaskManager):
             config = self.load_download_config(filename)
             if not config:
                 return
-        except Exception as e:
+        except Exception:
             self._logger.exception("tlm: could not open checkpoint file %s", str(filename))
             return
 
@@ -591,7 +591,6 @@ class TriblerLaunchMany(TaskManager):
 
         config.state_dir = self.session.config.get_state_dir()
 
-        self._logger.debug("tlm: load_checkpoint: resumedata %s", bool(config.get_engineresumedata()))
         if not (tdef and config):
             self._logger.info("tlm: could not resume checkpoint %s %s %s", filename, tdef, config)
             return
@@ -608,7 +607,7 @@ class TriblerLaunchMany(TaskManager):
                 self._logger.info("tlm: not resuming checkpoint since token mining is disabled")
             else:
                 self.add(tdef, config, setupDelay=setupDelay)
-        except Exception as e:
+        except Exception:
             self._logger.exception("tlm: load check_point: exception while adding download %s", tdef)
 
     async def checkpoint_downloads(self):

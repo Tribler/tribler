@@ -16,10 +16,10 @@ from socketserver import ThreadingMixIn
 from threading import Event, RLock, Thread
 from traceback import print_exc
 
-from cherrypy.lib.httputil import get_ranges
-
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import VODFile
 from Tribler.Core.simpledefs import DLMODE_NORMAL, DLMODE_VOD
+
+from cherrypy.lib.httputil import get_ranges
 
 
 class VideoServer(ThreadingMixIn, HTTPServer):
@@ -85,7 +85,7 @@ class VideoServer(ThreadingMixIn, HTTPServer):
         Get the destination directory of the VOD download.
         """
         if download.get_def().is_multifile_torrent():
-            return os.path.join(download.get_content_dest(), download.get_selected_files()[0])
+            return os.path.join(download.get_content_dest(), download.config.get_selected_files()[0])
         else:
             return download.get_content_dest()
 

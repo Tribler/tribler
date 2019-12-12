@@ -11,6 +11,7 @@ from base64 import b32decode
 from urllib.parse import parse_qsl, urlsplit
 
 import libtorrent
+from libtorrent import bdecode
 
 logger = logging.getLogger(__name__)
 
@@ -177,3 +178,13 @@ def fail(exception):
     future = Future()
     future.set_exception(exception)
     return future
+
+def bdecode_compat(packet_buffer):
+    """
+    Utility method to make libtorrent bdecode() with Python3 in the existing Tribler codebase.
+    We should change this when Libtorrent wrapper is refactored.
+    """
+    try:
+        return bdecode(packet_buffer)
+    except RuntimeError:
+        return None
