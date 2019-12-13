@@ -318,7 +318,7 @@ class LibtorrentMgr(TaskManager):
             return existing_handle
 
         if infohash in self.torrents:
-            self._logger.info("Torrent already exists in the downloads. Infohash:%s", hexlify(infohash))
+            self._logger.info("Torrent already exists in the downloads. Infohash:%s", infohash)
 
         # Otherwise, add it anew
         ltsession.async_add_torrent(encode_atp(atp))
