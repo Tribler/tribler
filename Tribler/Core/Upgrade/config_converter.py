@@ -204,7 +204,7 @@ def convert_config_to_tribler74(state_dir=None):
     from lib2to3.refactor import RefactoringTool, get_fixers_from_package
     refactoring_tool = RefactoringTool(fixer_names=get_fixers_from_package('lib2to3.fixes'))
 
-    state_dir = state_dir or TriblerConfig.get_default_state_dir()
+    state_dir = state_dir or TriblerConfig.get_default_base_state_dir()
     for _, filename in enumerate(iglob(os.path.join(state_dir, STATEDIR_CHECKPOINT_DIR, '*.state'))):
         old_config = CallbackConfigParser()
         try:

@@ -110,7 +110,7 @@ class TestLaunchManyCore(TriblerCoreTest):
         """
         error_stop_future = Future()
 
-        async def mocked_stop():
+        async def mocked_stop(user_stopped=None):
             error_stop_future.set_result(None)
 
         fake_error_download, fake_error_state = TestLaunchManyCore.create_fake_download_and_state()

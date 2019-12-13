@@ -7,7 +7,7 @@ import logging
 import os
 import sys
 import time as timemod
-from asyncio import ensure_future, gather, iscoroutine
+from asyncio import gather, get_event_loop, iscoroutine
 from binascii import unhexlify
 from glob import iglob
 from threading import Event, enumerate as enumerate_threads
@@ -499,14 +499,11 @@ class TriblerLaunchMany(TaskManager):
                 seeding_download_list.append({u'infohash': infohash,
                                               u'download': download})
 
-                if self.bootstrap and not self.bootstrap.bootstrap_finished and hexlify(
-                        infohash) == self.session.config.get_bootstrap_infohash() and self.trustchain_community:
+                if self.bootstrap and not self.bootstrap.bootstrap_finished \
+                        and hexlify(infohash) == self.session.config.get_bootstrap_infohash() \
+                        and self.trustchain_community:
                     if download.future_finished.done():
-                        with open(self.bootstrap.bootstrap_file, 'r') as f:
-                            sql_dumb = f.read()
-                        self._logger.info("Executing script for trustchain bootstrap")
-                        self.trustchain_community.persistence.executescript(sql_dumb)
-                        self.trustchain_community.persistence.commit()
+                        get_event_loop().run_in_executor(None, self.import_bootstrap_file)
                         self.bootstrap.bootstrap_finished = True
                     else:
                         self._logger.info("Bootstrap download not finished yet, rescheduling")
@@ -541,6 +538,13 @@ class TriblerLaunchMany(TaskManager):
 
         return []
 
+    def import_bootstrap_file(self):
+        with open(self.bootstrap.bootstrap_file, 'r') as f:
+            sql_dumb = f.read()
+        self._logger.info("Executing script for trustchain bootstrap")
+        self.trustchain_community.persistence.executescript(sql_dumb)
+        self.trustchain_community.persistence.commit()
+
     #
     # Persistence methods
     #
@@ -560,7 +564,7 @@ class TriblerLaunchMany(TaskManager):
             config = self.load_download_config(filename)
             if not config:
                 return
-        except Exception as e:
+        except Exception:
             self._logger.exception("tlm: could not open checkpoint file %s", str(filename))
             return
 
@@ -589,7 +593,6 @@ class TriblerLaunchMany(TaskManager):
 
         config.state_dir = self.session.config.get_state_dir()
 
-        self._logger.debug("tlm: load_checkpoint: resumedata %s", bool(config.get_engineresumedata()))
         if not (tdef and config):
             self._logger.info("tlm: could not resume checkpoint %s %s %s", filename, tdef, config)
             return
@@ -606,7 +609,7 @@ class TriblerLaunchMany(TaskManager):
                 self._logger.info("tlm: not resuming checkpoint since token mining is disabled")
             else:
                 self.add(tdef, config, delay=delay)
-        except Exception as e:
+        except Exception:
             self._logger.exception("tlm: load check_point: exception while adding download %s", tdef)
 
     async def checkpoint_downloads(self):

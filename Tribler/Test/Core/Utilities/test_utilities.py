@@ -1,7 +1,12 @@
 from aiohttp import ClientSession, web
 
-from Tribler.Core.Utilities.utilities import is_channel_public_key, is_infohash, is_simple_match_query, \
-    is_valid_url, parse_magnetlink
+from Tribler.Core.Utilities.utilities import (
+    is_channel_public_key,
+    is_infohash,
+    is_simple_match_query,
+    is_valid_url,
+    parse_magnetlink,
+)
 from Tribler.Test.test_as_server import AbstractServer
 from Tribler.Test.tools import timeout
 
@@ -77,6 +82,9 @@ class TestMakeTorrent(AbstractServer):
     def test_simple_search_query(self):
         query = '"\xc1ubuntu"* AND "debian"*'
         self.assertTrue(is_simple_match_query(query))
+
+        query = '""* AND "Petersburg"*'
+        self.assertFalse(is_simple_match_query(query))
 
         query2 = '"\xc1ubuntu"* OR "debian"*'
         self.assertFalse(is_simple_match_query(query2))

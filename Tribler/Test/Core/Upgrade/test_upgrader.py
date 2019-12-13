@@ -8,8 +8,14 @@ from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import CHAN
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.Upgrade.upgrade import TriblerUpgrader, cleanup_noncompliant_channel_torrents
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
-from Tribler.Core.simpledefs import NTFY_STARTED, NTFY_UPGRADER_TICK, STATEDIR_CHANNELS_DIR, STATEDIR_CHECKPOINT_DIR, \
-    STATEDIR_DB_DIR, STATEDIR_WALLET_DIR
+from Tribler.Core.simpledefs import (
+    NTFY_STARTED,
+    NTFY_UPGRADER_TICK,
+    STATEDIR_CHANNELS_DIR,
+    STATEDIR_CHECKPOINT_DIR,
+    STATEDIR_DB_DIR,
+    STATEDIR_WALLET_DIR,
+)
 from Tribler.Test.Core.Upgrade.upgrade_base import AbstractUpgrader
 from Tribler.Test.tools import timeout
 

@@ -1,4 +1,3 @@
-import json
 import os
 from binascii import unhexlify
 from urllib.parse import unquote_plus
@@ -13,11 +12,16 @@ from pony.orm import db_session
 from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT
 from Tribler.Core.Modules.MetadataStore.store import UNKNOWN_CHANNEL, UPDATED_OUR_VERSION
-from Tribler.Core.Modules.restapi.rest_endpoint import (HTTP_BAD_REQUEST, HTTP_INTERNAL_SERVER_ERROR, HTTP_NOT_FOUND,
-                                                        RESTEndpoint, RESTResponse)
+from Tribler.Core.Modules.restapi.rest_endpoint import (
+    HTTP_BAD_REQUEST,
+    HTTP_INTERNAL_SERVER_ERROR,
+    HTTP_NOT_FOUND,
+    RESTEndpoint,
+    RESTResponse,
+)
 from Tribler.Core.Modules.restapi.util import return_handled_exception
 from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
-from Tribler.Core.Utilities.unicode import hexlify
+from Tribler.Core.Utilities.unicode import ensure_unicode, hexlify
 from Tribler.Core.exceptions import InvalidSignatureException
 from Tribler.Core.simpledefs import DLMODE_VOD, DOWNLOAD, UPLOAD, dlstatus_strings
 from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import CIRCUIT_ID_PORT
@@ -35,8 +39,7 @@ def _safe_extended_peer_info(ext_peer_info):
     if not ext_peer_info:
         ext_peer_info = u''
     try:
-        json.dumps(ext_peer_info)
-        return ext_peer_info
+        return ensure_unicode(ext_peer_info, "utf8")
     except UnicodeDecodeError:
         # We might have some special unicode characters in here
         return u''.join([chr(ord(c)) for c in ext_peer_info])

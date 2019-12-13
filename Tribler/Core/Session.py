@@ -22,9 +22,20 @@ from Tribler.Core.Utilities import torrent_utils
 from Tribler.Core.Utilities.crypto_patcher import patch_crypto_be_discovery
 from Tribler.Core.exceptions import OperationNotEnabledByConfigurationException
 from Tribler.Core.simpledefs import (
-    NTFY_DELETE, NTFY_INSERT, NTFY_STARTED, NTFY_TRIBLER, NTFY_UPDATE, STATEDIR_CHANNELS_DIR, STATEDIR_CHECKPOINT_DIR,
-    STATEDIR_DB_DIR, STATEDIR_WALLET_DIR, STATE_LOAD_CHECKPOINTS, STATE_READABLE_STARTED, STATE_SHUTDOWN,
-    STATE_START_API, STATE_UPGRADING_READABLE
+    NTFY_DELETE,
+    NTFY_INSERT,
+    NTFY_STARTED,
+    NTFY_TRIBLER,
+    NTFY_UPDATE,
+    STATEDIR_CHANNELS_DIR,
+    STATEDIR_CHECKPOINT_DIR,
+    STATEDIR_DB_DIR,
+    STATEDIR_WALLET_DIR,
+    STATE_LOAD_CHECKPOINTS,
+    STATE_READABLE_STARTED,
+    STATE_SHUTDOWN,
+    STATE_START_API,
+    STATE_UPGRADING_READABLE,
 )
 from Tribler.Core.statistics import TriblerStatistics
 
@@ -170,6 +181,10 @@ class Session(object):
 
         if 'socket.error' in text and '[Errno 10054]' in text:
             self._logger.error("Connection forcibly closed by the remote host.")
+            return
+
+        if 'socket.gaierror' in text and '[Errno 10022]' in text:
+            self._logger.error("Failed to get address info. Error code: 10022")
             return
 
         # We already have a check for invalid infohash when adding a torrent, but if somehow we get this

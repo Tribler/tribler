@@ -522,7 +522,7 @@ class TriblerWindow(QMainWindow):
                 "navigating to My Channel section on the left sidebar."
             )
             ConfirmationDialog.show_error(self.window(), "Download Error!", error_message)
-            return
+            add_to_channel = False
 
         selected_files_list = []
         if len(selected_files) != total_files:  # Not all files included
@@ -564,7 +564,7 @@ class TriblerWindow(QMainWindow):
         post_data = dict()
         if uri.startswith("file:"):
             with open(uri[5:], "rb") as torrent_file:
-                post_data['torrent'] = b64encode(torrent_file.read())
+                post_data['torrent'] = b64encode(torrent_file.read()).decode('utf8')
         elif uri.startswith("magnet:"):
             post_data['uri'] = uri
 

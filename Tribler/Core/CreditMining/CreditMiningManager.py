@@ -15,8 +15,15 @@ from Tribler.Core.CreditMining.CreditMiningSource import ChannelSource
 from Tribler.Core.TorrentDef import TorrentDefNoMetainfo
 from Tribler.Core.Utilities.unicode import ensure_unicode, hexlify
 from Tribler.Core.simpledefs import (
-    DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR, DOWNLOAD, NTFY_CREDIT_MINING,
-    NTFY_ERROR, UPLOAD)
+    DLSTATUS_DOWNLOADING,
+    DLSTATUS_SEEDING,
+    DLSTATUS_STOPPED,
+    DLSTATUS_STOPPED_ON_ERROR,
+    DOWNLOAD,
+    NTFY_CREDIT_MINING,
+    NTFY_ERROR,
+    UPLOAD,
+)
 
 
 class CreditMiningTorrent(object):

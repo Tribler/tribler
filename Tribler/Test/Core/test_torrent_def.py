@@ -5,11 +5,12 @@ from tempfile import mkdtemp
 
 from aiohttp import ClientResponseError, web
 
-from libtorrent import bdecode, bencode
+from libtorrent import bencode
 
 from nose.tools import raises
 
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
+from Tribler.Core.Utilities.utilities import bdecode_compat
 from Tribler.Test.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE
 from Tribler.Test.test_as_server import BaseTestCase
 from Tribler.Test.tools import timeout
@@ -213,7 +214,7 @@ class TestTorrentDef(BaseTestCase):
     def test_load_from_dict(self):
         with open(os.path.join(TESTS_DATA_DIR, "bak_single.torrent"), mode='rb') as torrent_file:
             encoded_metainfo = torrent_file.read()
-        self.assertTrue(TorrentDef.load_from_dict(bdecode(encoded_metainfo)))
+        self.assertTrue(TorrentDef.load_from_dict(bdecode_compat(encoded_metainfo)))
 
     def test_torrent_no_metainfo(self):
         torrent = TorrentDefNoMetainfo(b"12345678901234567890", VIDEO_FILE_NAME, "http://google.com")

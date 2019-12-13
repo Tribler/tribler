@@ -5,7 +5,11 @@ from configparser import RawConfigParser
 from configobj import ConfigObj
 
 from Tribler.Core.Config.tribler_config import CONFIG_SPEC_PATH, TriblerConfig
-from Tribler.Core.Upgrade.config_converter import add_libtribler_config, add_tribler_config, convert_config_to_tribler71
+from Tribler.Core.Upgrade.config_converter import (
+    add_libtribler_config,
+    add_tribler_config,
+    convert_config_to_tribler71,
+)
 from Tribler.Core.simpledefs import STATEDIR_CHECKPOINT_DIR
 from Tribler.Test.Core.base_test import TriblerCoreTest
 

@@ -9,6 +9,7 @@ import os
 import tempfile
 import time
 from asyncio import CancelledError, TimeoutError, shield, wait_for
+from copy import deepcopy
 from distutils.version import LooseVersion
 from shutil import rmtree
 from urllib.request import url2pathname
@@ -16,13 +17,13 @@ from urllib.request import url2pathname
 from ipv8.taskmanager import TaskManager
 
 import libtorrent as lt
-from libtorrent import bdecode, torrent_handle
+from libtorrent import torrent_handle
 
 from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.Modules.dht_health_manager import DHTHealthManager
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.unicode import hexlify
-from Tribler.Core.Utilities.utilities import has_bep33_support, parse_magnetlink, succeed
+from Tribler.Core.Utilities.utilities import bdecode_compat, has_bep33_support, parse_magnetlink, succeed
 from Tribler.Core.simpledefs import NTFY_INSERT, NTFY_REACHABLE
 from Tribler.Core.version import version_id
 
@@ -200,7 +201,7 @@ class LibtorrentMgr(TaskManager):
                 self.tribler_session.config.set_libtorrent_port_runtime(ltsession.listen_port())
             try:
                 with open(os.path.join(self.tribler_session.config.get_state_dir(), LTSTATE_FILENAME), 'rb') as fp:
-                    lt_state = lt.bdecode(fp.read())
+                    lt_state = lt.bdecode_compat(fp.read())
                 if lt_state is not None:
                     ltsession.load_state(lt_state)
                 else:
@@ -317,7 +318,7 @@ class LibtorrentMgr(TaskManager):
             return existing_handle
 
         if infohash in self.torrents:
-            self._logger.info("Torrent already exists in the downloads. Infohash:%s", infohash)
+            self._logger.info("Torrent already exists in the downloads. Infohash:%s", hexlify(infohash))
 
         # Otherwise, add it anew
         ltsession.async_add_torrent(encode_atp(atp))
@@ -573,8 +574,9 @@ class LibtorrentMgr(TaskManager):
                 d.get_def().get_trackers_as_single_tuple()))
             if new_trackers:
                 self.tribler_session.update_trackers(tdef.get_infohash(), new_trackers)
+            return d
 
-        self._logger.info('start_download: Starting in VOD mode')
+        self._logger.info('start_download: calling start_download_from_tdef')
         return self.tribler_session.start_download_from_tdef(tdef, dscfg)
 
     def get_libtorrent_version(self):
@@ -607,7 +609,7 @@ class LibtorrentMgr(TaskManager):
             lt_session.set_settings(new_settings)
 
     def get_session_settings(self, lt_session):
-        return self.ltsettings.get(lt_session, {})
+        return deepcopy(self.ltsettings.get(lt_session, {}))
 
     def update_max_rates_from_config(self):
         """

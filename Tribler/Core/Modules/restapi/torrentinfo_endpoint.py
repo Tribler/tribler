@@ -5,15 +5,19 @@ from urllib.request import url2pathname
 
 from aiohttp import ClientResponseError, ClientSession, ServerConnectionError, web
 
-from libtorrent import bdecode, bencode
+from libtorrent import bencode
 
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.MetadataStore.OrmBindings.torrent_metadata import tdef_to_metadata_dict
-from Tribler.Core.Modules.restapi.rest_endpoint import (HTTP_BAD_REQUEST, HTTP_INTERNAL_SERVER_ERROR,
-                                                        RESTEndpoint, RESTResponse)
+from Tribler.Core.Modules.restapi.rest_endpoint import (
+    HTTP_BAD_REQUEST,
+    HTTP_INTERNAL_SERVER_ERROR,
+    RESTEndpoint,
+    RESTResponse,
+)
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.unicode import hexlify, recursive_unicode
-from Tribler.Core.Utilities.utilities import parse_magnetlink
+from Tribler.Core.Utilities.utilities import bdecode_compat, parse_magnetlink
 
 
 class TorrentInfoEndpoint(RESTEndpoint):
@@ -70,7 +74,7 @@ class TorrentInfoEndpoint(RESTEndpoint):
                 if infohash:
                     metainfo = await self.session.lm.ltmgr.get_metainfo(infohash, timeout=20)
             else:
-                metainfo = bdecode(response)
+                metainfo = bdecode_compat(response)
         elif uri.startswith('magnet'):
             infohash = parse_magnetlink(uri)[1]
             if infohash is None:

@@ -14,13 +14,16 @@ from pony.orm import db_session
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import LEGACY_ENTRY
 from Tribler.Core.Modules.MetadataStore.serialization import REGULAR_TORRENT
-from Tribler.Core.TorrentChecker.session import FakeBep33DHTSession, FakeDHTSession, UdpSocketManager, \
-    create_tracker_session
+from Tribler.Core.TorrentChecker.session import (
+    FakeBep33DHTSession,
+    FakeDHTSession,
+    UdpSocketManager,
+    create_tracker_session,
+)
 from Tribler.Core.Utilities.tracker_utils import MalformedTrackerURLException
 from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.Utilities.utilities import has_bep33_support, is_valid_url
 from Tribler.Core.simpledefs import NTFY_TORRENT, NTFY_UPDATE
-
 
 TRACKER_SELECTION_INTERVAL = 20    # The interval for querying a random tracker
 TORRENT_SELECTION_INTERVAL = 120   # The interval for checking the health of a random torrent
@@ -148,7 +151,7 @@ class TorrentChecker(TaskManager):
         try:
             info_dict = await session.connect_to_tracker()
             return self._on_result_from_session(session, info_dict)
-        except CancelledError as e:
+        except CancelledError:
             self._logger.info("Tracker session is being cancelled (url %s)", session.tracker_url)
         except Exception as e:
             self._logger.warning("Got session error for URL %s: %s", session.tracker_url, str(e).replace(u'\n]', u']'))
