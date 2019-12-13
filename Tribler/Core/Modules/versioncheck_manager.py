@@ -38,7 +38,7 @@ class VersionCheckManager(TaskManager):
         except ClientResponseError as e:
             self._logger.warning("Got response code %s when performing version check request", e.status)
             return
-        except ContentTypeError as e:
+        except ContentTypeError:
             self._logger.warning("Response was not in JSON format")
             return
 

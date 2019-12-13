@@ -433,7 +433,7 @@ class TriblerGUITest(AbstractTriblerGUITest):
         self.wait_for_signal(window.left_menu_playlist.list_loaded, no_args=True)
         self.screenshot(window, name="video_player_left_menu_loaded")
 
-    @skipIf(sys.platform == "darwin", "VLC playback from nosetests seems to be unreliable on Mac")
+    @skipIf(sys.platform == "darwin", "VLC playback from  nosetests seems to be unreliable on Mac")
     def test_video_playback(self):
         """
         Test video playback of a Tribler instance.

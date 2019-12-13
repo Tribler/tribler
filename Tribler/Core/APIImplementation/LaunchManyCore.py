@@ -7,7 +7,9 @@ import logging
 import os
 import sys
 import time as timemod
+
 from asyncio import gather, get_event_loop, iscoroutine
+
 from binascii import unhexlify
 from glob import iglob
 from threading import Event, enumerate as enumerate_threads
@@ -566,7 +568,7 @@ class TriblerLaunchMany(TaskManager):
             config = self.load_download_config(filename)
             if not config:
                 return
-        except Exception as e:
+        except Exception:
             self._logger.exception("tlm: could not open checkpoint file %s", str(filename))
             return
 
@@ -595,7 +597,6 @@ class TriblerLaunchMany(TaskManager):
 
         config.state_dir = self.session.config.get_state_dir()
 
-        self._logger.debug("tlm: load_checkpoint: resumedata %s", bool(config.get_engineresumedata()))
         if not (tdef and config):
             self._logger.info("tlm: could not resume checkpoint %s %s %s", filename, tdef, config)
             return
@@ -612,7 +613,7 @@ class TriblerLaunchMany(TaskManager):
                 self._logger.info("tlm: not resuming checkpoint since token mining is disabled")
             else:
                 self.add(tdef, config, setupDelay=setupDelay)
-        except Exception as e:
+        except Exception:
             self._logger.exception("tlm: load check_point: exception while adding download %s", tdef)
 
     async def checkpoint_downloads(self):

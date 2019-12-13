@@ -1,8 +1,16 @@
 from aiohttp import web
 
 from Tribler.Core.Modules.restapi.rest_endpoint import RESTEndpoint, RESTResponse
-from Tribler.Core.simpledefs import (NTFY_FINISHED, NTFY_STARTED, NTFY_TRIBLER, NTFY_UPGRADER, STATE_EXCEPTION,
-                                     STATE_STARTED, STATE_STARTING, STATE_UPGRADING)
+from Tribler.Core.simpledefs import (
+    NTFY_FINISHED,
+    NTFY_STARTED,
+    NTFY_TRIBLER,
+    NTFY_UPGRADER,
+    STATE_EXCEPTION,
+    STATE_STARTED,
+    STATE_STARTING,
+    STATE_UPGRADING,
+)
 
 
 class StateEndpoint(RESTEndpoint):

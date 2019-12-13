@@ -82,18 +82,10 @@ class TestSettingsEndpoint(AbstractApiTest):
         download.config = dcfg
         self.session.get_downloads = lambda: [download]
 
-        post_data = {'libtorrent': {'utp': False, 'max_download_rate': 50},
-                     'download_defaults': {'seeding_mode': 'time', 'seeding_time': 100}}
+        post_data = {'download_defaults': {'seeding_mode': 'ratio',
+                                           'seeding_ratio': 3,
+                                           'seeding_time': 123}}
         await self.do_request('settings', expected_code=200, request_type='POST', post_data=json.dumps(post_data))
-        self.assertEqual(dcfg.get_seeding_mode(), 'time')
-        self.assertEqual(dcfg.get_seeding_time(), 100)
-
-        post_data = {'download_defaults': {'seeding_mode': 'ratio', 'seeding_ratio': 3}}
-        await self.do_request('settings', expected_code=200, request_type='POST', post_data=json.dumps(post_data))
-        self.assertEqual(dcfg.get_seeding_mode(), 'ratio')
-        self.assertEqual(dcfg.get_seeding_ratio(), 3)
-
-        dcfg.get_credit_mining = lambda: True
-        post_data = {'download_defaults': {'seeding_mode': 'never'}}
-        await self.do_request('settings', expected_code=200, request_type='POST', post_data=json.dumps(post_data))
-        self.assertNotEqual(dcfg.get_seeding_mode(), 'never')
+        self.assertEqual(self.session.config.get_seeding_mode(), 'ratio')
+        self.assertEqual(self.session.config.get_seeding_ratio(), 3)
+        self.assertEqual(self.session.config.get_seeding_time(), 123)

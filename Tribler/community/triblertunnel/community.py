@@ -13,7 +13,7 @@ from ipv8.attestation.trustchain.block import EMPTY_PK
 from ipv8.messaging.anonymization.caches import CreateRequestCache
 from ipv8.messaging.anonymization.community import message_to_payload
 from ipv8.messaging.anonymization.hidden_services import HiddenTunnelCommunity
-from ipv8.messaging.anonymization.payload import LinkedE2EPayload, NO_CRYPTO_PACKETS
+from ipv8.messaging.anonymization.payload import NO_CRYPTO_PACKETS
 from ipv8.messaging.anonymization.tunnel import (
     CIRCUIT_STATE_CLOSING,
     CIRCUIT_STATE_READY,
@@ -551,7 +551,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                 hops = download.config.get_hops()
                 lt_listen_port = self.tribler_session.lm.ltmgr.get_session(hops).listen_port()
                 for session in self.socks_servers[hops - 1].sessions:
-                    session.get_udp_socket().remote_udp_address = ("127.0.0.1", lt_listen_port)
+                    if session.get_udp_socket():
+                        session.get_udp_socket().remote_udp_address = ("127.0.0.1", lt_listen_port)
         super(TriblerTunnelCommunity, self).create_introduction_point(info_hash, amount)
 
     async def unload(self):

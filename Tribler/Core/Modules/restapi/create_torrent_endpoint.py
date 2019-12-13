@@ -4,13 +4,12 @@ import os
 
 from aiohttp import web
 
-from libtorrent import bdecode
-
 from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.Modules.restapi.rest_endpoint import HTTP_BAD_REQUEST, RESTEndpoint, RESTResponse
 from Tribler.Core.Modules.restapi.util import return_handled_exception
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.unicode import ensure_unicode, recursive_bytes
+from Tribler.Core.Utilities.utilities import bdecode_compat
 from Tribler.Core.exceptions import DuplicateDownloadException
 
 
@@ -94,7 +93,7 @@ class CreateTorrentEndpoint(RESTEndpoint):
             self._logger.exception(e)
             return return_handled_exception(request, e)
 
-        metainfo_dict = bdecode(result['metainfo'])
+        metainfo_dict = bdecode_compat(result['metainfo'])
 
         if export_dir and os.path.exists(export_dir):
             save_path = os.path.join(export_dir, "%s.torrent" % name)

@@ -8,12 +8,12 @@ from hashlib import sha1
 import aiohttp
 
 import libtorrent as lt
-from libtorrent import bdecode, bencode
+from libtorrent import bencode
 
 from Tribler.Core.Utilities import maketorrent
 from Tribler.Core.Utilities.torrent_utils import create_torrent_file
 from Tribler.Core.Utilities.unicode import ensure_unicode
-from Tribler.Core.Utilities.utilities import is_valid_url, parse_magnetlink
+from Tribler.Core.Utilities.utilities import bdecode_compat, is_valid_url, parse_magnetlink
 from Tribler.Core.simpledefs import INFOHASH_LENGTH
 
 
@@ -120,7 +120,7 @@ class TorrentDef(object):
         Load some bencoded data into a TorrentDef.
         :param bencoded_data: The bencoded data to decode and use as metainfo
         """
-        metainfo = bdecode(bencoded_data)
+        metainfo = bdecode_compat(bencoded_data)
         # Some versions of libtorrent will not raise an exception when providing invalid data.
         # This issue is present in 1.0.8 (included with Tribler 7.3.0), but has been fixed since at least 1.2.1.
         if metainfo is None:
@@ -328,7 +328,7 @@ class TorrentDef(object):
         :param torrent_filepath: An optional absolute path to where to save the generated .torrent file.
         """
         torrent_dict = create_torrent_file(self.files_list, self.torrent_parameters, torrent_filepath=torrent_filepath)
-        self.metainfo = bdecode(torrent_dict['metainfo'])
+        self.metainfo = bdecode_compat(torrent_dict['metainfo'])
         self.copy_metainfo_to_torrent_parameters()
         self.infohash = torrent_dict['infohash']
 
@@ -359,7 +359,7 @@ class TorrentDef(object):
                     # Try to use the 'encoding' field.  If it exists,
                     # it should contain something like 'utf-8'
                     if b"encoding" in self.metainfo:
-                        encoding = self.metainfo[b"encoding"]
+                        encoding = ensure_unicode(self.metainfo[b"encoding"], "utf8")
                         try:
                             yield (join(*[ensure_unicode(element, encoding) for element in file_dict[b"path"]]),
                                    file_dict[b"length"])
@@ -374,18 +374,18 @@ class TorrentDef(object):
                             pass
 
                     # Try to convert the names in path to unicode,
-                    # without specifying the encoding
+                    # assuming that it was encoded as utf-8
                     try:
-                        yield join(*[str(element) for element in file_dict[b"path"]]), file_dict[b"length"]
+                        yield (join(*[ensure_unicode(element, "UTF-8") for element in file_dict[b"path"]]),
+                               file_dict[b"length"])
                         continue
                     except UnicodeError:
                         pass
 
                     # Try to convert the names in path to unicode,
-                    # assuming that it was encoded as utf-8
+                    # without specifying the encoding
                     try:
-                        yield (join(*[ensure_unicode(element, "UTF-8") for element in file_dict[b"path"]]),
-                               file_dict[b"length"])
+                        yield join(*[str(element) for element in file_dict[b"path"]]), file_dict[b"length"]
                         continue
                     except UnicodeError:
                         pass

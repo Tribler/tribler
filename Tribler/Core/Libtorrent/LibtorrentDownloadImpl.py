@@ -20,7 +20,7 @@ from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities import maketorrent
 from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
 from Tribler.Core.Utilities.unicode import ensure_unicode, hexlify
-from Tribler.Core.Utilities.utilities import succeed
+from Tribler.Core.Utilities.utilities import bdecode_compat, succeed
 from Tribler.Core.exceptions import SaveResumeDataError
 from Tribler.Core.osutils import fix_filebasename
 from Tribler.Core.simpledefs import DLMODE_VOD, DLSTATUS_SEEDING, DLSTATUS_STOPPED
@@ -528,7 +528,7 @@ class LibtorrentDownloadImpl(TaskManager):
         if not torrent_info:
             return
 
-        metadata = {b'info': lt.bdecode(torrent_info.metadata())}
+        metadata = {b'info': bdecode_compat(torrent_info.metadata())}
 
         trackers = [tracker['url'].encode('utf-8') for tracker in self.handle.trackers()]
         if trackers:
@@ -628,11 +628,14 @@ class LibtorrentDownloadImpl(TaskManager):
 
     def _stop_if_finished(self):
         state = self.get_state()
+        # Credit mining downloads are not affected by seeding policy
+        if self.config.get_credit_mining():
+            return
         if state.get_status() == DLSTATUS_SEEDING:
-            mode = self.config.get_seeding_mode()
+            mode = self.session.config.get_seeding_mode()
             if mode == 'never' \
-                    or (mode == 'ratio' and state.get_seeding_ratio() >= self.config.get_seeding_ratio()) \
-                    or (mode == 'time' and state.get_seeding_time() >= self.config.get_seeding_time()):
+                    or (mode == 'ratio' and state.get_seeding_ratio() >= self.session.config.get_seeding_ratio()) \
+                    or (mode == 'time' and state.get_seeding_time() >= self.session.config.get_seeding_time()):
                 self.stop()
 
     def set_corrected_infoname(self):

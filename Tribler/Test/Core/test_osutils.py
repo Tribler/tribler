@@ -3,8 +3,15 @@ import shutil
 import sys
 import tempfile
 
-from Tribler.Core.osutils import (dir_copy, fix_filebasename, get_appstate_dir, get_desktop_dir, get_home_dir,
-                                  get_picture_dir, is_android)
+from Tribler.Core.osutils import (
+    dir_copy,
+    fix_filebasename,
+    get_appstate_dir,
+    get_desktop_dir,
+    get_home_dir,
+    get_picture_dir,
+    is_android,
+)
 from Tribler.Test.test_as_server import BaseTestCase
 
 if os.path.exists('test_osutils.py'):

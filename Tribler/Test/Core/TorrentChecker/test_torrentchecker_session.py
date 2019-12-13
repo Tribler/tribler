@@ -8,8 +8,12 @@ from libtorrent import bencode
 
 from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.Session import Session
-from Tribler.Core.TorrentChecker.session import FakeBep33DHTSession, FakeDHTSession, HttpTrackerSession, \
-    UdpTrackerSession
+from Tribler.Core.TorrentChecker.session import (
+    FakeBep33DHTSession,
+    FakeDHTSession,
+    HttpTrackerSession,
+    UdpTrackerSession,
+)
 from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.Utilities.utilities import succeed
 from Tribler.Test.Core.base_test import MockObject, TriblerCoreTest

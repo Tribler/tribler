@@ -3,7 +3,6 @@ Testing as server.
 
 Author(s): Arno Bakker, Jie Yang, Niels Zeilemaker
 """
-import asyncio
 import functools
 import inspect
 import logging

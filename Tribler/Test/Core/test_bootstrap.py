@@ -37,23 +37,8 @@ class TestBootstrapDownload(TestAsServer):
         self.bootstrap.download = MockObject()
         self.bootstrap.download.get_peerlist = lambda: [{'id': 'a' * 20}]
 
-        # Before fetching any peers from the dht
-        self.bootstrap.load_bootstrap_nodes()
-        self.assertEqual(self.bootstrap.bootstrap_nodes, {})
-
         await self.bootstrap.fetch_bootstrap_peers()
 
         # Assuming DHT returns two peers for bootstrap download
-        self.assertIsNotNone(self.bootstrap.bootstrap_nodes['a' * 20])
-        self.assertIsNotNone(self.bootstrap.bootstrap_nodes['b' * 20])
-
-        # Check if bootstrap peers are persisted to file after DHT response
-        with open(self.bootstrap.nodes_file, "r") as boot_file:
-            lines = boot_file.readlines()
-            self.assertEqual(len(lines), 2)
-
-        # Clear bootstrap nodes dict and load from file
-        self.bootstrap.bootstrap_nodes = {}
-        self.bootstrap.load_bootstrap_nodes()
         self.assertIsNotNone(self.bootstrap.bootstrap_nodes['a' * 20])
         self.assertIsNotNone(self.bootstrap.bootstrap_nodes['b' * 20])

@@ -1,16 +1,16 @@
 import os
 import shutil
-from asyncio import Future, ensure_future
+from asyncio import Future
 
 import libtorrent as lt
-from libtorrent import bdecode, bencode
+from libtorrent import bencode
 
 from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
 from Tribler.Core.Utilities.unicode import hexlify
-from Tribler.Core.Utilities.utilities import succeed
+from Tribler.Core.Utilities.utilities import bdecode_compat, succeed
 from Tribler.Core.exceptions import SaveResumeDataError
 from Tribler.Core.simpledefs import DLMODE_VOD, DLSTATUS_DOWNLOADING
 from Tribler.Test.Core.base_test import MockObject, TriblerCoreTest
@@ -408,7 +408,7 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         self.libtorrent_download_impl.handle.rename_file = lambda *_: None
         with open(os.path.join(TESTS_DATA_DIR, "bak_single.torrent"), mode='rb') as torrent_file:
             encoded_metainfo = torrent_file.read()
-        decoded_metainfo = bdecode(encoded_metainfo)
+        decoded_metainfo = bdecode_compat(encoded_metainfo)
         get_info_from_handle(self.libtorrent_download_impl.handle).metadata = lambda: bencode(decoded_metainfo[b'info'])
         get_info_from_handle(self.libtorrent_download_impl.handle).files = lambda: [mocked_file]
 
