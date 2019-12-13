@@ -424,7 +424,7 @@ class LibtorrentMgr(TaskManager):
 
         elif alert_type == "dht_pkt_alert":
             # We received a raw DHT message - decode it and check whether it is a BEP33 message.
-            decoded = bdecode(alert.pkt_buf)
+            decoded = bdecode_compat(alert.pkt_buf)
             if decoded and 'r' in decoded:
                 if 'BFsd' in decoded['r'] and 'BFpe' in decoded['r']:
                     self.dht_health_manager.received_bloomfilters(decoded['r']['id'],
