@@ -7,7 +7,7 @@ import logging
 import os
 import sys
 import time as timemod
-from asyncio import gather, iscoroutine
+from asyncio import gather, get_event_loop, iscoroutine
 from binascii import unhexlify
 from glob import iglob
 from threading import Event, enumerate as enumerate_threads
@@ -501,14 +501,11 @@ class TriblerLaunchMany(TaskManager):
                 seeding_download_list.append({u'infohash': infohash,
                                               u'download': download})
 
-                if self.bootstrap and not self.bootstrap.bootstrap_finished and hexlify(
-                        infohash) == self.session.config.get_bootstrap_infohash() and self.trustchain_community:
+                if self.bootstrap and not self.bootstrap.bootstrap_finished \
+                        and hexlify(infohash) == self.session.config.get_bootstrap_infohash() \
+                        and self.trustchain_community:
                     if download.future_flushed.done():
-                        with open(self.bootstrap.bootstrap_file, 'r') as f:
-                            sql_dumb = f.read()
-                        self._logger.info("Executing script for trustchain bootstrap")
-                        self.trustchain_community.persistence.executescript(sql_dumb)
-                        self.trustchain_community.persistence.commit()
+                        get_event_loop().run_in_executor(None, self.import_bootstrap_file)
                         self.bootstrap.bootstrap_finished = True
                     else:
                         self._logger.info("Bootstrap download not flushed yet, rescheduling")
@@ -542,6 +539,13 @@ class TriblerLaunchMany(TaskManager):
                 self.credit_mining_manager.monitor_downloads(states_list)
 
         return []
+
+    def import_bootstrap_file(self):
+        with open(self.bootstrap.bootstrap_file, 'r') as f:
+            sql_dumb = f.read()
+        self._logger.info("Executing script for trustchain bootstrap")
+        self.trustchain_community.persistence.executescript(sql_dumb)
+        self.trustchain_community.persistence.commit()
 
     #
     # Persistence methods
