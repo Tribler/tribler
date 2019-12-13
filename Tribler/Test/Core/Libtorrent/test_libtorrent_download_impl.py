@@ -293,9 +293,9 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         """
         Test whether we return the right share mode when requested in the LibtorrentDownloadImpl
         """
-        self.libtorrent_download_impl.handle.status().share_mode = False
+        self.libtorrent_download_impl.config.get_share_mode = lambda: False
         self.assertFalse(self.libtorrent_download_impl.get_share_mode())
-        self.libtorrent_download_impl.handle.status().share_mode = True
+        self.libtorrent_download_impl.config.get_share_mode = lambda: True
         self.assertTrue(self.libtorrent_download_impl.get_share_mode())
 
     async def test_set_share_mode(self):
@@ -404,6 +404,7 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         mocked_file.path = 'test'
 
         self.libtorrent_download_impl.handle.trackers = lambda: []
+        self.libtorrent_download_impl.handle.get_peer_info = lambda: []
         self.libtorrent_download_impl.handle.save_resume_data = lambda: test_future
         self.libtorrent_download_impl.handle.rename_file = lambda *_: None
         with open(os.path.join(TESTS_DATA_DIR, "bak_single.torrent"), mode='rb') as torrent_file:
@@ -462,6 +463,7 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
 
         # The line below should trigger Value Error
         self.libtorrent_download_impl.handle.trackers = lambda: [{'url': 'no-DHT'}]
+        self.libtorrent_download_impl.handle.get_peer_info = lambda: []
 
         get_info_from_handle(self.libtorrent_download_impl.handle).metadata = lambda: lt.bencode({})
         get_info_from_handle(self.libtorrent_download_impl.handle).files = lambda: [mocked_file]

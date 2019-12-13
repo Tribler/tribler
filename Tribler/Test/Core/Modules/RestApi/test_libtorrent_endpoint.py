@@ -27,9 +27,10 @@ class TestLibTorrentSettingsEndpoint(AbstractApiTest):
     async def test_get_settings_for_uninitialized_session(self):
         """
         Tests getting session for non initialized session.
-        By default, anonymous sessions are not initialized so test is done for 1 hop session.
+        By default, anonymous sessions with hops > 1 are not initialized so test is done for
+        a 2 hop session expecting empty stats.
         """
-        hop = 1
+        hop = 2
         response_dict = await self.do_request('libtorrent/settings?hop=%d' % hop, expected_code=200)
         self.assertEqual(response_dict['hop'], hop)
         self.assertEqual(response_dict['settings'], {})
@@ -75,9 +76,10 @@ class TestLibTorrentSessionEndpoint(AbstractApiTest):
     async def test_get_stats_for_uninitialized_session(self):
         """
         Tests getting stats for non initialized session.
-        By default, anonymous sessions are not initialized so test is done for 1 hop session expecting empty stats.
+        By default, anonymous sessions with hops > 1 are not initialized so test is done for
+        a 2 hop session expecting empty stats.
         """
-        hop = 1
+        hop = 2
 
         response_dict = await self.do_request('libtorrent/session?hop=%d' % hop, expected_code=200)
         self.assertEqual(response_dict['hop'], hop)

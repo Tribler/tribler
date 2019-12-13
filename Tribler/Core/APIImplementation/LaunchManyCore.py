@@ -333,8 +333,7 @@ class TriblerLaunchMany(TaskManager):
 
         self.initComplete = True
 
-    def add(self, tdef, config, setupDelay=0, hidden=False,
-            share_mode=False, checkpoint_disabled=False):
+    def add(self, tdef, config, delay=0, hidden=False, checkpoint_disabled=False):
         """ Called by any thread """
         with self.session_lock:
             infohash = tdef.get_infohash()
@@ -361,8 +360,7 @@ class TriblerLaunchMany(TaskManager):
 
             # Store in list of Downloads, always.
             self.downloads[infohash] = download
-            download.setup(config, delay=setupDelay, share_mode=share_mode,
-                           checkpoint_disabled=checkpoint_disabled, hidden=hidden_torrent)
+            download.setup(config, delay=delay, checkpoint_disabled=checkpoint_disabled, hidden=hidden_torrent)
         return download
 
     async def remove(self, download, removecontent=False, removestate=True):
@@ -504,11 +502,11 @@ class TriblerLaunchMany(TaskManager):
                 if self.bootstrap and not self.bootstrap.bootstrap_finished \
                         and hexlify(infohash) == self.session.config.get_bootstrap_infohash() \
                         and self.trustchain_community:
-                    if download.future_flushed.done():
+                    if download.future_finished.done():
                         get_event_loop().run_in_executor(None, self.import_bootstrap_file)
                         self.bootstrap.bootstrap_finished = True
                     else:
-                        self._logger.info("Bootstrap download not flushed yet, rescheduling")
+                        self._logger.info("Bootstrap download not finished yet, rescheduling")
 
                 if infohash in self.previous_active_downloads:
                     self.session.notifier.notify(NTFY_TORRENT, NTFY_FINISHED, infohash, safename, is_hidden)
@@ -554,14 +552,14 @@ class TriblerLaunchMany(TaskManager):
         def do_load_checkpoint():
             with self.session_lock:
                 for i, filename in enumerate(iglob(os.path.join(self.session.get_downloads_config_dir(), '*.conf'))):
-                    self.resume_download(filename, setupDelay=i * 0.1)
+                    self.resume_download(filename, delay=i * 0.1)
 
         if self.initComplete:
             do_load_checkpoint()
         else:
             self.register_task("load_checkpoint", do_load_checkpoint, delay=1)
 
-    def resume_download(self, filename, setupDelay=0):
+    def resume_download(self, filename, delay=0):
         try:
             config = self.load_download_config(filename)
             if not config:
@@ -610,7 +608,7 @@ class TriblerLaunchMany(TaskManager):
             elif config.get_credit_mining() and not self.session.config.get_credit_mining_enabled():
                 self._logger.info("tlm: not resuming checkpoint since token mining is disabled")
             else:
-                self.add(tdef, config, setupDelay=setupDelay)
+                self.add(tdef, config, delay=delay)
         except Exception:
             self._logger.exception("tlm: load check_point: exception while adding download %s", tdef)
 

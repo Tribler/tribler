@@ -180,7 +180,7 @@ class StartDownloadDialog(DialogContainer):
             return
 
         if 'error' in metainfo:
-            if metainfo['error'] == 'timeout':
+            if metainfo['error'] == 'metainfo error':
                 # If it failed to load metainfo for max number of times, show an error message in red.
                 if self.metainfo_retries > METAINFO_MAX_RETRIES:
                     self.dialog_widget.loading_files_label.setStyleSheet("color:#ff0000;")
