@@ -7,9 +7,7 @@ import logging
 import os
 import sys
 import time as timemod
-
 from asyncio import gather, get_event_loop, iscoroutine
-
 from binascii import unhexlify
 from glob import iglob
 from threading import Event, enumerate as enumerate_threads
