@@ -92,7 +92,7 @@ class CreditMiningManager(TaskManager):
             os.makedirs(self.settings.save_path)
 
         self.register_task('check_disk_space', self.check_disk_space, interval=30)
-        self.num_checkpoints = len(glob(os.path.join(self.session.get_downloads_config_dir(), '*.conf')))
+        self.num_checkpoints = len(glob(os.path.join(self.session.ltmgr.get_downloads_config_dir(), '*.conf')))
 
         def add_sources(future):
             future.result()
@@ -149,7 +149,7 @@ class CreditMiningManager(TaskManager):
 
             self.upload_mode = is_low
 
-            for download in self.session.get_downloads():
+            for download in self.session.ltmgr.get_downloads():
                 if download.config.get_credit_mining():
                     if download.handle and download.handle.is_valid():
                         download.handle.set_upload_mode(is_low)
@@ -195,7 +195,7 @@ class CreditMiningManager(TaskManager):
                         del self.torrents[infohash]
 
                         if torrent.download:
-                            coros.append(self.session.remove_download(torrent.download,
+                            coros.append(self.session.ltmgr.remove(torrent.download,
                                                                       remove_state=True,
                                                                       remove_content=True, hidden=True))
                             self._logger.info('Removing torrent %s', torrent.infohash)
@@ -224,8 +224,8 @@ class CreditMiningManager(TaskManager):
             return
 
         # If a download already exists or already has a checkpoint, skip this torrent
-        if self.session.get_download(unhexlify(infohash)) or \
-                os.path.exists(os.path.join(self.session.get_downloads_config_dir(), infohash + '.state')):
+        if self.session.ltmgr.get_download(unhexlify(infohash)) or \
+                os.path.exists(os.path.join(self.session.ltmgr.get_downloads_config_dir(), infohash + '.state')):
             self._logger.debug('Skipping torrent %s (download already running or scheduled to run)', infohash)
             return
 
@@ -245,14 +245,14 @@ class CreditMiningManager(TaskManager):
         dl_config.set_credit_mining(True)
         dl_config.set_user_stopped(True)
 
-        self.session.lm.add(TorrentDefNoMetainfo(unhexlify(infohash), name, magnet), dl_config, hidden=True)
+        self.session.ltmgr.add(TorrentDefNoMetainfo(unhexlify(infohash), name, magnet), dl_config, hidden=True)
 
     def get_reserved_space_left(self):
         # Calculate number of bytes we have left for storing torrent data.
         # We could also get the size of the download directory ourselves (without libtorrent), but depending
         # on the size of the directory and the number of files in it, this could use too many resources.
         bytes_left = self.settings.max_disk_space
-        for download in self.session.get_downloads():
+        for download in self.session.ltmgr.get_downloads():
             ds = download.get_state()
             if ds.get_status() in [DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING,
                                    DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR]:

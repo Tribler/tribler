@@ -9,6 +9,6 @@ class TestStateEndpoint(AbstractApiTest):
         """
         Testing whether the API returns a correct state when requested
         """
-        self.session.lm.api_manager.root_endpoint.endpoints['/state'].on_tribler_exception("abcd")
+        self.session.api_manager.root_endpoint.endpoints['/state'].on_tribler_exception("abcd")
         expected_json = {"state": "EXCEPTION", "last_exception": "abcd", "readable_state": "Started"}
         await self.do_request('state', expected_code=200, expected_json=expected_json)

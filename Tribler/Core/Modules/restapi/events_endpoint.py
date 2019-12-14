@@ -173,8 +173,9 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
                                       reason='OK',
                                       headers={'Content-Type': 'text/html'})
         await response.prepare(request)
+        # FIXME: Proper start check!
         await response.write(json.dumps({"type": "events_start",
-                                         "event": {"tribler_started": self.session.lm.initComplete,
+                                         "event": {"tribler_started": True,
                                                    "version": version_id}}).encode('utf-8') + b'\n')
         self.events_responses.append(response)
         try:

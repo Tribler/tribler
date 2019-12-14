@@ -19,10 +19,10 @@ class TriblerStatistics(object):
         """
         Return a dictionary with some general Tribler statistics.
         """
-        db_size = os.path.getsize(self.session.lm.mds.db_filename) if self.session.lm.mds else 0
+        db_size = os.path.getsize(self.session.mds.db_filename) if self.session.mds else 0
         stats_dict = {"db_size": db_size,
-                      "num_channels": self.session.lm.mds.get_num_channels(),
-                      "num_torrents": self.session.lm.mds.get_num_torrents()}
+                      "num_channels": self.session.mds.get_num_channels(),
+                      "num_torrents": self.session.mds.get_num_torrents()}
 
         return stats_dict
 
@@ -38,5 +38,5 @@ class TriblerStatistics(object):
         return {
             "total_up": ipv8.endpoint.bytes_up,
             "total_down": ipv8.endpoint.bytes_down,
-            "session_uptime": time.time() - self.session.lm.ipv8_start_time
+            "session_uptime": time.time() - self.session.ipv8_start_time
         }

@@ -25,9 +25,9 @@ class BaseTestMyChannelEndpoint(BaseTestMetadataEndpoint):
 
     async def setUp(self):
         await super(BaseTestMyChannelEndpoint, self).setUp()
-        self.session.lm.gigachannel_manager = MockObject()
-        self.session.lm.gigachannel_manager.shutdown = lambda: succeed(None)
-        self.session.lm.gigachannel_manager.updated_my_channel = lambda _: succeed(None)
+        self.session.gigachannel_manager = MockObject()
+        self.session.gigachannel_manager.shutdown = lambda: succeed(None)
+        self.session.gigachannel_manager.updated_my_channel = lambda _: succeed(None)
 
     def setUpPreSession(self):
         super(BaseTestMyChannelEndpoint, self).setUpPreSession()
@@ -35,23 +35,23 @@ class BaseTestMyChannelEndpoint(BaseTestMetadataEndpoint):
 
     def create_my_channel(self):
         with db_session:
-            chan = self.session.lm.mds.ChannelMetadata.create_channel('test', 'test')
+            chan = self.session.mds.ChannelMetadata.create_channel('test', 'test')
             for ind in range(5):
-                _ = self.session.lm.mds.TorrentMetadata(
+                _ = self.session.mds.TorrentMetadata(
                     origin_id=chan.id_, title='torrent%d' % ind, status=NEW, infohash=random_infohash()
                 )
             for ind in range(5, 9):
-                _ = self.session.lm.mds.TorrentMetadata(
+                _ = self.session.mds.TorrentMetadata(
                     origin_id=chan.id_, title='torrent%d' % ind, infohash=random_infohash()
                 )
 
-            chan2 = self.session.lm.mds.ChannelMetadata.create_channel('test2', 'test2')
+            chan2 = self.session.mds.ChannelMetadata.create_channel('test2', 'test2')
             for ind in range(5):
-                _ = self.session.lm.mds.TorrentMetadata(
+                _ = self.session.mds.TorrentMetadata(
                     origin_id=chan2.id_, title='torrentB%d' % ind, status=NEW, infohash=random_infohash()
                 )
             for ind in range(5, 9):
-                _ = self.session.lm.mds.TorrentMetadata(
+                _ = self.session.mds.TorrentMetadata(
                     origin_id=chan2.id_, title='torrentB%d' % ind, infohash=random_infohash()
                 )
             return chan
@@ -95,8 +95,8 @@ class TestChannelsCountEndpoint(BaseTestMetadataEndpoint):
 class TestSpecificChannelEndpoint(BaseTestMetadataEndpoint):
     async def setUp(self):
         await super(TestSpecificChannelEndpoint, self).setUp()
-        self.session.lm.ltmgr = MockObject()
-        self.session.lm.ltmgr.shutdown = lambda: succeed(True)
+        self.session.ltmgr = MockObject()
+        self.session.ltmgr.shutdown = lambda: succeed(True)
 
     @timeout(10)
     async def test_create_channel(self):
@@ -105,14 +105,14 @@ class TestSpecificChannelEndpoint(BaseTestMetadataEndpoint):
         """
         await self.do_request('channels/mychannel/0/channels', request_type='POST', expected_code=200)
         with db_session:
-            my_channel = self.session.lm.mds.ChannelMetadata.get(title="New channel")
+            my_channel = self.session.mds.ChannelMetadata.get(title="New channel")
             self.assertTrue(my_channel)
             self.assertEqual(my_channel.title, 'New channel')
 
     async def test_get_contents_count(self):
         # Test getting total count of results
         with db_session:
-            chan = self.session.lm.mds.ChannelMetadata.select().first()
+            chan = self.session.mds.ChannelMetadata.select().first()
             json_dict = await self.do_request('channels/%s/123?include_total=1' % hexlify(chan.public_key))
         self.assertEqual(json_dict['total'], 5)
 
@@ -122,7 +122,7 @@ class TestSpecificChannelEndpoint(BaseTestMetadataEndpoint):
         Test whether we can query torrents from a channel
         """
         with db_session:
-            chan = self.session.lm.mds.ChannelMetadata.select().first()
+            chan = self.session.mds.ChannelMetadata.select().first()
         json_dict = await self.do_request('channels/%s/123' % hexlify(chan.public_key), expected_code=200)
         self.assertEqual(len(json_dict['results']), 5)
         self.assertIn('status', json_dict['results'][0])
@@ -131,8 +131,8 @@ class TestSpecificChannelEndpoint(BaseTestMetadataEndpoint):
     async def test_get_channel_contents_by_type(self):
         # Test filtering channel contents by a list of data types
         with db_session:
-            chan = self.session.lm.mds.ChannelMetadata.select(lambda g: g.public_key == database_blob(self.ext_key.pub().key_to_bin()[10:])).first()
-            self.session.lm.mds.CollectionNode(title='some_folder', origin_id=chan.id_, sign_with=self.ext_key)
+            chan = self.session.mds.ChannelMetadata.select(lambda g: g.public_key == database_blob(self.ext_key.pub().key_to_bin()[10:])).first()
+            self.session.mds.CollectionNode(title='some_folder', origin_id=chan.id_, sign_with=self.ext_key)
 
             json_dict = await self.do_request('channels/%s/123?metadata_type=220&metadata_type=300' % hexlify(chan.public_key), expected_code=200)
         self.assertEqual(len(json_dict['results']), 6)
@@ -193,13 +193,13 @@ class TestSpecificChannelCopyEndpoint(BaseTestMyChannelEndpoint):
         """
         Test if we can copy torrents from an external channel(s) to a personal channel/collection
         """
-        channel = self.session.lm.mds.ChannelMetadata.create_channel('my chan')
+        channel = self.session.mds.ChannelMetadata.create_channel('my chan')
         ext_key = default_eccrypto.generate_key(u"curve25519")
         with db_session:
-            external_metadata1 = self.session.lm.mds.TorrentMetadata(
+            external_metadata1 = self.session.mds.TorrentMetadata(
                 sign_with=ext_key, id_=111, title="bla1", infohash=random_infohash()
             )
-            external_metadata2_ffa = self.session.lm.mds.TorrentMetadata(
+            external_metadata2_ffa = self.session.mds.TorrentMetadata(
                 public_key=b"", id_=222, title="bla2-ffa", infohash=random_infohash()
             )
 
@@ -246,19 +246,19 @@ class TestSpecificChannelChannelsEndpoint(AbstractApiTest):
         """
         await self.do_request('channels/mychannel/0/channels', request_type='POST', expected_code=200)
         with db_session:
-            channel = self.session.lm.mds.ChannelMetadata.get()
+            channel = self.session.mds.ChannelMetadata.get()
             self.assertTrue(channel)
         await self.do_request('channels/mychannel/%i/collections' % channel.id_, request_type='POST', expected_code=200)
         with db_session:
-            coll = self.session.lm.mds.CollectionNode.get(lambda g: g.origin_id == channel.id_)
+            coll = self.session.mds.CollectionNode.get(lambda g: g.origin_id == channel.id_)
             self.assertTrue(coll)
 
 
 class TestSpecificChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
     async def setUp(self):
         await super(TestSpecificChannelTorrentsEndpoint, self).setUp()
-        self.session.lm.ltmgr = MockObject()
-        self.session.lm.ltmgr.shutdown = lambda: succeed(True)
+        self.session.ltmgr = MockObject()
+        self.session.ltmgr.shutdown = lambda: succeed(True)
 
     @timeout(10)
     async def test_add_torrents_no_channel(self):
@@ -350,7 +350,7 @@ class TestSpecificChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
         """
         with db_session:
             channel = self.create_my_channel()
-            my_channel = self.session.lm.mds.ChannelMetadata.get_my_channel()
+            my_channel = self.session.mds.ChannelMetadata.get_my_channel()
             tdef = TorrentDef.load(TORRENT_UBUNTU_FILE)
             my_channel.add_torrent_to_channel(tdef, {'description': 'blabla'})
 
@@ -429,7 +429,7 @@ class TestSpecificChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
             meta_info = TorrentDef.load(TORRENT_UBUNTU_FILE).get_metainfo()
             return succeed(meta_info)
 
-        self.session.lm.ltmgr.get_metainfo = fake_get_metainfo
+        self.session.ltmgr.get_metainfo = fake_get_metainfo
 
         post_params = {'uri': 'magnet:?fake'}
         await self.do_request(
@@ -448,7 +448,7 @@ class TestSpecificChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
         def fake_get_metainfo(*_, **__):
             return succeed(None)
 
-        self.session.lm.ltmgr.get_metainfo = fake_get_metainfo
+        self.session.ltmgr.get_metainfo = fake_get_metainfo
 
         post_params = {'uri': 'magnet:?fake'}
         await self.do_request(
@@ -463,7 +463,7 @@ class TestSpecificChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
         Test whether we can query some torrents in the database with the REST API
         """
         with db_session:
-            chan = self.session.lm.mds.ChannelMetadata.select().first()
+            chan = self.session.mds.ChannelMetadata.select().first()
         json_dict = await self.do_request('channels/%s/123' % hexlify(chan.public_key))
         self.assertEqual(len(json_dict['results']), 5)
 
@@ -472,10 +472,10 @@ class TestSpecificChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
         Test whether we can query channel contents for unsigned (legacy/FFA) channels
         """
         with db_session:
-            channel = self.session.lm.mds.ChannelMetadata(
+            channel = self.session.mds.ChannelMetadata(
                 title='ffa', infohash=random_infohash(), public_key=b"", id_=123
             )
-            self.session.lm.mds.TorrentMetadata(
+            self.session.mds.TorrentMetadata(
                 public_key=b"", id_=333333, origin_id=channel.id_, title='torrent', infohash=random_infohash()
             )
 

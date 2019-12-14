@@ -122,9 +122,7 @@ class LibtorrentDownloadImpl(TaskManager):
         self.progressbeforestop = 0.0
         self.filepieceranges = []
 
-        # Libtorrent session manager, can be None at this point as the core could have
-        # not been started. Will set in create_engine wrapper
-        self.ltmgr = None
+        self.ltmgr = self.session.ltmgr if session else None
 
         # Libtorrent status
         self.lt_status = None
@@ -206,8 +204,6 @@ class LibtorrentDownloadImpl(TaskManager):
         self.register_task("create_handle", self.create_handle, delay=delay)
 
     async def create_handle(self):
-        self.ltmgr = self.session.lm.ltmgr
-
         self._logger.debug("LibtorrentDownloadImpl: network_create_engine_wrapper()")
 
         atp = {"save_path": os.path.normpath(os.path.join(get_default_dest_dir(), self.config.get_dest_dir())),
@@ -473,7 +469,7 @@ class LibtorrentDownloadImpl(TaskManager):
 
         # Save it to file
         basename = hexlify(resume_data[b'info-hash']) + '.conf'
-        filename = os.path.join(self.session.get_downloads_config_dir(), basename)
+        filename = os.path.join(self.ltmgr.get_downloads_config_dir(), basename)
         self.config.write(filename)
         self._logger.debug('Saving download config to file %s', filename)
 
@@ -893,26 +889,26 @@ class LibtorrentDownloadImpl(TaskManager):
         async def state_callback_loop():
             if usercallback:
                 when = 1
-                while when and not self.done and not self.session.lm.shutdownstarttime:
+                while when and not self.done and not self.session.shutdownstarttime:
                     result = usercallback(self.get_state())
                     when = (await result) if iscoroutine(result) else result
-                    if when > 0.0 and not self.session.lm.shutdownstarttime:
+                    if when > 0.0 and not self.session.shutdownstarttime:
                         await sleep(when)
         return self.register_anonymous_task("downloads_cb", state_callback_loop)
 
-    async def stop(self, removestate=False, removecontent=False, user_stopped=None):
+    async def stop(self, remove_state=False, remove_content=False, user_stopped=None):
         if user_stopped is not None:
             self.config.set_user_stopped(user_stopped)
 
-        self.done = removestate
+        self.done = remove_state
         await self.shutdown_task_manager()
 
         self._logger.debug("LibtorrentDownloadImpl: stop %s", self.tdef.get_name())
 
         if self.handle is not None:
             self._logger.debug("LibtorrentDownloadImpl: stop: engineresumedata from torrent handle")
-            if removestate:
-                await self.ltmgr.remove_torrent(self, removecontent)
+            if remove_state:
+                await self.ltmgr.remove_torrent(self, remove_content)
                 self.handle = None
             else:
                 self.set_vod_mode(False)
@@ -921,8 +917,8 @@ class LibtorrentDownloadImpl(TaskManager):
         else:
             self._logger.debug("LibtorrentDownloadImpl: stop: handle is None")
 
-        if removestate:
-            self.session.lm.remove_download_config(self.tdef.get_infohash())
+        if remove_state:
+            self.session.ltmgr.remove_config(self.tdef.get_infohash())
 
 
     def get_content_dest(self):
@@ -978,7 +974,7 @@ class LibtorrentDownloadImpl(TaskManager):
             # Libtorrent hasn't received or initialized this download yet
             # 1. Check if we have data for this infohash already (don't overwrite it if we do!)
             basename = hexlify(self.tdef.get_infohash()) + '.state'
-            filename = os.path.join(self.session.get_downloads_config_dir(), basename)
+            filename = os.path.join(self.ltmgr.get_downloads_config_dir(), basename)
             if not os.path.isfile(filename):
                 # 2. If there is no saved data for this infohash, checkpoint it without data so we do not
                 #    lose it when we crash or restart before the download becomes known.

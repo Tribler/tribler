@@ -72,14 +72,14 @@ class TorrentInfoEndpoint(RESTEndpoint):
             if response.startswith(b'magnet'):
                 _, infohash, _ = parse_magnetlink(response)
                 if infohash:
-                    metainfo = await self.session.lm.ltmgr.get_metainfo(infohash, timeout=20)
+                    metainfo = await self.session.ltmgr.get_metainfo(infohash, timeout=20)
             else:
                 metainfo = bdecode_compat(response)
         elif uri.startswith('magnet'):
             infohash = parse_magnetlink(uri)[1]
             if infohash is None:
                 return RESTResponse({"error": "missing infohash"}, status=HTTP_BAD_REQUEST)
-            metainfo = await self.session.lm.ltmgr.get_metainfo(infohash, timeout=20)
+            metainfo = await self.session.ltmgr.get_metainfo(infohash, timeout=20)
         else:
             return RESTResponse({"error": "invalid uri"}, status=HTTP_BAD_REQUEST)
 
@@ -91,7 +91,7 @@ class TorrentInfoEndpoint(RESTEndpoint):
             return RESTResponse({"error": "invalid response"}, status=HTTP_INTERNAL_SERVER_ERROR)
 
         # Add the torrent to GigaChannel as a free-for-all entry, so others can search it
-        self.session.lm.mds.TorrentMetadata.add_ffa_from_dict(
+        self.session.mds.TorrentMetadata.add_ffa_from_dict(
             tdef_to_metadata_dict(TorrentDef.load_from_dict(metainfo)))
 
         # TODO(Martijn): store the stuff in a database!!!
@@ -100,7 +100,7 @@ class TorrentInfoEndpoint(RESTEndpoint):
 
         # Check if the torrent is already in the downloads
         encoded_metainfo = deepcopy(metainfo)
-        encoded_metainfo['download_exists'] = infohash in self.session.lm.downloads
+        encoded_metainfo['download_exists'] = infohash in self.session.ltmgr.downloads
         # FIXME: json.dumps garbles binary data that is used by the 'pieces' field
         # However, this is fine as long as the GUI does not use this field.
         encoded_metainfo[b'info'][b'pieces'] = hexlify(encoded_metainfo[b'info'][b'pieces']).encode('utf-8')

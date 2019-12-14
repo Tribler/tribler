@@ -113,7 +113,7 @@ class TorrentChecker(TaskManager):
         # get the torrents that should be checked
         infohashes = []
         with db_session:
-            tracker = self.tribler_session.lm.mds.TrackerState.get(url=tracker_url)
+            tracker = self.tribler_session.mds.TrackerState.get(url=tracker_url)
             if tracker:
                 torrents = tracker.torrents
                 for torrent in torrents:
@@ -156,7 +156,7 @@ class TorrentChecker(TaskManager):
         except Exception as e:
             self._logger.warning("Got session error for URL %s: %s", session.tracker_url, str(e).replace(u'\n]', u']'))
             self.clean_session(session)
-            self.tribler_session.lm.tracker_manager.update_tracker_info(session.tracker_url, False)
+            self.tribler_session.tracker_manager.update_tracker_info(session.tracker_url, False)
             e.tracker_url = session.tracker_url
             raise e
 
@@ -166,7 +166,7 @@ class TorrentChecker(TaskManager):
         Perform a full health check on a random torrent in the database.
         We prioritize torrents that have no health info attached.
         """
-        random_torrents = list(self.tribler_session.lm.mds.TorrentState.select(
+        random_torrents = list(self.tribler_session.mds.TorrentState.select(
             lambda g: (metadata for metadata in g.metadata if metadata.status != LEGACY_ENTRY and
                        metadata.metadata_type == REGULAR_TORRENT))\
             .order_by(lambda g: g.last_check).limit(10))
@@ -196,21 +196,21 @@ class TorrentChecker(TaskManager):
         return tracker_url
 
     def get_next_tracker_for_auto_check(self):
-        return self.tribler_session.lm.tracker_manager.get_next_tracker_for_auto_check()
+        return self.tribler_session.tracker_manager.get_next_tracker_for_auto_check()
 
     def remove_tracker(self, tracker_url):
-        self.tribler_session.lm.tracker_manager.remove_tracker(tracker_url)
+        self.tribler_session.tracker_manager.remove_tracker(tracker_url)
 
     def update_tracker_info(self, tracker_url, value):
-        self.tribler_session.lm.tracker_manager.update_tracker_info(tracker_url, value)
+        self.tribler_session.tracker_manager.update_tracker_info(tracker_url, value)
 
     def is_blacklisted_tracker(self, tracker_url):
-        return tracker_url in self.tribler_session.lm.tracker_manager.blacklist
+        return tracker_url in self.tribler_session.tracker_manager.blacklist
 
     @db_session
     def get_valid_trackers_of_torrent(self, torrent_id):
         """ Get a set of valid trackers for torrent. Also remove any invalid torrent."""
-        db_tracker_list = self.tribler_session.lm.mds.TorrentState.get(infohash=database_blob(torrent_id)).trackers
+        db_tracker_list = self.tribler_session.mds.TorrentState.get(infohash=database_blob(torrent_id)).trackers
         return set([tracker.url for tracker in db_tracker_list
                     if is_valid_url(tracker.url) and not self.is_blacklisted_tracker(tracker.url)])
 
@@ -275,7 +275,7 @@ class TorrentChecker(TaskManager):
 
         # We first check whether the torrent is already in the database and checked before
         with db_session:
-            result = self.tribler_session.lm.mds.TorrentState.get(infohash=database_blob(infohash))
+            result = self.tribler_session.mds.TorrentState.get(infohash=database_blob(infohash))
             if result:
                 torrent_id = result.infohash
                 last_check = result.last_check
@@ -325,7 +325,7 @@ class TorrentChecker(TaskManager):
         return session
 
     def clean_session(self, session):
-        self.tribler_session.lm.tracker_manager.update_tracker_info(session.tracker_url, not session.is_failed)
+        self.tribler_session.tracker_manager.update_tracker_info(session.tracker_url, not session.is_failed)
         self.session_stop_task_list.append(ensure_future(session.cleanup()))
 
         # Remove the session from our session list dictionary
@@ -351,7 +351,7 @@ class TorrentChecker(TaskManager):
 
         with db_session:
             # Update torrent state
-            torrent = self.tribler_session.lm.mds.TorrentState.get(infohash=database_blob(infohash))
+            torrent = self.tribler_session.mds.TorrentState.get(infohash=database_blob(infohash))
             if not torrent:
                 # Something is wrong, there should exist a corresponding TorrentState entry in the DB.
                 return

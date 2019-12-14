@@ -100,7 +100,7 @@ class TriblerUpgrader(object):
         Migration should be relatively fast, so we do it in the foreground, without notifying the user
         and breaking it in smaller chunks as we do with 72_to_pony.
         """
-        # We have to create the Metadata Store object because the LaunchManyCore has not been started yet
+        # We have to create the Metadata Store object because Session-managed Store has not been started yet
         database_path = os.path.join(self.session.config.get_state_dir(), 'sqlite', 'metadata.db')
         channels_dir = os.path.join(self.session.config.get_chant_channels_dir())
         if not os.path.exists(database_path):
@@ -152,7 +152,7 @@ class TriblerUpgrader(object):
         # This thing is here mostly for the skip upgrade test to work...
         self._dtp72.shutting_down = self.skip_upgrade_called
         self.notify_starting()
-        # We have to create the Metadata Store object because the LaunchManyCore has not been started yet
+        # We have to create the Metadata Store object because Session-managed Store has not been started yet
         mds = MetadataStore(new_database_path, channels_dir, self.session.trustchain_keypair, disable_sync=True)
         self._dtp72.initialize(mds)
 

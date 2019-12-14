@@ -15,7 +15,7 @@ from Tribler.Core.Utilities.unicode import hexlify
 class UpdateEntryMixin(object):
     @db_session
     def update_entry(self, public_key, id_, update_dict):
-        entry = self.session.lm.mds.ChannelNode.get(public_key=public_key, id_=id_)
+        entry = self.session.mds.ChannelNode.get(public_key=public_key, id_=id_)
         if not entry:
             return HTTP_NOT_FOUND, {"error": "Object with the specified pk+id could not be found."}
 
@@ -74,7 +74,7 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
             for entry in request_parsed:
                 public_key = database_blob(unhexlify(entry.pop("public_key")))
                 id_ = entry.pop("id")
-                entry = self.session.lm.mds.ChannelNode.get(public_key=public_key, id_=id_)
+                entry = self.session.mds.ChannelNode.get(public_key=public_key, id_=id_)
                 if not entry:
                     return RESTResponse({"error": "Entry %i not found" % id_}, status=HTTP_BAD_REQUEST)
                 entry.delete()
@@ -98,12 +98,12 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
         public_key = unhexlify(request.match_info['public_key'])
         id_ = request.match_info['id']
         with db_session:
-            entry = self.session.lm.mds.ChannelNode.get(public_key=database_blob(public_key), id_=id_)
+            entry = self.session.mds.ChannelNode.get(public_key=database_blob(public_key), id_=id_)
 
             if entry:
                 # TODO: handle costly attributes in a more graceful and generic way for all types of metadata
                 entry_dict = entry.to_simple_dict(
-                    include_trackers=isinstance(entry, self.session.lm.mds.TorrentMetadata)
+                    include_trackers=isinstance(entry, self.session.mds.TorrentMetadata)
                 )
             else:
                 return RESTResponse({"error": "entry not found in database"}, status=HTTP_NOT_FOUND)
@@ -117,7 +117,7 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
                                 status=HTTP_BAD_REQUEST)
 
         with db_session:
-            random_torrents = self.session.lm.mds.TorrentMetadata.get_random_torrents(limit=limit_torrents)
+            random_torrents = self.session.mds.TorrentMetadata.get_random_torrents(limit=limit_torrents)
             torrents = [torrent.to_simple_dict() for torrent in random_torrents]
         return RESTResponse({"torrents": torrents})
 
@@ -161,7 +161,7 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
         nowait = request.query.get('nowait', '0') == '1'
 
         infohash = unhexlify(request.match_info['infohash'])
-        result_future = self.session.check_torrent_health(infohash, timeout=timeout, scrape_now=refresh)
+        result_future = self.session.torrent_checker.check_torrent_health(infohash, timeout=timeout, scrape_now=refresh)
         # Return immediately. Used by GUI to schedule health updates through the EventsEndpoint
         if nowait:
             ensure_future(result_future)

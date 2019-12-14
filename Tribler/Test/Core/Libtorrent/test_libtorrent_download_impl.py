@@ -82,7 +82,7 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         fake_status.upload_mode = False
         # Create a dummy download config
         impl.config = DownloadConfig()
-        impl.session.lm.on_download_wrapper_created = lambda _: True
+        impl.session.on_download_wrapper_created = lambda _: True
         await impl.restart()
 
     @timeout(20)
@@ -109,7 +109,7 @@ class TestLibtorrentDownloadImpl(TestAsServer):
 
         # Create a dummy download config
         impl.config = DownloadConfig()
-        impl.session.lm.on_download_wrapper_created = lambda _: True
+        impl.session.on_download_wrapper_created = lambda _: True
         await impl.set_upload_mode(True)
         await impl.restart()
 
@@ -173,7 +173,7 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         impl.setup(None, 0)
         await impl.save_resume_data()
         basename = hexlify(tdef.get_infohash()) + '.conf'
-        filename = os.path.join(self.session.get_downloads_config_dir(), basename)
+        filename = os.path.join(self.session.ltmgr.get_downloads_config_dir(), basename)
         dcfg = DownloadConfig.load(filename)
         self.assertEqual(tdef.get_infohash(), dcfg.get_engineresumedata().get(b'info-hash'))
         await impl.stop()
@@ -189,7 +189,7 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         # This should not cause a checkpoint
         impl.setup(None, 0, checkpoint_disabled=True)
         basename = hexlify(tdef.get_infohash()) + '.state'
-        filename = os.path.join(self.session.get_downloads_config_dir(), basename)
+        filename = os.path.join(self.session.ltmgr.get_downloads_config_dir(), basename)
         self.assertFalse(os.path.isfile(filename))
 
         # This shouldn't either
@@ -415,8 +415,8 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
 
         self.libtorrent_download_impl.checkpoint = lambda: test_future.set_result(None)
         self.libtorrent_download_impl.session = MockObject()
-        self.libtorrent_download_impl.session.lm = MockObject()
-        self.libtorrent_download_impl.session.lm.torrent_db = None
+        self.libtorrent_download_impl.session = MockObject()
+        self.libtorrent_download_impl.session.torrent_db = None
         self.libtorrent_download_impl.handle.save_path = lambda: None
         self.libtorrent_download_impl.handle.prioritize_files = lambda _: None
         self.libtorrent_download_impl.get_save_path = lambda: ''

@@ -44,7 +44,7 @@ class ChannelSource(BaseSource):
     def start(self):
         super(ChannelSource, self).start()
 
-        channel = self.session.lm.mds.ChannelMetadata.get_recent_channel_with_public_key(self.source)
+        channel = self.session.mds.ChannelMetadata.get_recent_channel_with_public_key(self.source)
         if not channel:
             self._logger.error("Could not find channel!")
             return

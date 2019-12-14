@@ -68,8 +68,8 @@ class VideoServer(ThreadingMixIn, HTTPServer):
         self.vod_download = new_download
 
     def get_vod_stream(self, dl_hash, wait=False):
-        if 'stream' not in self.vod_info[dl_hash] and self.session.get_download(dl_hash):
-            download = self.session.get_download(dl_hash)
+        if 'stream' not in self.vod_info[dl_hash] and self.session.ltmgr.get_download(dl_hash):
+            download = self.session.ltmgr.get_download(dl_hash)
             vod_filename = self.get_vod_destination(download)
             while wait and not os.path.exists(vod_filename):
                 time.sleep(1)
@@ -130,7 +130,7 @@ class VideoRequestHandler(BaseHTTPRequestHandler):
         self._logger.debug("VOD request %s %s", self.client_address, self.path)
         downloadhash, fileindex = self.path.strip('/').split('/')
         downloadhash = unhexlify(downloadhash)
-        download = self.server.session.get_download(downloadhash)
+        download = self.server.session.ltmgr.get_download(downloadhash)
 
         if not download or not fileindex.isdigit() or int(fileindex) > len(download.get_def().get_files()):
             self.send_error(404, "Not Found")

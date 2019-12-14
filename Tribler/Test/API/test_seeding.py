@@ -5,7 +5,7 @@ Author(s): Arno Bakker, Niels Zeilemaker
 """
 import logging
 import os
-from asyncio import Future, ensure_future
+from asyncio import Future
 
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import DLSTATUS_SEEDING, dlstatus_strings
@@ -31,7 +31,7 @@ class TestSeeding(TestAsServer):
         self.config.set_libtorrent_enabled(True)
 
     def start_download(self, dscfg):
-        download = self.session.start_download_from_tdef(self.tdef, dscfg)
+        download = self.session.ltmgr.add(self.tdef, dscfg)
         download.set_state_callback(self.downloader_state_callback)
         download.add_peer(("127.0.0.1", self.seeder_session.config.get_libtorrent_port()))
 

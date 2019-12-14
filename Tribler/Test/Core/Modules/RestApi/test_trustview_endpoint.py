@@ -109,18 +109,18 @@ class TestTrustViewEndpoint(AbstractApiTest):
         await super(TestTrustViewEndpoint, self).setUp()
 
         self.mock_ipv8 = MockIPv8(u"low", TrustChainCommunity, working_directory=self.session.config.get_state_dir())
-        self.session.lm.trustchain_community = self.mock_ipv8.overlay
+        self.session.trustchain_community = self.mock_ipv8.overlay
 
-        self.session.lm.bootstrap = MockObject()
-        self.session.lm.bootstrap.download = MockObject()
+        self.session.bootstrap = MockObject()
+        self.session.bootstrap.download = MockObject()
 
         bootstrap_download_state = MockObject()
         bootstrap_download_state.get_total_transferred = lambda _: random.randint(0, 10000)
         bootstrap_download_state.get_progress = lambda: random.randint(10, 100)
 
-        self.session.lm.bootstrap.download.get_state = lambda: bootstrap_download_state
+        self.session.bootstrap.download.get_state = lambda: bootstrap_download_state
 
-        self.endpoint = self.session.lm.api_manager.root_endpoint.endpoints['/trustview']
+        self.endpoint = self.session.api_manager.root_endpoint.endpoints['/trustview']
 
     def setUpPreSession(self):
         super(TestTrustViewEndpoint, self).setUpPreSession()
@@ -135,7 +135,7 @@ class TestTrustViewEndpoint(AbstractApiTest):
         """
         Test whether the trust graph response is correctly returned.
         """
-        root_key = self.session.lm.trustchain_community.my_peer.public_key.key_to_bin()
+        root_key = self.session.trustchain_community.my_peer.public_key.key_to_bin()
         friends = [
             "4c69624e61434c504b3a2ee28ce24a2259b4e585b81106cdff4359fcf48e93336c11d133b01613f30b03b4db06df27"
             "80daac2cdf2ee60be611bf7367a9c1071ac50d65ca5858a50e9578",
@@ -188,7 +188,7 @@ class TestTrustViewEndpoint(AbstractApiTest):
             test_block.link_public_key = unhexlify(pub_key)
 
             test_block.hash = test_block.calculate_hash()
-            self.session.lm.trustchain_community.persistence.add_block(test_block)
+            self.session.trustchain_community.persistence.add_block(test_block)
 
         for ind, friend in enumerate(friends):
             for ind2, fof in enumerate(fofs):
@@ -200,7 +200,7 @@ class TestTrustViewEndpoint(AbstractApiTest):
                 test_block.link_public_key = unhexlify(fof)
 
                 test_block.hash = test_block.calculate_hash()
-                self.session.lm.trustchain_community.persistence.add_block(test_block)
+                self.session.trustchain_community.persistence.add_block(test_block)
 
         for ind3, fof in enumerate(fofs):
             for ind4, fofof in enumerate(fofofs):
@@ -211,7 +211,7 @@ class TestTrustViewEndpoint(AbstractApiTest):
                 test_block.public_key = unhexlify(fof)
                 test_block.link_public_key = unhexlify(fofof)
                 test_block.hash = test_block.calculate_hash()
-                self.session.lm.trustchain_community.persistence.add_block(test_block)
+                self.session.trustchain_community.persistence.add_block(test_block)
 
         res = await self.do_request('trustview?depth=1', expected_code=200)
         verify_response(res, 4, 3)
@@ -241,7 +241,7 @@ class TestTrustViewEndpoint(AbstractApiTest):
                 b'total_down': random.randint(1, 101),
             }
 
-        test_block = TestBlock(key=self.session.lm.trustchain_community.my_peer.key)
+        test_block = TestBlock(key=self.session.trustchain_community.my_peer.key)
         test_block.sequence_number = 0
         test_block.type = b'tribler_bandwidth'
         for _ in range(max_peers * 2):
@@ -249,7 +249,7 @@ class TestTrustViewEndpoint(AbstractApiTest):
             test_block._transaction = encode(test_block.transaction)
             test_block.link_public_key = default_eccrypto.generate_key(u"very-low").pub().key_to_bin()
             test_block.hash = test_block.calculate_hash()
-            self.session.lm.trustchain_community.persistence.add_block(test_block)
+            self.session.trustchain_community.persistence.add_block(test_block)
             test_block.sequence_number = test_block.sequence_number + 1
 
         response_json = await self.do_request('trustview?depth=0', expected_code=200)

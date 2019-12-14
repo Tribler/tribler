@@ -151,14 +151,14 @@ class TrustViewEndpoint(RESTEndpoint):
         self.app.add_routes([web.get('', self.get_view)])
 
     def initialize_graph(self):
-        if self.session.lm.trustchain_community:
-            self.trustchain_db = self.session.lm.trustchain_community.persistence
-            self.public_key = self.session.lm.trustchain_community.my_peer.public_key.key_to_bin()
+        if self.session.trustchain_community:
+            self.trustchain_db = self.session.trustchain_community.persistence
+            self.public_key = self.session.trustchain_community.my_peer.public_key.key_to_bin()
             self.trust_graph = TrustGraph(hexlify(self.public_key))
 
             # Start bootstrap download if not already done
-            if not self.session.lm.bootstrap:
-                self.session.lm.start_bootstrap_download()
+            if not self.session.bootstrap:
+                self.session.start_bootstrap_download()
 
     async def get_view(self, request):
         if not self.trust_graph:
@@ -209,8 +209,8 @@ class TrustViewEndpoint(RESTEndpoint):
         )
 
     def get_bootstrap_info(self):
-        if self.session.lm.bootstrap.download and self.session.lm.bootstrap.download.get_state():
-            state = self.session.lm.bootstrap.download.get_state()
+        if self.session.bootstrap.download and self.session.bootstrap.download.get_state():
+            state = self.session.bootstrap.download.get_state()
             return {
                 'download': state.get_total_transferred(DOWNLOAD),
                 'upload': state.get_total_transferred(UPLOAD),

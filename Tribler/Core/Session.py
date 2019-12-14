@@ -1,25 +1,48 @@
 """
 A Session is a running instance of the Tribler Core and the Core's central class.
 
-Author(s): Arno Bakker
+Author(s): Arno Bakker, Niels Zeilmaker, Vadim Bulavintsev
 """
-import asyncio
+
 import errno
 import logging
 import os
 import sys
+import time as timemod
 from asyncio import get_event_loop
-from threading import RLock
-from traceback import print_tb
+from threading import Event, enumerate as enumerate_threads
+from traceback import print_exc, print_tb
+
+from anydex.wallet.dummy_wallet import DummyWallet1, DummyWallet2
+from anydex.wallet.tc_wallet import TrustchainWallet
+
+from ipv8.dht.provider import DHTCommunityProvider
+from ipv8.messaging.anonymization.community import TunnelSettings
+from ipv8.peer import Peer
+from ipv8.peerdiscovery.churn import RandomChurn
+from ipv8.peerdiscovery.community import DiscoveryCommunity, PeriodicSimilarity
+from ipv8.peerdiscovery.discovery import EdgeWalk, RandomWalk
+from ipv8.taskmanager import TaskManager
+
+from ipv8_service import IPv8
 
 import Tribler.Core.permid as permid_module
-from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
 from Tribler.Core.Config.tribler_config import TriblerConfig
+from Tribler.Core.Modules.MetadataStore.store import MetadataStore
+from Tribler.Core.Modules.gigachannel_manager import GigaChannelManager
+from Tribler.Core.Modules.payout_manager import PayoutManager
+from Tribler.Core.Modules.resource_monitor import ResourceMonitor
 from Tribler.Core.Modules.restapi.rest_manager import RESTManager
+from Tribler.Core.Modules.tracker_manager import TrackerManager
+from Tribler.Core.Modules.versioncheck_manager import VersionCheckManager
+from Tribler.Core.Modules.watch_folder import WatchFolder
 from Tribler.Core.Notifier import Notifier
+from Tribler.Core.TorrentChecker.torrent_checker import TorrentChecker
 from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
-from Tribler.Core.Utilities import torrent_utils
 from Tribler.Core.Utilities.crypto_patcher import patch_crypto_be_discovery
+from Tribler.Core.Utilities.install_dir import get_lib_path
+from Tribler.Core.Video.VideoServer import VideoServer
+from Tribler.Core.bootstrap import Bootstrap
 from Tribler.Core.exceptions import OperationNotEnabledByConfigurationException
 from Tribler.Core.simpledefs import (
     NTFY_DELETE,
@@ -35,14 +58,13 @@ from Tribler.Core.simpledefs import (
     STATE_READABLE_STARTED,
     STATE_SHUTDOWN,
     STATE_START_API,
+    STATE_START_CREDIT_MINING,
+    STATE_START_LIBTORRENT,
+    STATE_START_TORRENT_CHECKER,
+    STATE_START_WATCH_FOLDER,
     STATE_UPGRADING_READABLE,
 )
 from Tribler.Core.statistics import TriblerStatistics
-
-try:
-    long  # pylint: disable=long-builtin
-except NameError:
-    long = int  # pylint: disable=redefined-builtin
 
 if sys.platform == 'win32':
     SOCKET_BLOCK_ERRORCODE = 10035  # WSAEWOULDBLOCK
@@ -50,7 +72,7 @@ else:
     SOCKET_BLOCK_ERRORCODE = errno.EWOULDBLOCK
 
 
-class Session(object):
+class Session(TaskManager):
     """
     A Session is a running instance of the Tribler Core and the Core's central class.
     """
@@ -68,13 +90,13 @@ class Session(object):
         serve as startup config. Next, the config is saved in the directory
         indicated by its 'state_dir' attribute.
         """
+        super(Session, self).__init__()
+
         get_event_loop().set_exception_handler(self.unhandled_error_observer)
 
         patch_crypto_be_discovery()
 
         self._logger = logging.getLogger(self.__class__.__name__)
-
-        self.session_lock = RLock()
 
         self.config = config or TriblerConfig()
         self._logger.info("Session is using state directory: %s", self.config.get_state_dir())
@@ -86,13 +108,190 @@ class Session(object):
 
         self.init_keypair()
 
-        self.lm = TriblerLaunchMany()
         self.notifier = Notifier()
 
         self.upgrader_enabled = True
         self.upgrader = None
         self.readable_status = ''  # Human-readable string to indicate the status during startup/shutdown of Tribler
 
+        self.ipv8 = None
+        self.ipv8_start_time = 0
+
+        self._logger = logging.getLogger(self.__class__.__name__)
+
+        self.upnp_ports = []
+
+        self.sessdoneflag = Event()
+
+        self.shutdownstarttime = None
+
+        self.bootstrap = None
+
+        # modules
+        self.api_manager = None
+        self.watch_folder = None
+        self.version_check_manager = None
+        self.resource_monitor = None
+
+        self.gigachannel_manager = None
+
+        self.video_server = None
+
+        self.ltmgr = None  # Libtorrent Manager
+        self.tracker_manager = None
+        self.torrent_checker = None
+        self.tunnel_community = None
+        self.trustchain_community = None
+        self.wallets = {}
+        self.popularity_community = None
+        self.gigachannel_community = None
+
+        self.credit_mining_manager = None
+        self.market_community = None
+        self.dht_community = None
+        self.payout_manager = None
+        self.mds = None  # Metadata Store
+
+    def load_ipv8_overlays(self):
+        if self.config.get_testnet():
+            peer = Peer(self.trustchain_testnet_keypair)
+        else:
+            peer = Peer(self.trustchain_keypair)
+        discovery_community = DiscoveryCommunity(peer, self.ipv8.endpoint, self.ipv8.network)
+        discovery_community.resolve_dns_bootstrap_addresses()
+        self.ipv8.overlays.append(discovery_community)
+        self.ipv8.strategies.append((RandomChurn(discovery_community), -1))
+        self.ipv8.strategies.append((PeriodicSimilarity(discovery_community), -1))
+        self.ipv8.strategies.append((RandomWalk(discovery_community), 20))
+
+        # TrustChain Community
+        if self.config.get_trustchain_enabled():
+            from ipv8.attestation.trustchain.community import TrustChainCommunity, \
+                TrustChainTestnetCommunity
+
+            community_cls = TrustChainTestnetCommunity if self.config.get_testnet() else TrustChainCommunity
+            self.trustchain_community = community_cls(peer, self.ipv8.endpoint,
+                                                      self.ipv8.network,
+                                                      working_directory=self.config.get_state_dir())
+            self.ipv8.overlays.append(self.trustchain_community)
+            self.ipv8.strategies.append((EdgeWalk(self.trustchain_community), 20))
+
+            tc_wallet = TrustchainWallet(self.trustchain_community)
+            self.wallets[tc_wallet.get_identifier()] = tc_wallet
+
+        # DHT Community
+        if self.config.get_dht_enabled():
+            from ipv8.dht.discovery import DHTDiscoveryCommunity
+
+            self.dht_community = DHTDiscoveryCommunity(peer, self.ipv8.endpoint, self.ipv8.network)
+            self.ipv8.overlays.append(self.dht_community)
+            self.ipv8.strategies.append((RandomWalk(self.dht_community), 20))
+
+        # Tunnel Community
+        if self.config.get_tunnel_community_enabled():
+            from Tribler.community.triblertunnel.community import TriblerTunnelCommunity, TriblerTunnelTestnetCommunity
+            from Tribler.community.triblertunnel.discovery import GoldenRatioStrategy
+            community_cls = TriblerTunnelTestnetCommunity if self.config.get_testnet() else \
+                TriblerTunnelCommunity
+
+            random_slots = self.config.get_tunnel_community_random_slots()
+            competing_slots = self.config.get_tunnel_community_competing_slots()
+
+            dht_provider = DHTCommunityProvider(self.dht_community, self.config.get_ipv8_port())
+            settings = TunnelSettings()
+            settings.min_circuits = 3
+            settings.max_circuits = 10
+            self.tunnel_community = community_cls(peer, self.ipv8.endpoint, self.ipv8.network,
+                                                  tribler_session=self,
+                                                  dht_provider=dht_provider,
+                                                  ipv8=self.ipv8,
+                                                  bandwidth_wallet=self.wallets["MB"],
+                                                  random_slots=random_slots,
+                                                  competing_slots=competing_slots,
+                                                  settings=settings)
+            self.ipv8.overlays.append(self.tunnel_community)
+            self.ipv8.strategies.append((RandomWalk(self.tunnel_community), 20))
+            self.ipv8.strategies.append((GoldenRatioStrategy(self.tunnel_community), -1))
+
+        # Market Community
+        if self.config.get_market_community_enabled() and self.config.get_dht_enabled():
+            from anydex.core.community import MarketCommunity, MarketTestnetCommunity
+
+            community_cls = MarketTestnetCommunity if self.config.get_testnet() else MarketCommunity
+            self.market_community = community_cls(peer, self.ipv8.endpoint, self.ipv8.network,
+                                                  trustchain=self.trustchain_community,
+                                                  dht=self.dht_community,
+                                                  wallets=self.wallets,
+                                                  working_directory=self.config.get_state_dir(),
+                                                  record_transactions=self.config.get_record_transactions())
+
+            self.ipv8.overlays.append(self.market_community)
+
+            self.ipv8.strategies.append((RandomWalk(self.market_community), 20))
+
+        # Popular Community
+        if self.config.get_popularity_community_enabled():
+            from Tribler.community.popularity.community import PopularityCommunity
+
+            self.popularity_community = PopularityCommunity(peer, self.ipv8.endpoint, self.ipv8.network,
+                                                            metadata_store=self.mds,
+                                                            torrent_checker=self.torrent_checker)
+
+            self.ipv8.overlays.append(self.popularity_community)
+            self.ipv8.strategies.append((RandomWalk(self.popularity_community), 20))
+
+        # Gigachannel Community
+        if self.config.get_chant_enabled():
+            from Tribler.community.gigachannel.community import GigaChannelCommunity, GigaChannelTestnetCommunity
+            from Tribler.community.gigachannel.sync_strategy import SyncChannels
+
+            community_cls = GigaChannelTestnetCommunity if self.config.get_testnet() else GigaChannelCommunity
+            self.gigachannel_community = community_cls(peer, self.ipv8.endpoint, self.ipv8.network, self.mds,
+                                                       notifier=self.notifier)
+
+            self.ipv8.overlays.append(self.gigachannel_community)
+
+            self.ipv8.strategies.append((RandomWalk(self.gigachannel_community), 20))
+            self.ipv8.strategies.append((SyncChannels(self.gigachannel_community), 20))
+
+    def enable_ipv8_statistics(self):
+        if self.config.get_ipv8_statistics():
+            for overlay in self.ipv8.overlays:
+                self.ipv8.endpoint.enable_community_statistics(overlay.get_prefix(), True)
+
+    def import_bootstrap_file(self):
+        with open(self.bootstrap.bootstrap_file, 'r') as f:
+            sql_dumb = f.read()
+        self._logger.info("Executing script for trustchain bootstrap")
+        self.trustchain_community.persistence.executescript(sql_dumb)
+        self.trustchain_community.persistence.commit()
+
+    def start_bootstrap_download(self):
+        if self.config.get_bootstrap_enabled():
+            if not self.payout_manager:
+                self._logger.warning("Running bootstrap without payout enabled")
+            self.bootstrap = Bootstrap(self.config.get_state_dir(), dht=self.dht_community)
+            self.bootstrap.start_by_infohash(self.ltmgr.add,
+                                             self.config.get_bootstrap_infohash())
+
+    async def network_shutdown(self):
+        try:
+            self._logger.info("tlm: network_shutdown")
+
+            ts = enumerate_threads()
+            self._logger.info("tlm: Number of threads still running %d", len(ts))
+            for t in ts:
+                self._logger.info("tlm: Thread still running=%s, daemon=%s, instance=%s", t.getName(), t.isDaemon(), t)
+        except:
+            print_exc()
+
+        # Stop network thread
+        self.sessdoneflag.set()
+
+        # Shutdown libtorrent session after checkpoints have been made
+        if self.ltmgr is not None:
+            await self.ltmgr.shutdown()
+            self.ltmgr = None
 
     def create_state_directory_structure(self):
         """Create directory structure of the state directory."""
@@ -197,120 +396,9 @@ class Session(object):
         if context.get('exception', None):
             print_tb(context['exception'].__traceback__)
 
-        if self.lm.api_manager and len(text) > 0:
-            self.lm.api_manager.get_endpoint('events').on_tribler_exception(text)
-            self.lm.api_manager.get_endpoint('state').on_tribler_exception(text)
-
-    def start_download_from_uri(self, uri, download_config=None):
-        """
-        Start a download from an argument. This argument can be of the following type:
-        -http: Start a download from a torrent file at the given url.
-        -magnet: Start a download from a torrent file by using a magnet link.
-        -file: Start a download from a torrent file at given location.
-
-        :param uri: specifies the location of the torrent to be downloaded
-        :param download_config: an optional configuration for the download
-        :return: a deferred that fires when a download has been added to the Tribler core
-        """
-        if self.config.get_libtorrent_enabled():
-            return self.lm.ltmgr.start_download_from_uri(uri, dconfig=download_config)
-        raise OperationNotEnabledByConfigurationException()
-
-    def start_download_from_tdef(self, torrent_definition, download_config=None, hidden=False):
-        """
-        Creates a Download object and adds it to the session. The passed
-        TorrentDef and DownloadConfig are copied into the new Download
-        object. The Download is then started and checkpointed.
-
-        If a checkpointed version of the Download is found, that is restarted
-        overriding the saved DownloadConfig if "download_config" is not None.
-
-        Locking is done by LaunchManyCore.
-
-        :param torrent_definition: a TorrentDef
-        :param download_config: a DownloadConfig or None, in which case
-        a new DownloadConfig() is created with its default settings
-        :param hidden: whether this torrent should be added to the mypreference table
-        :return: a Download
-        """
-        if self.config.get_libtorrent_enabled():
-            return self.lm.add(torrent_definition, download_config, hidden=hidden)
-        raise OperationNotEnabledByConfigurationException()
-
-    def get_downloads(self):
-        """
-        Returns a copy of the list of Downloads.
-
-        Locking is done by LaunchManyCore.
-
-        :return: a list of Download objects
-        """
-        return self.lm.get_downloads()
-
-    def get_download(self, infohash):
-        """
-        Returns the Download object for this hash.
-
-        Locking is done by LaunchManyCore.
-
-        :return: a Download object
-        """
-        return self.lm.get_download(infohash)
-
-    def has_download(self, infohash):
-        """
-        Checks if the torrent download already exists.
-
-        :param infohash: The torrent infohash
-        :return: True or False indicating if the torrent download already exists
-        """
-        return self.lm.download_exists(infohash)
-
-    async def remove_download(self, download, remove_content=False, remove_state=True):
-        """
-        Stops the download and removes it from the session.
-
-        Note that LaunchManyCore locks.
-
-        :param download: the Download to remove
-        :param remove_content: whether to delete the already downloaded content from disk
-        :param remove_state: whether to delete the metadata files of the downloaded content from disk
-        :param hidden: whether this torrent is added to the mypreference table and this entry should be removed
-        """
-        return await self.lm.remove(download, removecontent=remove_content, removestate=remove_state)
-
-    def remove_download_by_id(self, infohash, remove_content=False, remove_state=True):
-        """
-        Remove a download by it's infohash.
-
-        We can only remove content when the download object is found, otherwise only
-        the state is removed.
-
-        :param infohash: the download to remove
-        :param remove_content: whether to delete the already downloaded content from disk
-        :param remove_state: whether to remove the metadata files from disk
-        """
-        download_list = self.get_downloads()
-        for download in download_list:
-            if download.get_def().get_infohash() == infohash:
-                return self.remove_download(download, remove_content, remove_state)
-
-    def set_download_states_callback(self, user_callback, interval=1.0):
-        """
-        See Download.set_state_callback. Calls user_callback with a list of
-        DownloadStates, one for each Download in the Session as first argument.
-        The user_callback must return a tuple (when, getpeerlist) that indicates
-        when to invoke the callback again (as a number of seconds from now,
-        or < 0.0 if not at all) and whether to also include the details of
-        the connected peers in the DownloadStates on that next call.
-
-        The callback will be called by a popup thread which can be used
-        indefinitely (within reason) by the higher level code.
-
-        :param user_callback: a function adhering to the above spec
-        :param interval: time in between the download states callback's
-        """
-        return self.lm.set_download_states_callback(user_callback, interval)
+        if self.api_manager and len(text) > 0:
+            self.api_manager.get_endpoint('events').on_tribler_exception(text)
+            self.api_manager.get_endpoint('state').on_tribler_exception(text)
 
     #
     # Notification of events in the Session
@@ -354,25 +442,6 @@ class Session(object):
         """Return a dictionary with IPv8 statistics."""
         return TriblerStatistics(self).get_ipv8_statistics()
 
-    #
-    # Persistence and shutdown
-    #
-    def load_checkpoint(self):
-        """
-        Restart Downloads from a saved checkpoint, if any. Note that we fetch information from the user download
-        choices since it might be that a user has stopped a download. In that case, the download should not be
-        resumed immediately when being loaded by libtorrent.
-        """
-        self.lm.load_checkpoint()
-
-    def checkpoint(self):
-        """
-        Saves the internal session state to the Session's state dir.
-
-        Checkpoints the downloads via the LaunchManyCore instance. This function is called by any thread.
-        """
-        self.lm.checkpoint_downloads()
-
     async def start(self):
         """
         Start a Tribler session by initializing the LaunchManyCore class, opening the database and running the upgrader.
@@ -380,9 +449,9 @@ class Session(object):
         """
         # Start the REST API before the upgrader since we want to send interesting upgrader events over the socket
         if self.config.get_http_api_enabled():
-            self.lm.api_manager = RESTManager(self)
+            self.api_manager = RESTManager(self)
             self.readable_status = STATE_START_API
-            await self.lm.api_manager.start()
+            await self.api_manager.start()
 
         if self.upgrader_enabled:
             self.upgrader = TriblerUpgrader(self)
@@ -392,22 +461,129 @@ class Session(object):
             except Exception as e:
                 self._logger.error("Error in Upgrader callback chain: %s", e)
 
-        await self.lm.register(self, self.session_lock)
+        self.tracker_manager = TrackerManager(self)
+
+        # On Mac, we bundle the root certificate for the SSL validation since Twisted is not using the root
+        # certificates provided by the system trust store.
+        if sys.platform == 'darwin':
+            os.environ['SSL_CERT_FILE'] = os.path.join(get_lib_path(), 'root_certs_mac.pem')
+
+        if self.config.get_video_server_enabled():
+            self.video_server = VideoServer(self.config.get_video_server_port(), self)
+            self.video_server.start()
+
+        # IPv8
+        if self.config.get_ipv8_enabled():
+            from ipv8.configuration import get_default_configuration
+            ipv8_config = get_default_configuration()
+            ipv8_config['port'] = self.config.get_ipv8_port()
+            ipv8_config['address'] = self.config.get_ipv8_address()
+            ipv8_config['overlays'] = []
+            ipv8_config['keys'] = []  # We load the keys ourselves
+
+            if self.config.get_ipv8_bootstrap_override():
+                import ipv8.community as community_file
+                community_file._DEFAULT_ADDRESSES = [self.config.get_ipv8_bootstrap_override()]
+                community_file._DNS_ADDRESSES = []
+
+            self.ipv8 = IPv8(ipv8_config, enable_statistics=self.config.get_ipv8_statistics())
+            await self.ipv8.start()
+
+            self.config.set_anon_proxy_settings(2, ("127.0.0.1",
+                                                    self.
+                                                    config.get_tunnel_community_socks5_listen_ports()))
+        # Wallets
+        if self.config.get_bitcoinlib_enabled():
+            try:
+                from anydex.wallet.btc_wallet import BitcoinWallet, BitcoinTestnetWallet
+                wallet_path = os.path.join(self.config.get_state_dir(), 'wallet')
+                btc_wallet = BitcoinWallet(wallet_path)
+                btc_testnet_wallet = BitcoinTestnetWallet(wallet_path)
+                self.wallets[btc_wallet.get_identifier()] = btc_wallet
+                self.wallets[btc_testnet_wallet.get_identifier()] = btc_testnet_wallet
+            except Exception as exc:
+                self._logger.error("bitcoinlib library cannot be loaded: %s", exc)
+
+        if self.config.get_chant_enabled():
+            channels_dir = os.path.join(self.config.get_chant_channels_dir())
+            metadata_db_name = 'metadata.db' if not self.config.get_testnet() else 'metadata_testnet.db'
+            database_path = os.path.join(self.config.get_state_dir(), 'sqlite', metadata_db_name)
+            self.mds = MetadataStore(database_path, channels_dir, self.trustchain_keypair)
+
+        if self.config.get_dummy_wallets_enabled():
+            # For debugging purposes, we create dummy wallets
+            dummy_wallet1 = DummyWallet1()
+            self.wallets[dummy_wallet1.get_identifier()] = dummy_wallet1
+
+            dummy_wallet2 = DummyWallet2()
+            self.wallets[dummy_wallet2.get_identifier()] = dummy_wallet2
+
+        if self.config.get_torrent_checking_enabled():
+            self.readable_status = STATE_START_TORRENT_CHECKER
+            self.torrent_checker = TorrentChecker(self)
+            await self.torrent_checker.initialize()
+
+        if self.ipv8:
+            self.ipv8_start_time = timemod.time()
+            self.load_ipv8_overlays()
+            self.enable_ipv8_statistics()
+            if self.api_manager:
+                self.api_manager.set_ipv8_session(self.ipv8)
+            if self.config.get_tunnel_community_enabled():
+                await self.tunnel_community.wait_for_socks_servers()
+
+        tunnel_community_ports = self.config.get_tunnel_community_socks5_listen_ports()
+        self.config.set_anon_proxy_settings(2, ("127.0.0.1", tunnel_community_ports))
+
+        if self.config.get_libtorrent_enabled():
+            self.readable_status = STATE_START_LIBTORRENT
+            from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
+            self.ltmgr = LibtorrentMgr(self)
+            self.ltmgr.initialize()
+            for port, protocol in self.upnp_ports:
+                self.ltmgr.add_upnp_mapping(port, protocol)
+
+        if self.config.get_chant_enabled() and self.config.get_chant_manager_enabled():
+            self.gigachannel_manager = GigaChannelManager(self)
+            # GigaChannel Manager startup routines are started asynchronously by Session
+            # after resuming Libtorrent downloads.
+
+        if self.config.get_watch_folder_enabled():
+            self.readable_status = STATE_START_WATCH_FOLDER
+            self.watch_folder = WatchFolder(self)
+            self.watch_folder.start()
+
+        if self.config.get_credit_mining_enabled():
+            self.readable_status = STATE_START_CREDIT_MINING
+            from Tribler.Core.CreditMining.CreditMiningManager import CreditMiningManager
+            self.credit_mining_manager = CreditMiningManager(self)
+
+        if self.config.get_resource_monitor_enabled():
+            self.resource_monitor = ResourceMonitor(self)
+            self.resource_monitor.start()
+
+        if self.config.get_version_checker_enabled():
+            self.version_check_manager = VersionCheckManager(self)
+            self.version_check_manager.start()
+
+        if self.config.get_ipv8_enabled() and self.config.get_trustchain_enabled():
+            self.payout_manager = PayoutManager(self.trustchain_community, self.dht_community)
+
         self.notifier.notify(NTFY_TRIBLER, NTFY_STARTED, None)
 
         if self.config.get_libtorrent_enabled():
             self.readable_status = STATE_LOAD_CHECKPOINTS
-            self.load_checkpoint()
+            self.ltmgr.load_checkpoint()
         self.readable_status = STATE_READABLE_STARTED
 
         # GigaChannel Manager should be started *after* resuming the downloads,
         # because it depends on the states of torrent downloads
-        # TODO: move GigaChannel torrents into a separate session
-        if self.lm.gigachannel_manager:
-            self.lm.gigachannel_manager.start()
+        # TODO: move GigaChannel torrents into a separate Libtorrent session
+        if self.gigachannel_manager:
+            self.gigachannel_manager.start()
 
-        if not self.lm.bootstrap:
-            self.lm.start_bootstrap_download()
+        if not self.bootstrap:
+            self.start_bootstrap_download()
 
     async def shutdown(self):
         """
@@ -419,29 +595,83 @@ class Session(object):
         # to 'TRUE', RESTManager will no longer accepts any new requests.
         os.environ['TRIBLER_SHUTTING_DOWN'] = "TRUE"
 
-        await self.lm.early_shutdown()
+        await self.shutdown_task_manager()
+
+        self.shutdownstarttime = timemod.time()
+        if self.credit_mining_manager:
+            self.notify_shutdown_state("Shutting down Credit Mining...")
+            await self.credit_mining_manager.shutdown()
+        self.credit_mining_manager = None
+
+        if self.torrent_checker:
+            self.notify_shutdown_state("Shutting down Torrent Checker...")
+            await self.torrent_checker.shutdown()
+        self.torrent_checker = None
+
+        if self.gigachannel_manager:
+            self.notify_shutdown_state("Shutting down Gigachannel Manager...")
+            await self.gigachannel_manager.shutdown()
+        self.gigachannel_manager = None
+
+        if self.video_server:
+            self.notify_shutdown_state("Shutting down Video Server...")
+            self.video_server.shutdown_server()
+        self.video_server = None
+
+        if self.version_check_manager:
+            self.notify_shutdown_state("Shutting down Version Checker...")
+            await self.version_check_manager.stop()
+        self.version_check_manager = None
+
+        if self.resource_monitor:
+            self.notify_shutdown_state("Shutting down Resource Monitor...")
+            await self.resource_monitor.stop()
+        self.resource_monitor = None
+
+        self.tracker_manager = None
+
+        if self.tunnel_community and self.trustchain_community:
+            # We unload these overlays manually since the TrustChain has to be unloaded after the tunnel overlay.
+            tunnel_community = self.tunnel_community
+            self.tunnel_community = None
+            self.notify_shutdown_state("Unloading Tunnel Community...")
+            await self.ipv8.unload_overlay(tunnel_community)
+            trustchain_community = self.trustchain_community
+            self.trustchain_community = None
+            self.notify_shutdown_state("Shutting down TrustChain Community...")
+            await self.ipv8.unload_overlay(trustchain_community)
+
+        if self.ipv8:
+            self.notify_shutdown_state("Shutting down IPv8...")
+            await self.ipv8.stop(stop_loop=False)
+
+        if self.watch_folder is not None:
+            self.notify_shutdown_state("Shutting down Watch Folder...")
+            await self.watch_folder.stop()
+        self.watch_folder = None
 
         self.notify_shutdown_state("Saving configuration...")
         self.config.write()
 
-        self.notify_shutdown_state("Checkpointing Downloads...")
-        await self.checkpoint_downloads()
+        if self.ltmgr:
+            self.notify_shutdown_state("Checkpointing Downloads...")
+            await self.ltmgr.checkpoint_downloads()
 
-        self.notify_shutdown_state("Shutting down Downloads...")
-        await self.lm.shutdown_downloads()
+            self.notify_shutdown_state("Shutting down Downloads...")
+            await self.ltmgr.shutdown_downloads()
 
         self.notify_shutdown_state("Shutting down Network...")
-        await self.lm.network_shutdown()
+        await self.network_shutdown()
 
-        if self.lm.mds:
+        if self.mds:
             self.notify_shutdown_state("Shutting down Metadata Store...")
-            self.lm.mds.shutdown()
+            self.mds.shutdown()
 
         # We close the API manager as late as possible during shutdown.
-        if self.lm.api_manager is not None:
+        if self.api_manager is not None:
             self.notify_shutdown_state("Shutting down API Manager...")
-            await self.lm.api_manager.stop()
-        self.lm.api_manager = None
+            await self.api_manager.stop()
+        self.api_manager = None
 
     def has_shutdown(self):
         """
@@ -451,66 +681,13 @@ class Session(object):
 
         :return: a boolean.
         """
-        return self.lm.sessdoneflag.isSet()
-
-    def get_downloads_config_dir(self):
-        """
-        Returns the directory in which to checkpoint the Downloads in this
-        Session. This function is called by the network thread.
-        """
-        return os.path.join(self.config.get_state_dir(), STATEDIR_CHECKPOINT_DIR)
+        return self.sessdoneflag.isSet()
 
     def get_ipv8_instance(self):
         if not self.config.get_ipv8_enabled():
             raise OperationNotEnabledByConfigurationException()
 
-        return self.lm.ipv8
-
-    def get_libtorrent_process(self):
-        if not self.config.get_libtorrent_enabled():
-            raise OperationNotEnabledByConfigurationException()
-
-        return self.lm.ltmgr
-
-    #
-    # Internal persistence methods
-    #
-    def checkpoint_downloads(self):
-        """Checkpoints the downloads."""
-        return self.lm.checkpoint_downloads()
-
-    def update_trackers(self, infohash, trackers):
-        """
-        Updates the trackers of a torrent.
-
-        :param infohash: infohash of the torrent that needs to be updated
-        :param trackers: A list of tracker urls
-        """
-        return self.lm.update_trackers(infohash, trackers)
-
-    @staticmethod
-    async def create_torrent_file(file_path_list, params=None):
-        """
-        Creates a torrent file.
-
-        :param file_path_list: files to add in torrent file
-        :param params: optional parameters for torrent file
-        :return: a Deferred that fires when the torrent file has been created
-        """
-        return await asyncio.get_event_loop().run_in_executor(None, torrent_utils.create_torrent_file,
-                                                              file_path_list, params or {})
-
-    async def check_torrent_health(self, infohash, timeout=20, scrape_now=False):
-        """
-        Checks the given torrent's health on its trackers.
-
-        :param infohash: the given torrent infohash
-        :param timeout: time to wait while performing the request
-        :param scrape_now: flag to scrape immediately
-        """
-        if self.lm.torrent_checker:
-            return await self.lm.torrent_checker.check_torrent_health(infohash, timeout=timeout, scrape_now=scrape_now)
-        raise RuntimeError("Torrent checker not available")
+        return self.ipv8
 
     def notify_shutdown_state(self, state):
         self._logger.info("Tribler shutdown state notification:%s", state)

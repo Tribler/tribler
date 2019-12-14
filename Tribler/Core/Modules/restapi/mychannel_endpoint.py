@@ -58,7 +58,7 @@ class MyChannelEndpoint(BaseMyChannelEndpoint):
 
     def render_GET(self, request):
         with db_session:
-            my_channel = self.session.lm.mds.ChannelMetadata.get_my_channel()
+            my_channel = self.session.mds.ChannelMetadata.get_my_channel()
             if not my_channel:
                 request.setResponseCode(http.NOT_FOUND)
                 return json.twisted_dumps({"error": "your channel has not been created"})
@@ -79,7 +79,7 @@ class MyChannelEndpoint(BaseMyChannelEndpoint):
             return json.twisted_dumps({"error": "name or description parameter missing"})
 
         with db_session:
-            my_channel = self.session.lm.mds.ChannelMetadata.get_my_channel()
+            my_channel = self.session.mds.ChannelMetadata.get_my_channel()
             if not my_channel:
                 request.setResponseCode(http.NOT_FOUND)
                 return json.twisted_dumps({"error": "your channel has not been created"})
@@ -106,12 +106,12 @@ class MyChannelEndpoint(BaseMyChannelEndpoint):
         my_channel_pk = my_key.pub().key_to_bin()
 
         # Do not allow to add a channel twice
-        if self.session.lm.mds.ChannelMetadata.get_my_channel():
+        if self.session.mds.ChannelMetadata.get_my_channel():
             request.setResponseCode(http.CONFLICT)
             return json.twisted_dumps({"error": "channel already exists"})
 
         title = unquote(parameters['name'][0])
-        self.session.lm.mds.ChannelMetadata.create_channel(title, description)
+        self.session.mds.ChannelMetadata.create_channel(title, description)
         return json.twisted_dumps({
             "added": hexlify(my_channel_pk),
         })
@@ -124,7 +124,7 @@ class SpecificChannelExportEndpoint(BaseMyChannelEndpoint):
 
     def render_GET(self, request):
         with db_session:
-            my_channel = self.session.lm.mds.ChannelMetadata.get_my_channel()
+            my_channel = self.session.mds.ChannelMetadata.get_my_channel()
             if not my_channel:
                 request.setResponseCode(http.NOT_FOUND)
                 return json.twisted_dumps({"error": "your channel has not been created"})
@@ -147,7 +147,7 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
 
     def render_GET(self, request):
         with db_session:
-            my_channel = self.session.lm.mds.ChannelMetadata.get_my_channel()
+            my_channel = self.session.mds.ChannelMetadata.get_my_channel()
             if not my_channel:
                 request.setResponseCode(http.NOT_FOUND)
                 return json.twisted_dumps({"error": "your channel has not been created"})
@@ -159,7 +159,7 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
 
             sanitized.update(dict(channel_pk=database_blob(my_channel.public_key)))
 
-            torrents = self.session.lm.mds.TorrentMetadata.get_entries(**sanitized)
+            torrents = self.session.mds.TorrentMetadata.get_entries(**sanitized)
             torrents = [torrent.to_simple_dict() for torrent in torrents]
 
             return json.twisted_dumps({
@@ -180,7 +180,7 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
         infohashes = parameters['infohashes']
 
         with db_session:
-            my_channel = self.session.lm.mds.ChannelMetadata.get_my_channel()
+            my_channel = self.session.mds.ChannelMetadata.get_my_channel()
             if not my_channel:
                 request.setResponseCode(http.NOT_FOUND)
                 return json.twisted_dumps({"error": "your channel has not been created"})
@@ -195,7 +195,7 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
 
     def render_DELETE(self, request):
         with db_session:
-            my_channel = self.session.lm.mds.ChannelMetadata.get_my_channel()
+            my_channel = self.session.mds.ChannelMetadata.get_my_channel()
             if not my_channel:
                 request.setResponseCode(http.NOT_FOUND)
                 return json.twisted_dumps({"error": "your channel has not been created"})
@@ -248,7 +248,7 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
             :statuscode 500: if the passed torrent data is corrupt.
         """
         with db_session:
-            my_channel = self.session.lm.mds.ChannelMetadata.get_my_channel()
+            my_channel = self.session.mds.ChannelMetadata.get_my_channel()
             if not my_channel:
                 request.setResponseCode(http.NOT_FOUND)
                 return json.twisted_dumps({"error": "your channel has not been created yet"})
@@ -292,7 +292,7 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
                 return
 
             with db_session:
-                channel = self.session.lm.mds.ChannelMetadata.get_my_channel()
+                channel = self.session.mds.ChannelMetadata.get_my_channel()
                 channel.add_torrent_to_channel(torrent_def, extra_info)
             return 1
 
@@ -322,7 +322,7 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
                     return json.dumps({"added": 1})
 
                 deferred.addCallback(_on_magnet_fetched)
-                self.session.lm.ltmgr.get_metainfo(xt, timeout=30).addCallback(deferred.callback)
+                self.session.ltmgr.get_metainfo(xt, timeout=30).addCallback(deferred.callback)
             else:
                 request.setResponseCode(http.BAD_REQUEST)
                 return json.twisted_dumps({"error": "unknown uri type"})
@@ -376,7 +376,7 @@ class MyChannelTorrentsCountEndpoint(BaseMyChannelEndpoint):
 
     def render_GET(self, request):
         with db_session:
-            my_channel = self.session.lm.mds.ChannelMetadata.get_my_channel()
+            my_channel = self.session.mds.ChannelMetadata.get_my_channel()
             if not my_channel:
                 request.setResponseCode(http.NOT_FOUND)
                 return json.twisted_dumps({"error": "your channel has not been created"})
@@ -387,7 +387,7 @@ class MyChannelTorrentsCountEndpoint(BaseMyChannelEndpoint):
                 sanitized['exclude_deleted'] = args['exclude_deleted']
 
             sanitized.update(dict(channel_pk=database_blob(my_channel.public_key)))
-            return self.get_total_count(self.session.lm.mds.TorrentMetadata, sanitized)
+            return self.get_total_count(self.session.mds.TorrentMetadata, sanitized)
 
 
 class MyChannelSpecificTorrentEndpoint(BaseMyChannelEndpoint):
@@ -432,7 +432,7 @@ class MyChannelSpecificTorrentEndpoint(BaseMyChannelEndpoint):
             request.setResponseCode(http.BAD_REQUEST)
             return json.twisted_dumps({"error": "cannot set status manually when changing other parameters"})
 
-        my_channel = self.session.lm.mds.ChannelMetadata.get_my_channel()
+        my_channel = self.session.mds.ChannelMetadata.get_my_channel()
         if not my_channel:
             request.setResponseCode(http.NOT_FOUND)
             return json.twisted_dumps({"error": "your channel has not been created"})
@@ -454,13 +454,13 @@ class MyChannelCommitEndpoint(BaseMyChannelEndpoint):
 
     def render_POST(self, request):
         with db_session:
-            my_channel = self.session.lm.mds.ChannelMetadata.get_my_channel()
+            my_channel = self.session.mds.ChannelMetadata.get_my_channel()
             if not my_channel:
                 request.setResponseCode(http.NOT_FOUND)
                 return json.twisted_dumps({"error": "your channel has not been created"})
 
             torrent_dict = my_channel.commit_channel_torrent()
             if torrent_dict:
-                self.session.lm.gigachannel_manager.updated_my_channel(TorrentDef.load_from_dict(torrent_dict))
+                self.session.gigachannel_manager.updated_my_channel(TorrentDef.load_from_dict(torrent_dict))
 
         return json.twisted_dumps({"success": True})
