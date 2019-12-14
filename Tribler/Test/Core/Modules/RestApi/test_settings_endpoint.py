@@ -80,7 +80,7 @@ class TestSettingsEndpoint(AbstractApiTest):
         dcfg.get_credit_mining = lambda: False
         download = MockObject()
         download.config = dcfg
-        self.session.get_downloads = lambda: [download]
+        self.session.ltmgr.get_downloads = lambda: [download]
 
         post_data = {'download_defaults': {'seeding_mode': 'ratio',
                                            'seeding_ratio': 3,

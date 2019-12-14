@@ -269,14 +269,14 @@ class TestDHTSession(TriblerCoreTest):
         config.get_default_state_dir = lambda _: state_dir
 
         self.session = Session(config)
-        self.session.lm.ltmgr = MockObject()
-        self.session.lm.ltmgr.dht_health_manager = MockObject()
+        self.session.ltmgr = MockObject()
+        self.session.ltmgr.dht_health_manager = MockObject()
         dht_health_dict = {
             "infohash": hexlify(b'a' * 20),
             "seeders": 1,
             "leechers": 2
         }
-        self.session.lm.ltmgr.dht_health_manager.get_health = lambda *_, **__: succeed({"DHT": [dht_health_dict]})
+        self.session.ltmgr.dht_health_manager.get_health = lambda *_, **__: succeed({"DHT": [dht_health_dict]})
 
         self.dht_session = FakeDHTSession(self.session, b'a' * 20, 10)
         self.bep33_dht_session = FakeBep33DHTSession(self.session, b'a' * 20, 10)
@@ -294,7 +294,7 @@ class TestDHTSession(TriblerCoreTest):
         Test the metainfo lookup of the DHT session
         """
         metainfo = {b'seeders': 42, b'leechers': 42}
-        self.session.lm.ltmgr.get_metainfo = lambda *_, **__: succeed(metainfo)
+        self.session.ltmgr.get_metainfo = lambda *_, **__: succeed(metainfo)
 
         metainfo = await self.dht_session.connect_to_tracker()
 
@@ -307,7 +307,7 @@ class TestDHTSession(TriblerCoreTest):
         """
         Test the metainfo lookup of the DHT session when it fails
         """
-        self.session.lm.ltmgr.get_metainfo = lambda *_, **__: succeed(None)
+        self.session.ltmgr.get_metainfo = lambda *_, **__: succeed(None)
 
         try:
             await self.dht_session.connect_to_tracker()

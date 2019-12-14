@@ -91,14 +91,14 @@ class TestTunnelBase(TestAsServer):
 
     async def sanitize_network(self, session):
         # We disable the discovery communities in this session since we don't want to walk to the live network
-        for overlay in session.lm.ipv8.overlays:
+        for overlay in session.ipv8.overlays:
             if isinstance(overlay, DiscoveryCommunity):
                 await overlay.unload()
-        session.lm.ipv8.overlays = []
-        session.lm.ipv8.strategies = []
+        session.ipv8.overlays = []
+        session.ipv8.strategies = []
 
         # Also reset the IPv8 network
-        session.lm.ipv8.network = Network()
+        session.ipv8.network = Network()
 
     async def load_tunnel_community_in_session(self, session, exitnode=False):
         """
@@ -110,14 +110,14 @@ class TestTunnelBase(TestAsServer):
         keypair = ECCrypto().generate_key(u"curve25519")
         tunnel_peer = Peer(keypair)
         session.config.set_tunnel_community_exitnode_enabled(exitnode)
-        overlay = self.test_class(tunnel_peer, session.lm.ipv8.endpoint, session.lm.ipv8.network,
+        overlay = self.test_class(tunnel_peer, session.ipv8.endpoint, session.ipv8.network,
                                   tribler_session=session, settings={"max_circuits": 1})
         if exitnode:
             overlay.settings.peer_flags |= PEER_FLAG_EXIT_ANY
         overlay._use_main_thread = False
         overlay.dht_provider = MockDHTProvider(Peer(overlay.my_peer.key, overlay.my_estimated_wan))
         overlay.settings.remove_tunnel_delay = 0
-        session.lm.ipv8.overlays.append(overlay)
+        session.ipv8.overlays.append(overlay)
 
         await overlay.wait_for_socks_servers()
 
@@ -137,7 +137,7 @@ class TestTunnelBase(TestAsServer):
 
         session = Session(config)
         await session.start()
-        session.lm.ltmgr.is_shutdown_ready = lambda: True
+        session.ltmgr.is_shutdown_ready = lambda: True
         self.sessions.append(session)
 
         return await self.load_tunnel_community_in_session(session, exitnode=exitnode)
@@ -154,7 +154,7 @@ class TestTunnelBase(TestAsServer):
         if self.session2 is None:
             self.session2 = Session(self.seed_config)
             await self.session2.start()
-            self.session2.lm.ltmgr.is_shutdown_ready = lambda: True
+            self.session2.ltmgr.is_shutdown_ready = lambda: True
 
         tdef = TorrentDef()
         tdef.add_content(os.path.join(TESTS_DATA_DIR, "video.avi"))
@@ -172,7 +172,7 @@ class TestTunnelBase(TestAsServer):
         dscfg = DownloadConfig()
         dscfg.set_dest_dir(TESTS_DATA_DIR)  # basedir of the file we are seeding
         dscfg.set_hops(hops)
-        d = self.session2.start_download_from_tdef(tdef, dscfg)
+        d = self.session2.ltmgr.add(tdef, dscfg)
         d.set_state_callback(self.seeder_state_callback)
 
     def seeder_state_callback(self, ds):
@@ -194,8 +194,8 @@ class TestTunnelBase(TestAsServer):
         dscfg = DownloadConfig()
         dscfg.set_dest_dir(self.getDestDir())
         dscfg.set_hops(hops)
-        download = self.session.start_download_from_tdef(self.seed_tdef, dscfg)
-        tc = self.session.lm.tunnel_community
+        download = self.session.ltmgr.add(self.seed_tdef, dscfg)
+        tc = self.session.tunnel_community
         tc.bittorrent_peers[download] = [("127.0.0.1", self.session2.config.get_libtorrent_port())]
         return download
 

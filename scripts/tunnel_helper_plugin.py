@@ -77,7 +77,7 @@ class TunnelHelperService(TaskManager):
         signal.signal(signal.SIGINT, lambda sig, _: ensure_future(signal_handler(sig)))
         signal.signal(signal.SIGTERM, lambda sig, _: ensure_future(signal_handler(sig)))
 
-        self.register_task("bootstrap",  self.session.lm.tunnel_community.bootstrap, interval=30)
+        self.register_task("bootstrap",  self.session.tunnel_community.bootstrap, interval=30)
 
         # Remove all logging handlers
         root_logger = logging.getLogger()
@@ -87,16 +87,16 @@ class TunnelHelperService(TaskManager):
         logging.getLogger().setLevel(logging.ERROR)
 
         new_strategies = []
-        with self.session.lm.ipv8.overlay_lock:
-            for strategy, target_peers in self.session.lm.ipv8.strategies:
-                if strategy.overlay == self.session.lm.tunnel_community:
+        with self.session.ipv8.overlay_lock:
+            for strategy, target_peers in self.session.ipv8.strategies:
+                if strategy.overlay == self.session.tunnel_community:
                     new_strategies.append((strategy, -1))
                 else:
                     new_strategies.append((strategy, target_peers))
-            self.session.lm.ipv8.strategies = new_strategies
+            self.session.ipv8.strategies = new_strategies
 
     def circuit_removed(self, _, __, circuit, additional_info):
-        self.session.lm.ipv8.network.remove_by_address(circuit.peer.address)
+        self.session.ipv8.network.remove_by_address(circuit.peer.address)
         if self.log_circuits:
             with open(os.path.join(self.session.config.get_state_dir(), "circuits.log"), 'a') as out_file:
                 duration = time.time() - circuit.creation_time
@@ -146,7 +146,7 @@ class TunnelHelperService(TaskManager):
         self.log_circuits = options.log_circuits
         # Register reject event handler if set
         if options.log_rejects:
-            self.session.lm.tunnel_community.reject_callback = self.on_circuit_reject
+            self.session.tunnel_community.reject_callback = self.on_circuit_reject
         self.session.notifier.add_observer(self.circuit_removed, NTFY_TUNNEL, [NTFY_REMOVE])
 
         await self.session.start()

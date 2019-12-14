@@ -33,14 +33,14 @@ class TestSearchEndpoint(AbstractApiTest):
         """
         Test that remote search call is sent on a REST API search request
         """
-        self.session.lm.gigachannel_community = MockObject()
+        self.session.gigachannel_community = MockObject()
 
         sent = []
 
         def mock_send(*_, **__):
             sent.append(True)
 
-        self.session.lm.gigachannel_community.send_search_request = mock_send
+        self.session.gigachannel_community.send_search_request = mock_send
         await self.do_request('search?filter=needle', expected_code=200)
         self.assertTrue(sent)
 
@@ -51,11 +51,11 @@ class TestSearchEndpoint(AbstractApiTest):
         """
         num_hay = 100
         with db_session:
-            _ = self.session.lm.mds.ChannelMetadata(title='test', tags='test', subscribed=True, infohash=os.urandom(20))
+            _ = self.session.mds.ChannelMetadata(title='test', tags='test', subscribed=True, infohash=os.urandom(20))
             for x in range(0, num_hay):
-                self.session.lm.mds.TorrentMetadata(title='hay ' + str(x), infohash=os.urandom(20))
-            self.session.lm.mds.TorrentMetadata(title='needle', infohash=database_blob(bytearray(os.urandom(20))))
-            self.session.lm.mds.TorrentMetadata(title='needle2', infohash=database_blob(bytearray(os.urandom(20))))
+                self.session.mds.TorrentMetadata(title='hay ' + str(x), infohash=os.urandom(20))
+            self.session.mds.TorrentMetadata(title='needle', infohash=database_blob(bytearray(os.urandom(20))))
+            self.session.mds.TorrentMetadata(title='needle2', infohash=database_blob(bytearray(os.urandom(20))))
 
         parsed = await self.do_request('search?filter=needle', expected_code=200)
         self.assertEqual(len(parsed["results"]), 1)

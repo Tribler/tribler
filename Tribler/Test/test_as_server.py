@@ -237,8 +237,6 @@ class TestAsServer(AbstractServer):
 
         await self.session.start()
 
-        self.assertTrue(self.session.lm.initComplete)
-
         self.hisport = self.session.config.get_libtorrent_port()
 
         self.annotate(self._testMethodName, start=True)
@@ -270,8 +268,7 @@ class TestAsServer(AbstractServer):
 
         """ unittest test tear down code """
         if self.session is not None:
-            if self.session.lm.ltmgr:
-                self.session.lm.ltmgr.is_shutdown_ready = lambda: True
+            self.session.ltmgr = None  # Just drop dead any ltmgr instance
             await self.session.shutdown()
             assert self.session.has_shutdown()
             self.session = None
@@ -326,13 +323,13 @@ class TestAsServer(AbstractServer):
         await self.seeder_session.start()
         self.dscfg_seed = DownloadConfig()
         self.dscfg_seed.set_dest_dir(seed_dir)
-        download = self.seeder_session.start_download_from_tdef(tdef, self.dscfg_seed)
+        download = self.seeder_session.ltmgr.add(tdef, self.dscfg_seed)
         download.set_state_callback(self.seeder_state_callback)
 
     async def stop_seeder(self):
         if self.seeder_session is not None:
-            if self.seeder_session.lm.ltmgr:
-                self.seeder_session.lm.ltmgr.is_shutdown_ready = lambda: True
+            if self.seeder_session.ltmgr:
+                self.seeder_session.ltmgr.is_shutdown_ready = lambda: True
             return await self.seeder_session.shutdown()
 
     def seeder_state_callback(self, ds):

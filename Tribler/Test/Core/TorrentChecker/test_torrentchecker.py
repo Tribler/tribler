@@ -27,18 +27,18 @@ class TestTorrentChecker(TestAsServer):
     async def setUp(self):
         await super(TestTorrentChecker, self).setUp()
 
-        self.session.lm.torrent_checker = TorrentChecker(self.session)
-        self.session.lm.tracker_manager = TrackerManager(self.session)
+        self.session.torrent_checker = TorrentChecker(self.session)
+        self.session.tracker_manager = TrackerManager(self.session)
 
-        self.torrent_checker = self.session.lm.torrent_checker
+        self.torrent_checker = self.session.torrent_checker
         self.torrent_checker.listen_on_udp = lambda: succeed(None)
 
         def get_metainfo(_, callback, **__):
             callback({"seeders": 1, "leechers": 2})
 
-        self.session.lm.ltmgr = MockObject()
-        self.session.lm.ltmgr.get_metainfo = get_metainfo
-        self.session.lm.ltmgr.shutdown = lambda: succeed(None)
+        self.session.ltmgr = MockObject()
+        self.session.ltmgr.get_metainfo = get_metainfo
+        self.session.ltmgr.shutdown = lambda: succeed(None)
 
     async def tearDown(self):
         await self.torrent_checker.shutdown()
@@ -71,11 +71,11 @@ class TestTorrentChecker(TestAsServer):
         Test whether only cached results of a torrent are returned with only blacklisted trackers
         """
         with db_session:
-            tracker = self.session.lm.mds.TrackerState(url="http://localhost/tracker")
-            self.session.lm.mds.TorrentState(infohash=b'a' * 20, seeders=5, leechers=10, trackers={tracker},
+            tracker = self.session.mds.TrackerState(url="http://localhost/tracker")
+            self.session.mds.TorrentState(infohash=b'a' * 20, seeders=5, leechers=10, trackers={tracker},
                                              last_check=int(time.time()))
 
-        self.session.lm.tracker_manager.blacklist.append("http://localhost/tracker")
+        self.session.tracker_manager.blacklist.append("http://localhost/tracker")
         result = await self.torrent_checker.check_torrent_health(b'a' * 20)
         self.assertSetEqual({'db'}, set(result.keys()))
         self.assertEqual(result['db']['seeders'], 5)
@@ -86,8 +86,8 @@ class TestTorrentChecker(TestAsServer):
         Test whether cached results of a torrent are returned when fetching the health of a torrent
         """
         with db_session:
-            tracker = self.session.lm.mds.TrackerState(url="http://localhost/tracker")
-            self.session.lm.mds.TorrentState(infohash=b'a' * 20, seeders=5, leechers=10, trackers={tracker},
+            tracker = self.session.mds.TrackerState(url="http://localhost/tracker")
+            self.session.mds.TorrentState(infohash=b'a' * 20, seeders=5, leechers=10, trackers={tracker},
                                              last_check=int(time.time()))
 
         result = await self.torrent_checker.check_torrent_health(b'a' * 20)
@@ -101,8 +101,8 @@ class TestTorrentChecker(TestAsServer):
 
     async def test_task_select_tracker(self):
         with db_session:
-            tracker = self.session.lm.mds.TrackerState(url="http://localhost/tracker")
-            self.session.lm.mds.TorrentState(infohash=b'a' * 20, seeders=5, leechers=10, trackers={tracker})
+            tracker = self.session.mds.TrackerState(url="http://localhost/tracker")
+            self.session.mds.TorrentState(infohash=b'a' * 20, seeders=5, leechers=10, trackers={tracker})
 
         controlled_session = HttpTrackerSession(None, None, None, None)
         controlled_session.connect_to_tracker = lambda: succeed(None)
@@ -118,8 +118,8 @@ class TestTorrentChecker(TestAsServer):
         Test whether we capture the error when a tracker check fails
         """
         with db_session:
-            tracker = self.session.lm.mds.TrackerState(url="http://localhost/tracker")
-            self.session.lm.mds.TorrentState(infohash=b'a' * 20, seeders=5, leechers=10, trackers={tracker},
+            tracker = self.session.mds.TrackerState(url="http://localhost/tracker")
+            self.session.mds.TorrentState(infohash=b'a' * 20, seeders=5, leechers=10, trackers={tracker},
                                              last_check=int(time.time()))
         await self.torrent_checker.check_random_tracker()
 
@@ -131,7 +131,7 @@ class TestTorrentChecker(TestAsServer):
         """
         Test the check of a tracker without associated torrents
         """
-        self.session.lm.tracker_manager.add_tracker('http://trackertest.com:80/announce')
+        self.session.tracker_manager.add_tracker('http://trackertest.com:80/announce')
         await self.torrent_checker.check_random_tracker()
 
     def test_get_valid_next_tracker_for_auto_check(self):
@@ -186,7 +186,7 @@ class TestTorrentChecker(TestAsServer):
         self.assertFalse(self.torrent_checker.on_torrent_health_check_completed(infohash_bin, None))
 
         with db_session:
-            ts = self.session.lm.mds.TorrentState(infohash=infohash_bin)
+            ts = self.session.mds.TorrentState(infohash=infohash_bin)
             previous_check = ts.last_check
             self.torrent_checker.on_torrent_health_check_completed(infohash_bin, result)
             self.assertEqual(result[2]['DHT'][0]['leechers'], ts.leechers)
@@ -207,7 +207,7 @@ class TestTorrentChecker(TestAsServer):
         """
         Test whether legacy torrents are not health checked
         """
-        torrent1 = self.session.lm.mds.TorrentMetadata(title='torrent1', infohash=os.urandom(20))
+        torrent1 = self.session.mds.TorrentMetadata(title='torrent1', infohash=os.urandom(20))
         torrent1.status = LEGACY_ENTRY
 
         self.assertFalse(self.torrent_checker.check_random_torrent())
@@ -218,7 +218,7 @@ class TestTorrentChecker(TestAsServer):
         Test that the random torrent health checking mechanism picks the right torrents
         """
         for ind in range(1, 20):
-            torrent = self.session.lm.mds.TorrentMetadata(title='torrent1', infohash=os.urandom(20))
+            torrent = self.session.mds.TorrentMetadata(title='torrent1', infohash=os.urandom(20))
             torrent.health.last_check = ind
 
         self.torrent_checker.check_torrent_health = lambda _: succeed(None)

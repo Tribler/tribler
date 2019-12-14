@@ -19,7 +19,7 @@ class TestVersionCheck(TestAsServer):
         self.new_version_called = False
         versioncheck_manager.VERSION_CHECK_URL = 'http://localhost:%s' % self.port
         await super(TestVersionCheck, self).setUp()
-        self.session.lm.version_check_manager = VersionCheckManager(self.session)
+        self.session.version_check_manager = VersionCheckManager(self.session)
 
         self.session.notifier.notify = self.notifier_callback
 
@@ -45,7 +45,7 @@ class TestVersionCheck(TestAsServer):
         return await self.site.stop()
 
     async def check_version(self):
-        await self.session.lm.version_check_manager.check_new_version()
+        await self.session.version_check_manager.check_new_version()
         self.assertTrue(self.new_version_called == self.should_call_new_version_callback)
         return await self.site.stop()
 
@@ -55,14 +55,14 @@ class TestVersionCheck(TestAsServer):
         Test whether the periodic version lookup works as expected
         """
         await self.setup_version_server(json.dumps({'name': 'v1.0'}))
-        self.session.lm.version_check_manager.start()
-        self.assertFalse(self.session.lm.version_check_manager.is_pending_task_active("tribler version check"))
+        self.session.version_check_manager.start()
+        self.assertFalse(self.session.version_check_manager.is_pending_task_active("tribler version check"))
 
         import Tribler.Core.Modules.versioncheck_manager as vcm
         vcm.version_id = "7.0.0"
-        self.session.lm.version_check_manager.start()
+        self.session.version_check_manager.start()
         await sleep(0.4)  # Wait a bit for the check to complete
-        self.assertTrue(self.session.lm.version_check_manager.is_pending_task_active("tribler version check"))
+        self.assertTrue(self.session.version_check_manager.is_pending_task_active("tribler version check"))
 
     @timeout(10)
     async def test_old_version(self):

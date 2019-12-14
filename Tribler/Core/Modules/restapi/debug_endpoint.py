@@ -72,8 +72,8 @@ class DebugEndpoint(RESTEndpoint):
         """
         return RESTResponse({
             "slots": {
-                "random": self.session.lm.tunnel_community.random_slots,
-                "competing": self.session.lm.tunnel_community.competing_slots
+                "random": self.session.tunnel_community.random_slots,
+                "competing": self.session.tunnel_community.competing_slots
             }
         })
 
@@ -192,7 +192,7 @@ class DebugEndpoint(RESTEndpoint):
                     }, ...]
                 }
         """
-        history = self.session.lm.resource_monitor.get_cpu_history_dict() if self.session.lm.resource_monitor else {}
+        history = self.session.resource_monitor.get_cpu_history_dict() if self.session.resource_monitor else {}
         return RESTResponse({"cpu_history": history})
 
     async def get_memory_history(self, request):
@@ -218,7 +218,7 @@ class DebugEndpoint(RESTEndpoint):
                     }, ...]
                 }
         """
-        history = self.session.lm.resource_monitor.get_memory_history_dict() if self.session.lm.resource_monitor else {}
+        history = self.session.resource_monitor.get_memory_history_dict() if self.session.resource_monitor else {}
         return RESTResponse({"memory_history": history})
 
     async def get_memory_dump(self, request):
@@ -284,7 +284,6 @@ class DebugEndpoint(RESTEndpoint):
                                 INFO    1506675301.76   sqlitecachedb:185   Current database version is 29
                                 INFO    1506675301.76   sqlitecachedb:203   Beginning the first transaction...
                                 INFO    1506675301.76         upgrade:93    tribler is in the latest version,...
-                                INFO    1506675302.08  LaunchManyCore:254   lmc: Starting IPv8..."
                 }
         """
 
@@ -366,7 +365,7 @@ class DebugEndpoint(RESTEndpoint):
                 }
         """
         monitor_enabled = self.session.config.get_resource_monitor_enabled()
-        state = "STARTED" if (monitor_enabled and self.session.lm.resource_monitor.profiler_running) else "STOPPED"
+        state = "STARTED" if (monitor_enabled and self.session.resource_monitor.profiler_running) else "STOPPED"
         return RESTResponse({"state": state})
 
     async def start_profiler(self, request):
@@ -389,7 +388,7 @@ class DebugEndpoint(RESTEndpoint):
                     "success": "true"
                 }
         """
-        self.session.lm.resource_monitor.start_profiler()
+        self.session.resource_monitor.start_profiler()
         return RESTResponse({"success": True})
 
     async def stop_profiler(self, request):
@@ -412,5 +411,5 @@ class DebugEndpoint(RESTEndpoint):
                     "success": "true"
                 }
         """
-        file_path = self.session.lm.resource_monitor.stop_profiler()
+        file_path = self.session.resource_monitor.stop_profiler()
         return RESTResponse({"success": True, "profiler_file": file_path})

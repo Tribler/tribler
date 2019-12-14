@@ -39,7 +39,7 @@ class Bootstrap(object):
         """
         self._logger.debug("Starting bootstrap downloading %s", infohash)
         tdef = TorrentDefNoMetainfo(unhexlify(infohash), name='bootstrap.blocks')
-        self.download = download_function(tdef, download_config=self.dcfg, hidden=True)
+        self.download = download_function(tdef, config=self.dcfg, hidden=True)
         self.infohash = infohash
 
     async def fetch_bootstrap_peers(self):

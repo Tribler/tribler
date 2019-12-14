@@ -20,8 +20,8 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         self.mock_ipv8 = MockIPv8(u"low",
                                   TrustChainCommunity,
                                   working_directory=self.session.config.get_state_dir())
-        self.session.lm.trustchain_community = self.mock_ipv8.overlay
-        self.session.lm.wallets['MB'] = TrustchainWallet(self.session.lm.trustchain_community)
+        self.session.trustchain_community = self.mock_ipv8.overlay
+        self.session.wallets['MB'] = TrustchainWallet(self.session.trustchain_community)
 
     async def tearDown(self):
         await self.mock_ipv8.unload()
@@ -32,7 +32,7 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         """
         Testing whether the API returns error 404 if no trustchain community is loaded
         """
-        del self.session.lm.wallets['MB']
+        del self.session.wallets['MB']
         await self.do_request('trustchain/statistics', expected_code=404)
 
     @timeout(10)
@@ -41,7 +41,7 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         Testing whether the API returns the correct statistics
         """
         block = TrustChainBlock()
-        block.public_key = self.session.lm.trustchain_community.my_peer.public_key.key_to_bin()
+        block.public_key = self.session.trustchain_community.my_peer.public_key.key_to_bin()
         block.link_public_key = unhexlify(b"deadbeef")
         block.link_sequence_number = 21
         block.type = b'tribler_bandwidth'
@@ -52,12 +52,12 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         block.previous_hash = unhexlify(b"babecafe")
         block.signature = unhexlify(b"babebeef")
         block.hash = block.calculate_hash()
-        self.session.lm.trustchain_community.persistence.add_block(block)
+        self.session.trustchain_community.persistence.add_block(block)
 
         response_dict = await self.do_request('trustchain/statistics', expected_code=200)
         self.assertTrue("statistics" in response_dict)
         stats = response_dict["statistics"]
-        self.assertEqual(stats["id"], hexlify(self.session.lm.trustchain_community.
+        self.assertEqual(stats["id"], hexlify(self.session.trustchain_community.
                                               my_peer.public_key.key_to_bin()))
         self.assertEqual(stats["total_blocks"], 3)
         self.assertEqual(stats["total_up"], 1024)
@@ -73,7 +73,7 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         response_dict = await self.do_request('trustchain/statistics', expected_code=200)
         self.assertTrue("statistics" in response_dict)
         stats = response_dict["statistics"]
-        self.assertEqual(stats["id"], hexlify(self.session.lm.trustchain_community.my_peer.
+        self.assertEqual(stats["id"], hexlify(self.session.trustchain_community.my_peer.
                                               public_key.key_to_bin()))
         self.assertEqual(stats["total_blocks"], 0)
         self.assertEqual(stats["total_up"], 0)
@@ -87,7 +87,7 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         """
         Testing whether the API returns error 404 if no trustchain community is loaded when bootstrapping a new identity
         """
-        del self.session.lm.wallets['MB']
+        del self.session.wallets['MB']
         await self.do_request('trustchain/bootstrap', expected_code=404)
 
     @timeout(10)
@@ -102,9 +102,9 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         test_block.type = b'tribler_bandwidth'
         test_block.transaction = transaction
         test_block._transaction = encode(transaction)
-        test_block.public_key = self.session.lm.trustchain_community.my_peer.public_key.key_to_bin()
+        test_block.public_key = self.session.trustchain_community.my_peer.public_key.key_to_bin()
         test_block.hash = test_block.calculate_hash()
-        self.session.lm.trustchain_community.persistence.add_block(test_block)
+        self.session.trustchain_community.persistence.add_block(test_block)
 
         response_dict = await self.do_request('trustchain/bootstrap', expected_code=200)
         self.assertEqual(response_dict['transaction'], transaction2)
@@ -121,9 +121,9 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         test_block.type = b'tribler_bandwidth'
         test_block.transaction = transaction
         test_block._transaction = encode(transaction)
-        test_block.public_key = self.session.lm.trustchain_community.my_peer.public_key.key_to_bin()
+        test_block.public_key = self.session.trustchain_community.my_peer.public_key.key_to_bin()
         test_block.hash = test_block.calculate_hash()
-        self.session.lm.trustchain_community.persistence.add_block(test_block)
+        self.session.trustchain_community.persistence.add_block(test_block)
 
         response_dict = await self.do_request('trustchain/bootstrap?amount=50', expected_code=200)
         self.assertEqual(response_dict['transaction'], transaction2)
@@ -138,9 +138,9 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         test_block.type = b'tribler_bandwidth'
         test_block.transaction = transaction
         test_block._transaction = encode(transaction)
-        test_block.public_key = self.session.lm.trustchain_community.my_peer.public_key.key_to_bin()
+        test_block.public_key = self.session.trustchain_community.my_peer.public_key.key_to_bin()
         test_block.hash = test_block.calculate_hash()
-        self.session.lm.trustchain_community.persistence.add_block(test_block)
+        self.session.trustchain_community.persistence.add_block(test_block)
 
         await self.do_request('trustchain/bootstrap?amount=200', expected_code=400)
 
@@ -154,9 +154,9 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         test_block.type = b'tribler_bandwidth'
         test_block.transaction = transaction
         test_block._transaction = encode(transaction)
-        test_block.public_key = self.session.lm.trustchain_community.my_peer.public_key.key_to_bin()
+        test_block.public_key = self.session.trustchain_community.my_peer.public_key.key_to_bin()
         test_block.hash = test_block.calculate_hash()
-        self.session.lm.trustchain_community.persistence.add_block(test_block)
+        self.session.trustchain_community.persistence.add_block(test_block)
 
         await self.do_request('trustchain/bootstrap?amount=10', expected_code=400)
 

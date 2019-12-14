@@ -21,7 +21,7 @@ class TrackerManager(object):
 
     @property
     def tracker_store(self):
-        return self._session.lm.mds.TrackerState
+        return self._session.mds.TrackerState
 
     def load_blacklist(self):
         """

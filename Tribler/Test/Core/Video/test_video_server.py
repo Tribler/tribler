@@ -108,7 +108,8 @@ class TestVideoServer(TriblerCoreTest):
         """
         Testing whether the right VOD stream is returned
         """
-        self.mock_session.get_download = lambda _: None
+        self.mock_session.ltmgr = MockObject()
+        self.mock_session.ltmgr.get_download = lambda _: None
         self.assertEqual(self.video_server.get_vod_stream("abcd"), (None, None))
 
 
@@ -159,7 +160,7 @@ class TestVideoServerSession(TestAsServer):
         dscfg = DownloadConfig()
         dscfg.set_dest_dir(os.path.dirname(self.sourcefn))
 
-        download = self.session.start_download_from_tdef(self.tdef, dscfg)
+        download = self.session.ltmgr.add(self.tdef, dscfg)
         await download.get_handle()
 
     def get_std_header(self):

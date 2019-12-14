@@ -97,5 +97,5 @@ class TestEventsEndpoint(AbstractApiTest):
         self.session.notifier.notify(NTFY_TUNNEL, NTFY_REMOVE, Circuit(1234, None), 'test')
         self.session.notifier.notify(SIGNAL_GIGACHANNEL_COMMUNITY, SIGNAL_ON_SEARCH_RESULTS, None,
                                      {"query": "test", "results": []})
-        self.session.lm.api_manager.root_endpoint.endpoints['/events'].on_tribler_exception("hi")
+        self.session.api_manager.root_endpoint.endpoints['/events'].on_tribler_exception("hi")
         await self.events_future

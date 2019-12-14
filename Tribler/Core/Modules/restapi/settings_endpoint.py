@@ -85,27 +85,27 @@ class SettingsEndpoint(RESTEndpoint):
 
         # Perform some actions when specific keys are set
         if section == "libtorrent" and (option == "max_download_rate" or option == "max_upload_rate"):
-            self.session.lm.ltmgr.update_max_rates_from_config()
+            self.session.ltmgr.update_max_rates_from_config()
 
         if section == 'credit_mining' and option == 'enabled' and \
-             value != bool(self.session.lm.credit_mining_manager):
+             value != bool(self.session.credit_mining_manager):
             if value:
-                self.session.lm.credit_mining_manager = CreditMiningManager(self.session)
+                self.session.credit_mining_manager = CreditMiningManager(self.session)
             else:
-                await self.session.lm.credit_mining_manager.shutdown(remove_downloads=True)
-                self.session.lm.credit_mining_manager = None
+                await self.session.credit_mining_manager.shutdown(remove_downloads=True)
+                self.session.credit_mining_manager = None
         elif section == 'credit_mining' and option == 'sources':
             if self.session.config.get_credit_mining_enabled():
                 # Out with the old..
-                if self.session.lm.credit_mining_manager.sources:
-                    await gather(*[self.session.lm.credit_mining_manager.remove_source(source) for source in
-                                   list(self.session.lm.credit_mining_manager.sources.keys())])
+                if self.session.credit_mining_manager.sources:
+                    await gather(*[self.session.credit_mining_manager.remove_source(source) for source in
+                                   list(self.session.credit_mining_manager.sources.keys())])
                 # In with the new
                 for source in value:
-                    self.session.lm.credit_mining_manager.add_source(source)
+                    self.session.credit_mining_manager.add_source(source)
         elif section == 'credit_mining' and option == 'max_disk_space':
             if self.session.config.get_credit_mining_enabled():
-                self.session.lm.credit_mining_manager.settings.max_disk_space = value
+                self.session.credit_mining_manager.settings.max_disk_space = value
 
     async def parse_settings_dict(self, settings_dict, depth=1, root_key=None):
         """

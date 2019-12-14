@@ -81,9 +81,9 @@ class SearchEndpoint(MetadataEndpointBase):
 
         # Apart from the local search results, we also do remote search to get search results from peers in the
         # Giga channel community.
-        if self.session.lm.gigachannel_community and sanitized["first"] == 1:
+        if self.session.gigachannel_community and sanitized["first"] == 1:
             raw_metadata_type = request.query.get('metadata_type', '')
-            self.session.lm.gigachannel_community.send_search_request(
+            self.session.gigachannel_community.send_search_request(
                 sanitized['query_filter'],
                 metadata_type=raw_metadata_type,
                 sort_by=sanitized['sort_by'],
@@ -94,10 +94,10 @@ class SearchEndpoint(MetadataEndpointBase):
 
         def search_db():
             with db_session:
-                pony_query = self.session.lm.mds.MetadataNode.get_entries(**sanitized)
-                total = self.session.lm.mds.MetadataNode.get_total_count(**sanitized) if include_total else None
+                pony_query = self.session.mds.MetadataNode.get_entries(**sanitized)
+                total = self.session.mds.MetadataNode.get_total_count(**sanitized) if include_total else None
                 search_results = [r.to_simple_dict() for r in pony_query]
-            self.session.lm.mds._db.disconnect()
+            self.session.mds._db.disconnect()
             return search_results, total
 
         try:
@@ -129,7 +129,7 @@ class SearchEndpoint(MetadataEndpointBase):
         if not sanitized["metadata_type"]:
             return RESTResponse({"error": "Trying to query for unknown type of metadata"}, status=HTTP_BAD_REQUEST)
 
-        return RESTResponse(self.get_total_count(self.session.lm.mds.TorrentMetadata,
+        return RESTResponse(self.get_total_count(self.session.mds.TorrentMetadata,
                                                  sanitized, search_uuid=search_uuid))
 
     async def completions(self, request):
@@ -160,5 +160,5 @@ class SearchEndpoint(MetadataEndpointBase):
 
         keywords = args['q'].strip().lower()
         # TODO: add XXX filtering for completion terms
-        results = self.session.lm.mds.TorrentMetadata.get_auto_complete_terms(keywords, max_terms=5)
+        results = self.session.mds.TorrentMetadata.get_auto_complete_terms(keywords, max_terms=5)
         return RESTResponse({"completions": results})

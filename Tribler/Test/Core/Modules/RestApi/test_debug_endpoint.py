@@ -18,9 +18,9 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
         """
         Test whether we can get slot information from the API
         """
-        self.session.lm.tunnel_community = MockObject()
-        self.session.lm.tunnel_community.random_slots = [None, None, None, 12345]
-        self.session.lm.tunnel_community.competing_slots = [(0, None), (12345, 12345)]
+        self.session.tunnel_community = MockObject()
+        self.session.tunnel_community.random_slots = [None, None, None, 12345]
+        self.session.tunnel_community.competing_slots = [(0, None), (12345, 12345)]
         response_json = await self.do_request('debug/circuits/slots', expected_code=200)
         self.assertEqual(len(response_json["slots"]["random"]), 4)
 
@@ -53,7 +53,7 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
         """
         Test whether the API returns the cpu history
         """
-        self.session.lm.resource_monitor.check_resources()
+        self.session.resource_monitor.check_resources()
         response_json = await self.do_request('debug/cpu/history', expected_code=200)
         self.assertGreaterEqual(len(response_json['cpu_history']), 1)
 
@@ -63,7 +63,7 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
         """
         Test whether the API returns the memory history
         """
-        self.session.lm.resource_monitor.check_resources()
+        self.session.resource_monitor.check_resources()
         response_json = await self.do_request('debug/memory/history', expected_code=200)
         self.assertGreaterEqual(len(response_json['memory_history']), 1)
 
@@ -149,16 +149,16 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
         tests.
         """
         def mocked_start_profiler():
-            self.session.lm.resource_monitor.profiler_running = True
+            self.session.resource_monitor.profiler_running = True
 
         def mocked_stop_profiler():
-            self.session.lm.resource_monitor.profiler_running = False
+            self.session.resource_monitor.profiler_running = False
             return 'a'
 
-        self.session.lm.resource_monitor.start_profiler = mocked_start_profiler
-        self.session.lm.resource_monitor.stop_profiler = mocked_stop_profiler
+        self.session.resource_monitor.start_profiler = mocked_start_profiler
+        self.session.resource_monitor.stop_profiler = mocked_stop_profiler
 
         await self.do_request('debug/profiler', expected_code=200, request_type='PUT')
-        self.assertTrue(self.session.lm.resource_monitor.profiler_running)
+        self.assertTrue(self.session.resource_monitor.profiler_running)
         await self.do_request('debug/profiler', expected_code=200, request_type='DELETE')
-        self.assertFalse(self.session.lm.resource_monitor.profiler_running)
+        self.assertFalse(self.session.resource_monitor.profiler_running)

@@ -56,9 +56,9 @@ class TrustchainEndpoint(RESTEndpoint):
                     }
                 }
         """
-        if 'MB' not in self.session.lm.wallets:
+        if 'MB' not in self.session.wallets:
             return RESTResponse({"error": "TrustChain community not found"}, status=HTTP_NOT_FOUND)
-        return RESTResponse({'statistics': recursive_unicode(self.session.lm.wallets['MB'].get_statistics())})
+        return RESTResponse({'statistics': recursive_unicode(self.session.wallets['MB'].get_statistics())})
 
     async def bootstrap(self, request):
         """
@@ -91,9 +91,9 @@ class TrustchainEndpoint(RESTEndpoint):
                 }
         """
 
-        if 'MB' not in self.session.lm.wallets:
+        if 'MB' not in self.session.wallets:
             return RESTResponse({"error": "bandwidth wallet not found"}, status=HTTP_NOT_FOUND)
-        bandwidth_wallet = self.session.lm.wallets['MB']
+        bandwidth_wallet = self.session.wallets['MB']
 
         available_tokens = bandwidth_wallet.get_bandwidth_tokens()
 

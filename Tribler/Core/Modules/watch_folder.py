@@ -56,7 +56,7 @@ class WatchFolder(TaskManager):
 
                 infohash = tdef.get_infohash()
 
-                if not self.session.has_download(infohash):
+                if not self.session.ltmgr.download_exists(infohash):
                     self._logger.info("Starting download from torrent file %s", name)
                     dl_config = DownloadConfig()
 
@@ -65,4 +65,4 @@ class WatchFolder(TaskManager):
                     dl_config.set_hops(default_num_hops if anon_enabled else 0)
                     dl_config.set_safe_seeding(self.session.config.get_default_safeseeding_enabled())
                     dl_config.set_dest_dir(self.session.config.get_default_destination_dir())
-                    self.session.lm.ltmgr.start_download(tdef=tdef, dconfig=dl_config)
+                    self.session.ltmgr.start_download(tdef=tdef, dconfig=dl_config)

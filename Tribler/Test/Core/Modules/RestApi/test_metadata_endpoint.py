@@ -24,7 +24,7 @@ class BaseTestMetadataEndpoint(AbstractApiTest):
         with db_session:
             for ind in range(10):
                 self.ext_key = default_eccrypto.generate_key('curve25519')
-                channel = self.session.lm.mds.ChannelMetadata(
+                channel = self.session.mds.ChannelMetadata(
                     title='channel%d' % ind,
                     subscribed=(ind % 2 == 0),
                     num_entries=torrents_per_channel,
@@ -35,7 +35,7 @@ class BaseTestMetadataEndpoint(AbstractApiTest):
                 for torrent_ind in range(torrents_per_channel):
                     rand_infohash = random_infohash()
                     self.infohashes.append(rand_infohash)
-                    self.session.lm.mds.TorrentMetadata(
+                    self.session.mds.TorrentMetadata(
                         origin_id=channel.id_, title='torrent%d' % torrent_ind, infohash=rand_infohash, sign_with=self.ext_key
                     )
 
@@ -65,8 +65,8 @@ class TestMetadataEndpoint(AbstractApiTest):
             request_type='PATCH',
         )
         with db_session:
-            md1 = self.session.lm.mds.TorrentMetadata(title='old1', infohash=random_infohash())
-            md2 = self.session.lm.mds.ChannelMetadata(title='old2', infohash=random_infohash(), subscribed=False)
+            md1 = self.session.mds.TorrentMetadata(title='old1', infohash=random_infohash())
+            md2 = self.session.mds.ChannelMetadata(title='old2', infohash=random_infohash(), subscribed=False)
 
         NEW_NAME1 = "updated1"
         NEW_NAME2 = "updated2"
@@ -78,11 +78,11 @@ class TestMetadataEndpoint(AbstractApiTest):
             'metadata', json_data=patch_data, expected_code=200, request_type='PATCH'
         )
         with db_session:
-            entry1 = self.session.lm.mds.ChannelNode.get(rowid=md1.rowid)
+            entry1 = self.session.mds.ChannelNode.get(rowid=md1.rowid)
             self.assertEqual(NEW_NAME1, entry1.title)
             self.assertEqual(UPDATED, entry1.status)
 
-            entry2 = self.session.lm.mds.ChannelNode.get(rowid=md2.rowid)
+            entry2 = self.session.mds.ChannelNode.get(rowid=md2.rowid)
             self.assertEqual(NEW_NAME2, entry2.title)
             self.assertEqual(UPDATED, entry2.status)
             self.assertTrue(entry2.subscribed)
@@ -93,8 +93,8 @@ class TestMetadataEndpoint(AbstractApiTest):
         Test deleting multiple entries with JSON REST API
         """
         with db_session:
-            md1 = self.session.lm.mds.TorrentMetadata(title='old1', infohash=random_infohash())
-            md2 = self.session.lm.mds.TorrentMetadata(title='old2', infohash=random_infohash())
+            md1 = self.session.mds.TorrentMetadata(title='old1', infohash=random_infohash())
+            md2 = self.session.mds.TorrentMetadata(title='old2', infohash=random_infohash())
 
         patch_data = [
             {'public_key': hexlify(md1.public_key), 'id': md1.id_},
@@ -104,7 +104,7 @@ class TestMetadataEndpoint(AbstractApiTest):
             'metadata', json_data=patch_data, expected_code=200, request_type='DELETE'
         )
         with db_session:
-            self.assertFalse(self.session.lm.mds.ChannelNode.select().count())
+            self.assertFalse(self.session.mds.ChannelNode.select().count())
 
 
 class TestSpecificMetadataEndpoint(AbstractApiTest):
@@ -116,7 +116,7 @@ class TestSpecificMetadataEndpoint(AbstractApiTest):
         """
         Test whether an error is returned if we try to change entry with the REST API and missing JSON data
         """
-        channel_pk = hexlify(self.session.lm.mds.ChannelNode._my_key.pub().key_to_bin()[10:])
+        channel_pk = hexlify(self.session.mds.ChannelNode._my_key.pub().key_to_bin()[10:])
         await self.do_request('metadata/%s/123' % channel_pk, expected_code=400, request_type='PATCH')
 
     async def test_update_entry_not_found(self):
@@ -132,7 +132,7 @@ class TestSpecificMetadataEndpoint(AbstractApiTest):
         Test whether an error is returned if try to modify both the status and name of a torrent
         """
         with db_session:
-            chan = self.session.lm.mds.ChannelMetadata.create_channel(title="bla")
+            chan = self.session.mds.ChannelMetadata.create_channel(title="bla")
         patch_params = {'status': TODELETE, 'title': 'test'}
         await self.do_request(
             'metadata/%s/%i' % (hexlify(chan.public_key), chan.id_),
@@ -150,7 +150,7 @@ class TestSpecificMetadataEndpoint(AbstractApiTest):
         new_tags = "Compressed"
 
         with db_session:
-            chan = self.session.lm.mds.ChannelMetadata.create_channel(title="bla")
+            chan = self.session.mds.ChannelMetadata.create_channel(title="bla")
             chan.status = COMMITTED
 
         patch_params = {'title': new_title, 'tags': new_tags}
@@ -163,7 +163,7 @@ class TestSpecificMetadataEndpoint(AbstractApiTest):
         )
         self.assertEqual(new_title, result['name'])
         self.assertEqual(new_tags, result['category'])
-        chan = self.session.lm.mds.ChannelMetadata.get_my_channel()
+        chan = self.session.mds.ChannelMetadata.get_my_channel()
         self.assertEqual(chan.status, UPDATED)
         self.assertEqual(chan.tags, new_tags)
         self.assertEqual(chan.title, new_title)
@@ -174,7 +174,7 @@ class TestSpecificMetadataEndpoint(AbstractApiTest):
         Test getting an entry with REST API GET request
         """
         with db_session:
-            chan = self.session.lm.mds.TorrentMetadata(
+            chan = self.session.mds.TorrentMetadata(
                 title="bla", infohash=random_infohash(), tracker_info="http://sometracker.local/announce"
             )
             chan.status = COMMITTED
@@ -221,7 +221,7 @@ class TestTorrentHealthEndpoint(AbstractApiTest):
         self.http_tracker = HTTPTracker(self.http_port)
 
     async def tearDown(self):
-        self.session.lm.ltmgr = None
+        self.session.ltmgr = None
         if self.udp_tracker:
             await self.udp_tracker.stop()
         if self.http_tracker:
@@ -238,23 +238,23 @@ class TestTorrentHealthEndpoint(AbstractApiTest):
         self.udp_tracker.tracker_info.add_info_about_infohash(infohash, 12, 11, 1)
 
         with db_session:
-            tracker_state = self.session.lm.mds.TrackerState(url=tracker_url)
-            torrent_state = self.session.lm.mds.TorrentState(trackers=tracker_state, infohash=infohash)
-            self.session.lm.mds.TorrentMetadata(
+            tracker_state = self.session.mds.TrackerState(url=tracker_url)
+            torrent_state = self.session.mds.TorrentState(trackers=tracker_state, infohash=infohash)
+            self.session.mds.TorrentMetadata(
                 infohash=infohash, title='ubuntu-torrent.iso', size=42, tracker_info=tracker_url, health=torrent_state
             )
         url = 'metadata/torrents/%s/health?timeout=10&refresh=1' % hexlify(infohash)
 
         # Initialize the torrent checker
-        self.session.lm.torrent_checker = TorrentChecker(self.session)
-        await self.session.lm.torrent_checker.initialize()
+        self.session.torrent_checker = TorrentChecker(self.session)
+        await self.session.torrent_checker.initialize()
 
         # Add mock DHT response - we both need to account for the case when BEP33 is used and the old lookup method
-        self.session.lm.ltmgr = MockObject()
-        self.session.lm.ltmgr.get_metainfo = lambda _, **__: succeed(None)
-        self.session.lm.ltmgr.dht_health_manager = MockObject()
+        self.session.ltmgr = MockObject()
+        self.session.ltmgr.get_metainfo = lambda _, **__: succeed(None)
+        self.session.ltmgr.dht_health_manager = MockObject()
         dht_health_dict = {"infohash": hexlify(infohash), "seeders": 1, "leechers": 2}
-        self.session.lm.ltmgr.dht_health_manager.get_health = lambda *_, **__: succeed({"DHT": [dht_health_dict]})
+        self.session.ltmgr.dht_health_manager.get_health = lambda *_, **__: succeed({"DHT": [dht_health_dict]})
 
         # Left for compatibility with other tests in this object
         await self.udp_tracker.start()

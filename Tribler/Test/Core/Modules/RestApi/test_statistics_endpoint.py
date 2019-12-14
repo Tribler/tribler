@@ -20,15 +20,15 @@ class TestStatisticsEndpoint(AbstractApiTest):
         self.mock_ipv8.overlays = [self.mock_ipv8.overlay]
         self.mock_ipv8.endpoint.bytes_up = 100
         self.mock_ipv8.endpoint.bytes_down = 20
-        self.session.lm.ipv8 = self.mock_ipv8
+        self.session.ipv8 = self.mock_ipv8
         self.session.config.set_ipv8_enabled(True)
         my_key = default_eccrypto.generate_key(u"curve25519")
-        self.session.lm.mds = MetadataStore(os.path.join(self.session_base_dir, 'test.db'), self.session_base_dir,
+        self.session.mds = MetadataStore(os.path.join(self.session_base_dir, 'test.db'), self.session_base_dir,
                                             my_key)
 
     async def tearDown(self):
-        self.session.lm.mds.shutdown()
-        self.session.lm.ipv8 = None
+        self.session.mds.shutdown()
+        self.session.ipv8 = None
         await self.mock_ipv8.unload()
         await super(TestStatisticsEndpoint, self).tearDown()
 
