@@ -85,7 +85,7 @@ class TestTunnelBase(TestAsServer):
         for community_introduce in self.tunnel_communities + other_tunnel_communities:
             for community in self.tunnel_communities + other_tunnel_communities:
                 if community != community_introduce:
-                    community.walk_to(community_introduce.endpoint.get_address())
+                    community.walk_to(('127.0.0.1', community_introduce.endpoint.get_address()[1]))
 
         await self.deliver_messages()
 
