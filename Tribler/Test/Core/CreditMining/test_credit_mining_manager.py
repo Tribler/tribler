@@ -34,7 +34,7 @@ class FakeTorrent(object):
         self.download = MockObject()
         self.download.upload_mode = False
         self.download.running = None
-        self.download.restart = lambda: setattr(self.download, 'running', True)
+        self.download.resume = lambda: setattr(self.download, 'running', True)
         self.download.stop = lambda: setattr(self.download, 'running', False)
         self.download.credit_mining = True
         self.download.config = MockObject()
@@ -136,7 +136,7 @@ class TestCreditMiningManager(TestAsServer):
             removed.append(download.get_def().get_infohash())
             return succeed(None)
 
-        self.session.ltmgr.remove = fake_remove
+        self.session.ltmgr.remove_download = fake_remove
 
         torrents = {i: FakeTorrent(i, self.name + str(i)) for i in range(5)}
         self.credit_mining_manager.add_source(self.cid)

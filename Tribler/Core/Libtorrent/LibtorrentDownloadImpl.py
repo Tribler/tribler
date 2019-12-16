@@ -9,7 +9,8 @@ import os
 import shutil
 import sys
 import time
-from asyncio import CancelledError, Future, iscoroutine, sleep
+from asyncio import CancelledError, Future, as_completed, iscoroutine, sleep
+from collections import defaultdict
 
 import libtorrent as lt
 
@@ -23,8 +24,9 @@ from Tribler.Core.Utilities.unicode import ensure_unicode, hexlify
 from Tribler.Core.Utilities.utilities import bdecode_compat, succeed
 from Tribler.Core.exceptions import SaveResumeDataError
 from Tribler.Core.osutils import fix_filebasename
-from Tribler.Core.simpledefs import DLMODE_VOD, DLSTATUS_SEEDING, DLSTATUS_STOPPED
-from Tribler.pyipv8.ipv8.taskmanager import TaskManager
+from Tribler.Core.simpledefs import DLMODE_VOD, DLSTATUS_SEEDING, DLSTATUS_STOPPED, NTFY_ERROR, NTFY_FINISHED,\
+    NTFY_TORRENT
+from Tribler.pyipv8.ipv8.taskmanager import TaskManager, task
 from Tribler.pyipv8.ipv8.util import int2byte
 
 if sys.platform == "win32":
@@ -111,9 +113,7 @@ class LibtorrentDownloadImpl(TaskManager):
         self.handle = None
         self.vod_index = None
         self.orig_files = None
-
-        if session:
-            self.state_dir = self.session.config.get_state_dir()
+        self.state_dir = self.session.config.get_state_dir() if self.session else None
 
         # With hidden True download will not be in GET/downloads set, as a result will not be shown in GUI
         self.hidden = False
@@ -121,13 +121,11 @@ class LibtorrentDownloadImpl(TaskManager):
         # To be able to return the progress of a stopped torrent, how far it got.
         self.progressbeforestop = 0.0
         self.filepieceranges = []
-
-        self.ltmgr = self.session.ltmgr if session else None
+        self.ltmgr = self.session.ltmgr if self.session else None
 
         # Libtorrent status
         self.lt_status = None
         self.error = None
-        self.done = False
         self.pause_after_next_hashcheck = False
         self.checkpoint_after_next_hashcheck = False
         self.tracker_status = {}  # {url: [num_peers, status_str]}
@@ -138,42 +136,60 @@ class LibtorrentDownloadImpl(TaskManager):
 
         self.max_prebuffsize = 5 * 1024 * 1024
 
-        self.askmoreinfo = False
+        self.correctedinfoname = ""
+        self.checkpoint_disabled = False
 
-        self.correctedinfoname = u""
-        self._checkpoint_disabled = False
+        self.futures = defaultdict(list)
+        self.alert_handlers = defaultdict(list)
 
-        self.futures_resume = []
-        self.futures_handle = []
-        self.future_added = Future()
-        self.future_removed = Future()
-        self.future_finished = Future()
-        self.future_metainfo = Future()
+        self.future_added = self.wait_for_alert('add_torrent_alert', lambda a: a.handle)
+        self.future_removed = self.wait_for_alert('torrent_removed_alert')
+        self.future_finished = self.wait_for_alert('torrent_finished_alert')
+        self.future_metainfo = self.wait_for_alert('metadata_received_alert', lambda a: self.tdef.get_metainfo())
+
+        alert_handlers = {'tracker_reply_alert': self.on_tracker_reply_alert,
+                          'tracker_error_alert': self.on_tracker_error_alert,
+                          'tracker_warning_alert': self.on_tracker_warning_alert,
+                          'metadata_received_alert': self.on_metadata_received_alert,
+                          'file_renamed_alert': self.on_file_renamed_alert,
+                          'performance_alert': self.on_performance_alert,
+                          'torrent_checked_alert': self.on_torrent_checked_alert,
+                          'torrent_finished_alert': self.on_torrent_finished_alert,
+                          'save_resume_data_alert': self.on_save_resume_data_alert,
+                          'state_changed_alert': self.on_state_changed_alert,
+                          'torrent_error_alert': self.on_torrent_error_alert,
+                          'add_torrent_alert': self.on_add_torrent_alert,
+                          'torrent_removed_alert': self.on_torrent_removed_alert}
+
+        for alert_type, alert_handler in alert_handlers.items():
+            self.register_alert_handler(alert_type, alert_handler)
 
     def __str__(self):
         return "LibtorrentDownloadImpl <name: '%s' hops: %d checkpoint_disabled: %d>" % \
-               (self.correctedinfoname, self.config.get_hops(), self._checkpoint_disabled)
+               (self.tdef.get_name(), self.config.get_hops(), self.checkpoint_disabled)
 
     def __repr__(self):
         return self.__str__()
 
+    def register_alert_handler(self, alert_type, handler):
+        self.alert_handlers[alert_type].append(handler)
+
+    def wait_for_alert(self, success_type, success_getter=None, fail_type=None, fail_getter=None):
+        future = Future()
+        if success_type:
+            self.futures[success_type].append((future, future.set_result, success_getter))
+        if fail_type:
+            self.futures[fail_type].append((future, future.set_exception, fail_getter))
+        return future
+
+    async def wait_for_status(self, *status):
+        current = self.get_state().get_status()
+        while current not in status:
+            await self.wait_for_alert('state_changed_alert')
+            current = self.get_state().get_status()
+
     def get_def(self):
         return self.tdef
-
-    def set_checkpoint_disabled(self, disabled=True):
-        self._checkpoint_disabled = disabled
-
-    def get_checkpoint_disabled(self):
-        return self._checkpoint_disabled
-
-    async def wait_for_handle(self):
-        """
-        Wait until the handle exists and is valid. If so, fire the futures waiting for the handle.
-        """
-        while not self.handle or not self.handle.is_valid():
-            await sleep(1)
-        for future in self.futures_handle:
-            future.set_result(self.handle)
 
     def get_handle(self):
         """
@@ -182,33 +198,28 @@ class LibtorrentDownloadImpl(TaskManager):
         if self.handle and self.handle.is_valid():
             return succeed(self.handle)
 
-        future = Future()
-        self.futures_handle.append(future)
-        return future
+        return self.wait_for_alert('add_torrent_alert', lambda a: a.handle)
 
-    def setup(self, dcfg=None, hidden=False, delay=0, checkpoint_disabled=False):
+    def setup(self, config=None, hidden=False, checkpoint_disabled=False):
         """
         Create a Download object. Used internally by Session.
         @param config DownloadConfig or None (in which case a new DownloadConfig() is created
         :returns a Deferred to which a callback can be added which returns the result of network_create_engine_wrapper.
         """
         self.hidden = hidden
-        self.config = dcfg or DownloadConfig(state_dir=self.session.config.get_state_dir())
+        self.checkpoint_disabled = checkpoint_disabled
+        self.config = config or DownloadConfig(state_dir=self.session.config.get_state_dir())
+
         if not isinstance(self.tdef, TorrentDefNoMetainfo):
             self.set_corrected_infoname()
             self.set_filepieceranges()
-        self.set_checkpoint_disabled(checkpoint_disabled)
-        self._logger.debug("Setup: %s", hexlify(self.tdef.get_infohash()))
-        self.checkpoint()
-        self.register_task("wait_for_handle", self.wait_for_handle)
-        self.register_task("create_handle", self.create_handle, delay=delay)
 
-    async def create_handle(self):
-        self._logger.debug("LibtorrentDownloadImpl: network_create_engine_wrapper()")
+        self._logger.debug("Setup: %s", hexlify(self.tdef.get_infohash()))
+
+        self.checkpoint()
 
         atp = {"save_path": os.path.normpath(os.path.join(get_default_dest_dir(), self.config.get_dest_dir())),
                "storage_mode": lt.storage_mode_t.storage_mode_sparse,
-               "hops": self.config.get_hops(),
                "flags": lt.add_torrent_params_flags_t.flag_paused
                         | lt.add_torrent_params_flags_t.flag_duplicate_is_error
                         | lt.add_torrent_params_flags_t.flag_update_subscribe}
@@ -250,11 +261,15 @@ class LibtorrentDownloadImpl(TaskManager):
             atp["url"] = self.tdef.get_url() or "magnet:?xt=urn:btih:" + hexlify(self.tdef.get_infohash())
             atp["name"] = self.tdef.get_name_as_unicode()
 
-        try:
-            self.handle = await self.ltmgr.add_torrent(self, atp)
-        except Exception:
-            self._logger.error("Could not add torrent to LibtorrentManager %s", self.tdef.get_name_as_unicode())
-            raise
+        return atp
+
+    def on_add_torrent_alert(self, alert):
+        if hasattr(alert, 'error') and alert.error.value():
+            self._logger.error("Failed to add torrent (%s)", self.tdef.get_name_as_unicode())
+            raise RuntimeError(alert.error.message())
+
+        self.handle = alert.handle
+        self._logger.debug("Added torrent %s", str(self.handle.info_hash()))
 
         if self.handle and self.handle.is_valid():
             self.set_selected_files()
@@ -262,7 +277,7 @@ class LibtorrentDownloadImpl(TaskManager):
             user_stopped = self.config.get_user_stopped()
 
             # If we lost resume_data always resume download in order to force checking
-            if not user_stopped or not resume_data:
+            if not user_stopped or not self.config.get_engineresumedata():
                 self.handle.resume()
 
                 # If we only needed to perform checking, pause download after it is complete
@@ -433,33 +448,46 @@ class LibtorrentDownloadImpl(TaskManager):
             pieces = list(set(pieces))
             self.set_piece_priority(pieces, priority)
 
-    @check_handle()
+    def post_alert(self, alert_type, alert_dict=None):
+        alert_dict = alert_dict or {}
+        alert_dict['category'] = lambda _: None
+        alert = type('anonymous_alert', (object,), alert_dict)()
+        return self.process_alert(alert, alert_type)
+
     def process_alert(self, alert, alert_type):
         if alert.category() in [lt.alert.category_t.error_notification, lt.alert.category_t.performance_warning]:
-            self._logger.debug("LibtorrentDownloadImpl: alert %s with message %s", alert_type, alert)
+            self._logger.debug("Got alert: %s", alert)
 
-        alert_types = ('tracker_reply_alert', 'tracker_error_alert', 'tracker_warning_alert', 'metadata_received_alert',
-                       'file_renamed_alert', 'performance_alert', 'torrent_checked_alert', 'torrent_finished_alert',
-                       'save_resume_data_alert', 'save_resume_data_failed_alert', 'state_changed_alert')
+        for handler in self.alert_handlers.get(alert_type, []):
+            handler(alert)
 
-        if alert_type in alert_types:
-            getattr(self, 'on_' + alert_type)(alert)
+        for future, future_setter, getter in self.futures.pop(alert_type, []):
+            if not future.done():
+                future_setter(getter(alert) if getter else alert)
+
+    def on_torrent_error_alert(self, alert):
+        self._logger.error("Error during download: %s", alert.error)
+        self.session.notifier.notify(NTFY_TORRENT, NTFY_ERROR, self.tdef.get_infohash(), alert.error, self.hidden)
 
     def on_state_changed_alert(self, alert):
+        if not self.handle:
+            return
+        self.update_lt_status(self.handle.status())
+
         enable = alert.state == lt.torrent_status.seeding and self.config.get_hops() > 0
         self._logger.debug('Setting IP filter for %s to %s', hexlify(self.tdef.get_infohash()), enable)
         self.apply_ip_filter(enable)
 
         # On a rare occasion we don't get a metadata_received_alert. If this is the case, post an alert manually.
         if alert.state == lt.torrent_status.downloading and isinstance(self.tdef, TorrentDefNoMetainfo):
-            self.on_metadata_received_alert(None)
+            self.post_alert('metadata_received_alert')
 
     def on_save_resume_data_alert(self, alert):
         """
         Callback for the alert that contains the resume data of a specific download.
         This resume data will be written to a file on disk.
         """
-        if self._checkpoint_disabled:
+        if self.checkpoint_disabled:
             return
 
         resume_data = alert.resume_data
@@ -481,26 +509,9 @@ class LibtorrentDownloadImpl(TaskManager):
 
         # Save it to file
         basename = hexlify(resume_data[b'info-hash']) + '.conf'
-        filename = os.path.join(self.ltmgr.get_downloads_config_dir(), basename)
+        filename = os.path.join(self.ltmgr.get_checkpoint_dir(), basename)
         self.config.write(filename)
         self._logger.debug('Saving download config to file %s', filename)
-
-        # Fire callback for all futures_resume
-        for future in self.futures_resume:
-            if not future.done():
-                future.set_result(resume_data)
-
-        # Empties the futures list
-        self.futures_resume = []
-
-    def on_save_resume_data_failed_alert(self, alert):
-        # Fire errback for all futures_resume
-        for future in self.futures_resume:
-            if not future.done():
-                future.set_exception(SaveResumeDataError(alert.msg))
-
-        # Empties the future list
-        self.futures_resume = []
 
     def on_tracker_reply_alert(self, alert):
         self.tracker_status[alert.url] = [alert.num_peers, 'Working']
@@ -524,7 +535,7 @@ class LibtorrentDownloadImpl(TaskManager):
 
         self.tracker_status[alert.url] = [peers, status]
 
-    def on_metadata_received_alert(self, alert):
+    def on_metadata_received_alert(self, _):
         torrent_info = get_info_from_handle(self.handle)
         if not torrent_info:
             return
@@ -554,9 +565,6 @@ class LibtorrentDownloadImpl(TaskManager):
             self._logger.warning("Torrent contains no files!")
             torrent_files = []
 
-        if not self.future_metainfo.done():
-            self.future_metainfo.set_result(metadata)
-
         self.orig_files = [torrent_file.path for torrent_file in torrent_files]
         self.set_corrected_infoname()
         self.set_filepieceranges()
@@ -564,7 +572,7 @@ class LibtorrentDownloadImpl(TaskManager):
 
         self.checkpoint()
 
-    def on_file_renamed_alert(self, alert):
+    def on_file_renamed_alert(self, _):
         unwanteddir_abs = os.path.join(self.get_save_path(), self.unwanted_directory_name)
         if os.path.exists(unwanteddir_abs) and all(self.handle.file_priorities()):
             shutil.rmtree(unwanteddir_abs, ignore_errors=True)
@@ -594,7 +602,11 @@ class LibtorrentDownloadImpl(TaskManager):
                 settings['max_queued_disk_bytes'] *= 2
                 self.ltmgr.set_session_settings(self.ltmgr.get_session(), settings)
 
-    def on_torrent_checked_alert(self, alert):
+    def on_torrent_removed_alert(self, _):
+        self._logger.debug("Removing %s", self.tdef.get_name())
+        self.handle = None
+
+    def on_torrent_checked_alert(self, _):
         if self.pause_after_next_hashcheck:
             self.pause_after_next_hashcheck = False
             self.handle.pause()
@@ -603,12 +615,8 @@ class LibtorrentDownloadImpl(TaskManager):
             self.checkpoint()
 
     @check_handle()
-    def on_torrent_finished_alert(self, alert):
+    def on_torrent_finished_alert(self, _):
         self.update_lt_status(self.handle.status())
-        if self.future_finished.done():
-            self._logger.warning("LibtorrentDownloadImpl: duplicate finished alert received %s", self.tdef.get_name())
-        else:
-            self.future_finished.set_result(self)
 
         progress = self.get_state().get_progress()
         if self.config.get_mode() == DLMODE_VOD:
@@ -628,6 +636,10 @@ class LibtorrentDownloadImpl(TaskManager):
             if self.endbuffsize:
                 self.set_byte_priority([(self.get_vod_fileindex(), 0, -1)], 1)
                 self.endbuffsize = 0
+
+        self.checkpoint()
+        self.session.notifier.notify(NTFY_TORRENT, NTFY_FINISHED, self.tdef.get_infohash(),
+                                     self.tdef.get_name_as_unicode(), self.hidden)
 
     def update_lt_status(self, lt_status):
         """ Update libtorrent stats and check if the download should be stopped."""
@@ -768,20 +780,15 @@ class LibtorrentDownloadImpl(TaskManager):
         Save the resume data of a download. This method returns when the resume data is available.
         Note that this method only calls save_resume_data once on subsequent calls.
         """
-        if not self.futures_resume:
+        if 'save_resume_data' not in self.futures:
             handle = await self.get_handle()
             handle.save_resume_data()
 
-        future_resume = Future()
-        self.futures_resume.append(future_resume)
-
         try:
-            await future_resume
+            await self.wait_for_alert('save_resume_data_alert', None,
+                                      'save_resume_data_failed_alert', lambda a: SaveResumeDataError(a.error))
         except (CancelledError, SaveResumeDataError) as e:
             self._logger.error("Resume data failed to save: %s", e)
-
-    def set_moreinfo_stats(self, enable):
-        self.askmoreinfo = enable
 
     def calc_prebuf_frac(self, consecutive=False):
         if self.config.get_mode() == DLMODE_VOD and self.get_vod_fileindex() >= 0 and self.vod_seekpos is not None:
@@ -901,37 +908,44 @@ class LibtorrentDownloadImpl(TaskManager):
         async def state_callback_loop():
             if usercallback:
                 when = 1
-                while when and not self.done and not self.session.shutdownstarttime:
+                while when and not self.future_removed.done() and not self.session.shutdownstarttime:
                     result = usercallback(self.get_state())
                     when = (await result) if iscoroutine(result) else result
                     if when > 0.0 and not self.session.shutdownstarttime:
                         await sleep(when)
         return self.register_anonymous_task("downloads_cb", state_callback_loop)
 
-    async def stop(self, remove_state=False, remove_content=False, user_stopped=None):
+    async def shutdown(self):
+        self.alert_handlers.clear()
+        for _, futures in self.futures.items():
+            for future, _, _ in futures:
+                future.cancel()
+        await self.shutdown_task_manager()
+
+    def stop(self, user_stopped=None):
+        self._logger.debug("Stopping %s", self.tdef.get_name())
+
         if user_stopped is not None:
             self.config.set_user_stopped(user_stopped)
 
-        self.done = remove_state
-        await self.shutdown_task_manager()
+        if self.handle and self.handle.is_valid():
+            self.set_vod_mode(False)
+            self.handle.pause()
+            future = next(as_completed([self.wait_for_alert('save_resume_data_alert', None),
+                                        self.wait_for_alert('save_resume_data_failed_alert', None)]))
+            self.checkpoint()
+            return future
+        return succeed(None)
 
-        self._logger.debug("LibtorrentDownloadImpl: stop %s", self.tdef.get_name())
+    def resume(self):
+        self._logger.debug("Resuming %s", self.tdef.get_name())
 
-        if self.handle is not None:
-            self._logger.debug("LibtorrentDownloadImpl: stop: engineresumedata from torrent handle")
-            if remove_state:
-                await self.ltmgr.remove_torrent(self, remove_content)
-                self.handle = None
-            else:
-                self.set_vod_mode(False)
-                self.handle.pause()
-                await self.save_resume_data()
-        else:
-            self._logger.debug("LibtorrentDownloadImpl: stop: handle is None")
+        self.config.set_user_stopped(False)
 
-        if remove_state:
-            self.session.ltmgr.remove_config(self.tdef.get_infohash())
-
+        if self.handle:
+            self.handle.set_upload_mode(self.get_upload_mode())
+            self.handle.resume()
+            self.set_vod_mode(self.config.get_mode() == DLMODE_VOD)
 
     def get_content_dest(self):
         """ Returns the file to which the downloaded content is saved. """
@@ -943,19 +957,6 @@ class LibtorrentDownloadImpl(TaskManager):
 
         metainfo = self.tdef.get_metainfo()
         self.filepieceranges = maketorrent.get_length_filepieceranges_from_metainfo(metainfo, [])[1]
-
-    async def restart(self):
-        """ Restart the Download """
-        self.config.set_user_stopped(False)
-        self._logger.debug("LibtorrentDownloadImpl: restart: %s", self.tdef.get_name())
-
-        if self.handle is None:
-            await self.cancel_pending_task("create_handle")
-            await self.register_task("create_handle", self.create_handle)
-        else:
-            self.handle.set_upload_mode(self.get_upload_mode())
-            self.handle.resume()
-            self.set_vod_mode(self.config.get_mode() == DLMODE_VOD)
 
     @check_handle([])
     def get_dest_files(self, exts=None):
@@ -978,7 +979,7 @@ class LibtorrentDownloadImpl(TaskManager):
         """
         Checkpoint this download. Returns when the checkpointing is completed.
         """
-        if self._checkpoint_disabled:
+        if self.checkpoint_disabled:
             self._logger.debug("Ignoring checkpoint() call as checkpointing is disabled for this download")
             return succeed(None)
 
@@ -986,7 +987,7 @@ class LibtorrentDownloadImpl(TaskManager):
             # Libtorrent hasn't received or initialized this download yet
             # 1. Check if we have data for this infohash already (don't overwrite it if we do!)
             basename = hexlify(self.tdef.get_infohash()) + '.state'
-            filename = os.path.join(self.ltmgr.get_downloads_config_dir(), basename)
+            filename = os.path.join(self.ltmgr.get_checkpoint_dir(), basename)
             if not os.path.isfile(filename):
                 # 2. If there is no saved data for this infohash, checkpoint it without data so we do not
                 #    lose it when we crash or restart before the download becomes known.
@@ -995,9 +996,8 @@ class LibtorrentDownloadImpl(TaskManager):
                     b'file-version': 1,
                     b'info-hash': self.tdef.get_infohash()
                 }
-                alert = type('anonymous_alert', (object,), dict(resume_data=resume_data))
-                self.on_save_resume_data_alert(alert)
-            return succeed(resume_data)
+                self.post_alert('save_resume_data_alert', dict(resume_data=resume_data))
+            return succeed(None)
 
         if self.is_pending_task_active('checkpoint'):
             return self._pending_tasks.get('checkpoint')
@@ -1017,9 +1017,6 @@ class LibtorrentDownloadImpl(TaskManager):
     def get_magnet_link(self):
         return lt.make_magnet_uri(self.handle)
 
-    #
-    # External addresses
-    #
     @require_handle
     def add_peer(self, addr):
         """ Add a peer address from 3rd source (not tracker, not DHT) to this download.

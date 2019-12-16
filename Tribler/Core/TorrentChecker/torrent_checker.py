@@ -45,7 +45,6 @@ class TorrentChecker(TaskManager):
         self.session_stop_task_list = []
 
         self.socket_mgr = self.udp_transport = None
-        self.connection_pool = None
 
         # We keep track of the results of popular torrents checked by you.
         # The popularity community gossips this information around.
@@ -54,13 +53,12 @@ class TorrentChecker(TaskManager):
     async def initialize(self):
         self.register_task("tracker_check", self.check_random_tracker, interval=TRACKER_SELECTION_INTERVAL)
         self.register_task("torrent_check", self.check_random_torrent, interval=TORRENT_SELECTION_INTERVAL)
-        self.connection_pool = TCPConnector(limit=30)
         self.socket_mgr = UdpSocketManager()
         await self.create_socket_or_schedule()
 
     async def listen_on_udp(self):
         loop = asyncio.get_event_loop()
-        transport, _ = await loop.create_datagram_endpoint(lambda: self.socket_mgr, local_addr=('127.0.0.1', 0))
+        transport, _ = await loop.create_datagram_endpoint(lambda: self.socket_mgr, local_addr=('0.0.0.0', 0))
         return transport
 
     async def create_socket_or_schedule(self):
@@ -315,7 +313,7 @@ class TorrentChecker(TaskManager):
         return self.on_torrent_health_check_completed(infohash, res)
 
     def _create_session_for_request(self, tracker_url, timeout=20):
-        session = create_tracker_session(tracker_url, timeout, self.socket_mgr, connection_pool=self.connection_pool)
+        session = create_tracker_session(tracker_url, timeout, self.socket_mgr)
 
         if tracker_url not in self._session_list:
             self._session_list[tracker_url] = []

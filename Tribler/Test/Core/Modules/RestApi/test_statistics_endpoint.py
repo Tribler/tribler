@@ -53,6 +53,6 @@ class TestStatisticsEndpoint(AbstractApiTest):
         """
         Testing whether the API returns error 500 if IPv8 is not available
         """
-        self.session.config.set_ipv8_enabled(False)
+        self.session.ipv8 = None
         json_data = await self.do_request('statistics/ipv8', expected_code=200)
         self.assertFalse(json_data["ipv8_statistics"])

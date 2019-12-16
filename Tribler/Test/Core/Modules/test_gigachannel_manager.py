@@ -53,11 +53,11 @@ class TestGigaChannelManager(TriblerCoreTest):
             chan = self.generate_personal_channel()
             chan.commit_channel_torrent()
 
-            def mock_add(*_):
+            def mock_start_download(**_):
                 self.torrents_added = 1
 
             self.mock_session.ltmgr = MockObject()
-            self.mock_session.ltmgr.add = mock_add
+            self.mock_session.ltmgr.start_download = mock_start_download
             self.mock_session.config = MockObject()
             self.mock_session.config.get_state_dir = lambda: None
             #   self.mock_session.ltmgr.download_exists = lambda x: x == str(chan.infohash)
@@ -102,7 +102,7 @@ class TestGigaChannelManager(TriblerCoreTest):
                                                              infohash=os.urandom(20))
             self.torrents_added = 0
 
-            def mock_download_channel(chan1):
+            async def mock_download_channel(chan1):
                 self.torrents_added += 1
                 self.assertEqual(chan1, chan3)
 
@@ -205,7 +205,7 @@ class TestGigaChannelManager(TriblerCoreTest):
             # Orphaned download
             MockDownload(database_blob(b'333'), u"blabla")]
 
-        def mock_get_channel_downloads():
+        def mock_get_channel_downloads(**_):
             return mock_dl_list
 
         self.remove_list = []
@@ -218,7 +218,7 @@ class TestGigaChannelManager(TriblerCoreTest):
 
         self.mock_session.ltmgr = MockObject()
         self.mock_session.ltmgr.get_channel_downloads = mock_get_channel_downloads
-        self.chanman.session.ltmgr.remove = mock_remove
+        self.chanman.session.ltmgr.remove_download = mock_remove
 
         self.chanman.remove_cruft_channels()
         await self.chanman.process_queued_channels()
@@ -247,12 +247,12 @@ class TestGigaChannelManager(TriblerCoreTest):
 
         self.initiated_download = False
 
-        def mock_download_from_tdef(_, __, hidden=None):
+        def mock_download_from_tdef(*_, **__):
             self.initiated_download = True
             mock_dl = MockObject()
             mock_dl.future_finished = succeed(None)
             return mock_dl
-        self.mock_session.ltmgr.add = mock_download_from_tdef
+        self.mock_session.ltmgr.start_download = mock_download_from_tdef
 
         # Check that we skip channels with incorrect dirnames
         self.mock_session.ltmgr.get_metainfo = mock_get_metainfo_bad

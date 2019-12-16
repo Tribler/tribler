@@ -15,7 +15,8 @@ class TestTunnelCommunity(TestTunnelBase):
         Testing whether an anonymous download over our tunnels works
         """
         await self.setup_nodes()
-        download = await self.start_anon_download()
+        download = self.start_anon_download()
+        self.tunnel_community.remove_circuit = lambda *_, **__: None  # Keep the circuit so we can inspect it later
         await wait_for(download.future_finished, timeout=15)
         self.assertGreater(self.tunnel_community.find_circuits()[0].bytes_down, 2000000)
 
@@ -25,7 +26,7 @@ class TestTunnelCommunity(TestTunnelBase):
         Testing whether an anon download does not make progress without exit nodes
         """
         await self.setup_nodes(num_exitnodes=0)
-        download = await self.start_anon_download()
+        download = self.start_anon_download()
         await sleep(10)
         self.assertEqual(self.tunnel_community.find_circuits(), [])
         self.assertEqual(download.get_state().get_total_transferred('down'), 0)
@@ -36,7 +37,7 @@ class TestTunnelCommunity(TestTunnelBase):
         Testing whether an anon download does not make progress without relay nodes
         """
         await self.setup_nodes(num_relays=0, num_exitnodes=1)
-        download = await self.start_anon_download(hops=2)
+        download = self.start_anon_download(hops=2)
         await sleep(10)
         self.assertEqual(self.tunnel_community.find_circuits(), [])
         self.assertEqual(download.get_state().get_total_transferred('down'), 0)

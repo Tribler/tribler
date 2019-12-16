@@ -171,7 +171,7 @@ class TestTunnelBase(TestAsServer):
         dscfg = DownloadConfig()
         dscfg.set_dest_dir(TESTS_DATA_DIR)  # basedir of the file we are seeding
         dscfg.set_hops(hops)
-        d = self.session2.ltmgr.add(tdef, dscfg)
+        d = self.session2.ltmgr.start_download(tdef=tdef, config=dscfg)
         d.set_state_callback(self.seeder_state_callback)
 
     def seeder_state_callback(self, ds):
@@ -186,14 +186,14 @@ class TestTunnelBase(TestAsServer):
                            dlstatus_strings[ds.get_status()], ds.get_progress())
         return 5.0
 
-    async def start_anon_download(self, hops=1):
+    def start_anon_download(self, hops=1):
         """
         Start an anonymous download in the main Tribler session.
         """
         dscfg = DownloadConfig()
         dscfg.set_dest_dir(self.getDestDir())
         dscfg.set_hops(hops)
-        download = self.session.ltmgr.add(self.seed_tdef, dscfg)
+        download = self.session.ltmgr.start_download(tdef=self.seed_tdef, config=dscfg)
         tc = self.session.tunnel_community
         tc.bittorrent_peers[download] = [("127.0.0.1", self.session2.config.get_libtorrent_port())]
         return download

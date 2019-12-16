@@ -133,7 +133,7 @@ class TestCreditMiningPolicies(TriblerCoreTest):
             torrent.download.state = MockObject()
             torrent.download.state.get_status = lambda _scenario=scenario, index=i: get_status(_scenario, index)
             torrent.download.get_state = lambda _torrent=torrent: _torrent.download.state
-            torrent.download.restart = lambda: None
+            torrent.download.resume = lambda: None
             torrent.download.stop = lambda: None
             policy.schedule(torrent, to_start=scenario.to_start[i])
 
@@ -244,7 +244,7 @@ class TestInvestmentPolicy(TriblerCoreTest):
         torrent = self.torrents[0]
         torrent.download = MockObject()
         torrent.download.set_upload_mode = lambda upload_mode, _torrent=torrent: set_upload_mode(upload_mode, _torrent)
-        torrent.download.restart = lambda: None
+        torrent.download.resume = lambda: None
 
         # Promote from state 0
         torrent.upload_mode = False
@@ -332,7 +332,7 @@ class TestInvestmentPolicy(TriblerCoreTest):
                 get_status(_scenario, _torrent)
             torrent.download.get_state = lambda _torrent=torrent: _torrent.download.state
             torrent.download.set_upload_mode = lambda _: None
-            torrent.download.restart = lambda: None
+            torrent.download.resume = lambda: None
             torrent.download.stop = lambda: None
             torrent.start_time = time.time() - WEEK - 1 if torrent.infohash == 5 else time.time()
 

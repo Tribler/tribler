@@ -413,9 +413,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
             if self.tribler_session and self.tribler_session.config.get_libtorrent_enabled():
                 ltmgr = self.tribler_session.ltmgr
-                await gather(*[self.update_torrent(affected_peers, download)
-                               for download, session in ltmgr.torrents.values()
-                               if session == ltmgr.get_session(download.config.get_hops())])
+                await gather(*[self.update_torrent(affected_peers, download) for download in ltmgr.get_downloads()])
         if not self.is_pending_task_active('schedule_remove_circuit_%d' % circuit_id):
             self.register_task('schedule_remove_circuit_%d' % circuit_id, _remove)
 

@@ -91,7 +91,8 @@ class LibTorrentEndpoint(RESTEndpoint):
         session_stats = Future()
 
         def on_session_stats_alert_received(alert):
-            session_stats.set_result(alert.values)
+            if not session_stats.done():
+                session_stats.set_result(alert.values)
 
         args = request.query
         hop = 0

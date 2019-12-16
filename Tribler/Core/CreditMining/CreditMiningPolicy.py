@@ -51,7 +51,7 @@ class BasePolicy(object):
 
             status = torrent.download.get_state().get_status()
             if torrent.to_start and status == DLSTATUS_STOPPED:
-                torrent.download.restart()
+                torrent.download.resume()
                 self.started_in_iteration += 1
             elif not torrent.to_start and status not in [DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR]:
                 torrent.download.stop()
@@ -208,7 +208,7 @@ class InvestmentPolicy(BasePolicy):
             torrent.download.set_upload_mode(True)
         else:
             torrent.download.set_upload_mode(False)
-        torrent.download.restart()
+        torrent.download.resume()
 
     def run(self):
         """
@@ -231,7 +231,7 @@ class InvestmentPolicy(BasePolicy):
             eta = torrent_state.get_eta()
             if eta == 0:
                 torrent.download.set_upload_mode(True)
-                torrent.download.restart()
+                torrent.download.resume()
                 self.num_uploading_in_iteration += 1
                 self.started_in_iteration += 1
                 continue
@@ -259,11 +259,11 @@ class InvestmentPolicy(BasePolicy):
                     status = torrent_state.get_status()
                     if investment_state.upload_mode and status is not DLSTATUS_SEEDING:
                         torrent.download.set_upload_mode(True)
-                        torrent.download.restart()
+                        torrent.download.resume()
                         self.num_uploading_in_iteration += 1
                     elif not investment_state.upload_mode and status is not DLSTATUS_DOWNLOADING:
                         torrent.download.set_upload_mode(False)
-                        torrent.download.restart()
+                        torrent.download.resume()
                         self.num_downloading_in_iteration += 1
                 self.started_in_iteration += 1
                 torrent.to_start = False

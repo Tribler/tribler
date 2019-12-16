@@ -30,13 +30,12 @@ class TriblerStatistics(object):
         """
         Return generic IPv8 statistics.
         """
-        try:
-            ipv8 = self.session.get_ipv8_instance()
-        except OperationNotEnabledByConfigurationException:
+
+        if not self.session.ipv8:
             return {}
 
         return {
-            "total_up": ipv8.endpoint.bytes_up,
-            "total_down": ipv8.endpoint.bytes_down,
+            "total_up": self.session.ipv8.endpoint.bytes_up,
+            "total_down": self.session.ipv8.endpoint.bytes_down,
             "session_uptime": time.time() - self.session.ipv8_start_time
         }

@@ -65,64 +65,26 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         impl = LibtorrentDownloadImpl(self.session, tdef)
         impl.setup(None, 0)
         impl.cancel_all_pending_tasks()
-        await impl.stop()
+        impl.stop()
 
-    async def test_restart(self):
+    async def test_resume(self):
         tdef = self.create_tdef()
-
         impl = LibtorrentDownloadImpl(self.session, tdef)
-        impl.handle = MockObject()
-        impl.handle.is_valid = lambda: True
-        impl.handle.set_priority = lambda _: None
-        impl.handle.set_sequential_download = lambda _: None
-        impl.handle.set_upload_mode = lambda _: None
-        impl.handle.resume = lambda: None
-        impl.handle.status = lambda: fake_status
-        fake_status = MockObject()
-        fake_status.share_mode = False
-        fake_status.upload_mode = False
-        # Create a dummy download config
-        impl.config = DownloadConfig()
-        impl.session.on_download_wrapper_created = lambda _: True
-        await impl.restart()
+        impl.config = Mock()
+        impl.handle = Mock()
+        impl.resume()
+        impl.handle.resume.assert_called()
 
-    @timeout(20)
-    async def test_restart_in_upload_mode(self):
+    async def test_resume_in_upload_mode(self):
         tdef = self.create_tdef()
-
-        def mock_set_upload_mode(handle, mode):
-            handle.status().upload_mode = mode
-
-        fake_status = MockObject()
-        fake_status.share_mode = False
-        fake_status.upload_mode = False
-
         impl = LibtorrentDownloadImpl(self.session, tdef)
-        impl.handle = MockObject()
-        impl.handle.status = lambda: fake_status
-        # impl.handle.upload_mode = False
-        impl.handle.set_priority = lambda _: None
-        impl.handle.set_sequential_download = lambda _: None
-        impl.handle.set_upload_mode = lambda mode, _handle=impl.handle: mock_set_upload_mode(_handle, mode)
-        impl.handle.get_upload_mode = lambda: impl.handle.status().upload_mode
-        impl.handle.is_valid = lambda: True
-        impl.handle.resume = lambda: None
-
-        # Create a dummy download config
-        impl.config = DownloadConfig()
-        impl.session.on_download_wrapper_created = lambda _: True
+        impl.config = Mock()
+        impl.handle = Mock()
         await impl.set_upload_mode(True)
-        await impl.restart()
-
         self.assertTrue(impl.get_upload_mode())
-
-    @timeout(20)
-    async def test_restart_no_handle(self):
-        tdef = self.create_tdef()
-        impl = LibtorrentDownloadImpl(self.session, tdef)
-        impl.config = DownloadConfig()
-        await impl.restart()
-        self.assertTrue(impl.handle)
+        impl.resume()
+        impl.handle.resume.assert_called()
+        impl.handle.set_upload_mode.assert_called_with(impl.get_upload_mode())
 
     @timeout(20)
     async def test_multifile_torrent(self):
@@ -135,11 +97,6 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         tdef.set_tracker("http://tribler.org/announce")
         tdef.save()
 
-        impl = LibtorrentDownloadImpl(self.session, tdef)
-        # Override the add_torrent because it will be called
-        impl.ltmgr = MockObject()
-        impl.ltmgr.add_torrent = lambda _, _dummy2: succeed(fake_handler)
-        impl.set_selected_files = lambda: None
         fake_handler = MockObject()
         fake_handler.is_valid = lambda: True
         fake_handler.status = lambda: fake_status
@@ -148,21 +105,26 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         fake_handler.set_sequential_download = lambda _: None
         fake_handler.resume = lambda: None
         fake_handler.set_max_connections = lambda _: None
+        fake_handler.apply_ip_filter = lambda _: None
+        fake_handler.save_resume_data = lambda: None
         fake_status = MockObject()
         fake_status.share_mode = False
+        impl = LibtorrentDownloadImpl(self.session, tdef)
+        impl.set_selected_files = lambda: None
+        impl.future_added = succeed(fake_handler)
         # Create a dummy download config
         impl.config = DownloadConfig()
         impl.config.set_engineresumedata({b"save_path": os.path.abspath(self.state_dir),
                                           b"info-hash": b'\x00' * 20})
-        await impl.create_handle()
+        impl.setup()
 
         impl.config.set_engineresumedata({b"save_path": os.path.abspath(self.state_dir),
                                           b"info-hash": b'\x00' * 20})
-        await impl.create_handle()
+        impl.setup()
 
         impl.config.set_engineresumedata({b"save_path": "some_local_dir",
                                           b"info-hash": b'\x00' * 20})
-        await impl.create_handle()
+        impl.setup()
 
     @timeout(10)
     async def test_save_resume(self):
@@ -170,14 +132,18 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         testing call resume data alert
         """
         tdef = self.create_tdef()
+        alert = Mock(resume_data={b'info-hash': tdef.get_infohash()})
         impl = LibtorrentDownloadImpl(self.session, tdef)
-        impl.setup(None, 0)
+        impl.setup()
+        impl.handle = MockObject()
+        impl.handle.is_valid = lambda: True
+        impl.handle.save_resume_data = lambda: impl.register_task('post_alert', impl.process_alert, alert,
+                                                                  'save_resume_data_alert', delay=0.1)
         await impl.save_resume_data()
         basename = hexlify(tdef.get_infohash()) + '.conf'
-        filename = os.path.join(self.session.ltmgr.get_downloads_config_dir(), basename)
+        filename = os.path.join(self.session.ltmgr.get_checkpoint_dir(), basename)
         dcfg = DownloadConfig.load(filename)
         self.assertEqual(tdef.get_infohash(), dcfg.get_engineresumedata().get(b'info-hash'))
-        await impl.stop()
 
     @timeout(10)
     async def test_save_resume_disabled(self):
@@ -190,20 +156,20 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         # This should not cause a checkpoint
         impl.setup(None, 0, checkpoint_disabled=True)
         basename = hexlify(tdef.get_infohash()) + '.state'
-        filename = os.path.join(self.session.ltmgr.get_downloads_config_dir(), basename)
+        filename = os.path.join(self.session.ltmgr.get_checkpoint_dir(), basename)
         self.assertFalse(os.path.isfile(filename))
 
         # This shouldn't either
         await impl.checkpoint()
         self.assertFalse(os.path.isfile(filename))
-        await impl.stop()
+        impl.stop()
 
 
 class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
 
     async def setUp(self):
         await TriblerCoreTest.setUp(self)
-        self.libtorrent_download_impl = LibtorrentDownloadImpl(None, None)
+        self.libtorrent_download_impl = LibtorrentDownloadImpl(Mock(), None)
         mock_handle = MockObject()
         mock_status = MockObject()
         mock_status.pieces = [True, False, True, True, False]
@@ -228,6 +194,8 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         # Create a fake tdef
         self.libtorrent_download_impl.tdef = MockObject()
         self.libtorrent_download_impl.tdef.get_name = lambda: "ubuntu.iso"
+        self.libtorrent_download_impl.tdef.get_name_as_unicode = lambda: "ubuntu.iso"
+        self.libtorrent_download_impl.tdef.get_infohash = lambda: b'a' * 20
         self.libtorrent_download_impl.tdef.is_multifile_torrent = lambda: False
 
         self.libtorrent_download_impl.config = DownloadConfig()
@@ -605,6 +573,7 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         self.libtorrent_download_impl.handle.get_torrent_info().num_pieces = lambda: 4
         self.libtorrent_download_impl.handle.get_torrent_info().map_file = map_file
         self.libtorrent_download_impl.handle.piece_priorities = lambda: [0, 0, 0, 0]
+        self.libtorrent_download_impl.handle.save_resume_data = lambda: None
 
         self.libtorrent_download_impl.set_vod_mode(True)
         self.libtorrent_download_impl.config.set_mode(DLMODE_VOD)
@@ -630,16 +599,15 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         """
         Testing whether the correct operations happen when an error is raised during resume data saving
         """
-        mock_alert = MockObject()
-        mock_alert.msg = "test error"
-
-        resume_future = Future()
-        self.libtorrent_download_impl.futures_resume.append(resume_future)
-        self.libtorrent_download_impl.on_save_resume_data_failed_alert(mock_alert)
+        mock_alert = Mock(msg="test error")
+        impl = self.libtorrent_download_impl
+        impl.register_task('post_alert', impl.process_alert, mock_alert, 'save_resume_data_failed_alert', delay=0.1)
         with self.assertRaises(SaveResumeDataError):
-            await resume_future
+            await impl.wait_for_alert('save_resume_data_alert', None,
+                                      'save_resume_data_failed_alert', lambda _: SaveResumeDataError())
 
     def test_on_state_changed(self):
+        self.libtorrent_download_impl.handle.status = lambda: Mock(error=None)
         self.libtorrent_download_impl.tdef.get_infohash = lambda: b'a' * 20
         self.libtorrent_download_impl.config.set_hops(1)
         self.libtorrent_download_impl.apply_ip_filter = Mock()

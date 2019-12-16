@@ -100,7 +100,7 @@ class TorrentInfoEndpoint(RESTEndpoint):
 
         # Check if the torrent is already in the downloads
         encoded_metainfo = deepcopy(metainfo)
-        encoded_metainfo['download_exists'] = infohash in self.session.ltmgr.downloads
+        encoded_metainfo['download_exists'] = self.session.ltmgr.download_exists(infohash)
         # FIXME: json.dumps garbles binary data that is used by the 'pieces' field
         # However, this is fine as long as the GUI does not use this field.
         encoded_metainfo[b'info'][b'pieces'] = hexlify(encoded_metainfo[b'info'][b'pieces']).encode('utf-8')

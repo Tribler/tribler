@@ -1,5 +1,5 @@
 import os
-from asyncio import get_event_loop
+from asyncio import ensure_future, get_event_loop
 
 from ipv8.database import database_blob
 from ipv8.taskmanager import TaskManager
@@ -209,7 +209,7 @@ class GigaChannelManager(TaskManager):
 
         d, remove_content = to_remove
         try:
-            await self.session.ltmgr.remove(d, remove_content=remove_content)
+            await self.session.ltmgr.remove_download(d, remove_content=remove_content)
             self.processing = False
         except Exception as e:
             self._logger.error("Error when removing the channel download: %s", e)
@@ -246,7 +246,7 @@ class GigaChannelManager(TaskManager):
         except (KeyError, TypeError):
             return
 
-        download = self.session.ltmgr.add(tdef, dcfg, hidden=True)
+        download = self.session.ltmgr.start_download(tdef=tdef, config=dcfg, hidden=True)
         await download.future_finished
         self.channels_processing_queue[channel.infohash] = (PROCESS_CHANNEL_DIR, channel)
         return download
@@ -283,11 +283,12 @@ class GigaChannelManager(TaskManager):
         """
         with db_session:
             my_channel = self.session.mds.ChannelMetadata.get(infohash=database_blob(tdef.get_infohash()))
-        if my_channel and my_channel.status == COMMITTED and not self.session.ltmgr.download_exists(bytes(my_channel.infohash)):
+        if my_channel and my_channel.status == COMMITTED \
+                and not self.session.ltmgr.download_exists(bytes(my_channel.infohash)):
             dcfg = DownloadConfig(state_dir=self.session.config.get_state_dir())
             dcfg.set_dest_dir(self.session.mds.channels_dir)
             dcfg.set_channel_download(True)
-            self.session.ltmgr.add(tdef, dcfg)
+            self.session.ltmgr.start_download(tdef=tdef, config=dcfg)
 
     @db_session
     def clean_unsubscribed_channels(self):

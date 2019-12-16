@@ -3,7 +3,8 @@ The Libtorrent package contains code to manage the torrent library.
 
 Author(s): Egbert Bouman
 """
-from asyncio import Future, ensure_future
+from asyncio import CancelledError, Future
+from contextlib import suppress
 
 
 def check_handle(default=None):
@@ -28,8 +29,10 @@ def require_handle(func):
         result_future = Future()
 
         def done_cb(fut):
-            fut.result()
-            result_future.set_result(func(*args, **kwargs))
+            with suppress(CancelledError):
+                handle = fut.result()
+            if not fut.cancelled() and not result_future.done() and handle == download.handle and handle.is_valid():
+                result_future.set_result(func(*args, **kwargs))
         download = args[0]
         handle_future = download.get_handle()
         handle_future.add_done_callback(done_cb)

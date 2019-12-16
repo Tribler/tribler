@@ -72,14 +72,6 @@ class TestSessionAsServer(TestAsServer):
         self.session.unhandled_error_observer(None, {'message': 'socket.error: [Errno %s]' % SOCKET_BLOCK_ERRORCODE})
         self.session.unhandled_error_observer(None, {'message': 'exceptions.RuntimeError: invalid info-hash'})
 
-    @raises(OperationNotEnabledByConfigurationException)
-    def test_get_ipv8_instance(self):
-        """
-        Test whether the get IPv8 instance throws an exception if IPv8 is not enabled.
-        """
-        self.session.config.set_ipv8_enabled(False)
-        self.session.get_ipv8_instance()
-
 
 class TestSessionWithLibTorrent(TestSessionAsServer):
 
@@ -94,10 +86,6 @@ class TestSessionWithLibTorrent(TestSessionAsServer):
 
 class TestBootstrapSession(TestAsServer):
 
-    async def setUp(self):
-        await super(TestBootstrapSession, self).setUp()
-        self.test_future = Future()
-
     def setUpPreSession(self):
         TestAsServer.setUpPreSession(self)
 
@@ -108,22 +96,15 @@ class TestBootstrapSession(TestAsServer):
             self.config.config[section]['enabled'] = True
         self.config.set_bootstrap_infohash("200a4aeb677a04817f1043e8d24591818c7e827c")
 
-    def downloader_state_callback(self, ds):
-        if ds.get_status() == DLSTATUS_METADATA or ds.get_status() == DLSTATUS_DOWNLOADING:
-            self.test_future.set_result(None)
-            return 0.0
-        return 0.5
-
     @timeout(20)
     async def test_bootstrap_downloader(self):
-        self.session.start_bootstrap_download()
-        self.session.bootstrap.download.set_state_callback(self.downloader_state_callback)
+        await self.session.start_bootstrap_download()
+        await self.session.bootstrap.download.wait_for_status(DLSTATUS_METADATA, DLSTATUS_DOWNLOADING)
 
         infohash = self.config.get_bootstrap_infohash()
         self.assertIsNotNone(self.session.bootstrap)
         self.assertTrue(unhexlify(infohash) in self.session.ltmgr.downloads,
                         "Infohash %s Should be in downloads" % infohash)
-        await self.test_future
 
 
 class TestLaunchFullSession(TestAsServer):
@@ -141,7 +122,7 @@ class TestLaunchFullSession(TestAsServer):
         self.config.set_ipv8_bootstrap_override("127.0.0.1:12345")  # So we do not contact the real trackers
 
     def get_community(self, overlay_cls):
-        for overlay in self.session.get_ipv8_instance().overlays:
+        for overlay in self.session.ipv8.overlays:
             if isinstance(overlay, overlay_cls):
                 return overlay
 
@@ -166,6 +147,7 @@ class TestLaunchFullSession(TestAsServer):
         fake_tc.add_listener = lambda *_: None
         self.session.payout_manager = PayoutManager(fake_tc, None)
 
+        self.session.ltmgr.initialize()
         self.session.ltmgr.state_cb_count = 4
         self.session.ltmgr.downloads = {b'aaaa': fake_download}
         await self.session.ltmgr.sesscb_states_callback([dl_state])
