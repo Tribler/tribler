@@ -1,14 +1,10 @@
-from __future__ import absolute_import, division
-
 import math
+from asyncio import Future
 
 from ipv8.dht.routing import distance, id_to_binary_string
 from ipv8.taskmanager import TaskManager
 
 import libtorrent as lt
-
-from twisted.internet import reactor
-from twisted.internet.defer import Deferred
 
 from Tribler.Core.Utilities.unicode import hexlify
 
@@ -24,7 +20,7 @@ class DHTHealthManager(TaskManager):
         :param lt_session: The session used to perform health lookups.
         """
         TaskManager.__init__(self)
-        self.lookup_deferreds = {}  # Map from binary infohash to deferred
+        self.lookup_futures = {}    # Map from binary infohash to future
         self.bf_seeders = {}        # Map from infohash to (final) seeders bloomfilter
         self.bf_peers = {}          # Map from infohash to (final) peers bloomfilter
         self.lt_session = lt_session
@@ -34,29 +30,29 @@ class DHTHealthManager(TaskManager):
         Lookup the health of a given infohash.
         :param infohash: The 20-byte infohash to lookup.
         :param timeout: The timeout of the lookup.
-        :return: A Deferred that fires with a tuple, indicating the number of seeders and peers respectively.
+        :return: A Future that fires with a tuple, indicating the number of seeders and peers respectively.
         """
-        if infohash in self.lookup_deferreds:
-            return self.lookup_deferreds[infohash]
+        if infohash in self.lookup_futures:
+            return self.lookup_futures[infohash]
 
-        lookup_deferred = Deferred()
-        self.lookup_deferreds[infohash] = lookup_deferred
+        lookup_future = Future()
+        self.lookup_futures[infohash] = lookup_future
         self.bf_seeders[infohash] = bytearray(256)
         self.bf_peers[infohash] = bytearray(256)
 
         # Perform a get_peers request. This should result in get_peers responses with the BEP33 bloom filters.
         self.lt_session.dht_get_peers(lt.sha1_hash(bytes(infohash)))
 
-        self.register_task("lookup_%s" % hexlify(infohash), reactor.callLater(timeout, self.finalize_lookup, infohash))
+        self.register_task("lookup_%s" % hexlify(infohash), self.finalize_lookup, infohash, delay=timeout)
 
-        return lookup_deferred
+        return lookup_future
 
     def finalize_lookup(self, infohash):
         """
         Finalize the lookup of the provided infohash and invoke the appropriate deferred.
         :param infohash: The infohash of the lookup we finialize.
         """
-        if infohash not in self.lookup_deferreds:
+        if infohash not in self.lookup_futures:
             return
 
         # Determine the seeders/peers
@@ -64,7 +60,7 @@ class DHTHealthManager(TaskManager):
         bf_peers = self.bf_peers.pop(infohash)
         seeders = DHTHealthManager.get_size_from_bloomfilter(bf_seeders)
         peers = DHTHealthManager.get_size_from_bloomfilter(bf_peers)
-        self.lookup_deferreds[infohash].callback({
+        self.lookup_futures[infohash].set_result({
             "DHT": [{
                 "infohash": hexlify(infohash),
                 "seeders": seeders,
@@ -72,7 +68,7 @@ class DHTHealthManager(TaskManager):
             }]
         })
 
-        self.lookup_deferreds.pop(infohash, None)
+        self.lookup_futures.pop(infohash, None)
 
     @staticmethod
     def combine_bloomfilters(bf1, bf2):
@@ -129,7 +125,7 @@ class DHTHealthManager(TaskManager):
 
         # We do not know to which infohash the received get_peers response belongs so we have to manually go through
         # the infohashes and find the infohash that is the closest to the node id that sent us the message.
-        for infohash in self.lookup_deferreds:
+        for infohash in self.lookup_futures:
             infohash_bin = id_to_binary_string(infohash)
             node_id_bin = id_to_binary_string(node_id)
             ih_distance = distance(infohash_bin, node_id_bin)

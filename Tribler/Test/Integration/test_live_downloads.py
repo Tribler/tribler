@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import glob
 import logging
 import os
@@ -8,6 +6,7 @@ import sys
 import time
 import unittest
 from unittest import skipUnless
+from urllib.request import pathname2url
 
 from PyQt5.QtCore import QPoint, Qt
 from PyQt5.QtGui import QPixmap, QRegion
@@ -20,14 +19,12 @@ import matplotlib.pyplot as plot
 
 import numpy
 
-import run_tribler
-
-from six.moves.urllib.request import pathname2url
-
 import TriblerGUI
 from TriblerGUI.tribler_window import TriblerWindow
 from TriblerGUI.widgets.home_recommended_item import HomeRecommendedItem
 from TriblerGUI.widgets.loading_list_item import LoadingListItem
+
+import run_tribler
 
 default_download_dir = os.path.join(os.path.dirname(__file__), u"Downloads")
 default_output_file = os.path.join(os.path.dirname(__file__), u"output.csv")

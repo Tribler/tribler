@@ -2,8 +2,8 @@
 
 import logging
 import sys
-from os import path, linesep
-from subprocess import Popen, PIPE
+from os import linesep, path
+from subprocess import PIPE, Popen
 from time import ctime
 
 logger = logging.getLogger(__name__)
@@ -22,6 +22,7 @@ def run_command(cmd):
 if __name__ == '__main__':
     cmd = ['git', 'describe', '--tags', 'HEAD']
     version_id = run_command(cmd).strip()[1:].replace("'", "")
+    version_id = version_id[1:] if version_id.startswith('v') else version_id
     logger.info("Version: %s", version_id)
     cmd = ['git', 'rev-parse', 'HEAD']
     commit_id = run_command(cmd).strip()[1:].replace("'", "")

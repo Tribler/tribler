@@ -1,10 +1,7 @@
-from __future__ import absolute_import
-
 import logging
+from asyncio import ensure_future
 
 from anydex.wallet.tc_wallet import TrustchainWallet
-
-from ipv8.util import addCallback
 
 from Tribler.Core.Utilities.unicode import hexlify
 
@@ -29,18 +26,25 @@ class PayoutManager(object):
 
         total_bytes = sum(self.tribler_peers[mid].values())
 
-        def on_nodes(nodes):
+        async def connect_peer(mid):
+            try:
+                nodes = await self.dht.connect_peer(mid)
+            except:
+                nodes = []
+
             self.logger.debug("Received %d nodes for DHT lookup", len(nodes))
             if nodes:
-                deferred = self.bandwidth_wallet.trustchain.sign_block(nodes[0],
-                                                                       public_key=nodes[0].public_key.key_to_bin(),
-                                                                       block_type=b'tribler_bandwidth',
-                                                                       transaction={b'up': 0, b'down': total_bytes})
-                addCallback(deferred, lambda _: None)
+                try:
+                    await self.bandwidth_wallet.trustchain.sign_block(nodes[0],
+                                                                      public_key=nodes[0].public_key.key_to_bin(),
+                                                                      block_type=b'tribler_bandwidth',
+                                                                      transaction={b'up': 0, b'down': total_bytes})
+                except Exception as e:
+                    self.logger.error("Deferred errback fired: %s", e)
 
         if total_bytes >= 1024 * 1024:  # Do at least 1MB payouts
             self.logger.info("Doing direct payout to %s (%d bytes)", hexlify(mid), total_bytes)
-            self.dht.connect_peer(mid).addCallbacks(on_nodes, lambda _: on_nodes([]))
+            ensure_future(connect_peer(mid))
 
         # Remove the outstanding bytes; otherwise we will payout again
         self.tribler_peers.pop(mid, None)

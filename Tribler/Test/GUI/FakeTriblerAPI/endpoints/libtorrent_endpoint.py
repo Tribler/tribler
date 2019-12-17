@@ -1,22 +1,16 @@
-from __future__ import absolute_import
+from aiohttp import web
 
-from twisted.web import resource
-
-import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.Modules.restapi.rest_endpoint import RESTEndpoint, RESTResponse
 
 
-class LibTorrentEndpoint(resource.Resource):
+class LibTorrentEndpoint(RESTEndpoint):
 
-    def __init__(self):
-        resource.Resource.__init__(self)
-        self.putChild(b"settings", LibTorrentSettingsEndpoint())
-        self.putChild(b"session", LibTorrentSessionEndpoint())
+    def setup_routes(self):
+        self.app.add_routes([web.get('/settings', self.get_settings),
+                             web.get('/session', self.get_session)])
 
-
-class LibTorrentSettingsEndpoint(resource.Resource):
-
-    def render_GET(self, _request):
-        return json.twisted_dumps({
+    async def get_settings(self, _request):
+        return RESTResponse({
             "hop": 0,
             "settings": {
                 "urlseed_wait_retry": 30,
@@ -27,11 +21,8 @@ class LibTorrentSettingsEndpoint(resource.Resource):
             }
         })
 
-
-class LibTorrentSessionEndpoint(resource.Resource):
-
-    def render_GET(self, _request):
-        return json.twisted_dumps({
+    async def get_session(self, _request):
+        return RESTResponse({
             "hop": 0,
             "session": {
                 "peer.num_peers_end_game": 0,

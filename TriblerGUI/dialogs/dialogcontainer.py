@@ -1,6 +1,6 @@
 from PyQt5.QtCore import QPoint
 from PyQt5.QtGui import QPainter
-from PyQt5.QtWidgets import QWidget, QStyleOption, QStyle
+from PyQt5.QtWidgets import QStyle, QStyleOption, QWidget
 
 
 class DialogContainer(QWidget):

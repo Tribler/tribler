@@ -1,19 +1,15 @@
-from __future__ import absolute_import
-
 import datetime
 import logging
 import os
 import sys
+from io import StringIO
+
+from aiohttp import web
 
 import psutil
 
-from six import StringIO
-
-from twisted.web import resource
-
-import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.Modules.restapi.rest_endpoint import RESTEndpoint, RESTResponse
 from Tribler.Core.Utilities.instrumentation import WatchDog
-from Tribler.Core.Utilities.unicode import recursive_unicode
 
 HAS_MELIAE = True
 try:
@@ -32,51 +28,26 @@ class MemoryDumpBuffer(StringIO):
         StringIO.write(self, s)
 
 
-class DebugEndpoint(resource.Resource):
+class DebugEndpoint(RESTEndpoint):
     """
     This endpoint is responsible for handing requests regarding debug information in Tribler.
     """
 
-    def __init__(self, session):
-        resource.Resource.__init__(self)
+    def setup_routes(self):
+        self.app.add_routes([web.get('/circuits/slots', self.get_circuit_slots),
+                             web.get('/open_files', self.get_open_files),
+                             web.get('/open_sockets', self.get_open_sockets),
+                             web.get('/threads', self.get_threads),
+                             web.get('/cpu/history', self.get_cpu_history),
+                             web.get('/memory/history', self.get_memory_history),
+                             web.get('/log', self.get_log),
+                             web.get('/profiler', self.get_profiler_state),
+                             web.put('/profiler', self.start_profiler),
+                             web.delete('/profiler', self.stop_profiler)])
+        if HAS_MELIAE:
+            self.app.add_routes(web.get('/memory/dump', self.get_memory_dump))
 
-        child_handler_dict = {
-            b"circuits": DebugCircuitsEndpoint,
-            b"open_files": DebugOpenFilesEndpoint,
-            b"open_sockets": DebugOpenSocketsEndpoint,
-            b"threads": DebugThreadsEndpoint,
-            b"cpu": DebugCPUEndpoint,
-            b"memory": DebugMemoryEndpoint,
-            b"log": DebugLogEndpoint,
-            b"profiler": DebugProfilerEndpoint
-        }
-
-        for path, child_cls in child_handler_dict.items():
-            self.putChild(path, child_cls(session))
-
-
-class DebugCircuitsEndpoint(resource.Resource):
-    """
-    This class handles requests regarding the tunnel community debug information.
-    """
-
-    def __init__(self, session):
-        resource.Resource.__init__(self)
-        self.session = session
-
-        self.putChild(b"slots", DebugCircuitSlotsEndpoint(session))
-
-
-class DebugCircuitSlotsEndpoint(resource.Resource):
-    """
-    This class handles requests for information about slots in the tunnel overlay.
-    """
-
-    def __init__(self, session):
-        resource.Resource.__init__(self)
-        self.session = session
-
-    def render_GET(self, request):
+    async def get_circuit_slots(self, request):
         """
         .. http:get:: /debug/circuits/slots
 
@@ -99,24 +70,14 @@ class DebugCircuitSlotsEndpoint(resource.Resource):
                     }, ...]
                 }
         """
-        return json.twisted_dumps({
+        return RESTResponse({
             "slots": {
-                "random": self.session.lm.tunnel_community.random_slots,
-                "competing": self.session.lm.tunnel_community.competing_slots
+                "random": self.session.tunnel_community.random_slots,
+                "competing": self.session.tunnel_community.competing_slots
             }
         })
 
-
-class DebugOpenFilesEndpoint(resource.Resource):
-    """
-    This class handles request for information about open files.
-    """
-
-    def __init__(self, session):
-        resource.Resource.__init__(self)
-        self.session = session
-
-    def render_GET(self, request):
+    async def get_open_files(self, request):
         """
         .. http:get:: /debug/open_files
 
@@ -140,21 +101,10 @@ class DebugOpenFilesEndpoint(resource.Resource):
                 }
         """
         my_process = psutil.Process()
-
-        return json.twisted_dumps({
+        return RESTResponse({
             "open_files": [{"path": open_file.path, "fd": open_file.fd} for open_file in my_process.open_files()]})
 
-
-class DebugOpenSocketsEndpoint(resource.Resource):
-    """
-    This class handles request for information about open sockets.
-    """
-
-    def __init__(self, session):
-        resource.Resource.__init__(self)
-        self.session = session
-
-    def render_GET(self, request):
+    async def get_open_sockets(self, request):
         """
         .. http:get:: /debug/open_sockets
 
@@ -190,20 +140,9 @@ class DebugOpenSocketsEndpoint(resource.Resource):
                 "raddr": ("%s:%d" % open_socket.raddr) if open_socket.raddr else "-",
                 "type": open_socket.type
             })
+        return RESTResponse({"open_sockets": sockets})
 
-        return json.twisted_dumps({"open_sockets": sockets})
-
-
-class DebugThreadsEndpoint(resource.Resource):
-    """
-    This class handles request for information about threads.
-    """
-
-    def __init__(self, session):
-        resource.Resource.__init__(self)
-        self.session = session
-
-    def render_GET(self, request):
+    async def get_threads(self, request):
         """
         .. http:get:: /debug/threads
 
@@ -228,29 +167,9 @@ class DebugThreadsEndpoint(resource.Resource):
                 }
         """
         watchdog = WatchDog()
-        return json.twisted_dumps({"threads": watchdog.get_threads_info()})
+        return RESTResponse({"threads": watchdog.get_threads_info()})
 
-
-class DebugCPUEndpoint(resource.Resource):
-    """
-    This class handles request for information about CPU.
-    """
-
-    def __init__(self, session):
-        resource.Resource.__init__(self)
-        self.putChild(b"history", DebugCPUHistoryEndpoint(session))
-
-
-class DebugCPUHistoryEndpoint(resource.Resource):
-    """
-    This class handles request for information about CPU usage history.
-    """
-
-    def __init__(self, session):
-        resource.Resource.__init__(self)
-        self.session = session
-
-    def render_GET(self, request):
+    async def get_cpu_history(self, request):
         """
         .. http:get:: /debug/cpu/history
 
@@ -273,32 +192,10 @@ class DebugCPUHistoryEndpoint(resource.Resource):
                     }, ...]
                 }
         """
-        history = self.session.lm.resource_monitor.get_cpu_history_dict() if self.session.lm.resource_monitor else {}
-        return json.twisted_dumps({"cpu_history": history})
+        history = self.session.resource_monitor.get_cpu_history_dict() if self.session.resource_monitor else {}
+        return RESTResponse({"cpu_history": history})
 
-
-class DebugMemoryEndpoint(resource.Resource):
-    """
-    This class handles request for information about memory.
-    """
-
-    def __init__(self, session):
-        resource.Resource.__init__(self)
-        self.putChild(b"history", DebugMemoryHistoryEndpoint(session))
-        if HAS_MELIAE:
-            self.putChild(b"dump", DebugMemoryDumpEndpoint(session))
-
-
-class DebugMemoryHistoryEndpoint(resource.Resource):
-    """
-    This class handles request for information about memory usage history.
-    """
-
-    def __init__(self, session):
-        resource.Resource.__init__(self)
-        self.session = session
-
-    def render_GET(self, request):
+    async def get_memory_history(self, request):
         """
         .. http:get:: /debug/memory/history
 
@@ -321,20 +218,10 @@ class DebugMemoryHistoryEndpoint(resource.Resource):
                     }, ...]
                 }
         """
-        history = self.session.lm.resource_monitor.get_memory_history_dict() if self.session.lm.resource_monitor else {}
-        return json.twisted_dumps({"memory_history": history})
+        history = self.session.resource_monitor.get_memory_history_dict() if self.session.resource_monitor else {}
+        return RESTResponse({"memory_history": history})
 
-
-class DebugMemoryDumpEndpoint(resource.Resource):
-    """
-    This class handles request for dumping memory contents.
-    """
-
-    def __init__(self, session):
-        resource.Resource.__init__(self)
-        self.session = session
-
-    def render_GET(self, request):
+    async def get_memory_dump(self, request):
         """
         .. http:get:: /debug/memory/dump
 
@@ -368,21 +255,12 @@ class DebugMemoryDumpEndpoint(resource.Resource):
             with open(dump_file_path, 'r') as dump_file:
                 content = dump_file.read()
         date_str = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
-        request.setHeader(b'content-type', 'application/json')
-        request.setHeader(b'Content-Disposition', 'attachment; filename=tribler_memory_dump_%s.json' % date_str)
-        return content
+        return RESTResponse(content,
+                            headers={'Content-Type', 'application/json',
+                                     'Content-Disposition', 'attachment; filename=tribler_memory_dump_%s.json'
+                                     % date_str})
 
-
-class DebugLogEndpoint(resource.Resource):
-    """
-    This class handles the request for displaying the logs.
-    """
-
-    def __init__(self, session):
-        resource.Resource.__init__(self)
-        self.session = session
-
-    def render_GET(self, request):
+    async def get_log(self, request):
         """
         .. http:get:: /debug/log?process=<core|gui>&max_lines=<max_lines>
 
@@ -406,7 +284,6 @@ class DebugLogEndpoint(resource.Resource):
                                 INFO    1506675301.76   sqlitecachedb:185   Current database version is 29
                                 INFO    1506675301.76   sqlitecachedb:203   Beginning the first transaction...
                                 INFO    1506675301.76         upgrade:93    tribler is in the latest version,...
-                                INFO    1506675302.08  LaunchManyCore:254   lmc: Starting IPv8..."
                 }
         """
 
@@ -415,8 +292,7 @@ class DebugLogEndpoint(resource.Resource):
             handler.flush()
 
         # Get the location of log file
-        args = recursive_unicode(request.args)
-        param_process = args['process'][0] if args['process'] else 'core'
+        param_process = request.query.get('process', 'core')
         log_file_name = os.path.join(self.session.config.get_log_dir(), 'tribler-%s-info.log' % param_process)
 
         # Default response
@@ -425,7 +301,7 @@ class DebugLogEndpoint(resource.Resource):
         # Check if log file exists and return last requested 'max_lines' of log
         if os.path.exists(log_file_name):
             try:
-                max_lines = int(args['max_lines'][0])
+                max_lines = int(request.query['max_lines'])
                 with open(log_file_name, 'r') as log_file:
                     response['content'] = self.tail(log_file, max_lines)
                 response['max_lines'] = max_lines
@@ -434,7 +310,7 @@ class DebugLogEndpoint(resource.Resource):
                     response['content'] = self.tail(log_file, 100)  # default 100 lines
                 response['max_lines'] = 0
 
-        return json.twisted_dumps(response)
+        return RESTResponse(response)
 
     def tail(self, file_handler, lines=1):
         """Tail a file and get X lines from the end"""
@@ -467,17 +343,7 @@ class DebugLogEndpoint(resource.Resource):
 
         return ''.join(lines_found[-lines:])
 
-
-class DebugProfilerEndpoint(resource.Resource):
-    """
-    This class handles requests for the profiler.
-    """
-
-    def __init__(self, session):
-        resource.Resource.__init__(self)
-        self.session = session
-
-    def render_GET(self, request):
+    async def get_profiler_state(self, request):
         """
         .. http:get:: /debug/profiler
 
@@ -499,10 +365,10 @@ class DebugProfilerEndpoint(resource.Resource):
                 }
         """
         monitor_enabled = self.session.config.get_resource_monitor_enabled()
-        state = "STARTED" if (monitor_enabled and self.session.lm.resource_monitor.profiler_running) else "STOPPED"
-        return json.twisted_dumps({"state": state})
+        state = "STARTED" if (monitor_enabled and self.session.resource_monitor.profiler_running) else "STOPPED"
+        return RESTResponse({"state": state})
 
-    def render_PUT(self, request):
+    async def start_profiler(self, request):
         """
         .. http:put:: /debug/profiler
 
@@ -522,10 +388,10 @@ class DebugProfilerEndpoint(resource.Resource):
                     "success": "true"
                 }
         """
-        self.session.lm.resource_monitor.start_profiler()
-        return json.twisted_dumps({"success": True})
+        self.session.resource_monitor.start_profiler()
+        return RESTResponse({"success": True})
 
-    def render_DELETE(self, request):
+    async def stop_profiler(self, request):
         """
         .. http:delete:: /debug/profiler
 
@@ -545,5 +411,5 @@ class DebugProfilerEndpoint(resource.Resource):
                     "success": "true"
                 }
         """
-        file_path = self.session.lm.resource_monitor.stop_profiler()
-        return json.twisted_dumps({"success": True, "profiler_file": file_path})
+        file_path = self.session.resource_monitor.stop_profiler()
+        return RESTResponse({"success": True, "profiler_file": file_path})

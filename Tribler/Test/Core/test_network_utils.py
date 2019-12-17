@@ -1,15 +1,11 @@
-from __future__ import absolute_import
-
 import random
+import socket
 
 from nose.tools import raises
 
-from twisted.internet import reactor
-from twisted.internet.protocol import Factory
-
 from Tribler.Core.Utilities.network_utils import autodetect_socket_style, get_random_port
 from Tribler.Test.Core.base_test import TriblerCoreTest
-from Tribler.Test.tools import trial_timeout
+from Tribler.Test.tools import timeout
 
 
 class TriblerCoreTestNetworkUtils(TriblerCoreTest):
@@ -19,13 +15,14 @@ class TriblerCoreTestNetworkUtils(TriblerCoreTest):
         self.assertIsInstance(random_port, int)
         self.assertTrue(random_port)
 
-    @trial_timeout(5)
-    def test_get_random_port_tcp(self):
+    @timeout(5)
+    async def test_get_random_port_tcp(self):
         rand_port_num = random.randint(*self.get_bucket_range_port())
-        listenport = reactor.listenTCP(rand_port_num, Factory())
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.bind(('', rand_port_num))
         random_port = get_random_port(socket_type='tcp', min_port=rand_port_num, max_port=rand_port_num)
         self.assertGreaterEqual(random_port, rand_port_num+1)
-        return listenport.stopListening()
+        sock.close()
 
     def test_get_random_port_udp(self):
         random_port = get_random_port(socket_type='udp')

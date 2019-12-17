@@ -1,5 +1,5 @@
 from PyQt5.QtSvg import QGraphicsSvgItem, QSvgRenderer
-from PyQt5.QtWidgets import QWidget, QGraphicsScene
+from PyQt5.QtWidgets import QGraphicsScene, QWidget
 
 from TriblerGUI.utilities import get_image_path
 

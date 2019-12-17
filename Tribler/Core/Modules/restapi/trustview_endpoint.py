@@ -1,22 +1,29 @@
-from __future__ import absolute_import
-
 import logging
 import math
 from binascii import unhexlify
+from distutils.version import LooseVersion
+
+from aiohttp import web
 
 import networkx as nx
 
-from twisted.web import resource
-
-import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.TrustCalculation.graph_positioning import GraphPositioning as gpos
+from Tribler.Core.Modules.restapi.rest_endpoint import RESTEndpoint, RESTResponse
 from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.exceptions import TrustGraphException
 from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD
 
-
 MAX_PEERS = 500
 MAX_TRANSACTIONS = 2500
+
+# Fix for supporting both 1.x and 2.x version of Networkx.
+# 1.x version is used in Ubuntu 18.04 or lower.
+if LooseVersion(nx.__version__) >= LooseVersion('2.1'):
+    def get_nx_node(graph, index):
+        return graph.nodes()[index]
+else:
+    def get_nx_node(graph, index):
+        return graph.node[index]
 
 
 class TrustGraph(nx.DiGraph):
@@ -47,14 +54,14 @@ class TrustGraph(nx.DiGraph):
 
     def get_node(self, peer_key, add_if_not_exist=True):
         if peer_key in self.peers:
-            return self.node[self.peers.index(peer_key)]
+            return get_nx_node(self, self.peers.index(peer_key))
         if add_if_not_exist:
             next_node_id = len(self.peers)
             if next_node_id >= self.max_peers:
                 raise TrustGraphException("Max node peers reached in graph")
             super(TrustGraph, self).add_node(next_node_id, id=next_node_id, key=peer_key)
             self.peers.append(peer_key)
-            return self.node[self.peers.index(peer_key)]
+            return get_nx_node(self, self.peers.index(peer_key))
         return None
 
     def add_block(self, block):
@@ -84,7 +91,7 @@ class TrustGraph(nx.DiGraph):
 
     def compute_node_graph(self):
         gr_undirected = self.to_undirected()
-        num_nodes = len(gr_undirected.node)
+        num_nodes = gr_undirected.number_of_nodes()
 
         # Remove disconnected nodes from the graph
         component_nodes = nx.node_connected_component(gr_undirected, self.root_node)
@@ -106,7 +113,7 @@ class TrustGraph(nx.DiGraph):
         max_x = max_y = 0.0001
         for _id, (theta, r) in pos.items():
             index_mapper[_id] = node_id
-            node = gr_undirected.node[_id]
+            node = get_nx_node(gr_undirected, _id)
             node['id'] = node_id
             node_id += 1
 
@@ -131,27 +138,29 @@ class TrustGraph(nx.DiGraph):
         return {'node': graph_nodes, 'edge': graph_edges}
 
 
-class TrustViewEndpoint(resource.Resource):
+class TrustViewEndpoint(RESTEndpoint):
     def __init__(self, session):
-        resource.Resource.__init__(self)
+        super(TrustViewEndpoint, self).__init__(session)
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.session = session
 
         self.trustchain_db = None
         self.trust_graph = None
         self.public_key = None
 
+    def setup_routes(self):
+        self.app.add_routes([web.get('', self.get_view)])
+
     def initialize_graph(self):
-        if self.session.lm.trustchain_community:
-            self.trustchain_db = self.session.lm.trustchain_community.persistence
-            self.public_key = self.session.lm.trustchain_community.my_peer.public_key.key_to_bin()
+        if self.session.trustchain_community:
+            self.trustchain_db = self.session.trustchain_community.persistence
+            self.public_key = self.session.trustchain_community.my_peer.public_key.key_to_bin()
             self.trust_graph = TrustGraph(hexlify(self.public_key))
 
             # Start bootstrap download if not already done
-            if not self.session.lm.bootstrap:
-                self.session.lm.start_bootstrap_download()
+            if not self.session.bootstrap:
+                self.session.start_bootstrap_download()
 
-    def render_GET(self, request):
+    async def get_view(self, request):
         if not self.trust_graph:
             self.initialize_graph()
 
@@ -162,8 +171,8 @@ class TrustViewEndpoint(resource.Resource):
             return self.trustchain_db.get_connected_users(public_key, limit=limit)
 
         depth = 0
-        if b'depth' in request.args:
-            depth = int(request.args[b'depth'][0])
+        if 'depth' in request.query:
+            depth = int(request.query['depth'])
 
         # If depth is zero or not provided then fetch all depth levels
         fetch_all = depth == 0
@@ -185,11 +194,11 @@ class TrustViewEndpoint(resource.Resource):
                 for user_block in self.trustchain_db.get_users():
                     self.trust_graph.add_blocks(get_bandwidth_blocks(unhexlify(user_block['public_key'])))
         except TrustGraphException as tgex:
-            self.logger.warn(tgex)
+            self.logger.warning(tgex)
 
         graph_data = self.trust_graph.compute_node_graph()
 
-        return json.twisted_dumps(
+        return RESTResponse(
             {
                 'root_public_key': hexlify(self.public_key),
                 'graph': graph_data,
@@ -200,8 +209,8 @@ class TrustViewEndpoint(resource.Resource):
         )
 
     def get_bootstrap_info(self):
-        if self.session.lm.bootstrap.download and self.session.lm.bootstrap.download.get_state():
-            state = self.session.lm.bootstrap.download.get_state()
+        if self.session.bootstrap.download and self.session.bootstrap.download.get_state():
+            state = self.session.bootstrap.download.get_state()
             return {
                 'download': state.get_total_transferred(DOWNLOAD),
                 'upload': state.get_total_transferred(UPLOAD),

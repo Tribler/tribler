@@ -1,31 +1,39 @@
-from __future__ import absolute_import
+import json
+from asyncio import CancelledError, sleep
 
-from twisted.web import resource, server
+from aiohttp import web
 
-import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.Modules.restapi.rest_endpoint import RESTEndpoint, RESTStreamResponse
 
 
-class EventsEndpoint(resource.Resource):
+class EventsEndpoint(RESTEndpoint):
 
-    isLeaf = True
+    def __init__(self, *args, **kwargs):
+        super(EventsEndpoint, self).__init__(*args, **kwargs)
+        self.event_response = None
 
-    def __init__(self):
-        resource.Resource.__init__(self)
-        self.event_request = None
+    def setup_routes(self):
+        self.app.add_routes([web.get('', self.get_events)])
 
     def on_search_results_channels(self, results):
         for result in results:
-            self.event_request.write(json.dumps({"type": "search_result_channel", "event": {"result": result}}) + '\n')
+            self.event_response.write(json.dumps({"type": "search_result_channel", "event": {"result": result}}) + '\n')
 
     def on_search_results_torrents(self, results):
         for result in results:
-            self.event_request.write(json.dumps({"type": "search_result_torrent", "event": {"result": result}}) + '\n')
+            self.event_response.write(json.dumps({"type": "search_result_torrent", "event": {"result": result}}) + '\n')
 
-    def render_GET(self, request):
-        self.event_request = request
+    async def get_events(self, request):
+        self.event_response = RESTStreamResponse(status=200, reason='OK', headers={'Content-Type': 'text/html'})
+        await self.event_response.prepare(request)
+        await self.event_response.write(json.dumps({"type": "events_start",
+                                                    "event": {"tribler_started": True,
+                                                              "version": "1.2.3"}}).encode('utf-8') + b'\n')
 
-        request.write(json.twisted_dumps({"type": "events_start", "event": {"tribler_started": True,
-                                                                            "version": "1.2.3"}}) + b'\n')
-        request.write(json.twisted_dumps({"type": "tribler_started", "event": {"version": "1.2.3."}}) + b'\n')
-
-        return server.NOT_DONE_YET
+        try:
+            while True:
+                await sleep(3600)
+        except CancelledError:
+            response = self.event_response
+            self.event_response = None
+            return response

@@ -1,4 +1,5 @@
 import os
+
 from nose.tools import raises
 
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
@@ -41,7 +42,7 @@ class TestConfigParser(TriblerCoreTest):
         ccp.set('search_community', 'bar', 42)
 
         self.assertFalse(ccp.get('search_community', 'enabled'))
-        self.assertEquals(ccp.get('search_community', 'bar'), 42)
+        self.assertEqual(ccp.get('search_community', 'bar'), 42)
 
     @raises(OperationNotPossibleAtRuntimeException)
     def test_configparser_false_callback(self):

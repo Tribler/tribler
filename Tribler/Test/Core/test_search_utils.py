@@ -1,4 +1,4 @@
-from Tribler.Core.Utilities.search_utils import split_into_keywords, filter_keywords
+from Tribler.Core.Utilities.search_utils import filter_keywords, split_into_keywords
 from Tribler.Test.Core.base_test import TriblerCoreTest
 
 

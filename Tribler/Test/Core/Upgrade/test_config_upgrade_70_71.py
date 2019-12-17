@@ -1,15 +1,15 @@
-from __future__ import absolute_import
-
 import os
 import shutil
+from configparser import RawConfigParser
 
 from configobj import ConfigObj
 
-from six import ensure_str
-from six.moves.configparser import RawConfigParser
-
 from Tribler.Core.Config.tribler_config import CONFIG_SPEC_PATH, TriblerConfig
-from Tribler.Core.Upgrade.config_converter import add_libtribler_config, add_tribler_config, convert_config_to_tribler71
+from Tribler.Core.Upgrade.config_converter import (
+    add_libtribler_config,
+    add_tribler_config,
+    convert_config_to_tribler71,
+)
 from Tribler.Core.simpledefs import STATEDIR_CHECKPOINT_DIR
 from Tribler.Test.Core.base_test import TriblerCoreTest
 
@@ -35,7 +35,7 @@ class TestConfigUpgrade70to71(TriblerCoreTest):
         """
         Test upgrading a libtribler configuration from 7.0 to 7.1
         """
-        os.environ['TSTATEDIR'] = ensure_str(self.session_base_dir)
+        os.environ['TSTATEDIR'] = self.session_base_dir
         old_config = RawConfigParser()
         old_config.read(os.path.join(self.CONFIG_PATH, "libtribler70.conf"))
         new_config = TriblerConfig()

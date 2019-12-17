@@ -1,4 +1,5 @@
 from PyQt5.QtWidgets import QLabel
+
 from TriblerGUI.utilities import get_color
 
 

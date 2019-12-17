@@ -1,7 +1,5 @@
-from __future__ import absolute_import
-
 from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtWidgets import QLineEdit, QLabel
+from PyQt5.QtWidgets import QLabel, QLineEdit
 
 
 class ClickableLineEdit(QLineEdit):

@@ -1,5 +1,7 @@
 import datetime
+
 from PyQt5.QtWidgets import QTreeWidgetItem
+
 from TriblerGUI.utilities import prec_div
 
 

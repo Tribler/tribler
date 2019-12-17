@@ -1,8 +1,11 @@
-from __future__ import absolute_import
-
 from Tribler.Core.DownloadState import DownloadState
-from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, DLSTATUS_EXIT_NODES, DLSTATUS_WAITING4HASHCHECK, DOWNLOAD,
-                                     UPLOAD)
+from Tribler.Core.simpledefs import (
+    DLSTATUS_DOWNLOADING,
+    DLSTATUS_EXIT_NODES,
+    DLSTATUS_WAITING4HASHCHECK,
+    DOWNLOAD,
+    UPLOAD,
+)
 from Tribler.Test.Core.base_test import MockObject, TriblerCoreTest
 
 
@@ -11,8 +14,8 @@ class TestDownloadState(TriblerCoreTest):
     This class contains tests for the download state.
     """
 
-    def setUp(self):
-        TriblerCoreTest.setUp(self)
+    async def setUp(self):
+        await TriblerCoreTest.setUp(self)
         self.mock_download = MockObject()
         self.mocked_tdef = MockObject()
         self.mocked_tdef.get_name = lambda: "test"
@@ -32,9 +35,9 @@ class TestDownloadState(TriblerCoreTest):
         """
         self.mock_download.get_peerlist = lambda: []
         self.mock_download.session = MockObject()
-        self.mock_download.session.lm = MockObject()
-        self.mock_download.session.lm.tunnel_community = MockObject()
-        self.mock_download.session.lm.tunnel_community.get_candidates = lambda _: []
+        self.mock_download.session = MockObject()
+        self.mock_download.session.tunnel_community = MockObject()
+        self.mock_download.session.tunnel_community.get_candidates = lambda _: []
         self.mock_download.config = MockObject()
         self.mock_download.config.get_hops = lambda: 0
         download_state = DownloadState(self.mock_download, None, None)

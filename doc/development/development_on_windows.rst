@@ -5,7 +5,7 @@ Introduction
 
 In this guide, all required dependencies of Tribler will be explained. It presents how to install these dependencies. Some dependencies have to be built from source whereas other dependencies can be installed using a .msi or .exe installer. The guide targets Windows 7 or higher, 64-bit systems, however, it is probably not very hard to install 32-bit packages.
 
-First, Python 2.7 should be installed. If you already have a Python version installed, please check whether this version is 64 bit before proceeding.
+First, Python 3.7 should be installed. If you already have a Python version installed, please check whether this version is 64 bit before proceeding.
 
 .. code-block:: bash
 
@@ -13,9 +13,9 @@ First, Python 2.7 should be installed. If you already have a Python version inst
 
 This outputs whether your current installation is 32 or 64 bit.
 
-Python can be downloaded from the official `Python website <https://www.python.org/downloads/release/python-2713/>`_. You should download the Windows x86-64 MSI Installer which is an executable. **During the setup, remember to install pip/setuptools and to add Python to the PATH variable to access Python from the command line. The option to add Python to the PATH variable is unchecked by default!** You can verify whether Python is installed correctly by typing ``python`` in the command line. Also check whether pip is working by typing ``pip`` in the command line. If they are not working, check whether the PATH variables are correctly set.
+Python can be downloaded from the official `Python website <https://www.python.org/downloads/release/python-375/>`_. You should download the Windows x86-64 MSI Installer which is an executable. **During the setup, remember to install pip/setuptools and to add Python to the PATH variable to access Python from the command line. The option to add Python to the PATH variable is unchecked by default!** You can verify whether Python is installed correctly by typing ``python`` in the command line. Also check whether pip is working by typing ``pip`` in the command line. If they are not working, check whether the PATH variables are correctly set.
 
-If you did not change the default installation location, Python should be located at ``C:\\Python27\\``. The third-party libraries are located in ``C:\\Python27\\Lib\\site-packages``. If you forgot to add Python to your PATH during the setup, you need to add the ``C:\\Python27\\`` and ``C:\\Python27\\Scripts`` directories to your PATH variable. Information about how to set path variable can be found `here <http://www.computerhope.com/issues/ch000549.htm>`__.
+If you did not change the default installation location, Python should be located at ``C:\\Python37\\``. The third-party libraries are located in ``C:\\Python37\\Lib\\site-packages``. If you forgot to add Python to your PATH during the setup, you need to add the ``C:\\Python37\\`` and ``C:\\Python37\\Scripts`` directories to your PATH variable. Information about how to set path variable can be found `here <http://www.computerhope.com/issues/ch000549.htm>`__.
 
 In order to compile some of the dependencies of Tribler, you will need Visual Studio 2015 which can be downloaded from `here <https://www.visualstudio.com/downloads/download-visual-studio-vs>`__ or `here <https://imagine.microsoft.com/en-us/Catalog/Product/101>`__. You should select the community edition. Visual Studio ships with a command line interface that can be used for building some of the Python packages. Moreover, it provides a nice IDE which can be used to work on Python projects. After installation of Visual Studio, you should install the Visual C++ tools. This can be done from within Visual Studio by creating a new Visual C++ project. Visual Studio then gives an option to install the Visual C++ developer tools.
 
@@ -27,7 +27,7 @@ It may be required to enable Visual C++ Toolset on the Command Line if Native Co
 PyQt5
 -----
 
-If you wish to run the Tribler Graphical User Interface, PyQt5 should be available on the system. While PyQt5 is available in the pip repository, this is only compatible with Python 3. There is an unofficial distribution available for Python 2.7 here `https://github.com/pyqt/python-qt5 <https://github.com/pyqt/python-qt5/>`_. You can simply install PyQt5 from this repository.
+If you wish to run the Tribler Graphical User Interface, PyQt5 should be available on the system. While PyQt5 is available in the pip repository, this is only compatible with Python 3. There is an unofficial distribution available for Python 3.7 here `https://github.com/pyqt/python-qt5 <https://github.com/pyqt/python-qt5/>`_. You can simply install PyQt5 from this repository.
 
 .. code-block:: bash
 
@@ -65,7 +65,7 @@ Note that ``<qmake_path>`` is the path to the qmake.exe file path. For eg. qmake
 pyWin32 Tools
 -------------
 
-In order to access some of the Windows API functions, pywin32 should be installed. The pywin32 installer can be downloaded from `Sourceforge <http://sourceforge.net/projects/pywin32/files/pywin32/>`__ and make sure to select the amd64 version and the version compatible with Python 2.7.
+In order to access some of the Windows API functions, pywin32 should be installed. The pywin32 installer can be downloaded from `Sourceforge <http://sourceforge.net/projects/pywin32/files/pywin32/>`__ and make sure to select the amd64 version and the version compatible with Python 3.7.
 
 libtorrent
 ----------
@@ -84,7 +84,7 @@ Now, download the libtorrent source code from `GitHub <https://github.com/arvidn
 
     b2 boost=source libtorrent-link=static address-model=64
 
-This command will build a static libtorrent 64-bit debug binary. You can also build a release binary by appending ``release`` to the command given above. After the build has been completed, the resulting ``libtorrent.pyd`` can be found in ``LIBTORRENT_SOURCE\\bindings\\python\\bin\\msvc-14\\debug\\address-model-64\\boost-source\\link-static\\`` where ``LIBTORRENT_SOURCE`` indicates the directory with the libtorrent source files. Copy ``libtorrent.pyd`` to your site-packages location (the default location is ``C:\\Python27\\Lib\\site-packages``)
+This command will build a static libtorrent 64-bit debug binary. You can also build a release binary by appending ``release`` to the command given above. After the build has been completed, the resulting ``libtorrent.pyd`` can be found in ``LIBTORRENT_SOURCE\\bindings\\python\\bin\\msvc-14\\debug\\address-model-64\\boost-source\\link-static\\`` where ``LIBTORRENT_SOURCE`` indicates the directory with the libtorrent source files. Copy ``libtorrent.pyd`` to your site-packages location (the default location is ``C:\\Python37\\Lib\\site-packages``)
 
 After successfully copying the ``libtorrent.pyd`` file either compiled or from the repository, you can check if the installation was successful:
 
@@ -108,12 +108,12 @@ To install VLC, you can download the official installer from the `VideoLAN websi
 
 NumPy & SciPy
 -------------
-To install NumPy & SciPy, download the respective .whl files `here <http://www.lfd.uci.edu/~gohlke/pythonlibs/>`__ and install using with pip as below. Make sure to download files with cp27 in names as they are for python 2.7
+To install NumPy & SciPy, download the respective .whl files `here <http://www.lfd.uci.edu/~gohlke/pythonlibs/>`__ and install using with pip as below. Make sure to download files with cp37 in names as they are for python 3.7
 
 .. code-block:: bash
 
-    pip install scipy‑0.19.1‑cp27‑cp27m‑win_amd64.whl
-    pip install numpy‑1.13.1+mkl‑cp27‑cp27m‑win_amd64.whl
+    pip install scipy‑1.3.3‑cp37‑cp37m‑win_amd64.whl
+    pip install numpy‑1.17.4+mkl‑cp37‑cp37m‑win_amd64.whl
 
 
 
@@ -125,7 +125,7 @@ There are some additional packages which should be installed. They can easily be
 .. code-block:: bash
 
     pip install cython  # Needs to be installed first for meliae
-    pip install bitcoinlib cherrypy chardet configobj cryptography decorator libnacl meliae netifaces networkx pillow psutil typing twisted
+    pip install bitcoinlib cherrypy chardet configobj cryptography decorator libnacl meliae netifaces networkx pillow psutil typing aiohttp aiohttp_apispec
 
 Running Tribler
 ---------------

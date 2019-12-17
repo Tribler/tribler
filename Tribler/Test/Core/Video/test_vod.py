@@ -1,16 +1,16 @@
-from __future__ import absolute_import
-
+import asyncio
 import os
+from asyncio import Future
 from tempfile import mkstemp
-
-from twisted.internet.defer import Deferred, inlineCallbacks
 
 from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import VODFile
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import DLMODE_VOD, DOWNLOAD, UPLOAD, dlstatus_strings
 from Tribler.Test.test_as_server import TestAsServer
-from Tribler.Test.tools import trial_timeout
+from Tribler.Test.tools import timeout
+
+asyncio.get_event_loop().set_debug(True)
 
 
 class TestVideoOnDemand(TestAsServer):
@@ -23,12 +23,11 @@ class TestVideoOnDemand(TestAsServer):
     See BitTornado/BT1/Connecter.py
     """
 
-    @inlineCallbacks
-    def setUp(self):
-        yield TestAsServer.setUp(self)
+    async def setUp(self):
+        await TestAsServer.setUp(self)
         self.content = None
         self.tdef = None
-        self.test_deferred = Deferred()
+        self.test_future = Future()
         self.contentlen = None
         self.piecelen = 0
 
@@ -36,7 +35,7 @@ class TestVideoOnDemand(TestAsServer):
         TestAsServer.setUpPreSession(self)
         self.config.set_libtorrent_enabled(True)
 
-    def create_torrent(self):
+    async def create_torrent(self):
         [srchandle, sourcefn] = mkstemp()
         self.content = b'0' * self.contentlen
         os.write(srchandle, self.content)
@@ -54,10 +53,10 @@ class TestVideoOnDemand(TestAsServer):
         dscfg.set_dest_dir(destdir)
         dscfg.set_mode(DLMODE_VOD)
 
-        download = self.session.start_download_from_tdef(self.tdef, dscfg)
+        download = self.session.ltmgr.add(self.tdef, dscfg)
         download.set_state_callback(self.state_callback)
 
-        self.session.set_download_states_callback(self.states_callback)
+        self.session.ltmgr.set_download_states_callback(self.states_callback)
 
     def states_callback(self, dslist):
         ds = dslist[0]
@@ -97,7 +96,9 @@ class TestVideoOnDemand(TestAsServer):
             lastsize = 1
             self.stream_read(stream, lastoff, lastsize, self.piecelen)
 
-            self.test_deferred.callback(None)
+            stream.close()
+
+            self.test_future.set_result(None)
 
             return 0
         return 1.0
@@ -106,32 +107,32 @@ class TestVideoOnDemand(TestAsServer):
         stream.seek(off)
         data = stream.read(blocksize)
         self._logger.debug("stream: Got data %s", len(data))
-        self.assertEquals(len(data), size)
-        self.assertEquals(data, self.content[off:off + size])
+        self.assertEqual(len(data), size)
+        self.assertEqual(data, self.content[off:off + size])
 
-    @trial_timeout(10)
-    def test_99(self):
+    @timeout(10)
+    async def test_99(self):
         self.contentlen = 99
         self.piecelen = 16
-        self.create_torrent()
+        await self.create_torrent()
 
         self._logger.debug("Letting network thread create Download, sleeping")
-        return self.test_deferred
+        await self.test_future
 
-    @trial_timeout(10)
-    def test_100(self):
+    @timeout(10)
+    async def test_100(self):
         self.contentlen = 100
         self.piecelen = 16
-        self.create_torrent()
+        await self.create_torrent()
 
         self._logger.debug("Letting network thread create Download, sleeping")
-        return self.test_deferred
+        await self.test_future
 
-    @trial_timeout(10)
-    def test_101(self):
+    @timeout(10)
+    async def test_101(self):
         self.contentlen = 101
         self.piecelen = 16
-        self.create_torrent()
+        await self.create_torrent()
 
         self._logger.debug("Letting network thread create Download, sleeping")
-        return self.test_deferred
+        await self.test_future

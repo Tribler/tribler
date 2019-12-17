@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import os
 
 from Tribler.Test.test_as_server import TestAsServer
@@ -13,7 +11,7 @@ class TestTrackerManager(TestAsServer):
 
     @property
     def tracker_manager(self):
-        return self.session.lm.tracker_manager
+        return self.session.tracker_manager
 
     def test_add_tracker(self):
         """

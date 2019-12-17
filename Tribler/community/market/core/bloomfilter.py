@@ -21,15 +21,11 @@ Ippolito <bob@redivi.com>.  Simplified, and optimized to use just python code.
 @organization: Technical University Delft
 @contact: dispersy@frayja.com
 """
-from __future__ import absolute_import, division
-
 import logging
 from binascii import unhexlify
 from hashlib import md5, sha1, sha256, sha384, sha512
 from math import ceil, log
 from struct import Struct
-
-from six import binary_type, integer_types
 
 from Tribler.Core.Utilities.unicode import hexlify
 
@@ -82,7 +78,7 @@ class BloomFilter(object):
     @classmethod
     def _overload_constructor_arguments(cls, args, kargs):
         # matches: BloomFilter(str:bytes, int:k_functions, str:prefix="")
-        if len(args) >= 2 and isinstance(args[0], binary_type) and isinstance(args[1], int):
+        if len(args) >= 2 and isinstance(args[0], bytes) and isinstance(args[1], int):
             bytes_ = args[0]
             m_size = len(bytes_) * 8
             k_functions = args[1]
@@ -132,9 +128,9 @@ class BloomFilter(object):
         assert self._m_size % 8 == 0, "size must be a multiple of eight (%d)" % self._m_size
         assert isinstance(self._k_functions, int), type(self._k_functions)
         assert 0 < self._k_functions <= self._m_size, [self._k_functions, self._m_size]
-        assert isinstance(self._prefix, binary_type), type(self._prefix)
+        assert isinstance(self._prefix, bytes), type(self._prefix)
         assert 0 <= len(self._prefix) < 256, len(self._prefix)
-        assert isinstance(self._filter, integer_types), type(self._filter)
+        assert isinstance(self._filter, int), type(self._filter)
 
         # determine hash function
         if self._m_size >= (1 << 31):
@@ -186,7 +182,7 @@ class BloomFilter(object):
         fmt_unpack = self._fmt_unpack
 
         for key in keys:
-            assert isinstance(key, binary_type)
+            assert isinstance(key, bytes)
             hash_ = salt_copy()
             hash_.update(key)
 
@@ -229,7 +225,7 @@ class BloomFilter(object):
         for tup in iterator:
             assert isinstance(tup, tuple)
             assert len(tup) > 0
-            assert isinstance(tup[0], binary_type)
+            assert isinstance(tup[0], bytes)
             hash_ = salt_copy()
             hash_.update(tup[0])
 

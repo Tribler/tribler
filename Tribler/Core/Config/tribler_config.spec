@@ -1,4 +1,6 @@
 [general]
+version = string(default='')
+version_backup_enabled = boolean(default=True)
 log_dir = string(default='logs')
 testnet = boolean(default=False)
 version_checker_enabled = boolean(default=True)
@@ -35,6 +37,7 @@ dummy_wallets_enabled = boolean(default=False)
 
 [chant]
 enabled = boolean(default=True)
+manager_enabled = boolean(default=True)
 channel_edit = boolean(default=False)
 channels_dir = string(default='channels')
 
@@ -64,7 +67,7 @@ anonymity_enabled = boolean(default=True)
 number_hops = integer(min=0, max=3, default=1)
 safeseeding_enabled = boolean(default=True)
 saveas = string(default=None)
-seeding_mode = string(default='ratio')
+seeding_mode = option('forever', 'never', 'ratio', 'time', default='forever')
 seeding_ratio = float(default=2.0)
 seeding_time = float(default=60)
 channel_download = boolean(default=False)
@@ -89,6 +92,7 @@ directory = string(default='')
 enabled = boolean(default=False)
 port = integer(min=-1, max=65536, default=-1)
 retry_port = boolean(default=False)
+key = string(default=None)
 
 [resource_monitor]
 enabled = boolean(default=True)

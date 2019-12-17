@@ -1,11 +1,11 @@
-from __future__ import absolute_import
-
 import logging
 import os
 from binascii import unhexlify
 
+from ipv8.dht import DHTError
+
 from Tribler.Core.Config.download_config import DownloadConfig
-from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
+from Tribler.Core.TorrentDef import TorrentDefNoMetainfo
 from Tribler.Core.Utilities.unicode import hexlify
 
 
@@ -24,14 +24,12 @@ class Bootstrap(object):
             os.mkdir(self.bootstrap_dir)
         self.dcfg.set_dest_dir(self.bootstrap_dir)
         self.bootstrap_file = os.path.join(self.bootstrap_dir, "bootstrap.blocks")
-        self.nodes_file = os.path.join(self.bootstrap_dir, "bootstrap.nodes")
         self.dht = dht
 
         self.bootstrap_finished = False
         self.infohash = None
         self.download = None
         self.bootstrap_nodes = {}
-        self.load_bootstrap_nodes()
 
     def start_by_infohash(self, download_function, infohash):
         """
@@ -41,43 +39,25 @@ class Bootstrap(object):
         """
         self._logger.debug("Starting bootstrap downloading %s", infohash)
         tdef = TorrentDefNoMetainfo(unhexlify(infohash), name='bootstrap.blocks')
-        self.download = download_function(tdef, download_config=self.dcfg, hidden=True)
+        self.download = download_function(tdef, config=self.dcfg, hidden=True)
         self.infohash = infohash
 
-    def fetch_bootstrap_peers(self):
+    async def fetch_bootstrap_peers(self):
         if not self.download:
             return {}
 
-        def on_success(nodes):
-            if not nodes:
-                return
-            for node in nodes:
-                self.bootstrap_nodes[hexlify(node.mid)] = hexlify(node.public_key.key_to_bin())
-            self.persist_nodes()
-
-        def on_failure(failure):
-            self._logger.error("Failed to get DHT response:%s", failure.value)
-
         for peer in self.download.get_peerlist():
             mid = peer['id']
-            if (mid not in self.bootstrap_nodes or not self.bootstrap_nodes[mid]) \
-                    and mid != "0000000000000000000000000000000000000000":
+            if (mid not in self.bootstrap_nodes or not self.bootstrap_nodes[mid]) and mid != "0" * 40:
                 if self.dht:
-                    self.dht.connect_peer(bytes(unhexlify(mid))).addCallbacks(on_success, on_failure)
+                    try:
+                        nodes = await self.dht.connect_peer(bytes(unhexlify(mid)))
+                    except DHTError as e:
+                        self._logger.error("Failed to get DHT response:%s", e)
+                        continue
 
+                    if not nodes:
+                        return
+                    for node in nodes:
+                        self.bootstrap_nodes[hexlify(node.mid)] = hexlify(node.public_key.key_to_bin())
         return self.bootstrap_nodes
-
-    def persist_nodes(self):
-        with open(self.nodes_file, "wb") as boot_file:
-            for mid, public_key in self.bootstrap_nodes.items():
-                if mid != "0000000000000000000000000000000000000000" and public_key:
-                    boot_file.write((u"%s:%s\n" % (mid, public_key)).encode('utf-8'))
-
-    def load_bootstrap_nodes(self):
-        if not os.path.exists(self.nodes_file):
-            return
-        with open(self.nodes_file, "r") as boot_file:
-            for line in boot_file:
-                if line and ":" in line:
-                    mid, pub_key = line.rstrip().split(":")
-                    self.bootstrap_nodes[mid] = pub_key

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.peer import Peer
 from ipv8.test.base import TestBase

@@ -1,8 +1,4 @@
-from __future__ import absolute_import
-
 from ipv8.messaging.anonymization.tunnel import CIRCUIT_STATE_EXTENDING, CIRCUIT_STATE_READY, CIRCUIT_TYPE_DATA
-
-from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.test_as_server import AbstractServer
@@ -14,9 +10,8 @@ class TestTunnelDispatcher(AbstractServer):
     Test the functionality of the tunnel dispatcher.
     """
 
-    @inlineCallbacks
-    def setUp(self):
-        yield super(TestTunnelDispatcher, self).setUp()
+    async def setUp(self):
+        await super(TestTunnelDispatcher, self).setUp()
 
         self.mock_tunnel_community = MockObject()
         self.mock_tunnel_community.select_circuit = lambda *_: None

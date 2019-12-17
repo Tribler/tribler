@@ -1,19 +1,22 @@
-from __future__ import absolute_import
+from asyncio import get_event_loop
 
-from twisted.internet import reactor, task
-from twisted.web import resource
+from aiohttp import web
 
-import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.Modules.restapi.rest_endpoint import RESTEndpoint, RESTResponse
 
 
-class ShutdownEndpoint(resource.Resource):
+class ShutdownEndpoint(RESTEndpoint):
     """
     With this endpoint you can shutdown Tribler.
     """
 
-    def render_PUT(self, _):
+    def setup_routes(self):
+        self.app.add_routes([web.put('', self.shutdown)])
+
+    async def shutdown(self, _):
         """
         Shuts down the fake API
         """
-        task.deferLater(reactor, 0, reactor.stop)
-        return json.twisted_dumps({"shutdown": True})
+        loop = get_event_loop()
+        loop.call_soon(loop.stop)
+        return RESTResponse({"shutdown": True})
