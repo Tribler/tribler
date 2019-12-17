@@ -1,8 +1,4 @@
-from __future__ import absolute_import
-
 import random
-
-from six.moves import xrange
 
 
 class Payment(object):
@@ -15,7 +11,7 @@ class Payment(object):
         self.address_from = 'a' * 10
         self.address_to = 'b' * 10
         self.timestamp = transaction.timestamp + 10
-        self.payment_id = ''.join(random.choice('0123456789abcdef') for _ in xrange(16))
+        self.payment_id = ''.join(random.choice('0123456789abcdef') for _ in range(16))
         self.success = random.random() > 0.5
 
     def get_json(self):

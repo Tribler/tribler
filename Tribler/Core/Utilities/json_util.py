@@ -1,9 +1,5 @@
-from __future__ import absolute_import
-
 import json
 from collections import Iterable
-
-from six import ensure_text, string_types
 
 __all__ = ['dumps', 'loads']
 
@@ -40,7 +36,7 @@ def _scan_iterable(obj, context=None):
     out = []
     # First check if we need to recurse into the children of obj.
     # Note that there is one type of object we don't want to step into, which is a string object.
-    if not isinstance(obj, string_types) and isinstance(obj, Iterable):
+    if not isinstance(obj, str) and isinstance(obj, Iterable):
         for sub in obj:
             # If we are iterating over a dict, we are iterating over its keys.
             # 1. We can then give a named trace instead of an anonymous trace
@@ -104,18 +100,6 @@ def dumps(obj, ensure_ascii=True):
         raise error
 
 
-def twisted_dumps(obj, ensure_ascii=True):
-    """
-    Attempt to json.dumps() an object and encode it to convert it to bytes.
-    This method is helpful when returning JSON data in twisted REST calls.
-
-    :param obj: the object to serialize.
-    :param ensure_ascii: allow binary strings to be sent
-    :return: the JSON bytes representation of the object.
-    """
-    return dumps(obj, ensure_ascii).encode('utf-8')
-
-
 def loads(s, *args, **kwargs):
     """
     Attempt to json.loads() a string. This function wraps json.loads, to provide dumps and loads from the same file.
@@ -124,18 +108,8 @@ def loads(s, *args, **kwargs):
     :return: the Python object(s) extracted from the JSON input.
     """
     # Older versions of Python 3 only accept bytes. As a work-around we convert it to unicode here.
-    s = ensure_text(s)
+    s = s.decode('utf-8') if isinstance(s, bytes) else s
     return json.loads(s, *args, **kwargs)
-
-
-def twisted_loads(s, *args, **kwargs):
-    """
-    Attempt to json.loads() a bytes. This function wraps json.loads, to provide dumps and loads from the same file.
-
-    :param s: the JSON formatted bytes to load objects from.
-    :return: the Python object(s) extracted from the JSON input.
-    """
-    return json.loads(s.decode('utf-8'), *args, **kwargs)
 
 
 def load(fp, *args, **kwargs):

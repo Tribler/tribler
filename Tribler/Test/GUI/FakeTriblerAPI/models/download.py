@@ -1,10 +1,7 @@
-from __future__ import absolute_import, division
-
 import base64
 from random import randint, random, uniform
 
-from six import int2byte
-from six.moves import xrange
+from ipv8.util import int2byte
 
 from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Test.GUI.FakeTriblerAPI.constants import DLSTATUS_STRINGS
@@ -41,14 +38,14 @@ class Download(object):
         self.is_channel_download = is_channel_download
 
         # Set some pieces to True
-        for _ in xrange(self.total_pieces // 2):
+        for _ in range(self.total_pieces // 2):
             self.has_pieces[randint(0, self.total_pieces - 1)] = True
 
-        for _ in xrange(randint(5, 40)):
+        for _ in range(randint(5, 40)):
             self.peers.append(DownloadPeer())
 
         # Generate some files
-        for file_ind in xrange(randint(1, 10)):
+        for file_ind in range(randint(1, 10)):
             self.files.append({"name": "File %d" % file_ind, "size": randint(1000, 10000000),
                                "progress": random(), "included": True if random() > 0.5 else False})
 

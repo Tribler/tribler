@@ -1,8 +1,6 @@
 """
 This file contains various utility methods.
 """
-from __future__ import absolute_import
-
 import sys
 
 if sys.version_info.major > 2:

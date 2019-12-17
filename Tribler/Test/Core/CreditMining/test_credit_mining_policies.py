@@ -3,13 +3,7 @@ Module of Credit mining function testing.
 
 Author(s): Mihai Capota, Ardhi Putra
 """
-from __future__ import absolute_import
-
 import time
-
-from six.moves import xrange
-
-from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.CreditMining.CreditMiningManager import CreditMiningTorrent
 from Tribler.Core.CreditMining.CreditMiningPolicy import InvestmentPolicy, InvestmentState, MB, RandomPolicy, \
@@ -23,9 +17,8 @@ class TestCreditMiningPolicies(TriblerCoreTest):
     Class to test the credit mining policies
     """
 
-    @inlineCallbacks
-    def setUp(self):
-        yield super(TestCreditMiningPolicies, self).setUp()
+    async def setUp(self):
+        await super(TestCreditMiningPolicies, self).setUp()
         self.torrents = [CreditMiningTorrent(i, 'test torrent %d' % i) for i in range(10)]
         try:
             self.assertCountEqual  # Python 3
@@ -167,9 +160,8 @@ class TestInvestmentPolicy(TriblerCoreTest):
     Class to test investment policy.
     """
 
-    @inlineCallbacks
-    def setUp(self):
-        yield super(TestInvestmentPolicy, self).setUp()
+    async def setUp(self):
+        await super(TestInvestmentPolicy, self).setUp()
         self.torrents = [CreditMiningTorrent(i, 'test torrent %d' % i) for i in range(10)]
         self.policy = InvestmentPolicy()
 
@@ -204,7 +196,7 @@ class TestInvestmentPolicy(TriblerCoreTest):
         uploads = [0, 2, 3, 7, 15, 90, 180, 1000]
         expected_states = [0, 0, 1, 4, 6, 17, 18, 19]
 
-        for i in xrange(len(downloads)):
+        for i in range(len(downloads)):
             computed_state = self.policy.compute_state(downloads[i] * MB, uploads[i] * MB)
             self.assertEqual(expected_states[i], computed_state)
 

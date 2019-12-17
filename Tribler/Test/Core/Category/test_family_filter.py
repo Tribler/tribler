@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from Tribler.Core.Category.FamilyFilter import XXXFilter
 from Tribler.Core.Category.l2_filter import is_forbidden
 from Tribler.Test.test_as_server import AbstractServer
@@ -7,8 +5,8 @@ from Tribler.Test.test_as_server import AbstractServer
 
 class TriblerCategoryTestFamilyFilter(AbstractServer):
 
-    def setUp(self):
-        super(TriblerCategoryTestFamilyFilter, self).setUp()
+    async def setUp(self):
+        await super(TriblerCategoryTestFamilyFilter, self).setUp()
         self.family_filter = XXXFilter()
         self.family_filter.xxx_terms.add("term1")
         self.family_filter.xxx_terms.add("term2")

@@ -1,9 +1,5 @@
-from __future__ import absolute_import
-
 import random
 import time
-
-from six.moves import xrange
 
 from Tribler.Test.GUI.FakeTriblerAPI.models.payment import Payment
 
@@ -11,8 +7,8 @@ from Tribler.Test.GUI.FakeTriblerAPI.models.payment import Payment
 class Transaction(object):
 
     def __init__(self, price_type, quantity_type):
-        self.trader_id = ''.join(random.choice('0123456789abcdef') for _ in xrange(16))
-        self.partner_trader_id = ''.join(random.choice('0123456789abcdef') for _ in xrange(16))
+        self.trader_id = ''.join(random.choice('0123456789abcdef') for _ in range(16))
+        self.partner_trader_id = ''.join(random.choice('0123456789abcdef') for _ in range(16))
         self.order_number = random.randint(1, 50)
         self.partner_order_number = random.randint(1, 50)
         self.transaction_number = random.randint(1, 50)

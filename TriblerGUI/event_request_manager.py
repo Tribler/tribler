@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import logging
 import time
 
@@ -37,10 +35,11 @@ class EventRequestManager(QNetworkAccessManager):
     credit_mining_signal = pyqtSignal(object)
     tribler_shutdown_signal = pyqtSignal(str)
 
-    def __init__(self, api_port):
+    def __init__(self, api_port, api_key):
         QNetworkAccessManager.__init__(self)
         url = QUrl("http://localhost:%d/events" % api_port)
         self.request = QNetworkRequest(url)
+        self.request.setRawHeader(b'X-Api-Key', api_key)
         self.failed_attempts = 0
         self.connect_timer = QTimer()
         self.current_event_string = ""

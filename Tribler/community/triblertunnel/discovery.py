@@ -1,5 +1,3 @@
-from __future__ import absolute_import, division
-
 from random import sample
 
 from ipv8.messaging.anonymization.tunnel import PEER_FLAG_EXIT_ANY

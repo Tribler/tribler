@@ -1,8 +1,5 @@
-from __future__ import absolute_import
-
 import logging
-
-from twisted.internet.protocol import Protocol, connectionDone
+from asyncio import Protocol, ensure_future
 
 from Tribler.Core.Socks5 import conversion
 from Tribler.Core.Socks5.conversion import SOCKS_VERSION
@@ -44,7 +41,10 @@ class Socks5Connection(Protocol):
         """
         return self._udp_socket
 
-    def dataReceived(self, data):
+    def connection_made(self, transport):
+        self.transport = transport
+
+    def data_received(self, data):
         self.buffer = self.buffer + data
         while len(self.buffer) > 0:
             # We are at the initial state, so we expect a handshake request.
@@ -117,7 +117,7 @@ class Socks5Connection(Protocol):
 
         try:
             if request.cmd == conversion.REQ_CMD_UDP_ASSOCIATE:
-                self.on_udp_associate_request(self, request)
+                ensure_future(self.on_udp_associate_request(self, request))
 
             elif request.cmd == conversion.REQ_CMD_BIND:
                 response = conversion.encode_reply(0x05, conversion.REP_SUCCEEDED, 0x00,
@@ -157,12 +157,13 @@ class Socks5Connection(Protocol):
         self.transport.write(response)
         self._logger.error("DENYING SOCKS5 request, reason: %s" % reason)
 
-    def on_udp_associate_request(self, connection, request):
+    async def on_udp_associate_request(self, connection, request):
         # The DST.ADDR and DST.PORT fields contain the address and port that the client expects
         # to use to send UDP datagrams on for the association.  The server MAY use this information
         # to limit access to the association.
         self._udp_socket = SocksUDPConnection(self, request.destination)
-        ip = self.transport.getHost().host
+        await self._udp_socket.open()
+        ip, _ = self.transport.get_extra_info('sockname')
         port = self._udp_socket.get_listen_port()
 
         self._logger.info("Accepting UDP ASSOCIATE request to %s:%d", ip, port)
@@ -191,15 +192,13 @@ class Socks5Connection(Protocol):
 
         return affected_destinations
 
-    def connectionLost(self, reason=connectionDone):
-        self.socksserver.connectionLost(self)
+    def connection_lost(self, _):
+        self.socksserver.connection_lost(self)
 
     def close(self, reason='unspecified'):
         self._logger.info("Closing session, reason %s", reason)
-        exit_value = True
         if self._udp_socket:
-            exit_value = self._udp_socket.close()
+            self._udp_socket.close()
             self._udp_socket = None
 
-        self.transport.loseConnection()
-        return exit_value
+        self.transport.close()
