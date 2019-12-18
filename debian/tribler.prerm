@@ -7,6 +7,8 @@ if which pip3 >/dev/null 2>&1; then
     pip3 uninstall -y lz4
     # Remove pyqtgraph
     pip3 uninstall -y pyqtgraph
+    # Remove orjson
+    pip3 uninstall -y orjson
     # Remove wheel the last
     pip3 uninstall -y wheel
 fi

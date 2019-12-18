@@ -9,4 +9,6 @@ if which pip3 >/dev/null 2>&1; then
     pip3 install --upgrade lz4
     # 2019-11-06; Add pyqtgraph; Check #https://github.com/Tribler/tribler/issues/4936
     pip3 install --upgrade pyqtgraph
+    # 2019-12-18; Add orjson; used for usenix experimental release
+    pip3 install --upgrade orjson
 fi
