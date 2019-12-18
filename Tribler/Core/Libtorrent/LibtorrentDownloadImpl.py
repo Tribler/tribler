@@ -450,6 +450,10 @@ class LibtorrentDownloadImpl(TaskManager):
         self._logger.debug('Setting IP filter for %s to %s', hexlify(self.tdef.get_infohash()), enable)
         self.apply_ip_filter(enable)
 
+        # On a rare occasion we don't get a metadata_received_alert. If this is the case, post an alert manually.
+        if alert.state == lt.torrent_status.downloading and isinstance(self.tdef, TorrentDefNoMetainfo):
+            self.on_metadata_received_alert(None)
+
     def on_save_resume_data_alert(self, alert):
         """
         Callback for the alert that contains the resume data of a specific download.
