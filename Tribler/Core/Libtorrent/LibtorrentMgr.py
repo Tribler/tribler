@@ -336,9 +336,9 @@ class LibtorrentMgr(TaskManager):
         else:
             raise ValueError('No ti or url key in add_torrent_params')
 
-        if infohash in self.metainfo_requests:
-            self._logger.info("Cancelling metainfo request. Infohash:%s", infohash)
-            metainfo_dl, _ = self.metainfo_requests[infohash]
+        if unhexlify(infohash) in self.metainfo_requests and infohash in self.torrents:
+            self._logger.info("Cancelling metainfo request(s). Infohash:%s", infohash)
+            metainfo_dl, _ = self.metainfo_requests.pop(unhexlify(infohash))
             await metainfo_dl.stop(remove_state=True, remove_content=True)
 
         # Check if we added this torrent before
@@ -505,7 +505,7 @@ class LibtorrentMgr(TaskManager):
             self.metainfo_requests[infohash] = [download, 1]
 
         try:
-            metainfo = await wait_for(shield(download.future_metainfo), timeout)
+            metainfo = download.tdef.get_metainfo() or await wait_for(shield(download.future_metainfo), timeout)
             self._logger.info('Successfully retrieved metainfo for %s', infohash_hex)
             self.metainfo_cache[infohash] = {'time': timemod.time(), 'meta_info': metainfo}
         except (CancelledError, TimeoutError):
@@ -595,22 +595,6 @@ class LibtorrentMgr(TaskManager):
         if dconfig is not None:
             dscfg = dconfig
 
-        d = self.get_download(tdef.get_infohash())
-        if d:
-            # If there is an existing credit mining download with the same infohash
-            # then move to the user download directory and checkpoint the download immediately.
-            if d.config.get_credit_mining():
-                self.tribler_session.credit_mining_manager.torrents.pop(hexlify(tdef.get_infohash()), None)
-                d.config.set_credit_mining(False)
-                d.move_storage(dscfg.get_dest_dir())
-                d.checkpoint()
-
-            new_trackers = list(set(tdef.get_trackers_as_single_tuple()) - set(
-                d.get_def().get_trackers_as_single_tuple()))
-            if new_trackers:
-                self.update_trackers(tdef.get_infohash(), new_trackers)
-            return d
-
         self._logger.info('start_download: calling start_download_from_tdef')
         return self.add(tdef, dscfg)
 
@@ -679,10 +663,21 @@ class LibtorrentMgr(TaskManager):
         if config.get_time_added() == 0:
             config.set_time_added(int(timemod.time()))
 
-        # Check if running or saved on disk
-        if infohash in self.downloads:
-            self._logger.info("Torrent already exists in the downloads. Infohash:%s", hexlify(infohash))
-            return self.downloads[infohash]
+        d = self.get_download(tdef.get_infohash())
+        if d and tdef.get_infohash() not in self.metainfo_requests:
+            # If there is an existing credit mining download with the same infohash
+            # then move to the user download directory and checkpoint the download immediately.
+            if d.config.get_credit_mining():
+                self.tribler_session.credit_mining_manager.torrents.pop(hexlify(tdef.get_infohash()), None)
+                d.config.set_credit_mining(False)
+                d.move_storage(config.get_dest_dir())
+                d.checkpoint()
+
+            new_trackers = list(set(tdef.get_trackers_as_single_tuple()) -
+                                set(d.get_def().get_trackers_as_single_tuple()))
+            if new_trackers:
+                self.update_trackers(tdef.get_infohash(), new_trackers)
+            return d
 
         download = LibtorrentDownloadImpl(self.tribler_session, tdef)
 
