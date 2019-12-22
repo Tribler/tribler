@@ -1,5 +1,6 @@
 import random
 from binascii import unhexlify
+from unittest.mock import Mock
 
 from ipv8.attestation.trustchain.block import TrustChainBlock
 from ipv8.attestation.trustchain.community import TrustChainCommunity
@@ -10,6 +11,7 @@ from ipv8.test.mocking.ipv8 import MockIPv8
 
 from Tribler.Core.Modules.restapi.trustview_endpoint import TrustGraph
 from Tribler.Core.Utilities.unicode import hexlify
+from Tribler.Core.Utilities.utilities import succeed
 from Tribler.Core.exceptions import TrustGraphException
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.Core.base_test import MockObject
@@ -111,8 +113,8 @@ class TestTrustViewEndpoint(AbstractApiTest):
         self.mock_ipv8 = MockIPv8(u"low", TrustChainCommunity, working_directory=self.session.config.get_state_dir())
         self.session.trustchain_community = self.mock_ipv8.overlay
 
-        self.session.bootstrap = MockObject()
-        self.session.bootstrap.download = MockObject()
+        self.session.bootstrap = Mock()
+        self.session.bootstrap.shutdown = lambda: succeed(None)
 
         bootstrap_download_state = MockObject()
         bootstrap_download_state.get_total_transferred = lambda _: random.randint(0, 10000)

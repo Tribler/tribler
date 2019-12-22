@@ -696,15 +696,6 @@ class LibtorrentMgr(TaskManager):
             infohash = download.get_def().get_infohash()
 
             if ds.get_status() == DLSTATUS_SEEDING:
-                if self.tribler_session.bootstrap and not self.tribler_session.bootstrap.bootstrap_finished \
-                        and hexlify(infohash) == self.tribler_session.config.get_bootstrap_infohash() \
-                        and self.tribler_session.trustchain_community:
-                    if download.future_finished.done():
-                        get_event_loop().run_in_executor(None, self.tribler_session.import_bootstrap_file)
-                        self.tribler_session.bootstrap.bootstrap_finished = True
-                    else:
-                        self._logger.info("Bootstrap download not finished yet, rescheduling")
-
                 if download.config.get_hops() == 0 and download.config.get_safe_seeding():
                     # Re-add the download with anonymity enabled
                     hops = self.tribler_session.config.get_default_number_hops()
@@ -716,9 +707,6 @@ class LibtorrentMgr(TaskManager):
                 for peer in download.get_peerlist():
                     if str(peer["extended_version"]).startswith('Tribler'):
                         self.tribler_session.payout_manager.update_peer(unhexlify(peer["id"]), infohash, peer["dtotal"])
-                        if self.tribler_session.bootstrap and hexlify(infohash) == self.tribler_session.config.get_bootstrap_infohash():
-                            if not self.is_pending_task_active('fetch_bootstrap_peers'):
-                                self.register_task('fetch_bootstrap_peers', self.tribler_session.bootstrap.fetch_bootstrap_peers)
 
         if self.state_cb_count % 4 == 0:
             if self.tribler_session.tunnel_community:

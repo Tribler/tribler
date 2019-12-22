@@ -263,11 +263,14 @@ class Session(TaskManager):
         self.trustchain_community.persistence.commit()
 
     async def start_bootstrap_download(self):
-        if self.config.get_bootstrap_enabled():
-            if not self.payout_manager:
-                self._logger.warning("Running bootstrap without payout enabled")
-            self.bootstrap = Bootstrap(self.config.get_state_dir(), dht=self.dht_community)
-            self.bootstrap.start_by_infohash(self.ltmgr.start_download, self.config.get_bootstrap_infohash())
+        if not self.payout_manager:
+            self._logger.warning("Running bootstrap without payout enabled")
+        self.bootstrap = Bootstrap(self.config.get_state_dir(), dht=self.dht_community)
+        self.bootstrap.start_by_infohash(self.ltmgr.start_download, self.config.get_bootstrap_infohash())
+        if self.trustchain_community:
+            await self.bootstrap.download.future_finished
+            await get_event_loop().run_in_executor(None, self.import_bootstrap_file)
+            self.bootstrap.bootstrap_finished = True
 
     def create_state_directory_structure(self):
         """Create directory structure of the state directory."""
@@ -556,8 +559,8 @@ class Session(TaskManager):
         if self.gigachannel_manager:
             self.gigachannel_manager.start()
 
-        if not self.bootstrap:
-            await self.start_bootstrap_download()
+        if self.config.get_bootstrap_enabled():
+            self.register_task('bootstrap_download', self.start_bootstrap_download)
 
     async def shutdown(self):
         """
@@ -627,6 +630,10 @@ class Session(TaskManager):
 
         self.notify_shutdown_state("Saving configuration...")
         self.config.write()
+
+        if self.bootstrap:
+            await self.bootstrap.shutdown()
+        self.bootstrap = None
 
         if self.ltmgr:
             await self.ltmgr.shutdown()

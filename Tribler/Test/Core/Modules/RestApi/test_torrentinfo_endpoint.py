@@ -50,9 +50,7 @@ class TestTorrentInfoEndpoint(AbstractApiTest):
 
         self.session.ltmgr = MockObject()
         self.session.ltmgr.download_exists = lambda _: False
-        self.session.ltmgr.get_downloads = lambda **_: []
-        self.session.ltmgr.shutdown_downloads = lambda: succeed(None)
-        self.session.ltmgr.checkpoint_downloads = lambda: succeed(None)
+        self.session.ltmgr.get_channel_downloads = lambda: []
 
         await self.do_request('torrentinfo', expected_code=400)
         await self.do_request('torrentinfo?uri=def', expected_code=400)
