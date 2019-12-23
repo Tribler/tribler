@@ -114,6 +114,7 @@ class TestUpgradePreconditionChecker(TriblerCoreTest):
         with conn:
             cursor = conn.cursor()
             cursor.execute("UPDATE MyInfo SET value = 28 WHERE entry == 'version'")
+        conn.close()
         self.assertFalse(old_db_version_ok(old_db))
 
     def test_cleanup_pony_experimental_db(self):
@@ -158,6 +159,7 @@ class TestUpgradePreconditionChecker(TriblerCoreTest):
         with connection:
             cursor = connection.cursor()
             cursor.execute("UPDATE MiscData SET value = 12313512 WHERE name == 'db_version'")
+        connection.close()
         self.assertFalse(new_db_version_ok(pony_db))
 
     def test_already_upgraded(self):

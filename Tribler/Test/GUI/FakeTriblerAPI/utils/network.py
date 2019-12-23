@@ -74,16 +74,12 @@ def _test_port(family, sock_type, port):
     assert sock_type in (socket.SOCK_DGRAM, socket.SOCK_STREAM), "Invalid sock_type value %s" % sock_type
     assert 0 < port <= 65535, "Invalid port value %s" % port
 
-    s = None
     try:
-        s = socket.socket(family, sock_type)
-        if sock_type == socket.SOCK_STREAM:
-            s.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER, struct.pack('ii', 1, 0))
-        s.bind(('', port))
+        with socket.socket(family, sock_type) as s:
+            if sock_type == socket.SOCK_STREAM:
+                s.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER, struct.pack('ii', 1, 0))
+            s.bind(('', port))
         is_port_working = True
     except socket.error:
         is_port_working = False
-    finally:
-        if s:
-            s.close()
     return is_port_working
