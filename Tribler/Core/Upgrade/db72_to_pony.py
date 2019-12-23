@@ -116,7 +116,8 @@ class DispersyToPonyMigration(object):
                 tracker_url_sanitized = get_uniformed_tracker_url(tracker)
                 if not tracker_url_sanitized:
                     continue
-            except:
+            except Exception as e:
+                self._logger.warning("Encountered malformed tracker: %s", e)
                 # Skip malformed trackers
                 continue
             trackers[tracker_url_sanitized] = ({
@@ -211,7 +212,8 @@ class DispersyToPonyMigration(object):
                     "last_check": last_tracker_check
                 } if (last_tracker_check >= 0 and seeders >= 0 and leechers >= 0) else None
                 torrents.append((torrent_dict, health_dict))
-            except:
+            except Exception as e:
+                self._logger.warning("During retrieval of old torrents an exception was raised: %s", e)
                 continue
 
         connection.close()
