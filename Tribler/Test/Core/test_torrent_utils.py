@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import os
 
 from Tribler.Core.Utilities.torrent_utils import create_torrent_file, get_info_from_handle

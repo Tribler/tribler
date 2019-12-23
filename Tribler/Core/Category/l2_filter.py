@@ -1,11 +1,8 @@
-from __future__ import absolute_import
-
 import os
 import re
 import sys
 
 from Tribler.Core.Utilities.install_dir import get_lib_path
-
 
 # !ACHTUNG! We must first read the line into a file, then release the lock, and only then pass it to regex compiler.
 # Otherwise, there is an annoying race condition that reads in an empty file!

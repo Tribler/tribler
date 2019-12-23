@@ -1,34 +1,38 @@
-from __future__ import absolute_import
-
+from asyncio import Future
 from binascii import unhexlify
+
+from anydex.core.community import MarketCommunity
+
+from ipv8.attestation.trustchain.community import TrustChainCommunity
 
 from nose.tools import raises
 
-from twisted.internet.defer import inlineCallbacks
-
-from Tribler.Core.Config.download_config import DownloadConfig
+from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
+from Tribler.Core.Modules.payout_manager import PayoutManager
 from Tribler.Core.Session import SOCKET_BLOCK_ERRORCODE
-from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.Utilities.utilities import succeed
 from Tribler.Core.exceptions import OperationNotEnabledByConfigurationException
+from Tribler.Core.simpledefs import DLSTATUS_METADATA
+from Tribler.Test.Core.Libtorrent.test_libtorrent_mgr import create_fake_download_and_state
 from Tribler.Test.Core.base_test import MockObject
-from Tribler.Test.common import TORRENT_UBUNTU_FILE
 from Tribler.Test.test_as_server import TestAsServer
-from Tribler.Test.tools import trial_timeout
+from Tribler.Test.tools import timeout
+from Tribler.community.gigachannel.community import GigaChannelCommunity
+
+from TriblerGUI.defs import DLSTATUS_DOWNLOADING
 
 
 class TestSessionAsServer(TestAsServer):
 
-    @inlineCallbacks
-    def setUp(self):
-        yield super(TestSessionAsServer, self).setUp()
+    async def setUp(self):
+        await super(TestSessionAsServer, self).setUp()
         self.called = None
 
     def mock_endpoints(self):
-        self.session.lm.api_manager = MockObject()
-        self.session.lm.api_manager.stop = lambda: None
-        self.session.lm.api_manager.root_endpoint = MockObject()
-        self.session.lm.api_manager.root_endpoint.events_endpoint = MockObject()
-        self.session.lm.api_manager.root_endpoint.state_endpoint = MockObject()
+        self.session.api_manager = MockObject()
+        self.session.api_manager.stop = lambda: succeed(None)
+        endpoint = MockObject()
+        self.session.api_manager.get_endpoint = lambda _: endpoint
 
     def test_unhandled_error_observer(self):
         """
@@ -42,12 +46,10 @@ class TestSessionAsServer(TestAsServer):
             self.assertEqual(exception_text, expected_text)
 
         on_tribler_exception.called = 0
-        self.session.lm.api_manager.root_endpoint.events_endpoint.on_tribler_exception = on_tribler_exception
-        self.session.lm.api_manager.root_endpoint.state_endpoint.on_tribler_exception = on_tribler_exception
+        self.session.api_manager.get_endpoint('events').on_tribler_exception = on_tribler_exception
+        self.session.api_manager.get_endpoint('state').on_tribler_exception = on_tribler_exception
         expected_text = "abcd"
-        self.session.unhandled_error_observer({'isError': True, 'log_legacy': True, 'log_text': 'abcd'})
-        expected_text = "defg"
-        self.session.unhandled_error_observer({'isError': True, 'log_failure': 'defg'})
+        self.session.unhandled_error_observer(None, {'message': 'abcd'})
 
     def test_error_observer_ignored_error(self):
         """
@@ -58,67 +60,17 @@ class TestSessionAsServer(TestAsServer):
         def on_tribler_exception(_):
             raise RuntimeError("This method cannot be called!")
 
-        self.session.lm.api_manager.root_endpoint.events_endpoint.on_tribler_exception = on_tribler_exception
-        self.session.lm.api_manager.root_endpoint.state_endpoint.on_tribler_exception = on_tribler_exception
+        self.session.api_manager.get_endpoint('events').on_tribler_exception = on_tribler_exception
+        self.session.api_manager.get_endpoint('state').on_tribler_exception = on_tribler_exception
 
-        self.session.unhandled_error_observer({'isError': True, 'log_failure': 'socket.error: [Errno 113]'})
-        self.session.unhandled_error_observer({'isError': True, 'log_failure': 'socket.error: [Errno 51]'})
-        self.session.unhandled_error_observer({'isError': True, 'log_failure': 'socket.error: [Errno 16]'})
-        self.session.unhandled_error_observer({'isError': True, 'log_failure': 'socket.error: [Errno 11001]'})
-        self.session.unhandled_error_observer({'isError': True, 'log_failure': 'socket.error: [Errno 10053]'})
-        self.session.unhandled_error_observer({'isError': True, 'log_failure': 'socket.error: [Errno 10054]'})
-        self.session.unhandled_error_observer({'isError': True,
-                                               'log_failure': 'socket.error: [Errno %s]' % SOCKET_BLOCK_ERRORCODE})
-        self.session.unhandled_error_observer({'isError': True, 'log_failure': 'exceptions.ValueError: Invalid DNS-ID'})
-        self.session.unhandled_error_observer({'isError': True,
-                                               'log_failure': 'twisted.web._newclient.ResponseNeverReceived'})
-        self.session.unhandled_error_observer({'isError': True,
-                                               'log_failure': 'exceptions.RuntimeError: invalid info-hash'})
-
-    def test_load_checkpoint(self):
-        self.load_checkpoint_called = False
-
-        def verify_load_checkpoint_call():
-            self.load_checkpoint_called = True
-
-        self.session.lm.load_checkpoint = verify_load_checkpoint_call
-        self.session.load_checkpoint()
-        self.assertTrue(self.load_checkpoint_called)
-
-    @raises(OperationNotEnabledByConfigurationException)
-    def test_get_libtorrent_process_not_enabled(self):
-        """
-        When libtorrent is not enabled, an exception should be thrown when getting the libtorrent instance.
-        """
-        self.session.config.get_libtorrent_enabled = lambda: False
-        self.session.get_libtorrent_process()
-
-    def test_remove_download_by_id_empty(self):
-        """
-        Remove downloads method when empty.
-        """
-        self.session.remove_download_by_id("nonexisting_infohash")
-        self.assertEqual(len(self.session.get_downloads()), 0)
-
-    def test_remove_download_by_id_nonempty(self):
-        """
-        Remove an existing download.
-        """
-        infohash = "abc"
-        download = MockObject()
-        torrent_def = MockObject()
-        torrent_def.get_infohash = lambda: infohash
-        download.get_def = lambda: torrent_def
-        self.session.get_downloads = lambda: [download]
-
-        self.called = False
-
-        def verify_remove_download_called(*args, **kwargs):
-            self.called = True
-
-        self.session.remove_download = verify_remove_download_called
-        self.session.remove_download_by_id(infohash)
-        self.assertTrue(self.called)
+        self.session.unhandled_error_observer(None, {'message': 'socket.error: [Errno 113]'})
+        self.session.unhandled_error_observer(None, {'message': 'socket.error: [Errno 51]'})
+        self.session.unhandled_error_observer(None, {'message': 'socket.error: [Errno 16]'})
+        self.session.unhandled_error_observer(None, {'message': 'socket.error: [Errno 11001]'})
+        self.session.unhandled_error_observer(None, {'message': 'socket.error: [Errno 10053]'})
+        self.session.unhandled_error_observer(None, {'message': 'socket.error: [Errno 10054]'})
+        self.session.unhandled_error_observer(None, {'message': 'socket.error: [Errno %s]' % SOCKET_BLOCK_ERRORCODE})
+        self.session.unhandled_error_observer(None, {'message': 'exceptions.RuntimeError: invalid info-hash'})
 
     @raises(OperationNotEnabledByConfigurationException)
     def test_get_ipv8_instance(self):
@@ -139,18 +91,83 @@ class TestSessionWithLibTorrent(TestSessionAsServer):
         return super(TestSessionWithLibTorrent, self).temporary_directory(suffix,
                                                                           exist_ok=suffix == u'_tribler_test_session_')
 
-    @trial_timeout(10)
-    def test_remove_torrent_id(self):
+
+class TestBootstrapSession(TestAsServer):
+
+    async def setUp(self):
+        await super(TestBootstrapSession, self).setUp()
+        self.test_future = Future()
+
+    def setUpPreSession(self):
+        TestAsServer.setUpPreSession(self)
+
+        # Enable all communities
+        config_sections = ['bootstrap', 'libtorrent']
+
+        for section in config_sections:
+            self.config.config[section]['enabled'] = True
+        self.config.set_bootstrap_infohash("200a4aeb677a04817f1043e8d24591818c7e827c")
+
+    def downloader_state_callback(self, ds):
+        if ds.get_status() == DLSTATUS_METADATA or ds.get_status() == DLSTATUS_DOWNLOADING:
+            self.test_future.set_result(None)
+            return 0.0
+        return 0.5
+
+    @timeout(20)
+    async def test_bootstrap_downloader(self):
+        self.session.start_bootstrap_download()
+        self.session.bootstrap.download.set_state_callback(self.downloader_state_callback)
+
+        infohash = self.config.get_bootstrap_infohash()
+        self.assertIsNotNone(self.session.bootstrap)
+        self.assertTrue(unhexlify(infohash) in self.session.ltmgr.downloads,
+                        "Infohash %s Should be in downloads" % infohash)
+        await self.test_future
+
+
+class TestLaunchFullSession(TestAsServer):
+
+    def setUpPreSession(self):
+        TestAsServer.setUpPreSession(self)
+
+        # Enable all communities
+        config_sections = ['trustchain', 'tunnel_community', 'ipv8', 'dht', 'chant', 'market_community']
+
+        for section in config_sections:
+            self.config.config[section]['enabled'] = True
+
+        self.config.set_tunnel_community_socks5_listen_ports(self.get_ports(5))
+        self.config.set_ipv8_bootstrap_override("127.0.0.1:12345")  # So we do not contact the real trackers
+
+    def get_community(self, overlay_cls):
+        for overlay in self.session.get_ipv8_instance().overlays:
+            if isinstance(overlay, overlay_cls):
+                return overlay
+
+    def test_load_communities(self):
         """
-        Test whether removing a torrent id works.
+        Testing whether all IPv8 communities can be succesfully loaded
         """
-        torrent_def = TorrentDef.load(TORRENT_UBUNTU_FILE)
-        dcfg = DownloadConfig()
-        dcfg.set_dest_dir(self.getDestDir())
+        self.assertTrue(self.get_community(GigaChannelCommunity))
+        self.assertTrue(self.get_community(MarketCommunity))
+        self.assertTrue(self.get_community(TrustChainCommunity))
 
-        download = self.session.start_download_from_tdef(torrent_def, download_config=dcfg, hidden=True)
+    async def test_update_payout_balance(self):
+        """
+        Test whether the balance of peers is correctly updated
+        """
+        fake_download, dl_state = create_fake_download_and_state()
+        dl_state.get_status = lambda: DLSTATUS_DOWNLOADING
 
-        # Create a deferred which forwards the unhexlified string version of the download's infohash
-        download_started = download.get_handle().addCallback(lambda handle: unhexlify(str(handle.info_hash())))
+        self.session.ltmgr = LibtorrentMgr(self.session)
 
-        return download_started.addCallback(self.session.remove_download_by_id)
+        fake_tc = MockObject()
+        fake_tc.add_listener = lambda *_: None
+        self.session.payout_manager = PayoutManager(fake_tc, None)
+
+        self.session.ltmgr.state_cb_count = 4
+        self.session.ltmgr.downloads = {b'aaaa': fake_download}
+        await self.session.ltmgr.sesscb_states_callback([dl_state])
+
+        self.assertTrue(self.session.payout_manager.tribler_peers)

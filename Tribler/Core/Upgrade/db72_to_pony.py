@@ -1,21 +1,12 @@
-from __future__ import absolute_import, division
-
 import base64
 import datetime
 import logging
 import os
 import sqlite3
-
-from ipv8.database import database_blob
+from asyncio import sleep
 
 from pony import orm
 from pony.orm import db_session
-
-from six import text_type
-
-from twisted.internet import reactor
-from twisted.internet.defer import inlineCallbacks
-from twisted.internet.task import deferLater
 
 from Tribler.Core.Category.l2_filter import is_forbidden
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import BLOB_EXTENSION
@@ -37,10 +28,6 @@ CONVERSION_FROM_72 = "conversion_from_72"
 CONVERSION_FROM_72_PERSONAL = "conversion_from_72_personal"
 CONVERSION_FROM_72_DISCOVERED = "conversion_from_72_discovered"
 CONVERSION_FROM_72_CHANNELS = "conversion_from_72_channels"
-
-
-def pseudo_signature():
-    return database_blob(os.urandom(32))
 
 
 def final_timestamp():
@@ -189,48 +176,33 @@ class DispersyToPonyMigration(object):
                 except UnicodeDecodeError:
                     continue
 
-                try:
-                    invalid_base64 = len(base64.decodestring(infohash.encode('utf-8'))) != 20
-                    invalid_torrent_id = not torrent_id or int(torrent_id) == 0
-                    invalid_len = not length or (int(length) <= 0) or (int(length) > (1 << 45))
-                    invalid_name = not name or is_forbidden(name)
+        torrents = []
+        batch_not_empty = False # This is a dumb way to indicate that this batch got zero entries from DB
 
-                    if invalid_base64 or invalid_torrent_id or invalid_len or invalid_name:
-                        continue
+        for tracker_url, channel_id, name, infohash, length, creation_date, torrent_id, category, num_seeders, \
+            num_leechers, last_tracker_check in \
+                cursor.execute(
+                    self.select_full + personal_channel_filter + " group by infohash" +
+                    (" LIMIT " + str(batch_size) + " OFFSET " + str(offset))):
+            batch_not_empty = True
+            # check if name is valid unicode data
+            try:
+                name = str(name)
+            except UnicodeDecodeError:
+                continue
 
-                    infohash = base64.decodestring(infohash.encode())
+            try:
+                invalid_base64 = len(base64.decodestring(infohash.encode('utf-8'))) != 20
+                invalid_torrent_id = not torrent_id or int(torrent_id) == 0
+                invalid_len = not length or (int(length) <= 0) or (int(length) > (1 << 45))
+                invalid_name = not name or is_forbidden(name)
 
-                    torrent_date = datetime.datetime.utcfromtimestamp(creation_date or 0)
-                    torrent_date = torrent_date if 0 <= time2int(torrent_date) <= self.conversion_start_timestamp_int \
-                        else int2time(0)
-                    torrent_dict = {
-                        "status": NEW,
-                        "infohash": infohash,
-                        "size": int(length),
-                        "torrent_date": torrent_date,
-                        "title": name or '',
-                        "tags": category or '',
-                        "tracker_info": tracker_url or '',
-                        "xxx": int(category == u'xxx')}
-                    if not sign:
-                        torrent_dict.update({"origin_id": infohash_to_id(channel_id)})
-                    seeders = int(num_seeders or 0)
-                    leechers = int(num_leechers or 0)
-                    last_tracker_check = int(last_tracker_check or 0)
-                    health_dict = {
-                        "seeders": seeders,
-                        "leechers": leechers,
-                        "last_check": last_tracker_check
-                    } if (last_tracker_check >= 0 and seeders >= 0 and leechers >= 0) else None
-                    torrents.append((torrent_dict, health_dict))
-                except Exception as e:
-                    self._logger.warning("During retrieval of old torrents an exception was raised: %s", e)
+                if invalid_base64 or invalid_torrent_id or invalid_len or invalid_name:
                     continue
 
         return torrents if batch_not_empty else None
 
-    @inlineCallbacks
-    def convert_personal_channel(self):
+    async def convert_personal_channel(self):
         with db_session:
             # Reflect conversion state
             v = self.mds.MiscData.get_for_update(name=CONVERSION_FROM_72_PERSONAL)
@@ -262,7 +234,7 @@ class DispersyToPonyMigration(object):
             def add_to_pony(t):
                 return self.mds.TorrentMetadata(origin_id=my_channel.id_, **t)
 
-            yield self.convert_async(add_to_pony, get_old_stuff, total_to_convert,
+            await self.convert_async(add_to_pony, get_old_stuff, total_to_convert,
                                      offset=0, message="Converting personal channel torrents.")
 
             with db_session:
@@ -283,16 +255,14 @@ class DispersyToPonyMigration(object):
             v = self.mds.MiscData.get_for_update(name=CONVERSION_FROM_72_PERSONAL)
             v.value = CONVERSION_FINISHED
 
-    @inlineCallbacks
-    def update_convert_total(self, amount, elapsed):
+    async def update_convert_total(self, amount, elapsed):
         if self.notifier_callback:
             elapsed = 0.0001 if elapsed == 0.0 else elapsed
             self.notifier_callback("%i entries converted in %i seconds (%i e/s)" % (amount, int(elapsed),
                                                                                     int(amount / elapsed)))
-            yield deferLater(reactor, 0.001, lambda: None)
+            await sleep(0.001)
 
-    @inlineCallbacks
-    def update_convert_progress(self, amount, total, elapsed, message=""):
+    async def update_convert_progress(self, amount, total, elapsed, message=""):
         if self.notifier_callback:
             elapsed = 0.0001 if elapsed == 0.0 else elapsed
             amount = amount or 1
@@ -300,10 +270,9 @@ class DispersyToPonyMigration(object):
             eta = str(datetime.timedelta(seconds=int((total - amount) / est_speed)))
             self.notifier_callback("%s\nConverted: %i/%i (%i%%).\nTime remaining: %s" %
                                    (message, amount, total, (amount * 100) // total, eta))
-            yield deferLater(reactor, 0.001, lambda: None)
+            await sleep(0.001)
 
-    @inlineCallbacks
-    def convert_async(self, add_to_pony, get_old_stuff, total_to_convert, offset=0, message=""):
+    async def convert_async(self, add_to_pony, get_old_stuff, total_to_convert, offset=0, message=""):
         """
         This method converts old stuff into the pony database splitting the process into chunks dynamically.
         Chunks splitting uses congestion-control-like algorithm. Yields are necessary so Twisted
@@ -334,12 +303,11 @@ class DispersyToPonyMigration(object):
                         if torrent and health:
                             torrent.health.set(**health)
                     except:
-                        self._logger.warning("Error while converting torrent entry: %s %s", text_type(torrent_dict),
-                                             text_type(health))
+                        self._logger.warning("Error while converting torrent entry: %s %s", torrent_dict, health)
             batch_end_time = datetime.datetime.now() - batch_start_time
 
             elapsed = (datetime.datetime.utcnow() - start_time).total_seconds()
-            yield self.update_convert_progress(start, total_to_convert, elapsed, message)
+            await self.update_convert_progress(start, total_to_convert, elapsed, message)
             target_coeff = (batch_end_time.total_seconds() / reference_timedelta.total_seconds())
             if len(batch) == batch_size:
                 # Adjust batch size only for full batches
@@ -353,10 +321,9 @@ class DispersyToPonyMigration(object):
                               start + batch_size, total_to_convert, float(batch_end_time.total_seconds()))
             start = end
 
-        yield self.update_convert_total(start, elapsed)
+        await self.update_convert_total(start, elapsed)
 
-    @inlineCallbacks
-    def convert_discovered_torrents(self):
+    async def convert_discovered_torrents(self):
         offset = 0
         # Reflect conversion state
         with db_session:
@@ -369,7 +336,7 @@ class DispersyToPonyMigration(object):
             else:
                 self.mds.MiscData(name=CONVERSION_FROM_72_DISCOVERED, value=CONVERSION_STARTED)
 
-        yield self.convert_async(self.mds.TorrentMetadata.add_ffa_from_dict,
+        await self.convert_async(self.mds.TorrentMetadata.add_ffa_from_dict,
                                  self.get_old_torrents,
                                  self.get_old_torrents_count(),
                                  offset=offset,
@@ -435,11 +402,10 @@ class DispersyToPonyMigration(object):
             else:
                 self.mds.MiscData(name=CONVERSION_FROM_72, value=CONVERSION_FINISHED)
 
-    @inlineCallbacks
-    def do_migration(self):
-        yield self.convert_personal_channel()
+    async def do_migration(self):
+        await self.convert_personal_channel()
         self.mds.clock = None  # We should never touch the clock during legacy conversions
-        yield self.convert_discovered_torrents()
+        await self.convert_discovered_torrents()
         self.convert_discovered_channels()
         self.update_trackers_info()
         self.mark_conversion_finished()

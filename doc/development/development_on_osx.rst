@@ -13,9 +13,9 @@ To install the Tribler dependencies using MacPorts, please run the following com
 
 .. code-block:: bash
 
-    sudo port -N install git ffmpeg qt5-qtcreator libtorrent-rasterbar gmp mpfr libmpc libsodium py27-Pillow py27-twisted \
-    py27-cherrypy3 py27-cffi py27-chardet py27-configobj py27-gmpy2 py27-pycparser py27-numpy py27-idna py27-cryptography \
-    py27-decorator py27-netifaces py27-service_identity py27-asn1-modules py27-pyinstaller py27-pyqt5 py27-sqlite py27-matplotlib py27-libnacl
+    sudo port -N install git ffmpeg qt5-qtcreator libtorrent-rasterbar gmp mpfr libmpc libsodium py37-Pillow py37-twisted \
+    py37-cherrypy3 py37-cffi py37-chardet py37-configobj py37-gmpy2 py37-pycparser py37-numpy py37-idna py37-cryptography \
+    py37-decorator py37-netifaces py37-service_identity py37-asn1-modules py37-pyinstaller py37-pyqt5 py37-sqlite py37-matplotlib py37-libnacl
     
 HomeBrew
 --------
@@ -47,27 +47,6 @@ An essential dependency of Tribler is libtorrent. libtorrent is dependent on Boo
 
     brew install boost
     brew install boost-python
-
-By default libtorrent is installed with ``python3``. To install it with ``python2`` you need to do following:
-
-.. code-block:: bash
-
-   brew edit libtorrent-rasterbar
-
-
-Change the lines of ``args`` from
-
-.. code-block:: bash
-
-    --with-boost-python=boost_python37-mt
-    PYTHON=python3
-
-to
-
-.. code-block:: bash
-
-    --with-boost-python=boost_python27-mt
-    PYTHON=python2.7
 
 
 After that you can install it with

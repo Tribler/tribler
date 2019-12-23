@@ -3,8 +3,6 @@ instrumentation.
 
 Author(s): Elric Milon
 """
-from __future__ import absolute_import, print_function
-
 import threading
 from os import sys
 from threading import Lock, RLock, Thread

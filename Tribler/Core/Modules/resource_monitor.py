@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import logging
 import os
 import time
@@ -7,8 +5,6 @@ import time
 from ipv8.taskmanager import TaskManager
 
 import psutil
-
-from twisted.internet.task import LoopingCall
 
 from Tribler.Core.simpledefs import SIGNAL_LOW_SPACE, SIGNAL_RESOURCE_CHECK
 
@@ -32,7 +28,6 @@ class ResourceMonitor(TaskManager):
 
         self._logger = logging.getLogger(self.__class__.__name__)
         self.session = session
-        self.check_interval = 5
         self.cpu_data = []
         self.memory_data = []
         self.disk_usage_data = []
@@ -45,18 +40,20 @@ class ResourceMonitor(TaskManager):
         self.profiler_start_time = None
         self.profiler_running = False
 
+        self.last_error = None
+
     def start(self):
         """
         Start the resource monitor by scheduling a LoopingCall.
         """
-        self.register_task("check_resources", LoopingCall(self.check_resources)).start(
-            self.session.config.get_resource_monitor_poll_interval(), now=False)
+        self.register_task("check_resources", self.check_resources,
+                           interval=self.session.config.get_resource_monitor_poll_interval())
 
-    def stop(self):
+    async def stop(self):
         if HAS_YAPPI and self.profiler_running:
             self.stop_profiler()
 
-        self.shutdown_task_manager()
+        await self.shutdown_task_manager()
 
     def start_profiler(self):
         """
@@ -131,7 +128,13 @@ class ResourceMonitor(TaskManager):
             except Exception as e:
                 # Can be MemoryError or WindowsError, which isn't defined on Linux
                 # Catching a WindowsError would therefore error out the error handler itself on Linux
-                self._logger.error("Failed to get memory full info: %s", str(e))
+                # We do not want to spam the log with errors in situation where e.g., memory info
+                # access is denied. So, we remember the string representation of the last error
+                # message and skip logging it if we have already seen it before
+                last_error_str = str(e)
+                if self.last_error != last_error_str:
+                    self._logger.error("Failed to get memory full info: %s", last_error_str)
+                    self.last_error = last_error_str
         elif hasattr(self.process, "memory_info") and callable(getattr(self.process, "memory_info")):
             self.memory_data.append((time_seconds, self.process.memory_info().rss))
 
@@ -145,7 +148,7 @@ class ResourceMonitor(TaskManager):
 
         # Notify session if less than 100MB of disk space is available
         if disk_usage.free < 100 * (1024 * 1024):
-            self._logger.warn("Warning! Less than 100MB of disk space available")
+            self._logger.warning("Warning! Less than 100MB of disk space available")
             self.session.notifier.notify(SIGNAL_RESOURCE_CHECK, SIGNAL_LOW_SPACE, None, self.disk_usage_data[-1])
 
         # Write resource logs

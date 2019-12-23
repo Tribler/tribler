@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-from __future__ import division
-
 import time
 
 import pyqtgraph as pg
@@ -19,8 +16,7 @@ class TimeSeriesPlot(pg.PlotWidget):
         self.setAntialiasing(True)
         self.setMenuEnabled(False)
 
-        self.series = None
-        self.plot_data = [[], []]
+        self.plot_data = {}
         self.plots = []
         self.series = series
         self.last_timestamp = 0
@@ -29,8 +25,6 @@ class TimeSeriesPlot(pg.PlotWidget):
         legend.setParentItem(self.graphicsItem())
 
         for serie in series:
-            self.plot_data[1].append([])
-
             plot = self.plot(**serie)
             self.plots.append(plot)
             legend.addItem(plot, serie['name'])
@@ -42,16 +36,12 @@ class TimeSeriesPlot(pg.PlotWidget):
         pass
 
     def reset_plot(self):
-        self.plot_data = [[], [[] for _ in self.plots]]
+        self.plot_data = {}
 
-    def add_data(self, timestamp, data, skip_old=False):
-        if skip_old and timestamp < self.last_timestamp:
-            return
-        self.plot_data[0].append(timestamp)
-        for i, data_item in enumerate(data):
-            self.plot_data[1][i].append(data_item)
-        self.last_timestamp = timestamp
+    def add_data(self, timestamp, data):
+        self.plot_data[timestamp] = data
 
     def render_plot(self):
         for i, plot in enumerate(self.plots):
-            plot.setData(y=pg.np.array(self.plot_data[1][i]), x=pg.np.array(self.plot_data[0]))
+            plot.setData(x=pg.np.array(list(self.plot_data.keys())),
+                         y=pg.np.array([data[i] for data in self.plot_data.values()]))

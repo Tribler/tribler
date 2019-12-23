@@ -15,7 +15,7 @@ version_str = version_id.split('-')[0]
 
 # On macOS, we always show the console to prevent the double-dock bug (although the OS does not actually show the console).
 # See https://github.com/Tribler/tribler/issues/3817
-show_console = False
+show_console = os.environ.get('SHOW_CONSOLE', '0') == '1'
 if sys.platform == 'darwin':
     show_console = True
 
@@ -53,7 +53,7 @@ if sys.platform.startswith('darwin'):
     with open('Tribler/Main/Build/Mac/Info.plist', 'w') as f:
         f.write(content)
 
-excluded_libs = ['wx', 'bitcoinlib', 'PyQt4', 'FixTk', 'tcl', 'tk', '_tkinter', 'tkinter', 'Tkinter']
+excluded_libs = ['wx', 'bitcoinlib', 'PyQt4', 'FixTk', 'tcl', 'tk', '_tkinter', 'tkinter', 'Tkinter', 'matplotlib']
 
 # Pony dependencies; each packages need to be added separatedly; added as hidden import
 pony_deps = ['pony', 'pony.orm', 'pony.orm.dbproviders', 'pony.orm.dbproviders.sqlite']

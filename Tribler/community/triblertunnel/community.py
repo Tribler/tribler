@@ -1,9 +1,8 @@
-from __future__ import absolute_import
-
 import hashlib
 import os
 import sys
 import time
+from asyncio import Future, gather, sleep
 from binascii import unhexlify
 from collections import Counter
 from distutils.version import LooseVersion
@@ -14,7 +13,7 @@ from ipv8.attestation.trustchain.block import EMPTY_PK
 from ipv8.messaging.anonymization.caches import CreateRequestCache
 from ipv8.messaging.anonymization.community import message_to_payload
 from ipv8.messaging.anonymization.hidden_services import HiddenTunnelCommunity
-from ipv8.messaging.anonymization.payload import LinkedE2EPayload, NO_CRYPTO_PACKETS
+from ipv8.messaging.anonymization.payload import NO_CRYPTO_PACKETS
 from ipv8.messaging.anonymization.tunnel import (
     CIRCUIT_STATE_CLOSING,
     CIRCUIT_STATE_READY,
@@ -29,10 +28,9 @@ from ipv8.messaging.anonymization.tunnel import (
 from ipv8.peer import Peer
 from ipv8.peerdiscovery.network import Network
 
-from twisted.internet.defer import Deferred, inlineCallbacks, succeed
-
 from Tribler.Core.Socks5.server import Socks5Server
 from Tribler.Core.Utilities.unicode import hexlify
+from Tribler.Core.Utilities.utilities import succeed
 from Tribler.Core.simpledefs import (
     DLSTATUS_DOWNLOADING,
     DLSTATUS_METADATA,
@@ -75,7 +73,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         if self.tribler_session:
             if self.tribler_session.config.get_tunnel_community_exitnode_enabled():
                 self.settings.peer_flags |= PEER_FLAG_EXIT_ANY
-            self.tribler_session.lm.tunnel_community = self
+            self.tribler_session.tunnel_community = self
 
             if not socks_listen_ports:
                 socks_listen_ports = self.tribler_session.config.get_tunnel_community_socks5_listen_ports()
@@ -94,7 +92,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         self.socks_servers = []
         for port in socks_listen_ports:
             socks_server = Socks5Server(port, self.dispatcher)
-            socks_server.start()
+            self.register_task('start_socks_%d' % port, socks_server.start)
             self.socks_servers.append(socks_server)
 
         self.dispatcher.set_socks_servers(self.socks_servers)
@@ -119,6 +117,11 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         if self.exitnode_cache:
             self.restore_exitnodes_from_disk()
+
+    async def wait_for_socks_servers(self):
+        # Wait for the socks server to be ready. Otherwise, hidden services downloads may fail.
+        while any([name.startswith('start_socks_') for name in self._pending_tasks.keys()]):
+            await sleep(.05)
 
     def get_available_strategies(self):
         return super(TriblerTunnelCommunity, self).get_available_strategies().update({'GoldenRatioStrategy':
@@ -169,7 +172,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             if not tup[1]:
                 # The slot is empty, take it
                 self.competing_slots[ind] = (balance, circuit_id)
-                cache.balance_deferred.callback(True)
+                cache.balance_future.set_result(True)
                 return
 
             if tup[0] < lowest_balance:
@@ -186,16 +189,16 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             self.remove_relay(old_circuit_id, destroy=True)
             self.remove_exit_socket(old_circuit_id, destroy=True)
 
-            cache.balance_deferred.callback(True)
+            cache.balance_future.set_result(True)
         else:
             # We can't compete with the balances in the existing slots
             if self.reject_callback:
                 self.reject_callback(time.time(), balance)
-            cache.balance_deferred.callback(False)
+            cache.balance_future.set_result(False)
 
     def should_join_circuit(self, create_payload, previous_node_address):
         """
-        Check whether we should join a circuit. Returns a deferred that fires with a boolean.
+        Check whether we should join a circuit. Returns a future that fires with a boolean.
         """
         if self.settings.max_joined_circuits <= len(self.relay_from_to) + len(self.exit_sockets):
             self.logger.warning("too many relays (%d)", (len(self.relay_from_to) + len(self.exit_sockets)))
@@ -210,8 +213,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         # No random slots but this user might be allocated a competing slot.
         # Next, we request the token balance of the circuit initiator.
-        balance_deferred = Deferred()
-        self.request_cache.add(BalanceRequestCache(self, circuit_id, balance_deferred))
+        balance_future = Future()
+        self.request_cache.add(BalanceRequestCache(self, circuit_id, balance_future))
 
         # Temporarily add these values, otherwise we are unable to communicate with the previous hop.
         self.directions[circuit_id] = EXIT_NODE
@@ -224,27 +227,28 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         self.directions.pop(circuit_id, None)
         self.relay_session_keys.pop(circuit_id, None)
 
-        return balance_deferred
+        return balance_future
 
-    def on_payout_block(self, source_address, data):
+    async def on_payout_block(self, source_address, data):
         if not self.bandwidth_wallet:
             self.logger.warning("Got payout while not having a TrustChain community running!")
             return
 
         payload = self._ez_unpack_noauth(PayoutPayload, data, global_time=False)
         peer = Peer(payload.public_key, source_address)
-
-        def on_transaction_completed(blocks):
-            # Send the next payout
-            if blocks and payload.circuit_id in self.relay_from_to and block.transaction[b'down'] > payload.base_amount:
-                relay = self.relay_from_to[payload.circuit_id]
-                self._logger.info("Sending next payout to peer %s", relay.peer)
-                self.do_payout(relay.peer, relay.circuit_id, block.transaction[b'down'] - payload.base_amount * 2,
-                               payload.base_amount)
-
         block = TriblerBandwidthBlock.from_payload(payload, self.serializer)
-        self.bandwidth_wallet.trustchain.process_half_block(block, peer)\
-            .addCallbacks(on_transaction_completed, lambda _: None)
+
+        try:
+            blocks = await self.bandwidth_wallet.trustchain.process_half_block(block, peer)
+        except:
+            return
+
+        # Send the next payout
+        if blocks and payload.circuit_id in self.relay_from_to and block.transaction[b'down'] > payload.base_amount:
+            relay = self.relay_from_to[payload.circuit_id]
+            self._logger.info("Sending next payout to peer %s", relay.peer)
+            self.do_payout(relay.peer, relay.circuit_id, block.transaction[b'down'] - payload.base_amount * 2,
+                           payload.base_amount)
 
         # Check whether the block has been added to the database and has been verified
         if not self.bandwidth_wallet.trustchain.persistence.contains(block):
@@ -273,7 +277,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         We received a balance request from a relay or exit node. Respond with the latest block in our chain.
         """
         if not self.bandwidth_wallet:
-            self.logger.warn("Bandwidth wallet is not available, not sending balance response!")
+            self.logger.warning("Bandwidth wallet is not available, not sending balance response!")
             return
 
         # Get the latest block
@@ -325,7 +329,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                 torrent.add_peer(peer)
             del self.bittorrent_peers[torrent]
 
-    def update_torrent(self, peers, handle, download):
+    async def update_torrent(self, peers, download):
+        handle = await download.get_handle()
         peers = peers.intersection(handle.get_peer_info())
         if peers:
             if download not in self.bittorrent_peers:
@@ -399,24 +404,20 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                 self.do_payout(circuit.peer, circuit_id, circuit.bytes_down * (circuit.goal_hops * 2 - 1),
                                circuit.bytes_down)
 
-        # Now we actually remove the circuit
-        remove_deferred = super(TriblerTunnelCommunity, self)\
-            .remove_circuit(circuit_id, additional_info=additional_info, remove_now=remove_now, destroy=destroy)
-
         affected_peers = self.dispatcher.circuit_dead(circuit)
 
-        def update_torrents(_):
-            ltmgr = self.tribler_session.lm.ltmgr \
-                if self.tribler_session and self.tribler_session.config.get_libtorrent_enabled() else None
-            if ltmgr:
-                for d, s in ltmgr.torrents.values():
-                    if s == ltmgr.get_session(d.config.get_hops()):
-                        d.get_handle().addCallback(lambda handle, download=d:
-                                                   self.update_torrent(affected_peers, handle, download))
+        async def _remove():
+            # Now we actually remove the circuit
+            super(TriblerTunnelCommunity, self).remove_circuit(circuit_id, additional_info=additional_info,
+                                                               remove_now=remove_now, destroy=destroy)
 
-        remove_deferred.addCallback(update_torrents)
-
-        return remove_deferred
+            if self.tribler_session and self.tribler_session.config.get_libtorrent_enabled():
+                ltmgr = self.tribler_session.ltmgr
+                await gather(*[self.update_torrent(affected_peers, download)
+                               for download, session in ltmgr.torrents.values()
+                               if session == ltmgr.get_session(download.config.get_hops())])
+        if not self.is_pending_task_active('schedule_remove_circuit_%d' % circuit_id):
+            self.register_task('schedule_remove_circuit_%d' % circuit_id, _remove)
 
     def remove_relay(self, circuit_id, additional_info='', remove_now=False, destroy=False, got_destroy_from=None,
                      both_sides=True):
@@ -479,6 +480,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                 real_info_hash = download.get_def().get_infohash()
                 info_hash = self.get_lookup_info_hash(real_info_hash)
                 hops[info_hash] = hop_count
+                new_states[info_hash] = ds.get_status()
+
                 if download.get_state().get_status() in [DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_METADATA]:
                     active_downloads_per_hop[hop_count] = active_downloads_per_hop.get(hop_count, 0) + 1
 
@@ -489,9 +492,6 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                             and not ds.get_peerlist():
                         download.force_dht_announce()
                         self.last_forced_announce[info_hash] = time.time()
-
-                self.e2e_callbacks[info_hash] = download.add_peer
-                new_states[info_hash] = ds.get_status()
 
         # Request 1 circuit per download while ensuring that the total number of circuits requested per hop count
         # stays within min_circuits and max_circuits.
@@ -507,7 +507,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
             # Join/leave hidden swarm as needed.
             if state_changed and new_state in [DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING]:
-                self.join_swarm(info_hash, hops[info_hash], seeding=new_state == DLSTATUS_SEEDING)
+                self.join_swarm(info_hash, hops[info_hash], seeding=new_state == DLSTATUS_SEEDING,
+                                callback=lambda addr, ih=info_hash: self.on_e2e_finished(addr, ih))
             elif state_changed and new_state in [DLSTATUS_STOPPED, None]:
                 self.leave_swarm(info_hash)
 
@@ -521,11 +522,32 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         self.download_states = new_states
 
+    def on_e2e_finished(self, address, info_hash):
+        dl = self.get_download(info_hash)
+        if dl:
+            dl.add_peer(address)
+        else:
+            self.logger.error('Could not find download for adding hidden services peer %s:%d!', *address)
+
+    def on_rendezvous_established(self, source_address, data, circuit_id):
+        super(TriblerTunnelCommunity, self).on_rendezvous_established(source_address, data, circuit_id)
+
+        circuit = self.circuits.get(circuit_id)
+        if circuit:
+            self.update_ip_filter(circuit.info_hash)
+
+    def update_ip_filter(self, info_hash):
+        download = self.get_download(info_hash)
+        lt_session = self.tribler_session.ltmgr.get_session(download.config.get_hops())
+        ip_addresses = [self.circuit_id_to_ip(c.circuit_id)
+                        for c in self.find_circuits(ctype=CIRCUIT_TYPE_RP_SEEDER)] + ['1.1.1.1']
+        self.tribler_session.ltmgr.update_ip_filter(lt_session, ip_addresses)
+
     def get_download(self, lookup_info_hash):
         if not self.tribler_session:
             return None
 
-        for download in self.tribler_session.get_downloads():
+        for download in self.tribler_session.ltmgr.get_downloads():
             if lookup_info_hash == self.get_lookup_info_hash(download.get_def().get_infohash()):
                 return download
 
@@ -538,37 +560,26 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             # an outgoing message through the SOCKS5 port.
             # This does not seem to work anymore in libtorrent 1.2.0 (and probably higher) so we manually associate
             # the connection and the libtorrent listen port.
-            if LooseVersion(self.tribler_session.lm.ltmgr.get_libtorrent_version()) < LooseVersion("1.2.0"):
+            if LooseVersion(self.tribler_session.ltmgr.get_libtorrent_version()) < LooseVersion("1.2.0"):
                 download.add_peer(('1.1.1.1', 1024))
             else:
                 hops = download.config.get_hops()
-                lt_listen_port = self.tribler_session.lm.ltmgr.get_session(hops).listen_port()
+                lt_listen_port = self.tribler_session.ltmgr.get_session(hops).listen_port()
                 for session in self.socks_servers[hops - 1].sessions:
-                    session.get_udp_socket().remote_udp_address = ("127.0.0.1", lt_listen_port)
+                    if session.get_udp_socket():
+                        session.get_udp_socket().remote_udp_address = ("127.0.0.1", lt_listen_port)
         super(TriblerTunnelCommunity, self).create_introduction_point(info_hash, amount)
 
-    def on_linked_e2e(self, source_address, data, circuit_id):
-        payload = self._ez_unpack_noauth(LinkedE2EPayload, data, global_time=False)
-        cache = self.request_cache.get(u"link-request", payload.identifier)
-        if cache:
-            download = self.get_download(cache.info_hash)
-            if download:
-                download.add_peer((self.circuit_id_to_ip(cache.circuit.circuit_id), 1024))
-            else:
-                self.logger.error('On linked e2e: could not find download!')
-        super(TriblerTunnelCommunity, self).on_linked_e2e(source_address, data, circuit_id)
-
-    @inlineCallbacks
-    def unload(self):
+    async def unload(self):
         if self.bandwidth_wallet:
-            self.bandwidth_wallet.shutdown_task_manager()
+            await self.bandwidth_wallet.shutdown_task_manager()
         for socks_server in self.socks_servers:
-            yield socks_server.stop()
+            await socks_server.stop()
 
         if self.exitnode_cache:
             self.cache_exitnodes_to_disk()
 
-        super(TriblerTunnelCommunity, self).unload()
+        await super(TriblerTunnelCommunity, self).unload()
 
     def get_lookup_info_hash(self, info_hash):
         return hashlib.sha1(b'tribler anonymous download' + hexlify(info_hash).encode('utf-8')).digest()

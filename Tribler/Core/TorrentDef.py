@@ -1,21 +1,19 @@
 """
 Author(s): Arno Bakker
 """
-from __future__ import absolute_import, division
-
 import logging
 import os
 from hashlib import sha1
 
-import libtorrent as lt
-from libtorrent import bdecode, bencode
+import aiohttp
 
-from six import binary_type, ensure_binary, integer_types, text_type
+import libtorrent as lt
+from libtorrent import bencode
 
 from Tribler.Core.Utilities import maketorrent
 from Tribler.Core.Utilities.torrent_utils import create_torrent_file
 from Tribler.Core.Utilities.unicode import ensure_unicode
-from Tribler.Core.Utilities.utilities import http_get, is_valid_url, parse_magnetlink
+from Tribler.Core.Utilities.utilities import bdecode_compat, is_valid_url, parse_magnetlink
 from Tribler.Core.simpledefs import INFOHASH_LENGTH
 
 
@@ -45,11 +43,11 @@ def escape_as_utf8(string, encoding='utf8'):
 def convert_dict_unicode_to_bytes(orig_dict):
     result = {}
     for k, v in orig_dict.items():
-        k = k.encode('utf-8') if isinstance(k, text_type) else k
+        k = k.encode('utf-8') if isinstance(k, str) else k
         if isinstance(v, dict):
             result[k] = convert_dict_unicode_to_bytes(v)
         else:
-            result[k] = v.encode('utf-8') if isinstance(v, text_type) else v
+            result[k] = v.encode('utf-8') if isinstance(v, str) else v
     return result
 
 
@@ -88,8 +86,16 @@ class TorrentDef(object):
         """
         Populate the torrent_parameters dictionary with information from the metainfo.
         """
-        for key in [b"comment", b"created by", b"creation date", b"announce", b"announce-list", b"nodes",
-                    b"httpseeds", b"urllist"]:
+        for key in [
+            b"comment",
+            b"created by",
+            b"creation date",
+            b"announce",
+            b"announce-list",
+            b"nodes",
+            b"httpseeds",
+            b"urllist",
+        ]:
             if self.metainfo and key in self.metainfo:
                 self.torrent_parameters[key] = self.metainfo[key]
 
@@ -114,7 +120,7 @@ class TorrentDef(object):
         Load some bencoded data into a TorrentDef.
         :param bencoded_data: The bencoded data to decode and use as metainfo
         """
-        metainfo = bdecode(bencoded_data)
+        metainfo = bdecode_compat(bencoded_data)
         # Some versions of libtorrent will not raise an exception when providing invalid data.
         # This issue is present in 1.0.8 (included with Tribler 7.3.0), but has been fixed since at least 1.2.1.
         if metainfo is None:
@@ -130,18 +136,15 @@ class TorrentDef(object):
         return TorrentDef(metainfo=metainfo)
 
     @staticmethod
-    def load_from_url(url):
+    async def load_from_url(url):
         """
         Create a TorrentDef with information from a remote source.
         :param url: The HTTP/HTTPS url where to fetch the torrent info from.
         """
-        # Class method, no locking required
-        def _on_response(data):
-            return TorrentDef.load_from_memory(data)
-
-        deferred = http_get(url)
-        deferred.addCallback(_on_response)
-        return deferred
+        async with aiohttp.ClientSession(raise_for_status=True) as session:
+            response = await session.get(url)
+            body = await response.read()
+        return TorrentDef.load_from_memory(body)
 
     def add_content(self, file_path):
         """
@@ -210,7 +213,7 @@ class TorrentDef(object):
         it is transmitted, which is 16K by default. The default is automatic (value 0).
         :param piece_length: The piece length.
         """
-        if not isinstance(piece_length, integer_types):
+        if not isinstance(piece_length, int):
             raise ValueError("Piece length not an int/long")
 
         self.torrent_parameters[b'piece length'] = piece_length
@@ -312,7 +315,7 @@ class TorrentDef(object):
                             self._logger.debug("Bad character filter %s, isalnum? %s", ord(char), char.isalnum())
                             return u"?"
                     return u"".join([filter_character(char) for char in name])
-                return text_type(filter_characters(self.metainfo[b"info"][b"name"]))
+                return str(filter_characters(self.metainfo[b"info"][b"name"]))
             except UnicodeError:
                 pass
 
@@ -325,7 +328,7 @@ class TorrentDef(object):
         :param torrent_filepath: An optional absolute path to where to save the generated .torrent file.
         """
         torrent_dict = create_torrent_file(self.files_list, self.torrent_parameters, torrent_filepath=torrent_filepath)
-        self.metainfo = bdecode(torrent_dict['metainfo'])
+        self.metainfo = bdecode_compat(torrent_dict['metainfo'])
         self.copy_metainfo_to_torrent_parameters()
         self.infohash = torrent_dict['infohash']
 
@@ -356,7 +359,7 @@ class TorrentDef(object):
                     # Try to use the 'encoding' field.  If it exists,
                     # it should contain something like 'utf-8'
                     if b"encoding" in self.metainfo:
-                        encoding = self.metainfo[b"encoding"]
+                        encoding = ensure_unicode(self.metainfo[b"encoding"], "utf8")
                         try:
                             yield (join(*[ensure_unicode(element, encoding) for element in file_dict[b"path"]]),
                                    file_dict[b"length"])
@@ -371,18 +374,18 @@ class TorrentDef(object):
                             pass
 
                     # Try to convert the names in path to unicode,
-                    # without specifying the encoding
+                    # assuming that it was encoded as utf-8
                     try:
-                        yield join(*[text_type(element) for element in file_dict[b"path"]]), file_dict[b"length"]
+                        yield (join(*[ensure_unicode(element, "UTF-8") for element in file_dict[b"path"]]),
+                               file_dict[b"length"])
                         continue
                     except UnicodeError:
                         pass
 
                     # Try to convert the names in path to unicode,
-                    # assuming that it was encoded as utf-8
+                    # without specifying the encoding
                     try:
-                        yield (join(*[ensure_unicode(element, "UTF-8") for element in file_dict[b"path"]]),
-                               file_dict[b"length"])
+                        yield join(*[str(element) for element in file_dict[b"path"]]), file_dict[b"length"]
                         continue
                     except UnicodeError:
                         pass
@@ -400,7 +403,7 @@ class TorrentDef(object):
                                         "Bad character filter %s, isalnum? %s", ord(char), char.isalnum())
                                     return u"?"
                             return u"".join([filter_character(char) for char in name])
-                        yield (join(*[text_type(filter_characters(element)) for element in file_dict[b"path"]]),
+                        yield (join(*[str(filter_characters(element)) for element in file_dict[b"path"]]),
                                file_dict[b"length"])
                         continue
                     except UnicodeError:
@@ -488,7 +491,7 @@ class TorrentDefNoMetainfo(object):
     """
 
     def __init__(self, infohash, name, url=None):
-        assert isinstance(infohash, binary_type), "INFOHASH has invalid type: %s" % type(infohash)
+        assert isinstance(infohash, bytes), "INFOHASH has invalid type: %s" % type(infohash)
         assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
         self.infohash = infohash
         self.name = name
@@ -516,7 +519,7 @@ class TorrentDefNoMetainfo(object):
         """
         Not all names are utf-8, attempt to construct it as utf-8 anyway.
         """
-        return escape_as_utf8(ensure_binary(self.get_name()))
+        return escape_as_utf8(self.name.encode('utf-8 ')if isinstance(self.name, str) else self.name)
 
     def get_name_as_unicode(self):
         return ensure_unicode(self.name, 'utf-8')

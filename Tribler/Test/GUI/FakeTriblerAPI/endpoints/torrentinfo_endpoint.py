@@ -1,14 +1,17 @@
-from __future__ import absolute_import
+import json
 
-from twisted.web import resource
+from aiohttp import web
 
-import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.Modules.restapi.rest_endpoint import RESTEndpoint, RESTResponse
 from Tribler.Core.Utilities.unicode import hexlify
 
 
-class TorrentInfoEndpoint(resource.Resource):
+class TorrentInfoEndpoint(RESTEndpoint):
 
-    def render_GET(self, _request):
+    def setup_routes(self):
+        self.app.add_routes([web.get('', self.get_info)])
+
+    async def get_info(self, _request):
         metainfo = {
             "info": {
                 "files": [{
@@ -18,5 +21,5 @@ class TorrentInfoEndpoint(resource.Resource):
                 }]
             }
         }
-        metainfo_dict = {"metainfo": hexlify(json.twisted_dumps(metainfo, ensure_ascii=False))}
-        return json.twisted_dumps(metainfo_dict)
+        metainfo_dict = {"metainfo": hexlify(json.dumps(metainfo, ensure_ascii=False))}
+        return RESTResponse(metainfo_dict)

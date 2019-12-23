@@ -2,8 +2,7 @@ import datetime
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QTreeWidgetItem
-from PyQt5.QtWidgets import QWidget
+from PyQt5.QtWidgets import QTreeWidgetItem, QWidget
 
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.utilities import get_image_path, prec_div

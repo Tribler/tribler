@@ -1,9 +1,7 @@
 import logging
+from asyncio import get_event_loop
 
 from Tribler.Core.Socks5.connection import Socks5Connection
-from twisted.internet import reactor
-from twisted.internet.defer import maybeDeferred, DeferredList
-from twisted.internet.protocol import Factory
 
 
 class Socks5Server(object):
@@ -13,41 +11,33 @@ class Socks5Server(object):
 
     def __init__(self, port, udp_output_stream):
         self._logger = logging.getLogger(self.__class__.__name__)
-
         self.port = port
         self.udp_output_stream = udp_output_stream
-        self.twisted_port = None
+        self.server = None
         self.sessions = []
 
-    def start(self):
+    async def start(self):
         """
         Start the socks5 server by listening on the specified TCP ports.
         """
-        def build_protocol(_):
+        def build_protocol():
             socks5connection = Socks5Connection(self)
             self.sessions.append(socks5connection)
             return socks5connection
+        self.server = await get_event_loop().create_server(build_protocol, '127.0.0.1', self.port)
 
-        factory = Factory()
-        factory.buildProtocol = build_protocol
-        self.twisted_port = reactor.listenTCP(self.port, factory)
-
-    def stop(self):
+    async def stop(self):
         """
         Stop the socks5 server.
         """
-        deferred_list = []
-
-        for session in self.sessions:
-            deferred_list.append(maybeDeferred(session.close, 'stopping'))
+        [s.close('stopping') for s in self.sessions]
         self.sessions = []
 
-        if self.twisted_port:
-            deferred_list.append(maybeDeferred(self.twisted_port.stopListening))
+        if self.server:
+            self.server.close()
+            await self.server.wait_closed()
 
-        return DeferredList(deferred_list)
-
-    def connectionLost(self, socks5connection):
+    def connection_lost(self, socks5connection):
         self._logger.debug("SOCKS5 TCP connection lost")
         if socks5connection in self.sessions:
             self.sessions.remove(socks5connection)

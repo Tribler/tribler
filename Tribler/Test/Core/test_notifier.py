@@ -1,36 +1,33 @@
-from __future__ import absolute_import
-
-from twisted.internet.defer import Deferred, inlineCallbacks
+from asyncio import Future
 
 from Tribler.Core.Notifier import Notifier
 from Tribler.Core.simpledefs import NTFY_FINISHED, NTFY_STARTED, NTFY_TORRENTS
 from Tribler.Test.Core.base_test import TriblerCoreTest
-from Tribler.Test.tools import trial_timeout
+from Tribler.Test.tools import timeout
 
 
 class TriblerCoreTestNotifier(TriblerCoreTest):
 
-    @inlineCallbacks
-    def setUp(self):
-        yield super(TriblerCoreTestNotifier, self).setUp()
-        self.test_deferred = Deferred()
+    async def setUp(self):
+        await super(TriblerCoreTestNotifier, self).setUp()
+        self.test_future = Future()
         self.called_callback = False
 
     def callback_func(self, subject, changetype, objectID, *args):
         self.called_callback = True
-        self.test_deferred.callback(None)
+        self.test_future.set_result(None)
 
     def cache_callback_func(self, events):
         self.called_callback = True
-        self.test_deferred.callback(None)
+        self.test_future.set_result(None)
 
-    @trial_timeout(10)
-    def test_notifier(self):
+    @timeout(10)
+    async def test_notifier(self):
         notifier = Notifier()
         notifier.add_observer(self.callback_func, NTFY_TORRENTS, [NTFY_STARTED])
         notifier.notify(NTFY_TORRENTS, NTFY_STARTED, None)
         notifier.remove_observer(self.callback_func)
-        return self.test_deferred
+        await self.test_future
 
     def test_notifier_remove_observers(self):
         notifier = Notifier()
@@ -49,20 +46,20 @@ class TriblerCoreTestNotifier(TriblerCoreTest):
         notifier.notify(NTFY_TORRENTS, NTFY_FINISHED, None)
         self.assertFalse(self.called_callback)
 
-    @trial_timeout(10)
-    def test_notifier_cache(self):
+    @timeout(10)
+    async def test_notifier_cache(self):
         notifier = Notifier()
         notifier.add_observer(self.cache_callback_func, NTFY_TORRENTS, [NTFY_STARTED], cache=0.1)
         notifier.notify(NTFY_TORRENTS, NTFY_STARTED, None)
-        return self.test_deferred
+        await self.test_future
 
-    @trial_timeout(10)
-    def test_notifier_cache_notify_twice(self):
+    @timeout(10)
+    async def test_notifier_cache_notify_twice(self):
         notifier = Notifier()
         notifier.add_observer(self.cache_callback_func, NTFY_TORRENTS, [NTFY_STARTED], cache=0.1)
         notifier.notify(NTFY_TORRENTS, NTFY_STARTED, None)
         notifier.notify(NTFY_TORRENTS, NTFY_STARTED, None)
-        return self.test_deferred
+        await self.test_future
 
     def test_notifier_cache_remove_observers(self):
         notifier = Notifier()

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import base64
 import os
 
@@ -7,15 +5,13 @@ from configobj import ConfigObj
 
 import libtorrent as lt
 
-from six import string_types
-
 from validate import Validator
 
 from Tribler.Core.Utilities.install_dir import get_lib_path
+from Tribler.Core.Utilities.utilities import bdecode_compat
 from Tribler.Core.exceptions import InvalidConfigException
 from Tribler.Core.osutils import get_home_dir
 from Tribler.Core.simpledefs import DLMODE_NORMAL, DLMODE_VOD
-
 
 SPEC_FILENAME = 'download_config.spec'
 CONFIG_SPEC_PATH = os.path.join(get_lib_path(), 'Core', 'Config', SPEC_FILENAME)
@@ -63,7 +59,7 @@ class DownloadConfig(object):
             base_path = self.state_dir
             if base_path == os.path.commonprefix([path, base_path]):
                 path = os.path.relpath(path, base_path)
-        assert isinstance(path, string_types), path
+        assert isinstance(path, str), path
         self.config['download_defaults']['saveas'] = path
 
     def get_dest_dir(self):
@@ -113,24 +109,6 @@ class DownloadConfig(object):
     def get_safe_seeding(self):
         return self.config['download_defaults']['safe_seeding']
 
-    def set_seeding_mode(self, value):
-        self.config['download_defaults']['seeding_mode'] = value
-
-    def get_seeding_mode(self):
-        return self.config['download_defaults']['seeding_mode']
-
-    def set_seeding_time(self, value):
-        self.config['download_defaults']['seeding_time'] = value
-
-    def get_seeding_time(self):
-        return self.config['download_defaults']['seeding_time']
-
-    def set_seeding_ratio(self, value):
-        self.config['download_defaults']['seeding_ratio'] = value
-
-    def get_seeding_ratio(self):
-        return self.config['download_defaults']['seeding_ratio']
-
     def set_credit_mining(self, value):
         self.config['download_defaults']['credit_mining'] = value
 
@@ -148,6 +126,12 @@ class DownloadConfig(object):
 
     def get_share_mode(self):
         return self.config['download_defaults']['share_mode']
+
+    def set_upload_mode(self, value):
+        self.config['download_defaults']['upload_mode'] = value
+
+    def get_upload_mode(self):
+        return self.config['download_defaults']['upload_mode']
 
     def set_time_added(self, value):
         self.config['download_defaults']['time_added'] = value
@@ -205,13 +189,13 @@ class DownloadConfig(object):
         self.config['state']['metainfo'] = base64.b64encode(lt.bencode(metainfo)).decode('utf-8')
 
     def get_metainfo(self):
-        return lt.bdecode(base64.b64decode(self.config['state']['metainfo'].encode('utf-8')))
+        return bdecode_compat(base64.b64decode(self.config['state']['metainfo'].encode('utf-8')))
 
     def set_engineresumedata(self, engineresumedata):
         self.config['state']['engineresumedata'] = base64.b64encode(lt.bencode(engineresumedata)).decode('utf-8')
 
     def get_engineresumedata(self):
-        return lt.bdecode(base64.b64decode(self.config['state']['engineresumedata'].encode('utf-8')))
+        return bdecode_compat(base64.b64decode(self.config['state']['engineresumedata'].encode('utf-8')))
 
 
 def get_default_dest_dir():

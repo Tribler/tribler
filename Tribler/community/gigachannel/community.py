@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from binascii import unhexlify
 
 from ipv8.community import Community
@@ -10,15 +8,22 @@ from ipv8.requestcache import RequestCache
 
 from pony.orm import CacheIndexError, TransactionIntegrityError, db_session
 
-from twisted.internet.defer import inlineCallbacks
-
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import entries_to_chunk
 from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, REGULAR_TORRENT
 from Tribler.Core.Modules.MetadataStore.store import (
-    GOT_NEWER_VERSION, UNKNOWN_CHANNEL, UNKNOWN_TORRENT, UPDATED_OUR_VERSION)
+    GOT_NEWER_VERSION,
+    UNKNOWN_CHANNEL,
+    UNKNOWN_COLLECTION,
+    UNKNOWN_TORRENT,
+    UPDATED_OUR_VERSION,
+)
 from Tribler.Core.Utilities.utilities import is_simple_match_query
 from Tribler.Core.simpledefs import (
-    NTFY_CHANNEL, NTFY_DISCOVERED, SIGNAL_GIGACHANNEL_COMMUNITY, SIGNAL_ON_SEARCH_RESULTS)
+    NTFY_CHANNEL,
+    NTFY_DISCOVERED,
+    SIGNAL_GIGACHANNEL_COMMUNITY,
+    SIGNAL_ON_SEARCH_RESULTS,
+)
 from Tribler.community.gigachannel.payload import SearchRequestPayload, SearchResponsePayload
 from Tribler.community.gigachannel.request import SearchRequestCache
 
@@ -59,10 +64,9 @@ class GigaChannelCommunity(Community):
         self.gossip_blob_personal_channel = None
         self.gossip_renewal_period = 30
 
-    @inlineCallbacks
-    def unload(self):
-        self.request_cache.clear()
-        yield super(GigaChannelCommunity, self).unload()
+    async def unload(self):
+        await self.request_cache.shutdown()
+        await super(GigaChannelCommunity, self).unload()
 
     def send_random_to(self, peer):
         """
@@ -85,7 +89,7 @@ class GigaChannelCommunity(Community):
                 md_list = [personal_channel] + list(
                     personal_channel.get_random_torrents(max_entries - 1)) if personal_channel else None
                 self.gossip_blob_personal_channel = entries_to_chunk(md_list, maximum_payload_size)[0] \
-                    if md_list else None
+                    if md_list and len(md_list) > 1 else None
 
                 # Generate and cache the gossip blob for a subscribed channel
                 # TODO: when the health table will be there, send popular torrents instead
@@ -212,7 +216,7 @@ class GigaChannelCommunity(Community):
             "first": 1,
             "last": max_entries,
             "sort_by": request.sort_by.decode('utf8'),
-            "sort_asc": request.sort_asc,
+            "sort_desc": not request.sort_asc if request.sort_asc is not None else None,
             "query_filter": query_filter,
             "hide_xxx": request.hide_xxx,
             "metadata_type": metadata_type,
@@ -241,9 +245,15 @@ class GigaChannelCommunity(Community):
                 self._logger.error("DB transaction error when tried to process search payload: %s", str(err))
                 return
 
-            search_results = [md.to_simple_dict() for (md, action) in metadata_result if
-                              (md and (md.metadata_type == CHANNEL_TORRENT or md.metadata_type == REGULAR_TORRENT) and
-                               action in [UNKNOWN_CHANNEL, UNKNOWN_TORRENT, UPDATED_OUR_VERSION])]
+            search_results = [
+                md.to_simple_dict()
+                for (md, action) in metadata_result
+                if (
+                    md
+                    and (md.metadata_type in [CHANNEL_TORRENT, REGULAR_TORRENT])
+                    and action in [UNKNOWN_CHANNEL, UNKNOWN_TORRENT, UPDATED_OUR_VERSION, UNKNOWN_COLLECTION]
+                )
+            ]
         if self.notifier and search_results:
             self.notifier.notify(SIGNAL_GIGACHANNEL_COMMUNITY, SIGNAL_ON_SEARCH_RESULTS, None,
                                  {"uuid": search_request_cache.uuid, "results": search_results})

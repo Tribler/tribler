@@ -1,9 +1,12 @@
-from __future__ import absolute_import
-
 from nose.tools import raises
 
-from Tribler.Core.exceptions import DuplicateDownloadException, NotYetImplementedException, \
-    OperationNotEnabledByConfigurationException, OperationNotPossibleAtRuntimeException, TriblerException
+from Tribler.Core.exceptions import (
+    DuplicateDownloadException,
+    NotYetImplementedException,
+    OperationNotEnabledByConfigurationException,
+    OperationNotPossibleAtRuntimeException,
+    TriblerException,
+)
 from Tribler.Test.Core.base_test import TriblerCoreTest
 
 
@@ -12,7 +15,7 @@ class TriblerCoreTestExceptions(TriblerCoreTest):
     @raises(TriblerException)
     def test_tribler_exception(self):
         exception = TriblerException("TriblerException")
-        self.assertEquals(str(exception), "<class 'Tribler.Core.exceptions.TriblerException'>: TriblerException")
+        self.assertEqual(str(exception), "<class 'Tribler.Core.exceptions.TriblerException'>: TriblerException")
         raise exception
 
     @raises(OperationNotPossibleAtRuntimeException)

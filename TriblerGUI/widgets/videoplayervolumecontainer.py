@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QWidget, QSlider
+from PyQt5.QtWidgets import QSlider, QWidget
 
 
 class VideoPlayerVolumeContainer(QWidget):

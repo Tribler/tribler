@@ -3,8 +3,6 @@ Permanent Identifier.
 
 Author(s): Arno Bakker
 """
-from __future__ import absolute_import
-
 import logging
 
 from ipv8.keyvault.private.libnaclkey import LibNaCLSK
@@ -30,4 +28,3 @@ def save_keypair_trustchain(keypair, keypairfilename):
 def save_pub_key_trustchain(keypair, pubkeyfilename):
     with open(pubkeyfilename, 'wb') as keyfile:
         keyfile.write(keypair.key.pk)
-

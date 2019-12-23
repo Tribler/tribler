@@ -3,9 +3,7 @@ Give the initial category information.
 
 Author(s): Yuan Yuan
 """
-from __future__ import absolute_import
-
-from six.moves import configparser
+import configparser
 
 
 def __split_list(string):
@@ -41,7 +39,8 @@ def __get_default():
 
 def getCategoryInfo(filename):
     config = configparser.ConfigParser()
-    config.readfp(open(filename))
+    with open(filename) as fp:
+        config.read_file(fp)
 
     cate_list = []
     sections = config.sections()

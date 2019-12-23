@@ -1,19 +1,7 @@
-from __future__ import absolute_import
+from urllib.parse import quote_plus
 
-import os
+from aiohttp import ClientSession
 
-from six import text_type
-from six.moves.urllib.parse import quote_plus
-
-from twisted.internet import reactor
-from twisted.internet.defer import inlineCallbacks, succeed
-from twisted.web.client import Agent, HTTPConnectionPool, readBody
-from twisted.web.http_headers import Headers
-from twisted.web.iweb import IBodyProducer
-
-from zope.interface import implementer
-
-import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.restapi import get_param
 from Tribler.Core.version import version_id
 from Tribler.Test.test_as_server import TestAsServer
@@ -33,53 +21,18 @@ def tribler_urlencode(data):
 
 
 def tribler_urlencode_single(key, value):
-    utf8_key = quote_plus(text_type(key).encode('utf-8'))
+    utf8_key = quote_plus(key.encode('utf-8'))
     # Convert bool values to ints
     if isinstance(value, bool):
         value = int(value)
-    utf8_value = quote_plus(text_type(value).encode('utf-8'))
+    utf8_value = quote_plus(value.encode('utf-8'))
     return "%s=%s" % (utf8_key, utf8_value)
-
-
-@implementer(IBodyProducer)
-class POSTDataProducer(object):
-    """
-    This class is used for posting data by the requests made during the tests.
-    """
-    def __init__(self, data_dict, raw_data):
-        self.body = {}
-        if data_dict and not raw_data:
-            self.body = tribler_urlencode(data_dict)
-        elif raw_data:
-            self.body = raw_data if isinstance(raw_data, bytes) else raw_data.encode('utf-8')
-        self.body = self.body.encode() if isinstance(self.body, text_type) else self.body
-        self.length = len(self.body)
-
-    def startProducing(self, consumer):
-        consumer.write(self.body)
-        return succeed(None)
-
-    def stopProducing(self):
-        return succeed(None)
 
 
 class AbstractBaseApiTest(TestAsServer):
     """
     Tests for the Tribler HTTP API should create a subclass of this class.
     """
-    @inlineCallbacks
-    def setUp(self):
-        yield super(AbstractBaseApiTest, self).setUp()
-        self.connection_pool = HTTPConnectionPool(reactor, False)
-
-    @inlineCallbacks
-    def tearDown(self):
-        yield self.close_connections()
-        yield super(AbstractBaseApiTest, self).tearDown()
-
-    def close_connections(self):
-        return self.connection_pool.closeCachedConnections()
-
     def setUpPreSession(self):
         super(AbstractBaseApiTest, self).setUpPreSession()
         self.config.set_http_api_enabled(True)
@@ -90,17 +43,14 @@ class AbstractBaseApiTest(TestAsServer):
         # Make sure we select a random port for the HTTP API
         self.config.set_http_api_port(self.get_port())
 
-    def do_request(self, endpoint, req_type, post_data, raw_data):
-        try:
-            req_type = req_type.encode('ascii')
-            endpoint = endpoint.encode('ascii')
-        except AttributeError:
-            pass
-        agent = Agent(reactor, pool=self.connection_pool)
-        return agent.request(req_type, b'http://localhost:%d/%s' % (self.session.config.get_http_api_port(), endpoint),
-                             Headers({'User-Agent': ['Tribler ' + version_id],
-                                      "Content-Type": ["text/plain; charset=utf-8"]}),
-                             POSTDataProducer(post_data, raw_data))
+    async def do_request(self, endpoint, req_type, post_data, headers, json_data, json_response):
+        url = 'http://localhost:%d/%s' % (self.session.config.get_http_api_port(), endpoint)
+        headers = headers or {'User-Agent': 'Tribler ' + version_id}
+
+        async with ClientSession() as session:
+            async with session.request(req_type, url, data=post_data, json=json_data, headers=headers) as response:
+                return response.status, (await response.json(content_type=None)
+                                         if json_response else await response.read())
 
 
 class AbstractApiTest(AbstractBaseApiTest):
@@ -109,31 +59,16 @@ class AbstractApiTest(AbstractBaseApiTest):
     response json returned.
     """
 
-    def __init__(self, *args, **kwargs):
-        super(AbstractApiTest, self).__init__(*args, **kwargs)
-        self.expected_response_code = 200
-        self.expected_response_json = None
-        self.should_check_equality = True
-
-    def parse_body(self, body):
-        if body is not None and self.should_check_equality:
-            self.assertDictEqual(self.expected_response_json, json.twisted_loads(body))
-        return body
-
-    def parse_response(self, response):
-        self.assertEqual(response.code, self.expected_response_code)
-        if response.code in (200, 400, 500):
-            return readBody(response)
-        return succeed(None)
-
-    def do_request(self, endpoint, expected_code=200, expected_json=None,
-                   request_type='GET', post_data='', raw_data=False):
-        self.expected_response_code = expected_code
-        self.expected_response_json = expected_json
-
-        return super(AbstractApiTest, self).do_request(endpoint, request_type, post_data, raw_data)\
-                                           .addCallback(self.parse_response)\
-                                           .addCallback(self.parse_body)
+    async def do_request(self, endpoint, expected_code=200, expected_json=None,
+                         request_type='GET', post_data=None, headers=None,
+                         json_data=None, json_response=True):
+        status, response = await super(AbstractApiTest, self).do_request(endpoint, request_type,
+                                                                         post_data, headers,
+                                                                         json_data, json_response)
+        self.assertEqual(status, expected_code, response)
+        if response is not None and expected_json is not None:
+            self.assertDictEqual(expected_json, response)
+        return response
 
 
 class TestBaseApi(TestAsServer):
