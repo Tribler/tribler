@@ -116,7 +116,7 @@ class TestResourceMonitor(TriblerCoreTest):
         happens at startup.
         """
         # Empty resource log to check later if something was written to the log or not.
-        open(self.resource_monitor.resource_log_file, 'w').close()
+        with open(self.resource_monitor.resource_log_file, 'w'): pass
 
         self.resource_monitor.memory_data = []
         self.resource_monitor.cpu_data = []

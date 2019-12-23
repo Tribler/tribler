@@ -19,15 +19,14 @@ def initTerms(filename):
     searchterms = set()
 
     try:
-        f = open(filename, 'r')
-        lines = f.read().lower().splitlines()
+        with open(filename, 'r') as f:
+            lines = f.read().lower().splitlines()
 
-        for line in lines:
-            if line.startswith('*'):
-                searchterms.add(line[1:])
-            else:
-                terms.add(line)
-        f.close()
+            for line in lines:
+                if line.startswith('*'):
+                    searchterms.add(line[1:])
+                else:
+                    terms.add(line)
     except IOError:
         raise IOError(u"Could not open %s, initTerms failed.", filename)
 
