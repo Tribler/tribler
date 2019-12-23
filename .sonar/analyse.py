@@ -3,16 +3,12 @@ This script takes a Jenkins workspace and automatically fetches the Sonar Cloud 
 Next, it queries the SonarCloud API to get the status of the task. When the task is done, it fetches the status
 of the quality gate from the server and exits with a non-zero exit code if the quality gate has failed.
 """
-from __future__ import absolute_import, print_function
-
 import json
 import os
 import time
 from traceback import print_exc
 
 import requests
-
-from six.moves import xrange
 
 # These env varialble should be set by Jenkins.
 SERVER_URL = os.environ.get('SONAR_SERVER_URL', "https://sonarcloud.io")
@@ -36,7 +32,7 @@ if not task_status_url:
 
 print("Task status URL: %s" % task_status_url)
 
-for _ in xrange(0, 30):
+for _ in range(0, 30):
     print("Fetching task status...")
     json_response = requests.get(task_status_url)
     data = json.loads(json_response.text)

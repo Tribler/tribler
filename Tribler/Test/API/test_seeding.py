@@ -3,18 +3,15 @@ Seeding tests.
 
 Author(s): Arno Bakker, Niels Zeilemaker
 """
-from __future__ import absolute_import
-
 import logging
 import os
-
-from twisted.internet.defer import Deferred, inlineCallbacks
+from asyncio import Future
 
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import DLSTATUS_SEEDING, dlstatus_strings
 from Tribler.Test.common import TESTS_DATA_DIR
 from Tribler.Test.test_as_server import TestAsServer
-from Tribler.Test.tools import trial_timeout
+from Tribler.Test.tools import timeout
 
 
 class TestSeeding(TestAsServer):
@@ -22,11 +19,10 @@ class TestSeeding(TestAsServer):
     Test whether the seeding works correctly.
     """
 
-    @inlineCallbacks
-    def setUp(self):
-        yield super(TestSeeding, self).setUp()
+    async def setUp(self):
+        await super(TestSeeding, self).setUp()
         self._logger = logging.getLogger(self.__class__.__name__)
-        self.test_deferred = Deferred()
+        self.test_future = Future()
         self.tdef = TorrentDef.load(os.path.join(TESTS_DATA_DIR, 'video.avi.torrent'))
         self.sourcefn = os.path.join(TESTS_DATA_DIR, 'video.avi')
 
@@ -35,23 +31,20 @@ class TestSeeding(TestAsServer):
         self.config.set_libtorrent_enabled(True)
 
     def start_download(self, dscfg):
-        download = self.session.start_download_from_tdef(self.tdef, dscfg)
+        download = self.session.ltmgr.add(self.tdef, dscfg)
         download.set_state_callback(self.downloader_state_callback)
-
         download.add_peer(("127.0.0.1", self.seeder_session.config.get_libtorrent_port()))
 
-    @trial_timeout(60)
-    def test_seeding(self):
+    @timeout(60)
+    async def test_seeding(self):
         """
         Test whether a torrent is correctly seeded
         """
-        def start_download(_):
-            dscfg = self.dscfg_seed.copy()
-            dscfg.set_dest_dir(self.getDestDir())
-            self.start_download(dscfg)
-
-        self.setup_seeder(self.tdef, TESTS_DATA_DIR).addCallback(start_download)
-        return self.test_deferred
+        await self.setup_seeder(self.tdef, TESTS_DATA_DIR)
+        dscfg = self.dscfg_seed.copy()
+        dscfg.set_dest_dir(self.getDestDir())
+        self.start_download(dscfg)
+        await self.test_future
 
     def downloader_state_callback(self, ds):
         d = ds.get_download()
@@ -69,6 +62,6 @@ class TestSeeding(TestAsServer):
                 expdata = f.read()
 
             self.assertEqual(realdata, expdata)
-            self.test_deferred.callback(None)
+            self.test_future.set_result(None)
             return 0.0
         return 1.0

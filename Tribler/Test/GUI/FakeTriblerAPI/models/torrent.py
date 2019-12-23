@@ -1,10 +1,6 @@
-from __future__ import absolute_import
-
 import time
 from binascii import unhexlify
 from random import choice, randint, uniform
-
-from six.moves import xrange
 
 from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Test.GUI.FakeTriblerAPI.constants import COMMITTED
@@ -12,8 +8,8 @@ from Tribler.Test.GUI.FakeTriblerAPI.utils import get_random_filename, get_rando
 
 
 class Torrent(object):
-
     def __init__(self, infohash, name, length, category, status=COMMITTED):
+        self.id_ = randint(10000, 100000000)
         self.infohash = infohash
         self.name = name
         self.length = length
@@ -43,6 +39,7 @@ class Torrent(object):
     def get_json(self, include_status=False, include_trackers=False):
         result = {
             "name": self.name,
+            "id": self.id_,
             "infohash": hexlify(self.infohash),
             "size": self.length,
             "category": self.category,
@@ -50,7 +47,6 @@ class Torrent(object):
             "num_seeders": self.num_seeders,
             "num_leechers": self.num_leechers,
             "last_tracker_check": self.last_tracker_check,
-            "updated": self.updated
         }
 
         if include_status:
@@ -69,7 +65,7 @@ class Torrent(object):
         torrent = Torrent(infohash, name, randint(1024, 1024 * 3000), choice(categories))
 
         # Create the files
-        for _ in xrange(randint(1, 20)):
+        for _ in range(randint(1, 20)):
             torrent.files.append({"path": get_random_filename(), "length": randint(1024, 1024 * 3000)})
 
         return torrent

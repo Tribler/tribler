@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import os
 import shutil
 import sqlite3
@@ -7,8 +5,6 @@ import sqlite3
 from ipv8.keyvault.crypto import default_eccrypto
 
 from pony.orm import db_session
-
-from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import COMMITTED, LEGACY_ENTRY
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
@@ -23,9 +19,9 @@ OLD_DB_SAMPLE = os.path.join(os.path.abspath(os.path.dirname(os.path.realpath(__
 
 
 class TestUpgradeDB72ToPony(TriblerCoreTest):
-    @inlineCallbacks
-    def setUp(self):
-        yield super(TestUpgradeDB72ToPony, self).setUp()
+
+    async def setUp(self):
+        await super(TestUpgradeDB72ToPony, self).setUp()
 
         self.my_key = default_eccrypto.generate_key(u"curve25519")
         mds_db = os.path.join(self.session_base_dir, 'test.db')
@@ -35,10 +31,9 @@ class TestUpgradeDB72ToPony(TriblerCoreTest):
         self.m = DispersyToPonyMigration(OLD_DB_SAMPLE)
         self.m.initialize(self.mds)
 
-    @inlineCallbacks
-    def tearDown(self):
+    async def tearDown(self):
         self.mds.shutdown()
-        yield super(TestUpgradeDB72ToPony, self).tearDown()
+        await super(TestUpgradeDB72ToPony, self).tearDown()
 
     def test_get_personal_channel_title(self):
         self.assertTrue(self.m.personal_channel_title)
@@ -49,9 +44,9 @@ class TestUpgradeDB72ToPony(TriblerCoreTest):
     def test_get_personal_torrents_count(self):
         self.assertEqual(self.m.get_personal_channel_torrents_count(), 2)
 
-    def test_convert_personal_channel(self):
-        def check_channel():
-            self.m.convert_personal_channel()
+    async def test_convert_personal_channel(self):
+        async def check_channel():
+            await self.m.convert_personal_channel()
             my_channel = self.mds.ChannelMetadata.get_my_channel()
 
             self.assertEqual(len(my_channel.contents_list), 2)
@@ -61,17 +56,17 @@ class TestUpgradeDB72ToPony(TriblerCoreTest):
             self.assertTrue(my_channel.has_valid_signature())
             self.assertEqual(self.m.personal_channel_title[:200], my_channel.title)
 
-        check_channel()
+        await check_channel()
 
         # Now check the case where previous conversion of the personal channel had failed
         with db_session:
             self.mds.MiscData.get_for_update(name=CONVERSION_FROM_72_PERSONAL).value = CONVERSION_STARTED
-        check_channel()
+        await check_channel()
 
     @db_session
-    def test_convert_legacy_channels(self):
-        def check_conversion():
-            self.m.convert_discovered_torrents()
+    async def test_convert_legacy_channels(self):
+        async def check_conversion():
+            await self.m.convert_discovered_torrents()
             self.m.convert_discovered_channels()
             chans = self.mds.ChannelMetadata.get_entries()
 
@@ -82,12 +77,12 @@ class TestUpgradeDB72ToPony(TriblerCoreTest):
                 self.assertTrue(c.contents_list)
                 for t in c.contents_list:
                     self.assertEqual(t.status, COMMITTED)
-        check_conversion()
+        await check_conversion()
 
         # Now check the case where the previous conversion failed at channels conversion
         with db_session:
             self.mds.MiscData.get_for_update(name=CONVERSION_FROM_72_CHANNELS).value = CONVERSION_STARTED
-        check_conversion()
+        await check_conversion()
 
         # Now check the case where the previous conversion stopped at torrents conversion
         with db_session:
@@ -95,7 +90,7 @@ class TestUpgradeDB72ToPony(TriblerCoreTest):
             self.mds.MiscData.get_for_update(name=CONVERSION_FROM_72_DISCOVERED).value = CONVERSION_STARTED
             for d in self.mds.TorrentMetadata.select()[:10][:10]:
                 d.delete()
-        check_conversion()
+        await check_conversion()
 
     @db_session
     def test_update_trackers(self):

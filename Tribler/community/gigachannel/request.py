@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from ipv8.requestcache import RandomNumberCache
 
 from Tribler.Core.Utilities.unicode import hexlify

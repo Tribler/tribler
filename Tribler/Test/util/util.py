@@ -8,7 +8,6 @@ Author(s): Elric Milon
 import logging
 import os
 import sys
-# logging.basicConfig()
 
 from twisted.python.log import addObserver
 

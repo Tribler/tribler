@@ -1,12 +1,10 @@
-from __future__ import absolute_import
-
 import os
 
 from PyQt5 import uic
 from PyQt5.QtCore import QDir, pyqtSignal
 from PyQt5.QtWidgets import QAction, QFileDialog, QSizePolicy, QTreeWidgetItem
 
-from six.moves import xrange
+from Tribler.Core.Utilities.unicode import ensure_unicode
 
 from TriblerGUI.defs import BUTTON_TYPE_NORMAL
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
@@ -17,7 +15,6 @@ from TriblerGUI.utilities import get_ui_file_path, is_dir_writable
 
 
 class DownloadFileTreeWidgetItem(QTreeWidgetItem):
-
     def __init__(self, parent):
         QTreeWidgetItem.__init__(self, parent)
 
@@ -62,9 +59,9 @@ class CreateTorrentDialog(DialogContainer):
             self.dialog_widget.create_torrent_files_list.addItem(filename)
 
     def on_choose_dir_clicked(self):
-        chosen_dir = QFileDialog.getExistingDirectory(self.window(),
-                                                      "Please select the directory containing the files",
-                                                      "", QFileDialog.ShowDirsOnly)
+        chosen_dir = QFileDialog.getExistingDirectory(
+            self.window(), "Please select the directory containing the files", "", QFileDialog.ShowDirsOnly
+        )
 
         if not chosen_dir:
             return
@@ -80,9 +77,12 @@ class CreateTorrentDialog(DialogContainer):
 
     def on_create_clicked(self):
         if self.dialog_widget.create_torrent_files_list.count() == 0:
-            dialog = ConfirmationDialog(self.dialog_widget, "Warning!",
-                                        "You should add at least one file to your torrent.",
-                                        [('CLOSE', BUTTON_TYPE_NORMAL)])
+            dialog = ConfirmationDialog(
+                self.dialog_widget,
+                "Warning!",
+                "You should add at least one file to your torrent.",
+                [('CLOSE', BUTTON_TYPE_NORMAL)],
+            )
 
             dialog.button_clicked.connect(dialog.close_dialog)
             dialog.show()
@@ -91,32 +91,30 @@ class CreateTorrentDialog(DialogContainer):
         self.dialog_widget.btn_create.setEnabled(False)
 
         files_list = []
-        for ind in xrange(self.dialog_widget.create_torrent_files_list.count()):
+        for ind in range(self.dialog_widget.create_torrent_files_list.count()):
             file_str = self.dialog_widget.create_torrent_files_list.item(ind).text()
             files_list.append(file_str)
 
         export_dir = self.dialog_widget.file_export_dir.text()
         if not os.path.exists(export_dir):
-            ConfirmationDialog.show_error(self.dialog_widget, "Cannot save torrent file to %s" % export_dir,
-                                          "Path does not exist")
+            ConfirmationDialog.show_error(
+                self.dialog_widget, "Cannot save torrent file to %s" % export_dir, "Path does not exist"
+            )
             return
 
         is_writable, error = is_dir_writable(export_dir)
         if not is_writable:
-            ConfirmationDialog.show_error(self.dialog_widget, "Cannot save torrent file to %s" % export_dir,
-                                          "Error: %s" % error)
+            ConfirmationDialog.show_error(
+                self.dialog_widget, "Cannot save torrent file to %s" % export_dir, "Error: %s" % error
+            )
             return
 
         self.name = self.dialog_widget.create_torrent_name_field.text()
         description = self.dialog_widget.create_torrent_description_field.toPlainText()
-        post_data = {
-            "name": self.name,
-            "description": description,
-            "files": files_list,
-            "export_dir": export_dir
-        }
-        url = "createtorrent?download=1" if self.dialog_widget.seed_after_adding_checkbox.isChecked() \
-            else "createtorrent"
+        post_data = {"name": self.name, "description": description, "files": files_list, "export_dir": export_dir}
+        url = (
+            "createtorrent?download=1" if self.dialog_widget.seed_after_adding_checkbox.isChecked() else "createtorrent"
+        )
         self.request_mgr = TriblerRequestManager()
         self.request_mgr.perform_request(url, self.on_torrent_created, data=post_data, method='POST')
         self.dialog_widget.edit_channel_create_torrent_progress_label.setText("Creating torrent. Please wait...")
@@ -130,28 +128,27 @@ class CreateTorrentDialog(DialogContainer):
             self.create_torrent_notification.emit({"msg": "Torrent successfully created"})
             if self.dialog_widget.add_to_channel_checkbox.isChecked():
                 self.add_torrent_to_channel(result['torrent'])
-            else:
-                self.close_dialog()
+            self.close_dialog()
 
     def add_torrent_to_channel(self, torrent):
         self.request_mgr = TriblerRequestManager()
         data = {"torrent": torrent}
         if self.name:
-            data.update({"title": self.name.decode('utf-8')})
-        self.request_mgr.perform_request("mychannel/torrents", self.on_torrent_to_channel_added,
-                                         data=data, method='PUT')
+            data.update({"title": ensure_unicode(self.name, 'utf8')})
+        self.request_mgr.perform_request(
+            "mychannel/torrents", self.on_torrent_to_channel_added, data=data, method='PUT'
+        )
 
     def on_torrent_to_channel_added(self, result):
         if not result:
             return
         if 'added' in result:
             self.create_torrent_notification.emit({"msg": "Torrent successfully added to the channel"})
-            self.dialog_widget.edit_channel_create_torrent_progress_label.setText("Created torrent")
-        self.close_dialog()
 
     def on_select_save_directory(self):
-        chosen_dir = QFileDialog.getExistingDirectory(self.window(), "Please select the directory containing the files",
-                                                      "", QFileDialog.ShowDirsOnly)
+        chosen_dir = QFileDialog.getExistingDirectory(
+            self.window(), "Please select the directory containing the files", "", QFileDialog.ShowDirsOnly
+        )
 
         if not chosen_dir:
             return

@@ -1,14 +1,10 @@
 """
 Configuration object for the Tribler Core.
 """
-from __future__ import absolute_import
-
 import logging
 import os
 
 from configobj import ConfigObj
-
-from six import text_type
 
 from validate import Validator
 
@@ -18,6 +14,7 @@ from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.Utilities.unicode import ensure_unicode
 from Tribler.Core.exceptions import InvalidConfigException
 from Tribler.Core.osutils import get_appstate_dir
+from Tribler.Core.version import version_id
 
 CONFIG_FILENAME = 'triblerd.conf'
 SPEC_FILENAME = 'tribler_config.spec'
@@ -41,6 +38,9 @@ class TriblerConfig(object):
         """
         self._logger = logging.getLogger(self.__class__.__name__)
         self._state_dir = self.get_default_state_dir()
+        # If specific version state directory is available, use that version otherwise use default address
+        if not os.path.exists(self._state_dir):
+            self._state_dir = self.get_default_base_state_dir()
 
         if config is None:
             config_file = os.path.join(self._state_dir, CONFIG_FILENAME)
@@ -103,17 +103,31 @@ class TriblerConfig(object):
         """
         if not os.path.exists(self.get_state_dir()):
             os.makedirs(self.get_state_dir())
+        self.update_version()
         self.config.filename = os.path.join(self.get_state_dir(), CONFIG_FILENAME)
         self.config.write()
 
     @staticmethod
-    def get_default_state_dir(home_dir_postfix=u'.Tribler'):
+    def get_default_state_dir(home_dir_postfix=u'.Tribler', version=version_id):
+        """Get the default application state directory."""
+        state_dir = TriblerConfig.get_default_base_state_dir(home_dir_postfix=home_dir_postfix)
+        return TriblerConfig.get_versioned_state_dir(state_dir, version)
+
+    @staticmethod
+    def get_default_base_state_dir(home_dir_postfix=u'.Tribler'):
         """Get the default application state directory."""
         if 'TSTATEDIR' in os.environ:
             path = os.environ['TSTATEDIR']
             return path if os.path.isabs(path) else os.path.join(os.getcwd(), path)
 
         return os.path.join(get_appstate_dir(), home_dir_postfix)
+
+    @staticmethod
+    def get_versioned_state_dir(state_dir, version):
+        dash_index = version.find('-')
+        if dash_index < 0:
+            return ensure_unicode(os.path.join(state_dir, version), 'utf-8')
+        return ensure_unicode(os.path.join(state_dir, version[:dash_index], version[dash_index+1:]), 'utf-8')
 
     def _obtain_port(self, section, option):
         """
@@ -135,12 +149,34 @@ class TriblerConfig(object):
             self._logger.debug(u"Get random port %d for [%s]", self.selected_ports[path], path)
         return self.selected_ports[path]
 
+    # Version and backup
+    def set_version(self, version):
+        self.config['general']['version'] = version
+
+    def get_version(self):
+        return self.config['general']['version']
+
+    def update_version(self):
+        self.config['general']['version'] = version_id
+
+    def set_version_backup_enabled(self, backup_enabled):
+        self.config['general']['version_backup_enabled'] = backup_enabled
+
+    def get_version_backup_enabled(self):
+        return self.config['general']['version_backup_enabled']
+
     # Chant
     def set_chant_enabled(self, value):
         self.config['chant']['enabled'] = bool(value)
 
     def get_chant_enabled(self):
         return self.config['chant']['enabled']
+
+    def get_chant_manager_enabled(self):
+        return self.config['chant']['manager_enabled']
+
+    def set_chant_manager_enabled(self, value):
+        self.config['chant']['manager_enabled'] = value
 
     def set_chant_channels_dir(self, chant_db_filename):
         self.config['chant']['channels_dir'] = self.norm_path(chant_db_filename)
@@ -151,8 +187,9 @@ class TriblerConfig(object):
     def set_state_dir(self, state_dir):
         self._state_dir = state_dir
 
-    def get_state_dir(self):
-        return ensure_unicode(self._state_dir, 'utf-8')
+    def get_state_dir(self, version=None):
+        return TriblerConfig.get_versioned_state_dir(self._state_dir, version) if version \
+            else ensure_unicode(self._state_dir, 'utf-8')
 
     def set_trustchain_keypair_filename(self, keypairfilename):
         self.config['trustchain']['ec_keypair_filename'] = self.norm_path(keypairfilename)
@@ -244,6 +281,12 @@ class TriblerConfig(object):
 
     def get_http_api_retry_port(self):
         return self.config['http_api']['retry_port']
+
+    def set_http_api_key(self, api_key):
+        self.config['http_api']['key'] = api_key
+
+    def get_http_api_key(self):
+        return self.config['http_api']['key']
 
     # IPv8
 
@@ -454,7 +497,7 @@ class TriblerConfig(object):
     def get_tunnel_community_socks5_listen_ports(self):
         ports = self.config['tunnel_community']['socks5_listen_ports']
         path = u'tunnel_community~socks5_listen_ports~'
-        return [self._get_random_port(path + text_type(index))
+        return [self._get_random_port(path + str(index))
                 if int(port) < 0 else int(port) for index, port in enumerate(ports)]
 
     def set_tunnel_community_exitnode_enabled(self, value):
@@ -504,6 +547,24 @@ class TriblerConfig(object):
 
     def get_default_add_download_to_channel(self):
         return self.config['download_defaults']['add_download_to_channel']
+
+    def set_seeding_mode(self, value):
+        self.config['download_defaults']['seeding_mode'] = value
+
+    def get_seeding_mode(self):
+        return self.config['download_defaults']['seeding_mode']
+
+    def set_seeding_time(self, value):
+        self.config['download_defaults']['seeding_time'] = value
+
+    def get_seeding_time(self):
+        return self.config['download_defaults']['seeding_time']
+
+    def set_seeding_ratio(self, value):
+        self.config['download_defaults']['seeding_ratio'] = value
+
+    def get_seeding_ratio(self):
+        return self.config['download_defaults']['seeding_ratio']
 
     # Market Community
 

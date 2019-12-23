@@ -3,23 +3,20 @@ Video server.
 
 Author(s): Jan David Mol, Arno Bakker, Egbert Bouman
 """
-from __future__ import absolute_import
-
 import logging
 import mimetypes
 import os
 import socket
 import time
+from asyncio import ensure_future
 from binascii import unhexlify
 from collections import defaultdict
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from socketserver import ThreadingMixIn
 from threading import Event, RLock, Thread
 from traceback import print_exc
 
 from cherrypy.lib.httputil import get_ranges
-
-from six.moves import xrange
-from six.moves.BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
-from six.moves.socketserver import ThreadingMixIn
 
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import VODFile
 from Tribler.Core.simpledefs import DLMODE_NORMAL, DLMODE_VOD
@@ -36,7 +33,7 @@ class VideoServer(ThreadingMixIn, HTTPServer):
         self.vod_download = None
         self.vod_info = defaultdict(dict)  # A dictionary containing info about the requested VOD streams.
 
-        for _ in xrange(10000):
+        for _ in range(10000):
             try:
                 HTTPServer.__init__(self, ("127.0.0.1", self.port), VideoRequestHandler)
                 self._logger.debug("Listening at %d", self.port)
@@ -71,8 +68,8 @@ class VideoServer(ThreadingMixIn, HTTPServer):
         self.vod_download = new_download
 
     def get_vod_stream(self, dl_hash, wait=False):
-        if 'stream' not in self.vod_info[dl_hash] and self.session.get_download(dl_hash):
-            download = self.session.get_download(dl_hash)
+        if 'stream' not in self.vod_info[dl_hash] and self.session.ltmgr.get_download(dl_hash):
+            download = self.session.ltmgr.get_download(dl_hash)
             vod_filename = self.get_vod_destination(download)
             while wait and not os.path.exists(vod_filename):
                 time.sleep(1)
@@ -88,7 +85,7 @@ class VideoServer(ThreadingMixIn, HTTPServer):
         Get the destination directory of the VOD download.
         """
         if download.get_def().is_multifile_torrent():
-            return os.path.join(download.get_content_dest(), download.get_selected_files()[0])
+            return os.path.join(download.get_content_dest(), download.config.get_selected_files()[0])
         else:
             return download.get_content_dest()
 
@@ -133,7 +130,7 @@ class VideoRequestHandler(BaseHTTPRequestHandler):
         self._logger.debug("VOD request %s %s", self.client_address, self.path)
         downloadhash, fileindex = self.path.strip('/').split('/')
         downloadhash = unhexlify(downloadhash)
-        download = self.server.session.get_download(downloadhash)
+        download = self.server.session.ltmgr.get_download(downloadhash)
 
         if not download or not fileindex.isdigit() or int(fileindex) > len(download.get_def().get_files()):
             self.send_error(404, "Not Found")
@@ -158,7 +155,7 @@ class VideoRequestHandler(BaseHTTPRequestHandler):
             if download.get_def().is_multifile_torrent():
                 download.set_selected_files([filename])
             download.config.set_mode(DLMODE_VOD)
-            download.restart()
+            ensure_future(download.restart())
 
         piecelen = download.get_def().get_piece_length()
         blocksize = piecelen

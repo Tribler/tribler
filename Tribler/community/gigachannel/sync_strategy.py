@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from random import choice
 
 from ipv8.peerdiscovery.discovery import DiscoveryStrategy

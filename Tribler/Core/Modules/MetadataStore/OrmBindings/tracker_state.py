@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from pony import orm
 
 from Tribler.Core.Utilities.tracker_utils import MalformedTrackerURLException, get_uniformed_tracker_url
@@ -7,6 +5,11 @@ from Tribler.Core.Utilities.tracker_utils import MalformedTrackerURLException, g
 
 def define_binding(db):
     class TrackerState(db.Entity):
+        """
+        This ORM class holds information about torrent trackers that TorrentChecker got while checking
+        torrents' health.
+        """
+
         rowid = orm.PrimaryKey(int, auto=True)
         url = orm.Required(str, unique=True)
         last_check = orm.Optional(int, size=64, default=0)

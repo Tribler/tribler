@@ -1,4 +1,5 @@
 from PyQt5.QtWidgets import QWidget
+
 from TriblerGUI.tribler_window import fc_loading_list_item
 
 

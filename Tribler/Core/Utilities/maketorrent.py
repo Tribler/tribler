@@ -3,16 +3,10 @@ Make torrent.
 
 Author(s): Arno Bakker, Bram Cohen
 """
-from __future__ import absolute_import, division
-
-import codecs
 import logging
 import os
 
-from six.moves import xrange
-
 from Tribler.Core.Utilities.unicode import ensure_unicode_detect_encoding
-
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +24,7 @@ def get_length_from_metainfo(metainfo, selectedfiles):
     files = metainfo[b'info'][b'files']
 
     total = 0
-    for i in xrange(len(files)):
+    for i in range(len(files)):
         path = files[i][b'path']
         length = files[i][b'length']
         if length > 0 and (not selectedfiles or pathlist2filename(path) in selectedfiles):
@@ -50,7 +44,7 @@ def get_length_filepieceranges_from_metainfo(metainfo, selectedfiles):
     offset = 0
     total = 0
     filepieceranges = []
-    for i in xrange(len(files)):
+    for i in range(len(files)):
         path = files[i][b'path']
         length = files[i][b'length']
         filename = pathlist2filename(path)

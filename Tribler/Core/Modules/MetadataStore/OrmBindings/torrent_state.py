@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from ipv8.database import database_blob
 
 from pony import orm
@@ -7,6 +5,10 @@ from pony import orm
 
 def define_binding(db):
     class TorrentState(db.Entity):
+        """
+        This ORM class represents torrent swarms. It is used by HealthChecker.
+        """
+
         rowid = orm.PrimaryKey(int, auto=True)
         infohash = orm.Required(database_blob, unique=True)
         seeders = orm.Optional(int, default=0)

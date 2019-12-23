@@ -1,15 +1,11 @@
-from __future__ import absolute_import
-
 import random
 import time
-
-from six.moves import xrange
 
 
 class Order(object):
 
     def __init__(self, asset1_type, asset2_type):
-        self.trader_id = ''.join(random.choice('0123456789abcdef') for _ in xrange(16))
+        self.trader_id = ''.join(random.choice('0123456789abcdef') for _ in range(16))
         now = int(time.time())
         self.timestamp = random.randint(now - 3600, now)
         self.asset1_amount = random.randint(1, 100)

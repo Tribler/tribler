@@ -7,13 +7,13 @@ First, install the required dependencies by executing the following command in y
 
 .. code-block:: bash
 
-    sudo apt install ffmpeg libssl-dev libx11-6 vlc libgmp-dev python2.7 python-minimal python-pip python-cherrypy3 python-libtorrent python-meliae python-pyqt5 python-pyqt5.qtsvg python-scipy python-typing
+    sudo apt install ffmpeg libssl-dev libx11-6 vlc libgmp-dev python3 python3-minimal python3-pip python3-cherrypy3 python3-libtorrent python3-pyqt5 python3-pyqt5.qtsvg python3-scipy python3-typing
 
 Secondly, install python packages
 
 .. code-block:: bash
 
- pip install bitcoinlib chardet configobj decorator dnspython ecdsa feedparser jsonrpclib leveldb matplotlib netifaces networkx pbkdf2 pony protobuf psutil pyaes pyasn1 pysocks requests lz4
+ pip install bitcoinlib chardet configobj decorator dnspython ecdsa feedparser jsonrpclib matplotlib netifaces networkx pbkdf2 pony protobuf psutil pyaes pyasn1 pysocks requests lz4
 
 Then, install py-ipv8 python dependencies
 
@@ -35,4 +35,4 @@ Execute the following command in your terminal:
 
 .. code-block:: bash
 
-    pacman -S libsodium libtorrent-rasterbar python2-pyqt5 qt5-svg phonon-qt5-vlc python2-cherrypy python2-cryptography python2-decorator python2-chardet python2-netifaces python2-twisted python2-configobj python2-matplotlib python2-networkx python2-psutil python2-scipy python2-libnacl python2-lz4 python2-pony python2-pyopenssl python2-typing
+    pacman -S libsodium libtorrent-rasterbar python3-pyqt5 qt5-svg phonon-qt5-vlc python3-cherrypy python3-cryptography python3-decorator python3-chardet python3-netifaces python3-twisted python3-configobj python3-matplotlib python3-networkx python3-psutil python3-scipy python3-libnacl python3-lz4 python3-pony python3-pyopenssl python3-typing

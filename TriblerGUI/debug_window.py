@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import datetime
 import logging
 import os
@@ -10,18 +8,11 @@ from time import localtime, strftime, time
 from PyQt5 import QtGui, uic
 from PyQt5.QtCore import QTimer, Qt, pyqtSignal
 from PyQt5.QtGui import QBrush, QColor, QTextCursor
-from PyQt5.QtWidgets import (QDesktopWidget, QFileDialog, QHeaderView, QMainWindow, QMessageBox, QTreeWidgetItem)
-
-try:
-    from meliae import scanner
-except ImportError:
-    scanner = None
+from PyQt5.QtWidgets import QDesktopWidget, QFileDialog, QHeaderView, QMainWindow, QMessageBox, QTreeWidgetItem
 
 import libtorrent
 
 import psutil
-
-from six.moves import xrange
 
 import Tribler.Core.Utilities.json_util as json
 
@@ -31,6 +22,11 @@ from TriblerGUI.event_request_manager import received_events as tribler_received
 from TriblerGUI.tribler_request_manager import TriblerRequestManager, performed_requests as tribler_performed_requests
 from TriblerGUI.utilities import format_size, get_ui_file_path
 from TriblerGUI.widgets.tokenminingpage import TimeSeriesPlot
+
+try:
+    from meliae import scanner
+except ImportError:
+    scanner = None
 
 
 class MemoryPlot(TimeSeriesPlot):
@@ -322,7 +318,7 @@ class DebugWindow(QMainWindow):
                 item.setText(8, "N/A")
 
             self.window().communities_tree_widget.addTopLevelItem(item)
-            map(self.window().communities_tree_widget.resizeColumnToContents, xrange(10))
+            map(self.window().communities_tree_widget.resizeColumnToContents, range(10))
 
     def load_ipv8_community_details_tab(self):
         if self.ipv8_statistics_enabled:

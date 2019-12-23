@@ -1,22 +1,9 @@
-from __future__ import absolute_import
-
 import os
 import subprocess
 import sys
 
 from PyQt5.QtCore import QObject, QTimer, pyqtSignal
 from PyQt5.QtWidgets import QApplication
-
-from six import PY3, text_type
-
-from twisted.internet.error import ReactorAlreadyInstalledError
-
-# We always use a selectreactor
-try:
-    from twisted.internet import selectreactor
-    selectreactor.install()
-except ReactorAlreadyInstalledError:
-    pass
 
 from TriblerGUI.event_request_manager import EventRequestManager
 from TriblerGUI.tribler_request_manager import QueuePriorityEnum, TriblerRequestManager
@@ -33,7 +20,7 @@ class CoreManager(QObject):
     tribler_stopped = pyqtSignal()
     core_state_update = pyqtSignal(str)
 
-    def __init__(self, api_port):
+    def __init__(self, api_port, api_key):
         QObject.__init__(self, None)
 
         self.base_path = get_base_path()
@@ -43,7 +30,8 @@ class CoreManager(QObject):
         self.request_mgr = None
         self.core_process = None
         self.api_port = api_port
-        self.events_manager = EventRequestManager(self.api_port)
+        self.api_key = api_key
+        self.events_manager = EventRequestManager(self.api_port, self.api_key)
 
         self.shutting_down = False
         self.recorded_stderr = ""
@@ -84,16 +72,11 @@ class CoreManager(QObject):
     def start_tribler_core(self, core_args=None, core_env=None):
         if not START_FAKE_API:
             if not core_env:
-                if PY3:
-                    core_env = os.environ.copy()
-                else:
-                    system_encoding = sys.getfilesystemencoding()
-                    core_env = {(k.encode(system_encoding) if isinstance(k, text_type) else str(k)):
-                                    (v.encode(system_encoding) if isinstance(v, text_type) else str(v))
-                                for k, v in os.environ.copy().items()}
+                core_env = os.environ.copy()
                 core_env["CORE_PROCESS"] = "1"
                 core_env["CORE_BASE_PATH"] = self.base_path
                 core_env["CORE_API_PORT"] = "%s" % self.api_port
+                core_env["CORE_API_KEY"] = self.api_key.decode('utf-8')
             if not core_args:
                 core_args = sys.argv
             self.core_process = subprocess.Popen([sys.executable] + core_args, env=core_env)

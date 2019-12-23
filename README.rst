@@ -2,7 +2,7 @@
 Tribler
 *******
 
-|jenkins_build| |docs| |contributors| |pr_closed| |issues_closed| |downloads_7_0| |downloads_7_1| |downloads_7_2| |doi| |openhub|
+|jenkins_build| |docs| |contributors| |pr_closed| |issues_closed| |downloads_7_0| |downloads_7_1| |downloads_7_2| |downloads_7_3| |doi| |openhub|
 
 *Towards making Bittorrent anonymous and impossible to shut down.*
 
@@ -63,13 +63,13 @@ Now you can run tribler by executing the ``tribler.sh`` script on the root of th
 .. code-block:: bash
 
     ./tribler.sh
-    
+
 On Windows, you can use the following command to run Tribler:
 
 .. code-block:: bash
 
     python run_tribler.py
-    
+
 Packaging Tribler
 =================
 
@@ -90,11 +90,11 @@ Submodule notes
 .. |pr_closed| image:: https://img.shields.io/github/issues-pr-closed/tribler/tribler.svg?style=flat
     :target: https://github.com/Tribler/tribler/pulls
     :alt: Pull Requests
-    
+
 .. |issues_closed| image:: https://img.shields.io/github/issues-closed/tribler/tribler.svg?style=flat
     :target: https://github.com/Tribler/tribler/issues
     :alt: Issues
-    
+
 .. |openhub| image:: https://www.openhub.net/p/tribler/widgets/project_thin_badge.gif?style=flat
     :target: https://www.openhub.net/p/tribler
 
@@ -105,10 +105,14 @@ Submodule notes
 .. |downloads_7_1| image:: https://img.shields.io/github/downloads/tribler/tribler/v7.1.3/total.svg?style=flat
     :target: https://github.com/Tribler/tribler/releases
     :alt: Downloads(7.1.3)
-    
+
 .. |downloads_7_2| image:: https://img.shields.io/github/downloads/tribler/tribler/v7.2.2/total.svg?style=flat
     :target: https://github.com/Tribler/tribler/releases
     :alt: Downloads(7.2.2)
+
+.. |downloads_7_3| image:: https://img.shields.io/github/downloads/tribler/tribler/v7.3.2/total.svg?style=flat
+    :target: https://github.com/Tribler/tribler/releases
+    :alt: Downloads(7.3.2)
 
 .. |contributors| image:: https://img.shields.io/github/contributors/tribler/tribler.svg?style=flat
     :target: https://github.com/Tribler/tribler/graphs/contributors

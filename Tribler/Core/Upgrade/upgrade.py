@@ -1,22 +1,28 @@
-from __future__ import absolute_import
-
 import logging
 import os
 import shutil
+from configparser import MissingSectionHeaderError, ParsingError
 
 from pony.orm import db_session
-
-from six.moves.configparser import MissingSectionHeaderError, ParsingError
-
-from twisted.internet.defer import succeed
 
 from Tribler.Core.Category.l2_filter import is_forbidden
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
-from Tribler.Core.Upgrade.config_converter import convert_config_to_tribler71, convert_config_to_tribler74
+from Tribler.Core.Upgrade.config_converter import convert_config_to_tribler74
 from Tribler.Core.Upgrade.db72_to_pony import DispersyToPonyMigration, cleanup_pony_experimental_db, should_upgrade
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
-from Tribler.Core.simpledefs import NTFY_FINISHED, NTFY_STARTED, NTFY_UPGRADER, NTFY_UPGRADER_TICK
+from Tribler.Core.osutils import dir_copy
+from Tribler.Core.simpledefs import (
+    NTFY_FINISHED,
+    NTFY_STARTED,
+    NTFY_UPGRADER,
+    NTFY_UPGRADER_TICK,
+    STATEDIR_CHANNELS_DIR,
+    STATEDIR_CHECKPOINT_DIR,
+    STATEDIR_DB_DIR,
+    STATEDIR_WALLET_DIR,
+)
+from Tribler.Core.version import version_id
 
 
 def cleanup_noncompliant_channel_torrents(state_dir):
@@ -66,10 +72,8 @@ class TriblerUpgrader(object):
         self.session = session
 
         self.notified = False
-        self.is_done = False
         self.failed = True
 
-        self.current_status = u"Initializing"
         self._dtp72 = None
         self.skip_upgrade_called = False
 
@@ -78,34 +82,34 @@ class TriblerUpgrader(object):
         if self._dtp72:
             self._dtp72.shutting_down = True
 
-    def run(self):
+    async def run(self):
         """
         Run the upgrader if it is enabled in the config.
 
         Note that by default, upgrading is enabled in the config. It is then disabled
         after upgrading to Tribler 7.
         """
-        d = self.upgrade_72_to_pony()
-        d.addCallback(self.upgrade_pony_db_6to7)
+        await self.upgrade_72_to_pony()
+        await self.upgrade_pony_db_6to7()
         self.upgrade_config_to_74()
-        return d
+        self.backup_state_directory()
 
-    def upgrade_pony_db_6to7(self, _):
+    async def upgrade_pony_db_6to7(self):
         """
         Upgrade GigaChannel DB from version 6 (7.3.0) to version 7 (7.3.1).
         Migration should be relatively fast, so we do it in the foreground, without notifying the user
         and breaking it in smaller chunks as we do with 72_to_pony.
         """
-        # We have to create the Metadata Store object because the LaunchManyCore has not been started yet
+        # We have to create the Metadata Store object because Session-managed Store has not been started yet
         database_path = os.path.join(self.session.config.get_state_dir(), 'sqlite', 'metadata.db')
         channels_dir = os.path.join(self.session.config.get_chant_channels_dir())
         if not os.path.exists(database_path):
-            return succeed(None)
+            return
         mds = MetadataStore(database_path, channels_dir, self.session.trustchain_keypair, disable_sync=True)
         with db_session:
             db_version = mds.MiscData.get(name="db_version")
             if int(db_version.value) != 6:
-                return succeed(None)
+                return
             for c in mds.ChannelMetadata.select():
                 if is_forbidden(c.title+c.tags):
                     c.contents.delete()
@@ -127,13 +131,12 @@ class TriblerUpgrader(object):
             db_version = mds.MiscData.get(name="db_version")
             db_version.value = str(7)
         mds.shutdown()
-        return succeed(None)
+        return
 
     def update_status(self, status_text):
         self.session.notifier.notify(NTFY_UPGRADER_TICK, NTFY_STARTED, None, status_text)
-        self.current_status = status_text
 
-    def upgrade_72_to_pony(self):
+    async def upgrade_72_to_pony(self):
         old_database_path = os.path.join(self.session.config.get_state_dir(), 'sqlite', 'tribler.sdb')
         new_database_path = os.path.join(self.session.config.get_state_dir(), 'sqlite', 'metadata.db')
         channels_dir = os.path.join(self.session.config.get_chant_channels_dir())
@@ -145,21 +148,21 @@ class TriblerUpgrader(object):
         self._dtp72 = DispersyToPonyMigration(old_database_path, self.update_status, logger=self._logger)
         if not should_upgrade(old_database_path, new_database_path, logger=self._logger):
             self._dtp72 = None
-            return succeed(None)
+            return
         # This thing is here mostly for the skip upgrade test to work...
         self._dtp72.shutting_down = self.skip_upgrade_called
         self.notify_starting()
-        # We have to create the Metadata Store object because the LaunchManyCore has not been started yet
+        # We have to create the Metadata Store object because Session-managed Store has not been started yet
         mds = MetadataStore(new_database_path, channels_dir, self.session.trustchain_keypair, disable_sync=True)
         self._dtp72.initialize(mds)
 
-        def finish_migration(_):
-            mds.shutdown()
-            self.notify_done()
-
-        def log_error(failure):
-            self._logger.error("Error in Upgrader callback chain: %s", failure)
-        return self._dtp72.do_migration().addCallbacks(finish_migration, log_error)
+        try:
+            await self._dtp72.do_migration()
+        except Exception as e:
+            self._logger.error("Error in Upgrader callback chain: %s", e)
+            return
+        mds.shutdown()
+        self.notify_done()
 
     def upgrade_config_to_74(self):
         """
@@ -167,12 +170,61 @@ class TriblerUpgrader(object):
         """
         convert_config_to_tribler74()
 
-    def upgrade_config_to_71(self):
+    def backup_state_directory(self):
         """
-        This method performs actions necessary to upgrade the configuration files to Tribler 7.1.
+        Backs up the current state directory if the version in the state directory and in the code is different.
         """
-        self.session.config = convert_config_to_tribler71(self.session.config)
-        self.session.config.write()
+        if self.session.config.get_version_backup_enabled() and self.session.config.get_version() \
+                and not self.session.config.get_version() == version_id:
+
+            src_state_dir = self.session.config.get_state_dir()
+            dest_state_dir = self.session.config.get_state_dir(version=self.session.config.get_version())
+
+            # If only there is no tribler config already in the backup directory, then make the current version backup.
+            dest_conf_path = os.path.join(dest_state_dir, 'triblerd.conf')
+            if not os.path.exists(dest_conf_path):
+                # Backup selected directories
+                backup_dirs = [STATEDIR_DB_DIR, STATEDIR_CHECKPOINT_DIR, STATEDIR_WALLET_DIR, STATEDIR_CHANNELS_DIR]
+                src_sub_dirs = os.listdir(src_state_dir)
+                for backup_dir in backup_dirs:
+                    if backup_dir in src_sub_dirs:
+                        dir_copy(os.path.join(src_state_dir, backup_dir), os.path.join(dest_state_dir, backup_dir))
+                    else:
+                        os.makedirs(os.path.join(dest_state_dir, backup_dir))
+
+                # Backup keys and config files
+                backup_files = ['ec_multichain.pem', 'ecpub_multichain.pem', 'ec_trustchain_testnet.pem',
+                                'ecpub_trustchain_testnet.pem', 'triblerd.conf']
+                for backup_file in backup_files:
+                    dir_copy(os.path.join(src_state_dir, backup_file), os.path.join(dest_state_dir, backup_file))
+
+    def backup_state_directory(self):
+        """
+        Backs up the current state directory if the version in the state directory and in the code is different.
+        """
+        if self.session.config.get_version_backup_enabled() and self.session.config.get_version() \
+                and not self.session.config.get_version() == version_id:
+
+            src_state_dir = self.session.config.get_state_dir()
+            dest_state_dir = self.session.config.get_state_dir(version=self.session.config.get_version())
+
+            # If only there is no tribler config already in the backup directory, then make the current version backup.
+            dest_conf_path = os.path.join(dest_state_dir, 'triblerd.conf')
+            if not os.path.exists(dest_conf_path):
+                # Backup selected directories
+                backup_dirs = [STATEDIR_DB_DIR, STATEDIR_CHECKPOINT_DIR, STATEDIR_WALLET_DIR, STATEDIR_CHANNELS_DIR]
+                src_sub_dirs = os.listdir(src_state_dir)
+                for backup_dir in backup_dirs:
+                    if backup_dir in src_sub_dirs:
+                        dir_copy(os.path.join(src_state_dir, backup_dir), os.path.join(dest_state_dir, backup_dir))
+                    else:
+                        os.makedirs(os.path.join(dest_state_dir, backup_dir))
+
+                # Backup keys and config files
+                backup_files = ['ec_multichain.pem', 'ecpub_multichain.pem', 'ec_trustchain_testnet.pem',
+                                'ecpub_trustchain_testnet.pem', 'triblerd.conf']
+                for backup_file in backup_files:
+                    dir_copy(os.path.join(src_state_dir, backup_file), os.path.join(dest_state_dir, backup_file))
 
     def notify_starting(self):
         """

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from PyQt5.QtSvg import QGraphicsSvgItem, QSvgRenderer
 from PyQt5.QtWidgets import QGraphicsScene, QWidget
 
@@ -41,4 +39,3 @@ class LoadingPage(QWidget):
             self.upgrading = True
             self.window().skip_conversion_btn.show()
         self.window().loading_text_label.setText(text)
-

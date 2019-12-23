@@ -1,8 +1,7 @@
-from __future__ import absolute_import, division
-
 import logging
 import os
 import time
+from asyncio import Future, ensure_future, gather
 from binascii import unhexlify
 from glob import glob
 
@@ -10,19 +9,21 @@ from ipv8.taskmanager import TaskManager
 
 import psutil
 
-from six import string_types
-
-from twisted.internet.defer import Deferred, DeferredList, succeed
-from twisted.internet.task import LoopingCall
-
 from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.CreditMining.CreditMiningPolicy import InvestmentPolicy, MB
 from Tribler.Core.CreditMining.CreditMiningSource import ChannelSource
 from Tribler.Core.TorrentDef import TorrentDefNoMetainfo
 from Tribler.Core.Utilities.unicode import ensure_unicode, hexlify
 from Tribler.Core.simpledefs import (
-    DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR, DOWNLOAD, NTFY_CREDIT_MINING,
-    NTFY_ERROR, UPLOAD)
+    DLSTATUS_DOWNLOADING,
+    DLSTATUS_SEEDING,
+    DLSTATUS_STOPPED,
+    DLSTATUS_STOPPED_ON_ERROR,
+    DOWNLOAD,
+    NTFY_CREDIT_MINING,
+    NTFY_ERROR,
+    UPLOAD,
+)
 
 
 class CreditMiningTorrent(object):
@@ -90,27 +91,27 @@ class CreditMiningManager(TaskManager):
         if not os.path.exists(self.settings.save_path):
             os.makedirs(self.settings.save_path)
 
-        self.register_task('check_disk_space', LoopingCall(self.check_disk_space)).start(30, now=False)
-        self.select_lc = self.register_task('select_torrents', LoopingCall(self.select_torrents))
-        self.num_checkpoints = len(glob(os.path.join(self.session.get_downloads_config_dir(), '*.state')))
+        self.register_task('check_disk_space', self.check_disk_space, interval=30)
+        self.num_checkpoints = len(glob(os.path.join(self.session.ltmgr.get_downloads_config_dir(), '*.conf')))
 
-        def add_sources(_):
+        def add_sources(future):
+            future.result()
             for source in self.session.config.get_credit_mining_sources():
                 self.add_source(source)
 
-        self.session_ready = Deferred().addCallback(add_sources)
+        self.session_ready = Future()
+        self.session_ready.add_done_callback(add_sources)
 
-    def shutdown(self, remove_downloads=False):
+    async def shutdown(self, remove_downloads=False):
         """
         Shutting down credit mining manager. It also stops and remove all the sources.
         """
         self._logger.info('Shutting down CreditMiningManager')
 
-        deferreds = [self.remove_source(source) for source in list(self.sources.keys())] if remove_downloads else []
+        await self.shutdown_task_manager()
 
-        self.shutdown_task_manager()
-
-        return DeferredList(deferreds)
+        if remove_downloads and self.sources:
+            await gather(*[self.remove_source(source) for source in list(self.sources.keys())])
 
     def get_free_disk_space(self):
         return psutil.disk_usage(self.settings.save_path).free
@@ -125,7 +126,7 @@ class CreditMiningManager(TaskManager):
                                 u"please go to Settings >> ANONYMITY >> Token mining. " % \
                                 ensure_unicode(self.settings.save_path, 'utf-8')
             except OSError:
-                self.shutdown()
+                ensure_future(self.shutdown())
                 error_message = u"Credit mining directory [%s] was deleted or does not exist and Tribler could not " \
                                 u"re-create the directory again. Credit mining will shutdown. Try restarting " \
                                 u"Tribler. <br/>If you wish to disable credit mining entirely, please go to " \
@@ -148,12 +149,10 @@ class CreditMiningManager(TaskManager):
 
             self.upload_mode = is_low
 
-            def set_upload_mode(handle):
-                handle.set_upload_mode(is_low)
-
-            for download in self.session.get_downloads():
+            for download in self.session.ltmgr.get_downloads():
                 if download.config.get_credit_mining():
-                    download.get_handle().addCallback(set_upload_mode)
+                    if download.handle and download.handle.is_valid():
+                        download.handle.set_upload_mode(is_low)
 
     def add_source(self, source_str):
         """
@@ -162,7 +161,7 @@ class CreditMiningManager(TaskManager):
         if source_str not in self.sources:
             num_torrents = len(self.torrents)
 
-            if isinstance(source_str, string_types):
+            if isinstance(source_str, str):
                 source = ChannelSource(self.session, unhexlify(source_str), self.on_torrent_insert)
             else:
                 self._logger.error('Cannot add unknown source %s', source_str)
@@ -174,21 +173,21 @@ class CreditMiningManager(TaskManager):
 
             # If we don't have any torrents and the select LoopingCall is running, stop it.
             # It will restart immediately after we have enough torrents.
-            if num_torrents == 0 and self.select_lc.running:
-                self.select_lc.stop()
+            if num_torrents == 0 and self.is_pending_task_active('select_torrents'):
+                self.cancel_pending_task('select_torrents')
         else:
             self._logger.info('Already have source %s', source_str)
 
-    def remove_source(self, source_str):
+    async def remove_source(self, source_str):
         """
         remove source by stop the downloading and remove its metainfo for all its swarms
         """
         if source_str in self.sources:
             source = self.sources.pop(source_str)
-            source.stop()
+            await source.stop()
             self._logger.info('Removed source %s', source_str)
 
-            deferreds = []
+            coros = []
             for infohash, torrent in list(self.torrents.items()):
                 if source_str in torrent.sources:
                     torrent.sources.remove(source_str)
@@ -196,17 +195,17 @@ class CreditMiningManager(TaskManager):
                         del self.torrents[infohash]
 
                         if torrent.download:
-                            deferreds.append(self.session.remove_download(torrent.download, remove_state=True,
-                                                                          remove_content=True, hidden=True))
+                            coros.append(self.session.ltmgr.remove(torrent.download,
+                                                                      remove_state=True,
+                                                                      remove_content=True, hidden=True))
                             self._logger.info('Removing torrent %s', torrent.infohash)
-            self._logger.info('Removing %s download(s)', len(deferreds))
+            self._logger.info('Removing %s download(s)', len(coros))
 
             self.cancel_all_pending_tasks()
-
-            return DeferredList(deferreds)
-
-        self._logger.error('Cannot remove non-existing source %s', source_str)
-        return succeed(None)
+            if coros:
+                await gather(*coros)
+        else:
+            self._logger.error('Cannot remove non-existing source %s', source_str)
 
     def on_torrent_insert(self, source_str, infohash, name):
         """
@@ -225,8 +224,8 @@ class CreditMiningManager(TaskManager):
             return
 
         # If a download already exists or already has a checkpoint, skip this torrent
-        if self.session.get_download(unhexlify(infohash)) or \
-                os.path.exists(os.path.join(self.session.get_downloads_config_dir(), infohash + '.state')):
+        if self.session.ltmgr.get_download(unhexlify(infohash)) or \
+                os.path.exists(os.path.join(self.session.ltmgr.get_downloads_config_dir(), infohash + '.state')):
             self._logger.debug('Skipping torrent %s (download already running or scheduled to run)', infohash)
             return
 
@@ -246,14 +245,14 @@ class CreditMiningManager(TaskManager):
         dl_config.set_credit_mining(True)
         dl_config.set_user_stopped(True)
 
-        self.session.lm.add(TorrentDefNoMetainfo(unhexlify(infohash), name, magnet), dl_config, hidden=True)
+        self.session.ltmgr.add(TorrentDefNoMetainfo(unhexlify(infohash), name, magnet), dl_config, hidden=True)
 
     def get_reserved_space_left(self):
         # Calculate number of bytes we have left for storing torrent data.
         # We could also get the size of the download directory ourselves (without libtorrent), but depending
         # on the size of the directory and the number of files in it, this could use too many resources.
         bytes_left = self.settings.max_disk_space
-        for download in self.session.get_downloads():
+        for download in self.session.ltmgr.get_downloads():
             ds = download.get_state()
             if ds.get_status() in [DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING,
                                    DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR]:
@@ -343,12 +342,12 @@ class CreditMiningManager(TaskManager):
         self._logger.info('%d active download(s), %.3f MB uploaded, %.3f MB downloaded',
                           num_seeding + num_downloading, bytes_uploaded / MB, bytes_downloaded / MB)
 
-        if not self.session_ready.called and len(dslist) == self.num_checkpoints:
-            self.session_ready.callback(None)
+        if not self.session_ready.done() and len(dslist) == self.num_checkpoints:
+            self.session_ready.set_result(None)
 
         # We start the looping call when all torrents have been loaded
         total = num_seeding + num_downloading + stopped
-        if not self.select_lc.running and total >= self.settings.max_torrents_active:
-            self.select_lc.start(self.settings.auto_manage_interval, now=True)
+        if not self.is_pending_task_active('select_torrents') and total >= self.settings.max_torrents_active:
+            self.register_task('select_torrents', self.select_torrents, interval=self.settings.auto_manage_interval)
 
         return num_downloading, num_seeding, stopped, bytes_downloaded, bytes_uploaded

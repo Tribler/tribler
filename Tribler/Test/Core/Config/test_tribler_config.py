@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import os
 
 from configobj import ConfigObj
@@ -14,11 +12,11 @@ class TestTriblerConfig(TriblerCoreTest):
     This class contains tests for the tribler configuration file.
     """
 
-    def setUp(self):
+    async def setUp(self):
         """
         Create a new TriblerConfig instance
         """
-        super(TestTriblerConfig, self).setUp()
+        await super(TestTriblerConfig, self).setUp()
 
         state_dir = self.getStateDir()
         self.tribler_config = TriblerConfig(ConfigObj(configspec=CONFIG_SPEC_PATH, default_encoding='utf-8'))
@@ -139,6 +137,13 @@ class TestTriblerConfig(TriblerCoreTest):
         """
         self.tribler_config.set_state_dir("TEST")
         self.assertEqual(self.tribler_config.get_state_dir(), "TEST")
+
+        self.tribler_config.set_version('7.0.0-GIT')
+        self.assertLessEqual(self.tribler_config.get_version(), '7.0.0-GIT')
+
+        self.assertEqual(self.tribler_config.get_version_backup_enabled(), True)
+        self.tribler_config.set_version_backup_enabled(False)
+        self.assertEqual(self.tribler_config.get_version_backup_enabled(), False)
 
         self.assertEqual(self.tribler_config.get_trustchain_testnet_keypair_filename(),
                          os.path.join("TEST", "ec_trustchain_testnet.pem"))

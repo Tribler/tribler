@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import random
 from binascii import unhexlify
 
@@ -10,17 +8,13 @@ from ipv8.messaging.deprecated.encoding import encode
 from ipv8.test.attestation.trustchain.test_block import MockDatabase, TestBlock
 from ipv8.test.mocking.ipv8 import MockIPv8
 
-from six.moves import xrange
-
-from twisted.internet.defer import inlineCallbacks
-
-import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.restapi.trustview_endpoint import TrustGraph
 from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.exceptions import TrustGraphException
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.test_as_server import BaseTestCase
+from Tribler.Test.tools import timeout
 
 
 class TestTrustGraph(BaseTestCase):
@@ -61,7 +55,7 @@ class TestTrustGraph(BaseTestCase):
         Tests the maximum nodes that can be present in the graph.
         """
         # Added the MAX_PEERS nodes in the graph (including the root node)
-        for _ in xrange(self.trust_graph.max_peers-1):
+        for _ in range(self.trust_graph.max_peers-1):
             test_node_key = hexlify(default_eccrypto.generate_key(u"very-low").pub().key_to_bin())
             test_node = self.trust_graph.get_node(test_node_key)
             self.assertIsNotNone(test_node)
@@ -86,7 +80,7 @@ class TestTrustGraph(BaseTestCase):
         db = MockDatabase()
         block = TestBlock()
 
-        for _ in xrange(self.trust_graph.max_transactions):
+        for _ in range(self.trust_graph.max_transactions):
             tx = {b"total_up": random.randint(1, 100), b"total_down": random.randint(1, 100),
                   b"up": random.randint(1, 100), b"down": random.randint(1, 100)}
             new_block = TrustChainBlock.create(b'tribler_bandwidth', tx, db, block.public_key)
@@ -110,39 +104,38 @@ class TestTrustGraph(BaseTestCase):
 
 
 class TestTrustViewEndpoint(AbstractApiTest):
-    @inlineCallbacks
-    def setUp(self):
-        yield super(TestTrustViewEndpoint, self).setUp()
+
+    async def setUp(self):
+        await super(TestTrustViewEndpoint, self).setUp()
 
         self.mock_ipv8 = MockIPv8(u"low", TrustChainCommunity, working_directory=self.session.config.get_state_dir())
-        self.session.lm.trustchain_community = self.mock_ipv8.overlay
+        self.session.trustchain_community = self.mock_ipv8.overlay
 
-        self.session.lm.bootstrap = MockObject()
-        self.session.lm.bootstrap.download = MockObject()
+        self.session.bootstrap = MockObject()
+        self.session.bootstrap.download = MockObject()
 
         bootstrap_download_state = MockObject()
         bootstrap_download_state.get_total_transferred = lambda _: random.randint(0, 10000)
         bootstrap_download_state.get_progress = lambda: random.randint(10, 100)
 
-        self.session.lm.bootstrap.download.get_state = lambda: bootstrap_download_state
+        self.session.bootstrap.download.get_state = lambda: bootstrap_download_state
 
-        self.endpoint = self.session.lm.api_manager.root_endpoint.trustview_endpoint
+        self.endpoint = self.session.api_manager.root_endpoint.endpoints['/trustview']
 
     def setUpPreSession(self):
         super(TestTrustViewEndpoint, self).setUpPreSession()
         self.config.set_trustchain_enabled(True)
 
-    @inlineCallbacks
-    def tearDown(self):
-        yield self.mock_ipv8.unload()
-        yield super(TestTrustViewEndpoint, self).tearDown()
+    async def tearDown(self):
+        await self.mock_ipv8.unload()
+        await super(TestTrustViewEndpoint, self).tearDown()
 
-    @inlineCallbacks
-    def test_trustview_response(self):
+    @timeout(10)
+    async def test_trustview_response(self):
         """
         Test whether the trust graph response is correctly returned.
         """
-        root_key = self.session.lm.trustchain_community.my_peer.public_key.key_to_bin()
+        root_key = self.session.trustchain_community.my_peer.public_key.key_to_bin()
         friends = [
             "4c69624e61434c504b3a2ee28ce24a2259b4e585b81106cdff4359fcf48e93336c11d133b01613f30b03b4db06df27"
             "80daac2cdf2ee60be611bf7367a9c1071ac50d65ca5858a50e9578",
@@ -178,8 +171,7 @@ class TestTrustViewEndpoint(AbstractApiTest):
                 b'total_down': random.randint(1, 101),
             }
 
-        def verify_response(response, nodes, tx):
-            response_json = json.twisted_loads(response)
+        def verify_response(response_json, nodes, tx):
             self.assertIsNotNone(response_json['graph'])
             self.assertEqual(response_json['num_tx'], tx)
             self.assertEqual(len(response_json['graph']['node']), nodes)
@@ -196,7 +188,7 @@ class TestTrustViewEndpoint(AbstractApiTest):
             test_block.link_public_key = unhexlify(pub_key)
 
             test_block.hash = test_block.calculate_hash()
-            self.session.lm.trustchain_community.persistence.add_block(test_block)
+            self.session.trustchain_community.persistence.add_block(test_block)
 
         for ind, friend in enumerate(friends):
             for ind2, fof in enumerate(fofs):
@@ -208,7 +200,7 @@ class TestTrustViewEndpoint(AbstractApiTest):
                 test_block.link_public_key = unhexlify(fof)
 
                 test_block.hash = test_block.calculate_hash()
-                self.session.lm.trustchain_community.persistence.add_block(test_block)
+                self.session.trustchain_community.persistence.add_block(test_block)
 
         for ind3, fof in enumerate(fofs):
             for ind4, fofof in enumerate(fofofs):
@@ -219,21 +211,18 @@ class TestTrustViewEndpoint(AbstractApiTest):
                 test_block.public_key = unhexlify(fof)
                 test_block.link_public_key = unhexlify(fofof)
                 test_block.hash = test_block.calculate_hash()
-                self.session.lm.trustchain_community.persistence.add_block(test_block)
+                self.session.trustchain_community.persistence.add_block(test_block)
 
-        self.should_check_equality = False
-        yield self.do_request(b'trustview?depth=1', expected_code=200)\
-            .addCallback(lambda res: verify_response(res, 4, 3))
-        yield self.do_request(b'trustview?depth=2', expected_code=200)\
-            .addCallback(lambda res: verify_response(res, 7, 12))
-        yield self.do_request(b'trustview?depth=3', expected_code=200)\
-            .addCallback(lambda res: verify_response(res, 10, 21))
-        yield self.do_request(b'trustview?depth=4', expected_code=200)\
-            .addCallback(lambda res: verify_response(res, 10, 21))
-        return
+        res = await self.do_request('trustview?depth=1', expected_code=200)
+        verify_response(res, 4, 3)
+        res = await self.do_request('trustview?depth=2', expected_code=200)
+        verify_response(res, 7, 12)
+        res = await self.do_request('trustview?depth=3', expected_code=200)
+        verify_response(res, 10, 21)
+        res = await self.do_request('trustview?depth=4', expected_code=200)
+        verify_response(res, 10, 21)
 
-    @inlineCallbacks
-    def test_trustview_max_response(self):
+    async def test_trustview_max_response(self):
         """
         Test whether the trust graph response is limited.
         Here we redefine the max peers and max transactions limit for trust graph and add more peers and transactions,
@@ -252,24 +241,18 @@ class TestTrustViewEndpoint(AbstractApiTest):
                 b'total_down': random.randint(1, 101),
             }
 
-        def verify_response(response):
-            response_json = json.twisted_loads(response)
-            self.assertIsNotNone(response_json['graph'])
-            self.assertLessEqual(response_json['num_tx'], max_tx)
-            self.assertLessEqual(len(response_json['graph']['node']), max_peers)
-
-        test_block = TestBlock(key=self.session.lm.trustchain_community.my_peer.key)
+        test_block = TestBlock(key=self.session.trustchain_community.my_peer.key)
         test_block.sequence_number = 0
         test_block.type = b'tribler_bandwidth'
-        for _ in xrange(max_peers * 2):
+        for _ in range(max_peers * 2):
             test_block.transaction = get_dummy_tx()
             test_block._transaction = encode(test_block.transaction)
             test_block.link_public_key = default_eccrypto.generate_key(u"very-low").pub().key_to_bin()
             test_block.hash = test_block.calculate_hash()
-            self.session.lm.trustchain_community.persistence.add_block(test_block)
+            self.session.trustchain_community.persistence.add_block(test_block)
             test_block.sequence_number = test_block.sequence_number + 1
 
-        self.should_check_equality = False
-        yield self.do_request(b'trustview?depth=0', expected_code=200) \
-            .addCallback(verify_response)
-        return
+        response_json = await self.do_request('trustview?depth=0', expected_code=200)
+        self.assertIsNotNone(response_json['graph'])
+        self.assertLessEqual(response_json['num_tx'], max_tx)
+        self.assertLessEqual(len(response_json['graph']['node']), max_peers)

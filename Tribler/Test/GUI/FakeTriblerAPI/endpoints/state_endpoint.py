@@ -1,11 +1,12 @@
-from __future__ import absolute_import
+from aiohttp import web
 
-from twisted.web import resource
-
-import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.Modules.restapi.rest_endpoint import RESTEndpoint, RESTResponse
 
 
-class StateEndpoint(resource.Resource):
+class StateEndpoint(RESTEndpoint):
 
-    def render_GET(self, _request):
-        return json.twisted_dumps({"state": "STARTED", "last_exception": None, "readable_state": "Starting..."})
+    def setup_routes(self):
+        self.app.add_routes([web.get('', self.get_state)])
+
+    async def get_state(self, _):
+        return RESTResponse({"state": "STARTED", "last_exception": None, "readable_state": "Starting..."})
