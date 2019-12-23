@@ -32,31 +32,28 @@ if __name__ == '__main__':
     logger.info("Build date: %s", build_date)
 
     logger.info('Writing runtime version info.')
-    f = open(path.join('Tribler', 'Core', 'version.py'), 'w')
-    f.write('version_id = "%s"%sbuild_date = "%s"%scommit_id = "%s"%s' %
-            (version_id, linesep, build_date, linesep, commit_id, linesep))
-    f.close()
+    with open(path.join('Tribler', 'Core', 'version.py'), 'w') as f:
+        f.write('version_id = "%s"%sbuild_date = "%s"%scommit_id = "%s"%s' %
+                (version_id, linesep, build_date, linesep, commit_id, linesep))
 
-    f = open('.TriblerVersion', 'w')
-    f.write(version_id)
-    f.close()
+    with open('.TriblerVersion', 'w') as f:
+        f.write(version_id)
 
     if sys.platform == 'linux2':
         run_command('dch -v {} New upstream release.'.format(version_id).split())
     elif sys.platform == 'win32':
         logger.info('Replacing NSI string.')
-        f = open(path.join('Tribler', 'Main', 'Build', 'Win', 'tribler.nsi'), 'r+')
-        content = f.read()
+        with open(path.join('Tribler', 'Main', 'Build', 'Win', 'tribler.nsi'), 'r+') as f:
+            content = f.read()
 
-        # Replace the __GIT__ string with the version id.
-        content = content.replace('__GIT__', version_id)
+            # Replace the __GIT__ string with the version id.
+            content = content.replace('__GIT__', version_id)
 
-        # Check if we are building 64 bit, replace the install dir and bit version accordingly.
-        if len(sys.argv) > 1 and sys.argv[1] == "64":
-            content = content.replace('x86', 'x64')
-            content = content.replace('"32"', '"64"')
-            content = content.replace('$PROGRAMFILES', '$PROGRAMFILES64')
+            # Check if we are building 64 bit, replace the install dir and bit version accordingly.
+            if len(sys.argv) > 1 and sys.argv[1] == "64":
+                content = content.replace('x86', 'x64')
+                content = content.replace('"32"', '"64"')
+                content = content.replace('$PROGRAMFILES', '$PROGRAMFILES64')
 
-        f.seek(0)
-        f.write(content)
-        f.close()
+            f.seek(0)
+            f.write(content)

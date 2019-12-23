@@ -206,11 +206,10 @@ class TestVideoServerSession(TestAsServer):
 
         # the amount of bytes actually requested. (Content-length)
         self.expsize = exp_byte_range[1] - exp_byte_range[0] + 1
-        f = open(self.sourcefn, "rb")
-        f.seek(exp_byte_range[0])
+        with open(self.sourcefn, "rb") as f:
+            f.seek(exp_byte_range[0])
 
-        expdata = f.read(self.expsize)
-        f.close()
+            expdata = f.read(self.expsize)
 
         protocol = VideoServerProtocol(test_future, self.sourcesize, expdata, setset, exp_byte_range)
         transport, _ = await get_event_loop().create_connection(lambda: protocol, "localhost", self.port)

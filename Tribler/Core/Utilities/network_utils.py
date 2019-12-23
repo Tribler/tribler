@@ -104,9 +104,8 @@ def autodetect_socket_style():
         return 1
     else:
         try:
-            f = open('/proc/sys/net/ipv6/bindv6only', 'r')
-            dual_socket_style = int(f.read())
-            f.close()
+            with open('/proc/sys/net/ipv6/bindv6only', 'r') as f:
+                dual_socket_style = int(f.read())
             return int(not dual_socket_style)
         except (IOError, ValueError):
             return 0

@@ -203,18 +203,15 @@ class AbstractServer(BaseTestCase):
             self.annotate_dict[annotation] = time.time()
         else:
             filename = os.path.join(destdir, u"annotations.txt")
-            if os.path.exists(filename):
-                f = open(filename, 'a')
-            else:
-                f = open(filename, 'w')
+            mode = 'a' if os.path.exists(filename) else 'w'
+            with open(filename, mode) as f:
                 f.write("annotation start end\n")
 
-            AbstractServer._annotate_counter += 1
-            _annotation = re.sub('[^a-zA-Z0-9_]', '_', annotation)
-            _annotation = u"%d_" % AbstractServer._annotate_counter + _annotation
+                AbstractServer._annotate_counter += 1
+                _annotation = re.sub('[^a-zA-Z0-9_]', '_', annotation)
+                _annotation = u"%d_" % AbstractServer._annotate_counter + _annotation
 
-            f.write("%s %s %s\n" % (_annotation, self.annotate_dict[annotation], time.time()))
-            f.close()
+                f.write("%s %s %s\n" % (_annotation, self.annotate_dict[annotation], time.time()))
 
 
 class TestAsServer(AbstractServer):

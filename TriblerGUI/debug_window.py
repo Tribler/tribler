@@ -623,9 +623,8 @@ class DebugWindow(QMainWindow):
             return
         dest_path = os.path.join(self.export_dir, filename)
         try:
-            memory_dump_file = open(dest_path, "wb")
-            memory_dump_file.write(data)
-            memory_dump_file.close()
+            with open(dest_path, "wb") as memory_dump_file:
+                memory_dump_file.write(data)
         except IOError as exc:
             ConfirmationDialog.show_error(self.window(),
                                           "Error when exporting file",
@@ -733,8 +732,7 @@ class DebugWindow(QMainWindow):
         if len(base_dir) > 0:
             dest_path = os.path.join(base_dir, filename)
             try:
-                torrent_file = open(dest_path, "wb")
-                torrent_file.write(json.dumps(data))
-                torrent_file.close()
+                with open(dest_path, "wb") as torrent_file:
+                    torrent_file.write(json.dumps(data))
             except IOError as exc:
                 ConfirmationDialog.show_error(self.window(), "Error exporting file", str(exc))

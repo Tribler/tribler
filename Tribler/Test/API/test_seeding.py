@@ -56,12 +56,10 @@ class TestSeeding(TestAsServer):
         if ds.get_status() == DLSTATUS_SEEDING:
             # File is in
             destfn = os.path.join(self.getDestDir(), "video.avi")
-            f = open(destfn, "rb")
-            realdata = f.read()
-            f.close()
-            f = open(self.sourcefn, "rb")
-            expdata = f.read()
-            f.close()
+            with open(destfn, "rb") as f:
+                realdata = f.read()
+            with open(self.sourcefn, "rb") as f:
+                expdata = f.read()
 
             self.assertEqual(realdata, expdata)
             self.test_future.set_result(None)
