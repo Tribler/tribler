@@ -24,6 +24,7 @@ from configobj import ConfigObj
 
 from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.Config.tribler_config import CONFIG_SPEC_PATH, TriblerConfig
+from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 from Tribler.Core.Session import Session
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.instrumentation import WatchDog
@@ -266,7 +267,8 @@ class TestAsServer(AbstractServer):
 
         """ unittest test tear down code """
         if self.session is not None:
-            self.session.ltmgr = None  # Just drop dead any ltmgr instance
+            if isinstance(self.session.ltmgr, LibtorrentMgr):
+                self.session.ltmgr.shutdown = partial(self.session.ltmgr.shutdown, timeout=.1)
             await self.session.shutdown()
             self.session = None
 
