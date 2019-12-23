@@ -199,6 +199,34 @@ class DispersyToPonyMigration(object):
 
                 if invalid_base64 or invalid_torrent_id or invalid_len or invalid_name:
                     continue
+                
+                infohash = base64.decodestring(infohash.encode())
+
+                torrent_date = datetime.datetime.utcfromtimestamp(creation_date or 0)
+                torrent_date = torrent_date if 0 <= time2int(torrent_date) <= self.conversion_start_timestamp_int \
+                    else int2time(0)
+                torrent_dict = {
+                    "status": NEW,
+                    "infohash": infohash,
+                    "size": int(length),
+                    "torrent_date": torrent_date,
+                    "title": name or '',
+                    "tags": category or '',
+                    "tracker_info": tracker_url or '',
+                    "xxx": int(category == u'xxx')}
+                if not sign:
+                    torrent_dict.update({"origin_id": infohash_to_id(channel_id)})
+                seeders = int(num_seeders or 0)
+                leechers = int(num_leechers or 0)
+                last_tracker_check = int(last_tracker_check or 0)
+                health_dict = {
+                    "seeders": seeders,
+                    "leechers": leechers,
+                    "last_check": last_tracker_check
+                } if (last_tracker_check >= 0 and seeders >= 0 and leechers >= 0) else None
+                torrents.append((torrent_dict, health_dict))
+            except:
+                continue
 
         return torrents if batch_not_empty else None
 
