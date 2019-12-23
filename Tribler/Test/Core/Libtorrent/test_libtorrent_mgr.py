@@ -121,6 +121,7 @@ class TestLibtorrentMgr(AbstractServer):
                     b'nodes': [], b'seeders': 0}
 
         download_impl = Mock()
+        download_impl.tdef.get_metainfo = lambda: None
         download_impl.future_metainfo = succeed(metainfo)
 
         self.ltmgr.initialize()
@@ -142,6 +143,7 @@ class TestLibtorrentMgr(AbstractServer):
 
         download_impl = Mock()
         download_impl.future_metainfo = succeed(metainfo)
+        download_impl.tdef.get_metainfo = lambda: None
 
         self.ltmgr.initialize()
         self.ltmgr.add = Mock()
@@ -162,6 +164,7 @@ class TestLibtorrentMgr(AbstractServer):
         metainfo = {'pieces': ['a']}
 
         download_impl = Mock()
+        download_impl.tdef.get_metainfo = lambda: None
         download_impl.future_metainfo = Future()
         get_event_loop().call_later(0.1, download_impl.future_metainfo.set_result, metainfo)
 
@@ -206,7 +209,8 @@ class TestLibtorrentMgr(AbstractServer):
         """
         Testing adding a torrent while a metainfo request is running.
         """
-        infohash_hex = "a" * 40
+        infohash = b'a' * 20
+        infohash_hex = hexlify(infohash)
 
         metainfo_handle = Mock()
         metainfo_session = Mock()
@@ -217,7 +221,7 @@ class TestLibtorrentMgr(AbstractServer):
         self.ltmgr.initialize()
         self.ltmgr.get_session = lambda *_: metainfo_session
         self.ltmgr.torrents[infohash_hex] = (metainfo_dl, metainfo_session)
-        self.ltmgr.metainfo_requests[infohash_hex] = [metainfo_dl, 1]
+        self.ltmgr.metainfo_requests[infohash] = [metainfo_dl, 1]
 
         other_handle = Mock()
         other_dl = Mock()

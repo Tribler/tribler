@@ -1,6 +1,7 @@
 import os
 import shutil
 from asyncio import Future
+from unittest.mock import Mock
 
 import libtorrent as lt
 from libtorrent import bencode
@@ -637,3 +638,20 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         self.libtorrent_download_impl.on_save_resume_data_failed_alert(mock_alert)
         with self.assertRaises(SaveResumeDataError):
             await resume_future
+
+    def test_on_state_changed(self):
+        self.libtorrent_download_impl.tdef.get_infohash = lambda: b'a' * 20
+        self.libtorrent_download_impl.config.set_hops(1)
+        self.libtorrent_download_impl.apply_ip_filter = Mock()
+        self.libtorrent_download_impl.on_state_changed_alert(type('state_changed_alert', (object,), dict(state=4)))
+        self.libtorrent_download_impl.apply_ip_filter.assert_called_with(False)
+
+        self.libtorrent_download_impl.on_state_changed_alert(type('state_changed_alert', (object,), dict(state=5)))
+        self.libtorrent_download_impl.apply_ip_filter.assert_called_with(True)
+
+        self.libtorrent_download_impl.config.set_hops(0)
+        self.libtorrent_download_impl.on_state_changed_alert(type('state_changed_alert', (object,), dict(state=4)))
+        self.libtorrent_download_impl.apply_ip_filter.assert_called_with(False)
+
+        self.libtorrent_download_impl.on_state_changed_alert(type('state_changed_alert', (object,), dict(state=5)))
+        self.libtorrent_download_impl.apply_ip_filter.assert_called_with(False)

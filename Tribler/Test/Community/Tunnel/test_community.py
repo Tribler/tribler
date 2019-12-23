@@ -1,11 +1,13 @@
 from asyncio import Future, sleep
 from os.path import join
 from tempfile import mkdtemp
+from unittest.mock import Mock
 
 from anydex.wallet.tc_wallet import TrustchainWallet
 
 from ipv8.attestation.trustchain.community import TrustChainCommunity
-from ipv8.messaging.anonymization.tunnel import CIRCUIT_TYPE_RP_DOWNLOADER, PEER_FLAG_EXIT_ANY
+from ipv8.messaging.anonymization.tunnel import CIRCUIT_STATE_READY, CIRCUIT_TYPE_RP_DOWNLOADER, \
+    CIRCUIT_TYPE_RP_SEEDER, PEER_FLAG_EXIT_ANY
 from ipv8.peer import Peer
 from ipv8.test.base import TestBase
 from ipv8.test.messaging.anonymization.test_community import MockDHTProvider
@@ -13,6 +15,7 @@ from ipv8.test.mocking.exit_socket import MockTunnelExitSocket
 from ipv8.test.mocking.ipv8 import MockIPv8
 
 from Tribler.Core.Utilities.utilities import succeed
+from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.community.triblertunnel.community import TriblerTunnelCommunity
 
@@ -145,6 +148,7 @@ class TestTriblerTunnelCommunity(TestBase):
         mock_download.get_state = lambda: mock_state
         mock_download.config = MockObject()
         mock_download.config.get_hops = lambda: 1
+        mock_download.apply_ip_filter = lambda _: None
         mock_state.get_status = lambda: 4
         mock_state.get_download = lambda: mock_download
 
@@ -210,6 +214,32 @@ class TestTriblerTunnelCommunity(TestBase):
         self.nodes[0].overlay.download_states[b'a'] = 3
         self.nodes[0].overlay.monitor_downloads([])
         self.assertEqual(mocked_remove_circuit.circuit_id, 0)
+
+    def test_update_ip_filter(self):
+        circuit = Mock()
+        circuit.circuit_id = 123
+        circuit.ctype = CIRCUIT_TYPE_RP_DOWNLOADER
+        circuit.state = CIRCUIT_STATE_READY
+        circuit.bytes_down = 0
+        self.nodes[0].overlay.circuits[circuit.circuit_id] = circuit
+
+        download = Mock()
+        download.config.get_hops = lambda: 1
+        self.nodes[0].overlay.get_download = lambda _: download
+
+        lt_session = Mock()
+        self.nodes[0].overlay.tribler_session = Mock()
+        self.nodes[0].overlay.tribler_session.ltmgr.get_session = lambda _: lt_session
+        self.nodes[0].overlay.tribler_session.ltmgr.update_ip_filter = Mock()
+
+        self.nodes[0].overlay.update_ip_filter(0)
+        ips = ['1.1.1.1']
+        self.nodes[0].overlay.tribler_session.ltmgr.update_ip_filter.assert_called_with(lt_session, ips)
+
+        circuit.ctype = CIRCUIT_TYPE_RP_SEEDER
+        self.nodes[0].overlay.update_ip_filter(0)
+        ips = [self.nodes[0].overlay.circuit_id_to_ip(circuit.circuit_id), '1.1.1.1']
+        self.nodes[0].overlay.tribler_session.ltmgr.update_ip_filter.assert_called_with(lt_session, ips)
 
     async def test_update_torrent(self):
         """

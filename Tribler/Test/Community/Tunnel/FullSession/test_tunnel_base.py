@@ -85,7 +85,7 @@ class TestTunnelBase(TestAsServer):
         for community_introduce in self.tunnel_communities + other_tunnel_communities:
             for community in self.tunnel_communities + other_tunnel_communities:
                 if community != community_introduce:
-                    community.walk_to(community_introduce.endpoint.get_address())
+                    community.walk_to(('127.0.0.1', community_introduce.endpoint.get_address()[1]))
 
         await self.deliver_messages()
 
@@ -131,13 +131,12 @@ class TestTunnelBase(TestAsServer):
 
         self.setUpPreSession()
         config = self.config.copy()
-        config.set_libtorrent_enabled(True)
+        config.set_libtorrent_enabled(False)
         config.set_state_dir(self.getStateDir(index))
         config.set_tunnel_community_socks5_listen_ports(self.get_ports(5))
 
         session = Session(config)
         await session.start()
-        session.ltmgr.is_shutdown_ready = lambda: True
         self.sessions.append(session)
 
         return await self.load_tunnel_community_in_session(session, exitnode=exitnode)
