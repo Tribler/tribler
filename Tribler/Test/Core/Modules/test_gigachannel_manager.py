@@ -67,7 +67,8 @@ class TestGigaChannelManager(TriblerCoreTest):
             self.chanman.cancel_pending_task('service_channels')  # Disable looping call
             self.chanman.start()
             self.assertTrue(self.torrents_added)
-            await self.chanman.shutdown()
+            self.chanman.cancel_all_pending_tasks()
+            await self.chanman.wait_for_tasks()
 
             # Check skip already added personal channel
             self.mock_session.ltmgr.download_exists = lambda x: bytes(x) == bytes(chan.infohash)
@@ -126,6 +127,7 @@ class TestGigaChannelManager(TriblerCoreTest):
             # Check that downloaded, but unprocessed channel torrent is added to the processing queue
             self.mock_session.ltmgr = MockObject()
             self.mock_session.ltmgr.download_exists = lambda _: True
+            self.mock_session.ltmgr.metainfo_requests = {}
 
             class MockDownload(object):
                 def get_state(self):

@@ -2,7 +2,7 @@ import os
 from asyncio import get_event_loop
 
 from ipv8.database import database_blob
-from ipv8.taskmanager import TaskManager
+from ipv8.taskmanager import TaskManager, task
 
 from pony.orm import db_session
 
@@ -117,16 +117,17 @@ class GigaChannelManager(TaskManager):
         except Exception:
             self._logger.exception("Error when tried to check for cruft channels")
         try:
-            await self.check_channels_updates()
+            self.check_channels_updates()
         except Exception:
             self._logger.exception("Error when checking for channel updates")
         try:
             if not self.processing:
-                await self.process_queued_channels()
+                self.process_queued_channels()
                 return
         except Exception:
             self._logger.exception("Error when tried to start processing queued channel torrents changes")
 
+    @task
     async def process_queued_channels(self):
         while self.channels_processing_queue:
             infohash, (action, data) = next(iter(self.channels_processing_queue.items()))
@@ -139,6 +140,7 @@ class GigaChannelManager(TaskManager):
             elif action == CLEANUP_UNSUBSCRIBED_CHANNEL:
                 self.cleanup_channel(data)  # data is a tuple (public_key, id_)
 
+    @task
     async def check_channels_updates(self):
         """
         Check whether there are channels that are updated. If so, download the new version of the channel.
