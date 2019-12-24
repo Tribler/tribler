@@ -8,7 +8,7 @@ from asyncio import CancelledError, ensure_future, gather
 from aiohttp import TCPConnector
 
 from ipv8.database import database_blob
-from ipv8.taskmanager import TaskManager
+from ipv8.taskmanager import TaskManager, task
 
 from pony.orm import db_session
 
@@ -178,12 +178,12 @@ class TorrentChecker(TaskManager):
             random_torrents = random.sample(random_torrents, min(3, len(random_torrents)))
             infohashes = []
             for random_torrent in random_torrents:
-                ensure_future(self.check_torrent_health(bytes(random_torrent.infohash)))
+                self.check_torrent_health(bytes(random_torrent.infohash))
                 infohashes.append(random_torrent.infohash)
             return infohashes
 
         random_torrent = random.choice(random_torrents)
-        ensure_future(self.check_torrent_health(bytes(random_torrent.infohash)))
+        self.check_torrent_health(bytes(random_torrent.infohash))
         return [bytes(random_torrent.infohash)]
 
     def get_valid_next_tracker_for_auto_check(self):
@@ -262,6 +262,7 @@ class TorrentChecker(TaskManager):
                                               "health": "updated"})
         return final_response
 
+    @task
     async def check_torrent_health(self, infohash, timeout=20, scrape_now=False):
         """
         Check the health of a torrent with a given infohash.
