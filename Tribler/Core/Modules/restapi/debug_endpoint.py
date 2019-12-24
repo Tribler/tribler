@@ -66,7 +66,7 @@ class DebugEndpoint(RESTEndpoint):
                 {
                     "open_files": [{
                         "path": "path/to/open/file.txt",
-                        "fd": 33,
+                        "fd": 33
                     }, ...]
                 }
         """
@@ -96,7 +96,7 @@ class DebugEndpoint(RESTEndpoint):
                 {
                     "open_files": [{
                         "path": "path/to/open/file.txt",
-                        "fd": 33,
+                        "fd": 33
                     }, ...]
                 }
         """
@@ -188,7 +188,7 @@ class DebugEndpoint(RESTEndpoint):
                 {
                     "cpu_history": [{
                         "time": 1504015291214,
-                        "cpu": 3.4,
+                        "cpu": 3.4
                     }, ...]
                 }
         """
@@ -214,7 +214,7 @@ class DebugEndpoint(RESTEndpoint):
                 {
                     "memory_history": [{
                         "time": 1504015291214,
-                        "mem": 324324,
+                        "mem": 324324
                     }, ...]
                 }
         """
@@ -283,7 +283,7 @@ class DebugEndpoint(RESTEndpoint):
                     "content" :"INFO    1506675301.76   sqlitecachedb:181   Reading database version...
                                 INFO    1506675301.76   sqlitecachedb:185   Current database version is 29
                                 INFO    1506675301.76   sqlitecachedb:203   Beginning the first transaction...
-                                INFO    1506675301.76         upgrade:93    tribler is in the latest version,...
+                                INFO    1506675301.76         upgrade:93    tribler is in the latest version"
                 }
         """
 

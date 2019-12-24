@@ -25,26 +25,24 @@ sys.path.append(os.path.join(os.path.dirname(__name__), '..'))
 
 # Mock various libraries
 _classnames = {
-    'Resource',
+    'Response', 'StreamResponse',  # needed to mock web.Response and web.StreamResponse
+    'DiGraph'  # Needed for networkx.DiGraph
 }
 
 
 class Mock(MagicMock):
     @classmethod
     def __getattr__(cls, name):
+        if name == '__version__':
+            return "0.0.0"
         return Mock if name in _classnames else Mock()
 
 
-MOCK_MODULES = ['twisted', 'twisted.web', 'twisted.web.error', 'twisted.web.server', 'twisted.web.client',
-                'twisted.web.http_headers', 'twisted.internet', 'twisted.internet.defer', 'twisted.internet.interfaces',
-                'twisted.internet.ssl', 'twisted.internet.task', 'twisted.internet.threads',
-                'twisted.python', 'twisted.python.failure', 'twisted.python.threadable', 'twisted.internet.base',
-                'twisted.internet.error', 'twisted.internet.protocol', 'libtorrent', 'treq',
-                'Tribler.community.tunnel.crypto.cryptowrapper',
-                'psutil', 'meliae', 'libnacl',
+MOCK_MODULES = ['configobj', 'aiohttp', 'libtorrent', 'treq', 'pony', 'pony.orm', 'pony.orm.core',
+                'lz4', 'lz4.frame', 'psutil', 'meliae', 'libnacl',
                 'decorator', 'libnacl.dual', 'libnacl.sign', 'libnacl.encode', 'libnacl.public', 'networkx',
                 'netifaces', 'ipv8.messaging.anonymization.tunnel', 'Tribler.community.gigachannel.community',
-                'networkx', 'networkx.readwrite']
+                'networkx', 'validate']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 
