@@ -1,3 +1,4 @@
+import contextlib
 import os
 import shutil
 import sqlite3
@@ -110,11 +111,9 @@ class TestUpgradePreconditionChecker(TriblerCoreTest):
         # Wrong old database version
         old_db = os.path.join(self.session_base_dir, 'old.db')
         shutil.copyfile(OLD_DB_SAMPLE, old_db)
-        conn = sqlite3.connect(old_db)
-        with conn:
-            cursor = conn.cursor()
+        with contextlib.closing(sqlite3.connect(old_db)) as connection, connection:
+            cursor = connection.cursor()
             cursor.execute("UPDATE MyInfo SET value = 28 WHERE entry == 'version'")
-        conn.close()
         self.assertFalse(old_db_version_ok(old_db))
 
     def test_cleanup_pony_experimental_db(self):
@@ -133,11 +132,9 @@ class TestUpgradePreconditionChecker(TriblerCoreTest):
         mds.shutdown()
         shutil.copyfile(pony_db, pony_db_bak)
 
-        connection = sqlite3.connect(pony_db)
-        with connection:
+        with contextlib.closing(sqlite3.connect(pony_db)) as connection, connection:
             cursor = connection.cursor()
             cursor.execute("DROP TABLE MiscData")
-        connection.close()
 
         # Assert older experimental version is deleted
         cleanup_pony_experimental_db(pony_db)
@@ -153,13 +150,13 @@ class TestUpgradePreconditionChecker(TriblerCoreTest):
         mds = MetadataStore(pony_db, self.session_base_dir, my_key)
         mds.shutdown()
 
+        # Correct new dabatase
         self.assertTrue(new_db_version_ok(pony_db))
-
-        connection = sqlite3.connect(pony_db)
-        with connection:
-            cursor = connection.cursor()
-            cursor.execute("UPDATE MiscData SET value = 12313512 WHERE name == 'db_version'")
-        connection.close()
+        
+        # Wrong new database version
+        with contextlib.closing(sqlite3.connect(pony_db)) as connection, connection:
+                cursor = connection.cursor()
+                cursor.execute("UPDATE MiscData SET value = 12313512 WHERE name == 'db_version'")
         self.assertFalse(new_db_version_ok(pony_db))
 
     def test_already_upgraded(self):
