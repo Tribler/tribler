@@ -2,16 +2,16 @@ import time
 
 from PyQt5.QtCore import QTimer
 from PyQt5.QtGui import QIcon
+from PyQt5.QtNetwork import QNetworkRequest
 from PyQt5.QtWidgets import QWidget
 
 from TriblerGUI.defs import TB
-from TriblerGUI.tribler_request_manager import TriblerRequestManager
+from TriblerGUI.tribler_request_manager import TriblerNetworkRequest
 from TriblerGUI.utilities import format_size, get_image_path
 from TriblerGUI.widgets.graphs.timeseriesplot import TimeSeriesPlot
 
 
 class TokenMiningSeriesPlot(TimeSeriesPlot):
-
     def __init__(self, parent, **kargs):
         series = [
             {'name': 'Download', 'pen': (255, 0, 0), 'symbolBrush': (255, 0, 0), 'symbolPen': 'w'},
@@ -26,6 +26,7 @@ class TokenMiningPage(QWidget):
     """
     This page shows various trust statistics.
     """
+
     REFRESH_INTERVAL_MS = 10000
     TIMEOUT_INTERVAL_MS = 30000
 
@@ -33,7 +34,6 @@ class TokenMiningPage(QWidget):
         QWidget.__init__(self)
         self.trust_plot = None
         self.public_key = None
-        self.request_mgr = None
         self.blocks = None
         self.byte_scale = 1024 * 1024
         self.dialog = None
@@ -41,7 +41,8 @@ class TokenMiningPage(QWidget):
         self.downloads_timer = QTimer()
         self.downloads_timeout_timer = QTimer()
         self.downloads_last_update = 0
-        self.downloads_request_mgr = TriblerRequestManager()
+
+        self.rest_request = None
 
     def showEvent(self, QShowEvent):
         """
@@ -76,7 +77,8 @@ class TokenMiningPage(QWidget):
         self.downloads_timeout_timer.start(self.TIMEOUT_INTERVAL_MS)
 
     def on_downloads_request_timeout(self):
-        self.downloads_request_mgr.cancel_request()
+        if self.rest_request:
+            self.rest_request.cancel_request()
         self.schedule_downloads_timer()
 
     def stop_loading_downloads(self):
@@ -85,11 +87,13 @@ class TokenMiningPage(QWidget):
 
     def load_downloads(self):
         url = "downloads?get_pieces=1"
-        if time.time() - self.downloads_last_update > self.REFRESH_INTERVAL_MS/1000:
+        if time.time() - self.downloads_last_update > self.REFRESH_INTERVAL_MS / 1000:
             self.downloads_last_update = time.time()
-            self.downloads_request_mgr.cancel_request()
-            self.downloads_request_mgr = TriblerRequestManager()
-            self.downloads_request_mgr.perform_request(url, self.on_received_downloads, priority="LOW")
+            if self.rest_request:
+                self.rest_request.cancel_request()
+            self.rest_request = TriblerNetworkRequest(
+                url, self.on_received_downloads, priority=QNetworkRequest.LowPriority
+            )
 
     def on_received_downloads(self, downloads):
         if not downloads or "downloads" not in downloads or not self.window().tribler_settings:
@@ -98,17 +102,21 @@ class TokenMiningPage(QWidget):
         bytes_used = 0
         total_up = total_down = 0
         for download in downloads["downloads"]:
-            if download["credit_mining"] and \
-                    download["status"] in ("DLSTATUS_DOWNLOADING", "DLSTATUS_SEEDING",
-                                           "DLSTATUS_STOPPED", "DLSTATUS_STOPPED_ON_ERROR"):
+            if download["credit_mining"] and download["status"] in (
+                "DLSTATUS_DOWNLOADING",
+                "DLSTATUS_SEEDING",
+                "DLSTATUS_STOPPED",
+                "DLSTATUS_STOPPED_ON_ERROR",
+            ):
                 bytes_used += download["progress"] * download["size"]
                 total_up += download["total_up"]
                 total_down += download["total_down"]
 
         self.window().token_mining_upload_amount_label.setText(format_size(total_up))
         self.window().token_mining_download_amount_label.setText(format_size(total_down))
-        self.window().token_mining_disk_usage_label.setText("%s / %s" % (format_size(float(bytes_used)),
-                                                                         format_size(float(bytes_max))))
+        self.window().token_mining_disk_usage_label.setText(
+            "%s / %s" % (format_size(float(bytes_used)), format_size(float(bytes_max)))
+        )
 
         self.trust_plot.add_data(time.time(), [total_down, total_up])
         self.trust_plot.render_plot()

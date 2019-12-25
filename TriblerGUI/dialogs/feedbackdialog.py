@@ -9,12 +9,11 @@ from PyQt5.QtWidgets import QAction, QApplication, QDialog, QMessageBox, QTreeWi
 
 from TriblerGUI.event_request_manager import received_events
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
-from TriblerGUI.tribler_request_manager import TriblerRequestManager, performed_requests as tribler_performed_requests
+from TriblerGUI.tribler_request_manager import TriblerNetworkRequest, performed_requests as tribler_performed_requests
 from TriblerGUI.utilities import get_ui_file_path
 
 
 class FeedbackDialog(QDialog):
-
     def __init__(self, parent, exception_text, tribler_version, start_time):
         QDialog.__init__(self, parent)
 
@@ -23,7 +22,6 @@ class FeedbackDialog(QDialog):
         self.setWindowTitle("Unexpected error")
         self.selected_item_index = 0
         self.tribler_version = tribler_version
-        self.request_mgr = None
 
         # Qt 5.2 does not have the setPlaceholderText property
         if hasattr(self.comments_text_edit, "setPlaceholderText"):
@@ -62,10 +60,13 @@ class FeedbackDialog(QDialog):
 
         # Add recent requests to feedback dialog
         request_ind = 1
-        for endpoint, method, data, timestamp, status_code in sorted(tribler_performed_requests,
-                                                                     key=lambda x: x[3])[-30:]:
-            add_item_to_info_widget('request_%d' % request_ind, '%s %s %s (time: %s, code: %s)' %
-                                    (endpoint, method, data, timestamp, status_code))
+        for endpoint, method, data, timestamp, status_code in sorted(tribler_performed_requests, key=lambda x: x[3])[
+            -30:
+        ]:
+            add_item_to_info_widget(
+                'request_%d' % request_ind,
+                '%s %s %s (time: %s, code: %s)' % (endpoint, method, data, timestamp, status_code),
+            )
             request_ind += 1
 
         # Add recent events to feedback dialog
@@ -117,7 +118,6 @@ class FeedbackDialog(QDialog):
         self.send_report_button.setEnabled(False)
         self.send_report_button.setText("SENDING...")
 
-        self.request_mgr = TriblerRequestManager()
         endpoint = 'http://reporter.tribler.org/report'
 
         sys_info = ""
@@ -137,10 +137,10 @@ class FeedbackDialog(QDialog):
             "timestamp": int(time.time()),
             "sysinfo": sys_info,
             "comments": comments,
-            "stack": stack
+            "stack": stack,
         }
 
-        self.request_mgr.perform_request(endpoint, self.on_report_sent, data=post_data, method='POST')
+        TriblerNetworkRequest(endpoint, self.on_report_sent, data=post_data, method='POST')
 
     def closeEvent(self, close_event):
         QApplication.quit()

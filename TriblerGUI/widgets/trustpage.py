@@ -5,12 +5,11 @@ from PyQt5.QtWidgets import QWidget
 
 from TriblerGUI.defs import GB, PAGE_MARKET, PAGE_TOKEN_MINING_PAGE, TB
 from TriblerGUI.dialogs.trustexplanationdialog import TrustExplanationDialog
-from TriblerGUI.tribler_request_manager import TriblerRequestManager
+from TriblerGUI.tribler_request_manager import TriblerNetworkRequest
 from TriblerGUI.widgets.tokenminingpage import TimeSeriesPlot
 
 
 class TrustSeriesPlot(TimeSeriesPlot):
-
     def __init__(self, parent, **kargs):
         series = [
             {'name': 'Bytes taken', 'pen': (255, 0, 0), 'symbolBrush': (255, 0, 0), 'symbolPen': 'w'},
@@ -30,7 +29,6 @@ class TrustPage(QWidget):
         QWidget.__init__(self)
         self.trust_plot = None
         self.public_key = None
-        self.request_mgr = None
         self.blocks = None
         self.byte_scale = 1024 * 1024
         self.dialog = None
@@ -69,9 +67,7 @@ class TrustPage(QWidget):
         self.window().stackedWidget.setCurrentIndex(PAGE_TOKEN_MINING_PAGE)
 
     def load_blocks(self):
-        self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("ipv8/trustchain/users/%s/blocks" % self.public_key,
-                                         self.received_trustchain_blocks)
+        TriblerNetworkRequest("ipv8/trustchain/users/%s/blocks" % self.public_key, self.received_trustchain_blocks)
 
     def received_trustchain_statistics(self, statistics):
         if not statistics or "statistics" not in statistics:

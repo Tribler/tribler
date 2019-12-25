@@ -1,12 +1,12 @@
-from PIL.ImageQt import ImageQt
-
 from PyQt5 import QtCore, QtGui
 from PyQt5.QtGui import QCursor, QIcon
 from PyQt5.QtWidgets import QAction, QPushButton, QTreeWidgetItem, QWidget
 
+from PIL.ImageQt import ImageQt
+
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
-from TriblerGUI.tribler_request_manager import TriblerRequestManager
+from TriblerGUI.tribler_request_manager import TriblerNetworkRequest
 from TriblerGUI.utilities import get_image_path, timestamp_to_time
 
 
@@ -17,7 +17,6 @@ class MarketWalletsPage(QWidget):
 
     def __init__(self):
         QWidget.__init__(self)
-        self.request_mgr = None
         self.initialized = False
         self.wallets_to_create = []
         self.wallets = None
@@ -29,11 +28,14 @@ class MarketWalletsPage(QWidget):
         if not self.initialized:
             self.window().wallets_back_button.setIcon(QIcon(get_image_path('page_back.png')))
             self.window().wallet_btc_overview_button.clicked.connect(
-                lambda: self.initialize_wallet_info('BTC', self.window().wallet_btc_overview_button))
+                lambda: self.initialize_wallet_info('BTC', self.window().wallet_btc_overview_button)
+            )
             self.window().wallet_tbtc_overview_button.clicked.connect(
-                lambda: self.initialize_wallet_info('TBTC', self.window().wallet_tbtc_overview_button))
+                lambda: self.initialize_wallet_info('TBTC', self.window().wallet_tbtc_overview_button)
+            )
             self.window().wallet_mc_overview_button.clicked.connect(
-                lambda: self.initialize_wallet_info('MB', self.window().wallet_mc_overview_button))
+                lambda: self.initialize_wallet_info('MB', self.window().wallet_mc_overview_button)
+            )
             self.window().add_wallet_button.clicked.connect(self.on_add_wallet_clicked)
             self.window().wallet_mc_overview_button.hide()
             self.window().wallet_btc_overview_button.hide()
@@ -50,8 +52,7 @@ class MarketWalletsPage(QWidget):
         self.load_wallets()
 
     def load_wallets(self):
-        self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("wallets", self.on_wallets)
+        TriblerNetworkRequest("wallets", self.on_wallets)
 
     def on_wallets(self, wallets):
         if not wallets:
@@ -65,20 +66,12 @@ class MarketWalletsPage(QWidget):
         if 'BTC' in self.wallets and self.wallets["BTC"]["created"]:
             self.window().wallet_btc_overview_button.show()
         elif 'BTC' not in self.wallets:
-            self.wallets['BTC'] = {
-                'name': 'Bitcoin',
-                'created': False,
-                'identifier': 'BTC'
-            }
+            self.wallets['BTC'] = {'name': 'Bitcoin', 'created': False, 'identifier': 'BTC'}
 
         if 'TBTC' in self.wallets and self.wallets["TBTC"]["created"]:
             self.window().wallet_tbtc_overview_button.show()
         elif 'TBTC' not in self.wallets:
-            self.wallets['TBTC'] = {
-                'name': 'Testnet BTC',
-                'created': False,
-                'identifier': 'TBTC'
-            }
+            self.wallets['TBTC'] = {'name': 'Testnet BTC', 'created': False, 'identifier': 'TBTC'}
 
         # Find out which wallets we still can create
         self.wallets_to_create = []
@@ -112,12 +105,8 @@ class MarketWalletsPage(QWidget):
         # Create a QR code of the wallet address
         try:
             import qrcode
-            qr = qrcode.QRCode(
-                version=1,
-                error_correction=qrcode.constants.ERROR_CORRECT_M,
-                box_size=10,
-                border=5,
-            )
+
+            qr = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_M, box_size=10, border=5)
             qr.add_data(self.wallets[wallet_id]['address'])
             qr.make(fit=True)
 
@@ -131,8 +120,7 @@ class MarketWalletsPage(QWidget):
 
     def load_transactions(self, wallet_id):
         self.window().wallet_transactions_list.clear()
-        self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("wallets/%s/transactions" % wallet_id, self.on_transactions)
+        TriblerNetworkRequest("wallets/%s/transactions" % wallet_id, self.on_transactions)
 
     def on_transactions(self, transactions):
         if not transactions:
@@ -145,7 +133,9 @@ class MarketWalletsPage(QWidget):
             item.setText(3, "%g %s" % (transaction["amount"], transaction["currency"]))
             item.setText(4, "%g %s" % (transaction["fee_amount"], transaction["currency"]))
             item.setText(5, transaction["id"])
-            timestamp = timestamp_to_time(float(transaction["timestamp"])) if transaction["timestamp"] != "False" else "-"
+            timestamp = (
+                timestamp_to_time(float(transaction["timestamp"])) if transaction["timestamp"] != "False" else "-"
+            )
             item.setText(6, timestamp)
             self.window().wallet_transactions_list.addTopLevelItem(item)
 
@@ -161,14 +151,16 @@ class MarketWalletsPage(QWidget):
 
     def should_create_wallet(self, wallet_id):
         if (wallet_id == "BTC" or wallet_id == "TBTC") and not self.btc_module_available:
-            ConfirmationDialog.show_error(self.window(), "bitcoinlib not found",
-                                          "bitcoinlib could not be located on your system. "
-                                          "Please install it using the following command: "
-                                          "pip install bitcoinlib --user")
+            ConfirmationDialog.show_error(
+                self.window(),
+                "bitcoinlib not found",
+                "bitcoinlib could not be located on your system. "
+                "Please install it using the following command: "
+                "pip install bitcoinlib --user",
+            )
             return
 
-        self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("wallets/%s" % wallet_id, self.on_wallet_created, method='PUT')
+        TriblerNetworkRequest("wallets/%s" % wallet_id, self.on_wallet_created, method='PUT')
 
     def on_wallet_created(self, response):
         if not response:

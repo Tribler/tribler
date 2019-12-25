@@ -5,8 +5,8 @@ from PyQt5.QtWidgets import QAction, QWidget
 from TriblerGUI.defs import BUTTON_TYPE_CONFIRM, BUTTON_TYPE_NORMAL
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
-from TriblerGUI.tribler_request_manager import TriblerRequestManager
-from TriblerGUI.utilities import get_image_path, prec_div
+from TriblerGUI.tribler_request_manager import TriblerNetworkRequest
+from TriblerGUI.utilities import get_image_path
 from TriblerGUI.widgets.orderwidgetitem import OrderWidgetItem
 
 
@@ -17,7 +17,6 @@ class MarketOrdersPage(QWidget):
 
     def __init__(self):
         QWidget.__init__(self)
-        self.request_mgr = None
         self.initialized = False
         self.selected_item = None
         self.dialog = None
@@ -37,8 +36,7 @@ class MarketOrdersPage(QWidget):
     def load_orders(self):
         self.window().market_orders_list.clear()
 
-        self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("market/orders", self.on_received_orders)
+        TriblerNetworkRequest("market/orders", self.on_received_orders)
 
     def on_received_orders(self, orders):
         if not orders or not self.wallets:
@@ -65,18 +63,22 @@ class MarketOrdersPage(QWidget):
             menu.exec_(self.window().market_orders_list.mapToGlobal(pos))
 
     def on_cancel_order_clicked(self):
-        self.dialog = ConfirmationDialog(self, "Cancel order",
-                                         "Are you sure you want to cancel the order with id %s?" %
-                                         self.selected_item.order['order_number'],
-                                         [('NO', BUTTON_TYPE_NORMAL), ('YES', BUTTON_TYPE_CONFIRM)])
+        self.dialog = ConfirmationDialog(
+            self,
+            "Cancel order",
+            "Are you sure you want to cancel the order with id %s?" % self.selected_item.order['order_number'],
+            [('NO', BUTTON_TYPE_NORMAL), ('YES', BUTTON_TYPE_CONFIRM)],
+        )
         self.dialog.button_clicked.connect(self.on_confirm_cancel_order)
         self.dialog.show()
 
     def on_confirm_cancel_order(self, action):
         if action == 1:
-            self.request_mgr = TriblerRequestManager()
-            self.request_mgr.perform_request("market/orders/%s/cancel" % self.selected_item.order['order_number'],
-                                             self.on_order_cancelled, method='POST')
+            TriblerNetworkRequest(
+                "market/orders/%s/cancel" % self.selected_item.order['order_number'],
+                self.on_order_cancelled,
+                method='POST',
+            )
 
         self.dialog.close_dialog()
         self.dialog = None

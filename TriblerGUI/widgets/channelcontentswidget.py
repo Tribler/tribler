@@ -12,7 +12,7 @@ from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, CO
 from TriblerGUI.defs import BUTTON_TYPE_CONFIRM, BUTTON_TYPE_NORMAL, CATEGORY_LIST
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
-from TriblerGUI.tribler_request_manager import TriblerRequestManager
+from TriblerGUI.tribler_request_manager import TriblerNetworkRequest
 from TriblerGUI.utilities import get_gui_setting, get_image_path, get_ui_file_path
 from TriblerGUI.widgets.tablecontentmodel import ChannelContentModel
 from TriblerGUI.widgets.torrentdetailstabwidget import TorrentDetailsTabWidget
@@ -52,7 +52,6 @@ class ChannelContentsWidget(widget_form, widget_class):
         self.initialized = False
         self.chosen_dir = None
         self.dialog = None
-        self.editchannel_request_mgr = None
         self.controller = None
         self.commit_timer = None
         self.autocommit_enabled = None
@@ -93,8 +92,7 @@ class ChannelContentsWidget(widget_form, widget_class):
             self.update_labels()
 
     def commit_channels(self):
-        self.request_mgr_commit = TriblerRequestManager()
-        self.request_mgr_commit.perform_request("channels/mychannel/0/commit", self.on_channel_committed, method='POST')
+        TriblerNetworkRequest("channels/mychannel/0/commit", self.on_channel_committed, method='POST')
 
     def initialize_content_page(self, gui_settings, edit_enabled=False, filter_enabled=True):
         if self.initialized:
@@ -348,10 +346,9 @@ class ChannelContentsWidget(widget_form, widget_class):
         def on_export_download_dialog_done(action):
             if action == 0:
                 dest_path = os.path.join(export_dir, dialog.dialog_widget.dialog_input.text())
-                request_mgr = TriblerRequestManager()
-                request_mgr.download_file(
+                TriblerNetworkRequest(
                     "channels/discovered/%s/mdblob" % mdblob_name,
-                    lambda data: on_export_download_request_done(dest_path, data),
+                    lambda data, _: on_export_download_request_done(dest_path, data),
                 )
 
             dialog.close_dialog()
@@ -389,8 +386,7 @@ class ChannelContentsWidget(widget_form, widget_class):
 
     def on_torrents_remove_all_action(self, action):
         if action == 0:
-            request_mgr = TriblerRequestManager()
-            request_mgr.perform_request("mychannel/torrents", self.on_all_torrents_removed_response, method='DELETE')
+            TriblerNetworkRequest("mychannel/torrents", self.on_all_torrents_removed_response, method='DELETE')
 
         self.dialog.close_dialog()
         self.dialog = None
@@ -479,8 +475,7 @@ class ChannelContentsWidget(widget_form, widget_class):
             self.model.reset()
 
     def _add_torrent_request(self, data):
-        self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request(
+        TriblerNetworkRequest(
             "collections/%s/%s/torrents" % (self.model.channel_info["public_key"], self.model.channel_info["id"]),
             self._on_torrent_to_channel_added,
             method='PUT',

@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import QWidget
 
 import Tribler.Core.Utilities.json_util as json
 
-from TriblerGUI.tribler_request_manager import TriblerRequestManager
+from TriblerGUI.tribler_request_manager import TriblerNetworkRequest
 from TriblerGUI.utilities import format_votes, get_image_path
 
 
@@ -22,7 +22,6 @@ class SubscriptionsWidget(QWidget):
 
         self.subscribe_button = None
         self.credit_mining_button = None
-        self.request_mgr = None
         self.initialized = False
         self.contents_widget = None
 
@@ -69,8 +68,7 @@ class SubscriptionsWidget(QWidget):
         self.credit_mining_button.setHidden(hide_controls)
 
     def on_subscribe_button_click(self):
-        self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request(
+        TriblerNetworkRequest(
             "metadata/%s/%i"
             % (self.contents_widget.model.channel_info[u'public_key'], self.contents_widget.model.channel_info[u'id']),
             lambda data: self.update_subscribe_button(remote_response=data),
@@ -87,10 +85,9 @@ class SubscriptionsWidget(QWidget):
         )
         settings = {"credit_mining": {"sources": new_sources}}
 
-        self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request(
-            "settings", self.on_credit_mining_sources, method='POST', raw_data=json.dumps(settings)
-        .decode('utf-8'))
+        TriblerNetworkRequest(
+            "settings", self.on_credit_mining_sources, method='POST', raw_data=json.dumps(settings).decode('utf-8')
+        )
 
     def on_credit_mining_sources(self, json_result):
         if not json_result:

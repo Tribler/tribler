@@ -3,10 +3,11 @@ import subprocess
 import sys
 
 from PyQt5.QtCore import QObject, QTimer, pyqtSignal
+from PyQt5.QtNetwork import QNetworkRequest
 from PyQt5.QtWidgets import QApplication
 
 from TriblerGUI.event_request_manager import EventRequestManager
-from TriblerGUI.tribler_request_manager import QueuePriorityEnum, TriblerRequestManager
+from TriblerGUI.tribler_request_manager import TriblerNetworkRequest
 from TriblerGUI.utilities import get_base_path, is_frozen
 
 START_FAKE_API = False
@@ -17,6 +18,7 @@ class CoreManager(QObject):
     The CoreManager is responsible for managing the Tribler core (starting/stopping). When we are running the GUI tests,
     a fake API will be started.
     """
+
     tribler_stopped = pyqtSignal()
     core_state_update = pyqtSignal(str)
 
@@ -27,7 +29,6 @@ class CoreManager(QObject):
         if not is_frozen():
             self.base_path = os.path.join(get_base_path(), "..")
 
-        self.request_mgr = None
         self.core_process = None
         self.api_port = api_port
         self.api_key = api_key
@@ -62,6 +63,7 @@ class CoreManager(QObject):
         First test whether we already have a Tribler process listening on port 8085. If so, use that one and don't
         start a new, fresh session.
         """
+
         def on_request_error(_):
             self.use_existing_core = False
             self.start_tribler_core(core_args=core_args, core_env=core_env)
@@ -83,9 +85,9 @@ class CoreManager(QObject):
         self.check_core_ready()
 
     def check_core_ready(self):
-        self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("state", self.on_received_state, capture_errors=False,
-                                         priority=QueuePriorityEnum.CRITICAL)
+        TriblerNetworkRequest(
+            "state", self.on_received_state, capture_errors=False, priority=QNetworkRequest.HighPriority
+        )
 
     def on_received_state(self, state):
         if not state or 'state' not in state or state['state'] not in ['STARTED', 'EXCEPTION']:
@@ -106,9 +108,7 @@ class CoreManager(QObject):
     def stop(self, stop_app_on_shutdown=True):
         if self.core_process or self.is_core_running:
             self.events_manager.shutting_down = True
-            self.request_mgr = TriblerRequestManager()
-            self.request_mgr.perform_request("shutdown", lambda _: None, method="PUT",
-                                             priority=QueuePriorityEnum.CRITICAL)
+            TriblerNetworkRequest("shutdown", lambda _: None, method="PUT", priority=QNetworkRequest.HighPriority)
 
             if stop_app_on_shutdown:
                 self.stop_timer.start(100)

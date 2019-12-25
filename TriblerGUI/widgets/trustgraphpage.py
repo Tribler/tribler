@@ -2,6 +2,7 @@ import math
 
 from PyQt5 import QtCore
 from PyQt5.QtCore import QTimer
+from PyQt5.QtNetwork import QNetworkRequest
 from PyQt5.QtWidgets import QWidget
 
 import numpy as np
@@ -19,7 +20,7 @@ from TriblerGUI.defs import (
     TB,
     TRUST_GRAPH_PEER_LEGENDS,
 )
-from TriblerGUI.tribler_request_manager import TriblerRequestManager
+from TriblerGUI.tribler_request_manager import TriblerNetworkRequest
 from TriblerGUI.utilities import format_size, html_label
 
 
@@ -85,7 +86,6 @@ class TrustGraphPage(QWidget):
     def __init__(self):
         QWidget.__init__(self)
 
-        self.graph_request_mgr = TriblerRequestManager()
         self.fetch_data_timer = QTimer()
         self.fetch_data_timeout_timer = QTimer()
 
@@ -97,6 +97,8 @@ class TrustGraphPage(QWidget):
         self.graph_data = None
         self.graph_depth_to_fetch = 1
         self.refresh_graph_data = False
+
+        self.rest_request = None
 
     def showEvent(self, QShowEvent):
         super(TrustGraphPage, self).showEvent(QShowEvent)
@@ -190,7 +192,8 @@ class TrustGraphPage(QWidget):
         self.fetch_data_timeout_timer.start(self.TIMEOUT_INTERVAL_MS)
 
     def on_fetch_data_request_timeout(self):
-        self.graph_request_mgr.cancel_request()
+        if self.rest_request:
+            self.rest_request.cancel_request()
         self.schedule_fetch_data_timer()
 
     def stop_fetch_data_request(self):
@@ -206,9 +209,12 @@ class TrustGraphPage(QWidget):
         self.schedule_fetch_data_timer(now=True)
 
     def fetch_graph_data(self):
-        self.graph_request_mgr.cancel_request()
-        self.graph_request_mgr.perform_request(
-            "trustview?depth=%d" % self.graph_depth_to_fetch, self.on_received_data, priority="LOW"
+        if self.rest_request:
+            self.rest_request.cancel_request()
+        self.rest_request = TriblerNetworkRequest(
+            "trustview?depth=%d" % self.graph_depth_to_fetch,
+            self.on_received_data,
+            priority=QNetworkRequest.LowPriority,
         )
 
     def on_received_data(self, data):

@@ -4,7 +4,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QTreeWidgetItem, QWidget
 
-from TriblerGUI.tribler_request_manager import TriblerRequestManager
+from TriblerGUI.tribler_request_manager import TriblerNetworkRequest
 from TriblerGUI.utilities import get_image_path, prec_div
 from TriblerGUI.widgets.transactionwidgetitem import TransactionWidgetItem
 
@@ -16,7 +16,6 @@ class MarketTransactionsPage(QWidget):
 
     def __init__(self):
         QWidget.__init__(self)
-        self.request_mgr = None
         self.initialized = False
         self.selected_transaction_item = None
         self.wallets = {}
@@ -38,13 +37,15 @@ class MarketTransactionsPage(QWidget):
     def load_transactions(self):
         self.window().market_transactions_list.clear()
 
-        self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("market/transactions", self.on_received_transactions)
+        TriblerNetworkRequest("market/transactions", self.on_received_transactions)
 
     def get_widget_with_transaction(self, trader_id, transaction_number):
         for i in range(self.window().market_transactions_list.topLevelItemCount()):
             item = self.window().market_transactions_list.topLevelItem(i)
-            if item.transaction["trader_id"] == trader_id and item.transaction["transaction_number"] == transaction_number:
+            if (
+                item.transaction["trader_id"] == trader_id
+                and item.transaction["transaction_number"] == transaction_number
+            ):
                 return item
 
     def on_payment(self, payment):
@@ -69,7 +70,8 @@ class MarketTransactionsPage(QWidget):
                 asset1_prec = self.wallets[transaction["assets"]["first"]["type"]]["precision"]
                 asset2_prec = self.wallets[transaction["assets"]["second"]["type"]]["precision"]
                 item = TransactionWidgetItem(
-                    self.window().market_transactions_list, transaction, asset1_prec, asset2_prec)
+                    self.window().market_transactions_list, transaction, asset1_prec, asset2_prec
+                )
                 self.window().market_transactions_list.addTopLevelItem(item)
 
     def on_transaction_item_clicked(self):
@@ -82,10 +84,11 @@ class MarketTransactionsPage(QWidget):
         self.window().market_payments_list.clear()
 
         item = self.selected_transaction_item
-        self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("market/transactions/%s/%s/payments" %
-                                         (item.transaction['trader_id'], item.transaction['transaction_number']),
-                                         self.on_received_payments)
+        TriblerNetworkRequest(
+            "market/transactions/%s/%s/payments"
+            % (item.transaction['trader_id'], item.transaction['transaction_number']),
+            self.on_received_payments,
+        )
 
     def on_received_payments(self, payments):
         if not payments:
@@ -95,8 +98,9 @@ class MarketTransactionsPage(QWidget):
 
     def add_payment_to_list(self, payment):
         if self.wallets:
-            payment["transferred"]["amount"] = prec_div(payment["transferred"]["amount"],
-                                                        self.wallets[payment["transferred"]["type"]]["precision"])
+            payment["transferred"]["amount"] = prec_div(
+                payment["transferred"]["amount"], self.wallets[payment["transferred"]["type"]]["precision"]
+            )
 
             payment_time = datetime.datetime.fromtimestamp(int(payment["timestamp"])).strftime('%Y-%m-%d %H:%M:%S')
             item = QTreeWidgetItem(self.window().market_payments_list)

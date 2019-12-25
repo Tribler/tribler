@@ -8,7 +8,7 @@ from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import NEW
 from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 
 from TriblerGUI.defs import ACTION_BUTTONS, BITTORRENT_BIRTHDAY, COMMIT_STATUS_TODELETE
-from TriblerGUI.tribler_request_manager import TriblerRequestManager
+from TriblerGUI.tribler_request_manager import TriblerNetworkRequest
 from TriblerGUI.utilities import format_size, format_votes, pretty_date
 
 
@@ -189,8 +189,7 @@ class RemoteTableModel(QAbstractTableModel):
             kwargs.update({"hide_xxx": self.hide_xxx})
         rest_endpoint_url = kwargs.pop("rest_endpoint_url") if "rest_endpoint_url" in kwargs else self.endpoint_url
 
-        self.request_mgr1 = TriblerRequestManager()
-        self.request_mgr1.perform_request(rest_endpoint_url, self.on_query_results, url_params=kwargs)
+        TriblerNetworkRequest(rest_endpoint_url, self.on_query_results, url_params=kwargs)
 
     def on_query_results(self, response, remote=False):
         """
@@ -420,8 +419,7 @@ class ChannelContentModel(RemoteTableModel):
                     data_item_dict[key] = response[key]
             self.info_changed.emit([data_item_dict])
 
-        self.request_mgr_sd = TriblerRequestManager()
-        self.request_mgr_sd.perform_request(
+        TriblerNetworkRequest(
             "metadata/%s/%s" % (public_key, id_),
             on_row_update_results,
             method='PATCH',
@@ -482,22 +480,15 @@ class PersonalChannelsModel(ChannelContentModel):
             self.info_changed.emit(json_result)
 
         if patch_data:
-            request_mgrp = TriblerRequestManager()
-            request_mgrp.perform_request(
-                "metadata", on_torrents_deleted, raw_data=json.dumps(patch_data), method='PATCH'
-            )
+            TriblerNetworkRequest("metadata", on_torrents_deleted, raw_data=json.dumps(patch_data), method='PATCH')
         if delete_data:
-            request_mgrp = TriblerRequestManager()
-            request_mgrp.perform_request(
-                "metadata", on_torrents_deleted, raw_data=json.dumps(delete_data), method='DELETE'
-            )
+            TriblerNetworkRequest("metadata", on_torrents_deleted, raw_data=json.dumps(delete_data), method='DELETE')
 
     def create_new_channel(self):
-        self.mgr_nc = TriblerRequestManager()
         url = (
             self.endpoint_url_override or "channels/%s/%i" % (self.channel_info["public_key"], self.channel_info["id"])
         ) + ("/channels" if self.channel_info.get("id", 0) == 0 else "/collections")
-        self.mgr_nc.perform_request(url, self.on_query_results, method='POST')
+        TriblerNetworkRequest(url, self.on_query_results, method='POST')
 
     def on_query_results(self, response, **kwargs):
         if super(PersonalChannelsModel, self).on_query_results(response, **kwargs):

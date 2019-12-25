@@ -21,7 +21,6 @@ class TriblerTableViewController(QObject):
         self.model = None
         self.table_view = table_view
         self.table_view.verticalScrollBar().valueChanged.connect(self._on_list_scroll)
-        self.request_mgr = None
 
     def set_model(self, model):
         self.model = model

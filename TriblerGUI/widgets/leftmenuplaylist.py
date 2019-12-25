@@ -1,7 +1,7 @@
 from PyQt5.QtCore import QTimer, pyqtSignal
 from PyQt5.QtWidgets import QListWidget
 
-from TriblerGUI.tribler_request_manager import TriblerRequestManager
+from TriblerGUI.tribler_request_manager import TriblerNetworkRequest
 from TriblerGUI.utilities import is_video_file
 
 
@@ -26,7 +26,6 @@ class LeftMenuPlaylist(QListWidget):
         self.itemClicked.connect(self.on_item_clicked)
         self.itemDoubleClicked.connect(self.on_item_double_clicked)
 
-        self.files_request_mgr = None
         self.files_request_timer = None
 
     def set_loading(self):
@@ -47,9 +46,7 @@ class LeftMenuPlaylist(QListWidget):
         self.files_request_timer.start(1000)
 
     def perform_get_files_request(self):
-        self.files_request_mgr = TriblerRequestManager()
-        self.files_request_mgr.perform_request("downloads/%s/files" % self.infohash, self.on_received_files,
-                                               capture_errors=False)
+        TriblerNetworkRequest("downloads/%s/files" % self.infohash, self.on_received_files, capture_errors=False)
 
     def on_received_files(self, files):
         if not files:
@@ -70,8 +67,7 @@ class LeftMenuPlaylist(QListWidget):
         largest_file = None
         largest_index = None
         for index, file_info in enumerate(self.files_data):
-            if is_video_file(file_info["name"]) and \
-                    (largest_file is None or file_info["size"] > largest_file["size"]):
+            if is_video_file(file_info["name"]) and (largest_file is None or file_info["size"] > largest_file["size"]):
                 largest_file = file_info
                 largest_index = index
         return largest_index, largest_file

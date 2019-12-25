@@ -67,7 +67,7 @@ from TriblerGUI.dialogs.createtorrentdialog import CreateTorrentDialog
 from TriblerGUI.dialogs.feedbackdialog import FeedbackDialog
 from TriblerGUI.dialogs.startdownloaddialog import StartDownloadDialog
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
-from TriblerGUI.tribler_request_manager import TriblerRequestManager, dispatcher, request_queue
+from TriblerGUI.tribler_request_manager import TriblerNetworkRequest, TriblerRequestManager, request_manager
 from TriblerGUI.utilities import get_gui_setting, get_image_path, get_ui_file_path, is_dir_writable
 from TriblerGUI.widgets.tablecontentmodel import (
     DiscoveredChannelsModel,
@@ -139,7 +139,7 @@ class TriblerWindow(QMainWindow):
         api_port = api_port or int(get_gui_setting(self.gui_settings, "api_port", DEFAULT_API_PORT))
         api_key = api_key or get_gui_setting(self.gui_settings, "api_key", hexlify(os.urandom(16)).encode('utf-8'))
         self.gui_settings.setValue("api_key", api_key)
-        dispatcher.update_worker_settings(port=api_port, key=api_key)
+        request_manager.port, request_manager.key = api_port, api_key
 
         self.navigation_stack = []
         self.tribler_started = False
@@ -155,9 +155,6 @@ class TriblerWindow(QMainWindow):
         self.chosen_dir = None
         self.new_version_dialog = None
         self.start_download_dialog_active = False
-        self.request_mgr = None
-        self.search_request_mgr = None
-        self.search_suggestion_mgr = None
         self.selected_torrent_files = []
         self.vlc_available = True
         self.has_search_results = False
@@ -427,7 +424,6 @@ class TriblerWindow(QMainWindow):
         self.top_search_bar.setHidden(False)
 
         # fetch the settings, needed for the video player port
-        self.request_mgr = TriblerRequestManager()
         self.fetch_settings()
 
         self.downloads_page.start_loading_downloads()
@@ -462,8 +458,7 @@ class TriblerWindow(QMainWindow):
             if response and "dirty" in response:
                 self.personal_channel_page.update_labels(dirty=response.get("dirty", False))
 
-        self.commit_mgr = TriblerRequestManager()
-        self.commit_mgr.perform_request("channels/mychannel/0/commit", on_dirty_response, method='GET')
+        TriblerNetworkRequest("channels/mychannel/0/commit", on_dirty_response, method='GET')
 
     def on_events_started(self, json_dict):
         self.setWindowTitle("Tribler %s" % json_dict["version"])
@@ -487,8 +482,7 @@ class TriblerWindow(QMainWindow):
         # TODO: create a proper confirmation dialog to show results of adding .mdblob files
         # the case for .mdblob files is handled without torrentinfo endpoint
         if uri.startswith('file') and (uri.endswith('.mdblob') or uri.endswith('.mdblob.lz4')):
-            request_mgr = TriblerRequestManager()
-            request_mgr.perform_request("downloads", lambda _: None, method='PUT', data={"uri": uri})
+            TriblerNetworkRequest("downloads", lambda _: None, method='PUT', data={"uri": uri})
             return
 
         if uri.startswith('file') or uri.startswith('magnet'):
@@ -537,8 +531,7 @@ class TriblerWindow(QMainWindow):
             "destination": destination,
             "selected_files": selected_files_list,
         }
-        request_mgr = TriblerRequestManager()
-        request_mgr.perform_request(
+        TriblerNetworkRequest(
             "downloads", callback if callback else self.on_download_added, method='PUT', data=post_data
         )
 
@@ -569,15 +562,13 @@ class TriblerWindow(QMainWindow):
             post_data['uri'] = uri
 
         if post_data:
-            request_mgr = TriblerRequestManager()
-            request_mgr.perform_request(
+            TriblerNetworkRequest(
                 "mychannel/torrents", callback if callback else lambda _: None, method='PUT', data=post_data
             )
 
     def add_dir_to_channel(self, dirname, recursive=False, callback=None):
         post_data = {"torrents_dir": dirname, "recursive": int(recursive)}
-        request_mgr = TriblerRequestManager()
-        request_mgr.perform_request(
+        TriblerNetworkRequest(
             "mychannel/torrents", callback if callback else lambda _: None, method='PUT', data=post_data
         )
 
@@ -610,8 +601,7 @@ class TriblerWindow(QMainWindow):
             self.new_version_dialog = None
 
     def on_search_text_change(self, text):
-        self.search_suggestion_mgr = TriblerRequestManager()
-        self.search_suggestion_mgr.perform_request(
+        TriblerNetworkRequest(
             "search/completions", self.on_received_search_completions, url_params={'q': sanitize_for_fts(text)}
         )
 
@@ -622,8 +612,7 @@ class TriblerWindow(QMainWindow):
         self.search_completion_model.setStringList(completions["completions"])
 
     def fetch_settings(self):
-        self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("settings", self.received_settings, capture_errors=False)
+        TriblerNetworkRequest("settings", self.received_settings, capture_errors=False)
 
     def received_settings(self, settings):
         if not settings:
@@ -707,10 +696,7 @@ class TriblerWindow(QMainWindow):
         self.hide_left_menu_playlist()
 
     def load_token_balance(self):
-        self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request(
-            "trustchain/statistics", self.received_trustchain_statistics, capture_errors=False
-        )
+        TriblerNetworkRequest("trustchain/statistics", self.received_trustchain_statistics, capture_errors=False)
 
     def received_trustchain_statistics(self, statistics):
         if not statistics or "statistics" not in statistics:
@@ -1111,7 +1097,7 @@ class TriblerWindow(QMainWindow):
             self.core_manager.stop()
             self.core_manager.shutting_down = True
             self.downloads_page.stop_loading_downloads()
-            request_queue.clear()
+            request_manager.clear()
 
             # Stop the token balance timer
             if self.token_refresh_timer:
@@ -1168,8 +1154,7 @@ class TriblerWindow(QMainWindow):
 
     def on_skip_conversion_dialog(self, action):
         if action == 0:
-            request_mgr = TriblerRequestManager()
-            request_mgr.perform_request("upgrader", lambda _: None, data={"skip_db_upgrade": True}, method='POST')
+            TriblerNetworkRequest("upgrader", lambda _: None, data={"skip_db_upgrade": True}, method='POST')
 
         if self.dialog:
             self.dialog.close_dialog()
