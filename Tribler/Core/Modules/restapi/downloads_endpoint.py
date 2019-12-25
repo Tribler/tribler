@@ -25,7 +25,6 @@ from Tribler.Core.Utilities.unicode import ensure_unicode, hexlify
 from Tribler.Core.exceptions import InvalidSignatureException
 from Tribler.Core.simpledefs import DLMODE_VOD, DOWNLOAD, UPLOAD, dlstatus_strings
 from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import CIRCUIT_ID_PORT
-from Tribler.util import cast_to_unicode_utf8
 
 
 def _safe_extended_peer_info(ext_peer_info):
@@ -453,7 +452,7 @@ class DownloadsEndpoint(RESTEndpoint):
             elif state == "recheck":
                 download.force_recheck()
             elif state == "move_storage":
-                dest_dir = cast_to_unicode_utf8(parameters['dest_dir'])
+                dest_dir = parameters['dest_dir']
                 if not os.path.exists(dest_dir):
                     return RESTResponse({"error": "Target directory (%s) does not exist" % dest_dir})
                 download.move_storage(dest_dir)
