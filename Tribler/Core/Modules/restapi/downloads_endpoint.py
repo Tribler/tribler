@@ -99,8 +99,7 @@ class DownloadsEndpoint(RESTEndpoint):
             download_config.set_dest_dir(dest_dir)
 
         if 'selected_files' in parameters:
-            selected_files_list = [f for f in parameters['selected_files']]
-            download_config.set_selected_files(selected_files_list)
+            download_config.set_selected_files(parameters.getall('selected_files'))
 
         return download_config, None
 
@@ -437,7 +436,7 @@ class DownloadsEndpoint(RESTEndpoint):
 
         if 'selected_files' in parameters:
             selected_files_list = []
-            for ind in parameters['selected_files']:
+            for ind in parameters.getall('selected_files'):
                 try:
                     selected_files_list.append(download.tdef.get_files()[int(ind)])
                 except IndexError:  # File could not be found
