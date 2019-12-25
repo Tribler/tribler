@@ -2,10 +2,11 @@ import logging
 import time
 
 from PyQt5.QtCore import QModelIndex, QTimer
+from PyQt5.QtNetwork import QNetworkRequest
 from PyQt5.QtWidgets import QLabel, QTabWidget, QToolButton, QTreeWidget, QTreeWidgetItem
 
 from TriblerGUI.defs import HEALTH_CHECKING, HEALTH_GOOD, HEALTH_MOOT, HEALTH_UNCHECKED
-from TriblerGUI.tribler_request_manager import TriblerRequestManager
+from TriblerGUI.tribler_request_manager import TriblerNetworkRequest
 from TriblerGUI.utilities import compose_magnetlink, copy_to_clipboard, format_size, get_health
 from TriblerGUI.widgets.ellipsebutton import EllipseButton
 
@@ -31,8 +32,6 @@ class TorrentDetailsTabWidget(QTabWidget):
         self.torrent_detail_trackers_list = None
         self.check_health_button = None
         self.copy_magnet_button = None
-        self.request_mgr = None
-        self.health_request_mgr = None
         self.is_health_checking = False
         self.index = QModelIndex()
 
@@ -41,6 +40,9 @@ class TorrentDetailsTabWidget(QTabWidget):
         self.healthcheck_timer.timeout.connect(self.check_torrent_health)
         self.currentChanged.connect(self.on_tab_changed)
 
+        self.rest_request1 = None
+        self.rest_request2 = None
+
     def on_tab_changed(self, index):
         if index == 1 and self.torrent_info:
             if "trackers" in self.torrent_info:
@@ -48,8 +50,7 @@ class TorrentDetailsTabWidget(QTabWidget):
                     item = QTreeWidgetItem(self.torrent_detail_trackers_list)
                     item.setText(0, tracker)
             else:
-                self.request_mgr = TriblerRequestManager()
-                self.request_mgr.perform_request(
+                self.rest_request1 = TriblerNetworkRequest(
                     "metadata/%s/%s" % (self.torrent_info["public_key"], self.torrent_info["id"]), self.on_torrent_info
                 )
 
@@ -110,7 +111,10 @@ class TorrentDetailsTabWidget(QTabWidget):
         # When the user scrolls the list, we only want to trigger health checks on the line
         # that the user stopped on, so we do not generate excessive health checks.
         if self.is_health_checking:
-            self.health_request_mgr.cancel_request()
+            if self.rest_request1:
+                self.rest_request1.cancel_request()
+            if self.rest_request2:
+                self.rest_request2.cancel_request()
             self.is_health_checking = False
         if torrent_info['last_tracker_check'] == 0:
             self.healthcheck_timer.stop()
@@ -162,13 +166,12 @@ class TorrentDetailsTabWidget(QTabWidget):
             self.index.model().dataChanged.emit(index, index, [])
 
         self.torrent_detail_health_label.setText("Checking...")
-        self.health_request_mgr = TriblerRequestManager()
-        self.health_request_mgr.perform_request(
+        self.rest_request2 = TriblerNetworkRequest(
             "metadata/torrents/%s/health" % infohash,
             self.on_health_response,
             url_params={"nowait": True, "refresh": True},
             capture_errors=False,
-            priority="LOW",
+            priority=QNetworkRequest.LowPriority,
             on_cancel=on_cancel_health_check,
         )
 

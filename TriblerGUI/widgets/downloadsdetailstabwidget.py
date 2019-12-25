@@ -5,7 +5,7 @@ from Tribler.Core.simpledefs import dlstatus_strings
 
 from TriblerGUI.defs import *
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
-from TriblerGUI.tribler_request_manager import TriblerRequestManager
+from TriblerGUI.tribler_request_manager import TriblerNetworkRequest
 from TriblerGUI.utilities import compose_magnetlink, copy_to_clipboard, format_size, format_speed, is_video_file
 from TriblerGUI.widgets.downloadfilewidgetitem import DownloadFileWidgetItem
 
@@ -19,7 +19,6 @@ class DownloadsDetailsTabWidget(QTabWidget):
     def __init__(self, parent):
         QTabWidget.__init__(self, parent)
         self.current_download = None
-        self.request_mgr = None
         self.files_widgets = {}  # dict of file name -> widget
 
     def initialize_details_widget(self):
@@ -234,8 +233,7 @@ class DownloadsDetailsTabWidget(QTabWidget):
 
     def set_included_files(self, files):
         post_data = {"selected_files": [ind for ind in files]}
-        self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request(
+        TriblerNetworkRequest(
             "downloads/%s" % self.current_download['infohash'], lambda _: None, method='PATCH', data=post_data
         )
 

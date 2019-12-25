@@ -8,7 +8,7 @@ from TriblerGUI.defs import PAGE_MARKET_ORDERS, PAGE_MARKET_TRANSACTIONS, PAGE_M
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.dialogs.newmarketorderdialog import NewMarketOrderDialog
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
-from TriblerGUI.tribler_request_manager import TriblerRequestManager
+from TriblerGUI.tribler_request_manager import TriblerNetworkRequest
 from TriblerGUI.utilities import get_image_path, prec_div
 from TriblerGUI.widgets.marketcurrencybox import MarketCurrencyBox
 from TriblerGUI.widgets.tickwidgetitem import TickWidgetItem
@@ -18,13 +18,11 @@ class MarketPage(QWidget):
     """
     This page displays the decentralized market in Tribler.
     """
+
     received_wallets = pyqtSignal(object)
 
     def __init__(self):
         QWidget.__init__(self)
-        self.request_mgr = None
-        self.asks_request_mgr = None
-        self.bids_request_mgr = None
         self.dialog = None
         self.initialized = False
         self.wallets = {}
@@ -60,9 +58,11 @@ class MarketPage(QWidget):
             self.window().bids_list.sortItems(2, Qt.DescendingOrder)
 
             self.window().asks_list.itemSelectionChanged.connect(
-                lambda: self.on_tick_item_clicked(self.window().asks_list))
+                lambda: self.on_tick_item_clicked(self.window().asks_list)
+            )
             self.window().bids_list.itemSelectionChanged.connect(
-                lambda: self.on_tick_item_clicked(self.window().bids_list))
+                lambda: self.on_tick_item_clicked(self.window().bids_list)
+            )
 
             self.window().tick_detail_container.hide()
             self.window().market_create_wallet_button.hide()
@@ -74,8 +74,7 @@ class MarketPage(QWidget):
         self.load_wallets()
 
     def load_wallets(self):
-        self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("wallets", self.on_wallets)
+        TriblerNetworkRequest("wallets", self.on_wallets)
 
     def on_wallets(self, wallets):
         if not wallets:
@@ -138,8 +137,7 @@ class MarketPage(QWidget):
         return TickWidgetItem(tick_list, tick, asset1_prec, asset2_prec)
 
     def load_asks(self):
-        self.asks_request_mgr = TriblerRequestManager()
-        self.asks_request_mgr.perform_request("market/asks", self.on_received_asks)
+        TriblerNetworkRequest("market/asks", self.on_received_asks)
 
     def on_received_asks(self, asks):
         if not asks:
@@ -162,11 +160,11 @@ class MarketPage(QWidget):
         if ticks:
             for ask in ticks:
                 self.window().asks_list.addTopLevelItem(
-                    self.create_widget_item_from_tick(self.window().asks_list, ask, is_ask=True))
+                    self.create_widget_item_from_tick(self.window().asks_list, ask, is_ask=True)
+                )
 
     def load_bids(self):
-        self.bids_request_mgr = TriblerRequestManager()
-        self.bids_request_mgr.perform_request("market/bids", self.on_received_bids)
+        TriblerNetworkRequest("market/bids", self.on_received_bids)
 
     def on_received_bids(self, bids):
         if not bids:
@@ -189,39 +187,40 @@ class MarketPage(QWidget):
         if ticks:
             for bid in ticks:
                 self.window().bids_list.addTopLevelItem(
-                    self.create_widget_item_from_tick(self.window().bids_list, bid, is_ask=False))
+                    self.create_widget_item_from_tick(self.window().bids_list, bid, is_ask=False)
+                )
 
     def on_ask(self, ask):
         has_level = False
         for price_level_info in self.asks:
-            if price_level_info['asset1'] == ask['assets']['first']['type'] \
-                    and price_level_info['asset2'] == ask['assets']['second']['type']:
+            if (
+                price_level_info['asset1'] == ask['assets']['first']['type']
+                and price_level_info['asset2'] == ask['assets']['second']['type']
+            ):
                 price_level_info['ticks'].append(ask)
                 has_level = True
 
         if not has_level:
-            self.asks.append({
-                'asset1': ask['assets']['first']['type'],
-                'asset2': ask['assets']['second']['type'],
-                'ticks': [ask]
-            })
+            self.asks.append(
+                {'asset1': ask['assets']['first']['type'], 'asset2': ask['assets']['second']['type'], 'ticks': [ask]}
+            )
 
         self.update_filter_asks_list()
 
     def on_bid(self, bid):
         has_level = False
         for price_level_info in self.bids:
-            if price_level_info['asset1'] == bid['assets']['first']['type'] \
-                    and price_level_info['asset2'] == bid['assets']['second']['type']:
+            if (
+                price_level_info['asset1'] == bid['assets']['first']['type']
+                and price_level_info['asset2'] == bid['assets']['second']['type']
+            ):
                 price_level_info['ticks'].append(bid)
                 has_level = True
 
         if not has_level:
-            self.bids.append({
-                'asset1': bid['assets']['first']['type'],
-                'asset2': bid['assets']['second']['type'],
-                'ticks': [bid]
-            })
+            self.bids.append(
+                {'asset1': bid['assets']['first']['type'], 'asset2': bid['assets']['second']['type'], 'ticks': [bid]}
+            )
 
         self.update_filter_bids_list()
 
@@ -246,12 +245,14 @@ class MarketPage(QWidget):
             "first_asset_amount": asset1_amount,
             "first_asset_type": asset1_type,
             "second_asset_amount": asset2_amount,
-            "second_asset_type": asset2_type
+            "second_asset_type": asset2_type,
         }
-        self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("market/%s" % ('asks' if is_ask else 'bids'),
-                                         lambda response: self.on_order_created(response, is_ask),
-                                         data=post_data, method='PUT')
+        TriblerNetworkRequest(
+            "market/%s" % ('asks' if is_ask else 'bids'),
+            lambda response: self.on_order_created(response, is_ask),
+            data=post_data,
+            method='PUT',
+        )
 
     def on_transactions_button_clicked(self):
         self.window().market_transactions_page.initialize_transactions_page(self.wallets)
@@ -291,11 +292,14 @@ class MarketPage(QWidget):
         self.window().market_detail_trader_id_label.setText(tick["trader_id"])
         self.window().market_detail_order_number_label.setText("%s" % tick["order_number"])
         self.window().market_detail_total_volume_label.setText(
-            "%g %s" % (selected_item.total_volume, tick["assets"]["first"]["type"]))
+            "%g %s" % (selected_item.total_volume, tick["assets"]["first"]["type"])
+        )
         self.window().market_detail_pending_volume_label.setText(
-            "%g %s" % (selected_item.cur_volume, tick["assets"]["first"]["type"]))
+            "%g %s" % (selected_item.cur_volume, tick["assets"]["first"]["type"])
+        )
         self.window().market_detail_price_label.setText(
-            "%g %s" % (selected_item.price, tick["assets"]["second"]["type"]))
+            "%g %s" % (selected_item.price, tick["assets"]["second"]["type"])
+        )
         self.window().market_detail_time_created_label.setText(tick_time)
 
         self.window().tick_detail_container.show()
@@ -319,7 +323,8 @@ class MarketPage(QWidget):
         for asset_pair in sorted(asset_pairs):
             wallet_action = QAction('%s / %s' % asset_pair, self)
             wallet_action.triggered.connect(
-                lambda _, id1=asset_pair[0], id2=asset_pair[1]: self.on_asset_type_changed(id1, id2))
+                lambda _, id1=asset_pair[0], id2=asset_pair[1]: self.on_asset_type_changed(id1, id2)
+            )
             menu.addAction(wallet_action)
         menu.exec_(QCursor.pos())
 
@@ -334,23 +339,35 @@ class MarketPage(QWidget):
 
     def show_new_order_dialog(self, is_ask):
         if not self.wallets[self.chosen_wallets[0]]['created']:
-            ConfirmationDialog.show_error(self.window(), "Wallet not available",
-                                          "%s wallet not available, please create it first." % self.chosen_wallets[0])
+            ConfirmationDialog.show_error(
+                self.window(),
+                "Wallet not available",
+                "%s wallet not available, please create it first." % self.chosen_wallets[0],
+            )
             return
         elif not self.wallets[self.chosen_wallets[1]]['created']:
-            ConfirmationDialog.show_error(self.window(), "Wallet not available",
-                                          "%s wallet not available, please create it first." % self.chosen_wallets[1])
+            ConfirmationDialog.show_error(
+                self.window(),
+                "Wallet not available",
+                "%s wallet not available, please create it first." % self.chosen_wallets[1],
+            )
             return
 
-        self.dialog = NewMarketOrderDialog(self.window().stackedWidget, is_ask, self.chosen_wallets[0],
-                                           self.chosen_wallets[1], self.wallets)
+        self.dialog = NewMarketOrderDialog(
+            self.window().stackedWidget, is_ask, self.chosen_wallets[0], self.chosen_wallets[1], self.wallets
+        )
         self.dialog.button_clicked.connect(self.on_new_order_action)
         self.dialog.show()
 
     def on_new_order_action(self, action):
         if action == 1:
-            self.create_order(self.dialog.is_ask, self.dialog.asset1_amount, self.dialog.quantity_type,
-                              self.dialog.asset2_amount, self.dialog.price_type)
+            self.create_order(
+                self.dialog.is_ask,
+                self.dialog.asset1_amount,
+                self.dialog.quantity_type,
+                self.dialog.asset2_amount,
+                self.dialog.price_type,
+            )
 
         self.dialog.close_dialog()
         self.dialog = None

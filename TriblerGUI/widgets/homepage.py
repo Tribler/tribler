@@ -2,7 +2,7 @@ from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import QWidget
 
 from TriblerGUI.defs import PAGE_DISCOVERED
-from TriblerGUI.tribler_request_manager import TriblerRequestManager
+from TriblerGUI.tribler_request_manager import TriblerNetworkRequest
 from TriblerGUI.widgets.home_recommended_item import HomeRecommendedItem
 
 
@@ -14,7 +14,6 @@ class HomePage(QWidget):
 
     def __init__(self):
         QWidget.__init__(self)
-        self.recommended_request_mgr = None
         self.show_channels = False
         self.resize_event_timer = None
 
@@ -34,15 +33,11 @@ class HomePage(QWidget):
                     return
 
     def load_popular_torrents(self):
-        self.recommended_request_mgr = TriblerRequestManager()
-        self.recommended_request_mgr.perform_request(
-            "metadata/torrents/random?limit=50", self.received_popular_torrents
-        )
+        TriblerNetworkRequest("metadata/torrents/random?limit=50", self.received_popular_torrents)
 
     def clicked_tab_button(self, tab_button_name):
         if tab_button_name == "home_tab_channels_button":
-            self.recommended_request_mgr = TriblerRequestManager()
-            self.recommended_request_mgr.perform_request("channels/popular?limit=50", self.received_popular_channels)
+            TriblerNetworkRequest("channels/popular?limit=50", self.received_popular_channels)
         elif tab_button_name == "home_tab_torrents_button":
             self.load_popular_torrents()
 

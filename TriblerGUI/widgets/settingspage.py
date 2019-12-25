@@ -1,19 +1,32 @@
 import sys
 
-from PIL.ImageQt import ImageQt
-
 from PyQt5 import QtCore, QtGui
 from PyQt5.QtWidgets import QFileDialog, QLabel, QSizePolicy, QWidget
 
+from PIL.ImageQt import ImageQt
+
 import Tribler.Core.Utilities.json_util as json
 
-from TriblerGUI.defs import BUTTON_TYPE_CONFIRM, BUTTON_TYPE_NORMAL, DEFAULT_API_PORT, PAGE_SETTINGS_ANONYMITY, \
-    PAGE_SETTINGS_BANDWIDTH, PAGE_SETTINGS_CONNECTION, PAGE_SETTINGS_DEBUG, PAGE_SETTINGS_GENERAL, PAGE_SETTINGS_SEEDING
+from TriblerGUI.defs import (
+    BUTTON_TYPE_CONFIRM,
+    BUTTON_TYPE_NORMAL,
+    DEFAULT_API_PORT,
+    PAGE_SETTINGS_ANONYMITY,
+    PAGE_SETTINGS_BANDWIDTH,
+    PAGE_SETTINGS_CONNECTION,
+    PAGE_SETTINGS_DEBUG,
+    PAGE_SETTINGS_GENERAL,
+    PAGE_SETTINGS_SEEDING,
+)
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
-from TriblerGUI.tribler_request_manager import TriblerRequestManager
-from TriblerGUI.utilities import get_checkbox_style, get_gui_setting, is_dir_writable, seconds_to_hhmm_string, \
-    string_to_seconds
-
+from TriblerGUI.tribler_request_manager import TriblerNetworkRequest, TriblerRequestManager
+from TriblerGUI.utilities import (
+    get_checkbox_style,
+    get_gui_setting,
+    is_dir_writable,
+    seconds_to_hhmm_string,
+    string_to_seconds,
+)
 
 try:
     import qrcode
@@ -36,8 +49,6 @@ class SettingsPage(QWidget):
     def __init__(self):
         QWidget.__init__(self)
         self.settings = None
-        self.settings_request_mgr = None
-        self.trustchain_request_mgr = None
         self.saved_dialog = None
         self.empty_tokens_barcode_dialog = None
         self.empty_partial_tokens_dialog = None
@@ -61,27 +72,36 @@ class SettingsPage(QWidget):
         self.window().log_location_chooser_button.clicked.connect(self.on_choose_log_dir_clicked)
 
         checkbox_style = get_checkbox_style()
-        for checkbox in [self.window().family_filter_checkbox, self.window().channel_autocommit_checkbox,
-                         self.window().always_ask_location_checkbox, self.window().developer_mode_enabled_checkbox,
-                         self.window().use_monochrome_icon_checkbox, self.window().download_settings_anon_checkbox,
-                         self.window().download_settings_anon_seeding_checkbox, self.window().lt_utp_checkbox,
-                         self.window().watchfolder_enabled_checkbox, self.window().allow_exit_node_checkbox,
-                         self.window().credit_mining_enabled_checkbox, self.window().developer_mode_enabled_checkbox,
-                         self.window().checkbox_enable_network_statistics, self.window().checkbox_enable_resource_log,
-                         self.window().download_settings_add_to_channel_checkbox]:
+        for checkbox in [
+            self.window().family_filter_checkbox,
+            self.window().channel_autocommit_checkbox,
+            self.window().always_ask_location_checkbox,
+            self.window().developer_mode_enabled_checkbox,
+            self.window().use_monochrome_icon_checkbox,
+            self.window().download_settings_anon_checkbox,
+            self.window().download_settings_anon_seeding_checkbox,
+            self.window().lt_utp_checkbox,
+            self.window().watchfolder_enabled_checkbox,
+            self.window().allow_exit_node_checkbox,
+            self.window().credit_mining_enabled_checkbox,
+            self.window().developer_mode_enabled_checkbox,
+            self.window().checkbox_enable_network_statistics,
+            self.window().checkbox_enable_resource_log,
+            self.window().download_settings_add_to_channel_checkbox,
+        ]:
             checkbox.setStyleSheet(checkbox_style)
 
         self.update_stacked_widget_height()
 
     def confirm_fully_empty_tokens(self):
-        self.confirm_empty_tokens_dialog = ConfirmationDialog(self, "Empty tokens into another account",
-                                                              "Are you sure you want to empty ALL bandwidth tokens "
-                                                              "into another account? "
-                                                              "Warning: one-way action that cannot be revered",
-                                                              [
-                                                                  ('EMPTY', BUTTON_TYPE_CONFIRM),
-                                                                  ('CANCEL', BUTTON_TYPE_NORMAL)
-                                                              ])
+        self.confirm_empty_tokens_dialog = ConfirmationDialog(
+            self,
+            "Empty tokens into another account",
+            "Are you sure you want to empty ALL bandwidth tokens "
+            "into another account? "
+            "Warning: one-way action that cannot be revered",
+            [('EMPTY', BUTTON_TYPE_CONFIRM), ('CANCEL', BUTTON_TYPE_NORMAL)],
+        )
         self.confirm_empty_tokens_dialog.button_clicked.connect(self.on_confirm_fully_empty_tokens)
         self.confirm_empty_tokens_dialog.show()
 
@@ -90,19 +110,19 @@ class SettingsPage(QWidget):
         self.confirm_empty_tokens_dialog = None
 
         if action == 0:
-            self.trustchain_request_mgr = TriblerRequestManager()
-            self.trustchain_request_mgr.perform_request("trustchain/bootstrap", self.on_emptying_tokens)
+            TriblerNetworkRequest("trustchain/bootstrap", self.on_emptying_tokens)
 
     def partially_empty_tokens(self):
-        self.empty_partial_tokens_dialog = ConfirmationDialog(self, "Empty tokens into another account",
-                                                              "Specify the amount of bandwidth tokens to empty into "
-                                                              "another account below:",
-                                                              [
-                                                                  ('EMPTY', BUTTON_TYPE_CONFIRM),
-                                                                  ('CANCEL', BUTTON_TYPE_NORMAL)
-                                                              ], show_input=True)
+        self.empty_partial_tokens_dialog = ConfirmationDialog(
+            self,
+            "Empty tokens into another account",
+            "Specify the amount of bandwidth tokens to empty into " "another account below:",
+            [('EMPTY', BUTTON_TYPE_CONFIRM), ('CANCEL', BUTTON_TYPE_NORMAL)],
+            show_input=True,
+        )
         self.empty_partial_tokens_dialog.dialog_widget.dialog_input.setPlaceholderText(
-            'Please enter the amount of tokens in MB')
+            'Please enter the amount of tokens in MB'
+        )
         self.empty_partial_tokens_dialog.dialog_widget.dialog_input.setFocus()
         self.empty_partial_tokens_dialog.button_clicked.connect(self.confirm_partially_empty_tokens)
         self.empty_partial_tokens_dialog.show()
@@ -119,26 +139,24 @@ class SettingsPage(QWidget):
                 ConfirmationDialog.show_error(self.window(), "Wrong input", "The provided amount is not a number")
                 return
 
-            self.confirm_empty_tokens_dialog = ConfirmationDialog(self, "Empty tokens into another account",
-                                                                  "Are you sure you want to empty %d bandwidth tokens "
-                                                                  "into another account? "
-                                                                  "Warning: one-way action that cannot be revered" %
-                                                                  tokens,
-                                                                  [
-                                                                      ('EMPTY', BUTTON_TYPE_NORMAL),
-                                                                      ('CANCEL', BUTTON_TYPE_CONFIRM)
-                                                                  ])
+            self.confirm_empty_tokens_dialog = ConfirmationDialog(
+                self,
+                "Empty tokens into another account",
+                "Are you sure you want to empty %d bandwidth tokens "
+                "into another account? "
+                "Warning: one-way action that cannot be revered" % tokens,
+                [('EMPTY', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
+            )
             self.confirm_empty_tokens_dialog.button_clicked.connect(
-                lambda action2: self.on_confirm_partially_empty_tokens(action2, tokens))
+                lambda action2: self.on_confirm_partially_empty_tokens(action2, tokens)
+            )
             self.confirm_empty_tokens_dialog.show()
 
     def on_confirm_partially_empty_tokens(self, action, tokens):
         self.confirm_empty_tokens_dialog.close_dialog()
         self.confirm_empty_tokens_dialog = None
         if action == 0:
-            self.trustchain_request_mgr = TriblerRequestManager()
-            self.trustchain_request_mgr.perform_request("trustchain/bootstrap?amount=%d" % (tokens * MEBIBYTE),
-                                                        self.on_emptying_tokens)
+            TriblerNetworkRequest("trustchain/bootstrap?amount=%d" % (tokens * MEBIBYTE), self.on_emptying_tokens)
 
     def on_emptying_tokens(self, data):
         if not data:
@@ -149,12 +167,7 @@ class SettingsPage(QWidget):
             self.empty_tokens_barcode_dialog = QWidget()
             self.empty_tokens_barcode_dialog.setWindowTitle("Please scan the following QR code")
             self.empty_tokens_barcode_dialog.setGeometry(10, 10, 500, 500)
-            qr = qrcode.QRCode(
-                version=1,
-                error_correction=qrcode.constants.ERROR_CORRECT_M,
-                box_size=10,
-                border=5,
-            )
+            qr = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_M, box_size=10, border=5)
             qr.add_data(json_data)
             qr.make(fit=True)
 
@@ -188,12 +201,14 @@ class SettingsPage(QWidget):
         if self.window().download_settings_anon_checkbox.isChecked():
             self.window().download_settings_anon_seeding_checkbox.setChecked(True)
         self.window().download_settings_anon_seeding_checkbox.setEnabled(
-            not self.window().download_settings_anon_checkbox.isChecked())
+            not self.window().download_settings_anon_checkbox.isChecked()
+        )
 
     def on_choose_download_dir_clicked(self):
         previous_download_path = self.window().download_location_input.text() or ""
-        download_dir = QFileDialog.getExistingDirectory(self.window(), "Please select the download location",
-                                                        previous_download_path, QFileDialog.ShowDirsOnly)
+        download_dir = QFileDialog.getExistingDirectory(
+            self.window(), "Please select the download location", previous_download_path, QFileDialog.ShowDirsOnly
+        )
 
         if not download_dir:
             return
@@ -203,8 +218,9 @@ class SettingsPage(QWidget):
     def on_choose_watch_dir_clicked(self):
         if self.window().watchfolder_enabled_checkbox.isChecked():
             previous_watch_dir = self.window().watchfolder_location_input.text() or ""
-            watch_dir = QFileDialog.getExistingDirectory(self.window(), "Please select the watch folder",
-                                                         previous_watch_dir, QFileDialog.ShowDirsOnly)
+            watch_dir = QFileDialog.getExistingDirectory(
+                self.window(), "Please select the watch folder", previous_watch_dir, QFileDialog.ShowDirsOnly
+            )
 
             if not watch_dir:
                 return
@@ -213,8 +229,9 @@ class SettingsPage(QWidget):
 
     def on_choose_log_dir_clicked(self):
         previous_log_dir = self.window().log_location_input.text() or ""
-        log_dir = QFileDialog.getExistingDirectory(self.window(), "Please select the log directory",
-                                                   previous_log_dir, QFileDialog.ShowDirsOnly)
+        log_dir = QFileDialog.getExistingDirectory(
+            self.window(), "Please select the log directory", previous_log_dir, QFileDialog.ShowDirsOnly
+        )
 
         if not log_dir or log_dir == previous_log_dir:
             return
@@ -238,24 +255,30 @@ class SettingsPage(QWidget):
         self.window().settings_save_button.show()
 
         # General settings
-        self.window().family_filter_checkbox.setChecked(get_gui_setting(gui_settings, 'family_filter',
-                                                                        True, is_bool=True))
-        self.window().use_monochrome_icon_checkbox.setChecked(get_gui_setting(gui_settings, "use_monochrome_icon",
-                                                                              False, is_bool=True))
+        self.window().family_filter_checkbox.setChecked(
+            get_gui_setting(gui_settings, 'family_filter', True, is_bool=True)
+        )
+        self.window().use_monochrome_icon_checkbox.setChecked(
+            get_gui_setting(gui_settings, "use_monochrome_icon", False, is_bool=True)
+        )
         self.window().download_location_input.setText(settings['download_defaults']['saveas'])
         self.window().always_ask_location_checkbox.setChecked(
-            get_gui_setting(gui_settings, "ask_download_settings", True, is_bool=True))
+            get_gui_setting(gui_settings, "ask_download_settings", True, is_bool=True)
+        )
         self.window().download_settings_anon_checkbox.setChecked(settings['download_defaults']['anonymity_enabled'])
-        self.window().download_settings_anon_seeding_checkbox.setChecked(settings['download_defaults']
-                                                                         ['safeseeding_enabled'])
-        self.window().download_settings_add_to_channel_checkbox.setChecked(settings['download_defaults']
-                                                                           ['add_download_to_channel'])
+        self.window().download_settings_anon_seeding_checkbox.setChecked(
+            settings['download_defaults']['safeseeding_enabled']
+        )
+        self.window().download_settings_add_to_channel_checkbox.setChecked(
+            settings['download_defaults']['add_download_to_channel']
+        )
         self.window().watchfolder_enabled_checkbox.setChecked(settings['watch_folder']['enabled'])
         self.window().watchfolder_location_input.setText(settings['watch_folder']['directory'])
 
         # Channel settings
         self.window().channel_autocommit_checkbox.setChecked(
-            get_gui_setting(gui_settings, "autocommit_enabled", True, is_bool=True))
+            get_gui_setting(gui_settings, "autocommit_enabled", True, is_bool=True)
+        )
 
         # Log directory
         self.window().log_location_input.setText(settings['general']['log_dir'])
@@ -299,8 +322,9 @@ class SettingsPage(QWidget):
         self.window().max_disk_space_input.setText(str(settings['credit_mining']['max_disk_space']))
 
         # Debug
-        self.window().developer_mode_enabled_checkbox.setChecked(get_gui_setting(gui_settings, "debug",
-                                                                                 False, is_bool=True))
+        self.window().developer_mode_enabled_checkbox.setChecked(
+            get_gui_setting(gui_settings, "debug", False, is_bool=True)
+        )
         self.window().checkbox_enable_resource_log.setChecked(settings['resource_monitor']['enabled'])
 
         cpu_priority = 1
@@ -315,7 +339,10 @@ class SettingsPage(QWidget):
         html_text = """<html><head/><body><p>Download with <b>%d</b> hop(s) of anonymity. 
         When you download a file of 200 Megabyte, you will pay roughly <b>%d</b>
         Megabyte of bandwidth tokens.</p></body></html>
-        """ % (value, 400 * (value - 1) + 200)
+        """ % (
+            value,
+            400 * (value - 1) + 200,
+        )
         self.window().anonymity_costs_label.setText(html_text)
 
     def show_updated_cpu_priority(self, value):
@@ -326,8 +353,7 @@ class SettingsPage(QWidget):
         self.window().settings_tab.hide()
         self.window().settings_save_button.hide()
 
-        self.settings_request_mgr = TriblerRequestManager()
-        self.settings_request_mgr.perform_request("settings", self.initialize_with_settings)
+        TriblerNetworkRequest("settings", self.initialize_with_settings)
 
     def clicked_tab_button(self, tab_button_name):
         if tab_button_name == "settings_general_button":
@@ -360,9 +386,19 @@ class SettingsPage(QWidget):
 
     def save_settings(self):
         # Create a dictionary with all available settings
-        settings_data = {'general': {}, 'Tribler': {}, 'download_defaults': {}, 'libtorrent': {}, 'watch_folder': {},
-                         'tunnel_community': {}, 'trustchain': {}, 'credit_mining': {}, 'resource_monitor': {},
-                         'ipv8': {}, 'chant': {}}
+        settings_data = {
+            'general': {},
+            'Tribler': {},
+            'download_defaults': {},
+            'libtorrent': {},
+            'watch_folder': {},
+            'tunnel_community': {},
+            'trustchain': {},
+            'credit_mining': {},
+            'resource_monitor': {},
+            'ipv8': {},
+            'chant': {},
+        }
         settings_data['download_defaults']['saveas'] = self.window().download_location_input.text()
         settings_data['general']['log_dir'] = self.window().log_location_input.text()
 
@@ -372,22 +408,31 @@ class SettingsPage(QWidget):
 
         settings_data['libtorrent']['proxy_type'] = self.window().lt_proxy_type_combobox.currentIndex()
 
-        if self.window().lt_proxy_server_input.text() and len(self.window().lt_proxy_server_input.text()) > 0 and len(
-                self.window().lt_proxy_port_input.text()) > 0:
+        if (
+            self.window().lt_proxy_server_input.text()
+            and len(self.window().lt_proxy_server_input.text()) > 0
+            and len(self.window().lt_proxy_port_input.text()) > 0
+        ):
             try:
-                settings_data['libtorrent']['proxy_server'] = "%s:%s" % (self.window().lt_proxy_server_input.text(),
-                                                                         int(self.window().lt_proxy_port_input.text()))
+                settings_data['libtorrent']['proxy_server'] = "%s:%s" % (
+                    self.window().lt_proxy_server_input.text(),
+                    int(self.window().lt_proxy_port_input.text()),
+                )
             except ValueError:
-                ConfirmationDialog.show_error(self.window(), "Invalid proxy port number",
-                                              "You've entered an invalid format for the proxy port number. "
-                                              "Please enter a whole number.")
+                ConfirmationDialog.show_error(
+                    self.window(),
+                    "Invalid proxy port number",
+                    "You've entered an invalid format for the proxy port number. " "Please enter a whole number.",
+                )
                 return
         else:
             settings_data['libtorrent']['proxy_server'] = ":"
 
         if self.window().lt_proxy_username_input.text() and self.window().lt_proxy_password_input.text():
-            settings_data['libtorrent']['proxy_auth'] = "%s:%s" % (self.window().lt_proxy_username_input.text(),
-                                                                   self.window().lt_proxy_password_input.text())
+            settings_data['libtorrent']['proxy_auth'] = "%s:%s" % (
+                self.window().lt_proxy_username_input.text(),
+                self.window().lt_proxy_password_input.text(),
+            )
         else:
             settings_data['libtorrent']['proxy_auth'] = ":"
 
@@ -396,9 +441,12 @@ class SettingsPage(QWidget):
         try:
             max_conn_download = int(self.window().max_connections_download_input.text())
         except ValueError:
-            ConfirmationDialog.show_error(self.window(), "Invalid number of connections",
-                                          "You've entered an invalid format for the maximum number of connections. "
-                                          "Please enter a whole number.")
+            ConfirmationDialog.show_error(
+                self.window(),
+                "Invalid number of connections",
+                "You've entered an invalid format for the maximum number of connections. "
+                "Please enter a whole number.",
+            )
             return
         if max_conn_download == 0:
             max_conn_download = -1
@@ -418,9 +466,12 @@ class SettingsPage(QWidget):
                 else:
                     raise ValueError
         except ValueError:
-            ConfirmationDialog.show_error(self.window(), "Invalid value for bandwidth limit",
-                                          "You've entered an invalid value for the maximum upload/download rate. "
-                                          "Please enter a whole number (max: %d)" % (sys.maxsize / 1000))
+            ConfirmationDialog.show_error(
+                self.window(),
+                "Invalid value for bandwidth limit",
+                "You've entered an invalid value for the maximum upload/download rate. "
+                "Please enter a whole number (max: %d)" % (sys.maxsize / 1000),
+            )
             return
 
         try:
@@ -430,8 +481,11 @@ class SettingsPage(QWidget):
                     raise ValueError()
                 self.window().gui_settings.setValue("api_port", api_port)
         except ValueError:
-            ConfirmationDialog.show_error(self.window(), "Invalid value for api port",
-                                          "Please enter a valid port for the api (between 0 and 65536)")
+            ConfirmationDialog.show_error(
+                self.window(),
+                "Invalid value for api port",
+                "Please enter a valid port for the api (between 0 and 65536)",
+            )
             return
 
         seeding_modes = ['forever', 'time', 'never', 'ratio']
@@ -445,28 +499,36 @@ class SettingsPage(QWidget):
 
         try:
             settings_data['download_defaults']['seeding_time'] = string_to_seconds(
-                self.window().seeding_time_input.text())
+                self.window().seeding_time_input.text()
+            )
         except ValueError:
-            ConfirmationDialog.show_error(self.window(), "Invalid seeding time",
-                                          "You've entered an invalid format for the seeding time (expected HH:MM)")
+            ConfirmationDialog.show_error(
+                self.window(),
+                "Invalid seeding time",
+                "You've entered an invalid format for the seeding time (expected HH:MM)",
+            )
             return
 
         settings_data['credit_mining']['enabled'] = self.window().credit_mining_enabled_checkbox.isChecked()
         try:
             settings_data['credit_mining']['max_disk_space'] = int(self.window().max_disk_space_input.text())
         except ValueError:
-            ConfirmationDialog.show_error(self.window(), "Invalid number",
-                                          "You've entered an invalid number for max disk space value")
+            ConfirmationDialog.show_error(
+                self.window(), "Invalid number", "You've entered an invalid number for max disk space value"
+            )
             return
 
         settings_data['tunnel_community']['exitnode_enabled'] = self.window().allow_exit_node_checkbox.isChecked()
         settings_data['download_defaults']['number_hops'] = self.window().number_hops_slider.value()
-        settings_data['download_defaults']['anonymity_enabled'] = \
-            self.window().download_settings_anon_checkbox.isChecked()
-        settings_data['download_defaults']['safeseeding_enabled'] = \
-            self.window().download_settings_anon_seeding_checkbox.isChecked()
-        settings_data['download_defaults']['add_download_to_channel'] = \
-            self.window().download_settings_add_to_channel_checkbox.isChecked()
+        settings_data['download_defaults'][
+            'anonymity_enabled'
+        ] = self.window().download_settings_anon_checkbox.isChecked()
+        settings_data['download_defaults'][
+            'safeseeding_enabled'
+        ] = self.window().download_settings_anon_seeding_checkbox.isChecked()
+        settings_data['download_defaults'][
+            'add_download_to_channel'
+        ] = self.window().download_settings_add_to_channel_checkbox.isChecked()
 
         settings_data['resource_monitor']['enabled'] = self.window().checkbox_enable_resource_log.isChecked()
         settings_data['resource_monitor']['cpu_priority'] = int(self.window().slider_cpu_level.value())
@@ -476,25 +538,27 @@ class SettingsPage(QWidget):
 
         self.window().settings_save_button.setEnabled(False)
 
-        self.settings_request_mgr = TriblerRequestManager()
-        self.settings_request_mgr.perform_request("settings", self.on_settings_saved,
-                                                  method='POST', raw_data=json.dumps(settings_data))
+        TriblerNetworkRequest("settings", self.on_settings_saved, method='POST', raw_data=json.dumps(settings_data))
 
     def on_settings_saved(self, data):
         if not data:
             return
         # Now save the GUI settings
-        self.window().gui_settings.setValue("family_filter",
-                                            self.window().family_filter_checkbox.isChecked())
-        self.window().gui_settings.setValue("autocommit_enabled",
-                                            self.window().channel_autocommit_checkbox.isChecked())
-        self.window().gui_settings.setValue("ask_download_settings",
-                                            self.window().always_ask_location_checkbox.isChecked())
-        self.window().gui_settings.setValue("use_monochrome_icon",
-                                            self.window().use_monochrome_icon_checkbox.isChecked())
+        self.window().gui_settings.setValue("family_filter", self.window().family_filter_checkbox.isChecked())
+        self.window().gui_settings.setValue("autocommit_enabled", self.window().channel_autocommit_checkbox.isChecked())
+        self.window().gui_settings.setValue(
+            "ask_download_settings", self.window().always_ask_location_checkbox.isChecked()
+        )
+        self.window().gui_settings.setValue(
+            "use_monochrome_icon", self.window().use_monochrome_icon_checkbox.isChecked()
+        )
 
-        self.saved_dialog = ConfirmationDialog(TriblerRequestManager.window, "Settings saved",
-                                               "Your settings have been saved.", [('CLOSE', BUTTON_TYPE_NORMAL)])
+        self.saved_dialog = ConfirmationDialog(
+            TriblerRequestManager.window,
+            "Settings saved",
+            "Your settings have been saved.",
+            [('CLOSE', BUTTON_TYPE_NORMAL)],
+        )
         self.saved_dialog.button_clicked.connect(self.on_dialog_cancel_clicked)
         self.saved_dialog.show()
         self.window().fetch_settings()

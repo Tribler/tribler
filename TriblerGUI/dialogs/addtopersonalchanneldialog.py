@@ -6,7 +6,7 @@ from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, CO
 from Tribler.Core.Utilities.json_util import dumps
 
 from TriblerGUI.dialogs.dialogcontainer import DialogContainer
-from TriblerGUI.tribler_request_manager import TriblerRequestManager
+from TriblerGUI.tribler_request_manager import TriblerNetworkRequest
 from TriblerGUI.utilities import get_ui_file_path
 
 
@@ -34,7 +34,7 @@ class AddToChannelDialog(DialogContainer):
 
         self.entries_to_act_on = []
 
-        self.root_mgr_list = []
+        self.root_requests_list = []
 
         # Indicates whether we should move or copy the entries
         self.move = False
@@ -42,7 +42,6 @@ class AddToChannelDialog(DialogContainer):
         self.channels_tree = {}
         root_chan = ChannelQTreeWidgetItem(self.dialog_widget.channels_tree_wt, ["My channel"], id_=0)
         self.id2wt_mapping = {0: root_chan}
-        self.request_mgr = None
         self.dialog_widget.channels_tree_wt.itemExpanded.connect(self.on_item_expanded)
 
         self.dialog_widget.channels_tree_wt.setHeaderLabels(['Name'])
@@ -56,14 +55,13 @@ class AddToChannelDialog(DialogContainer):
                 return
             self.load_channel(response["results"][0]["origin_id"])
 
-        self.mgr_nc = TriblerRequestManager()
         url = ("channels/mychannel/%i" % channel_id) + ("/channels" if channel_id == 0 else "/collections")
-        self.mgr_nc.perform_request(url, on_new_channel_response, method='POST')
+        TriblerNetworkRequest(url, on_new_channel_response, method='POST')
 
     def clear_channels_tree(self):
         # ACHTUNG! All running requests must always be cancelled first to prevent race condition!
-        for rqm in self.root_mgr_list:
-            rqm.cancel_request()
+        for rq in self.root_requests_list:
+            rq.cancel_request()
         self.dialog_widget.channels_tree_wt.clear()
         root_chan = ChannelQTreeWidgetItem(self.dialog_widget.channels_tree_wt, ["My channel"], id_=0)
         self.id2wt_mapping = {0: root_chan}
@@ -101,17 +99,18 @@ class AddToChannelDialog(DialogContainer):
             self.load_channel(channel_id)
 
     def load_channel(self, channel_id):
-        self.root_mgr_list.append(TriblerRequestManager())
-        self.root_mgr_list[-1].perform_request(
-            "channels/mychannel/%i" % channel_id,
-            lambda x: self.on_channel_contents(x, channel_id),
-            url_params={
-                "metadata_type": [CHANNEL_TORRENT, COLLECTION_NODE],
-                "first": 1,
-                "last": 1000,
-                "exclude_deleted": True,
-            },
-            method='GET',
+        self.root_requests_list.append(
+            TriblerNetworkRequest(
+                "channels/mychannel/%i" % channel_id,
+                lambda x: self.on_channel_contents(x, channel_id),
+                url_params={
+                    "metadata_type": [CHANNEL_TORRENT, COLLECTION_NODE],
+                    "first": 1,
+                    "last": 1000,
+                    "exclude_deleted": True,
+                },
+                method='GET',
+            )
         )
 
     def get_selected_channel_id(self):
@@ -135,8 +134,7 @@ class AddToChannelDialog(DialogContainer):
             for entry in self.entries_to_act_on
         ]
 
-        self.addition_mgr = TriblerRequestManager()
-        self.addition_mgr.perform_request("metadata", on_entries_moved, raw_data=dumps(changes_list), method='PATCH')
+        TriblerNetworkRequest("metadata", on_entries_moved, raw_data=dumps(changes_list), method='PATCH')
 
     def on_add_clicked(self):
         channel_id = self.get_selected_channel_id()
@@ -147,8 +145,7 @@ class AddToChannelDialog(DialogContainer):
             self.window().tray_show_message("Channel update", "Torrent(s) added to your channel")
             self.close_dialog()
 
-        self.addition_mgr = TriblerRequestManager()
-        self.addition_mgr.perform_request(
+        TriblerNetworkRequest(
             "channels/mychannel/%i/copy" % channel_id,
             on_entries_copied,
             raw_data=dumps(self.entries_to_act_on),

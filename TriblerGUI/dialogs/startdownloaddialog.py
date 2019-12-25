@@ -11,7 +11,7 @@ import Tribler.Core.Utilities.json_util as json
 from TriblerGUI.defs import METAINFO_MAX_RETRIES, METAINFO_TIMEOUT
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.dialogs.dialogcontainer import DialogContainer
-from TriblerGUI.tribler_request_manager import TriblerRequestManager
+from TriblerGUI.tribler_request_manager import TriblerNetworkRequest
 from TriblerGUI.utilities import (
     format_size,
     get_checkbox_style,
@@ -119,7 +119,6 @@ class StartDownloadDialog(DialogContainer):
 
         self.dialog_widget.safe_seed_checkbox.setEnabled(self.dialog_widget.anon_download_checkbox.isChecked())
 
-        self.request_mgr = None
         self.perform_files_request()
         self.dialog_widget.files_list_view.setHidden(True)
         self.dialog_widget.download_files_container.setHidden(True)
@@ -128,10 +127,11 @@ class StartDownloadDialog(DialogContainer):
 
         self.on_main_window_resize()
 
+        self.rest_request = None
+
     def close_dialog(self):
-        if self.request_mgr:
-            self.request_mgr.cancel_request()
-            self.request_mgr = None
+        if self.rest_request:
+            self.rest_request.cancel_request()
 
         # Loading files label is a clickable label with pyqtsignal which could leak,
         # so delete the widget while closing the dialog.
@@ -153,8 +153,7 @@ class StartDownloadDialog(DialogContainer):
         return included_files
 
     def perform_files_request(self):
-        self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request(
+        self.rest_request = TriblerNetworkRequest(
             "torrentinfo?uri=%s" % quote_plus_unicode(self.download_uri),
             self.on_received_metainfo,
             capture_errors=False,

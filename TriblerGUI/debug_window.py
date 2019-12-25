@@ -19,7 +19,7 @@ import Tribler.Core.Utilities.json_util as json
 from TriblerGUI.defs import DEBUG_PANE_REFRESH_TIMEOUT, GB, MB
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.event_request_manager import received_events as tribler_received_events
-from TriblerGUI.tribler_request_manager import TriblerRequestManager, performed_requests as tribler_performed_requests
+from TriblerGUI.tribler_request_manager import TriblerNetworkRequest, performed_requests as tribler_performed_requests
 from TriblerGUI.utilities import format_size, get_ui_file_path
 from TriblerGUI.widgets.tokenminingpage import TimeSeriesPlot
 
@@ -30,7 +30,6 @@ except ImportError:
 
 
 class MemoryPlot(TimeSeriesPlot):
-
     def __init__(self, parent, **kargs):
         series = [{'name': 'Memory', 'pen': (0, 153, 255), 'symbolBrush': (0, 153, 255), 'symbolPen': 'w'}]
         super(MemoryPlot, self).__init__(parent, 'Memory Usage', series, **kargs)
@@ -40,7 +39,6 @@ class MemoryPlot(TimeSeriesPlot):
 
 
 class CPUPlot(TimeSeriesPlot):
-
     def __init__(self, parent, **kargs):
         series = [{'name': 'CPU', 'pen': (0, 153, 255), 'symbolBrush': (0, 153, 255), 'symbolPen': 'w'}]
         super(CPUPlot, self).__init__(parent, 'CPU Usage', series, **kargs)
@@ -54,13 +52,13 @@ class DebugWindow(QMainWindow):
     The debug window shows various statistics about Tribler such as performed requests, IPv8 statistics and
     community information.
     """
+
     resize_event = pyqtSignal()
 
     def __init__(self, settings, tribler_version):
         self._logger = logging.getLogger(self.__class__.__name__)
         QMainWindow.__init__(self)
 
-        self.request_mgr = None
         self.cpu_plot = None
         self.memory_plot = None
         self.initialized_cpu_plot = False
@@ -117,6 +115,8 @@ class DebugWindow(QMainWindow):
         # Refresh timer
         self.refresh_timer = None
 
+        self.rest_request = None
+
     def hideEvent(self, hide_event):
         self.stop_timer()
 
@@ -125,8 +125,9 @@ class DebugWindow(QMainWindow):
         self.stop_timer()
         self.refresh_timer = QTimer()
         self.refresh_timer.setSingleShot(True)
-        self.refresh_timer.timeout.connect(lambda _call_fn=call_fn, _timeout=timeout:
-                                           self.run_with_timer(_call_fn, timeout=_timeout))
+        self.refresh_timer.timeout.connect(
+            lambda _call_fn=call_fn, _timeout=timeout: self.run_with_timer(_call_fn, timeout=_timeout)
+        )
         self.refresh_timer.start(timeout)
 
     def stop_timer(self):
@@ -210,8 +211,7 @@ class DebugWindow(QMainWindow):
         widget.addTopLevelItem(item)
 
     def load_general_tab(self):
-        self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("statistics/tribler", self.on_tribler_statistics)
+        TriblerNetworkRequest("statistics/tribler", self.on_tribler_statistics)
 
     def on_tribler_statistics(self, data):
         if not data:
@@ -219,30 +219,35 @@ class DebugWindow(QMainWindow):
         data = data["tribler_statistics"]
         self.window().general_tree_widget.clear()
         self.create_and_add_widget_item("Tribler version", self.tribler_version, self.window().general_tree_widget)
-        self.create_and_add_widget_item("Python version", sys.version.replace('\n', ''),  # to fit in one line
-                                        self.window().general_tree_widget)
+        self.create_and_add_widget_item(
+            "Python version", sys.version.replace('\n', ''), self.window().general_tree_widget  # to fit in one line
+        )
         self.create_and_add_widget_item("Libtorrent version", libtorrent.version, self.window().general_tree_widget)
         self.create_and_add_widget_item("", "", self.window().general_tree_widget)
 
         self.create_and_add_widget_item("Number of channels", data["num_channels"], self.window().general_tree_widget)
-        self.create_and_add_widget_item("Database size", format_size(data["db_size"]),
-                                        self.window().general_tree_widget)
-        self.create_and_add_widget_item("Number of known torrents", data["num_torrents"],
-                                        self.window().general_tree_widget)
+        self.create_and_add_widget_item(
+            "Database size", format_size(data["db_size"]), self.window().general_tree_widget
+        )
+        self.create_and_add_widget_item(
+            "Number of known torrents", data["num_torrents"], self.window().general_tree_widget
+        )
         self.create_and_add_widget_item("", "", self.window().general_tree_widget)
 
         disk_usage = psutil.disk_usage('/')
-        self.create_and_add_widget_item("Total disk space", format_size(disk_usage.total),
-                                        self.window().general_tree_widget)
-        self.create_and_add_widget_item("Used disk space", format_size(disk_usage.used),
-                                        self.window().general_tree_widget)
-        self.create_and_add_widget_item("Free disk space", format_size(disk_usage.free),
-                                        self.window().general_tree_widget)
+        self.create_and_add_widget_item(
+            "Total disk space", format_size(disk_usage.total), self.window().general_tree_widget
+        )
+        self.create_and_add_widget_item(
+            "Used disk space", format_size(disk_usage.used), self.window().general_tree_widget
+        )
+        self.create_and_add_widget_item(
+            "Free disk space", format_size(disk_usage.free), self.window().general_tree_widget
+        )
 
     def load_requests_tab(self):
         self.window().requests_tree_widget.clear()
-        for endpoint, method, data, timestamp, status_code in sorted(tribler_performed_requests,
-                                                                     key=lambda x: x[3]):
+        for endpoint, method, data, timestamp, status_code in sorted(tribler_performed_requests, key=lambda x: x[3]):
             item = QTreeWidgetItem(self.window().requests_tree_widget)
             item.setText(0, "%s %s %s" % (method, repr(endpoint), repr(data)))
             item.setText(1, ("%d" % status_code) if status_code else "unknown")
@@ -250,8 +255,7 @@ class DebugWindow(QMainWindow):
             self.window().requests_tree_widget.addTopLevelItem(item)
 
     def load_trustchain_tab(self):
-        self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("trustchain/statistics", self.on_trustchain_statistics)
+        TriblerNetworkRequest("trustchain/statistics", self.on_trustchain_statistics)
 
     def on_trustchain_statistics(self, data):
         if not data:
@@ -261,8 +265,7 @@ class DebugWindow(QMainWindow):
             self.create_and_add_widget_item(key, value, self.window().trustchain_tree_widget)
 
     def load_ipv8_general_tab(self):
-        self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("statistics/ipv8", self.on_ipv8_general_stats)
+        TriblerNetworkRequest("statistics/ipv8", self.on_ipv8_general_stats)
 
     def on_ipv8_general_stats(self, data):
         if not data:
@@ -276,15 +279,16 @@ class DebugWindow(QMainWindow):
             self.create_and_add_widget_item(key, value, self.window().ipv8_general_tree_widget)
 
     def load_ipv8_communities_tab(self):
-        self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("ipv8/overlays", self.on_ipv8_community_stats)
+        TriblerNetworkRequest("ipv8/overlays", self.on_ipv8_community_stats)
 
     def _colored_peer_count(self, peer_count, overlay_count, master_peer):
-        is_discovery = (master_peer == "3081a7301006072a8648ce3d020106052b81040027038192000403b3ab059ced9b20646ab5e01"
-                                       "762b3595c5e8855227ae1e424cff38a1e4edee73734ff2e2e829eb4f39bab20d7578284fcba72"
-                                       "51acd74e7daf96f21d01ea17077faf4d27a655837d072baeb671287a88554e1191d8904b0dc57"
-                                       "2d09ff95f10ff092c8a5e2a01cd500624376aec875a6e3028aab784cfaf0bac6527245db8d939"
-                                       "00d904ac2a922a02716ccef5a22f7968")
+        is_discovery = (
+            master_peer == "3081a7301006072a8648ce3d020106052b81040027038192000403b3ab059ced9b20646ab5e01"
+            "762b3595c5e8855227ae1e424cff38a1e4edee73734ff2e2e829eb4f39bab20d7578284fcba72"
+            "51acd74e7daf96f21d01ea17077faf4d27a655837d072baeb671287a88554e1191d8904b0dc57"
+            "2d09ff95f10ff092c8a5e2a01cd500624376aec875a6e3028aab784cfaf0bac6527245db8d939"
+            "00d904ac2a922a02716ccef5a22f7968"
+        )
         limits = [20, overlay_count * 30 + 1] if is_discovery else [20, 31]
         color = 0xF4D03F if peer_count < limits[0] else (0x56F129 if peer_count < limits[1] else 0xF12929)
         return QBrush(QColor(color))
@@ -300,13 +304,12 @@ class DebugWindow(QMainWindow):
             item.setText(2, overlay["my_peer"][-12:])
             peer_count = len(overlay["peers"])
             item.setText(3, "%s" % peer_count)
-            item.setForeground(3, self._colored_peer_count(peer_count, len(data["overlays"]),
-                                                           overlay["master_peer"]))
+            item.setForeground(3, self._colored_peer_count(peer_count, len(data["overlays"]), overlay["master_peer"]))
 
             if "statistics" in overlay and overlay["statistics"]:
                 statistics = overlay["statistics"]
-                item.setText(4, "%.3f" % (statistics["bytes_up"]/(1024.0 * 1024.0)))
-                item.setText(5, "%.3f" % (statistics["bytes_down"]/(1024.0 * 1024.0)))
+                item.setText(4, "%.3f" % (statistics["bytes_up"] / (1024.0 * 1024.0)))
+                item.setText(5, "%.3f" % (statistics["bytes_down"] / (1024.0 * 1024.0)))
                 item.setText(6, "%s" % statistics["num_up"])
                 item.setText(7, "%s" % statistics["num_down"])
                 item.setText(8, "%.3f" % statistics["diff_time"])
@@ -323,8 +326,7 @@ class DebugWindow(QMainWindow):
     def load_ipv8_community_details_tab(self):
         if self.ipv8_statistics_enabled:
             self.window().ipv8_statistics_error_label.setHidden(True)
-            self.request_mgr = TriblerRequestManager()
-            self.request_mgr.perform_request("ipv8/overlays/statistics", self.on_ipv8_community_detail_stats)
+            TriblerNetworkRequest("ipv8/overlays/statistics", self.on_ipv8_community_detail_stats)
         else:
             self.window().ipv8_statistics_error_label.setHidden(False)
             self.window().ipv8_communities_details_widget.setHidden(True)
@@ -369,47 +371,70 @@ class DebugWindow(QMainWindow):
             tree.addTopLevelItem(widget_item)
 
     def load_tunnel_circuits_tab(self):
-        self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("ipv8/tunnel/circuits", self.on_tunnel_circuits)
+        TriblerNetworkRequest("ipv8/tunnel/circuits", self.on_tunnel_circuits)
 
     def on_tunnel_circuits(self, data):
         if data:
-            self.add_items_to_tree(self.window().circuits_tree_widget, data.get("circuits"),
-                                   ["circuit_id", "goal_hops", "actual_hops", "unverified_hop",
-                                    "type", "state", "bytes_up", "bytes_down", "creation_time"])
+            self.add_items_to_tree(
+                self.window().circuits_tree_widget,
+                data.get("circuits"),
+                [
+                    "circuit_id",
+                    "goal_hops",
+                    "actual_hops",
+                    "unverified_hop",
+                    "type",
+                    "state",
+                    "bytes_up",
+                    "bytes_down",
+                    "creation_time",
+                ],
+            )
 
     def load_tunnel_relays_tab(self):
-        self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("ipv8/tunnel/relays", self.on_tunnel_relays)
+        TriblerNetworkRequest("ipv8/tunnel/relays", self.on_tunnel_relays)
 
     def on_tunnel_relays(self, data):
         if data:
-            self.add_items_to_tree(self.window().relays_tree_widget, data["relays"],
-                                   ["circuit_from", "circuit_to", "is_rendezvous",
-                                    "bytes_up", "bytes_down", "creation_time"])
+            self.add_items_to_tree(
+                self.window().relays_tree_widget,
+                data["relays"],
+                ["circuit_from", "circuit_to", "is_rendezvous", "bytes_up", "bytes_down", "creation_time"],
+            )
 
     def load_tunnel_exits_tab(self):
-        self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("ipv8/tunnel/exits", self.on_tunnel_exits)
+        TriblerNetworkRequest("ipv8/tunnel/exits", self.on_tunnel_exits)
 
     def on_tunnel_exits(self, data):
         if data:
-            self.add_items_to_tree(self.window().exits_tree_widget, data["exits"],
-                                   ["circuit_from", "enabled", "bytes_up", "bytes_down", "creation_time"])
+            self.add_items_to_tree(
+                self.window().exits_tree_widget,
+                data["exits"],
+                ["circuit_from", "enabled", "bytes_up", "bytes_down", "creation_time"],
+            )
 
     def load_tunnel_swarms_tab(self):
-        self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("ipv8/tunnel/swarms", self.on_tunnel_swarms)
+        TriblerNetworkRequest("ipv8/tunnel/swarms", self.on_tunnel_swarms)
 
     def on_tunnel_swarms(self, data):
         if data:
-            self.add_items_to_tree(self.window().swarms_tree_widget, data.get("swarms"),
-                                   ["info_hash", "num_seeders", "num_connections", "num_connections_incomplete",
-                                    "seeding", "last_lookup", "bytes_up", "bytes_down"])
+            self.add_items_to_tree(
+                self.window().swarms_tree_widget,
+                data.get("swarms"),
+                [
+                    "info_hash",
+                    "num_seeders",
+                    "num_connections",
+                    "num_connections_incomplete",
+                    "seeding",
+                    "last_lookup",
+                    "bytes_up",
+                    "bytes_down",
+                ],
+            )
 
     def load_dht_tab(self):
-        self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("ipv8/dht/statistics", self.on_dht_statistics)
+        TriblerNetworkRequest("ipv8/dht/statistics", self.on_dht_statistics)
 
     def on_dht_statistics(self, data):
         if not data:
@@ -450,8 +475,7 @@ class DebugWindow(QMainWindow):
         except psutil.AccessDenied as exc:
             gui_item.setText(0, "Unable to get open files for GUI (%s)" % exc)
 
-        self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("debug/open_files", self.on_core_open_files)
+        TriblerNetworkRequest("debug/open_files", self.on_core_open_files)
 
     def on_core_open_files(self, data):
         if not data:
@@ -467,8 +491,7 @@ class DebugWindow(QMainWindow):
             core_item.addChild(item)
 
     def load_open_sockets_tab(self):
-        self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("debug/open_sockets", self.on_core_open_sockets)
+        TriblerNetworkRequest("debug/open_sockets", self.on_core_open_sockets)
 
     def on_core_open_sockets(self, data):
         if not data:
@@ -494,8 +517,7 @@ class DebugWindow(QMainWindow):
             self.window().open_sockets_tree_widget.addTopLevelItem(item)
 
     def load_threads_tab(self):
-        self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("debug/threads", self.on_core_threads)
+        TriblerNetworkRequest("debug/threads", self.on_core_threads)
 
     def on_core_threads(self, data):
         if not data:
@@ -527,8 +549,7 @@ class DebugWindow(QMainWindow):
         self.cpu_plot_timer.start(5000)
 
     def refresh_cpu_plot(self):
-        self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("debug/cpu/history", self.on_core_cpu_history)
+        TriblerNetworkRequest("debug/cpu/history", self.on_core_cpu_history)
 
     def on_core_cpu_history(self, data):
         if not data:
@@ -555,16 +576,14 @@ class DebugWindow(QMainWindow):
 
     def load_profiler_tab(self):
         self.window().toggle_profiler_button.setEnabled(False)
-        self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("debug/profiler", self.on_profiler_info)
+        TriblerNetworkRequest("debug/profiler", self.on_profiler_info)
 
     def on_profiler_info(self, data):
         if not data:
             return
-        self.profiler_enabled = (data["state"] == "STARTED")
+        self.profiler_enabled = data["state"] == "STARTED"
         self.window().toggle_profiler_button.setEnabled(True)
-        self.window().toggle_profiler_button.setText("%s profiler" %
-                                                     ("Stop" if self.profiler_enabled else "Start"))
+        self.window().toggle_profiler_button.setText("%s profiler" % ("Stop" if self.profiler_enabled else "Start"))
 
     def on_toggle_profiler_button_clicked(self):
         if self.toggling_profiler:
@@ -572,9 +591,8 @@ class DebugWindow(QMainWindow):
 
         self.toggling_profiler = True
         self.window().toggle_profiler_button.setEnabled(False)
-        self.request_mgr = TriblerRequestManager()
         method = "DELETE" if self.profiler_enabled else "PUT"
-        self.request_mgr.perform_request("debug/profiler", self.on_profiler_state_changed, method=method)
+        TriblerNetworkRequest("debug/profiler", self.on_profiler_state_changed, method=method)
 
     def on_profiler_state_changed(self, data):
         if not data:
@@ -584,13 +602,12 @@ class DebugWindow(QMainWindow):
         self.load_profiler_tab()
 
         if 'profiler_file' in data:
-            QMessageBox.about(self,
-                              "Profiler statistics saved",
-                              "The profiler data has been saved to %s." % data['profiler_file'])
+            QMessageBox.about(
+                self, "Profiler statistics saved", "The profiler data has been saved to %s." % data['profiler_file']
+            )
 
     def refresh_memory_plot(self):
-        self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("debug/memory/history", self.on_core_memory_history)
+        TriblerNetworkRequest("debug/memory/history", self.on_core_memory_history)
 
     def on_core_memory_history(self, data):
         if not data:
@@ -601,22 +618,27 @@ class DebugWindow(QMainWindow):
         self.memory_plot.render_plot()
 
     def on_memory_dump_button_clicked(self, dump_core):
-        self.export_dir = QFileDialog.getExistingDirectory(self, "Please select the destination directory", "",
-                                                           QFileDialog.ShowDirsOnly)
+        self.export_dir = QFileDialog.getExistingDirectory(
+            self, "Please select the destination directory", "", QFileDialog.ShowDirsOnly
+        )
 
         if len(self.export_dir) > 0:
-            filename = "tribler_mem_dump_%s_%s.json" % \
-                       ('core' if dump_core else 'gui', datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S"))
+            filename = "tribler_mem_dump_%s_%s.json" % (
+                'core' if dump_core else 'gui',
+                datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S"),
+            )
             if dump_core:
-                self.request_mgr = TriblerRequestManager()
-                self.request_mgr.download_file("debug/memory/dump",
-                                               lambda data: self.on_memory_dump_data_available(filename, data))
+                self.rest_request = TriblerNetworkRequest(
+                    "debug/memory/dump", lambda data, _: self.on_memory_dump_data_available(filename, data)
+                )
             elif scanner:
                 scanner.dump_all_objects(os.path.join(self.export_dir, filename))
             else:
-                ConfirmationDialog.show_error(self.window(),
-                                              "Error when performing a memory dump",
-                                              "meliae memory dumper is not compatible with Python 3")
+                ConfirmationDialog.show_error(
+                    self.window(),
+                    "Error when performing a memory dump",
+                    "meliae memory dumper is not compatible with Python 3",
+                )
 
     def on_memory_dump_data_available(self, filename, data):
         if not data:
@@ -626,12 +648,15 @@ class DebugWindow(QMainWindow):
             with open(dest_path, "wb") as memory_dump_file:
                 memory_dump_file.write(data)
         except IOError as exc:
-            ConfirmationDialog.show_error(self.window(),
-                                          "Error when exporting file",
-                                          "An error occurred when exporting the torrent file: %s" % str(exc))
+            ConfirmationDialog.show_error(
+                self.window(),
+                "Error when exporting file",
+                "An error occurred when exporting the torrent file: %s" % str(exc),
+            )
 
     def closeEvent(self, close_event):
-        self.request_mgr.cancel_request()
+        if self.rest_request:
+            self.rest_request.cancel_request()
         if self.cpu_plot_timer:
             self.cpu_plot_timer.stop()
 
@@ -645,16 +670,16 @@ class DebugWindow(QMainWindow):
         tab_index = self.window().log_tab_widget.currentIndex()
         tab_name = "core" if tab_index == 0 else "gui"
 
-        self.request_mgr = TriblerRequestManager()
         request_query = "process=%s&max_lines=%s" % (tab_name, max_log_lines)
-        self.request_mgr.perform_request("debug/log?%s" % request_query, self.display_logs)
+        TriblerNetworkRequest("debug/log?%s" % request_query, self.display_logs)
 
     def display_logs(self, data):
         if not data:
             return
         tab_index = self.window().log_tab_widget.currentIndex()
-        log_display_widget = self.window().core_log_display_area if tab_index == 0 \
-            else self.window().gui_log_display_area
+        log_display_widget = (
+            self.window().core_log_display_area if tab_index == 0 else self.window().gui_log_display_area
+        )
 
         log_display_widget.moveCursor(QTextCursor.End)
 
@@ -684,19 +709,24 @@ class DebugWindow(QMainWindow):
 
     def load_libtorrent_data(self, export=False):
         tab = self.window().libtorrent_tab_widget.currentIndex()
-        hop = 0 if self.window().lt_zero_hop_btn.isChecked() \
-            else 1 if self.window().lt_one_hop_btn.isChecked() \
-            else 2 if self.window().lt_two_hop_btn.isChecked() \
+        hop = (
+            0
+            if self.window().lt_zero_hop_btn.isChecked()
+            else 1
+            if self.window().lt_one_hop_btn.isChecked()
+            else 2
+            if self.window().lt_two_hop_btn.isChecked()
             else 3
+        )
         if tab == 0:
             self.load_libtorrent_settings_tab(hop, export=export)
         elif tab == 1:
             self.load_libtorrent_sessions_tab(hop, export=export)
 
     def load_libtorrent_settings_tab(self, hop, export=False):
-        self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("libtorrent/settings?hop=%d" % hop,
-                                         lambda data: self.on_libtorrent_settings_received(data, export=export))
+        TriblerNetworkRequest(
+            "libtorrent/settings?hop=%d" % hop, lambda data: self.on_libtorrent_settings_received(data, export=export)
+        )
         self.window().libtorrent_settings_tree_widget.clear()
 
     def on_libtorrent_settings_received(self, data, export=False):
@@ -711,9 +741,9 @@ class DebugWindow(QMainWindow):
             self.save_to_file("libtorrent_settings.json", data)
 
     def load_libtorrent_sessions_tab(self, hop, export=False):
-        self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("libtorrent/session?hop=%d" % hop,
-                                         lambda data: self.on_libtorrent_session_received(data, export=export))
+        TriblerNetworkRequest(
+            "libtorrent/session?hop=%d" % hop, lambda data: self.on_libtorrent_session_received(data, export=export)
+        )
         self.window().libtorrent_session_tree_widget.clear()
 
     def on_libtorrent_session_received(self, data, export=False):

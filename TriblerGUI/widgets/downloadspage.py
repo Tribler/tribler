@@ -3,16 +3,31 @@ import time
 
 from PyQt5.QtCore import QTimer, QUrl, Qt, pyqtSignal
 from PyQt5.QtGui import QDesktopServices
+from PyQt5.QtNetwork import QNetworkRequest
 from PyQt5.QtWidgets import QAbstractItemView, QAction, QFileDialog, QTreeWidgetItem, QWidget
 
-from TriblerGUI.defs import (BUTTON_TYPE_CONFIRM, BUTTON_TYPE_NORMAL, DLSTATUS_CIRCUITS, DLSTATUS_EXIT_NODES,
-                             DLSTATUS_HASHCHECKING, DLSTATUS_METADATA, DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR,
-                             DLSTATUS_WAITING4HASHCHECK, DOWNLOADS_FILTER_ACTIVE, DOWNLOADS_FILTER_ALL,
-                             DOWNLOADS_FILTER_CHANNELS, DOWNLOADS_FILTER_COMPLETED, DOWNLOADS_FILTER_CREDITMINING,
-                             DOWNLOADS_FILTER_DEFINITION, DOWNLOADS_FILTER_DOWNLOADING, DOWNLOADS_FILTER_INACTIVE)
+from TriblerGUI.defs import (
+    BUTTON_TYPE_CONFIRM,
+    BUTTON_TYPE_NORMAL,
+    DLSTATUS_CIRCUITS,
+    DLSTATUS_EXIT_NODES,
+    DLSTATUS_HASHCHECKING,
+    DLSTATUS_METADATA,
+    DLSTATUS_STOPPED,
+    DLSTATUS_STOPPED_ON_ERROR,
+    DLSTATUS_WAITING4HASHCHECK,
+    DOWNLOADS_FILTER_ACTIVE,
+    DOWNLOADS_FILTER_ALL,
+    DOWNLOADS_FILTER_CHANNELS,
+    DOWNLOADS_FILTER_COMPLETED,
+    DOWNLOADS_FILTER_CREDITMINING,
+    DOWNLOADS_FILTER_DEFINITION,
+    DOWNLOADS_FILTER_DOWNLOADING,
+    DOWNLOADS_FILTER_INACTIVE,
+)
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
-from TriblerGUI.tribler_request_manager import TriblerRequestManager
+from TriblerGUI.tribler_request_manager import TriblerFileDownloadRequest, TriblerNetworkRequest
 from TriblerGUI.utilities import compose_magnetlink, format_size, format_speed
 from TriblerGUI.widgets.downloadwidgetitem import DownloadWidgetItem
 from TriblerGUI.widgets.loading_list_item import LoadingListItem
@@ -23,6 +38,7 @@ class DownloadsPage(QWidget):
     This class is responsible for managing all items on the downloads page.
     The downloads page shows all downloads and specific details about a download.
     """
+
     received_downloads = pyqtSignal(object)
 
     def __init__(self):
@@ -36,11 +52,11 @@ class DownloadsPage(QWidget):
         self.downloads_last_update = 0
         self.selected_items = []
         self.dialog = None
-        self.downloads_request_mgr = TriblerRequestManager()
-        self.request_mgr = None
         self.loading_message_widget = None
         self.total_download = 0
         self.total_upload = 0
+
+        self.rest_request = None
 
     def showEvent(self, QShowEvent):
         """
@@ -83,8 +99,9 @@ class DownloadsPage(QWidget):
         self.window().downloads_list.setSelectionMode(QAbstractItemView.NoSelection)
         self.loading_message_widget = QTreeWidgetItem()
         self.window().downloads_list.addTopLevelItem(self.loading_message_widget)
-        self.window().downloads_list.setItemWidget(self.loading_message_widget, 2,
-                                                   LoadingListItem(self.window().downloads_list))
+        self.window().downloads_list.setItemWidget(
+            self.loading_message_widget, 2, LoadingListItem(self.window().downloads_list)
+        )
         self.schedule_downloads_timer(now=True)
 
     def schedule_downloads_timer(self, now=False):
@@ -99,7 +116,8 @@ class DownloadsPage(QWidget):
         self.downloads_timeout_timer.start(16000)
 
     def on_downloads_request_timeout(self):
-        self.downloads_request_mgr.cancel_request()
+        if self.rest_request:
+            self.rest_request.cancel_request()
         self.schedule_downloads_timer()
 
     def stop_loading_downloads(self):
@@ -116,10 +134,10 @@ class DownloadsPage(QWidget):
         if not self.isHidden() or (time.time() - self.downloads_last_update > 30):
             # Update if the downloads page is visible or if we haven't updated for longer than 30 seconds
             self.downloads_last_update = time.time()
-            priority = "LOW" if self.isHidden() else "HIGH"
-            self.downloads_request_mgr.cancel_request()
-            self.downloads_request_mgr = TriblerRequestManager()
-            self.downloads_request_mgr.perform_request(url, self.on_received_downloads, priority=priority)
+            priority = QNetworkRequest.LowPriority if self.isHidden() else QNetworkRequest.HighPriority
+            if self.rest_request:
+                self.rest_request.cancel_request()
+            self.rest_request = TriblerNetworkRequest(url, self.on_received_downloads, priority=priority)
 
     def on_received_downloads(self, downloads):
         if not downloads or "downloads" not in downloads:
@@ -157,8 +175,10 @@ class DownloadsPage(QWidget):
 
             download_infohashes.add(download["infohash"])
 
-            if self.window().download_details_widget.current_download is not None and \
-                    self.window().download_details_widget.current_download["infohash"] == download["infohash"]:
+            if (
+                self.window().download_details_widget.current_download is not None
+                and self.window().download_details_widget.current_download["infohash"] == download["infohash"]
+            ):
                 self.window().download_details_widget.current_download = download
                 self.window().download_details_widget.update_pages()
 
@@ -173,7 +193,9 @@ class DownloadsPage(QWidget):
                 self.window().downloads_list.takeTopLevelItem(index)
                 del self.download_widgets[infohash]
 
-        self.window().tray_set_tooltip("Down: %s, Up: %s" % (format_speed(self.total_download), format_speed(self.total_upload)))
+        self.window().tray_set_tooltip(
+            "Down: %s, Up: %s" % (format_speed(self.total_download), format_speed(self.total_upload))
+        )
         self.update_download_visibility()
         self.schedule_downloads_timer()
 
@@ -199,8 +221,12 @@ class DownloadsPage(QWidget):
             elif self.filter == DOWNLOADS_FILTER_CHANNELS:
                 item.setHidden(not is_channel or not filter_match)
             else:
-                item.setHidden(not item.get_raw_download_status() in DOWNLOADS_FILTER_DEFINITION[self.filter] or \
-                               not filter_match or is_creditmining or is_channel)
+                item.setHidden(
+                    not item.get_raw_download_status() in DOWNLOADS_FILTER_DEFINITION[self.filter]
+                    or not filter_match
+                    or is_creditmining
+                    or is_channel
+                )
 
     def on_downloads_tab_button_clicked(self, button_name):
         if button_name == "downloads_all_button":
@@ -234,31 +260,49 @@ class DownloadsPage(QWidget):
         bytes_used = 0
         total_up = total_down = 0
         for download in self.downloads["downloads"]:
-            if download["credit_mining"] and \
-               download["status"] in ("DLSTATUS_DOWNLOADING", "DLSTATUS_SEEDING",
-                                      "DLSTATUS_STOPPED", "DLSTATUS_STOPPED_ON_ERROR"):
+            if download["credit_mining"] and download["status"] in (
+                "DLSTATUS_DOWNLOADING",
+                "DLSTATUS_SEEDING",
+                "DLSTATUS_STOPPED",
+                "DLSTATUS_STOPPED_ON_ERROR",
+            ):
                 bytes_used += download["progress"] * download["size"]
                 total_up += download["total_up"]
                 total_down += download["total_down"]
-        self.window().diskspace_usage.setText("Disk usage: %s / %s \tUpload: %.3f MB \tDownload: %.3f MB" %
-                                              (format_size(float(bytes_used)), format_size(float(bytes_max)),
-                                               total_up/1048576.0, total_down/1028576.0))
+        self.window().diskspace_usage.setText(
+            "Disk usage: %s / %s \tUpload: %.3f MB \tDownload: %.3f MB"
+            % (
+                format_size(float(bytes_used)),
+                format_size(float(bytes_max)),
+                total_up / 1048576.0,
+                total_down / 1028576.0,
+            )
+        )
 
     @staticmethod
     def start_download_enabled(download_widgets):
-        return any([download_widget.get_raw_download_status() == DLSTATUS_STOPPED
-                    for download_widget in download_widgets])
+        return any(
+            [download_widget.get_raw_download_status() == DLSTATUS_STOPPED for download_widget in download_widgets]
+        )
 
     @staticmethod
     def stop_download_enabled(download_widgets):
-        return any([download_widget.get_raw_download_status() not in [DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR]
-                    for download_widget in download_widgets])
+        return any(
+            [
+                download_widget.get_raw_download_status() not in [DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR]
+                for download_widget in download_widgets
+            ]
+        )
 
     @staticmethod
     def force_recheck_download_enabled(download_widgets):
-        return any([download_widget.get_raw_download_status() not in
-                    [DLSTATUS_METADATA, DLSTATUS_HASHCHECKING, DLSTATUS_WAITING4HASHCHECK]
-                    for download_widget in download_widgets])
+        return any(
+            [
+                download_widget.get_raw_download_status()
+                not in [DLSTATUS_METADATA, DLSTATUS_HASHCHECKING, DLSTATUS_WAITING4HASHCHECK]
+                for download_widget in download_widgets
+            ]
+        )
 
     def on_download_item_clicked(self):
         selected_count = len(self.window().downloads_list.selectedItems())
@@ -288,9 +332,9 @@ class DownloadsPage(QWidget):
     def on_start_download_clicked(self):
         for selected_item in self.selected_items:
             infohash = selected_item.download_info["infohash"]
-            self.request_mgr = TriblerRequestManager()
-            self.request_mgr.perform_request("downloads/%s" % infohash, self.on_download_resumed,
-                                             method='PATCH', data={"state": "resume"})
+            TriblerNetworkRequest(
+                "downloads/%s" % infohash, self.on_download_resumed, method='PATCH', data={"state": "resume"}
+            )
 
     def on_download_resumed(self, json_result):
         if json_result and 'modified' in json_result:
@@ -303,15 +347,17 @@ class DownloadsPage(QWidget):
     def on_stop_download_clicked(self):
         for selected_item in self.selected_items:
             infohash = selected_item.download_info["infohash"]
-            self.request_mgr = TriblerRequestManager()
-            self.request_mgr.perform_request("downloads/%s" % infohash, self.on_download_stopped,
-                                             method='PATCH', data={"state": "stop"})
+            TriblerNetworkRequest(
+                "downloads/%s" % infohash, self.on_download_stopped, method='PATCH', data={"state": "stop"}
+            )
 
     def on_play_download_clicked(self):
         self.window().left_menu_button_video_player.click()
         selected_item = self.selected_items[:1]
-        if selected_item and \
-           self.window().video_player_page.active_infohash != selected_item[0].download_info["infohash"]:
+        if (
+            selected_item
+            and self.window().video_player_page.active_infohash != selected_item[0].download_info["infohash"]
+        ):
             self.window().video_player_page.play_media_item(selected_item[0].download_info["infohash"], -1)
 
     def on_download_stopped(self, json_result):
@@ -323,10 +369,16 @@ class DownloadsPage(QWidget):
                     self.on_download_item_clicked()
 
     def on_remove_download_clicked(self):
-        self.dialog = ConfirmationDialog(self, "Remove download", "Are you sure you want to remove this download?",
-                                         [('remove download', BUTTON_TYPE_NORMAL),
-                                          ('remove download + data', BUTTON_TYPE_NORMAL),
-                                          ('cancel', BUTTON_TYPE_CONFIRM)])
+        self.dialog = ConfirmationDialog(
+            self,
+            "Remove download",
+            "Are you sure you want to remove this download?",
+            [
+                ('remove download', BUTTON_TYPE_NORMAL),
+                ('remove download + data', BUTTON_TYPE_NORMAL),
+                ('cancel', BUTTON_TYPE_CONFIRM),
+            ],
+        )
         self.dialog.button_clicked.connect(self.on_remove_download_dialog)
         self.dialog.show()
 
@@ -339,9 +391,9 @@ class DownloadsPage(QWidget):
                 if self.window().video_player_page.active_infohash == infohash:
                     self.window().video_player_page.reset_player()
 
-                self.request_mgr = TriblerRequestManager()
-                self.request_mgr.perform_request("downloads/%s" % infohash, self.on_download_removed,
-                                                 method='DELETE', data={"remove_data": action})
+                TriblerNetworkRequest(
+                    "downloads/%s" % infohash, self.on_download_removed, method='DELETE', data={"remove_data": action}
+                )
         if self.dialog:
             self.dialog.close_dialog()
             self.dialog = None
@@ -354,9 +406,9 @@ class DownloadsPage(QWidget):
     def on_force_recheck_download(self):
         for selected_item in self.selected_items:
             infohash = selected_item.download_info["infohash"]
-            self.request_mgr = TriblerRequestManager()
-            self.request_mgr.perform_request("downloads/%s" % infohash, self.on_forced_recheck,
-                                             method='PATCH', data={"state": "recheck"})
+            TriblerNetworkRequest(
+                "downloads/%s" % infohash, self.on_forced_recheck, method='PATCH', data={"state": "recheck"}
+            )
 
     def on_forced_recheck(self, result):
         if result and "modified" in result:
@@ -369,53 +421,61 @@ class DownloadsPage(QWidget):
     def change_anonymity(self, hops):
         for selected_item in self.selected_items:
             infohash = selected_item.download_info["infohash"]
-            self.request_mgr = TriblerRequestManager()
-            self.request_mgr.perform_request("downloads/%s" % infohash, lambda _: None,
-                                             method='PATCH', data={"anon_hops": hops})
+            TriblerNetworkRequest("downloads/%s" % infohash, lambda _: None, method='PATCH', data={"anon_hops": hops})
 
     def on_explore_files(self):
         for selected_item in self.selected_items:
-            path = os.path.normpath(os.path.join(self.window().tribler_settings['download_defaults']['saveas'],
-                                                 selected_item.download_info["destination"]))
+            path = os.path.normpath(
+                os.path.join(
+                    self.window().tribler_settings['download_defaults']['saveas'],
+                    selected_item.download_info["destination"],
+                )
+            )
             QDesktopServices.openUrl(QUrl.fromLocalFile(path))
 
     def on_move_files(self):
         if len(self.selected_items) != 1:
             return
 
-        dest_dir = QFileDialog.getExistingDirectory(self, "Please select the destination directory",
-                                                    self.selected_items[0].download_info["destination"],
-                                                    QFileDialog.ShowDirsOnly)
+        dest_dir = QFileDialog.getExistingDirectory(
+            self,
+            "Please select the destination directory",
+            self.selected_items[0].download_info["destination"],
+            QFileDialog.ShowDirsOnly,
+        )
 
         _infohash = self.selected_items[0].download_info["infohash"]
         _name = self.selected_items[0].download_info["name"]
 
-        data = {
-            "state": "move_storage",
-            "dest_dir": dest_dir
-        }
+        data = {"state": "move_storage", "dest_dir": dest_dir}
 
-        request_mgr = TriblerRequestManager()
-        request_mgr.perform_request("downloads/%s" % _infohash,
-                                    lambda res, _, name=_name, target=dest_dir: self.on_files_moved(res, name, target),
-                                    data=data, method='PATCH')
+        TriblerNetworkRequest(
+            "downloads/%s" % _infohash,
+            lambda res, _, name=_name, target=dest_dir: self.on_files_moved(res, name, target),
+            data=data,
+            method='PATCH',
+        )
 
     def on_files_moved(self, response, name, dest_dir):
         if "modified" in response and response["modified"]:
             self.window().tray_show_message(name, "Moved to %s" % dest_dir)
 
     def on_export_download(self):
-        self.export_dir = QFileDialog.getExistingDirectory(self, "Please select the destination directory", "",
-                                                           QFileDialog.ShowDirsOnly)
+        self.export_dir = QFileDialog.getExistingDirectory(
+            self, "Please select the destination directory", "", QFileDialog.ShowDirsOnly
+        )
 
         selected_item = self.selected_items[:1]
         if len(self.export_dir) > 0 and selected_item:
             # Show confirmation dialog where we specify the name of the file
             torrent_name = selected_item[0].download_info['name']
-            self.dialog = ConfirmationDialog(self, "Export torrent file",
-                                             "Please enter the name of the torrent file:",
-                                             [('SAVE', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
-                                             show_input=True)
+            self.dialog = ConfirmationDialog(
+                self,
+                "Export torrent file",
+                "Please enter the name of the torrent file:",
+                [('SAVE', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
+                show_input=True,
+            )
             self.dialog.dialog_widget.dialog_input.setPlaceholderText('Torrent file name')
             self.dialog.dialog_widget.dialog_input.setText("%s.torrent" % torrent_name)
             self.dialog.dialog_widget.dialog_input.setFocus()
@@ -426,9 +486,10 @@ class DownloadsPage(QWidget):
         selected_item = self.selected_items[:1]
         if action == 0 and selected_item:
             filename = self.dialog.dialog_widget.dialog_input.text()
-            self.request_mgr = TriblerRequestManager()
-            self.request_mgr.download_file("downloads/%s/torrent" % selected_item[0].download_info['infohash'],
-                                           lambda data: self.on_export_download_request_done(filename, data))
+            TriblerFileDownloadRequest(
+                "downloads/%s/torrent" % selected_item[0].download_info['infohash'],
+                lambda data, _: self.on_export_download_request_done(filename, data),
+            )
 
         self.dialog.close_dialog()
         self.dialog = None
@@ -440,21 +501,25 @@ class DownloadsPage(QWidget):
             torrent_file.write(data)
             torrent_file.close()
         except IOError as exc:
-            ConfirmationDialog.show_error(self.window(),
-                                          "Error when exporting file",
-                                          "An error occurred when exporting the torrent file: %s" % str(exc))
+            ConfirmationDialog.show_error(
+                self.window(),
+                "Error when exporting file",
+                "An error occurred when exporting the torrent file: %s" % str(exc),
+            )
         else:
             self.window().tray_show_message("Torrent file exported", "Torrent file exported to %s" % dest_path)
 
     def on_add_to_channel(self):
-        self.request_mgr = TriblerRequestManager()
         for selected_item in self.selected_items:
             infohash = selected_item.download_info["infohash"]
             name = selected_item.download_info["name"]
             post_data = {"uri": compose_magnetlink(infohash, name=name)}
-            self.request_mgr.perform_request("mychannel/torrents",
-                                             lambda response: self.on_added_to_channel(name, response),
-                                             method='PUT', data=post_data)
+            TriblerNetworkRequest(
+                "mychannel/torrents",
+                lambda response: self.on_added_to_channel(name, response),
+                method='PUT',
+                data=post_data,
+            )
 
     def on_added_to_channel(self, name, response):
         if not response:
@@ -518,8 +583,13 @@ class DownloadsPage(QWidget):
         menu.addAction(force_recheck_action)
         menu.addSeparator()
 
-        exclude_states = [DLSTATUS_METADATA, DLSTATUS_CIRCUITS, DLSTATUS_EXIT_NODES,
-                          DLSTATUS_HASHCHECKING, DLSTATUS_WAITING4HASHCHECK]
+        exclude_states = [
+            DLSTATUS_METADATA,
+            DLSTATUS_CIRCUITS,
+            DLSTATUS_EXIT_NODES,
+            DLSTATUS_HASHCHECKING,
+            DLSTATUS_WAITING4HASHCHECK,
+        ]
         if len(self.selected_items) == 1 and self.selected_items[0].get_raw_download_status() not in exclude_states:
             menu.addAction(export_download_action)
         menu.addAction(explore_files_action)

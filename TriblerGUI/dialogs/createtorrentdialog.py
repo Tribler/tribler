@@ -10,7 +10,7 @@ from TriblerGUI.defs import BUTTON_TYPE_NORMAL
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.dialogs.dialogcontainer import DialogContainer
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
-from TriblerGUI.tribler_request_manager import TriblerRequestManager
+from TriblerGUI.tribler_request_manager import TriblerNetworkRequest
 from TriblerGUI.utilities import get_ui_file_path, is_dir_writable
 
 
@@ -42,13 +42,15 @@ class CreateTorrentDialog(DialogContainer):
 
         self.on_main_window_resize()
 
-        self.request_mgr = None
         self.name = None
+        self.rest_request1 = None
+        self.rest_request2 = None
 
     def close_dialog(self):
-        if self.request_mgr:
-            self.request_mgr.cancel_request()
-            self.request_mgr = None
+        if self.rest_request1:
+            self.rest_request1.cancel_request()
+        if self.rest_request2:
+            self.rest_request2.cancel_request()
 
         super(CreateTorrentDialog, self).close_dialog()
 
@@ -115,8 +117,7 @@ class CreateTorrentDialog(DialogContainer):
         url = (
             "createtorrent?download=1" if self.dialog_widget.seed_after_adding_checkbox.isChecked() else "createtorrent"
         )
-        self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request(url, self.on_torrent_created, data=post_data, method='POST')
+        self.rest_request1 = TriblerNetworkRequest(url, self.on_torrent_created, data=post_data, method='POST')
         self.dialog_widget.edit_channel_create_torrent_progress_label.setText("Creating torrent. Please wait...")
 
     def on_torrent_created(self, result):
@@ -131,11 +132,10 @@ class CreateTorrentDialog(DialogContainer):
             self.close_dialog()
 
     def add_torrent_to_channel(self, torrent):
-        self.request_mgr = TriblerRequestManager()
         data = {"torrent": torrent}
         if self.name:
             data.update({"title": ensure_unicode(self.name, 'utf8')})
-        self.request_mgr.perform_request(
+        self.rest_request2 = TriblerNetworkRequest(
             "mychannel/torrents", self.on_torrent_to_channel_added, data=data, method='PUT'
         )
 
