@@ -18,7 +18,6 @@ from Tribler.Core.Config.download_config import DownloadConfig, get_default_dest
 from Tribler.Core.DownloadState import DownloadState
 from Tribler.Core.Libtorrent import check_handle, require_handle
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
-from Tribler.Core.Utilities import maketorrent
 from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
 from Tribler.Core.Utilities.unicode import ensure_unicode, hexlify
 from Tribler.Core.Utilities.utilities import bdecode_compat, succeed
@@ -48,10 +47,10 @@ class VODFile(object):
         self.pieces = [pieces[x:x + 20] for x in range(0, len(pieces), 20)]
         self.piecesize = self._download.tdef.get_piece_length()
 
-        self.startpiece = get_info_from_handle(self._download.handle).map_file(
-            self._download.get_vod_fileindex(), 0, 0)
-        self.endpiece = get_info_from_handle(self._download.handle).map_file(
-            self._download.get_vod_fileindex(), self._download.get_vod_filesize(), 0)
+        self.startpiece = get_info_from_handle(self._download.handle).map_file(self._download.get_vod_fileindex(),
+                                                                               0, 0)
+        self.endpiece = get_info_from_handle(self._download.handle).map_file(self._download.get_vod_fileindex(),
+                                                                             self._download.get_vod_filesize(), 0)
 
     def read(self, *args):
         oldpos = self._file.tell()
@@ -114,14 +113,10 @@ class LibtorrentDownloadImpl(TaskManager):
         self.vod_index = None
         self.orig_files = None
         self.state_dir = self.session.config.get_state_dir() if self.session else None
+        self.ltmgr = self.session.ltmgr if self.session else None
 
         # With hidden True download will not be in GET/downloads set, as a result will not be shown in GUI
         self.hidden = False
-
-        # To be able to return the progress of a stopped torrent, how far it got.
-        self.progressbeforestop = 0.0
-        self.filepieceranges = []
-        self.ltmgr = self.session.ltmgr if self.session else None
 
         # Libtorrent status
         self.lt_status = None
@@ -133,10 +128,8 @@ class LibtorrentDownloadImpl(TaskManager):
         self.prebuffsize = 5 * 1024 * 1024
         self.endbuffsize = 0
         self.vod_seekpos = 0
-
         self.max_prebuffsize = 5 * 1024 * 1024
 
-        self.correctedinfoname = ""
         self.checkpoint_disabled = False
 
         self.futures = defaultdict(list)
@@ -210,10 +203,6 @@ class LibtorrentDownloadImpl(TaskManager):
         self.checkpoint_disabled = checkpoint_disabled
         self.config = config or DownloadConfig(state_dir=self.session.config.get_state_dir())
 
-        if not isinstance(self.tdef, TorrentDefNoMetainfo):
-            self.set_corrected_infoname()
-            self.set_filepieceranges()
-
         self._logger.debug("Setup: %s", hexlify(self.tdef.get_infohash()))
 
         self.checkpoint()
@@ -235,20 +224,6 @@ class LibtorrentDownloadImpl(TaskManager):
             torrentinfo = lt.torrent_info(metainfo)
 
             self.orig_files = [file_entry.path for file_entry in torrentinfo.files()]
-            is_multifile = len(self.orig_files) > 1
-            commonprefix = os.path.commonprefix(self.orig_files) if is_multifile else ''
-            swarmname = commonprefix.partition(os.path.sep)[0]
-
-            if is_multifile and swarmname != self.correctedinfoname:
-                for i, filename_old in enumerate(self.orig_files):
-                    filename_new = os.path.join(self.correctedinfoname, filename_old[len(swarmname) + 1:])
-                    # Path should be unicode if Libtorrent is using std::wstring (on Windows),
-                    # else we use str (on Linux).
-                    try:
-                        torrentinfo.rename_file(i, filename_new)
-                    except TypeError:
-                        torrentinfo.rename_file(i, filename_new.encode("utf-8"))
-                    self.orig_files[i] = filename_new
 
             atp["ti"] = torrentinfo
             if resume_data and isinstance(resume_data, dict):
@@ -566,14 +541,12 @@ class LibtorrentDownloadImpl(TaskManager):
             torrent_files = []
 
         self.orig_files = [torrent_file.path for torrent_file in torrent_files]
-        self.set_corrected_infoname()
-        self.set_filepieceranges()
         self.set_selected_files()
 
         self.checkpoint()
 
     def on_file_renamed_alert(self, _):
-        unwanteddir_abs = os.path.join(self.get_save_path(), self.unwanted_directory_name)
+        unwanteddir_abs = os.path.join(self.get_save_path(), self.unwanted_dir)
         if os.path.exists(unwanteddir_abs) and all(self.handle.file_priorities()):
             shutil.rmtree(unwanteddir_abs, ignore_errors=True)
 
@@ -658,15 +631,6 @@ class LibtorrentDownloadImpl(TaskManager):
                     or (mode == 'time' and state.get_seeding_time() >= self.session.config.get_seeding_time()):
                 self.stop()
 
-    def set_corrected_infoname(self):
-        # H4xor this so the 'name' field is safe
-        self.correctedinfoname = fix_filebasename(self.tdef.get_name_as_unicode())
-
-        # Allow correctedinfoname to be overwritten for multifile torrents only
-        if self.config.get_corrected_filename() and self.config.get_corrected_filename() != '' and 'files' in \
-                self.tdef.get_metainfo()[b'info']:
-            self.correctedinfoname = self.config.get_corrected_filename()
-
     @property
     def swarmname(self):
         """
@@ -677,7 +641,7 @@ class LibtorrentDownloadImpl(TaskManager):
         return commonprefix.partition(os.path.sep)[0]
 
     @property
-    def unwanted_directory_name(self):
+    def unwanted_dir(self):
         """
         Return the name of the directory containing the unwanted files (files with a priority of 0).
         """
@@ -686,31 +650,28 @@ class LibtorrentDownloadImpl(TaskManager):
     @check_handle()
     def set_selected_files(self, selected_files=None):
         if not isinstance(self.tdef, TorrentDefNoMetainfo):
-
             if selected_files is None:
                 selected_files = self.config.get_selected_files()
             else:
                 self.config.set_selected_files(selected_files)
 
-            unwanteddir_abs = os.path.join(self.get_save_path(), self.unwanted_directory_name)
             torrent_info = get_info_from_handle(self.handle)
             if not torrent_info or not hasattr(torrent_info, 'files'):
-                self._logger.error("File info not available for torrent [%s]", self.correctedinfoname)
+                self._logger.error("File info not available for torrent %s", hexlify(self.tdef.get_infohash()))
                 return
+
+            unwanteddir_abs = os.path.join(self.get_save_path(), self.unwanted_dir)
 
             filepriorities = []
             torrent_storage = torrent_info.files()
-
             for index, orig_path in enumerate(self.orig_files):
                 filename = orig_path[len(self.swarmname) + 1:] if self.swarmname else orig_path
-
                 if filename in selected_files or not selected_files:
                     filepriorities.append(1)
                     new_path = orig_path
                 else:
                     filepriorities.append(0)
-                    new_path = os.path.join(self.unwanted_directory_name,
-                                            '%s%d' % (hexlify(self.tdef.get_infohash()), index))
+                    new_path = os.path.join(unwanteddir_abs, '%s%d' % (hexlify(self.tdef.get_infohash()), index))
 
                 # as from libtorrent 1.0, files returning file_storage (lazy-iterable)
                 if hasattr(lt, 'file_storage') and isinstance(torrent_storage, lt.file_storage):
@@ -719,16 +680,16 @@ class LibtorrentDownloadImpl(TaskManager):
                     cur_path = torrent_storage[index].path
 
                 if cur_path != new_path:
-                    if not os.path.exists(unwanteddir_abs) and self.unwanted_directory_name in new_path:
+                    if not os.path.exists(unwanteddir_abs) and self.unwanted_dir in new_path:
                         try:
                             os.makedirs(unwanteddir_abs)
                             if sys.platform == "win32":
-                                ctypes.windll.kernel32.SetFileAttributesW(
-                                    unwanteddir_abs, 2)  # 2 = FILE_ATTRIBUTE_HIDDEN
+                                # Hide the directory (2 = FILE_ATTRIBUTE_HIDDEN)
+                                ctypes.windll.kernel32.SetFileAttributesW(unwanteddir_abs, 2)
                         except OSError:
                             self._logger.error("LibtorrentDownloadImpl: could not create %s" % unwanteddir_abs)
-                            # Note: If the destination directory can't be accessed, libtorrent will not be able to store the files.
-                            # This will result in a DLSTATUS_STOPPED_ON_ERROR.
+                            # Note: If the destination directory can't be accessed, libtorrent will not be able
+                            # to store the files. This will result in a DLSTATUS_STOPPED_ON_ERROR.
 
                     # Path should be unicode if Libtorrent is using std::wstring (on Windows),
                     # else we use str (on Linux).
@@ -949,31 +910,7 @@ class LibtorrentDownloadImpl(TaskManager):
 
     def get_content_dest(self):
         """ Returns the file to which the downloaded content is saved. """
-        return os.path.join(self.config.get_dest_dir(), self.correctedinfoname)
-
-    def set_filepieceranges(self):
-        """ Determine which file maps to which piece ranges for progress info """
-        self._logger.debug("LibtorrentDownloadImpl: set_filepieceranges: %s", self.config.get_selected_files())
-
-        metainfo = self.tdef.get_metainfo()
-        self.filepieceranges = maketorrent.get_length_filepieceranges_from_metainfo(metainfo, [])[1]
-
-    @check_handle([])
-    def get_dest_files(self, exts=None):
-        """
-        You can give a list of extensions to return. If None: return all dest_files
-        @return list of (torrent,disk) filename tuples.
-        """
-
-        dest_files = []
-
-        for index, file_entry in enumerate(get_info_from_handle(self.handle).files()):
-            if self.handle.file_priority(index) > 0:
-                filename = file_entry.path
-                ext = os.path.splitext(filename)[1].lstrip('.')
-                if exts is None or ext in exts:
-                    dest_files.append((filename, os.path.join(self.config.get_dest_dir(), filename)))
-        return dest_files
+        return os.path.join(self.config.get_dest_dir(), fix_filebasename(self.tdef.get_name_as_unicode()))
 
     def checkpoint(self):
         """

@@ -188,6 +188,7 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         mock_handle.set_sequential_download = lambda _: None
         mock_handle.set_priority = lambda _: None
         mock_handle.prioritize_pieces = lambda _: None
+        mock_handle.save_resume_data = lambda: None
 
         self.libtorrent_download_impl.handle = mock_handle
 
@@ -464,20 +465,6 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         self.libtorrent_download_impl.process_alert(mock_alert, 'torrent_checked_alert')
         self.assertFalse(self.libtorrent_download_impl.checkpoint_after_next_hashcheck)
         self.assertTrue(mocked_pause_checkpoint.called)
-
-    def test_get_dest_files(self):
-        """
-        Testing whether the right list of files is returned when fetching files from a download
-        """
-        self.libtorrent_download_impl.handle.file_priority = lambda _: 123
-        mocked_file = MockObject()
-        mocked_file.path = 'test'
-        mock_torrent_info = MockObject()
-        mock_torrent_info.files = lambda: [mocked_file]
-        self.libtorrent_download_impl.handle.get_torrent_info = lambda: mock_torrent_info
-        dest_files = self.libtorrent_download_impl.get_dest_files()
-        self.assertIsInstance(dest_files[0], tuple)
-        self.assertEqual(dest_files[0][0], 'test')
 
     def test_get_vod_fileindex(self):
         """

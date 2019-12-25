@@ -387,7 +387,7 @@ class LibtorrentMgr(TaskManager):
             dcfg.set_upload_mode(True)  # Upload mode should prevent libtorrent from creating files
             dcfg.set_dest_dir(self.metadata_tmpdir)
             try:
-                download = self.start_download(tdef=tdef, config=dcfg, hidden=False, checkpoint_disabled=True)
+                download = self.start_download(tdef=tdef, config=dcfg, hidden=True, checkpoint_disabled=True)
             except TypeError:
                 return
             self.metainfo_requests[infohash] = [download, 1]
