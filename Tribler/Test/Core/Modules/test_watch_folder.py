@@ -29,7 +29,6 @@ class TestWatchFolder(TestAsServer):
     def test_watchfolder_invalid_dir(self):
         shutil.copyfile(TORRENT_UBUNTU_FILE, os.path.join(self.watch_dir, "test.txt"))
         self.session.config.set_watch_folder_path(os.path.join(self.watch_dir, "test.txt"))
-
         self.session.watch_folder.check_watch_folder()
         self.assertEqual(len(self.session.ltmgr.get_downloads()), 0)
 
@@ -37,7 +36,6 @@ class TestWatchFolder(TestAsServer):
         os.mkdir(os.path.join(self.watch_dir, u"\xe2\x82\xac"))
         shutil.copyfile(TORRENT_UBUNTU_FILE, os.path.join(self.watch_dir, u"\xe2\x82\xac", u"\xe2\x82\xac.torrent"))
         self.session.config.set_watch_folder_path(self.watch_dir)
-
         self.session.watch_folder.check_watch_folder()
 
     def test_watchfolder_torrent_file_one_corrupt(self):

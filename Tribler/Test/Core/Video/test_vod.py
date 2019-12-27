@@ -53,7 +53,7 @@ class TestVideoOnDemand(TestAsServer):
         dscfg.set_dest_dir(destdir)
         dscfg.set_mode(DLMODE_VOD)
 
-        download = self.session.ltmgr.add(self.tdef, dscfg)
+        download = self.session.ltmgr.start_download(tdef=self.tdef, config=dscfg)
         download.set_state_callback(self.state_callback)
 
         self.session.ltmgr.set_download_states_callback(self.states_callback)

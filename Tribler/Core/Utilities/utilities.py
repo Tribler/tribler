@@ -179,6 +179,7 @@ def fail(exception):
     future.set_exception(exception)
     return future
 
+
 def bdecode_compat(packet_buffer):
     """
     Utility method to make libtorrent bdecode() with Python3 in the existing Tribler codebase.

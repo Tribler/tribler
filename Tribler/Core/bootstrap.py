@@ -3,19 +3,22 @@ import os
 from binascii import unhexlify
 
 from ipv8.dht import DHTError
+from ipv8.taskmanager import TaskManager
 
 from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.TorrentDef import TorrentDefNoMetainfo
 from Tribler.Core.Utilities.unicode import hexlify
 
 
-class Bootstrap(object):
+class Bootstrap(TaskManager):
     """
     A class to create a bootstrap downloads for inital file aka bootstrap file.
     Bootstrap class will be initialized at the start of Tribler by downloading/seeding bootstrap file.
     """
 
     def __init__(self, config_dir, dht=None):
+        super(Bootstrap, self).__init__()
+
         self._logger = logging.getLogger(self.__class__.__name__)
         self.dcfg = DownloadConfig(state_dir=config_dir)
         self.dcfg.set_bootstrap_download(True)
@@ -31,6 +34,8 @@ class Bootstrap(object):
         self.download = None
         self.bootstrap_nodes = {}
 
+        self.register_task('fetch_bootstrap_peers', self.fetch_bootstrap_peers, interval=5)
+
     def start_by_infohash(self, download_function, infohash):
         """
         Download bootstrap file from current seeders
@@ -39,7 +44,7 @@ class Bootstrap(object):
         """
         self._logger.debug("Starting bootstrap downloading %s", infohash)
         tdef = TorrentDefNoMetainfo(unhexlify(infohash), name='bootstrap.blocks')
-        self.download = download_function(tdef, config=self.dcfg, hidden=True)
+        self.download = download_function(tdef=tdef, config=self.dcfg, hidden=True)
         self.infohash = infohash
 
     async def fetch_bootstrap_peers(self):
@@ -61,3 +66,6 @@ class Bootstrap(object):
                     for node in nodes:
                         self.bootstrap_nodes[hexlify(node.mid)] = hexlify(node.public_key.key_to_bin())
         return self.bootstrap_nodes
+
+    async def shutdown(self):
+        await self.shutdown_task_manager()

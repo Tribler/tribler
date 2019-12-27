@@ -28,9 +28,8 @@ class TestCreditMiningSources(TestAsServer):
 
         with db_session:
             my_channel = self.session.mds.ChannelMetadata.create_channel('test', 'test')
-            self.session.mds.TorrentMetadata(origin_id=my_channel.id_, title='testtorrent',
-                                                infohash=os.urandom(20))
+            self.session.mds.TorrentMetadata(origin_id=my_channel.id_, title='testtorrent', infohash=os.urandom(20))
 
         source = ChannelSource(self.session, my_channel.public_key, lambda *_: test_future.set_result(None))
         source.start()
-        return test_future
+        await test_future

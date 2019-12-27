@@ -37,7 +37,7 @@ class TestHiddenServices(TestTunnelBase):
         while len(self.tunnel_community_seeder.find_circuits(ctype=CIRCUIT_TYPE_IP_SEEDER)) < 1:
             await self.deliver_messages()
 
-        download = await self.start_anon_download(hops=1)
+        download = self.start_anon_download(hops=1)
         download.set_state_callback(download_state_callback)
 
         await test_future

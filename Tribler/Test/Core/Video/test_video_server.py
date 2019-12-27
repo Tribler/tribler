@@ -160,7 +160,7 @@ class TestVideoServerSession(TestAsServer):
         dscfg = DownloadConfig()
         dscfg.set_dest_dir(os.path.dirname(self.sourcefn))
 
-        download = self.session.ltmgr.add(self.tdef, dscfg)
+        download = self.session.ltmgr.start_download(tdef=self.tdef, config=dscfg)
         await download.get_handle()
 
     def get_std_header(self):

@@ -105,8 +105,7 @@ class CreateTorrentEndpoint(RESTEndpoint):
             download_config = DownloadConfig()
             download_config.set_dest_dir(result['base_path'] if len(file_path_list) == 1 else result['base_dir'])
             try:
-                self.session.ltmgr.start_download(
-                    tdef=TorrentDef(metainfo=metainfo_dict), dconfig=download_config)
+                self.session.ltmgr.start_download(tdef=TorrentDef(metainfo_dict), config=download_config)
             except DuplicateDownloadException:
                 self._logger.warning("The created torrent is already being downloaded.")
 

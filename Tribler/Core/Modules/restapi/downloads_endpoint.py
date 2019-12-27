@@ -98,8 +98,7 @@ class DownloadsEndpoint(RESTEndpoint):
             download_config.set_dest_dir(dest_dir)
 
         if 'selected_files' in parameters:
-            selected_files_list = [f for f in parameters['selected_files']]
-            download_config.set_selected_files(selected_files_list)
+            download_config.set_selected_files(parameters.getall('selected_files'))
 
         return download_config, None
 
@@ -380,7 +379,7 @@ class DownloadsEndpoint(RESTEndpoint):
         remove_data = parameters['remove_data'] == "1"
 
         try:
-            await self.session.ltmgr.remove(download, remove_content=remove_data)
+            await self.session.ltmgr.remove_download(download, remove_content=remove_data)
         except Exception as e:
             self._logger.exception(e)
             return return_handled_exception(request, e)
@@ -428,7 +427,7 @@ class DownloadsEndpoint(RESTEndpoint):
         elif 'anon_hops' in parameters:
             anon_hops = int(parameters['anon_hops'])
             try:
-                await self.session.ltmgr.update_download_hops(download, anon_hops)
+                await self.session.ltmgr.update_hops(download, anon_hops)
             except Exception as e:
                 self._logger.exception(e)
                 return return_handled_exception(request, e)
@@ -436,7 +435,7 @@ class DownloadsEndpoint(RESTEndpoint):
 
         if 'selected_files' in parameters:
             selected_files_list = []
-            for ind in parameters['selected_files']:
+            for ind in parameters.getall('selected_files'):
                 try:
                     selected_files_list.append(download.tdef.get_files()[int(ind)])
                 except IndexError:  # File could not be found
@@ -446,7 +445,7 @@ class DownloadsEndpoint(RESTEndpoint):
         if parameters.get('state'):
             state = parameters['state']
             if state == "resume":
-                await download.restart()
+                download.resume()
             elif state == "stop":
                 await download.stop(user_stopped=True)
             elif state == "recheck":

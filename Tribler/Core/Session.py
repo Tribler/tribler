@@ -119,10 +119,6 @@ class Session(TaskManager):
 
         self._logger = logging.getLogger(self.__class__.__name__)
 
-        self.upnp_ports = []
-
-        self.sessdoneflag = Event()
-
         self.shutdownstarttime = None
 
         self.bootstrap = None
@@ -266,32 +262,15 @@ class Session(TaskManager):
         self.trustchain_community.persistence.executescript(sql_dumb)
         self.trustchain_community.persistence.commit()
 
-    def start_bootstrap_download(self):
-        if self.config.get_bootstrap_enabled():
-            if not self.payout_manager:
-                self._logger.warning("Running bootstrap without payout enabled")
-            self.bootstrap = Bootstrap(self.config.get_state_dir(), dht=self.dht_community)
-            self.bootstrap.start_by_infohash(self.ltmgr.add,
-                                             self.config.get_bootstrap_infohash())
-
-    async def network_shutdown(self):
-        try:
-            self._logger.info("tlm: network_shutdown")
-
-            ts = enumerate_threads()
-            self._logger.info("tlm: Number of threads still running %d", len(ts))
-            for t in ts:
-                self._logger.info("tlm: Thread still running=%s, daemon=%s, instance=%s", t.getName(), t.isDaemon(), t)
-        except:
-            print_exc()
-
-        # Stop network thread
-        self.sessdoneflag.set()
-
-        # Shutdown libtorrent session after checkpoints have been made
-        if self.ltmgr is not None:
-            await self.ltmgr.shutdown()
-            self.ltmgr = None
+    async def start_bootstrap_download(self):
+        if not self.payout_manager:
+            self._logger.warning("Running bootstrap without payout enabled")
+        self.bootstrap = Bootstrap(self.config.get_state_dir(), dht=self.dht_community)
+        self.bootstrap.start_by_infohash(self.ltmgr.start_download, self.config.get_bootstrap_infohash())
+        if self.trustchain_community:
+            await self.bootstrap.download.future_finished
+            await get_event_loop().run_in_executor(None, self.import_bootstrap_file)
+            self.bootstrap.bootstrap_finished = True
 
     def create_state_directory_structure(self):
         """Create directory structure of the state directory."""
@@ -540,8 +519,6 @@ class Session(TaskManager):
             from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
             self.ltmgr = LibtorrentMgr(self)
             self.ltmgr.initialize()
-            for port, protocol in self.upnp_ports:
-                self.ltmgr.add_upnp_mapping(port, protocol)
 
         if self.config.get_chant_enabled() and self.config.get_chant_manager_enabled():
             self.gigachannel_manager = GigaChannelManager(self)
@@ -573,7 +550,7 @@ class Session(TaskManager):
 
         if self.config.get_libtorrent_enabled():
             self.readable_status = STATE_LOAD_CHECKPOINTS
-            self.ltmgr.load_checkpoint()
+            await self.ltmgr.load_checkpoints()
         self.readable_status = STATE_READABLE_STARTED
 
         # GigaChannel Manager should be started *after* resuming the downloads,
@@ -582,8 +559,8 @@ class Session(TaskManager):
         if self.gigachannel_manager:
             self.gigachannel_manager.start()
 
-        if not self.bootstrap:
-            self.start_bootstrap_download()
+        if self.config.get_bootstrap_enabled():
+            self.register_task('bootstrap_download', self.start_bootstrap_download)
 
     async def shutdown(self):
         """
@@ -644,8 +621,9 @@ class Session(TaskManager):
         if self.ipv8:
             self.notify_shutdown_state("Shutting down IPv8...")
             await self.ipv8.stop(stop_loop=False)
+        self.ipv8 = None
 
-        if self.watch_folder is not None:
+        if self.watch_folder:
             self.notify_shutdown_state("Shutting down Watch Folder...")
             await self.watch_folder.stop()
         self.watch_folder = None
@@ -653,41 +631,24 @@ class Session(TaskManager):
         self.notify_shutdown_state("Saving configuration...")
         self.config.write()
 
+        if self.bootstrap:
+            await self.bootstrap.shutdown()
+        self.bootstrap = None
+
         if self.ltmgr:
-            self.notify_shutdown_state("Checkpointing Downloads...")
-            await self.ltmgr.checkpoint_downloads()
-
-            self.notify_shutdown_state("Shutting down Downloads...")
-            await self.ltmgr.shutdown_downloads()
-
-        self.notify_shutdown_state("Shutting down Network...")
-        await self.network_shutdown()
+            await self.ltmgr.shutdown()
+        self.ltmgr = None
 
         if self.mds:
             self.notify_shutdown_state("Shutting down Metadata Store...")
             self.mds.shutdown()
+        self.mds = None
 
         # We close the API manager as late as possible during shutdown.
-        if self.api_manager is not None:
+        if self.api_manager:
             self.notify_shutdown_state("Shutting down API Manager...")
             await self.api_manager.stop()
         self.api_manager = None
-
-    def has_shutdown(self):
-        """
-        Whether the Session has completely shutdown, i.e., its internal
-        threads are finished and it is safe to quit the process the Session
-        is running in.
-
-        :return: a boolean.
-        """
-        return self.sessdoneflag.isSet()
-
-    def get_ipv8_instance(self):
-        if not self.config.get_ipv8_enabled():
-            raise OperationNotEnabledByConfigurationException()
-
-        return self.ipv8
 
     def notify_shutdown_state(self, state):
         self._logger.info("Tribler shutdown state notification:%s", state)

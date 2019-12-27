@@ -5,7 +5,6 @@ from urllib.request import pathname2url
 
 from pony.orm import db_session
 
-from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.DownloadState import DownloadState
 from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.Utilities.utilities import fail, succeed
@@ -39,7 +38,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         Testing whether the API returns the right download when a download is added
         """
         video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
-        self.session.ltmgr.add(video_tdef, DownloadConfig())
+        self.session.ltmgr.start_download(tdef=video_tdef)
         await self.session.ltmgr.start_download_from_uri("file:" + pathname2url(os.path.join(TESTS_DATA_DIR,
                                                                                        "bak_single.torrent")))
 
@@ -52,7 +51,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         Testing whether the API returns the right right filenames fpr each download
         """
         video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
-        self.session.ltmgr.add(video_tdef, DownloadConfig())
+        self.session.ltmgr.start_download(tdef=video_tdef)
         await self.session.ltmgr.start_download_from_uri("file:" + pathname2url(os.path.join(TESTS_DATA_DIR,
                                                                                        "bak_single.torrent")))
         downloads = await self.do_request('downloads?get_peers=1&get_pieces=1&&get_files=1', expected_code=200)
@@ -255,7 +254,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         Testing whether the API returns 200 if a download is being removed
         """
         video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
-        self.session.ltmgr.add(video_tdef, DownloadConfig())
+        self.session.ltmgr.start_download(tdef=video_tdef)
         infohash = get_hex_infohash(video_tdef)
         await self.do_request('downloads/%s' % infohash, post_data={"remove_data": True},
                                            expected_code=200, request_type='DELETE',
@@ -276,7 +275,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         Testing whether the API returns 200 if a download is being stopped
         """
         video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
-        download = self.session.ltmgr.add(video_tdef, DownloadConfig())
+        download = self.session.ltmgr.start_download(tdef=video_tdef)
         infohash = get_hex_infohash(video_tdef)
         original_stop = download.stop
 
@@ -299,7 +298,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         Testing whether an error is returned when we toggle a file for inclusion out of range
         """
         video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
-        self.session.ltmgr.add(video_tdef, DownloadConfig())
+        self.session.ltmgr.start_download(tdef=video_tdef)
         infohash = get_hex_infohash(video_tdef)
 
         await self.do_request('downloads/%s' % infohash, expected_code=400, post_data={"selected_files": 1234},
@@ -311,7 +310,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         Testing whether files can be correctly toggled in a download
         """
         video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
-        download = self.session.ltmgr.add(video_tdef, DownloadConfig())
+        download = self.session.ltmgr.start_download(tdef=video_tdef)
         infohash = get_hex_infohash(video_tdef)
 
         def mocked_set_selected_files(*_):
@@ -326,24 +325,24 @@ class TestDownloadsEndpoint(AbstractApiTest):
         self.assertTrue(mocked_set_selected_files.called)
 
     @timeout(10)
-    async def test_resume_download_wrong_infohash(self):
+    async def test_load_checkpoint_wrong_infohash(self):
         """
         Testing whether the API returns error 404 if a non-existent download is resumed
         """
         await self.do_request('downloads/abcd', expected_code=404, post_data={"state": "resume"}, request_type='PATCH')
 
     @timeout(10)
-    async def test_resume_download(self):
+    async def test_load_checkpoint(self):
         """
         Testing whether the API returns 200 if a download is being resumed
         """
         video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
-        download = self.session.ltmgr.add(video_tdef, DownloadConfig())
+        download = self.session.ltmgr.start_download(tdef=video_tdef)
         infohash = get_hex_infohash(video_tdef)
 
-        async def mocked_restart():
+        def mocked_resume():
             download.should_restart = True
-        download.restart = mocked_restart
+        download.resume = mocked_resume
 
         await self.do_request('downloads/%s' % infohash, post_data={"state": "resume"},
                               expected_code=200, request_type='PATCH',
@@ -359,7 +358,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         Testing whether the API returns 200 if a download is being rechecked
         """
         video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
-        download = self.session.ltmgr.add(video_tdef, DownloadConfig())
+        download = self.session.ltmgr.start_download(tdef=video_tdef)
         infohash = get_hex_infohash(video_tdef)
 
         def mocked_recheck():
@@ -380,7 +379,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         Testing whether the API returns 400 if we supply both anon_hops and another parameter
         """
         video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
-        self.session.ltmgr.add(video_tdef, DownloadConfig())
+        self.session.ltmgr.start_download(tdef=video_tdef)
         infohash = get_hex_infohash(video_tdef)
 
         await self.do_request('downloads/%s' % infohash, post_data={"state": "resume", 'anon_hops': 1},
@@ -392,7 +391,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         Testing whether the API returns error 400 if an unknown state is passed when modifying a download
         """
         video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
-        self.session.ltmgr.add(video_tdef, DownloadConfig())
+        self.session.ltmgr.start_download(tdef=video_tdef)
 
         await self.do_request('downloads/%s' % get_hex_infohash(video_tdef), expected_code=400,
                                post_data={"state": "abc"}, request_type='PATCH')
@@ -403,7 +402,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         Testing whether moving the torrent storage to a non-existing directory works as expected.
         """
         video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
-        self.session.ltmgr.add(video_tdef, DownloadConfig())
+        self.session.ltmgr.start_download(tdef=video_tdef)
 
         dest_dir = os.path.join(self.temporary_directory(), "non-existing")
         self.assertFalse(os.path.exists(dest_dir))
@@ -420,7 +419,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         Testing whether moving the torrent storage to an existing directory works as expected.
         """
         video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
-        self.session.ltmgr.add(video_tdef, DownloadConfig())
+        self.session.ltmgr.start_download(tdef=video_tdef)
 
         dest_dir = os.path.join(self.temporary_directory(), "existing")
         os.mkdir(dest_dir)
@@ -445,7 +444,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         Testing whether the API returns the contents of the torrent file if a download is exported
         """
         video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
-        download = self.session.ltmgr.add(video_tdef, DownloadConfig())
+        download = self.session.ltmgr.start_download(tdef=video_tdef)
 
         await download.get_handle()
         result = await self.do_request('downloads/%s/torrent' % get_hex_infohash(video_tdef),
@@ -465,7 +464,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         Testing whether the API returns file information of a specific download when requested
         """
         video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
-        self.session.ltmgr.add(video_tdef, DownloadConfig())
+        self.session.ltmgr.start_download(tdef=video_tdef)
         response_dict = await self.do_request('downloads/%s/files' % get_hex_infohash(video_tdef),
                                               expected_code=200, request_type='GET')
         self.assertIn('files', response_dict)
@@ -484,7 +483,7 @@ class TestDownloadsWithTunnelsEndpoint(AbstractApiTest):
         Testing whether the API returns 200 if we change the amount of hops of a download
         """
         video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
-        download = self.session.ltmgr.add(video_tdef, DownloadConfig())
+        download = self.session.ltmgr.start_download(tdef=video_tdef)
         infohash = get_hex_infohash(video_tdef)
         await download.get_handle()
         await self.do_request('downloads/%s' % infohash, post_data={'anon_hops': 1},
@@ -494,12 +493,12 @@ class TestDownloadsWithTunnelsEndpoint(AbstractApiTest):
 
     @timeout(10)
     async def test_change_hops_fail(self):
-        def on_remove(d, remove_content=False, remove_state=True, hidden=False):
+        def remove_download(*_, **__):
             return fail(RuntimeError())
-        self.session.ltmgr.remove = on_remove
+        self.session.ltmgr.remove_download = remove_download
 
         video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
-        self.session.ltmgr.add(video_tdef, DownloadConfig())
+        self.session.ltmgr.start_download(tdef=video_tdef)
         infohash = get_hex_infohash(video_tdef)
         await self.do_request('downloads/%s' % infohash, post_data={"remove_data": True}, expected_code=500,
                                expected_json={u'error': {u'message': u'', u'code': u'RuntimeError', u'handled': True}},
@@ -570,7 +569,7 @@ class TestMetadataDownloadEndpoint(AbstractApiTest):
         """
         test_channel_name = 'test_channel'
         video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
-        self.session.ltmgr.add(video_tdef, DownloadConfig())
+        self.session.ltmgr.start_download(tdef=video_tdef)
         await self.session.ltmgr.start_download_from_uri("file:" + pathname2url(
             os.path.join(TESTS_DATA_DIR, "bak_single.torrent")))
 

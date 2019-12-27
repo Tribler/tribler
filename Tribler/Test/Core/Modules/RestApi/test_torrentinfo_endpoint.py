@@ -49,7 +49,8 @@ class TestTorrentInfoEndpoint(AbstractApiTest):
             self.assertTrue('info' in metainfo_dict)
 
         self.session.ltmgr = MockObject()
-        self.session.ltmgr.downloads = {}
+        self.session.ltmgr.download_exists = lambda _: False
+        self.session.ltmgr.get_channel_downloads = lambda: []
 
         await self.do_request('torrentinfo', expected_code=400)
         await self.do_request('torrentinfo?uri=def', expected_code=400)
@@ -108,6 +109,8 @@ class TestTorrentInfoEndpoint(AbstractApiTest):
         self.session.ltmgr = MockObject()
         self.session.ltmgr.get_metainfo = get_metainfo
         self.session.ltmgr.shutdown = lambda: succeed(None)
+        self.session.ltmgr.shutdown_downloads = lambda: succeed(None)
+        self.session.ltmgr.checkpoint_downloads = lambda: succeed(None)
         path = 'magnet:?xt=urn:btih:%s&dn=%s' % (hexlify(UBUNTU_1504_INFOHASH), quote_plus('test torrent'))
 
         await self.do_request('torrentinfo?uri=%s' % path, expected_code=500)

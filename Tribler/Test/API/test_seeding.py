@@ -21,19 +21,12 @@ class TestSeeding(TestAsServer):
 
     async def setUp(self):
         await super(TestSeeding, self).setUp()
-        self._logger = logging.getLogger(self.__class__.__name__)
-        self.test_future = Future()
         self.tdef = TorrentDef.load(os.path.join(TESTS_DATA_DIR, 'video.avi.torrent'))
         self.sourcefn = os.path.join(TESTS_DATA_DIR, 'video.avi')
 
     def setUpPreSession(self):
         super(TestSeeding, self).setUpPreSession()
         self.config.set_libtorrent_enabled(True)
-
-    def start_download(self, dscfg):
-        download = self.session.ltmgr.add(self.tdef, dscfg)
-        download.set_state_callback(self.downloader_state_callback)
-        download.add_peer(("127.0.0.1", self.seeder_session.config.get_libtorrent_port()))
 
     @timeout(60)
     async def test_seeding(self):
@@ -43,25 +36,16 @@ class TestSeeding(TestAsServer):
         await self.setup_seeder(self.tdef, TESTS_DATA_DIR)
         dscfg = self.dscfg_seed.copy()
         dscfg.set_dest_dir(self.getDestDir())
-        self.start_download(dscfg)
-        await self.test_future
+        download = self.session.ltmgr.start_download(tdef=self.tdef, config=dscfg)
+        download.add_peer(("127.0.0.1", self.seeder_session.config.get_libtorrent_port()))
+        await download.wait_for_status(DLSTATUS_SEEDING)
 
-    def downloader_state_callback(self, ds):
-        d = ds.get_download()
-        self._logger.debug("download status: %s %s %s",
-                           repr(d.get_def().get_name()),
-                           dlstatus_strings[ds.get_status()],
-                           ds.get_progress())
+        # File is in
+        destfn = os.path.join(self.getDestDir(), "video.avi")
+        with open(destfn, "rb") as f:
+            realdata = f.read()
+        with open(self.sourcefn, "rb") as f:
+            expdata = f.read()
 
-        if ds.get_status() == DLSTATUS_SEEDING:
-            # File is in
-            destfn = os.path.join(self.getDestDir(), "video.avi")
-            with open(destfn, "rb") as f:
-                realdata = f.read()
-            with open(self.sourcefn, "rb") as f:
-                expdata = f.read()
+        self.assertEqual(realdata, expdata)
 
-            self.assertEqual(realdata, expdata)
-            self.test_future.set_result(None)
-            return 0.0
-        return 1.0

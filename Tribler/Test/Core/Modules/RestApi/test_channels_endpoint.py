@@ -97,6 +97,8 @@ class TestSpecificChannelEndpoint(BaseTestMetadataEndpoint):
         await super(TestSpecificChannelEndpoint, self).setUp()
         self.session.ltmgr = MockObject()
         self.session.ltmgr.shutdown = lambda: succeed(True)
+        self.session.ltmgr.shutdown_downloads = lambda: succeed(True)
+        self.session.ltmgr.checkpoint_downloads = lambda: succeed(True)
 
     @timeout(10)
     async def test_create_channel(self):
@@ -259,6 +261,8 @@ class TestSpecificChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
         await super(TestSpecificChannelTorrentsEndpoint, self).setUp()
         self.session.ltmgr = MockObject()
         self.session.ltmgr.shutdown = lambda: succeed(True)
+        self.session.ltmgr.shutdown_downloads = lambda: succeed(True)
+        self.session.ltmgr.checkpoint_downloads = lambda: succeed(True)
 
     @timeout(10)
     async def test_add_torrents_no_channel(self):

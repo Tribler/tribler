@@ -39,6 +39,8 @@ class TestTorrentChecker(TestAsServer):
         self.session.ltmgr = MockObject()
         self.session.ltmgr.get_metainfo = get_metainfo
         self.session.ltmgr.shutdown = lambda: succeed(None)
+        self.session.ltmgr.shutdown_downloads = lambda: succeed(None)
+        self.session.ltmgr.checkpoint_downloads = lambda: succeed(None)
 
     async def tearDown(self):
         await self.torrent_checker.shutdown()

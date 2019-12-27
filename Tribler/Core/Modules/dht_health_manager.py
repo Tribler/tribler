@@ -60,13 +60,14 @@ class DHTHealthManager(TaskManager):
         bf_peers = self.bf_peers.pop(infohash)
         seeders = DHTHealthManager.get_size_from_bloomfilter(bf_seeders)
         peers = DHTHealthManager.get_size_from_bloomfilter(bf_peers)
-        self.lookup_futures[infohash].set_result({
-            "DHT": [{
-                "infohash": hexlify(infohash),
-                "seeders": seeders,
-                "leechers": peers
-            }]
-        })
+        if not self.lookup_futures[infohash].done():
+            self.lookup_futures[infohash].set_result({
+                "DHT": [{
+                    "infohash": hexlify(infohash),
+                    "seeders": seeders,
+                    "leechers": peers
+                }]
+            })
 
         self.lookup_futures.pop(infohash, None)
 

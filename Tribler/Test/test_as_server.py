@@ -13,6 +13,7 @@ import shutil
 import string
 import time
 from asyncio import Future, current_task, get_event_loop
+from functools import partial
 from threading import enumerate as enumerate_threads
 
 from aiohttp import web
@@ -23,6 +24,7 @@ from configobj import ConfigObj
 
 from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.Config.tribler_config import CONFIG_SPEC_PATH, TriblerConfig
+from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 from Tribler.Core.Session import Session
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.instrumentation import WatchDog
@@ -265,9 +267,9 @@ class TestAsServer(AbstractServer):
 
         """ unittest test tear down code """
         if self.session is not None:
-            self.session.ltmgr = None  # Just drop dead any ltmgr instance
+            if isinstance(self.session.ltmgr, LibtorrentMgr):
+                self.session.ltmgr.shutdown = partial(self.session.ltmgr.shutdown, timeout=.1)
             await self.session.shutdown()
-            assert self.session.has_shutdown()
             self.session = None
 
         await self.stop_seeder()
@@ -320,22 +322,11 @@ class TestAsServer(AbstractServer):
         await self.seeder_session.start()
         self.dscfg_seed = DownloadConfig()
         self.dscfg_seed.set_dest_dir(seed_dir)
-        download = self.seeder_session.ltmgr.add(tdef, self.dscfg_seed)
-        download.set_state_callback(self.seeder_state_callback)
+        download = self.seeder_session.ltmgr.start_download(tdef=tdef, config=self.dscfg_seed)
+        await download.wait_for_status(DLSTATUS_SEEDING)
 
     async def stop_seeder(self):
         if self.seeder_session is not None:
             if self.seeder_session.ltmgr:
                 self.seeder_session.ltmgr.is_shutdown_ready = lambda: True
             return await self.seeder_session.shutdown()
-
-    def seeder_state_callback(self, ds):
-        d = ds.get_download()
-        self._logger.debug("seeder status: %s %s %s", repr(d.get_def().get_name()), dlstatus_strings[ds.get_status()],
-                           ds.get_progress())
-
-        if ds.get_status() == DLSTATUS_SEEDING:
-            self.seeding_future.set_result(None)
-            return 0.0
-
-        return 1.0

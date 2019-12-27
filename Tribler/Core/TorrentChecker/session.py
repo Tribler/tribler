@@ -31,7 +31,7 @@ UDP_TRACKER_INIT_CONNECTION_ID = 0x41727101980
 MAX_INFOHASHES_IN_SCRAPE = 60
 
 
-def create_tracker_session(tracker_url, timeout, socket_manager, connection_pool=None):
+def create_tracker_session(tracker_url, timeout, socket_manager):
     """
     Creates a tracker session with the given tracker URL.
     :param tracker_url: The given tracker URL.
@@ -42,7 +42,7 @@ def create_tracker_session(tracker_url, timeout, socket_manager, connection_pool
 
     if tracker_type == u'udp':
         return UdpTrackerSession(tracker_url, tracker_address, announce_page, timeout, socket_manager)
-    return HttpTrackerSession(tracker_url, tracker_address, announce_page, timeout, connection_pool=connection_pool)
+    return HttpTrackerSession(tracker_url, tracker_address, announce_page, timeout)
 
 
 class TrackerSession(TaskManager):
@@ -110,10 +110,9 @@ class TrackerSession(TaskManager):
 
 
 class HttpTrackerSession(TrackerSession):
-    def __init__(self, tracker_url, tracker_address, announce_page, timeout, connection_pool=None):
+    def __init__(self, tracker_url, tracker_address, announce_page, timeout):
         super(HttpTrackerSession, self).__init__(u'http', tracker_url, tracker_address, announce_page, timeout)
-        self._session = ClientSession(raise_for_status=True, timeout=ClientTimeout(total=self.timeout),
-                                      connector=connection_pool)
+        self._session = ClientSession(raise_for_status=True, timeout=ClientTimeout(total=self.timeout))
 
     async def connect_to_tracker(self):
         # create the HTTP GET message
