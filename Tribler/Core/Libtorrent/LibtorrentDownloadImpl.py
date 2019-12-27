@@ -743,6 +743,7 @@ class LibtorrentDownloadImpl(TaskManager):
 
         return DownloadState(self, self.lt_status, self.error, vod)
 
+    @task
     async def save_resume_data(self):
         """
         Save the resume data of a download. This method returns when the resume data is available.
@@ -946,11 +947,7 @@ class LibtorrentDownloadImpl(TaskManager):
             else:
                 self._logger.warning("either file does not exist or is not file")
             return succeed(None)
-
-        if self.is_pending_task_active('checkpoint'):
-            return self._pending_tasks.get('checkpoint')
-        else:
-            return self.register_task('checkpoint', self.save_resume_data)
+        return self.save_resume_data()
 
     def set_def(self, tdef):
         self.tdef = tdef
