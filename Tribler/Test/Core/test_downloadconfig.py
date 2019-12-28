@@ -21,9 +21,6 @@ class TestConfigParser(TriblerCoreTest):
         dlcfg.set_dest_dir(self.session_base_dir)
         self.assertEqual(dlcfg.get_dest_dir(), self.session_base_dir)
 
-        dlcfg.set_corrected_filename("foobar")
-        self.assertEqual(dlcfg.get_corrected_filename(), "foobar")
-
         dlcfg.set_mode(1)
         self.assertEqual(dlcfg.get_mode(), 1)
 
@@ -33,8 +30,8 @@ class TestConfigParser(TriblerCoreTest):
         dlcfg.set_safe_seeding(False)
         self.assertFalse(dlcfg.get_safe_seeding())
 
-        dlcfg.set_selected_files("foo.bar")
-        self.assertEqual(dlcfg.get_selected_files(), ["foo.bar"])
+        dlcfg.set_selected_files([1])
+        self.assertEqual(dlcfg.get_selected_files(), [1])
 
         dlcfg.set_channel_download(True)
         self.assertTrue(dlcfg.get_channel_download())

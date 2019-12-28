@@ -99,7 +99,7 @@ class DownloadsEndpoint(RESTEndpoint):
             download_config.set_dest_dir(dest_dir)
 
         if 'selected_files' in parameters:
-            download_config.set_selected_files(parameters.getall('selected_files'))
+            download_config.set_selected_files([int(index) for index in parameters.getall('selected_files')])
 
         return download_config, None
 
@@ -116,7 +116,7 @@ class DownloadsEndpoint(RESTEndpoint):
                 "index": file_index,
                 "name": path_util.Path(fn).to_text(),
                 "size": size,
-                "included": (path_util.Path(fn).to_text() in selected_files or not selected_files),
+                "included": (file_index in selected_files or not selected_files),
                 "progress": files_completion.get(fn, 0.0)
             })
             file_index += 1
@@ -435,12 +435,10 @@ class DownloadsEndpoint(RESTEndpoint):
             return RESTResponse({"modified": True, "infohash": hexlify(download.get_def().get_infohash())})
 
         if 'selected_files' in parameters:
-            selected_files_list = []
-            for ind in parameters.getall('selected_files'):
-                try:
-                    selected_files_list.append(download.tdef.get_files()[int(ind)])
-                except IndexError:  # File could not be found
-                    return RESTResponse({"error": "index %s out of range" % ind}, status=HTTP_BAD_REQUEST)
+            selected_files_list = [int(i) for i in parameters.getall('selected_files')]
+            num_files = len(download.tdef.get_files())
+            if not all([0 <= index < num_files for index in selected_files_list]):
+                return RESTResponse({"error": "index out of range"}, status=HTTP_BAD_REQUEST)
             download.set_selected_files(selected_files_list)
 
         if parameters.get('state'):

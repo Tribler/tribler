@@ -226,7 +226,6 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         self.libtorrent_download_impl.get_share_mode = lambda: False
         self.libtorrent_download_impl.tdef.get_infohash = lambda: b'a' * 20
         self.libtorrent_download_impl.orig_files = ['my/a', 'my/b']
-        self.libtorrent_download_impl.get_save_path = lambda: 'my/path'
         self.libtorrent_download_impl.set_selected_files(['a'])
         self.assertTrue(mocked_set_file_prios.called)
 
@@ -251,7 +250,6 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         self.libtorrent_download_impl.handle.rename_file = lambda *_: None
         self.libtorrent_download_impl.tdef.get_infohash = lambda: b'a' * 20
         self.libtorrent_download_impl.orig_files = ['a', 'b']
-        self.libtorrent_download_impl.get_save_path = lambda: 'my/path'
 
         # If share mode is not enabled and everything else is fine, file priority should be set
         # when set_selected_files() is called. But in this test, no files attribute is set in torrent info
@@ -390,25 +388,10 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         self.libtorrent_download_impl.session.torrent_db = None
         self.libtorrent_download_impl.handle.save_path = lambda: None
         self.libtorrent_download_impl.handle.prioritize_files = lambda _: None
-        self.libtorrent_download_impl.get_save_path = lambda: ''
         self.libtorrent_download_impl.get_share_mode = lambda: False
         self.libtorrent_download_impl.on_metadata_received_alert(None)
 
         await test_future
-
-    def test_on_file_renamed_alert(self):
-        """
-        Test whether we do the correct actions when receiving a file renamed alert
-        """
-        unwanted_dir = self.getStateDir() / '.unwanted'
-        os.mkdir(unwanted_dir)
-        shutil.copyfile(TORRENT_UBUNTU_FILE, unwanted_dir / "test.txt")
-        self.libtorrent_download_impl.handle.save_path = lambda: self.getStateDir()
-        self.libtorrent_download_impl.handle.file_priorities = lambda: [1]
-        self.libtorrent_download_impl.orig_files = ['test']
-
-        self.libtorrent_download_impl.on_file_renamed_alert(None)
-        self.assertFalse(unwanted_dir.exists())
 
     def test_metadata_received_invalid_info(self):
         """

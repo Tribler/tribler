@@ -148,7 +148,7 @@ class StartDownloadDialog(DialogContainer):
         for ind in range(self.dialog_widget.files_list_view.topLevelItemCount()):
             item = self.dialog_widget.files_list_view.topLevelItem(ind)
             if item.checkState(2) == Qt.Checked:
-                included_files.append(u'/'.join(item.data(0, Qt.UserRole)['path']))
+                included_files.append(ind)
 
         return included_files
 
