@@ -247,35 +247,37 @@ class LibtorrentDownloadImpl(TaskManager):
         if hasattr(alert, 'error') and alert.error.value():
             self._logger.error("Failed to add torrent (%s)", self.tdef.get_name_as_unicode())
             raise RuntimeError(alert.error.message())
+        elif not alert.handle.is_valid():
+            self._logger.error("Received invalid torrent handle")
+            return
 
         self.handle = alert.handle
         self._logger.debug("Added torrent %s", str(self.handle.info_hash()))
 
-        if self.handle and self.handle.is_valid():
-            self.set_selected_files()
+        self.set_selected_files()
 
-            user_stopped = self.config.get_user_stopped()
+        user_stopped = self.config.get_user_stopped()
 
-            # If we lost resume_data always resume download in order to force checking
-            if not user_stopped or not self.config.get_engineresumedata():
-                self.handle.resume()
+        # If we lost resume_data always resume download in order to force checking
+        if not user_stopped or not self.config.get_engineresumedata():
+            self.handle.resume()
 
-                # If we only needed to perform checking, pause download after it is complete
-                self.pause_after_next_hashcheck = user_stopped
+            # If we only needed to perform checking, pause download after it is complete
+            self.pause_after_next_hashcheck = user_stopped
 
-            self.set_vod_mode(self.config.get_mode() == DLMODE_VOD)
+        self.set_vod_mode(self.config.get_mode() == DLMODE_VOD)
 
-            # Limit the amount of connections if we have specified that
-            self.handle.set_max_connections(self.session.config.get_libtorrent_max_conn_download())
+        # Limit the amount of connections if we have specified that
+        self.handle.set_max_connections(self.session.config.get_libtorrent_max_conn_download())
 
-            # Set limit on download for a bootstrap file
-            if self.config.get_bootstrap_download():
-                self.handle.set_download_limit(self.session.config.get_bootstrap_max_download_rate())
+        # Set limit on download for a bootstrap file
+        if self.config.get_bootstrap_download():
+            self.handle.set_download_limit(self.session.config.get_bootstrap_max_download_rate())
 
-            # By default don't apply the IP filter
-            self.apply_ip_filter(False)
+        # By default don't apply the IP filter
+        self.apply_ip_filter(False)
 
-            self.checkpoint()
+        self.checkpoint()
 
     def get_anon_mode(self):
         return self.config.get_hops() > 0
@@ -752,7 +754,8 @@ class LibtorrentDownloadImpl(TaskManager):
 
         try:
             await self.wait_for_alert('save_resume_data_alert', None,
-                                      'save_resume_data_failed_alert', lambda a: SaveResumeDataError(a.error))
+                                      'save_resume_data_failed_alert',
+                                      lambda a: SaveResumeDataError(a.error.message()))
         except (CancelledError, SaveResumeDataError) as e:
             self._logger.error("Resume data failed to save: %s", e)
 
@@ -886,6 +889,7 @@ class LibtorrentDownloadImpl(TaskManager):
         for _, futures in self.futures.items():
             for future, _, _ in futures:
                 future.cancel()
+        self.futures.clear()
         await self.shutdown_task_manager()
 
     def stop(self, user_stopped=None):
@@ -908,7 +912,7 @@ class LibtorrentDownloadImpl(TaskManager):
 
         self.config.set_user_stopped(False)
 
-        if self.handle:
+        if self.handle and self.handle.is_valid():
             self.handle.set_upload_mode(self.get_upload_mode())
             self.handle.resume()
             self.set_vod_mode(self.config.get_mode() == DLMODE_VOD)

@@ -230,8 +230,8 @@ class TestLibtorrentMgr(AbstractServer):
         tdef = TorrentDefNoMetainfo(infohash, 'name', 'magnet:?xt=urn:btih:%s&' % hexlify(infohash))
         download = self.ltmgr.start_download(tdef=tdef, checkpoint_disabled=True)
         self.assertNotEqual(metainfo_dl, download)
-        self.assertEqual(self.ltmgr.downloads[infohash], download)
         await sleep(.1)
+        self.assertEqual(self.ltmgr.downloads[infohash], download)
         self.ltmgr.remove_download.assert_called_once_with(metainfo_dl, remove_content=True)
 
     @timeout(20)

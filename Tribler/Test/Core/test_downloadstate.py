@@ -116,6 +116,7 @@ class TestDownloadState(TriblerCoreTest):
 
         handle = MockObject()
         handle.file_progress = lambda **_: [60]
+        handle.is_valid = lambda: True
         self.mock_download.handle = handle
 
         download_state = DownloadState(self.mock_download, MockObject(), None)
