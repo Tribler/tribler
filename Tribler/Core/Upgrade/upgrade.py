@@ -27,25 +27,25 @@ from Tribler.Core.version import version_id
 
 def cleanup_noncompliant_channel_torrents(state_dir):
     logger = logging.getLogger(__name__)
-    channels_dir = os.path.join(state_dir, "channels")
+    channels_dir = state_dir / "channels"
     # Remove torrents contents
-    if os.path.exists(channels_dir):
-        for d in os.listdir(channels_dir):
-            if len(os.path.splitext(d)[0]) != CHANNEL_DIR_NAME_LENGTH:
-                dir_path = os.path.join(channels_dir, d)
+    if channels_dir.exists():
+        for d in channels_dir.iterdir():
+            if len(d.stem) != CHANNEL_DIR_NAME_LENGTH:
+                dir_path = channels_dir / d
                 # We remove both malformed channel dirs and .torrent and .mdblob files for personal channel
-                if os.path.isdir(dir_path):
-                    shutil.rmtree(dir_path, ignore_errors=True)
-                elif os.path.isfile(dir_path):
-                    os.unlink(dir_path)
+                if dir_path.is_dir():
+                    shutil.rmtree(dir_path.to_text(), ignore_errors=True)
+                elif dir_path.is_file():
+                    os.unlink(dir_path.to_text())
 
     # Remove .state torrent resume files
-    resume_dir = os.path.join(state_dir, "dlcheckpoints")
-    if os.path.exists(resume_dir):
-        for f in os.listdir(resume_dir):
+    resume_dir = state_dir / "dlcheckpoints"
+    if resume_dir.exists():
+        for f in resume_dir.iterdir():
             if not f.endswith('.state'):
                 continue
-            file_path = os.path.join(resume_dir, f)
+            file_path = resume_dir / f
             pstate = CallbackConfigParser()
             try:
                 pstate.read_file(file_path)
@@ -101,9 +101,9 @@ class TriblerUpgrader(object):
         and breaking it in smaller chunks as we do with 72_to_pony.
         """
         # We have to create the Metadata Store object because Session-managed Store has not been started yet
-        database_path = os.path.join(self.session.config.get_state_dir(), 'sqlite', 'metadata.db')
-        channels_dir = os.path.join(self.session.config.get_chant_channels_dir())
-        if not os.path.exists(database_path):
+        database_path = self.session.config.get_state_dir() / 'sqlite' / 'metadata.db'
+        channels_dir = self.session.config.get_chant_channels_dir()
+        if not database_path.exists():
             return
         mds = MetadataStore(database_path, channels_dir, self.session.trustchain_keypair, disable_sync=True)
         with db_session:
@@ -137,12 +137,12 @@ class TriblerUpgrader(object):
         self.session.notifier.notify(NTFY_UPGRADER_TICK, NTFY_STARTED, None, status_text)
 
     async def upgrade_72_to_pony(self):
-        old_database_path = os.path.join(self.session.config.get_state_dir(), 'sqlite', 'tribler.sdb')
-        new_database_path = os.path.join(self.session.config.get_state_dir(), 'sqlite', 'metadata.db')
-        channels_dir = os.path.join(self.session.config.get_chant_channels_dir())
+        old_database_path = self.session.config.get_state_dir() / 'sqlite' / 'tribler.sdb'
+        new_database_path = self.session.config.get_state_dir() / 'sqlite' / 'metadata.db'
+        channels_dir = self.session.config.get_chant_channels_dir()
 
-        if os.path.exists(new_database_path):
-            cleanup_pony_experimental_db(new_database_path)
+        if new_database_path.exists():
+            cleanup_pony_experimental_db(new_database_path.to_text())
             cleanup_noncompliant_channel_torrents(self.session.config.get_state_dir())
 
         self._dtp72 = DispersyToPonyMigration(old_database_path, self.update_status, logger=self._logger)
@@ -181,22 +181,22 @@ class TriblerUpgrader(object):
             dest_state_dir = self.session.config.get_state_dir(version=self.session.config.get_version())
 
             # If only there is no tribler config already in the backup directory, then make the current version backup.
-            dest_conf_path = os.path.join(dest_state_dir, 'triblerd.conf')
-            if not os.path.exists(dest_conf_path):
+            dest_conf_path = dest_state_dir / 'triblerd.conf'
+            if not dest_conf_path.exists():
                 # Backup selected directories
                 backup_dirs = [STATEDIR_DB_DIR, STATEDIR_CHECKPOINT_DIR, STATEDIR_WALLET_DIR, STATEDIR_CHANNELS_DIR]
                 src_sub_dirs = os.listdir(src_state_dir)
                 for backup_dir in backup_dirs:
                     if backup_dir in src_sub_dirs:
-                        dir_copy(os.path.join(src_state_dir, backup_dir), os.path.join(dest_state_dir, backup_dir))
+                        dir_copy(src_state_dir / backup_dir, dest_state_dir / backup_dir)
                     else:
-                        os.makedirs(os.path.join(dest_state_dir, backup_dir))
+                        os.makedirs(dest_state_dir / backup_dir)
 
                 # Backup keys and config files
                 backup_files = ['ec_multichain.pem', 'ecpub_multichain.pem', 'ec_trustchain_testnet.pem',
                                 'ecpub_trustchain_testnet.pem', 'triblerd.conf']
                 for backup_file in backup_files:
-                    dir_copy(os.path.join(src_state_dir, backup_file), os.path.join(dest_state_dir, backup_file))
+                    dir_copy(src_state_dir / backup_file, dest_state_dir / backup_file)
 
     def backup_state_directory(self):
         """
@@ -209,22 +209,22 @@ class TriblerUpgrader(object):
             dest_state_dir = self.session.config.get_state_dir(version=self.session.config.get_version())
 
             # If only there is no tribler config already in the backup directory, then make the current version backup.
-            dest_conf_path = os.path.join(dest_state_dir, 'triblerd.conf')
-            if not os.path.exists(dest_conf_path):
+            dest_conf_path = dest_state_dir / 'triblerd.conf'
+            if not dest_conf_path.exists():
                 # Backup selected directories
                 backup_dirs = [STATEDIR_DB_DIR, STATEDIR_CHECKPOINT_DIR, STATEDIR_WALLET_DIR, STATEDIR_CHANNELS_DIR]
                 src_sub_dirs = os.listdir(src_state_dir)
                 for backup_dir in backup_dirs:
                     if backup_dir in src_sub_dirs:
-                        dir_copy(os.path.join(src_state_dir, backup_dir), os.path.join(dest_state_dir, backup_dir))
+                        dir_copy(src_state_dir / backup_dir, dest_state_dir / backup_dir)
                     else:
-                        os.makedirs(os.path.join(dest_state_dir, backup_dir))
+                        os.makedirs(dest_state_dir / backup_dir)
 
                 # Backup keys and config files
                 backup_files = ['ec_multichain.pem', 'ecpub_multichain.pem', 'ec_trustchain_testnet.pem',
                                 'ecpub_trustchain_testnet.pem', 'triblerd.conf']
                 for backup_file in backup_files:
-                    dir_copy(os.path.join(src_state_dir, backup_file), os.path.join(dest_state_dir, backup_file))
+                    dir_copy(src_state_dir / backup_file, dest_state_dir / backup_file)
 
     def notify_starting(self):
         """

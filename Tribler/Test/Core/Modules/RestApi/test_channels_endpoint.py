@@ -409,9 +409,9 @@ class TestSpecificChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
         channel = self.create_my_channel()
 
         # Setup file server to serve torrent file
-        files_path = os.path.join(self.session_base_dir, 'http_torrent_files')
+        files_path = self.session_base_dir / 'http_torrent_files'
         os.mkdir(files_path)
-        shutil.copyfile(TORRENT_UBUNTU_FILE, os.path.join(files_path, 'ubuntu.torrent'))
+        shutil.copyfile(TORRENT_UBUNTU_FILE, files_path / 'ubuntu.torrent')
         file_server_port = self.get_port()
         await self.setUpFileServer(file_server_port, files_path)
 

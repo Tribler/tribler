@@ -1,21 +1,23 @@
 from asyncio import Future, sleep
-from os.path import join
-from tempfile import mkdtemp
 from unittest.mock import Mock
 
 from anydex.wallet.tc_wallet import TrustchainWallet
 
 from ipv8.attestation.trustchain.community import TrustChainCommunity
-from ipv8.messaging.anonymization.tunnel import CIRCUIT_STATE_READY, CIRCUIT_TYPE_RP_DOWNLOADER, \
-    CIRCUIT_TYPE_RP_SEEDER, PEER_FLAG_EXIT_ANY
+from ipv8.messaging.anonymization.tunnel import (
+    CIRCUIT_STATE_READY,
+    CIRCUIT_TYPE_RP_DOWNLOADER,
+    CIRCUIT_TYPE_RP_SEEDER,
+    PEER_FLAG_EXIT_ANY,
+)
 from ipv8.peer import Peer
 from ipv8.test.base import TestBase
 from ipv8.test.messaging.anonymization.test_community import MockDHTProvider
 from ipv8.test.mocking.exit_socket import MockTunnelExitSocket
 from ipv8.test.mocking.ipv8 import MockIPv8
 
+from Tribler.Core.Utilities.path_util import mkdtemp
 from Tribler.Core.Utilities.utilities import succeed
-from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.community.triblertunnel.community import TriblerTunnelCommunity
 
@@ -28,7 +30,7 @@ class TestTriblerTunnelCommunity(TestBase):
 
     def create_node(self):
         mock_ipv8 = MockIPv8(u"curve25519", TriblerTunnelCommunity, socks_listen_ports=[],
-                             exitnode_cache=join(mkdtemp(suffix="_tribler_test_cache"), 'cache.dat'))
+                             exitnode_cache=mkdtemp(suffix="_tribler_test_cache") / 'cache.dat')
         mock_ipv8.overlay.settings.max_circuits = 1
 
         # Load the TrustChain community

@@ -1,6 +1,4 @@
-import os
 import shutil
-import tempfile
 from asyncio import Future, gather, get_event_loop, sleep
 from unittest.mock import Mock
 
@@ -9,6 +7,7 @@ from libtorrent import bencode
 from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 from Tribler.Core.Notifier import Notifier
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
+from Tribler.Core.Utilities.path_util import Path, mkdtemp
 from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.Utilities.utilities import succeed
 from Tribler.Core.simpledefs import DLSTATUS_SEEDING, DLSTATUS_STOPPED_ON_ERROR
@@ -47,8 +46,8 @@ def create_fake_download_and_state():
 
 class TestLibtorrentMgr(AbstractServer):
 
-    FILE_DIR = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
-    LIBTORRENT_FILES_DIR = os.path.abspath(os.path.join(FILE_DIR, u"../data/libtorrent/"))
+    FILE_DIR = Path(__file__).parent
+    LIBTORRENT_FILES_DIR = FILE_DIR / u"../data/libtorrent/"
 
     async def setUp(self):
         await super(TestLibtorrentMgr, self).setUp()
@@ -61,7 +60,7 @@ class TestLibtorrentMgr(AbstractServer):
         self.tribler_session.notify_shutdown_state = lambda _: None
 
         self.ltmgr = LibtorrentMgr(self.tribler_session)
-        self.ltmgr.metadata_tmpdir = tempfile.mkdtemp(suffix=u'tribler_metainfo_tmpdir')
+        self.ltmgr.metadata_tmpdir = mkdtemp(suffix=u'tribler_metainfo_tmpdir')
 
         self.tribler_session.ltmgr = self.ltmgr
         self.tribler_session.tunnel_community = None
@@ -84,7 +83,7 @@ class TestLibtorrentMgr(AbstractServer):
 
     async def tearDown(self):
         await self.ltmgr.shutdown(timeout=0)
-        self.assertTrue(os.path.exists(os.path.join(self.session_base_dir, 'lt.state')))
+        self.assertTrue((self.session_base_dir / 'lt.state').exists())
         await super(TestLibtorrentMgr, self).tearDown()
 
     def test_get_session_zero_hops(self):
@@ -98,7 +97,7 @@ class TestLibtorrentMgr(AbstractServer):
         self.assertTrue(ltsession)
 
     def test_get_session_zero_hops_corrupt_lt_state(self):
-        with open(os.path.join(self.session_base_dir, 'lt.state'), "w") as file:
+        with open(self.session_base_dir / 'lt.state', "w") as file:
             file.write("Lorem ipsum")
 
         self.ltmgr.initialize()
@@ -106,8 +105,8 @@ class TestLibtorrentMgr(AbstractServer):
         self.assertTrue(ltsession)
 
     def test_get_session_zero_hops_working_lt_state(self):
-        shutil.copy(os.path.join(self.LIBTORRENT_FILES_DIR, 'lt.state'),
-                    os.path.join(self.session_base_dir, 'lt.state'))
+        shutil.copy(self.LIBTORRENT_FILES_DIR / 'lt.state',
+                    self.session_base_dir / 'lt.state')
         self.ltmgr.initialize()
         ltsession = self.ltmgr.get_session(0)
         self.assertTrue(ltsession)
@@ -194,7 +193,7 @@ class TestLibtorrentMgr(AbstractServer):
         """
         Testing metainfo fetching for a torrent which is already in session.
         """
-        sample_torrent = os.path.join(TESTS_DATA_DIR, "bak_single.torrent")
+        sample_torrent = TESTS_DATA_DIR / "bak_single.torrent"
         torrent_def = TorrentDef.load(sample_torrent)
 
         download_impl = Mock()
@@ -360,7 +359,7 @@ class TestLibtorrentMgr(AbstractServer):
         This can happen when a magnet link is added when the user does not have internet.
         """
         self.ltmgr.initialize()
-        dlcheckpoints_tempdir = tempfile.mkdtemp(suffix=u'dlcheckpoints_tmpdir')
+        dlcheckpoints_tempdir = mkdtemp(suffix=u'dlcheckpoints_tmpdir')
         self.ltmgr.get_download = lambda _: None
         self.ltmgr.tribler_session = self.tribler_session
         self.ltmgr.get_checkpoint_dir = lambda: dlcheckpoints_tempdir
@@ -368,8 +367,8 @@ class TestLibtorrentMgr(AbstractServer):
 
         download = await self.ltmgr.start_download_from_uri("magnet:?xt=urn:btih:" + ('1' * 40))
         basename = hexlify(download.get_def().get_infohash()) + '.conf'
-        filename = os.path.join(self.ltmgr.get_checkpoint_dir(), basename)
-        self.assertTrue(os.path.isfile(filename))
+        filename = self.ltmgr.get_checkpoint_dir() / basename
+        self.assertTrue(filename.is_file())
 
     def test_payout_on_disconnect(self):
         """
@@ -408,8 +407,7 @@ class TestLibtorrentMgr(AbstractServer):
         self.ltmgr.start_download = mock_start_download
 
         # Try opening real state file
-        state = os.path.abspath(os.path.join(self.FILE_DIR, u"../data", u"config_files",
-                                             u"13a25451c761b1482d3e85432f07c4be05ca8a56.conf"))
+        state = self.FILE_DIR / "../data" / "config_files" / "13a25451c761b1482d3e85432f07c4be05ca8a56.conf"
         self.ltmgr.load_checkpoint(state)
         self.assertTrue(good)
 
@@ -419,8 +417,7 @@ class TestLibtorrentMgr(AbstractServer):
         self.assertFalse(good)
 
         # Try opening corrupt file
-        config_file_path = os.path.abspath(os.path.join(self.FILE_DIR, u"../data", u"config_files",
-                                                        u"corrupt_session_config.conf"))
+        config_file_path = self.FILE_DIR / "../data" / "config_files" / "corrupt_session_config.conf"
         self.ltmgr.load_checkpoint(config_file_path)
         self.assertFalse(good)
 
@@ -432,7 +429,7 @@ class TestLibtorrentMgr(AbstractServer):
         self.ltmgr.start_download = Mock()
 
         # Empty pstate file
-        pstate_filename = os.path.join(self.ltmgr.get_downloads_pstate_dir(), 'abcd.state')
+        pstate_filename = self.ltmgr.get_downloads_pstate_dir() / 'abcd.state'
         with open(pstate_filename, 'wb') as state_file:
             state_file.write(b"")
 
@@ -450,7 +447,7 @@ class TestLibtorrentMgr(AbstractServer):
         mocked_load_checkpoint.called = False
         self.ltmgr.get_checkpoint_dir = lambda: self.session_base_dir
 
-        with open(os.path.join(self.ltmgr.get_checkpoint_dir(), 'abcd.conf'), 'wb') as state_file:
+        with open(self.ltmgr.get_checkpoint_dir() / 'abcd.conf', 'wb') as state_file:
             state_file.write(b"hi")
 
         self.ltmgr.load_checkpoint = mocked_load_checkpoint

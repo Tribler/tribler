@@ -4,7 +4,6 @@ import base64
 import codecs
 import json
 import logging
-import os
 from binascii import unhexlify
 
 from ipv8.database import database_blob
@@ -23,6 +22,7 @@ import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import entries_to_chunk
 from Tribler.Core.Modules.restapi.metadata_endpoint import SpecificChannelTorrentsEndpoint
 from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.Utilities import path_util
 from Tribler.Core.Utilities.unicode import hexlify, recursive_unicode
 from Tribler.Core.Utilities.utilities import http_get, is_infohash, parse_magnetlink
 from Tribler.Core.exceptions import DuplicateTorrentFileError
@@ -335,7 +335,7 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
         torrents_dir = None
         if 'torrents_dir' in parameters and parameters['torrents_dir']:
             torrents_dir = parameters['torrents_dir'][0]
-            if not os.path.isabs(torrents_dir):
+            if not path_util.isabs(torrents_dir):
                 request.setResponseCode(http.BAD_REQUEST)
                 return json.twisted_dumps({"error": "the torrents_dir should point to a directory"})
 

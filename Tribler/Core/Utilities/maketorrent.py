@@ -3,14 +3,13 @@ Make torrent.
 
 Author(s): Arno Bakker, Bram Cohen
 """
-import os
-
+from Tribler.Core.Utilities import path_util
 from Tribler.Core.Utilities.unicode import ensure_unicode_detect_encoding
 
 
 def pathlist2filename(pathlist):
     """ Convert a multi-file torrent file 'path' entry to a filename. """
-    return os.path.join(*(ensure_unicode_detect_encoding(x) for x in pathlist))
+    return path_util.join(*(ensure_unicode_detect_encoding(x) for x in pathlist))
 
 
 def get_length_from_metainfo(metainfo, selectedfiles):

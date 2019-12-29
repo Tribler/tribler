@@ -1,4 +1,3 @@
-import os
 from binascii import unhexlify
 from urllib.parse import unquote_plus
 from urllib.request import url2pathname
@@ -20,6 +19,8 @@ from Tribler.Core.Modules.restapi.rest_endpoint import (
     RESTResponse,
 )
 from Tribler.Core.Modules.restapi.util import return_handled_exception
+from Tribler.Core.Utilities import path_util
+from Tribler.Core.Utilities.path_util import Path
 from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
 from Tribler.Core.Utilities.unicode import ensure_unicode, hexlify
 from Tribler.Core.exceptions import InvalidSignatureException
@@ -113,9 +114,9 @@ class DownloadsEndpoint(RESTEndpoint):
         for fn, size in download.get_def().get_files_with_length():
             files_json.append({
                 "index": file_index,
-                "name": fn,
+                "name": path_util.Path(fn).to_text(),
                 "size": size,
-                "included": (fn in selected_files or not selected_files),
+                "included": (path_util.Path(fn).to_text() in selected_files or not selected_files),
                 "progress": files_completion.get(fn, 0.0)
             })
             file_index += 1
@@ -245,7 +246,7 @@ class DownloadsEndpoint(RESTEndpoint):
                 # Maximum upload/download rates are set for entire sessions
                 "max_upload_speed": self.session.config.get_libtorrent_max_upload_rate(),
                 "max_download_speed": self.session.config.get_libtorrent_max_download_rate(),
-                "destination": download.config.get_dest_dir(),
+                "destination": path_util.Path(download.config.get_dest_dir()).to_text(),
                 "availability": state.get_availability(),
                 "total_pieces": tdef.get_nr_pieces(),
                 "vod_mode": download.config.get_mode() == DLMODE_VOD,
@@ -451,8 +452,8 @@ class DownloadsEndpoint(RESTEndpoint):
             elif state == "recheck":
                 download.force_recheck()
             elif state == "move_storage":
-                dest_dir = parameters['dest_dir']
-                if not os.path.exists(dest_dir):
+                dest_dir = Path(parameters['dest_dir'])
+                if not dest_dir.exists():
                     return RESTResponse({"error": "Target directory (%s) does not exist" % dest_dir})
                 download.move_storage(dest_dir)
                 download.checkpoint()

@@ -3,7 +3,6 @@ import base64
 import logging
 import os
 from configparser import DuplicateSectionError, MissingSectionHeaderError, NoSectionError, RawConfigParser
-from glob import iglob
 
 from configobj import ConfigObj
 
@@ -27,15 +26,15 @@ def convert_config_to_tribler71(current_config, state_dir=None):
     :return: the newly edited TriblerConfig object with the old data inserted.
     """
     state_dir = state_dir or TriblerConfig.get_default_state_dir()
-    libtribler_file_loc = os.path.join(state_dir, "libtribler.conf")
-    if os.path.exists(libtribler_file_loc):
+    libtribler_file_loc = state_dir / "libtribler.conf"
+    if libtribler_file_loc.exists():
         libtribler_cfg = RawConfigParser()
         libtribler_cfg.read(libtribler_file_loc)
         current_config = add_libtribler_config(current_config, libtribler_cfg)
         os.remove(libtribler_file_loc)
 
-    tribler_file_loc = os.path.join(state_dir, "tribler.conf")
-    if os.path.exists(tribler_file_loc):
+    tribler_file_loc = state_dir / "tribler.conf"
+    if tribler_file_loc.exists():
         tribler_cfg = RawConfigParser()
         tribler_cfg.read(tribler_file_loc)
         current_config = add_tribler_config(current_config, tribler_cfg)
@@ -43,7 +42,7 @@ def convert_config_to_tribler71(current_config, state_dir=None):
 
     # We also have to update all existing downloads, in particular, rename the section 'downloadconfig' to
     # 'download_defaults'.
-    for filename in iglob(os.path.join(state_dir, STATEDIR_CHECKPOINT_DIR, '*.state')):
+    for filename in (state_dir / STATEDIR_CHECKPOINT_DIR).glob('*.state'):
         download_cfg = RawConfigParser()
         try:
             with open(filename) as cfg_file:
@@ -205,13 +204,13 @@ def convert_config_to_tribler74(state_dir=None):
     refactoring_tool = RefactoringTool(fixer_names=get_fixers_from_package('lib2to3.fixes'))
 
     state_dir = state_dir or TriblerConfig.get_default_base_state_dir()
-    for _, filename in enumerate(iglob(os.path.join(state_dir, STATEDIR_CHECKPOINT_DIR, '*.state'))):
+    for filename in (state_dir / STATEDIR_CHECKPOINT_DIR).glob('*.state'):
         old_config = CallbackConfigParser()
         try:
-            old_config.read_file(filename)
+            old_config.read_file(filename.to_text())
         except MissingSectionHeaderError:
             logger.error("Removing download state file %s since it appears to be corrupt", filename)
-            os.remove(filename)
+            os.remove(filename.to_text())
 
         # We first need to fix the .state file such that it has the correct metainfo/resumedata
         for section, option in [('state', 'metainfo'), ('state', 'engineresumedata')]:
@@ -223,14 +222,14 @@ def convert_config_to_tribler74(state_dir=None):
                 old_config.set(section, option, base64.b64encode(lt.bencode(value)).decode('utf-8'))
             except (ValueError, SyntaxError):
                 logger.error("Removing download state file %s since it could not be converted", filename)
-                os.remove(filename)
+                os.remove(filename.to_text())
                 continue
 
         # Remove dlstate since the same information is already stored in the resumedata
         if old_config.has_option('state', 'dlstate'):
             old_config.remove_option('state', 'dlstate')
 
-        new_config = ConfigObj(infile=filename[:-6] + '.conf', encoding='utf8')
+        new_config = ConfigObj(infile=filename.to_text()[:-6] + '.conf', encoding='utf8')
         for section in old_config.sections():
             for key, _ in old_config.items(section):
                 val = old_config.get(section, key)
@@ -238,4 +237,4 @@ def convert_config_to_tribler74(state_dir=None):
                     new_config[section] = {}
                 new_config[section][key] = val
         new_config.write()
-        os.remove(filename)
+        os.remove(filename.to_text())

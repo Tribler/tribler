@@ -9,6 +9,7 @@ from libtorrent import bencode
 from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
 from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.Utilities import path_util
 from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
 from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.Utilities.utilities import bdecode_compat, succeed
@@ -37,10 +38,10 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         create and save torrent definition used in this test file
         """
         tdef = TorrentDef()
-        sourcefn = os.path.join(TESTS_DATA_DIR, 'video.avi')
+        sourcefn = TESTS_DATA_DIR / 'video.avi'
         tdef.add_content(sourcefn)
         tdef.set_tracker("http://localhost/announce")
-        torrentfn = os.path.join(self.session.config.get_state_dir(), "gen.torrent")
+        torrentfn = self.session.config.get_state_dir() / "gen.torrent"
         tdef.save(torrentfn)
 
         return tdef
@@ -93,7 +94,7 @@ class TestLibtorrentDownloadImpl(TestAsServer):
 
         tdef = TorrentDef()
 
-        tdef.add_content(os.path.join(TESTS_DATA_DIR, "video.avi"))
+        tdef.add_content(TESTS_DATA_DIR / "video.avi")
         tdef.set_tracker("http://tribler.org/announce")
         tdef.save()
 
@@ -114,11 +115,11 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         impl.future_added = succeed(fake_handler)
         # Create a dummy download config
         impl.config = DownloadConfig()
-        impl.config.set_engineresumedata({b"save_path": os.path.abspath(self.state_dir),
+        impl.config.set_engineresumedata({b"save_path": path_util.abspath(self.state_dir),
                                           b"info-hash": b'\x00' * 20})
         impl.setup()
 
-        impl.config.set_engineresumedata({b"save_path": os.path.abspath(self.state_dir),
+        impl.config.set_engineresumedata({b"save_path": path_util.abspath(self.state_dir),
                                           b"info-hash": b'\x00' * 20})
         impl.setup()
 
@@ -141,7 +142,7 @@ class TestLibtorrentDownloadImpl(TestAsServer):
                                                                   'save_resume_data_alert', delay=0.1)
         await impl.save_resume_data()
         basename = hexlify(tdef.get_infohash()) + '.conf'
-        filename = os.path.join(self.session.ltmgr.get_checkpoint_dir(), basename)
+        filename = self.session.ltmgr.get_checkpoint_dir() / basename
         dcfg = DownloadConfig.load(filename)
         self.assertEqual(tdef.get_infohash(), dcfg.get_engineresumedata().get(b'info-hash'))
 
@@ -156,12 +157,12 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         # This should not cause a checkpoint
         impl.setup(None, 0, checkpoint_disabled=True)
         basename = hexlify(tdef.get_infohash()) + '.state'
-        filename = os.path.join(self.session.ltmgr.get_checkpoint_dir(), basename)
-        self.assertFalse(os.path.isfile(filename))
+        filename = self.session.ltmgr.get_checkpoint_dir() / basename
+        self.assertFalse(filename.is_file())
 
         # This shouldn't either
         await impl.checkpoint()
-        self.assertFalse(os.path.isfile(filename))
+        self.assertFalse(filename.is_file())
         impl.stop()
 
 
@@ -224,7 +225,7 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
 
         self.libtorrent_download_impl.get_share_mode = lambda: False
         self.libtorrent_download_impl.tdef.get_infohash = lambda: b'a' * 20
-        self.libtorrent_download_impl.orig_files = ['a', 'b']
+        self.libtorrent_download_impl.orig_files = ['my/a', 'my/b']
         self.libtorrent_download_impl.get_save_path = lambda: 'my/path'
         self.libtorrent_download_impl.set_selected_files(['a'])
         self.assertTrue(mocked_set_file_prios.called)
@@ -377,7 +378,7 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         self.libtorrent_download_impl.handle.get_peer_info = lambda: []
         self.libtorrent_download_impl.handle.save_resume_data = lambda: test_future
         self.libtorrent_download_impl.handle.rename_file = lambda *_: None
-        with open(os.path.join(TESTS_DATA_DIR, "bak_single.torrent"), mode='rb') as torrent_file:
+        with open(TESTS_DATA_DIR / "bak_single.torrent", mode='rb') as torrent_file:
             encoded_metainfo = torrent_file.read()
         decoded_metainfo = bdecode_compat(encoded_metainfo)
         get_info_from_handle(self.libtorrent_download_impl.handle).metadata = lambda: bencode(decoded_metainfo[b'info'])
@@ -399,15 +400,15 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         """
         Test whether we do the correct actions when receiving a file renamed alert
         """
-        unwanted_dir = os.path.join(self.getStateDir(), '.unwanted')
+        unwanted_dir = self.getStateDir() / '.unwanted'
         os.mkdir(unwanted_dir)
-        shutil.copyfile(TORRENT_UBUNTU_FILE, os.path.join(unwanted_dir, "test.txt"))
+        shutil.copyfile(TORRENT_UBUNTU_FILE, unwanted_dir / "test.txt")
         self.libtorrent_download_impl.handle.save_path = lambda: self.getStateDir()
         self.libtorrent_download_impl.handle.file_priorities = lambda: [1]
         self.libtorrent_download_impl.orig_files = ['test']
 
         self.libtorrent_download_impl.on_file_renamed_alert(None)
-        self.assertFalse(os.path.exists(unwanted_dir))
+        self.assertFalse(unwanted_dir.exists())
 
     def test_metadata_received_invalid_info(self):
         """

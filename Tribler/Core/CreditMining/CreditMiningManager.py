@@ -3,7 +3,6 @@ import os
 import time
 from asyncio import Future, ensure_future, gather
 from binascii import unhexlify
-from glob import glob
 
 from ipv8.taskmanager import TaskManager
 
@@ -13,7 +12,7 @@ from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.CreditMining.CreditMiningPolicy import InvestmentPolicy, MB
 from Tribler.Core.CreditMining.CreditMiningSource import ChannelSource
 from Tribler.Core.TorrentDef import TorrentDefNoMetainfo
-from Tribler.Core.Utilities.unicode import ensure_unicode, hexlify
+from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.simpledefs import (
     DLSTATUS_DOWNLOADING,
     DLSTATUS_SEEDING,
@@ -64,7 +63,7 @@ class CreditMiningSettings(object):
         # Maximum number of bytes of disk space that credit mining is allowed to use.
         self.max_disk_space = config.get_credit_mining_disk_space() if config else 50 * 1024 ** 3
         self.low_disk_space = 1000 * 1024 ** 2
-        self.save_path = os.path.join(config.get_default_destination_dir(), 'credit_mining')
+        self.save_path = config.get_default_destination_dir() / 'credit_mining'
 
 
 class CreditMiningManager(TaskManager):
@@ -88,11 +87,11 @@ class CreditMiningManager(TaskManager):
         # Our default policy [2019-01-24]: torrents are selected based on investment policy
         self.policies = policies or [InvestmentPolicy()]
 
-        if not os.path.exists(self.settings.save_path):
+        if not self.settings.save_path.exists():
             os.makedirs(self.settings.save_path)
 
         self.register_task('check_disk_space', self.check_disk_space, interval=30)
-        self.num_checkpoints = len(glob(os.path.join(self.session.ltmgr.get_checkpoint_dir(), '*.conf')))
+        self.num_checkpoints = len(list(self.session.ltmgr.get_checkpoint_dir().glob('*.conf')))
 
         async def add_sources():
             await self.session_ready
@@ -118,19 +117,20 @@ class CreditMiningManager(TaskManager):
 
     def check_mining_directory(self):
         # Check that credit mining directory exists, if not try to re-create it.
-        if not os.path.exists(self.settings.save_path):
+        # FIXME: add exception for the case where there is an error trying to read check a forbidden directory
+        if not self.settings.save_path.exists():
             try:
                 os.makedirs(self.settings.save_path)
                 error_message = u"Credit mining directory [%s]  does not exist. Tribler will re-create the " \
                                 u"directory and resume again.<br/>If you wish to disable credit mining entirely, " \
                                 u"please go to Settings >> ANONYMITY >> Token mining. " % \
-                                ensure_unicode(self.settings.save_path, 'utf-8')
+                                self.settings.save_path
             except OSError:
                 ensure_future(self.shutdown())
                 error_message = u"Credit mining directory [%s] was deleted or does not exist and Tribler could not " \
                                 u"re-create the directory again. Credit mining will shutdown. Try restarting " \
                                 u"Tribler. <br/>If you wish to disable credit mining entirely, please go to " \
-                                u"Settings >> ANONYMITY >> Token mining. " % self.settings.save_path.encode('utf-8')
+                                u"Settings >> ANONYMITY >> Token mining. " % self.settings.save_path
 
             gui_message = {"message": error_message}
             self.session.notifier.notify(NTFY_CREDIT_MINING, NTFY_ERROR, None, gui_message)
@@ -223,7 +223,7 @@ class CreditMiningManager(TaskManager):
 
         # If a download already exists or already has a checkpoint, skip this torrent
         if self.session.ltmgr.get_download(unhexlify(infohash)) or \
-                os.path.exists(os.path.join(self.session.ltmgr.get_checkpoint_dir(), infohash + '.state')):
+                (self.session.ltmgr.get_checkpoint_dir() / infohash).with_suffix('.state').exists():
             self._logger.debug('Skipping torrent %s (download already running or scheduled to run)', infohash)
             return
 

@@ -3,10 +3,12 @@ install_dir.
 
 Author(s): Elric Milon
 """
-import os.path
+import os
 import sys
 
 import Tribler
+from Tribler.Core.Utilities import path_util
+from Tribler.Core.Utilities.path_util import Path
 from Tribler.Core.osutils import is_android
 
 
@@ -28,14 +30,14 @@ def get_base_path():
         # PyInstaller creates a temp folder and stores path in _MEIPASS
         base_path = sys._MEIPASS
     except Exception:
-        base_path = os.path.join(os.path.dirname(Tribler.__file__), '..')
+        base_path = Path(Tribler.__file__).parent / '..'
     return base_path
 
 
 def get_lib_path():
     if is_frozen():
-        return os.path.join(get_base_path(), 'tribler_source', 'Tribler')
-    return os.path.join(get_base_path(), 'Tribler')
+        return get_base_path() / 'tribler_source' / 'Tribler'
+    return get_base_path() / 'Tribler'
 
 
 # This function is used from tribler.py too, but can't be there as tribler.py gets frozen into an exe on windows.
@@ -54,7 +56,7 @@ def determine_install_dir():
     elif sys.platform == 'darwin':
         return get_base_path()
     elif is_android():
-        return os.path.abspath(os.path.join(os.environ['ANDROID_PRIVATE']), u'lib/python2.7/site-packages')
+        return path_util.abspath(os.environ['ANDROID_PRIVATE']) / u'lib/python2.7/site-packages'
 
-    this_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+    this_dir = Path(__file__).parent / '..' / '..' / '..'
     return '/usr/share/tribler' if this_dir.startswith('/usr/lib') else this_dir

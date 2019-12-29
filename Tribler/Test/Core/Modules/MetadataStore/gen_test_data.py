@@ -9,6 +9,7 @@ from pony.orm import db_session
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import NEW
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.Utilities.path_util import Path
 from Tribler.Test.Core.Modules.MetadataStore.test_channel_download import (
     CHANNEL_METADATA,
     CHANNEL_METADATA_UPDATED,
@@ -17,8 +18,8 @@ from Tribler.Test.Core.Modules.MetadataStore.test_channel_download import (
 )
 from Tribler.Test.common import TORRENT_UBUNTU_FILE, TORRENT_VIDEO_FILE
 
-DATA_DIR = os.path.join(os.path.abspath(os.path.dirname(os.path.realpath(__file__))), '..', '..', 'data')
-SAMPLE_DIR = os.path.join(DATA_DIR, 'sample_channel')
+DATA_DIR = Path(__file__).parent / '..' / '..' / 'data'
+SAMPLE_DIR = DATA_DIR / 'sample_channel'
 
 my_key = default_eccrypto.generate_key(u"curve25519")
 
@@ -53,8 +54,8 @@ def gen_sample_channel(mds):
     my_channel.commit_channel_torrent()
 
     # Rename files to stable names
-    mdblob_name = os.path.join(SAMPLE_DIR, my_channel.dirname + ".mdblob")
-    torrent_name = os.path.join(SAMPLE_DIR, my_channel.dirname + ".torrent")
+    mdblob_name = SAMPLE_DIR / (my_channel.dirname + ".mdblob")
+    torrent_name = SAMPLE_DIR / (my_channel.dirname + ".torrent")
 
     os.rename(mdblob_name, CHANNEL_METADATA)
     os.rename(torrent_name, CHANNEL_TORRENT)

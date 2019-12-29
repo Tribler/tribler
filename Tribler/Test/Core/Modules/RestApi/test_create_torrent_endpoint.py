@@ -13,13 +13,13 @@ class TestMyChannelCreateTorrentEndpoint(AbstractApiTest):
     def setUpPreSession(self):
         super(TestMyChannelCreateTorrentEndpoint, self).setUpPreSession()
         # Create temporary test directory with test files
-        self.files_path = os.path.join(self.session_base_dir, 'TestMyChannelCreateTorrentEndpoint')
-        if not os.path.exists(self.files_path):
+        self.files_path = self.session_base_dir / 'TestMyChannelCreateTorrentEndpoint'
+        if not self.files_path.exists():
             os.mkdir(self.files_path)
-        shutil.copyfile(os.path.join(TESTS_DATA_DIR, 'video.avi'),
-                        os.path.join(self.files_path, 'video.avi'))
-        shutil.copyfile(os.path.join(TESTS_DATA_DIR, 'video.avi.torrent'),
-                        os.path.join(self.files_path, 'video.avi.torrent'))
+        shutil.copyfile(TESTS_DATA_DIR / 'video.avi',
+                        self.files_path / 'video.avi')
+        shutil.copyfile(TESTS_DATA_DIR / 'video.avi.torrent',
+                        self.files_path / 'video.avi.torrent')
         self.config.set_libtorrent_enabled(True)
 
     @timeout(10)
@@ -27,13 +27,13 @@ class TestMyChannelCreateTorrentEndpoint(AbstractApiTest):
         """
         Testing whether the API returns a proper base64 encoded torrent
         """
-        torrent_path = os.path.join(self.files_path, "video.avi.torrent")
+        torrent_path = self.files_path / "video.avi.torrent"
         expected_tdef = TorrentDef.load(torrent_path)
         export_dir = self.temporary_directory()
 
         post_data = {
-            "files": [os.path.join(self.files_path, "video.avi"),
-                      os.path.join(self.files_path, "video.avi.torrent")],
+            "files": [self.files_path / "video.avi",
+                      self.files_path / "video.avi.torrent"],
             "description": "Video of my cat",
             "trackers": "http://localhost/announce",
             "name": "test_torrent",
@@ -49,7 +49,7 @@ class TestMyChannelCreateTorrentEndpoint(AbstractApiTest):
         expected_tdef.metainfo[b"created by"] = tdef.metainfo[b'created by']
 
         self.assertEqual(dir(expected_tdef), dir(tdef))
-        self.assertTrue(os.path.exists(os.path.join(export_dir, "test_torrent.torrent")))
+        self.assertTrue((export_dir / "test_torrent.torrent").exists())
 
     @timeout(10)
     async def test_create_torrent_io_error(self):

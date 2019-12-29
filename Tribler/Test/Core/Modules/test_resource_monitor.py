@@ -5,6 +5,7 @@ from collections import namedtuple
 from unittest import skipIf
 
 from Tribler.Core.Modules.resource_monitor import ResourceMonitor
+from Tribler.Core.Utilities import path_util
 from Tribler.Core.simpledefs import SIGNAL_LOW_SPACE, SIGNAL_RESOURCE_CHECK
 from Tribler.Test.Core.base_test import MockObject, TriblerCoreTest
 
@@ -18,8 +19,8 @@ class TestResourceMonitor(TriblerCoreTest):
         mock_session.config = MockObject()
         mock_session.config.get_resource_monitor_history_size = lambda: 1
         mock_session.config.get_resource_monitor_poll_interval = lambda: 20
-        mock_session.config.get_state_dir = lambda: "."
-        mock_session.config.get_log_dir = lambda: "logs"
+        mock_session.config.get_state_dir = lambda: path_util.Path(".")
+        mock_session.config.get_log_dir = lambda: path_util.Path("logs")
         mock_session.config.get_resource_monitor_enabled = lambda: False
         self.resource_monitor = ResourceMonitor(mock_session)
         self.resource_monitor.session.notifier = MockObject()
@@ -108,7 +109,7 @@ class TestResourceMonitor(TriblerCoreTest):
         """
         self.resource_monitor.set_resource_log_enabled(True)
         self.resource_monitor.check_resources()
-        self.assertTrue(os.path.exists(self.resource_monitor.resource_log_file))
+        self.assertTrue(self.resource_monitor.resource_log_file.exists())
 
     def test_write_resource_log(self):
         """
@@ -133,4 +134,4 @@ class TestResourceMonitor(TriblerCoreTest):
 
     def test_reset_resource_log(self):
         self.resource_monitor.reset_resource_logs()
-        self.assertFalse(os.path.exists(self.resource_monitor.resource_log_file))
+        self.assertFalse(self.resource_monitor.resource_log_file.exists())

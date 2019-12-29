@@ -257,13 +257,13 @@ class DispersyToPonyMigration(object):
 
             with db_session:
                 my_channel = self.mds.ChannelMetadata.get_my_channel()
-                folder = os.path.join(my_channel._channels_dir, my_channel.dirname)
+                folder = my_channel._channels_dir / my_channel.dirname
 
                 # We check if we need to re-create the channel dir in case it was deleted for some reason
-                if not os.path.isdir(folder):
+                if not folder.is_dir():
                     os.makedirs(folder)
                 for filename in os.listdir(folder):
-                    file_path = os.path.join(folder, filename)
+                    file_path = folder / filename
                     # We only remove mdblobs and leave the rest as it is
                     if filename.endswith(BLOB_EXTENSION) or filename.endswith(BLOB_EXTENSION + '.lz4'):
                         os.unlink(file_path)
@@ -485,7 +485,7 @@ def should_upgrade(old_database_path, new_database_path, logger=None):
     Decide if we can migrate data from old DB to Pony
     :return: False if something goes wrong, or we don't need/cannot migrate data
     """
-    if not os.path.exists(old_database_path):
+    if not old_database_path.exists():
         # no old DB to upgrade
         return False
 
@@ -496,7 +496,7 @@ def should_upgrade(old_database_path, new_database_path, logger=None):
         logger.error("Can't open the old tribler.sdb file")
         return False
 
-    if os.path.exists(new_database_path):
+    if new_database_path.exists():
         try:
             if not new_db_version_ok(new_database_path):
                 return False

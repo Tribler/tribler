@@ -12,6 +12,9 @@ import os
 import shutil
 import subprocess
 import sys
+from pathlib import Path
+
+from Tribler.Core.Utilities import path_util
 
 logger = logging.getLogger(__name__)
 
@@ -34,30 +37,30 @@ if sys.platform == "win32":
             # http://www.mvps.org/access/api/api0054.htm
             # CSIDL_PROFILE = &H28
             # C:\Documents and Settings\username
-            return shell.SHGetSpecialFolderPath(0, shellcon.CSIDL_PROFILE)
+            return path_util.Path(shell.SHGetSpecialFolderPath(0, shellcon.CSIDL_PROFILE))
 
         def get_appstate_dir():
             # http://www.mvps.org/access/api/api0054.htm
             # CSIDL_APPDATA = &H1A
             # C:\Documents and Settings\username\Application Data
-            return shell.SHGetSpecialFolderPath(0, shellcon.CSIDL_APPDATA)
+            return path_util.Path(shell.SHGetSpecialFolderPath(0, shellcon.CSIDL_APPDATA))
 
         def get_picture_dir():
             # http://www.mvps.org/access/api/api0054.htm
             # CSIDL_MYPICTURES = &H27
             # C:\Documents and Settings\username\My Documents\My Pictures
-            return shell.SHGetSpecialFolderPath(0, 0x27)
+            return path_util.Path(shell.SHGetSpecialFolderPath(0, 0x27))
 
         def get_desktop_dir():
             # http://www.mvps.org/access/api/api0054.htm
             # CSIDL_DESKTOPDIRECTORY = &H10
             # C:\Documents and Settings\username\Desktop
-            return shell.SHGetSpecialFolderPath(0, 0x10)
+            return path_util.Path(shell.SHGetSpecialFolderPath(0, 0x10))
 
     except ImportError:
         def get_home_dir():
             # This will always succeed on python 3.x
-            return os.path.expanduser(u"~")
+            return path_util.expanduser(u"~")
 
         def get_appstate_dir():
             homedir = get_home_dir()
@@ -67,9 +70,9 @@ if sys.platform == "win32":
             winversion = sys.getwindowsversion()
             # pylint: enable-msg=E1101
             if winversion[0] == 6:
-                appdir = os.path.join(homedir, u"AppData", u"Roaming")
+                appdir = homedir / "AppData" / "Roaming"
             else:
-                appdir = os.path.join(homedir, u"Application Data")
+                appdir = homedir / "Application Data"
             return appdir
 
         def get_picture_dir():
@@ -77,18 +80,18 @@ if sys.platform == "win32":
 
         def get_desktop_dir():
             home = get_home_dir()
-            return os.path.join(home, u"Desktop")
+            return home / u"Desktop"
 
 elif is_android():
 
     def get_home_dir():
-        return os.path.realpath(str(os.environ['EXTERNAL_STORAGE']))
+        return path_util.realpath(str(os.environ['EXTERNAL_STORAGE']))
 
     def get_appstate_dir():
-        return os.path.realpath(os.path.join(os.environ['ANDROID_PRIVATE'], u'../.Tribler'))
+        return path_util.realpath(os.environ['ANDROID_PRIVATE'] / u'../.Tribler')
 
     def get_picture_dir():
-        return os.path.join(get_home_dir(), u'DCIM')
+        return get_home_dir() / u'DCIM'
 
     def get_desktop_dir():
         return get_home_dir()
@@ -96,7 +99,7 @@ elif is_android():
 else:
     # linux or darwin (mac)
     def get_home_dir():
-        return os.path.expanduser(u"~")
+        return path_util.expanduser(u"~")
 
     def get_appstate_dir():
         return get_home_dir()
@@ -106,20 +109,17 @@ else:
 
     def get_desktop_dir():
         home = get_home_dir()
-        desktop = os.path.join(home, "Desktop")
-        if os.path.exists(desktop):
-            return desktop
-        else:
-            return home
+        desktop = home / "Desktop"
+        return desktop if desktop.exists() else home
 
 
 def get_free_space(path):
-    if not os.path.exists(path):
+    if not path.exists():
         return -1
 
     if sys.platform == 'win32':
         from win32file import GetDiskFreeSpaceEx
-        return GetDiskFreeSpaceEx(os.path.splitdrive(os.path.abspath(path))[0])[0]
+        return GetDiskFreeSpaceEx(path_util.splitdrive(path_util.abspath(path))[0])[0]
     else:
         data = os.statvfs(path.encode("utf-8"))
         return data.f_bavail * data.f_frsize
@@ -137,6 +137,8 @@ def fix_filebasename(name, unit=False, maxlen=255):
      * If the filename isn't valid: returns a corrected name
      * If the filename is valid: returns the filename
     """
+    if isinstance(name, Path):
+        name = name.to_text()
     if unit and (len(name) != 2 or name[1] != ':'):
         return 'c:'
     if not name or name == '.' or name == '..':

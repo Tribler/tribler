@@ -3,11 +3,12 @@ Tests for the video server.
 
 Author(s): Arno Bakker
 """
-import os
 from asyncio import Future, Protocol, get_event_loop
 
 from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.Utilities import path_util
+from Tribler.Core.Utilities.path_util import Path
 from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.Video.VideoServer import VideoServer
 from Tribler.Test.Core.base_test import MockObject, TriblerCoreTest
@@ -102,7 +103,7 @@ class TestVideoServer(TriblerCoreTest):
         mock_def.is_multifile_torrent = lambda: True
         mock_download.get_def = lambda: mock_def
 
-        self.assertEqual(self.video_server.get_vod_destination(mock_download), os.path.join("abc", "def"))
+        self.assertEqual(self.video_server.get_vod_destination(mock_download), (Path("abc") / "def").to_text())
 
     def test_get_vod_stream(self):
         """
@@ -124,8 +125,8 @@ class TestVideoServerSession(TestAsServer):
         """ unittest test setup code """
         await super(TestVideoServerSession, self).setUp()
         self.port = self.session.config.get_video_server_port()
-        self.sourcefn = os.path.join(TESTS_DATA_DIR, "video.avi")
-        self.sourcesize = os.path.getsize(self.sourcefn)
+        self.sourcefn = TESTS_DATA_DIR / "video.avi"
+        self.sourcesize = path_util.getsize(self.sourcefn)
         self.tdef = None
         self.expsize = 0
         await self.start_vod_download()
@@ -158,7 +159,7 @@ class TestVideoServerSession(TestAsServer):
         self.tdef.save()
 
         dscfg = DownloadConfig()
-        dscfg.set_dest_dir(os.path.dirname(self.sourcefn))
+        dscfg.set_dest_dir(Path(self.sourcefn).parent)
 
         download = self.session.ltmgr.start_download(tdef=self.tdef, config=dscfg)
         await download.get_handle()

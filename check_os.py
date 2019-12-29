@@ -7,8 +7,11 @@ import traceback
 
 import psutil
 
+from six import text_type
+
 from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.Modules.process_checker import ProcessChecker
+from Tribler.Core.Utilities import path_util
 from Tribler.dependencies import _show_system_popup
 
 FORCE_RESTART_MESSAGE = "An existing Tribler core process (PID:%s) is already running. \n\n" \
@@ -72,23 +75,23 @@ def setup_logging(gui=False):
     .Tribler directory in each platforms
     """
     # First check if logger.conf is present or not
-    base_path = getattr(sys, '_MEIPASS') if hasattr(sys, '_MEIPASS') else os.path.dirname(__file__)
-    log_config = os.path.join(base_path, "logger.conf")
+    base_path = path_util.Path(getattr(sys, '_MEIPASS') if hasattr(sys, '_MEIPASS') else os.path.dirname(__file__))
+    log_config = base_path / "logger.conf"
 
-    if not os.path.exists(log_config):
+    if not log_config.exists():
         print("Log configuration file not found at location '%s'" % log_config)
         return
 
     log_directory = TriblerConfig().get_log_dir()
 
-    if not os.path.exists(log_directory):
-        os.makedirs(log_directory)
+    if not log_directory.exists():
+        path_util.makedirs(log_directory)
 
     info_filename = 'tribler-gui-info.log' if gui else 'tribler-core-info.log'
     error_filename = 'tribler-gui-error.log' if gui else 'tribler-core-error.log'
 
-    logging.info_log_file = os.path.join(log_directory, info_filename)
-    logging.error_log_file = os.path.join(log_directory, error_filename)
+    logging.info_log_file = log_directory / info_filename
+    logging.error_log_file = log_directory / error_filename
     logging.config.fileConfig(log_config, disable_existing_loggers=False)
 
 
@@ -224,10 +227,10 @@ def enable_fault_handler():
         import faulthandler
 
         log_dir = TriblerConfig().get_log_dir()
-        if not os.path.exists(log_dir):
-            os.makedirs(log_dir)
-        crash_file = os.path.join(log_dir, "crash-report.log")
-        faulthandler.enable(file=open(crash_file, "w"), all_threads=True)
+        if not log_dir.exists():
+            path_util.makedirs(log_dir)
+        crash_file = log_dir /"crash-report.log"
+        faulthandler.enable(file=open(text_type(crash_file), "w"), all_threads=True)
     except ImportError:
         logging.error("Fault Handler module not found.")
 
@@ -241,11 +244,11 @@ def check_and_enable_code_tracing(process_name):
     trace_logger = None
     log_dir = TriblerConfig().get_log_dir()
     if '--trace-exception' in sys.argv[1:]:
-        trace_logger = open(os.path.join(log_dir, '%s-exceptions.log' % process_name), 'w')
+        trace_logger = open(log_dir / ('%s-exceptions.log' % process_name), 'w')
         sys.settrace(lambda frame, event, args: trace_calls(trace_logger, frame, event, args,
                                                             filter_exceptions_only=True))
     elif '--trace-debug' in sys.argv[1:]:
-        trace_logger = open(os.path.join(log_dir, '%s-debug.log' % process_name), 'w')
+        trace_logger = open(log_dir / ('%s-debug.log' % process_name), 'w')
         sys.settrace(lambda frame, event, args: trace_calls(trace_logger, frame, event, args))
     return trace_logger
 

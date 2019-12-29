@@ -1,6 +1,5 @@
 import base64
 import codecs
-import os
 from binascii import unhexlify
 
 from aiohttp import ClientSession, ContentTypeError, web
@@ -13,6 +12,7 @@ from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import DIRTY_ST
 from Tribler.Core.Modules.restapi.metadata_endpoint_base import MetadataEndpointBase
 from Tribler.Core.Modules.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_NOT_FOUND, RESTResponse
 from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.Utilities import path_util
 from Tribler.Core.Utilities.utilities import is_infohash, parse_magnetlink
 
 
@@ -243,7 +243,7 @@ class ChannelsEndpoint(ChannelsEndpointBase):
         torrents_dir = None
         if parameters.get('torrents_dir', None):
             torrents_dir = parameters['torrents_dir']
-            if not os.path.isabs(torrents_dir):
+            if not path_util.isabs(torrents_dir):
                 return RESTResponse({"error": "the torrents_dir should point to a directory"}, status=HTTP_BAD_REQUEST)
 
         recursive = False

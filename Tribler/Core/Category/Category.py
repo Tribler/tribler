@@ -4,7 +4,6 @@ Category.
 Author(s):  Yuan Yuan, Jelle Roozenburg
 """
 import logging
-import os
 import re
 from functools import cmp_to_key
 
@@ -36,7 +35,7 @@ class Category(object):
     __size_change = 1024 * 1024
     _logger = logging.getLogger("Category")
 
-    category_info = getCategoryInfo(os.path.join(get_lib_path(), 'Core', 'Category', CATEGORY_CONFIG_FILE))
+    category_info = getCategoryInfo(get_lib_path() / 'Core' / 'Category' / CATEGORY_CONFIG_FILE)
     category_info.sort(key=cmp_to_key(cmp_rank))
 
     def calculateCategory(self, torrent_dict, display_name):

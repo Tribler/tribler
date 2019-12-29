@@ -22,11 +22,11 @@ class Bootstrap(TaskManager):
         self._logger = logging.getLogger(self.__class__.__name__)
         self.dcfg = DownloadConfig(state_dir=config_dir)
         self.dcfg.set_bootstrap_download(True)
-        self.bootstrap_dir = os.path.join(config_dir, 'bootstrap')
-        if not os.path.exists(self.bootstrap_dir):
+        self.bootstrap_dir = config_dir / 'bootstrap'
+        if not self.bootstrap_dir.exists():
             os.mkdir(self.bootstrap_dir)
         self.dcfg.set_dest_dir(self.bootstrap_dir)
-        self.bootstrap_file = os.path.join(self.bootstrap_dir, "bootstrap.blocks")
+        self.bootstrap_file = self.bootstrap_dir / "bootstrap.blocks"
         self.dht = dht
 
         self.bootstrap_finished = False

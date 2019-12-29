@@ -3,12 +3,9 @@ Seeding tests.
 
 Author(s): Arno Bakker, Niels Zeilemaker
 """
-import logging
-import os
-from asyncio import Future
 
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.simpledefs import DLSTATUS_SEEDING, dlstatus_strings
+from Tribler.Core.simpledefs import DLSTATUS_SEEDING
 from Tribler.Test.common import TESTS_DATA_DIR
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.tools import timeout
@@ -21,8 +18,8 @@ class TestSeeding(TestAsServer):
 
     async def setUp(self):
         await super(TestSeeding, self).setUp()
-        self.tdef = TorrentDef.load(os.path.join(TESTS_DATA_DIR, 'video.avi.torrent'))
-        self.sourcefn = os.path.join(TESTS_DATA_DIR, 'video.avi')
+        self.tdef = TorrentDef.load(TESTS_DATA_DIR / 'video.avi.torrent')
+        self.sourcefn = TESTS_DATA_DIR / 'video.avi'
 
     def setUpPreSession(self):
         super(TestSeeding, self).setUpPreSession()
@@ -41,11 +38,10 @@ class TestSeeding(TestAsServer):
         await download.wait_for_status(DLSTATUS_SEEDING)
 
         # File is in
-        destfn = os.path.join(self.getDestDir(), "video.avi")
+        destfn = self.getDestDir() / "video.avi"
         with open(destfn, "rb") as f:
             realdata = f.read()
         with open(self.sourcefn, "rb") as f:
             expdata = f.read()
 
         self.assertEqual(realdata, expdata)
-

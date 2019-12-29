@@ -1,5 +1,4 @@
 import base64
-import os
 
 from configobj import ConfigObj
 
@@ -7,20 +6,22 @@ import libtorrent as lt
 
 from validate import Validator
 
+from Tribler.Core.Utilities import path_util
 from Tribler.Core.Utilities.install_dir import get_lib_path
+from Tribler.Core.Utilities.path_util import Path
 from Tribler.Core.Utilities.utilities import bdecode_compat
 from Tribler.Core.exceptions import InvalidConfigException
 from Tribler.Core.osutils import get_home_dir
 from Tribler.Core.simpledefs import DLMODE_NORMAL, DLMODE_VOD
 
 SPEC_FILENAME = 'download_config.spec'
-CONFIG_SPEC_PATH = os.path.join(get_lib_path(), 'Core', 'Config', SPEC_FILENAME)
+CONFIG_SPEC_PATH = get_lib_path() / 'Core' / 'Config' / SPEC_FILENAME
 NONPERSISTENT_DEFAULTS = {'mode': DLMODE_NORMAL}
 
 
 class DownloadConfig(object):
     def __init__(self, config=None, state_dir=None):
-        self.config = config or ConfigObj(configspec=CONFIG_SPEC_PATH, default_encoding='utf8')
+        self.config = config or ConfigObj(configspec=CONFIG_SPEC_PATH.to_text(), default_encoding='utf8')
         # Values that should not be stored and should be initialized to some default value
         self.nonpersistent = NONPERSISTENT_DEFAULTS.copy()
         self.state_dir = state_dir
@@ -40,11 +41,11 @@ class DownloadConfig(object):
 
     @staticmethod
     def load(config_path=None):
-        return DownloadConfig(ConfigObj(infile=config_path, file_error=True,
-                                        configspec=CONFIG_SPEC_PATH, default_encoding='utf-8'))
+        return DownloadConfig(ConfigObj(infile=config_path.to_text(), file_error=True,
+                                        configspec=CONFIG_SPEC_PATH.to_text(), default_encoding='utf-8'))
 
     def copy(self):
-        return DownloadConfig(ConfigObj(self.config, configspec=CONFIG_SPEC_PATH, default_encoding='utf-8'))
+        return DownloadConfig(ConfigObj(self.config, configspec=CONFIG_SPEC_PATH.to_text(), default_encoding='utf-8'))
 
     def write(self, filename):
         self.config.filename = filename
@@ -55,12 +56,11 @@ class DownloadConfig(object):
         @param path A path of a directory.
         """
         # If something is saved inside the Tribler state dir, it should use relative path
+        path = path_util.Path(path)
         if self.state_dir:
             base_path = self.state_dir
-            if base_path == os.path.commonprefix([path, base_path]):
-                path = os.path.relpath(path, base_path)
-        assert isinstance(path, str), path
-        self.config['download_defaults']['saveas'] = path
+            path = path_util.norm_path(base_path, path)
+        self.config['download_defaults']['saveas'] = path.to_text()
 
     def get_dest_dir(self):
         """ Gets the directory where to save this Download.
@@ -71,10 +71,10 @@ class DownloadConfig(object):
             self.set_dest_dir(dest_dir)
 
         # This is required to support relative paths
-        if not os.path.isabs(dest_dir):
-            dest_dir = os.path.join(self.state_dir, dest_dir)
+        if not path_util.isabs(dest_dir):
+            dest_dir = self.state_dir / dest_dir
 
-        return dest_dir
+        return path_util.Path(dest_dir)
 
     def get_corrected_filename(self):
         """ Gets the directory name where to save this torrent
@@ -142,13 +142,6 @@ class DownloadConfig(object):
     def set_selected_files(self, files):
         """ Select which files in the torrent to download. The filenames must
         be the names as they appear in the content def, including encoding.
-        Trivially, when the torrent contains a file 'sjaak.avi' the files
-        parameter must be 'sjaak.avi'. When the content def is a torrent def
-        and contains multiple files and is named 'filecollection', the files
-        parameter must be
-            os.path.join('filecollection','sjaak.avi')
-        For a swift def, the files must be following the multi-file spec encoding
-        (i.e., UTF-8 and /).
 
         @param files Can be a single filename or a list of filenames (e.g.
         ['harry.avi','sjaak.avi']). Not Unicode strings!
@@ -205,13 +198,13 @@ def get_default_dest_dir():
     If Downloads/ exists: Downloads/TriblerDownloads
     else: Home/TriblerDownloads
     """
-    download_dir = u"TriblerDownloads"
+    download_dir = Path("TriblerDownloads")
 
     # TODO: Is this here so the unit tests work?
-    if os.path.isdir(download_dir):
-        return os.path.abspath(download_dir)
+    if download_dir.is_dir():
+        return path_util.abspath(download_dir)
 
-    downloads_dir = os.path.join(get_home_dir(), u"Downloads")
-    if os.path.isdir(downloads_dir):
-        return os.path.join(downloads_dir, download_dir)
-    return os.path.join(get_home_dir(), download_dir)
+    downloads_dir = get_home_dir() / u"Downloads"
+    if downloads_dir.is_dir():
+        return downloads_dir / download_dir
+    return get_home_dir() / download_dir

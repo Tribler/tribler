@@ -1,7 +1,6 @@
 import logging
 import os
 import shutil
-from tempfile import mkdtemp
 
 from aiohttp import ClientResponseError, web
 
@@ -10,6 +9,7 @@ from libtorrent import bencode
 from nose.tools import raises
 
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
+from Tribler.Core.Utilities.path_util import mkdtemp
 from Tribler.Core.Utilities.utilities import bdecode_compat
 from Tribler.Test.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE
 from Tribler.Test.test_as_server import BaseTestCase
@@ -62,9 +62,9 @@ class TestTorrentDef(BaseTestCase):
         Test whether adding a single content directory with two files is working correctly
         """
         t = TorrentDef()
-        torrent_dir = os.path.join(TESTS_DATA_DIR, "contentdir")
-        t.add_content(os.path.join(torrent_dir, "file.txt"))
-        t.add_content(os.path.join(torrent_dir, "otherfile.txt"))
+        torrent_dir = TESTS_DATA_DIR / "contentdir"
+        t.add_content(torrent_dir / "file.txt")
+        t.add_content(torrent_dir / "otherfile.txt")
         t.save()
 
         metainfo = t.get_metainfo()
@@ -75,8 +75,8 @@ class TestTorrentDef(BaseTestCase):
         Test whether adding a single file to a torrent is working correctly
         """
         t = TorrentDef()
-        torrent_dir = os.path.join(TESTS_DATA_DIR, "contentdir")
-        t.add_content(os.path.join(torrent_dir, "file.txt"))
+        torrent_dir = TESTS_DATA_DIR / "contentdir"
+        t.add_content(torrent_dir / "file.txt")
         t.save()
 
         metainfo = t.get_metainfo()
@@ -104,7 +104,7 @@ class TestTorrentDef(BaseTestCase):
         Add a single file with piece length to a TorrentDef
         """
         t = TorrentDef()
-        fn = os.path.join(TESTS_DATA_DIR, VIDEO_FILE_NAME)
+        fn = TESTS_DATA_DIR / VIDEO_FILE_NAME
         t.add_content(fn)
         t.set_piece_length(2 ** 16)
         t.save()
@@ -116,8 +116,8 @@ class TestTorrentDef(BaseTestCase):
         """
         Test whether the private field from an existing torrent is correctly read
         """
-        privatefn = os.path.join(TESTS_DATA_DIR, "private.torrent")
-        publicfn = os.path.join(TESTS_DATA_DIR, "bak_single.torrent")
+        privatefn = TESTS_DATA_DIR / "private.torrent"
+        publicfn = TESTS_DATA_DIR / "bak_single.torrent"
 
         t1 = TorrentDef.load(privatefn)
         t2 = TorrentDef.load(publicfn)
@@ -129,9 +129,9 @@ class TestTorrentDef(BaseTestCase):
     async def test_load_from_url(self):
         # Setup file server to serve torrent file
         self.session_base_dir = mkdtemp(suffix="_tribler_test_load_from_url")
-        files_path = os.path.join(self.session_base_dir, 'http_torrent_files')
+        files_path = self.session_base_dir / 'http_torrent_files'
         os.mkdir(files_path)
-        shutil.copyfile(TORRENT_UBUNTU_FILE, os.path.join(files_path, 'ubuntu.torrent'))
+        shutil.copyfile(TORRENT_UBUNTU_FILE, files_path / 'ubuntu.torrent')
 
         file_server_port = self.get_port()
         await self.setUpFileServer(file_server_port, files_path)
@@ -145,7 +145,7 @@ class TestTorrentDef(BaseTestCase):
     async def test_load_from_url_404(self):
         # Setup file server to serve torrent file
         self.session_base_dir = mkdtemp(suffix="_tribler_test_load_from_url")
-        files_path = os.path.join(self.session_base_dir, 'http_torrent_files')
+        files_path = self.session_base_dir / 'http_torrent_files'
         os.mkdir(files_path)
         # Do not copy the torrent file to produce 404
 
@@ -212,7 +212,7 @@ class TestTorrentDef(BaseTestCase):
         self.assertEqual(t.get_piece_length(), 0)
 
     def test_load_from_dict(self):
-        with open(os.path.join(TESTS_DATA_DIR, "bak_single.torrent"), mode='rb') as torrent_file:
+        with open(TESTS_DATA_DIR / "bak_single.torrent", mode='rb') as torrent_file:
             encoded_metainfo = torrent_file.read()
         self.assertTrue(TorrentDef.load_from_dict(bdecode_compat(encoded_metainfo)))
 

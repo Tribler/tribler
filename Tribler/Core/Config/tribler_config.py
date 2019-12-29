@@ -9,16 +9,16 @@ from configobj import ConfigObj
 from validate import Validator
 
 from Tribler.Core.Config.download_config import get_default_dest_dir
+from Tribler.Core.Utilities import path_util
 from Tribler.Core.Utilities.install_dir import get_lib_path
 from Tribler.Core.Utilities.network_utils import get_random_port
-from Tribler.Core.Utilities.unicode import ensure_unicode
 from Tribler.Core.exceptions import InvalidConfigException
 from Tribler.Core.osutils import get_appstate_dir
 from Tribler.Core.version import version_id
 
 CONFIG_FILENAME = 'triblerd.conf'
 SPEC_FILENAME = 'tribler_config.spec'
-CONFIG_SPEC_PATH = os.path.join(get_lib_path(), 'Core', 'Config', SPEC_FILENAME)
+CONFIG_SPEC_PATH = get_lib_path() / 'Core' / 'Config' / SPEC_FILENAME
 
 
 class TriblerConfig(object):
@@ -39,40 +39,36 @@ class TriblerConfig(object):
         self._logger = logging.getLogger(self.__class__.__name__)
         self._state_dir = self.get_default_state_dir()
         # If specific version state directory is available, use that version otherwise use default address
-        if not os.path.exists(self._state_dir):
+        if not self._state_dir.exists():
             self._state_dir = self.get_default_base_state_dir()
 
         if config is None:
-            config_file = os.path.join(self._state_dir, CONFIG_FILENAME)
-            config = ConfigObj(infile=(config_file if os.path.exists(config_file) else None),
-                               configspec=CONFIG_SPEC_PATH, default_encoding='utf-8')
+            config_file = self._state_dir / CONFIG_FILENAME
+            config = ConfigObj(infile=(str(config_file) if config_file.exists() else None),
+                               configspec=str(CONFIG_SPEC_PATH), default_encoding='utf-8')
         self.config = config
         self.validate()
 
         # set defaults downloads path
         if not self.config['download_defaults']['saveas']:
-            self.config['download_defaults']['saveas'] = get_default_dest_dir()
+            self.config['download_defaults']['saveas'] = get_default_dest_dir().to_text()
         self.selected_ports = {}
 
     def abspath(self, path):
-        return path if os.path.isabs(path) else os.path.join(self.get_state_dir(), path)
+        return path_util.abspath(path, optional_prefix=self.get_state_dir())
 
     def norm_path(self, path):
         """
         Return absolute path if it points outside the state dir. Otherwise, change it to relative path.
         """
-        if os.path.isabs(path):
-            base_path = self.get_state_dir()
-            if base_path == os.path.commonprefix([path, base_path]):
-                return os.path.relpath(path, base_path)
-        return path
+        return path_util.norm_path(self.get_state_dir(), path)
 
     @staticmethod
     def load(config_path=None):
         """
         Load a TriblerConfig from disk.
         """
-        return TriblerConfig(ConfigObj(config_path, configspec=CONFIG_SPEC_PATH, default_encoding='utf-8'))
+        return TriblerConfig(ConfigObj(config_path.to_text(), configspec=CONFIG_SPEC_PATH.to_text(), default_encoding='utf-8'))
 
     def copy(self):
         """
@@ -101,10 +97,10 @@ class TriblerConfig(object):
         """
         Write the configuration to the config file in the state dir as specified in the config.
         """
-        if not os.path.exists(self.get_state_dir()):
+        if not self.get_state_dir().exists():
             os.makedirs(self.get_state_dir())
         self.update_version()
-        self.config.filename = os.path.join(self.get_state_dir(), CONFIG_FILENAME)
+        self.config.filename = self.get_state_dir() / CONFIG_FILENAME
         self.config.write()
 
     @staticmethod
@@ -117,17 +113,17 @@ class TriblerConfig(object):
     def get_default_base_state_dir(home_dir_postfix=u'.Tribler'):
         """Get the default application state directory."""
         if 'TSTATEDIR' in os.environ:
-            path = os.environ['TSTATEDIR']
-            return path if os.path.isabs(path) else os.path.join(os.getcwd(), path)
+            state_dir = os.environ['TSTATEDIR']
+            return path_util.Path(state_dir).absolute()
 
-        return os.path.join(get_appstate_dir(), home_dir_postfix)
+        return get_appstate_dir() / home_dir_postfix
 
     @staticmethod
     def get_versioned_state_dir(state_dir, version):
         dash_index = version.find('-')
         if dash_index < 0:
-            return ensure_unicode(os.path.join(state_dir, version), 'utf-8')
-        return ensure_unicode(os.path.join(state_dir, version[:dash_index], version[dash_index+1:]), 'utf-8')
+            return state_dir / version
+        return state_dir / version[:dash_index] / version[dash_index+1:]
 
     def _obtain_port(self, section, option):
         """
@@ -179,7 +175,7 @@ class TriblerConfig(object):
         self.config['chant']['manager_enabled'] = value
 
     def set_chant_channels_dir(self, chant_db_filename):
-        self.config['chant']['channels_dir'] = self.norm_path(chant_db_filename)
+        self.config['chant']['channels_dir'] = self.norm_path(chant_db_filename).to_text()
 
     def get_chant_channels_dir(self):
         return self.abspath(self.config['chant']['channels_dir'])
@@ -189,16 +185,16 @@ class TriblerConfig(object):
 
     def get_state_dir(self, version=None):
         return TriblerConfig.get_versioned_state_dir(self._state_dir, version) if version \
-            else ensure_unicode(self._state_dir, 'utf-8')
+            else path_util.Path(self._state_dir)
 
     def set_trustchain_keypair_filename(self, keypairfilename):
-        self.config['trustchain']['ec_keypair_filename'] = self.norm_path(keypairfilename)
+        self.config['trustchain']['ec_keypair_filename'] = self.norm_path(keypairfilename).to_text()
 
     def get_trustchain_keypair_filename(self):
         return self.abspath(self.config['trustchain']['ec_keypair_filename'])
 
     def set_trustchain_testnet_keypair_filename(self, keypairfilename):
-        self.config['trustchain']['testnet_keypair_filename'] = self.norm_path(keypairfilename)
+        self.config['trustchain']['testnet_keypair_filename'] = self.norm_path(keypairfilename).to_text()
 
     def get_trustchain_testnet_keypair_filename(self):
         return self.abspath(self.config['trustchain']['testnet_keypair_filename'])
@@ -234,7 +230,7 @@ class TriblerConfig(object):
         return self.config['trustchain']['live_edges_enabled']
 
     def set_log_dir(self, value):
-        self.config['general']['log_dir'] = self.norm_path(value)
+        self.config['general']['log_dir'] = self.norm_path(value).to_text()
 
     def get_log_dir(self):
         return self.abspath(self.config['general']['log_dir'])
@@ -537,7 +533,7 @@ class TriblerConfig(object):
         return self.config['download_defaults']['safeseeding_enabled']
 
     def set_default_destination_dir(self, value):
-        self.config['download_defaults']['saveas'] = self.norm_path(value)
+        self.config['download_defaults']['saveas'] = self.norm_path(value).to_text()
 
     def get_default_destination_dir(self):
         return self.abspath(self.config['download_defaults']['saveas'])

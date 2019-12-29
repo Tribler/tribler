@@ -1,4 +1,3 @@
-import glob
 import logging
 import os
 import shutil
@@ -6,7 +5,6 @@ import sys
 import time
 import unittest
 from unittest import skipUnless
-from urllib.request import pathname2url
 
 from PyQt5.QtCore import QPoint, Qt
 from PyQt5.QtGui import QPixmap, QRegion
@@ -19,6 +17,9 @@ import matplotlib.pyplot as plot
 
 import numpy
 
+from Tribler.Core.Utilities import path_util
+from Tribler.Core.Utilities.path_util import Path, pathname2url
+
 import TriblerGUI
 from TriblerGUI.tribler_window import TriblerWindow
 from TriblerGUI.widgets.home_recommended_item import HomeRecommendedItem
@@ -26,9 +27,9 @@ from TriblerGUI.widgets.loading_list_item import LoadingListItem
 
 import run_tribler
 
-default_download_dir = os.path.join(os.path.dirname(__file__), u"Downloads")
-default_output_file = os.path.join(os.path.dirname(__file__), u"output.csv")
-default_state_dir = os.path.join(os.path.dirname(__file__), u".Tribler")
+default_download_dir = Path(__file__).parent / u"Downloads"
+default_output_file = Path(__file__).parent / u"output.csv"
+default_state_dir = Path(__file__).parent / u".Tribler"
 default_timeout = 60000  # milliseconds
 default_num_hops = 1
 
@@ -45,16 +46,16 @@ if os.environ.get("TEST_INTEGRATION") == "yes":
     else:
         os.environ['TSTATEDIR'] = os.environ.get('TSTATEDIR', default_state_dir)
 
-    if state_dir and os.path.exists(state_dir):
+    if state_dir and state_dir.exists():
         shutil.rmtree(state_dir, ignore_errors=False, onerror=None)
 
-    if not os.path.exists(state_dir):
+    if not state_dir.exists():
         os.makedirs(state_dir)
 
     # Set up logging before starting the GUI
     setup_gui_logging()
 
-    core_script_file = os.path.abspath(run_tribler.__file__)
+    core_script_file = path_util.abspath(run_tribler.__file__)
     core_args = [core_script_file]
 
     # QT App initialization
@@ -97,7 +98,7 @@ class AbstractTriblerIntegrationTest(unittest.TestCase):
         window.tribler_settings['download_defaults']['saveas'] = download_dir
 
         # Clear everything
-        if os.path.exists(download_dir):
+        if download_dir.exists():
             shutil.rmtree(download_dir, ignore_errors=False, onerror=None)
         os.makedirs(download_dir)
 
@@ -129,11 +130,11 @@ class AbstractTriblerIntegrationTest(unittest.TestCase):
         if name is not None:
             img_name = 'screenshot_%s.jpg' % name
 
-        screenshots_dir = os.path.join(os.path.dirname(TriblerGUI.__file__), 'screenshots')
-        if not os.path.exists(screenshots_dir):
+        screenshots_dir = Path(TriblerGUI.__file__).parent / 'screenshots'
+        if not screenshots_dir.exists():
             os.mkdir(screenshots_dir)
 
-        pixmap.save(os.path.join(screenshots_dir, img_name))
+        pixmap.save(screenshots_dir / img_name)
 
     def wait_for_list_populated(self, llist, num_items=1, timeout=10):
         for _ in range(0, timeout * 1000, 100):
@@ -216,11 +217,11 @@ class TriblerDownloadTest(AbstractTriblerIntegrationTest):
 
         # Start downloading some torrents
         if 'TORRENTS_DIR' in os.environ:
-            torrent_dir = os.environ.get('TORRENTS_DIR')
+            torrent_dir = path_util.Path(os.environ.get('TORRENTS_DIR'))
         else:
-            torrent_dir = os.path.join(os.path.join(os.path.dirname(__file__), os.pardir), "data", "linux_torrents")
+            torrent_dir = Path(__file__).parent / os.pardir / "data" / "linux_torrents"
         window.selected_torrent_files = [pathname2url(torrent_file)
-                                         for torrent_file in glob.glob(torrent_dir + "/*.torrent")]
+                                         for torrent_file in torrent_dir.glob("/*.torrent")]
 
         window.on_confirm_add_directory_dialog(0)
 

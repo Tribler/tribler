@@ -10,8 +10,7 @@ import os
 import sys
 import time as timemod
 from asyncio import get_event_loop
-from threading import Event, enumerate as enumerate_threads
-from traceback import print_exc, print_tb
+from traceback import print_tb
 
 from anydex.wallet.dummy_wallet import DummyWallet1, DummyWallet2
 from anydex.wallet.tc_wallet import TrustchainWallet
@@ -43,7 +42,6 @@ from Tribler.Core.Utilities.crypto_patcher import patch_crypto_be_discovery
 from Tribler.Core.Utilities.install_dir import get_lib_path
 from Tribler.Core.Video.VideoServer import VideoServer
 from Tribler.Core.bootstrap import Bootstrap
-from Tribler.Core.exceptions import OperationNotEnabledByConfigurationException
 from Tribler.Core.simpledefs import (
     NTFY_DELETE,
     NTFY_INSERT,
@@ -276,11 +274,11 @@ class Session(TaskManager):
         """Create directory structure of the state directory."""
 
         def create_dir(path):
-            if not os.path.isdir(path):
+            if not path.is_dir():
                 os.makedirs(path)
 
         def create_in_state_dir(path):
-            create_dir(os.path.join(self.config.get_state_dir(), path))
+            create_dir(self.config.get_state_dir() / path)
 
         create_dir(self.config.get_state_dir())
         create_in_state_dir(STATEDIR_DB_DIR)
@@ -301,24 +299,24 @@ class Session(TaskManager):
         Set parameters that depend on state_dir.
         """
         trustchain_pairfilename = self.config.get_trustchain_keypair_filename()
-        if os.path.exists(trustchain_pairfilename):
+        if trustchain_pairfilename.exists():
             self.trustchain_keypair = permid_module.read_keypair_trustchain(trustchain_pairfilename)
         else:
             self.trustchain_keypair = permid_module.generate_keypair_trustchain()
 
             # Save keypair
-            trustchain_pubfilename = os.path.join(self.config.get_state_dir(), 'ecpub_multichain.pem')
+            trustchain_pubfilename = self.config.get_state_dir() / 'ecpub_multichain.pem'
             permid_module.save_keypair_trustchain(self.trustchain_keypair, trustchain_pairfilename)
             permid_module.save_pub_key_trustchain(self.trustchain_keypair, trustchain_pubfilename)
 
         trustchain_testnet_pairfilename = self.config.get_trustchain_testnet_keypair_filename()
-        if os.path.exists(trustchain_testnet_pairfilename):
+        if trustchain_testnet_pairfilename.exists():
             self.trustchain_testnet_keypair = permid_module.read_keypair_trustchain(trustchain_testnet_pairfilename)
         else:
             self.trustchain_testnet_keypair = permid_module.generate_keypair_trustchain()
 
             # Save keypair
-            trustchain_testnet_pubfilename = os.path.join(self.config.get_state_dir(), 'ecpub_trustchain_testnet.pem')
+            trustchain_testnet_pubfilename = self.config.get_state_dir() / 'ecpub_trustchain_testnet.pem'
             permid_module.save_keypair_trustchain(self.trustchain_testnet_keypair, trustchain_testnet_pairfilename)
             permid_module.save_pub_key_trustchain(self.trustchain_testnet_keypair, trustchain_testnet_pubfilename)
 
@@ -445,7 +443,7 @@ class Session(TaskManager):
         # On Mac, we bundle the root certificate for the SSL validation since Twisted is not using the root
         # certificates provided by the system trust store.
         if sys.platform == 'darwin':
-            os.environ['SSL_CERT_FILE'] = os.path.join(get_lib_path(), 'root_certs_mac.pem')
+            os.environ['SSL_CERT_FILE'] = (get_lib_path() / 'root_certs_mac.pem').to_text()
 
         if self.config.get_video_server_enabled():
             self.video_server = VideoServer(self.config.get_video_server_port(), self)
@@ -475,7 +473,7 @@ class Session(TaskManager):
         if self.config.get_bitcoinlib_enabled():
             try:
                 from anydex.wallet.btc_wallet import BitcoinWallet, BitcoinTestnetWallet
-                wallet_path = os.path.join(self.config.get_state_dir(), 'wallet')
+                wallet_path = self.config.get_state_dir() / 'wallet'
                 btc_wallet = BitcoinWallet(wallet_path)
                 btc_testnet_wallet = BitcoinTestnetWallet(wallet_path)
                 self.wallets[btc_wallet.get_identifier()] = btc_wallet
@@ -484,9 +482,9 @@ class Session(TaskManager):
                 self._logger.error("bitcoinlib library cannot be loaded: %s", exc)
 
         if self.config.get_chant_enabled():
-            channels_dir = os.path.join(self.config.get_chant_channels_dir())
+            channels_dir = self.config.get_chant_channels_dir()
             metadata_db_name = 'metadata.db' if not self.config.get_testnet() else 'metadata_testnet.db'
-            database_path = os.path.join(self.config.get_state_dir(), 'sqlite', metadata_db_name)
+            database_path = self.config.get_state_dir() / 'sqlite' / metadata_db_name
             self.mds = MetadataStore(database_path, channels_dir, self.trustchain_keypair)
 
         if self.config.get_dummy_wallets_enabled():

@@ -250,7 +250,7 @@ class DebugEndpoint(RESTEndpoint):
             dump_buffer.close()
         else:
             # On other platforms, simply writing to file is much faster
-            dump_file_path = os.path.join(self.session.config.get_state_dir(), 'memory_dump.json')
+            dump_file_path = self.session.config.get_state_dir() / 'memory_dump.json'
             scanner.dump_all_objects(dump_file_path)
             with open(dump_file_path, 'r') as dump_file:
                 content = dump_file.read()
@@ -293,20 +293,20 @@ class DebugEndpoint(RESTEndpoint):
 
         # Get the location of log file
         param_process = request.query.get('process', 'core')
-        log_file_name = os.path.join(self.session.config.get_log_dir(), 'tribler-%s-info.log' % param_process)
+        log_file_name = self.session.config.get_log_dir() / ('tribler-%s-info.log' % param_process)
 
         # Default response
         response = {'content': '', 'max_lines': 0}
 
         # Check if log file exists and return last requested 'max_lines' of log
-        if os.path.exists(log_file_name):
+        if log_file_name.exists():
             try:
                 max_lines = int(request.query['max_lines'])
-                with open(log_file_name, 'r') as log_file:
+                with log_file_name.open(mode='r') as log_file:
                     response['content'] = self.tail(log_file, max_lines)
                 response['max_lines'] = max_lines
             except ValueError:
-                with open(log_file_name, 'r') as log_file:
+                with log_file_name.open(mode='r') as log_file:
                     response['content'] = self.tail(log_file, 100)  # default 100 lines
                 response['max_lines'] = 0
 
