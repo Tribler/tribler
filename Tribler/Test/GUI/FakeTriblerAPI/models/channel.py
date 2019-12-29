@@ -6,7 +6,6 @@ import Tribler.Test.GUI.FakeTriblerAPI.tribler_utils as tribler_utils
 from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Test.GUI.FakeTriblerAPI.constants import NEW, TODELETE
 from Tribler.Test.GUI.FakeTriblerAPI.utils import get_random_hex_string
-from Tribler.pyipv8.ipv8.util import old_round
 
 
 class Channel(object):
@@ -20,7 +19,7 @@ class Channel(object):
         self.torrents = set()
         self.subscribed = False
         self.state = choice([u"Downloading", u"Personal", u"Legacy", u"Complete", u"Updating", u"Preview"])
-        self.timestamp = int(old_round(time.time())) - randint(0, 3600 * 24 * 7)
+        self.timestamp = int(time.time()) - randint(0, 3600 * 24 * 7)
 
         self.add_random_torrents()
 
