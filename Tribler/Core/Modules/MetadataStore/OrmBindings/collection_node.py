@@ -16,8 +16,9 @@ from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import (
 from Tribler.Core.Modules.MetadataStore.OrmBindings.torrent_metadata import tdef_to_metadata_dict
 from Tribler.Core.Modules.MetadataStore.serialization import COLLECTION_NODE, CollectionNodePayload
 from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.Utilities import path_util
+from Tribler.Core.Utilities.path_util import Path
 from Tribler.Core.Utilities.random_utils import random_infohash
-from Tribler.Core.Utilities.unicode import ensure_unicode
 from Tribler.Core.exceptions import DuplicateTorrentFileError
 
 
@@ -184,16 +185,14 @@ def define_binding(db):
             def rec_gen(dir_):
                 for root, _, filenames in os.walk(dir_):
                     for fn in filenames:
-                        yield os.path.join(root, fn)
+                        yield Path(root) / fn
 
             filename_generator = rec_gen(torrents_dir) if recursive else os.listdir(torrents_dir)
 
             # Build list of .torrents to process
             for f in filename_generator:
-                filepath = ensure_unicode(
-                    os.path.join(ensure_unicode(torrents_dir, 'utf-8'), ensure_unicode(f, 'utf-8')), 'utf-8'
-                )
-                if os.path.isfile(filepath) and ensure_unicode(f, 'utf-8').endswith(u'.torrent'):
+                filepath = path_util.Path(torrents_dir).joinpath(f)
+                if filepath.is_file() and filepath.suffix == ".torrent":
                     torrents_list.append(filepath)
 
             for chunk in chunks(torrents_list, 100):  # 100 is a reasonable chunk size for commits

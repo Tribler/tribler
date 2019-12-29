@@ -1,4 +1,3 @@
-import os
 
 from ipv8.database import database_blob
 from ipv8.keyvault.crypto import default_eccrypto
@@ -105,9 +104,9 @@ class TestMetadata(TriblerCoreTest):
         Test writing metadata to a file
         """
         metadata = self.mds.ChannelNode.from_dict({})
-        file_path = os.path.join(self.session_base_dir, 'metadata.file')
+        file_path = self.session_base_dir / 'metadata.file'
         metadata.to_file(file_path)
-        self.assertTrue(os.path.exists(file_path))
+        self.assertTrue(file_path.exists())
 
     @db_session
     def test_has_valid_signature(self):

@@ -1,5 +1,4 @@
 import logging
-import os
 from datetime import datetime, timedelta
 from time import sleep
 
@@ -119,7 +118,7 @@ class MetadataStore(object):
         self.reference_timedelta = timedelta(milliseconds=100)
         self.sleep_on_external_thread = 0.05  # sleep this amount of seconds between batches executed on external thread
 
-        create_db = db_filename == ":memory:" or not os.path.isfile(self.db_filename)
+        create_db = db_filename == ":memory:" or not self.db_filename.is_file()
 
         # We have to dynamically define/init ORM-managed entities here to be able to support
         # multiple sessions in Tribler. ORM-managed classes are bound to the database instance
@@ -160,7 +159,7 @@ class MetadataStore(object):
 
         self.ChannelMetadata._channels_dir = channels_dir
 
-        self._db.bind(provider='sqlite', filename=db_filename, create_db=create_db, timeout=120.0)
+        self._db.bind(provider='sqlite', filename=str(db_filename), create_db=str(create_db), timeout=120.0)
         if create_db:
             with db_session:
                 self._db.execute(sql_create_fts_table)
@@ -234,8 +233,8 @@ class MetadataStore(object):
                 channel.timestamp,
             )
 
-        for filename in sorted(os.listdir(dirname)):
-            full_filename = os.path.join(dirname, filename)
+        for full_filename in sorted(dirname.iterdir()):
+            filename = full_filename.name
 
             blob_sequence_number = None
             if filename.endswith(BLOB_EXTENSION):
@@ -260,8 +259,7 @@ class MetadataStore(object):
                     ):
                         continue
                 try:
-                    self.process_mdblob_file(full_filename, skip_personal_metadata_payload, external_thread)
-
+                    self.process_mdblob_file(full_filename.to_text(), skip_personal_metadata_payload, external_thread)
                     # If we stopped mdblob processing due to shutdown flag, we should stop
                     # processing immediately, so that channel local version will not increase
                     if self._shutting_down:

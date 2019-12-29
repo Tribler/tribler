@@ -6,6 +6,7 @@ from tempfile import mkstemp
 from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import VODFile
 from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.Utilities.path_util import Path
 from Tribler.Core.simpledefs import DLMODE_VOD, DOWNLOAD, UPLOAD, dlstatus_strings
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.tools import timeout
@@ -45,11 +46,11 @@ class TestVideoOnDemand(TestAsServer):
         self.tdef.add_content(sourcefn)
         self.tdef.set_piece_length(self.piecelen)
         self.tdef.set_tracker("http://127.0.0.1:12/announce")
-        torrentfn = os.path.join(self.session.config.get_state_dir(), "gen.torrent")
+        torrentfn = self.session.config.get_state_dir() / "gen.torrent"
         self.tdef.save(torrentfn)
 
         dscfg = DownloadConfig()
-        destdir = os.path.dirname(sourcefn)
+        destdir = Path(sourcefn).parent
         dscfg.set_dest_dir(destdir)
         dscfg.set_mode(DLMODE_VOD)
 

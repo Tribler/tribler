@@ -3,11 +3,11 @@ import os
 import shutil
 from binascii import unhexlify
 from urllib.parse import quote_plus
-from urllib.request import pathname2url
 
 from pony.orm import db_session
 
 from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.Utilities.path_util import pathname2url
 from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.Utilities.utilities import succeed
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
@@ -16,7 +16,7 @@ from Tribler.Test.common import TORRENT_UBUNTU_FILE, UBUNTU_1504_INFOHASH
 from Tribler.Test.test_as_server import TESTS_DATA_DIR, TESTS_DIR
 from Tribler.Test.tools import timeout
 
-SAMPLE_CHANNEL_FILES_DIR = os.path.join(TESTS_DIR, "Core", "data", "sample_channel")
+SAMPLE_CHANNEL_FILES_DIR = TESTS_DIR / "Core" / "data" / "sample_channel"
 
 
 class TestTorrentInfoEndpoint(AbstractApiTest):
@@ -32,9 +32,9 @@ class TestTorrentInfoEndpoint(AbstractApiTest):
         # We intentionally put the file path in a folder with a:
         # - "+" which is a reserved URI character
         # - "\u0191" which is a unicode character
-        files_path = os.path.join(self.session_base_dir, u'http_torrent_+\u0191files')
+        files_path = self.session_base_dir / u'http_torrent_+\u0191files'
         os.mkdir(files_path)
-        shutil.copyfile(TORRENT_UBUNTU_FILE, os.path.join(files_path, 'ubuntu.torrent'))
+        shutil.copyfile(TORRENT_UBUNTU_FILE, files_path / 'ubuntu.torrent')
 
         file_server_port = self.get_port()
         await self.setUpFileServer(file_server_port, files_path)
@@ -55,11 +55,11 @@ class TestTorrentInfoEndpoint(AbstractApiTest):
         await self.do_request('torrentinfo', expected_code=400)
         await self.do_request('torrentinfo?uri=def', expected_code=400)
 
-        path = "file:" + pathname2url(os.path.join(TESTS_DATA_DIR, "bak_single.torrent"))
+        path = "file:" + pathname2url(TESTS_DATA_DIR / "bak_single.torrent")
         verify_valid_dict(await self.do_request('torrentinfo?uri=%s' % path, expected_code=200))
 
         # Corrupt file
-        path = "file:" + pathname2url(os.path.join(TESTS_DATA_DIR, "test_rss.xml"))
+        path = "file:" + pathname2url(TESTS_DATA_DIR / "test_rss.xml")
         await self.do_request('torrentinfo?uri=%s' % path, expected_code=500)
 
         # FIXME: !!! HTTP query for torrent produces dicts with unicode. TorrentDef creation can't handle unicode. !!!
@@ -67,7 +67,7 @@ class TestTorrentInfoEndpoint(AbstractApiTest):
         verify_valid_dict(await self.do_request('torrentinfo?uri=%s' % path, expected_code=200))
 
         def get_metainfo(infohash, timeout=20):
-            with open(os.path.join(TESTS_DATA_DIR, "bak_single.torrent"), mode='rb') as torrent_file:
+            with open(TESTS_DATA_DIR / "bak_single.torrent", mode='rb') as torrent_file:
                 torrent_data = torrent_file.read()
             tdef = TorrentDef.load_from_memory(torrent_data)
             return succeed(tdef.get_metainfo())

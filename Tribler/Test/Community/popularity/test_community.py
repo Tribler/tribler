@@ -1,4 +1,3 @@
-import os
 import time
 
 from ipv8.keyvault.crypto import default_eccrypto
@@ -8,6 +7,7 @@ from ipv8.test.mocking.ipv8 import MockIPv8
 from pony.orm import db_session
 
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
+from Tribler.Core.Utilities.path_util import Path
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.community.popularity.community import PopularityCommunity
 
@@ -21,7 +21,8 @@ class TestPopularityCommunity(TestBase):
         self.initialize(PopularityCommunity, self.NUM_NODES)
 
     def create_node(self, *args, **kwargs):
-        mds = MetadataStore(os.path.join(self.temporary_directory(), "%d.db" % self.count), self.temporary_directory(),
+        mds = MetadataStore(Path(self.temporary_directory()) / ("%d.db" % self.count),
+                            Path(self.temporary_directory()),
                             default_eccrypto.generate_key(u"curve25519"))
 
         torrent_checker = MockObject()

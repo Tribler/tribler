@@ -1,8 +1,9 @@
-import os
 
 from configobj import ConfigObj
 
 from Tribler.Core.Config.tribler_config import CONFIG_FILENAME, CONFIG_SPEC_PATH, TriblerConfig
+from Tribler.Core.Utilities import path_util
+from Tribler.Core.Utilities.path_util import Path
 from Tribler.Core.osutils import get_home_dir
 from Tribler.Test.Core.base_test import TriblerCoreTest
 
@@ -19,7 +20,7 @@ class TestTriblerConfig(TriblerCoreTest):
         await super(TestTriblerConfig, self).setUp()
 
         state_dir = self.getStateDir()
-        self.tribler_config = TriblerConfig(ConfigObj(configspec=CONFIG_SPEC_PATH, default_encoding='utf-8'))
+        self.tribler_config = TriblerConfig(ConfigObj(configspec=CONFIG_SPEC_PATH.to_text(), default_encoding='utf-8'))
         self.tribler_config.set_state_dir(state_dir)
 
         self.assertIsNotNone(self.tribler_config)
@@ -29,7 +30,7 @@ class TestTriblerConfig(TriblerCoreTest):
         When creating a new instance with a configobject provided, the given options
         must be contained in the resulting instance.
         """
-        configdict = ConfigObj({"a": 1, "b": "2"}, configspec=CONFIG_SPEC_PATH)
+        configdict = ConfigObj({"a": 1, "b": "2"}, configspec=CONFIG_SPEC_PATH.to_text())
         self.tribler_config = TriblerConfig(configdict)
 
         self.tribler_config.validate()
@@ -49,14 +50,14 @@ class TestTriblerConfig(TriblerCoreTest):
         port = 4444
         self.tribler_config.set_anon_listen_port(port)
         self.tribler_config.write()
-        path = os.path.join(self.tribler_config.get_state_dir(), CONFIG_FILENAME)
+        path = self.tribler_config.get_state_dir() / CONFIG_FILENAME
         read_config = TriblerConfig.load(path)
 
         read_config.validate()
         self.assertEqual(read_config.get_anon_listen_port(), port)
 
     def test_load(self):
-        os.path.isdir(self.tribler_config.get_state_dir())
+        self.tribler_config.get_state_dir().is_dir()
 
     def test_libtorrent_proxy_settings(self):
         """
@@ -114,29 +115,28 @@ class TestTriblerConfig(TriblerCoreTest):
     def test_relative_paths(self):
         # Default should be taken from config.spec
         self.assertEqual(self.tribler_config.get_trustchain_keypair_filename(),
-                         os.path.abspath(os.path.join(self.state_dir, "ec_multichain.pem")))
+                         path_util.abspath(self.state_dir / "ec_multichain.pem"))
 
-        local_name = os.path.join("somedir", "ec_multichain.pem")
-        global_name = os.path.join(self.state_dir, local_name)
+        local_name = Path("somedir") / "ec_multichain.pem"
+        global_name = self.state_dir / local_name
         self.tribler_config.set_trustchain_keypair_filename(global_name)
 
         # It should always return global path
         self.assertEqual(self.tribler_config.get_trustchain_keypair_filename(), global_name)
-        # But internally it should be stored as a local path
-        self.assertEqual(self.tribler_config.config['trustchain']['ec_keypair_filename'], local_name)
+        # But internally it should be stored as a local path string
+        self.assertEqual(self.tribler_config.config['trustchain']['ec_keypair_filename'], local_name.to_text())
 
-        # If it points out of the state dir, it should be saved as a global path
-        out_of_dir_name_global = os.path.abspath(os.path.join(self.state_dir, "..", "filename"))
+        # If it points out of the state dir, it should be saved as a global path string
+        out_of_dir_name_global = path_util.abspath(self.state_dir / ".." / "filename").resolve()
         self.tribler_config.set_trustchain_keypair_filename(out_of_dir_name_global)
-        self.assertEqual(self.tribler_config.config['trustchain']['ec_keypair_filename'], out_of_dir_name_global)
-
+        self.assertEqual(self.tribler_config.config['trustchain']['ec_keypair_filename'], out_of_dir_name_global.to_text())
 
     def test_get_set_methods_general(self):
         """
         Check whether general get and set methods are working as expected.
         """
         self.tribler_config.set_state_dir("TEST")
-        self.assertEqual(self.tribler_config.get_state_dir(), "TEST")
+        self.assertEqual(self.tribler_config.get_state_dir(), path_util.Path("TEST"))
 
         self.tribler_config.set_version('7.0.0-GIT')
         self.assertLessEqual(self.tribler_config.get_version(), '7.0.0-GIT')
@@ -146,10 +146,10 @@ class TestTriblerConfig(TriblerCoreTest):
         self.assertEqual(self.tribler_config.get_version_backup_enabled(), False)
 
         self.assertEqual(self.tribler_config.get_trustchain_testnet_keypair_filename(),
-                         os.path.join("TEST", "ec_trustchain_testnet.pem"))
+                         Path("TEST") / "ec_trustchain_testnet.pem")
         self.tribler_config.set_trustchain_testnet_keypair_filename("bla2")
         self.assertEqual(self.tribler_config.get_trustchain_testnet_keypair_filename(),
-                         os.path.join("TEST", "bla2"))
+                         Path("TEST") / "bla2")
 
         self.tribler_config.set_testnet(True)
         self.assertTrue(self.tribler_config.get_testnet())
@@ -256,7 +256,7 @@ class TestTriblerConfig(TriblerCoreTest):
         self.tribler_config.set_default_safeseeding_enabled(True)
         self.assertEqual(self.tribler_config.get_default_safeseeding_enabled(), True)
         self.tribler_config.set_default_destination_dir(get_home_dir())
-        self.assertEqual(self.tribler_config.get_default_destination_dir(), get_home_dir())
+        self.assertEqual(self.tribler_config.get_default_destination_dir(), path_util.Path(get_home_dir()))
         self.tribler_config.set_tunnel_community_random_slots(10)
         self.assertEqual(self.tribler_config.get_tunnel_community_random_slots(), 10)
         self.tribler_config.set_tunnel_community_competing_slots(20)
@@ -279,7 +279,7 @@ class TestTriblerConfig(TriblerCoreTest):
         self.assertFalse(self.tribler_config.get_chant_enabled())
         self.tribler_config.set_chant_channels_dir('test')
         self.assertEqual(self.tribler_config.get_chant_channels_dir(),
-                         os.path.join(self.tribler_config.get_state_dir(), 'test'))
+                         self.tribler_config.get_state_dir() / 'test')
 
     def test_get_set_is_matchmaker(self):
         """

@@ -12,7 +12,7 @@ dependencies = [
     {'module': 'aiohttp_apispec', 'install_type': 'pip3', 'package': 'aiohttp_apispec', 'optional': False, 'scope': 'core'},
     {'module': 'libtorrent', 'install_type': 'apt', 'package': 'python-libtorrent', 'optional': False,
      'scope': 'core'},
-    {'module': 'cryptography', 'install_type': 'pip3', 'package': 'cryptograpy>=2.3', 'optional': False,
+    {'module': 'cryptography', 'install_type': 'pip3', 'package': 'cryptography>=2.3', 'optional': False,
      'scope': 'core'},
     {'module': 'libnacl', 'install_type': 'pip3', 'package': 'libnacl', 'optional': False, 'scope': 'core'},
     {'module': 'pony', 'install_type': 'pip3', 'package': 'pony>=0.7.10', 'optional': False, 'scope': 'core'},
@@ -24,6 +24,7 @@ dependencies = [
     {'module': 'cherrypy', 'install_type': 'pip3', 'package': 'cherrypy', 'optional': False, 'scope': 'core'},
     {'module': 'configobj', 'install_type': 'pip3', 'package': 'configobj', 'optional': False, 'scope': 'both'},
     {'module': 'netifaces', 'install_type': 'pip3', 'package': 'netifaces', 'optional': False, 'scope': 'core'},
+    {'module': 'pathlib', 'install_type': 'pip3', 'package': 'pathlib', 'optional': False, 'scope': 'core'},
     {'module': 'bitcoinlib', 'install_type': 'pip3', 'package': 'bitcoinlib', 'optional': True, 'scope': 'core'},
 ]
 

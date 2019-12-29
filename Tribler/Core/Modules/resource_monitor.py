@@ -6,6 +6,7 @@ from ipv8.taskmanager import TaskManager
 
 import psutil
 
+from Tribler.Core.Utilities import path_util
 from Tribler.Core.simpledefs import SIGNAL_LOW_SPACE, SIGNAL_RESOURCE_CHECK
 
 # Attempt to import yappi
@@ -33,7 +34,7 @@ class ResourceMonitor(TaskManager):
         self.disk_usage_data = []
         self.process = psutil.Process()
         self.history_size = session.config.get_resource_monitor_history_size()
-        self.resource_log_file = os.path.join(session.config.get_log_dir(), DEFAULT_RESOURCE_FILENAME)
+        self.resource_log_file = session.config.get_log_dir() / DEFAULT_RESOURCE_FILENAME
         self.resource_log_enabled = session.config.get_resource_monitor_enabled()
         self.reset_resource_logs()
 
@@ -87,10 +88,10 @@ class ResourceMonitor(TaskManager):
         yappi_stats = yappi.get_func_stats()
         yappi_stats.sort("tsub")
 
-        log_dir = os.path.join(self.session.config.get_state_dir(), 'logs')
-        file_path = os.path.join(log_dir, 'yappi_%s.stats' % self.profiler_start_time)
+        log_dir = self.session.config.get_state_dir() / 'logs'
+        file_path = log_dir / ('yappi_%s.stats' % self.profiler_start_time)
         # Make the log directory if it does not exist
-        if not os.path.exists(log_dir):
+        if not log_dir.exists():
             os.makedirs(log_dir)
 
         yappi_stats.save(file_path, type='callgrind')
@@ -99,7 +100,7 @@ class ResourceMonitor(TaskManager):
         return file_path
 
     def get_free_disk_space(self):
-        return psutil.disk_usage(self.session.config.get_state_dir())
+        return psutil.disk_usage(self.session.config.get_state_dir().to_text())
 
     def check_resources(self):
         """
@@ -164,17 +165,17 @@ class ResourceMonitor(TaskManager):
     def write_resource_logs(self, time_seconds):
         if not self.memory_data or not self.cpu_data:
             return
-        with open(self.resource_log_file, "a+") as output_file:
-            output_file.write("%s, %s, %s\n" % (time_seconds,
+        with self.resource_log_file.open(mode="a+") as output_file:
+            output_file.write(u"%s, %s, %s\n" % (time_seconds,
                                                 self.memory_data[len(self.memory_data)-1][1],
                                                 self.cpu_data[len(self.cpu_data)-1][1]))
 
     def reset_resource_logs(self):
-        resource_dir = os.path.dirname(self.resource_log_file)
-        if not os.path.exists(resource_dir) and resource_dir:
-            os.makedirs(resource_dir)
-        if os.path.exists(self.resource_log_file):
-            os.unlink(self.resource_log_file)
+        resource_dir = self.resource_log_file.parent
+        if not resource_dir.exists() and resource_dir:
+            path_util.makedirs(resource_dir)
+        if self.resource_log_file.exists():
+            self.resource_log_file.unlink()
 
     def get_cpu_history_dict(self):
         """

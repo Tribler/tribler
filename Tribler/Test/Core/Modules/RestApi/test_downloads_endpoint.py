@@ -1,11 +1,11 @@
 import os
 from asyncio import ensure_future
 from binascii import unhexlify
-from urllib.request import pathname2url
 
 from pony.orm import db_session
 
 from Tribler.Core.DownloadState import DownloadState
+from Tribler.Core.Utilities.path_util import pathname2url
 from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.Utilities.utilities import fail, succeed
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
@@ -37,10 +37,10 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         Testing whether the API returns the right download when a download is added
         """
-        video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
+        video_tdef, _ = self.create_local_torrent(TESTS_DATA_DIR / 'video.avi')
         self.session.ltmgr.start_download(tdef=video_tdef)
-        await self.session.ltmgr.start_download_from_uri("file:" + pathname2url(os.path.join(TESTS_DATA_DIR,
-                                                                                       "bak_single.torrent")))
+        await self.session.ltmgr.start_download_from_uri("file:" +
+                                                         pathname2url(TESTS_DATA_DIR / "bak_single.torrent"))
 
         downloads = await self.do_request('downloads?get_peers=1&get_pieces=1', expected_code=200)
         self.assertEqual(len(downloads['downloads']), 2)
@@ -50,10 +50,9 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         Testing whether the API returns the right right filenames fpr each download
         """
-        video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
+        video_tdef, _ = self.create_local_torrent(TESTS_DATA_DIR / 'video.avi')
         self.session.ltmgr.start_download(tdef=video_tdef)
-        await self.session.ltmgr.start_download_from_uri("file:" + pathname2url(os.path.join(TESTS_DATA_DIR,
-                                                                                       "bak_single.torrent")))
+        await self.session.ltmgr.start_download_from_uri("file:" + pathname2url(TESTS_DATA_DIR / "bak_single.torrent"))
         downloads = await self.do_request('downloads?get_peers=1&get_pieces=1&&get_files=1', expected_code=200)
         self.assertCountEqual([downloads['downloads'][0][u'files'],
                                downloads['downloads'][1][u'files']],
@@ -91,7 +90,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         Testing whether we can start a download from a file
         """
-        post_data = {'uri': 'file:%s' % os.path.join(TESTS_DATA_DIR, 'video.avi.torrent')}
+        post_data = {'uri': 'file:%s' % (TESTS_DATA_DIR / 'video.avi.torrent')}
         expected_json = {'started': True, 'infohash': '9d5b2dbc52807325bfc28d688f2bb03f8d1e7667'}
         await self.do_request('downloads', expected_code=200, request_type='PUT',
                               post_data=post_data, expected_json=expected_json)
@@ -102,11 +101,11 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         Testing whether we can start a download from a file with a unicode name
         """
-        ufile = os.path.join(TESTS_DATA_DIR, u'video\u266b.avi.torrent')
-        udest = os.path.join(self.session_base_dir, u'video\u266b')
+        ufile = TESTS_DATA_DIR / u'video\u266b.avi.torrent'
+        udest = self.session_base_dir / u'video\u266b'
 
-        post_data = {'uri': 'file:' + ufile,
-                     'destination': udest}
+        post_data = {'uri': 'file:' + ufile.to_text(),
+                     'destination': udest.to_text()}
         response_dict = await self.do_request('downloads', expected_code=200, request_type='PUT', post_data=post_data)
         self.assertTrue(response_dict['started'])
         self.assertGreaterEqual(len(self.session.ltmgr.get_downloads()), 1)
@@ -142,7 +141,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         Testing whether illegal fields are stripped from the Libtorrent download info response.
         """
-        post_data = {'uri': 'file:%s' % os.path.join(TESTS_DATA_DIR, 'video.avi.torrent')}
+        post_data = {'uri': 'file:%s' % (TESTS_DATA_DIR / 'video.avi.torrent')}
         expected_json = {'started': True, 'infohash': '9d5b2dbc52807325bfc28d688f2bb03f8d1e7667'}
         response_dict = await self.do_request('downloads', expected_code=200, request_type='PUT',
                                               post_data=post_data, expected_json=expected_json)
@@ -167,7 +166,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         Testing whether illegal fields are stripped from the Libtorrent download info response.
         """
-        post_data = {'uri': 'file:%s' % os.path.join(TESTS_DATA_DIR, 'video.avi.torrent')}
+        post_data = {'uri': 'file:%s' % (TESTS_DATA_DIR / 'video.avi.torrent')}
         expected_json = {'started': True, 'infohash': '9d5b2dbc52807325bfc28d688f2bb03f8d1e7667'}
         response_dict = await self.do_request('downloads', expected_code=200, request_type='PUT',
                                               post_data=post_data, expected_json=expected_json)
@@ -192,7 +191,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         Testing whether illegal fields are stripped from the Libtorrent download info response.
         """
-        post_data = {'uri': 'file:%s' % os.path.join(TESTS_DATA_DIR, 'video.avi.torrent')}
+        post_data = {'uri': 'file:%s' % (TESTS_DATA_DIR / 'video.avi.torrent')}
         expected_json = {'started': True, 'infohash': '9d5b2dbc52807325bfc28d688f2bb03f8d1e7667'}
         response_dict = await self.do_request('downloads', expected_code=200, request_type='PUT',
                                               post_data=post_data, expected_json=expected_json)
@@ -253,7 +252,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         Testing whether the API returns 200 if a download is being removed
         """
-        video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
+        video_tdef, _ = self.create_local_torrent(TESTS_DATA_DIR / 'video.avi')
         self.session.ltmgr.start_download(tdef=video_tdef)
         infohash = get_hex_infohash(video_tdef)
         await self.do_request('downloads/%s' % infohash, post_data={"remove_data": True},
@@ -274,7 +273,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         Testing whether the API returns 200 if a download is being stopped
         """
-        video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
+        video_tdef, _ = self.create_local_torrent(TESTS_DATA_DIR / 'video.avi')
         download = self.session.ltmgr.start_download(tdef=video_tdef)
         infohash = get_hex_infohash(video_tdef)
         original_stop = download.stop
@@ -297,7 +296,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         Testing whether an error is returned when we toggle a file for inclusion out of range
         """
-        video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
+        video_tdef, _ = self.create_local_torrent(TESTS_DATA_DIR / 'video.avi')
         self.session.ltmgr.start_download(tdef=video_tdef)
         infohash = get_hex_infohash(video_tdef)
 
@@ -309,7 +308,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         Testing whether files can be correctly toggled in a download
         """
-        video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
+        video_tdef, _ = self.create_local_torrent(TESTS_DATA_DIR / 'video.avi')
         download = self.session.ltmgr.start_download(tdef=video_tdef)
         infohash = get_hex_infohash(video_tdef)
 
@@ -336,7 +335,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         Testing whether the API returns 200 if a download is being resumed
         """
-        video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
+        video_tdef, _ = self.create_local_torrent(TESTS_DATA_DIR / 'video.avi')
         download = self.session.ltmgr.start_download(tdef=video_tdef)
         infohash = get_hex_infohash(video_tdef)
 
@@ -357,7 +356,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         Testing whether the API returns 200 if a download is being rechecked
         """
-        video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
+        video_tdef, _ = self.create_local_torrent(TESTS_DATA_DIR / 'video.avi')
         download = self.session.ltmgr.start_download(tdef=video_tdef)
         infohash = get_hex_infohash(video_tdef)
 
@@ -378,7 +377,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         Testing whether the API returns 400 if we supply both anon_hops and another parameter
         """
-        video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
+        video_tdef, _ = self.create_local_torrent(TESTS_DATA_DIR / 'video.avi')
         self.session.ltmgr.start_download(tdef=video_tdef)
         infohash = get_hex_infohash(video_tdef)
 
@@ -390,7 +389,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         Testing whether the API returns error 400 if an unknown state is passed when modifying a download
         """
-        video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
+        video_tdef, _ = self.create_local_torrent(TESTS_DATA_DIR / 'video.avi')
         self.session.ltmgr.start_download(tdef=video_tdef)
 
         await self.do_request('downloads/%s' % get_hex_infohash(video_tdef), expected_code=400,
@@ -401,11 +400,11 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         Testing whether moving the torrent storage to a non-existing directory works as expected.
         """
-        video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
+        video_tdef, _ = self.create_local_torrent(TESTS_DATA_DIR / 'video.avi')
         self.session.ltmgr.start_download(tdef=video_tdef)
 
-        dest_dir = os.path.join(self.temporary_directory(), "non-existing")
-        self.assertFalse(os.path.exists(dest_dir))
+        dest_dir = self.temporary_directory() / "non-existing"
+        self.assertFalse(dest_dir.exists())
         data = {"state": "move_storage", "dest_dir": dest_dir}
 
         response_dict = await self.do_request('downloads/%s' % get_hex_infohash(video_tdef),
@@ -418,12 +417,12 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         Testing whether moving the torrent storage to an existing directory works as expected.
         """
-        video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
+        video_tdef, _ = self.create_local_torrent(TESTS_DATA_DIR / 'video.avi')
         self.session.ltmgr.start_download(tdef=video_tdef)
 
-        dest_dir = os.path.join(self.temporary_directory(), "existing")
+        dest_dir = self.temporary_directory() / "existing"
         os.mkdir(dest_dir)
-        self.assertTrue(os.path.exists(dest_dir))
+        self.assertTrue(dest_dir.exists())
         data = {"state": "move_storage", "dest_dir": dest_dir}
 
         response_dict = await self.do_request('downloads/%s' % get_hex_infohash(video_tdef),
@@ -443,7 +442,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         Testing whether the API returns the contents of the torrent file if a download is exported
         """
-        video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
+        video_tdef, _ = self.create_local_torrent(TESTS_DATA_DIR / 'video.avi')
         download = self.session.ltmgr.start_download(tdef=video_tdef)
 
         await download.get_handle()
@@ -463,7 +462,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         Testing whether the API returns file information of a specific download when requested
         """
-        video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
+        video_tdef, _ = self.create_local_torrent(TESTS_DATA_DIR / 'video.avi')
         self.session.ltmgr.start_download(tdef=video_tdef)
         response_dict = await self.do_request('downloads/%s/files' % get_hex_infohash(video_tdef),
                                               expected_code=200, request_type='GET')
@@ -482,7 +481,7 @@ class TestDownloadsWithTunnelsEndpoint(AbstractApiTest):
         """
         Testing whether the API returns 200 if we change the amount of hops of a download
         """
-        video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
+        video_tdef, _ = self.create_local_torrent(TESTS_DATA_DIR / 'video.avi')
         download = self.session.ltmgr.start_download(tdef=video_tdef)
         infohash = get_hex_infohash(video_tdef)
         await download.get_handle()
@@ -497,7 +496,7 @@ class TestDownloadsWithTunnelsEndpoint(AbstractApiTest):
             return fail(RuntimeError())
         self.session.ltmgr.remove_download = remove_download
 
-        video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
+        video_tdef, _ = self.create_local_torrent(TESTS_DATA_DIR / 'video.avi')
         self.session.ltmgr.start_download(tdef=video_tdef)
         infohash = get_hex_infohash(video_tdef)
         await self.do_request('downloads/%s' % infohash, post_data={"remove_data": True}, expected_code=500,
@@ -516,7 +515,7 @@ class TestMetadataDownloadEndpoint(AbstractApiTest):
         """
         Test adding a channel metadata download to the Tribler core
         """
-        post_data = {'uri': 'file:%s' % os.path.join(TESTS_DIR, 'Core/data/sample_channel/channel.mdblob')}
+        post_data = {'uri': 'file:%s' % (TESTS_DIR / 'Core/data/sample_channel/channel.mdblob')}
         expected_json = {'started': True, 'infohash': 'ea95d47988b4dcb07667194c998d2c5b473132e5'}
         await self.do_request('downloads', expected_code=200, request_type='PUT',
                               post_data=post_data, expected_json=expected_json)
@@ -530,8 +529,8 @@ class TestMetadataDownloadEndpoint(AbstractApiTest):
         Test adding a channel metadata download to the Tribler core
         """
         with db_session:
-            self.session.mds.process_mdblob_file(os.path.join(TESTS_DIR, 'Core/data/sample_channel/channel.mdblob'))
-        post_data = {'uri': 'file:%s' % os.path.join(TESTS_DIR, 'Core/data/sample_channel/channel.mdblob')}
+            self.session.mds.process_mdblob_file(TESTS_DIR / 'Core/data/sample_channel/channel.mdblob')
+        post_data = {'uri': 'file:%s' % (TESTS_DIR / 'Core/data/sample_channel/channel.mdblob')}
         expected_json = {u'error': u'Could not import Tribler metadata file'}
         await self.do_request('downloads', expected_code=200, request_type='PUT', post_data=post_data,
                                expected_json=expected_json)
@@ -541,7 +540,7 @@ class TestMetadataDownloadEndpoint(AbstractApiTest):
         """
         Test whether adding metadata with an invalid signature results in an error
         """
-        file_path = os.path.join(self.session_base_dir, u"invalid.mdblob")
+        file_path = self.session_base_dir / u"invalid.mdblob"
         with open(file_path, "wb") as out_file:
             with db_session:
                 my_channel = self.session.mds.ChannelMetadata.create_channel('test', 'test')
@@ -559,7 +558,7 @@ class TestMetadataDownloadEndpoint(AbstractApiTest):
         """
         Test adding an invalid metadata download to the Tribler core
         """
-        post_data = {'uri': 'file:%s' % os.path.join(TESTS_DATA_DIR, 'notexisting.mdblob'), 'metadata_download': '1'}
+        post_data = {'uri': 'file:%s' % (TESTS_DATA_DIR / 'notexisting.mdblob'), 'metadata_download': '1'}
         await self.do_request('downloads', expected_code=400, request_type='PUT', post_data=post_data)
 
     @timeout(20)
@@ -568,10 +567,9 @@ class TestMetadataDownloadEndpoint(AbstractApiTest):
         Testing whether the API returns the right download when a download is added
         """
         test_channel_name = 'test_channel'
-        video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
+        video_tdef, _ = self.create_local_torrent(TESTS_DATA_DIR / 'video.avi')
         self.session.ltmgr.start_download(tdef=video_tdef)
-        await self.session.ltmgr.start_download_from_uri("file:" + pathname2url(
-            os.path.join(TESTS_DATA_DIR, "bak_single.torrent")))
+        await self.session.ltmgr.start_download_from_uri("file:" + pathname2url(TESTS_DATA_DIR / "bak_single.torrent"))
 
         with db_session:
             channel = self.session.mds.ChannelMetadata.create_channel(test_channel_name, 'bla')

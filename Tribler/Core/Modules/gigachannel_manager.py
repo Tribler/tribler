@@ -1,5 +1,4 @@
-import os
-from asyncio import ensure_future, get_event_loop
+from asyncio import get_event_loop
 
 from ipv8.database import database_blob
 from ipv8.taskmanager import TaskManager
@@ -49,12 +48,12 @@ class GigaChannelManager(TaskManager):
                         and my_channel.status == COMMITTED
                         and not self.session.ltmgr.download_exists(bytes(my_channel.infohash))
                     ):
-                        torrent_path = os.path.join(self.session.mds.channels_dir, my_channel.dirname + ".torrent")
-                        mdblob_path = os.path.join(self.session.mds.channels_dir, my_channel.dirname + ".mdblob")
+                        torrent_path = self.session.mds.channels_dir / (my_channel.dirname + ".torrent")
+                        mdblob_path = self.session.mds.channels_dir / (my_channel.dirname + ".mdblob")
                         tdef = None
-                        if os.path.exists(torrent_path) and os.path.exists(mdblob_path):
+                        if torrent_path.exists() and mdblob_path.exists():
                             try:
-                                tdef = TorrentDef.load(torrent_path)
+                                tdef = TorrentDef.load(torrent_path.to_text())
                             except IOError:
                                 self._logger.warning(
                                     "Can't open personal channel torrent file. Will try to regenerate it."
@@ -190,7 +189,7 @@ class GigaChannelManager(TaskManager):
             obsolete_version_files = set(download.get_tdef().get_files())
             files_to_remove_relative = obsolete_version_files - current_version_files
             for f in files_to_remove_relative:
-                files_to_remove.append(os.path.join(dirname, f))
+                files_to_remove.append(dirname / f)
         return files_to_remove
     """
 
@@ -255,7 +254,7 @@ class GigaChannelManager(TaskManager):
 
         def _process_download():
             try:
-                channel_dirname = os.path.join(self.session.mds.channels_dir, channel.dirname)
+                channel_dirname = self.session.mds.channels_dir / channel.dirname
                 self.session.mds.process_channel_dir(channel_dirname, channel.public_key, channel.id_,
                                                         external_thread=True)
                 self.session.mds._db.disconnect()

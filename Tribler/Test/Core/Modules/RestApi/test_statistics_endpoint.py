@@ -1,4 +1,3 @@
-import os
 
 from ipv8.attestation.trustchain.community import TrustChainCommunity
 from ipv8.keyvault.crypto import default_eccrypto
@@ -23,7 +22,7 @@ class TestStatisticsEndpoint(AbstractApiTest):
         self.session.ipv8 = self.mock_ipv8
         self.session.config.set_ipv8_enabled(True)
         my_key = default_eccrypto.generate_key(u"curve25519")
-        self.session.mds = MetadataStore(os.path.join(self.session_base_dir, 'test.db'), self.session_base_dir,
+        self.session.mds = MetadataStore(self.session_base_dir / 'test.db', self.session_base_dir,
                                             my_key)
 
     async def tearDown(self):

@@ -1,4 +1,3 @@
-import os
 
 from Tribler.Test.test_as_server import TestAsServer
 
@@ -82,7 +81,7 @@ class TestTrackerManager(TestAsServer):
         """
         Test if we correctly load a blacklist without entries
         """
-        blacklist_file = os.path.join(self.session.config.get_state_dir(), "tracker_blacklist.txt")
+        blacklist_file = self.session.config.get_state_dir() / "tracker_blacklist.txt"
         with open(blacklist_file, 'w') as f:
             f.write("")
 
@@ -94,7 +93,7 @@ class TestTrackerManager(TestAsServer):
         """
         Test if we correctly load a blacklist entry from a file
         """
-        blacklist_file = os.path.join(self.session.config.get_state_dir(), "tracker_blacklist.txt")
+        blacklist_file = self.session.config.get_state_dir() / "tracker_blacklist.txt"
         with open(blacklist_file, 'w') as f:
             f.write("http://test1.com/announce")
 
@@ -106,7 +105,7 @@ class TestTrackerManager(TestAsServer):
         """
         Test if we correctly load blacklist entries from a file
         """
-        blacklist_file = os.path.join(self.session.config.get_state_dir(), "tracker_blacklist.txt")
+        blacklist_file = self.session.config.get_state_dir() / "tracker_blacklist.txt"
         with open(blacklist_file, 'w') as f:
             f.write("http://test1.com/announce\nhttp://test2.com/announce")
 

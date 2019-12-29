@@ -25,6 +25,7 @@ from Tribler.Core.Modules.MetadataStore.store import (
     UNKNOWN_TORRENT,
     UPDATED_OUR_VERSION,
 )
+from Tribler.Core.Utilities.path_util import Path
 from Tribler.Test.Core.base_test import TriblerCoreTest
 
 
@@ -37,15 +38,15 @@ def make_wrong_payload(filename):
         output_file.write(metadata_payload.serialized())
 
 
-DATA_DIR = os.path.join(os.path.abspath(os.path.dirname(os.path.realpath(__file__))), '..', '..', 'data')
-SAMPLE_DIR = os.path.join(DATA_DIR, 'sample_channel')
+DATA_DIR = Path(__file__).parent / '..' / '..' / 'data'
+SAMPLE_DIR = DATA_DIR / 'sample_channel'
 # Just get the first and only subdir there, and assume it is the sample channel dir
 CHANNEL_DIR = [
-    os.path.join(SAMPLE_DIR, subdir)
+    SAMPLE_DIR / subdir
     for subdir in os.listdir(SAMPLE_DIR)
-    if os.path.isdir(os.path.join(SAMPLE_DIR, subdir)) and len(subdir) == CHANNEL_DIR_NAME_LENGTH
+    if (SAMPLE_DIR / subdir).is_dir() and len(subdir) == CHANNEL_DIR_NAME_LENGTH
 ][0]
-CHANNEL_METADATA = os.path.join(DATA_DIR, 'sample_channel', 'channel.mdblob')
+CHANNEL_METADATA = DATA_DIR / 'sample_channel' / 'channel.mdblob'
 
 
 class TestMetadataStore(TriblerCoreTest):
@@ -64,10 +65,10 @@ class TestMetadataStore(TriblerCoreTest):
 
     def test_store_clock(self):
         my_key = default_eccrypto.generate_key(u"curve25519")
-        mds2 = MetadataStore(os.path.join(self.session_base_dir, 'test.db'), self.session_base_dir, my_key)
+        mds2 = MetadataStore(self.session_base_dir / 'test.db', self.session_base_dir, my_key)
         tick = mds2.clock.tick()
         mds2.shutdown()
-        mds2 = MetadataStore(os.path.join(self.session_base_dir, 'test.db'), self.session_base_dir, my_key)
+        mds2 = MetadataStore(self.session_base_dir / 'test.db', self.session_base_dir, my_key)
         self.assertEqual(mds2.clock.clock, tick)
         mds2.shutdown()
 
@@ -78,7 +79,7 @@ class TestMetadataStore(TriblerCoreTest):
         """
 
         test_node_metadata = self.mds.TorrentMetadata(title='test', infohash=database_blob(os.urandom(20)))
-        metadata_path = os.path.join(self.session_base_dir, 'metadata.data')
+        metadata_path = self.session_base_dir / 'metadata.data'
         test_node_metadata.to_file(metadata_path)
         # We delete this TorrentMeta info now, it should be added again to the database when loading it
         test_node_metadata.delete()
@@ -94,7 +95,7 @@ class TestMetadataStore(TriblerCoreTest):
         self.assertIsNone(self.mds.TorrentMetadata.get(infohash=b'1' * 20))
 
         # Test an unknown metadata type, this should raise an exception
-        invalid_metadata = os.path.join(self.session_base_dir, 'invalidtype.mdblob')
+        invalid_metadata = self.session_base_dir / 'invalidtype.mdblob'
         make_wrong_payload(invalid_metadata)
         self.assertRaises(
             UnknownBlobTypeException,
@@ -176,7 +177,7 @@ class TestMetadataStore(TriblerCoreTest):
         for md in md_list:
             md.delete()
 
-        channel_dir = os.path.join(self.mds.channels_dir, channel.dirname)
+        channel_dir = self.mds.ChannelMetadata._channels_dir / channel.dirname
         self.assertTrue(len(os.listdir(channel_dir)) > 1)  # make sure it was broken into more than one .mdblob file
         self.mds.process_channel_dir(channel_dir, channel.public_key, channel.id_, skip_personal_metadata_payload=False)
         self.assertEqual(num_entries, len(channel.contents))
@@ -193,7 +194,7 @@ class TestMetadataStore(TriblerCoreTest):
         channel.commit_channel_torrent()
         torrent_md.delete()
 
-        channel_dir = os.path.join(self.mds.channels_dir, channel.dirname)
+        channel_dir = self.mds.ChannelMetadata._channels_dir / channel.dirname
         self.assertTrue(len(os.listdir(channel_dir)) > 0)
 
         # By default, personal channel torrent metadata processing is skipped so there should be no torrents

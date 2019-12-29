@@ -9,7 +9,6 @@ from Tribler.Test.test_as_server import AbstractServer
 def process_dummy_function(stop_flag):
     while stop_flag.value == 0:
         sleep(0.01)
-        pass
 
 
 class TestProcessChecker(AbstractServer):
@@ -27,7 +26,7 @@ class TestProcessChecker(AbstractServer):
         self.state_dir = self.getStateDir()
 
     def create_lock_file_with_pid(self, pid):
-        with open(os.path.join(self.state_dir, LOCK_FILE_NAME), 'w') as lock_file:
+        with open(self.state_dir / LOCK_FILE_NAME, 'w') as lock_file:
             lock_file.write(str(pid))
 
     def test_create_lock_file(self):
@@ -36,7 +35,7 @@ class TestProcessChecker(AbstractServer):
         """
         process_checker = ProcessChecker(state_directory=self.state_dir)
         process_checker.create_lock_file()
-        self.assertTrue(os.path.exists(os.path.join(self.state_dir, LOCK_FILE_NAME)))
+        self.assertTrue((self.state_dir / LOCK_FILE_NAME).exists())
 
     def test_remove_lock_file(self):
         """
@@ -45,7 +44,7 @@ class TestProcessChecker(AbstractServer):
         process_checker = ProcessChecker(state_directory=self.state_dir)
         process_checker.create_lock_file()
         process_checker.remove_lock_file()
-        self.assertFalse(os.path.exists(os.path.join(self.state_dir, LOCK_FILE_NAME)))
+        self.assertFalse((self.state_dir / LOCK_FILE_NAME).exists())
 
     def test_no_lock_file(self):
         """
@@ -53,14 +52,14 @@ class TestProcessChecker(AbstractServer):
         """
         process_checker = ProcessChecker(state_directory=self.state_dir)
         # Process checker does not create a lock file itself now, Core manager will call to create it.
-        self.assertFalse(os.path.exists(os.path.join(self.state_dir, LOCK_FILE_NAME)))
+        self.assertFalse((self.state_dir / LOCK_FILE_NAME).exists())
         self.assertFalse(process_checker.already_running)
 
     def test_invalid_pid_in_lock_file(self):
         """
         Testing pid should be -1 if the lock file is invalid
         """
-        with open(os.path.join(self.state_dir, LOCK_FILE_NAME), 'wb') as lock_file:
+        with open(self.state_dir / LOCK_FILE_NAME, 'wb') as lock_file:
             lock_file.write(b"Hello world")
 
         process_checker = ProcessChecker(state_directory=self.state_dir)

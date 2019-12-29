@@ -27,15 +27,17 @@ from Tribler.Core.Config.tribler_config import CONFIG_SPEC_PATH, TriblerConfig
 from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 from Tribler.Core.Session import Session
 from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.Utilities import path_util
 from Tribler.Core.Utilities.instrumentation import WatchDog
 from Tribler.Core.Utilities.network_utils import get_random_port
-from Tribler.Core.simpledefs import DLSTATUS_SEEDING, dlstatus_strings
+from Tribler.Core.Utilities.path_util import Path
+from Tribler.Core.simpledefs import DLSTATUS_SEEDING
 from Tribler.Test.util.util import process_unhandled_exceptions, process_unhandled_twisted_exceptions
 
-TESTS_DIR = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
-TESTS_DATA_DIR = os.path.abspath(os.path.join(TESTS_DIR, u"data"))
-TESTS_API_DIR = os.path.abspath(os.path.join(TESTS_DIR, u"API"))
-OUTPUT_DIR = os.path.abspath(os.environ.get('OUTPUT_DIR', 'output'))
+TESTS_DIR = Path(__file__).resolve().parent
+TESTS_DATA_DIR = path_util.abspath(TESTS_DIR / u"data")
+TESTS_API_DIR = path_util.abspath(TESTS_DIR / u"API")
+OUTPUT_DIR = path_util.abspath(os.environ.get('OUTPUT_DIR', 'output'))
 
 
 class BaseTestCase(asynctest.TestCase):
@@ -70,7 +72,7 @@ class BaseTestCase(asynctest.TestCase):
 
     def temporary_directory(self, suffix='', exist_ok=False):
         random_string = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(6))
-        temp = os.path.join(TESTS_DIR, "temp", self.__class__.__name__ + suffix + random_string)
+        temp = TESTS_DIR / "temp" / (self.__class__.__name__ + suffix + random_string)
         self._tempdirs.append(temp)
         try:
             os.makedirs(temp)
@@ -124,8 +126,8 @@ class AbstractServer(BaseTestCase):
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.session_base_dir = self.temporary_directory(suffix=u"_tribler_test_session_")
-        self.state_dir = os.path.join(self.session_base_dir, u"dot.Tribler")
-        self.dest_dir = os.path.join(self.session_base_dir, u"TriblerDownloads")
+        self.state_dir = self.session_base_dir / u"dot.Tribler"
+        self.dest_dir = self.session_base_dir / u"TriblerDownloads"
 
         self.annotate_dict = {}
 
@@ -186,26 +188,26 @@ class AbstractServer(BaseTestCase):
         super(AbstractServer, self).tearDown()
 
     def getStateDir(self, nr=0):
-        state_dir = self.state_dir + (str(nr) if nr else '')
-        if not os.path.exists(state_dir):
+        state_dir = self.state_dir.joinpath(Path(str(nr) if nr else ''))
+        if not state_dir.exists():
             os.mkdir(state_dir)
         return state_dir
 
     def getDestDir(self, nr=0):
-        dest_dir = self.dest_dir + (str(nr) if nr else '')
-        if not os.path.exists(dest_dir):
+        dest_dir = self.dest_dir.joinpath(Path(str(nr) if nr else ''))
+        if not dest_dir.exists():
             os.mkdir(dest_dir)
         return dest_dir
 
     def annotate(self, annotation, start=True, destdir=OUTPUT_DIR):
-        if not os.path.exists(destdir):
-            os.makedirs(os.path.abspath(destdir))
+        if not destdir.exists():
+            os.makedirs(path_util.abspath(destdir))
 
         if start:
             self.annotate_dict[annotation] = time.time()
         else:
-            filename = os.path.join(destdir, u"annotations.txt")
-            mode = 'a' if os.path.exists(filename) else 'w'
+            filename = destdir / u"annotations.txt"
+            mode = 'a' if filename.exists() else 'w'
             with open(filename, mode) as f:
                 f.write("annotation start end\n")
 
@@ -241,7 +243,7 @@ class TestAsServer(AbstractServer):
         self.annotate(self._testMethodName, start=True)
 
     def setUpPreSession(self):
-        self.config = TriblerConfig(ConfigObj(configspec=CONFIG_SPEC_PATH, default_encoding='utf-8'))
+        self.config = TriblerConfig(ConfigObj(configspec=CONFIG_SPEC_PATH.to_text(), default_encoding='utf-8'))
         self.config.set_default_destination_dir(self.dest_dir)
         self.config.set_state_dir(self.getStateDir())
         self.config.set_torrent_checking_enabled(False)
@@ -286,12 +288,12 @@ class TestAsServer(AbstractServer):
         This method creates a torrent from a local file and saves the torrent in the session state dir.
         Note that the source file needs to exist.
         """
-        self.assertTrue(os.path.exists(source_file))
+        self.assertTrue(source_file.exists())
 
         tdef = TorrentDef()
         tdef.add_content(source_file)
         tdef.set_tracker("http://localhost/announce")
-        torrent_path = os.path.join(self.session.config.get_state_dir(), "seed.torrent")
+        torrent_path = self.session.config.get_state_dir() / "seed.torrent"
         tdef.save(torrent_filepath=torrent_path)
 
         return tdef, torrent_path

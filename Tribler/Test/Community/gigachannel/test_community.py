@@ -9,6 +9,7 @@ from pony.orm import db_session
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import LEGACY_ENTRY, NEW
 from Tribler.Core.Modules.MetadataStore.serialization import REGULAR_TORRENT
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
+from Tribler.Core.Utilities.path_util import Path
 from Tribler.Core.Utilities.random_utils import random_infohash
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.community.gigachannel.community import GigaChannelCommunity
@@ -29,8 +30,8 @@ class TestGigaChannelUnits(TestBase):
 
     def create_node(self, *args, **kwargs):
         metadata_store = MetadataStore(
-            os.path.join(self.temporary_directory(), "%d.db" % self.count),
-            self.temporary_directory(),
+            Path(self.temporary_directory()) / ("%d.db" % self.count),
+            Path(self.temporary_directory()),
             default_eccrypto.generate_key(u"curve25519"),
         )
         kwargs['metadata_store'] = metadata_store

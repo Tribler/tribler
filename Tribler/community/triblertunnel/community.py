@@ -1,5 +1,4 @@
 import hashlib
-import os
 import sys
 import time
 from asyncio import Future, gather, sleep
@@ -29,6 +28,7 @@ from ipv8.peer import Peer
 from ipv8.peerdiscovery.network import Network
 
 from Tribler.Core.Socks5.server import Socks5Server
+from Tribler.Core.Utilities import path_util
 from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.Utilities.utilities import succeed
 from Tribler.Core.simpledefs import (
@@ -65,8 +65,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         num_random_slots = kwargs.pop('random_slots', 5)
         self.bandwidth_wallet = kwargs.pop('bandwidth_wallet', None)
         socks_listen_ports = kwargs.pop('socks_listen_ports', None)
-        state_path = self.tribler_session.config.get_state_dir() if self.tribler_session else ''
-        self.exitnode_cache = kwargs.pop('exitnode_cache', os.path.join(state_path, 'exitnode_cache.dat'))
+        state_path = self.tribler_session.config.get_state_dir() if self.tribler_session else path_util.Path()
+        self.exitnode_cache = kwargs.pop('exitnode_cache', state_path / 'exitnode_cache.dat')
         super(TriblerTunnelCommunity, self).__init__(*args, **kwargs)
         self._use_main_thread = True
 
@@ -146,10 +146,10 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         :returns: None
         """
-        if os.path.isfile(self.exitnode_cache):
+        if self.exitnode_cache.is_file():
             self.logger.debug('Loading exit nodes from cache: %s', self.exitnode_cache)
             exit_nodes = Network()
-            with open(self.exitnode_cache, 'rb') as cache:
+            with self.exitnode_cache.open('rb') as cache:
                 exit_nodes.load_snapshot(cache.read())
             for exit_node in exit_nodes.get_walkable_addresses():
                 self.endpoint.send(exit_node, self.create_introduction_request(exit_node))

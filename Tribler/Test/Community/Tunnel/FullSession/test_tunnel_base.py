@@ -1,4 +1,3 @@
-import os
 import random
 from asyncio import all_tasks, gather, sleep
 
@@ -156,9 +155,9 @@ class TestTunnelBase(TestAsServer):
             self.session2.ltmgr.is_shutdown_ready = lambda: True
 
         tdef = TorrentDef()
-        tdef.add_content(os.path.join(TESTS_DATA_DIR, "video.avi"))
+        tdef.add_content(TESTS_DATA_DIR / "video.avi")
         tdef.set_tracker("http://localhost/announce")
-        torrentfn = os.path.join(self.session2.config.get_state_dir(), "gen.torrent")
+        torrentfn = self.session2.config.get_state_dir() / "gen.torrent"
         tdef.save(torrent_filepath=torrentfn)
         self.seed_tdef = tdef
 

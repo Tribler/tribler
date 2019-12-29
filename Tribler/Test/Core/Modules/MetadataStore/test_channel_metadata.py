@@ -18,6 +18,8 @@ from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import COMMITTE
 from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.Utilities import path_util
+from Tribler.Core.Utilities.path_util import Path
 from Tribler.Core.Utilities.random_utils import random_infohash
 from Tribler.Core.exceptions import DuplicateTorrentFileError
 from Tribler.Test.Core.base_test import TriblerCoreTest
@@ -29,8 +31,8 @@ class TestChannelMetadata(TriblerCoreTest):
     Contains various tests for the channel metadata type.
     """
 
-    DATA_DIR = os.path.join(os.path.abspath(os.path.dirname(os.path.realpath(__file__))), '..', '..', 'data')
-    CHANNEL_METADATA = os.path.join(DATA_DIR, 'sample_channel', 'channel.mdblob')
+    DATA_DIR = Path(__file__).parent / '..' / '..' / 'data'
+    CHANNEL_METADATA = DATA_DIR / 'sample_channel' / 'channel.mdblob'
 
     async def setUp(self):
         await super(TestChannelMetadata, self).setUp()
@@ -337,7 +339,7 @@ class TestChannelMetadata(TriblerCoreTest):
         # Remove the channel and read it back from disk
         for c in chan.contents:
             c.delete()
-        my_dir = os.path.abspath(os.path.join(self.mds.channels_dir, chan.dirname))
+        my_dir = path_util.abspath(self.mds.ChannelMetadata._channels_dir / chan.dirname)
         self.mds.process_channel_dir(my_dir, chan.public_key, chan.id_, skip_personal_metadata_payload=False)
         self.assertEqual(chan.num_entries, 363)
 
@@ -347,7 +349,7 @@ class TestChannelMetadata(TriblerCoreTest):
         Test completely re-commit your channel
         """
         channel = self.mds.ChannelMetadata.create_channel('test', 'test')
-        my_dir = os.path.abspath(os.path.join(self.mds.channels_dir, channel.dirname))
+        my_dir = path_util.abspath(self.mds.ChannelMetadata._channels_dir / channel.dirname)
         tdef = TorrentDef.load(TORRENT_UBUNTU_FILE)
 
         # 1st torrent
@@ -428,9 +430,7 @@ class TestChannelMetadata(TriblerCoreTest):
 
     @db_session
     def check_add(self, torrents_in_dir, errors, recursive):
-        TEST_TORRENTS_DIR = os.path.join(
-            os.path.abspath(os.path.dirname(os.path.realpath(__file__))), '..', '..', '..', 'data', 'linux_torrents'
-        )
+        TEST_TORRENTS_DIR = Path(__file__).parent / '..' / '..' / '..' / 'data' / 'linux_torrents'
         chan = self.mds.ChannelMetadata.create_channel(title='testchan')
         torrents, e = chan.add_torrents_from_dir(TEST_TORRENTS_DIR, recursive)
         self.assertEqual(torrents_in_dir, len(torrents))

@@ -2,7 +2,6 @@
 Author(s): Arno Bakker
 """
 import logging
-import os
 from hashlib import sha1
 
 import aiohttp
@@ -10,7 +9,7 @@ import aiohttp
 import libtorrent as lt
 from libtorrent import bencode
 
-from Tribler.Core.Utilities import maketorrent
+from Tribler.Core.Utilities import maketorrent, path_util
 from Tribler.Core.Utilities.torrent_utils import create_torrent_file
 from Tribler.Core.Utilities.unicode import ensure_unicode
 from Tribler.Core.Utilities.utilities import bdecode_compat, is_valid_url, parse_magnetlink
@@ -151,7 +150,7 @@ class TorrentDef(object):
         Add some content to the torrent file.
         :param file_path: The (absolute) path of the file to add.
         """
-        self.files_list.append(os.path.abspath(file_path))
+        self.files_list.append(path_util.abspath(file_path))
 
     def set_encoding(self, enc):
         """
@@ -340,7 +339,7 @@ class TorrentDef(object):
         """
         if self.metainfo and b"files" in self.metainfo[b"info"]:
             # Multi-file torrent
-            join = os.path.join
+            join = path_util.join
             files = self.metainfo[b"info"][b"files"]
 
             for file_dict in files:
@@ -421,7 +420,7 @@ class TorrentDef(object):
         """
         videofiles = []
         for filename, length in self._get_all_files_as_unicode_with_length():
-            prefix, ext = os.path.splitext(filename)
+            ext = path_util.Path(filename).suffix
             if ext != "" and ext[0] == ".":
                 ext = ext[1:]
             if exts is None or ext.lower() in exts:
@@ -475,7 +474,7 @@ class TorrentDef(object):
                 else:
                     intorrentpath = maketorrent.pathlist2filename(file_dict[b'path'])
 
-                if intorrentpath == file:
+                if intorrentpath == path_util.Path(ensure_unicode(file, 'utf8')):
                     return i
             raise ValueError("File not found in torrent")
         else:

@@ -1,5 +1,4 @@
 import contextlib
-import os
 import shutil
 import sqlite3
 
@@ -7,16 +6,26 @@ from ipv8.keyvault.crypto import default_eccrypto
 
 from pony.orm import db_session
 
+from Tribler import Path
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import COMMITTED, LEGACY_ENTRY
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.Upgrade.db72_to_pony import (
-    CONVERSION_FINISHED, CONVERSION_FROM_72, CONVERSION_FROM_72_CHANNELS, CONVERSION_FROM_72_DISCOVERED,
-    CONVERSION_FROM_72_PERSONAL, CONVERSION_STARTED, DispersyToPonyMigration, already_upgraded,
-    cleanup_pony_experimental_db, new_db_version_ok, old_db_version_ok, should_upgrade)
+    CONVERSION_FINISHED,
+    CONVERSION_FROM_72,
+    CONVERSION_FROM_72_CHANNELS,
+    CONVERSION_FROM_72_DISCOVERED,
+    CONVERSION_FROM_72_PERSONAL,
+    CONVERSION_STARTED,
+    DispersyToPonyMigration,
+    already_upgraded,
+    cleanup_pony_experimental_db,
+    new_db_version_ok,
+    old_db_version_ok,
+    should_upgrade,
+)
 from Tribler.Test.Core.base_test import MockObject, TriblerCoreTest
 
-OLD_DB_SAMPLE = os.path.join(os.path.abspath(os.path.dirname(os.path.realpath(__file__))), '..', 'data',
-                             'upgrade_databases', 'tribler_v29.sdb')
+OLD_DB_SAMPLE = Path(__file__).parent / '..' / 'data' / 'upgrade_databases' / 'tribler_v29.sdb'
 
 
 class TestUpgradeDB72ToPony(TriblerCoreTest):
@@ -25,7 +34,7 @@ class TestUpgradeDB72ToPony(TriblerCoreTest):
         await super(TestUpgradeDB72ToPony, self).setUp()
 
         self.my_key = default_eccrypto.generate_key(u"curve25519")
-        mds_db = os.path.join(self.session_base_dir, 'test.db')
+        mds_db = self.session_base_dir / 'test.db'
         mds_channels_dir = self.session_base_dir
 
         self.mds = MetadataStore(mds_db, mds_channels_dir, self.my_key)
@@ -109,7 +118,7 @@ class TestUpgradePreconditionChecker(TriblerCoreTest):
         self.assertTrue(old_db_version_ok(OLD_DB_SAMPLE))
 
         # Wrong old database version
-        old_db = os.path.join(self.session_base_dir, 'old.db')
+        old_db = self.session_base_dir / 'old.db'
         shutil.copyfile(OLD_DB_SAMPLE, old_db)
         with contextlib.closing(sqlite3.connect(old_db)) as connection, connection:
             cursor = connection.cursor()
@@ -118,15 +127,15 @@ class TestUpgradePreconditionChecker(TriblerCoreTest):
 
     def test_cleanup_pony_experimental_db(self):
         # Assert True is returned for a garbled db and nothing is done with it
-        garbled_db = os.path.join(self.session_base_dir, 'garbled.db')
+        garbled_db = self.session_base_dir / 'garbled.db'
         with open(garbled_db, 'w') as f:
             f.write("123")
         self.assertRaises(sqlite3.DatabaseError, cleanup_pony_experimental_db, garbled_db)
-        self.assertTrue(os.path.exists(garbled_db))
+        self.assertTrue(garbled_db.exists())
 
         # Create a Pony database of older experimental version
-        pony_db = os.path.join(self.session_base_dir, 'pony.db')
-        pony_db_bak = os.path.join(self.session_base_dir, 'pony2.db')
+        pony_db = self.session_base_dir / 'pony.db'
+        pony_db_bak = self.session_base_dir / 'pony2.db'
         my_key = default_eccrypto.generate_key(u"curve25519")
         mds = MetadataStore(pony_db, self.session_base_dir, my_key)
         mds.shutdown()
@@ -138,14 +147,14 @@ class TestUpgradePreconditionChecker(TriblerCoreTest):
 
         # Assert older experimental version is deleted
         cleanup_pony_experimental_db(pony_db)
-        self.assertFalse(os.path.exists(pony_db))
+        self.assertFalse(pony_db.exists())
 
         # Assert recent database version is left untouched
         cleanup_pony_experimental_db(pony_db_bak)
-        self.assertTrue(os.path.exists(pony_db_bak))
+        self.assertTrue(pony_db_bak.exists())
 
     def test_new_db_version_ok(self):
-        pony_db = os.path.join(self.session_base_dir, 'pony.db')
+        pony_db = self.session_base_dir / 'pony.db'
         my_key = default_eccrypto.generate_key(u"curve25519")
         mds = MetadataStore(pony_db, self.session_base_dir, my_key)
         mds.shutdown()
@@ -160,7 +169,7 @@ class TestUpgradePreconditionChecker(TriblerCoreTest):
         self.assertFalse(new_db_version_ok(pony_db))
 
     def test_already_upgraded(self):
-        pony_db = os.path.join(self.session_base_dir, 'pony.db')
+        pony_db = self.session_base_dir / 'pony.db'
         my_key = default_eccrypto.generate_key(u"curve25519")
         mds = MetadataStore(pony_db, self.session_base_dir, my_key)
         mds.shutdown()
@@ -176,10 +185,10 @@ class TestUpgradePreconditionChecker(TriblerCoreTest):
 
     def test_should_upgrade(self):
         from Tribler.Core.Upgrade import db72_to_pony
-        pony_db = os.path.join(self.session_base_dir, 'pony.db')
+        pony_db = self.session_base_dir / 'pony.db'
 
         # Old DB does not exist
-        self.assertFalse(should_upgrade(os.path.join(self.session_base_dir, 'nonexistent.db'), None))
+        self.assertFalse(should_upgrade(self.session_base_dir / 'nonexistent.db', None))
 
         # Old DB is not OK
         db72_to_pony.old_db_version_ok = lambda _: False

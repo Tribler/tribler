@@ -1,9 +1,9 @@
 import logging
-import os
 import time
 
 from pony.orm import count, db_session
 
+from Tribler.Core.Utilities import path_util
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
 
 MAX_TRACKER_FAILURES = 5  # if a tracker fails this amount of times in a row, its 'is_alive' will be marked as 0 (dead).
@@ -29,8 +29,8 @@ class TrackerManager(object):
 
         Entries are newline separated and are supposed to be sanitized.
         """
-        blacklist_file = os.path.abspath(os.path.join(self._session.config.get_state_dir(), "tracker_blacklist.txt"))
-        if os.path.exists(blacklist_file):
+        blacklist_file = path_util.abspath(self._session.config.get_state_dir() / "tracker_blacklist.txt")
+        if blacklist_file.exists():
             with open(blacklist_file, 'r') as blacklist_file_handle:
                 # Note that get_uniformed_tracker_url will strip the newline at the end of .readlines()
                 self.blacklist.extend([get_uniformed_tracker_url(url) for url in blacklist_file_handle.readlines()])

@@ -1,29 +1,22 @@
 import logging
-import os
 from hashlib import sha1
 
 import libtorrent
 from libtorrent import bencode
 
+from Tribler.Core.Utilities import path_util
+
 logger = logging.getLogger(__name__)
 
 
-def commonprefix(l):
-    # this unlike the os.path.commonprefix version always returns path prefixes as it compares
+def commonprefix(paths_list):
+    # this unlike the os path .commonprefix version always returns path prefixes as it compares
     # path component wise.
-    cp = []
-    ls = [p.split('/') for p in l]
-    ml = min(len(p) for p in ls)
+    base_set = set(paths_list[0].parents)
+    for p in paths_list[1:]:
+        base_set.intersection_update(set(p.parents))
 
-    for i in range(ml):
-
-        s = set(p[i] for p in ls)
-        if len(s) != 1:
-            break
-
-        cp.append(s.pop())
-
-    return os.path.sep.join(cp)
+    return sorted(base_set, reverse=True)[0]
 
 
 def create_torrent_file(file_path_list, params, torrent_filepath=None):
@@ -32,27 +25,28 @@ def create_torrent_file(file_path_list, params, torrent_filepath=None):
     # filter all non-files
     file_path_list_filtered = []
     for path in file_path_list:
-        if not os.path.exists(path):
+        path = path_util.Path(path)
+        if not path.exists():
             raise IOError('Path does not exist: %s' % path)
-        elif os.path.isfile(path):
+        elif path.is_file():
             file_path_list_filtered.append(path)
 
     # get the directory where these files are in. If there are multiple files, take the common directory they are in
     if len(file_path_list_filtered) == 1:
-        base_path = os.path.split(file_path_list_filtered[0])[0]
+        base_path = path_util.split(file_path_list_filtered[0])[0]
     else:
-        base_path = os.path.abspath(commonprefix(file_path_list_filtered))
+        base_path = path_util.abspath(commonprefix(file_path_list_filtered))
 
     # the base_dir directory is the parent directory of the base_path and is passed to the set_piece_hash method
-    base_dir = os.path.split(base_path)[0]
 
     if len(file_path_list_filtered) == 1:
-        filename = os.path.basename(file_path_list_filtered[0])
-        fs.add_file(filename, os.path.getsize(file_path_list_filtered[0]))
+        filename = path_util.basename(file_path_list_filtered[0])
+        fs.add_file(filename, path_util.getsize(file_path_list_filtered[0]))
     else:
         for full_file_path in file_path_list_filtered:
-            filename = os.path.join(base_path[len(base_dir) + 1:], full_file_path[len(base_dir):])[1:]
-            fs.add_file(filename, os.path.getsize(full_file_path))
+            #FIXME: there should be a better, cleaner way to define this
+            filename = path_util.join(*full_file_path.parts[len(base_path.parent.parts):])
+            fs.add_file(filename.to_text(), path_util.getsize(full_file_path))
 
     if params.get(b'piece length'):
         piece_size = params[b'piece length']
@@ -100,9 +94,9 @@ def create_torrent_file(file_path_list, params, torrent_filepath=None):
 
     # read the files and calculate the hashes
     if len(file_path_list) == 1:
-        libtorrent.set_piece_hashes(torrent, base_path)
+        libtorrent.set_piece_hashes(torrent, base_path.to_text())
     else:
-        libtorrent.set_piece_hashes(torrent, base_dir)
+        libtorrent.set_piece_hashes(torrent, base_path.parent.to_text())
 
     t1 = torrent.generate()
     torrent = libtorrent.bencode(t1)
@@ -114,7 +108,7 @@ def create_torrent_file(file_path_list, params, torrent_filepath=None):
     return {
         'success': True,
         'base_path': base_path,
-        'base_dir': base_dir,
+        'base_dir': base_path.parent,
         'torrent_file_path': torrent_filepath,
         'metainfo': torrent,
         'infohash': sha1(bencode(t1[b'info'])).digest()

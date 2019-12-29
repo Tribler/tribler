@@ -1,6 +1,5 @@
 import base64
 import json
-import os
 
 from aiohttp import web
 
@@ -8,6 +7,7 @@ from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.Modules.restapi.rest_endpoint import HTTP_BAD_REQUEST, RESTEndpoint, RESTResponse
 from Tribler.Core.Modules.restapi.util import return_handled_exception
 from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.Utilities.path_util import Path
 from Tribler.Core.Utilities.unicode import ensure_unicode, recursive_bytes
 from Tribler.Core.Utilities.utilities import bdecode_compat
 from Tribler.Core.exceptions import DuplicateDownloadException
@@ -77,7 +77,7 @@ class CreateTorrentEndpoint(RESTEndpoint):
 
         export_dir = None
         if 'export_dir' in parameters and parameters['export_dir']:
-            export_dir = parameters['export_dir']
+            export_dir = Path(parameters['export_dir'])
 
         from Tribler.Core.version import version_id
         params['created by'] = '%s version: %s' % ('Tribler', version_id)
@@ -95,8 +95,8 @@ class CreateTorrentEndpoint(RESTEndpoint):
 
         metainfo_dict = bdecode_compat(result['metainfo'])
 
-        if export_dir and os.path.exists(export_dir):
-            save_path = os.path.join(export_dir, "%s.torrent" % name)
+        if export_dir and export_dir.exists():
+            save_path = export_dir / ("%s.torrent" % name)
             with open(save_path, "wb") as fd:
                 fd.write(result['metainfo'])
 

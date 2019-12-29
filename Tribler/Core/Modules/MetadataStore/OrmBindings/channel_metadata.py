@@ -19,6 +19,7 @@ from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import (
     UPDATED,
 )
 from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, ChannelMetadataPayload
+from Tribler.Core.Utilities import path_util
 from Tribler.Core.Utilities.random_utils import random_infohash
 from Tribler.Core.Utilities.unicode import hexlify
 
@@ -37,11 +38,11 @@ def chunks(l, n):
 
 def create_torrent_from_dir(directory, torrent_filename):
     fs = file_storage()
-    add_files(fs, directory)
+    add_files(fs, directory.to_text())
     t = create_torrent(fs)
     # t = create_torrent(fs, flags=17) # piece alignment
     t.set_priv(False)
-    set_piece_hashes(t, os.path.dirname(directory))
+    set_piece_hashes(t, directory.parent.to_text())
     torrent = t.generate()
     with open(torrent_filename, 'wb') as f:
         f.write(bencode(torrent))
@@ -176,12 +177,12 @@ def define_binding(db):
                 if entry.status == TODELETE:
                     entry.delete()
 
-            folder = os.path.join(self._channels_dir, self.dirname)
+            folder = self._channels_dir / self.dirname
             # We check if we need to re-create the channel dir in case it was deleted for some reason
-            if not os.path.isdir(folder):
+            if not folder.is_dir():
                 os.makedirs(folder)
             for filename in os.listdir(folder):
-                file_path = os.path.join(folder, filename)
+                file_path = folder / filename
                 # We only remove mdblobs and leave the rest as it is
                 if filename.endswith(BLOB_EXTENSION) or filename.endswith(BLOB_EXTENSION + '.lz4'):
                     os.unlink(file_path)
@@ -211,8 +212,8 @@ def define_binding(db):
             :return The new infohash, should be used to update the downloads
             """
             # Create dir for metadata files
-            channel_dir = os.path.abspath(os.path.join(self._channels_dir, self.dirname))
-            if not os.path.isdir(channel_dir):
+            channel_dir = path_util.abspath(self._channels_dir / self.dirname)
+            if not channel_dir.is_dir():
                 os.makedirs(channel_dir)
 
             index = 0
@@ -223,15 +224,13 @@ def define_binding(db):
                 # Otherwise, the local channel version will never become equal to its timestamp.
                 blob_timestamp = metadata_list[index - 1].timestamp if index < len(metadata_list) else final_timestamp
                 blob_filename = str(blob_timestamp).zfill(12) + BLOB_EXTENSION + '.lz4'
-                with open(os.path.join(channel_dir, blob_filename), 'wb') as f:
+                with open(channel_dir / blob_filename, 'wb') as f:
                     f.write(data)
 
             # TODO: add error-handling routines to make sure the timestamp is not messed up in case of an error
 
             # Make torrent out of dir with metadata files
-            torrent, infohash = create_torrent_from_dir(
-                channel_dir, os.path.join(self._channels_dir, self.dirname + ".torrent")
-            )
+            torrent, infohash = create_torrent_from_dir(channel_dir, self._channels_dir / (self.dirname + ".torrent"))
             torrent_date = datetime.utcfromtimestamp(torrent[b'creation date'])
 
             return ({"infohash": infohash, "timestamp": final_timestamp, "torrent_date": torrent_date}, torrent)
@@ -275,7 +274,7 @@ def define_binding(db):
 
             # Write the channel mdblob to disk
             self.status = COMMITTED
-            self.to_file(os.path.join(self._channels_dir, self.dirname + BLOB_EXTENSION))
+            self.to_file(self._channels_dir / (self.dirname + BLOB_EXTENSION))
 
             self._logger.info(
                 "Channel %s committed with %i new entries. New version is %i",
@@ -350,9 +349,10 @@ def define_binding(db):
             :rtype: list
             """
             query = db.ChannelMetadata.select(
-                lambda g: g.status not in [LEGACY_ENTRY, NEW, UPDATED, TODELETE] and g.num_entries > 0
-            and
-                g.public_key != database_blob(cls._my_key.pub().key_to_bin()[10:]))
+                lambda g: g.status not in [LEGACY_ENTRY, NEW, UPDATED, TODELETE]
+                and g.num_entries > 0
+                and g.public_key != database_blob(cls._my_key.pub().key_to_bin()[10:])
+            )
             query = query.where(subscribed=True) if only_subscribed else query
             query = query.where(lambda g: g.local_version == g.timestamp) if only_downloaded else query
             return query.random(limit)

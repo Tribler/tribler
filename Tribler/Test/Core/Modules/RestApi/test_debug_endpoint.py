@@ -87,11 +87,11 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
 
         # Directory for logs
         log_dir = self.session.config.get_log_dir()
-        if not os.path.exists(log_dir):
+        if not log_dir.exists():
             os.makedirs(log_dir)
 
         # Fill logging files with statements
-        core_info_log_file_path = os.path.join(log_dir, 'tribler-core-info.log')
+        core_info_log_file_path = log_dir / 'tribler-core-info.log'
 
         # write 100 test lines which is used to test for its presence in the response
         with open(core_info_log_file_path, "w") as core_info_log_file:
@@ -119,9 +119,9 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
 
         # Log directory
         log_dir = self.session.config.get_log_dir()
-        if not os.path.exists(log_dir):
+        if not log_dir.exists():
             os.makedirs(log_dir)
-        gui_info_log_file_path = os.path.join(log_dir, 'tribler-gui-info.log')
+        gui_info_log_file_path = log_dir / 'tribler-gui-info.log'
 
         # write 200 (greater than expected_num_lines) test logs in file
         with open(gui_info_log_file_path, "w") as core_info_log_file:

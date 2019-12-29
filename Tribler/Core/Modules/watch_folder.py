@@ -5,6 +5,7 @@ from ipv8.taskmanager import TaskManager
 
 from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.Utilities import path_util
 from Tribler.Core.simpledefs import NTFY_INSERT, NTFY_WATCH_FOLDER_CORRUPT_TORRENT
 
 WATCH_FOLDER_CHECK_INTERVAL = 10
@@ -25,28 +26,30 @@ class WatchFolder(TaskManager):
         await self.shutdown_task_manager()
 
     def cleanup_torrent_file(self, root, name):
-        if not os.path.exists(os.path.join(root, name)):
-            self._logger.warning("File with path %s does not exist (anymore)", os.path.join(root, name))
+        fullpath = root / name
+        if not fullpath.exists():
+            self._logger.warning("File with path %s does not exist (anymore)", root / name)
             return
 
-        os.rename(os.path.join(root, name), os.path.join(root, name + b".corrupt"))
+        fullpath.rename(path_util.Path(fullpath.to_text()+".corrupt"))
         self._logger.warning("Watch folder - corrupt torrent file %s", name)
         self.session.notifier.notify(NTFY_WATCH_FOLDER_CORRUPT_TORRENT, NTFY_INSERT, None, name)
 
     def check_watch_folder(self):
-        if not os.path.isdir(self.session.config.get_watch_folder_path()):
+        if not self.session.config.get_watch_folder_path().is_dir():
             return
 
         # Make sure that we pass a str to os.walk
-        watch_dir = self.session.config.get_watch_folder_path().encode('utf-8')
+        watch_dir = self.session.config.get_watch_folder_path().to_text()
 
         for root, _, files in os.walk(watch_dir):
+            root = path_util.Path(root)
             for name in files:
-                if not name.endswith(b".torrent"):
+                if not name.endswith(".torrent"):
                     continue
 
                 try:
-                    tdef = TorrentDef.load(os.path.join(root, name))
+                    tdef = TorrentDef.load(root / name)
                     if not tdef.get_metainfo():
                         self.cleanup_torrent_file(root, name)
                         continue

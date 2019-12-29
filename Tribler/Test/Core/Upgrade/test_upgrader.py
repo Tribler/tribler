@@ -4,6 +4,7 @@ from asyncio import Future
 
 from pony.orm import db_session
 
+from Tribler import Path
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.Upgrade.upgrade import TriblerUpgrader, cleanup_noncompliant_channel_torrents
@@ -40,14 +41,13 @@ class TestUpgrader(AbstractUpgrader):
 
     @timeout(10)
     async def test_upgrade_72_to_pony(self):
-        OLD_DB_SAMPLE = os.path.abspath(os.path.join(os.path.abspath(
-            os.path.dirname(os.path.realpath(__file__))), '..', 'data', 'upgrade_databases', 'tribler_v29.sdb'))
-        old_database_path = os.path.join(self.session.config.get_state_dir(), 'sqlite', 'tribler.sdb')
-        new_database_path = os.path.join(self.session.config.get_state_dir(), 'sqlite', 'metadata.db')
+        OLD_DB_SAMPLE = Path(__file__).parent / '..' / 'data' / 'upgrade_databases' / 'tribler_v29.sdb'
+        old_database_path = self.session.config.get_state_dir() / 'sqlite' / 'tribler.sdb'
+        new_database_path = self.session.config.get_state_dir() / 'sqlite' / 'metadata.db'
         shutil.copyfile(OLD_DB_SAMPLE, old_database_path)
 
         await self.upgrader.run()
-        channels_dir = os.path.join(self.session.config.get_chant_channels_dir())
+        channels_dir = self.session.config.get_chant_channels_dir()
         mds = MetadataStore(new_database_path, channels_dir, self.session.trustchain_keypair)
         with db_session:
             self.assertEqual(mds.TorrentMetadata.select().count(), 24)
@@ -60,13 +60,12 @@ class TestUpgrader(AbstractUpgrader):
         Also, check that the DB version is upgraded.
         :return:
         """
-        OLD_DB_SAMPLE = os.path.abspath(os.path.join(os.path.abspath(
-            os.path.dirname(os.path.realpath(__file__))), '..', 'data', 'upgrade_databases', 'pony_v6.db'))
-        old_database_path = os.path.join(self.session.config.get_state_dir(), 'sqlite', 'metadata.db')
+        OLD_DB_SAMPLE = Path(__file__).parent / '..' / 'data' / 'upgrade_databases' / 'pony_v6.db'
+        old_database_path = self.session.config.get_state_dir() / 'sqlite' / 'metadata.db'
         shutil.copyfile(OLD_DB_SAMPLE, old_database_path)
 
         await self.upgrader.run()
-        channels_dir = os.path.join(self.session.config.get_chant_channels_dir())
+        channels_dir = self.session.config.get_chant_channels_dir()
         mds = MetadataStore(old_database_path, channels_dir, self.session.trustchain_keypair)
         with db_session:
             self.assertEqual(mds.TorrentMetadata.select().count(), 23)
@@ -76,11 +75,10 @@ class TestUpgrader(AbstractUpgrader):
 
     @timeout(10)
     async def test_skip_upgrade_72_to_pony(self):
-        OLD_DB_SAMPLE = os.path.abspath(os.path.join(os.path.abspath(
-            os.path.dirname(os.path.realpath(__file__))), '..', 'data', 'upgrade_databases', 'tribler_v29.sdb'))
-        old_database_path = os.path.join(self.session.config.get_state_dir(), 'sqlite', 'tribler.sdb')
-        new_database_path = os.path.join(self.session.config.get_state_dir(), 'sqlite', 'metadata.db')
-        channels_dir = os.path.join(self.session.config.get_chant_channels_dir())
+        OLD_DB_SAMPLE = Path(__file__).parent / '..' / 'data' / 'upgrade_databases' / 'tribler_v29.sdb'
+        old_database_path = self.session.config.get_state_dir() / 'sqlite' / 'tribler.sdb'
+        new_database_path = self.session.config.get_state_dir() / 'sqlite' / 'metadata.db'
+        channels_dir = self.session.config.get_chant_channels_dir()
 
         shutil.copyfile(OLD_DB_SAMPLE, old_database_path)
 
@@ -93,23 +91,22 @@ class TestUpgrader(AbstractUpgrader):
         mds.shutdown()
 
     def test_delete_noncompliant_state(self):
-        STATE_DIR = os.path.abspath(os.path.join(os.path.abspath(
-            os.path.dirname(os.path.realpath(__file__))), '..', 'data', 'noncompliant_state_dir'))
-        tmpdir = os.path.join(self.temporary_directory(), os.path.basename(STATE_DIR))
+        STATE_DIR = Path(__file__).parent / '..' / 'data' / 'noncompliant_state_dir'
+        tmpdir = self.temporary_directory() / STATE_DIR.name
         shutil.copytree(STATE_DIR, tmpdir)
         cleanup_noncompliant_channel_torrents(tmpdir)
 
         # Check cleanup of the channels dir
-        dir_listing = os.listdir(os.path.join(tmpdir, "channels"))
+        dir_listing = list((tmpdir / "channels").iterdir())
         self.assertEqual(3, len(dir_listing))
-        for f in os.listdir(os.path.join(tmpdir, "channels")):
-            self.assertEqual(CHANNEL_DIR_NAME_LENGTH, len(os.path.splitext(f)[0]))
+        for f in (tmpdir / "channels").iterdir():
+            self.assertEqual(CHANNEL_DIR_NAME_LENGTH, len(f.stem))
 
         # Check cleanup of torrent state dir
-        checkpoints_dir = os.path.join(tmpdir, "dlcheckpoints")
+        checkpoints_dir = tmpdir / "dlcheckpoints"
         dir_listing = os.listdir(checkpoints_dir)
         self.assertEqual(1, len(dir_listing))
-        file_path = os.path.join(checkpoints_dir, dir_listing[0])
+        file_path = checkpoints_dir / dir_listing[0]
         pstate = CallbackConfigParser()
         pstate.read_file(file_path)
         self.assertEqual(CHANNEL_DIR_NAME_LENGTH, len(pstate.get('state', 'metainfo')['info']['name']))
@@ -125,7 +122,7 @@ class TestUpgrader(AbstractUpgrader):
 
         # Check versioned state directory exists
         version_state_dir = self.session.config.get_state_dir(version=self.config.get_version())
-        self.assertTrue(os.path.exists(version_state_dir))
+        self.assertTrue(version_state_dir.exists())
 
         version_state_sub_dirs = os.listdir(version_state_dir)
         backup_dirs = [STATEDIR_DB_DIR, STATEDIR_CHECKPOINT_DIR, STATEDIR_WALLET_DIR, STATEDIR_CHANNELS_DIR]

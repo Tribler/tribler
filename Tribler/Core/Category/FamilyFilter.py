@@ -4,14 +4,13 @@ The FamilyFilter filters out nsfw content if enabled.
 Author(s): Jelle Roozenburg
 """
 import logging
-import os
 import re
 
 from Tribler.Core.Utilities.install_dir import get_lib_path
 
 WORDS_REGEXP = re.compile('[a-zA-Z0-9]+')
 
-termfilename = os.path.join(get_lib_path(), 'Core', 'Category', 'filter_terms.filter')
+termfilename = get_lib_path() / 'Core' / 'Category' / 'filter_terms.filter'
 
 
 def initTerms(filename):

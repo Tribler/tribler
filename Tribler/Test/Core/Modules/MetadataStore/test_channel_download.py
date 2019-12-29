@@ -1,20 +1,20 @@
-import os
 
 from pony.orm import db_session
 
 from Tribler.Core.Modules.MetadataStore.serialization import ChannelMetadataPayload
 from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.Utilities.path_util import Path
 from Tribler.Core.Utilities.utilities import succeed
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.tools import timeout
 from Tribler.pyipv8.ipv8.database import database_blob
 
-DATA_DIR = os.path.join(os.path.abspath(os.path.dirname(os.path.realpath(__file__))), '..', '..', 'data')
-CHANNEL_DIR = os.path.join(DATA_DIR, 'sample_channel')
-CHANNEL_TORRENT = os.path.join(CHANNEL_DIR, 'channel.torrent')
-CHANNEL_METADATA = os.path.join(CHANNEL_DIR, 'channel.mdblob')
-CHANNEL_TORRENT_UPDATED = os.path.join(CHANNEL_DIR, 'channel_upd.torrent')
-CHANNEL_METADATA_UPDATED = os.path.join(CHANNEL_DIR, 'channel_upd.mdblob')
+DATA_DIR = Path(__file__).parent / '..' / '..' / 'data'
+CHANNEL_DIR = DATA_DIR / 'sample_channel'
+CHANNEL_TORRENT = CHANNEL_DIR / 'channel.torrent'
+CHANNEL_METADATA = CHANNEL_DIR / 'channel.mdblob'
+CHANNEL_TORRENT_UPDATED = CHANNEL_DIR / 'channel_upd.torrent'
+CHANNEL_METADATA_UPDATED = CHANNEL_DIR / 'channel_upd.mdblob'
 
 
 class TestChannelDownload(TestAsServer):
@@ -32,7 +32,7 @@ class TestChannelDownload(TestAsServer):
         old_payload = ChannelMetadataPayload.from_file(CHANNEL_METADATA)
         with db_session:
             old_channel = self.session.mds.ChannelMetadata.from_payload(old_payload)
-            chan_dir = os.path.join(CHANNEL_DIR, old_channel.dirname)
+            chan_dir = CHANNEL_DIR / old_channel.dirname
 
         self.session.mds.process_channel_dir(chan_dir, old_payload.public_key, old_payload.id_)
 
@@ -50,7 +50,7 @@ class TestChannelDownload(TestAsServer):
             return succeed({b'info': {b'name': channel.dirname.encode('utf-8')}})
 
         self.session.ltmgr.get_metainfo = fake_get_metainfo
-        # The leecher should be hinted to leech from localhost. Thus, we must extend start_downoload_from_tdef
+        # The leecher should be hinted to leech from localhost. Thus, we must extend start_download_from_tdef
         # and get_metainfo to provide the hint.
         original_start_download_from_tdef = self.session.ltmgr.start_download
 
@@ -66,6 +66,6 @@ class TestChannelDownload(TestAsServer):
         with db_session:
             # There should be 8 torrents + 1 channel torrent
             channel2 = self.session.mds.ChannelMetadata.get(public_key=database_blob(payload.public_key))
-            self.assertEqual(8, self.session.mds.ChannelNode.select().count())
-            self.assertEqual(1565621688018, channel2.timestamp)
             self.assertEqual(channel2.timestamp, channel2.local_version)
+            self.assertEqual(1565621688018, channel2.timestamp)
+            self.assertEqual(8, self.session.mds.ChannelNode.select().count())

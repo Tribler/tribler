@@ -6,13 +6,11 @@ Author(s): Egbert Bouman
 import asyncio
 import logging
 import os
-import tempfile
 import time as timemod
 from asyncio import CancelledError, TimeoutError, gather, iscoroutine, shield, sleep, wait_for
 from binascii import unhexlify
 from copy import deepcopy
 from distutils.version import LooseVersion
-from glob import iglob
 from shutil import rmtree
 from urllib.request import url2pathname
 
@@ -24,7 +22,8 @@ from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
 from Tribler.Core.Modules.dht_health_manager import DHTHealthManager
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
-from Tribler.Core.Utilities import torrent_utils
+from Tribler.Core.Utilities import path_util, torrent_utils
+from Tribler.Core.Utilities.path_util import mkdtemp
 from Tribler.Core.Utilities.unicode import hexlify
 from Tribler.Core.Utilities.utilities import bdecode_compat, has_bep33_support, parse_magnetlink
 from Tribler.Core.simpledefs import DLSTATUS_SEEDING, NTFY_INSERT, NTFY_REACHABLE, STATEDIR_CHECKPOINT_DIR
@@ -48,6 +47,8 @@ def encode_atp(atp):
     for k, v in atp.items():
         if isinstance(v, str):
             atp[k] = v.encode('utf-8')
+        elif isinstance(v, path_util.Path):
+            atp[k] = v.to_text()
     return atp
 
 
@@ -95,7 +96,7 @@ class LibtorrentMgr(TaskManager):
             self.dht_health_manager = DHTHealthManager(dht_health_session)
 
         # Make temporary directory for metadata collecting through DHT
-        self.metadata_tmpdir = tempfile.mkdtemp(suffix=u'tribler_metainfo_tmpdir')
+        self.metadata_tmpdir = mkdtemp(suffix=u'tribler_metainfo_tmpdir')
 
         # Register tasks
         self.register_task("process_alerts", self._task_process_alerts, interval=1)
@@ -127,7 +128,7 @@ class LibtorrentMgr(TaskManager):
             await self.dht_health_manager.shutdown_task_manager()
 
         # Save libtorrent state
-        with open(os.path.join(self.tribler_session.config.get_state_dir(), LTSTATE_FILENAME), 'wb') as ltstate_file:
+        with open(self.tribler_session.config.get_state_dir() / LTSTATE_FILENAME, 'wb') as ltstate_file:
             ltstate_file.write(lt.bencode(self.get_session().save_state()))
 
         self.get_session().stop_upnp()
@@ -211,7 +212,7 @@ class LibtorrentMgr(TaskManager):
             if listen_port != ltsession.listen_port() and store_listen_port:
                 self.tribler_session.config.set_libtorrent_port_runtime(ltsession.listen_port())
             try:
-                with open(os.path.join(self.tribler_session.config.get_state_dir(), LTSTATE_FILENAME), 'rb') as fp:
+                with open(self.tribler_session.config.get_state_dir() / LTSTATE_FILENAME, 'rb') as fp:
                     lt_state = bdecode_compat(fp.read())
                 if lt_state is not None:
                     ltsession.load_state(lt_state)
@@ -495,7 +496,7 @@ class LibtorrentMgr(TaskManager):
 
         # Create the destination directory if it does not exist yet
         try:
-            if not os.path.isdir(config.get_dest_dir()):
+            if not config.get_dest_dir().is_dir():
                 os.makedirs(config.get_dest_dir())
         except OSError:
             self._logger.error("Unable to create the download destination directory.")
@@ -715,7 +716,7 @@ class LibtorrentMgr(TaskManager):
                 self.tribler_session.credit_mining_manager.monitor_downloads(states_list)
 
     async def load_checkpoints(self):
-        for i, filename in enumerate(iglob(os.path.join(self.get_checkpoint_dir(), '*.conf'))):
+        for i, filename in enumerate(self.get_checkpoint_dir().glob('*.conf')):
             self.load_checkpoint(filename)
             await sleep(.01)
 
@@ -769,7 +770,7 @@ class LibtorrentMgr(TaskManager):
         if infohash not in self.downloads:
             try:
                 basename = hexlify(infohash) + '.conf'
-                filename = os.path.join(self.get_checkpoint_dir(), basename)
+                filename = self.get_checkpoint_dir() / basename
                 self._logger.debug("Removing download checkpoint %s", filename)
                 if os.access(filename, os.F_OK):
                     os.remove(filename)
@@ -783,7 +784,7 @@ class LibtorrentMgr(TaskManager):
         """
         Returns the directory in which to checkpoint the Downloads in this Session.
         """
-        return os.path.join(self.tribler_session.config.get_state_dir(), STATEDIR_CHECKPOINT_DIR)
+        return self.tribler_session.config.get_state_dir() / STATEDIR_CHECKPOINT_DIR
 
     @staticmethod
     async def create_torrent_file(file_path_list, params=None):

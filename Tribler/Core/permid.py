@@ -15,16 +15,16 @@ def generate_keypair_trustchain():
 
 
 def read_keypair_trustchain(keypairfilename):
-    with open(keypairfilename, 'rb') as keyfile:
+    with keypairfilename.open(mode='rb') as keyfile:
         binarykey = keyfile.read()
     return LibNaCLSK(binarykey=binarykey)
 
 
 def save_keypair_trustchain(keypair, keypairfilename):
-    with open(keypairfilename, 'wb') as keyfile:
+    with keypairfilename.open(mode='wb') as keyfile:
         keyfile.write(keypair.key.sk)
         keyfile.write(keypair.key.seed)
 
 def save_pub_key_trustchain(keypair, pubkeyfilename):
-    with open(pubkeyfilename, 'wb') as keyfile:
+    with pubkeyfilename.open(mode='wb') as keyfile:
         keyfile.write(keypair.key.pk)
