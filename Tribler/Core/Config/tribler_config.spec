@@ -26,6 +26,9 @@ ec_keypair_filename = string(default='ec_multichain.pem')
 testnet_keypair_filename = string(default='ec_trustchain_testnet.pem')
 live_edges_enabled = boolean(default=True)
 
+[noodle]
+enabled = boolean(default=True)
+
 [bootstrap]
 enabled = boolean(default=True)
 max_download_rate = integer(min=1, default=1000000)
