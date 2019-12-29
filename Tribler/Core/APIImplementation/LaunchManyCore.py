@@ -184,7 +184,8 @@ class TriblerLaunchMany(TaskManager):
             tc_wallet = TrustchainWallet(self.trustchain_community)
             self.wallets[tc_wallet.get_identifier()] = tc_wallet
 
-            # Noodle
+        # Noodle
+        if self.session.config.get_noodle_enabled():
             from ipv8.attestation.noodle.community import NoodleCommunity, NoodleTestnetCommunity
 
             community_cls = NoodleTestnetCommunity if self.session.config.get_testnet() else NoodleCommunity
