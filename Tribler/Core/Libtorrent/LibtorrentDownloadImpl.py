@@ -821,10 +821,7 @@ class LibtorrentDownloadImpl(TaskManager):
         if self.handle and self.handle.is_valid():
             self.set_vod_mode(False)
             self.handle.pause()
-            future = next(as_completed([self.wait_for_alert('save_resume_data_alert', None),
-                                        self.wait_for_alert('save_resume_data_failed_alert', None)]))
-            self.checkpoint()
-            return future
+            return self.checkpoint()
         return succeed(None)
 
     def resume(self):
