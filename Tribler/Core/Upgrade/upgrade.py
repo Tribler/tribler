@@ -8,7 +8,7 @@ from pony.orm import db_session
 from Tribler.Core.Category.l2_filter import is_forbidden
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
-from Tribler.Core.Upgrade.config_converter import convert_config_to_tribler74
+from Tribler.Core.Upgrade.config_converter import convert_config_to_tribler74, convert_config_to_tribler75
 from Tribler.Core.Upgrade.db72_to_pony import DispersyToPonyMigration, cleanup_pony_experimental_db, should_upgrade
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.osutils import dir_copy
@@ -91,7 +91,8 @@ class TriblerUpgrader(object):
         """
         await self.upgrade_72_to_pony()
         await self.upgrade_pony_db_6to7()
-        self.upgrade_config_to_74()
+        convert_config_to_tribler74()
+        convert_config_to_tribler75()
         self.backup_state_directory()
 
     async def upgrade_pony_db_6to7(self):
@@ -163,12 +164,6 @@ class TriblerUpgrader(object):
             return
         mds.shutdown()
         self.notify_done()
-
-    def upgrade_config_to_74(self):
-        """
-        This method performs actions necessary to upgrade the configuration files to Tribler 7.4.
-        """
-        convert_config_to_tribler74()
 
     def backup_state_directory(self):
         """

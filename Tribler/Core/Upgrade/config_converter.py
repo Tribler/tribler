@@ -8,7 +8,9 @@ from configobj import ConfigObj
 
 import libtorrent as lt
 
+from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.Config.tribler_config import TriblerConfig
+from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.Utilities.unicode import recursive_ungarble_metainfo
 from Tribler.Core.exceptions import InvalidConfigException
@@ -238,3 +240,19 @@ def convert_config_to_tribler74(state_dir=None):
                 new_config[section][key] = val
         new_config.write()
         os.remove(filename.to_text())
+
+
+def convert_config_to_tribler75(state_dir=None):
+    """
+    Convert the download config files from Tribler 7.4 to 7.5 format.
+    """
+    state_dir = state_dir or TriblerConfig.get_default_base_state_dir()
+    for filename in (state_dir / STATEDIR_CHECKPOINT_DIR).glob('*.conf'):
+        config = DownloadConfig.load(filename)
+        metainfo = config.get_metainfo()
+        if not config.config['download_defaults'].get('selected_files') or not metainfo:
+            continue  # no conversion needed/possible, selected files will be reset to their default (i.e., all files)
+        tdef = TorrentDef.load_from_dict(metainfo)
+        config.set_selected_files([tdef.get_index_of_file_in_files(fn)
+                                   for fn in config.config['download_defaults'].pop('selected_files')])
+        config.write(filename.to_text())

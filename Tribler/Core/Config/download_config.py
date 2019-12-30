@@ -76,17 +76,6 @@ class DownloadConfig(object):
 
         return path_util.Path(dest_dir)
 
-    def get_corrected_filename(self):
-        """ Gets the directory name where to save this torrent
-        """
-        return self.config['download_defaults']['correctedfilename']
-
-    def set_corrected_filename(self, correctedfilename):
-        """ Sets the directory name where to save this torrent
-        @param correctedfilename name for multifile directory
-        """
-        self.config['download_defaults']['correctedfilename'] = correctedfilename
-
     def set_mode(self, mode):
         """ Sets the mode of this download.
         @param mode DLMODE_NORMAL/DLMODE_VOD """
@@ -139,26 +128,19 @@ class DownloadConfig(object):
     def get_time_added(self):
         return self.config['download_defaults']['time_added']
 
-    def set_selected_files(self, files):
-        """ Select which files in the torrent to download. The filenames must
-        be the names as they appear in the content def, including encoding.
-
-        @param files Can be a single filename or a list of filenames (e.g.
-        ['harry.avi','sjaak.avi']). Not Unicode strings!
+    def set_selected_files(self, file_indexes):
+        """ Select which files in the torrent to download.
+        @param file_indexes List of file indexes as ordered in the torrent (e.g. [0,1])
         """
-        # TODO: can't check if files exists, don't have tdef here.... bugger
-        if isinstance(files, str):  # convenience
-            files = [files]
-
-        if self.get_mode() == DLMODE_VOD and len(files) > 1:
+        if self.get_mode() == DLMODE_VOD and len(file_indexes) > 1:
             raise ValueError("In Video-On-Demand mode only 1 file can be selected for download")
 
-        self.config['download_defaults']['selected_files'] = files
+        self.config['download_defaults']['selected_file_indexes'] = file_indexes
 
     def get_selected_files(self):
         """ Returns the list of files selected for download.
-        @return A list of strings. """
-        return self.config['download_defaults']['selected_files']
+        @return A list of file indexes. """
+        return self.config['download_defaults']['selected_file_indexes']
 
     def set_channel_download(self, value):
         self.config['download_defaults']['channel_download'] = value

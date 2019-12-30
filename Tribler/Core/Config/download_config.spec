@@ -1,7 +1,7 @@
 [download_defaults]
 hops = integer(default=0)
 selected_files = string_list(default=list())
-correctedfilename = string(default=None)
+selected_file_indexes = int_list(default=list())
 safe_seeding = boolean(default=False)
 user_stopped = boolean(default=False)
 share_mode = boolean(default=False)

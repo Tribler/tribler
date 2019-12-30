@@ -323,7 +323,9 @@ class LibtorrentMgr(TaskManager):
                                  else getattr(alert, 'info_hash', '')))
         download = self.downloads.get(infohash)
         if download:
-            if download.handle or (not download.handle and alert_type == 'add_torrent_alert'):
+            if (download.handle and download.handle.is_valid())\
+                    or (not download.handle and alert_type == 'add_torrent_alert') \
+                    or (download.handle and alert_type == 'torrent_removed_alert'):
                 download.process_alert(alert, alert_type)
             else:
                 self._logger.debug("Got alert for download without handle %s: %s", hexlify(infohash), alert)
@@ -508,8 +510,11 @@ class LibtorrentMgr(TaskManager):
         download = LibtorrentDownloadImpl(self.tribler_session, tdef)
         atp = download.setup(config, checkpoint_disabled=checkpoint_disabled,
                              hidden=hidden or config.get_bootstrap_download())
+        # Keep metainfo downloads in self.downloads for now because we will need to remove it later,
+        # and removing the download at this point will stop us from receiving any further alerts.
+        if infohash not in self.metainfo_requests or self.metainfo_requests[infohash][0] == download:
+            self.downloads[infohash] = download
         self.start_handle(download, atp)
-        self.downloads[infohash] = download
         return download
 
     @task
@@ -521,6 +526,7 @@ class LibtorrentMgr(TaskManager):
             self._logger.info("Cancelling metainfo request(s) for infohash:%s", hexlify(infohash))
             metainfo_dl, _ = self.metainfo_requests.pop(infohash)
             await self.remove_download(metainfo_dl, remove_content=True)
+            self.downloads[infohash] = download
 
         known = {unhexlify(str(h.info_hash())): h for h in ltsession.get_torrents()}
         existing_handle = known.get(infohash)
@@ -584,10 +590,17 @@ class LibtorrentMgr(TaskManager):
     async def remove_download(self, download, remove_content=False):
         infohash = download.get_def().get_infohash()
         handle = download.handle
-        if handle and handle.is_valid():
-            self._logger.debug("Removing handle %s", hexlify(infohash))
-            ltsession = self.get_session(download.config.get_hops())
-            ltsession.remove_torrent(handle, int(remove_content))
+
+        # Note that the following block of code needs to be able to deal with multiple simultaneous
+        # calls using the same download object. We need to make sure that we don't return without
+        # the removal having finished.
+        if handle:
+            if handle.is_valid():
+                self._logger.debug("Removing handle %s", hexlify(infohash))
+                ltsession = self.get_session(download.config.get_hops())
+                ltsession.remove_torrent(handle, int(remove_content))
+            # We need to wait even if the handle is invalid. It's important to synchronize
+            # here because the upcoming call to shutdown will also cancel future_removed.
             await download.future_removed
         else:
             self._logger.debug("Cannot remove handle %s because it does not exists", hexlify(infohash))
@@ -595,10 +608,9 @@ class LibtorrentMgr(TaskManager):
 
         if infohash in self.downloads and self.downloads[infohash] == download:
             self.downloads.pop(infohash)
+            self.remove_config(infohash)
         else:
             self._logger.debug("Cannot remove unknown download")
-
-        self.remove_config(infohash)
 
     def get_download(self, infohash):
         return self.downloads.get(infohash, None)
