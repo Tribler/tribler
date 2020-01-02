@@ -67,7 +67,7 @@ class EventRequestManager(QNetworkAccessManager):
             "remote_search_results": self.received_search_result.emit,
             "shutdown": self.tribler_shutdown_signal.emit,
             "events_start": self.events_start_received,
-            "tribler_started": lambda data: self.tribler_started.emit(data["version"])
+            "tribler_started": lambda data: self.tribler_started.emit(data["version"]),
         }
 
     def events_start_received(self, event_dict):

@@ -11,33 +11,46 @@ class MarketEndpoint(RESTEndpoint):
     """
 
     def setup_routes(self):
-        self.app.add_routes([web.get('/asks', self.get_asks),
-                             web.get('/bids', self.get_bids),
-                             web.get('/transactions', self.get_transactions),
-                             web.get('/transactions/{trader_id}/{transaction_id}', self.get_payments),
-                             web.get('/orders', self.get_orders)])
+        self.app.add_routes(
+            [
+                web.get('/asks', self.get_asks),
+                web.get('/bids', self.get_bids),
+                web.get('/transactions', self.get_transactions),
+                web.get('/transactions/{trader_id}/{transaction_id}', self.get_payments),
+                web.get('/orders', self.get_orders),
+            ]
+        )
 
     async def get_asks(self, _):
-        return RESTResponse({
-            "asks": [{
-                "asset1": "DUM1",
-                "asset2": "DUM2",
-                "ticks": [tick.get_json() for tick in tribler_utils.tribler_data.order_book['asks']]
-            }]
-        })
+        return RESTResponse(
+            {
+                "asks": [
+                    {
+                        "asset1": "DUM1",
+                        "asset2": "DUM2",
+                        "ticks": [tick.get_json() for tick in tribler_utils.tribler_data.order_book['asks']],
+                    }
+                ]
+            }
+        )
 
     async def get_bids(self, _):
-        return RESTResponse({
-            "bids": [{
-                "asset1": "DUM1",
-                "asset2": "DUM2",
-                "ticks": [tick.get_json() for tick in tribler_utils.tribler_data.order_book['bids']]
-            }]
-        })
+        return RESTResponse(
+            {
+                "bids": [
+                    {
+                        "asset1": "DUM1",
+                        "asset2": "DUM2",
+                        "ticks": [tick.get_json() for tick in tribler_utils.tribler_data.order_book['bids']],
+                    }
+                ]
+            }
+        )
 
     async def get_transactions(self, _):
-        return RESTResponse({"transactions": [transaction.get_json() for
-                                              transaction in tribler_utils.tribler_data.transactions]})
+        return RESTResponse(
+            {"transactions": [transaction.get_json() for transaction in tribler_utils.tribler_data.transactions]}
+        )
 
     async def get_payments(self, request):
         trader_id = request.match_info['trader_id']

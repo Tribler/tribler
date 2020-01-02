@@ -11,17 +11,19 @@ from tribler_gui.tests.fake_tribler_api import tribler_utils
 
 
 class ChannelsEndpoint(MetadataEndpointBase):
-
     def __init__(self, _):
         super(ChannelsEndpoint, self).__init__(MockObject())
 
     def setup_routes(self):
         self.app.add_routes(
-            [web.get('', self.get_channels),
-             web.get('/popular', self.get_popular_channels),
-             web.get(r'/{channel_pk:\w*}/{channel_id:\w*}', self.get_channel_contents),
-             web.post(r'/{channel_pk:\w*}/{channel_id:\w*}/commit', self.post_commit),
-             web.get(r'/{channel_pk:\w*}/{channel_id:\w*}/commit', self.is_channel_dirty)])
+            [
+                web.get('', self.get_channels),
+                web.get('/popular', self.get_popular_channels),
+                web.get(r'/{channel_pk:\w*}/{channel_id:\w*}', self.get_channel_contents),
+                web.post(r'/{channel_pk:\w*}/{channel_id:\w*}/commit', self.post_commit),
+                web.get(r'/{channel_pk:\w*}/{channel_id:\w*}/commit', self.is_channel_dirty),
+            ]
+        )
 
     @classmethod
     def sanitize_parameters(cls, parameters):
@@ -61,8 +63,11 @@ class ChannelsEndpoint(MetadataEndpointBase):
     async def get_channel_contents(self, request):
         sanitized = self.sanitize_parameters(request.query)
         include_total = request.query.get('include_total', '')
-        channel_pk = tribler_utils.tribler_data.get_my_channel().public_key \
-            if request.match_info['channel_pk'] == 'mychannel' else unhexlify(request.match_info['channel_pk'])
+        channel_pk = (
+            tribler_utils.tribler_data.get_my_channel().public_key
+            if request.match_info['channel_pk'] == 'mychannel'
+            else unhexlify(request.match_info['channel_pk'])
+        )
         channel_id = int(request.match_info['channel_id'])
         sanitized.update({"channel_pk": channel_pk, "origin_id": channel_id})
 

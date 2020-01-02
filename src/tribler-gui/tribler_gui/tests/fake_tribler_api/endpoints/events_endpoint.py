@@ -7,7 +7,6 @@ from tribler_core.restapi.rest_endpoint import RESTEndpoint, RESTStreamResponse
 
 
 class EventsEndpoint(RESTEndpoint):
-
     def __init__(self, *args, **kwargs):
         super(EventsEndpoint, self).__init__(*args, **kwargs)
         self.event_response = None
@@ -26,9 +25,10 @@ class EventsEndpoint(RESTEndpoint):
     async def get_events(self, request):
         self.event_response = RESTStreamResponse(status=200, reason='OK', headers={'Content-Type': 'text/html'})
         await self.event_response.prepare(request)
-        await self.event_response.write(json.dumps({"type": "events_start",
-                                                    "event": {"tribler_started": True,
-                                                              "version": "1.2.3"}}).encode('utf-8') + b'\n')
+        await self.event_response.write(
+            json.dumps({"type": "events_start", "event": {"tribler_started": True, "version": "1.2.3"}}).encode('utf-8')
+            + b'\n'
+        )
 
         try:
             while True:

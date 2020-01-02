@@ -2,7 +2,6 @@ from random import randint, uniform
 
 
 class DownloadPeer(object):
-
     def __init__(self):
         self.ip = "%d.%d.%d.%d" % (randint(0, 255), randint(0, 255), randint(0, 255), randint(0, 255))
         self.port = randint(1000, 65536)
@@ -33,5 +32,5 @@ class DownloadPeer(object):
             "direction": self.direction,
             "completed": self.completed,
             "downrate": self.downrate,
-            "uprate": self.uprate
+            "uprate": self.uprate,
         }

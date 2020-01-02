@@ -8,10 +8,7 @@ from ipv8.keyvault.crypto import default_eccrypto
 
 from pony.orm import db_session, flush
 
-from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import (
-    CHANNEL_DIR_NAME_LENGTH,
-    entries_to_chunk,
-)
+from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH, entries_to_chunk
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import NEW
 from tribler_core.modules.metadata_store.serialization import (
     ChannelMetadataPayload,
@@ -377,13 +374,15 @@ class TestMetadataStore(TriblerCoreTest):
 
     @db_session
     def test_process_payload_reject_older_entry(self):
-        torrent_old = self.mds.TorrentMetadata(title='blabla', timestamp=11, id_=3,
-                                               infohash=database_blob(os.urandom(20)))
+        torrent_old = self.mds.TorrentMetadata(
+            title='blabla', timestamp=11, id_=3, infohash=database_blob(os.urandom(20))
+        )
         payload_old = torrent_old._payload_class(**torrent_old.to_dict())
         torrent_old.delete()
 
-        torrent_updated = self.mds.TorrentMetadata(title='blabla', timestamp=12, id_=3,
-                                                   infohash=database_blob(os.urandom(20)))
+        torrent_updated = self.mds.TorrentMetadata(
+            title='blabla', timestamp=12, id_=3, infohash=database_blob(os.urandom(20))
+        )
         torrent_updated_dict = torrent_updated.to_dict()
         torrent_updated.delete()
         flush()
@@ -391,8 +390,9 @@ class TestMetadataStore(TriblerCoreTest):
         self.mds.TorrentMetadata.from_dict(torrent_updated_dict)
 
         # Test rejecting older version of the same entry with a different infohash
-        self.assertEqual(GOT_NEWER_VERSION, self.mds.process_payload(payload_old,
-                                                                     skip_personal_metadata_payload=False)[0][1])
+        self.assertEqual(
+            GOT_NEWER_VERSION, self.mds.process_payload(payload_old, skip_personal_metadata_payload=False)[0][1]
+        )
 
     @db_session
     def test_get_num_channels_nodes(self):

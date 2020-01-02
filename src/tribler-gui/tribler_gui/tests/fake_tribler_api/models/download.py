@@ -10,7 +10,6 @@ from tribler_gui.tests.fake_tribler_api.models.download_peer import DownloadPeer
 
 
 class Download(object):
-
     def __init__(self, torrent, is_credit_mining=False, is_channel_download=False):
         self.torrent = torrent
         self.status = randint(0, 8)
@@ -47,8 +46,14 @@ class Download(object):
 
         # Generate some files
         for file_ind in range(randint(1, 10)):
-            self.files.append({"name": "File %d" % file_ind, "size": randint(1000, 10000000),
-                               "progress": random(), "included": True if random() > 0.5 else False})
+            self.files.append(
+                {
+                    "name": "File %d" % file_ind,
+                    "size": randint(1000, 10000000),
+                    "progress": random(),
+                    "included": True if random() > 0.5 else False,
+                }
+            )
 
     def get_pieces_base64(self):
         bitstr = b""
@@ -57,7 +62,7 @@ class Download(object):
 
         encoded_str = b""
         for i in range(0, len(bitstr), 8):
-            encoded_str += int2byte(int(bitstr[i:i + 8].ljust(8, b'0'), 2))
+            encoded_str += int2byte(int(bitstr[i : i + 8].ljust(8, b'0'), 2))
         return base64.b64encode(encoded_str)
 
     def get_json(self, get_peers=False, get_pieces=False):
@@ -89,7 +94,7 @@ class Download(object):
             "credit_mining": self.is_credit_mining,
             "num_connected_peers": self.num_connected_peers,
             "num_connected_seeds": self.num_connected_seeds,
-            "channel_download": self.is_channel_download
+            "channel_download": self.is_channel_download,
         }
 
         if get_peers:

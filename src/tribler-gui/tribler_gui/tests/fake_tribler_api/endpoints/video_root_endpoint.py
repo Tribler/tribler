@@ -8,8 +8,12 @@ import tribler_gui
 
 
 class VideoRootEndpoint(RESTEndpoint):
-
     def setup_routes(self):
-        self.app.add_routes([web.static('/{anything:.*}',
-                                        os.path.join(os.path.dirname(tribler_gui.tests.fake_tribler_api.__file__),
-                                                     "data", "video.avi"))])
+        self.app.add_routes(
+            [
+                web.static(
+                    '/{anything:.*}',
+                    os.path.join(os.path.dirname(tribler_gui.tests.fake_tribler_api.__file__), "data", "video.avi"),
+                )
+            ]
+        )

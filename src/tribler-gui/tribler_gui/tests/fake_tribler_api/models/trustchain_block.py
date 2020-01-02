@@ -5,7 +5,6 @@ from tribler_core.utilities.unicode import hexlify
 
 
 class TrustchainBlock(object):
-
     def __init__(self, my_id=None, timestamp=0, last_block=None):
         self.public_key = my_id
         self.sequence_number = 1 if last_block is None else last_block.sequence_number + 1
@@ -36,5 +35,5 @@ class TrustchainBlock(object):
             "signature": hexlify(self.signature),
             "insert_time": self.insert_time,
             # "hash": hexlify(b'e' * 20),
-            "type": self.type
+            "type": self.type,
         }

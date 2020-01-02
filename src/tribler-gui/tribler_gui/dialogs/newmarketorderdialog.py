@@ -61,10 +61,12 @@ class NewMarketOrderDialog(DialogContainer):
         # Check whether we are trading at least the minimum amount of assets
         asset1_amount = int(self.quantity * (10 ** self.wallets[self.quantity_type]["precision"]))
         if asset1_amount < self.wallets[self.quantity_type]['min_unit']:
-            min_amount = float(self.wallets[self.quantity_type]["min_unit"]) / \
-                         float(10 ** self.wallets[self.quantity_type]["precision"])
-            self.dialog_widget.error_text_label.setText("The quantity is less than the minimum amount (%g %s)." %
-                                                        (min_amount, self.quantity_type))
+            min_amount = float(self.wallets[self.quantity_type]["min_unit"]) / float(
+                10 ** self.wallets[self.quantity_type]["precision"]
+            )
+            self.dialog_widget.error_text_label.setText(
+                "The quantity is less than the minimum amount (%g %s)." % (min_amount, self.quantity_type)
+            )
             self.dialog_widget.error_text_label.show()
             return
 
@@ -75,11 +77,13 @@ class NewMarketOrderDialog(DialogContainer):
 
         # Check whether the price will lead to a trade where at least the minimum amount of assets are exchanged
         if asset2_amount < self.wallets[self.price_type]['min_unit']:
-            min_amount = float(self.wallets[self.price_type]["min_unit"]) / \
-                         float(10 ** self.wallets[self.price_type]["precision"])
-            self.dialog_widget.error_text_label.setText("The price leads to a trade where less than the minimum amount "
-                                                        "of assets are exchanged (%g %s)." %
-                                                        (min_amount, self.price_type))
+            min_amount = float(self.wallets[self.price_type]["min_unit"]) / float(
+                10 ** self.wallets[self.price_type]["precision"]
+            )
+            self.dialog_widget.error_text_label.setText(
+                "The price leads to a trade where less than the minimum amount "
+                "of assets are exchanged (%g %s)." % (min_amount, self.price_type)
+            )
             self.dialog_widget.error_text_label.show()
             return
 

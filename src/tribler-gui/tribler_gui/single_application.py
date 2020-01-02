@@ -86,8 +86,7 @@ class QtSingleApplication(QApplication):
     def activate_window(self):
         if not self._activation_window:
             return
-        self._activation_window.setWindowState(
-            self._activation_window.windowState() & ~Qt.WindowMinimized)
+        self._activation_window.setWindowState(self._activation_window.windowState() & ~Qt.WindowMinimized)
         self._activation_window.raise_()
 
     def send_message(self, msg):

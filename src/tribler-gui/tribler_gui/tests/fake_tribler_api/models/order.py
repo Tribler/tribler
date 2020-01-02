@@ -3,7 +3,6 @@ import time
 
 
 class Order(object):
-
     def __init__(self, asset1_type, asset2_type):
         self.trader_id = ''.join(random.choice('0123456789abcdef') for _ in range(16))
         now = int(time.time())
@@ -23,14 +22,8 @@ class Order(object):
             "trader_id": self.trader_id,
             "order_number": self.order_number,
             "assets": {
-                "first": {
-                    "amount": self.asset1_amount,
-                    "type": self.asset1_type
-                },
-                "second": {
-                    "amount": self.asset2_amount,
-                    "type": self.asset2_type
-                }
+                "first": {"amount": self.asset1_amount, "type": self.asset1_type},
+                "second": {"amount": self.asset2_amount, "type": self.asset2_type},
             },
             "reserved_quantity": self.reserved_quantity,
             "traded": self.traded_quantity,
@@ -39,5 +32,5 @@ class Order(object):
             "completed_timestamp": None,
             "is_ask": self.is_ask,
             "cancelled": self.status != 'cancelled',
-            "status": self.status
+            "status": self.status,
         }

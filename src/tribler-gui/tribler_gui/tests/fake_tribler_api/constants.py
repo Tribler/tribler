@@ -8,17 +8,20 @@ CATEGORIES = [
     ('Audio', 0.1),
     ('Document', 0.1),
     ('Compressed', 0.1),
-    ('Picture', 0.1)]
+    ('Picture', 0.1),
+]
 
-DLSTATUS_STRINGS = ['DLSTATUS_ALLOCATING_DISKSPACE',
-                    'DLSTATUS_WAITING4HASHCHECK',
-                    'DLSTATUS_HASHCHECKING',
-                    'DLSTATUS_DOWNLOADING',
-                    'DLSTATUS_SEEDING',
-                    'DLSTATUS_STOPPED',
-                    'DLSTATUS_STOPPED_ON_ERROR',
-                    'DLSTATUS_METADATA',
-                    'DLSTATUS_CIRCUITS']
+DLSTATUS_STRINGS = [
+    'DLSTATUS_ALLOCATING_DISKSPACE',
+    'DLSTATUS_WAITING4HASHCHECK',
+    'DLSTATUS_HASHCHECKING',
+    'DLSTATUS_DOWNLOADING',
+    'DLSTATUS_SEEDING',
+    'DLSTATUS_STOPPED',
+    'DLSTATUS_STOPPED_ON_ERROR',
+    'DLSTATUS_METADATA',
+    'DLSTATUS_CIRCUITS',
+]
 
 
 # Metadata, torrents and channel statuses

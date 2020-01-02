@@ -101,5 +101,5 @@ class TestSearchEndpoint(AbstractApiTest):
         """
         Testing whether the API returns the right terms when getting search completion terms
         """
-        json_response =  await self.do_request('search/completions?q=tribler', expected_code=200)
+        json_response = await self.do_request('search/completions?q=tribler', expected_code=200)
         self.assertEqual(json_response['completions'], [])

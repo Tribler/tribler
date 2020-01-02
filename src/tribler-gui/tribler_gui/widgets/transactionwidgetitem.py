@@ -24,8 +24,9 @@ class TransactionWidgetItem(QTreeWidgetItem):
         self.update_item()
 
     def update_item(self):
-        transaction_time = datetime.datetime.fromtimestamp(
-            int(self.transaction["timestamp"])).strftime('%Y-%m-%d %H:%M:%S')
+        transaction_time = datetime.datetime.fromtimestamp(int(self.transaction["timestamp"])).strftime(
+            '%Y-%m-%d %H:%M:%S'
+        )
 
         self.asset1_amount = prec_div(self.transaction["assets"]["first"]["amount"], self.asset1_prec)
         self.asset2_amount = prec_div(self.transaction["assets"]["second"]["amount"], self.asset2_prec)

@@ -5,7 +5,6 @@ from tribler_gui.tests.fake_tribler_api.models.payment import Payment
 
 
 class Transaction(object):
-
     def __init__(self, price_type, quantity_type):
         self.trader_id = ''.join(random.choice('0123456789abcdef') for _ in range(16))
         self.partner_trader_id = ''.join(random.choice('0123456789abcdef') for _ in range(16))
@@ -32,26 +31,14 @@ class Transaction(object):
             "partner_order_number": self.partner_order_number,
             "transaction_number": self.transaction_number,
             "assets": {
-                "first": {
-                    "amount": self.asset1_amount,
-                    "type": self.asset1_type
-                },
-                "second": {
-                    "amount": self.asset2_amount,
-                    "type": self.asset2_type
-                }
+                "first": {"amount": self.asset1_amount, "type": self.asset1_type},
+                "second": {"amount": self.asset2_amount, "type": self.asset2_type},
             },
             "transferred": {
-                "first": {
-                    "amount": self.transferred_asset1,
-                    "type": self.asset1_type
-                },
-                "second": {
-                    "amount": self.transferred_asset1,
-                    "type": self.asset2_type
-                }
+                "first": {"amount": self.transferred_asset1, "type": self.asset1_type},
+                "second": {"amount": self.transferred_asset1, "type": self.asset2_type},
             },
             "timestamp": self.timestamp,
             "payment_complete": self.payment_complete,
-            "status": self.status
+            "status": self.status,
         }

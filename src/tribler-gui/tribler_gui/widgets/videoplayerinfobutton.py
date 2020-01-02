@@ -6,7 +6,6 @@ from tribler_gui.widgets.videoplayerinfopopup import VideoPlayerInfoPopup
 
 
 class VideoPlayerInfoButton(QToolButton):
-
     def __init__(self, parent):
         QToolButton.__init__(self, parent)
         self.popup = VideoPlayerInfoPopup(self.window())

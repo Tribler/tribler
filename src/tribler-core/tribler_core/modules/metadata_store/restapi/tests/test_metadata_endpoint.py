@@ -36,7 +36,10 @@ class BaseTestMetadataEndpoint(AbstractApiTest):
                     rand_infohash = random_infohash()
                     self.infohashes.append(rand_infohash)
                     self.session.mds.TorrentMetadata(
-                        origin_id=channel.id_, title='torrent%d' % torrent_ind, infohash=rand_infohash, sign_with=self.ext_key
+                        origin_id=channel.id_,
+                        title='torrent%d' % torrent_ind,
+                        infohash=rand_infohash,
+                        sign_with=self.ext_key,
                     )
 
     def setUpPreSession(self):
@@ -74,9 +77,7 @@ class TestMetadataEndpoint(AbstractApiTest):
             {'public_key': hexlify(md1.public_key), 'id': md1.id_, 'title': NEW_NAME1},
             {'public_key': hexlify(md2.public_key), 'id': md2.id_, 'title': NEW_NAME2, 'subscribed': 1},
         ]
-        await self.do_request(
-            'metadata', json_data=patch_data, expected_code=200, request_type='PATCH'
-        )
+        await self.do_request('metadata', json_data=patch_data, expected_code=200, request_type='PATCH')
         with db_session:
             entry1 = self.session.mds.ChannelNode.get(rowid=md1.rowid)
             self.assertEqual(NEW_NAME1, entry1.title)
@@ -100,9 +101,7 @@ class TestMetadataEndpoint(AbstractApiTest):
             {'public_key': hexlify(md1.public_key), 'id': md1.id_},
             {'public_key': hexlify(md2.public_key), 'id': md2.id_},
         ]
-        await self.do_request(
-            'metadata', json_data=patch_data, expected_code=200, request_type='DELETE'
-        )
+        await self.do_request('metadata', json_data=patch_data, expected_code=200, request_type='DELETE')
         with db_session:
             self.assertFalse(self.session.mds.ChannelNode.select().count())
 

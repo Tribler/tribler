@@ -77,7 +77,8 @@ class ConfirmationDialog(DialogContainer):
         button.setCursor(QCursor(Qt.PointingHandCursor))
         self.buttons.append(button)
 
-        button.setStyleSheet("""
+        button.setStyleSheet(
+            """
         EllipseButton {
             border: 1px solid #B5B5B5;
             border-radius: 13px;
@@ -90,7 +91,8 @@ class ConfirmationDialog(DialogContainer):
             border: 1px solid white;
             color: white;
         }
-        """)
+        """
+        )
 
         self.dialog_widget.dialog_button_container.layout().addWidget(button)
         button.clicked.connect(lambda: self.button_clicked.emit(index))

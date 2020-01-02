@@ -6,7 +6,6 @@ from tribler_core.modules.metadata_store.community.sync_strategy import SyncChan
 
 
 class MockCommunity(object):
-
     def __init__(self):
         self.fetch_next_called = False
         self.send_random_to_called = []
@@ -23,7 +22,6 @@ class MockCommunity(object):
 
 
 class TestSyncChannels(TestBase):
-
     def setUp(self):
         self.community = MockCommunity()
         self.strategy = SyncChannels(self.community)
@@ -52,9 +50,11 @@ class TestSyncChannels(TestBase):
         If we have multiple peers, we should select one and send it our channel views.
         Also, we should still inspect our download queue.
         """
-        self.community.get_peers_return = [Peer(default_eccrypto.generate_key(u"very-low")),
-                                           Peer(default_eccrypto.generate_key(u"very-low")),
-                                           Peer(default_eccrypto.generate_key(u"very-low"))]
+        self.community.get_peers_return = [
+            Peer(default_eccrypto.generate_key(u"very-low")),
+            Peer(default_eccrypto.generate_key(u"very-low")),
+            Peer(default_eccrypto.generate_key(u"very-low")),
+        ]
         self.strategy.take_step()
 
         self.assertEqual(1, len(self.community.send_random_to_called))

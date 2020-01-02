@@ -9,10 +9,7 @@ from PyQt5.QtWidgets import QAction, QApplication, QDialog, QMessageBox, QTreeWi
 
 from tribler_gui.event_request_manager import received_events
 from tribler_gui.tribler_action_menu import TriblerActionMenu
-from tribler_gui.tribler_request_manager import (
-    TriblerNetworkRequest,
-    performed_requests as tribler_performed_requests,
-)
+from tribler_gui.tribler_request_manager import TriblerNetworkRequest, performed_requests as tribler_performed_requests
 from tribler_gui.utilities import get_ui_file_path
 
 

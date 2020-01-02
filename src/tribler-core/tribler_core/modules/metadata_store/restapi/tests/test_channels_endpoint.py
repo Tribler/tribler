@@ -22,7 +22,6 @@ from tribler_core.utilities.utilities import succeed
 
 
 class BaseTestMyChannelEndpoint(BaseTestMetadataEndpoint):
-
     async def setUp(self):
         await super(BaseTestMyChannelEndpoint, self).setUp()
         self.session.gigachannel_manager = MockObject()
@@ -133,10 +132,14 @@ class TestSpecificChannelEndpoint(BaseTestMetadataEndpoint):
     async def test_get_channel_contents_by_type(self):
         # Test filtering channel contents by a list of data types
         with db_session:
-            chan = self.session.mds.ChannelMetadata.select(lambda g: g.public_key == database_blob(self.ext_key.pub().key_to_bin()[10:])).first()
+            chan = self.session.mds.ChannelMetadata.select(
+                lambda g: g.public_key == database_blob(self.ext_key.pub().key_to_bin()[10:])
+            ).first()
             self.session.mds.CollectionNode(title='some_folder', origin_id=chan.id_, sign_with=self.ext_key)
 
-            json_dict = await self.do_request('channels/%s/123?metadata_type=220&metadata_type=300' % hexlify(chan.public_key), expected_code=200)
+            json_dict = await self.do_request(
+                'channels/%s/123?metadata_type=220&metadata_type=300' % hexlify(chan.public_key), expected_code=200
+            )
         self.assertEqual(len(json_dict['results']), 6)
         self.assertIn('status', json_dict['results'][0])
 
@@ -476,9 +479,7 @@ class TestSpecificChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
         Test whether we can query channel contents for unsigned (legacy/FFA) channels
         """
         with db_session:
-            channel = self.session.mds.ChannelMetadata(
-                title='ffa', infohash=random_infohash(), public_key=b"", id_=123
-            )
+            channel = self.session.mds.ChannelMetadata(title='ffa', infohash=random_infohash(), public_key=b"", id_=123)
             self.session.mds.TorrentMetadata(
                 public_key=b"", id_=333333, origin_id=channel.id_, title='torrent', infohash=random_infohash()
             )

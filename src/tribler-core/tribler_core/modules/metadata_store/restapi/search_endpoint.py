@@ -15,9 +15,9 @@ class SearchEndpoint(MetadataEndpointBase):
     """
 
     def setup_routes(self):
-        self.app.add_routes([web.get('', self.search),
-                             web.get('/count', self.count),
-                             web.get('/completions', self.completions)])
+        self.app.add_routes(
+            [web.get('', self.search), web.get('/count', self.count), web.get('/completions', self.completions)]
+        )
 
     @staticmethod
     def get_uuid(parameters):
@@ -129,8 +129,7 @@ class SearchEndpoint(MetadataEndpointBase):
         if not sanitized["metadata_type"]:
             return RESTResponse({"error": "Trying to query for unknown type of metadata"}, status=HTTP_BAD_REQUEST)
 
-        return RESTResponse(self.get_total_count(self.session.mds.TorrentMetadata,
-                                                 sanitized, search_uuid=search_uuid))
+        return RESTResponse(self.get_total_count(self.session.mds.TorrentMetadata, sanitized, search_uuid=search_uuid))
 
     async def completions(self, request):
         """

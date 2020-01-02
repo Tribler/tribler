@@ -6,6 +6,7 @@ class TabButtonPanel(QWidget):
     """
     This class manages the tab button panels that can often be found above pages.
     """
+
     clicked_tab_button = pyqtSignal(str)
 
     def __init__(self, parent):

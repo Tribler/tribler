@@ -10,25 +10,37 @@ import tribler_gui.tests.fake_tribler_api.tribler_utils as tribler_utils
 
 
 class DownloadsEndpoint(RESTEndpoint):
-
     def setup_routes(self):
-        self.app.add_routes([web.get('', self.get_downloads),
-                             web.put('', self.add_download),
-                             web.delete('/{infohash}', self.return_404),
-                             web.patch('/{infohash}', self.update_download),
-                             web.get('/{infohash}/torrent', self.return_404),
-                             web.get('/{infohash}/files', self.get_files)])
+        self.app.add_routes(
+            [
+                web.get('', self.get_downloads),
+                web.put('', self.add_download),
+                web.delete('/{infohash}', self.return_404),
+                web.patch('/{infohash}', self.update_download),
+                web.get('/{infohash}/torrent', self.return_404),
+                web.get('/{infohash}/files', self.get_files),
+            ]
+        )
 
     async def get_downloads(self, request):
         get_peers = request.query.get('get_peers', False)
         get_pieces = request.query.get('get_pieces', False)
-        return RESTResponse({"downloads": [download.get_json(get_peers=get_peers, get_pieces=get_pieces)
-                                           for download in tribler_utils.tribler_data.downloads]})
+        return RESTResponse(
+            {
+                "downloads": [
+                    download.get_json(get_peers=get_peers, get_pieces=get_pieces)
+                    for download in tribler_utils.tribler_data.downloads
+                ]
+            }
+        )
 
     async def add_download(self, request):
         headers = request.getAllHeaders()
-        cgi.FieldStorage(fp=request.content, headers=headers,
-                         environ={'REQUEST_METHOD': 'POST', 'CONTENT_TYPE': headers[b'content-type']})
+        cgi.FieldStorage(
+            fp=request.content,
+            headers=headers,
+            environ={'REQUEST_METHOD': 'POST', 'CONTENT_TYPE': headers[b'content-type']},
+        )
 
         # Just start a fake download
         tribler_utils.tribler_data.start_random_download()

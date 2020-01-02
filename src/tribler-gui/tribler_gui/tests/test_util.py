@@ -5,7 +5,6 @@ from tribler_gui.utilities import compose_magnetlink, quote_plus_unicode, unicod
 
 
 class TestGUIUtilities(unittest.TestCase):
-
     def test_quoter_char(self):
         """
         Test if an ASCII character is quoted correctly
@@ -87,8 +86,10 @@ class TestGUIUtilities(unittest.TestCase):
         expected_link0 = ""
         expected_link1 = "magnet:?xt=urn:btih:DC4B96CF85A85CEEDB8ADC4B96CF85A85CEEDB8A"
         expected_link2 = "magnet:?xt=urn:btih:DC4B96CF85A85CEEDB8ADC4B96CF85A85CEEDB8A&dn=Some+torrent+name"
-        expected_link3 = "magnet:?xt=urn:btih:DC4B96CF85A85CEEDB8ADC4B96CF85A85CEEDB8A&dn=Some+torrent+name" \
-                         "&tr=http://tracker1.example.com:8080/announce&tr=http://tracker1.example.com:8080/announce"
+        expected_link3 = (
+            "magnet:?xt=urn:btih:DC4B96CF85A85CEEDB8ADC4B96CF85A85CEEDB8A&dn=Some+torrent+name"
+            "&tr=http://tracker1.example.com:8080/announce&tr=http://tracker1.example.com:8080/announce"
+        )
 
         composed_link0 = compose_magnetlink(None)
         composed_link1 = compose_magnetlink(infohash)

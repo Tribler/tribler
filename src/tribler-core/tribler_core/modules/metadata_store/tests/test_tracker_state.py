@@ -33,5 +33,6 @@ class TestTrackerState(TriblerCoreTest):
 
     @db_session
     def test_canonicalize_raise_on_malformed_url(self):
-        self.assertRaises(MalformedTrackerURLException, self.mds.TrackerState,
-                          url='udp://tracker.tribler.org/announce/')
+        self.assertRaises(
+            MalformedTrackerURLException, self.mds.TrackerState, url='udp://tracker.tribler.org/announce/'
+        )

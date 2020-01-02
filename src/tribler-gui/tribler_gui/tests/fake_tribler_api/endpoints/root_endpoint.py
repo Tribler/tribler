@@ -19,24 +19,25 @@ from tribler_gui.tests.fake_tribler_api.endpoints.wallets_endpoint import Wallet
 
 
 class RootEndpoint(RESTEndpoint):
-
     def setup_routes(self):
-        endpoints = {'/metadata': MetadataEndpoint,
-                     '/channels': ChannelsEndpoint,
-                     '/collections': ChannelsEndpoint,
-                     '/events': EventsEndpoint,
-                     '/state': StateEndpoint,
-                     '/shutdown': ShutdownEndpoint,
-                     '/settings': SettingsEndpoint,
-                     '/downloads': DownloadsEndpoint,
-                     '/debug': DebugEndpoint,
-                     '/trustchain': TrustchainEndpoint,
-                     '/statistics': StatisticsEndpoint,
-                     '/libtorrent': LibTorrentEndpoint,
-                     '/torrentinfo': TorrentInfoEndpoint,
-                     '/search': SearchEndpoint,
-                     '/ipv8': IPv8Endpoint,
-                     '/market': MarketEndpoint,
-                     '/wallets': WalletsEndpoint}
+        endpoints = {
+            '/metadata': MetadataEndpoint,
+            '/channels': ChannelsEndpoint,
+            '/collections': ChannelsEndpoint,
+            '/events': EventsEndpoint,
+            '/state': StateEndpoint,
+            '/shutdown': ShutdownEndpoint,
+            '/settings': SettingsEndpoint,
+            '/downloads': DownloadsEndpoint,
+            '/debug': DebugEndpoint,
+            '/trustchain': TrustchainEndpoint,
+            '/statistics': StatisticsEndpoint,
+            '/libtorrent': LibTorrentEndpoint,
+            '/torrentinfo': TorrentInfoEndpoint,
+            '/search': SearchEndpoint,
+            '/ipv8': IPv8Endpoint,
+            '/market': MarketEndpoint,
+            '/wallets': WalletsEndpoint,
+        }
         for path, ep_cls in endpoints.items():
             self.add_endpoint(path, ep_cls(None))

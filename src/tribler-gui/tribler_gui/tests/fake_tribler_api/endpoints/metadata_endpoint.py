@@ -10,18 +10,20 @@ import tribler_gui.tests.fake_tribler_api.tribler_utils as tribler_utils
 
 
 class MetadataEndpoint(RESTEndpoint):
-
     def setup_routes(self):
         self.app.add_routes(
-            [web.get('/channels', self.get_channels),
-             web.get('/channels/count', self.get_channels_count),
-             web.get('/channels/popular', self.get_popular_channels),
-             web.post(r'/channels/{channel_pk:\w*}/{channel_id:\w*}', self.subscribe_to_channel),
-             web.get(r'/channels/{channel_pk:\w*}/{channel_id:\w*}/torrents', self.get_channel_torrents),
-             web.get(r'/channels/{channel_pk:\w*}/{channel_id:\w*}/torrents/count', self.get_channel_torrents_count),
-             web.get('/torrents/random', self.get_random_torrents),
-             web.get('/torrents/{infohash}', self.get_torrent),
-             web.get('/torrents/{infohash}/health', self.get_torrent_health)])
+            [
+                web.get('/channels', self.get_channels),
+                web.get('/channels/count', self.get_channels_count),
+                web.get('/channels/popular', self.get_popular_channels),
+                web.post(r'/channels/{channel_pk:\w*}/{channel_id:\w*}', self.subscribe_to_channel),
+                web.get(r'/channels/{channel_pk:\w*}/{channel_id:\w*}/torrents', self.get_channel_torrents),
+                web.get(r'/channels/{channel_pk:\w*}/{channel_id:\w*}/torrents/count', self.get_channel_torrents_count),
+                web.get('/torrents/random', self.get_random_torrents),
+                web.get('/torrents/{infohash}', self.get_torrent),
+                web.get('/torrents/{infohash}/health', self.get_torrent_health),
+            ]
+        )
 
     @staticmethod
     def sanitize_parameters(parameters):
@@ -42,20 +44,18 @@ class MetadataEndpoint(RESTEndpoint):
 
     async def get_channels(self, request):
         first, last, sort_by, sort_asc, query_filter = self.sanitize_parameters(request.query)
-        channels, total = tribler_utils.tribler_data.get_channels(first, last, sort_by, sort_asc, query_filter,
-                                                                  bool(request.query.get('subscribed', False)))
-        return RESTResponse({
-            "results": channels,
-            "first": first,
-            "last": last,
-            "sort_by": sort_by,
-            "sort_asc": int(sort_asc),
-        })
+        channels, total = tribler_utils.tribler_data.get_channels(
+            first, last, sort_by, sort_asc, query_filter, bool(request.query.get('subscribed', False))
+        )
+        return RESTResponse(
+            {"results": channels, "first": first, "last": last, "sort_by": sort_by, "sort_asc": int(sort_asc)}
+        )
 
     async def get_channels_count(self, request):
         first, last, sort_by, sort_asc, query_filter = self.sanitize_parameters(request.query)
-        _, total = tribler_utils.tribler_data.get_channels(first, last, sort_by, sort_asc, query_filter,
-                                                           bool(request.query.get('subscribed', False)))
+        _, total = tribler_utils.tribler_data.get_channels(
+            first, last, sort_by, sort_asc, query_filter, bool(request.query.get('subscribed', False))
+        )
         return RESTResponse({"total": total})
 
     async def subscribe_to_channel(self, request):
@@ -88,13 +88,9 @@ class MetadataEndpoint(RESTEndpoint):
             return RESTResponse({"error": "the channel with the provided cid is not known"}, status=HTTP_NOT_FOUND)
 
         torrents, total = tribler_utils.tribler_data.get_torrents(first, last, sort_by, sort_asc, query_filter, channel)
-        return RESTResponse({
-            "results": torrents,
-            "first": first,
-            "last": last,
-            "sort_by": sort_by,
-            "sort_asc": int(sort_asc),
-        })
+        return RESTResponse(
+            {"results": torrents, "first": first, "last": last, "sort_by": sort_by, "sort_asc": int(sort_asc)}
+        )
 
     async def get_channel_torrents_count(self, request):
         first, last, sort_by, sort_asc, query_filter = self.sanitize_parameters(request.query)
@@ -107,15 +103,17 @@ class MetadataEndpoint(RESTEndpoint):
         return RESTResponse({"channels": results_json})
 
     async def get_random_torrents(self, _):
-        return RESTResponse({"torrents": [torrent.get_json()
-                                          for torrent in sample(tribler_utils.tribler_data.torrents, 20)]})
+        return RESTResponse(
+            {"torrents": [torrent.get_json() for torrent in sample(tribler_utils.tribler_data.torrents, 20)]}
+        )
 
     async def get_torrent(self, request):
         infohash = unhexlify(request.match_info['infohash'])
         torrent = tribler_utils.tribler_data.get_torrent_with_infohash(infohash)
         if not torrent:
-            return RESTResponse({"error": "the torrent with the specific infohash cannot be found"},
-                                status=HTTP_NOT_FOUND)
+            return RESTResponse(
+                {"error": "the torrent with the specific infohash cannot be found"}, status=HTTP_NOT_FOUND
+            )
 
         return RESTResponse({"torrent": torrent.get_json(include_trackers=True)})
 
@@ -123,17 +121,11 @@ class MetadataEndpoint(RESTEndpoint):
         infohash = unhexlify(request.match_info['infohash'])
         torrent = tribler_utils.tribler_data.get_torrent_with_infohash(infohash)
         if not torrent:
-            return RESTResponse({"error": "the torrent with the specific infohash cannot be found"},
-                                status=HTTP_NOT_FOUND)
+            return RESTResponse(
+                {"error": "the torrent with the specific infohash cannot be found"}, status=HTTP_NOT_FOUND
+            )
 
         await sleep(randint(0, 5))
 
         torrent.update_health()
-        return RESTResponse({
-            "health": {
-                "DHT": {
-                    "seeders": torrent.num_seeders,
-                    "leechers": torrent.num_leechers
-                }
-            }
-        })
+        return RESTResponse({"health": {"DHT": {"seeders": torrent.num_seeders, "leechers": torrent.num_leechers}}})

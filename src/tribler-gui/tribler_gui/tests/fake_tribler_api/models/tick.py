@@ -3,7 +3,6 @@ import time
 
 
 class Tick(object):
-
     def __init__(self, asset1_type, asset2_type, is_ask=True):
         self.is_ask = is_ask
         self.trader_id = ''.join(random.choice('0123456789abcdef') for n in range(16))
@@ -24,17 +23,11 @@ class Tick(object):
             "trader_id": self.trader_id,
             "order_number": self.order_number,
             "assets": {
-                "first": {
-                    "amount": self.asset1_amount,
-                    "type": self.asset1_type
-                },
-                "second": {
-                    "amount": self.asset2_amount,
-                    "type": self.asset2_type
-                }
+                "first": {"amount": self.asset1_amount, "type": self.asset1_type},
+                "second": {"amount": self.asset2_amount, "type": self.asset2_type},
             },
             "timeout": self.timeout,
             "timestamp": self.timestamp,
             "traded": self.traded,
-            "block_hash": '0' * 40
+            "block_hash": '0' * 40,
         }

@@ -4,7 +4,6 @@ from PyQt5.QtWidgets import QStyle, QStyleOption, QWidget
 
 
 class DialogContainer(QWidget):
-
     def __init__(self, parent):
         QWidget.__init__(self, parent)
 
@@ -34,7 +33,11 @@ class DialogContainer(QWidget):
 
             self.setFixedSize(self.parentWidget().size())
             self.dialog_widget.setFixedWidth(self.width() - 100)
-            self.dialog_widget.move(QPoint(self.geometry().center().x() - self.dialog_widget.geometry().width() / 2,
-                                           self.geometry().center().y() - self.dialog_widget.geometry().height() / 2))
+            self.dialog_widget.move(
+                QPoint(
+                    self.geometry().center().x() - self.dialog_widget.geometry().width() / 2,
+                    self.geometry().center().y() - self.dialog_widget.geometry().height() / 2,
+                )
+            )
         except RuntimeError:
             pass

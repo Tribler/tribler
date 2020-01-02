@@ -30,7 +30,8 @@ class HomeRecommendedItem(QWidget, fc_home_recommended_item):
         self.category_label = QLabel(self)
         self.category_label.setFixedHeight(24)
         self.category_label.setSizePolicy(QSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Fixed))
-        self.category_label.setStyleSheet("""
+        self.category_label.setStyleSheet(
+            """
         border: 2px solid white;
         border-radius: 12px;
         background-color: transparent;
@@ -38,7 +39,8 @@ class HomeRecommendedItem(QWidget, fc_home_recommended_item):
         padding-left: 4px;
         padding-right: 4px;
         font-weight: bold;
-        """)
+        """
+        )
         self.category_label.move(QPoint(6, 6))
         self.category_label.show()
 
@@ -49,7 +51,8 @@ class HomeRecommendedItem(QWidget, fc_home_recommended_item):
 
         self.download_button = QToolButton(self)
         self.download_button.setFixedSize(QSize(40, 40))
-        self.download_button.setStyleSheet("""
+        self.download_button.setStyleSheet(
+            """
         QToolButton {
             background-color: transparent;
             border: 2px solid white;
@@ -59,7 +62,8 @@ class HomeRecommendedItem(QWidget, fc_home_recommended_item):
         QToolButton::hover {
             border: 2px solid #B5B5B5;
         }
-        """)
+        """
+        )
         self.download_button.setIcon(QIcon(get_image_path('downloads.png')))
         self.download_button.setIconSize(QSize(18, 18))
         self.download_button.clicked.connect(self.on_download_button_clicked)
@@ -70,8 +74,9 @@ class HomeRecommendedItem(QWidget, fc_home_recommended_item):
     def on_download_button_clicked(self):
         if not self.torrent_info:
             return
-        self.download_uri = (u"magnet:?xt=urn:btih:%s&dn=%s" %
-                             (self.torrent_info["infohash"], self.torrent_info['name'])).encode('utf-8')
+        self.download_uri = (
+            u"magnet:?xt=urn:btih:%s&dn=%s" % (self.torrent_info["infohash"], self.torrent_info['name'])
+        ).encode('utf-8')
         self.window().start_download_from_uri(self.download_uri)
 
     def update_with_torrent(self, torrent):
@@ -81,8 +86,9 @@ class HomeRecommendedItem(QWidget, fc_home_recommended_item):
         self.torrent_info = torrent
         self.thumbnail_widget.initialize(torrent["name"], HOME_ITEM_FONT_SIZE)
         self.main_label.setText(torrent["name"])
-        self.category_label.setText(torrent["category"].lower() if
-                                    ("category" in torrent and torrent["category"]) else 'other')
+        self.category_label.setText(
+            torrent["category"].lower() if ("category" in torrent and torrent["category"]) else 'other'
+        )
         self.category_label.adjustSize()
         self.category_label.setHidden(False)
         self.setCursor(Qt.ArrowCursor)
@@ -104,8 +110,10 @@ class HomeRecommendedItem(QWidget, fc_home_recommended_item):
         if self.show_torrent:
             self.dark_overlay.resize(self.thumbnail_widget.size())
             self.dark_overlay.show()
-            self.download_button.move((self.thumbnail_widget.width() - self.download_button.width()) / 2,
-                                      (self.thumbnail_widget.height() - self.download_button.height()) / 2)
+            self.download_button.move(
+                (self.thumbnail_widget.width() - self.download_button.width()) / 2,
+                (self.thumbnail_widget.height() - self.download_button.height()) / 2,
+            )
             self.download_button.show()
 
     def leaveEvent(self, _):

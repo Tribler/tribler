@@ -21,22 +21,27 @@ class ChannelsEndpointBase(MetadataEndpointBase):
 
 
 class ChannelsEndpoint(ChannelsEndpointBase):
-
     def setup_routes(self):
         self.app.add_routes(
-            [web.get('', self.get_channels),
-             web.get('/popular', self.get_popular_channels),
-             web.get(r'/{channel_pk:\w*}/{channel_id:\w*}', self.get_channel_contents),
-             web.post(r'/{channel_pk:\w*}/{channel_id:\w*}/copy', self.copy_channel),
-             web.post(r'/{channel_pk:\w*}/{channel_id:\w*}/channels', self.create_channel),
-             web.post(r'/{channel_pk:\w*}/{channel_id:\w*}/collections', self.create_collection),
-             web.put(r'/{channel_pk:\w*}/{channel_id:\w*}/torrents', self.add_torrent_to_channel),
-             web.post(r'/{channel_pk:\w*}/{channel_id:\w*}/commit', self.post_commit),
-             web.get(r'/{channel_pk:\w*}/{channel_id:\w*}/commit', self.is_channel_dirty)])
+            [
+                web.get('', self.get_channels),
+                web.get('/popular', self.get_popular_channels),
+                web.get(r'/{channel_pk:\w*}/{channel_id:\w*}', self.get_channel_contents),
+                web.post(r'/{channel_pk:\w*}/{channel_id:\w*}/copy', self.copy_channel),
+                web.post(r'/{channel_pk:\w*}/{channel_id:\w*}/channels', self.create_channel),
+                web.post(r'/{channel_pk:\w*}/{channel_id:\w*}/collections', self.create_collection),
+                web.put(r'/{channel_pk:\w*}/{channel_id:\w*}/torrents', self.add_torrent_to_channel),
+                web.post(r'/{channel_pk:\w*}/{channel_id:\w*}/commit', self.post_commit),
+                web.get(r'/{channel_pk:\w*}/{channel_id:\w*}/commit', self.is_channel_dirty),
+            ]
+        )
 
     def get_channel_from_request(self, request):
-        channel_pk = self.session.mds.my_key.pub().key_to_bin()[10:] \
-            if request.match_info['channel_pk'] == 'mychannel' else unhexlify(request.match_info['channel_pk'])
+        channel_pk = (
+            self.session.mds.my_key.pub().key_to_bin()[10:]
+            if request.match_info['channel_pk'] == 'mychannel'
+            else unhexlify(request.match_info['channel_pk'])
+        )
         channel_id = int(request.match_info['channel_id'])
         return channel_pk, channel_id
 
@@ -198,9 +203,7 @@ class ChannelsEndpoint(ChannelsEndpointBase):
 
         channel_pk, channel_id = self.get_channel_from_request(request)
         with db_session:
-            channel = self.session.mds.CollectionNode.get(
-                public_key=database_blob(channel_pk), id_=channel_id
-            )
+            channel = self.session.mds.CollectionNode.get(public_key=database_blob(channel_pk), id_=channel_id)
         if not channel:
             return RESTResponse({"error": "Unknown channel"}, status=HTTP_NOT_FOUND)
 
@@ -252,7 +255,7 @@ class ChannelsEndpoint(ChannelsEndpointBase):
             if not torrents_dir:
                 return RESTResponse(
                     {"error": "the torrents_dir parameter should be provided when the recursive " "parameter is set"},
-                    status=HTTP_BAD_REQUEST
+                    status=HTTP_BAD_REQUEST,
                 )
 
         if torrents_dir:
@@ -276,9 +279,7 @@ class ChannelsEndpoint(ChannelsEndpointBase):
                 for t in self.session.mds.CollectionNode.commit_all_channels():
                     self.session.gigachannel_manager.updated_my_channel(TorrentDef.load_from_dict(t))
             else:
-                coll = self.session.mds.CollectionNode.get(
-                    public_key=database_blob(channel_pk), id_=channel_id
-                )
+                coll = self.session.mds.CollectionNode.get(public_key=database_blob(channel_pk), id_=channel_id)
                 if not coll:
                     return RESTResponse({"success": False}, status=HTTP_NOT_FOUND)
                 torrent_dict = coll.commit_channel_torrent()

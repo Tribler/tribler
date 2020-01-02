@@ -8,11 +8,10 @@ import tribler_gui.tests.fake_tribler_api.tribler_utils as tribler_utils
 
 
 class SearchEndpoint(RESTEndpoint):
-
     def setup_routes(self):
-        self.app.add_routes([web.get('', self.search),
-                             web.get('/completions', self.completions),
-                             web.get('/count', self.count)])
+        self.app.add_routes(
+            [web.get('', self.search), web.get('/completions', self.completions), web.get('/count', self.count)]
+        )
 
     @staticmethod
     def sanitize_parameters(parameters):
@@ -74,7 +73,7 @@ class SearchEndpoint(RESTEndpoint):
         include_total = request.query.get('include_total', '')
         first, last, sort_by, sort_asc, search_results = self.base_get(request)
         result = {
-            "results": search_results[first-1:last],
+            "results": search_results[first - 1 : last],
             "first": first,
             "last": last,
             "sort_by": sort_by,

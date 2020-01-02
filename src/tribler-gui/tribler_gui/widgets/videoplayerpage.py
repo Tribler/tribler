@@ -56,7 +56,8 @@ class VideoPlayerPage(QWidget):
         self.window().video_player_widget.should_hide_video_widgets.connect(self.hide_video_widgets)
         self.window().video_player_widget.should_show_video_widgets.connect(self.show_video_widgets)
         self.window().video_player_position_slider.should_change_video_position.connect(
-            self.on_should_change_video_time)
+            self.on_should_change_video_time
+        )
         self.window().video_player_volume_slider.valueChanged.connect(self.on_volume_change)
         self.window().video_player_volume_slider.setValue(self.mediaplayer.audio_get_volume())
         self.window().video_player_volume_slider.setFixedWidth(0)
@@ -119,8 +120,9 @@ class VideoPlayerPage(QWidget):
                 video_time = 0
 
             self.window().video_player_position_slider.setValue(self.mediaplayer.get_position() * 1000)
-            self.window().video_player_time_label.setText("%s / %s" %
-                                                          (seconds_to_string(video_time / 1000), total_duration_str))
+            self.window().video_player_time_label.setText(
+                "%s / %s" % (seconds_to_string(video_time / 1000), total_duration_str)
+            )
 
     def update_with_download_info(self, download):
         self.window().video_player_info_button.popup.update(download)
@@ -190,8 +192,9 @@ class VideoPlayerPage(QWidget):
         self.window().video_player_play_pause_button.setIcon(self.play_icon)
         self.window().video_player_position_slider.setValue(0)
 
-        media_filename = u"http://127.0.0.1:{}/{}/{}".format(str(self.video_player_port), self.active_infohash,
-                                                             str(file_index))
+        media_filename = u"http://127.0.0.1:{}/{}/{}".format(
+            str(self.video_player_port), self.active_infohash, str(file_index)
+        )
         self.media = self.instance.media_new(media_filename)
         self.mediaplayer.set_media(self.media)
         self.media.parse()
@@ -243,7 +246,11 @@ class VideoPlayerPage(QWidget):
         self.window().video_player_info_button.hide()
 
     def eventFilter(self, source, event):
-        if event.type() == QEvent.KeyRelease and self.isVisible() and not self.window().top_search_bar.hasFocus() and\
-                event.key() == Qt.Key_Space:
+        if (
+            event.type() == QEvent.KeyRelease
+            and self.isVisible()
+            and not self.window().top_search_bar.hasFocus()
+            and event.key() == Qt.Key_Space
+        ):
             self.on_play_pause_button_click()
         return QWidget.eventFilter(self, source, event)

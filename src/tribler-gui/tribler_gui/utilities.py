@@ -294,15 +294,18 @@ def copy_to_clipboard(message):
 
 def html_label(text, background="#e4e4e4", color="#222222", bold=True):
     style = "background-color:" + background if background else ''
-    style = style+";color:"+color if color else style
-    style = style+";font-weight:bold" if bold else style
+    style = style + ";color:" + color if color else style
+    style = style + ";font-weight:bold" if bold else style
     return "<label style='%s'>&nbsp;%s&nbsp;</label>" % (style, text)
 
 
 def get_checkbox_style(color="#B5B5B5"):
-    return """QCheckBox { color: %s; }
+    return (
+        """QCheckBox { color: %s; }
                 QCheckBox::indicator:unchecked {border: 1px solid #555;}
-                """ % color
+                """
+        % color
+    )
 
 
 def format_votes(votes=0.0):

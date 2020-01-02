@@ -4,8 +4,8 @@ import time
 
 class Base(object):
     def __init__(self):
-        self.bytes_up = random.randint(0, 1024**3)
-        self.bytes_down = random.randint(0, 1024**3)
+        self.bytes_up = random.randint(0, 1024 ** 3)
+        self.bytes_down = random.randint(0, 1024 ** 3)
 
     def to_dictionary(self):
         return {"bytes_up": self.bytes_up, "bytes_down": self.bytes_down, "creation_time": time.time()}
@@ -22,9 +22,16 @@ class Circuit(Base):
 
     def to_dictionary(self):
         result = super(Circuit, self).to_dictionary()
-        result.update({"circuit_id": self.circuit_id, "goal_hops": self.goal_hops,
-                       "actual_hops": self.actual_hops, "type": self.type, "state": self.state,
-                       "unverified_hop": ""})
+        result.update(
+            {
+                "circuit_id": self.circuit_id,
+                "goal_hops": self.goal_hops,
+                "actual_hops": self.actual_hops,
+                "type": self.type,
+                "state": self.state,
+                "unverified_hop": "",
+            }
+        )
         return result
 
 
@@ -37,8 +44,9 @@ class Relay(Base):
 
     def to_dictionary(self):
         result = super(Relay, self).to_dictionary()
-        result.update({"circuit_from": self.circuit_from, "circuit_to": self.circuit_to,
-                       "is_rendezvous": self.is_rendezvous})
+        result.update(
+            {"circuit_from": self.circuit_from, "circuit_to": self.circuit_to, "is_rendezvous": self.is_rendezvous}
+        )
         return result
 
 

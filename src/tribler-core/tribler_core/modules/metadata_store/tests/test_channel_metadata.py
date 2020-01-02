@@ -15,10 +15,7 @@ from six.moves import xrange
 
 from tribler_core.exceptions import DuplicateTorrentFileError
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
-from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import (
-    CHANNEL_DIR_NAME_LENGTH,
-    entries_to_chunk,
-)
+from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH, entries_to_chunk
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import COMMITTED, NEW, TODELETE, UPDATED
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 from tribler_core.modules.metadata_store.store import MetadataStore

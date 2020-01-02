@@ -71,8 +71,9 @@ class GigaChannelManager(TaskManager):
             self._logger.exception("Error when tried to resume personal channel seeding on GigaChannel Manager startup")
 
         channels_check_interval = 5.0  # seconds
-        self.register_task("Process channels download queue and remove cruft",
-                           self.service_channels, interval=channels_check_interval)
+        self.register_task(
+            "Process channels download queue and remove cruft", self.service_channels, interval=channels_check_interval
+        )
 
     async def shutdown(self):
         """
@@ -160,7 +161,10 @@ class GigaChannelManager(TaskManager):
                         channel.timestamp,
                     )
                     await self.download_channel(channel)
-                elif self.session.ltmgr.get_download(bytes(channel.infohash)).get_state().get_status() == DLSTATUS_SEEDING:
+                elif (
+                    self.session.ltmgr.get_download(bytes(channel.infohash)).get_state().get_status()
+                    == DLSTATUS_SEEDING
+                ):
                     self._logger.info(
                         "Processing previously downloaded, but unprocessed channel torrent %s ver %i->%i",
                         hexlify(channel.public_key),
@@ -252,12 +256,12 @@ class GigaChannelManager(TaskManager):
         return download
 
     async def process_channel_dir_threaded(self, channel):
-
         def _process_download():
             try:
                 channel_dirname = self.session.mds.channels_dir / channel.dirname
-                self.session.mds.process_channel_dir(channel_dirname, channel.public_key, channel.id_,
-                                                        external_thread=True)
+                self.session.mds.process_channel_dir(
+                    channel_dirname, channel.public_key, channel.id_, external_thread=True
+                )
                 self.session.mds._db.disconnect()
             except Exception as e:
                 self._logger.error("Error when processing channel dir download: %s", e)
@@ -283,8 +287,11 @@ class GigaChannelManager(TaskManager):
         """
         with db_session:
             my_channel = self.session.mds.ChannelMetadata.get(infohash=database_blob(tdef.get_infohash()))
-        if my_channel and my_channel.status == COMMITTED \
-                and not self.session.ltmgr.download_exists(bytes(my_channel.infohash)):
+        if (
+            my_channel
+            and my_channel.status == COMMITTED
+            and not self.session.ltmgr.download_exists(bytes(my_channel.infohash))
+        ):
             dcfg = DownloadConfig(state_dir=self.session.config.get_state_dir())
             dcfg.set_dest_dir(self.session.mds.channels_dir)
             dcfg.set_channel_download(True)

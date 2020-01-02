@@ -182,11 +182,12 @@ COLOR_ROOT = "#FE6D01"
 COLOR_SELECTED = "#5c58ee"
 COLOR_BACKGROUND = "#202020"
 HTML_SPACE = '&nbsp;'
-TRUST_GRAPH_PEER_LEGENDS = u"<span style='color:%s'>\u25CF Helpful user </span> &nbsp;&nbsp;&nbsp;" \
-                           u"<span style='color:%s'>\u25CF Selfish user </span> &nbsp;&nbsp;&nbsp;" \
-                           u"<span style='color:%s'>\u25CF Unknown </span> &nbsp;&nbsp;&nbsp;" \
-                           u"<span style='color:%s'>\u25CF Selected</span>" \
-                           % (COLOR_GREEN, COLOR_RED, COLOR_NEUTRAL, COLOR_SELECTED)
+TRUST_GRAPH_PEER_LEGENDS = (
+    u"<span style='color:%s'>\u25CF Helpful user </span> &nbsp;&nbsp;&nbsp;"
+    u"<span style='color:%s'>\u25CF Selfish user </span> &nbsp;&nbsp;&nbsp;"
+    u"<span style='color:%s'>\u25CF Unknown </span> &nbsp;&nbsp;&nbsp;"
+    u"<span style='color:%s'>\u25CF Selected</span>" % (COLOR_GREEN, COLOR_RED, COLOR_NEUTRAL, COLOR_SELECTED)
+)
 
 CONTEXT_MENU_WIDTH = 200
 

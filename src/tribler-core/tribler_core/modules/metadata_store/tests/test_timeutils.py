@@ -5,7 +5,6 @@ from tribler_core.tests.tools.base_test import TriblerCoreTest
 
 
 class TestTimeUtils(TriblerCoreTest):
-
     def test_time_convert(self):
         """
         Test converting various datetime objects to float
@@ -13,7 +12,7 @@ class TestTimeUtils(TriblerCoreTest):
         test_time_list = [
             datetime.datetime(2005, 7, 14, 12, 30, 12),
             datetime.datetime(2039, 7, 14, 12, 30, 12),
-            datetime.datetime.utcnow().replace(second=0, microsecond=0)
+            datetime.datetime.utcnow().replace(second=0, microsecond=0),
         ]
         for test_time in test_time_list:
             self.assertTrue(test_time == int2time(time2int(test_time)))

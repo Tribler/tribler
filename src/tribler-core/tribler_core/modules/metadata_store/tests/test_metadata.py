@@ -1,4 +1,3 @@
-
 from ipv8.database import database_blob
 from ipv8.keyvault.crypto import default_eccrypto
 

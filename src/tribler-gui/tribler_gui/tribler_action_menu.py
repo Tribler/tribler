@@ -12,7 +12,8 @@ class TriblerActionMenu(QMenu):
     def __init__(self, parent):
         QMenu.__init__(self, parent)
 
-        self.setStyleSheet("""
+        self.setStyleSheet(
+            """
         QMenu {
             background-color: #404040;
         }
@@ -29,6 +30,7 @@ class TriblerActionMenu(QMenu):
         QMenu::item:disabled {
             color: #999999;
         }
-        """)
+        """
+        )
 
         self.setMinimumWidth(CONTEXT_MENU_WIDTH)

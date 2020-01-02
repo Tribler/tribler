@@ -7,7 +7,6 @@ from tribler_gui.widgets.graphs.DateAxisItem import DateAxisItem, YEAR_SPACING
 
 
 class TimeSeriesPlot(pg.PlotWidget):
-
     def __init__(self, parent, name, series, **kargs):
         axisItems = {'bottom': DateAxisItem('bottom')}
         super(TimeSeriesPlot, self).__init__(parent=parent, title=name, axisItems=axisItems, **kargs)
@@ -43,5 +42,6 @@ class TimeSeriesPlot(pg.PlotWidget):
 
     def render_plot(self):
         for i, plot in enumerate(self.plots):
-            plot.setData(x=pg.np.array(list(self.plot_data.keys())),
-                         y=pg.np.array([data[i] for data in self.plot_data.values()]))
+            plot.setData(
+                x=pg.np.array(list(self.plot_data.keys())), y=pg.np.array([data[i] for data in self.plot_data.values()])
+            )

@@ -45,6 +45,7 @@ def start_loop(task, *args):
     loop.run_until_complete(task(*args))
     loop.close()
 
+
 def start_fake_core(port):
     from tribler_gui.tests.fake_tribler_api.endpoints.root_endpoint import RootEndpoint
     from tribler_gui.tests.fake_tribler_api.tribler_data import TriblerData

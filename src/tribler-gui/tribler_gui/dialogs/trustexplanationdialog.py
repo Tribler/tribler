@@ -6,7 +6,6 @@ from tribler_gui.utilities import get_ui_file_path
 
 
 class TrustExplanationDialog(DialogContainer):
-
     def __init__(self, parent):
         DialogContainer.__init__(self, parent)
 

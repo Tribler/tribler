@@ -9,11 +9,7 @@ from tribler_common.simpledefs import STATEDIR_CHECKPOINT_DIR
 from tribler_core.config.tribler_config import CONFIG_SPEC_PATH, TriblerConfig
 from tribler_core.tests.tools.base_test import TriblerCoreTest
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
-from tribler_core.upgrade.config_converter import (
-    add_libtribler_config,
-    add_tribler_config,
-    convert_config_to_tribler71,
-)
+from tribler_core.upgrade.config_converter import add_libtribler_config, add_tribler_config, convert_config_to_tribler71
 from tribler_core.utilities import path_util
 
 

@@ -1,4 +1,3 @@
-
 from ipv8.database import database_blob
 
 from pony.orm import db_session

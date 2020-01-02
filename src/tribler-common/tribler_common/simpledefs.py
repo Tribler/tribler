@@ -15,16 +15,18 @@ DLSTATUS_METADATA = 7
 DLSTATUS_CIRCUITS = 8
 DLSTATUS_EXIT_NODES = 9
 
-dlstatus_strings = ['DLSTATUS_ALLOCATING_DISKSPACE',
-                    'DLSTATUS_WAITING4HASHCHECK',
-                    'DLSTATUS_HASHCHECKING',
-                    'DLSTATUS_DOWNLOADING',
-                    'DLSTATUS_SEEDING',
-                    'DLSTATUS_STOPPED',
-                    'DLSTATUS_STOPPED_ON_ERROR',
-                    'DLSTATUS_METADATA',
-                    'DLSTATUS_CIRCUITS',
-                    'DLSTATUS_EXIT_NODES']
+dlstatus_strings = [
+    'DLSTATUS_ALLOCATING_DISKSPACE',
+    'DLSTATUS_WAITING4HASHCHECK',
+    'DLSTATUS_HASHCHECKING',
+    'DLSTATUS_DOWNLOADING',
+    'DLSTATUS_SEEDING',
+    'DLSTATUS_STOPPED',
+    'DLSTATUS_STOPPED_ON_ERROR',
+    'DLSTATUS_METADATA',
+    'DLSTATUS_CIRCUITS',
+    'DLSTATUS_EXIT_NODES',
+]
 
 UPLOAD = 'up'
 DOWNLOAD = 'down'
@@ -90,7 +92,7 @@ NTFY_ACTIVITIES = 'activities'  # an activity was set (peer met/dns resolved)
 NTFY_REACHABLE = 'reachable'  # the Session is reachable from the Internet
 NTFY_TRIBLER = 'tribler'  # notifications regarding Tribler in general
 NTFY_WATCH_FOLDER_CORRUPT_TORRENT = 'corrupt_torrent'  # a corrupt torrent has been found in the watch folder
-NTFY_NEW_VERSION = 'newversion' # a new version of Tribler is available
+NTFY_NEW_VERSION = 'newversion'  # a new version of Tribler is available
 
 # changeTypes
 NTFY_UPDATE = 'update'  # data is updated

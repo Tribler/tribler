@@ -23,8 +23,12 @@ class DownloadProgressBar(QWidget):
         self.download = download
         if download["status"] in ("DLSTATUS_SEEDING", "DLSTATUS_CIRCUITS"):
             self.set_fraction(download["progress"])
-        elif download["status"] in ("DLSTATUS_HASHCHECKING", "DLSTATUS_DOWNLOADING", "DLSTATUS_STOPPED",
-                                    "DLSTATUS_STOPPED_ON_ERROR"):
+        elif download["status"] in (
+            "DLSTATUS_HASHCHECKING",
+            "DLSTATUS_DOWNLOADING",
+            "DLSTATUS_STOPPED",
+            "DLSTATUS_STOPPED_ON_ERROR",
+        ):
             self.set_pieces()
         else:
             self.set_fraction(0.0)
@@ -37,7 +41,7 @@ class DownloadProgressBar(QWidget):
     def set_pieces(self):
         self.show_pieces = True
         self.fraction = 0.0
-        self.pieces = self.decode_pieces(self.download["pieces"])[:self.download["total_pieces"]]
+        self.pieces = self.decode_pieces(self.download["pieces"])[: self.download["total_pieces"]]
         self.repaint()
 
     def decode_pieces(self, pieces):
@@ -62,8 +66,9 @@ class DownloadProgressBar(QWidget):
                 piece_width = self.width() / float(len(self.pieces))
                 for i in range(len(self.pieces)):
                     if self.pieces[i]:
-                        painter.fillRect(QRect(float(i) * piece_width, 0, math.ceil(piece_width), self.height()),
-                                         QColor(230, 115, 0))
+                        painter.fillRect(
+                            QRect(float(i) * piece_width, 0, math.ceil(piece_width), self.height()), QColor(230, 115, 0)
+                        )
             else:  # We have more pieces than pixels, group pieces
                 pieces_per_pixel = len(self.pieces) / float(self.width())
                 for i in range(self.width()):

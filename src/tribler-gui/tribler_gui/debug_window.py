@@ -19,10 +19,7 @@ import tribler_core.utilities.json_util as json
 from tribler_gui.defs import DEBUG_PANE_REFRESH_TIMEOUT, GB, MB
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler_gui.event_request_manager import received_events as tribler_received_events
-from tribler_gui.tribler_request_manager import (
-    TriblerNetworkRequest,
-    performed_requests as tribler_performed_requests,
-)
+from tribler_gui.tribler_request_manager import TriblerNetworkRequest, performed_requests as tribler_performed_requests
 from tribler_gui.utilities import format_size, get_ui_file_path
 from tribler_gui.widgets.tokenminingpage import TimeSeriesPlot
 

@@ -36,7 +36,6 @@ def convert_sort_param_to_pony_col(sort_param):
 
 
 class MetadataEndpointBase(RESTEndpoint):
-
     @classmethod
     def sanitize_parameters(cls, parameters):
         """
@@ -45,9 +44,7 @@ class MetadataEndpointBase(RESTEndpoint):
         sanitized = {
             "first": 1 if 'first' not in parameters else int(parameters['first']),
             "last": 50 if 'last' not in parameters else int(parameters['last']),
-            "sort_by": None
-            if 'sort_by' not in parameters
-            else convert_sort_param_to_pony_col(parameters['sort_by']),
+            "sort_by": None if 'sort_by' not in parameters else convert_sort_param_to_pony_col(parameters['sort_by']),
             "sort_desc": True if 'sort_desc' not in parameters else bool(int(parameters['sort_desc'])),
             "query_filter": None if 'filter' not in parameters else parameters['filter'],
             "hide_xxx": False if 'hide_xxx' not in parameters else bool(int(parameters['hide_xxx']) > 0),

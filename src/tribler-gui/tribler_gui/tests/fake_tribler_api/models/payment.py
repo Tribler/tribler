@@ -2,7 +2,6 @@ import random
 
 
 class Payment(object):
-
     def __init__(self, transaction):
         self.trader_id = transaction.trader_id
         self.transaction_number = transaction.transaction_number
@@ -18,13 +17,10 @@ class Payment(object):
         return {
             "trader_id": self.trader_id,
             "transaction_number": self.transaction_number,
-            "transferred": {
-                "amount": self.transferred_amount,
-                "type": self.transferred_type
-            },
+            "transferred": {"amount": self.transferred_amount, "type": self.transferred_type},
             "payment_id": self.payment_id,
             "address_from": self.address_from,
             "address_to": self.address_to,
             "timestamp": self.timestamp,
-            "success": self.success
+            "success": self.success,
         }

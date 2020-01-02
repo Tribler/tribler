@@ -36,5 +36,6 @@ class DiscoveringPage(QWidget):
             self.window().clicked_menu_button_discovered()
             return
 
-        self.window().discovering_top_label.setText("Discovering your first content...\n\nFound %d channels"
-                                                    % self.found_channels)
+        self.window().discovering_top_label.setText(
+            "Discovering your first content...\n\nFound %d channels" % self.found_channels
+        )

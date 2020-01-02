@@ -10,7 +10,6 @@ from tribler_gui.tests.fake_tribler_api.utils import get_random_hex_string
 
 
 class Channel(object):
-
     def __init__(self, cid, name="", description=""):
         self.name = name
         self.description = description
@@ -40,7 +39,7 @@ class Channel(object):
             "votes": self.votes,
             "status": 1,
             "state": self.state,
-            "updated": self.timestamp
+            "updated": self.timestamp,
         }
 
     def get_torrent_with_infohash(self, infohash):

@@ -44,12 +44,15 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
 
     def setup_routes(self):
         self.app.add_routes(
-            [web.patch('', self.update_channel_entries),
-             web.delete('', self.delete_channel_entries),
-             web.get('/torrents/random', self.get_random_torrents),
-             web.get('/torrents/{infohash}/health', self.get_torrent_health),
-             web.patch(r'/{public_key:\w*}/{id:\w*}', self.update_channel_entry),
-             web.get(r'/{public_key:\w*}/{id:\w*}', self.get_channel_entries)])
+            [
+                web.patch('', self.update_channel_entries),
+                web.delete('', self.delete_channel_entries),
+                web.get('/torrents/random', self.get_random_torrents),
+                web.get('/torrents/{infohash}/health', self.get_torrent_health),
+                web.patch(r'/{public_key:\w*}/{id:\w*}', self.update_channel_entry),
+                web.get(r'/{public_key:\w*}/{id:\w*}', self.get_channel_entries),
+            ]
+        )
 
     async def update_channel_entries(self, request):
         try:
@@ -102,9 +105,7 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
 
             if entry:
                 # TODO: handle costly attributes in a more graceful and generic way for all types of metadata
-                entry_dict = entry.to_simple_dict(
-                    include_trackers=isinstance(entry, self.session.mds.TorrentMetadata)
-                )
+                entry_dict = entry.to_simple_dict(include_trackers=isinstance(entry, self.session.mds.TorrentMetadata))
             else:
                 return RESTResponse({"error": "entry not found in database"}, status=HTTP_NOT_FOUND)
 
@@ -113,8 +114,7 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
     async def get_random_torrents(self, request):
         limit_torrents = int(request.query.get('limit', 10))
         if limit_torrents <= 0:
-            return RESTResponse({"error": "the limit parameter must be a positive number"},
-                                status=HTTP_BAD_REQUEST)
+            return RESTResponse({"error": "the limit parameter must be a positive number"}, status=HTTP_BAD_REQUEST)
 
         with db_session:
             random_torrents = self.session.mds.TorrentMetadata.get_random_torrents(limit=limit_torrents)
