@@ -2,7 +2,7 @@
 line-length = 120
 py27 = true
 skip-string-normalization = true
-include = '(TriblerGUI|Tribler/Core/Modules/MetadataStore)/.*\.pyi?$'
+include = '(src/tribler-gui|src/tribler-common|src/tribler-core/tribler_core/modules/metadata_store)/.*\.pyi?$'
 
 exclude = '''
 /(

@@ -36,6 +36,7 @@ flycheck_*
 memorydump.out
 test_file
 test_file.torrent
+screenshots
 
 # Ignore nosetest coverage output
 cover/
@@ -43,8 +44,8 @@ htmlcov/
 .coverage
 
 # Ignore nosetest output logs
-Tribler/Test/logs/
-Tribler/Test/Core/logs/
+logs
+resources.log
 # Ignore trial temp dirs
 _trial_temp*/
 _trial_temp*.lock
@@ -83,7 +84,7 @@ dist/
 annotations.txt
 
 # Screenshots taken by GUI tests
-TriblerGUI/screenshots
+tribler_gui/screenshots
 
 # Tests output directory
-Tribler/Test/temp
+temp

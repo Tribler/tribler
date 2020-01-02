@@ -1,0 +1,140 @@
+import asyncio
+import os
+from asyncio import Future
+from tempfile import mkstemp
+
+from tribler_common.simpledefs import DLMODE_VOD, DOWNLOAD, UPLOAD, dlstatus_strings
+
+from tribler_core.modules.libtorrent.download_config import DownloadConfig
+from tribler_core.modules.libtorrent.libtorrent_download_impl import VODFile
+from tribler_core.modules.libtorrent.torrentdef import TorrentDef
+from tribler_core.tests.tools.test_as_server import TestAsServer
+from tribler_core.tests.tools.tools import timeout
+from tribler_core.utilities.path_util import Path
+
+asyncio.get_event_loop().set_debug(True)
+
+
+class TestVideoOnDemand(TestAsServer):
+
+    """
+    Testing Merkle hashpiece messages for both:
+    * Merkle BEP style
+    * old Tribler <= 4.5.2 that did not use the Extention protocol (BEP 10).
+
+    See BitTornado/BT1/Connecter.py
+    """
+
+    async def setUp(self):
+        await TestAsServer.setUp(self)
+        self.content = None
+        self.tdef = None
+        self.test_future = Future()
+        self.contentlen = None
+        self.piecelen = 0
+
+    def setUpPreSession(self):
+        TestAsServer.setUpPreSession(self)
+        self.config.set_libtorrent_enabled(True)
+
+    async def create_torrent(self):
+        [srchandle, sourcefn] = mkstemp()
+        self.content = b'0' * self.contentlen
+        os.write(srchandle, self.content)
+        os.close(srchandle)
+
+        self.tdef = TorrentDef()
+        self.tdef.add_content(sourcefn)
+        self.tdef.set_piece_length(self.piecelen)
+        self.tdef.set_tracker("http://127.0.0.1:12/announce")
+        torrentfn = self.session.config.get_state_dir() / "gen.torrent"
+        self.tdef.save(torrentfn)
+
+        dscfg = DownloadConfig()
+        destdir = Path(sourcefn).parent
+        dscfg.set_dest_dir(destdir)
+        dscfg.set_mode(DLMODE_VOD)
+
+        download = self.session.ltmgr.start_download(tdef=self.tdef, config=dscfg)
+        download.set_state_callback(self.state_callback)
+
+        self.session.ltmgr.set_download_states_callback(self.states_callback)
+
+    def states_callback(self, dslist):
+        ds = dslist[0]
+        d = ds.get_download()
+        self._logger.debug('%s %s %5.2f%% %s up %8.2fKB/s down %8.2fKB/s',
+                           d.get_def().get_name(),
+                           dlstatus_strings[ds.get_status()],
+                           ds.get_progress() * 100,
+                           ds.get_error(),
+                           ds.get_current_speed(UPLOAD),
+                           ds.get_current_speed(DOWNLOAD))
+
+        return []
+
+    def state_callback(self, ds):
+        download = ds.get_download()
+        if ds.get_vod_prebuffering_progress() == 1.0:
+
+            self._logger.debug("Test: state_callback")
+
+            stream = VODFile(open(download.get_content_dest(), 'rb'), download)
+
+            # Read last piece
+            lastpieceoff = ((self.contentlen - 1) // self.piecelen) * self.piecelen
+            lastpiecesize = self.contentlen - lastpieceoff
+            self._logger.debug("stream: lastpieceoff %s %s", lastpieceoff, lastpiecesize)
+            self.stream_read(stream, lastpieceoff, lastpiecesize, self.piecelen)
+
+            # Read second,3rd,4th byte, only
+            secoff = 1
+            secsize = 3
+            blocksize = 3
+            self.stream_read(stream, secoff, secsize, blocksize)
+
+            # Read last byte
+            lastoff = self.contentlen - 1
+            lastsize = 1
+            self.stream_read(stream, lastoff, lastsize, self.piecelen)
+
+            stream.close()
+
+            self.test_future.set_result(None)
+
+            return 0
+        return 1.0
+
+    def stream_read(self, stream, off, size, blocksize):
+        stream.seek(off)
+        data = stream.read(blocksize)
+        self._logger.debug("stream: Got data %s", len(data))
+        self.assertEqual(len(data), size)
+        self.assertEqual(data, self.content[off:off + size])
+
+    @timeout(10)
+    async def test_99(self):
+        self.contentlen = 99
+        self.piecelen = 16
+        await self.create_torrent()
+
+        self._logger.debug("Letting network thread create Download, sleeping")
+        await self.test_future
+
+    @timeout(10)
+    async def test_100(self):
+        self.contentlen = 100
+        self.piecelen = 16
+        await self.create_torrent()
+
+        self._logger.debug("Letting network thread create Download, sleeping")
+        await self.test_future
+
+    @timeout(10)
+    async def test_101(self):
+        self.contentlen = 101
+        self.piecelen = 16
+        await self.create_torrent()
+
+        self._logger.debug("Letting network thread create Download, sleeping")
+        await self.test_future

@@ -1,0 +1,72 @@
+import logging
+import os
+
+from ipv8.taskmanager import TaskManager
+
+from tribler_common.simpledefs import NTFY_INSERT, NTFY_WATCH_FOLDER_CORRUPT_TORRENT
+
+from tribler_core.modules.libtorrent.download_config import DownloadConfig
+from tribler_core.modules.libtorrent.torrentdef import TorrentDef
+from tribler_core.utilities import path_util
+
+WATCH_FOLDER_CHECK_INTERVAL = 10
+
+
+class WatchFolder(TaskManager):
+
+    def __init__(self, session):
+        super(WatchFolder, self).__init__()
+
+        self._logger = logging.getLogger(self.__class__.__name__)
+        self.session = session
+
+    def start(self):
+        self.register_task("check watch folder", self.check_watch_folder, interval=WATCH_FOLDER_CHECK_INTERVAL)
+
+    async def stop(self):
+        await self.shutdown_task_manager()
+
+    def cleanup_torrent_file(self, root, name):
+        fullpath = root / name
+        if not fullpath.exists():
+            self._logger.warning("File with path %s does not exist (anymore)", root / name)
+            return
+
+        fullpath.rename(path_util.Path(fullpath.to_text()+".corrupt"))
+        self._logger.warning("Watch folder - corrupt torrent file %s", name)
+        self.session.notifier.notify(NTFY_WATCH_FOLDER_CORRUPT_TORRENT, NTFY_INSERT, None, name)
+
+    def check_watch_folder(self):
+        if not self.session.config.get_watch_folder_path().is_dir():
+            return
+
+        # Make sure that we pass a str to os.walk
+        watch_dir = self.session.config.get_watch_folder_path().to_text()
+
+        for root, _, files in os.walk(watch_dir):
+            root = path_util.Path(root)
+            for name in files:
+                if not name.endswith(".torrent"):
+                    continue
+
+                try:
+                    tdef = TorrentDef.load(root / name)
+                    if not tdef.get_metainfo():
+                        self.cleanup_torrent_file(root, name)
+                        continue
+                except:  # torrent appears to be corrupt
+                    self.cleanup_torrent_file(root, name)
+                    continue
+
+                infohash = tdef.get_infohash()
+
+                if not self.session.ltmgr.download_exists(infohash):
+                    self._logger.info("Starting download from torrent file %s", name)
+                    dl_config = DownloadConfig()
+
+                    anon_enabled = self.session.config.get_default_anonymity_enabled()
+                    default_num_hops = self.session.config.get_default_number_hops()
+                    dl_config.set_hops(default_num_hops if anon_enabled else 0)
+                    dl_config.set_safe_seeding(self.session.config.get_default_safeseeding_enabled())
+                    dl_config.set_dest_dir(self.session.config.get_default_destination_dir())
+                    self.session.ltmgr.start_download(tdef=tdef, config=dl_config)
