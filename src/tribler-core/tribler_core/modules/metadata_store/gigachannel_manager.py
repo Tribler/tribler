@@ -1,7 +1,7 @@
 from asyncio import get_event_loop
 
 from ipv8.database import database_blob
-from ipv8.taskmanager import TaskManager
+from ipv8.taskmanager import TaskManager, task
 
 from pony.orm import db_session
 
@@ -118,29 +118,29 @@ class GigaChannelManager(TaskManager):
         except Exception:
             self._logger.exception("Error when tried to check for cruft channels")
         try:
-            await self.check_channels_updates()
+            self.check_channels_updates()
         except Exception:
             self._logger.exception("Error when checking for channel updates")
         try:
-            if not self.processing:
-                await self.process_queued_channels()
-                return
+            self.process_queued_channels()
         except Exception:
             self._logger.exception("Error when tried to start processing queued channel torrents changes")
 
+    @task
     async def process_queued_channels(self):
+        self.processing = True
         while self.channels_processing_queue:
             infohash, (action, data) = next(iter(self.channels_processing_queue.items()))
             self.channels_processing_queue.pop(infohash)
-            self.processing = True
             if action == PROCESS_CHANNEL_DIR:
                 await self.process_channel_dir_threaded(data)  # data is a channel object (used read-only!)
             elif action == REMOVE_CHANNEL_DOWNLOAD:
                 await self.remove_channel_download(data)  # data is a tuple (download, remove_content bool)
             elif action == CLEANUP_UNSUBSCRIBED_CHANNEL:
                 self.cleanup_channel(data)  # data is a tuple (public_key, id_)
+        self.processing = False
 
-    async def check_channels_updates(self):
+    def check_channels_updates(self):
         """
         Check whether there are channels that are updated. If so, download the new version of the channel.
         """
@@ -160,7 +160,7 @@ class GigaChannelManager(TaskManager):
                         channel.local_version,
                         channel.timestamp,
                     )
-                    await self.download_channel(channel)
+                    self.download_channel(channel)
                 elif (
                     self.session.ltmgr.get_download(bytes(channel.infohash)).get_state().get_status()
                     == DLSTATUS_SEEDING
@@ -214,10 +214,8 @@ class GigaChannelManager(TaskManager):
         d, remove_content = to_remove
         try:
             await self.session.ltmgr.remove_download(d, remove_content=remove_content)
-            self.processing = False
         except Exception as e:
             self._logger.error("Error when removing the channel download: %s", e)
-            self.processing = False
 
         """
         def _on_torrents_removed(torrent):
@@ -227,6 +225,7 @@ class GigaChannelManager(TaskManager):
         self.register_task(u'remove_channels_files-' + "_".join([d.tdef.get_name_utf8() for d in to_remove_list]), dl)
         """
 
+    @task
     async def download_channel(self, channel):
         """
         Download a channel with a given infohash and title.
@@ -265,7 +264,6 @@ class GigaChannelManager(TaskManager):
                 self.session.mds._db.disconnect()
             except Exception as e:
                 self._logger.error("Error when processing channel dir download: %s", e)
-                self.processing = False
                 return
 
         await get_event_loop().run_in_executor(None, _process_download)
@@ -279,7 +277,6 @@ class GigaChannelManager(TaskManager):
             "%s:%s".format(hexlify(channel.public_key), str(channel.id_)),
             channel_upd_dict,
         )
-        self.processing = False
 
     def updated_my_channel(self, tdef):
         """
@@ -311,7 +308,6 @@ class GigaChannelManager(TaskManager):
             )
 
     def cleanup_channel(self, to_cleanup):
-        self.processing = True
         public_key, id_ = to_cleanup
         # TODO: Maybe run it threaded?
         try:
@@ -323,5 +319,3 @@ class GigaChannelManager(TaskManager):
                 channel.contents.delete(bulk=True)
         except Exception as e:
             self._logger.warning("Exception while cleaning unsubscribed channel: %", str(e))
-        finally:
-            self.processing = False

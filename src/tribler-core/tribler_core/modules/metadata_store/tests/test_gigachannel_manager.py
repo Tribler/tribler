@@ -68,7 +68,7 @@ class TestGigaChannelManager(TriblerCoreTest):
             self.mock_session.ltmgr.download_exists = lambda x: bytes(x) == bytes(chan.infohash)
             self.torrents_added = False
             self.chanman.start()
-            await self.chanman.check_channels_updates()
+            self.chanman.check_channels_updates()
             self.assertFalse(self.torrents_added)
             await self.chanman.shutdown()
 
@@ -115,7 +115,7 @@ class TestGigaChannelManager(TriblerCoreTest):
             )
             self.torrents_added = 0
 
-            async def mock_download_channel(chan1):
+            def mock_download_channel(chan1):
                 self.torrents_added += 1
                 self.assertEqual(chan1, chan3)
 
@@ -135,7 +135,7 @@ class TestGigaChannelManager(TriblerCoreTest):
             self.mock_session.ltmgr.download_exists = lambda _: False
 
             # Manually fire the channel updates checking routine
-            await self.chanman.check_channels_updates()
+            self.chanman.check_channels_updates()
             # download_channel should only fire once - for the original subscribed channel
             self.assertEqual(1, self.torrents_added)
 
@@ -160,7 +160,7 @@ class TestGigaChannelManager(TriblerCoreTest):
             self.chanman.process_channel_dir = mock_process_channel_dir
 
             # Manually fire the channel updates checking routine
-            await self.chanman.check_channels_updates()
+            self.chanman.check_channels_updates()
             await self.chanman.process_queued_channels()
 
             # The queue should be empty afterwards
