@@ -295,7 +295,7 @@ class DispersyToPonyMigration(object):
     async def convert_async(self, add_to_pony, get_old_stuff, total_to_convert, offset=0, message=""):
         """
         This method converts old stuff into the pony database splitting the process into chunks dynamically.
-        Chunks splitting uses congestion-control-like algorithm. Yields are necessary so Twisted
+        Chunks splitting uses congestion-control-like algorithm. Yields are necessary so the
         reactor can get an opportunity at serving other tasks, such as sending progress notifications to
         the GUI through the REST API.
         This method is made semi-general, so it is possible to use it as a wrapper for actual conversion

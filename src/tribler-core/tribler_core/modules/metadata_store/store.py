@@ -320,7 +320,7 @@ class MetadataStore(object):
         :param skip_personal_metadata_payload: if this is set to True, personal torrent metadata payload received
                 through gossip will be ignored. The default value is True.
         :param external_thread: if this is set to True, we add some sleep between batches to allow other threads
-        to get the database lock. This is an ugly workaround for Python and Twisted asynchronous programming (locking)
+        to get the database lock. This is an ugly workaround for Python and asynchronous programming (locking)
         imperfections. It only makes sense to use it when this routine runs on a non-reactor thread.
         :return ChannelNode objects list if we can correctly load the metadata
         """
