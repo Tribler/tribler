@@ -515,7 +515,7 @@ class TestMetadataDownloadEndpoint(AbstractApiTest):
         """
         Test adding a channel metadata download to the Tribler core
         """
-        post_data = {'uri': 'file:%s' % (TESTS_DIR / 'Core/data/sample_channel/channel.mdblob')}
+        post_data = {'uri': 'file:%s' % (TESTS_DIR / 'data/sample_channel/channel.mdblob')}
         expected_json = {'started': True, 'infohash': 'ea95d47988b4dcb07667194c998d2c5b473132e5'}
         await self.do_request('downloads', expected_code=200, request_type='PUT',
                               post_data=post_data, expected_json=expected_json)
@@ -529,8 +529,8 @@ class TestMetadataDownloadEndpoint(AbstractApiTest):
         Test adding a channel metadata download to the Tribler core
         """
         with db_session:
-            self.session.mds.process_mdblob_file(TESTS_DIR / 'Core/data/sample_channel/channel.mdblob')
-        post_data = {'uri': 'file:%s' % (TESTS_DIR / 'Core/data/sample_channel/channel.mdblob')}
+            self.session.mds.process_mdblob_file(TESTS_DIR / 'data/sample_channel/channel.mdblob')
+        post_data = {'uri': 'file:%s' % (TESTS_DIR / 'data/sample_channel/channel.mdblob')}
         expected_json = {u'error': u'Could not import Tribler metadata file'}
         await self.do_request('downloads', expected_code=200, request_type='PUT', post_data=post_data,
                                expected_json=expected_json)
