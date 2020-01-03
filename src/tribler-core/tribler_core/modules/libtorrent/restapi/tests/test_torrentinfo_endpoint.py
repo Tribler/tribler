@@ -16,7 +16,7 @@ from tribler_core.utilities.path_util import pathname2url
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import succeed
 
-SAMPLE_CHANNEL_FILES_DIR = TESTS_DIR / "Core" / "data" / "sample_channel"
+SAMPLE_CHANNEL_FILES_DIR = TESTS_DIR / "data" / "sample_channel"
 
 
 class TestTorrentInfoEndpoint(AbstractApiTest):
