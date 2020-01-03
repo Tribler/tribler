@@ -43,7 +43,6 @@ class DebugEndpoint(RESTEndpoint):
                 "threads": [
                     {"thread_id": 12345, "thread_name": "fancy_thread", "frames": ['line 1', 'line 2']},
                     {"thread_id": 5653, "thread_name": "another_thread", "frames": ['line 1']},
-                    {"thread_id": 8784, "thread_name": "twisted", "frames": ['line 1', 'line 2']},
                 ]
             }
         )

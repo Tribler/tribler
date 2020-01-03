@@ -9,8 +9,6 @@ import logging
 import os
 import sys
 
-from twisted.python.log import addObserver
-
 from tribler_core.utilities.network_utils import get_random_port
 
 __all__ = ["process_unhandled_exceptions"]
@@ -83,30 +81,6 @@ class UnhandledExceptionCatcher(object):
             raise Exception("Test raised %d unhandled exceptions, last one was: %s" % (exc_counter, last_exc))
 
 
-class UnhandledTwistedExceptionCatcher(object):
-
-    def __init__(self):
-        self._twisted_exceptions = []
-
-        def unhandled_error_observer(event):
-            if event['isError']:
-                if 'log_legacy' in event and 'log_text' in event:
-                    self._twisted_exceptions.append(event['log_text'])
-                elif 'log_failure' in event:
-                    self._twisted_exceptions.append(str(event['log_failure']))
-                else:
-                    self._twisted_exceptions.append('\n'.join("%r: %r" % (key, value)
-                                                              for key, value in event.items()))
-
-        addObserver(unhandled_error_observer)
-
-    def check_exceptions(self):
-        exceptions = self._twisted_exceptions
-        self._twisted_exceptions = []
-        num_twisted_exceptions = len(exceptions)
-        if num_twisted_exceptions > 0:
-            raise Exception("Test raised %d unhandled Twisted exceptions:\n%s"
-                            % (num_twisted_exceptions, '\n-------------------\n'.join(exceptions)))
 
 
 def prepare_xml_rss(target_path, filename):
@@ -127,7 +101,5 @@ def prepare_xml_rss(target_path, filename):
     return files_path, port
 
 _catcher = UnhandledExceptionCatcher()
-_twisted_catcher = UnhandledTwistedExceptionCatcher()
 
 process_unhandled_exceptions = _catcher.check_exceptions
-process_unhandled_twisted_exceptions = _twisted_catcher.check_exceptions

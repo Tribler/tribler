@@ -30,7 +30,7 @@ from tribler_core.modules.libtorrent.libtorrent_mgr import LibtorrentMgr
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.session import Session
 from tribler_core.tests.tools.common import TESTS_DIR
-from tribler_core.tests.tools.util import process_unhandled_exceptions, process_unhandled_twisted_exceptions
+from tribler_core.tests.tools.util import process_unhandled_exceptions
 from tribler_core.utilities import path_util
 from tribler_core.utilities.instrumentation import WatchDog
 from tribler_core.utilities.network_utils import get_random_port
@@ -172,7 +172,6 @@ class AbstractServer(BaseTestCase):
         self.annotate(self._testMethodName, start=False)
 
         process_unhandled_exceptions()
-        process_unhandled_twisted_exceptions()
 
         self.watchdog.join(2)
         if self.watchdog.is_alive():
