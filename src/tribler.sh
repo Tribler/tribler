@@ -1,12 +1,19 @@
 #!/bin/sh
 # Run Tribler from source tree
 
+function script_path() {
+  DIR="${1%/*}"
+  (cd "$DIR" && echo "$(pwd -P)")
+}
+
 UNAME="$(uname -s)"
 
-TRIBLER_SCRIPT=run_tribler.py
-
-PYTHONPATH=.:"$PYTHONPATH"
+# Add all required modules to PYTHONPATH
+SRC_DIR="$(dirname "$(script_path "$0")")/src"
+PYTHONPATH="$PYTHONPATH:"$SRC_DIR/pyipv8":"$SRC_DIR/anydex":"$SRC_DIR/tribler-common":"$SRC_DIR/tribler-core":"$SRC_DIR/tribler-gui""
 export PYTHONPATH
+
+TRIBLER_SCRIPT=$SRC_DIR/run_tribler.py
 
 if [ "$UNAME" = "Linux" ]; then
     # Find the Tribler dir
