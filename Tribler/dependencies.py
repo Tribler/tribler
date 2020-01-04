@@ -3,8 +3,6 @@ This file lists the python dependencies for Tribler.
 
 Note that this file should not depend on any external modules itself other than builtin ones.
 """
-from __future__ import absolute_import, print_function
-
 import importlib
 import sys
 
@@ -27,6 +25,8 @@ dependencies = [
     {'module': 'netifaces', 'install_type': 'pip3', 'package': 'netifaces', 'optional': False, 'scope': 'core'},
     {'module': 'six', 'install_type': 'pip3', 'package': 'six', 'optional': False, 'scope': 'both'},
     {'module': 'bitcoinlib', 'install_type': 'pip3', 'package': 'bitcoinlib', 'optional': True, 'scope': 'core'},
+    {'module': 'PIL', 'install_type': 'pip3', 'package': 'PIL', 'optional': False, 'scope': 'gui'},
+    {'module': 'pyasn1', 'install_type': 'pip3', 'package': 'pyasn1', 'optional': False, 'scope': 'core'},
 ]
 
 
@@ -42,7 +42,7 @@ def _show_system_popup(title, text):
         win32api.MessageBox(0, text, title)
     except ImportError:
         import subprocess
-        subprocess.Popen(['xmessage', '-center', text], shell=False)
+        subprocess.Popen(['xmessage', '-center', text])
     sep = "*" * 80
     print('\n'.join([sep, title, sep, text, sep]), file=sys.stderr)
 
@@ -55,23 +55,25 @@ def check_for_missing_dependencies(scope='both'):
     :param scope: Defines the scope of the dependencies. Can have three values: core, gui, both. Default value is both.
     """
     missing_deps = {'pip3': [], 'apt': []}
+    is_scope_both = scope == 'both'
     for dep in dependencies:
-        if scope == 'both' or dep['scope'] == 'both' or dep['scope'] == scope:
-            try:
-                importlib.import_module(dep['module'])
-            except ImportError:
-                if not dep['optional']:
-                    if dep['install_type'] == 'pip3':
-                        missing_deps['pip3'].append(dep['package'])
-                    elif dep['install_type'] == 'apt':
-                        missing_deps['apt'].append(dep['package'])
+        if not is_scope_both and dep['scope'] != 'both' and dep['scope'] != scope:
+            continue
+        try:
+            importlib.import_module(dep['module'])
+        except ImportError:
+            if not dep['optional']:
+                if dep['install_type'] == 'pip3':
+                    missing_deps['pip3'].append(dep['package'])
+                elif dep['install_type'] == 'apt':
+                    missing_deps['apt'].append(dep['package'])
 
     if missing_deps['pip3'] or missing_deps['apt']:
-        pip3_install = "\n pip3 install %s" % ' '.join(missing_deps['pip3']) if missing_deps['pip3'] else ''
-        apt_install = "\n apt install %s" % ' '.join(missing_deps['apt']) if missing_deps['apt'] else ''
+        pip3_install = f"\n pip3 install {' '.join(missing_deps['pip3'])}" if missing_deps['pip3'] else ''
+        apt_install = f"\n apt install {' '.join(missing_deps['apt'])}" if missing_deps['apt'] else ''
         _show_system_popup("Dependencies missing!",
-                           "Tribler -  found missing dependencies in %s!\n"
+                           f"Tribler -  found missing dependencies in {scope}!\n"
                            "Please install the following dependencies to continue:"
-                           "\n %s%s \n\n" % (scope, pip3_install, apt_install)
+                           f"\n {pip3_install}{apt_install} \n\n"
                            )
         exit(1)
