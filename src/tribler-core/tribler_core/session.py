@@ -51,7 +51,6 @@ from tribler_core.modules.resource_monitor import ResourceMonitor
 from tribler_core.modules.torrent_checker.torrent_checker import TorrentChecker
 from tribler_core.modules.tracker_manager import TrackerManager
 from tribler_core.modules.versioncheck_manager import VersionCheckManager
-from tribler_core.modules.video_server import VideoServer
 from tribler_core.modules.watch_folder import WatchFolder
 from tribler_core.notifier import Notifier
 from tribler_core.restapi.rest_manager import RESTManager
@@ -110,8 +109,6 @@ class Session(TaskManager):
         self.resource_monitor = None
 
         self.gigachannel_manager = None
-
-        self.video_server = None
 
         self.ltmgr = None  # Libtorrent Manager
         self.tracker_manager = None
@@ -285,8 +282,6 @@ class Session(TaskManager):
     def get_ports_in_config(self):
         """Claim all required random ports."""
         self.config.get_libtorrent_port()
-        self.config.get_video_server_port()
-
         self.config.get_anon_listen_port()
         self.config.get_tunnel_community_socks5_listen_ports()
 
@@ -426,10 +421,6 @@ class Session(TaskManager):
         if sys.platform == 'darwin':
             os.environ['SSL_CERT_FILE'] = str((get_lib_path() / 'root_certs_mac.pem'))
 
-        if self.config.get_video_server_enabled():
-            self.video_server = VideoServer(self.config.get_video_server_port(), self)
-            self.video_server.start()
-
         if self.config.get_chant_enabled():
             channels_dir = self.config.get_chant_channels_dir()
             metadata_db_name = 'metadata.db' if not self.config.get_testnet() else 'metadata_testnet.db'
@@ -562,11 +553,6 @@ class Session(TaskManager):
             self.notify_shutdown_state("Shutting down Gigachannel Manager...")
             await self.gigachannel_manager.shutdown()
         self.gigachannel_manager = None
-
-        if self.video_server:
-            self.notify_shutdown_state("Shutting down Video Server...")
-            self.video_server.shutdown_server()
-        self.video_server = None
 
         if self.version_check_manager:
             self.notify_shutdown_state("Shutting down Version Checker...")

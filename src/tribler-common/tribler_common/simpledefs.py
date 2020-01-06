@@ -33,9 +33,6 @@ dlstatus_strings = [
 UPLOAD = 'up'
 DOWNLOAD = 'down'
 
-DLMODE_NORMAL = 0
-DLMODE_VOD = 1
-
 STATEDIR_CHECKPOINT_DIR = u'dlcheckpoints'
 STATEDIR_WALLET_DIR = u'wallet'
 STATEDIR_CHANNELS_DIR = u'channels'

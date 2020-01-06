@@ -2,11 +2,15 @@ import os
 import shutil
 from asyncio import ensure_future, sleep
 from binascii import unhexlify
+from tempfile import mkstemp
 
 from pony.orm import db_session
 
+from tribler_common.simpledefs import DLSTATUS_SEEDING
+
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
 from tribler_core.modules.libtorrent.download_state import DownloadState
+from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.restapi.base_api_test import AbstractApiTest
 from tribler_core.tests.tools.base_test import MockObject
 from tribler_core.tests.tools.common import TESTS_DATA_DIR, TESTS_DIR, UBUNTU_1504_INFOHASH
@@ -497,6 +501,53 @@ class TestDownloadsEndpoint(AbstractApiTest):
                                               expected_code=200, request_type='GET')
         self.assertIn('files', response_dict)
         self.assertTrue(response_dict['files'])
+
+
+class TestStreamingEndpoint(AbstractApiTest):
+    def setUpPreSession(self):
+        super(TestStreamingEndpoint, self).setUpPreSession()
+        self.config.set_libtorrent_enabled(True)
+
+    @timeout(10)
+    async def test_stream_full(self):
+        info_hash, data = await self.add_torrent()
+        response = await self.do_request(f'downloads/{hexlify(info_hash)}/stream/0', headers={'range': 'bytes=0-'},
+                                         expected_code=206, json_response=False)
+        self.assertEqual(data, response)
+
+    @timeout(10)
+    async def test_stream_partial(self):
+        info_hash, data = await self.add_torrent()
+        response = await self.do_request(f'downloads/{hexlify(info_hash)}/stream/0', headers={'range': 'bytes=0-999'},
+                                         expected_code=206, json_response=False)
+        self.assertEqual(data[:1000], response)
+
+    @timeout(10)
+    async def test_stream_offset_partial(self):
+        info_hash, data = await self.add_torrent()
+        response = await self.do_request(f'downloads/{hexlify(info_hash)}/stream/0', headers={'range': 'bytes=100-999'},
+                                         expected_code=206, json_response=False)
+        self.assertEqual(data[100:1000], response)
+
+    async def add_torrent(self, piece_length=1024):
+        [srchandle, sourcefn] = mkstemp()
+        data = b''.join([i.to_bytes(2, byteorder='big') for i in range(1000)])
+        os.write(srchandle, data)
+        os.close(srchandle)
+
+        tdef = TorrentDef()
+        tdef.add_content(sourcefn)
+        tdef.set_piece_length(piece_length)
+        torrentfn = self.session.config.get_state_dir() / "gen.torrent"
+        tdef.save(torrentfn)
+
+        dscfg = DownloadConfig()
+        destdir = Path(sourcefn).parent
+        dscfg.set_dest_dir(destdir)
+
+        download = self.session.ltmgr.start_download(tdef=tdef, config=dscfg)
+        await download.wait_for_status(DLSTATUS_SEEDING)
+        return tdef.get_infohash(), data
 
 
 class TestDownloadsWithTunnelsEndpoint(AbstractApiTest):

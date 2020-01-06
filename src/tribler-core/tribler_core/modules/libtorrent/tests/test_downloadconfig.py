@@ -4,8 +4,6 @@ from configobj import ConfigObjError
 
 from nose.tools import raises
 
-from tribler_common.simpledefs import DLMODE_VOD
-
 from tribler_core.modules.libtorrent.download_config import DownloadConfig, get_default_dest_dir
 from tribler_core.tests.tools.base_test import TriblerCoreTest
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
@@ -21,9 +19,6 @@ class TestConfigParser(TriblerCoreTest):
         self.assertIsInstance(dlcfg.get_dest_dir(), Path)
         dlcfg.set_dest_dir(self.session_base_dir)
         self.assertEqual(dlcfg.get_dest_dir(), self.session_base_dir)
-
-        dlcfg.set_mode(1)
-        self.assertEqual(dlcfg.get_mode(), 1)
 
         dlcfg.set_hops(4)
         self.assertEqual(dlcfg.get_hops(), 4)
@@ -42,13 +37,6 @@ class TestConfigParser(TriblerCoreTest):
 
         dlcfg.set_bootstrap_download(True)
         self.assertTrue(dlcfg.get_bootstrap_download())
-
-    @raises(ValueError)
-    def test_downloadconfig_set_vod_multiple_files(self):
-        dlcfg = DownloadConfig()
-        dlcfg.set_mode(DLMODE_VOD)
-        dlcfg.set_selected_file_indexes(["foo.txt", "bar.txt"])
-
 
     def test_downloadconfig_copy(self):
         dlcfg = DownloadConfig()

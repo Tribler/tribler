@@ -618,11 +618,10 @@ class TriblerWindow(QMainWindow):
         self.tribler_settings = settings['settings']
 
         # Set the video server port
-        self.video_player_page.video_player_port = settings["ports"]["video_server~port"]
+        self.video_player_page.video_player_port = self.core_manager.api_port
+        self.video_player_page.video_player_api_key = self.core_manager.api_key.decode('utf-8')
 
         # Disable various components based on the settings
-        if not self.tribler_settings['video_server']['enabled']:
-            self.left_menu_button_video_player.setHidden(True)
         self.downloads_creditmining_button.setHidden(not self.tribler_settings["credit_mining"]["enabled"])
         self.downloads_all_button.click()
 
