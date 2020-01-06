@@ -120,7 +120,6 @@ class TunnelHelperService(TaskManager):
         config.set_torrent_checking_enabled(False)
         config.set_ipv8_enabled(True)
         config.set_libtorrent_enabled(False)
-        config.set_video_server_enabled(False)
         config.set_ipv8_port(ipv8_port)
         config.set_ipv8_address(options.ipv8_address)
         config.set_trustchain_enabled(True)

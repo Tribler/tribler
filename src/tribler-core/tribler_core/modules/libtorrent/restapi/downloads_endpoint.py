@@ -1,4 +1,7 @@
+import mimetypes
+from asyncio import CancelledError, sleep
 from binascii import unhexlify
+from contextlib import suppress
 from urllib.parse import unquote_plus
 from urllib.request import url2pathname
 
@@ -10,10 +13,11 @@ from libtorrent import bencode, create_torrent
 
 from pony.orm import db_session
 
-from tribler_common.simpledefs import DLMODE_VOD, DOWNLOAD, UPLOAD, dlstatus_strings
+from tribler_common.simpledefs import DOWNLOAD, UPLOAD, dlstatus_strings
 
 from tribler_core.exceptions import InvalidSignatureException
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
+from tribler_core.modules.libtorrent.stream import Stream
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT
 from tribler_core.modules.metadata_store.store import UNKNOWN_CHANNEL, UPDATED_OUR_VERSION
 from tribler_core.restapi.rest_endpoint import (
@@ -22,7 +26,7 @@ from tribler_core.restapi.rest_endpoint import (
     HTTP_NOT_FOUND,
     RESTEndpoint,
     RESTResponse,
-)
+    RESTStreamResponse)
 from tribler_core.restapi.util import return_handled_exception
 from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.torrent_utils import get_info_from_handle
@@ -52,13 +56,18 @@ class DownloadsEndpoint(RESTEndpoint):
     starting, pausing and stopping downloads.
     """
 
+    def __init__(self, *args, **kwargs):
+        super(DownloadsEndpoint, self).__init__(*args, **kwargs)
+        self.streams = {}
+
     def setup_routes(self):
         self.app.add_routes([web.get('', self.get_downloads),
                              web.put('', self.add_download),
                              web.delete('/{infohash}', self.delete_download),
                              web.patch('/{infohash}', self.update_download),
                              web.get('/{infohash}/torrent', self.get_torrent),
-                             web.get('/{infohash}/files', self.get_files)])
+                             web.get('/{infohash}/files', self.get_files),
+                             web.get('/{infohash}/stream/{fileindex}', self.stream)])
 
     @staticmethod
     def return_404(request, message="this download does not exist"):
@@ -244,14 +253,18 @@ class DownloadsEndpoint(RESTEndpoint):
                 "destination": str(download.config.get_dest_dir()),
                 "availability": state.get_availability(),
                 "total_pieces": tdef.get_nr_pieces(),
-                "vod_mode": download.config.get_mode() == DLMODE_VOD,
-                "vod_prebuffering_progress": state.get_vod_prebuffering_progress(),
-                "vod_prebuffering_progress_consec": state.get_vod_prebuffering_progress_consec(),
+                "vod_prebuffering_progress": 0,
+                "vod_prebuffering_progress_consec": 0,
                 "error": repr(state.get_error()) if state.get_error() else "",
                 "time_added": download.config.get_time_added(),
                 "credit_mining": download.config.get_credit_mining(),
                 "channel_download": download.config.get_channel_download()
             }
+
+            stream = self.streams.get(tdef.get_infohash())
+            download_json['vod_mode'] = stream is not None
+            if stream:
+                download_json.update(stream.get_progress())
 
             # Add peers information if requested
             if get_peers:
@@ -371,6 +384,10 @@ class DownloadsEndpoint(RESTEndpoint):
         download = self.session.ltmgr.get_download(infohash)
         if not download:
             return DownloadsEndpoint.return_404(request)
+
+        stream = self.streams.pop(infohash, None)
+        if stream:
+            stream.close()
 
         try:
             await self.session.ltmgr.remove_download(download, remove_content=parameters['remove_data'])
@@ -516,3 +533,66 @@ class DownloadsEndpoint(RESTEndpoint):
         if not download:
             return DownloadsEndpoint.return_404(request)
         return RESTResponse({"files": self.get_files_info_json(download)})
+
+    async def stream(self, request):
+        infohash = unhexlify(request.match_info['infohash'])
+        download = self.session.ltmgr.get_download(infohash)
+        if not download:
+            return DownloadsEndpoint.return_404(request)
+
+        file_index = int(request.match_info['fileindex'])
+        if not 0 <= file_index < len(download.get_def().get_files()):
+            return RESTResponse('Selected file out of range', status=HTTP_NOT_FOUND)
+
+        stream = self.streams.get(infohash)
+        if stream and stream.file_index != file_index:
+            stream.close()
+        if not stream or stream.closed:
+            stream = self.streams[infohash] = Stream(download, file_index)
+        file_size = stream.file_size
+
+        http_range = request.http_range
+        start = http_range.start or 0
+        stop = http_range.stop if http_range.stop is not None else file_size
+
+        if not start < stop or not 0 <= start < file_size or not 0 < stop <= file_size:
+            return RESTResponse('Requested Range Not Satisfiable', status=416)
+
+        mime_type = mimetypes.guess_type(str(stream.filename))[0]
+        response = RESTStreamResponse(status=206, reason='OK', headers={'Accept-Ranges': 'bytes',
+                                                                        'Content-Type': mime_type or 'text/html',
+                                                                        'Content-Length': f'{stop - start}',
+                                                                        'Content-Range': f'{start}-{stop}/{file_size}'})
+
+        with suppress(CancelledError):
+            await response.prepare(request)
+            await stream.seek(start)
+
+            bytes_todo = stop - start
+            bytes_done = 0
+            self._logger.info('Got range request for %s-%s (%s bytes)', start, stop, bytes_todo)
+            piecelen = download.get_def().get_piece_length()
+
+            # If we don't have enough to return the next piece, we wait with sending data until we have 5MB
+            if stream.get_byte_progress([(file_index, start, start + piecelen)]) < 1:
+                while stream.get_byte_progress([(file_index, start, start + 5 * 1024 ** 2)]) < 1 \
+                      and not request.transport.is_closing():
+                    await sleep(1)
+
+            while not request.transport.is_closing():
+                data = await stream.read(piecelen)
+
+                if len(data) == 0:
+                    break
+                if bytes_done + len(data) > bytes_todo:
+                    endlen = bytes_todo - bytes_done
+                    if endlen != 0:
+                        await response.write(data[:endlen])
+                        self._logger.info('Sent %s bytes', len(data))
+                        bytes_done += endlen
+                    break
+                await response.write(data)
+                bytes_done += len(data)
+                self._logger.info('Sent %s bytes', len(data))
+
+            return response

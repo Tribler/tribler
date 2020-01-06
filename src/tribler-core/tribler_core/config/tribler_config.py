@@ -412,20 +412,6 @@ class TriblerConfig(object):
     def get_libtorrent_dht_enabled(self):
         return self.config['libtorrent']['dht']
 
-    # Video server
-
-    def set_video_server_enabled(self, value):
-        self.config['video_server']['enabled'] = value
-
-    def get_video_server_enabled(self):
-        return self.config['video_server']['enabled']
-
-    def set_video_server_port(self, port):
-        self.config['video_server']['port'] = port
-
-    def get_video_server_port(self):
-        return self._obtain_port('video_server', 'port')
-
     # Tunnel Community
 
     def set_tunnel_community_enabled(self, value):

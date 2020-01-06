@@ -7,8 +7,6 @@ import libtorrent as lt
 
 from validate import Validator
 
-from tribler_common.simpledefs import DLMODE_NORMAL, DLMODE_VOD
-
 from tribler_core.exceptions import InvalidConfigException
 from tribler_core.utilities import path_util
 from tribler_core.utilities.install_dir import get_lib_path
@@ -18,7 +16,7 @@ from tribler_core.utilities.utilities import bdecode_compat
 
 SPEC_FILENAME = 'download_config.spec'
 CONFIG_SPEC_PATH = get_lib_path() / 'modules' / 'libtorrent' / SPEC_FILENAME
-NONPERSISTENT_DEFAULTS = {'mode': DLMODE_NORMAL}
+NONPERSISTENT_DEFAULTS = {}
 
 
 class DownloadConfig:
@@ -79,16 +77,6 @@ class DownloadConfig:
 
         return Path(dest_dir)
 
-    def set_mode(self, mode):
-        """ Sets the mode of this download.
-        @param mode DLMODE_NORMAL/DLMODE_VOD """
-        self.nonpersistent['mode'] = mode
-
-    def get_mode(self):
-        """ Returns the mode of this download.
-        @return DLMODE_NORMAL/DLMODE_VOD """
-        return self.nonpersistent['mode']
-
     def set_hops(self, hops):
         self.config['download_defaults']['hops'] = hops
 
@@ -135,9 +123,6 @@ class DownloadConfig:
         """ Select which files in the torrent to download.
         @param file_indexes List of file indexes as ordered in the torrent (e.g. [0,1])
         """
-        if self.get_mode() == DLMODE_VOD and len(file_indexes) > 1:
-            raise ValueError("In Video-On-Demand mode only 1 file can be selected for download")
-
         self.config['download_defaults']['selected_file_indexes'] = file_indexes
 
     def get_selected_file_indexes(self):

@@ -18,6 +18,7 @@ class VideoPlayerPage(QWidget):
         QWidget.__init__(self)
 
         self.video_player_port = None
+        self.video_player_api_key = None
         self.active_infohash = ""
         self.active_index = -1
         self.media = None
@@ -29,6 +30,7 @@ class VideoPlayerPage(QWidget):
         self.volume_on_icon = None
         self.volume_off_icon = None
         self.update_timer = None
+        self.freeze = False
 
     def initialize_player(self):
         vlc_available = True
@@ -87,6 +89,7 @@ class VideoPlayerPage(QWidget):
         self.manager = self.mediaplayer.event_manager()
         self.manager.event_attach(vlc.EventType.MediaPlayerBuffering, self.on_vlc_player_buffering)
         self.manager.event_attach(vlc.EventType.MediaPlayerPlaying, self.on_vlc_player_playing)
+        self.manager.event_attach(vlc.EventType.MediaPlayerPositionChanged, self.on_vlc_player_position_changed)
 
         self.update_timer = QTimer()
         self.update_timer.timeout.connect(self.on_update_timer_tick)
@@ -107,6 +110,9 @@ class VideoPlayerPage(QWidget):
         self.window().video_player_controls_container.setHidden(False)
 
     def on_update_timer_tick(self):
+        if self.freeze:
+            return
+
         total_duration_str = "-:--"
         if self.media and self.media.get_duration() != 0:
             total_duration_str = seconds_to_string(self.media.get_duration() / 1000)
@@ -133,8 +139,19 @@ class VideoPlayerPage(QWidget):
     def on_vlc_player_playing(self, event):
         pass
 
+    def on_vlc_player_position_changed(self, _):
+        self.freeze = False
+
     def on_should_change_video_time(self, position):
+        self.freeze = True
+        self.mediaplayer.stop()
+        self.mediaplayer.play()
         self.mediaplayer.set_position(position)
+
+        # Guess the current position
+        duration = self.media.get_duration() / 1000
+        self.window().video_player_time_label.setText(f"{seconds_to_string(duration * position)} / "
+                                                      f"{seconds_to_string(duration)}")
 
     def on_play_pause_button_click(self):
         if not self.active_infohash or self.active_index == -1:
@@ -192,9 +209,8 @@ class VideoPlayerPage(QWidget):
         self.window().video_player_play_pause_button.setIcon(self.play_icon)
         self.window().video_player_position_slider.setValue(0)
 
-        media_filename = u"http://127.0.0.1:{}/{}/{}".format(
-            str(self.video_player_port), self.active_infohash, str(file_index)
-        )
+        media_filename = f"http://127.0.0.1:8085/downloads/{self.active_infohash}/stream/" \
+                         f"{file_index}?apikey={self.video_player_api_key}"
         self.media = self.instance.media_new(media_filename)
         self.mediaplayer.set_media(self.media)
         self.media.parse()

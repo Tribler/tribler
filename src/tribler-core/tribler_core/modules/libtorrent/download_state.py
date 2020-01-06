@@ -41,7 +41,7 @@ class DownloadState(object):
     cf. libtorrent torrent_status
     """
 
-    def __init__(self, download, lt_status, error, vod=None):
+    def __init__(self, download, lt_status, error):
         """
         Internal constructor.
         @param download The download this state belongs too.
@@ -53,7 +53,6 @@ class DownloadState(object):
         self.download = download
         self.lt_status = lt_status
         self.error = error
-        self.vod = vod or {}
 
     def get_download(self):
         """ Returns the Download object of which this is the state """
@@ -154,7 +153,7 @@ class DownloadState(object):
         using DownloadConfig.set_selected_files().
         @return A list of booleans
         """
-        return self.lt_status.pieces
+        return self.lt_status.pieces if self.lt_status else []
 
     def get_pieces_total_complete(self):
         """ Returns the number of total and completed pieces
@@ -218,21 +217,6 @@ class DownloadState(object):
 
             return nr_seeders_complete + nr_leechers_complete + fraction_additonal
         return nr_seeders_complete
-
-    def get_vod_prebuffering_progress(self):
-        """ Returns the percentage of prebuffering for Video-On-Demand already completed.
-        @return A float (0..1) """
-        return self.vod.get('vod_prebuf_frac', 0)
-
-    def get_vod_prebuffering_progress_consec(self):
-        """ Returns the percentage of consecutive prebuffering for Video-On-Demand already completed.
-        @return A float (0..1) """
-        return self.vod.get('vod_prebuf_frac_consec', 0)
-
-    def is_vod(self):
-        """ Returns if this download is currently in vod mode
-        @return A Boolean"""
-        return bool(self.vod)
 
     def get_peerlist(self):
         """ Returns a list of dictionaries, one for each connected peer

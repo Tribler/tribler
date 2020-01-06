@@ -56,7 +56,6 @@ class TriblerData(object):
         self.settings = {
             "settings": {
                 "general": {"family_filter": True, "minport": 1234, "log_dir": "/Users/tribleruser/log"},
-                "video_server": {"enabled": True, "port": "-1"},
                 "libtorrent": {
                     "enabled": True,
                     "port": 1234,
@@ -87,7 +86,7 @@ class TriblerData(object):
                 "resource_monitor": {"enabled": True},
                 "chant": {"enabled": True, "channel_edit": True},
             },
-            "ports": {"video_server~port": self.video_player_port},
+            "ports": {},
         }
 
     def get_channels(self, first=1, last=50, sort_by=None, sort_asc=True, txt_filter=None, subscribed=False, **kwargs):

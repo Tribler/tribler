@@ -50,9 +50,6 @@ class TestDownloadState(TriblerCoreTest):
         self.assertEqual(download_state.get_current_speed(UPLOAD), 0)
         self.assertEqual(download_state.get_total_transferred(UPLOAD), 0)
         self.assertEqual(download_state.get_num_seeds_peers(), (0, 0))
-        self.assertEqual(download_state.get_vod_prebuffering_progress_consec(), 0)
-        self.assertEqual(download_state.get_vod_prebuffering_progress(), 0)
-        self.assertFalse(download_state.is_vod())
         self.assertEqual(download_state.get_peerlist(), [])
 
         self.mock_download.config.get_hops = lambda: 1
@@ -81,17 +78,13 @@ class TestDownloadState(TriblerCoreTest):
         lt_status.pieces = []
         lt_status.finished_time = 10
 
-        download_state = DownloadState(self.mock_download, lt_status, None, {'vod_prebuf_frac_consec': 43,
-                                                                             'vod_prebuf_frac': 44})
+        download_state = DownloadState(self.mock_download, lt_status, None)
 
         self.assertEqual(download_state.get_status(), DLSTATUS_DOWNLOADING)
         self.assertEqual(download_state.get_current_speed(UPLOAD), 123)
         self.assertEqual(download_state.get_current_speed(DOWNLOAD), 43)
         self.assertEqual(download_state.get_total_transferred(UPLOAD), 100)
         self.assertEqual(download_state.get_total_transferred(DOWNLOAD), 200)
-        self.assertEqual(download_state.get_vod_prebuffering_progress_consec(), 43)
-        self.assertEqual(download_state.get_vod_prebuffering_progress(), 44)
-        self.assertTrue(download_state.is_vod())
         self.assertEqual(download_state.get_seeding_ratio(), 0.5)
         self.assertEqual(download_state.get_eta(), 0.25)
         self.assertEqual(download_state.get_num_seeds_peers(), (5, 5))
@@ -141,7 +134,7 @@ class TestDownloadState(TriblerCoreTest):
         """
         mock_ltstate = MockObject()
         mock_ltstate.pieces = [True]
-        download_state = DownloadState(self.mock_download, mock_ltstate, None, 0.6)
+        download_state = DownloadState(self.mock_download, mock_ltstate, 0.6)
         download_state.get_peerlist = lambda: []
 
         self.assertEqual(download_state.get_availability(), 0)
