@@ -23,15 +23,15 @@ class TestDownload(TestAsServer):
     async def test_download_torrent_from_url(self):
         # Setup file server to serve torrent file
         files_path = self.session_base_dir / 'http_torrent_files'
-        os.mkdir(files_path)
+        files_path.mkdir()
         shutil.copyfile(TORRENT_UBUNTU_FILE, files_path / 'ubuntu.torrent')
         file_server_port = self.get_port()
         await self.setUpFileServer(file_server_port, files_path)
 
-        d = await self.session.ltmgr.start_download_from_uri('http://localhost:%s/ubuntu.torrent' % file_server_port)
+        d = await self.session.ltmgr.start_download_from_uri(f'http://localhost:{file_server_port}/ubuntu.torrent')
         await d.wait_for_status(DLSTATUS_DOWNLOADING)
 
     @timeout(60)
     async def test_download_torrent_from_file(self):
-        d = await self.session.ltmgr.start_download_from_uri('file:' + pathname2url(TORRENT_UBUNTU_FILE.to_text()))
+        d = await self.session.ltmgr.start_download_from_uri('file:' + pathname2url(str(TORRENT_UBUNTU_FILE)))
         await d.wait_for_status(DLSTATUS_DOWNLOADING)

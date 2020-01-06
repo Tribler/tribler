@@ -2,12 +2,12 @@ import os
 import sys
 import time
 from collections import namedtuple
+from pathlib import Path
 
 from tribler_common.simpledefs import SIGNAL_LOW_SPACE, SIGNAL_RESOURCE_CHECK
 
 from tribler_core.modules.resource_monitor import ResourceMonitor
 from tribler_core.tests.tools.base_test import MockObject, TriblerCoreTest
-from tribler_core.utilities import path_util
 
 
 class TestResourceMonitor(TriblerCoreTest):
@@ -19,8 +19,8 @@ class TestResourceMonitor(TriblerCoreTest):
         mock_session.config = MockObject()
         mock_session.config.get_resource_monitor_history_size = lambda: 1
         mock_session.config.get_resource_monitor_poll_interval = lambda: 20
-        mock_session.config.get_state_dir = lambda: path_util.Path(".")
-        mock_session.config.get_log_dir = lambda: path_util.Path("logs")
+        mock_session.config.get_state_dir = lambda: Path()
+        mock_session.config.get_log_dir = lambda: Path("logs")
         mock_session.config.get_resource_monitor_enabled = lambda: False
         self.resource_monitor = ResourceMonitor(mock_session)
         self.resource_monitor.session.notifier = MockObject()

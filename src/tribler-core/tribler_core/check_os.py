@@ -4,6 +4,7 @@ import sys
 import tempfile
 import time
 import traceback
+from pathlib import Path
 
 import psutil
 
@@ -12,7 +13,6 @@ from six import text_type
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.dependencies import _show_system_popup
 from tribler_core.modules.process_checker import ProcessChecker
-from tribler_core.utilities import path_util
 
 FORCE_RESTART_MESSAGE = "An existing Tribler core process (PID:%s) is already running. \n\n" \
                         "Do you want to stop the process and do a clean restart instead?"
@@ -39,7 +39,7 @@ def check_read_write():
         tempfile.gettempdir()
     except IOError:
         error_and_exit("No write access!",
-                       "Tribler does not seem to be able to have access to your filesystem. " +
+                       "Tribler does not seem to be able to have access to your filesystem. "
                        "Please grant Tribler the proper permissions and try again.")
 
 
@@ -55,7 +55,7 @@ def check_free_space():
         free_space = psutil.disk_usage(".").free/(1024 * 1024.0)
         if free_space < 100:
             error_and_exit("Insufficient disk space",
-                           "You have less than 100MB of usable disk space. " +
+                           "You have less than 100MB of usable disk space. "
                            "Please free up some space and run Tribler again.")
     except ImportError as ie:
         error_and_exit("Import Error", "Import error: {0}".format(ie))
@@ -75,17 +75,17 @@ def setup_logging(gui=False):
     .Tribler directory in each platforms
     """
     # First check if logger.conf is present or not
-    base_path = path_util.Path(getattr(sys, '_MEIPASS') if hasattr(sys, '_MEIPASS') else os.path.dirname(__file__))
+    base_path = Path(getattr(sys, '_MEIPASS') if hasattr(sys, '_MEIPASS') else Path(__file__).parent)
     log_config = base_path / "logger.conf"
 
     if not log_config.exists():
-        print("Log configuration file not found at location '%s'" % log_config)
+        print("Log configuration file not found at location", log_config)
         return
 
     log_directory = TriblerConfig().get_log_dir()
 
     if not log_directory.exists():
-        path_util.makedirs(log_directory)
+        Path(log_directory).mkdir(parents=True)
 
     info_filename = 'tribler-gui-info.log' if gui else 'tribler-core-info.log'
     error_filename = 'tribler-gui-error.log' if gui else 'tribler-core-error.log'
@@ -228,8 +228,8 @@ def enable_fault_handler():
 
         log_dir = TriblerConfig().get_log_dir()
         if not log_dir.exists():
-            path_util.makedirs(log_dir)
-        crash_file = log_dir /"crash-report.log"
+            Path(log_dir).mkdir(parents=True)
+        crash_file = log_dir / "crash-report.log"
         faulthandler.enable(file=open(text_type(crash_file), "w"), all_threads=True)
     except ImportError:
         logging.error("Fault Handler module not found.")
@@ -244,11 +244,11 @@ def check_and_enable_code_tracing(process_name):
     trace_logger = None
     log_dir = TriblerConfig().get_log_dir()
     if '--trace-exception' in sys.argv[1:]:
-        trace_logger = open(log_dir / ('%s-exceptions.log' % process_name), 'w')
+        trace_logger = open(log_dir / f'{process_name}-exceptions.log', 'w')
         sys.settrace(lambda frame, event, args: trace_calls(trace_logger, frame, event, args,
                                                             filter_exceptions_only=True))
     elif '--trace-debug' in sys.argv[1:]:
-        trace_logger = open(log_dir / ('%s-debug.log' % process_name), 'w')
+        trace_logger = open(log_dir / f'{process_name}-debug.log', 'w')
         sys.settrace(lambda frame, event, args: trace_calls(trace_logger, frame, event, args))
     return trace_logger
 
@@ -283,9 +283,8 @@ def trace_calls(file_handler, frame, event, args, filter_exceptions_only=False):
 
         # Only write if callee or caller is Tribler code
         if "tribler" in caller_filename.lower() or "tribler" in func_filename.lower():
-            trace_line = "[%s] %s:%s, line %s called from %s, line %s\n" % (
-                time.time(), func_filename, func_name, func_line_no,
-                caller_filename, caller_line_no)
+            trace_line = (f"[{time.time()}] {func_filename}:{func_name}, line {func_line_no} "
+                            f"called from {caller_filename}, line {caller_line_no}\n")
             file_handler.write(trace_line)
             file_handler.flush()
 
@@ -312,8 +311,8 @@ def trace_exceptions(file_handler, frame, event, args):
     # Only write if exception is originated from Tribler code
     if "tribler" in func_filename.lower():
         exc_type, exc_value, exc_traceback = args
-        trace_line = "[%s] Exception: %s, line %s \n%s %s \n%s" % (
-            time.time(), func_filename, func_line_no,
-            exc_type.__name__, exc_value, "".join(traceback.format_tb(exc_traceback)))
+        exc_traceback = "".join(traceback.format_tb(exc_traceback))
+        trace_line = (f"[{time.time()}] Exception: {func_filename}, line {func_line_no} \n"
+                        f"{exc_type.__name__} {exc_value} \n{exc_traceback}")
         file_handler.write(trace_line)
         file_handler.flush()

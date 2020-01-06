@@ -1,4 +1,5 @@
 from asyncio import Future
+from pathlib import Path
 from unittest.mock import Mock
 
 import libtorrent as lt
@@ -14,7 +15,6 @@ from tribler_core.tests.tools.base_test import MockObject, TriblerCoreTest
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
 from tribler_core.tests.tools.test_as_server import TestAsServer
 from tribler_core.tests.tools.tools import timeout
-from tribler_core.utilities import path_util
 from tribler_core.utilities.torrent_utils import get_info_from_handle
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import bdecode_compat, succeed
@@ -37,7 +37,7 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         create and save torrent definition used in this test file
         """
         tdef = TorrentDef()
-        sourcefn = TESTS_DATA_DIR / 'video.avi'
+        sourcefn = TESTS_DATA_DIR /'video.avi'
         tdef.add_content(sourcefn)
         tdef.set_tracker("http://localhost/announce")
         torrentfn = self.session.config.get_state_dir() / "gen.torrent"
@@ -114,11 +114,11 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         impl.future_added = succeed(fake_handler)
         # Create a dummy download config
         impl.config = DownloadConfig()
-        impl.config.set_engineresumedata({b"save_path": path_util.abspath(self.state_dir),
+        impl.config.set_engineresumedata({b"save_path": Path(self.state_dir).resolve(),
                                           b"info-hash": b'\x00' * 20})
         impl.setup()
 
-        impl.config.set_engineresumedata({b"save_path": path_util.abspath(self.state_dir),
+        impl.config.set_engineresumedata({b"save_path": Path(self.state_dir).resolve(),
                                           b"info-hash": b'\x00' * 20})
         impl.setup()
 
@@ -225,7 +225,7 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         self.libtorrent_download_impl.get_share_mode = lambda: False
         self.libtorrent_download_impl.tdef.get_infohash = lambda: b'a' * 20
         self.libtorrent_download_impl.orig_files = ['my/a', 'my/b']
-        self.libtorrent_download_impl.set_selected_files(['a'])
+        self.libtorrent_download_impl.set_selected_files([0])
         self.assertTrue(mocked_set_file_prios.called)
 
         self.libtorrent_download_impl.get_share_mode = lambda: False
@@ -254,7 +254,7 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         # when set_selected_files() is called. But in this test, no files attribute is set in torrent info
         # in order to test AttributeError, therfore, no call to set file priority is expected.
         self.libtorrent_download_impl.get_share_mode = lambda: False
-        self.libtorrent_download_impl.set_selected_files(['a'])
+        self.libtorrent_download_impl.set_selected_files([0])
         self.assertFalse(mocked_set_file_prios.called)
 
     def test_get_share_mode(self):

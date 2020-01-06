@@ -1,4 +1,6 @@
+import tempfile
 from asyncio import Future, sleep
+from pathlib import Path
 from unittest.mock import Mock
 
 from anydex.wallet.tc_wallet import TrustchainWallet
@@ -18,7 +20,6 @@ from ipv8.test.mocking.ipv8 import MockIPv8
 
 from tribler_core.modules.tunnel.community.triblertunnel_community import TriblerTunnelCommunity
 from tribler_core.tests.tools.base_test import MockObject
-from tribler_core.utilities.path_util import mkdtemp
 from tribler_core.utilities.utilities import succeed
 
 
@@ -29,13 +30,13 @@ class TestTriblerTunnelCommunity(TestBase):
         self.initialize(TriblerTunnelCommunity, 1)
 
     def create_node(self):
-        mock_ipv8 = MockIPv8(u"curve25519", TriblerTunnelCommunity, socks_listen_ports=[],
-                             exitnode_cache=mkdtemp(suffix="_tribler_test_cache") / 'cache.dat')
+        mock_ipv8 = MockIPv8("curve25519", TriblerTunnelCommunity, socks_listen_ports=[],
+                             exitnode_cache=Path(tempfile.mkdtemp(suffix="_tribler_test_cache")) / 'cache.dat')
         mock_ipv8.overlay.settings.max_circuits = 1
 
         # Load the TrustChain community
         mock_ipv8.trustchain = TrustChainCommunity(mock_ipv8.my_peer, mock_ipv8.endpoint, mock_ipv8.network,
-                                      working_directory=u":memory:")
+                                      working_directory=":memory:")
         mock_ipv8.overlay.bandwidth_wallet = TrustchainWallet(mock_ipv8.trustchain)
         mock_ipv8.overlay.dht_provider = MockDHTProvider(Peer(mock_ipv8.overlay.my_peer.key,
                                                               mock_ipv8.overlay.my_estimated_wan))

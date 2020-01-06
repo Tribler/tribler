@@ -1,4 +1,4 @@
-import os
+import urllib
 from asyncio import ensure_future
 from binascii import unhexlify
 
@@ -9,7 +9,6 @@ from tribler_core.restapi.base_api_test import AbstractApiTest
 from tribler_core.tests.tools.base_test import MockObject
 from tribler_core.tests.tools.common import TESTS_DATA_DIR, TESTS_DIR, UBUNTU_1504_INFOHASH
 from tribler_core.tests.tools.tools import timeout
-from tribler_core.utilities.path_util import pathname2url
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import fail, succeed
 
@@ -39,8 +38,8 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         video_tdef, _ = self.create_local_torrent(TESTS_DATA_DIR / 'video.avi')
         self.session.ltmgr.start_download(tdef=video_tdef)
-        await self.session.ltmgr.start_download_from_uri("file:" +
-                                                         pathname2url(TESTS_DATA_DIR / "bak_single.torrent"))
+        url = urllib.request.pathname2url(f"{TESTS_DATA_DIR}bak_single.torrent")
+        await self.session.ltmgr.start_download_from_uri("file:" + url)
 
         downloads = await self.do_request('downloads?get_peers=1&get_pieces=1', expected_code=200)
         self.assertEqual(len(downloads['downloads']), 2)
@@ -52,14 +51,14 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         video_tdef, _ = self.create_local_torrent(TESTS_DATA_DIR / 'video.avi')
         self.session.ltmgr.start_download(tdef=video_tdef)
-        await self.session.ltmgr.start_download_from_uri("file:" + pathname2url(TESTS_DATA_DIR / "bak_single.torrent"))
+        await self.session.ltmgr.start_download_from_uri("file:" + urllib.request.pathname2url(f"{TESTS_DATA_DIR}/bak_single.torrent"))
         downloads = await self.do_request('downloads?get_peers=1&get_pieces=1&&get_files=1', expected_code=200)
-        self.assertCountEqual([downloads['downloads'][0][u'files'],
-                               downloads['downloads'][1][u'files']],
-                        [[{u'included': True, u'index': 0, u'size': 1583233,
-                           u'name': u'Tribler_4.1.7_src.zip', u'progress': 0.0}],
-                         [{u'included': True, u'index': 0, u'size': 1942100,
-                           u'name': u'video.avi', u'progress': 0.0}]])
+        self.assertCountEqual([downloads['downloads'][0]['files'],
+                               downloads['downloads'][1]['files']],
+                        [[{'included': True, 'index': 0, 'size': 1583233,
+                           'name': 'Tribler_4.1.7_src.zip', 'progress': 0.0}],
+                         [{'included': True, 'index': 0, 'size': 1942100,
+                           'name': 'video.avi', 'progress': 0.0}]])
 
     @timeout(10)
     async def test_start_download_no_uri(self):
@@ -90,7 +89,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         Testing whether we can start a download from a file
         """
-        post_data = {'uri': 'file:%s' % (TESTS_DATA_DIR / 'video.avi.torrent')}
+        post_data = {'uri': f'file:{TESTS_DATA_DIR}/video.avi.torrent'}
         expected_json = {'started': True, 'infohash': '9d5b2dbc52807325bfc28d688f2bb03f8d1e7667'}
         await self.do_request('downloads', expected_code=200, request_type='PUT',
                               post_data=post_data, expected_json=expected_json)
@@ -104,15 +103,15 @@ class TestDownloadsEndpoint(AbstractApiTest):
         ufile = TESTS_DATA_DIR / u'video\u266b.avi.torrent'
         udest = self.session_base_dir / u'video\u266b'
 
-        post_data = {'uri': 'file:' + ufile.to_text(),
-                     'destination': udest.to_text()}
+        post_data = {'uri': f'file:{ufile}',
+                     'destination': str(udest)}
         response_dict = await self.do_request('downloads', expected_code=200, request_type='PUT', post_data=post_data)
         self.assertTrue(response_dict['started'])
         self.assertGreaterEqual(len(self.session.ltmgr.get_downloads()), 1)
         dl = self.session.ltmgr.get_downloads()[0]
-        dl.tracker_status[u"\u266b"] = [0, 'Not contacted yet']
+        dl.tracker_status["\u266b"] = [0, 'Not contacted yet']
         tdef = dl.get_def()
-        tdef.torrent_parameters['name'] = u'video\u266b'
+        tdef.torrent_parameters['name'] = 'video\u266b'
         await self.do_request('downloads?get_peers=1&get_pieces=1', expected_code=200)
 
     def create_mock_status(self):
@@ -141,7 +140,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         Testing whether illegal fields are stripped from the Libtorrent download info response.
         """
-        post_data = {'uri': 'file:%s' % (TESTS_DATA_DIR / 'video.avi.torrent')}
+        post_data = {'uri': f'file:{TESTS_DATA_DIR}/video.avi.torrent'}
         expected_json = {'started': True, 'infohash': '9d5b2dbc52807325bfc28d688f2bb03f8d1e7667'}
         response_dict = await self.do_request('downloads', expected_code=200, request_type='PUT',
                                               post_data=post_data, expected_json=expected_json)
@@ -166,7 +165,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         Testing whether illegal fields are stripped from the Libtorrent download info response.
         """
-        post_data = {'uri': 'file:%s' % (TESTS_DATA_DIR / 'video.avi.torrent')}
+        post_data = {'uri': f'file:{TESTS_DATA_DIR}/video.avi.torrent'}
         expected_json = {'started': True, 'infohash': '9d5b2dbc52807325bfc28d688f2bb03f8d1e7667'}
         response_dict = await self.do_request('downloads', expected_code=200, request_type='PUT',
                                               post_data=post_data, expected_json=expected_json)
@@ -184,14 +183,14 @@ class TestDownloadsEndpoint(AbstractApiTest):
         self.assertIn("peers", response_dict["downloads"][0])
         self.assertEqual(1, len(response_dict["downloads"][0]["peers"]))
         self.assertNotIn('have', response_dict["downloads"][0]["peers"][0])
-        self.assertEqual(u'\xb5Torrent 1.6.1', response_dict["downloads"][0]["peers"][0]['extended_version'])
+        self.assertEqual('\xb5Torrent 1.6.1', response_dict["downloads"][0]["peers"][0]['extended_version'])
 
     @timeout(10)
     async def test_get_peers_illegal_fields_unknown(self):
         """
         Testing whether illegal fields are stripped from the Libtorrent download info response.
         """
-        post_data = {'uri': 'file:%s' % (TESTS_DATA_DIR / 'video.avi.torrent')}
+        post_data = {'uri': f'file:{TESTS_DATA_DIR}/video.avi.torrent'}
         expected_json = {'started': True, 'infohash': '9d5b2dbc52807325bfc28d688f2bb03f8d1e7667'}
         response_dict = await self.do_request('downloads', expected_code=200, request_type='PUT',
                                               post_data=post_data, expected_json=expected_json)
@@ -217,7 +216,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         Testing whether we can start a download from a magnet
         """
-        post_data = {'uri': 'magnet:?xt=urn:btih:%s' % hexlify(UBUNTU_1504_INFOHASH)}
+        post_data = {'uri': f'magnet:?xt=urn:btih:{hexlify(UBUNTU_1504_INFOHASH)}'}
         expected_json = {'started': True, 'infohash': 'fc8a15a2faf2734dbb1dc5f7afdc5c9beaeb1f59'}
         await self.do_request('downloads', expected_code=200, request_type='PUT',
                               post_data=post_data, expected_json=expected_json)
@@ -255,10 +254,10 @@ class TestDownloadsEndpoint(AbstractApiTest):
         video_tdef, _ = self.create_local_torrent(TESTS_DATA_DIR / 'video.avi')
         self.session.ltmgr.start_download(tdef=video_tdef)
         infohash = get_hex_infohash(video_tdef)
-        await self.do_request('downloads/%s' % infohash, post_data={"remove_data": True},
+        await self.do_request(f'downloads/{infohash}', post_data={"remove_data": True},
                                            expected_code=200, request_type='DELETE',
-                                           expected_json={u"removed": True,
-                                                          u"infohash": u"c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5"})
+                                           expected_json={"removed": True,
+                                                          "infohash": "c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5"})
         self.assertEqual(len(self.session.ltmgr.get_downloads()), 0)
 
     @timeout(10)
@@ -283,10 +282,10 @@ class TestDownloadsEndpoint(AbstractApiTest):
             download.stop = original_stop
         download.stop = mocked_stop
 
-        await self.do_request('downloads/%s' % infohash, post_data={"state": "stop"},
+        await self.do_request(f'downloads/{infohash}', post_data={"state": "stop"},
                               expected_code=200, request_type='PATCH',
-                              expected_json={u"modified": True,
-                                             u"infohash": u"c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5"})
+                              expected_json={"modified": True,
+                                             "infohash": "c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5"})
         self.assertEqual(len(self.session.ltmgr.get_downloads()), 1)
         download = self.session.ltmgr.get_downloads()[0]
         self.assertTrue(download.should_stop)
@@ -300,7 +299,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         self.session.ltmgr.start_download(tdef=video_tdef)
         infohash = get_hex_infohash(video_tdef)
 
-        await self.do_request('downloads/%s' % infohash, expected_code=400, post_data={"selected_files": 1234},
+        await self.do_request(f'downloads/{infohash}', expected_code=400, post_data={"selected_files": 1234},
                                request_type='PATCH')
 
     @timeout(10)
@@ -317,10 +316,10 @@ class TestDownloadsEndpoint(AbstractApiTest):
         mocked_set_selected_files.called = False
         download.set_selected_files = mocked_set_selected_files
 
-        await self.do_request('downloads/%s' % infohash, post_data={"selected_files": 0},
+        await self.do_request(f'downloads/{infohash}', post_data={"selected_files": 0},
                                expected_code=200, request_type='PATCH',
-                               expected_json={u"modified": True,
-                                              u"infohash": u"c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5"})
+                               expected_json={"modified": True,
+                                              "infohash": "c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5"})
         self.assertTrue(mocked_set_selected_files.called)
 
     @timeout(10)
@@ -343,7 +342,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
             download.should_restart = True
         download.resume = mocked_resume
 
-        await self.do_request('downloads/%s' % infohash, post_data={"state": "resume"},
+        await self.do_request(f'downloads/{infohash}', post_data={"state": "resume"},
                               expected_code=200, request_type='PATCH',
                               expected_json={"modified": True,
                                              "infohash": "c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5"})
@@ -365,7 +364,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         mocked_recheck.called = False
         download.force_recheck = mocked_recheck
 
-        await self.do_request('downloads/%s' % infohash, post_data={"state": "recheck"},
+        await self.do_request(f'downloads/{infohash}', post_data={"state": "recheck"},
                                            expected_code=200, request_type='PATCH',
                                            expected_json={u"modified": True,
                                                           u"infohash": u"c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5"})
@@ -381,7 +380,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         self.session.ltmgr.start_download(tdef=video_tdef)
         infohash = get_hex_infohash(video_tdef)
 
-        await self.do_request('downloads/%s' % infohash, post_data={"state": "resume", 'anon_hops': 1},
+        await self.do_request(f'downloads/{infohash}', post_data={"state": "resume", 'anon_hops': 1},
                                expected_code=400, request_type='PATCH')
 
     @timeout(10)
@@ -392,7 +391,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         video_tdef, _ = self.create_local_torrent(TESTS_DATA_DIR / 'video.avi')
         self.session.ltmgr.start_download(tdef=video_tdef)
 
-        await self.do_request('downloads/%s' % get_hex_infohash(video_tdef), expected_code=400,
+        await self.do_request(f'downloads/{get_hex_infohash(video_tdef)}', expected_code=400,
                                post_data={"state": "abc"}, request_type='PATCH')
 
     @timeout(10)
@@ -407,10 +406,10 @@ class TestDownloadsEndpoint(AbstractApiTest):
         self.assertFalse(dest_dir.exists())
         data = {"state": "move_storage", "dest_dir": dest_dir}
 
-        response_dict = await self.do_request('downloads/%s' % get_hex_infohash(video_tdef),
+        response_dict = await self.do_request(f'downloads/{get_hex_infohash(video_tdef)}',
                                               expected_code=200, post_data=data, request_type='PATCH')
         self.assertTrue("error" in response_dict)
-        self.assertEqual("Target directory (%s) does not exist" % dest_dir, response_dict["error"])
+        self.assertEqual(f"Target directory ({dest_dir}) does not exist", response_dict["error"])
 
     @timeout(10)
     async def test_move_to_existing_dir(self):
@@ -421,11 +420,11 @@ class TestDownloadsEndpoint(AbstractApiTest):
         self.session.ltmgr.start_download(tdef=video_tdef)
 
         dest_dir = self.temporary_directory() / "existing"
-        os.mkdir(dest_dir)
+        dest_dir.mkdir()
         self.assertTrue(dest_dir.exists())
         data = {"state": "move_storage", "dest_dir": dest_dir}
 
-        response_dict = await self.do_request('downloads/%s' % get_hex_infohash(video_tdef),
+        response_dict = await self.do_request(f'downloads/{get_hex_infohash(video_tdef)}',
                                               expected_code=200, post_data=data, request_type='PATCH')
         self.assertTrue(response_dict.get("modified", False))
         self.assertEqual(hexlify(video_tdef.infohash), response_dict["infohash"])
@@ -446,7 +445,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         download = self.session.ltmgr.start_download(tdef=video_tdef)
 
         await download.get_handle()
-        result = await self.do_request('downloads/%s/torrent' % get_hex_infohash(video_tdef),
+        result = await self.do_request(f'downloads/{get_hex_infohash(video_tdef)}/torrent',
                                        expected_code=200, request_type='GET', json_response=False)
         self.assertTrue(result)
 
@@ -464,7 +463,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         video_tdef, _ = self.create_local_torrent(TESTS_DATA_DIR / 'video.avi')
         self.session.ltmgr.start_download(tdef=video_tdef)
-        response_dict = await self.do_request('downloads/%s/files' % get_hex_infohash(video_tdef),
+        response_dict = await self.do_request(f'downloads/{get_hex_infohash(video_tdef)}/files',
                                               expected_code=200, request_type='GET')
         self.assertIn('files', response_dict)
         self.assertTrue(response_dict['files'])
@@ -485,7 +484,7 @@ class TestDownloadsWithTunnelsEndpoint(AbstractApiTest):
         download = self.session.ltmgr.start_download(tdef=video_tdef)
         infohash = get_hex_infohash(video_tdef)
         await download.get_handle()
-        await self.do_request('downloads/%s' % infohash, post_data={'anon_hops': 1},
+        await self.do_request(f'downloads/{infohash}', post_data={'anon_hops': 1},
                               expected_code=200, request_type='PATCH',
                               expected_json={'modified': True,
                                              "infohash": "c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5"})
@@ -499,8 +498,8 @@ class TestDownloadsWithTunnelsEndpoint(AbstractApiTest):
         video_tdef, _ = self.create_local_torrent(TESTS_DATA_DIR / 'video.avi')
         self.session.ltmgr.start_download(tdef=video_tdef)
         infohash = get_hex_infohash(video_tdef)
-        await self.do_request('downloads/%s' % infohash, post_data={"remove_data": True}, expected_code=500,
-                               expected_json={u'error': {u'message': u'', u'code': u'RuntimeError', u'handled': True}},
+        await self.do_request(f'downloads/{infohash}', post_data={"remove_data": True}, expected_code=500,
+                               expected_json={'error': {'message': '', 'code': 'RuntimeError', 'handled': True}},
                                request_type='DELETE')
 
 
@@ -515,7 +514,7 @@ class TestMetadataDownloadEndpoint(AbstractApiTest):
         """
         Test adding a channel metadata download to the Tribler core
         """
-        post_data = {'uri': 'file:%s' % (TESTS_DIR / 'data/sample_channel/channel.mdblob')}
+        post_data = {'uri': f'file:{TESTS_DIR}/data/sample_channel/channel.mdblob'}
         expected_json = {'started': True, 'infohash': 'ea95d47988b4dcb07667194c998d2c5b473132e5'}
         await self.do_request('downloads', expected_code=200, request_type='PUT',
                               post_data=post_data, expected_json=expected_json)
@@ -530,8 +529,8 @@ class TestMetadataDownloadEndpoint(AbstractApiTest):
         """
         with db_session:
             self.session.mds.process_mdblob_file(TESTS_DIR / 'data/sample_channel/channel.mdblob')
-        post_data = {'uri': 'file:%s' % (TESTS_DIR / 'data/sample_channel/channel.mdblob')}
-        expected_json = {u'error': u'Could not import Tribler metadata file'}
+        post_data = {'uri': f'file:{TESTS_DIR}/data/sample_channel/channel.mdblob'}
+        expected_json = {'error': 'Could not import Tribler metadata file'}
         await self.do_request('downloads', expected_code=200, request_type='PUT', post_data=post_data,
                                expected_json=expected_json)
 
@@ -540,15 +539,15 @@ class TestMetadataDownloadEndpoint(AbstractApiTest):
         """
         Test whether adding metadata with an invalid signature results in an error
         """
-        file_path = self.session_base_dir / u"invalid.mdblob"
-        with open(file_path, "wb") as out_file:
+        file_path = self.session_base_dir / "invalid.mdblob"
+        with file_path.open("wb") as out_file:
             with db_session:
                 my_channel = self.session.mds.ChannelMetadata.create_channel('test', 'test')
 
             hexed = hexlify(my_channel.serialized()).encode('utf-8')[:-5] + b"aaaaa"
             out_file.write(unhexlify(hexed))
 
-        post_data = {u'uri': u'file:%s' % file_path, u'metadata_download': u'1'}
+        post_data = {'uri': f'file:{file_path}', 'metadata_download': '1'}
         expected_json = {'error': "Metadata has invalid signature"}
         await self.do_request('downloads', expected_code=400, request_type='PUT', post_data=post_data,
                                expected_json=expected_json)
@@ -558,7 +557,7 @@ class TestMetadataDownloadEndpoint(AbstractApiTest):
         """
         Test adding an invalid metadata download to the Tribler core
         """
-        post_data = {'uri': 'file:%s' % (TESTS_DATA_DIR / 'notexisting.mdblob'), 'metadata_download': '1'}
+        post_data = {'uri': f'file:{TESTS_DATA_DIR}/notexisting.mdblob', 'metadata_download': '1'}
         await self.do_request('downloads', expected_code=400, request_type='PUT', post_data=post_data)
 
     @timeout(20)
@@ -569,7 +568,8 @@ class TestMetadataDownloadEndpoint(AbstractApiTest):
         test_channel_name = 'test_channel'
         video_tdef, _ = self.create_local_torrent(TESTS_DATA_DIR / 'video.avi')
         self.session.ltmgr.start_download(tdef=video_tdef)
-        await self.session.ltmgr.start_download_from_uri("file:" + pathname2url(TESTS_DATA_DIR / "bak_single.torrent"))
+        url = urllib.request.pathname2url(f"{TESTS_DATA_DIR}/bak_single.torrent")
+        await self.session.ltmgr.start_download_from_uri(f"file:" + url)
 
         with db_session:
             channel = self.session.mds.ChannelMetadata.create_channel(test_channel_name, 'bla')

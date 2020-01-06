@@ -1,6 +1,7 @@
 import logging
-import os
 import shutil
+import tempfile
+from pathlib import Path
 
 from aiohttp import ClientResponseError, web
 
@@ -12,7 +13,6 @@ from tribler_core.modules.libtorrent.torrentdef import TorrentDef, TorrentDefNoM
 from tribler_core.tests.tools.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE
 from tribler_core.tests.tools.test_as_server import BaseTestCase
 from tribler_core.tests.tools.tools import timeout
-from tribler_core.utilities.path_util import mkdtemp
 from tribler_core.utilities.utilities import bdecode_compat
 
 TRACKER = 'http://www.tribler.org/announce'
@@ -128,15 +128,15 @@ class TestTorrentDef(BaseTestCase):
     @timeout(10)
     async def test_load_from_url(self):
         # Setup file server to serve torrent file
-        self.session_base_dir = mkdtemp(suffix="_tribler_test_load_from_url")
+        self.session_base_dir = Path(tempfile.mkdtemp(suffix="_tribler_test_load_from_url"))
         files_path = self.session_base_dir / 'http_torrent_files'
-        os.mkdir(files_path)
+        files_path.mkdir()
         shutil.copyfile(TORRENT_UBUNTU_FILE, files_path / 'ubuntu.torrent')
 
         file_server_port = self.get_port()
         await self.setUpFileServer(file_server_port, files_path)
 
-        torrent_url = 'http://localhost:%d/ubuntu.torrent' % file_server_port
+        torrent_url = f'http://localhost:{file_server_port}/ubuntu.torrent'
         torrent_def = await TorrentDef.load_from_url(torrent_url)
         self.assertEqual(torrent_def.get_metainfo(), TorrentDef.load(TORRENT_UBUNTU_FILE).get_metainfo())
         self.assertEqual(torrent_def.infohash, TorrentDef.load(TORRENT_UBUNTU_FILE).infohash)
@@ -144,15 +144,15 @@ class TestTorrentDef(BaseTestCase):
     @timeout(10)
     async def test_load_from_url_404(self):
         # Setup file server to serve torrent file
-        self.session_base_dir = mkdtemp(suffix="_tribler_test_load_from_url")
+        self.session_base_dir = Path(tempfile.mkdtemp(suffix="_tribler_test_load_from_url"))
         files_path = self.session_base_dir / 'http_torrent_files'
-        os.mkdir(files_path)
+        files_path.mkdir()
         # Do not copy the torrent file to produce 404
 
         file_server_port = self.get_port()
         await self.setUpFileServer(file_server_port, files_path)
 
-        torrent_url = 'http://localhost:%d/ubuntu.torrent' % file_server_port
+        torrent_url = f'http://localhost:{file_server_port}/ubuntu.torrent'
         try:
             await TorrentDef.load_from_url(torrent_url)
         except ClientResponseError as e:
@@ -212,7 +212,7 @@ class TestTorrentDef(BaseTestCase):
         self.assertEqual(t.get_piece_length(), 0)
 
     def test_load_from_dict(self):
-        with open(TESTS_DATA_DIR / "bak_single.torrent", mode='rb') as torrent_file:
+        with open(TESTS_DATA_DIR / "bak_single.torrent", 'rb') as torrent_file:
             encoded_metainfo = torrent_file.read()
         self.assertTrue(TorrentDef.load_from_dict(bdecode_compat(encoded_metainfo)))
 

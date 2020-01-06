@@ -9,6 +9,7 @@ import sys
 import time
 from asyncio import CancelledError, Future, iscoroutine, sleep
 from collections import defaultdict
+from pathlib import Path
 
 from ipv8.taskmanager import TaskManager, task
 from ipv8.util import int2byte
@@ -29,20 +30,13 @@ from tribler_core.modules.libtorrent import check_handle, require_handle
 from tribler_core.modules.libtorrent.download_config import DownloadConfig, get_default_dest_dir
 from tribler_core.modules.libtorrent.download_state import DownloadState
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
-from tribler_core.utilities import path_util
 from tribler_core.utilities.osutils import fix_filebasename
 from tribler_core.utilities.torrent_utils import get_info_from_handle
 from tribler_core.utilities.unicode import ensure_unicode, hexlify
 from tribler_core.utilities.utilities import bdecode_compat, succeed
 
-if sys.platform == "win32":
-    try:
-        pass
-    except ImportError:
-        pass
 
-
-class VODFile(object):
+class VODFile:
 
     def __init__(self, f, d):
         self._logger = logging.getLogger(self.__class__.__name__)
@@ -58,6 +52,12 @@ class VODFile(object):
                                                                                0, 0)
         self.endpiece = get_info_from_handle(self._download.handle).map_file(self._download.get_vod_fileindex(),
                                                                              self._download.get_vod_filesize(), 0)
+
+    def __enter__(self):
+        return self._file
+
+    def __exit__(self, *args):
+        self.close(self, *args)
 
     def read(self, *args):
         oldpos = self._file.tell()
@@ -212,7 +212,8 @@ class LibtorrentDownloadImpl(TaskManager):
 
         self.checkpoint()
 
-        atp = {"save_path": path_util.normpath(get_default_dest_dir() / self.config.get_dest_dir()),
+        
+        atp = {"save_path": (get_default_dest_dir() / self.config.get_dest_dir()).resolve(),
                "storage_mode": lt.storage_mode_t.storage_mode_sparse,
                "flags": lt.add_torrent_params_flags_t.flag_paused
                         | lt.add_torrent_params_flags_t.flag_duplicate_is_error
@@ -229,10 +230,11 @@ class LibtorrentDownloadImpl(TaskManager):
             torrentinfo = lt.torrent_info(metainfo)
 
             atp["ti"] = torrentinfo
-            if resume_data and isinstance(resume_data, dict):
+            if resume_data and isinstance(resume_data, dict) and b"save_path" in resume_data:
                 # Rewrite save_path as a global path, if it is given as a relative path
-                if b"save_path" in resume_data and not path_util.isabs(ensure_unicode(resume_data[b"save_path"], 'utf8')):
-                    resume_data[b"save_path"] = self.state_dir / ensure_unicode(resume_data[b"save_path"], 'utf8')
+                save_path = Path(ensure_unicode(resume_data[b"save_path"], 'utf8'))
+                if not save_path.is_absolute():
+                    resume_data[b"save_path"] = self.state_dir / save_path
                 atp["resume_data"] = lt.bencode(resume_data)
         else:
             atp["url"] = self.tdef.get_url() or "magnet:?xt=urn:btih:" + hexlify(self.tdef.get_infohash())
@@ -251,7 +253,7 @@ class LibtorrentDownloadImpl(TaskManager):
         self.handle = alert.handle
         self._logger.debug("Added torrent %s", str(self.handle.info_hash()))
 
-        self.set_selected_files()
+        self.set_selected_file_indexes()
 
         user_stopped = self.config.get_user_stopped()
 
@@ -285,7 +287,7 @@ class LibtorrentDownloadImpl(TaskManager):
 
         if enable:
             self.vod_seekpos = 0
-            self.vod_index = self.config.get_selected_files()[0] if self.tdef.is_multifile_torrent() else 0
+            self.vod_index = self.config.get_selected_file_indexes()[0] if self.tdef.is_multifile_torrent() else 0
 
             self.prebuffsize = max(int(self.get_vod_filesize() * 0.05), self.max_prebuffsize)
             self.endbuffsize = 1 * 1024 * 1024
@@ -470,9 +472,9 @@ class LibtorrentDownloadImpl(TaskManager):
         resume_data = alert.resume_data
         # Make save_path relative if the torrent is saved in the Tribler state directory
         if self.state_dir and b'save_path' in resume_data:
-            save_path = path_util.abspath(resume_data[b'save_path'].decode('utf8'))
-            if save_path.exists() and path_util.issubfolder(self.state_dir, save_path):
-                resume_data[b'save_path'] = path_util.norm_path(self.state_dir, save_path).to_text()
+            save_path = Path(resume_data[b'save_path'].decode('utf8')).resolve()
+            if save_path.exists() and save_path in self.state_dir.parents:
+                resume_data[b'save_path'] = str(Path(save_path).relative_to(self.state_dir))
 
         metainfo = {
             'infohash': self.tdef.get_infohash(),
@@ -487,7 +489,7 @@ class LibtorrentDownloadImpl(TaskManager):
         basename = hexlify(resume_data[b'info-hash']) + '.conf'
         filename = self.ltmgr.get_checkpoint_dir() / basename
         self.config.config['download_defaults']['name'] = self.tdef.get_name_as_unicode()  # store name (for debugging)
-        self.config.write(filename.to_text())
+        self.config.write(str(filename))
         self._logger.debug('Saving download config to file %s', filename)
 
     def on_tracker_reply_alert(self, alert):
@@ -536,7 +538,7 @@ class LibtorrentDownloadImpl(TaskManager):
             self._logger.exception(ve)
             return
 
-        self.set_selected_files()
+        self.set_selected_file_indexes()
         self.checkpoint()
 
     def on_performance_alert(self, alert):
@@ -621,12 +623,12 @@ class LibtorrentDownloadImpl(TaskManager):
                 self.stop()
 
     @check_handle()
-    def set_selected_files(self, selected_files=None):
+    def set_selected_file_indexes(self, selected_files=None):
         if not isinstance(self.tdef, TorrentDefNoMetainfo) and not self.get_share_mode():
             if selected_files is None:
-                selected_files = self.config.get_selected_files()
+                selected_files = self.config.get_selected_file_indexes()
             else:
-                self.config.set_selected_files(selected_files)
+                self.config.set_selected_file_indexes(selected_files)
 
             torrent_info = get_info_from_handle(self.handle)
             if not torrent_info or not hasattr(torrent_info, 'files'):

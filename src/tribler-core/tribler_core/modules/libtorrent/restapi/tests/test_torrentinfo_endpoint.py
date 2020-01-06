@@ -1,6 +1,7 @@
 import json
-import os
+import pathlib
 import shutil
+import urllib
 from binascii import unhexlify
 from urllib.parse import quote_plus
 
@@ -12,11 +13,10 @@ from tribler_core.tests.tools.base_test import MockObject
 from tribler_core.tests.tools.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE, UBUNTU_1504_INFOHASH
 from tribler_core.tests.tools.test_as_server import TESTS_DIR
 from tribler_core.tests.tools.tools import timeout
-from tribler_core.utilities.path_util import pathname2url
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import succeed
 
-SAMPLE_CHANNEL_FILES_DIR = TESTS_DIR / "data" / "sample_channel"
+SAMPLE_CHANNEL_FILES_DIR = TESTS_DIR / "data/sample_channel"
 
 
 class TestTorrentInfoEndpoint(AbstractApiTest):
@@ -32,8 +32,8 @@ class TestTorrentInfoEndpoint(AbstractApiTest):
         # We intentionally put the file path in a folder with a:
         # - "+" which is a reserved URI character
         # - "\u0191" which is a unicode character
-        files_path = self.session_base_dir / u'http_torrent_+\u0191files'
-        os.mkdir(files_path)
+        files_path = self.session_base_dir / 'http_torrent_+\u0191files'
+        files_path.mkdir()
         shutil.copyfile(TORRENT_UBUNTU_FILE, files_path / 'ubuntu.torrent')
 
         file_server_port = self.get_port()
@@ -55,19 +55,19 @@ class TestTorrentInfoEndpoint(AbstractApiTest):
         await self.do_request('torrentinfo', expected_code=400)
         await self.do_request('torrentinfo?uri=def', expected_code=400)
 
-        path = "file:" + pathname2url(TESTS_DATA_DIR / "bak_single.torrent")
-        verify_valid_dict(await self.do_request('torrentinfo?uri=%s' % path, expected_code=200))
+        path = "file:" + urllib.request.pathname2url(f"{TESTS_DATA_DIR}/bak_single.torrent")
+        verify_valid_dict(await self.do_request(f'torrentinfo?uri={path}', expected_code=200))
 
         # Corrupt file
-        path = "file:" + pathname2url(TESTS_DATA_DIR / "test_rss.xml")
-        await self.do_request('torrentinfo?uri=%s' % path, expected_code=500)
+        path = "file:" + urllib.request.pathname2url(f"{TESTS_DATA_DIR}/test_rss.xml")
+        await self.do_request(f'torrentinfo?uri={path}', expected_code=500)
 
         # FIXME: !!! HTTP query for torrent produces dicts with unicode. TorrentDef creation can't handle unicode. !!!
-        path = "http://localhost:%d/ubuntu.torrent" % file_server_port
-        verify_valid_dict(await self.do_request('torrentinfo?uri=%s' % path, expected_code=200))
+        path = f"http://localhost:{file_server_port}/ubuntu.torrent"
+        verify_valid_dict(await self.do_request(f'torrentinfo?uri={path}', expected_code=200))
 
         def get_metainfo(infohash, timeout=20):
-            with open(TESTS_DATA_DIR / "bak_single.torrent", mode='rb') as torrent_file:
+            with open(TESTS_DATA_DIR / "bak_single.torrent", 'rb') as torrent_file:
                 torrent_data = torrent_file.read()
             tdef = TorrentDef.load_from_memory(torrent_data)
             return succeed(tdef.get_metainfo())
@@ -75,25 +75,24 @@ class TestTorrentInfoEndpoint(AbstractApiTest):
         def get_metainfo_timeout(*args, **kwargs):
             return succeed(None)
 
-        path = 'magnet:?xt=urn:btih:%s&dn=%s' % (hexlify(UBUNTU_1504_INFOHASH),
-                                                 quote_plus('test torrent'))
+        path = f"magnet:?xt=urn:btih:{hexlify(UBUNTU_1504_INFOHASH)}&dn={quote_plus('test torrent')}"
         self.session.ltmgr.get_metainfo = get_metainfo
         self.session.ltmgr.shutdown = lambda: succeed(None)
 
-        verify_valid_dict(await self.do_request('torrentinfo?uri=%s' % path, expected_code=200))
+        verify_valid_dict(await self.do_request(f'torrentinfo?uri={path}', expected_code=200))
 
         path = 'magnet:?xt=urn:ed2k:354B15E68FB8F36D7CD88FF94116CDC1'  # No infohash
-        await self.do_request('torrentinfo?uri=%s' % path, expected_code=400)
+        await self.do_request(f'torrentinfo?uri={path}', expected_code=400)
 
-        path = 'magnet:?xt=urn:btih:%s&dn=%s' % ('a' * 40, quote_plus('test torrent'))
+        path = f"magnet:?xt=urn:btih:{'a' * 40}&dn={quote_plus('test torrent')}"
         self.session.ltmgr.get_metainfo = get_metainfo_timeout
-        await self.do_request('torrentinfo?uri=%s' % path, expected_code=500)
+        await self.do_request(f'torrentinfo?uri={path}', expected_code=500)
 
         self.session.ltmgr.get_metainfo = get_metainfo
-        verify_valid_dict(await self.do_request('torrentinfo?uri=%s' % path, expected_code=200))
+        verify_valid_dict(await self.do_request(f'torrentinfo?uri={path}', expected_code=200))
 
         path = 'http://fdsafksdlafdslkdksdlfjs9fsafasdf7lkdzz32.n38/324.torrent'
-        await self.do_request('torrentinfo?uri=%s' % path, expected_code=500)
+        await self.do_request(f'torrentinfo?uri={path}', expected_code=500)
 
         with db_session:
             self.assertEqual(self.session.mds.TorrentMetadata.select().count(), 2)
@@ -111,6 +110,6 @@ class TestTorrentInfoEndpoint(AbstractApiTest):
         self.session.ltmgr.shutdown = lambda: succeed(None)
         self.session.ltmgr.shutdown_downloads = lambda: succeed(None)
         self.session.ltmgr.checkpoint_downloads = lambda: succeed(None)
-        path = 'magnet:?xt=urn:btih:%s&dn=%s' % (hexlify(UBUNTU_1504_INFOHASH), quote_plus('test torrent'))
+        path = f"magnet:?xt=urn:btih:{hexlify(UBUNTU_1504_INFOHASH)}&dn={quote_plus('test torrent')}"
 
-        await self.do_request('torrentinfo?uri=%s' % path, expected_code=500)
+        await self.do_request(f'torrentinfo?uri={path}', expected_code=500)

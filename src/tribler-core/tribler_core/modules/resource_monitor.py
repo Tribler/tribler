@@ -1,14 +1,13 @@
 import logging
 import os
 import time
+from pathlib import Path
 
 from ipv8.taskmanager import TaskManager
 
 import psutil
 
 from tribler_common.simpledefs import SIGNAL_LOW_SPACE, SIGNAL_RESOURCE_CHECK
-
-from tribler_core.utilities import path_util
 
 # Attempt to import yappi
 try:
@@ -101,7 +100,7 @@ class ResourceMonitor(TaskManager):
         return file_path
 
     def get_free_disk_space(self):
-        return psutil.disk_usage(self.session.config.get_state_dir().to_text())
+        return psutil.disk_usage(str(self.session.config.get_state_dir()))
 
     def check_resources(self):
         """
@@ -167,14 +166,13 @@ class ResourceMonitor(TaskManager):
         if not self.memory_data or not self.cpu_data:
             return
         with self.resource_log_file.open(mode="a+") as output_file:
-            output_file.write(u"%s, %s, %s\n" % (time_seconds,
-                                                self.memory_data[len(self.memory_data)-1][1],
-                                                self.cpu_data[len(self.cpu_data)-1][1]))
+            output_file.write(f"{time_seconds}, {self.memory_data[len(self.memory_data)-1][1]}, "
+                                f"{self.cpu_data[len(self.cpu_data)-1][1]}\n")
 
     def reset_resource_logs(self):
         resource_dir = self.resource_log_file.parent
         if not resource_dir.exists() and resource_dir:
-            path_util.makedirs(resource_dir)
+            Path(resource_dir).mkdir(parents=True)
         if self.resource_log_file.exists():
             self.resource_log_file.unlink()
 

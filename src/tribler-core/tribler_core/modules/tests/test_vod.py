@@ -1,6 +1,8 @@
 import asyncio
+import contextlib
 import os
 from asyncio import Future
+from pathlib import Path
 from tempfile import mkstemp
 
 from tribler_common.simpledefs import DLMODE_VOD, DOWNLOAD, UPLOAD, dlstatus_strings
@@ -10,7 +12,6 @@ from tribler_core.modules.libtorrent.libtorrent_download_impl import VODFile
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.tests.tools.test_as_server import TestAsServer
 from tribler_core.tests.tools.tools import timeout
-from tribler_core.utilities.path_util import Path
 
 asyncio.get_event_loop().set_debug(True)
 
@@ -79,26 +80,23 @@ class TestVideoOnDemand(TestAsServer):
 
             self._logger.debug("Test: state_callback")
 
-            stream = VODFile(open(download.get_content_dest(), 'rb'), download)
+            with VODFile(open(download.get_content_dest(), 'rb'), download) as stream:
+                # Read last piece
+                lastpieceoff = ((self.contentlen - 1) // self.piecelen) * self.piecelen
+                lastpiecesize = self.contentlen - lastpieceoff
+                self._logger.debug("stream: lastpieceoff %s %s", lastpieceoff, lastpiecesize)
+                self.stream_read(stream, lastpieceoff, lastpiecesize, self.piecelen)
 
-            # Read last piece
-            lastpieceoff = ((self.contentlen - 1) // self.piecelen) * self.piecelen
-            lastpiecesize = self.contentlen - lastpieceoff
-            self._logger.debug("stream: lastpieceoff %s %s", lastpieceoff, lastpiecesize)
-            self.stream_read(stream, lastpieceoff, lastpiecesize, self.piecelen)
+                # Read second,3rd,4th byte, only
+                secoff = 1
+                secsize = 3
+                blocksize = 3
+                self.stream_read(stream, secoff, secsize, blocksize)
 
-            # Read second,3rd,4th byte, only
-            secoff = 1
-            secsize = 3
-            blocksize = 3
-            self.stream_read(stream, secoff, secsize, blocksize)
-
-            # Read last byte
-            lastoff = self.contentlen - 1
-            lastsize = 1
-            self.stream_read(stream, lastoff, lastsize, self.piecelen)
-
-            stream.close()
+                # Read last byte
+                lastoff = self.contentlen - 1
+                lastsize = 1
+                self.stream_read(stream, lastoff, lastsize, self.piecelen)
 
             self.test_future.set_result(None)
 

@@ -4,9 +4,9 @@ install_dir.
 Author(s): Elric Milon
 """
 import sys
+from pathlib import Path
 
 import tribler_core
-from tribler_core.utilities.path_util import Path
 
 
 def is_frozen():

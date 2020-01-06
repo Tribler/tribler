@@ -6,11 +6,13 @@ Author(s): Egbert Bouman
 import asyncio
 import logging
 import os
+import tempfile
 import time as timemod
 from asyncio import CancelledError, TimeoutError, gather, iscoroutine, shield, sleep, wait_for
 from binascii import unhexlify
 from copy import deepcopy
 from distutils.version import LooseVersion
+from pathlib import Path
 from shutil import rmtree
 from urllib.request import url2pathname
 
@@ -24,8 +26,7 @@ from tribler_core.modules.dht_health_manager import DHTHealthManager
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
 from tribler_core.modules.libtorrent.libtorrent_download_impl import LibtorrentDownloadImpl
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
-from tribler_core.utilities import path_util, torrent_utils
-from tribler_core.utilities.path_util import mkdtemp
+from tribler_core.utilities import torrent_utils
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import bdecode_compat, has_bep33_support, parse_magnetlink
 from tribler_core.version import version_id
@@ -37,19 +38,19 @@ DEFAULT_DHT_ROUTERS = [
     ("router.bittorrent.com", 6881),
     ("router.utorrent.com", 6881)
 ]
-DEFAULT_LT_EXTENSIONS = [
+DEFAULT_LT_EXTENSIONS = (
     lt.create_ut_metadata_plugin,
     lt.create_ut_pex_plugin,
     lt.create_smart_ban_plugin
-]
+)
 
 
 def encode_atp(atp):
     for k, v in atp.items():
         if isinstance(v, str):
             atp[k] = v.encode('utf-8')
-        elif isinstance(v, path_util.Path):
-            atp[k] = v.to_text()
+        elif isinstance(v, Path):
+            atp[k] = str(v)
     return atp
 
 
@@ -97,7 +98,7 @@ class LibtorrentMgr(TaskManager):
             self.dht_health_manager = DHTHealthManager(dht_health_session)
 
         # Make temporary directory for metadata collecting through DHT
-        self.metadata_tmpdir = mkdtemp(suffix=u'tribler_metainfo_tmpdir')
+        self.metadata_tmpdir = Path(tempfile.mkdtemp(suffix='tribler_metainfo_tmpdir'))
 
         # Register tasks
         self.register_task("process_alerts", self._task_process_alerts, interval=1)
@@ -153,9 +154,6 @@ class LibtorrentMgr(TaskManager):
                     'num_outgoing_ports': 1,
                     'allow_multiple_connections_per_ip': 0}
 
-        # Copy construct so we don't modify the default list
-        extensions = list(DEFAULT_LT_EXTENSIONS)
-
         # Elric: Strip out the -rcX, -beta, -whatever tail on the version string.
         fingerprint = ['TL'] + [int(x) for x in version_id.split('-')[0].split('.')] + [0]
         ltsession = lt.session(lt.fingerprint(*fingerprint), flags=0) if hops == 0 else lt.session(flags=0)
@@ -203,7 +201,7 @@ class LibtorrentMgr(TaskManager):
             proxy_settings[1] = (proxy_host, proxy_ports[hops - 1])
         self.set_proxy_settings(ltsession, *proxy_settings)
 
-        for extension in extensions:
+        for extension in DEFAULT_LT_EXTENSIONS:
             ltsession.add_extension(extension)
 
         # Set listen port & start the DHT
@@ -500,7 +498,7 @@ class LibtorrentMgr(TaskManager):
         # Create the destination directory if it does not exist yet
         try:
             if not config.get_dest_dir().is_dir():
-                os.makedirs(config.get_dest_dir())
+                config.get_dest_dir().mkdir(parents=True)
         except OSError:
             self._logger.error("Unable to create the download destination directory.")
 

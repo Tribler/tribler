@@ -1,4 +1,3 @@
-import os
 import random
 from datetime import datetime
 
@@ -6,6 +5,7 @@ from ipv8.keyvault.crypto import default_eccrypto
 
 from pony.orm import db_session
 
+from tribler_core.tests.tools.common import TESTS_DATA_DIR
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import NEW
 from tribler_core.modules.metadata_store.store import MetadataStore
@@ -16,12 +16,10 @@ from tribler_core.modules.metadata_store.tests.test_channel_download import (
     CHANNEL_TORRENT_UPDATED,
 )
 from tribler_core.tests.tools.common import TORRENT_UBUNTU_FILE, TORRENT_VIDEO_FILE
-from tribler_core.utilities.path_util import Path
 
-DATA_DIR = Path(__file__).parent / '..' / '..' / 'data'
-SAMPLE_DIR = DATA_DIR / 'sample_channel'
+SAMPLE_DIR = TESTS_DATA_DIR / 'sample_channel'
 
-my_key = default_eccrypto.generate_key(u"curve25519")
+my_key = default_eccrypto.generate_key("curve25519")
 
 
 def gen_random_entry():
@@ -57,16 +55,16 @@ def gen_sample_channel(mds):
     mdblob_name = SAMPLE_DIR / (my_channel.dirname + ".mdblob")
     torrent_name = SAMPLE_DIR / (my_channel.dirname + ".torrent")
 
-    os.rename(mdblob_name, CHANNEL_METADATA)
-    os.rename(torrent_name, CHANNEL_TORRENT)
+    mdblob_name.rename(CHANNEL_METADATA)
+    torrent_name.rename(CHANNEL_TORRENT)
 
     # Update channel
     mds.TorrentMetadata.from_dict(dict(origin_id=my_channel.id_, **gen_random_entry()))
     my_channel.commit_channel_torrent()
 
     # Rename updated files to stable names
-    os.rename(mdblob_name, CHANNEL_METADATA_UPDATED)
-    os.rename(torrent_name, CHANNEL_TORRENT_UPDATED)
+    mdblob_name.rename(CHANNEL_METADATA_UPDATED)
+    torrent_name.rename(CHANNEL_TORRENT_UPDATED)
 
 
 if __name__ == "__main__":

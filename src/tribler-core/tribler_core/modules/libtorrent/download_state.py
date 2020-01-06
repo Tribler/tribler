@@ -151,7 +151,7 @@ class DownloadState(object):
         """ Returns a list of booleans indicating whether we have completely
         received that piece of the content. The list of pieces for which
         we provide this info depends on which files were selected for download
-        using DownloadConfig.set_selected_files().
+        using DownloadConfig.set_selected_file_indexes().
         @return A list of booleans
         """
         return self.lt_status.pieces

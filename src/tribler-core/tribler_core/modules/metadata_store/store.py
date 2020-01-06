@@ -76,7 +76,7 @@ sql_add_fts_trigger_update = """
     END;"""
 
 
-class DiscreteClock(object):
+class DiscreteClock:
     # Lamport-clock-like persistent counter
     # Horribly inefficient and stupid, but works
     store_value_name = "discrete_clock"
@@ -259,7 +259,7 @@ class MetadataStore(object):
                     ):
                         continue
                 try:
-                    self.process_mdblob_file(full_filename.to_text(), skip_personal_metadata_payload, external_thread)
+                    self.process_mdblob_file(str(full_filename), skip_personal_metadata_payload, external_thread)
                     # If we stopped mdblob processing due to shutdown flag, we should stop
                     # processing immediately, so that channel local version will not increase
                     if self._shutting_down:
@@ -298,7 +298,7 @@ class MetadataStore(object):
         with open(filepath, 'rb') as f:
             serialized_data = f.read()
 
-        if filepath.endswith('.lz4'):
+        if str(filepath).endswith('.lz4'):
             return self.process_compressed_mdblob(serialized_data, skip_personal_metadata_payload, external_thread)
         return self.process_squashed_mdblob(serialized_data, skip_personal_metadata_payload, external_thread)
 

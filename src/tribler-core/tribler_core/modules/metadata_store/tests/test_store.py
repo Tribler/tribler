@@ -166,7 +166,7 @@ class TestMetadataStore(TriblerCoreTest):
         channel = self.mds.ChannelMetadata.create_channel('testchan')
         md_list = [
             self.mds.TorrentMetadata(
-                origin_id=channel.id_, title='test' + str(x), status=NEW, infohash=database_blob(os.urandom(20))
+                origin_id=channel.id_, title=f'test{x}', status=NEW, infohash=database_blob(os.urandom(20))
             )
             for x in range(0, num_entries)
         ]
@@ -177,7 +177,8 @@ class TestMetadataStore(TriblerCoreTest):
             md.delete()
 
         channel_dir = self.mds.ChannelMetadata._channels_dir / channel.dirname
-        self.assertTrue(len(os.listdir(channel_dir)) > 1)  # make sure it was broken into more than one .mdblob file
+        # make sure it was broken into more than one .mdblob file
+        self.assertTrue(len(os.listdir(channel_dir)) > 1)
         self.mds.process_channel_dir(channel_dir, channel.public_key, channel.id_, skip_personal_metadata_payload=False)
         self.assertEqual(num_entries, len(channel.contents))
 

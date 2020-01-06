@@ -1,7 +1,6 @@
 import ast
 import base64
 import logging
-import os
 from configparser import DuplicateSectionError, MissingSectionHeaderError, NoSectionError, RawConfigParser
 
 from configobj import ConfigObj
@@ -34,14 +33,14 @@ def convert_config_to_tribler71(current_config, state_dir=None):
         libtribler_cfg = RawConfigParser()
         libtribler_cfg.read(libtribler_file_loc)
         current_config = add_libtribler_config(current_config, libtribler_cfg)
-        os.remove(libtribler_file_loc)
+        libtribler_file_loc.unlink()
 
     tribler_file_loc = state_dir / "tribler.conf"
     if tribler_file_loc.exists():
         tribler_cfg = RawConfigParser()
         tribler_cfg.read(tribler_file_loc)
         current_config = add_tribler_config(current_config, tribler_cfg)
-        os.remove(tribler_file_loc)
+        tribler_file_loc.unlink()
 
     # We also have to update all existing downloads, in particular, rename the section 'downloadconfig' to
     # 'download_defaults'.
@@ -52,7 +51,7 @@ def convert_config_to_tribler71(current_config, state_dir=None):
                 download_cfg.read_file(cfg_file, source=filename)
         except MissingSectionHeaderError:
             logger.error("Removing download state file %s since it appears to be corrupt", filename)
-            os.remove(filename)
+            filename.unlink()
 
         try:
             download_items = download_cfg.items("downloadconfig")
@@ -60,7 +59,7 @@ def convert_config_to_tribler71(current_config, state_dir=None):
             for download_item in download_items:
                 download_cfg.set("download_defaults", download_item[0], download_item[1])
             download_cfg.remove_section("downloadconfig")
-            with open(filename, "w") as output_config_file:
+            with filename.open("w") as output_config_file:
                 download_cfg.write(output_config_file)
         except (NoSectionError, DuplicateSectionError):
             # This item has already been converted
@@ -78,8 +77,9 @@ def add_tribler_config(new_config, old_config):
     :return: the edited Config file
     """
     config = new_config.copy()
+    names = {"saveas", "seeding_mode", "seeding_ratio", "seeding_time", "version"}
     for section in old_config.sections():
-        for (name, string_value) in old_config.items(section):
+        for name, string_value in old_config.items(section):
             if string_value == "None":
                 continue
 
@@ -90,20 +90,13 @@ def add_tribler_config(new_config, old_config):
                 value = string_value
 
             temp_config = config.copy()
-            if section == "Tribler" and name == "default_anonymity_enabled":
-                temp_config.set_default_anonymity_enabled(value)
-            if section == "Tribler" and name == "default_number_hops":
-                temp_config.set_default_number_hops(value)
-            if section == "downloadconfig" and name == "saveas":
-                temp_config.config["download_defaults"]["saveas"] = value
-            if section == "downloadconfig" and name == "seeding_mode":
-                temp_config.config["download_defaults"]["seeding_mode"] = value
-            if section == "downloadconfig" and name == "seeding_ratio":
-                temp_config.config["download_defaults"]["seeding_ratio"] = value
-            if section == "downloadconfig" and name == "seeding_time":
-                temp_config.config["download_defaults"]["seeding_time"] = value
-            if section == "downloadconfig" and name == "version":
-                temp_config.config["download_defaults"]["version"] = value
+            if section == "Tribler":
+                if name == "default_anonymity_enabled":
+                    temp_config.set_default_anonymity_enabled(value)
+                elif name == "default_number_hops":
+                    temp_config.set_default_number_hops(value)
+            elif section == "downloadconfig" and name in names:
+                temp_config.config["download_defaults"][name] = value
 
             try:
                 temp_config.validate()
@@ -210,10 +203,10 @@ def convert_config_to_tribler74(state_dir=None):
     for filename in (state_dir / STATEDIR_CHECKPOINT_DIR).glob('*.state'):
         old_config = CallbackConfigParser()
         try:
-            old_config.read_file(filename.to_text())
+            old_config.read_file(str(filename))
         except MissingSectionHeaderError:
             logger.error("Removing download state file %s since it appears to be corrupt", filename)
-            os.remove(filename.to_text())
+            filename.unlink()
 
         # We first need to fix the .state file such that it has the correct metainfo/resumedata
         for section, option in [('state', 'metainfo'), ('state', 'engineresumedata')]:
@@ -225,14 +218,14 @@ def convert_config_to_tribler74(state_dir=None):
                 old_config.set(section, option, base64.b64encode(lt.bencode(value)).decode('utf-8'))
             except (ValueError, SyntaxError):
                 logger.error("Removing download state file %s since it could not be converted", filename)
-                os.remove(filename.to_text())
+                filename.unlink()
                 continue
 
         # Remove dlstate since the same information is already stored in the resumedata
         if old_config.has_option('state', 'dlstate'):
             old_config.remove_option('state', 'dlstate')
 
-        new_config = ConfigObj(infile=filename.to_text()[:-6] + '.conf', encoding='utf8')
+        new_config = ConfigObj(infile=str(filename)[:-6] + '.conf', encoding='utf8')
         for section in old_config.sections():
             for key, _ in old_config.items(section):
                 val = old_config.get(section, key)
@@ -240,7 +233,7 @@ def convert_config_to_tribler74(state_dir=None):
                     new_config[section] = {}
                 new_config[section][key] = val
         new_config.write()
-        os.remove(filename.to_text())
+        filename.unlink()
 
 
 def convert_config_to_tribler75(state_dir=None):
@@ -252,8 +245,9 @@ def convert_config_to_tribler75(state_dir=None):
         config = DownloadConfig.load(filename)
         metainfo = config.get_metainfo()
         if not config.config['download_defaults'].get('selected_files') or not metainfo:
-            continue  # no conversion needed/possible, selected files will be reset to their default (i.e., all files)
+            # no conversion needed/possible, selected files will be reset to their default (i.e., all files)
+            continue
         tdef = TorrentDef.load_from_dict(metainfo)
         config.set_selected_files([tdef.get_index_of_file_in_files(fn)
                                    for fn in config.config['download_defaults'].pop('selected_files')])
-        config.write(filename.to_text())
+        config.write(str(filename))

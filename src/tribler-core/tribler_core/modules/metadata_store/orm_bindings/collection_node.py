@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 from ipv8.database import database_blob
 
@@ -17,8 +18,6 @@ from tribler_core.modules.metadata_store.orm_bindings.channel_node import (
 )
 from tribler_core.modules.metadata_store.orm_bindings.torrent_metadata import tdef_to_metadata_dict
 from tribler_core.modules.metadata_store.serialization import COLLECTION_NODE, CollectionNodePayload
-from tribler_core.utilities import path_util
-from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.random_utils import random_infohash
 
 
@@ -179,23 +178,21 @@ def define_binding(db):
 
         @db_session
         def add_torrents_from_dir(self, torrents_dir, recursive=False):
-            torrents_list = []
             errors_list = []
 
             def rec_gen(dir_):
                 for root, _, filenames in os.walk(dir_):
+                    root = Path(root)
                     for fn in filenames:
-                        yield Path(root) / fn
+                        yield root / fn
 
             filename_generator = rec_gen(torrents_dir) if recursive else os.listdir(torrents_dir)
-
             # Build list of .torrents to process
-            for f in filename_generator:
-                filepath = path_util.Path(torrents_dir).joinpath(f)
-                if filepath.is_file() and filepath.suffix == ".torrent":
-                    torrents_list.append(filepath)
+            torrents_list_generator = (Path(torrents_dir) / f for f in filename_generator)
+            torrents_list = [f for f in torrents_list_generator if f.is_file() and f.suffix == ".torrent"]
 
-            for chunk in chunks(torrents_list, 100):  # 100 is a reasonable chunk size for commits
+            # 100 is a reasonable chunk size for commits
+            for chunk in chunks(torrents_list, 100):
                 for f in chunk:
                     try:
                         self.add_torrent_to_channel(TorrentDef.load(f))
@@ -205,9 +202,10 @@ def define_binding(db):
                         # Have to use the broad exception clause because Py3 versions of libtorrent
                         # generate generic Exceptions
                         errors_list.append(f)
-                orm.commit()  # Optimization to drop excess cache
+                # Optimization to drop excess cache
+                orm.commit()
 
-            return torrents_list, errors_list
+            return (torrents_list, errors_list)
 
         @staticmethod
         @db_session
@@ -280,7 +278,8 @@ def define_binding(db):
                 lambda g: database_blob(db.ChannelNode._my_key.pub().key_to_bin()[10:]) == g.public_key
                 and g.origin_id in dead_parents
             ).delete()
-            orm.flush()  # Just in case...
+            # Just in case...
+            orm.flush()
             if not children or 0 not in children:
                 return {}
             return children
@@ -293,8 +292,7 @@ def define_binding(db):
                 return {}
             # We want a separate commit tree/queue for each toplevel channel
             forest = {}
-            toplevel_nodes = [node for node in children.pop(0)]
-            for root_node in toplevel_nodes:
+            for root_node in (node for node in children.pop(0)):
                 # Tree -> stack -> queue
                 commit_queue = []
                 tree_stack = [root_node]

@@ -1,6 +1,7 @@
 import base64
 import codecs
 from binascii import unhexlify
+from pathlib import Path
 
 from aiohttp import ClientSession, ContentTypeError, web
 
@@ -12,7 +13,6 @@ from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import DIRTY_STATUSES, NEW
 from tribler_core.modules.metadata_store.restapi.metadata_endpoint_base import MetadataEndpointBase
 from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_NOT_FOUND, RESTResponse
-from tribler_core.utilities import path_util
 from tribler_core.utilities.utilities import is_infohash, parse_magnetlink
 
 
@@ -243,16 +243,12 @@ class ChannelsEndpoint(ChannelsEndpointBase):
                 added = 1
             return RESTResponse({"added": added})
 
-        torrents_dir = None
-        if parameters.get('torrents_dir', None):
-            torrents_dir = parameters['torrents_dir']
-            if not path_util.isabs(torrents_dir):
+        torrents_dir = parameters.get('torrents_dir')
+        if torrents_dir and not Path(torrents_dir).is_dir():
                 return RESTResponse({"error": "the torrents_dir should point to a directory"}, status=HTTP_BAD_REQUEST)
 
-        recursive = False
-        if parameters.get('recursive'):
-            recursive = parameters['recursive']
-            if not torrents_dir:
+        recursive = parameters.get('recursive', False)
+        if recursive and not torrents_dir:
                 return RESTResponse(
                     {"error": "the torrents_dir parameter should be provided when the recursive " "parameter is set"},
                     status=HTTP_BAD_REQUEST,
@@ -262,7 +258,7 @@ class ChannelsEndpoint(ChannelsEndpointBase):
             torrents_list, errors_list = channel.add_torrents_from_dir(torrents_dir, recursive)
             return RESTResponse({"added": len(torrents_list), "errors": errors_list})
 
-        if not parameters.get('torrent', None):
+        if not parameters.get('torrent'):
             return RESTResponse({"error": "torrent parameter missing"}, status=HTTP_BAD_REQUEST)
 
         # Try to parse the torrent data

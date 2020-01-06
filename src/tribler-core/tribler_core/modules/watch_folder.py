@@ -1,5 +1,6 @@
 import logging
 import os
+from pathlib import Path
 
 from ipv8.taskmanager import TaskManager
 
@@ -7,7 +8,6 @@ from tribler_common.simpledefs import NTFY_INSERT, NTFY_WATCH_FOLDER_CORRUPT_TOR
 
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
-from tribler_core.utilities import path_util
 
 WATCH_FOLDER_CHECK_INTERVAL = 10
 
@@ -29,10 +29,10 @@ class WatchFolder(TaskManager):
     def cleanup_torrent_file(self, root, name):
         fullpath = root / name
         if not fullpath.exists():
-            self._logger.warning("File with path %s does not exist (anymore)", root / name)
+            self._logger.warning("File with path %s does not exist (anymore)", fullpath)
             return
 
-        fullpath.rename(path_util.Path(fullpath.to_text()+".corrupt"))
+        fullpath.rename(Path(f"{fullpath}.corrupt"))
         self._logger.warning("Watch folder - corrupt torrent file %s", name)
         self.session.notifier.notify(NTFY_WATCH_FOLDER_CORRUPT_TORRENT, NTFY_INSERT, None, name)
 
@@ -41,14 +41,11 @@ class WatchFolder(TaskManager):
             return
 
         # Make sure that we pass a str to os.walk
-        watch_dir = self.session.config.get_watch_folder_path().to_text()
+        watch_dir = str(self.session.config.get_watch_folder_path())
 
         for root, _, files in os.walk(watch_dir):
-            root = path_util.Path(root)
-            for name in files:
-                if not name.endswith(".torrent"):
-                    continue
-
+            root = Path(root)
+            for name in (name for name in files if name.endswith(".torrent")):
                 try:
                     tdef = TorrentDef.load(root / name)
                     if not tdef.get_metainfo():

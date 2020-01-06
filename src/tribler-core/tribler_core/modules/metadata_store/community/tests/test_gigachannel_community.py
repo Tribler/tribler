@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 from ipv8.database import database_blob
 from ipv8.keyvault.crypto import default_eccrypto
@@ -12,7 +13,6 @@ from tribler_core.modules.metadata_store.orm_bindings.channel_node import LEGACY
 from tribler_core.modules.metadata_store.serialization import REGULAR_TORRENT
 from tribler_core.modules.metadata_store.store import MetadataStore
 from tribler_core.tests.tools.base_test import MockObject
-from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.random_utils import random_infohash
 
 EMPTY_BLOB = database_blob(b"")
@@ -30,9 +30,9 @@ class TestGigaChannelUnits(TestBase):
 
     def create_node(self, *args, **kwargs):
         metadata_store = MetadataStore(
-            Path(self.temporary_directory()) / ("%d.db" % self.count),
+            Path(self.temporary_directory()) / f"{self.count}.db",
             Path(self.temporary_directory()),
-            default_eccrypto.generate_key(u"curve25519"),
+            default_eccrypto.generate_key("curve25519"),
         )
         kwargs['metadata_store'] = metadata_store
         node = super(TestGigaChannelUnits, self).create_node(*args, **kwargs)
@@ -55,7 +55,7 @@ class TestGigaChannelUnits(TestBase):
             self.add_random_torrent(self.nodes[0].overlay.metadata_store.TorrentMetadata, channel=channel)
             channel.commit_channel_torrent()
         # We must change the key for the first node so the created channel becomes foreign
-        self.nodes[0].overlay.metadata_store.ChannelNode._my_key = default_eccrypto.generate_key(u"curve25519")
+        self.nodes[0].overlay.metadata_store.ChannelNode._my_key = default_eccrypto.generate_key("curve25519")
 
         self.nodes[0].overlay.send_random_to(Peer(self.nodes[1].my_peer.public_key, self.nodes[1].endpoint.wan_address))
         await self.deliver_messages(timeout=0.5)
@@ -217,7 +217,7 @@ class TestGigaChannelUnits(TestBase):
             channel = self.nodes[0].overlay.metadata_store.ChannelMetadata.create_channel("ubuntu", "ubuntu")
             for i in range(20):
                 self.add_random_torrent(
-                    self.nodes[0].overlay.metadata_store.TorrentMetadata, name="ubuntu %s" % i, channel=channel
+                    self.nodes[0].overlay.metadata_store.TorrentMetadata, name=f"ubuntu {i}", channel=channel
                 )
             channel.commit_channel_torrent()
 
@@ -256,11 +256,11 @@ class TestGigaChannelUnits(TestBase):
             channel = self.nodes[0].overlay.metadata_store.ChannelMetadata.create_channel("linux", "ubuntu")
             for i in range(10):
                 self.add_random_torrent(
-                    self.nodes[0].overlay.metadata_store.TorrentMetadata, name="ubuntu %s" % i, channel=channel
+                    self.nodes[0].overlay.metadata_store.TorrentMetadata, name=f"ubuntu {i}", channel=channel
                 )
             for i in range(10):
                 self.add_random_torrent(
-                    self.nodes[0].overlay.metadata_store.TorrentMetadata, name="debian %s" % i, channel=channel
+                    self.nodes[0].overlay.metadata_store.TorrentMetadata, name=f"debian {i}", channel=channel
                 )
             channel.commit_channel_torrent()
 
@@ -270,8 +270,8 @@ class TestGigaChannelUnits(TestBase):
             self.assertEqual(len(torrents), 0)
 
         # Node 1 sent two consecutive queries
-        self.nodes[1].overlay.send_search_request(u'"ubuntu"*')
-        self.nodes[1].overlay.send_search_request(u'"debian"*')
+        self.nodes[1].overlay.send_search_request('"ubuntu"*')
+        self.nodes[1].overlay.send_search_request('"debian"*')
 
         await self.deliver_messages(timeout=0.5)
 
@@ -296,7 +296,7 @@ class TestGigaChannelUnits(TestBase):
             self.assertEqual(len(torrents2), 0)
 
         # Node 1 searches for 'A ubuntu'
-        query = u'"\xc1 ubuntu"*'
+        query = '"\xc1 ubuntu"*'
         self.nodes[1].overlay.send_search_request(query)
 
         await self.deliver_messages(timeout=0.5)

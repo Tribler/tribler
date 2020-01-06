@@ -5,6 +5,7 @@ from asyncio import Future, gather, sleep
 from binascii import unhexlify
 from collections import Counter
 from distutils.version import LooseVersion
+from pathlib import Path
 
 from anydex.wallet.bandwidth_block import TriblerBandwidthBlock
 
@@ -45,7 +46,6 @@ from tribler_core.modules.tunnel.community.discovery import GoldenRatioStrategy
 from tribler_core.modules.tunnel.community.dispatcher import TunnelDispatcher
 from tribler_core.modules.tunnel.community.payload import BalanceRequestPayload, BalanceResponsePayload, PayoutPayload
 from tribler_core.modules.tunnel.socks5.server import Socks5Server
-from tribler_core.utilities import path_util
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import succeed
 
@@ -66,7 +66,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         num_random_slots = kwargs.pop('random_slots', 5)
         self.bandwidth_wallet = kwargs.pop('bandwidth_wallet', None)
         socks_listen_ports = kwargs.pop('socks_listen_ports', None)
-        state_path = self.tribler_session.config.get_state_dir() if self.tribler_session else path_util.Path()
+        state_path = self.tribler_session.config.get_state_dir() if self.tribler_session else Path()
         self.exitnode_cache = kwargs.pop('exitnode_cache', state_path / 'exitnode_cache.dat')
         super(TriblerTunnelCommunity, self).__init__(*args, **kwargs)
         self._use_main_thread = True
@@ -93,7 +93,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         self.socks_servers = []
         for port in socks_listen_ports:
             socks_server = Socks5Server(port, self.dispatcher)
-            self.register_task('start_socks_%d' % port, socks_server.start)
+            self.register_task(f'start_socks_{port}', socks_server.start)
             self.socks_servers.append(socks_server)
 
         self.dispatcher.set_socks_servers(self.socks_servers)
@@ -121,7 +121,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
     async def wait_for_socks_servers(self):
         # Wait for the socks server to be ready. Otherwise, hidden services downloads may fail.
-        while any([name.startswith('start_socks_') for name in self._pending_tasks.keys()]):
+        while any(name.startswith('start_socks_') for name in self._pending_tasks):
             await sleep(.05)
 
     def get_available_strategies(self):
@@ -259,12 +259,12 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
     def on_balance_request_cell(self, source_address, data, _):
         payload = self._ez_unpack_noauth(BalanceRequestPayload, data, global_time=False)
 
-        if self.request_cache.has(u"create", payload.circuit_id):
-            request = self.request_cache.get(u"create", payload.circuit_id)
+        if self.request_cache.has("create", payload.circuit_id):
+            request = self.request_cache.get("create", payload.circuit_id)
             forwarding_relay = RelayRoute(request.from_circuit_id, request.peer)
-            self.send_cell([forwarding_relay.peer.address], u"relay-balance-request",
+            self.send_cell([forwarding_relay.peer.address], "relay-balance-request",
                            BalanceRequestPayload(forwarding_relay.circuit_id))
-        elif self.request_cache.has(u"retry", payload.circuit_id):
+        elif self.request_cache.has("retry", payload.circuit_id):
             self.on_balance_request(payload)
         else:
             self.logger.warning("Circuit creation cache for id %s not found!", payload.circuit_id)
@@ -319,7 +319,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         for cache in self.request_cache._identifiers.values():
             if isinstance(cache, CreateRequestCache) and cache.from_circuit_id == payload.circuit_id:
                 self.send_cell([cache.to_peer.address],
-                               u"balance-response",
+                               "balance-response",
                                BalanceResponsePayload.from_half_block(block, cache.to_circuit_id))
 
     def readd_bittorrent_peers(self):
@@ -415,8 +415,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             if self.tribler_session and self.tribler_session.config.get_libtorrent_enabled():
                 ltmgr = self.tribler_session.ltmgr
                 await gather(*[self.update_torrent(affected_peers, download) for download in ltmgr.get_downloads()])
-        if not self.is_pending_task_active('schedule_remove_circuit_%d' % circuit_id):
-            self.register_task('schedule_remove_circuit_%d' % circuit_id, _remove)
+        if not self.is_pending_task_active(f'schedule_remove_circuit_{circuit_id}'):
+            self.register_task(f'schedule_remove_circuit_{circuit_id}', _remove)
 
     def remove_relay(self, circuit_id, additional_info='', remove_now=False, destroy=False, got_destroy_from=None,
                      both_sides=True):

@@ -1,5 +1,6 @@
 import base64
 import json
+from pathlib import Path
 
 from aiohttp import web
 
@@ -8,7 +9,6 @@ from tribler_core.modules.libtorrent.download_config import DownloadConfig
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, RESTEndpoint, RESTResponse
 from tribler_core.restapi.util import return_handled_exception
-from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.unicode import ensure_unicode, recursive_bytes
 from tribler_core.utilities.utilities import bdecode_compat
 
@@ -80,7 +80,7 @@ class CreateTorrentEndpoint(RESTEndpoint):
             export_dir = Path(parameters['export_dir'])
 
         from tribler_core.version import version_id
-        params['created by'] = '%s version: %s' % ('Tribler', version_id)
+        params['created by'] = f'Tribler version: {version_id}'
 
         params['nodes'] = False
         params['httpseeds'] = False
@@ -96,8 +96,8 @@ class CreateTorrentEndpoint(RESTEndpoint):
         metainfo_dict = bdecode_compat(result['metainfo'])
 
         if export_dir and export_dir.exists():
-            save_path = export_dir / ("%s.torrent" % name)
-            with open(save_path, "wb") as fd:
+            save_path = (export_dir / f"{name}.torrent")
+            with save_path.open("wb") as fd:
                 fd.write(result['metainfo'])
 
         # Download this torrent if specified

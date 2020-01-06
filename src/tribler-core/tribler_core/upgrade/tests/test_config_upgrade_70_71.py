@@ -1,6 +1,7 @@
 import os
 import shutil
 from configparser import RawConfigParser
+from pathlib import Path
 
 from configobj import ConfigObj
 
@@ -10,7 +11,6 @@ from tribler_core.config.tribler_config import CONFIG_SPEC_PATH, TriblerConfig
 from tribler_core.tests.tools.base_test import TriblerCoreTest
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
 from tribler_core.upgrade.config_converter import add_libtribler_config, add_tribler_config, convert_config_to_tribler71
-from tribler_core.utilities import path_util
 
 
 class TestConfigUpgrade70to71(TriblerCoreTest):
@@ -33,7 +33,7 @@ class TestConfigUpgrade70to71(TriblerCoreTest):
         """
         Test upgrading a libtribler configuration from 7.0 to 7.1
         """
-        os.environ['TSTATEDIR'] = self.session_base_dir.to_text()
+        os.environ['TSTATEDIR'] = str(self.session_base_dir)
         old_config = RawConfigParser()
         old_config.read(self.CONFIG_PATH / "libtribler70.conf")
         new_config = TriblerConfig()
@@ -41,7 +41,7 @@ class TestConfigUpgrade70to71(TriblerCoreTest):
         self.assertEqual(result_config.get_tunnel_community_socks5_listen_ports(), [1, 2, 3, 4, 5, 6])
         self.assertEqual(result_config.get_anon_proxy_settings(), (2, ("127.0.0.1", [5, 4, 3, 2, 1]), ''))
         self.assertEqual(result_config.get_credit_mining_sources(), ['source1', 'source2'])
-        self.assertEqual(result_config.get_log_dir(), path_util.Path('/a/b/c').absolute())
+        self.assertEqual(result_config.get_log_dir(), Path('/a/b/c').resolve())
 
     def test_read_test_corr_tribler_conf(self):
         """
@@ -67,7 +67,7 @@ class TestConfigUpgrade70to71(TriblerCoreTest):
         """
         old_config = RawConfigParser()
         old_config.read(self.CONFIG_PATH / "libtriblercorrupt70.conf")
-        new_config = TriblerConfig(ConfigObj(configspec=CONFIG_SPEC_PATH.to_text()))
+        new_config = TriblerConfig(ConfigObj(configspec=str(CONFIG_SPEC_PATH)))
 
         result_config = add_libtribler_config(new_config, old_config)
 
@@ -79,7 +79,7 @@ class TestConfigUpgrade70to71(TriblerCoreTest):
         """
         Test whether the existing pstate files are correctly updated to 7.1.
         """
-        os.makedirs(self.state_dir / STATEDIR_CHECKPOINT_DIR)
+        (self.state_dir / STATEDIR_CHECKPOINT_DIR).mkdir(parents=True)
 
         # Copy an old pstate file
         src_path = self.CONFIG_PATH / "download_pstate_70.state"

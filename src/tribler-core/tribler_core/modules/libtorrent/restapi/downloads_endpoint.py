@@ -1,4 +1,5 @@
 from binascii import unhexlify
+from pathlib import Path
 from urllib.parse import unquote_plus
 from urllib.request import url2pathname
 
@@ -24,8 +25,6 @@ from tribler_core.restapi.rest_endpoint import (
     RESTResponse,
 )
 from tribler_core.restapi.util import return_handled_exception
-from tribler_core.utilities import path_util
-from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.torrent_utils import get_info_from_handle
 from tribler_core.utilities.unicode import ensure_unicode, hexlify
 
@@ -39,12 +38,38 @@ def _safe_extended_peer_info(ext_peer_info):
     """
     # First see if we can use this as-is
     if not ext_peer_info:
-        ext_peer_info = u''
+        ext_peer_info = ''
     try:
         return ensure_unicode(ext_peer_info, "utf8")
     except UnicodeDecodeError:
         # We might have some special unicode characters in here
-        return u''.join([chr(ord(c)) for c in ext_peer_info])
+        return ''.join(chr(ord(c)) for c in ext_peer_info)
+
+def _create_tracker_info(download):
+    """
+    Create tracker information of the download
+    """
+    status_items = download.get_tracker_status().items()
+    return [{"url": url, "peers": url_info[0], "status": url_info[1]} for url, url_info in status_items]
+
+def _get_files_info_json(download):
+    """
+    Return file information as JSON from a specified download.
+    """
+    files_json = []
+    files_completion = dict(download.get_state().get_files_completion())
+    selected_files = download.config.get_selected_files()
+    file_index = 0
+    for fn, size in download.get_def().get_files_with_length():
+        files_json.append({
+            "index": file_index,
+            "name": str(fn),
+            "size": size,
+            "included": (file_index in selected_files or not selected_files),
+            "progress": files_completion.get(fn, 0.0)
+        })
+        file_index += 1
+    return files_json
 
 
 class DownloadsEndpoint(RESTEndpoint):
@@ -104,25 +129,6 @@ class DownloadsEndpoint(RESTEndpoint):
             download_config.set_selected_files([int(index) for index in parameters.getall('selected_files')])
 
         return download_config, None
-
-    def get_files_info_json(self, download):
-        """
-        Return file information as JSON from a specified download.
-        """
-        files_json = []
-        files_completion = dict((name, progress) for name, progress in download.get_state().get_files_completion())
-        selected_files = download.config.get_selected_files()
-        file_index = 0
-        for fn, size in download.get_def().get_files_with_length():
-            files_json.append({
-                "index": file_index,
-                "name": path_util.Path(fn).to_text(),
-                "size": size,
-                "included": (file_index in selected_files or not selected_files),
-                "progress": files_completion.get(fn, 0.0)
-            })
-            file_index += 1
-        return files_json
 
     async def get_downloads(self, request):
         """
@@ -197,24 +203,18 @@ class DownloadsEndpoint(RESTEndpoint):
                     }
                 }, ...]
         """
+
         get_peers = request.query.get('get_peers', '0') == '1'
         get_pieces = request.query.get('get_pieces', '0') == '1'
         get_files = request.query.get('get_files', '0') == '1'
 
         downloads_json = []
-        downloads = self.session.ltmgr.get_downloads()
-        for download in downloads:
+        for download in self.session.ltmgr.get_downloads():
             if download.hidden and not download.config.get_channel_download():
                 # We still want to send channel downloads since they are displayed in the GUI
                 continue
             state = download.get_state()
             tdef = download.get_def()
-
-            # Create tracker information of the download
-            tracker_info = []
-            for url, url_info in download.get_tracker_status().items():
-                tracker_info.append({"url": url, "peers": url_info[0], "status": url_info[1]})
-
             num_seeds, num_peers = state.get_num_seeds_peers()
             num_connected_seeds, num_connected_peers = download.get_num_connected_seeds_peers()
 
@@ -241,14 +241,14 @@ class DownloadsEndpoint(RESTEndpoint):
                 "total_up": state.get_total_transferred(UPLOAD),
                 "total_down": state.get_total_transferred(DOWNLOAD),
                 "ratio": state.get_seeding_ratio(),
-                "trackers": tracker_info,
+                "trackers": _create_tracker_info(download),
                 "hops": download.config.get_hops(),
                 "anon_download": download.get_anon_mode(),
                 "safe_seeding": download.config.get_safe_seeding(),
                 # Maximum upload/download rates are set for entire sessions
                 "max_upload_speed": self.session.config.get_libtorrent_max_upload_rate(),
                 "max_download_speed": self.session.config.get_libtorrent_max_download_rate(),
-                "destination": path_util.Path(download.config.get_dest_dir()).to_text(),
+                "destination": str(download.config.get_dest_dir()),
                 "availability": state.get_availability(),
                 "total_pieces": tdef.get_nr_pieces(),
                 "vod_mode": download.config.get_mode() == DLMODE_VOD,
@@ -263,7 +263,8 @@ class DownloadsEndpoint(RESTEndpoint):
             # Add peers information if requested
             if get_peers:
                 peer_list = state.get_peerlist()
-                for peer_info in peer_list:  # Remove have field since it is very large to transmit.
+                for peer_info in peer_list:
+                    # Remove have field since it is very large to transmit.
                     del peer_info['have']
                     if 'extended_version' in peer_info:
                         peer_info['extended_version'] = _safe_extended_peer_info(peer_info['extended_version'])
@@ -283,7 +284,7 @@ class DownloadsEndpoint(RESTEndpoint):
 
             # Add files if requested
             if get_files:
-                download_json["files"] = self.get_files_info_json(download)
+                download_json["files"] = _get_files_info_json(download)
 
             downloads_json.append(download_json)
         return RESTResponse({"downloads": downloads_json})
@@ -339,7 +340,7 @@ class DownloadsEndpoint(RESTEndpoint):
                     except InvalidSignatureException:
                         return RESTResponse({"error": "Metadata has invalid signature"}, status=HTTP_BAD_REQUEST)
             else:
-                download_uri = u"file:%s" % filename
+                download_uri = f"file:{filename}"
         else:
             download_uri = unquote_plus(uri)
 
@@ -427,7 +428,8 @@ class DownloadsEndpoint(RESTEndpoint):
         if len(parameters) > 1 and 'anon_hops' in parameters:
             return RESTResponse({"error": "anon_hops must be the only parameter in this request"},
                                 status=HTTP_BAD_REQUEST)
-        elif 'anon_hops' in parameters:
+
+        if 'anon_hops' in parameters:
             anon_hops = int(parameters['anon_hops'])
             try:
                 await self.session.ltmgr.update_hops(download, anon_hops)
@@ -439,7 +441,7 @@ class DownloadsEndpoint(RESTEndpoint):
         if 'selected_files' in parameters:
             selected_files_list = [int(i) for i in parameters.getall('selected_files')]
             num_files = len(download.tdef.get_files())
-            if not all([0 <= index < num_files for index in selected_files_list]):
+            if not all(0 <= index < num_files for index in selected_files_list):
                 return RESTResponse({"error": "index out of range"}, status=HTTP_BAD_REQUEST)
             download.set_selected_files(selected_files_list)
 
@@ -490,9 +492,11 @@ class DownloadsEndpoint(RESTEndpoint):
         t = create_torrent(torrent_info)
         torrent = t.generate()
 
-        return RESTResponse(bencode(torrent), headers={'content-type': 'application/x-bittorrent',
-                                                       'Content-Disposition': 'attachment; filename=%s.torrent'
-                                                                              % hexlify(infohash).encode('utf-8')})
+        file_name = hexlify(infohash).encode('utf-8')
+        return RESTResponse(bencode(torrent), headers={
+            'content-type': 'application/x-bittorrent',
+            'Content-Disposition': f'attachment; filename={file_name}.torrent'
+        })
 
     async def get_files(self, request):
         """
@@ -524,4 +528,4 @@ class DownloadsEndpoint(RESTEndpoint):
         download = self.session.ltmgr.get_download(infohash)
         if not download:
             return DownloadsEndpoint.return_404(request)
-        return RESTResponse({"files": self.get_files_info_json(download)})
+        return RESTResponse({"files": _get_files_info_json(download)})

@@ -11,10 +11,11 @@ import random
 import re
 import shutil
 import string
+import threading
 import time
 from asyncio import Future, current_task, get_event_loop
 from functools import partial
-from threading import enumerate as enumerate_threads
+from pathlib import Path
 
 from aiohttp import web
 
@@ -31,12 +32,10 @@ from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.session import Session
 from tribler_core.tests.tools.common import TESTS_DIR
 from tribler_core.tests.tools.util import process_unhandled_exceptions
-from tribler_core.utilities import path_util
 from tribler_core.utilities.instrumentation import WatchDog
 from tribler_core.utilities.network_utils import get_random_port
-from tribler_core.utilities.path_util import Path
 
-OUTPUT_DIR = path_util.abspath(os.environ.get('OUTPUT_DIR', 'output'))
+OUTPUT_DIR = Path(os.environ.get('OUTPUT_DIR', 'output')).resolve()
 
 
 class BaseTestCase(asynctest.TestCase):
@@ -66,18 +65,18 @@ class BaseTestCase(asynctest.TestCase):
     def tearDown(self):
         while self._tempdirs:
             temp_dir = self._tempdirs.pop()
-            os.chmod(temp_dir, 0o700)
+            temp_dir.chmod(0o700)
             shutil.rmtree(temp_dir, ignore_errors=False)
 
     def temporary_directory(self, suffix='', exist_ok=False):
         random_string = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(6))
-        temp = TESTS_DIR / "temp" / (self.__class__.__name__ + suffix + random_string)
+        temp = TESTS_DIR / "temp" / ''.join((self.__class__.__name__, suffix, random_string))
         self._tempdirs.append(temp)
         try:
-            os.makedirs(temp)
+            temp.mkdir(parents=True)
         except FileExistsError as e:
             if not exist_ok:
-                raise e
+                raise
         return temp
 
     def get_bucket_range_port(self):
@@ -124,9 +123,9 @@ class AbstractServer(BaseTestCase):
     async def setUp(self):
         self._logger = logging.getLogger(self.__class__.__name__)
 
-        self.session_base_dir = self.temporary_directory(suffix=u"_tribler_test_session_")
-        self.state_dir = self.session_base_dir / u"dot.Tribler"
-        self.dest_dir = self.session_base_dir / u"TriblerDownloads"
+        self.session_base_dir = self.temporary_directory(suffix="_tribler_test_session_")
+        self.state_dir = self.session_base_dir / "dot.Tribler"
+        self.dest_dir = self.session_base_dir / "TriblerDownloads"
 
         self.annotate_dict = {}
 
@@ -144,8 +143,8 @@ class AbstractServer(BaseTestCase):
         app.add_routes([web.static('/', path)])
         runner = web.AppRunner(app, access_log=None)
         await runner.setup()
-        self.site = web.TCPSite(runner, 'localhost', port)
-        await self.site.start()
+        site = web.TCPSite(runner, 'localhost', port)
+        await site.start()
 
     async def checkLoop(self, phase, *_):
         from pony.orm.core import local
@@ -186,34 +185,34 @@ class AbstractServer(BaseTestCase):
         super(AbstractServer, self).tearDown()
 
     def getStateDir(self, nr=0):
-        state_dir = self.state_dir.joinpath(Path(str(nr) if nr else ''))
+        state_dir = self.state_dir.joinpath(str(nr) if nr else '')
         if not state_dir.exists():
-            os.mkdir(state_dir)
+            state_dir.mkdir()
         return state_dir
 
     def getDestDir(self, nr=0):
-        dest_dir = self.dest_dir.joinpath(Path(str(nr) if nr else ''))
+        dest_dir = self.dest_dir.joinpath(str(nr) if nr else '')
         if not dest_dir.exists():
-            os.mkdir(dest_dir)
+            dest_dir.mkdir()
         return dest_dir
 
     def annotate(self, annotation, start=True, destdir=OUTPUT_DIR):
         if not destdir.exists():
-            os.makedirs(path_util.abspath(destdir))
+            destdir.resolve().mkdir(parents=True)
 
         if start:
             self.annotate_dict[annotation] = time.time()
         else:
-            filename = destdir / u"annotations.txt"
+            filename = destdir / "annotations.txt"
             mode = 'a' if filename.exists() else 'w'
             with open(filename, mode) as f:
                 f.write("annotation start end\n")
 
                 AbstractServer._annotate_counter += 1
                 _annotation = re.sub('[^a-zA-Z0-9_]', '_', annotation)
-                _annotation = u"%d_" % AbstractServer._annotate_counter + _annotation
+                _annotation += f"{AbstractServer._annotate_counter}_"
 
-                f.write("%s %s %s\n" % (_annotation, self.annotate_dict[annotation], time.time()))
+                f.write(f"{_annotation} {self.annotate_dict[annotation]} {time.time()}\n")
 
 
 class TestAsServer(AbstractServer):
@@ -241,7 +240,7 @@ class TestAsServer(AbstractServer):
         self.annotate(self._testMethodName, start=True)
 
     def setUpPreSession(self):
-        self.config = TriblerConfig(ConfigObj(configspec=CONFIG_SPEC_PATH.to_text(), default_encoding='utf-8'))
+        self.config = TriblerConfig(ConfigObj(configspec=str(CONFIG_SPEC_PATH), default_encoding='utf-8'))
         self.config.set_default_destination_dir(self.dest_dir)
         self.config.set_state_dir(self.getStateDir())
         self.config.set_torrent_checking_enabled(False)
@@ -265,7 +264,7 @@ class TestAsServer(AbstractServer):
     async def tearDown(self):
         self.annotate(self._testMethodName, start=False)
 
-        """ unittest test tear down code """
+        # unittest test tear down code
         if self.session is not None:
             if isinstance(self.session.ltmgr, LibtorrentMgr):
                 self.session.ltmgr.shutdown = partial(self.session.ltmgr.shutdown, timeout=.1)
@@ -274,7 +273,7 @@ class TestAsServer(AbstractServer):
 
         await self.stop_seeder()
 
-        ts = enumerate_threads()
+        ts = threading.enumerate()
         self._logger.debug("test_as_server: Number of threads still running %d", len(ts))
         for t in ts:
             self._logger.debug("Thread still running %s, daemon: %s, instance: %s", t.getName(), t.isDaemon(), t)

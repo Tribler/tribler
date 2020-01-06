@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import os
 from binascii import unhexlify
 from datetime import datetime
@@ -11,8 +9,6 @@ from ipv8.keyvault.crypto import default_eccrypto
 
 from pony.orm import ObjectNotFound, db_session
 
-from six.moves import xrange
-
 from tribler_core.exceptions import DuplicateTorrentFileError
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH, entries_to_chunk
@@ -21,7 +17,6 @@ from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, C
 from tribler_core.modules.metadata_store.store import MetadataStore
 from tribler_core.tests.tools.base_test import TriblerCoreTest
 from tribler_core.tests.tools.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE
-from tribler_core.utilities import path_util
 from tribler_core.utilities.random_utils import random_infohash
 
 
@@ -337,7 +332,7 @@ class TestChannelMetadata(TriblerCoreTest):
         # Remove the channel and read it back from disk
         for c in chan.contents:
             c.delete()
-        my_dir = path_util.abspath(self.mds.ChannelMetadata._channels_dir / chan.dirname)
+        my_dir = (self.mds.ChannelMetadata._channels_dir / chan.dirname).resolve()
         self.mds.process_channel_dir(my_dir, chan.public_key, chan.id_, skip_personal_metadata_payload=False)
         self.assertEqual(chan.num_entries, 363)
 
@@ -347,7 +342,7 @@ class TestChannelMetadata(TriblerCoreTest):
         Test completely re-commit your channel
         """
         channel = self.mds.ChannelMetadata.create_channel('test', 'test')
-        my_dir = path_util.abspath(self.mds.ChannelMetadata._channels_dir / channel.dirname)
+        my_dir = (self.mds.ChannelMetadata._channels_dir / channel.dirname).resolve()
         tdef = TorrentDef.load(TORRENT_UBUNTU_FILE)
 
         # 1st torrent
@@ -381,7 +376,7 @@ class TestChannelMetadata(TriblerCoreTest):
 
     def test_mdblob_dont_fit_exception(self):
         with db_session:
-            md_list = [self.mds.TorrentMetadata(title='test' + str(x), infohash=os.urandom(20)) for x in xrange(0, 1)]
+            md_list = [self.mds.TorrentMetadata(title='test' + str(x), infohash=os.urandom(20)) for x in range(0, 1)]
         self.assertRaises(Exception, entries_to_chunk, md_list, chunk_size=1)
 
     @db_session
@@ -391,9 +386,9 @@ class TestChannelMetadata(TriblerCoreTest):
         """
 
         # First we create a few channels
-        for ind in xrange(10):
+        for ind in range(10):
             self.mds.ChannelNode._my_key = default_eccrypto.generate_key('low')
-            self.mds.ChannelMetadata(title='channel%d' % ind, subscribed=(ind % 2 == 0), infohash=os.urandom(20))
+            self.mds.ChannelMetadata(title=f'channel{ind}', subscribed=(ind % 2 == 0), infohash=os.urandom(20))
         channels = self.mds.ChannelMetadata.get_entries(first=1, last=5)
         self.assertEqual(len(channels), 5)
 

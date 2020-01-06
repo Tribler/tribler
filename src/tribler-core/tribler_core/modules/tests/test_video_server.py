@@ -4,6 +4,7 @@ Tests for the video server.
 Author(s): Arno Bakker
 """
 from asyncio import Future, Protocol, get_event_loop
+from pathlib import Path
 
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
@@ -12,8 +13,6 @@ from tribler_core.tests.tools.base_test import MockObject, TriblerCoreTest
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
 from tribler_core.tests.tools.test_as_server import TestAsServer
 from tribler_core.tests.tools.tools import timeout
-from tribler_core.utilities import path_util
-from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.unicode import hexlify
 
 
@@ -98,12 +97,12 @@ class TestVideoServer(TriblerCoreTest):
         mock_download = MockObject()
         mock_download.get_content_dest = lambda: "abc"
         mock_download.config = MockObject()
-        mock_download.config.get_selected_files = lambda: ["def"]
+        mock_download.config.get_selected_file_indexes = lambda: [0]
         mock_def = MockObject()
         mock_def.is_multifile_torrent = lambda: True
         mock_download.get_def = lambda: mock_def
 
-        self.assertEqual(self.video_server.get_vod_destination(mock_download), (Path("abc") / "def").to_text())
+        self.assertEqual(self.video_server.get_vod_destination(mock_download), str(Path("abc") / str(0)))
 
     def test_get_vod_stream(self):
         """
@@ -126,7 +125,7 @@ class TestVideoServerSession(TestAsServer):
         await super(TestVideoServerSession, self).setUp()
         self.port = self.session.config.get_video_server_port()
         self.sourcefn = TESTS_DATA_DIR / "video.avi"
-        self.sourcesize = path_util.getsize(self.sourcefn)
+        self.sourcesize = Path(self.sourcefn).stat().st_size
         self.tdef = None
         self.expsize = 0
         await self.start_vod_download()

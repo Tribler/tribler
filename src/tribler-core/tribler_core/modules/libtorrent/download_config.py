@@ -1,4 +1,5 @@
 import base64
+from pathlib import Path
 
 from configobj import ConfigObj
 
@@ -9,23 +10,21 @@ from validate import Validator
 from tribler_common.simpledefs import DLMODE_NORMAL, DLMODE_VOD
 
 from tribler_core.exceptions import InvalidConfigException
-from tribler_core.utilities import path_util
 from tribler_core.utilities.install_dir import get_lib_path
 from tribler_core.utilities.osutils import get_home_dir
-from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.utilities import bdecode_compat
 
 SPEC_FILENAME = 'download_config.spec'
-CONFIG_SPEC_PATH = get_lib_path() / 'modules' / 'libtorrent' / SPEC_FILENAME
+CONFIG_SPEC_PATH = get_lib_path() / 'modules/libtorrent' / SPEC_FILENAME
 NONPERSISTENT_DEFAULTS = {'mode': DLMODE_NORMAL}
 
 
-class DownloadConfig(object):
+class DownloadConfig:
     def __init__(self, config=None, state_dir=None):
-        self.config = config or ConfigObj(configspec=CONFIG_SPEC_PATH.to_text(), default_encoding='utf8')
+        self.config = config or ConfigObj(configspec=str(CONFIG_SPEC_PATH), default_encoding='utf8')
         # Values that should not be stored and should be initialized to some default value
         self.nonpersistent = NONPERSISTENT_DEFAULTS.copy()
-        self.state_dir = state_dir
+        self.state_dir = None if state_dir is None else Path(state_dir)
         self.validate()
 
     def validate(self):
@@ -38,15 +37,15 @@ class DownloadConfig(object):
         validator = Validator()
         validation_result = self.config.validate(validator)
         if validation_result is not True:
-            raise InvalidConfigException(msg="DownloadConfig is invalid: %s" % str(validation_result))
+            raise InvalidConfigException(msg=f"DownloadConfig is invalid: {validation_result}")
 
     @staticmethod
     def load(config_path=None):
-        return DownloadConfig(ConfigObj(infile=config_path.to_text(), file_error=True,
-                                        configspec=CONFIG_SPEC_PATH.to_text(), default_encoding='utf-8'))
+        return DownloadConfig(ConfigObj(infile=str(config_path), file_error=True,
+                                        configspec=str(CONFIG_SPEC_PATH), default_encoding='utf-8'))
 
     def copy(self):
-        return DownloadConfig(ConfigObj(self.config, configspec=CONFIG_SPEC_PATH.to_text(), default_encoding='utf-8'))
+        return DownloadConfig(ConfigObj(self.config, configspec=str(CONFIG_SPEC_PATH), default_encoding='utf-8'))
 
     def write(self, filename):
         self.config.filename = filename
@@ -57,11 +56,12 @@ class DownloadConfig(object):
         @param path A path of a directory.
         """
         # If something is saved inside the Tribler state dir, it should use relative path
-        path = path_util.Path(path)
         if self.state_dir:
+            path = Path(path)
             base_path = self.state_dir
-            path = path_util.norm_path(base_path, path)
-        self.config['download_defaults']['saveas'] = path.to_text()
+            if path.is_absolute() and base_path.resolve() in path.parents:
+                path = path.relative_to(base_path)
+        self.config['download_defaults']['saveas'] = str(path)
 
     def get_dest_dir(self):
         """ Gets the directory where to save this Download.
@@ -70,12 +70,13 @@ class DownloadConfig(object):
         if not dest_dir:
             dest_dir = get_default_dest_dir()
             self.set_dest_dir(dest_dir)
+        dest_dir = Path(dest_dir)
 
         # This is required to support relative paths
-        if not path_util.isabs(dest_dir):
+        if not dest_dir.is_absolute() and self.state_dir is not None:
             dest_dir = self.state_dir / dest_dir
 
-        return path_util.Path(dest_dir)
+        return dest_dir
 
     def set_mode(self, mode):
         """ Sets the mode of this download.
@@ -129,7 +130,7 @@ class DownloadConfig(object):
     def get_time_added(self):
         return self.config['download_defaults']['time_added']
 
-    def set_selected_files(self, file_indexes):
+    def set_selected_file_indexes(self, file_indexes):
         """ Select which files in the torrent to download.
         @param file_indexes List of file indexes as ordered in the torrent (e.g. [0,1])
         """
@@ -138,7 +139,7 @@ class DownloadConfig(object):
 
         self.config['download_defaults']['selected_file_indexes'] = file_indexes
 
-    def get_selected_files(self):
+    def get_selected_file_indexes(self):
         """ Returns the list of files selected for download.
         @return A list of file indexes. """
         return self.config['download_defaults']['selected_file_indexes']
@@ -185,9 +186,9 @@ def get_default_dest_dir():
 
     # TODO: Is this here so the unit tests work?
     if download_dir.is_dir():
-        return path_util.abspath(download_dir)
+        return download_dir.resolve()
 
-    downloads_dir = get_home_dir() / u"Downloads"
+    downloads_dir = get_home_dir() / "Downloads"
     if downloads_dir.is_dir():
         return downloads_dir / download_dir
     return get_home_dir() / download_dir

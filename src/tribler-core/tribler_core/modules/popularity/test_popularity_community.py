@@ -1,4 +1,5 @@
 import time
+from pathlib import Path
 
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.test.base import TestBase
@@ -9,7 +10,6 @@ from pony.orm import db_session
 from tribler_core.modules.metadata_store.store import MetadataStore
 from tribler_core.modules.popularity.popularity_community import PopularityCommunity
 from tribler_core.tests.tools.base_test import MockObject
-from tribler_core.utilities.path_util import Path
 
 
 class TestPopularityCommunity(TestBase):
@@ -21,14 +21,14 @@ class TestPopularityCommunity(TestBase):
         self.initialize(PopularityCommunity, self.NUM_NODES)
 
     def create_node(self, *args, **kwargs):
-        mds = MetadataStore(Path(self.temporary_directory()) / ("%d.db" % self.count),
+        mds = MetadataStore(Path(self.temporary_directory()) / f"{self.count}.db",
                             Path(self.temporary_directory()),
-                            default_eccrypto.generate_key(u"curve25519"))
+                            default_eccrypto.generate_key("curve25519"))
 
         torrent_checker = MockObject()
         torrent_checker.torrents_checked = set()
 
-        return MockIPv8(u"curve25519", PopularityCommunity, metadata_store=mds, torrent_checker=torrent_checker)
+        return MockIPv8("curve25519", PopularityCommunity, metadata_store=mds, torrent_checker=torrent_checker)
 
     @db_session
     def fill_database(self, metadata_store, last_check_now=False):

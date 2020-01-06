@@ -1,4 +1,5 @@
 import shutil
+import tempfile
 from asyncio import Future, gather, get_event_loop, sleep
 from unittest.mock import Mock
 
@@ -13,7 +14,6 @@ from tribler_core.tests.tools.base_test import MockObject
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
 from tribler_core.tests.tools.test_as_server import AbstractServer
 from tribler_core.tests.tools.tools import timeout
-from tribler_core.utilities.path_util import mkdtemp
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import succeed
 
@@ -60,7 +60,7 @@ class TestLibtorrentMgr(AbstractServer):
         self.tribler_session.notify_shutdown_state = lambda _: None
 
         self.ltmgr = LibtorrentMgr(self.tribler_session)
-        self.ltmgr.metadata_tmpdir = mkdtemp(suffix=u'tribler_metainfo_tmpdir')
+        self.ltmgr.metadata_tmpdir = tempfile.mkdtemp(suffix='tribler_metainfo_tmpdir')
 
         self.tribler_session.ltmgr = self.ltmgr
         self.tribler_session.tunnel_community = None
@@ -97,8 +97,8 @@ class TestLibtorrentMgr(AbstractServer):
         self.assertTrue(ltsession)
 
     def test_get_session_zero_hops_corrupt_lt_state(self):
-        with open(self.session_base_dir / 'lt.state', "w") as file:
-            file.write("Lorem ipsum")
+        with open(self.session_base_dir / 'lt.state', "w") as f:
+            f.write("Lorem ipsum")
 
         self.ltmgr.initialize()
         ltsession = self.ltmgr.get_session(0)
@@ -359,7 +359,7 @@ class TestLibtorrentMgr(AbstractServer):
         This can happen when a magnet link is added when the user does not have internet.
         """
         self.ltmgr.initialize()
-        dlcheckpoints_tempdir = mkdtemp(suffix=u'dlcheckpoints_tmpdir')
+        dlcheckpoints_tempdir = tempfile.mkdtemp(suffix='dlcheckpoints_tmpdir')
         self.ltmgr.get_download = lambda _: None
         self.ltmgr.tribler_session = self.tribler_session
         self.ltmgr.get_checkpoint_dir = lambda: dlcheckpoints_tempdir
@@ -441,7 +441,7 @@ class TestLibtorrentMgr(AbstractServer):
         Test whether we are resuming downloads after loading checkpoints
         """
         def mocked_load_checkpoint(filename):
-            self.assertTrue(filename.endswith('abcd.conf'))
+            self.assertTrue(filename.match('*abcd.conf'))
             mocked_load_checkpoint.called = True
 
         mocked_load_checkpoint.called = False

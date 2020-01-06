@@ -19,7 +19,6 @@ from tribler_core.modules.metadata_store.orm_bindings.channel_node import (
     UPDATED,
 )
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, ChannelMetadataPayload
-from tribler_core.utilities import path_util
 from tribler_core.utilities.random_utils import random_infohash
 from tribler_core.utilities.unicode import hexlify
 
@@ -38,11 +37,11 @@ def chunks(l, n):
 
 def create_torrent_from_dir(directory, torrent_filename):
     fs = file_storage()
-    add_files(fs, directory.to_text())
+    add_files(fs, str(directory))
     t = create_torrent(fs)
     # t = create_torrent(fs, flags=17) # piece alignment
     t.set_priv(False)
-    set_piece_hashes(t, directory.parent.to_text())
+    set_piece_hashes(t, str(directory.parent))
     torrent = t.generate()
     with open(torrent_filename, 'wb') as f:
         f.write(bencode(torrent))
@@ -212,7 +211,7 @@ def define_binding(db):
             :return The new infohash, should be used to update the downloads
             """
             # Create dir for metadata files
-            channel_dir = path_util.abspath(self._channels_dir / self.dirname)
+            channel_dir = (self._channels_dir / self.dirname).resolve()
             if not channel_dir.is_dir():
                 os.makedirs(channel_dir)
 

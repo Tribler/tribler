@@ -1,9 +1,10 @@
 import os
 import shutil
 import sys
+import tempfile
+from pathlib import Path
 
 from tribler_core.tests.tools.test_as_server import BaseTestCase
-from tribler_core.utilities import path_util
 from tribler_core.utilities.osutils import (
     dir_copy,
     fix_filebasename,
@@ -13,7 +14,6 @@ from tribler_core.utilities.osutils import (
     get_picture_dir,
     is_android,
 )
-from tribler_core.utilities.path_util import mkdtemp
 
 if os.path.exists('test_osutils.py'):
     BASE_DIR = '..'
@@ -40,7 +40,6 @@ class Test_OsUtils(BaseTestCase):
           '\x5c\x5c': '__',
           '\x5c\x61\x5c': '_a_',
           '\x2f\x61': '_a',    # \x2f = '/'
-          '\x92\x97': '\x92\x97',
           '\x2f\x2f': '__',
           '\x2f\x61\x2f': '_a_',
           'a' * 300: 'a' * 255
@@ -80,36 +79,36 @@ class Test_OsUtils(BaseTestCase):
 
     def test_home_dir(self):
         home_dir = get_home_dir()
-        self.assertIsInstance(home_dir, path_util.Path)
+        self.assertIsInstance(home_dir, Path)
         self.assertTrue(home_dir.is_dir())
 
     def test_appstate_dir(self):
         appstate_dir = get_appstate_dir()
-        self.assertIsInstance(appstate_dir, path_util.Path)
+        self.assertIsInstance(appstate_dir, Path)
         self.assertTrue(appstate_dir.is_dir())
 
     def test_picture_dir(self):
         picture_dir = get_picture_dir()
-        self.assertIsInstance(picture_dir, path_util.Path)
+        self.assertIsInstance(picture_dir, Path)
         self.assertTrue(picture_dir.is_dir())
 
     def test_desktop_dir(self):
         desktop_dir = get_desktop_dir()
-        self.assertIsInstance(desktop_dir, path_util.Path)
+        self.assertIsInstance(desktop_dir, Path)
         self.assertTrue(desktop_dir.is_dir())
 
     def test_dir_copy(self):
         """
         Tests copying a source directory to destination directory.
         """
-        temp_dir = mkdtemp()
+        temp_dir = Path(tempfile.mkdtemp())
         src_dir = temp_dir / 'src'
         dest_dir = temp_dir / 'dest'
 
         src_sub_dirs = ['dir1', 'dir2', 'dir3']
         os.makedirs(src_dir)
         for sub_dir in src_sub_dirs:
-            os.makedirs(src_dir / sub_dir)
+            Path(src_dir, sub_dir).mkdir(parents=True)
         self.assertGreater(len(os.listdir(src_dir)), 1)
 
         dir_copy(src_dir, dest_dir)

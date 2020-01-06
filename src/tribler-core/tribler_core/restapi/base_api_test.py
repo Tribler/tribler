@@ -26,7 +26,7 @@ def tribler_urlencode_single(key, value):
     if isinstance(value, bool):
         value = int(value)
     utf8_value = quote_plus(value.encode('utf-8'))
-    return "%s=%s" % (utf8_key, utf8_value)
+    return f"{utf8_key}={utf8_value}"
 
 
 class AbstractBaseApiTest(TestAsServer):
@@ -44,7 +44,7 @@ class AbstractBaseApiTest(TestAsServer):
         self.config.set_http_api_port(self.get_port())
 
     async def do_request(self, endpoint, req_type, post_data, headers, json_data, json_response):
-        url = 'http://localhost:%d/%s' % (self.session.config.get_http_api_port(), endpoint)
+        url = f'http://localhost:{self.session.config.get_http_api_port()}/{endpoint}'
         headers = headers or {'User-Agent': 'Tribler ' + version_id}
 
         async with ClientSession() as session:
