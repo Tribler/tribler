@@ -7,7 +7,7 @@ from aiohttp.web_exceptions import HTTPBadRequest
 from libtorrent import bencode
 
 from tribler_core.config.tribler_config import TriblerConfig
-from tribler_core.modules.torrent_checker.session import (
+from tribler_core.modules.torrent_checker.torrentchecker_session import (
     FakeBep33DHTSession,
     FakeDHTSession,
     HttpTrackerSession,
