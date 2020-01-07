@@ -56,7 +56,7 @@ class ChannelContentsWidget(widget_form, widget_class):
         self.commit_timer = None
         self.autocommit_enabled = None
 
-        self.details_tab_widget = self.findChild(TorrentDetailsTabWidget, "details_tab_widget")
+        self.details_tab_widget = self.findChild(TorrentDetailsTabWidget, "details_container")
         self.details_tab_widget.initialize_details_widget()
 
         self.channels_stack = []

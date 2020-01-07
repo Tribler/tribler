@@ -22,12 +22,6 @@
     <height>0</height>
    </size>
   </property>
-  <property name="maximumSize">
-   <size>
-    <width>16777215</width>
-    <height>16777215</height>
-   </size>
-  </property>
   <property name="cursor">
    <cursorShape>ArrowCursor</cursorShape>
   </property>
@@ -831,26 +825,7 @@ QTableView::item::hover {
        <bool>false</bool>
       </attribute>
      </widget>
-     <widget class="TorrentDetailsContainer" name="details_container" native="true">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
-      <property name="minimumSize">
-       <size>
-        <width>0</width>
-        <height>200</height>
-       </size>
-      </property>
-      <property name="maximumSize">
-       <size>
-        <width>16777215</width>
-        <height>16777215</height>
-       </size>
-      </property>
-     </widget>
+     <widget class="TorrentDetailsTabWidget" name="details_container"/>
     </widget>
    </item>
   </layout>
@@ -862,15 +837,15 @@ QTableView::item::hover {
    <header>tribler_gui.widgets.ellipsebutton.h</header>
   </customwidget>
   <customwidget>
-   <class>SubscriptionsWidget</class>
-   <extends>QWidget</extends>
-   <header>tribler_gui.widgets.subscriptionswidget.h</header>
+   <class>TorrentDetailsTabWidget</class>
+   <extends>QTabWidget</extends>
+   <header>tribler_gui.widgets.torrentdetailstabwidget.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
-   <class>TorrentDetailsContainer</class>
+   <class>SubscriptionsWidget</class>
    <extends>QWidget</extends>
-   <header>tribler_gui.widgets.torrentdetailscontainer.h</header>
+   <header>tribler_gui.widgets.subscriptionswidget.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>

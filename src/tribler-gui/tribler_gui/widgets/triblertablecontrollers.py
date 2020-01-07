@@ -81,19 +81,19 @@ class TableSelectionMixin(object):
             first_show = True
 
         self.details_container.show()
-        self.details_container.details_tab_widget.update_with_torrent(selected_indices[0], torrent_info)
+        self.details_container.update_with_torrent(selected_indices[0], torrent_info)
         if first_show:
             self.brain_dead_refresh()
 
 
 class TorrentHealthDetailsMixin(object):
     def update_health_details(self, update_dict):
-        if self.details_container.isHidden() or not self.details_container.details_tab_widget.torrent_info:
+        if self.details_container.isHidden() or not self.details_container.torrent_info:
             return
 
-        if self.details_container.details_tab_widget.torrent_info["infohash"] == update_dict["infohash"]:
-            self.details_container.details_tab_widget.torrent_info.update(update_dict)
-            self.details_container.details_tab_widget.update_health_label(
+        if self.details_container.torrent_info["infohash"] == update_dict["infohash"]:
+            self.details_container.torrent_info.update(update_dict)
+            self.details_container.update_health_label(
                 update_dict["num_seeders"], update_dict["num_leechers"], update_dict["last_tracker_check"]
             )
             self.model.update_node_info(update_dict)

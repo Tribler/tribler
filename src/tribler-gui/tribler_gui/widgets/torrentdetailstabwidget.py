@@ -1,13 +1,14 @@
 import logging
 import time
 
+from PyQt5 import uic
 from PyQt5.QtCore import QModelIndex, QTimer
 from PyQt5.QtNetwork import QNetworkRequest
 from PyQt5.QtWidgets import QLabel, QTabWidget, QToolButton, QTreeWidget, QTreeWidgetItem
 
 from tribler_gui.defs import HEALTH_CHECKING, HEALTH_GOOD, HEALTH_MOOT, HEALTH_UNCHECKED
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.utilities import compose_magnetlink, copy_to_clipboard, format_size, get_health
+from tribler_gui.utilities import compose_magnetlink, copy_to_clipboard, format_size, get_health, get_ui_file_path
 from tribler_gui.widgets.ellipsebutton import EllipseButton
 
 HEALTHCHECK_DELAY = 500
@@ -21,6 +22,8 @@ class TorrentDetailsTabWidget(QTabWidget):
 
     def __init__(self, parent):
         QTabWidget.__init__(self, parent)
+        uic.loadUi(get_ui_file_path('torrent_details_container.ui'), self)
+
         self.torrent_info = None
         self._logger = logging.getLogger("TriberGUI")
 
