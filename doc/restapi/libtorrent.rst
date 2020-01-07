@@ -2,5 +2,5 @@
 Libtorrent
 ==========
 
-.. automodule:: Tribler.Core.Modules.restapi.libtorrent_endpoint
+.. automodule:: tribler_core.modules.libtorrent.restapi.libtorrent_endpoint
     :members:

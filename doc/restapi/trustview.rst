@@ -2,5 +2,5 @@
 Trust View
 ==========
 
-.. automodule:: Tribler.Core.Modules.restapi.trustview_endpoint
+.. automodule:: tribler_core.restapi.trustview_endpoint
     :members:

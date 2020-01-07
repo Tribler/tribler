@@ -2,7 +2,7 @@
 Events
 ======
 
-.. automodule:: Tribler.Core.Modules.restapi.events_endpoint
+.. automodule:: tribler_core.restapi.events_endpoint
 
     .. autoclass:: EventsEndpoint
         :members:

@@ -2,5 +2,5 @@
 TrustChain
 ==========
 
-.. automodule:: Tribler.Core.Modules.restapi.trustchain_endpoint
+.. automodule:: tribler_core.restapi.trustchain_endpoint
     :members:

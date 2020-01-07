@@ -21,7 +21,16 @@ import sys
 
 from mock import Mock as MagicMock
 
-sys.path.append(os.path.join(os.path.dirname(__name__), '..'))
+root_dir = os.path.abspath(os.path.join(os.path.dirname(__name__), '..'))
+tribler_components = [
+    os.path.join(root_dir, "src", "pyipv8"),
+    os.path.join(root_dir, "src", "anydex"),
+    os.path.join(root_dir, "src", "tribler-common"),
+    os.path.join(root_dir, "src", "tribler-core"),
+    os.path.join(root_dir, "src", "tribler-gui"),
+]
+for component in tribler_components:
+    sys.path.append(str(component))
 
 # Mock various libraries
 _classnames = {

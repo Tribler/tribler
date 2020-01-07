@@ -2,5 +2,5 @@
 Torrent info
 ============
 
-.. automodule:: Tribler.Core.Modules.restapi.torrentinfo_endpoint
+.. automodule:: tribler_core.modules.libtorrent.restapi.torrentinfo_endpoint
     :members:

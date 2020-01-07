@@ -2,5 +2,5 @@
 Statistics
 ==========
 
-.. automodule:: Tribler.Core.Modules.restapi.statistics_endpoint
+.. automodule:: tribler_core.restapi.statistics_endpoint
     :members:

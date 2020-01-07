@@ -2,5 +2,5 @@
 Debug
 =====
 
-.. automodule:: Tribler.Core.Modules.restapi.debug_endpoint
+.. automodule:: tribler_core.restapi.debug_endpoint
     :members:

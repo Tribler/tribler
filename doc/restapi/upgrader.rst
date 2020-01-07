@@ -2,5 +2,5 @@
 Upgrader
 ========
 
-.. automodule:: Tribler.Core.Modules.restapi.upgrader_endpoint
+.. automodule:: tribler_core.upgrade.upgrader_endpoint
     :members:
