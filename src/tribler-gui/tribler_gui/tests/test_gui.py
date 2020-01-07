@@ -62,12 +62,17 @@ def start_fake_core(port):
     logger.info("Generating random Tribler data")
     generate_tribler_data()
 
+    root_endpoint = RootEndpoint(None)
+    runner = web.AppRunner(root_endpoint.app)
+
     loop = new_event_loop()
     set_event_loop(loop)
 
+    loop.run_until_complete(runner.setup())
     logger.info("Starting fake Tribler API on port %d", port)
-    root_endpoint = RootEndpoint(None)
-    web.run_app(root_endpoint.app, host='localhost', port=port)
+    site = web.TCPSite(runner, 'localhost', port)
+    loop.run_until_complete(site.start())
+    loop.run_forever()
 
 
 if os.environ.get("TEST_GUI") == "yes":
