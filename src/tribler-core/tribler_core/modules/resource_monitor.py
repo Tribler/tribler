@@ -6,7 +6,7 @@ from ipv8.taskmanager import TaskManager
 
 import psutil
 
-from tribler_common.simpledefs import SIGNAL_LOW_SPACE, SIGNAL_RESOURCE_CHECK
+from tribler_common.simpledefs import NTFY
 
 from tribler_core.utilities import path_util
 
@@ -151,7 +151,7 @@ class ResourceMonitor(TaskManager):
         # Notify session if less than 100MB of disk space is available
         if disk_usage.free < 100 * (1024 * 1024):
             self._logger.warning("Warning! Less than 100MB of disk space available")
-            self.session.notifier.notify(SIGNAL_RESOURCE_CHECK, SIGNAL_LOW_SPACE, None, self.disk_usage_data[-1])
+            self.session.notifier.notify(NTFY.LOW_SPACE, self.disk_usage_data[-1])
 
         # Write resource logs
         if self.resource_log_enabled:

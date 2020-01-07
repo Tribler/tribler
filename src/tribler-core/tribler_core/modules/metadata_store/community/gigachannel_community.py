@@ -8,12 +8,7 @@ from ipv8.requestcache import RequestCache
 
 from pony.orm import CacheIndexError, TransactionIntegrityError, db_session
 
-from tribler_common.simpledefs import (
-    NTFY_CHANNEL,
-    NTFY_DISCOVERED,
-    SIGNAL_GIGACHANNEL_COMMUNITY,
-    SIGNAL_ON_SEARCH_RESULTS,
-)
+from tribler_common.simpledefs import NTFY
 
 from tribler_core.modules.metadata_store.community.payload import SearchRequestPayload, SearchResponsePayload
 from tribler_core.modules.metadata_store.community.request import SearchRequestCache
@@ -190,7 +185,7 @@ class GigaChannelCommunity(Community):
             ]
 
         if self.notifier and new_channels:
-            self.notifier.notify(NTFY_CHANNEL, NTFY_DISCOVERED, None, {"results": new_channels})
+            self.notifier.notify(NTFY.CHANNEL_DISCOVERED, new_channels)
 
     def send_search_request(self, query_filter, metadata_type='', sort_by=None, sort_asc=0, hide_xxx=True, uuid=None):
         """
@@ -281,10 +276,7 @@ class GigaChannelCommunity(Community):
             ]
         if self.notifier and search_results:
             self.notifier.notify(
-                SIGNAL_GIGACHANNEL_COMMUNITY,
-                SIGNAL_ON_SEARCH_RESULTS,
-                None,
-                {"uuid": search_request_cache.uuid, "results": search_results},
+                NTFY.CHANNEL_SEARCH_RESULTS, {"uuid": search_request_cache.uuid, "results": search_results}
             )
 
         # Send the updated metadata if any to the responding peer

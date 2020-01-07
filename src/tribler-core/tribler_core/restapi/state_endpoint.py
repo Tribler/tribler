@@ -1,15 +1,6 @@
 from aiohttp import web
 
-from tribler_common.simpledefs import (
-    NTFY_FINISHED,
-    NTFY_STARTED,
-    NTFY_TRIBLER,
-    NTFY_UPGRADER,
-    STATE_EXCEPTION,
-    STATE_STARTED,
-    STATE_STARTING,
-    STATE_UPGRADING,
-)
+from tribler_common.simpledefs import NTFY, STATE_EXCEPTION, STATE_STARTED, STATE_STARTING, STATE_UPGRADING
 
 from tribler_core.restapi.rest_endpoint import RESTEndpoint, RESTResponse
 
@@ -24,20 +15,20 @@ class StateEndpoint(RESTEndpoint):
         self.tribler_state = STATE_STARTING
         self.last_exception = None
 
-        self.session.add_observer(self.on_tribler_upgrade_started, NTFY_UPGRADER, [NTFY_STARTED])
-        self.session.add_observer(self.on_tribler_upgrade_finished, NTFY_UPGRADER, [NTFY_FINISHED])
-        self.session.add_observer(self.on_tribler_started, NTFY_TRIBLER, [NTFY_STARTED])
+        self.session.notifier.add_observer(NTFY.UPGRADER_STARTED, self.on_tribler_upgrade_started)
+        self.session.notifier.add_observer(NTFY.UPGRADER_DONE, self.on_tribler_upgrade_finished)
+        self.session.notifier.add_observer(NTFY.TRIBLER_STARTED, self.on_tribler_started)
 
     def setup_routes(self):
         self.app.add_routes([web.get('', self.get_state)])
 
-    def on_tribler_upgrade_started(self, subject, changetype, objectID, *args):
+    def on_tribler_upgrade_started(self, *_):
         self.tribler_state = STATE_UPGRADING
 
-    def on_tribler_upgrade_finished(self, subject, changetype, objectID, *args):
+    def on_tribler_upgrade_finished(self, *_):
         self.tribler_state = STATE_STARTING
 
-    def on_tribler_started(self, subject, changetype, objectID, *args):
+    def on_tribler_started(self, *_):
         self.tribler_state = STATE_STARTED
 
     def on_tribler_exception(self, exception_text):

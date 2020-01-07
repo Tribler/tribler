@@ -23,7 +23,7 @@ class TestVersionCheck(TestAsServer):
 
         self.session.notifier.notify = self.notifier_callback
 
-    def notifier_callback(self, subject, changeType, obj_id, *args):
+    def notifier_callback(self, subject, *args):
         self.new_version_called = True
 
     async def setup_version_server(self, response, response_code=200):
