@@ -744,17 +744,17 @@ padding-right: 4px;</string>
    </item>
    <item>
     <widget class="QSplitter" name="splitter">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
      <property name="styleSheet">
       <string notr="true">QSplitter::handle { background-color: #555; }</string>
      </property>
      <property name="orientation">
       <enum>Qt::Vertical</enum>
-     </property>
-     <property name="opaqueResize">
-      <bool>false</bool>
-     </property>
-     <property name="childrenCollapsible">
-      <bool>false</bool>
      </property>
      <widget class="TriblerContentTableView" name="content_table">
       <property name="styleSheet">
@@ -825,7 +825,26 @@ QTableView::item::hover {
        <bool>false</bool>
       </attribute>
      </widget>
-     <widget class="TorrentDetailsTabWidget" name="details_container"/>
+     <widget class="TorrentDetailsTabWidget" name="details_container">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="minimumSize">
+       <size>
+        <width>0</width>
+        <height>180</height>
+       </size>
+      </property>
+      <property name="maximumSize">
+       <size>
+        <width>16777215</width>
+        <height>180</height>
+       </size>
+      </property>
+     </widget>
     </widget>
    </item>
   </layout>
