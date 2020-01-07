@@ -14,7 +14,7 @@ from tribler_common.simpledefs import NTFY
 
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import LEGACY_ENTRY
 from tribler_core.modules.metadata_store.serialization import REGULAR_TORRENT
-from tribler_core.modules.torrent_checker.session import (
+from tribler_core.modules.torrent_checker.torrentchecker_session import (
     FakeBep33DHTSession,
     FakeDHTSession,
     UdpSocketManager,
