@@ -5,35 +5,7 @@ from aiohttp import ClientSession
 
 from ipv8.messaging.anonymization.tunnel import Circuit
 
-from tribler_common.simpledefs import (
-    NTFY_CHANNEL,
-    NTFY_CHANNEL_ENTITY,
-    NTFY_CREDIT_MINING,
-    NTFY_DISCOVERED,
-    NTFY_ERROR,
-    NTFY_FINISHED,
-    NTFY_INSERT,
-    NTFY_MARKET_ON_ASK,
-    NTFY_MARKET_ON_ASK_TIMEOUT,
-    NTFY_MARKET_ON_BID,
-    NTFY_MARKET_ON_BID_TIMEOUT,
-    NTFY_MARKET_ON_PAYMENT_RECEIVED,
-    NTFY_MARKET_ON_PAYMENT_SENT,
-    NTFY_MARKET_ON_TRANSACTION_COMPLETE,
-    NTFY_NEW_VERSION,
-    NTFY_REMOVE,
-    NTFY_STARTED,
-    NTFY_TORRENT,
-    NTFY_TUNNEL,
-    NTFY_UPDATE,
-    NTFY_UPGRADER,
-    NTFY_UPGRADER_TICK,
-    NTFY_WATCH_FOLDER_CORRUPT_TORRENT,
-    SIGNAL_GIGACHANNEL_COMMUNITY,
-    SIGNAL_LOW_SPACE,
-    SIGNAL_ON_SEARCH_RESULTS,
-    SIGNAL_RESOURCE_CHECK,
-)
+from tribler_common.simpledefs import NTFY
 
 from tribler_core.restapi.base_api_test import AbstractApiTest
 from tribler_core.tests.tools.tools import timeout
@@ -76,27 +48,27 @@ class TestEventsEndpoint(AbstractApiTest):
         """
         Testing whether various events are coming through the events endpoints
         """
-        self.messages_to_wait_for = 21
-        self.session.notifier.notify(NTFY_CHANNEL_ENTITY, NTFY_UPDATE, None, {"state": "Complete"})
-        self.session.notifier.notify(NTFY_UPGRADER_TICK, NTFY_STARTED, None, None)
-        self.session.notifier.notify(NTFY_UPGRADER, NTFY_FINISHED, None, None)
-        self.session.notifier.notify(NTFY_WATCH_FOLDER_CORRUPT_TORRENT, NTFY_INSERT, None, None)
-        self.session.notifier.notify(NTFY_NEW_VERSION, NTFY_INSERT, None, None)
-        self.session.notifier.notify(NTFY_CHANNEL, NTFY_DISCOVERED, None, None)
-        self.session.notifier.notify(NTFY_TORRENT, NTFY_DISCOVERED, None, {'a': 'Invalid character \xa1'})
-        self.session.notifier.notify(NTFY_TORRENT, NTFY_FINISHED, b'a' * 10, None, False)
-        self.session.notifier.notify(NTFY_TORRENT, NTFY_ERROR, b'a' * 10, 'This is an error message', False)
-        self.session.notifier.notify(NTFY_MARKET_ON_ASK, NTFY_UPDATE, None, {'a': 'b'})
-        self.session.notifier.notify(NTFY_MARKET_ON_BID, NTFY_UPDATE, None, {'a': 'b'})
-        self.session.notifier.notify(NTFY_MARKET_ON_ASK_TIMEOUT, NTFY_UPDATE, None, {'a': 'b'})
-        self.session.notifier.notify(NTFY_MARKET_ON_BID_TIMEOUT, NTFY_UPDATE, None, {'a': 'b'})
-        self.session.notifier.notify(NTFY_MARKET_ON_TRANSACTION_COMPLETE, NTFY_UPDATE, None, {'a': 'b'})
-        self.session.notifier.notify(NTFY_MARKET_ON_PAYMENT_RECEIVED, NTFY_UPDATE, None, {'a': 'b'})
-        self.session.notifier.notify(NTFY_MARKET_ON_PAYMENT_SENT, NTFY_UPDATE, None, {'a': 'b'})
-        self.session.notifier.notify(SIGNAL_RESOURCE_CHECK, SIGNAL_LOW_SPACE, None, {})
-        self.session.notifier.notify(NTFY_CREDIT_MINING, NTFY_ERROR, None, {"message": "Some credit mining error"})
-        self.session.notifier.notify(NTFY_TUNNEL, NTFY_REMOVE, Circuit(1234, None), 'test')
-        self.session.notifier.notify(SIGNAL_GIGACHANNEL_COMMUNITY, SIGNAL_ON_SEARCH_RESULTS, None,
-                                     {"query": "test", "results": []})
+        # self.session.notifier.notify(NTFY_TORRENT, NTFY_DISCOVERED, None, {'a': 'Invalid character \xa1'})
+        # self.session.notifier.notify(NTFY_TORRENT, NTFY_ERROR, b'a' * 10, 'This is an error message', False)
+        testdata = {
+            NTFY.CHANNEL_ENTITY_UPDATED: {"state": "Complete"},
+            NTFY.UPGRADER_STARTED: None,
+            NTFY.UPGRADER_TICK: None,
+            NTFY.UPGRADER_DONE: None,
+            NTFY.WATCH_FOLDER_CORRUPT_FILE: None,
+            NTFY.TRIBLER_NEW_VERSION: None,
+            NTFY.CHANNEL_DISCOVERED: None,
+            NTFY.TORRENT_FINISHED: (b'a' * 10, None, False),
+            NTFY.LOW_SPACE: {},
+            NTFY.CREDIT_MINING_ERROR: {"message": "Some credit mining error"},
+            NTFY.TUNNEL_REMOVE: (Circuit(1234, None), 'test'),
+            NTFY.CHANNEL_SEARCH_RESULTS: {"query": "test", "results": []},
+        }
+        self.messages_to_wait_for = len(testdata)
+        for subject, data in testdata.items():
+            if data:
+                self.session.notifier.notify(subject, *data)
+            else:
+                self.session.notifier.notify(subject)
         self.session.api_manager.root_endpoint.endpoints['/events'].on_tribler_exception("hi")
         await self.events_future

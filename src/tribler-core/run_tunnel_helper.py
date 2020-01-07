@@ -13,7 +13,7 @@ from socket import inet_aton
 
 from ipv8.taskmanager import TaskManager
 
-from tribler_common.simpledefs import NTFY_REMOVE, NTFY_TUNNEL
+from tribler_common.simpledefs import NTFY
 
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.session import Session
@@ -149,7 +149,7 @@ class TunnelHelperService(TaskManager):
         # Register reject event handler if set
         if options.log_rejects:
             self.session.tunnel_community.reject_callback = self.on_circuit_reject
-        self.session.notifier.add_observer(self.circuit_removed, NTFY_TUNNEL, [NTFY_REMOVE])
+        self.session.notifier.add_observer(NTFY.TUNNEL_REMOVE, self.circuit_removed)
 
         await self.session.start()
         self.tribler_started()

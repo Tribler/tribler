@@ -5,7 +5,7 @@ from aiohttp import ClientConnectionError, ClientResponseError, ClientSession, C
 
 from ipv8.taskmanager import TaskManager
 
-from tribler_common.simpledefs import NTFY_INSERT, NTFY_NEW_VERSION
+from tribler_common.simpledefs import NTFY
 
 from tribler_core.version import version_id
 
@@ -46,6 +46,6 @@ class VersionCheckManager(TaskManager):
         try:
             version = response_dict['name'][1:]
             if LooseVersion(version) > LooseVersion(version_id):
-                self.session.notifier.notify(NTFY_NEW_VERSION, NTFY_INSERT, None, version)
+                self.session.notifier.notify(NTFY.TRIBLER_NEW_VERSION, version)
         except ValueError as ve:
             raise ValueError("Failed to parse Tribler version response.\nError:%s" % ve)

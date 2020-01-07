@@ -5,7 +5,7 @@ from ipv8.taskmanager import TaskManager, task
 
 from pony.orm import db_session
 
-from tribler_common.simpledefs import DLSTATUS_SEEDING, NTFY_CHANNEL_ENTITY, NTFY_UPDATE
+from tribler_common.simpledefs import DLSTATUS_SEEDING, NTFY
 
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
@@ -271,12 +271,7 @@ class GigaChannelManager(TaskManager):
         with db_session:
             channel_upd = self.session.mds.ChannelMetadata.get(public_key=channel.public_key, id_=channel.id_)
             channel_upd_dict = channel_upd.to_simple_dict()
-        self.session.notifier.notify(
-            NTFY_CHANNEL_ENTITY,
-            NTFY_UPDATE,
-            "%s:%s".format(hexlify(channel.public_key), str(channel.id_)),
-            channel_upd_dict,
-        )
+        self.session.notifier.notify(NTFY.CHANNEL_ENTITY_UPDATED, channel_upd_dict)
 
     def updated_my_channel(self, tdef):
         """

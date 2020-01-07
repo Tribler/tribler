@@ -4,6 +4,8 @@ import time
 from PyQt5.QtCore import QTimer, QUrl, pyqtSignal
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 
+from tribler_common.simpledefs import NTFY
+
 import tribler_core.utilities.json_util as json
 
 received_events = []
@@ -22,7 +24,6 @@ class EventRequestManager(QNetworkAccessManager):
     upgrader_finished = pyqtSignal()
     new_version_available = pyqtSignal(str)
     discovered_channel = pyqtSignal(object)
-    discovered_torrent = pyqtSignal(object)
     torrent_finished = pyqtSignal(object)
     received_market_ask = pyqtSignal(object)
     received_market_bid = pyqtSignal(object)
@@ -47,14 +48,13 @@ class EventRequestManager(QNetworkAccessManager):
         self.shutting_down = False
         self._logger = logging.getLogger('TriblerGUI')
         self.reactions_dict = {
-            "channel_entity_info_updated": self.node_info_updated.emit,
-            "torrent_info_updated": self.torrent_info_updated.emit,
-            "new_version_available": lambda data: self.new_version_available.emit(data["version"]),
-            "upgrader_finished": lambda _: self.upgrader_finished.emit(),
-            "upgrader_tick": lambda data: self.upgrader_tick.emit(data["text"]),
-            "channel_discovered": self.discovered_channel.emit,
-            "torrent_discovered": self.discovered_torrent.emit,
-            "torrent_finished": self.torrent_finished.emit,
+            str(NTFY.CHANNEL_ENTITY_UPDATED): self.node_info_updated.emit,
+            str(NTFY.TORRENT_INFO_UPDATED): self.torrent_info_updated.emit,
+            str(NTFY.TRIBLER_NEW_VERSION): lambda data: self.new_version_available.emit(data["version"]),
+            str(NTFY.UPGRADER_DONE): lambda _: self.upgrader_finished.emit(),
+            str(NTFY.UPGRADER_TICK): lambda data: self.upgrader_tick.emit(data["text"]),
+            str(NTFY.CHANNEL_DISCOVERED): self.discovered_channel.emit,
+            str(NTFY.TORRENT_FINISHED): self.torrent_finished.emit,
             "market_ask": self.received_market_ask.emit,
             "market_bid": self.received_market_bid.emit,
             "market_ask_timeout": self.expired_market_ask.emit,
@@ -62,12 +62,12 @@ class EventRequestManager(QNetworkAccessManager):
             "market_transaction_complete": self.market_transaction_complete.emit,
             "market_payment_received": self.market_payment_received.emit,
             "market_payment_sent": self.market_payment_sent.emit,
-            "signal_low_space": self.low_storage_signal.emit,
-            "credit_mining_error": self.credit_mining_signal.emit,
-            "remote_search_results": self.received_search_result.emit,
-            "shutdown": self.tribler_shutdown_signal.emit,
+            str(NTFY.LOW_SPACE): self.low_storage_signal.emit,
+            str(NTFY.CREDIT_MINING_ERROR): self.credit_mining_signal.emit,
+            str(NTFY.CHANNEL_SEARCH_RESULTS): self.received_search_result.emit,
+            str(NTFY.TRIBLER_SHUTDOWN_STATE): self.tribler_shutdown_signal.emit,
             "events_start": self.events_start_received,
-            "tribler_started": lambda data: self.tribler_started.emit(data["version"]),
+            str(NTFY.TRIBLER_STARTED): lambda data: self.tribler_started.emit(data["version"]),
         }
 
     def events_start_received(self, event_dict):

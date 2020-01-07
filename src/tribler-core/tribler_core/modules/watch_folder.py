@@ -3,7 +3,7 @@ import os
 
 from ipv8.taskmanager import TaskManager
 
-from tribler_common.simpledefs import NTFY_INSERT, NTFY_WATCH_FOLDER_CORRUPT_TORRENT
+from tribler_common.simpledefs import NTFY
 
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
@@ -34,7 +34,7 @@ class WatchFolder(TaskManager):
 
         fullpath.rename(path_util.Path(fullpath.to_text()+".corrupt"))
         self._logger.warning("Watch folder - corrupt torrent file %s", name)
-        self.session.notifier.notify(NTFY_WATCH_FOLDER_CORRUPT_TORRENT, NTFY_INSERT, None, name)
+        self.session.notifier.notify(NTFY.WATCH_FOLDER_CORRUPT_FILE, name)
 
     def check_watch_folder(self):
         if not self.session.config.get_watch_folder_path().is_dir():

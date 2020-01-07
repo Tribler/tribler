@@ -15,14 +15,7 @@ from ipv8.util import int2byte
 
 import libtorrent as lt
 
-from tribler_common.simpledefs import (
-    DLMODE_VOD,
-    DLSTATUS_SEEDING,
-    DLSTATUS_STOPPED,
-    NTFY_ERROR,
-    NTFY_FINISHED,
-    NTFY_TORRENT,
-)
+from tribler_common.simpledefs import DLMODE_VOD, DLSTATUS_SEEDING, DLSTATUS_STOPPED, NTFY
 
 from tribler_core.exceptions import SaveResumeDataError
 from tribler_core.modules.libtorrent import check_handle, require_handle
@@ -444,7 +437,8 @@ class LibtorrentDownloadImpl(TaskManager):
 
     def on_torrent_error_alert(self, alert):
         self._logger.error("Error during download: %s", alert.error)
-        self.session.notifier.notify(NTFY_TORRENT, NTFY_ERROR, self.tdef.get_infohash(), alert.error, self.hidden)
+        #FIXME Unused notification
+        #self.session.notifier.notify(NTFY.TORRENT_ERROR, self.tdef.get_infohash(), alert.error, self.hidden)
 
     def on_state_changed_alert(self, alert):
         if not self.handle:
@@ -600,7 +594,7 @@ class LibtorrentDownloadImpl(TaskManager):
                 self.endbuffsize = 0
 
         self.checkpoint()
-        self.session.notifier.notify(NTFY_TORRENT, NTFY_FINISHED, self.tdef.get_infohash(),
+        self.session.notifier.notify(NTFY.TORRENT_FINISHED, self.tdef.get_infohash(),
                                      self.tdef.get_name_as_unicode(), self.hidden)
 
     def update_lt_status(self, lt_status):

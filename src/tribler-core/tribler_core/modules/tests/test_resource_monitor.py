@@ -3,7 +3,7 @@ import sys
 import time
 from collections import namedtuple
 
-from tribler_common.simpledefs import SIGNAL_LOW_SPACE, SIGNAL_RESOURCE_CHECK
+from tribler_common.simpledefs import NTFY
 
 from tribler_core.modules.resource_monitor import ResourceMonitor
 from tribler_core.tests.tools.base_test import MockObject, TriblerCoreTest
@@ -82,9 +82,8 @@ class TestResourceMonitor(TriblerCoreTest):
             disk = {"total": 318271800, "used": 312005050, "free": 6266750, "percent": 98.0}
             return namedtuple('sdiskusage', disk.keys())(*disk.values())
 
-        def on_notify(subject, changeType, obj_id, *args):
-            self.assertEqual(subject, SIGNAL_RESOURCE_CHECK)
-            self.assertEqual(changeType, SIGNAL_LOW_SPACE)
+        def on_notify(subject, *args):
+            self.assertEqual(subject, NTFY.LOW_SPACE)
 
         self.resource_monitor.get_free_disk_space = fake_get_free_disk_space
         self.resource_monitor.session.notifier.notify = on_notify

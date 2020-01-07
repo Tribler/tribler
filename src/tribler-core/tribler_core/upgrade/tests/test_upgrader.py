@@ -5,8 +5,7 @@ from asyncio import Future
 from pony.orm import db_session
 
 from tribler_common.simpledefs import (
-    NTFY_STARTED,
-    NTFY_UPGRADER_TICK,
+    NTFY,
     STATEDIR_CHANNELS_DIR,
     STATEDIR_CHECKPOINT_DIR,
     STATEDIR_DB_DIR,
@@ -32,11 +31,11 @@ class TestUpgrader(AbstractUpgrader):
     async def test_update_status_text(self):
         test_future = Future()
 
-        def on_upgrade_tick(subject, changetype, objectID, status_text):
+        def on_upgrade_tick(status_text):
             self.assertEqual(status_text, "12345")
             test_future.set_result(None)
 
-        self.session.notifier.add_observer(on_upgrade_tick, NTFY_UPGRADER_TICK, [NTFY_STARTED])
+        self.session.notifier.add_observer(NTFY.UPGRADER_TICK, on_upgrade_tick)
         self.upgrader.update_status("12345")
         await test_future
 

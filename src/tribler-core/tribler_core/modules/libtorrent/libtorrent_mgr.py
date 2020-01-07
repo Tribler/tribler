@@ -18,7 +18,7 @@ from ipv8.taskmanager import TaskManager, task
 
 import libtorrent as lt
 
-from tribler_common.simpledefs import DLSTATUS_SEEDING, NTFY_INSERT, NTFY_REACHABLE, STATEDIR_CHECKPOINT_DIR
+from tribler_common.simpledefs import DLSTATUS_SEEDING, STATEDIR_CHECKPOINT_DIR
 
 from tribler_core.modules.dht_health_manager import DHTHealthManager
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
@@ -438,7 +438,6 @@ class LibtorrentMgr(TaskManager):
     async def _check_reachability(self):
         while not self.get_session() and self.get_session().status().has_incoming_connections:
             await asyncio.sleep(5)
-        self.notifier.notify(NTFY_REACHABLE, NTFY_INSERT, None, '')
 
     def _map_call_on_ltsessions(self, hops, funcname, *args, **kwargs):
         if hops is None:

@@ -14,8 +14,7 @@ from tribler_common.simpledefs import (
     DLSTATUS_STOPPED,
     DLSTATUS_STOPPED_ON_ERROR,
     DOWNLOAD,
-    NTFY_CREDIT_MINING,
-    NTFY_ERROR,
+    NTFY,
     UPLOAD,
 )
 
@@ -134,7 +133,7 @@ class CreditMiningManager(TaskManager):
                                 u"Settings >> ANONYMITY >> Token mining. " % self.settings.save_path
 
             gui_message = {"message": error_message}
-            self.session.notifier.notify(NTFY_CREDIT_MINING, NTFY_ERROR, None, gui_message)
+            self.session.notifier.notify(NTFY.CREDIT_MINING_ERROR, gui_message)
             return False
         return True
 

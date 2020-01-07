@@ -27,18 +27,7 @@ from ipv8.messaging.anonymization.tunnel import (
 from ipv8.peer import Peer
 from ipv8.peerdiscovery.network import Network
 
-from tribler_common.simpledefs import (
-    DLSTATUS_DOWNLOADING,
-    DLSTATUS_METADATA,
-    DLSTATUS_SEEDING,
-    DLSTATUS_STOPPED,
-    NTFY_CREATED,
-    NTFY_EXTENDED,
-    NTFY_IP_RECREATE,
-    NTFY_JOINED,
-    NTFY_REMOVE,
-    NTFY_TUNNEL,
-)
+from tribler_common.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_METADATA, DLSTATUS_SEEDING, DLSTATUS_STOPPED, NTFY
 
 from tribler_core.modules.tunnel.community.caches import BalanceRequestCache
 from tribler_core.modules.tunnel.community.discovery import GoldenRatioStrategy
@@ -387,7 +376,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         # Send the notification
         if self.tribler_session:
-            self.tribler_session.notifier.notify(NTFY_TUNNEL, NTFY_REMOVE, circuit, additional_info)
+            self.tribler_session.notifier.notify(NTFY.TUNNEL_REMOVE, circuit, additional_info)
 
         # Ignore circuits that are closing so we do not payout again if we receive a destroy message.
         if circuit.state != CIRCUIT_STATE_CLOSING and circuit.bytes_down >= 1024 * 1024 and self.bandwidth_wallet:
@@ -431,12 +420,12 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         if self.tribler_session:
             for removed_relay in removed_relays:
-                self.tribler_session.notifier.notify(NTFY_TUNNEL, NTFY_REMOVE, removed_relay, additional_info)
+                self.tribler_session.notifier.notify(NTFY.TUNNEL_REMOVE, removed_relay, additional_info)
 
     def remove_exit_socket(self, circuit_id, additional_info='', remove_now=False, destroy=False):
         if circuit_id in self.exit_sockets and self.tribler_session:
             exit_socket = self.exit_sockets[circuit_id]
-            self.tribler_session.notifier.notify(NTFY_TUNNEL, NTFY_REMOVE, exit_socket, additional_info)
+            self.tribler_session.notifier.notify(NTFY.TUNNEL_REMOVE, exit_socket, additional_info)
 
         self.clean_from_slots(circuit_id)
 
@@ -449,17 +438,6 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         if circuit.state == CIRCUIT_STATE_READY:
             # Re-add BitTorrent peers, if needed.
             self.readd_bittorrent_peers()
-
-        if self.tribler_session:
-            self.tribler_session.notifier.notify(
-                NTFY_TUNNEL, NTFY_CREATED if len(circuit.hops) == 1 else NTFY_EXTENDED, circuit)
-
-    def join_circuit(self, create_payload, previous_node_address):
-        super(TriblerTunnelCommunity, self).join_circuit(create_payload, previous_node_address)
-
-        if self.tribler_session:
-            circuit_id = create_payload.circuit_id
-            self.tribler_session.notifier.notify(NTFY_TUNNEL, NTFY_JOINED, previous_node_address, circuit_id)
 
     def on_raw_data(self, circuit, origin, data):
         anon_seed = circuit.ctype == CIRCUIT_TYPE_RP_SEEDER
@@ -516,8 +494,6 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                 for _ in range(1 - ip_counter.get(info_hash, 0)):
                     self.logger.info('Create introducing circuit for %s', hexlify(info_hash))
                     self.create_introduction_point(info_hash)
-                    if self.tribler_session and self.tribler_session.notifier:
-                        self.tribler_session.notifier.notify(NTFY_TUNNEL, NTFY_IP_RECREATE, info_hash)
 
         self.download_states = new_states
 

@@ -6,14 +6,7 @@ Author(s): Mihai Capota, Ardhi Putra
 import logging
 from asyncio import Future
 
-from tribler_common.simpledefs import (
-    DLSTATUS_DOWNLOADING,
-    DLSTATUS_SEEDING,
-    DLSTATUS_STOPPED,
-    DOWNLOAD,
-    NTFY_CREDIT_MINING,
-    NTFY_ERROR,
-)
+from tribler_common.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_STOPPED, DOWNLOAD, NTFY
 
 from tribler_core.modules.credit_mining.credit_mining_manager import CreditMiningTorrent
 from tribler_core.modules.credit_mining.credit_mining_policy import BasePolicy, MB
@@ -386,9 +379,8 @@ class TestCreditMiningManager(TestAsServer):
 
     async def test_check_mining_directory(self):
         """ Tests mining directory exists. If does not exist, it should be created. """
-        def fake_notifier_notify(miner, subject, changeType, *args):
+        def fake_notifier_notify(miner, subject, *args):
             miner.subject = subject
-            miner.changeType = changeType
             miner.args = args
 
         async def on_mining_shutdown():
@@ -398,8 +390,8 @@ class TestCreditMiningManager(TestAsServer):
 
         self.credit_mining_manager.shutdown_future = Future()
         self.credit_mining_manager.shutdown = on_mining_shutdown
-        self.credit_mining_manager.session.notifier.notify = lambda subject, changeType, object_id, args:\
-            fake_notifier_notify(self.credit_mining_manager, subject, changeType, args)
+        self.credit_mining_manager.session.notifier.notify = lambda subject, args:\
+            fake_notifier_notify(self.credit_mining_manager, subject, args)
 
         test_path = self.credit_mining_manager.session.config.get_state_dir() / "fake_dir"
         self.assertFalse(test_path.exists())
@@ -408,8 +400,7 @@ class TestCreditMiningManager(TestAsServer):
         self.credit_mining_manager.check_mining_directory()
 
         self.assertTrue(test_path.exists())
-        self.assertEqual(self.credit_mining_manager.subject, NTFY_CREDIT_MINING)
-        self.assertEqual(self.credit_mining_manager.changeType, NTFY_ERROR)
+        self.assertEqual(self.credit_mining_manager.subject, NTFY.CREDIT_MINING_ERROR)
         self.assertIsNotNone(self.credit_mining_manager.args)
 
         # Set the path to some non-allowed directory

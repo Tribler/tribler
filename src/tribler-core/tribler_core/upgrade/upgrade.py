@@ -6,10 +6,7 @@ from configparser import MissingSectionHeaderError, ParsingError
 from pony.orm import db_session
 
 from tribler_common.simpledefs import (
-    NTFY_FINISHED,
-    NTFY_STARTED,
-    NTFY_UPGRADER,
-    NTFY_UPGRADER_TICK,
+    NTFY,
     STATEDIR_CHANNELS_DIR,
     STATEDIR_CHECKPOINT_DIR,
     STATEDIR_DB_DIR,
@@ -136,7 +133,7 @@ class TriblerUpgrader(object):
         return
 
     def update_status(self, status_text):
-        self.session.notifier.notify(NTFY_UPGRADER_TICK, NTFY_STARTED, None, status_text)
+        self.session.notifier.notify(NTFY.UPGRADER_TICK, status_text)
 
     async def upgrade_72_to_pony(self):
         old_database_path = self.session.config.get_state_dir() / 'sqlite' / 'tribler.sdb'
@@ -230,10 +227,10 @@ class TriblerUpgrader(object):
         """
         if not self.notified:
             self.notified = True
-            self.session.notifier.notify(NTFY_UPGRADER, NTFY_STARTED, None)
+            self.session.notifier.notify(NTFY.UPGRADER_STARTED)
 
     def notify_done(self):
         """
         Broadcast a notification (event) that the upgrader is done.
         """
-        self.session.notifier.notify(NTFY_UPGRADER, NTFY_FINISHED, None)
+        self.session.notifier.notify(NTFY.UPGRADER_DONE)

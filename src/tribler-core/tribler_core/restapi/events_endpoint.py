@@ -7,43 +7,50 @@ from aiohttp import web
 from ipv8.messaging.anonymization.tunnel import Circuit
 from ipv8.taskmanager import TaskManager
 
-from tribler_common.simpledefs import (
-    NTFY_CHANNEL,
-    NTFY_CHANNEL_ENTITY,
-    NTFY_CREDIT_MINING,
-    NTFY_DISCOVERED,
-    NTFY_ERROR,
-    NTFY_FINISHED,
-    NTFY_INSERT,
-    NTFY_MARKET_ON_ASK,
-    NTFY_MARKET_ON_ASK_TIMEOUT,
-    NTFY_MARKET_ON_BID,
-    NTFY_MARKET_ON_BID_TIMEOUT,
-    NTFY_MARKET_ON_PAYMENT_RECEIVED,
-    NTFY_MARKET_ON_PAYMENT_SENT,
-    NTFY_MARKET_ON_TRANSACTION_COMPLETE,
-    NTFY_NEW_VERSION,
-    NTFY_REMOVE,
-    NTFY_STARTED,
-    NTFY_TORRENT,
-    NTFY_TRIBLER,
-    NTFY_TUNNEL,
-    NTFY_UPDATE,
-    NTFY_UPGRADER,
-    NTFY_UPGRADER_TICK,
-    NTFY_WATCH_FOLDER_CORRUPT_TORRENT,
-    SIGNAL_GIGACHANNEL_COMMUNITY,
-    SIGNAL_LOW_SPACE,
-    SIGNAL_ON_SEARCH_RESULTS,
-    SIGNAL_RESOURCE_CHECK,
-    STATE_SHUTDOWN,
-)
+from tribler_common.simpledefs import NTFY
 
 from tribler_core.restapi.rest_endpoint import RESTEndpoint, RESTStreamResponse
 from tribler_core.restapi.util import fix_unicode_dict
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.version import version_id
 
+
+def passthrough(x):
+    return x
+
+
+# pylint: disable=line-too-long
+reactions_dict = {
+    # An indication that the upgrader has finished.
+    NTFY.UPGRADER_DONE: lambda *_: None,
+    # The state of the upgrader has changed. Contains a human-readable string with the new state.
+    NTFY.UPGRADER_TICK: lambda text: {"text": text},
+    # A corrupt .torrent file in the watch folder is found. Contains the name of the corrupt torrent file.
+    NTFY.WATCH_FOLDER_CORRUPT_FILE: lambda text: {"name": text},
+    # A new version of Tribler is available.
+    NTFY.TRIBLER_NEW_VERSION: lambda text: {"version": text},
+    # Tribler has discovered a new channel. Contains the channel data.
+    NTFY.CHANNEL_DISCOVERED: lambda new_channels_dicts: {"result": new_channels_dicts},
+    # A torrent has finished downloading. Contains the infohash and the name of the torrent
+    NTFY.TORRENT_FINISHED: lambda *args: {"infohash": hexlify(args[0]), "name": args[1], "hidden": args[2]},
+    # Information about some torrent has been updated (e.g. health). Contains updated torrent data
+    NTFY.TORRENT_INFO_UPDATED: lambda *args: dict(infohash=hexlify(args[0]), **args[1]),
+    # Information about some generic channel entity has been updated. Contains updated entity
+    NTFY.CHANNEL_ENTITY_UPDATED: lambda updated_dict: updated_dict,
+    # An error arisen in credit mining manager
+    NTFY.CREDIT_MINING_ERROR: passthrough,
+    # Tribler is going to shutdown.
+    NTFY.TRIBLER_SHUTDOWN_STATE: passthrough,
+    # Remote GigaChannel search results were received by Tribler. Contains received entries.
+    NTFY.CHANNEL_SEARCH_RESULTS: passthrough,
+    # Tribler is low on disk space for storing torrents
+    NTFY.LOW_SPACE: passthrough,
+    # An indicator that Tribler has completed the startup procedure and is ready to use.
+    NTFY.TRIBLER_STARTED: lambda *_: {"version": version_id},
+}
+
+
+# pylint: enable=line-too-long
 
 class EventsEndpoint(RESTEndpoint, TaskManager):
     """
@@ -56,64 +63,13 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
         RESTEndpoint.__init__(self, session)
         TaskManager.__init__(self)
         self.events_responses = []
+        for event_type, event_lambda in reactions_dict.items():
+            self.session.notifier.add_observer(event_type,
+                                      lambda *args: self.write_data(
+                                          {"type": event_type.value,
+                                           "event": event_lambda(*args)}))
 
-        self.infohashes_sent = set()
-        self.channel_cids_sent = set()
-
-        def get_first_arg(_, *args):
-            return args[0]
-        # pylint: disable=line-too-long
-        self.reactions_dict = {
-            # An indication that the Tribler upgrader has finished.
-            (NTFY_UPGRADER, NTFY_FINISHED): ("upgrader_finished", lambda *args: None),
-            # The state of the upgrader has changed. Contains a human-readable string with the new state.
-            (NTFY_UPGRADER_TICK, NTFY_STARTED): ("upgrader_tick", lambda oid, *args: {"text": args[0]}),
-            # A corrupt .torrent file in the watch folder is found. Contains the name of the corrupt torrent file.
-            (NTFY_WATCH_FOLDER_CORRUPT_TORRENT, NTFY_INSERT): ("watch_folder_corrupt_torrent", lambda oid, *args: {"name": args[0]}),
-            # A new version of Tribler is available.
-            (NTFY_NEW_VERSION, NTFY_INSERT): ("new_version_available", lambda oid, *args: {"version": args[0]}),
-            # Tribler has discovered a new channel. Contains the channel data.
-            (NTFY_CHANNEL, NTFY_DISCOVERED): ("channel_discovered", get_first_arg),
-            # Tribler has discovered a new torrent. Contains the torrent data
-            (NTFY_TORRENT, NTFY_DISCOVERED): ("torrent_discovered", get_first_arg),
-            # A torrent has finished downloading. Contains the infohash and the name of the torrent
-            (NTFY_TORRENT, NTFY_FINISHED): ("torrent_finished", lambda oid, *args: {"infohash": hexlify(oid), "name": args[0], "hidden": args[1]}),
-            # An error has occurred during the download process of a torrent. Contains infohash and error string
-            (NTFY_TORRENT, NTFY_ERROR): ("torrent_error", lambda oid, *args: {"infohash": hexlify(oid), "error": args[0], "hidden": args[1]}),
-            # Information about some torrent has been updated (e.g. health). Contains updated torrent data
-            (NTFY_TORRENT, NTFY_UPDATE): ("torrent_info_updated", lambda oid, *args: dict(infohash=hexlify(oid), **args[0])),
-            # Information about some generic channel entity has been updated. Contains updated entity
-            (NTFY_CHANNEL_ENTITY, NTFY_UPDATE): ("channel_entity_info_updated", lambda oid, *args: dict(**args[0])),
-            # Tribler learned about a new ask in the market. Contains information about the ask.
-            (NTFY_MARKET_ON_ASK, NTFY_UPDATE): ("market_ask", get_first_arg),
-            # Tribler learned about a new bid in the market. Contains information about the bid.
-            (NTFY_MARKET_ON_BID, NTFY_UPDATE): ("market_bid", get_first_arg),
-            # An ask has expired. Contains information about the ask.
-            (NTFY_MARKET_ON_ASK_TIMEOUT, NTFY_UPDATE): ("market_ask_timeout", get_first_arg),
-            # A bid has expired. Contains information about the bid.
-            (NTFY_MARKET_ON_BID_TIMEOUT, NTFY_UPDATE): ("market_bid_timeout", get_first_arg),
-            # A transaction has been completed in the market. Contains the transaction that was completed.
-            (NTFY_MARKET_ON_TRANSACTION_COMPLETE, NTFY_UPDATE): ("market_transaction_complete", get_first_arg),
-            # We received a payment in the market. Contains the payment information.
-            (NTFY_MARKET_ON_PAYMENT_RECEIVED, NTFY_UPDATE): ("market_payment_received", get_first_arg),
-            # We sent a payment in the market. Contains the payment information.
-            (NTFY_MARKET_ON_PAYMENT_SENT, NTFY_UPDATE): ("market_payment_sent", get_first_arg),
-            # An error arisen in credit mining manager
-            (NTFY_CREDIT_MINING, NTFY_ERROR): ("credit_mining_error", get_first_arg),
-            # Tribler is going to shutdown.
-            (NTFY_TRIBLER, STATE_SHUTDOWN): ("shutdown", get_first_arg),
-            # Remote GigaChannel search results were received by Tribler. Contains received entries.
-            (SIGNAL_GIGACHANNEL_COMMUNITY, SIGNAL_ON_SEARCH_RESULTS): ("remote_search_results", get_first_arg),
-            # Tribler is low on disk space for storing torrents
-            (SIGNAL_RESOURCE_CHECK, SIGNAL_LOW_SPACE): ("signal_low_space", get_first_arg),
-            # An indicator that Tribler has completed the startup procedure and is ready to use.
-            (NTFY_TRIBLER, NTFY_STARTED): ("tribler_started", lambda *args: {"version": version_id}),
-        }
-        # pylint: enable=line-too-long
-        for key in self.reactions_dict:
-            self.session.add_observer(self.relay_notification, key[0], [key[1]])
-
-        def on_circuit_removed(subject, changetype, circuit, *args):
+        def on_circuit_removed(circuit, *args):
             if isinstance(circuit, Circuit):
                 event = {
                     "circuit_id": circuit.circuit_id,
@@ -124,17 +80,17 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
                 self.write_data({"type": "circuit_removed", "event": event})
 
         # Tribler tunnel circuit has been removed
-        self.session.add_observer(on_circuit_removed, NTFY_TUNNEL, [NTFY_REMOVE])
+        self.session.notifier.add_observer(NTFY.TUNNEL_REMOVE, on_circuit_removed)
 
     def setup_routes(self):
         self.app.add_routes([web.get('', self.get_events)])
 
-    def relay_notification(self, subject, changetype, objectID, *args):
+    def relay_notification(self, subject, *args):
         """
         This is a universal callback responsible for relaying notifications over the events endpoint.
         """
-        event_type, event_lambda = self.reactions_dict[(subject, changetype)]
-        self.write_data({"type": event_type, "event": event_lambda(objectID, *args)})
+        event_type, event_lambda = reactions_dict[subject]
+        self.write_data({"type": event_type, "event": event_lambda(*args)})
 
     def write_data(self, message):
         """
@@ -142,11 +98,11 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
         """
         if not self.events_responses:
             return
-
         try:
             message = json.dumps(message)
         except UnicodeDecodeError:
             # The message contains invalid characters; fix them
+            self._logger.error("Event contains non-unicode characters, fixing")
             message = json.dumps(fix_unicode_dict(message))
         message_bytes = message.encode('utf-8') + b'\n'
         for request in self.events_responses:

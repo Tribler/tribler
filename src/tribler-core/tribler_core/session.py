@@ -26,18 +26,13 @@ from ipv8.taskmanager import TaskManager
 from ipv8_service import IPv8
 
 from tribler_common.simpledefs import (
-    NTFY_DELETE,
-    NTFY_INSERT,
-    NTFY_STARTED,
-    NTFY_TRIBLER,
-    NTFY_UPDATE,
+    NTFY,
     STATEDIR_CHANNELS_DIR,
     STATEDIR_CHECKPOINT_DIR,
     STATEDIR_DB_DIR,
     STATEDIR_WALLET_DIR,
     STATE_LOAD_CHECKPOINTS,
     STATE_READABLE_STARTED,
-    STATE_SHUTDOWN,
     STATE_START_API,
     STATE_START_CREDIT_MINING,
     STATE_START_LIBTORRENT,
@@ -379,40 +374,6 @@ class Session(TaskManager):
             self.api_manager.get_endpoint('events').on_tribler_exception(text)
             self.api_manager.get_endpoint('state').on_tribler_exception(text)
 
-    #
-    # Notification of events in the Session
-    #
-    def add_observer(self, observer_function, subject, change_types=None, object_id=None, cache=0):
-        """
-        Add an observer function function to the Session. The observer
-        function will be called when one of the specified events (changeTypes)
-        occurs on the specified subject.
-
-        The function will be called by a popup thread which can be used indefinitely (within reason)
-        by the higher level code. Note that this function is called by any thread and is thread safe.
-
-        :param observer_function: should accept as its first argument
-        the subject, as second argument the changeType, as third argument an
-        object_id (e.g. the primary key in the observed database) and an
-        optional list of arguments.
-        :param subject: the subject to observe, one of NTFY_* subjects (see simpledefs).
-        :param change_types: the list of events to be notified of one of NTFY_* events.
-        :param object_id: The specific object in the subject to monitor (e.g. a
-        specific primary key in a database to monitor for updates.)
-        :param cache: the time to bundle/cache events matching this function
-        """
-        change_types = change_types or [NTFY_UPDATE, NTFY_INSERT, NTFY_DELETE]
-        self.notifier.add_observer(observer_function, subject, change_types, object_id, cache=cache)
-
-    def remove_observer(self, function):
-        """
-        Remove observer function. No more callbacks will be made.
-
-        This function is called by any thread and is thread safe.
-        :param function: the observer function to remove.
-        """
-        self.notifier.remove_observer(function)
-
     def get_tribler_statistics(self):
         """Return a dictionary with general Tribler statistics."""
         return TriblerStatistics(self).get_tribler_statistics()
@@ -546,7 +507,7 @@ class Session(TaskManager):
         if self.config.get_ipv8_enabled() and self.config.get_trustchain_enabled():
             self.payout_manager = PayoutManager(self.trustchain_community, self.dht_community)
 
-        self.notifier.notify(NTFY_TRIBLER, NTFY_STARTED, None)
+        self.notifier.notify(NTFY.TRIBLER_STARTED)
 
         if self.config.get_libtorrent_enabled():
             self.readable_status = STATE_LOAD_CHECKPOINTS
@@ -652,4 +613,4 @@ class Session(TaskManager):
 
     def notify_shutdown_state(self, state):
         self._logger.info("Tribler shutdown state notification:%s", state)
-        self.notifier.notify(NTFY_TRIBLER, STATE_SHUTDOWN, None, state)
+        self.notifier.notify(NTFY.TRIBLER_SHUTDOWN_STATE, state)
