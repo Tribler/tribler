@@ -2,5 +2,5 @@
 Settings
 ========
 
-.. automodule:: Tribler.Core.Modules.restapi.settings_endpoint
+.. automodule:: tribler_core.restapi.settings_endpoint
     :members:

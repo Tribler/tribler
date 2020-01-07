@@ -2,5 +2,5 @@
 Create torrent
 ==============
 
-.. automodule:: Tribler.Core.Modules.restapi.create_torrent_endpoint
+.. automodule:: tribler_core.modules.libtorrent.restapi.create_torrent_endpoint
     :members:

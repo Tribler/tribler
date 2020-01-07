@@ -2,5 +2,5 @@
 State info
 ==========
 
-.. automodule:: Tribler.Core.Modules.restapi.state_endpoint
+.. automodule:: tribler_core.restapi.state_endpoint
     :members:

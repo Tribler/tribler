@@ -2,5 +2,5 @@
 Metadata
 ========
 
-.. automodule:: Tribler.Core.Modules.restapi.metadata_endpoint
+.. automodule:: tribler_core.modules.metadata_store.restapi.metadata_endpoint
     :members:
