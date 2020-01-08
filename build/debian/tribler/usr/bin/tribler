@@ -4,5 +4,5 @@
 echo "Starting Tribler..."
 
 pushd "/usr/share/tribler"
-exec /usr/bin/python3 run_tribler.py "$@" > `mktemp /tmp/$USER-tribler-XXXXXXXX.log` 2>&1
+exec /usr/share/tribler/tribler "$@" > `mktemp /tmp/$USER-tribler-XXXXXXXX.log` 2>&1
 popd

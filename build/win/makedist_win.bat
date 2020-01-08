@@ -2,26 +2,14 @@ REM @echo off
 REM No LIBRARYNAME here as this is not distributed with Tribler as BaseLib
 
 REM Check that we are running from the expected directory
-IF NOT EXIST Tribler\Main (
+IF NOT EXIST build\win (
   ECHO .
   ECHO Please, execute this script from the repository root
   EXIT /b
 )
 
 REM locate Python directory and set up Python environment
-SET BUILDER_PYTHON_VERSION="2"
-IF [%1] NEQ [] (
-  SET BUILDER_PYTHON_VERSION="%~1"
-)
-
-ECHO Builder Python version: %BUILDER_PYTHON_VERSION%
-IF %BUILDER_PYTHON_VERSION% == "2" (
-  python win\locate-python.py > tmp_pythonhome.txt
-)
-IF %BUILDER_PYTHON_VERSION% == "3" (
-  python3 win\locate-python.py > tmp_pythonhome.txt
-)
-
+python3 build\win\locate-python.py > tmp_pythonhome.txt
 SET /p PYTHONHOME= < tmp_pythonhome.txt
 DEL /f /q tmp_pythonhome.txt
 REM Arno: Add . to find our core
@@ -50,7 +38,7 @@ IF NOT EXIST %NSIS% (
 
 REM ----- Clean up
 
-call win\clean.bat
+call build\win\clean.bat
 
 REM ----- Build
 
@@ -59,16 +47,16 @@ REM packs them in the installer .EXE
 
 %PYTHONHOME%\Scripts\pyinstaller.exe tribler.spec
 
-copy Tribler\Main\Build\Win\tribler*.nsi dist\tribler
+copy build\win\resources\tribler*.nsi dist\tribler
 
 REM Martijn 2016-11-05: causing problems with PyInstaller
 REM copy Tribler\Main\Build\Win\tribler.exe.manifest dist\tribler
 
-type Tribler\LICENSE Tribler\binary-LICENSE-postfix.txt > Tribler\binary-LICENSE.txt
-copy Tribler\binary-LICENSE.txt dist\tribler
+type LICENSE binary-LICENSE-postfix.txt > binary-LICENSE.txt
+copy binary-LICENSE.txt dist\tribler
 
 mkdir dist\tribler\tools
-copy win\tools\reset*.bat dist\tribler\tools
+copy build\win\tools\reset*.bat dist\tribler\tools
 
 REM Laurens, 2016-04-20: Copy the redistributables of 2008, 2012 and 2015 and the VLC installer to the install dir
 REM Sandip, 2019-10-24: redistributables 2008, 2012 are not necessary anymore

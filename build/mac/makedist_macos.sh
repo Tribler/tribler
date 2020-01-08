@@ -7,10 +7,10 @@ if [ -e .TriblerVersion ]; then
     DMGNAME="Tribler-$(cat .TriblerVersion)"
 fi
 
-export LIBRARYNAME=Tribler
+export RESOURCES=build/mac/resources
 
 # ----- Clean up
-/bin/rm -rf dist build
+/bin/rm -rf dist
 
 # ----- Build
 PI=pyinstaller
@@ -25,10 +25,10 @@ mv dist/$APPNAME.app dist/installdir
 # From original Makefile
 # Background
 mkdir -p dist/installdir/.background
-cp $LIBRARYNAME/Main/Build/Mac/background.png dist/installdir/.background
+cp $RESOURCES/background.png dist/installdir/.background
 
 # Volume Icon
-cp $LIBRARYNAME/Main/Build/Mac/VolumeIcon.icns dist/installdir/.VolumeIcon.icns
+cp $RESOURCES/VolumeIcon.icns dist/installdir/.VolumeIcon.icns
 
 # Shortcut to /Applications
 ln -s /Applications dist/installdir/Applications
