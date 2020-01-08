@@ -170,7 +170,7 @@ class TestTorrentMetadata(TriblerCoreTest):
 
         # Search with the hex encoded channel public key
         query = '"%s"*' % hexlify(channel.public_key)
-        results = self.mds.ChannelMetadata.get_entries(query_filter=query)[:]
+        results = self.mds.ChannelMetadata.get_entries(txt_filter=query)[:]
         self.assertEqual(results[0], channel)
 
     @db_session

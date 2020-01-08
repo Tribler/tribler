@@ -180,10 +180,8 @@ class RemoteTableModel(QAbstractTableModel):
         if self.sort_by is not None:
             kwargs.update({"sort_by": self.sort_by, "sort_desc": self.sort_desc})
 
-        if 'query_filter' in kwargs:
-            kwargs.update({"filter": to_fts_query(kwargs.pop('query_filter'))})
-        elif self.text_filter:
-            kwargs.update({"filter": self.text_filter})
+        if self.text_filter:
+            kwargs.update({"txt_filter": to_fts_query(self.text_filter)})
 
         if self.hide_xxx is not None:
             kwargs.update({"hide_xxx": self.hide_xxx})

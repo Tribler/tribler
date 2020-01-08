@@ -34,27 +34,27 @@ class MetadataEndpoint(RESTEndpoint):
         last = 50 if 'last' not in parameters else int(parameters['last'])  # TODO check integer!
         sort_by = None if 'sort_by' not in parameters else parameters['sort_by']  # TODO check integer!
         sort_asc = True if 'sort_asc' not in parameters else bool(int(parameters['sort_asc']))
-        query_filter = None if 'filter' not in parameters else parameters['filter']
+        txt_filter = None if 'txt_filter' not in parameters else parameters['txt_filter']
 
-        if query_filter:
-            parts = query_filter.split("\"")
-            query_filter = parts[0]
+        if txt_filter:
+            parts = txt_filter.split("\"")
+            txt_filter = parts[0]
 
-        return first, last, sort_by, sort_asc, query_filter
+        return first, last, sort_by, sort_asc, txt_filter
 
     async def get_channels(self, request):
-        first, last, sort_by, sort_asc, query_filter = self.sanitize_parameters(request.query)
+        first, last, sort_by, sort_asc, txt_filter = self.sanitize_parameters(request.query)
         channels, total = tribler_utils.tribler_data.get_channels(
-            first, last, sort_by, sort_asc, query_filter, bool(request.query.get('subscribed', False))
+            first, last, sort_by, sort_asc, txt_filter, bool(request.query.get('subscribed', False))
         )
         return RESTResponse(
             {"results": channels, "first": first, "last": last, "sort_by": sort_by, "sort_asc": int(sort_asc)}
         )
 
     async def get_channels_count(self, request):
-        first, last, sort_by, sort_asc, query_filter = self.sanitize_parameters(request.query)
+        first, last, sort_by, sort_asc, txt_filter = self.sanitize_parameters(request.query)
         _, total = tribler_utils.tribler_data.get_channels(
-            first, last, sort_by, sort_asc, query_filter, bool(request.query.get('subscribed', False))
+            first, last, sort_by, sort_asc, txt_filter, bool(request.query.get('subscribed', False))
         )
         return RESTResponse({"total": total})
 
@@ -80,22 +80,22 @@ class MetadataEndpoint(RESTEndpoint):
         return RESTResponse({"success": True})
 
     async def get_channel_torrents(self, request):
-        first, last, sort_by, sort_asc, query_filter = self.sanitize_parameters(request.query)
+        first, last, sort_by, sort_asc, txt_filter = self.sanitize_parameters(request.query)
         channel = unhexlify(request.query.get('channel', b''))
         channel_pk = unhexlify(request.match_info['channel_pk'])
         channel_obj = tribler_utils.tribler_data.get_channel_with_public_key(channel_pk)
         if not channel_obj:
             return RESTResponse({"error": "the channel with the provided cid is not known"}, status=HTTP_NOT_FOUND)
 
-        torrents, total = tribler_utils.tribler_data.get_torrents(first, last, sort_by, sort_asc, query_filter, channel)
+        torrents, total = tribler_utils.tribler_data.get_torrents(first, last, sort_by, sort_asc, txt_filter, channel)
         return RESTResponse(
             {"results": torrents, "first": first, "last": last, "sort_by": sort_by, "sort_asc": int(sort_asc)}
         )
 
     async def get_channel_torrents_count(self, request):
-        first, last, sort_by, sort_asc, query_filter = self.sanitize_parameters(request.query)
+        first, last, sort_by, sort_asc, txt_filter = self.sanitize_parameters(request.query)
         channel = unhexlify(request.query.get('channel', b''))
-        _, total = tribler_utils.tribler_data.get_torrents(first, last, sort_by, sort_asc, query_filter, channel)
+        _, total = tribler_utils.tribler_data.get_torrents(first, last, sort_by, sort_asc, txt_filter, channel)
         return RESTResponse({"total": total})
 
     async def get_popular_channels(self, _):

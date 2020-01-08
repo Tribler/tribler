@@ -22,14 +22,14 @@ class SearchEndpoint(RESTEndpoint):
         last = 50 if 'last' not in parameters else int(parameters['last'])  # TODO check integer!
         sort_by = None if 'sort_by' not in parameters else parameters['sort_by']  # TODO check integer!
         sort_asc = True if 'sort_desc' not in parameters else bool(int(parameters['sort_desc']))
-        query_filter = None if 'filter' not in parameters else parameters['filter']
+        txt_filter = None if 'txt_filter' not in parameters else parameters['txt_filter']
         md_type = None if 'type' not in parameters else parameters['type']
 
-        return first, last, sort_by, sort_asc, md_type, query_filter
+        return first, last, sort_by, sort_asc, md_type, txt_filter
 
     def base_get(self, request):
-        if 'filter' not in request.query:
-            return RESTResponse({"error": "filter parameter missing"}, status=HTTP_BAD_REQUEST)
+        if 'txt_filter' not in request.query:
+            return RESTResponse({"error": "txt_filter parameter missing"}, status=HTTP_BAD_REQUEST)
 
         first, last, sort_by, sort_asc, md_type, query = SearchEndpoint.sanitize_parameters(request.query)
         random = Random()

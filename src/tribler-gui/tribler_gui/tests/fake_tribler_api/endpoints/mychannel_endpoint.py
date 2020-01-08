@@ -90,11 +90,11 @@ class MyChannelEndpoint(RESTEndpoint):
         if my_channel is None:
             return RESTResponse({"error": "your channel has not been created"}, status=HTTP_NOT_FOUND)
 
-        first, last, sort_by, sort_asc, query_filter = MetadataEndpoint.sanitize_parameters(request.query)
+        first, last, sort_by, sort_asc, txt_filter = MetadataEndpoint.sanitize_parameters(request.query)
         channel = my_channel.public_key
 
         torrents, total = tribler_utils.tribler_data.get_torrents(
-            first, last, sort_by, sort_asc, query_filter, channel, include_status=True
+            first, last, sort_by, sort_asc, txt_filter, channel, include_status=True
         )
         return RESTResponse(
             {
@@ -140,11 +140,11 @@ class MyChannelEndpoint(RESTEndpoint):
         if my_channel is None:
             return RESTResponse({"error": "your channel has not been created"}, status=HTTP_NOT_FOUND)
 
-        first, last, sort_by, sort_asc, query_filter = MetadataEndpoint.sanitize_parameters(request.query)
+        first, last, sort_by, sort_asc, txt_filter = MetadataEndpoint.sanitize_parameters(request.query)
         channel = hexlify(my_channel.public_key)
 
         _, total = tribler_utils.tribler_data.get_torrents(
-            first, last, sort_by, sort_asc, query_filter, channel, include_status=True
+            first, last, sort_by, sort_asc, txt_filter, channel, include_status=True
         )
         return RESTResponse({"total": total})
 
