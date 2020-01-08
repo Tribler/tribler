@@ -41,7 +41,6 @@ class TestConfigUpgrade70to71(TriblerCoreTest):
         self.assertEqual(result_config.get_tunnel_community_socks5_listen_ports(), [1, 2, 3, 4, 5, 6])
         self.assertEqual(result_config.get_anon_proxy_settings(), (2, ("127.0.0.1", [5, 4, 3, 2, 1]), ''))
         self.assertEqual(result_config.get_credit_mining_sources(), ['source1', 'source2'])
-        self.assertEqual(result_config.get_log_dir(), Path('/a/b/c').resolve())
 
     def test_read_test_corr_tribler_conf(self):
         """
