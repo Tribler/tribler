@@ -110,7 +110,7 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         fake_status = MockObject()
         fake_status.share_mode = False
         impl = LibtorrentDownloadImpl(self.session, tdef)
-        impl.set_selected_files = lambda: None
+        impl.set_selected_file_indexes = lambda: None
         impl.future_added = succeed(fake_handler)
         # Create a dummy download config
         impl.config = DownloadConfig()
@@ -205,7 +205,7 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         await self.libtorrent_download_impl.shutdown_task_manager()
         await super(TestLibtorrentDownloadImplNoSession, self).tearDown()
 
-    def test_selected_files(self):
+    def test_selected_file_indexes(self):
         """
         Test whether the selected files are set correctly
         """
@@ -225,14 +225,14 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         self.libtorrent_download_impl.get_share_mode = lambda: False
         self.libtorrent_download_impl.tdef.get_infohash = lambda: b'a' * 20
         self.libtorrent_download_impl.orig_files = ['my/a', 'my/b']
-        self.libtorrent_download_impl.set_selected_files([0])
+        self.libtorrent_download_impl.set_selected_file_indexes([0])
         self.assertTrue(mocked_set_file_prios.called)
 
         self.libtorrent_download_impl.get_share_mode = lambda: False
         mocked_set_file_prios.called = False
         self.assertFalse(mocked_set_file_prios.called)
 
-    def test_selected_files_no_files(self):
+    def test_selected_files_no_file_indexes(self):
         """
         Test that no files are selected if torrent info is not available.
         """
@@ -251,10 +251,11 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         self.libtorrent_download_impl.orig_files = ['a', 'b']
 
         # If share mode is not enabled and everything else is fine, file priority should be set
-        # when set_selected_files() is called. But in this test, no files attribute is set in torrent info
-        # in order to test AttributeError, therfore, no call to set file priority is expected.
+        # when set_selected_file_indexes() is called. But in this test, no files attribute is
+        # set in torrent info in order to test AttributeError, therfore, no call to set file
+        # priority is expected.
         self.libtorrent_download_impl.get_share_mode = lambda: False
-        self.libtorrent_download_impl.set_selected_files([0])
+        self.libtorrent_download_impl.set_selected_file_indexes([0])
         self.assertFalse(mocked_set_file_prios.called)
 
     def test_get_share_mode(self):

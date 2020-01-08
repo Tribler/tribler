@@ -211,6 +211,7 @@ class LibtorrentMgr(TaskManager):
             if listen_port != ltsession.listen_port() and store_listen_port:
                 self.tribler_session.config.set_libtorrent_port_runtime(ltsession.listen_port())
             try:
+                self._logger.debug("file opened: '%s'", self.tribler_session.config.get_state_dir() / LTSTATE_FILENAME)
                 with open(self.tribler_session.config.get_state_dir() / LTSTATE_FILENAME, 'rb') as fp:
                     lt_state = bdecode_compat(fp.read())
                 if lt_state is not None:
@@ -218,7 +219,7 @@ class LibtorrentMgr(TaskManager):
                 else:
                     self._logger.warning("the lt.state appears to be corrupt, writing new data on shutdown")
             except Exception as exc:
-                self._logger.info("could not load libtorrent state, got exception: %r. starting from scratch" % exc)
+                self._logger.info(f"could not load libtorrent state, got exception: {exc!r}. starting from scratch")
         else:
             ltsession.listen_on(self.tribler_session.config.get_anon_listen_port(),
                                 self.tribler_session.config.get_anon_listen_port() + 20)
