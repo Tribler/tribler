@@ -86,7 +86,7 @@ class SubscriptionsWidget(QWidget):
         settings = {"credit_mining": {"sources": new_sources}}
 
         TriblerNetworkRequest(
-            "settings", self.on_credit_mining_sources, method='POST', raw_data=json.dumps(settings).decode('utf-8')
+            "settings", self.on_credit_mining_sources, method='POST', raw_data=json.dumps(settings)
         )
 
     def on_credit_mining_sources(self, json_result):
