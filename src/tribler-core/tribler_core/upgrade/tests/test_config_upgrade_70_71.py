@@ -1,7 +1,6 @@
 import os
 import shutil
 from configparser import RawConfigParser
-from pathlib import Path
 
 from configobj import ConfigObj
 
