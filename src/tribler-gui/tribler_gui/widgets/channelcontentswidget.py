@@ -42,7 +42,7 @@ class ChannelContentsWidget(widget_form, widget_class):
         # ! ACHTUNG !
         # There is a bug in PyQT bindings that prevents uic.loadUiType from correctly
         # detecting paths to external resources used in .ui files. Therefore,
-        # for each external resource (e.g. image/icon), we must reload it manually here
+        # for each external resource (e.g. image/icon), we must reload it manually here.
         self.channel_options_button.setIcon(QIcon(get_image_path('ellipsis.png')))
         self.channel_preview_button.setIcon(QIcon(get_image_path('refresh.png')))
         self.credit_mining_button.setIcon(QIcon(get_image_path('credit_mining_not.png')))
@@ -63,6 +63,8 @@ class ChannelContentsWidget(widget_form, widget_class):
 
         self_ref = self
 
+        # This context manager is used to freeze the state of controls in the models stack to
+        # prevent signals from triggering for inactive models.
         class freeze_controls_class:
             objects_to_freeze = [
                 self_ref.category_selector,
@@ -94,7 +96,7 @@ class ChannelContentsWidget(widget_form, widget_class):
     def commit_channels(self):
         TriblerNetworkRequest("channels/mychannel/0/commit", self.on_channel_committed, method='POST')
 
-    def initialize_content_page(self, gui_settings, edit_enabled=False, filter_enabled=True):
+    def initialize_content_page(self, gui_settings, edit_enabled=False):
         if self.initialized:
             return
 
@@ -260,27 +262,27 @@ class ChannelContentsWidget(widget_form, widget_class):
         self.update_labels()
 
     def update_labels(self, dirty=False):
-        # initialize the page about a channel
+
+        personal = self.model.channel_info.get("state", None) == "Personal"
+        root = len(self.channels_stack) == 1
+        legacy = self.model.channel_info.get("state", None) == "Legacy"
+
+        # initialize the channel page
         self.channel_name_label.setText(self.model.channel_info['name'])
 
-        if self.model.channel_info.get("state", None) == "Personal":
-            self.channel_options_button.setHidden(False)
-        else:
-            self.channel_options_button.setHidden(True)
+        self.channel_options_button.setHidden(not personal or root)
+        self.new_channel_button.setHidden(not personal)
 
-        if self.model.channel_info.get("state", None) == "Personal":
-            self.new_channel_button.setHidden(False)
-            self.channel_state_label.setHidden(True)
-        else:
-            self.new_channel_button.setHidden(True)
-            self.channel_state_label.setHidden(False)
-            if "state" in self.model.channel_info:
-                self.channel_state_label.setText(self.model.channel_info["state"])
-                self.subscription_widget.update_subscribe_button(self.model.channel_info)
+        self.channel_state_label.setText(self.model.channel_info.get("state", "This text should not ever be shown"))
 
-        if not self.autocommit_enabled:
-            if dirty:
-                self.commit_control_bar.setHidden(False)
+        self.subscription_widget.setHidden(root or personal)
+        if not personal and not root:
+            self.subscription_widget.update_subscribe_button(self.model.channel_info)
+
+        self.channel_preview_button.setHidden(root or personal or legacy)
+        self.channel_state_label.setHidden(root or personal)
+
+        self.commit_control_bar.setHidden(self.autocommit_enabled or not dirty or root)
 
         if "total" in self.model.channel_info:
             if "torrents" in self.model.channel_info:

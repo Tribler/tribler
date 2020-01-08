@@ -207,7 +207,6 @@ class TriblerWindow(QMainWindow):
         self.video_player_page.initialize_player()
 
         self.search_results_page.initialize_content_page(self.gui_settings)
-        # TODO: make controls hiding depend on the current model
         self.search_results_page.channel_torrents_filter_input.setHidden(True)
 
         self.settings_page.initialize_settings_page()
