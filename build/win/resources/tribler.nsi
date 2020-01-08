@@ -68,7 +68,7 @@ BrandingText "${PRODUCT}"
 ;--------------------------------
 ;Modern UI Configuration
 
-!define MUI_ICON "tribler_source\Tribler\Main\Build\Win\tribler.ico"
+!define MUI_ICON "tribler_source\resources\tribler.ico"
 !define MUI_COMPONENTSPAGE_SMALLDESC
 !define MUI_ABORTWARNING
 
