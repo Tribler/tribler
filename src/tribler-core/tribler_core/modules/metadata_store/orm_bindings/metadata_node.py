@@ -68,7 +68,7 @@ def define_binding(db):
             origin_id=None,
             sort_by=None,
             sort_desc=True,
-            query_filter=None,
+            txt_filter=None,
             category=None,
         ):
             """
@@ -80,20 +80,20 @@ def define_binding(db):
             # Filter the results on a keyword or some keywords
 
             # FIXME: it is dangerous to mix query attributes. Should be handled by higher level methods instead
-            # If we get a hex-encoded public key in the query_filter field, we drop the filter,
+            # If we get a hex-encoded public key in the txt_filter field, we drop the filter,
             # and instead query by public_key. However, we only do this if there is no
-            # channel_pk or origin_id attributes set, because we only want this special treatment of query_filter
+            # channel_pk or origin_id attributes set, because we only want this special treatment of txt_filter
             # argument for global search queries. In other words, named arguments have priority over hacky shenaningans
-            if query_filter:
-                normal_filter = query_filter.replace('"', '').replace("*", "")
+            if txt_filter:
+                normal_filter = txt_filter.replace('"', '').replace("*", "")
                 if is_hex_string(normal_filter) and len(normal_filter) % 2 == 0:
                     query_blob = database_blob(unhexlify(normal_filter))
                     if is_channel_public_key(normal_filter):
                         if (origin_id is None) and not channel_pk:
                             channel_pk = query_blob
-                            query_filter = None
+                            txt_filter = None
 
-            pony_query = cls.search_keyword(query_filter, lim=1000) if query_filter else select(g for g in cls)
+            pony_query = cls.search_keyword(txt_filter, lim=1000) if txt_filter else select(g for g in cls)
 
             if metadata_type is not None:
                 try:

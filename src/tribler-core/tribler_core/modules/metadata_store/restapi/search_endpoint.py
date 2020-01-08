@@ -71,7 +71,7 @@ class SearchEndpoint(MetadataEndpointBase):
         except (ValueError, KeyError):
             return RESTResponse({"error": "Error processing request parameters"}, status=HTTP_BAD_REQUEST)
 
-        if not sanitized["query_filter"]:
+        if not sanitized["txt_filter"]:
             return RESTResponse({"error": "Filter parameter missing"}, status=HTTP_BAD_REQUEST)
 
         include_total = request.query.get('include_total', '')
@@ -82,7 +82,7 @@ class SearchEndpoint(MetadataEndpointBase):
         if self.session.gigachannel_community and sanitized["first"] == 1:
             raw_metadata_type = request.query.get('metadata_type', '')
             self.session.gigachannel_community.send_search_request(
-                sanitized['query_filter'],
+                sanitized['txt_filter'],
                 metadata_type=raw_metadata_type,
                 sort_by=sanitized['sort_by'],
                 sort_asc=sanitized['sort_desc'],

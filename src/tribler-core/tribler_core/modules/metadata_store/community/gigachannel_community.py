@@ -187,7 +187,7 @@ class GigaChannelCommunity(Community):
         if self.notifier and new_channels:
             self.notifier.notify(NTFY.CHANNEL_DISCOVERED, new_channels)
 
-    def send_search_request(self, query_filter, metadata_type='', sort_by=None, sort_asc=0, hide_xxx=True, uuid=None):
+    def send_search_request(self, txt_filter, metadata_type='', sort_by=None, sort_asc=0, hide_xxx=True, uuid=None):
         """
         Sends request to max_search_peers from peer list. The request is cached in request cached. The past cache is
         cleared before adding a new search request to prevent incorrect results being pushed to the GUI.
@@ -201,13 +201,13 @@ class GigaChannelCommunity(Community):
 
         search_request_payload = SearchRequestPayload(
             search_request_cache.number,
-            query_filter.encode('utf8'),
+            txt_filter.encode('utf8'),
             metadata_type.encode('utf8'),
             sort_by.encode('utf8'),
             sort_asc,
             hide_xxx,
         )
-        self._logger.info("Started remote search for query:%s", query_filter)
+        self._logger.info("Started remote search for query:%s", txt_filter)
 
         for peer in search_candidates:
             self.endpoint.send(peer.address, self.ezr_pack(self.SEARCH_REQUEST, search_request_payload))
@@ -216,13 +216,13 @@ class GigaChannelCommunity(Community):
     @lazy_wrapper(SearchRequestPayload)
     def on_search_request(self, peer, request):
         # Caution: SQL injection
-        # Since this string 'query_filter' is passed as it is to fetch the results, there could be a chance for
+        # Since this string 'txt_filter' is passed as it is to fetch the results, there could be a chance for
         # SQL injection. But since we use pony which is supposed to be doing proper variable bindings, it should
         # be relatively safe
-        query_filter = request.query_filter.decode('utf8')
-        # Check if the query_filter is a simple query
-        if not is_simple_match_query(query_filter):
-            self.logger.error("Dropping a complex remote search query:%s", query_filter)
+        txt_filter = request.txt_filter.decode('utf8')
+        # Check if the txt_filter is a simple query
+        if not is_simple_match_query(txt_filter):
+            self.logger.error("Dropping a complex remote search query:%s", txt_filter)
             return
 
         metadata_type = {
@@ -236,7 +236,7 @@ class GigaChannelCommunity(Community):
             "last": max_entries,
             "sort_by": request.sort_by.decode('utf8'),
             "sort_desc": not request.sort_asc if request.sort_asc is not None else None,
-            "query_filter": query_filter,
+            "txt_filter": txt_filter,
             "hide_xxx": request.hide_xxx,
             "metadata_type": metadata_type,
             "exclude_legacy": True,

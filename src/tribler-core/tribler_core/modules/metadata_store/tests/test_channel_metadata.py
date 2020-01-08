@@ -398,7 +398,7 @@ class TestChannelMetadata(TriblerCoreTest):
         self.assertEqual(len(channels), 5)
 
         # Test filtering
-        channels = self.mds.ChannelMetadata.get_entries(first=1, last=5, query_filter='channel5')
+        channels = self.mds.ChannelMetadata.get_entries(first=1, last=5, txt_filter='channel5')
         self.assertEqual(len(channels), 1)
 
         # Test sorting

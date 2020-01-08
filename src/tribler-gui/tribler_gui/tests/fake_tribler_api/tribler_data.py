@@ -90,17 +90,17 @@ class TriblerData(object):
             "ports": {"video_server~port": self.video_player_port},
         }
 
-    def get_channels(self, first=1, last=50, sort_by=None, sort_asc=True, filter=None, subscribed=False, **kwargs):
+    def get_channels(self, first=1, last=50, sort_by=None, sort_asc=True, txt_filter=None, subscribed=False, **kwargs):
         """
         Return channels, based on various parameters.
         """
-        filter = filter.lower() if filter else None
+        txt_filter = txt_filter.lower() if txt_filter else None
         results = self.channels if not subscribed else [self.channels[index] for index in self.subscribed_channels]
         results = [result.get_json() for result in results]
 
         # Filter on search term
-        if filter:
-            results = [result for result in results if filter in result['name'].lower()]
+        if txt_filter:
+            results = [result for result in results if txt_filter in result['name'].lower()]
         if sort_by == 'title':
             sort_by = 'name'
         if sort_by == 'tags':
@@ -118,7 +118,7 @@ class TriblerData(object):
         last=50,
         sort_by=None,
         sort_asc=True,
-        filter=None,
+        txt_filter=None,
         channel_pk=None,
         include_status=False,
         category=None,
@@ -130,12 +130,12 @@ class TriblerData(object):
         if channel_pk and not self.get_channel_with_public_key(channel_pk):
             return [], 0
 
-        filter = filter.lower() if filter else None
+        txt_filter = txt_filter.lower() if txt_filter else None
         results = self.torrents if not channel_pk else self.get_channel_with_public_key(channel_pk).torrents
         results = [result.get_json(include_status=include_status) for result in results]
 
-        if filter:
-            results = [result for result in results if filter in result['name'].lower()]
+        if txt_filter:
+            results = [result for result in results if txt_filter in result['name'].lower()]
 
         # FIXME: instead, unify attribute names between ORM, GUI, and REST endpoints
         if sort_by == 'title':

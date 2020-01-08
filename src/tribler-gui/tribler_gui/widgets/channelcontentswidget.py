@@ -235,7 +235,7 @@ class ChannelContentsWidget(widget_form, widget_class):
 
     def preview_clicked(self):
         params = {
-            'query_filter': self.model.channel_info["public_key"],
+            'txt_filter': self.model.channel_info["public_key"],
             'metadata_type': 'torrent',
             'rest_endpoint_url': 'search',
             'first': 1,
