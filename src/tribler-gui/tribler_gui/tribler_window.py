@@ -40,6 +40,7 @@ from PyQt5.QtWidgets import (
 from tribler_core.modules.process_checker import ProcessChecker
 from tribler_core.utilities.unicode import hexlify
 
+# Pre-load form UI classes
 from tribler_gui.core_manager import CoreManager
 from tribler_gui.debug_window import DebugWindow
 from tribler_gui.defs import (
@@ -69,14 +70,8 @@ from tribler_gui.dialogs.startdownloaddialog import StartDownloadDialog
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest, TriblerRequestManager, request_manager
 from tribler_gui.utilities import get_gui_setting, get_image_path, get_ui_file_path, is_dir_writable
-from tribler_gui.widgets.tablecontentmodel import (
-    DiscoveredChannelsModel,
-    PersonalChannelsModel,
-    SearchResultsModel,
-    sanitize_for_fts,
-)
-
-# Pre-load form UI classes
+from tribler_gui.widgets.tablecontentmodel import DiscoveredChannelsModel, PersonalChannelsModel, SearchResultsModel
+from tribler_gui.widgets.triblertablecontrollers import sanitize_for_fts, to_fts_query
 
 fc_home_recommended_item, _ = uic.loadUiType(get_ui_file_path('home_recommended_item.ui'))
 fc_loading_list_item, _ = uic.loadUiType(get_ui_file_path('loading_list_item.ui'))
@@ -668,12 +663,13 @@ class TriblerWindow(QMainWindow):
                 channel_info={"name": "Search results for %s" % query if len(query) < 50 else "%s..." % query[:50]},
                 endpoint_url="search",
                 hide_xxx=get_gui_setting(self.gui_settings, "family_filter", True, is_bool=True),
-                text_filter=query,
+                text_filter=to_fts_query(query),
             )
         )
-        self.core_manager.events_manager.received_search_result.connect(
-            self.search_results_page.model.on_new_entry_received
-        )
+
+        # Trigger remote search
+        self.search_results_page.preview_clicked()
+
         self.clicked_menu_button_search()
         self.last_search_query = query
         self.last_search_time = current_ts
@@ -834,7 +830,6 @@ class TriblerWindow(QMainWindow):
                 self.window().tribler_settings['download_defaults']['safeseeding_enabled'],
                 self.tribler_settings['download_defaults']['saveas'],
                 [],
-                0,
             )
             self.process_uri_request()
 

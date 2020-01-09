@@ -82,6 +82,7 @@ def start_tribler_core(base_path, api_port, api_key):
         signal.signal(signal.SIGTERM, lambda signum, stack: shutdown(session, signum, stack))
         await session.start()
 
+    logging.getLogger('asyncio').setLevel(logging.WARNING)
     get_event_loop().create_task(start_tribler())
     get_event_loop().run_forever()
 

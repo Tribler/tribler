@@ -4,6 +4,7 @@ Simple definitions.
 Author(s): Arno Bakker
 """
 from enum import Enum
+from uuid import UUID
 
 DLSTATUS_ALLOCATING_DISKSPACE = 0  # TODO: make sure this get set when in this alloc mode
 DLSTATUS_WAITING4HASHCHECK = 1
@@ -82,14 +83,18 @@ STATE_START_RESOURCE_MONITOR = 'Starting resource monitor...'
 STATE_READABLE_STARTED = 'Started'
 
 
+# This UUID is used to push new channels through the events endpoint. GigaChannel Community
+# sends updates over the Events endpoints with this UUID when new toplevel channels discovered.
+CHANNELS_VIEW_UUID = UUID('094e5bb7-d6b4-4662-825a-4a8c5948ea56')
+
+
 class NTFY(Enum):
     TORRENT_FINISHED = "torrent_finished"
-    TORRENT_INFO_UPDATED = "torrent_info_update"
     TRIBLER_SHUTDOWN_STATE = "tribler_shutdown_state"
     TRIBLER_STARTED = "tribler_started"
     TRIBLER_NEW_VERSION = "tribler_new_version"
     CHANNEL_DISCOVERED = "channel_discovered"
-    CHANNEL_SEARCH_RESULTS = "channel_search_results"
+    REMOTE_QUERY_RESULTS = "remote_query_results"
     TUNNEL_REMOVE = "tunnel_remove"
     WATCH_FOLDER_CORRUPT_FILE = "watch_folder_corrupt_file"
     UPGRADER_TICK = "upgrader_tick"

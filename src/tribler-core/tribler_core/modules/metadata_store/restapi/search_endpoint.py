@@ -11,7 +11,6 @@ from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, RESTResponse
 class SearchEndpoint(MetadataEndpointBase):
     """
     This endpoint is responsible for searching in channels and torrents present in the local Tribler database.
-    It also fires a remote search in the IPv8 channel community.
     """
 
     def setup_routes(self):
@@ -75,27 +74,13 @@ class SearchEndpoint(MetadataEndpointBase):
             return RESTResponse({"error": "Filter parameter missing"}, status=HTTP_BAD_REQUEST)
 
         include_total = request.query.get('include_total', '')
-        search_uuid = SearchEndpoint.get_uuid(request.query)
-
-        # Apart from the local search results, we also do remote search to get search results from peers in the
-        # Giga channel community.
-        if self.session.gigachannel_community and sanitized["first"] == 1:
-            raw_metadata_type = request.query.get('metadata_type', '')
-            self.session.gigachannel_community.send_search_request(
-                sanitized['txt_filter'],
-                metadata_type=raw_metadata_type,
-                sort_by=sanitized['sort_by'],
-                sort_asc=sanitized['sort_desc'],
-                hide_xxx=sanitized['hide_xxx'],
-                uuid=search_uuid,
-            )
 
         def search_db():
             with db_session:
                 pony_query = self.session.mds.MetadataNode.get_entries(**sanitized)
                 total = self.session.mds.MetadataNode.get_total_count(**sanitized) if include_total else None
                 search_results = [r.to_simple_dict() for r in pony_query]
-            self.session.mds._db.disconnect()
+            self.session.mds._db.disconnect()  # DB must be disconnected explicitly if run on a thread
             return search_results, total
 
         try:
@@ -105,7 +90,6 @@ class SearchEndpoint(MetadataEndpointBase):
             return RESTResponse(status=HTTP_BAD_REQUEST)
 
         response_dict = {
-            "uuid": search_uuid,
             "results": search_results,
             "first": sanitized["first"],
             "last": sanitized["last"],

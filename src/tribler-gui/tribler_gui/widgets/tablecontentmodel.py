@@ -4,27 +4,14 @@ from abc import abstractmethod
 
 from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt, pyqtSignal
 
+from tribler_common.simpledefs import CHANNELS_VIEW_UUID
+
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import NEW
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 
 from tribler_gui.defs import ACTION_BUTTONS, BITTORRENT_BIRTHDAY, COMMIT_STATUS_TODELETE
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import format_size, format_votes, pretty_date
-
-
-def sanitize_for_fts(text):
-    return text.translate({ord(u"\""): u"\"\"", ord(u"\'"): u"\'\'"})
-
-
-def to_fts_query(text):
-    if not text:
-        return ""
-    words = text.strip().split(" ")
-
-    # TODO: add support for quoted exact searches
-    query_list = [u'\"' + sanitize_for_fts(word) + u'\"*' for word in words]
-
-    return " AND ".join(query_list)
 
 
 def combine_pk_id(pk, id_):
@@ -53,8 +40,14 @@ class RemoteTableModel(QAbstractTableModel):
         self.item_load_batch = 50
         self.sort_by = self.columns[self.default_sort_column] if self.default_sort_column >= 0 else None
         self.sort_desc = True
-        self.query_uuid = None
         self.saved_header_state = None
+        # Every remote query must be attributed to its specific model to avoid updating wrong models
+        # on receiving a result. We achieve this by maintaining a set of in-flight remote queries.
+        # Note that this only applies to results that are returned through the events notification
+        # mechanism, because REST requests attribution is maintained by the RequestManager.
+        # We do not clean it up after receiving a result because we don't know if the result was the
+        # last one. In a sense, the queries' UUIDs play the role of "subscription topics" for the model.
+        self.remote_queries = set()
 
     @abstractmethod
     def get_item_uid(self, item):
@@ -172,16 +165,11 @@ class RemoteTableModel(QAbstractTableModel):
         if 'first' not in kwargs or 'last' not in kwargs:
             kwargs["first"], kwargs['last'] = self.rowCount() + 1, self.rowCount() + self.item_load_batch
 
-        # Create a new uuid for each new search
-        if kwargs['first'] == 1 or not self.query_uuid:
-            self.query_uuid = uuid.uuid4().hex
-        kwargs.update({"uuid": self.query_uuid})
-
         if self.sort_by is not None:
             kwargs.update({"sort_by": self.sort_by, "sort_desc": self.sort_desc})
 
         if self.text_filter:
-            kwargs.update({"txt_filter": to_fts_query(self.text_filter)})
+            kwargs.update({"txt_filter": self.text_filter})
 
         if self.hide_xxx is not None:
             kwargs.update({"hide_xxx": self.hide_xxx})
@@ -200,23 +188,11 @@ class RemoteTableModel(QAbstractTableModel):
         if not response:
             return False
 
-        if self.is_new_result(response):
+        if not remote or (uuid.UUID(response.get('uuid')) in self.remote_queries):
             self.add_items(response['results'], remote=remote)
             if "total" in response:
                 self.channel_info["total"] = response["total"]
                 self.info_changed.emit(response['results'])
-
-        return True
-
-    def is_new_result(self, response):
-        """
-        Returns True if the response is a new fresh response else False.
-        - If UUID of the response and the last query does not match, then it is a stale response.
-        :param response: List of items
-        :return: True for fresh response else False
-        """
-        if self.query_uuid and 'uuid' in response and response['uuid'] != self.query_uuid:
-            return False
         return True
 
 
@@ -250,7 +226,9 @@ class ChannelContentModel(RemoteTableModel):
         u'size': lambda data: (format_size(float(data)) if data != '' else ''),
         u'votes': format_votes,
         u'state': lambda data: str(data)[:1] if data == u'Downloading' else "",
-        u'updated': lambda timestamp: pretty_date(timestamp) if timestamp > BITTORRENT_BIRTHDAY else 'N/A',
+        u'updated': lambda timestamp: pretty_date(timestamp)
+        if timestamp and timestamp > BITTORRENT_BIRTHDAY
+        else 'N/A',
     }
 
     def __init__(
@@ -280,7 +258,6 @@ class ChannelContentModel(RemoteTableModel):
         self.channel_info = channel_info or {"name": "Personal channels root", "status": 123}
 
         self.endpoint_url_override = endpoint_url
-        self.query_uuid = None
 
         # Load the initial batch of entries
         self.perform_query()
@@ -354,6 +331,21 @@ class ChannelContentModel(RemoteTableModel):
         super(ChannelContentModel, self).reset()
 
     def update_node_info(self, update_dict):
+        """
+        This method updates/inserts rows based on updated_dict. It should be typically invoked
+        by a signal from Events endpoint. One special case it when the channel_info of the model
+        itself is updated. In that case, info_changed signal is emitted, so the controller/widged nows
+        it is time to update the labels.
+        """
+        # TODO: better mechanism for identifying channel entries for pushing updates
+
+        if (
+            self.channel_info.get("public_key") == update_dict.get("public_key") is not None
+            and self.channel_info.get("id") == update_dict.get("id") is not None
+        ):
+            self.channel_info.update(**update_dict)
+            self.info_changed.emit([])
+
         row = self.item_uid_map.get(
             update_dict["infohash"]
             if "infohash" in update_dict
@@ -428,22 +420,26 @@ class ChannelContentModel(RemoteTableModel):
         self.data_items[index.row()][self.columns[index.column()]] = new_value
         return True
 
-
-class SearchResultsModel(ChannelContentModel):
-    def __init__(self, **kwargs):
-        ChannelContentModel.__init__(self, **kwargs)
-
     def on_new_entry_received(self, response):
         self.on_query_results(response, remote=True)
 
 
-class DiscoveredChannelsModel(SearchResultsModel):
+class SearchResultsModel(ChannelContentModel):
+    pass
+
+
+class DiscoveredChannelsModel(ChannelContentModel):
     columns = [u'state', u'votes', u'name', u'torrents', u'updated']
     column_headers = [u'', u'Popularity', u'Name', u'Torrents', u'Updated']
 
     column_width = {u'state': lambda _: 20, u'name': lambda table_width: table_width - 320}
 
     default_sort_column = 1
+
+    def __init__(self, *args, **kwargs):
+        super(DiscoveredChannelsModel, self).__init__(*args, **kwargs)
+        # Subscribe to new channels updates notified over the Events endpoint
+        self.remote_queries.add(CHANNELS_VIEW_UUID)
 
 
 class PersonalChannelsModel(ChannelContentModel):
@@ -490,5 +486,5 @@ class PersonalChannelsModel(ChannelContentModel):
 
     def on_query_results(self, response, **kwargs):
         if super(PersonalChannelsModel, self).on_query_results(response, **kwargs):
-            if response.get("results", None):
+            if response.get("results"):
                 self.info_changed.emit(response["results"])

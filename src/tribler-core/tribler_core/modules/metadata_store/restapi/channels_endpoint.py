@@ -84,7 +84,6 @@ class ChannelsEndpoint(ChannelsEndpointBase):
         include_total = request.query.get('include_total', '')
         channel_pk, channel_id = self.get_channel_from_request(request)
         sanitized.update({"channel_pk": channel_pk, "origin_id": channel_id})
-
         with db_session:
             contents = self.session.mds.MetadataNode.get_entries(**sanitized)
             contents_list = [c.to_simple_dict() for c in contents]

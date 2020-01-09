@@ -223,8 +223,9 @@ class TorrentChecker(TaskManager):
         final_response = {}
         if not result or not isinstance(result, list):
             self._logger.info("Received invalid torrent checker result")
-            self.tribler_session.notifier.notify(NTFY.TORRENT_INFO_UPDATED, infohash,
-                                                 {"num_seeders": 0,
+            self.tribler_session.notifier.notify(NTFY.CHANNEL_ENTITY_UPDATED,
+                                                 {"infohash": hexlify(infohash),
+                                                  "num_seeders": 0,
                                                   "num_leechers": 0,
                                                   "last_tracker_check": int(time.time()),
                                                   "health": "updated"})
@@ -254,8 +255,9 @@ class TorrentChecker(TaskManager):
         self.update_torrents_checked(torrent_update_dict)
 
         # TODO: DRY! Stop doing lots of formats, just make REST endpoint automatically encode binary data to hex!
-        self.tribler_session.notifier.notify(NTFY.TORRENT_INFO_UPDATED, infohash,
-                                             {"num_seeders": torrent_update_dict["seeders"],
+        self.tribler_session.notifier.notify(NTFY.CHANNEL_ENTITY_UPDATED,
+                                             {"infohash": hexlify(infohash),
+                                              "num_seeders": torrent_update_dict["seeders"],
                                               "num_leechers": torrent_update_dict["leechers"],
                                               "last_tracker_check": torrent_update_dict["last_check"],
                                               "health": "updated"})

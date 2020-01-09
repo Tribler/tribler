@@ -15,7 +15,6 @@ from tribler_core.modules.metadata_store.serialization import REGULAR_TORRENT
 from tribler_core.modules.metadata_store.store import MetadataStore
 from tribler_core.tests.tools.base_test import TriblerCoreTest
 from tribler_core.tests.tools.common import TORRENT_UBUNTU_FILE
-from tribler_core.utilities.unicode import hexlify
 
 EMPTY_BLOB = database_blob(b"")
 
@@ -159,19 +158,6 @@ class TestTorrentMetadata(TriblerCoreTest):
         # Search with the word 'sheeps' should return the torrent with 'sheep' in the title
         results = self.mds.TorrentMetadata.search_keyword("sheeps")[:]
         self.assertEqual(torrent.rowid, results[0].rowid)
-
-    @db_session
-    def test_channel_public_key_text_search(self):
-        """
-        Test searching for channels with public key through text filter works.
-        """
-        self.mds.ChannelNode._my_key = default_eccrypto.generate_key('curve25519')
-        channel = self.mds.ChannelMetadata(title='My channel', infohash=os.urandom(20))
-
-        # Search with the hex encoded channel public key
-        query = '"%s"*' % hexlify(channel.public_key)
-        results = self.mds.ChannelMetadata.get_entries(txt_filter=query)[:]
-        self.assertEqual(results[0], channel)
 
     @db_session
     def test_get_autocomplete_terms(self):
