@@ -434,7 +434,7 @@ def define_binding(db):
             if channel.infohash == database_blob(infohash):
                 return channel.title
             else:
-                return u'OLD:' + channel.title
+                return 'OLD:' + channel.title
 
         @db_session
         def update_properties(self, update_dict):

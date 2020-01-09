@@ -10,6 +10,7 @@ from tribler_core.modules.libtorrent.restapi.libtorrent_endpoint import LibTorre
 from tribler_core.modules.libtorrent.restapi.torrentinfo_endpoint import TorrentInfoEndpoint
 from tribler_core.modules.metadata_store.restapi.channels_endpoint import ChannelsEndpoint
 from tribler_core.modules.metadata_store.restapi.metadata_endpoint import MetadataEndpoint
+from tribler_core.modules.metadata_store.restapi.remote_query_endpoint import RemoteQueryEndpoint
 from tribler_core.modules.metadata_store.restapi.search_endpoint import SearchEndpoint
 from tribler_core.restapi.debug_endpoint import DebugEndpoint
 from tribler_core.restapi.events_endpoint import EventsEndpoint
@@ -46,7 +47,9 @@ class RootEndpoint(RESTEndpoint):
                      '/metadata': MetadataEndpoint,
                      '/channels': ChannelsEndpoint,
                      '/collections': ChannelsEndpoint,  # FIXME: evil hack! Implement the real CollectionsEndpoint!
-                     '/search': SearchEndpoint}
+                     '/search': SearchEndpoint,
+                     '/remote_query': RemoteQueryEndpoint,
+                     }
         for path, ep_cls in endpoints.items():
             self.add_endpoint(path, ep_cls(self.session))
 

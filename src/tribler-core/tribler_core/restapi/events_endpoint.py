@@ -30,27 +30,24 @@ reactions_dict = {
     # A new version of Tribler is available.
     NTFY.TRIBLER_NEW_VERSION: lambda text: {"version": text},
     # Tribler has discovered a new channel. Contains the channel data.
-    NTFY.CHANNEL_DISCOVERED: lambda new_channels_dicts: {"result": new_channels_dicts},
+    NTFY.CHANNEL_DISCOVERED: passthrough,
     # A torrent has finished downloading. Contains the infohash and the name of the torrent
     NTFY.TORRENT_FINISHED: lambda *args: {"infohash": hexlify(args[0]), "name": args[1], "hidden": args[2]},
     # Information about some torrent has been updated (e.g. health). Contains updated torrent data
-    NTFY.TORRENT_INFO_UPDATED: lambda *args: dict(infohash=hexlify(args[0]), **args[1]),
-    # Information about some generic channel entity has been updated. Contains updated entity
-    NTFY.CHANNEL_ENTITY_UPDATED: lambda updated_dict: updated_dict,
+    NTFY.CHANNEL_ENTITY_UPDATED: passthrough,
     # An error arisen in credit mining manager
     NTFY.CREDIT_MINING_ERROR: passthrough,
     # Tribler is going to shutdown.
     NTFY.TRIBLER_SHUTDOWN_STATE: passthrough,
     # Remote GigaChannel search results were received by Tribler. Contains received entries.
-    NTFY.CHANNEL_SEARCH_RESULTS: passthrough,
+    NTFY.REMOTE_QUERY_RESULTS: passthrough,
     # An indicator that Tribler has completed the startup procedure and is ready to use.
     NTFY.TRIBLER_STARTED: lambda *_: {"version": version_id},
     # Tribler is low on disk space for storing torrents
     NTFY.LOW_SPACE: passthrough,
 }
-
-
 # pylint: enable=line-too-long
+
 
 class EventsEndpoint(RESTEndpoint, TaskManager):
     """

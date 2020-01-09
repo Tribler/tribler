@@ -1,6 +1,7 @@
 from binascii import unhexlify
 
 from ipv8.community import Community
+from ipv8.database import database_blob
 from ipv8.lazy_community import lazy_wrapper
 from ipv8.messaging.lazy_payload import VariablePayload
 from ipv8.peer import Peer
@@ -8,7 +9,7 @@ from ipv8.requestcache import RequestCache
 
 from pony.orm import CacheIndexError, TransactionIntegrityError, db_session
 
-from tribler_common.simpledefs import NTFY
+from tribler_common.simpledefs import CHANNELS_VIEW_UUID, NTFY
 
 from tribler_core.modules.metadata_store.community.payload import SearchRequestPayload, SearchResponsePayload
 from tribler_core.modules.metadata_store.community.request import SearchRequestCache
@@ -21,12 +22,24 @@ from tribler_core.modules.metadata_store.store import (
     UNKNOWN_TORRENT,
     UPDATED_OUR_VERSION,
 )
-from tribler_core.utilities.utilities import is_simple_match_query
+from tribler_core.utilities.utilities import is_channel_public_key, is_hex_string, is_simple_match_query
 
 minimal_blob_size = 200
 maximum_payload_size = 1024
 max_entries = maximum_payload_size // minimal_blob_size
 max_search_peers = 5
+
+metadata_type_to_v1_field = {
+    frozenset((REGULAR_TORRENT, CHANNEL_TORRENT)): "",
+    frozenset((CHANNEL_TORRENT,)): "channel",
+    frozenset((REGULAR_TORRENT,)): "torrent",
+}
+
+v1_md_field_to_metadata_type = {
+    "": frozenset((REGULAR_TORRENT, CHANNEL_TORRENT)),
+    "channel": frozenset((CHANNEL_TORRENT,)),
+    "torrent": frozenset((REGULAR_TORRENT,)),
+}
 
 
 class RawBlobPayload(VariablePayload):
@@ -181,13 +194,13 @@ class GigaChannelCommunity(Community):
             new_channels = [
                 md.to_simple_dict()
                 for md, result in md_list
-                if md and md.metadata_type == CHANNEL_TORRENT and result == UNKNOWN_CHANNEL
+                if md and md.metadata_type == CHANNEL_TORRENT and result == UNKNOWN_CHANNEL and md.origin_id == 0
             ]
 
         if self.notifier and new_channels:
-            self.notifier.notify(NTFY.CHANNEL_DISCOVERED, new_channels)
+            self.notifier.notify(NTFY.CHANNEL_DISCOVERED, {"results": new_channels, "uuid": str(CHANNELS_VIEW_UUID)})
 
-    def send_search_request(self, txt_filter, metadata_type='', sort_by=None, sort_asc=0, hide_xxx=True, uuid=None):
+    def send_search_request(self, txt_filter, metadata_type=None, sort_by=None, sort_asc=0, hide_xxx=True, uuid=None):
         """
         Sends request to max_search_peers from peer list. The request is cached in request cached. The past cache is
         cleared before adding a new search request to prevent incorrect results being pushed to the GUI.
@@ -202,7 +215,7 @@ class GigaChannelCommunity(Community):
         search_request_payload = SearchRequestPayload(
             search_request_cache.number,
             txt_filter.encode('utf8'),
-            metadata_type.encode('utf8'),
+            metadata_type_to_v1_field.get(metadata_type, "").encode('utf8'),  # Compatibility with v1.0
             sort_by.encode('utf8'),
             sort_asc,
             hide_xxx,
@@ -220,16 +233,28 @@ class GigaChannelCommunity(Community):
         # SQL injection. But since we use pony which is supposed to be doing proper variable bindings, it should
         # be relatively safe
         txt_filter = request.txt_filter.decode('utf8')
+
         # Check if the txt_filter is a simple query
         if not is_simple_match_query(txt_filter):
             self.logger.error("Dropping a complex remote search query:%s", txt_filter)
             return
 
-        metadata_type = {
-            "": [REGULAR_TORRENT, CHANNEL_TORRENT],
-            "channel": CHANNEL_TORRENT,
-            "torrent": REGULAR_TORRENT,
-        }.get(request.metadata_type.decode('utf8'), REGULAR_TORRENT)
+        metadata_type = v1_md_field_to_metadata_type.get(
+            request.metadata_type.decode('utf8'), frozenset((REGULAR_TORRENT, CHANNEL_TORRENT))
+        )
+        # If we get a hex-encoded public key in the txt_filter field, we drop the filter,
+        # and instead query by public_key. However, we only do this if there is no channel_pk or
+        # origin_id attributes set, because it is only for support of GigaChannel v1.0 channel preview requests.
+        channel_pk = None
+        normal_filter = txt_filter.replace('"', '').replace("*", "")
+        if (
+            metadata_type == frozenset((REGULAR_TORRENT,))
+            and is_hex_string(normal_filter)
+            and len(normal_filter) % 2 == 0
+            and is_channel_public_key(normal_filter)
+        ):
+            channel_pk = database_blob(unhexlify(normal_filter))
+            txt_filter = None
 
         request_dict = {
             "first": 1,
@@ -240,6 +265,7 @@ class GigaChannelCommunity(Community):
             "hide_xxx": request.hide_xxx,
             "metadata_type": metadata_type,
             "exclude_legacy": True,
+            "channel_pk": channel_pk,
         }
 
         result_blob = None
@@ -276,7 +302,7 @@ class GigaChannelCommunity(Community):
             ]
         if self.notifier and search_results:
             self.notifier.notify(
-                NTFY.CHANNEL_SEARCH_RESULTS, {"uuid": search_request_cache.uuid, "results": search_results}
+                NTFY.REMOTE_QUERY_RESULTS, {"uuid": search_request_cache.uuid, "results": search_results}
             )
 
         # Send the updated metadata if any to the responding peer

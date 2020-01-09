@@ -17,8 +17,7 @@ class EventRequestManager(QNetworkAccessManager):
     """
 
     node_info_updated = pyqtSignal(object)
-    torrent_info_updated = pyqtSignal(object)
-    received_search_result = pyqtSignal(object)
+    received_remote_query_results = pyqtSignal(object)
     tribler_started = pyqtSignal(object)
     upgrader_tick = pyqtSignal(str)
     upgrader_finished = pyqtSignal()
@@ -49,7 +48,6 @@ class EventRequestManager(QNetworkAccessManager):
         self._logger = logging.getLogger('TriblerGUI')
         self.reactions_dict = {
             NTFY.CHANNEL_ENTITY_UPDATED.value: self.node_info_updated.emit,
-            NTFY.TORRENT_INFO_UPDATED.value: self.torrent_info_updated.emit,
             NTFY.TRIBLER_NEW_VERSION.value: lambda data: self.new_version_available.emit(data["version"]),
             NTFY.UPGRADER_DONE.value: lambda _: self.upgrader_finished.emit(),
             NTFY.UPGRADER_TICK.value: lambda data: self.upgrader_tick.emit(data["text"]),
@@ -64,9 +62,9 @@ class EventRequestManager(QNetworkAccessManager):
             "market_payment_sent": self.market_payment_sent.emit,
             NTFY.LOW_SPACE.value: self.low_storage_signal.emit,
             NTFY.CREDIT_MINING_ERROR.value: self.credit_mining_signal.emit,
-            NTFY.CHANNEL_SEARCH_RESULTS.value: self.received_search_result.emit,
+            NTFY.REMOTE_QUERY_RESULTS.value: self.received_remote_query_results.emit,
             NTFY.TRIBLER_SHUTDOWN_STATE.value: self.tribler_shutdown_signal.emit,
-            NTFY.TRIBLER_EXCEPTION.value: self.events_start_received,
+            NTFY.EVENTS_START.value: self.events_start_received,
             NTFY.TRIBLER_STARTED.value: lambda data: self.tribler_started.emit(data["version"]),
         }
 
@@ -104,12 +102,14 @@ class EventRequestManager(QNetworkAccessManager):
                 if len(received_events) > 100:  # Only buffer the last 100 events
                     received_events.pop()
 
-                if json_dict["type"] in self.reactions_dict:
-                    if "event" in json_dict:
-                        self.reactions_dict[json_dict["type"]](json_dict["event"])
+                event_type, event = json_dict.get("type"), json_dict.get("event")
+                reaction = self.reactions_dict.get(event_type)
+                if reaction:
+                    if event:
+                        reaction(event)
                     else:
-                        self.reactions_dict[json_dict["type"]]()
-                elif json_dict["type"] == NTFY.TRIBLER_EXCEPTION.value:
+                        reaction()
+                elif event_type == NTFY.TRIBLER_EXCEPTION.value:
                     raise RuntimeError(json_dict["event"]["text"])
             self.current_event_string = ""
 

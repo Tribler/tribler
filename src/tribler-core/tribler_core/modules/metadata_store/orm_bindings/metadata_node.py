@@ -1,7 +1,3 @@
-from binascii import unhexlify
-
-from ipv8.database import database_blob
-
 from pony import orm
 from pony.orm import db_session, desc, raw_sql, select
 
@@ -9,7 +5,6 @@ from tribler_core.modules.metadata_store.orm_bindings.channel_node import LEGACY
 from tribler_core.modules.metadata_store.orm_bindings.torrent_metadata import NULL_KEY_SUBST
 from tribler_core.modules.metadata_store.serialization import METADATA_NODE, MetadataNodePayload
 from tribler_core.utilities.unicode import hexlify
-from tribler_core.utilities.utilities import is_channel_public_key, is_hex_string
 
 
 def define_binding(db):
@@ -78,20 +73,6 @@ def define_binding(db):
             """
             # Warning! For Pony magic to work, iteration variable name (e.g. 'g') should be the same everywhere!
             # Filter the results on a keyword or some keywords
-
-            # FIXME: it is dangerous to mix query attributes. Should be handled by higher level methods instead
-            # If we get a hex-encoded public key in the txt_filter field, we drop the filter,
-            # and instead query by public_key. However, we only do this if there is no
-            # channel_pk or origin_id attributes set, because we only want this special treatment of txt_filter
-            # argument for global search queries. In other words, named arguments have priority over hacky shenaningans
-            if txt_filter:
-                normal_filter = txt_filter.replace('"', '').replace("*", "")
-                if is_hex_string(normal_filter) and len(normal_filter) % 2 == 0:
-                    query_blob = database_blob(unhexlify(normal_filter))
-                    if is_channel_public_key(normal_filter):
-                        if (origin_id is None) and not channel_pk:
-                            channel_pk = query_blob
-                            txt_filter = None
 
             pony_query = cls.search_keyword(txt_filter, lim=1000) if txt_filter else select(g for g in cls)
 

@@ -11,6 +11,19 @@ from tribler_core.modules.metadata_store.serialization import REGULAR_TORRENT
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 
 
+def sanitize_for_fts(text):
+    return text.translate({ord(u"\""): u"\"\"", ord(u"\'"): u"\'\'"})
+
+
+def to_fts_query(text):
+    if not text:
+        return ""
+    words = text.strip().split(" ")
+    # TODO: add support for quoted exact searches
+    query_list = [u'\"' + sanitize_for_fts(word) + u'\"*' for word in words]
+    return " AND ".join(query_list)
+
+
 class TriblerTableViewController(QObject):
     """
     Base controller for a table view that displays some data.
@@ -47,7 +60,7 @@ class TriblerTableViewController(QObject):
         return sort_by, sort_asc
 
     def _on_filter_input_change(self, _):
-        self.model.text_filter = self.filter_input.text().lower()
+        self.model.text_filter = to_fts_query(self.filter_input.text().lower())
         self.model.reset()
 
 
@@ -88,15 +101,14 @@ class TableSelectionMixin(object):
 
 class TorrentHealthDetailsMixin(object):
     def update_health_details(self, update_dict):
-        if self.details_container.isHidden() or not self.details_container.torrent_info:
-            return
-
-        if self.details_container.torrent_info["infohash"] == update_dict["infohash"]:
+        if (
+            self.details_container.torrent_info
+            and self.details_container.torrent_info["infohash"] == update_dict["infohash"]
+        ):
             self.details_container.torrent_info.update(update_dict)
             self.details_container.update_health_label(
                 update_dict["num_seeders"], update_dict["num_leechers"], update_dict["last_tracker_check"]
             )
-            self.model.update_node_info(update_dict)
 
 
 class ContextMenuMixin(object):

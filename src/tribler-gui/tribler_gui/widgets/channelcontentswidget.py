@@ -1,4 +1,5 @@
 import os
+import uuid
 from base64 import b64encode
 
 from PyQt5 import uic
@@ -14,7 +15,12 @@ from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import get_gui_setting, get_image_path, get_ui_file_path
-from tribler_gui.widgets.tablecontentmodel import ChannelContentModel
+from tribler_gui.widgets.tablecontentmodel import (
+    ChannelContentModel,
+    DiscoveredChannelsModel,
+    PersonalChannelsModel,
+    SearchResultsModel,
+)
 from tribler_gui.widgets.torrentdetailstabwidget import TorrentDetailsTabWidget
 from tribler_gui.widgets.triblertablecontrollers import ContentTableViewController
 
@@ -113,7 +119,7 @@ class ChannelContentsWidget(widget_form, widget_class):
             self.content_table, self.details_container, self.channel_torrents_filter_input
         )
 
-        self.window().core_manager.events_manager.torrent_info_updated.connect(self.controller.update_health_details)
+        self.window().core_manager.events_manager.node_info_updated.connect(self.controller.update_health_details)
         self.splitter.splitterMoved.connect(self.controller.brain_dead_refresh)
 
         # To reload the preview
@@ -164,6 +170,11 @@ class ChannelContentsWidget(widget_form, widget_class):
         self.channels_stack.append(model)
         self.model.info_changed.connect(self.on_model_info_changed)
 
+        self.window().core_manager.events_manager.received_remote_query_results.connect(
+            self.model.on_new_entry_received
+        )
+        self.window().core_manager.events_manager.node_info_updated.connect(self.model.update_node_info)
+
         with self.freeze_controls():
             self.category_selector.setCurrentIndex(0)
             self.content_table.horizontalHeader().setSortIndicator(-1, Qt.AscendingOrder)
@@ -192,7 +203,6 @@ class ChannelContentsWidget(widget_form, widget_class):
 
     def initialize_root_model(self, root_model):
         self.empty_channels_stack()
-        # self.window().core_manager.events_manager.node_info_updated.connect(self.model.update_node_info)
         self.push_channels_stack(root_model)
         self.controller.set_model(self.model)
 
@@ -205,6 +215,10 @@ class ChannelContentsWidget(widget_form, widget_class):
 
     def disconnect_current_model(self):
         self.model.info_changed.disconnect()
+        self.window().core_manager.events_manager.node_info_updated.disconnect(self.model.update_node_info)
+        self.window().core_manager.events_manager.received_remote_query_results.disconnect(
+            self.model.on_new_entry_received
+        )
         self.controller.unset_model()  # Disconnect the selectionChanged signal
 
     def go_back(self):
@@ -236,14 +250,18 @@ class ChannelContentsWidget(widget_form, widget_class):
     #    self.tray_show_message("Copied channel ID", self.channel_info["public_key"])
 
     def preview_clicked(self):
-        params = {
-            'txt_filter': self.model.channel_info["public_key"],
-            'metadata_type': 'torrent',
-            'rest_endpoint_url': 'search',
-            'first': 1,
-            'last': 50,
-        }
-        self.model.perform_query(**params)
+        request_uuid = uuid.uuid4()
+        self.model.remote_queries.add(request_uuid)
+        params = {'uuid': request_uuid}
+
+        if "public_key" in self.model.channel_info:
+            # This is a channel contents query, limit the search by channel_pk and torrent md type
+            params.update({'metadata_type': 'torrent', 'channel_pk': self.model.channel_info["public_key"]})
+        elif self.model.text_filter:
+            # GigaChannel Community v1.0 does not support searching for text in a specific channel
+            params.update({'txt_filter': self.model.text_filter})
+
+        TriblerNetworkRequest('remote_query', None, method="PUT", url_params=params)
 
     def create_new_channel(self):
         self.model.create_new_channel()
@@ -254,7 +272,6 @@ class ChannelContentsWidget(widget_form, widget_class):
         self.controller.set_model(self.model)
         self.controller.table_view.resizeEvent(None)
 
-        self.channel_preview_button.setHidden(channel_info['state'] in ('Complete', 'Legacy', 'Personal'))
         self.content_table.setFocus()
         self.details_container.hide()
         self.channel_options_button.show()
@@ -266,7 +283,12 @@ class ChannelContentsWidget(widget_form, widget_class):
         personal = self.model.channel_info.get("state", None) == "Personal"
         root = len(self.channels_stack) == 1
         legacy = self.model.channel_info.get("state", None) == "Legacy"
+        complete = self.model.channel_info.get("state", None) == "Complete"
+        search = isinstance(self.model, SearchResultsModel)
+        discovered = isinstance(self.model, DiscoveredChannelsModel)
+        personal_model = isinstance(self.model, PersonalChannelsModel)
 
+        self.category_selector.setHidden(root and (discovered or personal_model))
         # initialize the channel page
         self.channel_name_label.setText(self.model.channel_info['name'])
 
@@ -279,7 +301,7 @@ class ChannelContentsWidget(widget_form, widget_class):
         if not personal and not root:
             self.subscription_widget.update_subscribe_button(self.model.channel_info)
 
-        self.channel_preview_button.setHidden(root or personal or legacy)
+        self.channel_preview_button.setHidden((root and not search) or personal or legacy or complete)
         self.channel_state_label.setHidden(root or personal)
 
         self.commit_control_bar.setHidden(self.autocommit_enabled or not dirty or root)
@@ -465,7 +487,7 @@ class ChannelContentsWidget(widget_form, widget_class):
             # FIXME: dumb hack to adapt torrents PUT endpoint output to the info_changed signal
             # If thousands of torrents were added, we don't want to post them all in a single
             # REST response. Instead, we always provide the total number of new torrents.
-            # If we add a single torrent though, the endpoint will return it as a dict, though.
+            # If we add a single torrent though, the endpoint will return it as a dict.
             # However, on_model_info_changed always expects a list of changed entries.
             # So, we make up the list.
             results_list = result['added']
