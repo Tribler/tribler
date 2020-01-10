@@ -1,5 +1,7 @@
+import json
 from asyncio import CancelledError, Future, ensure_future
 from contextlib import suppress
+from pprint import pprint
 
 from aiohttp import ClientSession
 
@@ -37,9 +39,9 @@ class TestEventsEndpoint(AbstractApiTest):
                 await response.content.readline()
                 self.connected_future.set_result(None)
                 while True:
-                    await response.content.readline()
-                    self.messages_to_wait_for -= 1
-                    if self.messages_to_wait_for == 0:
+                    msg = await response.content.readline()
+                    self.messages_to_wait_for.remove(json.loads(msg)["type"])
+                    if not self.messages_to_wait_for:
                         self.events_future.set_result(None)
                         break
 
@@ -52,19 +54,19 @@ class TestEventsEndpoint(AbstractApiTest):
         # self.session.notifier.notify(NTFY_TORRENT, NTFY_ERROR, b'a' * 10, 'This is an error message', False)
         testdata = {
             NTFY.CHANNEL_ENTITY_UPDATED: {"state": "Complete"},
-            NTFY.UPGRADER_STARTED: None,
-            NTFY.UPGRADER_TICK: None,
+            NTFY.UPGRADER_TICK: ("bla", ),
             NTFY.UPGRADER_DONE: None,
-            NTFY.WATCH_FOLDER_CORRUPT_FILE: None,
-            NTFY.TRIBLER_NEW_VERSION: None,
-            NTFY.CHANNEL_DISCOVERED: None,
+            NTFY.WATCH_FOLDER_CORRUPT_FILE: ("foo", ),
+            NTFY.TRIBLER_NEW_VERSION: ("123",),
+            NTFY.CHANNEL_DISCOVERED: {"result": "bla"},
             NTFY.TORRENT_FINISHED: (b'a' * 10, None, False),
-            NTFY.LOW_SPACE: {},
+            NTFY.LOW_SPACE: ("", ),
             NTFY.CREDIT_MINING_ERROR: {"message": "Some credit mining error"},
             NTFY.TUNNEL_REMOVE: (Circuit(1234, None), 'test'),
-            NTFY.CHANNEL_SEARCH_RESULTS: {"query": "test", "results": []},
+            NTFY.CHANNEL_SEARCH_RESULTS: {"query": "test"},
         }
-        self.messages_to_wait_for = len(testdata)
+        self.messages_to_wait_for = set(k.value for k in testdata.keys())
+        self.messages_to_wait_for.add(NTFY.TRIBLER_EXCEPTION.value)
         for subject, data in testdata.items():
             if data:
                 self.session.notifier.notify(subject, *data)

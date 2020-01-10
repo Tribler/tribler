@@ -98,3 +98,5 @@ class NTFY(Enum):
     CHANNEL_ENTITY_UPDATED = "channel_entity_updated"
     CREDIT_MINING_ERROR = "credit_mining_error"
     LOW_SPACE = "low_space"
+    EVENTS_START = "events_start"
+    TRIBLER_EXCEPTION = "tribler_exception"
