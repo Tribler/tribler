@@ -43,10 +43,10 @@ reactions_dict = {
     NTFY.TRIBLER_SHUTDOWN_STATE: passthrough,
     # Remote GigaChannel search results were received by Tribler. Contains received entries.
     NTFY.CHANNEL_SEARCH_RESULTS: passthrough,
-    # Tribler is low on disk space for storing torrents
-    NTFY.LOW_SPACE: passthrough,
     # An indicator that Tribler has completed the startup procedure and is ready to use.
     NTFY.TRIBLER_STARTED: lambda *_: {"version": version_id},
+    # Tribler is low on disk space for storing torrents
+    NTFY.LOW_SPACE: passthrough,
 }
 
 
@@ -65,7 +65,7 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
         self.events_responses = []
         for event_type, event_lambda in reactions_dict.items():
             self.session.notifier.add_observer(event_type,
-                                      lambda *args: self.write_data(
+                                      lambda *args, event_lambda=event_lambda, event_type=event_type: self.write_data(
                                           {"type": event_type.value,
                                            "event": event_lambda(*args)}))
 
@@ -77,20 +77,13 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
                     "bytes_down": circuit.bytes_down,
                     "uptime": time.time() - circuit.creation_time
                 }
-                self.write_data({"type": "circuit_removed", "event": event})
+                self.write_data({"type": NTFY.TUNNEL_REMOVE.value, "event": event})
 
         # Tribler tunnel circuit has been removed
         self.session.notifier.add_observer(NTFY.TUNNEL_REMOVE, on_circuit_removed)
 
     def setup_routes(self):
         self.app.add_routes([web.get('', self.get_events)])
-
-    def relay_notification(self, subject, *args):
-        """
-        This is a universal callback responsible for relaying notifications over the events endpoint.
-        """
-        event_type, event_lambda = reactions_dict[subject]
-        self.write_data({"type": event_type, "event": event_lambda(*args)})
 
     def write_data(self, message):
         """
@@ -110,7 +103,7 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
 
     # An exception has occurred in Tribler. The event includes a readable string of the error.
     def on_tribler_exception(self, exception_text):
-        self.write_data({"type": "tribler_exception", "event": {"text": exception_text}})
+        self.write_data({"type": NTFY.TRIBLER_EXCEPTION.value, "event": {"text": exception_text}})
 
     async def get_events(self, request):
         """
@@ -131,7 +124,7 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
                                       headers={'Content-Type': 'text/html'})
         await response.prepare(request)
         # FIXME: Proper start check!
-        await response.write(json.dumps({"type": "events_start",
+        await response.write(json.dumps({"type": NTFY.EVENTS_START.value,
                                          "event": {"tribler_started": True,
                                                    "version": version_id}}).encode('utf-8') + b'\n')
         self.events_responses.append(response)
