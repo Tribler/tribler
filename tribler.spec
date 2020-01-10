@@ -112,7 +112,7 @@ exe = EXE(pyz,
           debug=False,
           strip=False,
           upx=True,
-          console=True,
+          console=show_console,
           icon='build/win/resources/tribler.ico')
 
 coll = COLLECT(exe,
