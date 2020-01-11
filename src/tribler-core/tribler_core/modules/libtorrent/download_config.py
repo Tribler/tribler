@@ -129,7 +129,7 @@ class DownloadConfig(object):
     def get_time_added(self):
         return self.config['download_defaults']['time_added']
 
-    def set_selected_files(self, file_indexes):
+    def set_selected_file_indexes(self, file_indexes):
         """ Select which files in the torrent to download.
         @param file_indexes List of file indexes as ordered in the torrent (e.g. [0,1])
         """
@@ -138,7 +138,7 @@ class DownloadConfig(object):
 
         self.config['download_defaults']['selected_file_indexes'] = file_indexes
 
-    def get_selected_files(self):
+    def get_selected_file_indexes(self):
         """ Returns the list of files selected for download.
         @return A list of file indexes. """
         return self.config['download_defaults']['selected_file_indexes']

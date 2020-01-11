@@ -85,7 +85,7 @@ class VideoServer(ThreadingMixIn, HTTPServer):
         Get the destination directory of the VOD download.
         """
         if download.get_def().is_multifile_torrent():
-            return os.path.join(download.get_content_dest(), download.config.get_selected_files()[0])
+            return os.path.join(download.get_content_dest(), download.config.get_selected_file_indexes()[0])
         else:
             return download.get_content_dest()
 
@@ -153,7 +153,7 @@ class VideoRequestHandler(BaseHTTPRequestHandler):
             # Put download in sequential mode + trigger initial buffering.
             self.wait_for_handle(download)
             if download.get_def().is_multifile_torrent():
-                download.set_selected_files([filename])
+                download.set_selected_file_indexes([fileindex])
             download.config.set_mode(DLMODE_VOD)
             download.resume()
 
@@ -164,7 +164,7 @@ class VideoRequestHandler(BaseHTTPRequestHandler):
             firstbyte, lastbyte = requested_range[0]
             nbytes2send = lastbyte - firstbyte
             self.send_response(206)
-            self.send_header('Content-Range', 'bytes %d-%d/%d' % (firstbyte, lastbyte - 1, length))
+            self.send_header('Content-Range', f'bytes {firstbyte}-{lastbyte - 1}/{length}')
         else:
             firstbyte = 0
             nbytes2send = length
