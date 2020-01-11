@@ -74,8 +74,7 @@ def start_tribler_core(base_path, api_port, api_key):
         process_checker = ProcessChecker(config.get_state_dir())
         if process_checker.already_running:
             return
-        else:
-            process_checker.create_lock_file()
+        process_checker.create_lock_file()
 
         session = Session(config)
 
@@ -130,7 +129,7 @@ if __name__ == "__main__":
             if app.is_running():
                 for arg in sys.argv[1:]:
                     if os.path.exists(arg) and arg.endswith(".torrent"):
-                        app.send_message("file:%s" % arg)
+                        app.send_message(f"file:{arg}")
                     elif arg.startswith('magnet'):
                         app.send_message(arg)
                 sys.exit(1)
@@ -143,11 +142,11 @@ if __name__ == "__main__":
 
         except ImportError as ie:
             logging.exception(ie)
-            error_and_exit("Import Error", "Import error: {0}".format(ie))
+            error_and_exit("Import Error", f"Import error: {ie}")
 
         except TriblerException as te:
             logging.exception(te)
-            error_and_exit("Tribler Exception", "{0}".format(te))
+            error_and_exit("Tribler Exception", f"{te}")
 
         except SystemExit:
             logging.info("Shutting down Tribler")

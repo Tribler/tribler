@@ -132,9 +132,9 @@ class AbstractTriblerGUITest(TestCase):
         widget.render(pixmap, QPoint(), QRegion(widget.rect()))
 
         self.screenshots_taken += 1
-        img_name = 'screenshot_%d.jpg' % self.screenshots_taken
+        img_name = f"screenshot_{self.screenshots_taken}.jpg"
         if name is not None:
-            img_name = 'screenshot_%s.jpg' % name
+            img_name = f"screenshot_{name}.jpg"
 
         screenshots_dir = os.path.join(os.path.dirname(tribler_gui.__file__), 'screenshots')
         if not os.path.exists(screenshots_dir):
@@ -194,7 +194,7 @@ class AbstractTriblerGUITest(TestCase):
             if self.get_attr_recursive(var) is not cmp_var:
                 return
 
-        raise TimeoutException("Variable %s within 10 seconds" % var)
+        raise TimeoutException(f"Variable {var} within 10 seconds")
 
     def wait_for_signal(self, signal, timeout=10, no_args=False):
         self.signal_received = False
@@ -212,7 +212,7 @@ class AbstractTriblerGUITest(TestCase):
             if self.signal_received:
                 return
 
-        raise TimeoutException("Signal %s not raised within 10 seconds" % signal)
+        raise TimeoutException(f"Signal {signal} not raised within 10 seconds")
 
     def wait_for_qtext_edit_populated(self, qtext_edit, timeout=10):
         for _ in range(0, timeout * 1000, 100):
@@ -245,7 +245,7 @@ class TriblerGUITest(AbstractTriblerGUITest):
         """
 
         def on_app_message(msg):
-            self.assertEqual(msg, "file:%s" % TORRENT_UBUNTU_FILE)
+            self.assertEqual(msg, f"file:{TORRENT_UBUNTU_FILE}")
 
         app.messageReceived.connect(on_app_message)
 
@@ -286,12 +286,12 @@ class TriblerGUITest(AbstractTriblerGUITest):
 
     def tst_channels_widget(self, widget, widget_name, sort_column=1):
         self.wait_for_list_populated(widget.content_table)
-        self.screenshot(window, name="%s-page" % widget_name)
+        self.screenshot(window, name=f"{widget_name}-page")
 
         # Sort
         widget.content_table.sortByColumn(sort_column, 1)
         self.wait_for_list_populated(widget.content_table)
-        self.screenshot(window, name="%s-sorted" % widget_name)
+        self.screenshot(window, name=f"{widget_name}-sorted")
         max_items = min(widget.content_table.model().channel_info["total"], 50)
         self.assertLessEqual(widget.content_table.verticalHeader().count(), max_items)
 
@@ -300,14 +300,14 @@ class TriblerGUITest(AbstractTriblerGUITest):
             old_num_items = widget.content_table.verticalHeader().count()
             QTest.keyClick(widget.channel_torrents_filter_input, 'n')
             self.wait_for_list_populated(widget.content_table)
-            self.screenshot(window, name="%s-filtered" % widget_name)
+            self.screenshot(window, name=f"{widget_name}-filtered")
             self.assertLessEqual(widget.content_table.verticalHeader().count(), old_num_items)
 
         # Unsubscribe and subscribe again
         index = self.get_index_of_row(widget.content_table, 0)
         widget.content_table.on_subscribe_control_clicked(index)
         QTest.qWait(200)
-        self.screenshot(window, name="%s-unsubscribed" % widget_name)
+        self.screenshot(window, name=f"{widget_name}-unsubscribed")
         widget.content_table.on_subscribe_control_clicked(index)
         QTest.qWait(200)
 
@@ -315,7 +315,7 @@ class TriblerGUITest(AbstractTriblerGUITest):
         index = self.get_index_of_row(widget.content_table, 0)
         widget.content_table.on_table_item_clicked(index)
         self.wait_for_list_populated(widget.content_table)
-        self.screenshot(window, name="%s-channel_loaded" % widget_name)
+        self.screenshot(window, name=f"{widget_name}-channel_loaded")
 
         # FIXME: credit mining for collections!
         # Toggle credit mining
@@ -326,7 +326,7 @@ class TriblerGUITest(AbstractTriblerGUITest):
         index = self.get_index_of_row(widget.content_table, 0)
         widget.content_table.on_table_item_clicked(index)
         QTest.qWait(100)
-        self.screenshot(window, name="%s-torrent_details" % widget_name)
+        self.screenshot(window, name=f"{widget_name}-torrent_details")
 
     def test_subscriptions(self):
         QTest.mouseClick(window.left_menu_button_subscriptions, Qt.LeftButton)
@@ -540,7 +540,7 @@ class TriblerGUITest(AbstractTriblerGUITest):
         # Logs shown in ui and from the debug endpoint should be same
         window.debug_window.debug_tab_widget.setCurrentIndex(9)
         # logs from FakeTriblerApi
-        fake_logs = ''.join(["Sample log [%d]\n" % i for i in range(10)]).strip()
+        fake_logs = ''.join(f"Sample log [{i}]\n" for i in range(10)).strip()
 
         window.debug_window.log_tab_widget.setCurrentIndex(0)  # Core tab
         self.wait_for_qtext_edit_populated(window.debug_window.core_log_display_area)

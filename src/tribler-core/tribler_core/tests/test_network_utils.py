@@ -18,11 +18,10 @@ class TriblerCoreTestNetworkUtils(TriblerCoreTest):
     @timeout(5)
     async def test_get_random_port_tcp(self):
         rand_port_num = random.randint(*self.get_bucket_range_port())
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.bind(('', rand_port_num))
-        random_port = get_random_port(socket_type='tcp', min_port=rand_port_num, max_port=rand_port_num)
-        self.assertGreaterEqual(random_port, rand_port_num+1)
-        sock.close()
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.bind(('', rand_port_num))
+            random_port = get_random_port(socket_type='tcp', min_port=rand_port_num, max_port=rand_port_num)
+            self.assertGreaterEqual(random_port, rand_port_num+1)
 
     def test_get_random_port_udp(self):
         random_port = get_random_port(socket_type='udp')
