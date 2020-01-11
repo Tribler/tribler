@@ -618,9 +618,9 @@ class LibtorrentDownloadImpl(TaskManager):
     def set_selected_files(self, selected_files=None):
         if not isinstance(self.tdef, TorrentDefNoMetainfo) and not self.get_share_mode():
             if selected_files is None:
-                selected_files = self.config.get_selected_files()
+                selected_files = self.config.get_selected_file_indexes()
             else:
-                self.config.set_selected_files(selected_files)
+                self.config.set_selected_file_indexes(selected_files)
 
             torrent_info = get_info_from_handle(self.handle)
             if not torrent_info or not hasattr(torrent_info, 'files'):
