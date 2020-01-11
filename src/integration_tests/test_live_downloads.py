@@ -4,7 +4,9 @@ import shutil
 import sys
 import time
 import unittest
+from pathlib import Path
 from unittest import skipUnless
+from urllib.request import pathname2url
 
 from PyQt5.QtCore import QPoint, Qt
 from PyQt5.QtGui import QPixmap, QRegion
@@ -15,35 +17,34 @@ import matplotlib.pyplot as plot
 
 import numpy
 
-import run_tribler
-
 from tribler_core.check_os import setup_gui_logging
-from tribler_core.utilities import path_util
-from tribler_core.utilities.path_util import Path, pathname2url
 
 import tribler_gui
 from tribler_gui.tribler_window import TriblerWindow
 from tribler_gui.widgets.home_recommended_item import HomeRecommendedItem
 from tribler_gui.widgets.loading_list_item import LoadingListItem
 
-default_download_dir = Path(__file__).parent / u"Downloads"
-default_output_file = Path(__file__).parent / u"output.csv"
-default_state_dir = Path(__file__).parent / u".Tribler"
-default_timeout = 60000  # milliseconds
-default_num_hops = 1
+import run_tribler
 
-download_dir = os.environ.get("DOWNLOAD_DIR", default_download_dir)
-output_file = os.environ.get("OUTPUT_FILE", default_output_file)
-test_timeout = int(os.environ.get("TEST_TIMEOUT", default_timeout))
-num_hops = int(os.environ.get("TEST_NUM_HOPS", default_num_hops))
+PARENT_DIR = Path(__file__).parent
+DEFAULT_DOWNLOAD_DIR = PARENT_DIR / "Downloads"
+DEFAULT_OUTPUT_FILE = PARENT_DIR / "output.csv"
+DEFAULT_STATE_DIR = PARENT_DIR / ".Tribler"
+DEFAULT_TIMEOUT = 60000  # milliseconds
+DEFAULT_NUM_HOPS = 1
 
-state_dir = default_state_dir
+download_dir = os.environ.get("DOWNLOAD_DIR", DEFAULT_DOWNLOAD_DIR)
+output_file = os.environ.get("OUTPUT_FILE", DEFAULT_OUTPUT_FILE)
+test_timeout = int(os.environ.get("TEST_TIMEOUT", DEFAULT_TIMEOUT))
+num_hops = int(os.environ.get("TEST_NUM_HOPS", DEFAULT_NUM_HOPS))
+
+state_dir = DEFAULT_STATE_DIR
 if os.environ.get("TEST_INTEGRATION") == "yes":
     # Get & set state directory
     if 'TSTATEDIR' in os.environ:
         state_dir = os.environ['TSTATEDIR']
     else:
-        os.environ['TSTATEDIR'] = os.environ.get('TSTATEDIR', default_state_dir)
+        os.environ['TSTATEDIR'] = os.environ.get('TSTATEDIR', DEFAULT_STATE_DIR)
 
     if state_dir and state_dir.exists():
         shutil.rmtree(state_dir, ignore_errors=False, onerror=None)
@@ -54,7 +55,7 @@ if os.environ.get("TEST_INTEGRATION") == "yes":
     # Set up logging before starting the GUI
     setup_gui_logging()
 
-    core_script_file = path_util.abspath(run_tribler.__file__)
+    core_script_file = Path(run_tribler.__file__).resolve()
     core_args = [core_script_file]
 
     # QT App initialization
@@ -216,10 +217,10 @@ class TriblerDownloadTest(AbstractTriblerIntegrationTest):
 
         # Start downloading some torrents
         if 'TORRENTS_DIR' in os.environ:
-            torrent_dir = path_util.Path(os.environ.get('TORRENTS_DIR'))
+            torrent_dir = Path(os.environ.get('TORRENTS_DIR'))
         else:
             torrent_dir = Path(__file__).parent / os.pardir / "data" / "linux_torrents"
-        window.selected_torrent_files = [pathname2url(torrent_file)
+        window.selected_torrent_files = [pathname2url(torrent_file.name)
                                          for torrent_file in torrent_dir.glob("/*.torrent")]
 
         window.on_confirm_add_directory_dialog(0)

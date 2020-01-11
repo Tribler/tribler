@@ -153,7 +153,7 @@ class VideoRequestHandler(BaseHTTPRequestHandler):
             # Put download in sequential mode + trigger initial buffering.
             self.wait_for_handle(download)
             if download.get_def().is_multifile_torrent():
-                download.set_selected_files([filename])
+                download.set_selected_file_indexes([fileindex])
             download.config.set_mode(DLMODE_VOD)
             download.resume()
 
