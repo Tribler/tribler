@@ -98,7 +98,7 @@ class TestVideoServer(TriblerCoreTest):
         mock_download = MockObject()
         mock_download.get_content_dest = lambda: "abc"
         mock_download.config = MockObject()
-        mock_download.config.get_selected_files = lambda: ["def"]
+        mock_download.config.get_selected_file_indexes = lambda: ["def"]
         mock_def = MockObject()
         mock_def.is_multifile_torrent = lambda: True
         mock_download.get_def = lambda: mock_def

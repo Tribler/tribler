@@ -20,7 +20,7 @@ CONFIG_SPEC_PATH = get_lib_path() / 'modules' / 'libtorrent' / SPEC_FILENAME
 NONPERSISTENT_DEFAULTS = {'mode': DLMODE_NORMAL}
 
 
-class DownloadConfig(object):
+class DownloadConfig:
     def __init__(self, config=None, state_dir=None):
         self.config = config or ConfigObj(configspec=CONFIG_SPEC_PATH.to_text(), default_encoding='utf8')
         # Values that should not be stored and should be initialized to some default value
