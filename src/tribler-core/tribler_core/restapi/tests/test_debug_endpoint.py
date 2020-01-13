@@ -107,7 +107,6 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
         log_exists = any((True for log in logs if test_core_log_message in log))
         self.assertTrue(log_exists, "Test log not found in the debug log response")
 
-
     @timeout(10)
     async def test_debug_pane_default_num_logs(self):
         """
