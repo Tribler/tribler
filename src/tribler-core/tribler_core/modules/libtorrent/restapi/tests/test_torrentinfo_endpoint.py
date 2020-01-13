@@ -2,6 +2,7 @@ import json
 import os
 import shutil
 from binascii import unhexlify
+from unittest.mock import Mock
 from urllib.parse import quote_plus
 
 from pony.orm import db_session
@@ -48,7 +49,7 @@ class TestTorrentInfoEndpoint(AbstractApiTest):
             #self.assertTrue(TorrentDef.load_from_dict(metainfo_dict))
             self.assertTrue('info' in metainfo_dict)
 
-        self.session.ltmgr = MockObject()
+        self.session.ltmgr = Mock()
         self.session.ltmgr.download_exists = lambda _: False
         self.session.ltmgr.get_channel_downloads = lambda: []
 
@@ -106,7 +107,7 @@ class TestTorrentInfoEndpoint(AbstractApiTest):
         def get_metainfo(infohash, *_, **__):
             return succeed("abcd")
 
-        self.session.ltmgr = MockObject()
+        self.session.ltmgr = Mock()
         self.session.ltmgr.get_metainfo = get_metainfo
         self.session.ltmgr.shutdown = lambda: succeed(None)
         self.session.ltmgr.shutdown_downloads = lambda: succeed(None)

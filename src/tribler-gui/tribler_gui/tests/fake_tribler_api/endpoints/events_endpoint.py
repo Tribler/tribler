@@ -3,6 +3,8 @@ from asyncio import CancelledError, sleep
 
 from aiohttp import web
 
+from tribler_common.simpledefs import NTFY
+
 from tribler_core.restapi.rest_endpoint import RESTEndpoint, RESTStreamResponse
 
 
@@ -26,9 +28,9 @@ class EventsEndpoint(RESTEndpoint):
         self.event_response = RESTStreamResponse(status=200, reason='OK', headers={'Content-Type': 'text/html'})
         await self.event_response.prepare(request)
         await self.event_response.write(
-            json.dumps({"type": "events_start", "event": {"tribler_started": True, "version": "1.2.3"}}).encode('utf-8')
-            + b'\n'
-        )
+            json.dumps({"type": NTFY.EVENTS_START.value,
+                        "event": {"tribler_started": True,
+                                  "version": "1.2.3"}}).encode('utf-8') + b'\n')
 
         try:
             while True:

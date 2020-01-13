@@ -3,6 +3,7 @@ import os
 import shutil
 import sys
 from unittest import skipIf
+from unittest.mock import Mock
 
 from ipv8.database import database_blob
 from ipv8.keyvault.crypto import default_eccrypto
@@ -94,7 +95,7 @@ class TestChannelsCountEndpoint(BaseTestMetadataEndpoint):
 class TestSpecificChannelEndpoint(BaseTestMetadataEndpoint):
     async def setUp(self):
         await super(TestSpecificChannelEndpoint, self).setUp()
-        self.session.ltmgr = MockObject()
+        self.session.ltmgr = Mock()
         self.session.ltmgr.shutdown = lambda: succeed(True)
         self.session.ltmgr.shutdown_downloads = lambda: succeed(True)
         self.session.ltmgr.checkpoint_downloads = lambda: succeed(True)
@@ -262,7 +263,7 @@ class TestSpecificChannelChannelsEndpoint(AbstractApiTest):
 class TestSpecificChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
     async def setUp(self):
         await super(TestSpecificChannelTorrentsEndpoint, self).setUp()
-        self.session.ltmgr = MockObject()
+        self.session.ltmgr = Mock()
         self.session.ltmgr.shutdown = lambda: succeed(True)
         self.session.ltmgr.shutdown_downloads = lambda: succeed(True)
         self.session.ltmgr.checkpoint_downloads = lambda: succeed(True)
