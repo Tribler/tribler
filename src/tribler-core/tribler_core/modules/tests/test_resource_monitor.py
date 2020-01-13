@@ -72,7 +72,7 @@ class TestResourceMonitor(TriblerCoreTest):
 
         self.resource_monitor.check_resources()
 
-        self.assertListEqual([], self.resource_monitor.memory_data)
+        self.assertEqual(len(self.resource_monitor.memory_data), 1)
 
     def test_low_disk_notification(self):
         """
