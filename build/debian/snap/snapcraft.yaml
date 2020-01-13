@@ -1,0 +1,115 @@
+name: tribler-bittorrent
+version: __VERSION__
+summary: Tribler
+description: >
+  Peer-to-peer Bittorrent client with enhanced privacy. Search and download torrents with less worries or censorship.
+grade: devel
+confinement: devmode
+base: core18
+
+architectures:
+  - build-on: amd64
+
+parts:
+  desktop-qt5:
+    source: https://github.com/ubuntu/snapcraft-desktop-helpers.git
+    source-subdir: qt
+    plugin: make
+    make-parameters: ["FLAVOR=qt5"]
+    build-packages:
+      - build-essential
+      - qtbase5-dev
+      - dpkg-dev
+    stage-packages:
+      - libxkbcommon0
+      - ttf-ubuntu-font-family
+      - dmz-cursor-theme
+      - light-themes
+      - adwaita-icon-theme
+      - gnome-themes-standard
+      - shared-mime-info
+      - libqt5gui5
+      - libgdk-pixbuf2.0-0
+      - libqt5svg5 # for loading icon themes which are svg
+      - try: [appmenu-qt5] # not available on core18
+      - locales-all
+      - xdg-user-dirs
+      - fcitx-frontend-qt5
+      - libblkid1
+      - libc6
+      - libgcc1
+      - libgcrypt20
+      - libgpg-error0
+      - liblzma5
+      - libmount1
+      - libselinux1
+      - libstdc++6
+      - libsystemd0
+      - libtinfo5
+      - libudev1
+      - libuuid1
+      - zlib1g
+  tribler:
+    after:
+      - desktop-qt5
+    plugin: dump
+    source: .
+    override-build: |
+      snapcraftctl build
+      cp -r tribler/usr/bin/tribler  $SNAPCRAFT_PART_INSTALL/usr/bin/tribler
+      cp -r tribler/usr/share/applications  $SNAPCRAFT_PART_INSTALL/usr/share
+      cp -r tribler/usr/share/pixmaps  $SNAPCRAFT_PART_INSTALL/usr/share
+      cp -r tribler/usr/share/tribler  $SNAPCRAFT_PART_INSTALL/usr/share/
+      chmod +x $SNAPCRAFT_PART_INSTALL/usr/share/tribler/tribler
+    stage-packages:
+      - libgpm2
+      - libglu1-mesa
+      - libslang2
+      - libatlas-base-dev
+      - libblas3
+      - libblas-dev
+      - libxcomposite1
+      - libxcursor1
+      - libxinerama1
+      - libatk1.0-0
+      - libgtk2.0-0
+      - liblapack3
+      - libx11-xcb1
+      - libxcb-xkb1
+      - libxcb-icccm4
+      - libxcb-image0
+      - libxcb-render-util0
+      - vlc
+      - libappindicator3-1
+      - libasound2
+      - libcurl3-gnutls
+      - libgconf-2-4
+      - libgtk-3-0
+      - libnotify4
+      - libnspr4
+      - libnss3
+      - libpcre3
+      - libpulse0
+      - libxss1
+      - libxtst6
+      - libsodium23
+      - libacl1
+      - libattr1
+      - libc6
+      - libdb5.3
+      - libncurses5
+      - libncursesw5
+      - libtinfo5
+
+apps:
+  tribler-bittorrent:
+    command: desktop-launch ${SNAP}/usr/share/tribler/tribler
+    plugs:
+      - desktop
+      - desktop-legacy
+      - home
+      - network
+      - network-bind
+      - unity7
+      - pulseaudio
+      - network-manager
