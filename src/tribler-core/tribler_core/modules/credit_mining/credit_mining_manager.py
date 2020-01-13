@@ -113,7 +113,7 @@ class CreditMiningManager(TaskManager):
             await gather(*[self.remove_source(source) for source in list(self.sources.keys())])
 
     def get_free_disk_space(self):
-        return psutil.disk_usage(self.settings.save_path).free
+        return psutil.disk_usage(self.settings.save_path.to_text()).free
 
     def check_mining_directory(self):
         # Check that credit mining directory exists, if not try to re-create it.
