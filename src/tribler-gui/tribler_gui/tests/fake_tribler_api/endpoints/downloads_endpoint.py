@@ -1,4 +1,3 @@
-import cgi
 from binascii import unhexlify
 
 from aiohttp import web
@@ -35,13 +34,6 @@ class DownloadsEndpoint(RESTEndpoint):
         )
 
     async def add_download(self, request):
-        headers = request.getAllHeaders()
-        cgi.FieldStorage(
-            fp=request.content,
-            headers=headers,
-            environ={'REQUEST_METHOD': 'POST', 'CONTENT_TYPE': headers[b'content-type']},
-        )
-
         # Just start a fake download
         tribler_utils.tribler_data.start_random_download()
 
