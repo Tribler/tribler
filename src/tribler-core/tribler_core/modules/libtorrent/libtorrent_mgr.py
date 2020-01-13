@@ -689,6 +689,9 @@ class LibtorrentMgr(TaskManager):
         self._logger.debug("Starting the download state callback with interval %f", interval)
         self.replace_task("download_states_lc", self._invoke_states_cb, user_callback, interval=interval)
 
+    def stop_download_states_callback(self):
+        return self.cancel_pending_task("download_states_lc")
+
     async def _invoke_states_cb(self, callback):
         """
         Invoke the download states callback with a list of the download states.

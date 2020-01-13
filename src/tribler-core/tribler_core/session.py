@@ -533,6 +533,9 @@ class Session(TaskManager):
         # to 'TRUE', RESTManager will no longer accepts any new requests.
         os.environ['TRIBLER_SHUTTING_DOWN'] = "TRUE"
 
+        if self.ltmgr:
+            self.ltmgr.stop_download_states_callback()
+
         await self.shutdown_task_manager()
 
         self.shutdownstarttime = timemod.time()

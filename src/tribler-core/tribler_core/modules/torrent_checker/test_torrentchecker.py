@@ -1,6 +1,7 @@
 import os
 import socket
 import time
+from unittest.mock import Mock
 
 from pony.orm import db_session
 
@@ -8,7 +9,6 @@ from tribler_core.modules.metadata_store.orm_bindings.channel_node import LEGACY
 from tribler_core.modules.torrent_checker.torrent_checker import TorrentChecker
 from tribler_core.modules.torrent_checker.torrentchecker_session import HttpTrackerSession, UdpSocketManager
 from tribler_core.modules.tracker_manager import TrackerManager
-from tribler_core.tests.tools.base_test import MockObject
 from tribler_core.tests.tools.test_as_server import TestAsServer
 from tribler_core.tests.tools.tools import timeout
 from tribler_core.utilities.unicode import hexlify
@@ -36,7 +36,7 @@ class TestTorrentChecker(TestAsServer):
         def get_metainfo(_, callback, **__):
             callback({"seeders": 1, "leechers": 2})
 
-        self.session.ltmgr = MockObject()
+        self.session.ltmgr = Mock()
         self.session.ltmgr.get_metainfo = get_metainfo
         self.session.ltmgr.shutdown = lambda: succeed(None)
         self.session.ltmgr.shutdown_downloads = lambda: succeed(None)
