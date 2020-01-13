@@ -97,6 +97,8 @@ class BaseTestCase(asynctest.TestCase):
         This is here to make sure that tests in different buckets get assigned different listen ports.
         Also, make sure that we have no duplicates in selected ports.
         """
+        rstate = random.getstate()
+        random.seed()
         ports = []
         for _ in range(count):
             min_base_port, max_base_port = self.get_bucket_range_port()
@@ -105,6 +107,7 @@ class BaseTestCase(asynctest.TestCase):
                 selected_port = get_random_port(min_port=min_base_port, max_port=max_base_port)
             self.selected_ports.add(selected_port)
             ports.append(selected_port)
+        random.setstate(rstate)
         return ports
 
     def get_port(self):
