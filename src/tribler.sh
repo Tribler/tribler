@@ -1,7 +1,7 @@
 #!/bin/sh
 # Run Tribler from source tree
 
-function script_path() {
+script_path() {
   DIR="${1%/*}"
   (cd "$DIR" && echo "$(pwd -P)")
 }
