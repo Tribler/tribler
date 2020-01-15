@@ -108,7 +108,11 @@
          <string notr="true">border: none;</string>
         </property>
         <property name="text">
-         <string/>
+         <string>BACK</string>
+        </property>
+        <property name="icon">
+         <iconset>
+          <normaloff>../images/page_back.png</normaloff>../images/page_back.png</iconset>
         </property>
        </widget>
       </item>
@@ -156,6 +160,9 @@ font-weight: bold;</string>
         </property>
         <property name="text">
          <string>Some fancy channel</string>
+        </property>
+        <property name="textInteractionFlags">
+         <set>Qt::LinksAccessibleByMouse</set>
         </property>
        </widget>
       </item>
@@ -213,7 +220,7 @@ color: #B5B5B5;</string>
        </widget>
       </item>
       <item>
-       <spacer name="horizontalSpacer_16">
+       <spacer name="horizontalSpacer_60">
         <property name="orientation">
          <enum>Qt::Horizontal</enum>
         </property>
@@ -267,13 +274,16 @@ background-color: transparent;
        </widget>
       </item>
       <item>
-       <spacer name="horizontalSpacer_60">
+       <spacer name="horizontalSpacer_16">
         <property name="orientation">
          <enum>Qt::Horizontal</enum>
         </property>
+        <property name="sizeType">
+         <enum>QSizePolicy::Expanding</enum>
+        </property>
         <property name="sizeHint" stdset="0">
          <size>
-          <width>40</width>
+          <width>10</width>
           <height>20</height>
          </size>
         </property>
@@ -319,9 +329,8 @@ background-color: transparent;
          </size>
         </property>
         <property name="styleSheet">
-         <string notr="true">QLineEdit {
-border-radius: 3px;
-}
+         <string notr="true">QLineEdit{ background-color:#303030;
+border-radius: 3px;}
 QLineEdit:focus, QLineEdit::hover {
 background-color: #404040;
 color: white;

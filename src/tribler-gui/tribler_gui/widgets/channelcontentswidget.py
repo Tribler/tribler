@@ -112,6 +112,7 @@ class ChannelContentsWidget(widget_form, widget_class):
         self.category_selector.currentIndexChanged.connect(self.on_category_selector_changed)
         self.channel_back_button.setIcon(QIcon(get_image_path('page_back.png')))
         self.channel_back_button.clicked.connect(self.go_back)
+        self.channel_name_label.linkActivated.connect(self.go_back_to_level)
         self.channel_options_button.clicked.connect(self.show_channel_options)
         self.commit_control_bar.setHidden(True)
 
@@ -241,6 +242,11 @@ class ChannelContentsWidget(widget_form, widget_class):
             self.model.info_changed.connect(self.on_model_info_changed)
             self.update_labels()
 
+    def go_back_to_level(self, level):
+        level = int(level)
+        while level + 1 < len(self.channels_stack):
+            self.go_back()
+
     def on_channel_clicked(self, channel_dict):
         self.initialize_with_channel(channel_dict)
 
@@ -290,8 +296,21 @@ class ChannelContentsWidget(widget_form, widget_class):
 
         self.category_selector.setHidden(root and (discovered or personal_model))
         # initialize the channel page
-        self.channel_name_label.setText(self.model.channel_info['name'])
 
+        # Assemble the channels navigation breadcrumb by utilising RichText links feature
+        self.channel_name_label.setTextFormat(Qt.RichText)
+        breadcrumb_text = ""
+        for m, model in enumerate(self.channels_stack[:-1]):
+            breadcrumb_text += (
+                f'<a style="text-decoration:none;color:#A5A5A5;" href="{m}">{model.channel_info["name"]}</a>'
+            )
+            breadcrumb_text += '<font color=#A5A5A5>  /  </font>'
+        breadcrumb_text += f'{self.model.channel_info["name"]}'
+
+        self.channel_name_label.setText(breadcrumb_text)
+        self.channel_name_label.setTextInteractionFlags(Qt.TextBrowserInteraction)
+
+        self.channel_back_button.setHidden(root)
         self.channel_options_button.setHidden(not personal or root)
         self.new_channel_button.setHidden(not personal)
 
