@@ -5,8 +5,9 @@ import sys
 from asyncio import ensure_future, get_event_loop
 
 import tribler_core
-import tribler_gui
 from tribler_core.dependencies import check_for_missing_dependencies
+
+import tribler_gui
 
 # https://github.com/Tribler/tribler/issues/3702
 # We need to make sure that anyone running cp65001 can print to the stdout before we print anything.
