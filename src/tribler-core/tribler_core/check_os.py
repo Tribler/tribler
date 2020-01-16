@@ -1,4 +1,4 @@
-import logging.config
+import logging
 import os
 import sys
 import tempfile
@@ -59,40 +59,6 @@ def check_free_space():
                            "Please free up some space and run Tribler again.")
     except ImportError as ie:
         error_and_exit("Import Error", "Import error: {0}".format(ie))
-
-
-def setup_gui_logging():
-    setup_logging(gui=True)
-
-
-def setup_core_logging():
-    setup_logging(gui=False)
-
-
-def setup_logging(gui=False):
-    """
-    Setup logging to write logs to files inside \
-    .Tribler directory in each platforms
-    """
-    # First check if logger.conf is present or not
-    base_path = path_util.Path(getattr(sys, '_MEIPASS') if hasattr(sys, '_MEIPASS') else os.path.dirname(__file__))
-    log_config = base_path / "logger.conf"
-
-    if not log_config.exists():
-        print("Log configuration file not found at location '%s'" % log_config)
-        return
-
-    log_directory = TriblerConfig().get_log_dir()
-
-    if not log_directory.exists():
-        path_util.makedirs(log_directory)
-
-    info_filename = 'tribler-gui-info.log' if gui else 'tribler-core-info.log'
-    error_filename = 'tribler-gui-error.log' if gui else 'tribler-core-error.log'
-
-    logging.info_log_file = log_directory / info_filename
-    logging.error_log_file = log_directory / error_filename
-    logging.config.fileConfig(log_config, disable_existing_loggers=False)
 
 
 def get_existing_tribler_pid():

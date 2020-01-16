@@ -1,0 +1,75 @@
+# File: tribler_gui/logger.yaml
+# Look to tribler_common/logger/config.yaml for description and example configuration.
+
+version: 1
+disable_existing_loggers: false
+filters:
+    info_filter:
+        () : tribler_common.logger.InfoFilter
+    error_filter:
+        (): tribler_common.logger.ErrorFilter
+
+# Logging formatter
+formatters:
+    standard:
+        format: "[PID:%(process)d] %(asctime)s - %(levelname)s - %(name)s(%(lineno)d) - %(message)s"
+    error:
+        format: "[PID:%(process)d] %(asctime)s - %(levelname)s <%(module)s:%(lineno)d> %(name)s.%(funcName)s(): %(message)s"
+
+# Logging handlers
+handlers:
+    info_file_handler:
+        class: logging.handlers.RotatingFileHandler
+        level: INFO
+        formatter: standard
+        filename: TRIBLER_INFO_LOG_FILE
+        maxBytes: 10485760
+        backupCount: 5
+        encoding: utf8
+
+    info_memory_handler:
+        class: logging.handlers.MemoryHandler
+        level: INFO
+        target: info_file_handler
+        capacity: 1024
+
+    error_file_handler:
+        class: logging.handlers.RotatingFileHandler
+        level: ERROR
+        formatter: error
+        filename: TRIBLER_ERROR_LOG_FILE
+        maxBytes: 10485760
+        backupCount: 5
+        encoding: utf8
+
+    error_memory_handler:
+        class: logging.handlers.MemoryHandler
+        level: ERROR
+        target: error_file_handler
+        capacity: 1024
+
+    console:
+        class: logging.StreamHandler
+        level: DEBUG
+        formatter: standard
+        filters: [info_filter]
+        stream: ext://sys.stdout
+
+    error_console:
+        class: logging.StreamHandler
+        level: ERROR
+        formatter: error
+        stream: ext://sys.stderr
+
+# Root Logger Configuration
+root:
+    level: NOTSET
+    handlers: [console, error_console, info_memory_handler, error_memory_handler]
+    propagate: yes
+
+# Module level configuration
+loggers:
+    TriblerGUI:
+        level: INFO
+        handlers: [console, error_console, info_memory_handler, error_memory_handler]
+        propagate: no
