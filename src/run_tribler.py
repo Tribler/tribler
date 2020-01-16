@@ -4,6 +4,8 @@ import signal
 import sys
 from asyncio import ensure_future, get_event_loop
 
+import tribler_core
+import tribler_gui
 from tribler_core.dependencies import check_for_missing_dependencies
 
 # https://github.com/Tribler/tribler/issues/3702
@@ -33,8 +35,8 @@ def start_tribler_core(base_path, api_port, api_key):
     Note that there is no direct communication between the GUI process and the core: all communication is performed
     through the HTTP API.
     """
-    from tribler_core.check_os import check_and_enable_code_tracing, set_process_priority, setup_core_logging
-    setup_core_logging()
+    from tribler_core.check_os import check_and_enable_code_tracing, set_process_priority
+    tribler_core.load_logger_config()
 
     from tribler_core.config.tribler_config import TriblerConfig
     from tribler_core.modules.process_checker import ProcessChecker
@@ -98,12 +100,15 @@ if __name__ == "__main__":
         api_key = os.environ['CORE_API_KEY']
         start_tribler_core(base_path, api_port, api_key)
     else:
+        # Set up logging
+        tribler_gui.load_logger_config()
+
         # Check for missing both(GUI, Core) dependencies
         check_for_missing_dependencies(scope='both')
 
         # Do imports only after dependencies check
         from tribler_core.check_os import check_and_enable_code_tracing, check_environment, check_free_space, enable_fault_handler, \
-            error_and_exit, setup_gui_logging, should_kill_other_tribler_instances
+            error_and_exit, should_kill_other_tribler_instances
         from tribler_core.exceptions import TriblerException
 
         try:
@@ -118,9 +123,6 @@ if __name__ == "__main__":
             should_kill_other_tribler_instances()
 
             check_free_space()
-
-            # Set up logging
-            setup_gui_logging()
 
             from tribler_gui.tribler_app import TriblerApplication
             from tribler_gui.tribler_window import TriblerWindow

@@ -1,0 +1,103 @@
+# File: tribler_common/logger/config.yaml
+
+
+# Default Configuration
+version: 1
+
+# Disable previously created loggers and update the root logger at the instant
+#the configuration file is fed.
+disable_existing_loggers: true
+
+# Refer filter block for detailed explanation
+filters:
+    # These are callable modules, where we define class for a filter, upon
+    #execution an object for the class will be created by log manager
+    # Format:
+    # filter_name:
+    #       () : filter class path
+    info_filter:
+        () : tribler_common.logger.InfoFilter
+    error_filter:
+        (): tribler_common.logger.ErrorFilter
+
+# Logging formatter definition
+# For more details on format types,
+# visit - 'https://docs.python.org/3/library/logging.html#logrecord-attributes
+formatters:
+    # Format:
+    # formatter_name:
+    #         format: "fmt_specified using pre-defined variables"
+    standard:
+        format: "%(asctime)s - %(levelname)s - %(name)s(%(lineno)d) - %(message)s"
+    error:
+        format: "%(asctime)s - %(levelname)s <PID %(process)d:%(processName)s> %(name)s.%(funcName)s(): %(message)s"
+
+# Logging handlers
+# Console and Error Console belongs to StreamHandler whereas info_file_handler belongs to Rotating File Handler
+# For a list of pre-defined handlers, visit - 'https://docs.python.org/3/library/logging.handlers.html#module-logging.handlers'
+handlers:
+    # Format:
+    # handler_name:
+    #       handler_attributes: attribute values
+    info_file_handler:
+        # Class Attribute - Define FileHandler, StreamHandler among other handlers
+        class: logging.handlers.RotatingFileHandler
+        # Handler Level
+        level: INFO
+        # Custom Format defined in formatter block
+        formatter: standard
+        # File Name
+        filename: /tmp/info.log
+        # Max store value - 10 MB
+        maxBytes: 10485760
+        # Backup count - Rollover attribute
+        backupCount: 5
+        # Log format encoding
+        encoding: utf8
+
+    error_file_handler:
+        # Class Attribute - Define FileHandler, StreamHandler among other handlers
+        class: logging.handlers.RotatingFileHandler
+        # Handler Level
+        level: ERROR
+        # Custom Format defined in formatter block
+        formatter: error
+        # File Name
+        filename: /tmp/error.log
+        # Max store value - 10 MB
+        maxBytes: 10485760
+        # Backup count - Rollover attribute
+        backupCount: 5
+        # Log format encoding
+        encoding: utf8
+
+    console:
+        class: logging.StreamHandler
+        level: DEBUG
+        formatter: standard
+        filters: [info_filter]
+        stream: ext://sys.stdout
+
+    error_console:
+        class: logging.StreamHandler
+        level: ERROR
+        formatter: error
+        stream: ext://sys.stderr
+
+
+# Root Logger Configuration
+root:
+    # Logger Level - Set to NOTSET if you have child loggers with pre-defined levels
+    level: NOTSET
+    # Attach handlers for Root Logger
+    handlers: [console, error_console, info_file_handler]
+    # Stop propogation from child to parent in Logging hierarchy
+    propogate: no
+
+
+# Module level configuration
+loggers:
+    asyncio:
+        level: WARNING
+        handlers: [info_file_handler, error_file_handler]
+        propogate: no
