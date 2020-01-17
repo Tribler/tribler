@@ -1,4 +1,3 @@
-from asyncio import ensure_future
 from binascii import unhexlify
 
 from aiohttp import ContentTypeError, web
@@ -164,7 +163,6 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
         result_future = self.session.torrent_checker.check_torrent_health(infohash, timeout=timeout, scrape_now=refresh)
         # Return immediately. Used by GUI to schedule health updates through the EventsEndpoint
         if nowait:
-            ensure_future(result_future)
             return RESTResponse({'checking': '1'})
 
         # Errors will be handled by error_middleware

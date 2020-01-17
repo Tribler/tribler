@@ -1,11 +1,11 @@
 import json
 import time
-from asyncio import CancelledError, ensure_future
+from asyncio import CancelledError
 
 from aiohttp import web
 
 from ipv8.messaging.anonymization.tunnel import Circuit
-from ipv8.taskmanager import TaskManager
+from ipv8.taskmanager import TaskManager, task
 
 from tribler_common.simpledefs import NTFY
 
@@ -82,7 +82,8 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
     def setup_routes(self):
         self.app.add_routes([web.get('', self.get_events)])
 
-    def write_data(self, message):
+    @task
+    async def write_data(self, message):
         """
         Write data over the event socket if it's open.
         """
@@ -96,7 +97,7 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
             message = json.dumps(fix_unicode_dict(message))
         message_bytes = message.encode('utf-8') + b'\n'
         for request in self.events_responses:
-            ensure_future(request.write(message_bytes))
+            await request.write(message_bytes)
 
     # An exception has occurred in Tribler. The event includes a readable string of the error.
     def on_tribler_exception(self, exception_text):
