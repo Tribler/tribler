@@ -167,6 +167,7 @@ class ChannelContentsWidget(widget_form, widget_class):
         if self.model:
             self.model.info_changed.disconnect()
             self.model.saved_header_state = self.controller.table_view.horizontalHeader().saveState()
+            self.model.saved_scroll_state = self.controller.table_view.verticalScrollBar().value()
             self.controller.unset_model()  # Disconnect the selectionChanged signal
         self.channels_stack.append(model)
         self.model.info_changed.connect(self.on_model_info_changed)

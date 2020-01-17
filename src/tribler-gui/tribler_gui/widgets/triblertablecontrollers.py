@@ -40,6 +40,10 @@ class TriblerTableViewController(QObject):
         self.table_view.setModel(self.model)
         if self.model.saved_header_state:
             self.table_view.horizontalHeader().restoreState(self.model.saved_header_state)
+        if self.model.saved_scroll_state is not None:
+            # ACHTUNG! Repeating this line is necessary due to a bug(?) in QT. Otherwise, it has no effect.
+            self.table_view.scrollTo(self.model.index(self.model.saved_scroll_state, 0), 1)
+            self.table_view.scrollTo(self.model.index(self.model.saved_scroll_state, 0), 1)
 
     def _on_list_scroll(self, event):
         if (

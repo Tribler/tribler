@@ -42,6 +42,8 @@ class RemoteTableModel(QAbstractTableModel):
         self.sort_by = self.columns[self.default_sort_column] if self.default_sort_column >= 0 else None
         self.sort_desc = True
         self.saved_header_state = None
+        self.saved_scroll_state = None
+
         # Every remote query must be attributed to its specific model to avoid updating wrong models
         # on receiving a result. We achieve this by maintaining a set of in-flight remote queries.
         # Note that this only applies to results that are returned through the events notification
