@@ -23,6 +23,18 @@ from tribler_gui.utilities import format_votes, get_health, get_image_path
 from tribler_gui.widgets.tableiconbuttons import DeleteIconButton, DownloadIconButton, PlayIconButton
 
 
+def draw_text(painter, rect, text, color=QColor("#B5B5B5"), font=None, alignment=Qt.AlignVCenter):
+    painter.save()
+    text_flags = Qt.AlignLeft | alignment | Qt.TextSingleLine
+    text_box = painter.boundingRect(rect, text_flags, text)
+    painter.setPen(QPen(color, 1, Qt.SolidLine, Qt.RoundCap))
+    if font:
+        painter.setFont(font)
+
+    painter.drawText(text_box, text_flags, text)
+    painter.restore()
+
+
 class TriblerButtonsDelegate(QStyledItemDelegate):
     redraw_required = pyqtSignal()
 
@@ -524,17 +536,6 @@ class HealthStatusDisplay(QObject):
         HEALTH_ERROR: QColor(Qt.red),
     }
 
-    def draw_text(self, painter, rect, text, color=QColor("#B5B5B5"), font=None, alignment=Qt.AlignVCenter):
-        painter.save()
-        text_flags = Qt.AlignLeft | alignment | Qt.TextSingleLine
-        text_box = painter.boundingRect(rect, text_flags, text)
-        painter.setPen(QPen(color, 1, Qt.SolidLine, Qt.RoundCap))
-        if font:
-            painter.setFont(font)
-
-        painter.drawText(text_box, text_flags, text)
-        painter.restore()
-
     def paint(self, painter, rect, index):
         data_item = index.model().data_items[index.row()]
 
@@ -574,14 +575,14 @@ class HealthStatusDisplay(QObject):
 
         # Paint status text, if necessary
         if health in [HEALTH_CHECKING, HEALTH_UNCHECKED, HEALTH_ERROR]:
-            self.draw_text(painter, text_box, health)
+            draw_text(painter, text_box, health)
         else:
             seeders = int(data_item[u'num_seeders'])
             leechers = int(data_item[u'num_leechers'])
 
             txt = u'S' + str(seeders) + u' L' + str(leechers)
 
-            self.draw_text(painter, text_box, txt)
+            draw_text(painter, text_box, txt)
 
 
 class RatingControl(QObject):
@@ -603,24 +604,13 @@ class RatingControl(QObject):
         self.column_name = column_name
         self.last_index = QModelIndex()
 
-    def draw_text(self, painter, rect, text, color=QColor("#B5B5B5"), font=None, alignment=Qt.AlignVCenter):
-        painter.save()
-        text_flags = Qt.AlignLeft | alignment | Qt.TextSingleLine
-        text_box = painter.boundingRect(rect, text_flags, text)
-        painter.setPen(QPen(color, 1, Qt.SolidLine, Qt.RoundCap))
-        if font:
-            painter.setFont(font)
-
-        painter.drawText(text_box, text_flags, text)
-        painter.restore()
-
     def paint(self, painter, rect, _index, votes=0, subscribed=False):
         color = self.rating_colors["SUBSCRIBED" if subscribed else "UNSUBSCRIBED"]
-        self.draw_text(painter, rect, format_votes(votes), color=color)
+        draw_text(painter, rect, format_votes(votes), color=color)
 
     def paint_hover(self, painter, rect, _index, votes=0, subscribed=False):
         color = self.rating_colors["SUBSCRIBED_HOVER" if subscribed else "UNSUBSCRIBED_HOVER"]
-        self.draw_text(painter, rect, format_votes(votes), color=color)
+        draw_text(painter, rect, format_votes(votes), color=color)
 
     def check_clicked(self, event, _, __, index):
         if (
