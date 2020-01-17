@@ -221,7 +221,7 @@ class ChannelContentModel(RemoteTableModel):
         ACTION_BUTTONS: Qt.ItemIsEnabled | Qt.ItemIsSelectable,
     }
 
-    column_width = {u'state': lambda _: 20, u'name': lambda table_width: table_width - 600}
+    column_width = {u'state': lambda _: 20, u'name': lambda table_width: table_width - 520}
 
     column_tooltip_filters = {
         u'state': lambda data: data,
@@ -426,7 +426,7 @@ class DiscoveredChannelsModel(ChannelContentModel):
     columns = [u'state', u'votes', u'name', u'torrents', u'updated']
     column_headers = [u'', u'Popularity', u'Name', u'Torrents', u'Updated']
 
-    column_width = {u'state': lambda _: 20, u'name': lambda table_width: table_width - 320}
+    column_width = {u'state': lambda _: 20, u'name': lambda table_width: table_width - 360}
 
     default_sort_column = 1
 
