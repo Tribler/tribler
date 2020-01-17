@@ -11,6 +11,7 @@ from ipv8.test.messaging.anonymization.test_community import MockDHTProvider
 from tribler_common.simpledefs import dlstatus_strings
 
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
+from tribler_core.modules.libtorrent.libtorrent_mgr import LibtorrentMgr
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.modules.tunnel.community.triblertunnel_community import TriblerTunnelCommunity
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
@@ -36,7 +37,7 @@ class TestTunnelBase(TestAsServer):
         self.test_class = TriblerTunnelCommunity
         self.test_class.master_peer = Peer(ec)
 
-        self.tunnel_community = await self.load_tunnel_community_in_session(self.session, exitnode=True)
+        self.tunnel_community = await self.load_tunnel_community_in_session(self.session, exitnode=True, start_lt=True)
         self.tunnel_communities = []
 
     def setUpPreSession(self):
@@ -44,7 +45,7 @@ class TestTunnelBase(TestAsServer):
         random.seed()
         self.config.set_ipv8_enabled(True)
         self.config.set_ipv8_port(-1)
-        self.config.set_libtorrent_enabled(True)
+        self.config.set_libtorrent_enabled(False)
         self.config.set_trustchain_enabled(False)
         self.config.set_tunnel_community_socks5_listen_ports(self.get_ports(5))
 
@@ -101,7 +102,7 @@ class TestTunnelBase(TestAsServer):
         # Also reset the IPv8 network
         session.ipv8.network = Network()
 
-    async def load_tunnel_community_in_session(self, session, exitnode=False):
+    async def load_tunnel_community_in_session(self, session, exitnode=False, start_lt=False):
         """
         Load the tunnel community in a given session. We are using our own tunnel community here instead of the one
         used in Tribler.
@@ -122,6 +123,16 @@ class TestTunnelBase(TestAsServer):
 
         await overlay.wait_for_socks_servers()
 
+        if start_lt:
+            # If libtorrent tries to connect to the socks5 servers before they are loaded,
+            # it will never recover (on Mac/Linux with Libtorrent >=1.2.0). Therefore, we start
+            # libtorrent afterwards.
+            tunnel_community_ports = session.config.get_tunnel_community_socks5_listen_ports()
+            session.config.set_anon_proxy_settings(2, ("127.0.0.1", tunnel_community_ports))
+            session.ltmgr = LibtorrentMgr(session)
+            session.ltmgr.initialize()
+            session.ltmgr.is_shutdown_ready = lambda: True
+
         return overlay
 
     async def create_proxy(self, index, exitnode=False):
@@ -132,7 +143,6 @@ class TestTunnelBase(TestAsServer):
 
         self.setUpPreSession()
         config = self.config.copy()
-        config.set_libtorrent_enabled(False)
         config.set_state_dir(self.getStateDir(index))
         config.set_tunnel_community_socks5_listen_ports(self.get_ports(5))
 
@@ -150,11 +160,11 @@ class TestTunnelBase(TestAsServer):
 
         self.seed_config = self.config.copy()
         self.seed_config.set_state_dir(self.getStateDir(2))
+        self.seed_config.set_libtorrent_enabled(hops == 0)
         self.seed_config.set_tunnel_community_socks5_listen_ports(self.get_ports(5))
         if self.session2 is None:
             self.session2 = Session(self.seed_config)
             await self.session2.start()
-            self.session2.ltmgr.is_shutdown_ready = lambda: True
 
         tdef = TorrentDef()
         tdef.add_content(TESTS_DATA_DIR / "video.avi")
@@ -164,7 +174,7 @@ class TestTunnelBase(TestAsServer):
         self.seed_tdef = tdef
 
         if hops > 0:  # Safe seeding enabled
-            self.tunnel_community_seeder = await self.load_tunnel_community_in_session(self.session2)
+            self.tunnel_community_seeder = await self.load_tunnel_community_in_session(self.session2, start_lt=True)
             self.tunnel_community_seeder.build_tunnels(hops)
         else:
             await self.sanitize_network(self.session2)
