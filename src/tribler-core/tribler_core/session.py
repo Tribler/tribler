@@ -587,6 +587,10 @@ class Session(TaskManager):
             await self.ipv8.stop(stop_loop=False)
         self.ipv8 = None
 
+        if self.payout_manager:
+            await self.payout_manager.shutdown()
+            self.payout_manager = None
+
         if self.watch_folder:
             self.notify_shutdown_state("Shutting down Watch Folder...")
             await self.watch_folder.stop()

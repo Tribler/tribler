@@ -1,23 +1,26 @@
 import logging
-from asyncio import ensure_future
 
 from anydex.wallet.tc_wallet import TrustchainWallet
+
+from ipv8.taskmanager import TaskManager, task
 
 from tribler_core.utilities.unicode import hexlify
 
 
-class PayoutManager(object):
+class PayoutManager(TaskManager):
     """
     This manager is responsible for keeping track of known Tribler peers and doing (zero-hop) payouts.
     """
 
     def __init__(self, trustchain, dht):
+        super(PayoutManager, self).__init__()
         self.logger = logging.getLogger(self.__class__.__name__)
         self.bandwidth_wallet = TrustchainWallet(trustchain)
         self.dht = dht
         self.tribler_peers = {}
 
-    def do_payout(self, mid):
+    @task
+    async def do_payout(self, mid):
         """
         Perform a payout to a given mid. First, determine the outstanding balance. Then resolve the node in the DHT.
         """
@@ -26,7 +29,8 @@ class PayoutManager(object):
 
         total_bytes = sum(self.tribler_peers[mid].values())
 
-        async def connect_peer(mid):
+        if total_bytes >= 1024 * 1024:  # Do at least 1MB payouts
+            self.logger.info("Doing direct payout to %s (%d bytes)", hexlify(mid), total_bytes)
             try:
                 nodes = await self.dht.connect_peer(mid)
             except:
@@ -42,10 +46,6 @@ class PayoutManager(object):
                 except Exception as e:
                     self.logger.error("Deferred errback fired: %s", e)
 
-        if total_bytes >= 1024 * 1024:  # Do at least 1MB payouts
-            self.logger.info("Doing direct payout to %s (%d bytes)", hexlify(mid), total_bytes)
-            ensure_future(connect_peer(mid))
-
         # Remove the outstanding bytes; otherwise we will payout again
         self.tribler_peers.pop(mid, None)
 
@@ -60,3 +60,6 @@ class PayoutManager(object):
             self.tribler_peers[mid] = {}
 
         self.tribler_peers[mid][infohash] = balance
+
+    async def shutdown(self):
+        await self.shutdown_task_manager()
