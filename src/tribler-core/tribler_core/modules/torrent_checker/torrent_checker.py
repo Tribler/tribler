@@ -353,7 +353,8 @@ class TorrentChecker(TaskManager):
             # Update torrent state
             torrent = self.tribler_session.mds.TorrentState.get(infohash=database_blob(infohash))
             if not torrent:
-                # Something is wrong, there should exist a corresponding TorrentState entry in the DB.
+                self._logger.warning(
+                    "Tried to update torrent health data in DB for an unknown torrent: %s", hexlify(infohash))
                 return
             torrent.seeders = seeders
             torrent.leechers = leechers
