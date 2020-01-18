@@ -54,12 +54,12 @@ class TestDownloadsEndpoint(AbstractApiTest):
         self.session.ltmgr.start_download(tdef=video_tdef)
         await self.session.ltmgr.start_download_from_uri("file:" + pathname2url(TESTS_DATA_DIR / "bak_single.torrent"))
         downloads = await self.do_request('downloads?get_peers=1&get_pieces=1&&get_files=1', expected_code=200)
-        self.assertCountEqual([downloads['downloads'][0][u'files'],
-                               downloads['downloads'][1][u'files']],
-                        [[{u'included': True, u'index': 0, u'size': 1583233,
-                           u'name': u'Tribler_4.1.7_src.zip', u'progress': 0.0}],
-                         [{u'included': True, u'index': 0, u'size': 1942100,
-                           u'name': u'video.avi', u'progress': 0.0}]])
+        self.assertCountEqual([downloads['downloads'][0]['files'],
+                               downloads['downloads'][1]['files']],
+                        [[{'included': True, 'index': 0, 'size': 1583233,
+                           'name': 'Tribler_4.1.7_src.zip', 'progress': 0.0}],
+                         [{'included': True, 'index': 0, 'size': 1942100,
+                           'name': 'video.avi', 'progress': 0.0}]])
 
     @timeout(10)
     async def test_start_download_no_uri(self):
@@ -101,8 +101,8 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         Testing whether we can start a download from a file with a unicode name
         """
-        ufile = TESTS_DATA_DIR / u'video\u266b.avi.torrent'
-        udest = self.session_base_dir / u'video\u266b'
+        ufile = TESTS_DATA_DIR / 'video\u266b.avi.torrent'
+        udest = self.session_base_dir / 'video\u266b'
 
         post_data = {'uri': 'file:' + ufile.to_text(),
                      'destination': udest.to_text()}
@@ -112,7 +112,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         dl = self.session.ltmgr.get_downloads()[0]
         dl.tracker_status[u"\u266b"] = [0, 'Not contacted yet']
         tdef = dl.get_def()
-        tdef.torrent_parameters['name'] = u'video\u266b'
+        tdef.torrent_parameters['name'] = 'video\u266b'
         await self.do_request('downloads?get_peers=1&get_pieces=1', expected_code=200)
 
     def create_mock_status(self):
@@ -184,7 +184,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         self.assertIn("peers", response_dict["downloads"][0])
         self.assertEqual(1, len(response_dict["downloads"][0]["peers"]))
         self.assertNotIn('have', response_dict["downloads"][0]["peers"][0])
-        self.assertEqual(u'\xb5Torrent 1.6.1', response_dict["downloads"][0]["peers"][0]['extended_version'])
+        self.assertEqual('\xb5Torrent 1.6.1', response_dict["downloads"][0]["peers"][0]['extended_version'])
 
     @timeout(10)
     async def test_get_peers_illegal_fields_unknown(self):
@@ -210,7 +210,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         self.assertIn("peers", response_dict["downloads"][0])
         self.assertEqual(1, len(response_dict["downloads"][0]["peers"]))
         self.assertNotIn('have', response_dict["downloads"][0]["peers"][0])
-        self.assertEqual(u'', response_dict["downloads"][0]["peers"][0]['extended_version'])
+        self.assertEqual('', response_dict["downloads"][0]["peers"][0]['extended_version'])
 
     @timeout(10)
     async def test_start_download_from_magnet(self):
@@ -283,10 +283,10 @@ class TestDownloadsEndpoint(AbstractApiTest):
             download.stop = original_stop
         download.stop = mocked_stop
 
-        await self.do_request('downloads/%s' % infohash, post_data={"state": "stop"},
+        await self.do_request(f'downloads/{infohash}', post_data={"state": "stop"},
                               expected_code=200, request_type='PATCH',
-                              expected_json={u"modified": True,
-                                             u"infohash": u"c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5"})
+                              expected_json={"modified": True,
+                                             "infohash": u"c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5"})
         self.assertEqual(len(self.session.ltmgr.get_downloads()), 1)
         download = self.session.ltmgr.get_downloads()[0]
         self.assertTrue(download.should_stop)
@@ -300,7 +300,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         self.session.ltmgr.start_download(tdef=video_tdef)
         infohash = get_hex_infohash(video_tdef)
 
-        await self.do_request('downloads/%s' % infohash, expected_code=400, post_data={"selected_files": 1234},
+        await self.do_request(f'downloads/{infohash}', expected_code=400, post_data={"selected_files": 1234},
                                request_type='PATCH')
 
     @timeout(10)
@@ -315,12 +315,12 @@ class TestDownloadsEndpoint(AbstractApiTest):
         def mocked_set_selected_files(*_):
             mocked_set_selected_files.called = True
         mocked_set_selected_files.called = False
-        download.set_selected_files = mocked_set_selected_files
+        download.set_selected_file_indexes = mocked_set_selected_files
 
-        await self.do_request('downloads/%s' % infohash, post_data={"selected_files": 0},
+        await self.do_request(f'downloads/{infohash}', post_data={"selected_files": 0},
                                expected_code=200, request_type='PATCH',
-                               expected_json={u"modified": True,
-                                              u"infohash": u"c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5"})
+                               expected_json={"modified": True,
+                                              "infohash": "c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5"})
         self.assertTrue(mocked_set_selected_files.called)
 
     @timeout(10)
@@ -343,7 +343,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
             download.should_restart = True
         download.resume = mocked_resume
 
-        await self.do_request('downloads/%s' % infohash, post_data={"state": "resume"},
+        await self.do_request(f'downloads/{infohash}', post_data={"state": "resume"},
                               expected_code=200, request_type='PATCH',
                               expected_json={"modified": True,
                                              "infohash": "c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5"})
@@ -500,7 +500,7 @@ class TestDownloadsWithTunnelsEndpoint(AbstractApiTest):
         self.session.ltmgr.start_download(tdef=video_tdef)
         infohash = get_hex_infohash(video_tdef)
         await self.do_request('downloads/%s' % infohash, post_data={"remove_data": True}, expected_code=500,
-                               expected_json={u'error': {u'message': u'', u'code': u'RuntimeError', u'handled': True}},
+                               expected_json={'error': {'message': '', 'code': 'RuntimeError', 'handled': True}},
                                request_type='DELETE')
 
 
@@ -531,7 +531,7 @@ class TestMetadataDownloadEndpoint(AbstractApiTest):
         with db_session:
             self.session.mds.process_mdblob_file(TESTS_DIR / 'data/sample_channel/channel.mdblob')
         post_data = {'uri': 'file:%s' % (TESTS_DIR / 'data/sample_channel/channel.mdblob')}
-        expected_json = {u'error': u'Could not import Tribler metadata file'}
+        expected_json = {'error': 'Could not import Tribler metadata file'}
         await self.do_request('downloads', expected_code=200, request_type='PUT', post_data=post_data,
                                expected_json=expected_json)
 
@@ -548,7 +548,7 @@ class TestMetadataDownloadEndpoint(AbstractApiTest):
             hexed = hexlify(my_channel.serialized()).encode('utf-8')[:-5] + b"aaaaa"
             out_file.write(unhexlify(hexed))
 
-        post_data = {u'uri': u'file:%s' % file_path, u'metadata_download': u'1'}
+        post_data = {'uri': f'file:{file_path}', 'metadata_download': '1'}
         expected_json = {'error': "Metadata has invalid signature"}
         await self.do_request('downloads', expected_code=400, request_type='PUT', post_data=post_data,
                                expected_json=expected_json)

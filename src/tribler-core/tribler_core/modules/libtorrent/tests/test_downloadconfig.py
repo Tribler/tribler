@@ -31,8 +31,8 @@ class TestConfigParser(TriblerCoreTest):
         dlcfg.set_safe_seeding(False)
         self.assertFalse(dlcfg.get_safe_seeding())
 
-        dlcfg.set_selected_files([1])
-        self.assertEqual(dlcfg.get_selected_files(), [1])
+        dlcfg.set_selected_file_indexes([1])
+        self.assertEqual(dlcfg.get_selected_file_indexes(), [1])
 
         dlcfg.set_channel_download(True)
         self.assertTrue(dlcfg.get_channel_download())
@@ -47,7 +47,7 @@ class TestConfigParser(TriblerCoreTest):
     def test_downloadconfig_set_vod_multiple_files(self):
         dlcfg = DownloadConfig()
         dlcfg.set_mode(DLMODE_VOD)
-        dlcfg.set_selected_files(["foo.txt", "bar.txt"])
+        dlcfg.set_selected_file_indexes(["foo.txt", "bar.txt"])
 
 
     def test_downloadconfig_copy(self):

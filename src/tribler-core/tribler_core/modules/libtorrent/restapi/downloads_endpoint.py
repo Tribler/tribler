@@ -111,7 +111,7 @@ class DownloadsEndpoint(RESTEndpoint):
         """
         files_json = []
         files_completion = dict((name, progress) for name, progress in download.get_state().get_files_completion())
-        selected_files = download.config.get_selected_files()
+        selected_files = download.config.get_selected_file_indexes()
         file_index = 0
         for fn, size in download.get_def().get_files_with_length():
             files_json.append({
@@ -441,7 +441,7 @@ class DownloadsEndpoint(RESTEndpoint):
             num_files = len(download.tdef.get_files())
             if not all([0 <= index < num_files for index in selected_files_list]):
                 return RESTResponse({"error": "index out of range"}, status=HTTP_BAD_REQUEST)
-            download.set_selected_files(selected_files_list)
+            download.set_selected_file_indexes(selected_files_list)
 
         if parameters.get('state'):
             state = parameters['state']
