@@ -731,7 +731,7 @@ class LibtorrentMgr(TaskManager):
                 self.tribler_session.credit_mining_manager.monitor_downloads(states_list)
 
     async def load_checkpoints(self):
-        for i, filename in enumerate(self.get_checkpoint_dir().glob('*.conf')):
+        for filename in self.get_checkpoint_dir().glob('*.conf'):
             self.load_checkpoint(filename)
             await sleep(.01)
 
