@@ -66,8 +66,9 @@ def start_tribler_core(base_path, api_port, api_key):
 
         config.set_http_api_port(int(api_port))
         # If the API key is set to an empty string, it will remain disabled
-        if config.get_http_api_key() != '':
+        if config.get_http_api_key() not in ('', api_key):
             config.set_http_api_key(api_key)
+            config.write()  # Immediately write the API key so other applications can use it
         config.set_http_api_enabled(True)
 
         # Check if we are already running a Tribler instance
