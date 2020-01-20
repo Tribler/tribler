@@ -23,6 +23,11 @@ sed -i "s/__VERSION__/$(cat .TriblerVersion)/g" build/debian/snap/snapcraft.yaml
 
 dpkg-deb -b build/debian/tribler tribler_$(cat .TriblerVersion)_all.deb
 
+# Build Tribler snap if $BUILD_TRIBLER_SNAP
+if [[ -z "$BUILD_TRIBLER_SNAP" ]]; then
+  exit 0
+fi
+
 # Build snap with docker if exists
 if [ -x "$(command -v docker)" ]; then
     echo "Running snapcraft in docker"

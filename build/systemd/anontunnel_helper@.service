@@ -1,4 +1,3 @@
-
 [Unit]
 Description="Anontunnel helper instance number %I"
 After=network.target
@@ -14,11 +13,11 @@ Environment=HOME=/var/lib/tunnel_helper/%I
 Environment=HELPER_INDEX=%I
 Environment=HELPER_BASE=35000
 Environment=EXTRA_TUNNEL_ARGS=--
-Environment=PYTHONPATH=/opt/tribler
+Environment=PYTHONPATH=./src/pyipv8:./src/anydex:./src/tribler-common:./src/tribler-core
 
 WorkingDirectory=/opt/tribler
 ExecStartPre=/bin/mkdir -p ${HOME}
-ExecStart=/usr/bin/twistd --nodaemon --logfile=- --pidfile= tunnel_helper $EXTRA_TUNNEL_ARGS
+ExecStart=/usr/bin/python3 src/tribler-core/run_tunnel_helper.py $EXTRA_TUNNEL_ARGS
 
 [Install]
 WantedBy=multi-user.target

@@ -97,7 +97,7 @@ class TunnelHelperService(TaskManager):
                     new_strategies.append((strategy, target_peers))
             self.session.ipv8.strategies = new_strategies
 
-    def circuit_removed(self, _, __, circuit, additional_info):
+    def circuit_removed(self, circuit, additional_info):
         self.session.ipv8.network.remove_by_address(circuit.peer.address)
         if self.log_circuits:
             with open(os.path.join(self.session.config.get_state_dir(), "circuits.log"), 'a') as out_file:

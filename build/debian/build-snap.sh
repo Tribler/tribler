@@ -3,6 +3,9 @@ if [[ ! -f "snap/snapcraft.yaml" ]]; then
     exit 1
 fi
 
+# Make sure we have the latest packages
+apt-get update
+
 snapcraft
 
 # Remove intermediate files
