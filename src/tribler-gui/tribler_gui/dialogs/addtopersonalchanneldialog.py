@@ -3,7 +3,6 @@ from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import QTreeWidgetItem
 
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE
-from tribler_core.utilities.json_util import dumps
 
 from tribler_gui.dialogs.dialogcontainer import DialogContainer
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
@@ -28,16 +27,12 @@ class AddToChannelDialog(DialogContainer):
         DialogContainer.__init__(self, parent)
         uic.loadUi(get_ui_file_path('addtochanneldialog.ui'), self.dialog_widget)
         self.dialog_widget.btn_cancel.clicked.connect(self.close_dialog)
-        self.dialog_widget.btn_add.clicked.connect(self.on_add_clicked)
-        self.dialog_widget.btn_move.clicked.connect(self.on_move_clicked)
+        self.dialog_widget.btn_confirm.clicked.connect(self.on_confirm_clicked)
         self.dialog_widget.btn_new_channel.clicked.connect(self.on_create_new_channel_clicked)
 
-        self.entries_to_act_on = []
+        self.confirm_clicked_callback = None
 
         self.root_requests_list = []
-
-        # Indicates whether we should move or copy the entries
-        self.move = False
 
         self.channels_tree = {}
         root_chan = ChannelQTreeWidgetItem(self.dialog_widget.channels_tree_wt, ["My channel"], id_=0)
@@ -67,25 +62,10 @@ class AddToChannelDialog(DialogContainer):
         self.id2wt_mapping = {0: root_chan}
         self.load_channel(0)
 
-    def copy_entries(self, entries):
-        if not entries:
-            return
-        self.set_move_mode(False)
-        self.entries_to_act_on = entries
+    def show_dialog(self, on_confirm, confirm_button_text="CONFIRM_BUTTON"):
+        self.dialog_widget.btn_confirm.setText(confirm_button_text)
         self.show()
-
-    def move_entries(self, entries):
-        if not entries:
-            return
-        self.set_move_mode(True)
-        self.entries_to_act_on = entries
-        # TODO: grey out / disable entries that are being moved to prevent moving dirs into themselves
-        # use item.setFlags(item.flags() & ~QtCore.Qt.ItemIsSelectable)
-        self.show()
-
-    def set_move_mode(self, move):
-        self.dialog_widget.btn_add.setHidden(move)
-        self.dialog_widget.btn_move.setHidden(not move)
+        self.confirm_clicked_callback = on_confirm
 
     def on_item_expanded(self, item):
         # Load the grand-children
@@ -109,7 +89,6 @@ class AddToChannelDialog(DialogContainer):
                     "last": 1000,
                     "exclude_deleted": True,
                 },
-                method='GET',
             )
         )
 
@@ -117,39 +96,12 @@ class AddToChannelDialog(DialogContainer):
         selected = self.dialog_widget.channels_tree_wt.selectedItems()
         return None if not selected else selected[0].id_
 
-    def on_move_clicked(self):
+    def on_confirm_clicked(self):
         channel_id = self.get_selected_channel_id()
         if channel_id is None:
             return
-
-        def on_entries_moved(response):
-            self.window().personal_channel_page.model.remove_items(response)
-
-            self.window().tray_show_message("Channel update", "Torrent(s) added to your channel")
-            self.close_dialog()
-
-        changes_list = [
-            {'public_key': entry['public_key'], 'id': entry['id'], 'origin_id': channel_id}
-            for entry in self.entries_to_act_on
-        ]
-
-        TriblerNetworkRequest("metadata", on_entries_moved, raw_data=dumps(changes_list), method='PATCH')
-
-    def on_add_clicked(self):
-        channel_id = self.get_selected_channel_id()
-        if channel_id is None:
-            return
-
-        def on_entries_copied(response):
-            self.window().tray_show_message("Channel update", "Torrent(s) added to your channel")
-            self.close_dialog()
-
-        TriblerNetworkRequest(
-            "channels/mychannel/%i/copy" % channel_id,
-            on_entries_copied,
-            raw_data=dumps(self.entries_to_act_on),
-            method='POST',
-        )
+        self.confirm_clicked_callback(channel_id)
+        self.close_dialog()
 
     def on_channel_contents(self, response, channel_id):
         if not response:

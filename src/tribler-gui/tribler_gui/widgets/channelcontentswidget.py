@@ -518,7 +518,7 @@ class ChannelContentsWidget(widget_form, widget_class):
         # TODO: just add it at the top of the list instead
         if not result:
             return
-        if result.get('added', None):
+        if result.get('added'):
             # FIXME: dumb hack to adapt torrents PUT endpoint output to the info_changed signal
             # If thousands of torrents were added, we don't want to post them all in a single
             # REST response. Instead, we always provide the total number of new torrents.
@@ -535,7 +535,7 @@ class ChannelContentsWidget(widget_form, widget_class):
 
     def _add_torrent_request(self, data):
         TriblerNetworkRequest(
-            f'collections/{self.model.channel_info["public_key"]}/{self.model.channel_info["id"]}/torrents',
+            f'collections/mychannel/{self.model.channel_info["id"]}/torrents',
             self._on_torrent_to_channel_added,
             method='PUT',
             data=data,

@@ -7,8 +7,10 @@ from PyQt5.QtGui import QCursor
 from PyQt5.QtWidgets import QAction
 
 from tribler_core.modules.metadata_store.serialization import REGULAR_TORRENT
+from tribler_core.utilities.json_util import dumps
 
 from tribler_gui.tribler_action_menu import TriblerActionMenu
+from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 
 
 def sanitize_for_fts(text):
@@ -156,10 +158,26 @@ class ContextMenuMixin(object):
         entries = [self.model.data_items[index.row()] for index in self.table_view.selectionModel().selectedRows()]
 
         def on_add_to_channel(_):
-            self.table_view.window().add_to_channel_dialog.copy_entries(entries)
+            def on_confirm_clicked(channel_id):
+                TriblerNetworkRequest(
+                    f"collections/mychannel/{channel_id}/copy",
+                    lambda _: self.table_view.window().tray_show_message(
+                        "Channel update", "Torrent(s) added to your channel"
+                    ),
+                    raw_data=dumps(entries),
+                    method='POST',
+                )
+
+            self.table_view.window().add_to_channel_dialog.show_dialog(on_confirm_clicked, confirm_button_text="Copy")
 
         def on_move(_):
-            self.table_view.window().add_to_channel_dialog.move_entries(entries)
+            def on_confirm_clicked(channel_id):
+                changes_list = [
+                    {'public_key': entry['public_key'], 'id': entry['id'], 'origin_id': channel_id} for entry in entries
+                ]
+                TriblerNetworkRequest("metadata", self.model.remove_items, raw_data=dumps(changes_list), method='PATCH')
+
+            self.table_view.window().add_to_channel_dialog.show_dialog(on_confirm_clicked, confirm_button_text="Move")
 
         if not self.model.edit_enabled:
             if self.selection_has_torrents():

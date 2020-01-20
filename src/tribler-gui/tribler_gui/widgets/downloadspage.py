@@ -507,21 +507,18 @@ class DownloadsPage(QWidget):
             self.window().tray_show_message("Torrent file exported", "Torrent file exported to %s" % dest_path)
 
     def on_add_to_channel(self):
-        def on_added_to_channel(name, response):
-            if not response:
-                return
-            if 'added' in response and response['added']:
-                self.window().tray_show_message(
-                    "Channel update", "%s torrent successfully added to your channel" % name
+        def on_add_button_pressed(channel_id):
+            for selected_item in self.selected_items:
+                infohash = selected_item.download_info["infohash"]
+                name = selected_item.download_info["name"]
+                TriblerNetworkRequest(
+                    f"channels/mychannel/{channel_id}/torrents",
+                    lambda _: self.window().tray_show_message("Channel update", "Torrent(s) added to your channel"),
+                    method='PUT',
+                    data={"uri": compose_magnetlink(infohash, name=name)},
                 )
 
-        for selected_item in self.selected_items:
-            infohash = selected_item.download_info["infohash"]
-            name = selected_item.download_info["name"]
-            post_data = {"uri": compose_magnetlink(infohash, name=name)}
-            TriblerNetworkRequest(
-                "mychannel/torrents", lambda response: on_added_to_channel(name, response), method='PUT', data=post_data
-            )
+        self.window().add_to_channel_dialog.show_dialog(on_add_button_pressed, confirm_button_text="Add torrent(s)")
 
     def on_right_click_item(self, pos):
         item_clicked = self.window().downloads_list.itemAt(pos)
