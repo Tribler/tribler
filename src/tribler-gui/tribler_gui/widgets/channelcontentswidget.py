@@ -535,7 +535,7 @@ class ChannelContentsWidget(widget_form, widget_class):
 
     def _add_torrent_request(self, data):
         TriblerNetworkRequest(
-            "collections/%s/%s/torrents" % (self.model.channel_info["public_key"], self.model.channel_info["id"]),
+            f'collections/{self.model.channel_info["public_key"]}/{self.model.channel_info["id"]}/torrents',
             self._on_torrent_to_channel_added,
             method='PUT',
             data=data,

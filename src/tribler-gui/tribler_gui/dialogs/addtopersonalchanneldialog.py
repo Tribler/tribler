@@ -123,7 +123,6 @@ class AddToChannelDialog(DialogContainer):
             return
 
         def on_entries_moved(response):
-            # results = loads(response)
             self.window().personal_channel_page.model.remove_items(response)
 
             self.window().tray_show_message("Channel update", "Torrent(s) added to your channel")

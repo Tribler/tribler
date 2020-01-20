@@ -156,7 +156,7 @@ class TriblerNetworkRequest(QObject):
             url = endpoint
         else:
             url = request_manager.get_base_url() + endpoint
-        url = url + (("?" + tribler_urlencode(url_params)) if url_params else "")
+        url += ("?" + tribler_urlencode(url_params)) if url_params else ""
 
         self.decode_json_response = decode_json_response
         self.time = time()

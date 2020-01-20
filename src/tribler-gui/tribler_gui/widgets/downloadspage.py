@@ -32,6 +32,16 @@ from tribler_gui.utilities import compose_magnetlink, format_size, format_speed
 from tribler_gui.widgets.downloadwidgetitem import DownloadWidgetItem
 from tribler_gui.widgets.loading_list_item import LoadingListItem
 
+button_name2filter = {
+    "downloads_all_button": DOWNLOADS_FILTER_ALL,
+    "downloads_downloading_button": DOWNLOADS_FILTER_DOWNLOADING,
+    "downloads_completed_button": DOWNLOADS_FILTER_COMPLETED,
+    "downloads_active_button": DOWNLOADS_FILTER_ACTIVE,
+    "downloads_inactive_button": DOWNLOADS_FILTER_INACTIVE,
+    "downloads_creditmining_button": DOWNLOADS_FILTER_CREDITMINING,
+    "downloads_channels_button": DOWNLOADS_FILTER_CHANNELS,
+}
+
 
 class DownloadsPage(QWidget):
     """
@@ -229,20 +239,7 @@ class DownloadsPage(QWidget):
                 )
 
     def on_downloads_tab_button_clicked(self, button_name):
-        if button_name == "downloads_all_button":
-            self.filter = DOWNLOADS_FILTER_ALL
-        elif button_name == "downloads_downloading_button":
-            self.filter = DOWNLOADS_FILTER_DOWNLOADING
-        elif button_name == "downloads_completed_button":
-            self.filter = DOWNLOADS_FILTER_COMPLETED
-        elif button_name == "downloads_active_button":
-            self.filter = DOWNLOADS_FILTER_ACTIVE
-        elif button_name == "downloads_inactive_button":
-            self.filter = DOWNLOADS_FILTER_INACTIVE
-        elif button_name == "downloads_creditmining_button":
-            self.filter = DOWNLOADS_FILTER_CREDITMINING
-        elif button_name == "downloads_channels_button":
-            self.filter = DOWNLOADS_FILTER_CHANNELS
+        self.filter = button_name2filter[button_name]
 
         self.window().downloads_list.clearSelection()
         self.window().download_details_widget.hide()
@@ -510,22 +507,21 @@ class DownloadsPage(QWidget):
             self.window().tray_show_message("Torrent file exported", "Torrent file exported to %s" % dest_path)
 
     def on_add_to_channel(self):
+        def on_added_to_channel(name, response):
+            if not response:
+                return
+            if 'added' in response and response['added']:
+                self.window().tray_show_message(
+                    "Channel update", "%s torrent successfully added to your channel" % name
+                )
+
         for selected_item in self.selected_items:
             infohash = selected_item.download_info["infohash"]
             name = selected_item.download_info["name"]
             post_data = {"uri": compose_magnetlink(infohash, name=name)}
             TriblerNetworkRequest(
-                "mychannel/torrents",
-                lambda response: self.on_added_to_channel(name, response),
-                method='PUT',
-                data=post_data,
+                "mychannel/torrents", lambda response: on_added_to_channel(name, response), method='PUT', data=post_data
             )
-
-    def on_added_to_channel(self, name, response):
-        if not response:
-            return
-        if 'added' in response and response['added']:
-            self.window().tray_show_message("Channel update", "%s torrent successfully added to your channel" % name)
 
     def on_right_click_item(self, pos):
         item_clicked = self.window().downloads_list.itemAt(pos)

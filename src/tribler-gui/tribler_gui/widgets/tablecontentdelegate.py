@@ -35,6 +35,28 @@ def draw_text(painter, rect, text, color=QColor("#B5B5B5"), font=None, alignment
     painter.restore()
 
 
+class CheckClickedMixin:
+    def check_clicked(self, event, _, __, index):
+        if (
+            event.type() == QEvent.MouseButtonRelease
+            and index.model().column_position.get(self.column_name, -1) == index.column()
+        ):
+            self.clicked.emit(index)
+            return True
+        return False
+
+    def size_hint(self, _, __):
+        return self.size
+
+    def on_mouse_moved(self, pos, index):
+        if self.last_index != index:
+            # Handle the case when the cursor leaves the table
+            if not index.model() or (index.model().column_position.get(self.column_name, -1) == index.column()):
+                self.last_index = index
+                return True
+        return False
+
+
 class TriblerButtonsDelegate(QStyledItemDelegate):
     redraw_required = pyqtSignal()
 
@@ -352,7 +374,7 @@ class CategoryLabel(QObject):
         painter.restore()
 
 
-class ToggleControl(QObject):
+class ToggleControl(QObject, CheckClickedMixin):
     """
     Column-level controls are stateless collections of methods for visualizing cell data and
     triggering corresponding events.
@@ -389,26 +411,6 @@ class ToggleControl(QObject):
         icon_rect = QRect(x, y, self.w, self.h)
 
         icon.paint(painter, icon_rect)
-
-    def check_clicked(self, event, _, __, index):
-        if (
-            event.type() == QEvent.MouseButtonRelease
-            and index.model().column_position.get(self.column_name, -1) == index.column()
-        ):
-            self.clicked.emit(index)
-            return True
-        return False
-
-    def size_hint(self, _, __):
-        return self.size
-
-    def on_mouse_moved(self, pos, index):
-        if self.last_index != index:
-            # Handle the case when the cursor leaves the table
-            if not index.model() or (index.model().column_position.get(self.column_name, -1) == index.column()):
-                self.last_index = index
-                return True
-        return False
 
 
 class SubscribeToggleControl(ToggleControl):
@@ -585,7 +587,7 @@ class HealthStatusDisplay(QObject):
             draw_text(painter, text_box, txt)
 
 
-class RatingControl(QObject):
+class RatingControl(QObject, CheckClickedMixin):
     """
     Controls for visualizing the votes and subscription information for channels.
     """
@@ -611,23 +613,3 @@ class RatingControl(QObject):
     def paint_hover(self, painter, rect, _index, votes=0, subscribed=False):
         color = self.rating_colors["SUBSCRIBED_HOVER" if subscribed else "UNSUBSCRIBED_HOVER"]
         draw_text(painter, rect, format_votes(votes), color=color)
-
-    def check_clicked(self, event, _, __, index):
-        if (
-            event.type() == QEvent.MouseButtonRelease
-            and index.model().column_position.get(self.column_name, -1) == index.column()
-        ):
-            self.clicked.emit(index)
-            return True
-        return False
-
-    def size_hint(self, _, __):
-        return self.size
-
-    def on_mouse_moved(self, pos, index):
-        if self.last_index != index:
-            # Handle the case when the cursor leaves the table
-            if not index.model() or (index.model().column_position.get(self.column_name, -1) == index.column()):
-                self.last_index = index
-                return True
-        return False
