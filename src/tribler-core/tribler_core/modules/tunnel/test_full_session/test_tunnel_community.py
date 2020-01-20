@@ -1,4 +1,6 @@
+import sys
 from asyncio import sleep, wait_for
+from unittest import skipIf
 
 from tribler_core.modules.tunnel.test_full_session.test_tunnel_base import TestTunnelBase
 from tribler_core.tests.tools.tools import timeout
@@ -9,6 +11,7 @@ class TestTunnelCommunity(TestTunnelBase):
     This class contains full session tests for the tunnel community.
     """
 
+    @skipIf(sys.platform in ["win32", "darwin"], "Skipping this test on Windows and Mac")
     @timeout(20)
     async def test_anon_download(self):
         """

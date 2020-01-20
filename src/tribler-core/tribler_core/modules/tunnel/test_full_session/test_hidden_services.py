@@ -1,5 +1,7 @@
+import sys
 import time
 from asyncio import Future
+from unittest import skipIf
 
 from ipv8.messaging.anonymization.tunnel import CIRCUIT_TYPE_IP_SEEDER
 
@@ -11,6 +13,7 @@ from tribler_core.tests.tools.tools import timeout
 
 class TestHiddenServices(TestTunnelBase):
 
+    @skipIf(sys.platform in ["win32", "darwin"], "Skipping this test on Windows and Mac")
     @timeout(40)
     async def test_hidden_services(self):
         """

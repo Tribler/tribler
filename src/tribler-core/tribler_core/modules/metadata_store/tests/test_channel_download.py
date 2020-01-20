@@ -1,3 +1,6 @@
+import sys
+from unittest import skipIf
+
 from ipv8.database import database_blob
 
 from pony.orm import db_session
@@ -22,6 +25,7 @@ class TestChannelDownload(TestAsServer):
         self.config.set_chant_enabled(True)
         self.config.set_libtorrent_enabled(True)
 
+    @skipIf(sys.platform == "win32", "Skipping the channel download test on Windows.")
     @timeout(20)
     async def test_channel_update_and_download(self):
         """
