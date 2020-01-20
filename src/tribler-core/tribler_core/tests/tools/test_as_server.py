@@ -11,6 +11,7 @@ import random
 import re
 import shutil
 import string
+import sys
 import time
 from asyncio import Future, current_task, get_event_loop
 from functools import partial
@@ -66,8 +67,15 @@ class BaseTestCase(asynctest.TestCase):
     def tearDown(self):
         while self._tempdirs:
             temp_dir = self._tempdirs.pop()
-            os.chmod(temp_dir, 0o700)
-            shutil.rmtree(temp_dir, ignore_errors=False)
+            self.remove_directory(temp_dir, ignore_errors=False)
+
+    def remove_directory(self, directory, ignore_errors=False):
+        os.chmod(directory, 0o700)
+        if sys.platform == 'win32':
+            # Add the magic prefix \\?\ to work around long path issue
+            shutil.rmtree("\\\\?\\" + str(directory), ignore_errors=ignore_errors)
+        else:
+            shutil.rmtree(directory, ignore_errors=ignore_errors)
 
     def temporary_directory(self, suffix='', exist_ok=False):
         random_string = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(6))
