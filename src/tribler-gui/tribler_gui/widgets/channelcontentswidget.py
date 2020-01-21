@@ -112,6 +112,7 @@ class ChannelContentsWidget(widget_form, widget_class):
         self.category_selector.currentIndexChanged.connect(self.on_category_selector_changed)
         self.channel_back_button.setIcon(QIcon(get_image_path('page_back.png')))
         self.channel_back_button.clicked.connect(self.go_back)
+        self.channel_name_label.linkActivated.connect(self.go_back_to_level)
         self.channel_options_button.clicked.connect(self.show_channel_options)
         self.commit_control_bar.setHidden(True)
 
@@ -166,6 +167,7 @@ class ChannelContentsWidget(widget_form, widget_class):
         if self.model:
             self.model.info_changed.disconnect()
             self.model.saved_header_state = self.controller.table_view.horizontalHeader().saveState()
+            self.model.saved_scroll_state = self.controller.table_view.verticalScrollBar().value()
             self.controller.unset_model()  # Disconnect the selectionChanged signal
         self.channels_stack.append(model)
         self.model.info_changed.connect(self.on_model_info_changed)
@@ -241,6 +243,11 @@ class ChannelContentsWidget(widget_form, widget_class):
             self.model.info_changed.connect(self.on_model_info_changed)
             self.update_labels()
 
+    def go_back_to_level(self, level):
+        level = int(level)
+        while level + 1 < len(self.channels_stack):
+            self.go_back()
+
     def on_channel_clicked(self, channel_dict):
         self.initialize_with_channel(channel_dict)
 
@@ -290,8 +297,36 @@ class ChannelContentsWidget(widget_form, widget_class):
 
         self.category_selector.setHidden(root and (discovered or personal_model))
         # initialize the channel page
-        self.channel_name_label.setText(self.model.channel_info['name'])
 
+        # Assemble the channels navigation breadcrumb by utilising RichText links feature
+        self.channel_name_label.setTextFormat(Qt.RichText)
+        # We build the breadcrumb text backwards, by performing lookahead on each step.
+        # While building the breadcrumb label in RichText we also assemble an undecorated variant of the same text
+        # to estimate if we need to elide the breadcrumb. We cannot use RichText contents directly with
+        # .elidedText method because QT will elide the tags as well.
+        breadcrumb_text = f'{self.model.channel_info["name"]}'
+        breadcrumb_text_undecorated = breadcrumb_text
+        path_parts = [(m, model.channel_info["name"]) for m, model in enumerate(self.channels_stack[:-1])]
+        for m, channel_name in reversed(path_parts):
+            breadcrumb_text_undecorated = channel_name + " / " + breadcrumb_text_undecorated
+            breadcrumb_text_elided = self.channel_name_label.fontMetrics().elidedText(
+                breadcrumb_text_undecorated, 0, self.channel_name_label.width()
+            )
+            must_elide = breadcrumb_text_undecorated != breadcrumb_text_elided
+            if must_elide:
+                channel_name = "..."
+            breadcrumb_text = (
+                f'<a style="text-decoration:none;color:#A5A5A5;" href="{m}">{channel_name}</a>'
+                + '<font color=#A5A5A5>  /  </font>'
+                + breadcrumb_text
+            )
+            if must_elide:
+                break
+
+        self.channel_name_label.setText(breadcrumb_text)
+        self.channel_name_label.setTextInteractionFlags(Qt.TextBrowserInteraction)
+
+        self.channel_back_button.setHidden(root)
         self.channel_options_button.setHidden(not personal or root)
         self.new_channel_button.setHidden(not personal)
 
@@ -483,7 +518,7 @@ class ChannelContentsWidget(widget_form, widget_class):
         # TODO: just add it at the top of the list instead
         if not result:
             return
-        if result.get('added', None):
+        if result.get('added'):
             # FIXME: dumb hack to adapt torrents PUT endpoint output to the info_changed signal
             # If thousands of torrents were added, we don't want to post them all in a single
             # REST response. Instead, we always provide the total number of new torrents.
@@ -500,7 +535,7 @@ class ChannelContentsWidget(widget_form, widget_class):
 
     def _add_torrent_request(self, data):
         TriblerNetworkRequest(
-            "collections/%s/%s/torrents" % (self.model.channel_info["public_key"], self.model.channel_info["id"]),
+            f'collections/mychannel/{self.model.channel_info["id"]}/torrents',
             self._on_torrent_to_channel_added,
             method='PUT',
             data=data,

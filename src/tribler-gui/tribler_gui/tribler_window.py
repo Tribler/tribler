@@ -503,15 +503,6 @@ class TriblerWindow(QMainWindow):
             ConfirmationDialog.show_message(self.window(), "Download error <i>%s</i>" % uri, gui_error_message, "OK")
             return
 
-        if add_to_channel and not self.personal_channel_page.channel_overview:
-            error_message = (
-                "In the download options, you checked to add the torrent to your channel "
-                "but you do not have one yet. No worries, you can easily create your own channel by "
-                "navigating to My Channel section on the left sidebar."
-            )
-            ConfirmationDialog.show_error(self.window(), "Download Error!", error_message)
-            add_to_channel = False
-
         selected_files_list = []
         if len(selected_files) != total_files:  # Not all files included
             selected_files_list = [filename for filename in selected_files]
@@ -545,29 +536,24 @@ class TriblerWindow(QMainWindow):
         self.gui_settings.setValue("recent_download_locations", ','.join(recent_locations))
 
         if add_to_channel:
-            self.add_torrent_to_channel(uri)
 
-    def add_torrent_to_channel(self, uri, callback=None):
-        post_data = dict()
-        if uri.startswith("file:"):
-            with open(uri[5:], "rb") as torrent_file:
-                post_data['torrent'] = b64encode(torrent_file.read()).decode('utf8')
-        elif uri.startswith("magnet:"):
-            post_data['uri'] = uri
+            def on_add_button_pressed(channel_id):
+                post_data = {}
+                if uri.startswith("file:"):
+                    with open(uri[5:], "rb") as torrent_file:
+                        post_data['torrent'] = b64encode(torrent_file.read()).decode('utf8')
+                elif uri.startswith("magnet:"):
+                    post_data['uri'] = uri
 
-        if post_data:
-            TriblerNetworkRequest(
-                "mychannel/torrents", callback if callback else lambda _: None, method='PUT', data=post_data
-            )
+                if post_data:
+                    TriblerNetworkRequest(
+                        f"channels/mychannel/{channel_id}/torrents",
+                        lambda _: self.tray_show_message("Channel update", "Torrent(s) added to your channel"),
+                        method='PUT',
+                        data=post_data,
+                    )
 
-    def add_dir_to_channel(self, dirname, recursive=False, callback=None):
-        post_data = {"torrents_dir": dirname, "recursive": int(recursive)}
-        TriblerNetworkRequest(
-            "mychannel/torrents", callback if callback else lambda _: None, method='PUT', data=post_data
-        )
-
-    def on_dir_added_to_channel(self):
-        self.tray_show_message("Tribler update", "%s added to your channel" % self.chosen_dir)
+            self.window().add_to_channel_dialog.show_dialog(on_add_button_pressed, confirm_button_text="Add torrent")
 
     def on_new_version_available(self, version):
         if version == str(self.gui_settings.value('last_reported_version')):
@@ -878,7 +864,19 @@ class TriblerWindow(QMainWindow):
     def on_confirm_add_directory_dialog(self, action):
         if action == 0:
             if self.dialog.checkbox.isChecked():
-                self.add_dir_to_channel(self.chosen_dir, callback=self.on_dir_added_to_channel)
+                # TODO: add recursive directory scanning
+                def on_add_button_pressed(channel_id):
+                    TriblerNetworkRequest(
+                        f"collections/mychannel/{channel_id}/torrents",
+                        lambda _: self.tray_show_message("Channels update", f"{self.chosen_dir} added to your channel"),
+                        method='PUT',
+                        data={"torrents_dir": self.chosen_dir},
+                    )
+
+                self.window().add_to_channel_dialog.show_dialog(
+                    on_add_button_pressed, confirm_button_text="Add torrent(s)"
+                )
+
             for torrent_file in self.selected_torrent_files:
                 self.perform_start_download_request(
                     u"file:%s" % torrent_file,
@@ -886,7 +884,6 @@ class TriblerWindow(QMainWindow):
                     self.window().tribler_settings['download_defaults']['safeseeding_enabled'],
                     self.tribler_settings['download_defaults']['saveas'],
                     [],
-                    0,
                 )
 
         if self.dialog:

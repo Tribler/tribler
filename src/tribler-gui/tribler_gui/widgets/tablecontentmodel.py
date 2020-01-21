@@ -1,6 +1,5 @@
 import json
 import uuid
-from abc import abstractmethod
 
 from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt, pyqtSignal
 
@@ -14,8 +13,10 @@ from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import format_size, format_votes, pretty_date
 
 
-def combine_pk_id(pk, id_):
-    return "%s:%s" % (pk, id_)
+def get_item_uid(item):
+    if 'public_key' in item and 'id' in item:
+        return f"{item['public_key']}:{item['id']}"
+    return item['infohash']
 
 
 class RemoteTableModel(QAbstractTableModel):
@@ -41,6 +42,8 @@ class RemoteTableModel(QAbstractTableModel):
         self.sort_by = self.columns[self.default_sort_column] if self.default_sort_column >= 0 else None
         self.sort_desc = True
         self.saved_header_state = None
+        self.saved_scroll_state = None
+
         # Every remote query must be attributed to its specific model to avoid updating wrong models
         # on receiving a result. We achieve this by maintaining a set of in-flight remote queries.
         # Note that this only applies to results that are returned through the events notification
@@ -48,10 +51,6 @@ class RemoteTableModel(QAbstractTableModel):
         # We do not clean it up after receiving a result because we don't know if the result was the
         # last one. In a sense, the queries' UUIDs play the role of "subscription topics" for the model.
         self.remote_queries = set()
-
-    @abstractmethod
-    def get_item_uid(self, item):
-        pass
 
     def reset(self):
         self.beginResetModel()
@@ -73,6 +72,8 @@ class RemoteTableModel(QAbstractTableModel):
         """
         Adds new items to the table model. All items are mapped to their unique ids to avoid the duplicates.
         If the new items are remote then the items are prepended to the top else appended to the end of the model.
+        Note that item_uid_map tracks items twice: once by public_key+id and once by infohash. This is necessary to
+        support status updates from TorrentChecker based on infohash only.
         :param new_items: list(item)
         :param remote: True if new_items are received from remote peers else False for local items
         :return: None
@@ -84,14 +85,14 @@ class RemoteTableModel(QAbstractTableModel):
 
         # Only add unique items to the table model and reverse mapping from unique ids to rows is built.
         # If items are remote, prepend to the top else append to the end of the model.
-        new_items_map = {}
-        insert_index = len(self.data_items) if not remote else 0
+        insert_index = 0 if remote else len(self.data_items)
         unique_new_items = []
         for item in new_items:
-            item_uid = self.get_item_uid(item)
-
-            if item_uid and item_uid not in self.item_uid_map:
-                new_items_map[item_uid] = insert_index
+            item_uid = get_item_uid(item)
+            if item_uid not in self.item_uid_map:
+                self.item_uid_map[item_uid] = insert_index
+                if 'infohash' in item:
+                    self.item_uid_map[item['infohash']] = insert_index
                 unique_new_items.append(item)
                 insert_index += 1
 
@@ -99,12 +100,18 @@ class RemoteTableModel(QAbstractTableModel):
         if not unique_new_items:
             return
 
-        # Else if remote items, to make space for new unique items update the position of the existing items
+        # Else if remote items, to make space for new unique items shift the existing items
         if remote:
+            new_items_map = {}
             for item in self.data_items:
-                old_item_uid = self.get_item_uid(item)
+                old_item_uid = get_item_uid(item)
                 if old_item_uid in self.item_uid_map:
-                    new_items_map[old_item_uid] = insert_index + self.item_uid_map[old_item_uid]
+                    shifted_index = insert_index + self.item_uid_map[old_item_uid]
+                    new_items_map[old_item_uid] = shifted_index
+                    if 'infohash' in item:
+                        new_items_map[item['infohash']] = shifted_index
+            if new_items:
+                self.item_uid_map = new_items_map
 
         # Update the table model
         if remote:
@@ -113,15 +120,14 @@ class RemoteTableModel(QAbstractTableModel):
         else:
             self.beginInsertRows(QModelIndex(), len(self.data_items), len(self.data_items) + len(unique_new_items) - 1)
             self.data_items.extend(unique_new_items)
-        self.item_uid_map = new_items_map
         self.endInsertRows()
 
     def remove_items(self, items):
         uids_to_remove = []
         rows_to_remove = []
         for item in items:
-            uid = self.get_item_uid(item)
-            row = self.item_uid_map.get(uid, None)
+            uid = get_item_uid(item)
+            row = self.item_uid_map.get(uid)
             if row is not None:
                 uids_to_remove.append(uid)
                 rows_to_remove.append(row)
@@ -154,7 +160,7 @@ class RemoteTableModel(QAbstractTableModel):
         # Update uids of the shifted rows
         for n, item in enumerate(self.data_items):
             if n > rows_to_remove[0]:  # start just after the last removed row
-                self.item_uid_map[self.get_item_uid(item)] = n
+                self.item_uid_map[get_item_uid(item)] = n
 
         self.info_changed.emit(items)
 
@@ -215,7 +221,7 @@ class ChannelContentModel(RemoteTableModel):
         ACTION_BUTTONS: Qt.ItemIsEnabled | Qt.ItemIsSelectable,
     }
 
-    column_width = {u'state': lambda _: 20, u'name': lambda table_width: table_width - 600}
+    column_width = {u'state': lambda _: 20, u'name': lambda table_width: table_width - 520}
 
     column_tooltip_filters = {
         u'state': lambda data: data,
@@ -277,14 +283,6 @@ class ChannelContentModel(RemoteTableModel):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
             return self.column_headers[num]
 
-    def get_item_uid(self, item):
-        item_uid = None
-        if "infohash" in item:
-            item_uid = item['infohash']
-        elif "public_key" in item and "id" in item:
-            item_uid = combine_pk_id(item['public_key'], item['id'])
-        return item_uid
-
     def rowCount(self, parent=QModelIndex()):
         return len(self.data_items)
 
@@ -334,7 +332,7 @@ class ChannelContentModel(RemoteTableModel):
         """
         This method updates/inserts rows based on updated_dict. It should be typically invoked
         by a signal from Events endpoint. One special case it when the channel_info of the model
-        itself is updated. In that case, info_changed signal is emitted, so the controller/widged nows
+        itself is updated. In that case, info_changed signal is emitted, so the controller/widget knows
         it is time to update the labels.
         """
         # TODO: better mechanism for identifying channel entries for pushing updates
@@ -346,11 +344,7 @@ class ChannelContentModel(RemoteTableModel):
             self.channel_info.update(**update_dict)
             self.info_changed.emit([])
 
-        row = self.item_uid_map.get(
-            update_dict["infohash"]
-            if "infohash" in update_dict
-            else combine_pk_id(update_dict["public_key"], update_dict["id"])
-        )
+        row = self.item_uid_map.get(get_item_uid(update_dict))
         if row is not None:
             self.data_items[row].update(**update_dict)
             self.dataChanged.emit(self.index(row, 0), self.index(row, len(self.columns)), [])
@@ -393,8 +387,7 @@ class ChannelContentModel(RemoteTableModel):
     def setData(self, index, new_value, role=None):
         if role != Qt.EditRole:
             return True
-        public_key = self.data_items[index.row()][u'public_key']
-        id_ = self.data_items[index.row()][u'id']
+        item = self.data_items[index.row()]
         attribute_name = self.columns[index.column()]
         attribute_name = u'tags' if attribute_name == u'category' else attribute_name
         attribute_name = u'title' if attribute_name == u'name' else attribute_name
@@ -403,7 +396,7 @@ class ChannelContentModel(RemoteTableModel):
         def on_row_update_results(response):
             if not response:
                 return
-            item_row = self.item_uid_map.get(combine_pk_id(public_key, id_))
+            item_row = self.item_uid_map.get(get_item_uid(item))
             if item_row is None:
                 return
             data_item_dict = index.model().data_items[item_row]
@@ -411,7 +404,7 @@ class ChannelContentModel(RemoteTableModel):
             self.info_changed.emit([data_item_dict])
 
         TriblerNetworkRequest(
-            "metadata/%s/%s" % (public_key, id_),
+            f"metadata/{item['public_key']}/{item['id']}",
             on_row_update_results,
             method='PATCH',
             raw_data=json.dumps({attribute_name: new_value}),
@@ -433,7 +426,7 @@ class DiscoveredChannelsModel(ChannelContentModel):
     columns = [u'state', u'votes', u'name', u'torrents', u'updated']
     column_headers = [u'', u'Popularity', u'Name', u'Torrents', u'Updated']
 
-    column_width = {u'state': lambda _: 20, u'name': lambda table_width: table_width - 320}
+    column_width = {u'state': lambda _: 20, u'name': lambda table_width: table_width - 360}
 
     default_sort_column = 1
 

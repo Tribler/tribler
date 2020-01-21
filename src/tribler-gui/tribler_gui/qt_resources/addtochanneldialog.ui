@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>867</width>
+    <width>1030</width>
     <height>500</height>
    </rect>
   </property>
@@ -242,7 +242,7 @@ padding-right: 4px;</string>
          </spacer>
         </item>
         <item>
-         <widget class="QToolButton" name="btn_move">
+         <widget class="QToolButton" name="btn_confirm">
           <property name="minimumSize">
            <size>
             <width>0</width>
@@ -264,34 +264,7 @@ padding-left: 4px;
 padding-right: 4px;</string>
           </property>
           <property name="text">
-           <string>MOVE TO CHANNEL</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QToolButton" name="btn_add">
-          <property name="minimumSize">
-           <size>
-            <width>0</width>
-            <height>24</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>16777212</width>
-            <height>24</height>
-           </size>
-          </property>
-          <property name="cursor">
-           <cursorShape>PointingHandCursor</cursorShape>
-          </property>
-          <property name="styleSheet">
-           <string notr="true">border-radius: 12px;
-padding-left: 4px;
-padding-right: 4px;</string>
-          </property>
-          <property name="text">
-           <string>ADD TO CHANNEL</string>
+           <string>CONFIRM_BUTTON</string>
           </property>
          </widget>
         </item>

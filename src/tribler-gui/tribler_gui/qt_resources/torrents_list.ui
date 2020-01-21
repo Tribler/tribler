@@ -36,7 +36,7 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <widget class="QWidget" name="channel_details_header" native="true">
+    <widget class="QFrame" name="channel_details_header">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
        <horstretch>0</horstretch>
@@ -108,7 +108,11 @@
          <string notr="true">border: none;</string>
         </property>
         <property name="text">
-         <string/>
+         <string>BACK</string>
+        </property>
+        <property name="icon">
+         <iconset>
+          <normaloff>../images/page_back.png</normaloff>../images/page_back.png</iconset>
         </property>
        </widget>
       </item>
@@ -131,7 +135,7 @@
       <item>
        <widget class="QLabel" name="channel_name_label">
         <property name="sizePolicy">
-         <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+         <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
@@ -157,6 +161,9 @@ font-weight: bold;</string>
         <property name="text">
          <string>Some fancy channel</string>
         </property>
+        <property name="textInteractionFlags">
+         <set>Qt::LinksAccessibleByMouse</set>
+        </property>
        </widget>
       </item>
       <item>
@@ -177,6 +184,12 @@ font-weight: bold;</string>
       </item>
       <item>
        <widget class="QLabel" name="channel_state_label">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
         <property name="styleSheet">
          <string notr="true">color: #eee; font-size: 15px;</string>
         </property>
@@ -203,6 +216,12 @@ font-weight: bold;</string>
       </item>
       <item>
        <widget class="QLabel" name="channel_num_torrents_label">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
         <property name="styleSheet">
          <string notr="true">font-size: 14px;
 color: #B5B5B5;</string>
@@ -213,7 +232,7 @@ color: #B5B5B5;</string>
        </widget>
       </item>
       <item>
-       <spacer name="horizontalSpacer_16">
+       <spacer name="horizontalSpacer_60">
         <property name="orientation">
          <enum>Qt::Horizontal</enum>
         </property>
@@ -267,20 +286,30 @@ background-color: transparent;
        </widget>
       </item>
       <item>
-       <spacer name="horizontalSpacer_60">
+       <spacer name="horizontalSpacer_16">
         <property name="orientation">
          <enum>Qt::Horizontal</enum>
         </property>
+        <property name="sizeType">
+         <enum>QSizePolicy::Fixed</enum>
+        </property>
         <property name="sizeHint" stdset="0">
          <size>
-          <width>40</width>
+          <width>10</width>
           <height>20</height>
          </size>
         </property>
        </spacer>
       </item>
       <item>
-       <widget class="QComboBox" name="category_selector"/>
+       <widget class="QComboBox" name="category_selector">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+       </widget>
       </item>
       <item>
        <spacer name="horizontalSpacer_2">
@@ -319,9 +348,8 @@ background-color: transparent;
          </size>
         </property>
         <property name="styleSheet">
-         <string notr="true">QLineEdit {
-border-radius: 3px;
-}
+         <string notr="true">QLineEdit{ background-color:#303030;
+border-radius: 3px;}
 QLineEdit:focus, QLineEdit::hover {
 background-color: #404040;
 color: white;
@@ -338,7 +366,7 @@ color: white;
          <enum>Qt::Horizontal</enum>
         </property>
         <property name="sizeType">
-         <enum>QSizePolicy::Minimum</enum>
+         <enum>QSizePolicy::Fixed</enum>
         </property>
         <property name="sizeHint" stdset="0">
          <size>
@@ -375,7 +403,7 @@ color: white;
          <item>
           <widget class="QToolButton" name="subscribe_button">
            <property name="sizePolicy">
-            <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+            <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
              <horstretch>0</horstretch>
              <verstretch>0</verstretch>
             </sizepolicy>
@@ -509,6 +537,27 @@ background-color: transparent;
        </spacer>
       </item>
      </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="Line" name="line">
+     <property name="autoFillBackground">
+      <bool>false</bool>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">#line{color: #303030;
+
+}</string>
+     </property>
+     <property name="frameShadow">
+      <enum>QFrame::Plain</enum>
+     </property>
+     <property name="lineWidth">
+      <number>1</number>
+     </property>
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
     </widget>
    </item>
    <item>

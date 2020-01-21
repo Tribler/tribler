@@ -23,6 +23,40 @@ from tribler_gui.utilities import format_votes, get_health, get_image_path
 from tribler_gui.widgets.tableiconbuttons import DeleteIconButton, DownloadIconButton, PlayIconButton
 
 
+def draw_text(painter, rect, text, color=QColor("#B5B5B5"), font=None, alignment=Qt.AlignVCenter):
+    painter.save()
+    text_flags = Qt.AlignLeft | alignment | Qt.TextSingleLine
+    text_box = painter.boundingRect(rect, text_flags, text)
+    painter.setPen(QPen(color, 1, Qt.SolidLine, Qt.RoundCap))
+    if font:
+        painter.setFont(font)
+
+    painter.drawText(text_box, text_flags, text)
+    painter.restore()
+
+
+class CheckClickedMixin:
+    def check_clicked(self, event, _, __, index):
+        if (
+            event.type() == QEvent.MouseButtonRelease
+            and index.model().column_position.get(self.column_name, -1) == index.column()
+        ):
+            self.clicked.emit(index)
+            return True
+        return False
+
+    def size_hint(self, _, __):
+        return self.size
+
+    def on_mouse_moved(self, pos, index):
+        if self.last_index != index:
+            # Handle the case when the cursor leaves the table
+            if not index.model() or (index.model().column_position.get(self.column_name, -1) == index.column()):
+                self.last_index = index
+                return True
+        return False
+
+
 class TriblerButtonsDelegate(QStyledItemDelegate):
     redraw_required = pyqtSignal()
 
@@ -340,7 +374,7 @@ class CategoryLabel(QObject):
         painter.restore()
 
 
-class ToggleControl(QObject):
+class ToggleControl(QObject, CheckClickedMixin):
     """
     Column-level controls are stateless collections of methods for visualizing cell data and
     triggering corresponding events.
@@ -377,26 +411,6 @@ class ToggleControl(QObject):
         icon_rect = QRect(x, y, self.w, self.h)
 
         icon.paint(painter, icon_rect)
-
-    def check_clicked(self, event, _, __, index):
-        if (
-            event.type() == QEvent.MouseButtonRelease
-            and index.model().column_position.get(self.column_name, -1) == index.column()
-        ):
-            self.clicked.emit(index)
-            return True
-        return False
-
-    def size_hint(self, _, __):
-        return self.size
-
-    def on_mouse_moved(self, pos, index):
-        if self.last_index != index:
-            # Handle the case when the cursor leaves the table
-            if not index.model() or (index.model().column_position.get(self.column_name, -1) == index.column()):
-                self.last_index = index
-                return True
-        return False
 
 
 class SubscribeToggleControl(ToggleControl):
@@ -524,17 +538,6 @@ class HealthStatusDisplay(QObject):
         HEALTH_ERROR: QColor(Qt.red),
     }
 
-    def draw_text(self, painter, rect, text, color=QColor("#B5B5B5"), font=None, alignment=Qt.AlignVCenter):
-        painter.save()
-        text_flags = Qt.AlignLeft | alignment | Qt.TextSingleLine
-        text_box = painter.boundingRect(rect, text_flags, text)
-        painter.setPen(QPen(color, 1, Qt.SolidLine, Qt.RoundCap))
-        if font:
-            painter.setFont(font)
-
-        painter.drawText(text_box, text_flags, text)
-        painter.restore()
-
     def paint(self, painter, rect, index):
         data_item = index.model().data_items[index.row()]
 
@@ -574,17 +577,17 @@ class HealthStatusDisplay(QObject):
 
         # Paint status text, if necessary
         if health in [HEALTH_CHECKING, HEALTH_UNCHECKED, HEALTH_ERROR]:
-            self.draw_text(painter, text_box, health)
+            draw_text(painter, text_box, health)
         else:
             seeders = int(data_item[u'num_seeders'])
             leechers = int(data_item[u'num_leechers'])
 
             txt = u'S' + str(seeders) + u' L' + str(leechers)
 
-            self.draw_text(painter, text_box, txt)
+            draw_text(painter, text_box, txt)
 
 
-class RatingControl(QObject):
+class RatingControl(QObject, CheckClickedMixin):
     """
     Controls for visualizing the votes and subscription information for channels.
     """
@@ -603,41 +606,10 @@ class RatingControl(QObject):
         self.column_name = column_name
         self.last_index = QModelIndex()
 
-    def draw_text(self, painter, rect, text, color=QColor("#B5B5B5"), font=None, alignment=Qt.AlignVCenter):
-        painter.save()
-        text_flags = Qt.AlignLeft | alignment | Qt.TextSingleLine
-        text_box = painter.boundingRect(rect, text_flags, text)
-        painter.setPen(QPen(color, 1, Qt.SolidLine, Qt.RoundCap))
-        if font:
-            painter.setFont(font)
-
-        painter.drawText(text_box, text_flags, text)
-        painter.restore()
-
     def paint(self, painter, rect, _index, votes=0, subscribed=False):
         color = self.rating_colors["SUBSCRIBED" if subscribed else "UNSUBSCRIBED"]
-        self.draw_text(painter, rect, format_votes(votes), color=color)
+        draw_text(painter, rect, format_votes(votes), color=color)
 
     def paint_hover(self, painter, rect, _index, votes=0, subscribed=False):
         color = self.rating_colors["SUBSCRIBED_HOVER" if subscribed else "UNSUBSCRIBED_HOVER"]
-        self.draw_text(painter, rect, format_votes(votes), color=color)
-
-    def check_clicked(self, event, _, __, index):
-        if (
-            event.type() == QEvent.MouseButtonRelease
-            and index.model().column_position.get(self.column_name, -1) == index.column()
-        ):
-            self.clicked.emit(index)
-            return True
-        return False
-
-    def size_hint(self, _, __):
-        return self.size
-
-    def on_mouse_moved(self, pos, index):
-        if self.last_index != index:
-            # Handle the case when the cursor leaves the table
-            if not index.model() or (index.model().column_position.get(self.column_name, -1) == index.column()):
-                self.last_index = index
-                return True
-        return False
+        draw_text(painter, rect, format_votes(votes), color=color)
