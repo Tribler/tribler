@@ -299,13 +299,28 @@ class ChannelContentsWidget(widget_form, widget_class):
 
         # Assemble the channels navigation breadcrumb by utilising RichText links feature
         self.channel_name_label.setTextFormat(Qt.RichText)
-        breadcrumb_text = ""
-        for m, model in enumerate(self.channels_stack[:-1]):
-            breadcrumb_text += (
-                f'<a style="text-decoration:none;color:#A5A5A5;" href="{m}">{model.channel_info["name"]}</a>'
+        # We build the breadcrumb text backwards, by performing lookahead on each step.
+        # While building the breadcrumb label in RichText we also assemble an undecorated variant of the same text
+        # to estimate if we need to elide the breadcrumb. We cannot use RichText contents directly with
+        # .elidedText method because QT will elide the tags as well.
+        breadcrumb_text = f'{self.model.channel_info["name"]}'
+        breadcrumb_text_undecorated = breadcrumb_text
+        path_parts = [(m, model.channel_info["name"]) for m, model in enumerate(self.channels_stack[:-1])]
+        for m, channel_name in reversed(path_parts):
+            breadcrumb_text_undecorated = channel_name + " / " + breadcrumb_text_undecorated
+            breadcrumb_text_elided = self.channel_name_label.fontMetrics().elidedText(
+                breadcrumb_text_undecorated, 0, self.channel_name_label.width()
             )
-            breadcrumb_text += '<font color=#A5A5A5>  /  </font>'
-        breadcrumb_text += f'{self.model.channel_info["name"]}'
+            must_elide = breadcrumb_text_undecorated != breadcrumb_text_elided
+            if must_elide:
+                channel_name = "..."
+            breadcrumb_text = (
+                f'<a style="text-decoration:none;color:#A5A5A5;" href="{m}">{channel_name}</a>'
+                + '<font color=#A5A5A5>  /  </font>'
+                + breadcrumb_text
+            )
+            if must_elide:
+                break
 
         self.channel_name_label.setText(breadcrumb_text)
         self.channel_name_label.setTextInteractionFlags(Qt.TextBrowserInteraction)
