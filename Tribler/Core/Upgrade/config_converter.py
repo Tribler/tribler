@@ -31,7 +31,7 @@ def convert_config_to_tribler71(current_config, state_dir=None):
     :param: current_config: the current config in which we merge the old config files.
     :return: the newly edited TriblerConfig object with the old data inserted.
     """
-    state_dir = state_dir or TriblerConfig.get_default_state_dir()
+    state_dir = state_dir or TriblerConfig.get_default_root_state_dir()
     libtribler_file_loc = os.path.join(state_dir, "libtribler.conf")
     if os.path.exists(libtribler_file_loc):
         libtribler_cfg = RawConfigParser()
@@ -138,7 +138,7 @@ def add_libtribler_config(new_config, old_config):
 
             temp_config = config.copy()
             if section == "general" and name == "state_dir":
-                temp_config.set_state_dir(value)
+                temp_config.set_root_state_dir(value)
             elif section == "general" and name == "log_dir":
                 temp_config.set_log_dir(value)
             elif section == "tunnel_community" and name == "enabled":
@@ -211,7 +211,7 @@ def convert_config_to_tribler74(state_dir=None):
         from lib2to3.refactor import RefactoringTool, get_fixers_from_package
         refactoring_tool = RefactoringTool(fixer_names=get_fixers_from_package('lib2to3.fixes'))
 
-    state_dir = state_dir or TriblerConfig.get_default_base_state_dir()
+    state_dir = state_dir or TriblerConfig.get_default_root_state_dir()
     for _, filename in enumerate(iglob(os.path.join(state_dir, STATEDIR_CHECKPOINT_DIR, '*.state'))):
         convert_state_file_to_conf_74(filename, refactoring_tool=refactoring_tool)
 

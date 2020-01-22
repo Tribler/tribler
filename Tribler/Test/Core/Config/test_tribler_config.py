@@ -4,6 +4,7 @@ import os
 
 from configobj import ConfigObj
 
+from Tribler.Core import version as tribler_version
 from Tribler.Core.Config.tribler_config import CONFIG_FILENAME, CONFIG_SPEC_PATH, TriblerConfig
 from Tribler.Core.osutils import get_home_dir
 from Tribler.Test.Core.base_test import TriblerCoreTest
@@ -20,9 +21,8 @@ class TestTriblerConfig(TriblerCoreTest):
         """
         super(TestTriblerConfig, self).setUp()
 
-        state_dir = self.getStateDir()
         self.tribler_config = TriblerConfig(ConfigObj(configspec=CONFIG_SPEC_PATH, default_encoding='utf-8'))
-        self.tribler_config.set_state_dir(state_dir)
+        self.tribler_config.set_root_state_dir(self.getRootStateDir())
 
         self.assertIsNotNone(self.tribler_config)
 
@@ -132,13 +132,16 @@ class TestTriblerConfig(TriblerCoreTest):
         self.tribler_config.set_trustchain_keypair_filename(out_of_dir_name_global)
         self.assertEqual(self.tribler_config.config['trustchain']['ec_keypair_filename'], out_of_dir_name_global)
 
-
     def test_get_set_methods_general(self):
         """
         Check whether general get and set methods are working as expected.
         """
-        self.tribler_config.set_state_dir("TEST")
-        self.assertEqual(self.tribler_config.get_state_dir(), "TEST")
+        self.tribler_config.set_root_state_dir("TEST")
+        self.assertEqual(self.tribler_config.get_root_state_dir(), "TEST")
+
+        # State directory is now versioned
+        expected_state_dir = os.path.join("TEST", tribler_version.version_id)
+        self.assertEqual(self.tribler_config.get_state_dir(), expected_state_dir)
 
         self.tribler_config.set_version('7.0.0-GIT')
         self.assertLessEqual(self.tribler_config.get_version(), '7.0.0-GIT')
@@ -148,10 +151,10 @@ class TestTriblerConfig(TriblerCoreTest):
         self.assertEqual(self.tribler_config.get_version_backup_enabled(), False)
 
         self.assertEqual(self.tribler_config.get_trustchain_testnet_keypair_filename(),
-                         os.path.join("TEST", "ec_trustchain_testnet.pem"))
+                         os.path.join(self.tribler_config.get_state_dir(), "ec_trustchain_testnet.pem"))
         self.tribler_config.set_trustchain_testnet_keypair_filename("bla2")
         self.assertEqual(self.tribler_config.get_trustchain_testnet_keypair_filename(),
-                         os.path.join("TEST", "bla2"))
+                         os.path.join(self.tribler_config.get_state_dir(), "bla2"))
 
         self.tribler_config.set_testnet(True)
         self.assertTrue(self.tribler_config.get_testnet())

@@ -471,7 +471,7 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         Test whether we do the correct actions when receiving a file renamed alert
         """
         unwanted_dir = os.path.join(self.getStateDir(), '.unwanted')
-        os.mkdir(unwanted_dir)
+        os.makedirs(unwanted_dir)
         shutil.copyfile(TORRENT_UBUNTU_FILE, os.path.join(unwanted_dir, "test.txt"))
         self.libtorrent_download_impl.handle.save_path = lambda: self.getStateDir()
         self.libtorrent_download_impl.handle.file_priorities = lambda: [1]

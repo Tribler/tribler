@@ -15,7 +15,7 @@ class TestRestApiUtil(TriblerCoreTest):
         super(TestRestApiUtil, self).setUp()
 
         config = TriblerConfig()
-        config.set_state_dir(self.getStateDir())
+        config.set_root_state_dir(self.getRootStateDir())
         config.get_dispersy_enabled = lambda: False
         self.session = Session(config)
 

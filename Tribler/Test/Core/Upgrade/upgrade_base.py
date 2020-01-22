@@ -24,5 +24,5 @@ class AbstractUpgrader(TriblerCoreTest):
     def setUp(self):
         yield super(AbstractUpgrader, self).setUp()
         self.config = TriblerConfig(ConfigObj(configspec=CONFIG_SPEC_PATH))
-        self.config.set_state_dir(self.getStateDir())
+        self.config.set_root_state_dir(self.getRootStateDir())
         self.session = Session(self.config)

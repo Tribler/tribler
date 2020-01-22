@@ -251,12 +251,28 @@ def startfile(filepath):
         os.startfile(filepath)
 
 
-def dir_copy(src_dir, dest_dir):
+def dir_copy(src_dir, dest_dir, merge_if_exists=True):
     try:
-        shutil.copytree(src_dir, dest_dir)
+        if not os.path.exists(dest_dir):
+            shutil.copytree(src_dir, dest_dir)
+        elif merge_if_exists:
+            merge_dir(src_dir, dest_dir)
     except OSError as e:
-        # If the error was caused because the source wasn't a directory
+        # If source is not a directory, copy with shutil.copy
         if e.errno == errno.ENOTDIR:
             shutil.copy(src_dir, dest_dir)
         else:
-            logging.error("Directory %s could not be imported", src_dir)
+            logging.error("Could not copy %s to %s", src_dir, dest_dir)
+
+
+def merge_dir(src_dir, dest_dir):
+    for src_sub_dir, _, files in os.walk(src_dir):
+        dest_sub_dir = src_sub_dir.replace(str(src_dir), str(dest_dir), 1)
+        if not os.path.exists(dest_sub_dir):
+            os.makedirs(dest_sub_dir)
+        for _file in files:
+            src_file = os.path.join(src_sub_dir, _file)
+            dst_file = os.path.join(dest_sub_dir, _file)
+            if os.path.exists(dst_file):
+                os.remove(dst_file)
+            shutil.copy(src_file, dest_sub_dir)

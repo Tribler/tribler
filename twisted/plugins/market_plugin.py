@@ -85,7 +85,7 @@ class MarketServiceMaker(object):
         msg("Starting Tribler")
 
         if options["statedir"]:
-            config.set_state_dir(options["statedir"])
+            config.set_root_state_dir(options["statedir"])
 
         if options["restapi"] > 0:
             config.set_http_api_enabled(True)
