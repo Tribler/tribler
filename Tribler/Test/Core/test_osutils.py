@@ -4,6 +4,7 @@ import os
 import shutil
 import sys
 import tempfile
+from pathlib import Path
 
 import six
 
@@ -98,17 +99,33 @@ class Test_OsUtils(BaseTestCase):
         Tests copying a source directory to destination directory.
         """
         temp_dir = tempfile.mkdtemp()
-        src_dir = os.path.join(temp_dir, 'src')
-        dest_dir = os.path.join(temp_dir, 'dest')
 
+        # Source directory with some sub directories
+        src_dir = os.path.join(temp_dir, 'src')
         src_sub_dirs = ['dir1', 'dir2', 'dir3']
         os.makedirs(src_dir)
         for sub_dir in src_sub_dirs:
             os.makedirs(os.path.join(src_dir, sub_dir))
+        Path(src_dir, "test.txt").write_text("source: hello world")
         self.assertGreater(len(os.listdir(src_dir)), 1)
 
-        dir_copy(src_dir, dest_dir)
+        # Destination directories
+        dest_dir1 = os.path.join(temp_dir, 'dest1')  # will not exist initially; to test dir copy
+        dest_dir2 = os.path.join(temp_dir, 'dest2')  # will be created; to test dir merge
 
-        self.assertEqual(len(os.listdir(dest_dir)), len(os.listdir(src_dir)))
+        os.makedirs(dest_dir2)  # create some files inside
+        Path(dest_dir2, "test.txt").write_text("dest: hello world")
+        self.assertEqual(len(os.listdir(dest_dir2)), 1)
 
+        # Copy source directory to non-existent destination directory; should work
+        dir_copy(src_dir, dest_dir1)
+        self.assertEqual(len(os.listdir(dest_dir1)), len(os.listdir(src_dir)))
+
+        # Copy source directory to already existing destination directory
+        dir_copy(src_dir, dest_dir2, merge_if_exists=False)
+        self.assertEqual(len(os.listdir(dest_dir2)), 1)  # nothing copied
+        # Try copying with merge flag set
+        dir_copy(src_dir, dest_dir2, merge_if_exists=True)
+        self.assertEqual(len(os.listdir(src_dir)), len(os.listdir(dest_dir2)))
+        self.assertEqual(Path(dest_dir2, "test.txt").read_text(), "source: hello world")
         shutil.rmtree(temp_dir, ignore_errors=True)

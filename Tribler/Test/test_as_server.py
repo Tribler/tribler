@@ -33,6 +33,7 @@ from twisted.web.http import HTTPChannel
 from twisted.web.server import Site
 from twisted.web.static import File
 
+from Tribler.Core import version as tribler_version
 from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.Config.tribler_config import CONFIG_SPEC_PATH, TriblerConfig
 from Tribler.Core.Session import Session
@@ -142,7 +143,8 @@ class AbstractServer(BaseTestCase):
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.session_base_dir = self.temporary_directory(suffix=u"_tribler_test_session_")
-        self.state_dir = os.path.join(self.session_base_dir, u"dot.Tribler")
+        self.root_state_dir = os.path.join(self.session_base_dir, u"dot.Tribler")
+        self.state_dir = os.path.join(self.root_state_dir, tribler_version.version_id)
         self.dest_dir = os.path.join(self.session_base_dir, u"TriblerDownloads")
 
         # Wait until the reactor has started
@@ -236,11 +238,14 @@ class AbstractServer(BaseTestCase):
 
         super(AbstractServer, self).tearDown()
 
-    def getStateDir(self, nr=0):
-        state_dir = self.state_dir + (str(nr) if nr else '')
-        if not os.path.exists(state_dir):
-            os.mkdir(state_dir)
-        return state_dir
+    def getRootStateDir(self, nr=0):
+        root_state_dir = self.root_state_dir + (str(nr) if nr else '')
+        if not os.path.exists(root_state_dir):
+            os.makedirs(root_state_dir)
+        return root_state_dir
+
+    def getStateDir(self):
+        return self.state_dir
 
     def getDestDir(self, nr=0):
         dest_dir = self.dest_dir + (str(nr) if nr else '')
@@ -301,7 +306,7 @@ class TestAsServer(AbstractServer):
     def setUpPreSession(self):
         self.config = TriblerConfig(ConfigObj(configspec=CONFIG_SPEC_PATH, default_encoding='utf-8'))
         self.config.set_default_destination_dir(self.dest_dir)
-        self.config.set_state_dir(self.getStateDir())
+        self.config.set_root_state_dir(self.getRootStateDir())
         self.config.set_torrent_checking_enabled(False)
         self.config.set_ipv8_enabled(False)
         self.config.set_libtorrent_enabled(False)
@@ -366,7 +371,7 @@ class TestAsServer(AbstractServer):
         self.seed_config.set_tunnel_community_enabled(False)
         self.seed_config.set_market_community_enabled(False)
         self.seed_config.set_dht_enabled(False)
-        self.seed_config.set_state_dir(self.getStateDir(2))
+        self.seed_config.set_root_state_dir(self.getRootStateDir(2))
         self.seed_config.set_version_checker_enabled(False)
         self.seed_config.set_bitcoinlib_enabled(False)
         self.seed_config.set_chant_enabled(False)

@@ -2,11 +2,13 @@ from __future__ import absolute_import
 
 import os
 import shutil
+from pathlib import Path
 
 from pony.orm import db_session
 
 from twisted.internet.defer import Deferred, inlineCallbacks
 
+from Tribler.Core import version
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.Upgrade.upgrade import TriblerUpgrader, cleanup_noncompliant_channel_torrents
@@ -119,16 +121,44 @@ class TestUpgrader(AbstractUpgrader):
         """
         Test if backup of the state directory is done if the config version and the code version are different.
         """
-        self.session.config.set_version('7.4.0')
-        self.session.config.set_version_backup_enabled(True)
-
+        # Note that, the default version set in the code is 7.0.0-GIT.
+        # So for the first time after running the (enabled) upgrader,
+        # a new state directory for this version should be created.
         self.upgrader.run()
 
-        # Check versioned state directory exists
-        version_state_dir = self.session.config.get_state_dir(version=self.config.get_version())
+        version_state_dir = self.session.config.get_state_dir(version_id=version.version_id)
         self.assertTrue(os.path.exists(version_state_dir))
-
         version_state_sub_dirs = os.listdir(version_state_dir)
         backup_dirs = [STATEDIR_DB_DIR, STATEDIR_CHECKPOINT_DIR, STATEDIR_WALLET_DIR, STATEDIR_CHANNELS_DIR]
         for backup_dir in backup_dirs:
             self.assertTrue(backup_dir in version_state_sub_dirs)
+
+        # Creating keypairs to test that these key pairs are also copied
+        self.upgrader.session.init_keypair()
+
+        # Now lets increase the version and test that upgrader does backup the directory and copy proper files
+        original_version = version.version_id
+        version.version_id = '7.5.0'
+
+        # If the version backup is not enabled, upgrader will not try to create a backup of the previous state directory
+        # and create a new state directory for the new version.
+        self.session.config.set_version_backup_enabled(False)
+        self.upgrader.run()
+
+        version_state_dir = Path(self.session.config.get_state_dir(version_id=version.version_id))
+        self.assertFalse(os.path.exists(version_state_dir))
+
+        self.session.config.set_version_backup_enabled(True)
+        self.upgrader.run()
+
+        version_state_dir = Path(self.session.config.get_state_dir(version_id=version.version_id))
+        self.assertTrue(os.path.exists(version_state_dir))
+        version_state_sub_dirs = os.listdir(version_state_dir)
+        backup_dirs = [STATEDIR_DB_DIR, STATEDIR_CHECKPOINT_DIR, STATEDIR_WALLET_DIR, STATEDIR_CHANNELS_DIR]
+        for backup_dir in backup_dirs:
+            self.assertTrue(backup_dir in version_state_sub_dirs)
+
+        self.assertTrue(len(list(version_state_dir.glob("*.pem"))) > 1)
+
+        # Restore the original version
+        version.version_id = original_version
