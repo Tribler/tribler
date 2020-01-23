@@ -4,13 +4,7 @@ from asyncio import Future
 
 from pony.orm import db_session
 
-from tribler_common.simpledefs import (
-    NTFY,
-    STATEDIR_CHANNELS_DIR,
-    STATEDIR_CHECKPOINT_DIR,
-    STATEDIR_DB_DIR,
-    STATEDIR_WALLET_DIR,
-)
+from tribler_common.simpledefs import NTFY
 
 from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH
 from tribler_core.modules.metadata_store.store import MetadataStore
@@ -111,21 +105,3 @@ class TestUpgrader(AbstractUpgrader):
         pstate = CallbackConfigParser()
         pstate.read_file(file_path)
         self.assertEqual(CHANNEL_DIR_NAME_LENGTH, len(pstate.get('state', 'metainfo')['info']['name']))
-
-    async def test_backup_state_directory(self):
-        """
-        Test if backup of the state directory is done if the config version and the code version are different.
-        """
-        self.session.config.set_version('7.4.0')
-        self.session.config.set_version_backup_enabled(True)
-
-        await self.upgrader.run()
-
-        # Check versioned state directory exists
-        version_state_dir = self.session.config.get_state_dir(version=self.config.get_version())
-        self.assertTrue(version_state_dir.exists())
-
-        version_state_sub_dirs = os.listdir(version_state_dir)
-        backup_dirs = [STATEDIR_DB_DIR, STATEDIR_CHECKPOINT_DIR, STATEDIR_WALLET_DIR, STATEDIR_CHANNELS_DIR]
-        for backup_dir in backup_dirs:
-            self.assertTrue(backup_dir in version_state_sub_dirs)

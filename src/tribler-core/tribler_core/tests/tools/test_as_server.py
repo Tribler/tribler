@@ -15,6 +15,7 @@ import sys
 import time
 from asyncio import Future, current_task, get_event_loop
 from functools import partial
+from pathlib import Path
 from threading import enumerate as enumerate_threads
 
 from aiohttp import web
@@ -25,6 +26,7 @@ from configobj import ConfigObj
 
 from tribler_common.simpledefs import DLSTATUS_SEEDING
 
+from tribler_core import version as tribler_version
 from tribler_core.config.tribler_config import CONFIG_SPEC_PATH, TriblerConfig
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
 from tribler_core.modules.libtorrent.libtorrent_mgr import LibtorrentMgr
@@ -35,7 +37,6 @@ from tribler_core.tests.tools.util import process_unhandled_exceptions
 from tribler_core.utilities import path_util
 from tribler_core.utilities.instrumentation import WatchDog
 from tribler_core.utilities.network_utils import get_random_port
-from tribler_core.utilities.path_util import Path
 
 OUTPUT_DIR = path_util.abspath(os.environ.get('OUTPUT_DIR', 'output'))
 
@@ -136,7 +137,8 @@ class AbstractServer(BaseTestCase):
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.session_base_dir = self.temporary_directory(suffix=u"_tribler_test_session_")
-        self.state_dir = self.session_base_dir / u"dot.Tribler"
+        self.root_state_dir = self.session_base_dir / u"dot.Tribler"
+        self.state_dir = self.root_state_dir / tribler_version.version_id
         self.dest_dir = self.session_base_dir / u"TriblerDownloads"
 
         self.annotate_dict = {}
@@ -196,11 +198,14 @@ class AbstractServer(BaseTestCase):
 
         super(AbstractServer, self).tearDown()
 
-    def getStateDir(self, nr=0):
-        state_dir = self.state_dir.joinpath(Path(str(nr) if nr else ''))
-        if not state_dir.exists():
-            os.mkdir(state_dir)
-        return state_dir
+    def getRootStateDir(self, nr=0):
+        root_state_dir = self.root_state_dir.joinpath(Path(str(nr) if nr else ''))
+        if not root_state_dir.exists():
+            os.makedirs(root_state_dir)
+        return root_state_dir
+
+    def getStateDir(self):
+        return self.state_dir
 
     def getDestDir(self, nr=0):
         dest_dir = self.dest_dir.joinpath(Path(str(nr) if nr else ''))
@@ -254,7 +259,7 @@ class TestAsServer(AbstractServer):
     def setUpPreSession(self):
         self.config = TriblerConfig(ConfigObj(configspec=str(CONFIG_SPEC_PATH), default_encoding='utf-8'))
         self.config.set_default_destination_dir(self.dest_dir)
-        self.config.set_state_dir(self.getStateDir())
+        self.config.set_root_state_dir(self.getRootStateDir())
         self.config.set_torrent_checking_enabled(False)
         self.config.set_ipv8_enabled(False)
         self.config.set_libtorrent_enabled(False)
@@ -317,7 +322,7 @@ class TestAsServer(AbstractServer):
         self.seed_config.set_tunnel_community_enabled(False)
         self.seed_config.set_market_community_enabled(False)
         self.seed_config.set_dht_enabled(False)
-        self.seed_config.set_state_dir(self.getStateDir(2))
+        self.seed_config.set_root_state_dir(self.getRootStateDir(2))
         self.seed_config.set_version_checker_enabled(False)
         self.seed_config.set_bitcoinlib_enabled(False)
         self.seed_config.set_chant_enabled(False)
