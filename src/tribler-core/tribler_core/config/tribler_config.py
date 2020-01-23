@@ -3,18 +3,19 @@ Configuration object for the Tribler Core.
 """
 import logging
 import os
+from pathlib import Path
 
 from configobj import ConfigObj
 
 from validate import Validator
 
+from tribler_core import version as tribler_version
 from tribler_core.exceptions import InvalidConfigException
 from tribler_core.modules.libtorrent.download_config import get_default_dest_dir
 from tribler_core.utilities import path_util
 from tribler_core.utilities.install_dir import get_lib_path
 from tribler_core.utilities.network_utils import get_random_port
 from tribler_core.utilities.osutils import get_appstate_dir
-from tribler_core.version import version_id
 
 CONFIG_FILENAME = 'triblerd.conf'
 SPEC_FILENAME = 'tribler_config.spec'
@@ -37,10 +38,9 @@ class TriblerConfig(object):
         :raises an InvalidConfigException if ConfigObj is invalid
         """
         self._logger = logging.getLogger(self.__class__.__name__)
-        self._state_dir = self.get_default_state_dir()
-        # If specific version state directory is available, use that version otherwise use default address
-        if not self._state_dir.exists():
-            self._state_dir = self.get_default_base_state_dir()
+
+        self._root_state_dir = self.get_default_root_state_dir()
+        self._state_dir = self._root_state_dir / tribler_version.version_id
 
         if config is None:
             config_file = self._state_dir / CONFIG_FILENAME
@@ -104,26 +104,12 @@ class TriblerConfig(object):
         self.config.write()
 
     @staticmethod
-    def get_default_state_dir(home_dir_postfix=u'.Tribler', version=version_id):
-        """Get the default application state directory."""
-        state_dir = TriblerConfig.get_default_base_state_dir(home_dir_postfix=home_dir_postfix)
-        return TriblerConfig.get_versioned_state_dir(state_dir, version)
-
-    @staticmethod
-    def get_default_base_state_dir(home_dir_postfix=u'.Tribler'):
+    def get_default_root_state_dir(home_dir_postfix=u'.Tribler'):
         """Get the default application state directory."""
         if 'TSTATEDIR' in os.environ:
-            state_dir = os.environ['TSTATEDIR']
-            return path_util.Path(state_dir).absolute()
-
-        return get_appstate_dir() / home_dir_postfix
-
-    @staticmethod
-    def get_versioned_state_dir(state_dir, version):
-        dash_index = version.find('-')
-        if dash_index < 0:
-            return state_dir / version
-        return state_dir / version[:dash_index] / version[dash_index+1:]
+            path = os.environ['TSTATEDIR']
+            return Path(path) if os.path.isabs(path) else Path(os.getcwd(), path)
+        return Path(get_appstate_dir(), home_dir_postfix)
 
     def _obtain_port(self, section, option):
         """
@@ -153,7 +139,7 @@ class TriblerConfig(object):
         return self.config['general']['version']
 
     def update_version(self):
-        self.config['general']['version'] = version_id
+        self.config['general']['version'] = tribler_version.version_id
 
     def set_version_backup_enabled(self, backup_enabled):
         self.config['general']['version_backup_enabled'] = backup_enabled
@@ -180,12 +166,18 @@ class TriblerConfig(object):
     def get_chant_channels_dir(self):
         return self.abspath(self.config['chant']['channels_dir'])
 
-    def set_state_dir(self, state_dir):
-        self._state_dir = state_dir
+    def set_root_state_dir(self, root_dir, version_id=None):
+        """
+        Sets the root state directory for Tribler. The versioning is handled automatically.
+        """
+        self._root_state_dir = Path(root_dir)
+        self._state_dir = self._root_state_dir / (version_id or tribler_version.version_id)
 
-    def get_state_dir(self, version=None):
-        return TriblerConfig.get_versioned_state_dir(self._state_dir, version) if version \
-            else path_util.Path(self._state_dir)
+    def get_root_state_dir(self):
+        return self._root_state_dir
+
+    def get_state_dir(self, version_id=None):
+        return self._root_state_dir / version_id if version_id else self._state_dir
 
     def set_trustchain_keypair_filename(self, keypairfilename):
         self.config['trustchain']['ec_keypair_filename'] = str(self.norm_path(keypairfilename))

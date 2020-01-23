@@ -23,7 +23,7 @@ class TestProcessChecker(AbstractServer):
         await super(TestProcessChecker, self).setUp()
         self.process = None
         self.stop_flag = Value('b', 0)
-        self.state_dir = self.getStateDir()
+        self.state_dir = self.getRootStateDir()
 
     def create_lock_file_with_pid(self, pid):
         with open(self.state_dir / LOCK_FILE_NAME, 'w') as lock_file:

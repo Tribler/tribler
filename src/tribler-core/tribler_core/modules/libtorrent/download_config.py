@@ -58,7 +58,7 @@ class DownloadConfig:
         @param path A path of a directory.
         """
         # If something is saved inside the Tribler state dir, it should use relative path
-        path = path_util.Path(path)
+        path = Path(path)
         if self.state_dir:
             base_path = self.state_dir
             path = path_util.norm_path(base_path, path)
@@ -76,7 +76,7 @@ class DownloadConfig:
         if not path_util.isabs(dest_dir):
             dest_dir = self.state_dir / dest_dir
 
-        return path_util.Path(dest_dir)
+        return Path(dest_dir)
 
     def set_mode(self, mode):
         """ Sets the mode of this download.
