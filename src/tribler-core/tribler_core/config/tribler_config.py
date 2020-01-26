@@ -3,6 +3,7 @@ Configuration object for the Tribler Core.
 """
 import logging
 import os
+from pathlib import Path
 
 from configobj import ConfigObj
 
@@ -10,7 +11,6 @@ from validate import Validator
 
 from tribler_core.exceptions import InvalidConfigException
 from tribler_core.modules.libtorrent.download_config import get_default_dest_dir
-from tribler_core.utilities import path_util
 from tribler_core.utilities.install_dir import get_lib_path
 from tribler_core.utilities.network_utils import get_random_port
 from tribler_core.utilities.osutils import get_appstate_dir
@@ -118,7 +118,7 @@ class TriblerConfig:
         """Get the default application state directory."""
         if 'TSTATEDIR' in os.environ:
             state_dir = os.environ['TSTATEDIR']
-            return path_util.Path(state_dir).absolute()
+            return Path(state_dir).absolute()
 
         return get_appstate_dir() / home_dir_postfix
 
@@ -189,7 +189,7 @@ class TriblerConfig:
 
     def get_state_dir(self, version=None):
         return TriblerConfig.get_versioned_state_dir(self._state_dir, version) if version \
-            else path_util.Path(self._state_dir)
+            else Path(self._state_dir)
 
     def set_trustchain_keypair_filename(self, keypairfilename):
         self.config['trustchain']['ec_keypair_filename'] = str(self.norm_path(keypairfilename))
