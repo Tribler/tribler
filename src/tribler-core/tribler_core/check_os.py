@@ -12,7 +12,6 @@ from six import text_type
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.dependencies import _show_system_popup
 from tribler_core.modules.process_checker import ProcessChecker
-from tribler_core.utilities import path_util
 
 FORCE_RESTART_MESSAGE = "An existing Tribler core process (PID:%s) is already running. \n\n" \
                         "Do you want to stop the process and do a clean restart instead?"
@@ -194,8 +193,8 @@ def enable_fault_handler():
 
         log_dir = TriblerConfig().get_log_dir()
         if not log_dir.exists():
-            path_util.makedirs(log_dir)
-        crash_file = log_dir /"crash-report.log"
+            log_dir.mkdir(parents=True)
+        crash_file = log_dir / "crash-report.log"
         faulthandler.enable(file=open(text_type(crash_file), "w"), all_threads=True)
     except ImportError:
         logging.error("Fault Handler module not found.")
