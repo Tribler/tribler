@@ -40,7 +40,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         video_tdef, _ = self.create_local_torrent(TESTS_DATA_DIR / 'video.avi')
         self.session.ltmgr.start_download(tdef=video_tdef)
         await self.session.ltmgr.start_download_from_uri("file:" +
-                                                         pathname2url(str(TESTS_DATA_DIR / "bak_single.torrent")))
+                                                        pathname2url(str(TESTS_DATA_DIR / "bak_single.torrent")))
 
         downloads = await self.do_request('downloads?get_peers=1&get_pieces=1', expected_code=200)
         self.assertEqual(len(downloads['downloads']), 2)
@@ -52,7 +52,8 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         video_tdef, _ = self.create_local_torrent(TESTS_DATA_DIR / 'video.avi')
         self.session.ltmgr.start_download(tdef=video_tdef)
-        await self.session.ltmgr.start_download_from_uri("file:" + pathname2url(str(TESTS_DATA_DIR / "bak_single.torrent")))
+        await self.session.ltmgr.start_download_from_uri("file:" +
+                                                        pathname2url(str(TESTS_DATA_DIR / "bak_single.torrent")))
         downloads = await self.do_request('downloads?get_peers=1&get_pieces=1&&get_files=1', expected_code=200)
         self.assertCountEqual([downloads['downloads'][0]['files'],
                                downloads['downloads'][1]['files']],
@@ -569,7 +570,8 @@ class TestMetadataDownloadEndpoint(AbstractApiTest):
         test_channel_name = 'test_channel'
         video_tdef, _ = self.create_local_torrent(TESTS_DATA_DIR / 'video.avi')
         self.session.ltmgr.start_download(tdef=video_tdef)
-        await self.session.ltmgr.start_download_from_uri("file:" + pathname2url(str(TESTS_DATA_DIR / "bak_single.torrent")))
+        await self.session.ltmgr.start_download_from_uri("file:" + 
+                                                        pathname2url(str(TESTS_DATA_DIR / "bak_single.torrent")))
 
         with db_session:
             channel = self.session.mds.ChannelMetadata.create_channel(test_channel_name, 'bla')

@@ -36,10 +36,8 @@ if sys.platform == "win32":
 
 
 def _norm_path(base_path, path):
-    base_path = Path(base_path)
-    path = Path(path)
     if path.is_absolute() and base_path.resolve() in path.resolve().parents:
-            return path.relative_to(base_path)
+        return path.relative_to(base_path)
     return path
 
 
