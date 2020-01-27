@@ -200,6 +200,10 @@ class Session(object):
                 self._logger.error("Tried to cancel an already called event\n%s", text)
                 return
 
+            if 'builtins.OSError' in text and '[Errno 16]' in text:
+                self._logger.error("Socket error: Device or resource busy. Error code: 16")
+                return
+
             # We already have a check for invalid infohash when adding a torrent, but if somehow we get this
             # error then we simply log and ignore it.
             if 'exceptions.RuntimeError: invalid info-hash' in text:
