@@ -1,4 +1,5 @@
 from binascii import unhexlify
+from pathlib import Path
 from urllib.parse import unquote_plus
 from urllib.request import url2pathname
 
@@ -24,8 +25,6 @@ from tribler_core.restapi.rest_endpoint import (
     RESTResponse,
 )
 from tribler_core.restapi.util import return_handled_exception
-from tribler_core.utilities import path_util
-from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.torrent_utils import get_info_from_handle
 from tribler_core.utilities.unicode import ensure_unicode, hexlify
 
@@ -116,7 +115,7 @@ class DownloadsEndpoint(RESTEndpoint):
         for fn, size in download.get_def().get_files_with_length():
             files_json.append({
                 "index": file_index,
-                "name": path_util.Path(fn).to_text(),
+                "name": str(Path(fn)),
                 "size": size,
                 "included": (file_index in selected_files or not selected_files),
                 "progress": files_completion.get(fn, 0.0)
@@ -248,7 +247,7 @@ class DownloadsEndpoint(RESTEndpoint):
                 # Maximum upload/download rates are set for entire sessions
                 "max_upload_speed": self.session.config.get_libtorrent_max_upload_rate(),
                 "max_download_speed": self.session.config.get_libtorrent_max_download_rate(),
-                "destination": path_util.Path(download.config.get_dest_dir()).to_text(),
+                "destination": str(Path(download.config.get_dest_dir())),
                 "availability": state.get_availability(),
                 "total_pieces": tdef.get_nr_pieces(),
                 "vod_mode": download.config.get_mode() == DLMODE_VOD,

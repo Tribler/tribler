@@ -9,6 +9,7 @@ import sys
 import time
 from asyncio import CancelledError, Future, iscoroutine, sleep
 from collections import defaultdict
+from pathlib import Path
 
 from ipv8.taskmanager import TaskManager, task
 from ipv8.util import int2byte
@@ -22,7 +23,6 @@ from tribler_core.modules.libtorrent import check_handle, require_handle
 from tribler_core.modules.libtorrent.download_config import DownloadConfig, get_default_dest_dir
 from tribler_core.modules.libtorrent.download_state import DownloadState
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
-from tribler_core.utilities import path_util
 from tribler_core.utilities.osutils import fix_filebasename
 from tribler_core.utilities.torrent_utils import get_info_from_handle
 from tribler_core.utilities.unicode import ensure_unicode, hexlify
@@ -35,7 +35,17 @@ if sys.platform == "win32":
         pass
 
 
-class VODFile(object):
+def _norm_path(base_path, path):
+    base_path = Path(base_path)
+    path = Path(path)
+    if path.is_absolute():
+        if base_path.resolve() in list(path.resolve().parents):
+            return path.relative_to(base_path)
+    return path
+
+
+
+class VODFile:
 
     def __init__(self, f, d):
         self._logger = logging.getLogger(self.__class__.__name__)
@@ -205,7 +215,7 @@ class LibtorrentDownloadImpl(TaskManager):
 
         self.checkpoint()
 
-        atp = {"save_path": path_util.normpath(get_default_dest_dir() / self.config.get_dest_dir()),
+        atp = {"save_path": (get_default_dest_dir() / self.config.get_dest_dir()).resolve(),
                "storage_mode": lt.storage_mode_t.storage_mode_sparse,
                "flags": lt.add_torrent_params_flags_t.flag_paused
                         | lt.add_torrent_params_flags_t.flag_duplicate_is_error
@@ -224,7 +234,7 @@ class LibtorrentDownloadImpl(TaskManager):
             atp["ti"] = torrentinfo
             if resume_data and isinstance(resume_data, dict):
                 # Rewrite save_path as a global path, if it is given as a relative path
-                if b"save_path" in resume_data and not path_util.isabs(ensure_unicode(resume_data[b"save_path"], 'utf8')):
+                if b"save_path" in resume_data and not Path(ensure_unicode(resume_data[b"save_path"], 'utf8')).is_absolute():
                     resume_data[b"save_path"] = self.state_dir / ensure_unicode(resume_data[b"save_path"], 'utf8')
                 atp["resume_data"] = lt.bencode(resume_data)
         else:
@@ -464,9 +474,9 @@ class LibtorrentDownloadImpl(TaskManager):
         resume_data = alert.resume_data
         # Make save_path relative if the torrent is saved in the Tribler state directory
         if self.state_dir and b'save_path' in resume_data:
-            save_path = path_util.abspath(resume_data[b'save_path'].decode('utf8'))
-            if save_path.exists() and path_util.issubfolder(self.state_dir, save_path):
-                resume_data[b'save_path'] = path_util.norm_path(self.state_dir, save_path).to_text()
+            save_path = Path(resume_data[b'save_path'].decode('utf8')).resolve()
+            if save_path.exists() and self.state_dir in save_path.parents:
+                resume_data[b'save_path'] = str(_norm_path(self.state_dir, save_path))
 
         metainfo = {
             'infohash': self.tdef.get_infohash(),
@@ -481,7 +491,7 @@ class LibtorrentDownloadImpl(TaskManager):
         basename = hexlify(resume_data[b'info-hash']) + '.conf'
         filename = self.ltmgr.get_checkpoint_dir() / basename
         self.config.config['download_defaults']['name'] = self.tdef.get_name_as_unicode()  # store name (for debugging)
-        self.config.write(filename.to_text())
+        self.config.write(str(filename))
         self._logger.debug('Saving download config to file %s', filename)
 
     def on_tracker_reply_alert(self, alert):
