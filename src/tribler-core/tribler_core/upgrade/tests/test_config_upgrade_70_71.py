@@ -33,7 +33,7 @@ class TestConfigUpgrade70to71(TriblerCoreTest):
         """
         Test upgrading a libtribler configuration from 7.0 to 7.1
         """
-        os.environ['TSTATEDIR'] = self.session_base_dir.to_text()
+        os.environ['TSTATEDIR'] = str(self.session_base_dir)
         old_config = RawConfigParser()
         old_config.read(self.CONFIG_PATH / "libtribler70.conf")
         new_config = TriblerConfig()
@@ -67,7 +67,7 @@ class TestConfigUpgrade70to71(TriblerCoreTest):
         """
         old_config = RawConfigParser()
         old_config.read(self.CONFIG_PATH / "libtriblercorrupt70.conf")
-        new_config = TriblerConfig(ConfigObj(configspec=CONFIG_SPEC_PATH.to_text()))
+        new_config = TriblerConfig(ConfigObj(configspec=str(CONFIG_SPEC_PATH)))
 
         result_config = add_libtribler_config(new_config, old_config)
 

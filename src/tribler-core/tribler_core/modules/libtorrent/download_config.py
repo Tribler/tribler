@@ -1,4 +1,5 @@
 import base64
+from pathlib import Path
 
 from configobj import ConfigObj
 
@@ -7,10 +8,8 @@ import libtorrent as lt
 from tribler_common.simpledefs import DLMODE_NORMAL, DLMODE_VOD
 
 from tribler_core.exceptions import InvalidConfigException
-from tribler_core.utilities import path_util
 from tribler_core.utilities.install_dir import get_lib_path
 from tribler_core.utilities.osutils import get_home_dir
-from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.utilities import bdecode_compat
 
 from validate import Validator
@@ -22,7 +21,7 @@ NONPERSISTENT_DEFAULTS = {'mode': DLMODE_NORMAL}
 
 class DownloadConfig:
     def __init__(self, config=None, state_dir=None):
-        self.config = config or ConfigObj(configspec=CONFIG_SPEC_PATH.to_text(), default_encoding='utf8')
+        self.config = config or ConfigObj(configspec=str(CONFIG_SPEC_PATH), default_encoding='utf8')
         # Values that should not be stored and should be initialized to some default value
         self.nonpersistent = NONPERSISTENT_DEFAULTS.copy()
         self.state_dir = state_dir
@@ -42,11 +41,11 @@ class DownloadConfig:
 
     @staticmethod
     def load(config_path=None):
-        return DownloadConfig(ConfigObj(infile=config_path.to_text(), file_error=True,
-                                        configspec=CONFIG_SPEC_PATH.to_text(), default_encoding='utf-8'))
+        return DownloadConfig(ConfigObj(infile=str(config_path), file_error=True,
+                                        configspec=str(CONFIG_SPEC_PATH), default_encoding='utf-8'))
 
     def copy(self):
-        return DownloadConfig(ConfigObj(self.config, configspec=CONFIG_SPEC_PATH.to_text(), default_encoding='utf-8'))
+        return DownloadConfig(ConfigObj(self.config, configspec=str(CONFIG_SPEC_PATH), default_encoding='utf-8'))
 
     def write(self, filename):
         self.config.filename = filename
@@ -57,11 +56,12 @@ class DownloadConfig:
         @param path A path of a directory.
         """
         # If something is saved inside the Tribler state dir, it should use relative path
-        path = path_util.Path(path)
+        path = Path(path)
         if self.state_dir:
             base_path = self.state_dir
-            path = path_util.norm_path(base_path, path)
-        self.config['download_defaults']['saveas'] = path.to_text()
+            if path.is_absolute() and base_path.resolve() in path.resolve().parents:
+                path = path.relative_to(base_path)
+        self.config['download_defaults']['saveas'] = str(path)
 
     def get_dest_dir(self):
         """ Gets the directory where to save this Download.
@@ -72,10 +72,10 @@ class DownloadConfig:
             self.set_dest_dir(dest_dir)
 
         # This is required to support relative paths
-        if not path_util.isabs(dest_dir):
+        if not dest_dir.is_absolute():
             dest_dir = self.state_dir / dest_dir
 
-        return path_util.Path(dest_dir)
+        return Path(dest_dir)
 
     def set_mode(self, mode):
         """ Sets the mode of this download.
@@ -185,9 +185,9 @@ def get_default_dest_dir():
 
     # TODO: Is this here so the unit tests work?
     if download_dir.is_dir():
-        return path_util.abspath(download_dir)
+        return download_dir.resolve()
 
-    downloads_dir = get_home_dir() / u"Downloads"
+    downloads_dir = get_home_dir() / "Downloads"
     if downloads_dir.is_dir():
         return downloads_dir / download_dir
     return get_home_dir() / download_dir

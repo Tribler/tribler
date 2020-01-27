@@ -1,5 +1,7 @@
 import shutil
+import tempfile
 from asyncio import Future, gather, get_event_loop, sleep
+from pathlib import Path
 from unittest.mock import Mock
 
 from libtorrent import bencode
@@ -13,7 +15,6 @@ from tribler_core.tests.tools.base_test import MockObject
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
 from tribler_core.tests.tools.test_as_server import AbstractServer
 from tribler_core.tests.tools.tools import timeout
-from tribler_core.utilities.path_util import mkdtemp
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import succeed
 
@@ -60,7 +61,7 @@ class TestLibtorrentMgr(AbstractServer):
         self.tribler_session.notify_shutdown_state = lambda _: None
 
         self.ltmgr = LibtorrentMgr(self.tribler_session)
-        self.ltmgr.metadata_tmpdir = mkdtemp(suffix=u'tribler_metainfo_tmpdir')
+        self.ltmgr.metadata_tmpdir = Path(tempfile.mkdtemp(suffix='tribler_metainfo_tmpdir'))
 
         self.tribler_session.ltmgr = self.ltmgr
         self.tribler_session.tunnel_community = None
@@ -441,7 +442,7 @@ class TestLibtorrentMgr(AbstractServer):
         Test whether we are resuming downloads after loading checkpoints
         """
         def mocked_load_checkpoint(filename):
-            self.assertTrue(filename.endswith('abcd.conf'))
+            self.assertTrue(filename.match('*abcd.conf'))
             mocked_load_checkpoint.called = True
 
         mocked_load_checkpoint.called = False

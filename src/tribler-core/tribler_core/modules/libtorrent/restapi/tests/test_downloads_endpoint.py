@@ -1,6 +1,7 @@
 import os
 from asyncio import ensure_future
 from binascii import unhexlify
+from urllib.request import pathname2url
 
 from pony.orm import db_session
 
@@ -9,7 +10,6 @@ from tribler_core.restapi.base_api_test import AbstractApiTest
 from tribler_core.tests.tools.base_test import MockObject
 from tribler_core.tests.tools.common import TESTS_DATA_DIR, TESTS_DIR, UBUNTU_1504_INFOHASH
 from tribler_core.tests.tools.tools import timeout
-from tribler_core.utilities.path_util import pathname2url
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import fail, succeed
 
@@ -39,8 +39,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         video_tdef, _ = self.create_local_torrent(TESTS_DATA_DIR / 'video.avi')
         self.session.ltmgr.start_download(tdef=video_tdef)
-        await self.session.ltmgr.start_download_from_uri("file:" +
-                                                         pathname2url(TESTS_DATA_DIR / "bak_single.torrent"))
+        await self.session.ltmgr.start_download_from_uri("file:" + pathname2url(TESTS_DATA_DIR / "bak_single.torrent"))
 
         downloads = await self.do_request('downloads?get_peers=1&get_pieces=1', expected_code=200)
         self.assertEqual(len(downloads['downloads']), 2)
@@ -104,8 +103,8 @@ class TestDownloadsEndpoint(AbstractApiTest):
         ufile = TESTS_DATA_DIR / 'video\u266b.avi.torrent'
         udest = self.session_base_dir / 'video\u266b'
 
-        post_data = {'uri': 'file:' + ufile.to_text(),
-                     'destination': udest.to_text()}
+        post_data = {'uri': 'file:' + str(ufile),
+                     'destination': str(udest)}
         response_dict = await self.do_request('downloads', expected_code=200, request_type='PUT', post_data=post_data)
         self.assertTrue(response_dict['started'])
         self.assertGreaterEqual(len(self.session.ltmgr.get_downloads()), 1)
@@ -569,7 +568,8 @@ class TestMetadataDownloadEndpoint(AbstractApiTest):
         test_channel_name = 'test_channel'
         video_tdef, _ = self.create_local_torrent(TESTS_DATA_DIR / 'video.avi')
         self.session.ltmgr.start_download(tdef=video_tdef)
-        await self.session.ltmgr.start_download_from_uri("file:" + pathname2url(TESTS_DATA_DIR / "bak_single.torrent"))
+        await self.session.ltmgr.start_download_from_uri("file:" +
+                                                        pathname2url(str(TESTS_DATA_DIR / "bak_single.torrent")))
 
         with db_session:
             channel = self.session.mds.ChannelMetadata.create_channel(test_channel_name, 'bla')

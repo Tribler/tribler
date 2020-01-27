@@ -1,3 +1,4 @@
+from pathlib import Path
 
 from configobj import ConfigObjError
 
@@ -8,7 +9,6 @@ from tribler_common.simpledefs import DLMODE_VOD
 from tribler_core.modules.libtorrent.download_config import DownloadConfig, get_default_dest_dir
 from tribler_core.tests.tools.base_test import TriblerCoreTest
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
-from tribler_core.utilities import path_util
 
 
 class TestConfigParser(TriblerCoreTest):
@@ -18,7 +18,7 @@ class TestConfigParser(TriblerCoreTest):
     def test_downloadconfig(self):
         dlcfg = DownloadConfig()
 
-        self.assertIsInstance(dlcfg.get_dest_dir(), path_util.Path)
+        self.assertIsInstance(dlcfg.get_dest_dir(), Path)
         dlcfg.set_dest_dir(self.session_base_dir)
         self.assertEqual(dlcfg.get_dest_dir(), self.session_base_dir)
 
@@ -68,7 +68,7 @@ class TestConfigParser(TriblerCoreTest):
         dlcfg.load(self.CONFIG_FILES_DIR / "corrupt_download_config.conf")
 
     def test_get_default_dest_dir(self):
-        self.assertIsInstance(get_default_dest_dir(), path_util.Path)
+        self.assertIsInstance(get_default_dest_dir(), Path)
 
     def test_default_download_config_load(self):
         with open(self.session_base_dir / "dlconfig.conf", 'wb') as conf_file:
