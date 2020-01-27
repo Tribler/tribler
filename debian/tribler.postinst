@@ -9,4 +9,6 @@ if which pip3 >/dev/null 2>&1; then
     pip3 install --upgrade lz4
     # 2019-11-06; Add pyqtgraph; Check #https://github.com/Tribler/tribler/issues/4936
     pip3 install --upgrade pyqtgraph
+    # 2020-01-27; Add pathlib
+    pip3 install pathlib
 fi
