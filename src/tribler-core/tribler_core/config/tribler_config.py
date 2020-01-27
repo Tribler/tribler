@@ -7,14 +7,14 @@ from pathlib import Path
 
 from configobj import ConfigObj
 
+from validate import Validator
+
 from tribler_core.exceptions import InvalidConfigException
 from tribler_core.modules.libtorrent.download_config import get_default_dest_dir
 from tribler_core.utilities.install_dir import get_lib_path
 from tribler_core.utilities.network_utils import get_random_port
 from tribler_core.utilities.osutils import get_appstate_dir
 from tribler_core.version import version_id
-
-from validate import Validator
 
 CONFIG_FILENAME = 'triblerd.conf'
 SPEC_FILENAME = 'tribler_config.spec'
@@ -64,7 +64,7 @@ class TriblerConfig:
         path = Path(path)
         state_dir = self.get_state_dir()
         if path.is_absolute() and state_dir.resolve() in path.parents:
-                return path.relative_to(state_dir)
+            return path.relative_to(state_dir)
         return path
 
     @staticmethod

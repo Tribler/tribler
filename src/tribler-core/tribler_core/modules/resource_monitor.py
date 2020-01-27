@@ -1,7 +1,6 @@
 import logging
 import os
 import time
-from pathlib import Path
 
 from ipv8.taskmanager import TaskManager
 
