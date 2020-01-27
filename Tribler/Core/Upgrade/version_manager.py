@@ -66,7 +66,7 @@ class VersionManager(object):
         if not self.session.config.get_version_backup_enabled():
             return
 
-        code_version = version_id if version_id else tribler_version.version_id
+        code_version = version_id or tribler_version.version_id
         last_usage_version = self.version_history.get("last_version", None)
 
         # If the code and state directory version are different

@@ -173,8 +173,7 @@ class TriblerConfig(object):
         Sets the root state directory for Tribler. The versioning is handled automatically.
         """
         self._root_state_dir = root_dir
-        _version_id = version_id if version_id else tribler_version.version_id
-        self._state_dir = os.path.join(self._root_state_dir, _version_id)
+        self._state_dir = os.path.join(self._root_state_dir, version_id or tribler_version.version_id)
 
     def get_root_state_dir(self):
         return self._root_state_dir
