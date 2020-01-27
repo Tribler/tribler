@@ -14,7 +14,6 @@ from tribler_core.tests.tools.base_test import MockObject, TriblerCoreTest
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
 from tribler_core.tests.tools.test_as_server import TestAsServer
 from tribler_core.tests.tools.tools import timeout
-from tribler_core.utilities import path_util
 from tribler_core.utilities.torrent_utils import get_info_from_handle
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import bdecode_compat, succeed
@@ -114,11 +113,11 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         impl.future_added = succeed(fake_handler)
         # Create a dummy download config
         impl.config = DownloadConfig()
-        impl.config.set_engineresumedata({b"save_path": path_util.abspath(self.state_dir),
+        impl.config.set_engineresumedata({b"save_path": self.state_dir.resolve(),
                                           b"info-hash": b'\x00' * 20})
         impl.setup()
 
-        impl.config.set_engineresumedata({b"save_path": path_util.abspath(self.state_dir),
+        impl.config.set_engineresumedata({b"save_path": self.state_dir.resolve(),
                                           b"info-hash": b'\x00' * 20})
         impl.setup()
 

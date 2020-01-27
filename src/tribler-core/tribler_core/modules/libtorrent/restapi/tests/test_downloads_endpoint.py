@@ -1,6 +1,7 @@
 import os
 from asyncio import ensure_future
 from binascii import unhexlify
+from urllib.request import pathname2url
 
 from pony.orm import db_session
 
@@ -9,7 +10,6 @@ from tribler_core.restapi.base_api_test import AbstractApiTest
 from tribler_core.tests.tools.base_test import MockObject
 from tribler_core.tests.tools.common import TESTS_DATA_DIR, TESTS_DIR, UBUNTU_1504_INFOHASH
 from tribler_core.tests.tools.tools import timeout
-from tribler_core.utilities.path_util import pathname2url
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import fail, succeed
 
@@ -104,8 +104,8 @@ class TestDownloadsEndpoint(AbstractApiTest):
         ufile = TESTS_DATA_DIR / 'video\u266b.avi.torrent'
         udest = self.session_base_dir / 'video\u266b'
 
-        post_data = {'uri': 'file:' + ufile.to_text(),
-                     'destination': udest.to_text()}
+        post_data = {'uri': f'file:{ufile}',
+                     'destination': str(udest)}
         response_dict = await self.do_request('downloads', expected_code=200, request_type='PUT', post_data=post_data)
         self.assertTrue(response_dict['started'])
         self.assertGreaterEqual(len(self.session.ltmgr.get_downloads()), 1)
