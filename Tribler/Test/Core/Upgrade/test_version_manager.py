@@ -35,14 +35,15 @@ class TestVersionManager(AbstractServer):
         self.assertEqual(self.version_manager.version_history['history'], {})
 
         # Saving the version
-        self.version_manager.update_version_history('7.0.0-GIT')
-        self.assertEqual(self.version_manager.version_history['last_version'], '7.0.0-GIT')
+        new_version = '100.100.100'
+        self.version_manager.update_version_history(new_version)
+        self.assertEqual(self.version_manager.version_history['last_version'], new_version)
         self.assertEqual(len(self.version_manager.version_history['history']), 1)
 
         # Check that loading of version history from file works
         self.version_manager.version_history = None
         self.version_manager.read_version_history()
-        self.assertEqual(self.version_manager.version_history['last_version'], '7.0.0-GIT')
+        self.assertEqual(self.version_manager.version_history['last_version'], new_version)
         self.assertEqual(len(self.version_manager.version_history['history']), 1)
 
     def test_setup_state_directory_for_upgrade(self):
@@ -67,7 +68,7 @@ class TestVersionManager(AbstractServer):
             self.assertTrue(backup_dir in default_version_state_sub_dirs)
 
         # Assuming, new upgrade to be done
-        current_version = '7.5.0'
+        current_version = '100.100.100'
 
         # First, check if the version backup is not enabled, no migration is done
         self.session.config.set_version_backup_enabled(False)

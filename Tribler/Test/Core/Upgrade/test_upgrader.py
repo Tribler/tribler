@@ -117,9 +117,23 @@ class TestUpgrader(AbstractUpgrader):
         pstate.read_file(file_path)
         self.assertEqual(CHANNEL_DIR_NAME_LENGTH, len(pstate.get('state', 'metainfo')['info']['name']))
 
-    def test_backup_state_directory(self):
+
+class TestUpgraderStateDirectory(AbstractUpgrader):
+
+    @inlineCallbacks
+    def setUp(self):
+        yield super(TestUpgraderStateDirectory, self).setUp()
+        self.upgrader = TriblerUpgrader(self.session)
+        self.original_version = version.version_id
+
+    @inlineCallbacks
+    def tearDown(self):
+        version.version_id = self.original_version
+        yield super(TestUpgraderStateDirectory, self).tearDown()
+
+    def test_state_directory_upgrade(self):
         """
-        Test if backup of the state directory is done if the config version and the code version are different.
+        Test if a new state directory is created with proper files and directories on upgrade.
         """
         # Note that, the default version set in the code is 7.0.0-GIT.
         # So for the first time after running the (enabled) upgrader,
@@ -137,7 +151,6 @@ class TestUpgrader(AbstractUpgrader):
         self.upgrader.session.init_keypair()
 
         # Now lets increase the version and test that upgrader does backup the directory and copy proper files
-        original_version = version.version_id
         version.version_id = '7.5.0'
 
         # If the version backup is not enabled, upgrader will not try to create a backup of the previous state directory
@@ -159,6 +172,3 @@ class TestUpgrader(AbstractUpgrader):
             self.assertTrue(backup_dir in version_state_sub_dirs)
 
         self.assertTrue(len(list(version_state_dir.glob("*.pem"))) > 1)
-
-        # Restore the original version
-        version.version_id = original_version
