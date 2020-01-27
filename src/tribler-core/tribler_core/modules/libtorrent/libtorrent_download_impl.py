@@ -38,8 +38,7 @@ if sys.platform == "win32":
 def _norm_path(base_path, path):
     base_path = Path(base_path)
     path = Path(path)
-    if path.is_absolute():
-        if base_path.resolve() in list(path.resolve().parents):
+    if path.is_absolute() and base_path.resolve() in path.resolve().parents:
             return path.relative_to(base_path)
     return path
 
@@ -234,7 +233,10 @@ class LibtorrentDownloadImpl(TaskManager):
             atp["ti"] = torrentinfo
             if resume_data and isinstance(resume_data, dict):
                 # Rewrite save_path as a global path, if it is given as a relative path
-                if b"save_path" in resume_data and not Path(ensure_unicode(resume_data[b"save_path"], 'utf8')).is_absolute():
+                if (
+                    b"save_path" in resume_data
+                    and not Path(ensure_unicode(resume_data[b"save_path"], 'utf8')).is_absolute()
+                ):
                     resume_data[b"save_path"] = self.state_dir / ensure_unicode(resume_data[b"save_path"], 'utf8')
                 atp["resume_data"] = lt.bencode(resume_data)
         else:
