@@ -28,9 +28,11 @@ class EventsEndpoint(RESTEndpoint):
         self.event_response = RESTStreamResponse(status=200, reason='OK', headers={'Content-Type': 'text/html'})
         await self.event_response.prepare(request)
         await self.event_response.write(
-            json.dumps({"type": NTFY.EVENTS_START.value,
-                        "event": {"tribler_started": True,
-                                  "version": "1.2.3"}}).encode('utf-8') + b'\n')
+            json.dumps(
+                {"type": NTFY.EVENTS_START.value, "event": {"tribler_started": True, "version": "1.2.3"}}
+            ).encode('utf-8')
+            + b'\n'
+        )
 
         try:
             while True:

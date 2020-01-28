@@ -259,7 +259,9 @@ class TriblerGUITest(AbstractTriblerGUITest):
         }
         test_env['TRIBLER_APP_NAME'] = 'triblerapp-guitest'
 
-        tribler_executable = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(tribler_gui.__file__))), "run_tribler.py")
+        tribler_executable = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(tribler_gui.__file__))), "run_tribler.py"
+        )
         tribler_instance_2 = subprocess.Popen(['python', tribler_executable, TORRENT_UBUNTU_FILE], env=test_env)
         tribler_instance_2.communicate()[0]
         self.assertEqual(tribler_instance_2.returncode, 1)

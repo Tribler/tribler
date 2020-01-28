@@ -25,4 +25,3 @@ def load_logger_config():
     """
     logger_config = os.path.join("tribler-core", __name__, "logger.yaml")
     setup_logging(config_path=logger_config, module='tribler-core', log_dir=TriblerConfig().get_log_dir())
-

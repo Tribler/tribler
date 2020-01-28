@@ -9,7 +9,6 @@ from pony.orm import db_session
 
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.restapi.base_api_test import AbstractApiTest
-from tribler_core.tests.tools.base_test import MockObject
 from tribler_core.tests.tools.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE, UBUNTU_1504_INFOHASH
 from tribler_core.tests.tools.test_as_server import TESTS_DIR
 from tribler_core.tests.tools.tools import timeout
