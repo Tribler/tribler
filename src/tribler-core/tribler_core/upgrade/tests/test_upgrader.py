@@ -19,6 +19,7 @@ from tribler_core.tests.tools.tools import timeout
 from tribler_core.upgrade.upgrade import TriblerUpgrader, cleanup_noncompliant_channel_torrents
 from tribler_core.upgrade.upgrade_base import AbstractUpgrader
 from tribler_core.utilities.configparser import CallbackConfigParser
+from tribler_core.utilities.path_util import str_path
 
 
 class TestUpgrader(AbstractUpgrader):
@@ -93,7 +94,7 @@ class TestUpgrader(AbstractUpgrader):
     def test_delete_noncompliant_state(self):
         STATE_DIR = TESTS_DATA_DIR / 'noncompliant_state_dir'
         tmpdir = self.temporary_directory() / STATE_DIR.name
-        shutil.copytree(STATE_DIR, tmpdir)
+        shutil.copytree(str_path(STATE_DIR), str_path(tmpdir))
         cleanup_noncompliant_channel_torrents(tmpdir)
 
         # Check cleanup of the channels dir

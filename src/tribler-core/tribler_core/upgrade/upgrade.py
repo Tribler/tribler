@@ -41,7 +41,7 @@ def cleanup_noncompliant_channel_torrents(state_dir):
     resume_dir = state_dir / "dlcheckpoints"
     if resume_dir.exists():
         for f in resume_dir.iterdir():
-            if not f.endswith('.state'):
+            if not str(f).endswith('.state'):
                 continue
             file_path = resume_dir / f
             pstate = CallbackConfigParser()

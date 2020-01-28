@@ -6,7 +6,7 @@ Author(s): Elric Milon
 import sys
 
 import tribler_core
-from tribler_core.utilities.path_util import Path
+from tribler_core.utilities.path_util import Path, str_path
 
 
 def is_frozen():
@@ -28,7 +28,7 @@ def get_base_path():
         base_path = Path(sys._MEIPASS)
     except Exception:
         base_path = Path(tribler_core.__file__).parent
-    return base_path
+    return Path(str_path(base_path))
 
 
 def get_lib_path():

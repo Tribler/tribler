@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+from pathlib import Path
 
 from ipv8.database import database_blob
 
@@ -20,6 +21,7 @@ from tribler_core.modules.metadata_store.orm_bindings.channel_node import (
 )
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, ChannelMetadataPayload
 from tribler_core.utilities import path_util
+from tribler_core.utilities.path_util import str_path
 from tribler_core.utilities.random_utils import random_infohash
 from tribler_core.utilities.unicode import hexlify
 
@@ -185,7 +187,7 @@ def define_binding(db):
                 file_path = folder / filename
                 # We only remove mdblobs and leave the rest as it is
                 if filename.endswith(BLOB_EXTENSION) or filename.endswith(BLOB_EXTENSION + '.lz4'):
-                    os.unlink(file_path)
+                    os.unlink(str_path(file_path))
 
             # Channel should get a new starting timestamp and its contents should get higher timestamps
             start_timestamp = self._clock.tick()
@@ -214,7 +216,7 @@ def define_binding(db):
             # Create dir for metadata files
             channel_dir = path_util.abspath(self._channels_dir / self.dirname)
             if not channel_dir.is_dir():
-                os.makedirs(channel_dir)
+                os.makedirs(str_path(channel_dir))
 
             index = 0
             while index < len(metadata_list):
@@ -223,8 +225,8 @@ def define_binding(db):
                 # The final file in the sequence should get the same (new) timestamp as the channel entry itself.
                 # Otherwise, the local channel version will never become equal to its timestamp.
                 blob_timestamp = metadata_list[index - 1].timestamp if index < len(metadata_list) else final_timestamp
-                blob_filename = str(blob_timestamp).zfill(12) + BLOB_EXTENSION + '.lz4'
-                with open(channel_dir / blob_filename, 'wb') as f:
+                blob_filename = str_path(Path(channel_dir, str(blob_timestamp).zfill(12) + BLOB_EXTENSION + '.lz4'))
+                with open(blob_filename, 'wb') as f:
                     f.write(data)
 
             # TODO: add error-handling routines to make sure the timestamp is not messed up in case of an error

@@ -15,6 +15,7 @@ from tribler_core.modules.metadata_store.orm_bindings.channel_node import LEGACY
 from tribler_core.modules.metadata_store.orm_bindings.torrent_metadata import infohash_to_id
 from tribler_core.modules.metadata_store.serialization import REGULAR_TORRENT, int2time, time2int
 from tribler_core.modules.metadata_store.store import BETA_DB_VERSIONS, CURRENT_DB_VERSION
+from tribler_core.utilities.path_util import str_path
 from tribler_core.utilities.tracker_utils import get_uniformed_tracker_url
 
 DISCOVERED_CONVERSION_STARTED = "discovered_conversion_started"
@@ -261,12 +262,12 @@ class DispersyToPonyMigration(object):
 
                 # We check if we need to re-create the channel dir in case it was deleted for some reason
                 if not folder.is_dir():
-                    os.makedirs(folder)
+                    os.makedirs(str_path(folder))
                 for filename in os.listdir(folder):
                     file_path = folder / filename
                     # We only remove mdblobs and leave the rest as it is
                     if filename.endswith(BLOB_EXTENSION) or filename.endswith(BLOB_EXTENSION + '.lz4'):
-                        os.unlink(file_path)
+                        os.unlink(str_path(file_path))
                 my_channel.commit_channel_torrent()
 
         with db_session:

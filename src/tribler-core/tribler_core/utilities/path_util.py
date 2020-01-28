@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import pathlib
+import sys
 import tempfile
 import urllib
 from shutil import rmtree
@@ -83,3 +84,12 @@ def mkdtemp(*args, **kwargs):
 
 def pathname2url(input):
     return urllib.request.pathname2url(str(input))
+
+
+def str_path(path):
+    """"
+    String representation of Path-like object with work around for Windows long filename issue.
+    """
+    if sys.platform == 'win32':
+        return "\\\\?\\" + str(path)
+    return str(path)
