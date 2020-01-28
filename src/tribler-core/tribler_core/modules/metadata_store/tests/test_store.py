@@ -27,6 +27,7 @@ from tribler_core.modules.metadata_store.store import (
 )
 from tribler_core.tests.tools.base_test import TriblerCoreTest
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
+from tribler_core.utilities.random_utils import random_infohash
 
 
 def make_wrong_payload(filename):
@@ -77,7 +78,7 @@ class TestMetadataStore(TriblerCoreTest):
         Test whether we are able to process files in a directory containing node metadata
         """
 
-        test_node_metadata = self.mds.TorrentMetadata(title='test', infohash=database_blob(os.urandom(20)))
+        test_node_metadata = self.mds.TorrentMetadata(title='test', infohash=database_blob(random_infohash()))
         metadata_path = self.session_base_dir / 'metadata.data'
         test_node_metadata.to_file(metadata_path)
         # We delete this TorrentMeta info now, it should be added again to the database when loading it
@@ -109,7 +110,7 @@ class TestMetadataStore(TriblerCoreTest):
         md_list = [
             self.mds.TorrentMetadata(
                 title=''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(20)),
-                infohash=database_blob(os.urandom(20)),
+                infohash=database_blob(random_infohash()),
             )
             for _ in range(0, 10)
         ]
@@ -130,7 +131,7 @@ class TestMetadataStore(TriblerCoreTest):
             md_list = [
                 self.mds.TorrentMetadata(
                     title=''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(20)),
-                    infohash=database_blob(os.urandom(20)),
+                    infohash=database_blob(random_infohash()),
                 )
                 for _ in range(0, 10)
             ]
@@ -166,7 +167,7 @@ class TestMetadataStore(TriblerCoreTest):
         channel = self.mds.ChannelMetadata.create_channel('testchan')
         md_list = [
             self.mds.TorrentMetadata(
-                origin_id=channel.id_, title='test' + str(x), status=NEW, infohash=database_blob(os.urandom(20))
+                origin_id=channel.id_, title='test' + str(x), status=NEW, infohash=database_blob(random_infohash())
             )
             for x in range(0, num_entries)
         ]
@@ -188,7 +189,7 @@ class TestMetadataStore(TriblerCoreTest):
         """
         channel = self.mds.ChannelMetadata.create_channel('testchan')
         torrent_md = self.mds.TorrentMetadata(
-            origin_id=channel.id_, title='test', status=NEW, infohash=database_blob(os.urandom(20))
+            origin_id=channel.id_, title='test', status=NEW, infohash=database_blob(random_infohash())
         )
         channel.commit_channel_torrent()
         torrent_md.delete()
@@ -213,7 +214,7 @@ class TestMetadataStore(TriblerCoreTest):
         Test that an mdblob with forbidden terms cannot ever get into the local database
         """
         key = default_eccrypto.generate_key(u"curve25519")
-        chan_entry = self.mds.ChannelMetadata(title=u"12yo", infohash=database_blob(os.urandom(20)), sign_with=key)
+        chan_entry = self.mds.ChannelMetadata(title=u"12yo", infohash=database_blob(random_infohash()), sign_with=key)
         chan_payload = chan_entry._payload_class(**chan_entry.to_dict())
         chan_entry.delete()
         self.assertEqual(self.mds.process_payload(chan_payload), [(None, NO_ACTION)])
@@ -241,7 +242,7 @@ class TestMetadataStore(TriblerCoreTest):
     @db_session
     def test_process_payload(self):
         def get_payloads(entity_class):
-            c = entity_class(infohash=database_blob(os.urandom(20)))
+            c = entity_class(infohash=database_blob(random_infohash()))
             payload = c._payload_class.from_signed_blob(c.serialized())
             deleted_payload = DeletedMetadataPayload.from_signed_blob(c.serialized_delete())
             return c, payload, deleted_payload
@@ -304,11 +305,11 @@ class TestMetadataStore(TriblerCoreTest):
     def test_process_payload_merge_entries(self):
         # Check the corner case where the new entry must replace two old entries: one with a matching infohash, and
         # another one with a non-matching id
-        node = self.mds.TorrentMetadata(infohash=database_blob(os.urandom(20)))
+        node = self.mds.TorrentMetadata(infohash=database_blob(random_infohash()))
         node_dict = node.to_dict()
         node.delete()
 
-        node2 = self.mds.TorrentMetadata(infohash=database_blob(os.urandom(20)))
+        node2 = self.mds.TorrentMetadata(infohash=database_blob(random_infohash()))
         node2_dict = node2.to_dict()
         node2.delete()
 
@@ -334,10 +335,10 @@ class TestMetadataStore(TriblerCoreTest):
         # Check there is no action if the processed payload has a timestamp that is less than the
         # local_version of the corresponding local channel. (I.e. remote peer trying to push back a deleted entry)
         channel = self.mds.ChannelMetadata(
-            title='bla', version=123, timestamp=10, local_version=12, infohash=database_blob(os.urandom(20))
+            title='bla', version=123, timestamp=10, local_version=12, infohash=database_blob(random_infohash())
         )
         torrent = self.mds.TorrentMetadata(
-            title='blabla', timestamp=11, origin_id=channel.id_, infohash=database_blob(os.urandom(20))
+            title='blabla', timestamp=11, origin_id=channel.id_, infohash=database_blob(random_infohash())
         )
         payload = torrent._payload_class(**torrent.to_dict())
         torrent.delete()
@@ -347,7 +348,9 @@ class TestMetadataStore(TriblerCoreTest):
     def test_process_payload_reject_older_entry_with_known_infohash_or_merge(self):
         # Check there is no action if the processed payload has a timestamp that is less than the
         # local_version of the corresponding local channel. (I.e. remote peer trying to push back a deleted entry)
-        torrent = self.mds.TorrentMetadata(title='blabla', timestamp=10, id_=10, infohash=database_blob(os.urandom(20)))
+        torrent = self.mds.TorrentMetadata(
+            title='blabla', timestamp=10, id_=10, infohash=database_blob(random_infohash())
+        )
         payload = torrent._payload_class(**torrent.to_dict())
         torrent.delete()
 
@@ -375,13 +378,13 @@ class TestMetadataStore(TriblerCoreTest):
     @db_session
     def test_process_payload_reject_older_entry(self):
         torrent_old = self.mds.TorrentMetadata(
-            title='blabla', timestamp=11, id_=3, infohash=database_blob(os.urandom(20))
+            title='blabla', timestamp=11, id_=3, infohash=database_blob(random_infohash())
         )
         payload_old = torrent_old._payload_class(**torrent_old.to_dict())
         torrent_old.delete()
 
         torrent_updated = self.mds.TorrentMetadata(
-            title='blabla', timestamp=12, id_=3, infohash=database_blob(os.urandom(20))
+            title='blabla', timestamp=12, id_=3, infohash=database_blob(random_infohash())
         )
         torrent_updated_dict = torrent_updated.to_dict()
         torrent_updated.delete()
@@ -396,15 +399,15 @@ class TestMetadataStore(TriblerCoreTest):
 
     @db_session
     def test_get_num_channels_nodes(self):
-        self.mds.ChannelMetadata(title='testchan', id_=0, infohash=database_blob(os.urandom(20)))
-        self.mds.ChannelMetadata(title='testchan', id_=123, infohash=database_blob(os.urandom(20)))
+        self.mds.ChannelMetadata(title='testchan', id_=0, infohash=database_blob(random_infohash()))
+        self.mds.ChannelMetadata(title='testchan', id_=123, infohash=database_blob(random_infohash()))
         self.mds.ChannelMetadata(
             title='testchan',
             id_=0,
             public_key=unhexlify('0' * 20),
             signature=unhexlify('0' * 64),
             skip_key_check=True,
-            infohash=database_blob(os.urandom(20)),
+            infohash=database_blob(random_infohash()),
         )
         self.mds.ChannelMetadata(
             title='testchan',
@@ -412,11 +415,11 @@ class TestMetadataStore(TriblerCoreTest):
             public_key=unhexlify('1' * 20),
             signature=unhexlify('1' * 64),
             skip_key_check=True,
-            infohash=database_blob(os.urandom(20)),
+            infohash=database_blob(random_infohash()),
         )
 
         _ = [
-            self.mds.TorrentMetadata(title='test' + str(x), status=NEW, infohash=database_blob(os.urandom(20)))
+            self.mds.TorrentMetadata(title='test' + str(x), status=NEW, infohash=database_blob(random_infohash()))
             for x in range(0, 3)
         ]
 

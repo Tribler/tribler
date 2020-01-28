@@ -1,4 +1,3 @@
-import os
 from asyncio import Future
 from datetime import datetime
 
@@ -16,6 +15,7 @@ from tribler_core.modules.metadata_store.store import MetadataStore
 from tribler_core.tests.tools.base_test import MockObject, TriblerCoreTest
 from tribler_core.tests.tools.common import TORRENT_UBUNTU_FILE
 from tribler_core.tests.tools.tools import timeout
+from tribler_core.utilities.random_utils import random_infohash
 from tribler_core.utilities.utilities import succeed
 
 
@@ -89,7 +89,7 @@ class TestGigaChannelManager(TriblerCoreTest):
                 timestamp=123,
                 local_version=123,
                 subscribed=True,
-                infohash=os.urandom(20),
+                infohash=random_infohash(),
             )
             # Not subscribed, updated
             self.mock_session.mds.ChannelMetadata(
@@ -100,7 +100,7 @@ class TestGigaChannelManager(TriblerCoreTest):
                 timestamp=123,
                 local_version=122,
                 subscribed=False,
-                infohash=os.urandom(20),
+                infohash=random_infohash(),
             )
             # Subscribed, updated - only this one should be downloaded
             chan3 = self.mock_session.mds.ChannelMetadata(
@@ -111,7 +111,7 @@ class TestGigaChannelManager(TriblerCoreTest):
                 timestamp=123,
                 local_version=122,
                 subscribed=True,
-                infohash=os.urandom(20),
+                infohash=random_infohash(),
             )
             self.torrents_added = 0
 
@@ -265,7 +265,7 @@ class TestGigaChannelManager(TriblerCoreTest):
     async def test_reject_malformed_channel(self):
         with db_session:
             channel = self.mock_session.mds.ChannelMetadata(
-                title="bla1", public_key=database_blob(b'123'), infohash=os.urandom(20)
+                title="bla1", public_key=database_blob(b'123'), infohash=random_infohash()
             )
         self.mock_session.config = MockObject()
         self.mock_session.config.get_state_dir = lambda: None

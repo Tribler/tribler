@@ -81,7 +81,7 @@ class TestChannelMetadata(TriblerCoreTest):
         """
         Test converting channel metadata to serialized data
         """
-        channel_metadata = self.mds.ChannelMetadata.from_dict({"infohash": os.urandom(20)})
+        channel_metadata = self.mds.ChannelMetadata.from_dict({"infohash": random_infohash()})
         self.assertTrue(channel_metadata.serialized())
 
     @db_session
@@ -90,11 +90,11 @@ class TestChannelMetadata(TriblerCoreTest):
         Test whether a correct list with channel content is returned from the database
         """
         self.mds.ChannelNode._my_key = default_eccrypto.generate_key('low')
-        channel1 = self.mds.ChannelMetadata(infohash=os.urandom(20))
+        channel1 = self.mds.ChannelMetadata(infohash=random_infohash())
         self.mds.TorrentMetadata.from_dict(dict(self.torrent_template, origin_id=channel1.id_))
 
         self.mds.ChannelNode._my_key = default_eccrypto.generate_key('low')
-        channel2 = self.mds.ChannelMetadata(infohash=os.urandom(20))
+        channel2 = self.mds.ChannelMetadata(infohash=random_infohash())
         self.mds.TorrentMetadata.from_dict(dict(self.torrent_template, infohash=b"1", origin_id=channel2.id_))
         self.mds.TorrentMetadata.from_dict(dict(self.torrent_template, infohash=b"2", origin_id=channel2.id_))
 
@@ -166,11 +166,11 @@ class TestChannelMetadata(TriblerCoreTest):
         Test copying a torrent from an another channel.
         """
         self.mds.ChannelNode._my_key = default_eccrypto.generate_key('low')
-        channel1 = self.mds.ChannelMetadata(infohash=os.urandom(20))
+        channel1 = self.mds.ChannelMetadata(infohash=random_infohash())
         self.mds.TorrentMetadata.from_dict(dict(self.torrent_template, infohash=b"1", origin_id=channel1.id_))
 
         self.mds.ChannelNode._my_key = default_eccrypto.generate_key('low')
-        channel2 = self.mds.ChannelMetadata(infohash=os.urandom(20))
+        channel2 = self.mds.ChannelMetadata(infohash=random_infohash())
 
         # Trying copying existing torrent to channel
         new_torrent = channel2.copy_torrent_from_infohash(b"1")
@@ -381,7 +381,9 @@ class TestChannelMetadata(TriblerCoreTest):
 
     def test_mdblob_dont_fit_exception(self):
         with db_session:
-            md_list = [self.mds.TorrentMetadata(title='test' + str(x), infohash=os.urandom(20)) for x in xrange(0, 1)]
+            md_list = [
+                self.mds.TorrentMetadata(title='test' + str(x), infohash=random_infohash()) for x in xrange(0, 1)
+            ]
         self.assertRaises(Exception, entries_to_chunk, md_list, chunk_size=1)
 
     @db_session
@@ -393,7 +395,7 @@ class TestChannelMetadata(TriblerCoreTest):
         # First we create a few channels
         for ind in xrange(10):
             self.mds.ChannelNode._my_key = default_eccrypto.generate_key('low')
-            self.mds.ChannelMetadata(title='channel%d' % ind, subscribed=(ind % 2 == 0), infohash=os.urandom(20))
+            self.mds.ChannelMetadata(title='channel%d' % ind, subscribed=(ind % 2 == 0), infohash=random_infohash())
         channels = self.mds.ChannelMetadata.get_entries(first=1, last=5)
         self.assertEqual(len(channels), 5)
 
