@@ -153,7 +153,7 @@ def define_binding(db):
                 subscribed=True,
                 share=True,
                 status=NEW,
-                infohash=os.urandom(20),
+                infohash=random_infohash(),
             )
             # random infohash is necessary to avoid triggering DB uniqueness constraints
             my_channel.sign()

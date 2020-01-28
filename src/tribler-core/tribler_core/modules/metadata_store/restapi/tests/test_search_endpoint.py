@@ -1,11 +1,10 @@
-import os
-
 from ipv8.database import database_blob
 
 from pony.orm import db_session
 
 from tribler_core.restapi.base_api_test import AbstractApiTest
 from tribler_core.tests.tools.tools import timeout
+from tribler_core.utilities.random_utils import random_infohash
 
 
 class TestSearchEndpoint(AbstractApiTest):
@@ -34,11 +33,11 @@ class TestSearchEndpoint(AbstractApiTest):
         """
         num_hay = 100
         with db_session:
-            _ = self.session.mds.ChannelMetadata(title='test', tags='test', subscribed=True, infohash=os.urandom(20))
+            _ = self.session.mds.ChannelMetadata(title='test', tags='test', subscribed=True, infohash=random_infohash())
             for x in range(0, num_hay):
-                self.session.mds.TorrentMetadata(title='hay ' + str(x), infohash=os.urandom(20))
-            self.session.mds.TorrentMetadata(title='needle', infohash=database_blob(bytearray(os.urandom(20))))
-            self.session.mds.TorrentMetadata(title='needle2', infohash=database_blob(bytearray(os.urandom(20))))
+                self.session.mds.TorrentMetadata(title='hay ' + str(x), infohash=random_infohash())
+            self.session.mds.TorrentMetadata(title='needle', infohash=database_blob(bytearray(random_infohash())))
+            self.session.mds.TorrentMetadata(title='needle2', infohash=database_blob(bytearray(random_infohash())))
 
         parsed = await self.do_request('search?txt_filter=needle', expected_code=200)
         self.assertEqual(len(parsed["results"]), 1)

@@ -1,4 +1,3 @@
-import os
 import random
 import string
 
@@ -10,7 +9,7 @@ def random_string(size=6, chars=string.ascii_uppercase + string.digits):
 
 def random_infohash():
     """ Generates a random torrent infohash binary string """
-    return os.urandom(20)
+    return random.getrandbits(20*8).to_bytes(20, byteorder='big')
 
 
 def random_utf8_string(length=6):

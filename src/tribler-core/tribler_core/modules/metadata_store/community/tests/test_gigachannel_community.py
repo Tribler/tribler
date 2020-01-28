@@ -1,5 +1,3 @@
-import os
-
 from ipv8.database import database_blob
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.peer import Peer
@@ -209,10 +207,10 @@ class TestGigaChannelUnits(TestBase):
         with db_session:
             # add some free-for-all entries
             self.nodes[0].overlay.metadata_store.TorrentMetadata.add_ffa_from_dict(
-                dict(title="ubuntu legacy", infohash=os.urandom(20))
+                dict(title="ubuntu legacy", infohash=random_infohash())
             )
             self.nodes[0].overlay.metadata_store.ChannelMetadata(
-                title="ubuntu legacy chan", infohash=os.urandom(20), public_key=b"", status=LEGACY_ENTRY, id_=0
+                title="ubuntu legacy chan", infohash=random_infohash(), public_key=b"", status=LEGACY_ENTRY, id_=0
             )
             channel = self.nodes[0].overlay.metadata_store.ChannelMetadata.create_channel("ubuntu", "ubuntu")
             for i in range(20):
