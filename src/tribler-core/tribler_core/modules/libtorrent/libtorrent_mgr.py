@@ -49,7 +49,7 @@ def encode_atp(atp):
         if isinstance(v, str):
             atp[k] = v.encode('utf-8')
         elif isinstance(v, path_util.Path):
-            atp[k] = v.to_text()
+            atp[k] = str(v)
     return atp
 
 

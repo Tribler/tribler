@@ -54,7 +54,7 @@ class GigaChannelManager(TaskManager):
                         tdef = None
                         if torrent_path.exists() and mdblob_path.exists():
                             try:
-                                tdef = TorrentDef.load(torrent_path.to_text())
+                                tdef = TorrentDef.load(str(torrent_path))
                             except IOError:
                                 self._logger.warning(
                                     "Can't open personal channel torrent file. Will try to regenerate it."

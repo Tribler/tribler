@@ -22,7 +22,7 @@ NONPERSISTENT_DEFAULTS = {'mode': DLMODE_NORMAL}
 
 class DownloadConfig:
     def __init__(self, config=None, state_dir=None):
-        self.config = config or ConfigObj(configspec=CONFIG_SPEC_PATH.to_text(), default_encoding='utf8')
+        self.config = config or ConfigObj(configspec=str(CONFIG_SPEC_PATH), default_encoding='utf8')
         # Values that should not be stored and should be initialized to some default value
         self.nonpersistent = NONPERSISTENT_DEFAULTS.copy()
         self.state_dir = state_dir
@@ -42,11 +42,11 @@ class DownloadConfig:
 
     @staticmethod
     def load(config_path=None):
-        return DownloadConfig(ConfigObj(infile=config_path.to_text(), file_error=True,
-                                        configspec=CONFIG_SPEC_PATH.to_text(), default_encoding='utf-8'))
+        return DownloadConfig(ConfigObj(infile=str(config_path), file_error=True,
+                                        configspec=str(CONFIG_SPEC_PATH), default_encoding='utf-8'))
 
     def copy(self):
-        return DownloadConfig(ConfigObj(self.config, configspec=CONFIG_SPEC_PATH.to_text(), default_encoding='utf-8'))
+        return DownloadConfig(ConfigObj(self.config, configspec=str(CONFIG_SPEC_PATH), default_encoding='utf-8'))
 
     def write(self, filename):
         self.config.filename = filename
@@ -61,7 +61,7 @@ class DownloadConfig:
         if self.state_dir:
             base_path = self.state_dir
             path = path_util.norm_path(base_path, path)
-        self.config['download_defaults']['saveas'] = path.to_text()
+        self.config['download_defaults']['saveas'] = str(path)
 
     def get_dest_dir(self):
         """ Gets the directory where to save this Download.

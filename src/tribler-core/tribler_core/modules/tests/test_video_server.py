@@ -103,7 +103,7 @@ class TestVideoServer(TriblerCoreTest):
         mock_def.is_multifile_torrent = lambda: True
         mock_download.get_def = lambda: mock_def
 
-        self.assertEqual(self.video_server.get_vod_destination(mock_download), (Path("abc") / "def").to_text())
+        self.assertEqual(self.video_server.get_vod_destination(mock_download), str(Path("abc") / "def"))
 
     def test_get_vod_stream(self):
         """

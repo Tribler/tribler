@@ -259,7 +259,7 @@ class MetadataStore(object):
                     ):
                         continue
                 try:
-                    self.process_mdblob_file(full_filename.to_text(), skip_personal_metadata_payload, external_thread)
+                    self.process_mdblob_file(str(full_filename), skip_personal_metadata_payload, external_thread)
                     # If we stopped mdblob processing due to shutdown flag, we should stop
                     # processing immediately, so that channel local version will not increase
                     if self._shutting_down:

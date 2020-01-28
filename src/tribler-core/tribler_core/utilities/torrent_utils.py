@@ -46,7 +46,7 @@ def create_torrent_file(file_path_list, params, torrent_filepath=None):
         for full_file_path in file_path_list_filtered:
             #FIXME: there should be a better, cleaner way to define this
             filename = path_util.join(*full_file_path.parts[len(base_path.parent.parts):])
-            fs.add_file(filename.to_text(), path_util.getsize(full_file_path))
+            fs.add_file(str(filename), path_util.getsize(full_file_path))
 
     if params.get(b'piece length'):
         piece_size = params[b'piece length']
@@ -94,9 +94,9 @@ def create_torrent_file(file_path_list, params, torrent_filepath=None):
 
     # read the files and calculate the hashes
     if len(file_path_list) == 1:
-        libtorrent.set_piece_hashes(torrent, base_path.to_text())
+        libtorrent.set_piece_hashes(torrent, str(base_path))
     else:
-        libtorrent.set_piece_hashes(torrent, base_path.parent.to_text())
+        libtorrent.set_piece_hashes(torrent, str(base_path.parent))
 
     t1 = torrent.generate()
     torrent = libtorrent.bencode(t1)

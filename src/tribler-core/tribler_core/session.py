@@ -406,7 +406,7 @@ class Session(TaskManager):
         # On Mac, we bundle the root certificate for the SSL validation since Twisted is not using the root
         # certificates provided by the system trust store.
         if sys.platform == 'darwin':
-            os.environ['SSL_CERT_FILE'] = (get_lib_path() / 'root_certs_mac.pem').to_text()
+            os.environ['SSL_CERT_FILE'] = str((get_lib_path() / 'root_certs_mac.pem'))
 
         if self.config.get_video_server_enabled():
             self.video_server = VideoServer(self.config.get_video_server_port(), self)

@@ -82,4 +82,4 @@ def mkdtemp(*args, **kwargs):
     return Path(tempfile.mkdtemp(*args, **kwargs))
 
 def pathname2url(input):
-    return urllib.request.pathname2url(input.to_text())
+    return urllib.request.pathname2url(str(input))

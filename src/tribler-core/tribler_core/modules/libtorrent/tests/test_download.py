@@ -33,5 +33,5 @@ class TestDownload(TestAsServer):
 
     @timeout(60)
     async def test_download_torrent_from_file(self):
-        d = await self.session.ltmgr.start_download_from_uri('file:' + pathname2url(TORRENT_UBUNTU_FILE.to_text()))
+        d = await self.session.ltmgr.start_download_from_uri('file:' + pathname2url(str(TORRENT_UBUNTU_FILE)))
         await d.wait_for_status(DLSTATUS_DOWNLOADING)

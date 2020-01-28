@@ -38,11 +38,11 @@ def chunks(l, n):
 
 def create_torrent_from_dir(directory, torrent_filename):
     fs = file_storage()
-    add_files(fs, directory.to_text())
+    add_files(fs, str(directory))
     t = create_torrent(fs)
     # t = create_torrent(fs, flags=17) # piece alignment
     t.set_priv(False)
-    set_piece_hashes(t, directory.parent.to_text())
+    set_piece_hashes(t, str(directory.parent))
     torrent = t.generate()
     with open(torrent_filename, 'wb') as f:
         f.write(bencode(torrent))
