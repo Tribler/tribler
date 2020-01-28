@@ -191,34 +191,6 @@ class TriblerUpgrader(object):
                 for backup_file in backup_files:
                     dir_copy(src_state_dir / backup_file, dest_state_dir / backup_file)
 
-    def backup_state_directory(self):
-        """
-        Backs up the current state directory if the version in the state directory and in the code is different.
-        """
-        if self.session.config.get_version_backup_enabled() and self.session.config.get_version() \
-                and not self.session.config.get_version() == version_id:
-
-            src_state_dir = self.session.config.get_state_dir()
-            dest_state_dir = self.session.config.get_state_dir(version=self.session.config.get_version())
-
-            # If only there is no tribler config already in the backup directory, then make the current version backup.
-            dest_conf_path = dest_state_dir / 'triblerd.conf'
-            if not dest_conf_path.exists():
-                # Backup selected directories
-                backup_dirs = [STATEDIR_DB_DIR, STATEDIR_CHECKPOINT_DIR, STATEDIR_WALLET_DIR, STATEDIR_CHANNELS_DIR]
-                src_sub_dirs = os.listdir(src_state_dir)
-                for backup_dir in backup_dirs:
-                    if backup_dir in src_sub_dirs:
-                        dir_copy(src_state_dir / backup_dir, dest_state_dir / backup_dir)
-                    else:
-                        os.makedirs(dest_state_dir / backup_dir)
-
-                # Backup keys and config files
-                backup_files = ['ec_multichain.pem', 'ecpub_multichain.pem', 'ec_trustchain_testnet.pem',
-                                'ecpub_trustchain_testnet.pem', 'triblerd.conf']
-                for backup_file in backup_files:
-                    dir_copy(src_state_dir / backup_file, dest_state_dir / backup_file)
-
     def notify_starting(self):
         """
         Broadcast a notification (event) that the upgrader is starting doing work
