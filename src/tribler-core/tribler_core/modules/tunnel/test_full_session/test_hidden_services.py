@@ -13,7 +13,6 @@ from tribler_core.tests.tools.tools import timeout
 
 class TestHiddenServices(TestTunnelBase):
 
-    @skipIf(sys.platform == "darwin", "Skipping this test on Mac")
     @timeout(40)
     async def test_hidden_services(self):
         """

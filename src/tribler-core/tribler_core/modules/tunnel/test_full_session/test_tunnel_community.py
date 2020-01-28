@@ -11,7 +11,6 @@ class TestTunnelCommunity(TestTunnelBase):
     This class contains full session tests for the tunnel community.
     """
 
-    @skipIf(sys.platform == "darwin", "Skipping this test on Mac")
     @timeout(20)
     async def test_anon_download(self):
         """
