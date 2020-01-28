@@ -94,7 +94,7 @@ class TriblerData(object):
         """
         Return channels, based on various parameters.
         """
-        txt_filter = txt_filter.lower()[1:-2] if txt_filter else None # removing FTS stuff like ""*
+        txt_filter = txt_filter.lower()[1:-2] if txt_filter else None  # removing FTS stuff like ""*
         results = self.channels if not subscribed else [self.channels[index] for index in self.subscribed_channels]
         results = [result.get_json() for result in results]
 

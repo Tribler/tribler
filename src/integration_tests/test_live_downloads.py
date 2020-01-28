@@ -17,14 +17,14 @@ import matplotlib.pyplot as plot
 
 import numpy
 
+import run_tribler
+
 from tribler_core.check_os import setup_gui_logging
 
 import tribler_gui
 from tribler_gui.tribler_window import TriblerWindow
 from tribler_gui.widgets.home_recommended_item import HomeRecommendedItem
 from tribler_gui.widgets.loading_list_item import LoadingListItem
-
-import run_tribler
 
 PARENT_DIR = Path(__file__).parent
 DEFAULT_DOWNLOAD_DIR = PARENT_DIR / "Downloads"
