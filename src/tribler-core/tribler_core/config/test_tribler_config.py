@@ -20,7 +20,7 @@ class TestTriblerConfig(TriblerCoreTest):
         await super(TestTriblerConfig, self).setUp()
 
         state_dir = self.getStateDir()
-        self.tribler_config = TriblerConfig(ConfigObj(configspec=CONFIG_SPEC_PATH.to_text(), default_encoding='utf-8'))
+        self.tribler_config = TriblerConfig(ConfigObj(configspec=str(CONFIG_SPEC_PATH), default_encoding='utf-8'))
         self.tribler_config.set_state_dir(state_dir)
 
         self.assertIsNotNone(self.tribler_config)
@@ -30,7 +30,7 @@ class TestTriblerConfig(TriblerCoreTest):
         When creating a new instance with a configobject provided, the given options
         must be contained in the resulting instance.
         """
-        configdict = ConfigObj({"a": 1, "b": "2"}, configspec=CONFIG_SPEC_PATH.to_text())
+        configdict = ConfigObj({"a": 1, "b": "2"}, configspec=str(CONFIG_SPEC_PATH))
         self.tribler_config = TriblerConfig(configdict)
 
         self.tribler_config.validate()
@@ -124,12 +124,12 @@ class TestTriblerConfig(TriblerCoreTest):
         # It should always return global path
         self.assertEqual(self.tribler_config.get_trustchain_keypair_filename(), global_name)
         # But internally it should be stored as a local path string
-        self.assertEqual(self.tribler_config.config['trustchain']['ec_keypair_filename'], local_name.to_text())
+        self.assertEqual(self.tribler_config.config['trustchain']['ec_keypair_filename'], str(local_name))
 
         # If it points out of the state dir, it should be saved as a global path string
         out_of_dir_name_global = path_util.abspath(self.state_dir / ".." / "filename").resolve()
         self.tribler_config.set_trustchain_keypair_filename(out_of_dir_name_global)
-        self.assertEqual(self.tribler_config.config['trustchain']['ec_keypair_filename'], out_of_dir_name_global.to_text())
+        self.assertEqual(self.tribler_config.config['trustchain']['ec_keypair_filename'], str(out_of_dir_name_global))
 
     def test_get_set_methods_general(self):
         """

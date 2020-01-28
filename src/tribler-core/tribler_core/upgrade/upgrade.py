@@ -33,9 +33,9 @@ def cleanup_noncompliant_channel_torrents(state_dir):
                 dir_path = channels_dir / d
                 # We remove both malformed channel dirs and .torrent and .mdblob files for personal channel
                 if dir_path.is_dir():
-                    shutil.rmtree(dir_path.to_text(), ignore_errors=True)
+                    shutil.rmtree(str(dir_path), ignore_errors=True)
                 elif dir_path.is_file():
-                    os.unlink(dir_path.to_text())
+                    os.unlink(str(dir_path))
 
     # Remove .state torrent resume files
     resume_dir = state_dir / "dlcheckpoints"
@@ -141,7 +141,7 @@ class TriblerUpgrader(object):
         channels_dir = self.session.config.get_chant_channels_dir()
 
         if new_database_path.exists():
-            cleanup_pony_experimental_db(new_database_path.to_text())
+            cleanup_pony_experimental_db(str(new_database_path))
             cleanup_noncompliant_channel_torrents(self.session.config.get_state_dir())
 
         self._dtp72 = DispersyToPonyMigration(old_database_path, self.update_status, logger=self._logger)

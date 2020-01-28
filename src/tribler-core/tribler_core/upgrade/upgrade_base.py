@@ -17,6 +17,6 @@ class AbstractUpgrader(TriblerCoreTest):
 
     async def setUp(self):
         await super(AbstractUpgrader, self).setUp()
-        self.config = TriblerConfig(ConfigObj(configspec=CONFIG_SPEC_PATH.to_text()))
+        self.config = TriblerConfig(ConfigObj(configspec=str(CONFIG_SPEC_PATH)))
         self.config.set_state_dir(self.getStateDir())
         self.session = Session(self.config)

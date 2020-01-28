@@ -138,7 +138,7 @@ def fix_filebasename(name, unit=False, maxlen=255):
      * If the filename is valid: returns the filename
     """
     if isinstance(name, Path):
-        name = name.to_text()
+        name = str(name)
     if unit and (len(name) != 2 or name[1] != ':'):
         return 'c:'
     if not name or name == '.' or name == '..':

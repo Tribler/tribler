@@ -101,7 +101,7 @@ class ResourceMonitor(TaskManager):
         return file_path
 
     def get_free_disk_space(self):
-        return psutil.disk_usage(self.session.config.get_state_dir().to_text())
+        return psutil.disk_usage(str(self.session.config.get_state_dir()))
 
     def check_resources(self):
         """

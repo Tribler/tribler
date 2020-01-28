@@ -466,7 +466,7 @@ class LibtorrentDownloadImpl(TaskManager):
         if self.state_dir and b'save_path' in resume_data:
             save_path = path_util.abspath(resume_data[b'save_path'].decode('utf8'))
             if save_path.exists() and path_util.issubfolder(self.state_dir, save_path):
-                resume_data[b'save_path'] = path_util.norm_path(self.state_dir, save_path).to_text()
+                resume_data[b'save_path'] = str(path_util.norm_path(self.state_dir, save_path))
 
         metainfo = {
             'infohash': self.tdef.get_infohash(),
@@ -481,7 +481,7 @@ class LibtorrentDownloadImpl(TaskManager):
         basename = hexlify(resume_data[b'info-hash']) + '.conf'
         filename = self.ltmgr.get_checkpoint_dir() / basename
         self.config.config['download_defaults']['name'] = self.tdef.get_name_as_unicode()  # store name (for debugging)
-        self.config.write(filename.to_text())
+        self.config.write(str(filename))
         self._logger.debug('Saving download config to file %s', filename)
 
     def on_tracker_reply_alert(self, alert):

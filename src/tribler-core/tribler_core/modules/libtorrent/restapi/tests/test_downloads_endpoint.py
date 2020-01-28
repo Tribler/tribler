@@ -104,8 +104,8 @@ class TestDownloadsEndpoint(AbstractApiTest):
         ufile = TESTS_DATA_DIR / 'video\u266b.avi.torrent'
         udest = self.session_base_dir / 'video\u266b'
 
-        post_data = {'uri': 'file:' + ufile.to_text(),
-                     'destination': udest.to_text()}
+        post_data = {'uri': 'file:' + str(ufile),
+                     'destination': str(udest)}
         response_dict = await self.do_request('downloads', expected_code=200, request_type='PUT', post_data=post_data)
         self.assertTrue(response_dict['started'])
         self.assertGreaterEqual(len(self.session.ltmgr.get_downloads()), 1)

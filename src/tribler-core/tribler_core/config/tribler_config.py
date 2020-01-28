@@ -51,7 +51,7 @@ class TriblerConfig(object):
 
         # set defaults downloads path
         if not self.config['download_defaults']['saveas']:
-            self.config['download_defaults']['saveas'] = get_default_dest_dir().to_text()
+            self.config['download_defaults']['saveas'] = str(get_default_dest_dir())
         self.selected_ports = {}
 
     def abspath(self, path):
@@ -68,7 +68,7 @@ class TriblerConfig(object):
         """
         Load a TriblerConfig from disk.
         """
-        return TriblerConfig(ConfigObj(config_path.to_text(), configspec=CONFIG_SPEC_PATH.to_text(), default_encoding='utf-8'))
+        return TriblerConfig(ConfigObj(str(config_path), configspec=str(CONFIG_SPEC_PATH), default_encoding='utf-8'))
 
     def copy(self):
         """
@@ -175,7 +175,7 @@ class TriblerConfig(object):
         self.config['chant']['manager_enabled'] = value
 
     def set_chant_channels_dir(self, chant_db_filename):
-        self.config['chant']['channels_dir'] = self.norm_path(chant_db_filename).to_text()
+        self.config['chant']['channels_dir'] = str(self.norm_path(chant_db_filename))
 
     def get_chant_channels_dir(self):
         return self.abspath(self.config['chant']['channels_dir'])
@@ -188,13 +188,13 @@ class TriblerConfig(object):
             else path_util.Path(self._state_dir)
 
     def set_trustchain_keypair_filename(self, keypairfilename):
-        self.config['trustchain']['ec_keypair_filename'] = self.norm_path(keypairfilename).to_text()
+        self.config['trustchain']['ec_keypair_filename'] = str(self.norm_path(keypairfilename))
 
     def get_trustchain_keypair_filename(self):
         return self.abspath(self.config['trustchain']['ec_keypair_filename'])
 
     def set_trustchain_testnet_keypair_filename(self, keypairfilename):
-        self.config['trustchain']['testnet_keypair_filename'] = self.norm_path(keypairfilename).to_text()
+        self.config['trustchain']['testnet_keypair_filename'] = str(self.norm_path(keypairfilename))
 
     def get_trustchain_testnet_keypair_filename(self):
         return self.abspath(self.config['trustchain']['testnet_keypair_filename'])
@@ -230,7 +230,7 @@ class TriblerConfig(object):
         return self.config['trustchain']['live_edges_enabled']
 
     def set_log_dir(self, value):
-        self.config['general']['log_dir'] = self.norm_path(value).to_text()
+        self.config['general']['log_dir'] = str(self.norm_path(value))
 
     def get_log_dir(self):
         return self.abspath(self.config['general']['log_dir'])
@@ -533,7 +533,7 @@ class TriblerConfig(object):
         return self.config['download_defaults']['safeseeding_enabled']
 
     def set_default_destination_dir(self, value):
-        self.config['download_defaults']['saveas'] = self.norm_path(value).to_text()
+        self.config['download_defaults']['saveas'] = str(self.norm_path(value))
 
     def get_default_destination_dir(self):
         return self.abspath(self.config['download_defaults']['saveas'])
