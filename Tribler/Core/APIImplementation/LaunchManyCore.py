@@ -582,7 +582,9 @@ class TriblerLaunchMany(TaskManager):
         def do_load_checkpoint():
             with self.session_lock:
                 for i, filename in enumerate(iglob(os.path.join(self.session.get_downloads_config_dir(), '*.conf'))):
-                    self.resume_download(filename, setupDelay=i * 0.1)
+                    if not self.resume_download(filename, setupDelay=i * 0.1):
+                        # If restoring checkpoint fails, delete the checkpoint
+                        os.remove(filename)
 
         if self.initComplete:
             do_load_checkpoint()
@@ -594,19 +596,19 @@ class TriblerLaunchMany(TaskManager):
         try:
             config = self.load_download_config(filename)
             if not config:
-                return
+                return False
         except Exception as e:
             self._logger.exception("tlm: could not open checkpoint file %s", str(filename))
-            return
+            return False
 
         metainfo = config.get_metainfo()
         if not metainfo:
             self._logger.error("tlm: could not resume checkpoint %s; metainfo not found", filename)
-            return
+            return False
         if not isinstance(metainfo, dict):
             self._logger.error("tlm: could not resume checkpoint %s; metainfo is not dict %s %s",
                                filename, type(metainfo), repr(metainfo))
-            return
+            return False
 
         try:
             url = metainfo.get(b'url', None)
@@ -615,23 +617,22 @@ class TriblerLaunchMany(TaskManager):
                     if b'infohash' in metainfo else TorrentDef.load_from_dict(metainfo))
         except ValueError as e:
             self._logger.exception("tlm: could not restore tdef from metainfo dict: %s %s ", e, text_type(metainfo))
-            return
+            return False
 
         if config.get_bootstrap_download():
             if hexlify(tdef.get_infohash()) != self.session.config.get_bootstrap_infohash():
                 self.remove_download_config(tdef.get_infohash())
-                return
+                return False
 
         config.state_dir = self.session.config.get_state_dir()
 
         if not (tdef and config):
             self._logger.info("tlm: could not resume checkpoint %s %s %s", filename, tdef, config)
-            return
+            return False
 
         if config.get_dest_dir() == '':  # removed torrent ignoring
             self._logger.info("tlm: removing checkpoint %s destdir is %s", filename, config.get_dest_dir())
-            os.remove(filename)
-            return
+            return False
 
         try:
             if self.download_exists(tdef.get_infohash()):
@@ -642,6 +643,8 @@ class TriblerLaunchMany(TaskManager):
                 self.add(tdef, config, setupDelay=setupDelay)
         except Exception as e:
             self._logger.exception("tlm: load check_point: exception while adding download %s", tdef)
+            return False
+        return True
 
     def checkpoint_downloads(self):
         """
