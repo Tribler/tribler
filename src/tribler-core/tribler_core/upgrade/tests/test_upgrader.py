@@ -1,11 +1,14 @@
 import os
 import shutil
 from asyncio import Future
+from pathlib import Path
 
 from pony.orm import db_session
 
-from tribler_common.simpledefs import NTFY
+from tribler_common.simpledefs import NTFY, STATEDIR_CHANNELS_DIR, STATEDIR_CHECKPOINT_DIR, \
+    STATEDIR_DB_DIR, STATEDIR_WALLET_DIR
 
+from tribler_core import version
 from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH
 from tribler_core.modules.metadata_store.store import MetadataStore
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
@@ -105,3 +108,58 @@ class TestUpgrader(AbstractUpgrader):
         pstate = CallbackConfigParser()
         pstate.read_file(file_path)
         self.assertEqual(CHANNEL_DIR_NAME_LENGTH, len(pstate.get('state', 'metainfo')['info']['name']))
+
+
+class TestUpgraderStateDirectory(AbstractUpgrader):
+
+    async def setUp(self):
+        await super(TestUpgraderStateDirectory, self).setUp()
+        self.upgrader = TriblerUpgrader(self.session)
+        self.original_version = version.version_id
+
+    async def tearDown(self):
+        version.version_id = self.original_version
+        await super(TestUpgraderStateDirectory, self).tearDown()
+
+    @timeout(1000)
+    async def test_state_directory_upgrade(self):
+        """
+        Test if a new state directory is created with proper files and directories on upgrade.
+        """
+        # Note that, the default version set in the code is 7.0.0-GIT.
+        # So for the first time after running the (enabled) upgrader,
+        # a new state directory for this version should be created.
+        await self.upgrader.run()
+
+        version_state_dir = self.session.config.get_state_dir(version_id=version.version_id)
+        self.assertTrue(os.path.exists(version_state_dir))
+        version_state_sub_dirs = os.listdir(version_state_dir)
+        backup_dirs = [STATEDIR_DB_DIR, STATEDIR_CHECKPOINT_DIR, STATEDIR_WALLET_DIR, STATEDIR_CHANNELS_DIR]
+        for backup_dir in backup_dirs:
+            self.assertTrue(backup_dir in version_state_sub_dirs)
+
+        # Creating keypairs to test that these key pairs are also copied
+        self.upgrader.session.init_keypair()
+
+        # Now lets increase the version and test that upgrader does backup the directory and copy proper files
+        version.version_id = '100.100.100.100'
+
+        # If the version backup is not enabled, upgrader will not try to create a backup of the previous state directory
+        # and create a new state directory for the new version.
+        self.session.config.set_version_backup_enabled(False)
+        await self.upgrader.run()
+
+        version_state_dir = Path(self.session.config.get_state_dir(version_id=version.version_id))
+        self.assertFalse(os.path.exists(version_state_dir))
+
+        self.session.config.set_version_backup_enabled(True)
+        await self.upgrader.run()
+
+        version_state_dir = Path(self.session.config.get_state_dir(version_id=version.version_id))
+        self.assertTrue(os.path.exists(version_state_dir))
+        version_state_sub_dirs = os.listdir(version_state_dir)
+        backup_dirs = [STATEDIR_DB_DIR, STATEDIR_CHECKPOINT_DIR, STATEDIR_WALLET_DIR, STATEDIR_CHANNELS_DIR]
+        for backup_dir in backup_dirs:
+            self.assertTrue(backup_dir in version_state_sub_dirs)
+
+        self.assertTrue(len(list(version_state_dir.glob("*.pem"))) > 1)
