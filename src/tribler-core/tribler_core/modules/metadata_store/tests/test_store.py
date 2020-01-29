@@ -27,6 +27,7 @@ from tribler_core.modules.metadata_store.store import (
 )
 from tribler_core.tests.tools.base_test import TriblerCoreTest
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
+from tribler_core.utilities.path_util import str_path
 from tribler_core.utilities.random_utils import random_infohash
 
 
@@ -195,7 +196,7 @@ class TestMetadataStore(TriblerCoreTest):
         torrent_md.delete()
 
         channel_dir = self.mds.ChannelMetadata._channels_dir / channel.dirname
-        self.assertTrue(len(os.listdir(channel_dir)) > 0)
+        self.assertTrue(len(os.listdir(str_path(channel_dir))) > 0)
 
         # By default, personal channel torrent metadata processing is skipped so there should be no torrents
         # added to the channel

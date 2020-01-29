@@ -441,7 +441,7 @@ class TestLibtorrentMgr(AbstractServer):
         Test whether we are resuming downloads after loading checkpoints
         """
         def mocked_load_checkpoint(filename):
-            self.assertTrue(filename.endswith('abcd.conf'))
+            self.assertTrue(str(filename).endswith('abcd.conf'))
             mocked_load_checkpoint.called = True
 
         mocked_load_checkpoint.called = False

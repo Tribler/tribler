@@ -1,4 +1,5 @@
 import base64
+from pathlib import Path
 
 from configobj import ConfigObj
 
@@ -12,7 +13,7 @@ from tribler_core.exceptions import InvalidConfigException
 from tribler_core.utilities import path_util
 from tribler_core.utilities.install_dir import get_lib_path
 from tribler_core.utilities.osutils import get_home_dir
-from tribler_core.utilities.path_util import Path
+from tribler_core.utilities.path_util import str_path
 from tribler_core.utilities.utilities import bdecode_compat
 
 SPEC_FILENAME = 'download_config.spec'
@@ -42,14 +43,14 @@ class DownloadConfig:
 
     @staticmethod
     def load(config_path=None):
-        return DownloadConfig(ConfigObj(infile=str(config_path), file_error=True,
+        return DownloadConfig(ConfigObj(infile=str_path(config_path), file_error=True,
                                         configspec=str(CONFIG_SPEC_PATH), default_encoding='utf-8'))
 
     def copy(self):
         return DownloadConfig(ConfigObj(self.config, configspec=str(CONFIG_SPEC_PATH), default_encoding='utf-8'))
 
     def write(self, filename):
-        self.config.filename = filename
+        self.config.filename = str_path(filename)
         self.config.write()
 
     def set_dest_dir(self, path):

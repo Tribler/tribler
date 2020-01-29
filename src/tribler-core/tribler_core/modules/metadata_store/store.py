@@ -34,6 +34,7 @@ from tribler_core.modules.metadata_store.serialization import (
     read_payload_with_offset,
     time2int,
 )
+from tribler_core.utilities.path_util import str_path
 from tribler_core.utilities.unicode import hexlify
 
 BETA_DB_VERSIONS = [0, 1, 2, 3, 4, 5]
@@ -118,7 +119,7 @@ class MetadataStore(object):
         self.reference_timedelta = timedelta(milliseconds=100)
         self.sleep_on_external_thread = 0.05  # sleep this amount of seconds between batches executed on external thread
 
-        create_db = db_filename == ":memory:" or not self.db_filename.is_file()
+        create_db = str(db_filename) == ":memory:" or not self.db_filename.is_file()
 
         # We have to dynamically define/init ORM-managed entities here to be able to support
         # multiple sessions in Tribler. ORM-managed classes are bound to the database instance
@@ -295,10 +296,10 @@ class MetadataStore(object):
             to possibly pace down the upload process
         :return ChannelNode objects list if we can correctly load the metadata
         """
-        with open(filepath, 'rb') as f:
+        with open(str_path(filepath), 'rb') as f:
             serialized_data = f.read()
 
-        if filepath.endswith('.lz4'):
+        if str(filepath).endswith('.lz4'):
             return self.process_compressed_mdblob(serialized_data, skip_personal_metadata_payload, external_thread)
         return self.process_squashed_mdblob(serialized_data, skip_personal_metadata_payload, external_thread)
 
