@@ -5,13 +5,7 @@ from configparser import MissingSectionHeaderError, ParsingError
 
 from pony.orm import db_session
 
-from tribler_common.simpledefs import (
-    NTFY,
-    STATEDIR_CHANNELS_DIR,
-    STATEDIR_CHECKPOINT_DIR,
-    STATEDIR_DB_DIR,
-    STATEDIR_WALLET_DIR,
-)
+from tribler_common.simpledefs import NTFY
 
 from tribler_core.modules.category_filter.l2_filter import is_forbidden
 from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH
@@ -20,8 +14,6 @@ from tribler_core.upgrade.config_converter import convert_config_to_tribler74, c
 from tribler_core.upgrade.db72_to_pony import DispersyToPonyMigration, cleanup_pony_experimental_db, should_upgrade
 from tribler_core.upgrade.version_manager import VersionManager
 from tribler_core.utilities.configparser import CallbackConfigParser
-from tribler_core.utilities.osutils import dir_copy
-from tribler_core.version import version_id
 
 
 def cleanup_noncompliant_channel_torrents(state_dir):
