@@ -111,7 +111,8 @@ class Test_OsUtils(BaseTestCase):
         os.makedirs(src_dir)
         for sub_dir in src_sub_dirs:
             os.makedirs(os.path.join(src_dir, sub_dir))
-        Path(src_dir, "test.txt").write_text("source: hello world")
+        dummy_file = "dummy.txt"
+        Path(src_dir, dummy_file).write_text("source: hello world")
         self.assertGreater(len(os.listdir(src_dir)), 1)
 
         # Destination directories
@@ -119,7 +120,7 @@ class Test_OsUtils(BaseTestCase):
         dest_dir2 = os.path.join(temp_dir, 'dest2')  # will be created; to test dir merge
 
         os.makedirs(dest_dir2)  # create some files inside
-        Path(dest_dir2, "test.txt").write_text("dest: hello world")
+        Path(dest_dir2, dummy_file).write_text("dest: hello world")
         self.assertEqual(len(os.listdir(dest_dir2)), 1)
 
         # Copy source directory to non-existent destination directory; should work
@@ -132,5 +133,5 @@ class Test_OsUtils(BaseTestCase):
         # Try copying with merge flag set
         dir_copy(src_dir, dest_dir2, merge_if_exists=True)
         self.assertEqual(len(os.listdir(src_dir)), len(os.listdir(dest_dir2)))
-        self.assertEqual(Path(dest_dir2, "test.txt").read_text(), "source: hello world")
+        self.assertEqual(Path(dest_dir2, dummy_file).read_text(), "source: hello world")
         shutil.rmtree(temp_dir, ignore_errors=True)
