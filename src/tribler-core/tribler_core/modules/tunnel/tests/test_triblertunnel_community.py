@@ -85,7 +85,7 @@ class TestTriblerTunnelCommunity(TestBase):
         self.assertGreaterEqual(len(self.nodes[0].overlay.get_candidates(PEER_FLAG_EXIT_ANY)), 1)
         # 2. Unload
         self.nodes[0].overlay.cache_exitnodes_to_disk()
-        self.nodes[0].network.verified_peers = []
+        self.nodes[0].network.verified_peers = set()
         self.nodes[0].overlay.candidates.clear()
         # 3. Load again
         self.nodes[0].overlay.restore_exitnodes_from_disk()

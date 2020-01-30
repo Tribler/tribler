@@ -45,6 +45,7 @@ class ShutdownEndpoint(RESTEndpoint):
                 keep_loop_running = await self.session.shutdown()
             except Exception as e:
                 self._logger.error(e)
+                keep_loop_running = False
 
             self.process_checker.remove_lock_file()
             # Flush the logs to the file before exiting
