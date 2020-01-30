@@ -121,7 +121,7 @@ class TestUpgraderStateDirectory(AbstractUpgrader):
         version.version_id = self.original_version
         await super(TestUpgraderStateDirectory, self).tearDown()
 
-    @timeout(1000)
+    @timeout(10)
     async def test_state_directory_upgrade(self):
         """
         Test if a new state directory is created with proper files and directories on upgrade.
@@ -142,7 +142,7 @@ class TestUpgraderStateDirectory(AbstractUpgrader):
         self.upgrader.session.init_keypair()
 
         # Now lets increase the version and test that upgrader does backup the directory and copy proper files
-        version.version_id = '100.100.100.100'
+        version.version_id = '100.100.100'
 
         # If the version backup is not enabled, upgrader will not try to create a backup of the previous state directory
         # and create a new state directory for the new version.
