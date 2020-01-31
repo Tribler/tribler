@@ -26,6 +26,7 @@ from ipv8.messaging.anonymization.tunnel import (
 )
 from ipv8.peer import Peer
 from ipv8.peerdiscovery.network import Network
+from ipv8.taskmanager import task
 
 from tribler_common.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_METADATA, DLSTATUS_SEEDING, DLSTATUS_STOPPED, NTFY
 
@@ -367,7 +368,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             if tup[1] == circuit_id:
                 self.competing_slots[ind] = (0, None)
 
-    def remove_circuit(self, circuit_id, additional_info='', remove_now=False, destroy=False):
+    @task
+    async def remove_circuit(self, circuit_id, additional_info='', remove_now=False, destroy=False):
         if circuit_id not in self.circuits:
             self.logger.warning("Circuit %d not found when trying to remove it", circuit_id)
             return
@@ -396,25 +398,24 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         affected_peers = self.dispatcher.circuit_dead(circuit)
 
-        async def _remove():
-            # Now we actually remove the circuit
-            super(TriblerTunnelCommunity, self).remove_circuit(circuit_id, additional_info=additional_info,
-                                                               remove_now=remove_now, destroy=destroy)
+        # Now we actually remove the circuit
+        super(TriblerTunnelCommunity, self).remove_circuit(circuit_id, additional_info=additional_info,
+                                                           remove_now=remove_now, destroy=destroy)
 
-            if self.tribler_session and self.tribler_session.config.get_libtorrent_enabled():
-                ltmgr = self.tribler_session.ltmgr
-                await gather(*[self.update_torrent(affected_peers, download) for download in ltmgr.get_downloads()])
-        if not self.is_pending_task_active('schedule_remove_circuit_%d' % circuit_id):
-            self.register_task('schedule_remove_circuit_%d' % circuit_id, _remove)
+        if self.tribler_session and self.tribler_session.config.get_libtorrent_enabled():
+            downloads = self.tribler_session.ltmgr.get_downloads()
+            if downloads:
+                await gather(*[self.update_torrent(affected_peers, download) for download in downloads])
 
-    def remove_relay(self, circuit_id, additional_info='', remove_now=False, destroy=False, got_destroy_from=None,
-                     both_sides=True):
-        removed_relays = super(TriblerTunnelCommunity, self).remove_relay(circuit_id,
-                                                                          additional_info=additional_info,
-                                                                          remove_now=remove_now,
-                                                                          destroy=destroy,
-                                                                          got_destroy_from=got_destroy_from,
-                                                                          both_sides=both_sides)
+    @task
+    async def remove_relay(self, circuit_id, additional_info='', remove_now=False, destroy=False,
+                           got_destroy_from=None, both_sides=True):
+        removed_relays = await super(TriblerTunnelCommunity, self).remove_relay(circuit_id,
+                                                                                additional_info=additional_info,
+                                                                                remove_now=remove_now,
+                                                                                destroy=destroy,
+                                                                                got_destroy_from=got_destroy_from,
+                                                                                both_sides=both_sides)
 
         self.clean_from_slots(circuit_id)
 
@@ -429,8 +430,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         self.clean_from_slots(circuit_id)
 
-        super(TriblerTunnelCommunity, self).remove_exit_socket(circuit_id, additional_info=additional_info,
-                                                               remove_now=remove_now, destroy=destroy)
+        return super(TriblerTunnelCommunity, self).remove_exit_socket(circuit_id, additional_info=additional_info,
+                                                                      remove_now=remove_now, destroy=destroy)
 
     def _ours_on_created_extended(self, circuit, payload):
         super(TriblerTunnelCommunity, self)._ours_on_created_extended(circuit, payload)
@@ -526,7 +527,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             if lookup_info_hash == self.get_lookup_info_hash(download.get_def().get_infohash()):
                 return download
 
-    def create_introduction_point(self, info_hash, amount=1):
+    @task
+    async def create_introduction_point(self, info_hash, required_ip=None):
         download = self.get_download(info_hash)
         if download:
             # We now have to associate the SOCKS5 UDP connection with the libtorrent listen port ourselves.
@@ -543,7 +545,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                 for session in self.socks_servers[hops - 1].sessions:
                     if session.get_udp_socket():
                         session.get_udp_socket().remote_udp_address = ("127.0.0.1", lt_listen_port)
-        super(TriblerTunnelCommunity, self).create_introduction_point(info_hash, amount)
+        await super(TriblerTunnelCommunity, self).create_introduction_point(info_hash, required_ip=required_ip)
 
     async def unload(self):
         if self.bandwidth_wallet:

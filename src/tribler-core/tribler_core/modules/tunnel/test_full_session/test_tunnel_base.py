@@ -42,7 +42,6 @@ class TestTunnelBase(TestAsServer):
 
     def setUpPreSession(self):
         TestAsServer.setUpPreSession(self)
-        random.seed()
         self.config.set_ipv8_enabled(True)
         self.config.set_ipv8_port(-1)
         self.config.set_libtorrent_enabled(False)
