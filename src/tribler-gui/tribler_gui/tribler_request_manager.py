@@ -1,3 +1,4 @@
+import json
 import logging
 from collections import deque
 from time import time
@@ -166,7 +167,7 @@ class TriblerNetworkRequest(QObject):
         self.method = method
         self.capture_errors = capture_errors
         if data:
-            raw_data = tribler_urlencode(data)
+            raw_data = json.dumps(data)
         self.raw_data = raw_data if (issubclass(type(raw_data), bytes) or raw_data is None) else raw_data.encode('utf8')
         self.reply_callback = reply_callback
         if self.reply_callback:

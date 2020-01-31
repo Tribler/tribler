@@ -206,7 +206,7 @@ class ChannelsEndpoint(ChannelsEndpointBase):
         if not channel:
             return RESTResponse({"error": "Unknown channel"}, status=HTTP_NOT_FOUND)
 
-        parameters = await request.post()
+        parameters = await request.json()
 
         extra_info = {}
         if parameters.get('description', None):

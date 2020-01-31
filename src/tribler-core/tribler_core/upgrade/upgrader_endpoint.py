@@ -38,7 +38,7 @@ class UpgraderEndpoint(RESTEndpoint):
                     "skip_db_upgrade": true
                 }
         """
-        parameters = await request.post()
+        parameters = await request.json()
         if SKIP_DB_UPGRADE_STR not in parameters:
             return RESTResponse({"error": "attribute to change is missing"}, status=HTTP_BAD_REQUEST)
         elif not self.session.upgrader:

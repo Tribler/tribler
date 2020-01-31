@@ -54,11 +54,11 @@ class CreateTorrentEndpoint(RESTEndpoint):
 
             :statuscode 500: if source files do not exist.
         """
-        parameters = await request.post()
+        parameters = await request.json()
         params = {}
 
         if 'files' in parameters and parameters['files']:
-            file_path_list = [ensure_unicode(f, 'utf-8') for f in parameters.getall('files')]
+            file_path_list = [ensure_unicode(f, 'utf-8') for f in parameters['files']]
         else:
             return RESTResponse({"error": "files parameter missing"}, status=HTTP_BAD_REQUEST)
 

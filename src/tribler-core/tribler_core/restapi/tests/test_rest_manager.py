@@ -44,7 +44,7 @@ class RestRequestTest(AbstractApiTest):
         orig_parse_settings_dict = SettingsEndpoint.parse_settings_dict
         SettingsEndpoint.parse_settings_dict = RaiseException
         response_dict = await self.do_request('settings', expected_code=500,
-                                              post_data=json.dumps(post_data), request_type='POST')
+                                              post_data=post_data, request_type='POST')
 
         SettingsEndpoint.parse_settings_dict = orig_parse_settings_dict
         self.assertFalse(response_dict['error']['handled'])

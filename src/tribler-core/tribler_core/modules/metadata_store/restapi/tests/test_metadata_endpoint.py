@@ -58,12 +58,12 @@ class TestMetadataEndpoint(AbstractApiTest):
         Test updating attributes of several metadata entities at once with a PATCH request to REST API
         """
         # Test handling the wrong/empty JSON gracefully
-        await self.do_request('metadata', expected_code=400, request_type='PATCH')
+        await self.do_request('metadata', expected_code=400, request_type='PATCH', post_data='')
 
         # Test trying update a non-existing entry
         await self.do_request(
             'metadata',
-            json_data=[{'public_key': hexlify(b'1' * 64), 'id': 111}],
+            post_data=[{'public_key': hexlify(b'1' * 64), 'id': 111}],
             expected_code=404,
             request_type='PATCH',
         )
@@ -77,7 +77,7 @@ class TestMetadataEndpoint(AbstractApiTest):
             {'public_key': hexlify(md1.public_key), 'id': md1.id_, 'title': NEW_NAME1},
             {'public_key': hexlify(md2.public_key), 'id': md2.id_, 'title': NEW_NAME2, 'subscribed': 1},
         ]
-        await self.do_request('metadata', json_data=patch_data, expected_code=200, request_type='PATCH')
+        await self.do_request('metadata', post_data=patch_data, expected_code=200, request_type='PATCH')
         with db_session:
             entry1 = self.session.mds.ChannelNode.get(rowid=md1.rowid)
             self.assertEqual(NEW_NAME1, entry1.title)
@@ -101,7 +101,7 @@ class TestMetadataEndpoint(AbstractApiTest):
             {'public_key': hexlify(md1.public_key), 'id': md1.id_},
             {'public_key': hexlify(md2.public_key), 'id': md2.id_},
         ]
-        await self.do_request('metadata', json_data=patch_data, expected_code=200, request_type='DELETE')
+        await self.do_request('metadata', post_data=patch_data, expected_code=200, request_type='DELETE')
         with db_session:
             self.assertFalse(self.session.mds.ChannelNode.select().count())
 
@@ -116,14 +116,14 @@ class TestSpecificMetadataEndpoint(AbstractApiTest):
         Test whether an error is returned if we try to change entry with the REST API and missing JSON data
         """
         channel_pk = hexlify(self.session.mds.ChannelNode._my_key.pub().key_to_bin()[10:])
-        await self.do_request('metadata/%s/123' % channel_pk, expected_code=400, request_type='PATCH')
+        await self.do_request('metadata/%s/123' % channel_pk, expected_code=400, request_type='PATCH', post_data='')
 
     async def test_update_entry_not_found(self):
         """
         Test whether an error is returned if we try to change some metadata entry that is not there
         """
         patch_params = {'subscribed': '1'}
-        await self.do_request('metadata/aa/123', expected_code=404, request_type='PATCH', json_data=patch_params)
+        await self.do_request('metadata/aa/123', expected_code=404, request_type='PATCH', post_data=patch_params)
 
     @timeout(10)
     async def test_update_entry_status_and_name(self):
@@ -136,7 +136,7 @@ class TestSpecificMetadataEndpoint(AbstractApiTest):
         await self.do_request(
             'metadata/%s/%i' % (hexlify(chan.public_key), chan.id_),
             request_type='PATCH',
-            json_data=patch_params,
+            post_data=patch_params,
             expected_code=400,
         )
 
@@ -157,7 +157,7 @@ class TestSpecificMetadataEndpoint(AbstractApiTest):
         result = await self.do_request(
             'metadata/%s/%i' % (hexlify(chan.public_key), chan.id_),
             request_type='PATCH',
-            json_data=patch_params,
+            post_data=patch_params,
             expected_code=200,
         )
         self.assertEqual(new_title, result['name'])

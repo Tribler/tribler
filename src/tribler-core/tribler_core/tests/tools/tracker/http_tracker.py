@@ -39,7 +39,7 @@ class HTTPTracker(object):
         """
         Return a bencoded dictionary with information about the queried infohashes.
         """
-        parameters = await request.post()
+        parameters = await request.query
         if 'info_hash' not in parameters:
             return RESTResponse("infohash argument missing", status=HTTP_BAD_REQUEST)
 

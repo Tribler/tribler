@@ -59,7 +59,7 @@ class MetadataEndpoint(RESTEndpoint):
         return RESTResponse({"total": total})
 
     async def subscribe_to_channel(self, request):
-        parameters = await request.post()
+        parameters = await request.json()
         if 'subscribe' not in parameters:
             return RESTResponse({"success": False, "error": "subscribe parameter missing"}, status=HTTP_BAD_REQUEST)
 

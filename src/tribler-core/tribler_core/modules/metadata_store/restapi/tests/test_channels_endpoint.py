@@ -212,7 +212,7 @@ class TestSpecificChannelCopyEndpoint(BaseTestMyChannelEndpoint):
         request_data = [external_metadata1.to_simple_dict(), external_metadata2_ffa.to_simple_dict()]
         await self.do_request(
             'collections/%s/%i/copy' % (hexlify(channel.public_key), channel.id_),
-            json_data=request_data,
+            post_data=request_data,
             request_type='POST',
         )
         with db_session:
@@ -220,13 +220,14 @@ class TestSpecificChannelCopyEndpoint(BaseTestMyChannelEndpoint):
 
         await self.do_request(
             'collections/%s/%i/copy' % (hexlify(b"0" * 64), 777),
-            json_data=request_data,
+            post_data=request_data,
             request_type='POST',
             expected_code=404,
         )
 
         await self.do_request(
             'collections/%s/%i/copy' % (hexlify(channel.public_key), channel.id_),
+            post_data='',
             request_type='POST',
             expected_code=400,
         )
@@ -234,7 +235,7 @@ class TestSpecificChannelCopyEndpoint(BaseTestMyChannelEndpoint):
         request_data = [{'public_key': hexlify(b"1" * 64), 'id': 12333}]
         await self.do_request(
             'collections/%s/%i/copy' % (hexlify(channel.public_key), channel.id_),
-            json_data=request_data,
+            post_data=request_data,
             request_type='POST',
             expected_code=400,
         )
@@ -363,7 +364,7 @@ class TestSpecificChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
             my_channel.add_torrent_to_channel(tdef, {'description': 'blabla'})
 
             with open(TORRENT_UBUNTU_FILE, "rb") as torrent_file:
-                base64_content = base64.b64encode(torrent_file.read())
+                base64_content = base64.b64encode(torrent_file.read()).decode('utf-8')
 
                 post_params = {'torrent': base64_content}
                 await self.do_request(
