@@ -533,6 +533,7 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         status.all_time_upload = 42
         status.all_time_download = 43
         status.finished_time = 1234
+        status.total_download = 0
 
         # Scenario: we have a file with 4 pieces, 250 bytes in each piece.
         def map_file(_dummy1, start_byte, _dummy2):
