@@ -142,7 +142,7 @@ class TriblerTableViewController(QObject):
         if not response:
             return False
 
-        if self.is_new_result(response):
+        if self.is_new_result(response) and "results" in response:
             self.model.add_items(response['results'], remote=remote)
 
         return True
