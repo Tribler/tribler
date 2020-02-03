@@ -308,11 +308,10 @@ class TorrentDef(object):
             try:
                 def filter_characters(name):
                     def filter_character(char):
-                        if 0 < ord(char) < 128:
-                            return char
-                        else:
-                            self._logger.debug("Bad character filter %s, isalnum? %s", ord(char), char.isalnum())
-                            return u"?"
+                        if 0 < char < 128:
+                            return chr(char)
+                        self._logger.debug("Bad character filter %s, isalnum? %s", char, bytes(char).isalnum())
+                        return u"?"
                     return u"".join([filter_character(char) for char in name])
                 return text_type(filter_characters(self.metainfo[b"info"][b"name"]))
             except UnicodeError:
