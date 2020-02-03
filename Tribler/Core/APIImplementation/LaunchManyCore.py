@@ -122,6 +122,8 @@ class TriblerLaunchMany(TaskManager):
         assert isInIOThread()
 
         self.session = session
+        if not self.session.trustchain_keypair:
+            self.session.init_keypair()
         self.session_lock = session_lock
 
         self.tracker_manager = TrackerManager(self.session)
