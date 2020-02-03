@@ -36,7 +36,6 @@ class TestChannelDownload(TestAsServer):
             old_channel = self.session.mds.ChannelMetadata.from_payload(old_payload)
             chan_dir = CHANNEL_DIR / old_channel.dirname
 
-        print (chan_dir.exists())
         self.session.mds.process_channel_dir(chan_dir, old_payload.public_key, old_payload.id_)
 
         channel_tdef = TorrentDef.load(CHANNEL_TORRENT_UPDATED)
