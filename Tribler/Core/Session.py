@@ -79,8 +79,6 @@ class Session(object):
 
         self.selected_ports = self.config.selected_ports
 
-        self.init_keypair()
-
         self.lm = TriblerLaunchMany()
         self.notifier = Notifier()
 
@@ -89,6 +87,7 @@ class Session(object):
         self.readable_status = ''  # Human-readable string to indicate the status during startup/shutdown of Tribler
 
         self.autoload_discovery = autoload_discovery
+        self.trustchain_keypair = None
 
     def create_state_directory_structure(self):
         """Create directory structure of the state directory."""
@@ -420,6 +419,7 @@ class Session(object):
         def after_upgrade(_):
             self.upgrader = None
 
+
         def log_upgrader_error(failure):
             self._logger.error("Error in Upgrader callback chain: %s", failure)
 
@@ -427,8 +427,8 @@ class Session(object):
             self.notifier.notify(NTFY_TRIBLER, NTFY_STARTED, None)
 
         startup_deferred = upgrader_deferred. \
-            addCallbacks(lambda _: self.lm.register(self, self.session_lock), log_upgrader_error). \
             addCallbacks(after_upgrade, log_upgrader_error). \
+            addCallbacks(lambda _: self.lm.register(self, self.session_lock), log_upgrader_error). \
             addCallback(on_tribler_started)
 
         def load_checkpoint(_):
