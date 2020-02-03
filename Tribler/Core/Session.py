@@ -419,7 +419,6 @@ class Session(object):
         def after_upgrade(_):
             self.upgrader = None
 
-
         def log_upgrader_error(failure):
             self._logger.error("Error in Upgrader callback chain: %s", failure)
 
