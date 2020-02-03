@@ -204,7 +204,7 @@ class DownloadsDetailsTabWidget(QTabWidget):
 
     def get_video_file_index(self, file_index):
         video_index = 0
-        for index in xrange(file_index):
+        for index in range(file_index):
             if is_video_file(self.current_download["files"][index]['name']):
                 video_index += 1
         return video_index
