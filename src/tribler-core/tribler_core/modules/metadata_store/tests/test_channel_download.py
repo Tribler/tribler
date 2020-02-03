@@ -25,7 +25,6 @@ class TestChannelDownload(TestAsServer):
         self.config.set_chant_enabled(True)
         self.config.set_libtorrent_enabled(True)
 
-    @skipIf(sys.platform == "win32", "Skipping the channel download test on Windows.")
     @timeout(20)
     async def test_channel_update_and_download(self):
         """
@@ -37,6 +36,7 @@ class TestChannelDownload(TestAsServer):
             old_channel = self.session.mds.ChannelMetadata.from_payload(old_payload)
             chan_dir = CHANNEL_DIR / old_channel.dirname
 
+        print (chan_dir.exists())
         self.session.mds.process_channel_dir(chan_dir, old_payload.public_key, old_payload.id_)
 
         channel_tdef = TorrentDef.load(CHANNEL_TORRENT_UPDATED)
