@@ -1,32 +1,21 @@
-from urllib.parse import quote_plus
+import json
 
 from aiohttp import ClientSession
 
 from tribler_core.restapi import get_param
 from tribler_core.tests.tools.test_as_server import TestAsServer
+from tribler_core.utilities.path_util import Path
 from tribler_core.version import version_id
 
 
-def tribler_urlencode(data):
-    # Convert all keys and values in the data to utf-8 unicode strings
-    utf8_items = []
-    for key, value in data.items():
-        if isinstance(value, list):
-            utf8_items.extend([tribler_urlencode_single(key, list_item) for list_item in value if value])
-        else:
-            utf8_items.append(tribler_urlencode_single(key, value))
-
-    data = "&".join(utf8_items)
-    return data
-
-
-def tribler_urlencode_single(key, value):
-    utf8_key = quote_plus(key.encode('utf-8'))
-    # Convert bool values to ints
-    if isinstance(value, bool):
-        value = int(value)
-    utf8_value = quote_plus(value.encode('utf-8'))
-    return "%s=%s" % (utf8_key, utf8_value)
+def path_to_str(obj):
+    if isinstance(obj, dict):
+        return {path_to_str(k):path_to_str(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [path_to_str(i) for i in obj]
+    if isinstance(obj, Path):
+        return str(obj)
+    return obj
 
 
 class AbstractBaseApiTest(TestAsServer):
@@ -43,12 +32,12 @@ class AbstractBaseApiTest(TestAsServer):
         # Make sure we select a random port for the HTTP API
         self.config.set_http_api_port(self.get_port())
 
-    async def do_request(self, endpoint, req_type, post_data, headers, json_data, json_response):
+    async def do_request(self, endpoint, req_type, data, headers, json_response):
         url = 'http://localhost:%d/%s' % (self.session.config.get_http_api_port(), endpoint)
         headers = headers or {'User-Agent': 'Tribler ' + version_id}
 
         async with ClientSession() as session:
-            async with session.request(req_type, url, data=post_data, json=json_data, headers=headers) as response:
+            async with session.request(req_type, url, data=data, headers=headers) as response:
                 return response.status, (await response.json(content_type=None)
                                          if json_response else await response.read())
 
@@ -60,11 +49,10 @@ class AbstractApiTest(AbstractBaseApiTest):
     """
 
     async def do_request(self, endpoint, expected_code=200, expected_json=None,
-                         request_type='GET', post_data=None, headers=None,
-                         json_data=None, json_response=True):
+                         request_type='GET', post_data={}, headers=None, json_response=True):
+        data = json.dumps(path_to_str(post_data)) if isinstance(post_data, (dict, list)) else post_data
         status, response = await super(AbstractApiTest, self).do_request(endpoint, request_type,
-                                                                         post_data, headers,
-                                                                         json_data, json_response)
+                                                                         data, headers, json_response)
         self.assertEqual(status, expected_code, response)
         if response is not None and expected_json is not None:
             self.assertDictEqual(expected_json, response)

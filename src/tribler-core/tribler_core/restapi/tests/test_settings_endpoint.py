@@ -31,7 +31,7 @@ class TestSettingsEndpoint(AbstractApiTest):
         """
         post_data = {'watch_folder': {'directory': u'\u2588'}}
 
-        await self.do_request('settings', expected_code=200, request_type='POST', post_data=json.dumps(post_data))
+        await self.do_request('settings', expected_code=200, request_type='POST', post_data=post_data)
 
         settings = await self.do_request('settings')
 
@@ -85,7 +85,7 @@ class TestSettingsEndpoint(AbstractApiTest):
         post_data = {'download_defaults': {'seeding_mode': 'ratio',
                                            'seeding_ratio': 3,
                                            'seeding_time': 123}}
-        await self.do_request('settings', expected_code=200, request_type='POST', post_data=json.dumps(post_data))
+        await self.do_request('settings', expected_code=200, request_type='POST', post_data=post_data)
         self.assertEqual(self.session.config.get_seeding_mode(), 'ratio')
         self.assertEqual(self.session.config.get_seeding_ratio(), 3)
         self.assertEqual(self.session.config.get_seeding_time(), 123)

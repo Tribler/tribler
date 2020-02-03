@@ -300,8 +300,8 @@ class TestDownloadsEndpoint(AbstractApiTest):
         self.session.ltmgr.start_download(tdef=video_tdef)
         infohash = get_hex_infohash(video_tdef)
 
-        await self.do_request(f'downloads/{infohash}', expected_code=400, post_data={"selected_files": 1234},
-                               request_type='PATCH')
+        await self.do_request(f'downloads/{infohash}', expected_code=400,
+                              post_data={"selected_files": [1234]}, request_type='PATCH')
 
     @timeout(10)
     async def test_select_download_file(self):
@@ -317,7 +317,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         mocked_set_selected_files.called = False
         download.set_selected_file_indexes = mocked_set_selected_files
 
-        await self.do_request(f'downloads/{infohash}', post_data={"selected_files": 0},
+        await self.do_request(f'downloads/{infohash}', post_data={"selected_files": [0]},
                                expected_code=200, request_type='PATCH',
                                expected_json={"modified": True,
                                               "infohash": "c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5"})

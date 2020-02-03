@@ -57,13 +57,13 @@ class TestMyChannelCreateTorrentEndpoint(AbstractApiTest):
         Testing whether the API returns a formatted 500 error if IOError is raised
         """
         post_data = {
-            "files": "non_existing_file.avi"
+            "files": ["non_existing_file.avi"]
         }
         error_response = await self.do_request('createtorrent', 500, None, 'POST', post_data)
         expected_response = {
             u"error": {
                 u"handled": True,
-                u"message": u"Path does not exist: %s" % post_data["files"]
+                u"message": u"Path does not exist: %s" % post_data["files"][0]
             }
         }
         self.assertDictContainsSubset(expected_response[u"error"], error_response[u"error"])

@@ -36,10 +36,12 @@ class TestEventsEndpoint(AbstractApiTest):
             async with session.get(url, headers=headers) as response:
                 # The first event message is always events_start
                 await response.content.readline()
+                await response.content.readline()  # Events are separated by 2 newline characters
                 self.connected_future.set_result(None)
                 while True:
                     msg = await response.content.readline()
-                    self.messages_to_wait_for.remove(json.loads(msg)["type"])
+                    await response.content.readline()
+                    self.messages_to_wait_for.remove(json.loads(msg[5:])["type"])
                     if not self.messages_to_wait_for:
                         self.events_future.set_result(None)
                         break

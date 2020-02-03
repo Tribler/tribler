@@ -92,10 +92,11 @@ class EventRequestManager(QNetworkAccessManager):
         self.connect_timer.stop()
         data = self.reply.readAll()
         self.current_event_string += bytes(data).decode('utf8')
-        if len(self.current_event_string) > 0 and self.current_event_string[-1] == '\n':
-            for event in self.current_event_string.split('\n'):
+        if len(self.current_event_string) > 0 and self.current_event_string[-2:] == '\n\n':
+            for event in self.current_event_string.split('\n\n'):
                 if len(event) == 0:
                     continue
+                event = event[5:] if event.startswith('data:') else event
                 json_dict = json.loads(event)
 
                 received_events.insert(0, (json_dict, time.time()))

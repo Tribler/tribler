@@ -77,14 +77,8 @@ class DownloadsEndpoint(RESTEndpoint):
         """
         download_config = DownloadConfig()
 
-        anon_hops = 0
-        if parameters.get('anon_hops'):
-            if parameters['anon_hops'].isdigit():
-                anon_hops = int(parameters['anon_hops'])
-
-        safe_seeding = False
-        if parameters.get('safe_seeding') == "1":
-            safe_seeding = True
+        anon_hops = parameters.get('anon_hops', 0)
+        safe_seeding = bool(parameters.get('safe_seeding', 0))
 
         if anon_hops > 0 and not safe_seeding:
             return None, "Cannot set anonymous download without safe seeding enabled"
@@ -100,7 +94,7 @@ class DownloadsEndpoint(RESTEndpoint):
             download_config.set_dest_dir(dest_dir)
 
         if 'selected_files' in parameters:
-            download_config.set_selected_files([int(index) for index in parameters.getall('selected_files')])
+            download_config.set_selected_file_indexes(parameters['selected_files'])
 
         return download_config, None
 
@@ -311,7 +305,7 @@ class DownloadsEndpoint(RESTEndpoint):
 
                     {"started": True, "infohash": "4344503b7e797ebf31582327a5baae35b11bda01"}
         """
-        parameters = await request.post()
+        parameters = await request.json()
         if not parameters.get('uri'):
             return RESTResponse({"error": "uri parameter missing"}, status=HTTP_BAD_REQUEST)
 
@@ -369,7 +363,7 @@ class DownloadsEndpoint(RESTEndpoint):
 
                     {"removed": True, "infohash": "4344503b7e797ebf31582327a5baae35b11bda01"}
         """
-        parameters = await request.post()
+        parameters = await request.json()
         if 'remove_data' not in parameters:
             return RESTResponse({"error": "remove_data parameter missing"}, status=HTTP_BAD_REQUEST)
 
@@ -422,7 +416,7 @@ class DownloadsEndpoint(RESTEndpoint):
         if not download:
             return DownloadsEndpoint.return_404(request)
 
-        parameters = await request.post()
+        parameters = await request.json()
         if len(parameters) > 1 and 'anon_hops' in parameters:
             return RESTResponse({"error": "anon_hops must be the only parameter in this request"},
                                 status=HTTP_BAD_REQUEST)
@@ -436,7 +430,7 @@ class DownloadsEndpoint(RESTEndpoint):
             return RESTResponse({"modified": True, "infohash": hexlify(download.get_def().get_infohash())})
 
         if 'selected_files' in parameters:
-            selected_files_list = [int(i) for i in parameters.getall('selected_files')]
+            selected_files_list = parameters['selected_files']
             num_files = len(download.tdef.get_files())
             if not all([0 <= index < num_files for index in selected_files_list]):
                 return RESTResponse({"error": "index out of range"}, status=HTTP_BAD_REQUEST)

@@ -15,7 +15,7 @@ from ipv8.util import int2byte
 
 import libtorrent as lt
 
-from tribler_common.simpledefs import DLMODE_VOD, DLSTATUS_SEEDING, DLSTATUS_STOPPED, NTFY
+from tribler_common.simpledefs import DLMODE_VOD, DLSTATUS_SEEDING, DLSTATUS_STOPPED, DOWNLOAD, NTFY
 
 from tribler_core.exceptions import SaveResumeDataError
 from tribler_core.modules.libtorrent import check_handle, require_handle
@@ -594,8 +594,10 @@ class LibtorrentDownloadImpl(TaskManager):
                 self.endbuffsize = 0
 
         self.checkpoint()
-        self.session.notifier.notify(NTFY.TORRENT_FINISHED, self.tdef.get_infohash(),
-                                     self.tdef.get_name_as_unicode(), self.hidden)
+
+        if self.get_state().get_total_transferred(DOWNLOAD) > 0:
+            self.session.notifier.notify(NTFY.TORRENT_FINISHED, self.tdef.get_infohash(),
+                                         self.tdef.get_name_as_unicode(), self.hidden)
 
     def update_lt_status(self, lt_status):
         """ Update libtorrent stats and check if the download should be stopped."""

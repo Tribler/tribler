@@ -25,14 +25,14 @@ class EventsEndpoint(RESTEndpoint):
             self.event_response.write(json.dumps({"type": "search_result_torrent", "event": {"result": result}}) + '\n')
 
     async def get_events(self, request):
-        self.event_response = RESTStreamResponse(status=200, reason='OK', headers={'Content-Type': 'text/html'})
+        self.event_response = RESTStreamResponse(status=200, reason='OK', headers={'Content-Type': 'text/event-stream',
+                                                                                   'Cache-Control': 'no-cache',
+                                                                                   'Connection': 'keep-alive'})
         await self.event_response.prepare(request)
         await self.event_response.write(
-            json.dumps(
-                {"type": NTFY.EVENTS_START.value, "event": {"tribler_started": True, "version": "1.2.3"}}
-            ).encode('utf-8')
-            + b'\n'
-        )
+            b'data:' + json.dumps({"type": NTFY.EVENTS_START.value, "event": {"tribler_started": True,
+                                                                              "version": "1.2.3"}}).encode('utf-8')
+            + b'\n\n')
 
         try:
             while True:

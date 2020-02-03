@@ -95,7 +95,7 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
             # The message contains invalid characters; fix them
             self._logger.error("Event contains non-unicode characters, fixing")
             message = json.dumps(fix_unicode_dict(message))
-        message_bytes = message.encode('utf-8') + b'\n'
+        message_bytes = b'data: ' + message.encode('utf-8') + b'\n\n'
         for request in self.events_responses:
             await request.write(message_bytes)
 
@@ -116,15 +116,17 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
                     curl -X GET http://localhost:8085/events
         """
 
-        # Setting content-type to text/html to ensure browsers will display the content properly
+        # Setting content-type to text/event-stream to ensure browsers will handle the content properly
         response = RESTStreamResponse(status=200,
                                       reason='OK',
-                                      headers={'Content-Type': 'text/html'})
+                                      headers={'Content-Type': 'text/event-stream',
+                                               'Cache-Control': 'no-cache',
+                                               'Connection': 'keep-alive'})
         await response.prepare(request)
         # FIXME: Proper start check!
-        await response.write(json.dumps({"type": NTFY.EVENTS_START.value,
-                                         "event": {"tribler_started": True,
-                                                   "version": version_id}}).encode('utf-8') + b'\n')
+        await response.write(b'data: ' + json.dumps({"type": NTFY.EVENTS_START.value,
+                                                     "event": {"tribler_started": True,
+                                                               "version": version_id}}).encode('utf-8') + b'\n\n')
         self.events_responses.append(response)
         try:
             while True:
