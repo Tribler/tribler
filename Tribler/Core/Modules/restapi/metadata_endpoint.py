@@ -12,6 +12,7 @@ from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
 
 import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import LEGACY_ENTRY
 from Tribler.Core.Utilities.unicode import recursive_unicode
 from Tribler.util import cast_to_unicode_utf8
 
@@ -184,6 +185,9 @@ class SpecificChannelEndpoint(BaseChannelsEndpoint):
             if not channel:
                 request.setResponseCode(http.NOT_FOUND)
                 return json.twisted_dumps({"error": "this channel cannot be found"})
+
+            if channel.status == LEGACY_ENTRY:
+                return json.twisted_dumps({"error": "Cannot subscribe to a legacy channel"})
 
             channel.subscribed = to_subscribe
             channel.share = to_subscribe
