@@ -1,6 +1,11 @@
+from __future__ import absolute_import
+
 import base64
 import os
 import shutil
+
+from twisted.internet.defer import inlineCallbacks
+from twisted.web.client import ResponseNeverReceived
 
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.TorrentDef import TorrentDef
@@ -83,3 +88,22 @@ class TestMyChannelCreateTorrentEndpoint(AbstractApiTest):
     def test_create_torrent_missing_files_parameter(self):
         expected_json = {"error": "files parameter missing"}
         return self.do_request('createtorrent', 400, expected_json, 'POST')
+
+    @inlineCallbacks
+    def test_create_torrent_no_connection(self):
+        post_data = {
+            "files": "non_existing_file.avi"
+        }
+        endpoint = self.session.lm.api_manager.root_endpoint.getChildWithDefault(b'createtorrent', None)
+        orig_func = endpoint.render_POST
+
+        def render_POST(request):
+            request.channel.transport.loseConnection()
+            return orig_func(request)
+        endpoint.render_POST = render_POST
+        self.should_check_equality = False
+
+        try:
+            yield self.do_request('createtorrent?download=0', 200, None, 'POST', post_data)
+        except ResponseNeverReceived:
+            pass
