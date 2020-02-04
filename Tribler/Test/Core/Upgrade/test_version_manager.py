@@ -56,6 +56,8 @@ class TestVersionManager(AbstractServer):
         # version including the default version.
         root_state_dir = self.session.config.get_root_state_dir()
         self.version_manager.setup_state_directory_for_upgrade(version_id=default_version_id)
+        self.session.init_keypair()
+        self.session.trustchain_keypair = None
         self.assertTrue(default_version_id, os.listdir(root_state_dir))
 
         # Also check that there are all important directories and files in the created state directory

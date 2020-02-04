@@ -91,6 +91,7 @@ class TriblerUpgrader(object):
         # Before any upgrade, prepare a separate state directory for the update version so it does not affect the
         # older version state directory. This allows for safe rollback.
         self.version_manager.setup_state_directory_for_upgrade()
+        self.session.init_keypair()
 
         d = self.upgrade_72_to_pony()
         d.addCallback(self.upgrade_pony_db_6to7)
