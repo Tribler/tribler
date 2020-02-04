@@ -122,7 +122,11 @@ def parse_tracker_url(tracker_url):
     :returns: a tuple of size 3 containing the scheme, a tuple of hostname and port,
         and path of the url
     """
-    url = urlparse(tracker_url)
+    tracker_url_sanitized = get_uniformed_tracker_url(tracker_url)
+    if tracker_url_sanitized is None:
+        raise MalformedTrackerURLException(u'Could not sanitize url (%s).' % tracker_url_sanitized)
+
+    url = urlparse(tracker_url_sanitized)
     if not (url.scheme == 'udp' or url.scheme == 'http'):
         raise MalformedTrackerURLException(u'Unexpected tracker type (%s).' % url.scheme)
 
