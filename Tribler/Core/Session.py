@@ -153,34 +153,42 @@ class Session(object):
 
             # There are some errors that we are ignoring.
             # No route to host: this issue is non-critical since Tribler can still function when a request fails.
-            if 'socket.error' in text and '[Errno 113]' in text:
+            if 'builtins.OSError' in text and '[Errno 113]' in text:
                 self._logger.error("Observed no route to host error (but ignoring)."
                                    "This might indicate a problem with your firewall.")
                 return
 
             # Socket block: this sometimes occurres on Windows and is non-critical.
-            if 'socket.error' in text and '[Errno %s]' % SOCKET_BLOCK_ERRORCODE in text:
+            if 'builtins.OSError' in text and '[Errno %s]' % SOCKET_BLOCK_ERRORCODE in text:
                 self._logger.error("Unable to send data due to socket.error %s", SOCKET_BLOCK_ERRORCODE)
                 return
 
-            if 'socket.error' in text and '[Errno 51]' in text:
+            if 'builtins.OSError' in text and '[Errno 51]' in text:
                 self._logger.error("Could not send data: network is unreachable.")
                 return
 
-            if 'socket.error' in text and '[Errno 16]' in text:
+            if 'builtins.OSError' in text and '[Errno 16]' in text:
                 self._logger.error("Could not send data: socket is busy.")
                 return
 
-            if 'socket.error' in text and '[Errno 11001]' in text:
+            if 'builtins.OSError' in text and '[Errno 11001]' in text:
                 self._logger.error("Unable to perform DNS lookup.")
                 return
 
-            if 'socket.error' in text and '[Errno 10053]' in text:
+            if 'builtins.OSError' in text and '[Errno 10053]' in text:
                 self._logger.error("An established connection was aborted by the software in your host machine.")
                 return
 
-            if 'socket.error' in text and '[Errno 10054]' in text:
+            if 'builtins.OSError' in text and '[Errno 10054]' in text:
                 self._logger.error("Connection forcibly closed by the remote host.")
+                return
+
+            if 'builtins.OSError' in text and '[Errno 16]' in text:
+                self._logger.error("Socket error: Device or resource busy. Error code: 16")
+                return
+
+            if 'builtins.OSError' in text and '[Errno 0]' in text:
+                self._logger.error(text)
                 return
 
             if 'socket.gaierror' in text and '[Errno 10022]' in text:
@@ -197,14 +205,6 @@ class Session(object):
 
             if 'twisted.internet.error.AlreadyCalled' in text:
                 self._logger.error("Tried to cancel an already called event\n%s", text)
-                return
-
-            if 'builtins.OSError' in text and '[Errno 16]' in text:
-                self._logger.error("Socket error: Device or resource busy. Error code: 16")
-                return
-
-            if 'OSError' in text and '[Errno 0]' in text:
-                self._logger.error(text)
                 return
 
             # We already have a check for invalid infohash when adding a torrent, but if somehow we get this
