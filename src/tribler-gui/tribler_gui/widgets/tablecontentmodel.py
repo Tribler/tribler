@@ -6,7 +6,7 @@ from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt, pyqtSignal
 from tribler_common.simpledefs import CHANNELS_VIEW_UUID
 
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import NEW
-from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
+from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE
 
 from tribler_gui.defs import ACTION_BUTTONS, BITTORRENT_BIRTHDAY, COMMIT_STATUS_TODELETE
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
@@ -371,18 +371,6 @@ class ChannelContentModel(RemoteTableModel):
             kwargs.update({"include_total": 1})
 
         super(ChannelContentModel, self).perform_query(**kwargs)
-
-    def is_torrent_item(self, row_id):
-        data_item = self.data_items[row_id]
-        if u'infohash' in data_item or (u'type' in data_item and data_item[u'type'] == REGULAR_TORRENT):
-            return True
-        return False
-
-    def is_channel_item(self, row_id):
-        data_item = self.data_items[row_id]
-        if u'infohash' in data_item or (u'type' in data_item and data_item[u'type'] == CHANNEL_TORRENT):
-            return True
-        return False
 
     def setData(self, index, new_value, role=None):
         if role != Qt.EditRole:

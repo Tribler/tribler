@@ -6,7 +6,7 @@ from PyQt5.QtCore import QObject, Qt
 from PyQt5.QtGui import QCursor
 from PyQt5.QtWidgets import QAction
 
-from tribler_core.modules.metadata_store.serialization import REGULAR_TORRENT
+from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 from tribler_core.utilities.json_util import dumps
 
 from tribler_gui.tribler_action_menu import TriblerActionMenu
@@ -180,7 +180,7 @@ class ContextMenuMixin(object):
             self.table_view.window().add_to_channel_dialog.show_dialog(on_confirm_clicked, confirm_button_text="Move")
 
         if not self.model.edit_enabled:
-            if self.selection_has_torrents():
+            if self.selection_can_be_added_to_channel():
                 self.add_menu_item(menu, ' Add to My Channel ', item_index, on_add_to_channel)
         else:
             self.add_menu_item(menu, ' Move ', item_index, on_move)
@@ -196,15 +196,10 @@ class ContextMenuMixin(object):
         action.triggered.connect(lambda _: callback(item_index))
         menu.addAction(action)
 
-    def selection_has_torrents(self):
+    def selection_can_be_added_to_channel(self):
         for row in self.table_view.selectionModel().selectedRows():
-            if row.model().is_torrent_item(row.row()):
-                return True
-        return False
-
-    def selection_has_channels(self):
-        for row in self.table_view.selectionModel().selectedRows():
-            if row.model().is_channel_item(row.row()):
+            data_item = row.model().data_items[row.row()]
+            if 'type' in data_item and data_item['type'] in (REGULAR_TORRENT, CHANNEL_TORRENT, COLLECTION_NODE):
                 return True
         return False
 
