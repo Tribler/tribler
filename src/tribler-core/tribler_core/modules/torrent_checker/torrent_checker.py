@@ -28,7 +28,7 @@ TRACKER_SELECTION_INTERVAL = 20    # The interval for querying a random tracker
 TORRENT_SELECTION_INTERVAL = 120   # The interval for checking the health of a random torrent
 MIN_TORRENT_CHECK_INTERVAL = 900   # How much time we should wait before checking a torrent again
 TORRENT_CHECK_RETRY_INTERVAL = 30  # Interval when the torrent was successfully checked for the last time
-
+MAX_TORRENTS_CHECKED_PER_SESSION = 50
 
 class TorrentChecker(TaskManager):
 
@@ -108,41 +108,40 @@ class TorrentChecker(TaskManager):
         self._logger.debug(u"Start selecting torrents on tracker %s.", tracker_url)
 
         # get the torrents that should be checked
-        infohashes = []
         with db_session:
             tracker = self.tribler_session.mds.TrackerState.get(url=tracker_url)
-            if tracker:
-                torrents = tracker.torrents
-                for torrent in torrents:
-                    dynamic_interval = TORRENT_CHECK_RETRY_INTERVAL * (2 ** tracker.failures)
-                    if torrent.last_check + dynamic_interval < int(time.time()):
-                        infohashes.append(torrent.infohash)
+            if not tracker:
+                return
+            dynamic_interval = TORRENT_CHECK_RETRY_INTERVAL * (2 ** tracker.failures)
+            torrents = self.tribler_session.mds.TorrentState.select(
+                lambda g: tracker in g.trackers and g.last_check + dynamic_interval < int(time.time()))
+            infohashes = [t.infohash for t in torrents[:MAX_TORRENTS_CHECKED_PER_SESSION]]
 
         if len(infohashes) == 0:
             # We have no torrent to recheck for this tracker. Still update the last_check for this tracker.
             self._logger.info("No torrent to check for tracker %s", tracker_url)
             self.update_tracker_info(tracker_url, True)
             return
-        elif tracker_url != u'DHT' and tracker_url != u'no-DHT':
-            try:
-                session = self._create_session_for_request(tracker_url, timeout=30)
-            except MalformedTrackerURLException as e:
-                # Remove the tracker from the database
-                self.remove_tracker(tracker_url)
-                self._logger.error(e)
-                return
 
-            # We shuffle the list so that different infohashes are checked on subsequent scrape requests if the total
-            # number of infohashes exceeds the maximum number of infohashes we check.
-            random.shuffle(infohashes)
-            for infohash in infohashes:
-                session.add_infohash(infohash)
+        try:
+            session = self._create_session_for_request(tracker_url, timeout=30)
+        except MalformedTrackerURLException as e:
+            # Remove the tracker from the database
+            self.remove_tracker(tracker_url)
+            self._logger.error(e)
+            return
 
-            self._logger.info(u"Selected %d new torrents to check on tracker: %s", len(infohashes), tracker_url)
-            try:
-                await self.connect_to_tracker(session)
-            except:
-                pass
+        # We shuffle the list so that different infohashes are checked on subsequent scrape requests if the total
+        # number of infohashes exceeds the maximum number of infohashes we check.
+        random.shuffle(infohashes)
+        for infohash in infohashes:
+            session.add_infohash(infohash)
+
+        self._logger.info(u"Selected %d new torrents to check on tracker: %s", len(infohashes), tracker_url)
+        try:
+            await self.connect_to_tracker(session)
+        except:
+            pass
 
     async def connect_to_tracker(self, session):
         try:
