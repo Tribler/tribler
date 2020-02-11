@@ -126,7 +126,7 @@ class TrackerManager(object):
         Gets the next tracker for automatic tracker-checking.
         :return: The next tracker for automatic tracker-checking.
         """
-        tracker = self.tracker_store.select(lambda g: str(g.url) not in [u'no-DHT', u'DHT']
+        tracker = self.tracker_store.select(lambda g: str(g.url)
                                             and g.alive
                                             and g.last_check + TRACKER_RETRY_INTERVAL <= int(time.time())
                                             and str(g.url) not in self.blacklist)\
