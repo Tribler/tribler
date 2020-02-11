@@ -287,6 +287,7 @@ class ChannelContentsWidget(widget_form, widget_class):
 
     def update_labels(self, dirty=False):
 
+        folder = self.model.channel_info.get("type", None) == COLLECTION_NODE
         personal = self.model.channel_info.get("state", None) == "Personal"
         root = len(self.channels_stack) == 1
         legacy = self.model.channel_info.get("state", None) == "Legacy"
@@ -332,8 +333,8 @@ class ChannelContentsWidget(widget_form, widget_class):
 
         self.channel_state_label.setText(self.model.channel_info.get("state", "This text should not ever be shown"))
 
-        self.subscription_widget.setHidden(root or personal)
-        if not personal and not root:
+        self.subscription_widget.setHidden(root or personal or folder)
+        if not self.subscription_widget.isHidden():
             self.subscription_widget.update_subscribe_button(self.model.channel_info)
 
         self.channel_preview_button.setHidden((root and not search) or personal or legacy or complete)
