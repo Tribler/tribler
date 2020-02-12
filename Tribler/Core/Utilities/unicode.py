@@ -45,9 +45,9 @@ def recursive_unicode(obj, ignore_errors=False):
     :return: obj: object comprised of lists/dicts/strings
     """
     if isinstance(obj, dict):
-        return {recursive_unicode(k):recursive_unicode(v) for k, v in obj.items()}
+        return {recursive_unicode(k, ignore_errors):recursive_unicode(v,ignore_errors) for k, v in obj.items()}
     elif isinstance(obj, list):
-        return [recursive_unicode(i) for i in obj]
+        return [recursive_unicode(i, ignore_errors) for i in obj]
     elif isinstance(obj, binary_type):
         try:
             return obj.decode('utf8')
