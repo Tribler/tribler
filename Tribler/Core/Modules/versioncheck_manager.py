@@ -5,7 +5,7 @@ from distutils.version import LooseVersion
 
 from ipv8.taskmanager import TaskManager
 
-from twisted.internet.error import ConnectError, DNSLookupError
+from twisted.internet.error import ConnectError, ConnectionLost, DNSLookupError
 from twisted.internet.task import LoopingCall
 from twisted.web.error import SchemeNotSupported
 
@@ -46,7 +46,7 @@ class VersionCheckManager(TaskManager):
                 raise ValueError("Failed to parse Tribler version response:%s\nError:%s" % (body, ve))
 
         def on_request_error(failure):
-            failure.trap(SchemeNotSupported, ConnectError, DNSLookupError)
+            failure.trap(SchemeNotSupported, ConnectError, DNSLookupError, ConnectionLost)
             self._logger.error("Error when performing version check request: %s", failure)
 
         def on_response_error(failure):
