@@ -163,7 +163,7 @@ class TorrentDef(object):
         """
         Returns the used encoding of the TorrentDef.
         """
-        return self.torrent_parameters.get(b'encoding', b'utf-8')
+        return ensure_unicode(self.torrent_parameters.get(b'encoding', b'utf-8'), 'utf-8')
 
     def set_tracker(self, url):
         """
