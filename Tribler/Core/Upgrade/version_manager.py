@@ -4,6 +4,7 @@ import logging
 import os
 import shutil
 import time
+from distutils.version import LooseVersion
 from pathlib import Path
 
 from Tribler.Core import version as tribler_version
@@ -68,11 +69,15 @@ class VersionManager(object):
 
         code_version = version_id or tribler_version.version_id
         last_usage_version = self.version_history.get("last_version", None)
+        code_version_directory_exists = self.get_state_directory(code_version).exists()
+        upgrade_possible = last_usage_version and LooseVersion(last_usage_version) < LooseVersion(code_version)
 
-        # If the code and state directory version are different
+        # If there is no state directory for the code version and
+        # the last used state directory versions is lower then the current version
         # then fork the state directory for the new code version and update the history file.
-        if last_usage_version != code_version:
+        if not code_version_directory_exists and upgrade_possible:
             self.fork_state_directory(code_version, self.get_state_directory(last_usage_version))
+        if last_usage_version != code_version:
             self.update_version_history(code_version)
 
     def get_state_directory(self, version_id):
