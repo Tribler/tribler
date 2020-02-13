@@ -103,6 +103,10 @@ class TestParseTrackerUrl(TriblerCoreTest):
         parse_tracker_url("unknown://ipv6.torrent.ubuntu.com:6969/announce")
 
     @raises(MalformedTrackerURLException)
+    def test_parse_bad_url(self):
+        parse_tracker_url("http://foo.com:6969/announce( %(")
+
+    @raises(MalformedTrackerURLException)
     def test_parse_scheme(self):
         parse_tracker_url("http://torrent.ubuntu.com:80")
 
