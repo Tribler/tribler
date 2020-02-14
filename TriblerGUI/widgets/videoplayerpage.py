@@ -232,6 +232,9 @@ class VideoPlayerPage(QWidget):
         """
         Reset the video player, i.e. when a download is removed that was being played.
         """
+        if not self.instance:
+            return
+
         self.active_infohash = ""
         self.active_index = -1
         self.window().left_menu_playlist.clear()

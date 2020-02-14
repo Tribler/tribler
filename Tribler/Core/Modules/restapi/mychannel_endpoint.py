@@ -25,7 +25,7 @@ from Tribler.Core.Modules.restapi.metadata_endpoint import SpecificChannelTorren
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.unicode import hexlify, recursive_unicode
 from Tribler.Core.Utilities.utilities import http_get, is_infohash, parse_magnetlink
-from Tribler.Core.exceptions import DuplicateTorrentFileError
+from Tribler.Core.exceptions import DuplicateTorrentFileError, HttpError
 from Tribler.community.gigachannel.community import max_entries, maximum_payload_size
 
 
@@ -302,7 +302,7 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
                 request.finish()
 
         def _on_add_failed(failure):
-            failure.trap(ValueError, DuplicateTorrentFileError, SchemeNotSupported)
+            failure.trap(ValueError, DuplicateTorrentFileError, SchemeNotSupported, HttpError)
             self._logger.exception(failure.value)
             request.write(self.return_500(request, failure.value))
             if can_close[0]:

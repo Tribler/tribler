@@ -61,14 +61,14 @@ class TestSessionAsServer(TestAsServer):
         self.session.lm.api_manager.root_endpoint.events_endpoint.on_tribler_exception = on_tribler_exception
         self.session.lm.api_manager.root_endpoint.state_endpoint.on_tribler_exception = on_tribler_exception
 
-        self.session.unhandled_error_observer({'isError': True, 'log_failure': 'socket.error: [Errno 113]'})
-        self.session.unhandled_error_observer({'isError': True, 'log_failure': 'socket.error: [Errno 51]'})
-        self.session.unhandled_error_observer({'isError': True, 'log_failure': 'socket.error: [Errno 16]'})
-        self.session.unhandled_error_observer({'isError': True, 'log_failure': 'socket.error: [Errno 11001]'})
-        self.session.unhandled_error_observer({'isError': True, 'log_failure': 'socket.error: [Errno 10053]'})
-        self.session.unhandled_error_observer({'isError': True, 'log_failure': 'socket.error: [Errno 10054]'})
+        self.session.unhandled_error_observer({'isError': True, 'log_failure': 'builtins.OSError: [Errno 113]'})
+        self.session.unhandled_error_observer({'isError': True, 'log_failure': 'builtins.OSError: [Errno 51]'})
+        self.session.unhandled_error_observer({'isError': True, 'log_failure': 'builtins.OSError: [Errno 16]'})
+        self.session.unhandled_error_observer({'isError': True, 'log_failure': 'builtins.OSError: [Errno 11001]'})
+        self.session.unhandled_error_observer({'isError': True, 'log_failure': 'builtins.OSError: [Errno 10053]'})
+        self.session.unhandled_error_observer({'isError': True, 'log_failure': 'builtins.OSError: [Errno 10054]'})
         self.session.unhandled_error_observer({'isError': True,
-                                               'log_failure': 'socket.error: [Errno %s]' % SOCKET_BLOCK_ERRORCODE})
+                                               'log_failure': 'builtins.OSError: [Errno %s]' % SOCKET_BLOCK_ERRORCODE})
         self.session.unhandled_error_observer({'isError': True, 'log_failure': 'exceptions.ValueError: Invalid DNS-ID'})
         self.session.unhandled_error_observer({'isError': True,
                                                'log_failure': 'twisted.web._newclient.ResponseNeverReceived'})

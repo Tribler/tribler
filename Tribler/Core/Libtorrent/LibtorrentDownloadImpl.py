@@ -802,7 +802,7 @@ class LibtorrentDownloadImpl(TaskManager):
 
     def _on_resume_err(self, failure):
         failure.trap(CancelledError, SaveResumeDataError)
-        self._logger.error("Resume data failed to save: %s", failure.getErrorMessage())
+        self._logger.warning("Resume data failed to save: %s", failure.getErrorMessage())
 
     def save_resume_data(self):
         """
@@ -814,6 +814,8 @@ class LibtorrentDownloadImpl(TaskManager):
 
         defer_resume = Deferred()
         defer_resume.addErrback(self._on_resume_err)
+        defer_resume.addTimeout(10, reactor, onTimeoutCancel=lambda: self.on_save_resume_data_failed_alert(
+            type('anonymous_alert', (object,), dict(msg='Timed out'))))
 
         self.deferreds_resume.append(defer_resume)
 
@@ -1049,7 +1051,10 @@ class LibtorrentDownloadImpl(TaskManager):
         Checkpoint this download. Returns a deferred that fires when the checkpointing is completed.
         """
         if self._checkpoint_disabled:
-            self._logger.warning("Ignoring checkpoint() call as checkpointing is disabled for this download")
+            self._logger.info("Ignoring checkpoint() call as checkpointing is disabled for this download")
+            return succeed(None)
+        if self.handle and self.handle.is_valid() and not self.handle.need_save_resume_data():
+            self._logger.info("Ignoring checkpoint() call as checkpointing is not needed")
             return succeed(None)
 
         if not self.handle or not self.handle.is_valid():
