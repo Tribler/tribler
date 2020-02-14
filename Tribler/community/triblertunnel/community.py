@@ -499,7 +499,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                                                self.settings.max_circuits)
                                 for hop_count, download_count in active_downloads_per_hop.items()}
 
-        ip_counter = Counter([c.info_hash for c in self.circuits.values() if c.ctype == CIRCUIT_TYPE_IP_SEEDER])
+        ip_counter = Counter([c.info_hash for c in list(self.circuits.values()) if c.ctype == CIRCUIT_TYPE_IP_SEEDER])
         for info_hash in set(list(new_states) + list(self.download_states)):
             new_state = new_states.get(info_hash, None)
             old_state = self.download_states.get(info_hash, None)
