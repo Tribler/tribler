@@ -42,17 +42,7 @@ class ProcessChecker(object):
 
     @staticmethod
     def is_pid_running(pid):
-        """
-        Check whether a given process ID is currently running. We do this by sending signal 0 to the process
-        which does not has any effect on the running process.
-        Source: http://stackoverflow.com/questions/7647167/check-if-a-process-is-running-in-python-in-linux-unix
-        """
-        try:
-            os.kill(pid, 0)
-        except OSError:
-            return False
-        else:
-            return True
+        return psutil.pid_exists(pid)
 
     def create_lock_file(self):
         """
