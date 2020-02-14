@@ -68,15 +68,30 @@ class VersionManager(object):
             return
 
         code_version = version_id or tribler_version.version_id
-        last_usage_version = self.version_history.get("last_version", None)
-        code_version_directory_exists = self.get_state_directory(code_version).exists()
-        upgrade_possible = last_usage_version and LooseVersion(last_usage_version) < LooseVersion(code_version)
+        # To check if Tribler directory for the running version already exists, we must check for its *contents*
+        # because the directory itself is already created earlier
+        # FIXME: reposition upgrader so it will start *before* creating the state directory
+        code_version_directory_exists = (self.get_state_directory(code_version) / 'triblerd.conf').exists()
 
-        # If there is no state directory for the code version and
-        # the last used state directory versions is lower then the current version
-        # then fork the state directory for the new code version and update the history file.
-        if not code_version_directory_exists and upgrade_possible:
+        last_usage_version = self.version_history.get("last_version", None)
+        last_usage_version_directory_exists = self.get_state_directory(last_usage_version).exists()
+
+        upgrade_possible = False
+        # Pre-requisites for upgrading:
+        # the old directory should exist and the newer version should be higher then the old one
+        if last_usage_version_directory_exists and not code_version_directory_exists:
+            if last_usage_version is not None:
+                # Normal upgrade, e.g. 7.4.1->7.4.2
+                upgrade_possible = LooseVersion(last_usage_version) < LooseVersion(code_version)
+            else:
+                # Legacy upgrade
+                upgrade_possible = True
+
+        # If upgrade is possible, fork the state directory for the new code version
+        if upgrade_possible:
+
             self.fork_state_directory(code_version, self.get_state_directory(last_usage_version))
+        # Update the history file
         if last_usage_version != code_version:
             self.update_version_history(code_version)
 
