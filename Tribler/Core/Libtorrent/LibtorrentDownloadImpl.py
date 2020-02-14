@@ -1053,7 +1053,7 @@ class LibtorrentDownloadImpl(TaskManager):
         if self._checkpoint_disabled:
             self._logger.info("Ignoring checkpoint() call as checkpointing is disabled for this download")
             return succeed(None)
-        if self.handle and self.handle.is_valid() and self.handle.need_save_resume_data():
+        if self.handle and self.handle.is_valid() and not self.handle.need_save_resume_data():
             self._logger.info("Ignoring checkpoint() call as checkpointing is not needed")
             return succeed(None)
 
