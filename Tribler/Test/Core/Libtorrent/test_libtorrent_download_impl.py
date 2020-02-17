@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import os
 import shutil
+from unittest.mock import Mock
 
 import libtorrent as lt
 from libtorrent import bencode
@@ -9,7 +10,9 @@ from libtorrent import bencode
 from six import text_type
 from six.moves import xrange
 
-from twisted.internet.defer import Deferred, inlineCallbacks, succeed
+from twisted.internet import reactor
+from twisted.internet.defer import CancelledError, Deferred, inlineCallbacks, succeed
+from twisted.internet.task import deferLater
 
 from Tribler.Core.Config.download_config import DownloadConfig
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
@@ -695,3 +698,16 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
             self.libtorrent_download_impl._on_resume_err).addCallback(on_error))
         self.libtorrent_download_impl.on_save_resume_data_failed_alert(mock_alert)
         return test_deferred
+
+    @inlineCallbacks
+    def test_checkpoint_timeout(self):
+        """
+        Testing whether making a checkpoint times out when we receive no alert from libtorrent
+        """
+        self.libtorrent_download_impl._on_resume_err = Mock()
+        self.libtorrent_download_impl.deferreds_resume = [Deferred()]
+        self.libtorrent_download_impl.save_resume_data(timeout=.01)
+        self.libtorrent_download_impl.deferreds_resume.pop(0)
+        yield deferLater(reactor, .1, lambda: None)
+        args, _ = self.libtorrent_download_impl._on_resume_err.call_args
+        self.assertEqual(args[0].type, CancelledError)
