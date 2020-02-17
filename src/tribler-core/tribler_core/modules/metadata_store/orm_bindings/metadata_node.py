@@ -101,6 +101,11 @@ def define_binding(db):
                     if sort_desc
                     else pony_query.sort_by("(g.health.seeders, g.health.leechers)")
                 )
+            elif sort_by == "size" and not issubclass(cls, db.ChannelMetadata):
+                # TODO: optimize this check to skip cases where size field does not matter
+                # When querying for mixed channels / torrents lists, channels should have priority over torrents
+                sort_expression = "desc(g.num_entries), desc(g.size)" if sort_desc else "g.num_entries, g.size"
+                pony_query = pony_query.sort_by(sort_expression)
             elif sort_by:
                 sort_expression = "g." + sort_by
                 sort_expression = desc(sort_expression) if sort_desc else sort_expression
