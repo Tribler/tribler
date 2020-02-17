@@ -340,7 +340,7 @@ class ChannelContentsWidget(widget_form, widget_class):
         self.channel_preview_button.setHidden((root and not search) or personal or legacy or complete)
         self.channel_state_label.setHidden(root or personal)
 
-        self.commit_control_bar.setHidden(self.autocommit_enabled or not dirty or root)
+        self.commit_control_bar.setHidden(self.autocommit_enabled or not dirty or not personal)
 
         if "total" in self.model.channel_info:
             if "torrents" in self.model.channel_info:
