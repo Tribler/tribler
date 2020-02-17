@@ -10,7 +10,7 @@ from pony.orm import db_session
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import TODELETE
 from tribler_core.modules.metadata_store.orm_bindings.torrent_metadata import tdef_to_metadata_dict
-from tribler_core.modules.metadata_store.serialization import REGULAR_TORRENT
+from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, REGULAR_TORRENT
 from tribler_core.modules.metadata_store.store import MetadataStore
 from tribler_core.tests.tools.base_test import TriblerCoreTest
 from tribler_core.tests.tools.common import TORRENT_UBUNTU_FILE
@@ -198,12 +198,20 @@ class TestTorrentMetadata(TriblerCoreTest):
 
         # First we create a few channels and add some torrents to these channels
         tlist = []
-        for ind in range(5):
-            self.mds.ChannelNode._my_key = default_eccrypto.generate_key('curve25519')
-            _ = self.mds.ChannelMetadata(title='channel%d' % ind, subscribed=(ind % 2 == 0), infohash=random_infohash())
+        keys = [*(default_eccrypto.generate_key('curve25519') for _ in range(4)), self.mds.ChannelNode._my_key]
+        for ind, key in enumerate(keys):
+            self.mds.ChannelMetadata(
+                title='channel%d' % ind,
+                subscribed=(ind % 2 == 0),
+                infohash=random_infohash(),
+                num_entries=5,
+                sign_with=key,
+            )
             tlist.extend(
                 [
-                    self.mds.TorrentMetadata(title='torrent%d' % torrent_ind, infohash=random_infohash())
+                    self.mds.TorrentMetadata(
+                        title='torrent%d' % torrent_ind, infohash=random_infohash(), size=123, sign_with=key
+                    )
                     for torrent_ind in range(5)
                 ]
             )
@@ -232,6 +240,15 @@ class TestTorrentMetadata(TriblerCoreTest):
 
         count = self.mds.TorrentMetadata.get_entries_count(**args)
         self.assertEqual(5, count)
+
+        # Test that channels get priority over torrents when querying for mixed content
+        args = dict(sort_by='size', sort_desc=True, channel_pk=channel_pk, origin_id=0)
+        torrents = self.mds.TorrentMetadata.get_entries(first=1, last=10, **args)
+        self.assertEqual(torrents[0].metadata_type, CHANNEL_TORRENT)
+
+        args = dict(sort_by='size', sort_desc=False, channel_pk=channel_pk, origin_id=0)
+        torrents = self.mds.TorrentMetadata.get_entries(first=1, last=10, **args)
+        self.assertEqual(torrents[-1].metadata_type, CHANNEL_TORRENT)
 
     @db_session
     def test_metadata_conflicting(self):
