@@ -201,7 +201,7 @@ class HttpTrackerSession(TrackerSession):
             # Return deferred that will evaluate when the whole chain is done.
             self.result_deferred = self.register_task("result", Deferred(canceller=self._on_cancel))
 
-        except UnicodeEncodeError as e:
+        except (UnicodeEncodeError, ValueError) as e:
             self.result_deferred = defer.fail(e)
 
         return self.result_deferred
