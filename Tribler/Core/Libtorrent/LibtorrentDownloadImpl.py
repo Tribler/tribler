@@ -20,7 +20,7 @@ import libtorrent as lt
 from six import int2byte, text_type
 
 from twisted.internet import reactor
-from twisted.internet.defer import CancelledError, Deferred, succeed
+from twisted.internet.defer import CancelledError, Deferred, TimeoutError, succeed
 from twisted.internet.task import LoopingCall
 from twisted.python.failure import Failure
 
@@ -801,10 +801,10 @@ class LibtorrentDownloadImpl(TaskManager):
         return DownloadState(self, self.lt_status, self.error, vod)
 
     def _on_resume_err(self, failure):
-        failure.trap(CancelledError, SaveResumeDataError)
+        failure.trap(CancelledError, SaveResumeDataError, TimeoutError)
         self._logger.warning("Resume data failed to save: %s", failure.getErrorMessage())
 
-    def save_resume_data(self):
+    def save_resume_data(self, timeout=10):
         """
         Save the resume data of a download. This method returns a deferred that fires when the resume data is available.
         Note that this method only calls save_resume_data once on subsequent calls.
@@ -814,8 +814,7 @@ class LibtorrentDownloadImpl(TaskManager):
 
         defer_resume = Deferred()
         defer_resume.addErrback(self._on_resume_err)
-        defer_resume.addTimeout(10, reactor, onTimeoutCancel=lambda: self.on_save_resume_data_failed_alert(
-            type('anonymous_alert', (object,), dict(msg='Timed out'))))
+        defer_resume.addTimeout(timeout, reactor)
 
         self.deferreds_resume.append(defer_resume)
 
