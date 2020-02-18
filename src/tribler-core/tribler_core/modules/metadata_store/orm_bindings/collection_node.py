@@ -258,7 +258,9 @@ def define_binding(db):
 
             dead_parents = set()
             # First we traverse the tree upwards from changed leaves to find all nodes affected by changes
-            for node in db.ChannelNode.select(lambda g: g.status in DIRTY_STATUSES):
+            for node in db.ChannelNode.select(
+                lambda g: g.public_key == db.ChannelNode._my_key.pub().key_to_bin()[10:] and g.status in DIRTY_STATUSES
+            ):
                 update_node_info(node)
                 # This process resolves the parents completely.
                 # Therefore, if a parent is already in the dict, its path has already been resolved.
@@ -357,9 +359,9 @@ def define_binding(db):
         def collapse_deleted_subtrees():
             """
             This procedure scans personal channels for collection nodes marked TODELETE and recursively removes
-            their contents. The nodes themselves are left intact so soft delete entries can be generated from them
+            their contents. The top-level nodes themselves are left intact so soft delete entries can be generated
             in the future.
-            The procedure should be always run _before_ committing personal channels.
+            This procedure should be always run _before_ committing personal channels.
             """
             # TODO: optimize with SQL recursive CTEs
 
@@ -375,7 +377,9 @@ def define_binding(db):
 
             deletion_set = {
                 get_highest_deleted_parent(node, highest_deleted_parent=node).rowid
-                for node in db.CollectionNode.select(lambda g: g.status == TODELETE)
+                for node in db.CollectionNode.select(
+                    lambda g: g.public_key == db.CollectionNode._my_key.pub().key_to_bin()[10:] and g.status == TODELETE
+                )
                 if node
             }
 
