@@ -58,7 +58,7 @@ def define_binding(db, logger=None, key=None):
         rowid = orm.PrimaryKey(int, size=64, auto=True)
 
         # Serializable
-        metadata_type = orm.Discriminator(int, size=16)
+        metadata_type = orm.Discriminator(int, size=16, index=True)
         reserved_flags = orm.Optional(int, size=16, default=0)
         origin_id = orm.Optional(int, size=64, default=0, index=True)
 
