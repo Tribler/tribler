@@ -293,7 +293,7 @@ class GigaChannelManager(TaskManager):
     def clean_unsubscribed_channels(self):
 
         unsubscribed_list = list(
-            self.session.mds.ChannelMetadata.select(lambda g: not g.subscribed and g.local_version > 0)
+            self.session.mds.ChannelMetadata.select(lambda g: g.subscribed is False and g.local_version > 0)
         )
 
         for channel in unsubscribed_list:
