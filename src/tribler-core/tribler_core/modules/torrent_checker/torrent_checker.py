@@ -8,7 +8,7 @@ from asyncio import CancelledError, ensure_future, gather
 from ipv8.database import database_blob
 from ipv8.taskmanager import TaskManager, task
 
-from pony.orm import db_session
+from pony.orm import db_session, select
 
 from tribler_common.simpledefs import NTFY
 
@@ -111,8 +111,7 @@ class TorrentChecker(TaskManager):
             if not tracker:
                 return
             dynamic_interval = TORRENT_CHECK_RETRY_INTERVAL * (2 ** tracker.failures)
-            torrents = self.tribler_session.mds.TorrentState.select(
-                lambda g: tracker in g.trackers and g.last_check + dynamic_interval < int(time.time()))
+            torrents = select(ts for ts in tracker.torrents if ts.last_check + dynamic_interval < int(time.time()))
             infohashes = [t.infohash for t in torrents[:MAX_TORRENTS_CHECKED_PER_SESSION]]
 
         if len(infohashes) == 0:
