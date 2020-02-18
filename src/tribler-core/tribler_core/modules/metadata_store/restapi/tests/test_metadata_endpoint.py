@@ -162,7 +162,8 @@ class TestSpecificMetadataEndpoint(AbstractApiTest):
         )
         self.assertEqual(new_title, result['name'])
         self.assertEqual(new_tags, result['category'])
-        chan = self.session.mds.ChannelMetadata.get_my_channel()
+        with db_session:
+            chan = self.session.mds.ChannelMetadata.get_my_channels().first()
         self.assertEqual(chan.status, UPDATED)
         self.assertEqual(chan.tags, new_tags)
         self.assertEqual(chan.title, new_title)
