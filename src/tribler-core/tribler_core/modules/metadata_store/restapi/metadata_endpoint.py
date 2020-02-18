@@ -1,3 +1,4 @@
+from asyncio import get_event_loop
 from binascii import unhexlify
 
 from aiohttp import ContentTypeError, web
@@ -115,9 +116,15 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
         if limit_torrents <= 0:
             return RESTResponse({"error": "the limit parameter must be a positive number"}, status=HTTP_BAD_REQUEST)
 
-        with db_session:
-            random_torrents = self.session.mds.TorrentMetadata.get_random_torrents(limit=limit_torrents)
-            torrents = [torrent.to_simple_dict() for torrent in random_torrents]
+        def _get_random_torrents():
+            with db_session:
+                random_torrents = self.session.mds.TorrentMetadata.get_random_torrents(limit=limit_torrents)
+                result = [torrent.to_simple_dict() for torrent in random_torrents]
+            self.session.mds.disconnect_thread()
+            return result
+
+        torrents = await get_event_loop().run_in_executor(None, _get_random_torrents)
+
         return RESTResponse({"torrents": torrents})
 
     async def get_torrent_health(self, request):
