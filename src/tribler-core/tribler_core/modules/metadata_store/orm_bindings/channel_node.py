@@ -8,6 +8,7 @@ from pony import orm
 from pony.orm.core import DEFAULT, db_session
 
 from tribler_core.exceptions import InvalidChannelNodeException, InvalidSignatureException
+from tribler_core.modules.metadata_store.discrete_clock import clock
 from tribler_core.modules.metadata_store.serialization import (
     CHANNEL_NODE,
     ChannelNodePayload,
@@ -44,7 +45,7 @@ def generate_dict_from_pony_args(cls, skip_list=None, **kwargs):
     return d
 
 
-def define_binding(db, logger=None, key=None, clock=None):
+def define_binding(db, logger=None, key=None):
     class ChannelNode(db.Entity):
         """
         This is the base class of our ORM bindings. It implements methods for signing and serialization of ORM objects.
@@ -79,7 +80,6 @@ def define_binding(db, logger=None, key=None, clock=None):
         _payload_class = ChannelNodePayload
         _my_key = key
         _logger = logger
-        _clock = clock
 
         # This attribute holds the names of the class attributes that are used by the serializer for the
         # corresponding payload type. We only initialize it once on class creation as an optimization.
@@ -119,7 +119,7 @@ def define_binding(db, logger=None, key=None, clock=None):
                     skip_key_check = True
                 else:
                     # Trying to create an FFA entry without specifying the id_ should be considered an error,
-                    # because assigning id_ automatically by _clock breaks anonymity.
+                    # because assigning id_ automatically by clock breaks anonymity.
                     # FFA entries should be "timeless" and anonymous.
                     raise InvalidChannelNodeException(
                         (
@@ -132,7 +132,7 @@ def define_binding(db, logger=None, key=None, clock=None):
             skip_key_check = kwargs.pop("skip_key_check", skip_key_check)
 
             if "timestamp" not in kwargs:
-                kwargs["timestamp"] = self._clock.tick()
+                kwargs["timestamp"] = clock.tick()
 
             if "id_" not in kwargs:
                 kwargs["id_"] = int(random.getrandbits(63))
@@ -267,7 +267,7 @@ def define_binding(db, logger=None, key=None, clock=None):
             if signed_attribute_changed:
                 if self.status != NEW:
                     self.status = UPDATED
-                self.timestamp = self._clock.tick()
+                self.timestamp = clock.tick()
                 self.sign()
 
             return self

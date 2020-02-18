@@ -11,6 +11,7 @@ import lz4.frame
 from pony import orm
 from pony.orm import db_session, desc, raw_sql, select
 
+from tribler_core.modules.metadata_store.discrete_clock import clock
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import (
     COMMITTED,
     LEGACY_ENTRY,
@@ -190,7 +191,7 @@ def define_binding(db):
                     os.unlink(str_path(file_path))
 
             # Channel should get a new starting timestamp and its contents should get higher timestamps
-            start_timestamp = self._clock.tick()
+            start_timestamp = clock.tick()
 
             def update_timestamps_recursive(node):
                 if issubclass(type(node), db.CollectionNode):
@@ -198,7 +199,7 @@ def define_binding(db):
                         update_timestamps_recursive(child)
                 if node.status in [COMMITTED, UPDATED, NEW]:
                     node.status = UPDATED
-                    node.timestamp = self._clock.tick()
+                    node.timestamp = clock.tick()
                     node.sign()
 
             update_timestamps_recursive(self)
@@ -250,7 +251,7 @@ def define_binding(db):
             if not md_list:
                 return None
 
-            final_timestamp = self._clock.tick()
+            final_timestamp = clock.tick()
             try:
                 update_dict, torrent = self.update_channel_torrent(md_list, final_timestamp)
             except IOError:

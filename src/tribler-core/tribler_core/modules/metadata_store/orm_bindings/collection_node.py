@@ -8,6 +8,7 @@ from pony.orm import db_session, select
 
 from tribler_core.exceptions import DuplicateTorrentFileError
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
+from tribler_core.modules.metadata_store.discrete_clock import clock
 from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import chunks
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import (
     COMMITTED,
@@ -142,7 +143,7 @@ def define_binding(db):
             if old_torrent:
                 # If it is there, check if we were going to delete it
                 if old_torrent.status == TODELETE:
-                    new_timestamp = self._clock.tick()
+                    new_timestamp = clock.tick()
                     old_torrent.set(timestamp=new_timestamp, origin_id=self.id_, **new_entry_dict)
                     old_torrent.sign()
                     # As we really don't know what status this torrent had _before_ it got its TODELETE status,
@@ -340,7 +341,7 @@ def define_binding(db):
                         (g.num_entries if g.metadata_type == COLLECTION_NODE else 1)
                         for g in node.actual_contents
                     ).sum()
-                    node.timestamp = db.ChannelNode._clock.tick()
+                    node.timestamp = clock.tick()
                     node.sign()
             return sorted(commit_queue, key=lambda x: x.timestamp)[:-1]
 
