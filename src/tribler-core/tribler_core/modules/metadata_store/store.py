@@ -37,7 +37,7 @@ from tribler_core.utilities.path_util import str_path
 from tribler_core.utilities.unicode import hexlify
 
 BETA_DB_VERSIONS = [0, 1, 2, 3, 4, 5]
-CURRENT_DB_VERSION = 6
+CURRENT_DB_VERSION = 8
 
 NO_ACTION = 0
 UNKNOWN_CHANNEL = 1
