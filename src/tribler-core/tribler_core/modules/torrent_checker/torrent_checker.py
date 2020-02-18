@@ -12,8 +12,6 @@ from pony.orm import db_session
 
 from tribler_common.simpledefs import NTFY
 
-from tribler_core.modules.metadata_store.orm_bindings.channel_node import LEGACY_ENTRY
-from tribler_core.modules.metadata_store.serialization import REGULAR_TORRENT
 from tribler_core.modules.torrent_checker.torrentchecker_session import (
     FakeBep33DHTSession,
     FakeDHTSession,
@@ -162,10 +160,8 @@ class TorrentChecker(TaskManager):
         Perform a full health check on a random torrent in the database.
         We prioritize torrents that have no health info attached.
         """
-        random_torrents = list(self.tribler_session.mds.TorrentState.select(
-            lambda g: (metadata for metadata in g.metadata if metadata.status != LEGACY_ENTRY and
-                       metadata.metadata_type == REGULAR_TORRENT))\
-            .order_by(lambda g: g.last_check).limit(10))
+        random_torrents = list(self.tribler_session.mds.TorrentState.select().
+                               order_by(lambda g: g.last_check).limit(10))
 
         if not random_torrents:
             self._logger.info("Could not find any eligible torrent for random torrent check")

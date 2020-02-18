@@ -5,7 +5,6 @@ from unittest.mock import Mock
 
 from pony.orm import db_session
 
-from tribler_core.modules.metadata_store.orm_bindings.channel_node import LEGACY_ENTRY
 from tribler_core.modules.torrent_checker.torrent_checker import TorrentChecker
 from tribler_core.modules.torrent_checker.torrentchecker_session import HttpTrackerSession, UdpSocketManager
 from tribler_core.modules.tracker_manager import TrackerManager
@@ -203,16 +202,6 @@ class TestTorrentChecker(TestAsServer):
         self.torrent_checker.on_torrent_health_check_completed(infohash_bin, [None])
         self.assertEqual(1, len(self.torrent_checker.torrents_checked))
         self.assertEqual(0, list(self.torrent_checker.torrents_checked)[0][1])
-
-    @db_session
-    def test_check_random_torrent_legacy(self):
-        """
-        Test whether legacy torrents are not health checked
-        """
-        torrent1 = self.session.mds.TorrentMetadata(title='torrent1', infohash=os.urandom(20))
-        torrent1.status = LEGACY_ENTRY
-
-        self.assertFalse(self.torrent_checker.check_random_torrent())
 
     @db_session
     def test_check_random_torrent(self):
