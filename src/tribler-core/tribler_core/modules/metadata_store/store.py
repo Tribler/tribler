@@ -32,15 +32,12 @@ from tribler_core.modules.metadata_store.serialization import (
     NULL_KEY,
     REGULAR_TORRENT,
     read_payload_with_offset,
-    time2int,
 )
 from tribler_core.utilities.path_util import str_path
 from tribler_core.utilities.unicode import hexlify
 
 BETA_DB_VERSIONS = [0, 1, 2, 3, 4, 5]
 CURRENT_DB_VERSION = 6
-
-CLOCK_STATE_FILE = "clock.state"
 
 NO_ACTION = 0
 UNKNOWN_CHANNEL = 1
@@ -75,36 +72,6 @@ sql_add_fts_trigger_update = """
         DELETE FROM FtsIndex WHERE rowid = old.rowid;
         INSERT INTO FtsIndex(rowid, title) VALUES (new.rowid, new.title);
     END;"""
-
-
-class DiscreteClock(object):
-    # Lamport-clock-like persistent counter
-    # Horribly inefficient and stupid, but works
-    store_value_name = "discrete_clock"
-
-    def __init__(self, datastore=None):
-        # This is a stupid workaround for people who reinstall Tribler
-        # and lose their database. We don't know what was their channel
-        # clock before, but at least we can assume that they were not
-        # adding to it 1000 torrents per second constantly...
-        self.clock = time2int(datetime.utcnow()) * 1000
-        self.datastore = datastore
-
-    def init_clock(self):
-        if self.datastore:
-            with db_session:
-                store_object = self.datastore.get_for_update(name=self.store_value_name)
-                if not store_object:
-                    self.datastore(name=self.store_value_name, value=str(self.clock))
-                else:
-                    self.clock = int(store_object.value)
-
-    def tick(self):
-        self.clock += 1
-        if self.datastore:
-            with db_session:
-                self.datastore[self.store_value_name].value = str(self.clock)
-        return self.clock
 
 
 class MetadataStore(object):
@@ -146,9 +113,7 @@ class MetadataStore(object):
         self.TrackerState = tracker_state.define_binding(self._db)
         self.TorrentState = torrent_state.define_binding(self._db)
 
-        self.clock = DiscreteClock(None if db_filename == ":memory:" else self.MiscData)
-
-        self.ChannelNode = channel_node.define_binding(self._db, logger=self._logger, key=my_key, clock=self.clock)
+        self.ChannelNode = channel_node.define_binding(self._db, logger=self._logger, key=my_key)
 
         self.MetadataNode = metadata_node.define_binding(self._db)
         self.CollectionNode = collection_node.define_binding(self._db)
@@ -174,8 +139,6 @@ class MetadataStore(object):
         if create_db:
             with db_session:
                 self.MiscData(name="db_version", value=str(CURRENT_DB_VERSION))
-
-        self.clock.init_clock()
 
         with db_session:
             default_vsids = self.Vsids.get(rowid=0)
