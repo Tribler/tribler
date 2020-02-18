@@ -125,14 +125,6 @@ def define_binding(db):
 
         @classmethod
         @db_session
-        def get_my_channel(cls):
-            # return ChannelMetadata.get(public_key=database_blob(cls._my_key.pub().key_to_bin()[10:]), id_=0)
-            # This is a workaround to fetch the most current personal channel
-            # It should be replaced with the above line as soon as we move to nested channels
-            return cls.get_recent_channel_with_public_key(cls._my_key.pub().key_to_bin()[10:])
-
-        @classmethod
-        @db_session
         def get_my_channels(cls):
             return ChannelMetadata.select(
                 lambda g: g.origin_id == 0 and g.public_key == database_blob(cls._my_key.pub().key_to_bin()[10:])

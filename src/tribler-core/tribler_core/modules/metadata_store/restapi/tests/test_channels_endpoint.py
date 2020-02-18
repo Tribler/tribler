@@ -359,7 +359,7 @@ class TestSpecificChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
         """
         with db_session:
             channel = self.create_my_channel()
-            my_channel = self.session.mds.ChannelMetadata.get_my_channel()
+            my_channel = self.session.mds.ChannelMetadata.get_my_channels().first()
             tdef = TorrentDef.load(TORRENT_UBUNTU_FILE)
             my_channel.add_torrent_to_channel(tdef, {'description': 'blabla'})
 

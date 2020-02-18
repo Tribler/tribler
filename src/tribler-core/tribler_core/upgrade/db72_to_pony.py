@@ -228,8 +228,8 @@ class DispersyToPonyMigration(object):
             if v:
                 if v.value == CONVERSION_STARTED:
                     # Just drop the entries from the previous try
-                    my_channel = self.mds.ChannelMetadata.get_my_channel()
-                    if my_channel:
+                    my_channels = self.mds.ChannelMetadata.get_my_channels()
+                    for my_channel in my_channels:
                         my_channel.contents.delete(bulk=True)
                         my_channel.delete()
                 else:
@@ -237,11 +237,11 @@ class DispersyToPonyMigration(object):
                     raise Exception("Previous conversion resulted in invalid state")
             else:
                 self.mds.MiscData(name=CONVERSION_FROM_72_PERSONAL, value=CONVERSION_STARTED)
+            my_channels_count = self.mds.ChannelMetadata.get_my_channels().count()
 
         # Make sure every precondition is met
-        if self.personal_channel_id and not self.mds.ChannelMetadata.get_my_channel():
+        if self.personal_channel_id and not my_channels_count:
             total_to_convert = self.get_personal_channel_torrents_count()
-
 
             with db_session:
                 my_channel = self.mds.ChannelMetadata.create_channel(title=self.personal_channel_title, description='')
@@ -257,7 +257,7 @@ class DispersyToPonyMigration(object):
                                      offset=0, message="Converting personal channel torrents.")
 
             with db_session:
-                my_channel = self.mds.ChannelMetadata.get_my_channel()
+                my_channel = self.mds.ChannelMetadata.get_my_channels().first()
                 folder = my_channel._channels_dir / my_channel.dirname
 
                 # We check if we need to re-create the channel dir in case it was deleted for some reason

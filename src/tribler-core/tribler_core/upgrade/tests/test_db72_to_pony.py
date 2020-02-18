@@ -57,7 +57,8 @@ class TestUpgradeDB72ToPony(TriblerCoreTest):
     async def test_convert_personal_channel(self):
         async def check_channel():
             await self.m.convert_personal_channel()
-            my_channel = self.mds.ChannelMetadata.get_my_channel()
+            with db_session:
+                my_channel = self.mds.ChannelMetadata.get_my_channels().first()
 
             self.assertEqual(len(my_channel.contents_list), 2)
             self.assertEqual(my_channel.num_entries, 2)

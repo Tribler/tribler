@@ -98,7 +98,8 @@ class GigaChannelCommunity(Community):
             # Choose some random entries and try to pack them into maximum_payload_size bytes
             with db_session:
                 # Generate and cache the gossip blob for the personal channel
-                personal_channel = self.metadata_store.ChannelMetadata.get_my_channel()
+                personal_channels = list(self.metadata_store.ChannelMetadata.get_my_channels().random(1))
+                personal_channel = personal_channels[0] if personal_channels else []
                 md_list = (
                     [personal_channel] + list(personal_channel.get_random_torrents(max_entries - 1))
                     if personal_channel
