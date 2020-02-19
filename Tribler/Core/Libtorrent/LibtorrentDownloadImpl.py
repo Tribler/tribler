@@ -132,7 +132,6 @@ class LibtorrentDownloadImpl(TaskManager):
 
         # To be able to return the progress of a stopped torrent, how far it got.
         self.progressbeforestop = 0.0
-        self.filepieceranges = []
 
         # Libtorrent session manager, can be None at this point as the core could have
         # not been started. Will set in create_engine wrapper
@@ -222,7 +221,6 @@ class LibtorrentDownloadImpl(TaskManager):
 
                 if not isinstance(self.tdef, TorrentDefNoMetainfo):
                     self.set_corrected_infoname()
-                    self.set_filepieceranges()
 
                 self._logger.debug(u"setup: %s", hexlify(self.tdef.get_infohash()))
 
@@ -592,7 +590,6 @@ class LibtorrentDownloadImpl(TaskManager):
 
         self.orig_files = [ensure_text(torrent_file.path) for torrent_file in torrent_files]
         self.set_corrected_infoname()
-        self.set_filepieceranges()
         self.set_selected_files()
 
         self.checkpoint()
@@ -1001,13 +998,6 @@ class LibtorrentDownloadImpl(TaskManager):
     def get_content_dest(self):
         """ Returns the file to which the downloaded content is saved. """
         return os.path.join(self.config.get_dest_dir(), self.correctedinfoname)
-
-    def set_filepieceranges(self):
-        """ Determine which file maps to which piece ranges for progress info """
-        self._logger.debug("LibtorrentDownloadImpl: set_filepieceranges: %s", self.config.get_selected_files())
-
-        metainfo = self.tdef.get_metainfo()
-        self.filepieceranges = maketorrent.get_length_filepieceranges_from_metainfo(metainfo, [])[1]
 
     def restart(self):
         """ Restart the Download """
