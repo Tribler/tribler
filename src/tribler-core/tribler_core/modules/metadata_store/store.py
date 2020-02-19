@@ -1,4 +1,5 @@
 import logging
+import threading
 from datetime import datetime, timedelta
 from time import sleep
 
@@ -172,6 +173,12 @@ class MetadataStore(object):
     def shutdown(self):
         self._shutting_down = True
         self._db.disconnect()
+
+    def disconnect_thread(self):
+        # Ugly workaround for closing threadpool connections
+        # TODO: subclass ThreadPoolExecutor to handle this automatically
+        if not isinstance(threading.current_thread(), threading._MainThread):
+            self._db.disconnect()
 
     def process_channel_dir(self, dirname, public_key, id_, skip_personal_metadata_payload=True, external_thread=False):
         """

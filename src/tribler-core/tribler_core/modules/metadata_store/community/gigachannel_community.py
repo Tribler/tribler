@@ -1,3 +1,4 @@
+from asyncio import get_event_loop
 from binascii import unhexlify
 
 from ipv8.community import Community
@@ -47,6 +48,16 @@ class RawBlobPayload(VariablePayload):
     names = ['raw_blob']
 
 
+def gen_have_newer_results_blob(md_list):
+    with db_session:
+        reply_list = [
+            md
+            for md, result in md_list
+            if (md and (md.metadata_type == CHANNEL_TORRENT)) and (result == GOT_NEWER_VERSION)
+        ]
+        return entries_to_chunk(reply_list, maximum_payload_size)[0] if reply_list else None
+
+
 class GigaChannelCommunity(Community):
     """
     Community to gossip around gigachannels.
@@ -72,14 +83,42 @@ class GigaChannelCommunity(Community):
         self.request_cache = RequestCache()
         self.notifier = notifier
 
-        self.gossip_sequence_count = 0
         self.gossip_blob = None
         self.gossip_blob_personal_channel = None
-        self.gossip_renewal_period = 30
+
+        # We regularly regenerate the gossip blobs to account for changes in the local DB
+        self.register_task("Renew channel gossip cache", self.prepare_gossip_blob_cache, interval=600)
 
     async def unload(self):
         await self.request_cache.shutdown()
         await super(GigaChannelCommunity, self).unload()
+
+    def _prepare_gossip_blob_cache(self):
+        # Choose some random entries and try to pack them into maximum_payload_size bytes
+        with db_session:
+            # Generate and cache the gossip blob for the personal channel
+            personal_channels = list(self.metadata_store.ChannelMetadata.get_my_channels().random(1))
+            personal_channel = personal_channels[0] if personal_channels else None
+            md_list = (
+                [personal_channel] + list(personal_channel.get_random_torrents(max_entries - 1))
+                if personal_channel
+                else None
+            )
+            self.gossip_blob_personal_channel = (
+                entries_to_chunk(md_list, maximum_payload_size)[0] if md_list and len(md_list) > 1 else None
+            )
+
+            # Generate and cache the gossip blob for a subscribed channel
+            # TODO: when the health table will be there, send popular torrents instead
+            channel_l = list(
+                self.metadata_store.ChannelMetadata.get_random_channels(1, only_subscribed=True, only_downloaded=True)
+            )
+            md_list = channel_l + list(channel_l[0].get_random_torrents(max_entries - 1)) if channel_l else None
+            self.gossip_blob = entries_to_chunk(md_list, maximum_payload_size)[0] if md_list else None
+        self.metadata_store.disconnect_thread()
+
+    async def prepare_gossip_blob_cache(self):
+        await get_event_loop().run_in_executor(None, self._prepare_gossip_blob_cache)
 
     def send_random_to(self, peer):
         """
@@ -93,33 +132,6 @@ class GigaChannelCommunity(Community):
         :returns: None
         """
 
-        # We regularly regenerate the gossip blobs to account for changes in the local DB
-        if (self.gossip_sequence_count % self.gossip_renewal_period) == 0:
-            # Choose some random entries and try to pack them into maximum_payload_size bytes
-            with db_session:
-                # Generate and cache the gossip blob for the personal channel
-                personal_channels = list(self.metadata_store.ChannelMetadata.get_my_channels().random(1))
-                personal_channel = personal_channels[0] if personal_channels else []
-                md_list = (
-                    [personal_channel] + list(personal_channel.get_random_torrents(max_entries - 1))
-                    if personal_channel
-                    else None
-                )
-                self.gossip_blob_personal_channel = (
-                    entries_to_chunk(md_list, maximum_payload_size)[0] if md_list and len(md_list) > 1 else None
-                )
-
-                # Generate and cache the gossip blob for a subscribed channel
-                # TODO: when the health table will be there, send popular torrents instead
-                channel_l = list(
-                    self.metadata_store.ChannelMetadata.get_random_channels(
-                        1, only_subscribed=True, only_downloaded=True
-                    )
-                )
-                md_list = channel_l + list(channel_l[0].get_random_torrents(max_entries - 1)) if channel_l else None
-                self.gossip_blob = entries_to_chunk(md_list, maximum_payload_size)[0] if md_list else None
-
-        self.gossip_sequence_count += 1
         # Send personal channel
         if self.gossip_blob_personal_channel:
             self.endpoint.send(
@@ -130,76 +142,70 @@ class GigaChannelCommunity(Community):
         if self.gossip_blob:
             self.endpoint.send(peer.address, self.ezr_pack(self.NEWS_PUSH_MESSAGE, RawBlobPayload(self.gossip_blob)))
 
+    def _update_db_with_blob(self, raw_blob):
+        result = None
+        try:
+            with db_session:
+                try:
+                    result = self.metadata_store.process_compressed_mdblob(raw_blob)
+                except (TransactionIntegrityError, CacheIndexError) as err:
+                    self._logger.error("DB transaction error when tried to process payload: %s", str(err))
+        # Unfortunately, we have to catch the exception twice, because Pony can raise them both on the exit from
+        # db_session, and on calling the line of code
+        except (TransactionIntegrityError, CacheIndexError) as err:
+            self._logger.error("DB transaction error when tried to process payload: %s", str(err))
+        finally:
+            self.metadata_store.disconnect_thread()
+        return result
+
     @lazy_wrapper(RawBlobPayload)
-    def on_blob(self, peer, blob):
+    async def on_blob(self, peer, blob):
         """
         Callback for when a MetadataBlob message comes in.
 
         :param peer: the peer that sent us the blob
         :param blob: payload raw data
         """
-        try:
-            with db_session:
-                try:
-                    md_list = self.metadata_store.process_compressed_mdblob(blob.raw_blob)
-                except (TransactionIntegrityError, CacheIndexError) as err:
-                    self._logger.error("DB transaction error when tried to process payload: %s", str(err))
-                    return
-        # Unfortunately, we have to catch the exception twice, because Pony can raise them both on the exit from
-        # db_session, and on calling the line of code
-        except (TransactionIntegrityError, CacheIndexError) as err:
-            self._logger.error("DB transaction error when tried to process payload: %s", str(err))
-            return
 
-        # Update votes counters
-        with db_session:
-            # This check ensures, in a bit hackish way, that we do not bump responses
-            # sent by respond_with_updated_metadata
-            # TODO: make the bump decision based on packet type instead when we switch to nested channels!
-            if len(md_list) > 1:
-                for c in [md for md, _ in md_list if md and (md.metadata_type == CHANNEL_TORRENT)]:
-                    self.metadata_store.vote_bump(c.public_key, c.id_, peer.public_key.key_to_bin()[10:])
-                    break  # We only want to bump the leading channel entry in the payload, since the rest is content
+        def _process_received_blob():
+            md_results = self._update_db_with_blob(blob.raw_blob)
+            if not md_results:
+                self.metadata_store.disconnect_thread()
+                return None, None
+            # Update votes counters
+            with db_session:
+                # This check ensures, in a bit hackish way, that we do not bump responses
+                # sent by respond_with_updated_metadata
+                if len(md_results) > 1:
+                    for c in [md for md, _ in md_results if md and (md.metadata_type == CHANNEL_TORRENT)]:
+                        self.metadata_store.vote_bump(c.public_key, c.id_, peer.public_key.key_to_bin()[10:])
+                        # We only want to bump the leading channel entry in the payload, since the rest is content
+                        break
+
+            with db_session:
+                # Get the list of new channels for notifying the GUI
+                new_channels = [
+                    md.to_simple_dict()
+                    for md, result in md_results
+                    if md and md.metadata_type == CHANNEL_TORRENT and result == UNKNOWN_CHANNEL and md.origin_id == 0
+                ]
+            result = gen_have_newer_results_blob(md_results), new_channels
+            self.metadata_store.disconnect_thread()
+            return result
+
+        reply_blob, new_channels = await get_event_loop().run_in_executor(None, _process_received_blob)
 
         # Notify the discovered torrents and channels to the GUI
-        self.notify_discovered_metadata(md_list)
+        if self.notifier and new_channels:
+            self.notifier.notify(NTFY.CHANNEL_DISCOVERED, {"results": new_channels, "uuid": str(CHANNELS_VIEW_UUID)})
 
         # Check if the guy who send us this metadata actually has an older version of this md than
         # we do, and queue to send it back.
-        self.respond_with_updated_metadata(peer, md_list)
+        self.respond_with_updated_metadata(peer, reply_blob)
 
-    def respond_with_updated_metadata(self, peer, md_list):
-        """
-        Responds the peer with the updated metadata if present in the metadata list.
-        :param peer: responding peer
-        :param md_list: Metadata list
-        :return: None
-        """
-        with db_session:
-            reply_list = [
-                md
-                for md, result in md_list
-                if (md and (md.metadata_type == CHANNEL_TORRENT)) and (result == GOT_NEWER_VERSION)
-            ]
-            reply_blob = entries_to_chunk(reply_list, maximum_payload_size)[0] if reply_list else None
+    def respond_with_updated_metadata(self, peer, reply_blob):
         if reply_blob:
             self.endpoint.send(peer.address, self.ezr_pack(self.NEWS_PUSH_MESSAGE, RawBlobPayload(reply_blob)))
-
-    def notify_discovered_metadata(self, md_list):
-        """
-        Notify about the discovered metadata through event notifier.
-        :param md_list: Metadata list
-        :return: None
-        """
-        with db_session:
-            new_channels = [
-                md.to_simple_dict()
-                for md, result in md_list
-                if md and md.metadata_type == CHANNEL_TORRENT and result == UNKNOWN_CHANNEL and md.origin_id == 0
-            ]
-
-        if self.notifier and new_channels:
-            self.notifier.notify(NTFY.CHANNEL_DISCOVERED, {"results": new_channels, "uuid": str(CHANNELS_VIEW_UUID)})
 
     def send_search_request(self, txt_filter, metadata_type=None, sort_by=None, sort_asc=0, hide_xxx=True, uuid=None):
         """
@@ -228,11 +234,11 @@ class GigaChannelCommunity(Community):
         return search_request_cache.number
 
     @lazy_wrapper(SearchRequestPayload)
-    def on_search_request(self, peer, request):
-        # Caution: SQL injection
+    async def on_search_request(self, peer, request):
+        # Caution: beware of potential SQL injection!
         # Since this string 'txt_filter' is passed as it is to fetch the results, there could be a chance for
-        # SQL injection. But since we use pony which is supposed to be doing proper variable bindings, it should
-        # be relatively safe
+        # SQL injection. But since we use Pony which is supposed to be doing proper variable bindings, it should
+        # be relatively safe.
         txt_filter = request.txt_filter.decode('utf8')
 
         # Check if the txt_filter is a simple query
@@ -269,45 +275,57 @@ class GigaChannelCommunity(Community):
             "channel_pk": channel_pk,
         }
 
-        result_blob = None
-        with db_session:
-            db_results = self.metadata_store.TorrentMetadata.get_entries(**request_dict)
-            if db_results:
-                result_blob = entries_to_chunk(db_results[:max_entries], maximum_payload_size)[0]
+        def _get_search_results():
+            with db_session:
+                db_results = self.metadata_store.TorrentMetadata.get_entries(**request_dict)
+                result = entries_to_chunk(db_results[:max_entries], maximum_payload_size)[0] if db_results else None
+            self.metadata_store.disconnect_thread()
+            return result
+
+        result_blob = await get_event_loop().run_in_executor(None, _get_search_results)
+
         if result_blob:
             self.endpoint.send(
                 peer.address, self.ezr_pack(self.SEARCH_RESPONSE, SearchResponsePayload(request.id, result_blob))
             )
 
     @lazy_wrapper(SearchResponsePayload)
-    def on_search_response(self, peer, response):
+    async def on_search_response(self, peer, response):
         search_request_cache = self.request_cache.get(u"remote-search-request", response.id)
         if not search_request_cache or not search_request_cache.process_peer_response(peer):
             return
 
-        with db_session:
-            try:
-                metadata_result = self.metadata_store.process_compressed_mdblob(response.raw_blob)
-            except (TransactionIntegrityError, CacheIndexError) as err:
-                self._logger.error("DB transaction error when tried to process search payload: %s", str(err))
-                return
+        def _process_received_blob():
+            md_results = self._update_db_with_blob(response.raw_blob)
+            if not md_results:
+                self.metadata_store.disconnect_thread()
+                return None, None
 
-            search_results = [
-                md.to_simple_dict()
-                for (md, action) in metadata_result
-                if (
-                    md
-                    and (md.metadata_type in [CHANNEL_TORRENT, REGULAR_TORRENT])
-                    and action in [UNKNOWN_CHANNEL, UNKNOWN_TORRENT, UPDATED_OUR_VERSION, UNKNOWN_COLLECTION]
+            with db_session:
+                result = (
+                    [
+                        md.to_simple_dict()
+                        for (md, action) in md_results
+                        if (
+                            md
+                            and (md.metadata_type in [CHANNEL_TORRENT, REGULAR_TORRENT])
+                            and action in [UNKNOWN_CHANNEL, UNKNOWN_TORRENT, UPDATED_OUR_VERSION, UNKNOWN_COLLECTION]
+                        )
+                    ],
+                    gen_have_newer_results_blob(md_results),
                 )
-            ]
+            self.metadata_store.disconnect_thread()
+            return result
+
+        search_results, reply_blob = await get_event_loop().run_in_executor(None, _process_received_blob)
+
         if self.notifier and search_results:
             self.notifier.notify(
                 NTFY.REMOTE_QUERY_RESULTS, {"uuid": search_request_cache.uuid, "results": search_results}
             )
 
         # Send the updated metadata if any to the responding peer
-        self.respond_with_updated_metadata(peer, metadata_result)
+        self.respond_with_updated_metadata(peer, reply_blob)
 
 
 class GigaChannelTestnetCommunity(GigaChannelCommunity):
