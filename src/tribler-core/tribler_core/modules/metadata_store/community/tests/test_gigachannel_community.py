@@ -54,6 +54,7 @@ class TestGigaChannelUnits(TestBase):
             channel.commit_channel_torrent()
         # We must change the key for the first node so the created channel becomes foreign
         self.nodes[0].overlay.metadata_store.ChannelNode._my_key = default_eccrypto.generate_key(u"curve25519")
+        await self.nodes[0].overlay.prepare_gossip_blob_cache()
 
         self.nodes[0].overlay.send_random_to(Peer(self.nodes[1].my_peer.public_key, self.nodes[1].endpoint.wan_address))
         await self.deliver_messages(timeout=0.5)
@@ -71,6 +72,7 @@ class TestGigaChannelUnits(TestBase):
             self.add_random_torrent(self.nodes[0].overlay.metadata_store.TorrentMetadata, channel=channel)
             channel.commit_channel_torrent()
 
+        await self.nodes[0].overlay.prepare_gossip_blob_cache()
         self.nodes[0].overlay.send_random_to(Peer(self.nodes[1].my_peer.public_key, self.nodes[1].endpoint.wan_address))
 
         await self.deliver_messages(timeout=0.5)
@@ -97,6 +99,7 @@ class TestGigaChannelUnits(TestBase):
             self.add_random_torrent(self.nodes[0].overlay.metadata_store.TorrentMetadata, channel=channel)
             channel.commit_channel_torrent()
 
+        await self.nodes[0].overlay.prepare_gossip_blob_cache()
         self.nodes[0].overlay.send_random_to(Peer(self.nodes[1].my_peer.public_key, self.nodes[1].endpoint.wan_address))
         await self.deliver_messages(timeout=0.5)
         with db_session:
@@ -109,14 +112,13 @@ class TestGigaChannelUnits(TestBase):
         """
         Test whether sending a single channel with a multiple torrents to another peer works correctly
         """
-        # We set gossip renewal period to 2 for this test, so the 3rd packet will renew the cache
-        self.nodes[0].overlay.gossip_renewal_period = 2
         with db_session:
             channel = self.nodes[0].overlay.metadata_store.ChannelMetadata.create_channel("test", "bla")
             for _ in range(10):
                 self.add_random_torrent(self.nodes[0].overlay.metadata_store.TorrentMetadata, channel=channel)
             channel.commit_channel_torrent()
 
+        await self.nodes[0].overlay.prepare_gossip_blob_cache()
         self.nodes[0].overlay.send_random_to(Peer(self.nodes[1].my_peer.public_key, self.nodes[1].endpoint.wan_address))
 
         await self.deliver_messages(timeout=0.5)
@@ -140,8 +142,6 @@ class TestGigaChannelUnits(TestBase):
                 self.add_random_torrent(self.nodes[0].overlay.metadata_store.TorrentMetadata, channel=channel)
             channel.commit_channel_torrent()
 
-        self.assertEqual(1, self.nodes[0].overlay.gossip_sequence_count)
-
         # Initiate the gossip again. This time, it should be sent from the blob cache
         # so the torrents on the receiving end should not change this time.
         self.nodes[0].overlay.send_random_to(Peer(self.nodes[1].my_peer.public_key, self.nodes[1].endpoint.wan_address))
@@ -151,6 +151,7 @@ class TestGigaChannelUnits(TestBase):
             torrents2 = self.nodes[1].overlay.metadata_store.TorrentMetadata.select()[:]
             self.assertEqual(len(torrents1), len(torrents2))
 
+        await self.nodes[0].overlay.prepare_gossip_blob_cache()
         self.nodes[0].overlay.send_random_to(Peer(self.nodes[1].my_peer.public_key, self.nodes[1].endpoint.wan_address))
 
         await self.deliver_messages(timeout=0.5)
@@ -178,6 +179,7 @@ class TestGigaChannelUnits(TestBase):
             self.nodes[1].overlay.metadata_store.ChannelMetadata.from_dict(channel_v1_dict)
 
         # node1 --outdated_channel--> node0
+        await self.nodes[1].overlay.prepare_gossip_blob_cache()
         self.nodes[1].overlay.send_random_to(Peer(self.nodes[0].my_peer.public_key, self.nodes[0].endpoint.wan_address))
 
         await self.deliver_messages(timeout=0.5)
