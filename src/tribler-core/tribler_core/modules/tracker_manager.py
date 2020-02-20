@@ -113,7 +113,7 @@ class TrackerManager(object):
 
         current_time = int(time.time())
         failures = 0 if is_successful else tracker.failures + 1
-        is_alive = tracker.alive < MAX_TRACKER_FAILURES
+        is_alive = failures < MAX_TRACKER_FAILURES
 
         # update the dict
         tracker.last_check = current_time
