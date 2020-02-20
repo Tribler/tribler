@@ -18,6 +18,7 @@ from tribler_core.modules.torrent_checker.torrentchecker_session import (
     UdpSocketManager,
     create_tracker_session,
 )
+from tribler_core.modules.tracker_manager import MAX_TRACKER_FAILURES
 from tribler_core.utilities.tracker_utils import MalformedTrackerURLException
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import has_bep33_support, is_valid_url
@@ -111,6 +112,10 @@ class TorrentChecker(TaskManager):
             if not tracker:
                 return
             dynamic_interval = TORRENT_CHECK_RETRY_INTERVAL * (2 ** tracker.failures)
+            # FIXME: this is a really dumb fix for update_tracker_info not being called in some cases
+            if tracker.failures >= MAX_TRACKER_FAILURES:
+                tracker.alive = False
+                return
             torrents = select(ts for ts in tracker.torrents if ts.last_check + dynamic_interval < int(time.time()))
             infohashes = [t.infohash for t in torrents[:MAX_TORRENTS_CHECKED_PER_SESSION]]
 
