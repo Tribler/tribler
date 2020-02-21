@@ -11,7 +11,6 @@ from six.moves import xrange
 from twisted.internet.defer import Deferred, inlineCallbacks
 from twisted.python.failure import Failure
 
-from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import LEGACY_ENTRY
 from Tribler.Core.Modules.tracker_manager import TrackerManager
 from Tribler.Core.TorrentChecker.session import HttpTrackerSession, UdpSocketManager
 from Tribler.Core.TorrentChecker.torrent_checker import TorrentChecker
@@ -217,16 +216,6 @@ class TestTorrentChecker(TestAsServer):
         self.torrent_checker.on_torrent_health_check_completed(infohash_bin, [(True, None)])
         self.assertEqual(1, len(self.torrent_checker.torrents_checked))
         self.assertEqual(0, list(self.torrent_checker.torrents_checked)[0][1])
-
-    @db_session
-    def test_check_random_torrent_legacy(self):
-        """
-        Test whether legacy torrents are not health checked
-        """
-        torrent1 = self.session.lm.mds.TorrentMetadata(title='torrent1', infohash=os.urandom(20))
-        torrent1.status = LEGACY_ENTRY
-
-        self.assertFalse(self.torrent_checker.check_random_torrent())
 
     @db_session
     def test_check_random_torrent(self):
