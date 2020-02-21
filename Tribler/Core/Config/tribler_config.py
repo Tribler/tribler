@@ -33,7 +33,7 @@ class TriblerConfig(object):
     their allowed values and default value in `config.spec`.
     """
 
-    def __init__(self, config=None):
+    def __init__(self, config=None, root_state_dir=None):
         """
         Create a new TriblerConfig instance.
 
@@ -42,7 +42,7 @@ class TriblerConfig(object):
         """
         self._logger = logging.getLogger(self.__class__.__name__)
 
-        self._root_state_dir = self.get_default_root_state_dir()
+        self._root_state_dir = root_state_dir or self.get_default_root_state_dir()
         self._state_dir = os.path.join(self._root_state_dir, tribler_version.version_id)
 
         if config is None:

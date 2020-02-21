@@ -77,8 +77,6 @@ class Session(object):
         self.get_ports_in_config()
         self.create_state_directory_structure()
 
-        self.selected_ports = self.config.selected_ports
-
         self.lm = TriblerLaunchMany()
         self.notifier = Notifier()
 
@@ -422,6 +420,7 @@ class Session(object):
 
         def after_upgrade(_):
             self.upgrader = None
+            self.selected_ports = self.config.selected_ports
 
         def log_upgrader_error(failure):
             self._logger.error("Error in Upgrader callback chain: %s", failure)
