@@ -11,6 +11,7 @@ from six.moves.configparser import MissingSectionHeaderError, ParsingError
 from twisted.internet.defer import succeed
 
 from Tribler.Core.Category.l2_filter import is_forbidden
+from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.Upgrade.config_converter import convert_config_to_tribler71, convert_config_to_tribler74
@@ -90,8 +91,12 @@ class TriblerUpgrader(object):
         """
         # Before any upgrade, prepare a separate state directory for the update version so it does not affect the
         # older version state directory. This allows for safe rollback.
-        self.version_manager.setup_state_directory_for_upgrade()
-        self.session.init_keypair()
+        upgraded_dir = self.version_manager.setup_state_directory_for_upgrade()
+        # This is a horrible, horrible way to fix the problem of upgrading triblerd.conf
+        # It effectively creates a second TriblerConfig object and writes it over the first one
+        if upgraded_dir:
+            self.session.config = TriblerConfig(root_state_dir=self.session.config.get_root_state_dir())
+            self.session.init_keypair()
 
         d = self.upgrade_72_to_pony()
         d.addCallback(self.upgrade_pony_db_6to7)

@@ -89,11 +89,14 @@ class VersionManager(object):
 
         # If upgrade is possible, fork the state directory for the new code version
         if upgrade_possible:
-
             self.fork_state_directory(code_version, self.get_state_directory(last_usage_version))
+
         # Update the history file
         if last_usage_version != code_version:
             self.update_version_history(code_version)
+
+        return upgrade_possible
+
 
     def get_state_directory(self, version_id):
         """
