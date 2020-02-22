@@ -1,5 +1,6 @@
 from asyncio import get_event_loop
 from binascii import unhexlify
+from random import sample
 
 from ipv8.community import Community
 from ipv8.database import database_blob
@@ -214,7 +215,8 @@ class GigaChannelCommunity(Community):
         Returns: request cache number which uniquely identifies each search request
         """
         sort_by = sort_by or "HEALTH"
-        search_candidates = self.get_peers()[:max_search_peers]
+        peers = self.get_peers()
+        search_candidates = sample(peers, max_search_peers) if len(peers) > max_search_peers else peers
         search_request_cache = SearchRequestCache(self.request_cache, uuid, search_candidates)
         self.request_cache.clear()
         self.request_cache.add(search_request_cache)
