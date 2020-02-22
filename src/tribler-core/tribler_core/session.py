@@ -135,6 +135,7 @@ class Session(TaskManager):
         self.wallets = {}
         self.popularity_community = None
         self.gigachannel_community = None
+        self.remote_query_community = None
 
         self.credit_mining_manager = None
         self.market_community = None
@@ -244,6 +245,16 @@ class Session(TaskManager):
 
             self.ipv8.strategies.append((RandomWalk(self.gigachannel_community), 20))
             self.ipv8.strategies.append((SyncChannels(self.gigachannel_community), 20))
+
+            # Gigachannel RemoteQuery Community
+            from tribler_core.modules.metadata_store.community.remote_query_community \
+                import RemoteQueryCommunity, RemoteQueryTestnetCommunity
+
+            community_cls = RemoteQueryTestnetCommunity if self.config.get_testnet() else RemoteQueryCommunity
+            self.remote_query_community = community_cls(peer, self.ipv8.endpoint, self.ipv8.network, self.mds)
+
+            self.ipv8.overlays.append(self.remote_query_community)
+            self.ipv8.strategies.append((RandomWalk(self.remote_query_community), 20))
 
     def enable_ipv8_statistics(self):
         if self.config.get_ipv8_statistics():
