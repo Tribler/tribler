@@ -7,8 +7,6 @@ from ipv8.lazy_community import lazy_wrapper
 from ipv8.messaging.lazy_payload import VariablePayload, vp_compile
 from ipv8.peer import Peer
 
-from pony.orm import CacheIndexError, TransactionIntegrityError, db_session
-
 from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import entries_to_chunk
 
 
@@ -53,22 +51,6 @@ class RemoteQueryCommunity(Community):
         self.add_message_handler(SelectResponsePayload.msg_id, self.on_remote_select_response)
         self.settings = settings or RemoteQueryCommunitySettings()
 
-    def _update_db_with_blob(self, raw_blob):
-        result = None
-        try:
-            with db_session:
-                try:
-                    result = self.mds.process_compressed_mdblob(raw_blob)
-                except (TransactionIntegrityError, CacheIndexError) as err:
-                    self._logger.error("DB transaction error when tried to process payload: %s", str(err))
-        # Unfortunately, we have to catch the exception twice, because Pony can raise them both on the exit from
-        # db_session, and on calling the line of code
-        except (TransactionIntegrityError, CacheIndexError) as err:
-            self._logger.error("DB transaction error when tried to process payload: %s", str(err))
-        finally:
-            self.mds.disconnect_thread()
-        return result
-
     def get_random_peers(self, sample_size=None):
         # Randomly sample sample_size peers from the complete list of our peers
         all_peers = super(RemoteQueryCommunity, self).get_peers()
@@ -83,7 +65,7 @@ class RemoteQueryCommunity(Community):
 
     @lazy_wrapper(RemoteSelectPayload)
     async def on_remote_select(self, peer, request):
-        db_results = self.mds.MetadataNode.get_entries(**json.loads(request.json))
+        db_results = await self.mds.MetadataNode.get_entries_threaded(**json.loads(request.json))
         if not db_results:
             return
 
@@ -95,8 +77,8 @@ class RemoteQueryCommunity(Community):
             )
 
     @lazy_wrapper(SelectResponsePayload)
-    def on_remote_select_response(self, peer, response):
-        self._update_db_with_blob(response.raw_blob)
+    async def on_remote_select_response(self, peer, response):
+        await self.mds.process_compressed_mdblob_threaded(response.raw_blob)
 
 
 class RemoteQueryTestnetCommunity(RemoteQueryCommunity):

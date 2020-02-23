@@ -1,3 +1,6 @@
+import threading
+from asyncio import get_event_loop
+
 from pony import orm
 from pony.orm import db_session, desc, raw_sql, select
 
@@ -112,6 +115,16 @@ def define_binding(db):
                 pony_query = pony_query.sort_by(sort_expression)
 
             return pony_query
+
+        @classmethod
+        async def get_entries_threaded(cls, **kwargs):
+            def _get_results():
+                result = cls.get_entries(**kwargs)
+                if not isinstance(threading.current_thread(), threading._MainThread):
+                    db.disconnect()
+                return result
+
+            return await get_event_loop().run_in_executor(None, _get_results)
 
         @classmethod
         @db_session
