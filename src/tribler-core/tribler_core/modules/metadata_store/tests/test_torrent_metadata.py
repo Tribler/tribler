@@ -8,6 +8,7 @@ from pony import orm
 from pony.orm import db_session
 
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
+from tribler_core.modules.metadata_store.discrete_clock import clock
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import TODELETE
 from tribler_core.modules.metadata_store.orm_bindings.torrent_metadata import tdef_to_metadata_dict
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, REGULAR_TORRENT
@@ -32,6 +33,7 @@ class TestTorrentMetadata(TriblerCoreTest):
         await super(TestTorrentMetadata, self).setUp()
         self.my_key = default_eccrypto.generate_key(u"curve25519")
         self.mds = MetadataStore(':memory:', self.session_base_dir, self.my_key)
+        clock.clock = 0  # We want deterministic discrete clock values for tests
 
     async def tearDown(self):
         self.mds.shutdown()
@@ -249,6 +251,15 @@ class TestTorrentMetadata(TriblerCoreTest):
         args = dict(sort_by='size', sort_desc=False, channel_pk=channel_pk, origin_id=0)
         torrents = self.mds.TorrentMetadata.get_entries(first=1, last=10, **args)
         self.assertEqual(torrents[-1].metadata_type, CHANNEL_TORRENT)
+
+        # Test getting entries by timestamp range
+        args = dict(channel_pk=channel_pk, origin_id=0, attribute_ranges=(("timestamp", 3, 30),))
+        torrents = self.mds.TorrentMetadata.get_entries(first=1, last=10, **args)
+        self.assertListEqual(sorted([t.timestamp for t in torrents]), list(range(25, 30)))
+
+        # Test catching SQL injection
+        args = dict(channel_pk=channel_pk, origin_id=0, attribute_ranges=(("timestamp < 3 and g.timestamp", 3, 30),))
+        self.assertRaises(AttributeError, self.mds.TorrentMetadata.get_entries, **args)
 
     @db_session
     def test_metadata_conflicting(self):
