@@ -1,5 +1,6 @@
 import logging
 import threading
+from asyncio import get_event_loop
 from datetime import datetime, timedelta
 from time import sleep
 
@@ -8,7 +9,7 @@ from ipv8.database import database_blob
 import lz4.frame
 
 from pony import orm
-from pony.orm import db_session
+from pony.orm import CacheIndexError, TransactionIntegrityError, db_session
 
 from tribler_core.exceptions import InvalidSignatureException
 from tribler_core.modules.category_filter.l2_filter import is_forbidden
@@ -272,6 +273,25 @@ class MetadataStore(object):
         if str(filepath).endswith('.lz4'):
             return self.process_compressed_mdblob(serialized_data, skip_personal_metadata_payload, external_thread)
         return self.process_squashed_mdblob(serialized_data, skip_personal_metadata_payload, external_thread)
+
+    async def process_compressed_mdblob_threaded(self, compressed_data, **kwargs):
+        def _process_blob():
+            result = None
+            try:
+                with db_session:
+                    try:
+                        result = self.process_compressed_mdblob(compressed_data, **kwargs)
+                    except (TransactionIntegrityError, CacheIndexError) as err:
+                        self._logger.error("DB transaction error when tried to process compressed mdblob: %s", str(err))
+            # Unfortunately, we have to catch the exception twice, because Pony can raise them both on the exit from
+            # db_session, and on calling the line of code
+            except (TransactionIntegrityError, CacheIndexError) as err:
+                self._logger.error("DB transaction error when tried to process compressed mdblob: %s", str(err))
+            finally:
+                self.disconnect_thread()
+            return result
+
+        return await get_event_loop().run_in_executor(None, _process_blob)
 
     def process_compressed_mdblob(self, compressed_data, skip_personal_metadata_payload=True, external_thread=False):
         try:
