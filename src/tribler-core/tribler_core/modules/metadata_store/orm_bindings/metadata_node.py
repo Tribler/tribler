@@ -68,6 +68,7 @@ def define_binding(db):
             sort_desc=True,
             txt_filter=None,
             category=None,
+            attribute_ranges=None,
         ):
             """
             This method implements REST-friendly way to get entries from the database. It is overloaded by the higher
@@ -90,6 +91,15 @@ def define_binding(db):
                 if channel_pk is not None
                 else pony_query
             )
+
+            if attribute_ranges is not None:
+                for attr, left, right in attribute_ranges:
+                    getattr(cls, attr)  # Check against code injection
+                    if left is not None:
+                        pony_query = pony_query.where(f"g.{attr} >= left")
+                    if right is not None:
+                        pony_query = pony_query.where(f"g.{attr} < right")
+
             # origin_id can be zero, for e.g. root channel
             pony_query = pony_query.where(origin_id=origin_id) if origin_id is not None else pony_query
             pony_query = pony_query.where(lambda g: g.tags == category) if category else pony_query
