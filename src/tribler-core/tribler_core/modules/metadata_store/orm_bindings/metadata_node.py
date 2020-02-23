@@ -150,6 +150,8 @@ def define_binding(db):
         @classmethod
         @db_session
         def get_entries_count(cls, **kwargs):
+            for p in ["first", "last"]:
+                kwargs.pop(p, None)
             return cls.get_entries_query(**kwargs).count()
 
         @classmethod
