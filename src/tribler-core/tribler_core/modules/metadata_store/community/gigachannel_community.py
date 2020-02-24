@@ -5,7 +5,7 @@ from random import sample
 from ipv8.community import Community
 from ipv8.database import database_blob
 from ipv8.lazy_community import lazy_wrapper
-from ipv8.messaging.lazy_payload import VariablePayload
+from ipv8.messaging.lazy_payload import VariablePayload, vp_compile
 from ipv8.peer import Peer
 from ipv8.requestcache import RequestCache
 
@@ -44,6 +44,7 @@ v1_md_field_to_metadata_type = {
 }
 
 
+@vp_compile
 class RawBlobPayload(VariablePayload):
     format_list = ['raw']
     names = ['raw_blob']
