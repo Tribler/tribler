@@ -160,7 +160,8 @@ class TestTorrentDef(BaseTestCase):
 
     def test_torrent_encoding(self):
         t = TorrentDef()
-        t.set_encoding("my_fancy_encoding")
+        self.assertEqual(t.get_encoding(), "utf-8")
+        t.set_encoding(b"my_fancy_encoding")
         self.assertEqual(t.get_encoding(), "my_fancy_encoding")
 
     @raises(ValueError)

@@ -164,7 +164,7 @@ class TorrentDef(object):
         """
         Returns the used encoding of the TorrentDef.
         """
-        return self.torrent_parameters.get(b'encoding', b'utf-8')
+        return ensure_unicode(self.torrent_parameters.get(b'encoding', b'utf-8'), 'utf-8')
 
     def set_tracker(self, url):
         """
@@ -310,9 +310,9 @@ class TorrentDef(object):
                 def filter_characters(name):
                     def filter_character(char):
                         if 0 < ord(char) < 128:
-                            return char
+                            return chr(char)
                         else:
-                            self._logger.debug("Bad character filter %s, isalnum? %s", ord(char), char.isalnum())
+                            self._logger.debug("Bad character filter %s, isalnum? %s", bytes(char), char.isalnum())
                             return u"?"
                     return u"".join([filter_character(char) for char in name])
                 return str(filter_characters(self.metainfo[b"info"][b"name"]))

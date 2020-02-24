@@ -231,6 +231,9 @@ class VideoPlayerPage(QWidget):
         """
         Reset the video player, i.e. when a download is removed that was being played.
         """
+        if not self.instance:
+            return
+
         self.active_infohash = ""
         self.active_index = -1
         self.window().left_menu_playlist.clear()
@@ -251,6 +254,7 @@ class VideoPlayerPage(QWidget):
             and self.isVisible()
             and not self.window().top_search_bar.hasFocus()
             and event.key() == Qt.Key_Space
+            and self.instance
         ):
             self.on_play_pause_button_click()
         return QWidget.eventFilter(self, source, event)

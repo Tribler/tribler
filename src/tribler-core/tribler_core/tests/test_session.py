@@ -58,13 +58,13 @@ class TestSessionAsServer(TestAsServer):
         self.session.api_manager.get_endpoint('events').on_tribler_exception = on_tribler_exception
         self.session.api_manager.get_endpoint('state').on_tribler_exception = on_tribler_exception
 
-        self.session.unhandled_error_observer(None, {'message': 'socket.error: [Errno 113]'})
-        self.session.unhandled_error_observer(None, {'message': 'socket.error: [Errno 51]'})
-        self.session.unhandled_error_observer(None, {'message': 'socket.error: [Errno 16]'})
-        self.session.unhandled_error_observer(None, {'message': 'socket.error: [Errno 11001]'})
-        self.session.unhandled_error_observer(None, {'message': 'socket.error: [Errno 10053]'})
-        self.session.unhandled_error_observer(None, {'message': 'socket.error: [Errno 10054]'})
-        self.session.unhandled_error_observer(None, {'message': 'socket.error: [Errno %s]' % SOCKET_BLOCK_ERRORCODE})
+        self.session.unhandled_error_observer(None, {'message': 'builtins.OSError: [Errno 113]'})
+        self.session.unhandled_error_observer(None, {'message': 'builtins.OSError: [Errno 51]'})
+        self.session.unhandled_error_observer(None, {'message': 'builtins.OSError: [Errno 16]'})
+        self.session.unhandled_error_observer(None, {'message': 'builtins.OSError: [Errno 11001]'})
+        self.session.unhandled_error_observer(None, {'message': 'builtins.OSError: [Errno 10053]'})
+        self.session.unhandled_error_observer(None, {'message': 'builtins.OSError: [Errno 10054]'})
+        self.session.unhandled_error_observer(None, {'message': 'builtins.OSError: [Errno %s]' % SOCKET_BLOCK_ERRORCODE})
         self.session.unhandled_error_observer(None, {'message': 'exceptions.RuntimeError: invalid info-hash'})
 
 

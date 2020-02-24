@@ -26,7 +26,11 @@ def tdef_to_metadata_dict(tdef):
     Helper function to create a TorrentMetadata-compatible dict from TorrentDef
     """
     # We only want to determine the type of the data. XXX filtering is done by the receiving side
-    tags = default_category_filter.calculateCategory(tdef.metainfo, tdef.get_name_as_unicode())
+    try:
+        tags = default_category_filter.calculateCategory(tdef.metainfo, tdef.get_name_as_unicode())
+    except UnicodeDecodeError:
+        tags = "Unknown"
+
     try:
         torrent_date = datetime.fromtimestamp(tdef.get_creation_date())
     except ValueError:

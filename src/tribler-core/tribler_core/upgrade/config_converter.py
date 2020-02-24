@@ -3,6 +3,7 @@ import base64
 import logging
 import os
 from configparser import DuplicateSectionError, MissingSectionHeaderError, NoSectionError, RawConfigParser
+from lib2to3.pgen2.parse import ParseError
 
 from configobj import ConfigObj
 
@@ -29,6 +30,7 @@ def convert_config_to_tribler71(current_config, state_dir=None):
     :return: the newly edited TriblerConfig object with the old data inserted.
     """
     state_dir = state_dir or TriblerConfig.get_default_root_state_dir()
+
     libtribler_file_loc = state_dir / "libtribler.conf"
     if libtribler_file_loc.exists():
         libtribler_cfg = RawConfigParser()
@@ -208,29 +210,47 @@ def convert_config_to_tribler74(state_dir=None):
 
     state_dir = state_dir or TriblerConfig.get_default_root_state_dir()
     for filename in (state_dir / STATEDIR_CHECKPOINT_DIR).glob('*.state'):
-        old_config = CallbackConfigParser()
-        try:
-            old_config.read_file(str(filename))
-        except MissingSectionHeaderError:
-            logger.error("Removing download state file %s since it appears to be corrupt", filename)
-            os.remove(str(filename))
+        convert_state_file_to_conf_74(filename, refactoring_tool=refactoring_tool)
 
-        # We first need to fix the .state file such that it has the correct metainfo/resumedata
+
+def convert_state_file_to_conf_74(filename, refactoring_tool=None):
+    """
+    Converts .pstate file (pre-7.4.0) to .conf file.
+    :param filename: .pstate file
+    :param refactoring_tool: RefactoringTool instance if using Python3
+    :return: None
+    """
+    def _fix_state_config(config):
         for section, option in [('state', 'metainfo'), ('state', 'engineresumedata')]:
-            value = old_config.get(section, option, literal_eval=False)
-            value = str(refactoring_tool.refactor_string(value+'\n', option + '_2to3'))
-            ungarbled_dict = recursive_ungarble_metainfo(ast.literal_eval(value))
+            value = config.get(section, option, literal_eval=False)
             try:
+                value = str(refactoring_tool.refactor_string(value + '\n', option + '_2to3'))
+                ungarbled_dict = recursive_ungarble_metainfo(ast.literal_eval(value))
                 value = ungarbled_dict or ast.literal_eval(value)
-                old_config.set(section, option, base64.b64encode(lt.bencode(value)).decode('utf-8'))
-            except (ValueError, SyntaxError):
-                logger.error("Removing download state file %s since it could not be converted", filename)
-                os.remove(str(filename))
-                continue
+                config.set(section, option, base64.b64encode(lt.bencode(value)).decode('utf-8'))
+            except (ValueError, SyntaxError, ParseError) as ex:
+                logger.error("Config could not be fixed, probably corrupted. Exception: %s %s", type(ex), str(ex))
+                return None
+        return config
 
-        # Remove dlstate since the same information is already stored in the resumedata
-        if old_config.has_option('state', 'dlstate'):
-            old_config.remove_option('state', 'dlstate')
+    old_config = CallbackConfigParser()
+    try:
+        old_config.read_file(str(filename))
+    except MissingSectionHeaderError:
+        logger.error("Removing download state file %s since it appears to be corrupt", filename)
+        os.remove(filename)
+
+    # We first need to fix the .state file such that it has the correct metainfo/resumedata.
+    # If the config cannot be fixed, it is likely corrupted in which case we simply remove the file.
+    fixed_config = _fix_state_config(old_config)
+    if not fixed_config:
+        logger.error("Removing download state file %s since it could not be fixed", filename)
+        os.remove(filename)
+        return
+
+    # Remove dlstate since the same information is already stored in the resumedata
+    if old_config.has_option('state', 'dlstate'):
+        old_config.remove_option('state', 'dlstate')
 
         new_config = ConfigObj(infile=str(filename)[:-6] + '.conf', encoding='utf8')
         for section in old_config.sections():
@@ -240,7 +260,7 @@ def convert_config_to_tribler74(state_dir=None):
                     new_config[section] = {}
                 new_config[section][key] = val
         new_config.write()
-        os.remove(str(filename))
+        os.remove(filename)
 
 
 def convert_config_to_tribler75(state_dir=None):

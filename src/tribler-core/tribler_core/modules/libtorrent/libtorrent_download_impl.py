@@ -39,6 +39,7 @@ class VODFile(object):
 
     def __init__(self, f, d):
         self._logger = logging.getLogger(self.__class__.__name__)
+        self.config = None
 
         self._file = f
         self._download = d
@@ -674,7 +675,7 @@ class LibtorrentDownloadImpl(TaskManager):
             await self.wait_for_alert('save_resume_data_alert', None,
                                       'save_resume_data_failed_alert',
                                       lambda a: SaveResumeDataError(a.error.message()))
-        except (CancelledError, SaveResumeDataError) as e:
+        except (CancelledError, SaveResumeDataError, TimeoutError) as e:
             self._logger.error("Resume data failed to save: %s", e)
 
     def calc_prebuf_frac(self, consecutive=False):
@@ -842,6 +843,10 @@ class LibtorrentDownloadImpl(TaskManager):
         """
         if self.checkpoint_disabled:
             self._logger.debug("Ignoring checkpoint() call as checkpointing is disabled for this download")
+            return succeed(None)
+
+        if self.handle and self.handle.is_valid() and not self.handle.need_save_resume_data():
+            self._logger.debug("Ignoring checkpoint() call as checkpointing is not needed")
             return succeed(None)
 
         if not self.handle or not self.handle.is_valid():

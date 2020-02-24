@@ -5,6 +5,7 @@ import re
 import sys
 from datetime import datetime, timedelta
 from urllib.parse import quote_plus
+from uuid import uuid4
 
 from PyQt5.QtWidgets import QApplication
 
@@ -211,16 +212,18 @@ def is_dir_writable(path):
     :param path: absolute path of directory
     :return: True if writable, False otherwise
     """
+
+    random_name = "tribler_temp_delete_me_" + str(uuid4())
     try:
         if not os.path.exists(path):
             os.makedirs(path)
-        open(os.path.join(path, 'temp'), 'w')
+        open(os.path.join(path, random_name), 'w')
+        os.remove(os.path.join(path, random_name))
     except IOError as io_error:
         return False, io_error
     except OSError as os_error:
         return False, os_error
     else:
-        os.remove(os.path.join(path, 'temp'))
         return True, None
 
 

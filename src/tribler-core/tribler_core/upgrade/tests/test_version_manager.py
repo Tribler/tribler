@@ -1,9 +1,15 @@
+import filecmp
 import os
+from pathlib import Path
 
 from configobj import ConfigObj
 
-from tribler_common.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_CHECKPOINT_DIR, \
-    STATEDIR_DB_DIR, STATEDIR_WALLET_DIR
+from tribler_common.simpledefs import (
+    STATEDIR_CHANNELS_DIR,
+    STATEDIR_CHECKPOINT_DIR,
+    STATEDIR_DB_DIR,
+    STATEDIR_WALLET_DIR,
+)
 
 from tribler_core import version as tribler_version
 from tribler_core.config.tribler_config import CONFIG_SPEC_PATH, TriblerConfig
@@ -52,6 +58,8 @@ class TestVersionManager(AbstractServer):
         # version including the default version.
         root_state_dir = self.session.config.get_root_state_dir()
         self.version_manager.setup_state_directory_for_upgrade(version_id=default_version_id)
+        self.session.init_keypair()
+        self.session.trustchain_keypair = None
         self.assertTrue(default_version_id, os.listdir(root_state_dir))
 
         # Also check that there are all important directories and files in the created state directory
@@ -80,6 +88,12 @@ class TestVersionManager(AbstractServer):
         # All directories and files should be copied to the state directory of the new version
         version_state_dir = self.version_manager.get_state_directory(current_version)
         self.assertTrue(os.path.exists(version_state_dir))
+        post_upgrade_state_dir = self.config.get_state_dir()
+        # Make sure the directories before and after upgrade are different
+        self.assertFalse(version_state_dir == post_upgrade_state_dir)
+        # Make sure the contents in the before and after upgrade directories are the same
+        self.assertTrue(filecmp.cmp(Path(version_state_dir)/'ec_multichain.pem',
+                                    Path(post_upgrade_state_dir)/'ec_multichain.pem'))
 
         version_state_sub_dirs = os.listdir(version_state_dir)
         backup_dirs = [STATEDIR_DB_DIR, STATEDIR_CHECKPOINT_DIR, STATEDIR_WALLET_DIR, STATEDIR_CHANNELS_DIR]

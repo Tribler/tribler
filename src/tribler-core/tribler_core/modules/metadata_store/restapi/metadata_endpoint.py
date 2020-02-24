@@ -7,6 +7,7 @@ from ipv8.database import database_blob
 
 from pony.orm import db_session
 
+from tribler_core.modules.metadata_store.orm_bindings.channel_node import LEGACY_ENTRY
 from tribler_core.modules.metadata_store.restapi.metadata_endpoint_base import MetadataEndpointBase
 from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_NOT_FOUND, RESTResponse
 from tribler_core.utilities.unicode import hexlify
@@ -23,6 +24,8 @@ class UpdateEntryMixin(object):
         if signed_parameters_to_change:
             if 'status' in update_dict:
                 return HTTP_BAD_REQUEST, {"error": "Cannot set status manually when changing signed attributes."}
+            if entry.status == LEGACY_ENTRY:
+                return (HTTP_BAD_REQUEST, {"error": "Changing parameters of legacy entries is not supported."})
             if not entry.is_personal:
                 return (
                     HTTP_BAD_REQUEST,

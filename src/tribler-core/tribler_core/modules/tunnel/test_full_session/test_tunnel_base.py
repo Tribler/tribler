@@ -1,4 +1,3 @@
-import random
 from asyncio import all_tasks, gather, sleep
 
 from ipv8.keyvault.crypto import ECCrypto
@@ -147,6 +146,7 @@ class TestTunnelBase(TestAsServer):
         config.set_tunnel_community_socks5_listen_ports(self.get_ports(5))
 
         session = Session(config)
+        session.upgrader_enabled = False
         await session.start()
         self.sessions.append(session)
 
@@ -164,6 +164,7 @@ class TestTunnelBase(TestAsServer):
         self.seed_config.set_tunnel_community_socks5_listen_ports(self.get_ports(5))
         if self.session2 is None:
             self.session2 = Session(self.seed_config)
+            self.session2.upgrader_enabled = False
             await self.session2.start()
 
         tdef = TorrentDef()

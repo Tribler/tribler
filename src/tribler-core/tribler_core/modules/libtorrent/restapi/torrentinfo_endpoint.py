@@ -99,5 +99,5 @@ class TorrentInfoEndpoint(RESTEndpoint):
         # FIXME: json.dumps garbles binary data that is used by the 'pieces' field
         # However, this is fine as long as the GUI does not use this field.
         encoded_metainfo[b'info'][b'pieces'] = hexlify(encoded_metainfo[b'info'][b'pieces']).encode('utf-8')
-        encoded_metainfo = hexlify(json.dumps(recursive_unicode(encoded_metainfo), ensure_ascii=False).encode('utf-8'))
+        encoded_metainfo = hexlify(json.dumps(recursive_unicode(encoded_metainfo, ignore_errors=True), ensure_ascii=False).encode('utf-8'))
         return RESTResponse({"metainfo": encoded_metainfo})

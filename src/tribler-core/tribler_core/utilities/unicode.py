@@ -34,18 +34,23 @@ def ensure_unicode_detect_encoding(s):
         raise TypeError("not expecting type '%s'" % type(s))
 
 
-def recursive_unicode(obj):
+def recursive_unicode(obj, ignore_errors=False):
     """
     Converts any bytes within a data structure to unicode strings. Bytes are assumed to be UTF-8 encoded text.
     :param obj: object comprised of lists/dicts/strings/bytes
     :return: obj: object comprised of lists/dicts/strings
     """
     if isinstance(obj, dict):
-        return {recursive_unicode(k):recursive_unicode(v) for k, v in obj.items()}
+        return {recursive_unicode(k, ignore_errors):recursive_unicode(v, ignore_errors) for k, v in obj.items()}
     elif isinstance(obj, list):
-        return [recursive_unicode(i) for i in obj]
+        return [recursive_unicode(i, ignore_errors) for i in obj]
     elif isinstance(obj, bytes):
-        return obj.decode('utf8')
+        try:
+            return obj.decode('utf8')
+        except UnicodeDecodeError:
+            if ignore_errors:
+                return "".join((chr(c) for c in obj))
+            raise
     return obj
 
 
