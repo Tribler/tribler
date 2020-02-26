@@ -46,14 +46,17 @@ class RemoteQueryCommunity(Community):
 
     def __init__(self, my_peer, endpoint, network, metadata_store, settings=None):
         super(RemoteQueryCommunity, self).__init__(my_peer, endpoint, network)
-        self.mds = metadata_store
-        self.add_message_handler(RemoteSelectPayload.msg_id, self.on_remote_select)
-        self.add_message_handler(SelectResponsePayload.msg_id, self.on_remote_select_response)
+
         self.settings = settings or RemoteQueryCommunitySettings()
+
+        self.mds = metadata_store
+
+        self.add_message_handler(RemoteSelectPayload, self.on_remote_select)
+        self.add_message_handler(SelectResponsePayload, self.on_remote_select_response)
 
     def get_random_peers(self, sample_size=None):
         # Randomly sample sample_size peers from the complete list of our peers
-        all_peers = super(RemoteQueryCommunity, self).get_peers()
+        all_peers = self.get_peers()
         if sample_size is not None and sample_size < len(all_peers):
             return sample(all_peers, sample_size)
         return all_peers
@@ -61,7 +64,7 @@ class RemoteQueryCommunity(Community):
     def send_remote_select(self, id_, **kwargs):
         payload = RemoteSelectPayload(id_, json.dumps(kwargs).encode('utf8'))
         for p in self.get_random_peers(self.settings.max_query_peers):
-            self.endpoint.send(p.address, self.ezr_pack(payload.msg_id, payload))
+            self.ez_send(p, payload)
 
     @lazy_wrapper(RemoteSelectPayload)
     async def on_remote_select(self, peer, request):
@@ -72,9 +75,7 @@ class RemoteQueryCommunity(Community):
         index = 0
         while index < len(db_results):
             data, index = entries_to_chunk(db_results, self.settings.maximum_payload_size, start_index=index)
-            self.endpoint.send(
-                peer.address, self.ezr_pack(SelectResponsePayload.msg_id, SelectResponsePayload(request.id, data))
-            )
+            self.ez_send(peer, SelectResponsePayload(request.id, data))
 
     @lazy_wrapper(SelectResponsePayload)
     async def on_remote_select_response(self, peer, response):
