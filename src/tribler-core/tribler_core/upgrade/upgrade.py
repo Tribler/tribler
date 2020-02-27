@@ -81,11 +81,11 @@ class TriblerUpgrader(object):
         """
 
         await self.upgrade_72_to_pony()
-        await self.upgrade_pony_db_6to7()
+        self.upgrade_pony_db_6to7()
         convert_config_to_tribler74(self.session.config.get_state_dir())
         convert_config_to_tribler75(self.session.config.get_state_dir())
 
-    async def upgrade_pony_db_6to7(self):
+    def upgrade_pony_db_6to7(self):
         """
         Upgrade GigaChannel DB from version 6 (7.3.0) to version 7 (7.3.1).
         Migration should be relatively fast, so we do it in the foreground, without notifying the user
@@ -97,6 +97,10 @@ class TriblerUpgrader(object):
         if not database_path.exists():
             return
         mds = MetadataStore(database_path, channels_dir, self.session.trustchain_keypair, disable_sync=True)
+        self.do_upgrade_pony_db_6to7(mds)
+        mds.shutdown()
+
+    def do_upgrade_pony_db_6to7(self, mds):
         with db_session:
             db_version = mds.MiscData.get(name="db_version")
             if int(db_version.value) != 6:
@@ -121,7 +125,6 @@ class TriblerUpgrader(object):
         with db_session:
             db_version = mds.MiscData.get(name="db_version")
             db_version.value = str(7)
-        mds.shutdown()
         return
 
     def update_status(self, status_text):
@@ -151,9 +154,9 @@ class TriblerUpgrader(object):
             await self._dtp72.do_migration()
         except Exception as e:
             self._logger.error("Error in Upgrader callback chain: %s", e)
-            return
-        mds.shutdown()
-        self.notify_done()
+        finally:
+            mds.shutdown()
+            self.notify_done()
 
     def notify_starting(self):
         """
