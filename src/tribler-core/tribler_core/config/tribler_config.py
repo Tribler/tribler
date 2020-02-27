@@ -3,19 +3,17 @@ Configuration object for the Tribler Core.
 """
 import logging
 import os
-from pathlib import Path
 
 from configobj import ConfigObj
 
 from validate import Validator
 
-from tribler_core import version as tribler_version
 from tribler_core.exceptions import InvalidConfigException
 from tribler_core.modules.libtorrent.download_config import get_default_dest_dir
 from tribler_core.utilities import path_util
 from tribler_core.utilities.install_dir import get_lib_path
 from tribler_core.utilities.network_utils import get_random_port
-from tribler_core.utilities.osutils import get_appstate_dir
+from tribler_core.utilities.path_util import Path
 
 CONFIG_FILENAME = 'triblerd.conf'
 SPEC_FILENAME = 'tribler_config.spec'
@@ -30,28 +28,18 @@ class TriblerConfig(object):
     their allowed values and default value in `config.spec`.
     """
 
-    def __init__(self, config=None):
+    def __init__(self, state_dir, config_file=None):
         """
         Create a new TriblerConfig instance.
 
-        :param config: a ConfigObj instance
+        :param config_file: path to existing config file
         :raises an InvalidConfigException if ConfigObj is invalid
         """
         self._logger = logging.getLogger(self.__class__.__name__)
-
-        self._root_state_dir = self.get_default_root_state_dir()
-        self._state_dir = self._root_state_dir / tribler_version.version_id
-
-        if config is None:
-            config_file = self._state_dir / CONFIG_FILENAME
-            config = ConfigObj(infile=(str(config_file) if config_file.exists() else None),
-                               configspec=str(CONFIG_SPEC_PATH), default_encoding='utf-8')
-        self.config = config
+        self._state_dir = Path(state_dir)
+        self.config = ConfigObj(infile=(str(config_file) if config_file else None),
+                                configspec=str(CONFIG_SPEC_PATH), default_encoding='utf-8')
         self.validate()
-
-        # set defaults downloads path
-        if not self.config['download_defaults']['saveas']:
-            self.config['download_defaults']['saveas'] = str(get_default_dest_dir())
         self.selected_ports = {}
 
     def abspath(self, path):
@@ -63,13 +51,6 @@ class TriblerConfig(object):
         """
         return path_util.norm_path(self.get_state_dir(), path)
 
-    @staticmethod
-    def load(config_path=None):
-        """
-        Load a TriblerConfig from disk.
-        """
-        return TriblerConfig(ConfigObj(str(config_path), configspec=str(CONFIG_SPEC_PATH), default_encoding='utf-8'))
-
     def copy(self):
         """
         Return a TriblerConfig object that has the same values.
@@ -79,7 +60,9 @@ class TriblerConfig(object):
         # Make a deep copy of every section
         for section in self.config:
             new_configobj[section] = self.config[section].copy()
-        return TriblerConfig(new_configobj)
+        new_tribler_config = TriblerConfig(self.get_state_dir())
+        new_tribler_config.config = new_configobj
+        return new_tribler_config
 
     def validate(self):
         """
@@ -99,17 +82,8 @@ class TriblerConfig(object):
         """
         if not self.get_state_dir().exists():
             os.makedirs(self.get_state_dir())
-        self.update_version()
         self.config.filename = self.get_state_dir() / CONFIG_FILENAME
         self.config.write()
-
-    @staticmethod
-    def get_default_root_state_dir(home_dir_postfix=u'.Tribler'):
-        """Get the default application state directory."""
-        if 'TSTATEDIR' in os.environ:
-            path = os.environ['TSTATEDIR']
-            return Path(path) if os.path.isabs(path) else Path(os.getcwd(), path)
-        return Path(get_appstate_dir(), home_dir_postfix)
 
     def _obtain_port(self, section, option):
         """
@@ -138,15 +112,6 @@ class TriblerConfig(object):
     def get_version(self):
         return self.config['general']['version']
 
-    def update_version(self):
-        self.config['general']['version'] = tribler_version.version_id
-
-    def set_version_backup_enabled(self, backup_enabled):
-        self.config['general']['version_backup_enabled'] = backup_enabled
-
-    def get_version_backup_enabled(self):
-        return self.config['general']['version_backup_enabled']
-
     # Chant
     def set_chant_enabled(self, value):
         self.config['chant']['enabled'] = bool(value)
@@ -166,18 +131,8 @@ class TriblerConfig(object):
     def get_chant_channels_dir(self):
         return self.abspath(self.config['chant']['channels_dir'])
 
-    def set_root_state_dir(self, root_dir, version_id=None):
-        """
-        Sets the root state directory for Tribler. The versioning is handled automatically.
-        """
-        self._root_state_dir = Path(root_dir)
-        self._state_dir = self._root_state_dir / (version_id or tribler_version.version_id)
-
-    def get_root_state_dir(self):
-        return self._root_state_dir
-
-    def get_state_dir(self, version_id=None):
-        return self._root_state_dir / version_id if version_id else self._state_dir
+    def get_state_dir(self):
+        return self._state_dir
 
     def set_trustchain_keypair_filename(self, keypairfilename):
         self.config['trustchain']['ec_keypair_filename'] = str(self.norm_path(keypairfilename))
@@ -528,7 +483,11 @@ class TriblerConfig(object):
         self.config['download_defaults']['saveas'] = str(self.norm_path(value))
 
     def get_default_destination_dir(self):
-        return self.abspath(self.config['download_defaults']['saveas'])
+        # set defaults downloads path
+        value = self.config['download_defaults']['saveas']
+        if not value:
+            value = self.config['download_defaults']['saveas'] = str(get_default_dest_dir())
+        return self.abspath(value)
 
     def set_default_add_download_to_channel(self, value):
         self.config['download_defaults']['add_download_to_channel'] = value

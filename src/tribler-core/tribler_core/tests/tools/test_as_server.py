@@ -22,12 +22,9 @@ from aiohttp import web
 
 import asynctest
 
-from configobj import ConfigObj
-
 from tribler_common.simpledefs import DLSTATUS_SEEDING
 
-from tribler_core import version as tribler_version
-from tribler_core.config.tribler_config import CONFIG_SPEC_PATH, TriblerConfig
+from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
 from tribler_core.modules.libtorrent.libtorrent_mgr import LibtorrentMgr
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
@@ -138,7 +135,7 @@ class AbstractServer(BaseTestCase):
 
         self.session_base_dir = self.temporary_directory(suffix=u"_tribler_test_session_")
         self.root_state_dir = self.session_base_dir / u"dot.Tribler"
-        self.state_dir = self.root_state_dir / tribler_version.version_id
+        self.state_dir = self.root_state_dir
         self.dest_dir = self.session_base_dir / u"TriblerDownloads"
 
         self.annotate_dict = {}
@@ -204,9 +201,6 @@ class AbstractServer(BaseTestCase):
             os.makedirs(root_state_dir)
         return root_state_dir
 
-    def getStateDir(self):
-        return self.state_dir
-
     def getDestDir(self, nr=0):
         dest_dir = self.dest_dir.joinpath(Path(str(nr) if nr else ''))
         if not dest_dir.exists():
@@ -257,9 +251,8 @@ class TestAsServer(AbstractServer):
         self.annotate(self._testMethodName, start=True)
 
     def setUpPreSession(self):
-        self.config = TriblerConfig(ConfigObj(configspec=str(CONFIG_SPEC_PATH), default_encoding='utf-8'))
+        self.config = TriblerConfig(self.getRootStateDir())
         self.config.set_default_destination_dir(self.dest_dir)
-        self.config.set_root_state_dir(self.getRootStateDir())
         self.config.set_torrent_checking_enabled(False)
         self.config.set_ipv8_enabled(False)
         self.config.set_libtorrent_enabled(False)
@@ -313,7 +306,7 @@ class TestAsServer(AbstractServer):
         return tdef, torrent_path
 
     async def setup_seeder(self, tdef, seed_dir, port=None):
-        self.seed_config = TriblerConfig()
+        self.seed_config = TriblerConfig(self.getRootStateDir(2))
         self.seed_config.set_torrent_checking_enabled(False)
         self.seed_config.set_ipv8_enabled(False)
         self.seed_config.set_http_api_enabled(False)
@@ -322,7 +315,6 @@ class TestAsServer(AbstractServer):
         self.seed_config.set_tunnel_community_enabled(False)
         self.seed_config.set_market_community_enabled(False)
         self.seed_config.set_dht_enabled(False)
-        self.seed_config.set_root_state_dir(self.getRootStateDir(2))
         self.seed_config.set_version_checker_enabled(False)
         self.seed_config.set_bitcoinlib_enabled(False)
         self.seed_config.set_chant_enabled(False)

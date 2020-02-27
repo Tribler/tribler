@@ -9,7 +9,6 @@ import psutil
 
 from six import text_type
 
-from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.dependencies import _show_system_popup
 from tribler_core.modules.process_checker import ProcessChecker
 from tribler_core.utilities import path_util
@@ -185,30 +184,28 @@ def set_process_priority(pid=None, priority_order=1):
         process.nice(priority_classes[priority_order])
 
 
-def enable_fault_handler():
+def enable_fault_handler(log_dir):
     """
     Enables fault handler if the module is available.
     """
     try:
         import faulthandler
 
-        log_dir = TriblerConfig().get_log_dir()
         if not log_dir.exists():
             path_util.makedirs(log_dir)
-        crash_file = log_dir /"crash-report.log"
+        crash_file = log_dir / "crash-report.log"
         faulthandler.enable(file=open(text_type(crash_file), "w"), all_threads=True)
     except ImportError:
         logging.error("Fault Handler module not found.")
 
 
-def check_and_enable_code_tracing(process_name):
+def check_and_enable_code_tracing(process_name, log_dir):
     """
     Checks and enable trace logging if --trace-exception or --trace-debug system flag is present.
     :param process_name: used as prefix for log file
     :return: Log file handler
     """
     trace_logger = None
-    log_dir = TriblerConfig().get_log_dir()
     if '--trace-exception' in sys.argv[1:]:
         trace_logger = open(log_dir / ('%s-exceptions.log' % process_name), 'w')
         sys.settrace(lambda frame, event, args: trace_calls(trace_logger, frame, event, args,

@@ -17,6 +17,7 @@ from tribler_common.simpledefs import NTFY
 
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.session import Session
+from tribler_core.utilities.osutils import get_root_state_directory
 
 logger = logging.getLogger(__name__)
 
@@ -112,8 +113,7 @@ class TunnelHelperService(TaskManager):
             base_port = int(os.environ["HELPER_BASE"])
             ipv8_port = base_port + int(os.environ["HELPER_INDEX"]) * 5
 
-        config = TriblerConfig()
-        config.set_root_state_dir(os.path.join(config.get_state_dir(), "tunnel-%d") % ipv8_port)
+        config = TriblerConfig(os.path.join(get_root_state_directory(), "tunnel-%d") % ipv8_port)
         config.set_tunnel_community_socks5_listen_ports([])
         config.set_tunnel_community_random_slots(options.random_slots)
         config.set_tunnel_community_competing_slots(options.competing_slots)

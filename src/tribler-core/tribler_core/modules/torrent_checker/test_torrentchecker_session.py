@@ -264,11 +264,7 @@ class TestDHTSession(TriblerCoreTest):
     async def setUp(self):
         await super(TestDHTSession, self).setUp()
 
-        state_dir = self.getRootStateDir()
-        config = TriblerConfig()
-        config.get_default_state_dir = lambda _: state_dir
-
-        self.session = Session(config)
+        self.session = Session(TriblerConfig(self.root_state_dir))
         self.session.ltmgr = MockObject()
         self.session.ltmgr.dht_health_manager = MockObject()
         dht_health_dict = {

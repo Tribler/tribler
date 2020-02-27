@@ -45,7 +45,7 @@ class SettingsEndpoint(RESTEndpoint):
         """
         return RESTResponse({
             "settings": self.session.config.config,
-            "ports": self.session.selected_ports
+            "ports": self.session.config.selected_ports
         })
 
     async def update_settings(self, request):

@@ -42,7 +42,6 @@ from tribler_common.simpledefs import (
 )
 
 import tribler_core.utilities.permid as permid_module
-from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.modules.bootstrap import Bootstrap
 from tribler_core.modules.metadata_store.gigachannel_manager import GigaChannelManager
 from tribler_core.modules.metadata_store.store import MetadataStore
@@ -72,17 +71,11 @@ class Session(TaskManager):
     """
     __single = None
 
-    def __init__(self, config=None):
+    def __init__(self, config):
         """
-        A Session object is created which is configured with the Tribler configuration object.
-
+        A Session object is created
         Only a single session instance can exist at a time in a process.
-
-        :param config: a TriblerConfig object or None, in which case we
-        look for a saved session in the default location (state dir). If
-        we can't find it, we create a new TriblerConfig() object to
-        serve as startup config. Next, the config is saved in the directory
-        indicated by its 'state_dir' attribute.
+        :config TriblerConfig object parametrising the Session
         """
         super(Session, self).__init__()
 
@@ -92,15 +85,7 @@ class Session(TaskManager):
 
         self._logger = logging.getLogger(self.__class__.__name__)
 
-        self.config = config or TriblerConfig()
-        self._logger.info("Session is using state directory: %s", self.config.get_state_dir())
-
-        self.get_ports_in_config()
-        self.create_state_directory_structure()
-
-        self.selected_ports = self.config.selected_ports
-
-        self.init_keypair()
+        self.config = config
 
         self.notifier = Notifier()
 
@@ -351,7 +336,6 @@ class Session(TaskManager):
             self._logger.error("Could not send data: network is unreachable.")
             return
 
-
         if 'builtins.OSError' in text and '[Errno 11001]' in text:
             self._logger.error("Unable to perform DNS lookup.")
             return
@@ -402,7 +386,15 @@ class Session(TaskManager):
         """
         Start a Tribler session by initializing the LaunchManyCore class, opening the database and running the upgrader.
         Returns a deferred that fires when the Tribler session is ready for use.
+
+        :param config: a TriblerConfig object
         """
+
+        self._logger.info("Session is using state directory: %s", self.config.get_state_dir())
+        self.get_ports_in_config()
+        self.create_state_directory_structure()
+        self.init_keypair()
+
         # Start the REST API before the upgrader since we want to send interesting upgrader events over the socket
         if self.config.get_http_api_enabled():
             self.api_manager = RESTManager(self)
