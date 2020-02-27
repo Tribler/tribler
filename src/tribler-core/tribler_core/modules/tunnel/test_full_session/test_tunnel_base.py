@@ -142,7 +142,6 @@ class TestTunnelBase(TestAsServer):
         self.setUpPreSession()
         config = self.config.copy()
         config.set_libtorrent_enabled(False)
-        config.set_root_state_dir(self.getRootStateDir(index))
         config.set_tunnel_community_socks5_listen_ports(self.get_ports(5))
 
         session = Session(config)
@@ -157,9 +156,8 @@ class TestTunnelBase(TestAsServer):
         Setup the seeder.
         """
         from tribler_core.session import Session
-
         self.seed_config = self.config.copy()
-        self.seed_config.set_root_state_dir(self.getRootStateDir(2))
+        self.seed_config._state_dir = self.getRootStateDir(2)
         self.seed_config.set_libtorrent_enabled(hops == 0)
         self.seed_config.set_tunnel_community_socks5_listen_ports(self.get_ports(5))
         if self.session2 is None:

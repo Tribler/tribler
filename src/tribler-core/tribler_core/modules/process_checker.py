@@ -2,8 +2,8 @@ import os
 
 import psutil
 
-from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.utilities import path_util
+from tribler_core.utilities.osutils import get_root_state_directory
 
 LOCK_FILE_NAME = 'triblerd.lock'
 
@@ -13,7 +13,7 @@ class ProcessChecker(object):
     This class contains code to check whether a Tribler process is already running.
     """
     def __init__(self, state_directory=None):
-        self.state_directory = state_directory or TriblerConfig().get_state_dir()
+        self.state_directory = state_directory or get_root_state_directory()
         self.lock_file_path = self.state_directory / LOCK_FILE_NAME
 
         if self.lock_file_path.exists():

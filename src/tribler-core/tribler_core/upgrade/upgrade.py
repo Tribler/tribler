@@ -12,7 +12,6 @@ from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import CH
 from tribler_core.modules.metadata_store.store import MetadataStore
 from tribler_core.upgrade.config_converter import convert_config_to_tribler74, convert_config_to_tribler75
 from tribler_core.upgrade.db72_to_pony import DispersyToPonyMigration, cleanup_pony_experimental_db, should_upgrade
-from tribler_core.upgrade.version_manager import VersionManager
 from tribler_core.utilities.configparser import CallbackConfigParser
 
 
@@ -67,7 +66,6 @@ class TriblerUpgrader(object):
 
         self._dtp72 = None
         self.skip_upgrade_called = False
-        self.version_manager = VersionManager(self.session)
 
     def skip(self):
         self.skip_upgrade_called = True
@@ -81,14 +79,11 @@ class TriblerUpgrader(object):
         Note that by default, upgrading is enabled in the config. It is then disabled
         after upgrading to Tribler 7.
         """
-        # Before any upgrade, prepare a separate state directory for the update version so it does not affect the
-        # older version state directory. This allows for safe rollback.
-        self.version_manager.setup_state_directory_for_upgrade()
 
         await self.upgrade_72_to_pony()
         await self.upgrade_pony_db_6to7()
-        convert_config_to_tribler74()
-        convert_config_to_tribler75()
+        convert_config_to_tribler74(self.session.config.get_state_dir())
+        convert_config_to_tribler75(self.session.config.get_state_dir())
 
     async def upgrade_pony_db_6to7(self):
         """

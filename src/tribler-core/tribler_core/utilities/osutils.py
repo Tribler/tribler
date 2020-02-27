@@ -227,3 +227,11 @@ def merge_dir(src_dir, dest_dir):
             if os.path.exists(dst_file):
                 os.remove(dst_file)
             shutil.copy(src_file, dest_sub_dir)
+
+
+def get_root_state_directory(home_dir_postfix=u'.Tribler'):
+    """Get the default application state directory."""
+    if 'TSTATEDIR' in os.environ:
+        path = os.environ['TSTATEDIR']
+        return Path(path) if os.path.isabs(path) else Path(os.getcwd(), path)
+    return Path(get_appstate_dir(), home_dir_postfix)

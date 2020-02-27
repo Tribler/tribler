@@ -14,6 +14,8 @@ from socket import inet_aton
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.modules.process_checker import ProcessChecker
 from tribler_core.session import Session
+from tribler_core.utilities.osutils import get_appstate_dir
+from tribler_core.utilities.path_util import Path
 
 
 class IPPortAction(argparse.Action):
@@ -45,13 +47,15 @@ class TriblerService(object):
 
     def log_incoming_remote_search(self, sock_addr, keywords):
         d = date.today()
-        with open(os.path.join(self.session.config.get_state_dir(), 'incoming-searches-%s' % d.isoformat()), 'a') as log_file:
+        with open(os.path.join(self.session.config.get_state_dir(), 'incoming-searches-%s' % d.isoformat()),
+                  'a') as log_file:
             log_file.write("%s %s %s %s" % (time.time(), sock_addr[0], sock_addr[1], ";".join(keywords)))
 
     async def start_tribler(self, options):
         """
         Main method to startup Tribler.
         """
+
         async def signal_handler(sig):
             print("Received shut down signal %s" % sig)
             if not self._stopping:
@@ -64,7 +68,7 @@ class TriblerService(object):
         signal.signal(signal.SIGINT, lambda sig, _: ensure_future(signal_handler(sig)))
         signal.signal(signal.SIGTERM, lambda sig, _: ensure_future(signal_handler(sig)))
 
-        config = TriblerConfig()
+        config = TriblerConfig(options.statedir or Path(get_appstate_dir(), '.Tribler'))
 
         # Check if we are already running a Tribler instance
         self.process_checker = ProcessChecker()
@@ -74,9 +78,6 @@ class TriblerService(object):
             return
 
         print("Starting Tribler")
-
-        if options.statedir:
-            config.set_root_state_dir(options.statedir)
 
         if options.restapi > 0:
             config.set_http_api_enabled(True)
@@ -108,30 +109,33 @@ class TriblerService(object):
 
 def main(argv):
     parser = argparse.ArgumentParser(add_help=False, description=('Tribler script, starts Tribler as a service'))
-    parser.add_argument('--help', '-h', action='help', default=argparse.SUPPRESS, help='Show this help message and exit')
+    parser.add_argument('--help', '-h', action='help', default=argparse.SUPPRESS,
+                        help='Show this help message and exit')
     parser.add_argument('--statedir', '-s', default=None, help='Use an alternate statedir')
     parser.add_argument('--restapi', '-p', default=-1, type=int, help='Use an alternate port for REST API')
     parser.add_argument('--ipv8', '-i', default=8085, type=int, help='Use an alternate port for the IPv8')
     parser.add_argument('--libtorrent', '-l', default=-1, type=int, help='Use an alternate port for libtorrent')
-    parser.add_argument('--ipv8_bootstrap_override', '-b', default=None, type=str, help='Force the usage of specific IPv8 bootstrap server (ip:port)', action=IPPortAction)
-    
+    parser.add_argument('--ipv8_bootstrap_override', '-b', default=None, type=str,
+                        help='Force the usage of specific IPv8 bootstrap server (ip:port)', action=IPPortAction)
+
     parser.add_argument('--testnet', '-t', action='store_const', default=False, const=True, help='Join the testnet')
 
-    args = parser.parse_args(sys.argv[1:])    
+    args = parser.parse_args(sys.argv[1:])
     service = TriblerService()
-    
+
     loop = get_event_loop()
     coro = service.start_tribler(args)
     ensure_future(coro)
-    
+
     if sys.platform == 'win32':
         # Unfortunately, this is needed on Windows for Ctrl+C to work consistently.
         # Should no longer be needed in Python 3.8.
         async def wakeup():
             while True:
                 await sleep(1)
+
         ensure_future(wakeup())
-    
+
     loop.run_forever()
 
 

@@ -1,7 +1,5 @@
-from configobj import ConfigObj
 
-from tribler_core import version as tribler_version
-from tribler_core.config.tribler_config import CONFIG_FILENAME, CONFIG_SPEC_PATH, TriblerConfig
+from tribler_core.config.tribler_config import CONFIG_FILENAME, TriblerConfig
 from tribler_core.tests.tools.base_test import TriblerCoreTest
 from tribler_core.utilities import path_util
 from tribler_core.utilities.osutils import get_home_dir
@@ -19,22 +17,9 @@ class TestTriblerConfig(TriblerCoreTest):
         """
         await super(TestTriblerConfig, self).setUp()
 
-        self.tribler_config = TriblerConfig(ConfigObj(configspec=str(CONFIG_SPEC_PATH), default_encoding='utf-8'))
-        self.tribler_config.set_root_state_dir(self.getRootStateDir())
+        self.tribler_config = TriblerConfig(self.getRootStateDir())
 
         self.assertIsNotNone(self.tribler_config)
-
-    def test_init_with_config(self):
-        """
-        When creating a new instance with a configobject provided, the given options
-        must be contained in the resulting instance.
-        """
-        configdict = ConfigObj({"a": 1, "b": "2"}, configspec=str(CONFIG_SPEC_PATH))
-        self.tribler_config = TriblerConfig(configdict)
-
-        self.tribler_config.validate()
-        for key, value in configdict.items():
-            self.assertEqual(self.tribler_config.config[key], value)
 
     def test_init_without_config(self):
         """
@@ -50,9 +35,7 @@ class TestTriblerConfig(TriblerCoreTest):
         self.tribler_config.set_anon_listen_port(port)
         self.tribler_config.write()
         path = self.tribler_config.get_state_dir() / CONFIG_FILENAME
-        read_config = TriblerConfig.load(path)
-
-        read_config.validate()
+        read_config = TriblerConfig(self.root_state_dir, config_file=path)
         self.assertEqual(read_config.get_anon_listen_port(), port)
 
     def test_load(self):
@@ -134,20 +117,6 @@ class TestTriblerConfig(TriblerCoreTest):
         """
         Check whether general get and set methods are working as expected.
         """
-        self.tribler_config.set_root_state_dir("TEST")
-        self.assertEqual(str(self.tribler_config.get_root_state_dir()), "TEST")
-
-        # State directory is now versioned
-        expected_state_dir = Path("TEST", tribler_version.version_id)
-        self.assertEqual(self.tribler_config.get_state_dir(), expected_state_dir)
-
-        self.tribler_config.set_version('7.0.0-GIT')
-        self.assertLessEqual(self.tribler_config.get_version(), '7.0.0-GIT')
-
-        self.assertEqual(self.tribler_config.get_version_backup_enabled(), True)
-        self.tribler_config.set_version_backup_enabled(False)
-        self.assertEqual(self.tribler_config.get_version_backup_enabled(), False)
-
         self.assertEqual(self.tribler_config.get_trustchain_testnet_keypair_filename(),
                          self.tribler_config.get_state_dir() / "ec_trustchain_testnet.pem")
         self.tribler_config.set_trustchain_testnet_keypair_filename("bla2")

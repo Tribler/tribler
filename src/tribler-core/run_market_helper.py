@@ -9,6 +9,8 @@ from asyncio import ensure_future, get_event_loop, sleep
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.modules.process_checker import ProcessChecker
 from tribler_core.session import Session
+from tribler_core.utilities.osutils import get_appstate_dir
+from tribler_core.utilities.path_util import Path
 
 
 class MarketService(object):
@@ -35,7 +37,7 @@ class MarketService(object):
         signal.signal(signal.SIGINT, lambda sig, _: ensure_future(signal_handler(sig)))
         signal.signal(signal.SIGTERM, lambda sig, _: ensure_future(signal_handler(sig)))
 
-        config = TriblerConfig()
+        config = TriblerConfig(options.statedir or Path(get_appstate_dir(), '.Tribler'))
         config.set_torrent_checking_enabled(False)
         config.set_libtorrent_enabled(True)
         config.set_http_api_enabled(True)
@@ -43,6 +45,7 @@ class MarketService(object):
         config.set_credit_mining_enabled(False)
         config.set_dummy_wallets_enabled(True)
         config.set_popularity_community_enabled(False)
+        config.set_chant_enabled(False)
 
         # Check if we are already running a Tribler instance
         self.process_checker = ProcessChecker()
@@ -52,9 +55,6 @@ class MarketService(object):
             return
 
         print("Starting Tribler")
-
-        if options.statedir:
-            config.set_root_state_dir(options.statedir)
 
         if options.restapi > 0:
             config.set_http_api_enabled(True)

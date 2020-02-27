@@ -1,7 +1,5 @@
 # -*- coding:utf-8 -*-
-from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.restapi.util import fix_unicode_array, fix_unicode_dict, get_parameter
-from tribler_core.session import Session
 from tribler_core.tests.tools.base_test import MockObject, TriblerCoreTest
 
 
@@ -9,13 +7,6 @@ class TestRestApiUtil(TriblerCoreTest):
     """
     This class contains various tests for the rest api utility methods.
     """
-    async def setUp(self):
-        await super(TestRestApiUtil, self).setUp()
-
-        config = TriblerConfig()
-        config.set_root_state_dir(self.getRootStateDir())
-        config.get_dispersy_enabled = lambda: False
-        self.session = Session(config)
 
     def test_get_parameter(self):
         """

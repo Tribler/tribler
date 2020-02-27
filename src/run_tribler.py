@@ -4,14 +4,18 @@ import signal
 import sys
 from asyncio import ensure_future, get_event_loop
 
-import tribler_core
-from tribler_core.dependencies import check_for_missing_dependencies
-
-import tribler_gui
-
 # https://github.com/Tribler/tribler/issues/3702
 # We need to make sure that anyone running cp65001 can print to the stdout before we print anything.
 # Annoyingly cp65001 is not shipped by default, so we add support for it through mapping it to mbcs.
+import tribler_core
+from tribler_core.config.tribler_config import CONFIG_FILENAME
+from tribler_core.dependencies import check_for_missing_dependencies
+from tribler_core.upgrade.version_manager import fork_state_directory_if_necessary, get_versioned_state_directory
+from tribler_core.utilities.osutils import get_root_state_directory
+from tribler_core.version import version_id
+
+import tribler_gui
+
 if getattr(sys.stdout, 'encoding', None) == 'cp65001':
     import codecs
 
@@ -30,14 +34,14 @@ if getattr(sys.stdout, 'encoding', None) == 'cp65001':
     codecs.register(remapped_mbcs)
 
 
-def start_tribler_core(base_path, api_port, api_key):
+def start_tribler_core(base_path, api_port, api_key, root_state_dir):
     """
     This method will start a new Tribler session.
     Note that there is no direct communication between the GUI process and the core: all communication is performed
     through the HTTP API.
     """
     from tribler_core.check_os import check_and_enable_code_tracing, set_process_priority
-    tribler_core.load_logger_config()
+    tribler_core.load_logger_config(root_state_dir)
 
     from tribler_core.config.tribler_config import TriblerConfig
     from tribler_core.modules.process_checker import ProcessChecker
@@ -58,15 +62,19 @@ def start_tribler_core(base_path, api_port, api_key):
     sys.path.insert(0, base_path)
 
     async def start_tribler():
-        config = TriblerConfig()
-        global trace_logger
+        # Check if we are already running a Tribler instance
+        process_checker = ProcessChecker(root_state_dir)
+        if process_checker.already_running:
+            return
+        process_checker.create_lock_file()
 
-        # Enable tracer if --trace-debug or --trace-exceptions flag is present in sys.argv
-        trace_logger = check_and_enable_code_tracing('core')
+        # Before any upgrade, prepare a separate state directory for the update version so it does not
+        # affect the older version state directory. This allows for safe rollback.
+        fork_state_directory_if_necessary(root_state_dir, version_id)
 
-        priority_order = config.get_cpu_priority_order()
-        set_process_priority(pid=os.getpid(), priority_order=priority_order)
+        state_dir = get_versioned_state_directory(root_state_dir)
 
+        config = TriblerConfig(state_dir, config_file=state_dir / CONFIG_FILENAME)
         config.set_http_api_port(int(api_port))
         # If the API key is set to an empty string, it will remain disabled
         if config.get_http_api_key() not in ('', api_key):
@@ -74,11 +82,12 @@ def start_tribler_core(base_path, api_port, api_key):
             config.write()  # Immediately write the API key so other applications can use it
         config.set_http_api_enabled(True)
 
-        # Check if we are already running a Tribler instance
-        process_checker = ProcessChecker(config.get_state_dir())
-        if process_checker.already_running:
-            return
-        process_checker.create_lock_file()
+        priority_order = config.get_cpu_priority_order()
+        set_process_priority(pid=os.getpid(), priority_order=priority_order)
+
+        global trace_logger
+        # Enable tracer if --trace-debug or --trace-exceptions flag is present in sys.argv
+        trace_logger = check_and_enable_code_tracing('core', config.get_log_dir())
 
         session = Session(config)
 
@@ -91,6 +100,9 @@ def start_tribler_core(base_path, api_port, api_key):
 
 
 if __name__ == "__main__":
+    # Get root state directory (e.g. from environment variable or from system default)
+    root_state_dir = get_root_state_directory()
+
     # Check whether we need to start the core or the user interface
     if 'CORE_PROCESS' in os.environ:
         # Check for missing Core dependencies
@@ -99,24 +111,25 @@ if __name__ == "__main__":
         base_path = os.environ['CORE_BASE_PATH']
         api_port = os.environ['CORE_API_PORT']
         api_key = os.environ['CORE_API_KEY']
-        start_tribler_core(base_path, api_port, api_key)
+
+        start_tribler_core(base_path, api_port, api_key, root_state_dir)
     else:
         # Set up logging
-        tribler_gui.load_logger_config()
+        tribler_gui.load_logger_config(root_state_dir)
 
         # Check for missing both(GUI, Core) dependencies
         check_for_missing_dependencies(scope='both')
 
         # Do imports only after dependencies check
-        from tribler_core.check_os import check_and_enable_code_tracing, check_environment, check_free_space, enable_fault_handler, \
-            error_and_exit, should_kill_other_tribler_instances
+        from tribler_core.check_os import check_and_enable_code_tracing, check_environment, check_free_space, \
+            enable_fault_handler, error_and_exit, should_kill_other_tribler_instances
         from tribler_core.exceptions import TriblerException
 
         try:
             # Enable tracer using commandline args: --trace-debug or --trace-exceptions
-            trace_logger = check_and_enable_code_tracing('gui')
+            trace_logger = check_and_enable_code_tracing('gui', root_state_dir)
 
-            enable_fault_handler()
+            enable_fault_handler(root_state_dir)
 
             # Exit if we cant read/write files, etc.
             check_environment()
