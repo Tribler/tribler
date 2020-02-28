@@ -597,20 +597,13 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         self.libtorrent_download_impl.on_state_changed_alert(type('state_changed_alert', (object,), dict(state=5)))
         self.libtorrent_download_impl.apply_ip_filter.assert_called_with(False)
 
-        # TODO: re-enable this test for asyncio
-        #self.libtorrent_download_impl.deferreds_resume.append(Deferred().addErrback(
-        #    self.libtorrent_download_impl._on_resume_err).addCallback(on_error))
-        #self.libtorrent_download_impl.on_save_resume_data_failed_alert(mock_alert)
-
-    @skipIf(True, reason="Needs to be converted to asyncio")
     async def test_checkpoint_timeout(self):
         """
         Testing whether making a checkpoint times out when we receive no alert from libtorrent
         """
         self.libtorrent_download_impl._on_resume_err = Mock()
-        self.libtorrent_download_impl.deferreds_resume = [Deferred()]
-        self.libtorrent_download_impl.save_resume_data(timeout=.01)
-        self.libtorrent_download_impl.deferreds_resume.pop(0)
+        self.libtorrent_download_impl.futures['save_resume_data'] = [Future()]
+        task = self.libtorrent_download_impl.save_resume_data(timeout=.01)
+        self.libtorrent_download_impl.futures['save_resume_data'].pop(0)
         await sleep(0.2)
-        args, _ = self.libtorrent_download_impl._on_resume_err.call_args
-        self.assertEqual(args[0].type, CancelledError)
+        self.assertTrue(task.done())
