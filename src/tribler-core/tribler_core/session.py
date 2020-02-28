@@ -440,6 +440,14 @@ class Session(TaskManager):
             self.config.set_anon_proxy_settings(2, ("127.0.0.1",
                                                     self.
                                                     config.get_tunnel_community_socks5_listen_ports()))
+            self.ipv8_start_time = timemod.time()
+            self.load_ipv8_overlays()
+            self.enable_ipv8_statistics()
+            if self.api_manager:
+                self.api_manager.set_ipv8_session(self.ipv8)
+            if self.config.get_tunnel_community_enabled():
+                await self.tunnel_community.wait_for_socks_servers()
+
         # Wallets
         if self.config.get_bitcoinlib_enabled():
             try:
@@ -471,28 +479,11 @@ class Session(TaskManager):
             self.torrent_checker = TorrentChecker(self)
             await self.torrent_checker.initialize()
 
-        if self.ipv8:
-            self.ipv8_start_time = timemod.time()
-            self.load_ipv8_overlays()
-            self.enable_ipv8_statistics()
-            if self.api_manager:
-                self.api_manager.set_ipv8_session(self.ipv8)
-            if self.config.get_tunnel_community_enabled():
-                await self.tunnel_community.wait_for_socks_servers()
-
-        tunnel_community_ports = self.config.get_tunnel_community_socks5_listen_ports()
-        self.config.set_anon_proxy_settings(2, ("127.0.0.1", tunnel_community_ports))
-
         if self.config.get_libtorrent_enabled():
             self.readable_status = STATE_START_LIBTORRENT
             from tribler_core.modules.libtorrent.libtorrent_mgr import LibtorrentMgr
             self.ltmgr = LibtorrentMgr(self)
             self.ltmgr.initialize()
-
-        if self.config.get_chant_enabled() and self.config.get_chant_manager_enabled():
-            self.gigachannel_manager = GigaChannelManager(self)
-            # GigaChannel Manager startup routines are started asynchronously by Session
-            # after resuming Libtorrent downloads.
 
         if self.config.get_watch_folder_enabled():
             self.readable_status = STATE_START_WATCH_FOLDER
@@ -524,8 +515,9 @@ class Session(TaskManager):
 
         # GigaChannel Manager should be started *after* resuming the downloads,
         # because it depends on the states of torrent downloads
-        # TODO: move GigaChannel torrents into a separate Libtorrent session
-        if self.gigachannel_manager:
+        if self.config.get_chant_enabled() and self.config.get_chant_manager_enabled()\
+                and self.config.get_libtorrent_enabled:
+            self.gigachannel_manager = GigaChannelManager(self)
             self.gigachannel_manager.start()
 
         if self.config.get_bootstrap_enabled():
