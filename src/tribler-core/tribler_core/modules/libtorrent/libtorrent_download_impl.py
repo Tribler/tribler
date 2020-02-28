@@ -7,7 +7,7 @@ import base64
 import logging
 import sys
 import time
-from asyncio import CancelledError, Future, iscoroutine, sleep
+from asyncio import CancelledError, Future, TimeoutError, iscoroutine, sleep, wait_for
 from collections import defaultdict
 
 from ipv8.taskmanager import TaskManager, task
@@ -662,7 +662,7 @@ class LibtorrentDownloadImpl(TaskManager):
         return DownloadState(self, self.lt_status, self.error, vod)
 
     @task
-    async def save_resume_data(self):
+    async def save_resume_data(self, timeout=10):
         """
         Save the resume data of a download. This method returns when the resume data is available.
         Note that this method only calls save_resume_data once on subsequent calls.
@@ -672,9 +672,9 @@ class LibtorrentDownloadImpl(TaskManager):
             handle.save_resume_data()
 
         try:
-            await self.wait_for_alert('save_resume_data_alert', None,
-                                      'save_resume_data_failed_alert',
-                                      lambda a: SaveResumeDataError(a.error.message()))
+            await wait_for(self.wait_for_alert('save_resume_data_alert', None,
+                                               'save_resume_data_failed_alert',
+                                               lambda a: SaveResumeDataError(a.error.message())), timeout=timeout)
         except (CancelledError, SaveResumeDataError, TimeoutError) as e:
             self._logger.error("Resume data failed to save: %s", e)
 
