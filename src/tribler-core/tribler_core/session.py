@@ -490,11 +490,6 @@ class Session(TaskManager):
             self.watch_folder = WatchFolder(self)
             self.watch_folder.start()
 
-        if self.config.get_credit_mining_enabled():
-            self.readable_status = STATE_START_CREDIT_MINING
-            from tribler_core.modules.credit_mining.credit_mining_manager import CreditMiningManager
-            self.credit_mining_manager = CreditMiningManager(self)
-
         if self.config.get_resource_monitor_enabled():
             self.resource_monitor = ResourceMonitor(self)
             self.resource_monitor.start()
@@ -506,12 +501,15 @@ class Session(TaskManager):
         if self.config.get_ipv8_enabled() and self.config.get_trustchain_enabled():
             self.payout_manager = PayoutManager(self.trustchain_community, self.dht_community)
 
-        self.notifier.notify(NTFY.TRIBLER_STARTED)
-
         if self.config.get_libtorrent_enabled():
             self.readable_status = STATE_LOAD_CHECKPOINTS
             await self.ltmgr.load_checkpoints()
         self.readable_status = STATE_READABLE_STARTED
+
+        if self.config.get_credit_mining_enabled():
+            self.readable_status = STATE_START_CREDIT_MINING
+            from tribler_core.modules.credit_mining.credit_mining_manager import CreditMiningManager
+            self.credit_mining_manager = CreditMiningManager(self)
 
         # GigaChannel Manager should be started *after* resuming the downloads,
         # because it depends on the states of torrent downloads
@@ -522,6 +520,8 @@ class Session(TaskManager):
 
         if self.config.get_bootstrap_enabled():
             self.register_task('bootstrap_download', self.start_bootstrap_download)
+
+        self.notifier.notify(NTFY.TRIBLER_STARTED)
 
     async def shutdown(self):
         """
