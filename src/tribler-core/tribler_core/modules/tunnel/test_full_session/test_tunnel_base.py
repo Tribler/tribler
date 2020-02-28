@@ -37,6 +37,7 @@ class TestTunnelBase(TestAsServer):
         self.test_class.master_peer = Peer(ec)
 
         self.tunnel_community = await self.load_tunnel_community_in_session(self.session, exitnode=True, start_lt=True)
+        self.session.tunnel_community = self.tunnel_community  # Magic!
         self.tunnel_communities = []
 
     def setUpPreSession(self):
@@ -204,8 +205,7 @@ class TestTunnelBase(TestAsServer):
         dscfg.set_dest_dir(self.getDestDir())
         dscfg.set_hops(hops)
         download = self.session.ltmgr.start_download(tdef=self.seed_tdef, config=dscfg)
-        tc = self.session.tunnel_community
-        tc.bittorrent_peers[download] = [("127.0.0.1", self.session2.config.get_libtorrent_port())]
+        self.tunnel_community.bittorrent_peers[download] = [("127.0.0.1", self.session2.config.get_libtorrent_port())]
         return download
 
     async def deliver_messages(self, timeout=.1):
