@@ -49,12 +49,46 @@ class TestUpgrader(TestAsServer):
             self.assertEqual(mds.TorrentMetadata.select().count(), 24)
         mds.shutdown()
 
-    @timeout(10)
-    async def test_upgrade_pony_db_6to7(self):
+    def test_upgrade_pony_db_6to7(self):
         """
         Test that channels and torrents with forbidden words are cleaned up during upgrade from Pony db ver 6 to 7.
         Also, check that the DB version is upgraded.
         :return:
+        """
+        OLD_DB_SAMPLE = TESTS_DATA_DIR / 'upgrade_databases' / 'pony_v6.db'
+        old_database_path = self.session.config.get_state_dir() / 'sqlite' / 'metadata.db'
+        shutil.copyfile(OLD_DB_SAMPLE, old_database_path)
+
+        self.upgrader.upgrade_pony_db_6to7()
+        channels_dir = self.session.config.get_chant_channels_dir()
+        mds = MetadataStore(old_database_path, channels_dir, self.session.trustchain_keypair)
+        with db_session:
+            self.assertEqual(mds.TorrentMetadata.select().count(), 23)
+            self.assertEqual(mds.ChannelMetadata.select().count(), 2)
+            self.assertEqual(int(mds.MiscData.get(name="db_version").value), 7)
+        mds.shutdown()
+
+    def test_upgrade_pony_db_7to8(self):
+        """
+        Test that proper additionald index is created.
+        Also, check that the DB version is upgraded.
+        """
+        OLD_DB_SAMPLE = TESTS_DATA_DIR / 'upgrade_databases' / 'pony_v7.db'
+        old_database_path = self.session.config.get_state_dir() / 'sqlite' / 'metadata.db'
+        shutil.copyfile(OLD_DB_SAMPLE, old_database_path)
+
+        self.upgrader.upgrade_pony_db_7to8()
+        channels_dir = self.session.config.get_chant_channels_dir()
+        mds = MetadataStore(old_database_path, channels_dir, self.session.trustchain_keypair)
+        with db_session:
+            self.assertEqual(int(mds.MiscData.get(name="db_version").value), 8)
+            self.assertTrue(list(mds._db.execute('PRAGMA index_info("idx_channelnode__metadata_type")')))
+        mds.shutdown()
+
+    @timeout(10)
+    async def test_upgrade_pony_db_complete(self):
+        """
+        Test complete update sequence for Pony DB (e.g. 6->7->8)
         """
         OLD_DB_SAMPLE = TESTS_DATA_DIR / 'upgrade_databases' / 'pony_v6.db'
         old_database_path = self.session.config.get_state_dir() / 'sqlite' / 'metadata.db'
@@ -66,7 +100,8 @@ class TestUpgrader(TestAsServer):
         with db_session:
             self.assertEqual(mds.TorrentMetadata.select().count(), 23)
             self.assertEqual(mds.ChannelMetadata.select().count(), 2)
-            self.assertEqual(int(mds.MiscData.get(name="db_version").value), 7)
+            self.assertEqual(int(mds.MiscData.get(name="db_version").value), 8)
+            self.assertTrue(list(mds._db.execute('PRAGMA index_info("idx_channelnode__metadata_type")')))
         mds.shutdown()
 
     @timeout(10)

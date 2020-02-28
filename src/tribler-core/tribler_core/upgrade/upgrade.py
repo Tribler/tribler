@@ -82,8 +82,36 @@ class TriblerUpgrader(object):
 
         await self.upgrade_72_to_pony()
         self.upgrade_pony_db_6to7()
+        self.upgrade_pony_db_7to8()
         convert_config_to_tribler74(self.session.config.get_state_dir())
         convert_config_to_tribler75(self.session.config.get_state_dir())
+
+    def upgrade_pony_db_7to8(self):
+        """
+        Upgrade GigaChannel DB from version 7 (7.4.x) to version 8 (7.5.x).
+        Migration should be relatively fast, so we do it in the foreground.
+        """
+        # We have to create the Metadata Store object because Session-managed Store has not been started yet
+        database_path = self.session.config.get_state_dir() / 'sqlite' / 'metadata.db'
+        channels_dir = self.session.config.get_chant_channels_dir()
+        if not database_path.exists():
+            return
+        mds = MetadataStore(database_path, channels_dir, self.session.trustchain_keypair, disable_sync=True)
+        self.do_upgrade_pony_db_7to8(mds)
+        mds.shutdown()
+
+    def do_upgrade_pony_db_7to8(self, mds):
+        with db_session:
+            db_version = mds.MiscData.get(name="db_version")
+            if int(db_version.value) != 7:
+                return
+            # Just in case, we skip index creation if it is somehow already there
+            if not list(mds._db.execute('PRAGMA index_info("idx_channelnode__metadata_type")')):
+                sql = 'CREATE INDEX "idx_channelnode__metadata_type" ON "ChannelNode" ("metadata_type")'
+                mds._db.execute(sql)
+            db_version = mds.MiscData.get(name="db_version")
+            db_version.value = str(8)
+        return
 
     def upgrade_pony_db_6to7(self):
         """
