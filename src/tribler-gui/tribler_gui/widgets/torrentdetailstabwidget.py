@@ -40,7 +40,7 @@ class TorrentDetailsTabWidget(QTabWidget):
 
         self.healthcheck_timer = QTimer()
         self.healthcheck_timer.setSingleShot(True)
-        self.healthcheck_timer.timeout.connect(self.check_torrent_health)
+        self.healthcheck_timer.timeout.connect(self.on_check_health_clicked)
         self.currentChanged.connect(self.on_tab_changed)
 
         self.rest_request1 = None
@@ -120,6 +120,8 @@ class TorrentDetailsTabWidget(QTabWidget):
                 self.rest_request2.cancel_request()
             self.is_health_checking = False
         if torrent_info['last_tracker_check'] == 0:
+            if not self.healthcheck_timer.isActive():
+                self.on_check_health_clicked()
             self.healthcheck_timer.stop()
             self.healthcheck_timer.start(HEALTHCHECK_DELAY)
         self.update_health_label(
@@ -151,6 +153,8 @@ class TorrentDetailsTabWidget(QTabWidget):
         if not self.torrent_info:
             return
         infohash = self.torrent_info[u'infohash']
+
+        self.is_health_checking = True
 
         def on_cancel_health_check():
             self.is_health_checking = False
