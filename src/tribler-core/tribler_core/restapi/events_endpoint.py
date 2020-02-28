@@ -60,6 +60,11 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
         RESTEndpoint.__init__(self, session)
         TaskManager.__init__(self)
         self.events_responses = []
+
+        # We need to know that Tribler completed its startup sequence
+        self.tribler_started = False
+        self.session.notifier.add_observer(NTFY.TRIBLER_STARTED, self._tribler_started)
+
         for event_type, event_lambda in reactions_dict.items():
             self.session.notifier.add_observer(event_type,
                                       lambda *args, event_lambda=event_lambda, event_type=event_type: self.write_data(
@@ -78,6 +83,9 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
 
         # Tribler tunnel circuit has been removed
         self.session.notifier.add_observer(NTFY.TUNNEL_REMOVE, on_circuit_removed)
+
+    def _tribler_started(self):
+        self.tribler_started = True
 
     def setup_routes(self):
         self.app.add_routes([web.get('', self.get_events)])
@@ -125,7 +133,7 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
         await response.prepare(request)
         # FIXME: Proper start check!
         await response.write(b'data: ' + json.dumps({"type": NTFY.EVENTS_START.value,
-                                                     "event": {"tribler_started": True,
+                                                     "event": {"tribler_started": self.tribler_started,
                                                                "version": version_id}}).encode('utf-8') + b'\n\n')
         self.events_responses.append(response)
         try:
