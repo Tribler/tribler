@@ -64,7 +64,6 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         if self.tribler_session:
             if self.tribler_session.config.get_tunnel_community_exitnode_enabled():
                 self.settings.peer_flags |= PEER_FLAG_EXIT_ANY
-            self.tribler_session.tunnel_community = self
 
             if not socks_listen_ports:
                 socks_listen_ports = self.tribler_session.config.get_tunnel_community_socks5_listen_ports()
