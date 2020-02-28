@@ -420,6 +420,26 @@ class Session(TaskManager):
             self.video_server = VideoServer(self.config.get_video_server_port(), self)
             self.video_server.start()
 
+        if self.config.get_libtorrent_enabled():
+            self.readable_status = STATE_START_LIBTORRENT
+            from tribler_core.modules.libtorrent.libtorrent_mgr import LibtorrentMgr
+            self.ltmgr = LibtorrentMgr(self)
+            self.ltmgr.initialize()
+            self.readable_status = STATE_LOAD_CHECKPOINTS
+            await self.ltmgr.load_checkpoints()
+        self.readable_status = STATE_READABLE_STARTED
+
+        if self.config.get_chant_enabled():
+            channels_dir = self.config.get_chant_channels_dir()
+            metadata_db_name = 'metadata.db' if not self.config.get_testnet() else 'metadata_testnet.db'
+            database_path = self.config.get_state_dir() / 'sqlite' / metadata_db_name
+            self.mds = MetadataStore(database_path, channels_dir, self.trustchain_keypair)
+
+        if self.config.get_torrent_checking_enabled():
+            self.readable_status = STATE_START_TORRENT_CHECKER
+            self.torrent_checker = TorrentChecker(self)
+            await self.torrent_checker.initialize()
+
         # IPv8
         if self.config.get_ipv8_enabled():
             from ipv8.configuration import get_default_configuration
@@ -460,12 +480,6 @@ class Session(TaskManager):
             except Exception as exc:
                 self._logger.error("bitcoinlib library cannot be loaded: %s", exc)
 
-        if self.config.get_chant_enabled():
-            channels_dir = self.config.get_chant_channels_dir()
-            metadata_db_name = 'metadata.db' if not self.config.get_testnet() else 'metadata_testnet.db'
-            database_path = self.config.get_state_dir() / 'sqlite' / metadata_db_name
-            self.mds = MetadataStore(database_path, channels_dir, self.trustchain_keypair)
-
         if self.config.get_dummy_wallets_enabled():
             # For debugging purposes, we create dummy wallets
             dummy_wallet1 = DummyWallet1()
@@ -473,17 +487,6 @@ class Session(TaskManager):
 
             dummy_wallet2 = DummyWallet2()
             self.wallets[dummy_wallet2.get_identifier()] = dummy_wallet2
-
-        if self.config.get_torrent_checking_enabled():
-            self.readable_status = STATE_START_TORRENT_CHECKER
-            self.torrent_checker = TorrentChecker(self)
-            await self.torrent_checker.initialize()
-
-        if self.config.get_libtorrent_enabled():
-            self.readable_status = STATE_START_LIBTORRENT
-            from tribler_core.modules.libtorrent.libtorrent_mgr import LibtorrentMgr
-            self.ltmgr = LibtorrentMgr(self)
-            self.ltmgr.initialize()
 
         if self.config.get_watch_folder_enabled():
             self.readable_status = STATE_START_WATCH_FOLDER
@@ -500,11 +503,6 @@ class Session(TaskManager):
 
         if self.config.get_ipv8_enabled() and self.config.get_trustchain_enabled():
             self.payout_manager = PayoutManager(self.trustchain_community, self.dht_community)
-
-        if self.config.get_libtorrent_enabled():
-            self.readable_status = STATE_LOAD_CHECKPOINTS
-            await self.ltmgr.load_checkpoints()
-        self.readable_status = STATE_READABLE_STARTED
 
         if self.config.get_credit_mining_enabled():
             self.readable_status = STATE_START_CREDIT_MINING
