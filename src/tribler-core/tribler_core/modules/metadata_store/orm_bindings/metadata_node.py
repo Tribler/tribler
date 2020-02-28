@@ -27,7 +27,7 @@ def define_binding(db):
         # FIXME: ACHTUNG! PONY BUG! This is a workaround for Pony not caching attributes from multiple inheritance!
         # Its real home is CollectionNode, but we are forced to put it here so it is loaded by default on all queries.
         # When Pony fixes it, we must move it back to CollectionNode for clarity.
-        num_entries = orm.Optional(int, size=64, default=0)
+        num_entries = orm.Optional(int, size=64, default=0, index=True)
 
         # Special class-level properties
         _payload_class = MetadataNodePayload
