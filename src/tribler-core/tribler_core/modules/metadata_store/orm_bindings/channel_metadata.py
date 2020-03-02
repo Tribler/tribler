@@ -364,14 +364,6 @@ def define_binding(db):
                 and g.public_key != database_blob(cls._my_key.pub().key_to_bin()[10:])
             )
 
-        @classmethod
-        @db_session
-        def get_entries_query(cls, subscribed=None, **kwargs):
-            # This method filters channels-related arguments and translates them into Pony query parameters
-            pony_query = super(ChannelMetadata, cls).get_entries_query(**kwargs)
-            pony_query = pony_query.where(subscribed=subscribed) if subscribed is not None else pony_query
-            return pony_query
-
         @property
         @db_session
         def state(self):

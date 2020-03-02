@@ -67,8 +67,10 @@ def define_binding(db):
             sort_by=None,
             sort_desc=True,
             txt_filter=None,
+            subscribed=None,
             category=None,
             attribute_ranges=None,
+            id_=None,
         ):
             """
             This method implements REST-friendly way to get entries from the database. It is overloaded by the higher
@@ -76,7 +78,6 @@ def define_binding(db):
             :return: PonyORM query object corresponding to the given params.
             """
             # Warning! For Pony magic to work, iteration variable name (e.g. 'g') should be the same everywhere!
-            # Filter the results on a keyword or some keywords
 
             pony_query = cls.search_keyword(txt_filter, lim=1000) if txt_filter else select(g for g in cls)
 
@@ -101,7 +102,9 @@ def define_binding(db):
                         pony_query = pony_query.where(f"g.{attr} < right")
 
             # origin_id can be zero, for e.g. root channel
+            pony_query = pony_query.where(id_=id_) if id_ is not None else pony_query
             pony_query = pony_query.where(origin_id=origin_id) if origin_id is not None else pony_query
+            pony_query = pony_query.where(lambda g: g.subscribed) if subscribed is not None else pony_query
             pony_query = pony_query.where(lambda g: g.tags == category) if category else pony_query
             pony_query = pony_query.where(lambda g: g.status != TODELETE) if exclude_deleted else pony_query
             pony_query = pony_query.where(lambda g: g.xxx == 0) if hide_xxx else pony_query
