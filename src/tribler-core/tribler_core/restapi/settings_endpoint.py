@@ -85,7 +85,7 @@ class SettingsEndpoint(RESTEndpoint):
 
         # Perform some actions when specific keys are set
         if section == "libtorrent" and (option == "max_download_rate" or option == "max_upload_rate"):
-            self.session.ltmgr.update_max_rates_from_config()
+            self.session.dlmgr.update_max_rates_from_config()
 
         if section == 'credit_mining' and option == 'enabled' and \
              value != bool(self.session.credit_mining_manager):

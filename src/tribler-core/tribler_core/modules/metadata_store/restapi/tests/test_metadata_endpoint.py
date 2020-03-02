@@ -206,7 +206,7 @@ class TestTorrentHealthEndpoint(AbstractApiTest):
         self.http_tracker = HTTPTracker(self.http_port)
 
     async def tearDown(self):
-        self.session.ltmgr = None
+        self.session.dlmgr = None
         if self.udp_tracker:
             await self.udp_tracker.stop()
         if self.http_tracker:
@@ -235,11 +235,11 @@ class TestTorrentHealthEndpoint(AbstractApiTest):
         await self.session.torrent_checker.initialize()
 
         # Add mock DHT response - we both need to account for the case when BEP33 is used and the old lookup method
-        self.session.ltmgr = MockObject()
-        self.session.ltmgr.get_metainfo = lambda _, **__: succeed(None)
-        self.session.ltmgr.dht_health_manager = MockObject()
+        self.session.dlmgr = MockObject()
+        self.session.dlmgr.get_metainfo = lambda _, **__: succeed(None)
+        self.session.dlmgr.dht_health_manager = MockObject()
         dht_health_dict = {"infohash": hexlify(infohash), "seeders": 1, "leechers": 2}
-        self.session.ltmgr.dht_health_manager.get_health = lambda *_, **__: succeed({"DHT": [dht_health_dict]})
+        self.session.dlmgr.dht_health_manager.get_health = lambda *_, **__: succeed({"DHT": [dht_health_dict]})
 
         # Left for compatibility with other tests in this object
         await self.udp_tracker.start()

@@ -128,7 +128,7 @@ class TestCreditMiningManager(TestAsServer):
             removed.append(download.get_def().get_infohash())
             return succeed(None)
 
-        self.session.ltmgr.remove_download = fake_remove
+        self.session.dlmgr.remove_download = fake_remove
 
         torrents = {i: FakeTorrent(i, self.name + str(i)) for i in range(5)}
         self.credit_mining_manager.add_source(self.cid)
@@ -143,12 +143,12 @@ class TestCreditMiningManager(TestAsServer):
         self.credit_mining_manager.add_source(self.cid)
         self.credit_mining_manager.on_torrent_insert(self.cid, self.infohash, self.name)
         self.assertIn(self.infohash, self.credit_mining_manager.torrents)
-        self.assertTrue(self.session.ltmgr.get_download(self.infohash_bin))
+        self.assertTrue(self.session.dlmgr.get_download(self.infohash_bin))
 
     def test_torrent_insert_unknown_source(self):
         self.credit_mining_manager.on_torrent_insert(self.cid, self.infohash, self.name)
         self.assertNotIn(self.infohash, self.credit_mining_manager.torrents)
-        self.assertFalse(self.session.ltmgr.get_download(self.infohash_bin))
+        self.assertFalse(self.session.dlmgr.get_download(self.infohash_bin))
 
     def test_torrent_insert_duplicate(self):
         self.credit_mining_manager.torrents[self.infohash] = CreditMiningTorrent(self.infohash, self.name)
@@ -157,7 +157,7 @@ class TestCreditMiningManager(TestAsServer):
 
         self.credit_mining_manager.on_torrent_insert(self.cid, self.infohash, self.name)
         self.assertIn(torrent, self.credit_mining_manager.torrents.values())
-        self.assertFalse(self.session.ltmgr.get_download(self.infohash_bin))
+        self.assertFalse(self.session.dlmgr.get_download(self.infohash_bin))
 
         # When we add a duplicate from another known source, the set of sources should update
         source = '1' * 40
@@ -165,21 +165,21 @@ class TestCreditMiningManager(TestAsServer):
         self.credit_mining_manager.on_torrent_insert(source, self.infohash, self.name)
         self.assertIn(source, torrent.sources)
         self.assertIn(torrent, self.credit_mining_manager.torrents.values())
-        self.assertFalse(self.session.ltmgr.get_download(self.infohash_bin))
+        self.assertFalse(self.session.dlmgr.get_download(self.infohash_bin))
 
     def test_torrent_insert_limit(self):
         self.credit_mining_manager.add_source(self.cid)
         self.credit_mining_manager.settings.max_torrents_listed = 0
         self.credit_mining_manager.on_torrent_insert(self.cid, self.infohash, self.name)
         self.assertNotIn(self.infohash, self.credit_mining_manager.torrents)
-        self.assertFalse(self.session.ltmgr.get_download(self.infohash_bin))
+        self.assertFalse(self.session.dlmgr.get_download(self.infohash_bin))
 
     def test_torrent_insert_existing_download(self):
         self.credit_mining_manager.add_source(self.cid)
-        self.session.ltmgr.downloads[self.infohash_bin] = MockObject()
+        self.session.dlmgr.downloads[self.infohash_bin] = MockObject()
         self.credit_mining_manager.on_torrent_insert(self.cid, self.infohash, self.name)
         self.assertNotIn(self.infohash, self.credit_mining_manager.torrents)
-        del self.session.ltmgr.downloads[self.infohash_bin]
+        del self.session.dlmgr.downloads[self.infohash_bin]
 
     def test_select_torrent_single_policy(self):
         self.credit_mining_manager.monitor_downloads = lambda _: None
@@ -326,7 +326,7 @@ class TestCreditMiningManager(TestAsServer):
         self.credit_mining_manager.settings.low_disk_space = 1024 ** 2
 
         downloads = [FakeTorrent(i, self.name + str(i)).download for i in range(5)]
-        self.session.ltmgr.get_downloads = lambda: downloads
+        self.session.dlmgr.get_downloads = lambda: downloads
 
         # Check that all download have upload_mode=False if we have enough disk space
         self.credit_mining_manager.get_free_disk_space = lambda: 2 * 1024 ** 2
@@ -358,7 +358,7 @@ class TestCreditMiningManager(TestAsServer):
             download.get_state().get_status = lambda: DLSTATUS_DOWNLOADING
             downloads.append(download)
 
-        self.credit_mining_manager.session.ltmgr.get_downloads = lambda: downloads
+        self.credit_mining_manager.session.dlmgr.get_downloads = lambda: downloads
 
         space_left = self.credit_mining_manager.get_reserved_space_left()
         self.assertEqual(space_left, max_space - used_space)
@@ -444,8 +444,8 @@ class TestCreditMiningManager(TestAsServer):
         self.credit_mining_manager.torrents[infohash_str] = torrent
 
         # Credit mining downloads should get moved to download directory and be checkpointed
-        self.session.ltmgr.get_download = lambda _: torrent.download
-        await self.session.ltmgr.start_download_from_uri(magnet)
+        self.session.dlmgr.get_download = lambda _: torrent.download
+        await self.session.dlmgr.start_download_from_uri(magnet)
         self.assertNotIn(infohash_str, self.credit_mining_manager.torrents)
         self.assertTrue(torrent.download.checkpoint_called)
         self.assertTrue(torrent.download.move_storage_called)
@@ -456,7 +456,7 @@ class TestCreditMiningManager(TestAsServer):
         torrent.download.checkpoint_called = False
         torrent.download.config = MockObject()
         torrent.download.config.get_credit_mining = lambda: False
-        self.session.ltmgr.get_download = lambda _: torrent.download
+        self.session.dlmgr.get_download = lambda _: torrent.download
         self.assertFalse(torrent.download.move_storage_called)
         self.assertFalse(torrent.download.checkpoint_called)
 

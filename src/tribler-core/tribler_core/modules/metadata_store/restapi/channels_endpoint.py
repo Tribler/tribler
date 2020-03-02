@@ -218,7 +218,7 @@ class ChannelsEndpoint(ChannelsEndpointBase):
                 ):
                     return RESTResponse({"added": 1})
 
-                meta_info = await self.session.ltmgr.get_metainfo(xt, timeout=30)
+                meta_info = await self.session.dlmgr.get_metainfo(xt, timeout=30)
                 if not meta_info:
                     raise RuntimeError("Metainfo timeout")
                 tdef = TorrentDef.load_from_dict(meta_info)

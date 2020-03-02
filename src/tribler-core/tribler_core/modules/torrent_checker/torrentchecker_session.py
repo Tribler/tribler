@@ -440,7 +440,7 @@ class FakeDHTSession(TrackerSession):
         Fakely connects to a tracker.
         :return: A deferred that fires with the health information.
         """
-        metainfo = await self._session.ltmgr.get_metainfo(self.infohash, timeout=self.timeout)
+        metainfo = await self._session.dlmgr.get_metainfo(self.infohash, timeout=self.timeout)
         if not metainfo:
             raise RuntimeError("Metainfo lookup error")
 
@@ -465,6 +465,6 @@ class FakeBep33DHTSession(FakeDHTSession):
         """
         try:
             async with timeout(self.timeout):
-                return await self._session.ltmgr.dht_health_manager.get_health(self.infohash)
+                return await self._session.dlmgr.dht_health_manager.get_health(self.infohash)
         except TimeoutError:
             self.failed(msg='request timed out')

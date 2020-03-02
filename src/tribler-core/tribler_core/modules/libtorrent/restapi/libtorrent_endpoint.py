@@ -48,12 +48,12 @@ class LibTorrentEndpoint(RESTEndpoint):
         if 'hop' in args and args['hop']:
             hop = int(args['hop'])
 
-        if hop not in self.session.ltmgr.ltsessions:
+        if hop not in self.session.dlmgr.ltsessions:
             return RESTResponse({'hop': hop, "settings": {}})
 
-        lt_session = self.session.ltmgr.ltsessions[hop]
+        lt_session = self.session.dlmgr.ltsessions[hop]
         if hop == 0:
-            lt_settings = self.session.ltmgr.get_session_settings(lt_session)
+            lt_settings = self.session.dlmgr.get_session_settings(lt_session)
             lt_settings['peer_fingerprint'] = hexlify(lt_settings['peer_fingerprint'])
         else:
             lt_settings = lt_session.get_settings()
@@ -99,11 +99,11 @@ class LibTorrentEndpoint(RESTEndpoint):
         if 'hop' in args and args['hop']:
             hop = int(args['hop'])
 
-        if hop not in self.session.ltmgr.ltsessions or \
-                not hasattr(self.session.ltmgr.ltsessions[hop], "post_session_stats"):
+        if hop not in self.session.dlmgr.ltsessions or \
+                not hasattr(self.session.dlmgr.ltsessions[hop], "post_session_stats"):
             return RESTResponse({'hop': hop, 'session': {}})
 
-        self.session.ltmgr.session_stats_callback = on_session_stats_alert_received
-        self.session.ltmgr.ltsessions[hop].post_session_stats()
+        self.session.dlmgr.session_stats_callback = on_session_stats_alert_received
+        self.session.dlmgr.ltsessions[hop].post_session_stats()
         stats = await session_stats
         return RESTResponse({'hop': hop, 'session': stats})

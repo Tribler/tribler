@@ -402,7 +402,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                                                            remove_now=remove_now, destroy=destroy)
 
         if self.tribler_session and self.tribler_session.config.get_libtorrent_enabled():
-            downloads = self.tribler_session.ltmgr.get_downloads()
+            downloads = self.tribler_session.dlmgr.get_downloads()
             if downloads:
                 await gather(*[self.update_torrent(affected_peers, download) for download in downloads])
 
@@ -513,16 +513,16 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
     def update_ip_filter(self, info_hash):
         download = self.get_download(info_hash)
-        lt_session = self.tribler_session.ltmgr.get_session(download.config.get_hops())
+        lt_session = self.tribler_session.dlmgr.get_session(download.config.get_hops())
         ip_addresses = [self.circuit_id_to_ip(c.circuit_id)
                         for c in self.find_circuits(ctype=CIRCUIT_TYPE_RP_SEEDER)] + ['1.1.1.1']
-        self.tribler_session.ltmgr.update_ip_filter(lt_session, ip_addresses)
+        self.tribler_session.dlmgr.update_ip_filter(lt_session, ip_addresses)
 
     def get_download(self, lookup_info_hash):
         if not self.tribler_session:
             return None
 
-        for download in self.tribler_session.ltmgr.get_downloads():
+        for download in self.tribler_session.dlmgr.get_downloads():
             if lookup_info_hash == self.get_lookup_info_hash(download.get_def().get_infohash()):
                 return download
 
@@ -536,11 +536,11 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             # an outgoing message through the SOCKS5 port.
             # This does not seem to work anymore in libtorrent 1.2.0 (and probably higher) so we manually associate
             # the connection and the libtorrent listen port.
-            if LooseVersion(self.tribler_session.ltmgr.get_libtorrent_version()) < LooseVersion("1.2.0"):
+            if LooseVersion(self.tribler_session.dlmgr.get_libtorrent_version()) < LooseVersion("1.2.0"):
                 download.add_peer(('1.1.1.1', 1024))
             else:
                 hops = download.config.get_hops()
-                lt_listen_port = self.tribler_session.ltmgr.get_session(hops).listen_port()
+                lt_listen_port = self.tribler_session.dlmgr.get_session(hops).listen_port()
                 for session in self.socks_servers[hops - 1].sessions:
                     if session.get_udp_socket():
                         session.get_udp_socket().remote_udp_address = ("127.0.0.1", lt_listen_port)

@@ -48,9 +48,9 @@ class TestTorrentInfoEndpoint(AbstractApiTest):
             #self.assertTrue(TorrentDef.load_from_dict(metainfo_dict))
             self.assertTrue('info' in metainfo_dict)
 
-        self.session.ltmgr = Mock()
-        self.session.ltmgr.download_exists = lambda _: False
-        self.session.ltmgr.get_channel_downloads = lambda: []
+        self.session.dlmgr = Mock()
+        self.session.dlmgr.download_exists = lambda _: False
+        self.session.dlmgr.get_channel_downloads = lambda: []
 
         await self.do_request('torrentinfo', expected_code=400)
         await self.do_request('torrentinfo?uri=def', expected_code=400)
@@ -77,8 +77,8 @@ class TestTorrentInfoEndpoint(AbstractApiTest):
 
         path = 'magnet:?xt=urn:btih:%s&dn=%s' % (hexlify(UBUNTU_1504_INFOHASH),
                                                  quote_plus('test torrent'))
-        self.session.ltmgr.get_metainfo = get_metainfo
-        self.session.ltmgr.shutdown = lambda: succeed(None)
+        self.session.dlmgr.get_metainfo = get_metainfo
+        self.session.dlmgr.shutdown = lambda: succeed(None)
 
         verify_valid_dict(await self.do_request('torrentinfo?uri=%s' % path, expected_code=200))
 
@@ -86,10 +86,10 @@ class TestTorrentInfoEndpoint(AbstractApiTest):
         await self.do_request('torrentinfo?uri=%s' % path, expected_code=400)
 
         path = 'magnet:?xt=urn:btih:%s&dn=%s' % ('a' * 40, quote_plus('test torrent'))
-        self.session.ltmgr.get_metainfo = get_metainfo_timeout
+        self.session.dlmgr.get_metainfo = get_metainfo_timeout
         await self.do_request('torrentinfo?uri=%s' % path, expected_code=500)
 
-        self.session.ltmgr.get_metainfo = get_metainfo
+        self.session.dlmgr.get_metainfo = get_metainfo
         verify_valid_dict(await self.do_request('torrentinfo?uri=%s' % path, expected_code=200))
 
         path = 'http://fdsafksdlafdslkdksdlfjs9fsafasdf7lkdzz32.n38/324.torrent'
@@ -106,11 +106,11 @@ class TestTorrentInfoEndpoint(AbstractApiTest):
         def get_metainfo(infohash, *_, **__):
             return succeed("abcd")
 
-        self.session.ltmgr = Mock()
-        self.session.ltmgr.get_metainfo = get_metainfo
-        self.session.ltmgr.shutdown = lambda: succeed(None)
-        self.session.ltmgr.shutdown_downloads = lambda: succeed(None)
-        self.session.ltmgr.checkpoint_downloads = lambda: succeed(None)
+        self.session.dlmgr = Mock()
+        self.session.dlmgr.get_metainfo = get_metainfo
+        self.session.dlmgr.shutdown = lambda: succeed(None)
+        self.session.dlmgr.shutdown_downloads = lambda: succeed(None)
+        self.session.dlmgr.checkpoint_downloads = lambda: succeed(None)
         path = 'magnet:?xt=urn:btih:%s&dn=%s' % (hexlify(UBUNTU_1504_INFOHASH), quote_plus('test torrent'))
 
         await self.do_request('torrentinfo?uri=%s' % path, expected_code=500)

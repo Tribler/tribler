@@ -89,7 +89,7 @@ def parse_magnetlink(url):
 
 def translate_peers_into_health(peer_info_dicts):
     """
-    peer_info_dicts is a peer_info dictionary from LibTorrentDownloadImpl.create_peerlist_data.
+    peer_info_dicts is a peer_info dictionary from Download.create_peerlist_data.
     purpose : where we want to measure a swarm's health but no tracker can be contacted
     """
     upload_only = 0
