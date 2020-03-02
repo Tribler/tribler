@@ -51,21 +51,21 @@ class TestGigaChannelManager(TriblerCoreTest):
             def mock_start_download(**_):
                 self.torrents_added = 1
 
-            self.mock_session.ltmgr = MockObject()
-            self.mock_session.ltmgr.start_download = mock_start_download
+            self.mock_session.dlmgr = MockObject()
+            self.mock_session.dlmgr.start_download = mock_start_download
             self.mock_session.config = MockObject()
             self.mock_session.config.get_state_dir = lambda: None
-            #   self.mock_session.ltmgr.download_exists = lambda x: x == str(chan.infohash)
+            #   self.mock_session.dlmgr.download_exists = lambda x: x == str(chan.infohash)
 
             # Check add personal channel on startup
-            self.mock_session.ltmgr.download_exists = lambda _: False
+            self.mock_session.dlmgr.download_exists = lambda _: False
             self.chanman.cancel_pending_task('service_channels')  # Disable looping call
             self.chanman.start()
             self.assertTrue(self.torrents_added)
             await self.chanman.shutdown()
 
             # Check skip already added personal channel
-            self.mock_session.ltmgr.download_exists = lambda x: bytes(x) == bytes(chan.infohash)
+            self.mock_session.dlmgr.download_exists = lambda x: bytes(x) == bytes(chan.infohash)
             self.torrents_added = False
             self.chanman.start()
             self.chanman.check_channels_updates()
@@ -129,10 +129,10 @@ class TestGigaChannelManager(TriblerCoreTest):
                     }
                 }
 
-            self.mock_session.ltmgr = MockObject()
-            self.mock_session.ltmgr.get_metainfo = fake_get_metainfo
-            self.mock_session.ltmgr.metainfo_requests = {}
-            self.mock_session.ltmgr.download_exists = lambda _: False
+            self.mock_session.dlmgr = MockObject()
+            self.mock_session.dlmgr.get_metainfo = fake_get_metainfo
+            self.mock_session.dlmgr.metainfo_requests = {}
+            self.mock_session.dlmgr.download_exists = lambda _: False
 
             # Manually fire the channel updates checking routine
             self.chanman.check_channels_updates()
@@ -140,8 +140,8 @@ class TestGigaChannelManager(TriblerCoreTest):
             self.assertEqual(1, self.torrents_added)
 
             # Check that downloaded, but unprocessed channel torrent is added to the processing queue
-            self.mock_session.ltmgr = MockObject()
-            self.mock_session.ltmgr.download_exists = lambda _: True
+            self.mock_session.dlmgr = MockObject()
+            self.mock_session.dlmgr.download_exists = lambda _: True
 
             class MockDownload(object):
                 def get_state(self):
@@ -151,7 +151,7 @@ class TestGigaChannelManager(TriblerCoreTest):
 
                     return MockState()
 
-            self.mock_session.ltmgr.get_download = lambda _: MockDownload()
+            self.mock_session.dlmgr.get_download = lambda _: MockDownload()
 
             def mock_process_channel_dir(c, _):
                 # Only the subscribed, but not processed (with local_version < timestamp) channel should be processed
@@ -243,9 +243,9 @@ class TestGigaChannelManager(TriblerCoreTest):
             self.remove_list.append((infohash, remove_content))
             return d
 
-        self.mock_session.ltmgr = MockObject()
-        self.mock_session.ltmgr.get_channel_downloads = mock_get_channel_downloads
-        self.chanman.session.ltmgr.remove_download = mock_remove
+        self.mock_session.dlmgr = MockObject()
+        self.mock_session.dlmgr.get_channel_downloads = mock_get_channel_downloads
+        self.chanman.session.dlmgr.remove_download = mock_remove
 
         self.chanman.remove_cruft_channels()
         await self.chanman.process_queued_channels()
@@ -269,7 +269,7 @@ class TestGigaChannelManager(TriblerCoreTest):
             )
         self.mock_session.config = MockObject()
         self.mock_session.config.get_state_dir = lambda: None
-        self.mock_session.ltmgr = MockObject()
+        self.mock_session.dlmgr = MockObject()
 
         def mock_get_metainfo_bad(_, timeout=None):
             return succeed({b'info': {b'name': b'bla'}})
@@ -285,14 +285,14 @@ class TestGigaChannelManager(TriblerCoreTest):
             mock_dl.future_finished = succeed(None)
             return mock_dl
 
-        self.mock_session.ltmgr.start_download = mock_download_from_tdef
+        self.mock_session.dlmgr.start_download = mock_download_from_tdef
 
         # Check that we skip channels with incorrect dirnames
-        self.mock_session.ltmgr.get_metainfo = mock_get_metainfo_bad
+        self.mock_session.dlmgr.get_metainfo = mock_get_metainfo_bad
         await self.chanman.download_channel(channel)
         self.assertFalse(self.initiated_download)
 
         # Check that we download channels with correct dirname
-        self.mock_session.ltmgr.get_metainfo = mock_get_metainfo_good
+        self.mock_session.dlmgr.get_metainfo = mock_get_metainfo_good
         await self.chanman.download_channel(channel)
         self.assertTrue(self.initiated_download)

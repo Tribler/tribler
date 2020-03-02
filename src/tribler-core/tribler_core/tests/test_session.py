@@ -6,8 +6,8 @@ from ipv8.attestation.trustchain.community import TrustChainCommunity
 
 from tribler_common.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_METADATA
 
-from tribler_core.modules.libtorrent.libtorrent_mgr import LibtorrentMgr
-from tribler_core.modules.libtorrent.tests.test_libtorrent_mgr import create_fake_download_and_state
+from tribler_core.modules.libtorrent.download_manager import DownloadManager
+from tribler_core.modules.libtorrent.tests.test_download_manager import create_fake_download_and_state
 from tribler_core.modules.metadata_store.community.gigachannel_community import GigaChannelCommunity
 from tribler_core.modules.payout_manager import PayoutManager
 from tribler_core.session import SOCKET_BLOCK_ERRORCODE
@@ -98,7 +98,7 @@ class TestBootstrapSession(TestAsServer):
 
         infohash = self.config.get_bootstrap_infohash()
         self.assertIsNotNone(self.session.bootstrap)
-        self.assertTrue(unhexlify(infohash) in self.session.ltmgr.downloads,
+        self.assertTrue(unhexlify(infohash) in self.session.dlmgr.downloads,
                         "Infohash %s Should be in downloads" % infohash)
 
 
@@ -136,15 +136,15 @@ class TestLaunchFullSession(TestAsServer):
         fake_download, dl_state = create_fake_download_and_state()
         dl_state.get_status = lambda: DLSTATUS_DOWNLOADING
 
-        self.session.ltmgr = LibtorrentMgr(self.session)
+        self.session.dlmgr = DownloadManager(self.session)
 
         fake_tc = MockObject()
         fake_tc.add_listener = lambda *_: None
         self.session.payout_manager = PayoutManager(fake_tc, None)
 
-        self.session.ltmgr.initialize()
-        self.session.ltmgr.state_cb_count = 4
-        self.session.ltmgr.downloads = {b'aaaa': fake_download}
-        await self.session.ltmgr.sesscb_states_callback([dl_state])
+        self.session.dlmgr.initialize()
+        self.session.dlmgr.state_cb_count = 4
+        self.session.dlmgr.downloads = {b'aaaa': fake_download}
+        await self.session.dlmgr.sesscb_states_callback([dl_state])
 
         self.assertTrue(self.session.payout_manager.tribler_peers)

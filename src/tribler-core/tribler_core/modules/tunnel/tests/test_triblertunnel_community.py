@@ -231,17 +231,17 @@ class TestTriblerTunnelCommunity(TestBase):
 
         lt_session = Mock()
         self.nodes[0].overlay.tribler_session = Mock()
-        self.nodes[0].overlay.tribler_session.ltmgr.get_session = lambda _: lt_session
-        self.nodes[0].overlay.tribler_session.ltmgr.update_ip_filter = Mock()
+        self.nodes[0].overlay.tribler_session.dlmgr.get_session = lambda _: lt_session
+        self.nodes[0].overlay.tribler_session.dlmgr.update_ip_filter = Mock()
 
         self.nodes[0].overlay.update_ip_filter(0)
         ips = ['1.1.1.1']
-        self.nodes[0].overlay.tribler_session.ltmgr.update_ip_filter.assert_called_with(lt_session, ips)
+        self.nodes[0].overlay.tribler_session.dlmgr.update_ip_filter.assert_called_with(lt_session, ips)
 
         circuit.ctype = CIRCUIT_TYPE_RP_SEEDER
         self.nodes[0].overlay.update_ip_filter(0)
         ips = [self.nodes[0].overlay.circuit_id_to_ip(circuit.circuit_id), '1.1.1.1']
-        self.nodes[0].overlay.tribler_session.ltmgr.update_ip_filter.assert_called_with(lt_session, ips)
+        self.nodes[0].overlay.tribler_session.dlmgr.update_ip_filter.assert_called_with(lt_session, ips)
 
     async def test_update_torrent(self):
         """

@@ -204,7 +204,7 @@ class DownloadsEndpoint(RESTEndpoint):
         get_files = request.query.get('get_files', '0') == '1'
 
         downloads_json = []
-        downloads = self.session.ltmgr.get_downloads()
+        downloads = self.session.dlmgr.get_downloads()
         for download in downloads:
             if download.hidden and not download.config.get_channel_download():
                 # We still want to send channel downloads since they are displayed in the GUI
@@ -350,7 +350,7 @@ class DownloadsEndpoint(RESTEndpoint):
             download_uri = unquote_plus(uri)
 
         try:
-            download = await self.session.ltmgr.start_download_from_uri(download_uri, download_config)
+            download = await self.session.dlmgr.start_download_from_uri(download_uri, download_config)
         except Exception as e:
             return RESTResponse({"error": str(e)}, status=HTTP_INTERNAL_SERVER_ERROR)
 
@@ -381,7 +381,7 @@ class DownloadsEndpoint(RESTEndpoint):
             return RESTResponse({"error": "remove_data parameter missing"}, status=HTTP_BAD_REQUEST)
 
         infohash = unhexlify(request.match_info['infohash'])
-        download = self.session.ltmgr.get_download(infohash)
+        download = self.session.dlmgr.get_download(infohash)
         if not download:
             return DownloadsEndpoint.return_404(request)
 
@@ -390,7 +390,7 @@ class DownloadsEndpoint(RESTEndpoint):
             stream.close()
 
         try:
-            await self.session.ltmgr.remove_download(download, remove_content=parameters['remove_data'])
+            await self.session.dlmgr.remove_download(download, remove_content=parameters['remove_data'])
         except Exception as e:
             self._logger.exception(e)
             return return_handled_exception(request, e)
@@ -427,7 +427,7 @@ class DownloadsEndpoint(RESTEndpoint):
                     {"modified": True, "infohash": "4344503b7e797ebf31582327a5baae35b11bda01"}
         """
         infohash = unhexlify(request.match_info['infohash'])
-        download = self.session.ltmgr.get_download(infohash)
+        download = self.session.dlmgr.get_download(infohash)
         if not download:
             return DownloadsEndpoint.return_404(request)
 
@@ -438,7 +438,7 @@ class DownloadsEndpoint(RESTEndpoint):
         elif 'anon_hops' in parameters:
             anon_hops = int(parameters['anon_hops'])
             try:
-                await self.session.ltmgr.update_hops(download, anon_hops)
+                await self.session.dlmgr.update_hops(download, anon_hops)
             except Exception as e:
                 self._logger.exception(e)
                 return return_handled_exception(request, e)
@@ -487,7 +487,7 @@ class DownloadsEndpoint(RESTEndpoint):
             The contents of the .torrent file.
         """
         infohash = unhexlify(request.match_info['infohash'])
-        download = self.session.ltmgr.get_download(infohash)
+        download = self.session.dlmgr.get_download(infohash)
         if not download:
             return DownloadsEndpoint.return_404(request)
 
@@ -529,14 +529,14 @@ class DownloadsEndpoint(RESTEndpoint):
                 }
         """
         infohash = unhexlify(request.match_info['infohash'])
-        download = self.session.ltmgr.get_download(infohash)
+        download = self.session.dlmgr.get_download(infohash)
         if not download:
             return DownloadsEndpoint.return_404(request)
         return RESTResponse({"files": self.get_files_info_json(download)})
 
     async def stream(self, request):
         infohash = unhexlify(request.match_info['infohash'])
-        download = self.session.ltmgr.get_download(infohash)
+        download = self.session.dlmgr.get_download(infohash)
         if not download:
             return DownloadsEndpoint.return_404(request)
 

@@ -110,7 +110,7 @@ class Session(TaskManager):
 
         self.gigachannel_manager = None
 
-        self.ltmgr = None  # Libtorrent Manager
+        self.dlmgr = None  # Libtorrent Manager
         self.tracker_manager = None
         self.torrent_checker = None
         self.tunnel_community = None
@@ -256,7 +256,7 @@ class Session(TaskManager):
         if not self.payout_manager:
             self._logger.warning("Running bootstrap without payout enabled")
         self.bootstrap = Bootstrap(self.config.get_state_dir(), dht=self.dht_community)
-        self.bootstrap.start_by_infohash(self.ltmgr.start_download, self.config.get_bootstrap_infohash())
+        self.bootstrap.start_by_infohash(self.dlmgr.start_download, self.config.get_bootstrap_infohash())
         if self.trustchain_community:
             await self.bootstrap.download.future_finished
             # Temporarily disabling SQL import for experimental release
@@ -458,11 +458,11 @@ class Session(TaskManager):
         # Note that currently we should only start libtorrent after the SOCKS5 servers have been started
         if self.config.get_libtorrent_enabled():
             self.readable_status = STATE_START_LIBTORRENT
-            from tribler_core.modules.libtorrent.libtorrent_mgr import LibtorrentMgr
-            self.ltmgr = LibtorrentMgr(self)
-            self.ltmgr.initialize()
+            from tribler_core.modules.libtorrent.download_manager import DownloadManager
+            self.dlmgr = DownloadManager(self)
+            self.dlmgr.initialize()
             self.readable_status = STATE_LOAD_CHECKPOINTS
-            await self.ltmgr.load_checkpoints()
+            await self.dlmgr.load_checkpoints()
         self.readable_status = STATE_READABLE_STARTED
 
         if self.config.get_torrent_checking_enabled():
@@ -533,8 +533,8 @@ class Session(TaskManager):
         # to 'TRUE', RESTManager will no longer accepts any new requests.
         os.environ['TRIBLER_SHUTTING_DOWN'] = "TRUE"
 
-        if self.ltmgr:
-            self.ltmgr.stop_download_states_callback()
+        if self.dlmgr:
+            self.dlmgr.stop_download_states_callback()
 
         await self.shutdown_task_manager()
 
@@ -598,9 +598,9 @@ class Session(TaskManager):
             await self.bootstrap.shutdown()
         self.bootstrap = None
 
-        if self.ltmgr:
-            await self.ltmgr.shutdown()
-        self.ltmgr = None
+        if self.dlmgr:
+            await self.dlmgr.shutdown()
+        self.dlmgr = None
 
         if self.mds:
             self.notify_shutdown_state("Shutting down Metadata Store...")

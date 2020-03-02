@@ -26,7 +26,7 @@ from tribler_common.simpledefs import DLSTATUS_SEEDING
 
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
-from tribler_core.modules.libtorrent.libtorrent_mgr import LibtorrentMgr
+from tribler_core.modules.libtorrent.download_manager import DownloadManager
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.session import Session
 from tribler_core.tests.tools.common import TESTS_DIR
@@ -275,8 +275,8 @@ class TestAsServer(AbstractServer):
 
         """ unittest test tear down code """
         if self.session is not None:
-            if isinstance(self.session.ltmgr, LibtorrentMgr):
-                self.session.ltmgr.shutdown = partial(self.session.ltmgr.shutdown, timeout=.1)
+            if isinstance(self.session.dlmgr, DownloadManager):
+                self.session.dlmgr.shutdown = partial(self.session.dlmgr.shutdown, timeout=.1)
             await self.session.shutdown()
             self.session = None
 
@@ -328,11 +328,11 @@ class TestAsServer(AbstractServer):
         await self.seeder_session.start()
         self.dscfg_seed = DownloadConfig()
         self.dscfg_seed.set_dest_dir(seed_dir)
-        download = self.seeder_session.ltmgr.start_download(tdef=tdef, config=self.dscfg_seed)
+        download = self.seeder_session.dlmgr.start_download(tdef=tdef, config=self.dscfg_seed)
         await download.wait_for_status(DLSTATUS_SEEDING)
 
     async def stop_seeder(self):
         if self.seeder_session is not None:
-            if self.seeder_session.ltmgr:
-                self.seeder_session.ltmgr.is_shutdown_ready = lambda: True
+            if self.seeder_session.dlmgr:
+                self.seeder_session.dlmgr.is_shutdown_ready = lambda: True
             return await self.seeder_session.shutdown()

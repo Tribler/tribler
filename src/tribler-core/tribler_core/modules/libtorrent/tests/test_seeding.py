@@ -34,7 +34,7 @@ class TestSeeding(TestAsServer):
         await self.setup_seeder(self.tdef, TESTS_DATA_DIR)
         dscfg = self.dscfg_seed.copy()
         dscfg.set_dest_dir(self.getDestDir())
-        download = self.session.ltmgr.start_download(tdef=self.tdef, config=dscfg)
+        download = self.session.dlmgr.start_download(tdef=self.tdef, config=dscfg)
         download.add_peer(("127.0.0.1", self.seeder_session.config.get_libtorrent_port()))
         await download.wait_for_status(DLSTATUS_SEEDING)
 

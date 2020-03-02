@@ -41,7 +41,7 @@ class TestLibTorrentSettingsEndpoint(AbstractApiTest):
         Tests getting session for initialized anonymous session.
         """
         hop = 1
-        self.session.ltmgr.get_session(hops=hop)
+        self.session.dlmgr.get_session(hops=hop)
         response_dict = await self.do_request('libtorrent/settings?hop=%d' % hop, expected_code=200)
         settings_dict = response_dict['settings']
         self.assertEqual(response_dict['hop'], hop)
@@ -91,7 +91,7 @@ class TestLibTorrentSessionEndpoint(AbstractApiTest):
         Tests getting stats for initialized anonymous session.
         """
         hop = 1
-        self.session.ltmgr.get_session(hops=hop)
+        self.session.dlmgr.get_session(hops=hop)
 
         # expected sample stats
         expected_stats = [u'dht.dht_peers', u'dht.dht_torrents', u'disk.num_jobs', u'net.recv_bytes', u'net.sent_bytes',

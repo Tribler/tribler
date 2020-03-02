@@ -19,18 +19,18 @@ class TestWatchFolder(TestAsServer):
 
     def test_watchfolder_no_files(self):
         self.session.watch_folder.check_watch_folder()
-        self.assertEqual(len(self.session.ltmgr.get_downloads()), 0)
+        self.assertEqual(len(self.session.dlmgr.get_downloads()), 0)
 
     def test_watchfolder_no_torrent_file(self):
         shutil.copyfile(TORRENT_UBUNTU_FILE, self.watch_dir / "test.txt")
         self.session.watch_folder.check_watch_folder()
-        self.assertEqual(len(self.session.ltmgr.get_downloads()), 0)
+        self.assertEqual(len(self.session.dlmgr.get_downloads()), 0)
 
     def test_watchfolder_invalid_dir(self):
         shutil.copyfile(TORRENT_UBUNTU_FILE, self.watch_dir / "test.txt")
         self.session.config.set_watch_folder_path(self.watch_dir / "test.txt")
         self.session.watch_folder.check_watch_folder()
-        self.assertEqual(len(self.session.ltmgr.get_downloads()), 0)
+        self.assertEqual(len(self.session.dlmgr.get_downloads()), 0)
 
     def test_watchfolder_utf8_dir(self):
         os.mkdir(self.watch_dir / u"\xe2\x82\xac")
@@ -42,7 +42,7 @@ class TestWatchFolder(TestAsServer):
         shutil.copyfile(TORRENT_UBUNTU_FILE, self.watch_dir / "test.torrent")
         shutil.copyfile(TESTS_DATA_DIR / 'test_rss.xml', self.watch_dir / "test2.torrent")
         self.session.watch_folder.check_watch_folder()
-        self.assertEqual(len(self.session.ltmgr.get_downloads()), 1)
+        self.assertEqual(len(self.session.dlmgr.get_downloads()), 1)
         self.assertTrue((self.watch_dir / "test2.torrent.corrupt").is_file())
 
     def test_cleanup(self):

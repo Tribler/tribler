@@ -95,10 +95,10 @@ class TestChannelsCountEndpoint(BaseTestMetadataEndpoint):
 class TestSpecificChannelEndpoint(BaseTestMetadataEndpoint):
     async def setUp(self):
         await super(TestSpecificChannelEndpoint, self).setUp()
-        self.session.ltmgr = Mock()
-        self.session.ltmgr.shutdown = lambda: succeed(True)
-        self.session.ltmgr.shutdown_downloads = lambda: succeed(True)
-        self.session.ltmgr.checkpoint_downloads = lambda: succeed(True)
+        self.session.dlmgr = Mock()
+        self.session.dlmgr.shutdown = lambda: succeed(True)
+        self.session.dlmgr.shutdown_downloads = lambda: succeed(True)
+        self.session.dlmgr.checkpoint_downloads = lambda: succeed(True)
 
     @timeout(10)
     async def test_create_channel(self):
@@ -249,10 +249,10 @@ class TestSpecificChannelChannelsEndpoint(AbstractApiTest):
 class TestSpecificChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
     async def setUp(self):
         await super(TestSpecificChannelTorrentsEndpoint, self).setUp()
-        self.session.ltmgr = Mock()
-        self.session.ltmgr.shutdown = lambda: succeed(True)
-        self.session.ltmgr.shutdown_downloads = lambda: succeed(True)
-        self.session.ltmgr.checkpoint_downloads = lambda: succeed(True)
+        self.session.dlmgr = Mock()
+        self.session.dlmgr.shutdown = lambda: succeed(True)
+        self.session.dlmgr.shutdown_downloads = lambda: succeed(True)
+        self.session.dlmgr.checkpoint_downloads = lambda: succeed(True)
 
     @timeout(10)
     async def test_add_torrents_no_channel(self):
@@ -423,7 +423,7 @@ class TestSpecificChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
             meta_info = TorrentDef.load(TORRENT_UBUNTU_FILE).get_metainfo()
             return succeed(meta_info)
 
-        self.session.ltmgr.get_metainfo = fake_get_metainfo
+        self.session.dlmgr.get_metainfo = fake_get_metainfo
 
         post_params = {'uri': 'magnet:?fake'}
         await self.do_request(
@@ -442,7 +442,7 @@ class TestSpecificChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
         def fake_get_metainfo(*_, **__):
             return succeed(None)
 
-        self.session.ltmgr.get_metainfo = fake_get_metainfo
+        self.session.dlmgr.get_metainfo = fake_get_metainfo
 
         post_params = {'uri': 'magnet:?fake'}
         await self.do_request(

@@ -88,7 +88,7 @@ class CreateTorrentEndpoint(RESTEndpoint):
         params['piece length'] = 0  # auto
 
         try:
-            result = await self.session.ltmgr.create_torrent_file(file_path_list, recursive_bytes(params))
+            result = await self.session.dlmgr.create_torrent_file(file_path_list, recursive_bytes(params))
         except (IOError, UnicodeDecodeError, RuntimeError) as e:
             self._logger.exception(e)
             return return_handled_exception(request, e)
@@ -105,7 +105,7 @@ class CreateTorrentEndpoint(RESTEndpoint):
             download_config = DownloadConfig()
             download_config.set_dest_dir(result['base_path'] if len(file_path_list) == 1 else result['base_dir'])
             try:
-                self.session.ltmgr.start_download(tdef=TorrentDef(metainfo_dict), config=download_config)
+                self.session.dlmgr.start_download(tdef=TorrentDef(metainfo_dict), config=download_config)
             except DuplicateDownloadException:
                 self._logger.warning("The created torrent is already being downloaded.")
 

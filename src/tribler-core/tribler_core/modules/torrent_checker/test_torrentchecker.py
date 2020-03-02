@@ -35,11 +35,11 @@ class TestTorrentChecker(TestAsServer):
         def get_metainfo(_, callback, **__):
             callback({"seeders": 1, "leechers": 2})
 
-        self.session.ltmgr = Mock()
-        self.session.ltmgr.get_metainfo = get_metainfo
-        self.session.ltmgr.shutdown = lambda: succeed(None)
-        self.session.ltmgr.shutdown_downloads = lambda: succeed(None)
-        self.session.ltmgr.checkpoint_downloads = lambda: succeed(None)
+        self.session.dlmgr = Mock()
+        self.session.dlmgr.get_metainfo = get_metainfo
+        self.session.dlmgr.shutdown = lambda: succeed(None)
+        self.session.dlmgr.shutdown_downloads = lambda: succeed(None)
+        self.session.dlmgr.checkpoint_downloads = lambda: succeed(None)
 
     async def tearDown(self):
         await self.torrent_checker.shutdown()

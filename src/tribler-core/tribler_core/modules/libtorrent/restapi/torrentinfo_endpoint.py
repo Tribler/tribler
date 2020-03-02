@@ -67,14 +67,14 @@ class TorrentInfoEndpoint(RESTEndpoint):
             if response.startswith(b'magnet'):
                 _, infohash, _ = parse_magnetlink(response)
                 if infohash:
-                    metainfo = await self.session.ltmgr.get_metainfo(infohash, timeout=60)
+                    metainfo = await self.session.dlmgr.get_metainfo(infohash, timeout=60)
             else:
                 metainfo = bdecode_compat(response)
         elif uri.startswith('magnet'):
             infohash = parse_magnetlink(uri)[1]
             if infohash is None:
                 return RESTResponse({"error": "missing infohash"}, status=HTTP_BAD_REQUEST)
-            metainfo = await self.session.ltmgr.get_metainfo(infohash, timeout=60)
+            metainfo = await self.session.dlmgr.get_metainfo(infohash, timeout=60)
         else:
             return RESTResponse({"error": "invalid uri"}, status=HTTP_BAD_REQUEST)
 
@@ -95,7 +95,7 @@ class TorrentInfoEndpoint(RESTEndpoint):
 
         # Check if the torrent is already in the downloads
         encoded_metainfo = deepcopy(metainfo)
-        encoded_metainfo['download_exists'] = self.session.ltmgr.download_exists(infohash)
+        encoded_metainfo['download_exists'] = self.session.dlmgr.download_exists(infohash)
         # FIXME: json.dumps garbles binary data that is used by the 'pieces' field
         # However, this is fine as long as the GUI does not use this field.
         encoded_metainfo[b'info'][b'pieces'] = hexlify(encoded_metainfo[b'info'][b'pieces']).encode('utf-8')

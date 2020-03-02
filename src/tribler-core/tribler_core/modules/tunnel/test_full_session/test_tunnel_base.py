@@ -10,7 +10,7 @@ from ipv8.test.messaging.anonymization.test_community import MockDHTProvider
 from tribler_common.simpledefs import dlstatus_strings
 
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
-from tribler_core.modules.libtorrent.libtorrent_mgr import LibtorrentMgr
+from tribler_core.modules.libtorrent.download_manager import DownloadManager
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.modules.tunnel.community.triblertunnel_community import TriblerTunnelCommunity
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
@@ -128,9 +128,9 @@ class TestTunnelBase(TestAsServer):
             # libtorrent afterwards.
             tunnel_community_ports = session.config.get_tunnel_community_socks5_listen_ports()
             session.config.set_anon_proxy_settings(2, ("127.0.0.1", tunnel_community_ports))
-            session.ltmgr = LibtorrentMgr(session)
-            session.ltmgr.initialize()
-            session.ltmgr.is_shutdown_ready = lambda: True
+            session.dlmgr = DownloadManager(session)
+            session.dlmgr.initialize()
+            session.dlmgr.is_shutdown_ready = lambda: True
 
         return overlay
 
@@ -182,7 +182,7 @@ class TestTunnelBase(TestAsServer):
         dscfg = DownloadConfig()
         dscfg.set_dest_dir(TESTS_DATA_DIR)  # basedir of the file we are seeding
         dscfg.set_hops(hops)
-        d = self.session2.ltmgr.start_download(tdef=tdef, config=dscfg)
+        d = self.session2.dlmgr.start_download(tdef=tdef, config=dscfg)
         d.set_state_callback(self.seeder_state_callback)
 
     def seeder_state_callback(self, ds):
@@ -204,7 +204,7 @@ class TestTunnelBase(TestAsServer):
         dscfg = DownloadConfig()
         dscfg.set_dest_dir(self.getDestDir())
         dscfg.set_hops(hops)
-        download = self.session.ltmgr.start_download(tdef=self.seed_tdef, config=dscfg)
+        download = self.session.dlmgr.start_download(tdef=self.seed_tdef, config=dscfg)
         self.tunnel_community.bittorrent_peers[download] = [("127.0.0.1", self.session2.config.get_libtorrent_port())]
         return download
 

@@ -22,7 +22,7 @@ from tribler_common.simpledefs import DLSTATUS_SEEDING, STATEDIR_CHECKPOINT_DIR
 
 from tribler_core.modules.dht_health_manager import DHTHealthManager
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
-from tribler_core.modules.libtorrent.libtorrent_download_impl import LibtorrentDownloadImpl
+from tribler_core.modules.libtorrent.download import Download
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
 from tribler_core.utilities import path_util, torrent_utils
 from tribler_core.utilities.path_util import mkdtemp
@@ -53,10 +53,10 @@ def encode_atp(atp):
     return atp
 
 
-class LibtorrentMgr(TaskManager):
+class DownloadManager(TaskManager):
 
     def __init__(self, tribler_session):
-        super(LibtorrentMgr, self).__init__()
+        super(DownloadManager, self).__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.tribler_session = tribler_session
@@ -507,7 +507,7 @@ class LibtorrentMgr(TaskManager):
             config.set_time_added(int(timemod.time()))
 
         # Create the download
-        download = LibtorrentDownloadImpl(self.tribler_session, tdef)
+        download = Download(self.tribler_session, tdef)
         atp = download.setup(config, checkpoint_disabled=checkpoint_disabled,
                              hidden=hidden or config.get_bootstrap_download())
         # Keep metainfo downloads in self.downloads for now because we will need to remove it later,

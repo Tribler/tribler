@@ -51,17 +51,17 @@ class TestChannelDownload(TestAsServer):
         def fake_get_metainfo(infohash, timeout=30):
             return succeed({b'info': {b'name': channel.dirname.encode('utf-8')}})
 
-        self.session.ltmgr.get_metainfo = fake_get_metainfo
+        self.session.dlmgr.get_metainfo = fake_get_metainfo
         # The leecher should be hinted to leech from localhost. Thus, we must extend start_download_from_tdef
         # and get_metainfo to provide the hint.
-        original_start_download_from_tdef = self.session.ltmgr.start_download
+        original_start_download_from_tdef = self.session.dlmgr.start_download
 
         def hinted_start_download(tdef=None, config=None, hidden=False, original_call=True):
             download = original_start_download_from_tdef(tdef=tdef, config=config, hidden=hidden)
             download.add_peer(("127.0.0.1", self.seeder_session.config.get_libtorrent_port()))
             return download
 
-        self.session.ltmgr.start_download = hinted_start_download
+        self.session.dlmgr.start_download = hinted_start_download
         await self.session.gigachannel_manager.download_channel(channel)
         await self.session.gigachannel_manager.process_queued_channels()
 

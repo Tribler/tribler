@@ -28,11 +28,11 @@ from tribler_core.utilities.unicode import ensure_unicode, hexlify
 from tribler_core.utilities.utilities import bdecode_compat, succeed
 
 
-class LibtorrentDownloadImpl(TaskManager):
+class Download(TaskManager):
     """ Download subclass that represents a libtorrent download."""
 
     def __init__(self, session, tdef):
-        super(LibtorrentDownloadImpl, self).__init__()
+        super(Download, self).__init__()
 
         self._logger = logging.getLogger(self.__class__.__name__)
 
@@ -40,7 +40,7 @@ class LibtorrentDownloadImpl(TaskManager):
         self.tdef = tdef
         self.handle = None
         self.state_dir = self.session.config.get_state_dir() if self.session else None
-        self.ltmgr = self.session.ltmgr if self.session else None
+        self.dlmgr = self.session.dlmgr if self.session else None
 
         # With hidden True download will not be in GET/downloads set, as a result will not be shown in GUI
         self.hidden = False
@@ -78,7 +78,7 @@ class LibtorrentDownloadImpl(TaskManager):
             self.register_alert_handler(alert_type, alert_handler)
 
     def __str__(self):
-        return "LibtorrentDownloadImpl <name: '%s' hops: %d checkpoint_disabled: %d>" % \
+        return "Download <name: '%s' hops: %d checkpoint_disabled: %d>" % \
                (self.tdef.get_name(), self.config.get_hops(), self.checkpoint_disabled)
 
     def __repr__(self):
@@ -267,7 +267,7 @@ class LibtorrentDownloadImpl(TaskManager):
 
         # Save it to file
         basename = hexlify(resume_data[b'info-hash']) + '.conf'
-        filename = self.ltmgr.get_checkpoint_dir() / basename
+        filename = self.dlmgr.get_checkpoint_dir() / basename
         self.config.config['download_defaults']['name'] = self.tdef.get_name_as_unicode()  # store name (for debugging)
         self.config.write(str(filename))
         self._logger.debug('Saving download config to file %s', filename)
@@ -322,29 +322,25 @@ class LibtorrentDownloadImpl(TaskManager):
         self.checkpoint()
 
     def on_performance_alert(self, alert):
-        if self.get_anon_mode() or self.ltmgr.ltsessions is None:
+        if self.get_anon_mode() or self.dlmgr.ltsessions is None:
             return
 
         # When the send buffer watermark is too low, double the buffer size to a
         # maximum of 50MiB. This is the same mechanism as Deluge uses.
-        lt_session = self.ltmgr.get_session(self.config.get_hops())
-        settings = self.ltmgr.get_session_settings(lt_session)
+        lt_session = self.dlmgr.get_session(self.config.get_hops())
+        settings = self.dlmgr.get_session_settings(lt_session)
         if alert.message().endswith("send buffer watermark too low (upload rate will suffer)"):
             if settings['send_buffer_watermark'] <= 26214400:
-                self._logger.info(
-                    "LibtorrentDownloadImpl: setting send_buffer_watermark to %s",
-                    2 * settings['send_buffer_watermark'])
+                self._logger.info( "Setting send_buffer_watermark to %s", 2 * settings['send_buffer_watermark'])
                 settings['send_buffer_watermark'] *= 2
-                self.ltmgr.set_session_settings(self.ltmgr.get_session(), settings)
+                self.dlmgr.set_session_settings(self.dlmgr.get_session(), settings)
         # When the write cache is too small, double the buffer size to a maximum
         # of 64MiB. Again, this is the same mechanism as Deluge uses.
         elif alert.message().endswith("max outstanding disk writes reached"):
             if settings['max_queued_disk_bytes'] <= 33554432:
-                self._logger.info(
-                    "LibtorrentDownloadImpl: setting max_queued_disk_bytes to %s",
-                    2 * settings['max_queued_disk_bytes'])
+                self._logger.info("Setting max_queued_disk_bytes to %s", 2 * settings['max_queued_disk_bytes'])
                 settings['max_queued_disk_bytes'] *= 2
-                self.ltmgr.set_session_settings(self.ltmgr.get_session(), settings)
+                self.dlmgr.set_session_settings(self.dlmgr.get_session(), settings)
 
     def on_torrent_removed_alert(self, _):
         self._logger.debug("Removing %s", self.tdef.get_name())
@@ -537,7 +533,7 @@ class LibtorrentDownloadImpl(TaskManager):
             if peer_info.source & peer_info.pex:
                 pex_peers += 1
 
-        ltsession = self.ltmgr.get_session(self.config.get_hops())
+        ltsession = self.dlmgr.get_session(self.config.get_hops())
         public = self.tdef and not self.tdef.is_private()
 
         result = self.tracker_status.copy()
@@ -604,7 +600,7 @@ class LibtorrentDownloadImpl(TaskManager):
             # Libtorrent hasn't received or initialized this download yet
             # 1. Check if we have data for this infohash already (don't overwrite it if we do!)
             basename = hexlify(self.tdef.get_infohash()) + '.conf'
-            filename = self.ltmgr.get_checkpoint_dir() / basename
+            filename = self.dlmgr.get_checkpoint_dir() / basename
             if not filename.is_file():
                 # 2. If there is no saved data for this infohash, checkpoint it without data so we do not
                 #    lose it when we crash or restart before the download becomes known.

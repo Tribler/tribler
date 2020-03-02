@@ -47,7 +47,7 @@ class GigaChannelManager(TaskManager):
                     if (
                         my_channel
                         and my_channel.status == COMMITTED
-                        and not self.session.ltmgr.download_exists(bytes(my_channel.infohash))
+                        and not self.session.dlmgr.download_exists(bytes(my_channel.infohash))
                     ):
                         torrent_path = self.session.mds.channels_dir / (my_channel.dirname + ".torrent")
                         mdblob_path = self.session.mds.channels_dir / (my_channel.dirname + ".mdblob")
@@ -99,7 +99,7 @@ class GigaChannelManager(TaskManager):
         # TODO: add some more advanced logic for removal of older channel versions
         cruft_list = [
             (d, d.get_def().get_name_utf8() not in dirnames)
-            for d in self.session.ltmgr.get_channel_downloads()
+            for d in self.session.dlmgr.get_channel_downloads()
             if bytes(d.get_def().infohash) not in subscribed_infohashes
         ]
 
@@ -151,9 +151,9 @@ class GigaChannelManager(TaskManager):
 
         for channel in channels:
             try:
-                if self.session.ltmgr.metainfo_requests.get(bytes(channel.infohash)):
+                if self.session.dlmgr.metainfo_requests.get(bytes(channel.infohash)):
                     continue
-                elif not self.session.ltmgr.download_exists(bytes(channel.infohash)):
+                elif not self.session.dlmgr.download_exists(bytes(channel.infohash)):
                     self._logger.info(
                         "Downloading new channel version %s ver %i->%i",
                         hexlify(channel.public_key),
@@ -162,7 +162,7 @@ class GigaChannelManager(TaskManager):
                     )
                     self.download_channel(channel)
                 elif (
-                    self.session.ltmgr.get_download(bytes(channel.infohash)).get_state().get_status()
+                    self.session.dlmgr.get_download(bytes(channel.infohash)).get_state().get_status()
                     == DLSTATUS_SEEDING
                 ):
                     self._logger.info(
@@ -188,8 +188,8 @@ class GigaChannelManager(TaskManager):
         with db_session:
             channel = self.session.mds.ChannelMetadata.get_channel_with_dirname(dirname)
         if channel and channel.subscribed:
-            print self.session.ltmgr.downloads
-            current_version = self.session.ltmgr.get_download(hexlify(channel.infohash))
+            print self.session.dlmgr.downloads
+            current_version = self.session.dlmgr.get_download(hexlify(channel.infohash))
             current_version_files = set(current_version.get_tdef().get_files())
             obsolete_version_files = set(download.get_tdef().get_files())
             files_to_remove_relative = obsolete_version_files - current_version_files
@@ -213,7 +213,7 @@ class GigaChannelManager(TaskManager):
 
         d, remove_content = to_remove
         try:
-            await self.session.ltmgr.remove_download(d, remove_content=remove_content)
+            await self.session.dlmgr.remove_download(d, remove_content=remove_content)
         except Exception as e:
             self._logger.error("Error when removing the channel download: %s", e)
 
@@ -236,7 +236,7 @@ class GigaChannelManager(TaskManager):
         dcfg.set_channel_download(True)
         tdef = TorrentDefNoMetainfo(infohash=bytes(channel.infohash), name=channel.dirname)
 
-        metainfo = await self.session.ltmgr.get_metainfo(bytes(channel.infohash), timeout=60)
+        metainfo = await self.session.dlmgr.get_metainfo(bytes(channel.infohash), timeout=60)
         if metainfo is None:
             # Timeout looking for the channel metainfo. Probably, there are no seeds.
             # TODO: count the number of tries we had with the channel, so we can stop trying eventually
@@ -249,7 +249,7 @@ class GigaChannelManager(TaskManager):
         except (KeyError, TypeError):
             return
 
-        download = self.session.ltmgr.start_download(tdef=tdef, config=dcfg, hidden=True)
+        download = self.session.dlmgr.start_download(tdef=tdef, config=dcfg, hidden=True)
         await download.future_finished
         self.channels_processing_queue[channel.infohash] = (PROCESS_CHANNEL_DIR, channel)
         return download
@@ -282,12 +282,12 @@ class GigaChannelManager(TaskManager):
         if (
             my_channel
             and my_channel.status == COMMITTED
-            and not self.session.ltmgr.download_exists(bytes(my_channel.infohash))
+            and not self.session.dlmgr.download_exists(bytes(my_channel.infohash))
         ):
             dcfg = DownloadConfig(state_dir=self.session.config.get_state_dir())
             dcfg.set_dest_dir(self.session.mds.channels_dir)
             dcfg.set_channel_download(True)
-            self.session.ltmgr.start_download(tdef=tdef, config=dcfg)
+            self.session.dlmgr.start_download(tdef=tdef, config=dcfg)
 
     @db_session
     def clean_unsubscribed_channels(self):
