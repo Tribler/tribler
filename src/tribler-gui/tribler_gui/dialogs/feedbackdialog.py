@@ -9,7 +9,11 @@ from PyQt5.QtWidgets import QAction, QApplication, QDialog, QMessageBox, QTreeWi
 
 from tribler_gui.event_request_manager import received_events
 from tribler_gui.tribler_action_menu import TriblerActionMenu
-from tribler_gui.tribler_request_manager import TriblerNetworkRequest, performed_requests as tribler_performed_requests
+from tribler_gui.tribler_request_manager import (
+    TriblerNetworkRequest,
+    performed_requests as tribler_performed_requests,
+    tribler_urlencode,
+)
 from tribler_gui.utilities import get_ui_file_path
 
 
@@ -140,7 +144,7 @@ class FeedbackDialog(QDialog):
             "stack": stack,
         }
 
-        TriblerNetworkRequest(endpoint, self.on_report_sent, data=post_data, method='POST')
+        TriblerNetworkRequest(endpoint, self.on_report_sent, raw_data=tribler_urlencode(post_data), method='POST')
 
     def closeEvent(self, close_event):
         QApplication.quit()
