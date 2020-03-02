@@ -73,6 +73,7 @@ class RemoteQueryCommunity(Community):
             return
 
         index = 0
+
         while index < len(db_results):
             data, index = entries_to_chunk(db_results, self.settings.maximum_payload_size, start_index=index)
             self.ez_send(peer, SelectResponsePayload(request.id, data))

@@ -261,6 +261,13 @@ class TestTorrentMetadata(TriblerCoreTest):
         args = dict(channel_pk=channel_pk, origin_id=0, attribute_ranges=(("timestamp < 3 and g.timestamp", 3, 30),))
         self.assertRaises(AttributeError, self.mds.TorrentMetadata.get_entries, **args)
 
+        # Test getting entry by id_
+        with db_session:
+            entry = self.mds.TorrentMetadata(id_=123, infohash=random_infohash())
+        args = dict(channel_pk=channel_pk, id_=123)
+        torrents = self.mds.TorrentMetadata.get_entries(first=1, last=10, **args)
+        self.assertListEqual(list(torrents), [entry])
+
     @db_session
     def test_metadata_conflicting(self):
         tdict = dict(rnd_torrent(), title="lakes sheep", tags="video", infohash=b'\x00\xff')

@@ -44,7 +44,10 @@ class TestRemoteQueryCommunity(TestBase):
     async def test_remote_select(self):
         # Fill Node 0 DB with channels and torrents entries
         with db_session:
-            channel = self.nodes[0].overlay.mds.ChannelMetadata.create_channel("ubuntu", "ubuntu")
+            channel_uns = self.nodes[0].overlay.mds.ChannelMetadata.create_channel("ubuntu channel unsub", "ubuntu")
+            channel_uns.subscribed = False
+            channel = self.nodes[0].overlay.mds.ChannelMetadata.create_channel("ubuntu channel", "ubuntu")
+            channel_id, channel_pk = channel.id_, channel.public_key
             for i in range(20):
                 add_random_torrent(self.nodes[0].overlay.mds.TorrentMetadata, name="ubuntu %s" % i, channel=channel)
             channel.commit_channel_torrent()
@@ -57,12 +60,25 @@ class TestRemoteQueryCommunity(TestBase):
             self.assertEqual(len(torrents), 0)
 
         id_ = 123
-        kwargs_dict = {"txt_filter": "ubuntu*", "metadata_type": [CHANNEL_TORRENT, REGULAR_TORRENT]}
+        kwargs_dict = {"txt_filter": "ubuntu*", "metadata_type": [REGULAR_TORRENT]}
         self.nodes[1].overlay.send_remote_select(id_, **kwargs_dict)
 
         await self.deliver_messages(timeout=0.5)
 
         with db_session:
-            torrents0 = self.nodes[0].overlay.mds.TorrentMetadata.get_entries(**kwargs_dict)
-            torrents1 = self.nodes[1].overlay.mds.TorrentMetadata.get_entries(**kwargs_dict)
+            torrents0 = self.nodes[0].overlay.mds.MetadataNode.get_entries(**kwargs_dict)
+            torrents1 = self.nodes[1].overlay.mds.MetadataNode.get_entries(**kwargs_dict)
             self.assertEqual(len(torrents0), len(torrents1))
+
+        # Now try querying for subscribed "ubuntu" channels
+        channels1 = self.nodes[1].overlay.mds.MetadataNode.get_entries(channel_pk=channel_pk, id_=channel_id)
+        self.assertEqual(0, len(channels1))
+        id_ = 444
+        kwargs_dict = {"txt_filter": "ubuntu*", "metadata_type": [CHANNEL_TORRENT], "subscribed": True}
+        self.nodes[1].overlay.send_remote_select(id_, **kwargs_dict)
+
+        await self.deliver_messages(timeout=0.5)
+
+        with db_session:
+            channels1 = self.nodes[1].overlay.mds.MetadataNode.get_entries(channel_pk=channel_pk, id_=channel_id)
+            self.assertEqual(1, len(channels1))
