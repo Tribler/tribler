@@ -82,6 +82,7 @@ class TestUpgrader(TestAsServer):
         mds = MetadataStore(old_database_path, channels_dir, self.session.trustchain_keypair)
         with db_session:
             self.assertEqual(int(mds.MiscData.get(name="db_version").value), 8)
+            self.assertEqual(mds.Vsids[0].exp_period, 24.0 * 60 * 60 * 3)
             self.assertTrue(list(mds._db.execute('PRAGMA index_info("idx_channelnode__metadata_type")')))
         mds.shutdown()
 
