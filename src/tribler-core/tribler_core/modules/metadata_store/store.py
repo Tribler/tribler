@@ -147,8 +147,6 @@ class MetadataStore(object):
             if not default_vsids:
                 default_vsids = self.Vsids.create_default_vsids()
             self.ChannelMetadata.votes_scaling = default_vsids.max_val
-            # Decay only happens while Tribler is running
-            default_vsids.last_bump = datetime.utcnow()
 
     @db_session
     def upsert_vote(self, channel, peer_pk):
