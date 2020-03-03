@@ -109,6 +109,7 @@ class TriblerUpgrader(object):
             if not list(mds._db.execute('PRAGMA index_info("idx_channelnode__metadata_type")')):
                 sql = 'CREATE INDEX "idx_channelnode__metadata_type" ON "ChannelNode" ("metadata_type")'
                 mds._db.execute(sql)
+            mds.Vsids[0].exp_period = 24.0 * 60 * 60 * 3
             db_version = mds.MiscData.get(name="db_version")
             db_version.value = str(8)
         return
