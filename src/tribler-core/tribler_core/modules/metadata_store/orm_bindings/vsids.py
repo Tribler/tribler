@@ -41,7 +41,7 @@ def define_binding(db):
         total_activity = orm.Required(float)
         last_bump = orm.Required(datetime)
         rescale_threshold = orm.Optional(float, default=10.0 ** 100)
-        exp_period = orm.Optional(float, default=24.0 * 60 * 60)  # decay e times over this period
+        exp_period = orm.Optional(float, default=24.0 * 60 * 60 * 3)  # decay e times over this period of seconds
         max_val = orm.Optional(float, default=1.0)
 
         @db_session
