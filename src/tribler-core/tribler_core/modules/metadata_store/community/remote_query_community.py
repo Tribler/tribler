@@ -1,6 +1,7 @@
 import json
+import time
 from binascii import unhexlify
-from random import sample
+from random import getrandbits, sample
 
 from ipv8.community import Community
 from ipv8.lazy_community import lazy_wrapper
@@ -8,6 +9,12 @@ from ipv8.messaging.lazy_payload import VariablePayload, vp_compile
 from ipv8.peer import Peer
 
 from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import entries_to_chunk
+from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT
+
+# The maximum number of packets to receive from any given peer from a single request.
+# This limit is imposed as a safety precaution to prevent spam/flooding
+PACKETS_LIMIT = 10
+REQUEST_TIMEOUT = 10  # seconds
 
 
 @vp_compile
@@ -50,9 +57,14 @@ class RemoteQueryCommunity(Community):
         self.settings = settings or RemoteQueryCommunitySettings()
 
         self.mds = metadata_store
+        # This dict stores information about outstanding requests in the form:
+        # (peer.mid, request_id) : [request_args_dict, response_packets_limit, request_timeout_moment]
+        # It is periodically cleaned up by self.evict_timed_out_requests method
+        self.outstanding_requests = dict()
 
         self.add_message_handler(RemoteSelectPayload, self.on_remote_select)
         self.add_message_handler(SelectResponsePayload, self.on_remote_select_response)
+        self.register_task("Timeout remote select requests", self.evict_timed_out_requests, interval=1)
 
     def get_random_peers(self, sample_size=None):
         # Randomly sample sample_size peers from the complete list of our peers
@@ -61,10 +73,24 @@ class RemoteQueryCommunity(Community):
             return sample(all_peers, sample_size)
         return all_peers
 
-    def send_remote_select(self, id_, **kwargs):
-        payload = RemoteSelectPayload(id_, json.dumps(kwargs).encode('utf8'))
+    def evict_timed_out_requests(self):
+        now = time.time()
+        for request_id, [_, _, request_timeout_moment] in list(self.outstanding_requests.items()):
+            if now > request_timeout_moment:
+                self.outstanding_requests.pop(request_id, None)
+
+    def send_remote_select(self, peer, **kwargs):
+        request_id = getrandbits(32)
+        self.outstanding_requests[(peer.mid, request_id)] = [kwargs, PACKETS_LIMIT, time.time() + REQUEST_TIMEOUT]
+        self.ez_send(peer, RemoteSelectPayload(request_id, json.dumps(kwargs).encode('utf8')))
+
+    def send_remote_select_to_many(self, **kwargs):
         for p in self.get_random_peers(self.settings.max_query_peers):
-            self.ez_send(p, payload)
+            self.send_remote_select(p, **kwargs)
+
+    def send_remote_select_subscribed_channels(self, peer):
+        request_dict = {"metadata_type": [CHANNEL_TORRENT], "subscribed": True}
+        self.send_remote_select(peer, **request_dict)
 
     @lazy_wrapper(RemoteSelectPayload)
     async def on_remote_select(self, peer, request):
@@ -73,14 +99,34 @@ class RemoteQueryCommunity(Community):
             return
 
         index = 0
-
         while index < len(db_results):
             data, index = entries_to_chunk(db_results, self.settings.maximum_payload_size, start_index=index)
             self.ez_send(peer, SelectResponsePayload(request.id, data))
 
     @lazy_wrapper(SelectResponsePayload)
     async def on_remote_select_response(self, peer, response):
-        await self.mds.process_compressed_mdblob_threaded(response.raw_blob)
+        request_id = (peer.mid, response.id)
+        request = self.outstanding_requests.get(request_id, None)
+        if not request:
+            return
+
+        now = time.time()
+        request_dict, packet_limit, request_timeout_moment = request
+        # Check that request did not reach a timeout
+        if now > request_timeout_moment:
+            self.outstanding_requests.pop(request_id, None)
+            return
+
+        # Check for limit on the number of packets per request
+        if packet_limit > 1:
+            self.outstanding_requests[request_id][1] = packet_limit - 1
+        else:
+            self.outstanding_requests.pop(request_id, None)
+
+        # We use responses for requests about subscribed channels to bump our local channels ratings
+        peer_vote = peer if request_dict.get("subscribed", None) is True else None
+
+        await self.mds.process_compressed_mdblob_threaded(response.raw_blob, peer_vote_for_channels=peer_vote)
 
 
 class RemoteQueryTestnetCommunity(RemoteQueryCommunity):

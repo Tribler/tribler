@@ -179,7 +179,7 @@ class MetadataStore(object):
         if not isinstance(threading.current_thread(), threading._MainThread):
             self._db.disconnect()
 
-    def process_channel_dir(self, dirname, public_key, id_, skip_personal_metadata_payload=True, external_thread=False):
+    def process_channel_dir(self, dirname, public_key, id_, **kwargs):
         """
         Load all metadata blobs in a given directory.
         :param dirname: The directory containing the metadata blobs.
@@ -229,7 +229,7 @@ class MetadataStore(object):
                     ):
                         continue
                 try:
-                    self.process_mdblob_file(str(full_filename), skip_personal_metadata_payload, external_thread)
+                    self.process_mdblob_file(str(full_filename), **kwargs)
                     # If we stopped mdblob processing due to shutdown flag, we should stop
                     # processing immediately, so that channel local version will not increase
                     if self._shutting_down:
@@ -255,7 +255,7 @@ class MetadataStore(object):
                 channel.timestamp,
             )
 
-    def process_mdblob_file(self, filepath, skip_personal_metadata_payload=True, external_thread=False):
+    def process_mdblob_file(self, filepath, **kwargs):
         """
         Process a file with metadata in a channel directory.
         :param filepath: The path to the file
@@ -269,8 +269,8 @@ class MetadataStore(object):
             serialized_data = f.read()
 
         if str(filepath).endswith('.lz4'):
-            return self.process_compressed_mdblob(serialized_data, skip_personal_metadata_payload, external_thread)
-        return self.process_squashed_mdblob(serialized_data, skip_personal_metadata_payload, external_thread)
+            return self.process_compressed_mdblob(serialized_data, **kwargs)
+        return self.process_squashed_mdblob(serialized_data, **kwargs)
 
     async def process_compressed_mdblob_threaded(self, compressed_data, **kwargs):
         def _process_blob():
@@ -291,26 +291,25 @@ class MetadataStore(object):
 
         return await get_event_loop().run_in_executor(None, _process_blob)
 
-    def process_compressed_mdblob(self, compressed_data, skip_personal_metadata_payload=True, external_thread=False):
+    def process_compressed_mdblob(self, compressed_data, **kwargs):
         try:
             decompressed_data = lz4.frame.decompress(compressed_data)
         except RuntimeError:
             self._logger.warning("Unable to decompress mdblob")
             return []
-        return self.process_squashed_mdblob(decompressed_data, skip_personal_metadata_payload, external_thread)
+        return self.process_squashed_mdblob(decompressed_data, **kwargs)
 
-    def process_squashed_mdblob(self, chunk_data, skip_personal_metadata_payload=True, external_thread=False):
+    def process_squashed_mdblob(self, chunk_data, external_thread=False, peer_vote_for_channels=None, **kwargs):
         """
         Process raw concatenated payloads blob. This routine breaks the database access into smaller batches.
         It uses a congestion-control like algorithm to determine the optimal batch size, targeting the
         batch processing time value of self.reference_timedelta.
 
         :param chunk_data: the blob itself, consists of one or more GigaChannel payloads concatenated together
-        :param skip_personal_metadata_payload: if this is set to True, personal torrent metadata payload received
-                through gossip will be ignored. The default value is True.
         :param external_thread: if this is set to True, we add some sleep between batches to allow other threads
-        to get the database lock. This is an ugly workaround for Python and asynchronous programming (locking)
-        imperfections. It only makes sense to use it when this routine runs on a non-reactor thread.
+            to get the database lock. This is an ugly workaround for Python and asynchronous programming (locking)
+            imperfections. It only makes sense to use it when this routine runs on a non-reactor thread.
+        :peer_vote_for_channels: Channel entries found in the blob will be vote bumped for the corresponding peer
         :return ChannelNode objects list if we can correctly load the metadata
         """
 
@@ -331,9 +330,7 @@ class MetadataStore(object):
             # We separate the sessions to minimize database locking.
             with db_session:
                 for payload in batch:
-                    result.extend(
-                        self.process_payload(payload, skip_personal_metadata_payload=skip_personal_metadata_payload)
-                    )
+                    result.extend(self.process_payload(payload, **kwargs))
             if external_thread:
                 sleep(self.sleep_on_external_thread)
 
@@ -357,6 +354,12 @@ class MetadataStore(object):
             if self._shutting_down:
                 break
 
+        # TODO: this is not the best place to bump votes. It is more correct to do it directly in process_payload.
+        if peer_vote_for_channels is not None:
+            with db_session:
+                peer = peer_vote_for_channels
+                for c in [md for md, _ in result if md and (md.metadata_type == CHANNEL_TORRENT)]:
+                    self.vote_bump(c.public_key, c.id_, peer.public_key.key_to_bin()[10:])
         return result
 
     @db_session

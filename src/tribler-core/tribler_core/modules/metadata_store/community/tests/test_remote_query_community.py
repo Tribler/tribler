@@ -8,7 +8,7 @@ from tribler_core.modules.metadata_store.orm_bindings.channel_node import NEW
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, REGULAR_TORRENT
 from tribler_core.modules.metadata_store.store import MetadataStore
 from tribler_core.utilities.path_util import Path
-from tribler_core.utilities.random_utils import random_infohash
+from tribler_core.utilities.random_utils import random_infohash, random_string
 
 
 def add_random_torrent(metadata_cls, name="test", channel=None):
@@ -59,9 +59,8 @@ class TestRemoteQueryCommunity(TestBase):
             torrents = self.nodes[1].overlay.mds.TorrentMetadata.select()[:]
             self.assertEqual(len(torrents), 0)
 
-        id_ = 123
         kwargs_dict = {"txt_filter": "ubuntu*", "metadata_type": [REGULAR_TORRENT]}
-        self.nodes[1].overlay.send_remote_select(id_, **kwargs_dict)
+        self.nodes[1].overlay.send_remote_select_to_many(**kwargs_dict)
 
         await self.deliver_messages(timeout=0.5)
 
@@ -73,12 +72,59 @@ class TestRemoteQueryCommunity(TestBase):
         # Now try querying for subscribed "ubuntu" channels
         channels1 = self.nodes[1].overlay.mds.MetadataNode.get_entries(channel_pk=channel_pk, id_=channel_id)
         self.assertEqual(0, len(channels1))
-        id_ = 444
         kwargs_dict = {"txt_filter": "ubuntu*", "metadata_type": [CHANNEL_TORRENT], "subscribed": True}
-        self.nodes[1].overlay.send_remote_select(id_, **kwargs_dict)
+        self.nodes[1].overlay.send_remote_select_to_many(**kwargs_dict)
 
         await self.deliver_messages(timeout=0.5)
 
         with db_session:
             channels1 = self.nodes[1].overlay.mds.MetadataNode.get_entries(channel_pk=channel_pk, id_=channel_id)
             self.assertEqual(1, len(channels1))
+
+    async def test_remote_select_subscribed_channels(self):
+        with db_session:
+            for _ in range(0, 5):
+                self.nodes[0].overlay.mds.ChannelMetadata.create_channel("channel sub", "")
+            for _ in range(0, 5):
+                channel_uns = self.nodes[0].overlay.mds.ChannelMetadata.create_channel("channel unsub", "")
+                channel_uns.subscribed = False
+
+        peer = self.nodes[0].my_peer
+        self.nodes[1].overlay.send_remote_select_subscribed_channels(peer)
+
+        await self.deliver_messages(timeout=0.5)
+
+        with db_session:
+            received_channels = self.nodes[1].overlay.mds.ChannelMetadata.select(lambda g: g.title == "channel sub")
+            self.assertEqual(received_channels.count(), 5)
+            # Only subscribed channels should have been transported
+            received_channels_all = self.nodes[1].overlay.mds.ChannelMetadata.select()
+            self.assertEqual(received_channels_all.count(), 5)
+
+            # Make sure the subscribed channels transport counted as voting
+            self.assertEqual(
+                self.nodes[1].overlay.mds.ChannelPeer.select().first().public_key, peer.public_key.key_to_bin()[10:]
+            )
+            for chan in self.nodes[1].overlay.mds.ChannelMetadata.select():
+                self.assertTrue(chan.votes > 0.0)
+
+    async def test_remote_select_packets_limit(self):
+        with db_session:
+            for _ in range(0, 100):
+                self.nodes[0].overlay.mds.ChannelMetadata.create_channel(random_string(100), "")
+
+        peer = self.nodes[0].my_peer
+        kwargs_dict = {"metadata_type": [CHANNEL_TORRENT]}
+        self.nodes[1].overlay.send_remote_select(peer, **kwargs_dict)
+        # There should be an outstanding request in the list
+        self.assertTrue(self.nodes[1].overlay.outstanding_requests)
+
+        await self.deliver_messages(timeout=0.5)
+
+        with db_session:
+            received_channels = self.nodes[1].overlay.mds.ChannelMetadata.select()
+            # We should receive less that 6 packets, so all the channels should not fit there.
+            self.assertTrue(40 < received_channels.count() < 60)
+
+            # The list of outstanding requests should be empty
+            self.assertFalse(self.nodes[1].overlay.outstanding_requests)
