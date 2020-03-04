@@ -239,7 +239,7 @@ class Session(TaskManager):
             self.remote_query_community = community_cls(peer, self.ipv8.endpoint, self.ipv8.network, self.mds)
 
             self.ipv8.overlays.append(self.remote_query_community)
-            self.ipv8.strategies.append((RandomWalk(self.remote_query_community), 20))
+            self.ipv8.strategies.append((RandomWalk(self.remote_query_community), 50))
 
     def enable_ipv8_statistics(self):
         if self.config.get_ipv8_statistics():
