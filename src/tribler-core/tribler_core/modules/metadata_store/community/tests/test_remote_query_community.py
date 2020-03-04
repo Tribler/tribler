@@ -134,7 +134,7 @@ class TestRemoteQueryCommunity(TestBase):
         kwargs_dict = {"metadata_type": [CHANNEL_TORRENT]}
         self.nodes[1].overlay.send_remote_select(peer, **kwargs_dict)
         # There should be an outstanding request in the list
-        self.assertTrue(self.nodes[1].overlay.outstanding_requests)
+        self.assertTrue(self.nodes[1].overlay.request_cache._identifiers)
 
         await self.deliver_messages(timeout=0.5)
 
@@ -144,7 +144,7 @@ class TestRemoteQueryCommunity(TestBase):
             self.assertTrue(40 < received_channels.count() < 60)
 
             # The list of outstanding requests should be empty
-            self.assertFalse(self.nodes[1].overlay.outstanding_requests)
+            self.assertFalse(self.nodes[1].overlay.request_cache._identifiers)
 
     def test_query_on_introduction(self):
         """
