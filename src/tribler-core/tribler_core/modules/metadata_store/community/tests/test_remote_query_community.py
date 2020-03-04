@@ -1,4 +1,5 @@
 from ipv8.keyvault.crypto import default_eccrypto
+from ipv8.peer import Peer
 from ipv8.test.base import TestBase
 
 from pony.orm import db_session
@@ -53,9 +54,18 @@ class TestRemoteQueryCommunity(TestBase):
             channel.commit_channel_torrent()
 
         await self.introduce_nodes()
+        await self.deliver_messages(timeout=0.5)
+
+        # On introduction, the subscribed channel should be sent, so Node 1's DB should immediately get a channel
+        # Node 1 DB is empty. It searches for 'ubuntu'
+        with db_session:
+            torrents = self.nodes[1].overlay.mds.TorrentMetadata.select()[:]
+            self.assertEqual(len(torrents), 1)
 
         # Node 1 DB is empty. It searches for 'ubuntu'
         with db_session:
+            # Clean the db from the previous test
+            self.nodes[1].overlay.mds.TorrentMetadata.select().delete()
             torrents = self.nodes[1].overlay.mds.TorrentMetadata.select()[:]
             self.assertEqual(len(torrents), 0)
 
@@ -82,6 +92,9 @@ class TestRemoteQueryCommunity(TestBase):
             self.assertEqual(1, len(channels1))
 
     async def test_remote_select_subscribed_channels(self):
+        """
+        Test querying remote peers for subscribed channels and updating local votes accordingly
+        """
         with db_session:
             for _ in range(0, 5):
                 self.nodes[0].overlay.mds.ChannelMetadata.create_channel("channel sub", "")
@@ -109,6 +122,10 @@ class TestRemoteQueryCommunity(TestBase):
                 self.assertTrue(chan.votes > 0.0)
 
     async def test_remote_select_packets_limit(self):
+        """
+        Test dropping packets that go over the response limit for a remote select.
+
+        """
         with db_session:
             for _ in range(0, 100):
                 self.nodes[0].overlay.mds.ChannelMetadata.create_channel(random_string(100), "")
@@ -128,3 +145,31 @@ class TestRemoteQueryCommunity(TestBase):
 
             # The list of outstanding requests should be empty
             self.assertFalse(self.nodes[1].overlay.outstanding_requests)
+
+    def test_query_on_introduction(self):
+        """
+        Test querying a peer that was just introduced to us.
+        """
+
+        send_ok = []
+
+        def mock_send(_):
+            send_ok.append(1)
+
+        self.nodes[1].overlay.send_remote_select_subscribed_channels = mock_send
+        peer = self.nodes[0].my_peer
+        self.nodes[1].overlay.introduction_response_callback(peer, None, None)
+        self.assertIn(peer.mid, self.nodes[1].overlay.queried_subscribed_channels_peers)
+        self.assertTrue(send_ok)
+
+        # Make sure the same peer will not be queried twice in case the walker returns to it
+        self.nodes[1].overlay.introduction_response_callback(peer, None, None)
+        self.assertEqual(len(send_ok), 1)
+
+        # Test clearing queried peers set when it outgrows its capacity
+        self.nodes[1].overlay.queried_peers_limit = 2
+        self.nodes[1].overlay.introduction_response_callback(Peer(default_eccrypto.generate_key("low")), None, None)
+        self.assertEqual(len(self.nodes[1].overlay.queried_subscribed_channels_peers), 2)
+
+        self.nodes[1].overlay.introduction_response_callback(Peer(default_eccrypto.generate_key("low")), None, None)
+        self.assertEqual(len(self.nodes[1].overlay.queried_subscribed_channels_peers), 1)

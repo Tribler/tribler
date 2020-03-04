@@ -54,6 +54,8 @@ class RemoteQueryCommunity(Community):
     def __init__(self, my_peer, endpoint, network, metadata_store, settings=None):
         super(RemoteQueryCommunity, self).__init__(my_peer, endpoint, network)
 
+        self.max_peers = 60
+
         self.settings = settings or RemoteQueryCommunitySettings()
 
         self.mds = metadata_store
@@ -61,6 +63,13 @@ class RemoteQueryCommunity(Community):
         # (peer.mid, request_id) : [request_args_dict, response_packets_limit, request_timeout_moment]
         # It is periodically cleaned up by self.evict_timed_out_requests method
         self.outstanding_requests = dict()
+
+        # This set contains all the peers that we queried for subscribed channels over time.
+        # It is emptied regularly. The purpose of this set is to work as a filter so we never query the same
+        # peer twice. If we do, this should happen realy rarely
+        # TODO: use Bloom filter here instead. That has nice property not growing infinitely over time.
+        self.queried_subscribed_channels_peers = set()
+        self.queried_peers_limit = 1000
 
         self.add_message_handler(RemoteSelectPayload, self.on_remote_select)
         self.add_message_handler(SelectResponsePayload, self.on_remote_select_response)
@@ -127,6 +136,14 @@ class RemoteQueryCommunity(Community):
         peer_vote = peer if request_dict.get("subscribed", None) is True else None
 
         await self.mds.process_compressed_mdblob_threaded(response.raw_blob, peer_vote_for_channels=peer_vote)
+
+    def introduction_response_callback(self, peer, dist, payload):
+        if peer.address in self.network.blacklist or peer.mid in self.queried_subscribed_channels_peers:
+            return
+        if len(self.queried_subscribed_channels_peers) >= self.queried_peers_limit:
+            self.queried_subscribed_channels_peers.clear()
+        self.queried_subscribed_channels_peers.add(peer.mid)
+        self.send_remote_select_subscribed_channels(peer)
 
 
 class RemoteQueryTestnetCommunity(RemoteQueryCommunity):
