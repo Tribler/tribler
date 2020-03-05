@@ -1,10 +1,9 @@
 from binascii import unhexlify
-from random import sample
 
 from aiohttp import web
 
 from tribler_core.modules.metadata_store.restapi.metadata_endpoint_base import MetadataEndpointBase
-from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, RESTResponse
+from tribler_core.restapi.rest_endpoint import RESTResponse
 from tribler_core.tests.tools.base_test import MockObject
 
 from tribler_gui.tests.fake_tribler_api import tribler_utils
@@ -18,7 +17,6 @@ class ChannelsEndpoint(MetadataEndpointBase):
         self.app.add_routes(
             [
                 web.get('', self.get_channels),
-                web.get('/popular', self.get_popular_channels),
                 web.get(r'/{channel_pk:\w*}/{channel_id:\w*}', self.get_channel_contents),
                 web.post(r'/{channel_pk:\w*}/{channel_id:\w*}/commit', self.post_commit),
                 web.get(r'/{channel_pk:\w*}/{channel_id:\w*}/commit', self.is_channel_dirty),
@@ -51,13 +49,6 @@ class ChannelsEndpoint(MetadataEndpointBase):
         if total is not None:
             response_dict.update({"total": total})
         return RESTResponse(response_dict)
-
-    async def get_popular_channels(self, request):
-        if request.query.get('limit', 1) <= 0:
-            return RESTResponse({"error": "the limit parameter must be a positive number"}, status=HTTP_BAD_REQUEST)
-
-        results = [channel.get_json() for channel in sample(tribler_utils.tribler_data.channels, 20)]
-        return RESTResponse({"channels": results})
 
     # Get the list of the channel's contents (torrents/channels/etc.)
     async def get_channel_contents(self, request):

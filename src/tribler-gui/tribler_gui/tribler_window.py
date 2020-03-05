@@ -52,7 +52,6 @@ from tribler_gui.defs import (
     PAGE_DISCOVERING,
     PAGE_DOWNLOADS,
     PAGE_EDIT_CHANNEL,
-    PAGE_HOME,
     PAGE_LOADING,
     PAGE_SEARCH_RESULTS,
     PAGE_SETTINGS,
@@ -73,7 +72,6 @@ from tribler_gui.utilities import get_gui_setting, get_image_path, get_ui_file_p
 from tribler_gui.widgets.tablecontentmodel import DiscoveredChannelsModel, PersonalChannelsModel, SearchResultsModel
 from tribler_gui.widgets.triblertablecontrollers import sanitize_for_fts, to_fts_query
 
-fc_home_recommended_item, _ = uic.loadUiType(get_ui_file_path('home_recommended_item.ui'))
 fc_loading_list_item, _ = uic.loadUiType(get_ui_file_path('loading_list_item.ui'))
 
 
@@ -189,7 +187,6 @@ class TriblerWindow(QMainWindow):
             widget.setAttribute(Qt.WA_MacShowFocusRect, 0)
 
         self.menu_buttons = [
-            self.left_menu_button_home,
             self.left_menu_button_search,
             self.left_menu_button_my_channel,
             self.left_menu_button_subscriptions,
@@ -211,7 +208,6 @@ class TriblerWindow(QMainWindow):
         )
         self.subscribed_channels_page.model.channel_info["name"] = "Subscribed channels"
         self.downloads_page.initialize_downloads_page()
-        self.home_page.initialize_home_page()
         self.loading_page.initialize_loading_page()
         self.discovering_page.initialize_discovering_page()
 
@@ -421,13 +417,6 @@ class TriblerWindow(QMainWindow):
         self.fetch_settings()
 
         self.downloads_page.start_loading_downloads()
-        self.home_page.load_popular_torrents()
-        if not self.gui_settings.value("first_discover", False) and not self.core_manager.use_existing_core:
-            self.window().gui_settings.setValue("first_discover", True)
-            self.discovering_page.is_discovering = True
-            self.stackedWidget.setCurrentIndex(PAGE_DISCOVERING)
-        else:
-            self.clicked_menu_button_home()
 
         self.setAcceptDrops(True)
         self.setWindowTitle("Tribler %s" % self.tribler_version)
@@ -435,6 +424,22 @@ class TriblerWindow(QMainWindow):
         self.initialize_personal_channels_page()
         self.add_to_channel_dialog.load_channel(0)
         self.discovered_page.reset_view()
+
+        if not self.gui_settings.value("first_discover", False) and not self.core_manager.use_existing_core:
+            self.core_manager.events_manager.discovered_channel.connect(self.stop_discovering)
+            self.window().gui_settings.setValue("first_discover", True)
+            self.discovering_page.is_discovering = True
+            self.stackedWidget.setCurrentIndex(PAGE_DISCOVERING)
+        else:
+            self.stackedWidget.setCurrentIndex(PAGE_DISCOVERED)
+
+    def stop_discovering(self):
+        if not self.discovering_page.is_discovering:
+            return
+        self.core_manager.events_manager.discovered_channel.disconnect(self.stop_discovering)
+        self.discovering_page.is_discovering = False
+        if self.stackedWidget.currentIndex() == PAGE_DISCOVERING:
+            self.stackedWidget.setCurrentIndex(PAGE_DISCOVERED)
 
     def initialize_personal_channels_page(self):
         self.personal_channel_page.initialize_content_page(self.gui_settings, edit_enabled=True)
@@ -900,7 +905,7 @@ class TriblerWindow(QMainWindow):
         if self.video_player_page.isVisible():
             # If we're adding a torrent from the video player page, go to the home page.
             # This is necessary since VLC takes the screen and the popup becomes invisible.
-            self.clicked_menu_button_home()
+            self.clicked_menu_button_downloads()
 
         if not self.add_torrent_url_dialog_active:
             self.dialog = ConfirmationDialog(
@@ -964,12 +969,6 @@ class TriblerWindow(QMainWindow):
                 button.setEnabled(False)
 
             button.setChecked(False)
-
-    def clicked_menu_button_home(self):
-        self.deselect_all_menu_buttons(self.left_menu_button_home)
-        self.stackedWidget.setCurrentIndex(PAGE_HOME)
-        self.navigation_stack = []
-        self.hide_left_menu_playlist()
 
     def clicked_menu_button_search(self):
         self.deselect_all_menu_buttons(self.left_menu_button_search)
@@ -1048,14 +1047,7 @@ class TriblerWindow(QMainWindow):
         ConfirmationDialog.show_error(self, "Credit Mining Error", error[u'message'])
 
     def resizeEvent(self, _):
-        # Resize home page cells
-        cell_width = self.home_page_table_view.width() / 3 - 3  # We have some padding to the right
-        max_height = self.home_page_table_view.height() / 3 - 4
-        cell_height = min(cell_width / 2 + 60, max_height)
-
-        for i in range(0, 3):
-            self.home_page_table_view.setColumnWidth(i, cell_width)
-            self.home_page_table_view.setRowHeight(i, cell_height)
+        # This thing here is necessary to send the resize event to dialogs, etc.
         self.resize_event.emit()
 
     def exit_full_screen(self):

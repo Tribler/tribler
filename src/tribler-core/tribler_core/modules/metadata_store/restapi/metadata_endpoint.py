@@ -1,4 +1,3 @@
-from asyncio import get_event_loop
 from binascii import unhexlify
 
 from aiohttp import ContentTypeError, web
@@ -50,7 +49,6 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
             [
                 web.patch('', self.update_channel_entries),
                 web.delete('', self.delete_channel_entries),
-                web.get('/torrents/random', self.get_random_torrents),
                 web.get('/torrents/{infohash}/health', self.get_torrent_health),
                 web.patch(r'/{public_key:\w*}/{id:\w*}', self.update_channel_entry),
                 web.get(r'/{public_key:\w*}/{id:\w*}', self.get_channel_entries),
@@ -113,22 +111,6 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
                 return RESTResponse({"error": "entry not found in database"}, status=HTTP_NOT_FOUND)
 
         return RESTResponse(entry_dict)
-
-    async def get_random_torrents(self, request):
-        limit_torrents = int(request.query.get('limit', 10))
-        if limit_torrents <= 0:
-            return RESTResponse({"error": "the limit parameter must be a positive number"}, status=HTTP_BAD_REQUEST)
-
-        def _get_random_torrents():
-            with db_session:
-                random_torrents = self.session.mds.TorrentMetadata.get_random_torrents(limit=limit_torrents)
-                result = [torrent.to_simple_dict() for torrent in random_torrents]
-            self.session.mds.disconnect_thread()
-            return result
-
-        torrents = await get_event_loop().run_in_executor(None, _get_random_torrents)
-
-        return RESTResponse({"torrents": torrents})
 
     async def get_torrent_health(self, request):
         """

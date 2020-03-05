@@ -191,21 +191,6 @@ class TestSpecificMetadataEndpoint(AbstractApiTest):
         await self.do_request('metadata/%s/%i' % (hexlify(b"0" * 64), 123), expected_code=404)
 
 
-class TestRandomTorrentsEndpoint(BaseTestMetadataEndpoint):
-    async def test_get_random_torrents_neg_limit(self):
-        """
-        Test if an error is returned if we query some random torrents with the REST API and a negative limit
-        """
-        await self.do_request('metadata/torrents/random?limit=-5', expected_code=400)
-
-    async def test_get_random_torrents(self):
-        """
-        Test whether we can retrieve some random torrents with the REST API
-        """
-        json_dict = await self.do_request('metadata/torrents/random?limit=5')
-        self.assertEqual(len(json_dict['torrents']), 5)
-
-
 class TestTorrentHealthEndpoint(AbstractApiTest):
     def setUpPreSession(self):
         super(TestTorrentHealthEndpoint, self).setUpPreSession()
