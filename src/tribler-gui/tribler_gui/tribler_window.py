@@ -581,6 +581,9 @@ class TriblerWindow(QMainWindow):
             self.new_version_dialog = None
 
     def on_search_text_change(self, text):
+        # We do not want to bother the database on petty 1-character queries
+        if len(text) < 2:
+            return
         TriblerNetworkRequest(
             "search/completions", self.on_received_search_completions, url_params={'q': sanitize_for_fts(text)}
         )
