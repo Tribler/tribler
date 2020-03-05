@@ -51,16 +51,10 @@ def define_binding(db):
                 return "Personal"
             return "Preview"
 
-        @db_session
         def to_simple_dict(self):
             result = super(CollectionNode, self).to_simple_dict()
             result.update(
-                {
-                    "torrents": self.num_entries,
-                    "state": self.state,
-                    "total": self.contents_len,
-                    "dirty": self.dirty if self.is_personal else False,
-                }
+                {"torrents": self.num_entries, "state": self.state, "dirty": self.dirty if self.is_personal else False}
             )
             return result
 

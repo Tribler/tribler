@@ -8,8 +8,11 @@ from ipv8.messaging.lazy_payload import VariablePayload, vp_compile
 from ipv8.peer import Peer
 from ipv8.requestcache import RandomNumberCache, RequestCache
 
+from tribler_common.simpledefs import CHANNELS_VIEW_UUID, NTFY
+
 from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import entries_to_chunk
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT
+from tribler_core.modules.metadata_store.store import UNKNOWN_CHANNEL
 from tribler_core.utilities.unicode import hexlify
 
 
@@ -59,9 +62,10 @@ class RemoteQueryCommunity(Community):
         )
     )
 
-    def __init__(self, my_peer, endpoint, network, metadata_store, settings=None):
+    def __init__(self, my_peer, endpoint, network, metadata_store, settings=None, notifier=None):
         super(RemoteQueryCommunity, self).__init__(my_peer, endpoint, network)
 
+        self.notifier = notifier
         self.max_peers = 60
 
         self.settings = settings or RemoteQueryCommunitySettings()
@@ -127,7 +131,18 @@ class RemoteQueryCommunity(Community):
         # We use responses for requests about subscribed channels to bump our local channels ratings
         peer_vote = peer if request.request_kwargs.get("subscribed", None) is True else None
 
-        await self.mds.process_compressed_mdblob_threaded(response.raw_blob, peer_vote_for_channels=peer_vote)
+        result = await self.mds.process_compressed_mdblob_threaded(response.raw_blob, peer_vote_for_channels=peer_vote)
+        # Maybe move this callback to MetadataStore side?
+        if self.notifier:
+            new_channels = [
+                md.to_simple_dict()
+                for md, result in result
+                if md and md.metadata_type == CHANNEL_TORRENT and result == UNKNOWN_CHANNEL and md.origin_id == 0
+            ]
+            if new_channels:
+                self.notifier.notify(
+                    NTFY.CHANNEL_DISCOVERED, {"results": new_channels, "uuid": str(CHANNELS_VIEW_UUID)}
+                )
 
     def introduction_response_callback(self, peer, dist, payload):
         if peer.address in self.network.blacklist or peer.mid in self.queried_subscribed_channels_peers:

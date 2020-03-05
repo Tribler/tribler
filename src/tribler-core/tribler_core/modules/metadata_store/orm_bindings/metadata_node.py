@@ -188,7 +188,6 @@ def define_binding(db):
                     all_terms.add(term)
             return list(all_terms)
 
-        @db_session
         def to_simple_dict(self):
             """
             Return a basic dictionary with information about the channel.

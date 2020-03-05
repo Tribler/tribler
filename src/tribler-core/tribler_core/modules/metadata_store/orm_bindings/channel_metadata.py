@@ -384,7 +384,6 @@ def define_binding(db):
                 return "Downloading"
             return "Preview"
 
-        @db_session
         def to_simple_dict(self, **kwargs):
             """
             Return a basic dictionary with information about the channel.

@@ -131,7 +131,6 @@ def define_binding(db):
                 lambda g: g.metadata_type == REGULAR_TORRENT and g.status != LEGACY_ENTRY
             ).random(limit)
 
-        @db_session
         def to_simple_dict(self, include_trackers=False):
             """
             Return a basic dictionary with information about the channel.
@@ -149,8 +148,9 @@ def define_binding(db):
                 }
             )
 
-            if include_trackers:
-                simple_dict['trackers'] = [tracker.url for tracker in self.health.trackers]
+            with db_session:
+                if include_trackers:
+                    simple_dict['trackers'] = [tracker.url for tracker in self.health.trackers]
 
             return simple_dict
 

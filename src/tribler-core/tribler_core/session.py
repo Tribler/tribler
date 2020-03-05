@@ -236,7 +236,8 @@ class Session(TaskManager):
                 import RemoteQueryCommunity, RemoteQueryTestnetCommunity
 
             community_cls = RemoteQueryTestnetCommunity if self.config.get_testnet() else RemoteQueryCommunity
-            self.remote_query_community = community_cls(peer, self.ipv8.endpoint, self.ipv8.network, self.mds)
+            self.remote_query_community = community_cls(peer, self.ipv8.endpoint, self.ipv8.network, self.mds,
+                                                        notifier=self.notifier)
 
             self.ipv8.overlays.append(self.remote_query_community)
             self.ipv8.strategies.append((RandomWalk(self.remote_query_community), 50))
