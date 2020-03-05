@@ -8,6 +8,7 @@ from tribler_core.modules.metadata_store.community.remote_query_community import
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import NEW
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, REGULAR_TORRENT
 from tribler_core.modules.metadata_store.store import MetadataStore
+from tribler_core.tests.tools.base_test import MockObject
 from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.random_utils import random_infohash, random_string
 
@@ -95,6 +96,14 @@ class TestRemoteQueryCommunity(TestBase):
         """
         Test querying remote peers for subscribed channels and updating local votes accordingly
         """
+
+        def mock_notify(overlay, args):
+            overlay.notified_results = True
+            self.assertTrue("results" in args[0])
+
+        self.nodes[1].overlay.notifier = MockObject()
+        self.nodes[1].overlay.notifier.notify = lambda sub, args: mock_notify(self.nodes[1].overlay, args)
+
         with db_session:
             for _ in range(0, 5):
                 self.nodes[0].overlay.mds.ChannelMetadata.create_channel("channel sub", "")
@@ -120,6 +129,9 @@ class TestRemoteQueryCommunity(TestBase):
             )
             for chan in self.nodes[1].overlay.mds.ChannelMetadata.select():
                 self.assertTrue(chan.votes > 0.0)
+
+        # Check that the notifier callback is called on new channel entries
+        self.assertTrue(self.nodes[1].overlay.notified_results)
 
     async def test_remote_select_packets_limit(self):
         """
