@@ -1,6 +1,6 @@
 from asyncio import sleep
 from binascii import unhexlify
-from random import randint, sample
+from random import randint
 
 from aiohttp import web
 
@@ -15,11 +15,9 @@ class MetadataEndpoint(RESTEndpoint):
             [
                 web.get('/channels', self.get_channels),
                 web.get('/channels/count', self.get_channels_count),
-                web.get('/channels/popular', self.get_popular_channels),
                 web.post(r'/channels/{channel_pk:\w*}/{channel_id:\w*}', self.subscribe_to_channel),
                 web.get(r'/channels/{channel_pk:\w*}/{channel_id:\w*}/torrents', self.get_channel_torrents),
                 web.get(r'/channels/{channel_pk:\w*}/{channel_id:\w*}/torrents/count', self.get_channel_torrents_count),
-                web.get('/torrents/random', self.get_random_torrents),
                 web.get('/torrents/{infohash}', self.get_torrent),
                 web.get('/torrents/{infohash}/health', self.get_torrent_health),
             ]
@@ -97,15 +95,6 @@ class MetadataEndpoint(RESTEndpoint):
         channel = unhexlify(request.query.get('channel', b''))
         _, total = tribler_utils.tribler_data.get_torrents(first, last, sort_by, sort_asc, txt_filter, channel)
         return RESTResponse({"total": total})
-
-    async def get_popular_channels(self, _):
-        results_json = [channel.get_json() for channel in sample(tribler_utils.tribler_data.channels, 20)]
-        return RESTResponse({"channels": results_json})
-
-    async def get_random_torrents(self, _):
-        return RESTResponse(
-            {"torrents": [torrent.get_json() for torrent in sample(tribler_utils.tribler_data.torrents, 20)]}
-        )
 
     async def get_torrent(self, request):
         infohash = unhexlify(request.match_info['infohash'])

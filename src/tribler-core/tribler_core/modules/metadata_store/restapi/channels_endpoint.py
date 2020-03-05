@@ -25,7 +25,6 @@ class ChannelsEndpoint(ChannelsEndpointBase):
         self.app.add_routes(
             [
                 web.get('', self.get_channels),
-                web.get('/popular', self.get_popular_channels),
                 web.get(r'/{channel_pk:\w*}/{channel_id:\w*}', self.get_channel_contents),
                 web.post(r'/{channel_pk:\w*}/{channel_id:\w*}/copy', self.copy_channel),
                 web.post(r'/{channel_pk:\w*}/{channel_id:\w*}/channels', self.create_channel),
@@ -67,16 +66,6 @@ class ChannelsEndpoint(ChannelsEndpointBase):
         if total is not None:
             response_dict.update({"total": total})
         return RESTResponse(response_dict)
-
-    async def get_popular_channels(self, request):
-        limit_channels = int(request.query.get('limit', 10))
-        if limit_channels <= 0:
-            return RESTResponse({"error": "the limit parameter must be a positive number"}, status=HTTP_BAD_REQUEST)
-
-        with db_session:
-            popular_channels = self.session.mds.ChannelMetadata.get_random_channels(limit=limit_channels)
-            results = [channel.to_simple_dict() for channel in popular_channels]
-        return RESTResponse({"channels": results})
 
     # Get the list of the channel's contents (torrents/channels/etc.)
     async def get_channel_contents(self, request):

@@ -145,21 +145,6 @@ class TestSpecificChannelEndpoint(BaseTestMetadataEndpoint):
         self.assertIn('status', json_dict['results'][0])
 
 
-class TestPopularChannelsEndpoint(BaseTestMetadataEndpoint):
-    async def test_get_popular_channels_neg_limit(self):
-        """
-        Test whether an error is returned if we use a negative value for the limit parameter
-        """
-        await self.do_request('channels/popular?limit=-1', expected_code=400)
-
-    async def test_get_popular_channels(self):
-        """
-        Test whether we can retrieve popular channels with the REST API
-        """
-        json_dict = await self.do_request('channels/popular?limit=5')
-        self.assertEqual(len(json_dict['channels']), 5)
-
-
 class TestSpecificChannelCommitEndpoint(BaseTestMyChannelEndpoint):
     @timeout(10)
     async def test_commit_no_channel(self):

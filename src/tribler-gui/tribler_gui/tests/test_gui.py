@@ -22,7 +22,6 @@ import tribler_gui.core_manager as core_manager
 from tribler_gui.dialogs.feedbackdialog import FeedbackDialog
 from tribler_gui.tribler_app import TriblerApplication
 from tribler_gui.tribler_window import TriblerWindow
-from tribler_gui.widgets.home_recommended_item import HomeRecommendedItem
 from tribler_gui.widgets.loading_list_item import LoadingListItem
 
 if os.environ.get("TEST_GUI") == "yes":
@@ -157,15 +156,6 @@ class AbstractTriblerGUITest(TestCase):
         # List was not populated in time, fail the test
         raise TimeoutException("The list was not populated within 10 seconds")
 
-    def wait_for_home_page_table_populated(self, timeout=10):
-        for _ in range(0, timeout * 1000, 100):
-            QTest.qWait(100)
-            if isinstance(window.home_page_table_view.cellWidget(0, 0), HomeRecommendedItem):
-                return
-
-        # List was not populated in time, fail the test
-        raise TimeoutException("The list was not populated within 10 seconds")
-
     def wait_for_settings(self, timeout=10):
         for _ in range(0, timeout * 1000, 100):
             QTest.qWait(100)
@@ -271,20 +261,6 @@ class TriblerGUITest(AbstractTriblerGUITest):
         torrent_name_in_dialog = window.dialog.dialog_widget.torrent_name_label.text()
         self.assertEqual(torrent_name_in_dialog, str(TORRENT_UBUNTU_FILE))
         self.screenshot(window, name="start_download_dialog_on_startup")
-
-    def test_home_page_torrents(self):
-        QTest.mouseClick(window.left_menu_button_home, Qt.LeftButton)
-        QTest.mouseClick(window.home_tab_torrents_button, Qt.LeftButton)
-        self.screenshot(window, name="home_page_torrents_loading")
-        self.wait_for_home_page_table_populated()
-        self.screenshot(window, name="home_page_torrents")
-
-    def test_home_page_channels(self):
-        QTest.mouseClick(window.left_menu_button_home, Qt.LeftButton)
-        QTest.mouseClick(window.home_tab_channels_button, Qt.LeftButton)
-        self.screenshot(window, name="home_page_channels_loading")
-        self.wait_for_home_page_table_populated()
-        self.screenshot(window, name="home_page_channels")
 
     def tst_channels_widget(self, widget, widget_name, sort_column=1):
         self.wait_for_list_populated(widget.content_table)
