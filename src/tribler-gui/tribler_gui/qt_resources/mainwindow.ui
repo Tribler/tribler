@@ -1151,7 +1151,7 @@ background-color: #e67300;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>0</number>
+         <number>2</number>
         </property>
         <widget class="ChannelContentsWidget" name="personal_channel_page"/>
         <widget class="ChannelContentsWidget" name="search_results_page"/>
@@ -1553,8 +1553,8 @@ border-top: 1px solid #555;
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>300</width>
-               <height>646</height>
+               <width>854</width>
+               <height>710</height>
               </rect>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_22">
@@ -2905,7 +2905,7 @@ color: white;</string>
                   <item>
                    <widget class="QCheckBox" name="credit_mining_enabled_checkbox">
                     <property name="text">
-                     <string>Enable token mining</string>
+                     <string>Enable token mining (requires Tribler restart)</string>
                     </property>
                    </widget>
                   </item>
@@ -4691,8 +4691,8 @@ color: white</string>
                       <rect>
                        <x>0</x>
                        <y>0</y>
-                       <width>321</width>
-                       <height>259</height>
+                       <width>856</width>
+                       <height>387</height>
                       </rect>
                      </property>
                      <layout class="QFormLayout" name="formLayout_4">
