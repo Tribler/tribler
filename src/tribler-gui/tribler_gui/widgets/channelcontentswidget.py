@@ -196,7 +196,7 @@ class ChannelContentsWidget(widget_form, widget_class):
         if structure_changed:
             self.window().add_to_channel_dialog.clear_channels_tree()
 
-        if self.autocommit_enabled:
+        if self.autocommit_enabled and dirty:
             self.commit_timer.stop()
             self.commit_timer.start(CHANNEL_COMMIT_DELAY)
 
