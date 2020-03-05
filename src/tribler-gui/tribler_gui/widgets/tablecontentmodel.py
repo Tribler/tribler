@@ -68,14 +68,14 @@ class RemoteTableModel(QAbstractTableModel):
         self.sort_desc = bool(order)
         self.reset()
 
-    def add_items(self, new_items, remote=False):
+    def add_items(self, new_items, on_top=False):
         """
         Adds new items to the table model. All items are mapped to their unique ids to avoid the duplicates.
         If the new items are remote then the items are prepended to the top else appended to the end of the model.
         Note that item_uid_map tracks items twice: once by public_key+id and once by infohash. This is necessary to
         support status updates from TorrentChecker based on infohash only.
         :param new_items: list(item)
-        :param remote: True if new_items are received from remote peers else False for local items
+        :param on_top: True if new_items should be added on top of the table
         :return: None
         """
         if not new_items:
@@ -85,7 +85,7 @@ class RemoteTableModel(QAbstractTableModel):
 
         # Only add unique items to the table model and reverse mapping from unique ids to rows is built.
         # If items are remote, prepend to the top else append to the end of the model.
-        insert_index = 0 if remote else len(self.data_items)
+        insert_index = 0 if on_top else len(self.data_items)
         unique_new_items = []
         for item in new_items:
             item_uid = get_item_uid(item)
@@ -101,7 +101,7 @@ class RemoteTableModel(QAbstractTableModel):
             return
 
         # Else if remote items, to make space for new unique items shift the existing items
-        if remote:
+        if on_top:
             new_items_map = {}
             for item in self.data_items:
                 old_item_uid = get_item_uid(item)
@@ -114,7 +114,7 @@ class RemoteTableModel(QAbstractTableModel):
                 self.item_uid_map = new_items_map
 
         # Update the table model
-        if remote:
+        if on_top:
             self.beginInsertRows(QModelIndex(), 0, len(unique_new_items) - 1)
             self.data_items = unique_new_items + self.data_items
         else:
@@ -183,11 +183,12 @@ class RemoteTableModel(QAbstractTableModel):
 
         TriblerNetworkRequest(rest_endpoint_url, self.on_query_results, url_params=kwargs)
 
-    def on_query_results(self, response, remote=False):
+    def on_query_results(self, response, remote=False, on_top=False):
         """
         Updates the table with the response.
         :param response: List of the items to be added to the model
         :param remote: True if response is from a remote peer. Default: False
+        :param on_top: True if items should be added at the top of the list
         :return: True, if response, False otherwise
         """
         # TODO: count remote results
@@ -195,7 +196,7 @@ class RemoteTableModel(QAbstractTableModel):
             return False
 
         if not remote or (uuid.UUID(response.get('uuid')) in self.remote_queries):
-            self.add_items(response['results'], remote=remote)
+            self.add_items(response['results'], on_top=remote or on_top)
             if "total" in response:
                 self.channel_info["total"] = response["total"]
                 self.info_changed.emit(response['results'])
@@ -270,7 +271,7 @@ class ChannelContentModel(RemoteTableModel):
 
     @property
     def edit_enabled(self):
-        return self.channel_info.get("state", None) == "Personal"
+        return False
 
     @property
     def endpoint_url(self):
@@ -464,9 +465,18 @@ class PersonalChannelsModel(ChannelContentModel):
         url = (
             self.endpoint_url_override or "channels/%s/%i" % (self.channel_info["public_key"], self.channel_info["id"])
         ) + ("/channels" if self.channel_info.get("id", 0) == 0 else "/collections")
-        TriblerNetworkRequest(url, self.on_query_results, method='POST')
+        TriblerNetworkRequest(url, self.on_create_query_results, method='POST')
 
     def on_query_results(self, response, **kwargs):
         if super(PersonalChannelsModel, self).on_query_results(response, **kwargs):
             if response.get("results"):
                 self.info_changed.emit(response["results"])
+
+    def on_create_query_results(self, response, **kwargs):
+        # This is a hack to put the newly created object at the top of the table
+        kwargs["on_top"] = 1
+        self.on_query_results(response, **kwargs)
+
+    @property
+    def edit_enabled(self):
+        return self.channel_info.get("state", None) == "Personal"
