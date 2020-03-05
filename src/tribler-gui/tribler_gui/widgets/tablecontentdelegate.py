@@ -238,16 +238,22 @@ class CategoryLabelMixin(object):
         # Draw empty cell as the background
         self.paint_empty_background(painter, option)
 
+        draw_border = True
         if 'type' in data_item and data_item['type'] == CHANNEL_TORRENT:
-            category = "My channel" if data_item['state'] == u'Personal' else u'Channel'
+            if data_item['state'] == u'Personal':
+                category = "\U0001F3E0"  # 'home' emoji
+            else:
+                category = "\U0001F536"  # "large orange diamond" emoji
+            draw_border = False
         elif 'type' in data_item and data_item['type'] == COLLECTION_NODE:
-            category = u'Folder'
+            category = "\U0001F4C1"  # 'folder' emoji
+            draw_border = False
         else:
             category = data_item[u'category']
             # Precautions to safely draw wrong category descriptions
             if not category or category not in CATEGORY_LIST:
                 category = "Unknown"
-        CategoryLabel(category).paint(painter, option, index)
+        CategoryLabel(category).paint(painter, option, index, draw_border=draw_border)
         return True
 
 
@@ -350,7 +356,7 @@ class CategoryLabel(QObject):
         QObject.__init__(self, parent=parent)
         self.category = category
 
-    def paint(self, painter, option, _):
+    def paint(self, painter, option, _, draw_border=True):
         painter.save()
 
         lines = QPen(QColor("#B5B5B5"), 1, Qt.SolidLine, Qt.RoundCap)
@@ -360,16 +366,17 @@ class CategoryLabel(QObject):
         text_box = painter.boundingRect(option.rect, text_flags, self.category)
 
         painter.drawText(text_box, text_flags, self.category)
-        bezel_thickness = 4
-        bezel_box = QRect(
-            text_box.left() - bezel_thickness,
-            text_box.top() - bezel_thickness,
-            text_box.width() + bezel_thickness * 2,
-            text_box.height() + bezel_thickness * 2,
-        )
+        if draw_border:
+            bezel_thickness = 4
+            bezel_box = QRect(
+                text_box.left() - bezel_thickness,
+                text_box.top() - bezel_thickness,
+                text_box.width() + bezel_thickness * 2,
+                text_box.height() + bezel_thickness * 2,
+            )
 
-        painter.setRenderHint(QPainter.Antialiasing)
-        painter.drawRoundedRect(bezel_box, 20, 80, mode=Qt.RelativeSize)
+            painter.setRenderHint(QPainter.Antialiasing)
+            painter.drawRoundedRect(bezel_box, 20, 80, mode=Qt.RelativeSize)
 
         painter.restore()
 
