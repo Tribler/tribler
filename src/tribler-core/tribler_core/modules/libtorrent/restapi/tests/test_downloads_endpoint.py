@@ -315,7 +315,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         def mocked_set_selected_files(*_):
             mocked_set_selected_files.called = True
         mocked_set_selected_files.called = False
-        download.set_selected_file_indexes = mocked_set_selected_files
+        download.set_selected_files = mocked_set_selected_files
 
         await self.do_request(f'downloads/{infohash}', post_data={"selected_files": [0]},
                                expected_code=200, request_type='PATCH',
