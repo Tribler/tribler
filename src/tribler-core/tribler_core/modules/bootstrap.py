@@ -26,6 +26,7 @@ class Bootstrap(TaskManager):
         if not self.bootstrap_dir.exists():
             os.mkdir(self.bootstrap_dir)
         self.dcfg.set_dest_dir(self.bootstrap_dir)
+        self.dcfg.set_safe_seeding(True)
         self.bootstrap_file = self.bootstrap_dir / "bootstrap.blocks"
         self.dht = dht
 
