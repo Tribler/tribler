@@ -372,7 +372,7 @@ class DownloadsEndpoint(RESTEndpoint):
         if not download:
             return DownloadsEndpoint.return_404(request)
 
-        remove_data = parameters['remove_data'] == "1"
+        remove_data = parameters['remove_data'] == 1
 
         try:
             await self.session.ltmgr.remove_download(download, remove_content=remove_data)
