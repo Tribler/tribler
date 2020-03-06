@@ -26,8 +26,8 @@ class TestConfigParser(TriblerCoreTest):
         dlcfg.set_safe_seeding(False)
         self.assertFalse(dlcfg.get_safe_seeding())
 
-        dlcfg.set_selected_file_indexes([1])
-        self.assertEqual(dlcfg.get_selected_file_indexes(), [1])
+        dlcfg.set_selected_files([1])
+        self.assertEqual(dlcfg.get_selected_files(), [1])
 
         dlcfg.set_channel_download(True)
         self.assertTrue(dlcfg.get_channel_download())

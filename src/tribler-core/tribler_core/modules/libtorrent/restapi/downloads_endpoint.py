@@ -113,7 +113,7 @@ class DownloadsEndpoint(RESTEndpoint):
         """
         files_json = []
         files_completion = dict((name, progress) for name, progress in download.get_state().get_files_completion())
-        selected_files = download.config.get_selected_file_indexes()
+        selected_files = download.config.get_selected_files()
         file_index = 0
         for fn, size in download.get_def().get_files_with_length():
             files_json.append({

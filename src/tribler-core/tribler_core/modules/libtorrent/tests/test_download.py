@@ -221,8 +221,7 @@ class TestDownloadNoSession(TriblerCoreTest):
 
         self.download.get_share_mode = lambda: False
         self.download.tdef.get_infohash = lambda: b'a' * 20
-        self.download.orig_files = ['my/a', 'my/b']
-        self.download.set_selected_files(['a'])
+        self.download.set_selected_files([0])
         self.assertTrue(mocked_set_file_prios.called)
 
         self.download.get_share_mode = lambda: False
@@ -245,13 +244,12 @@ class TestDownloadNoSession(TriblerCoreTest):
         self.download.handle.get_torrent_info = lambda: mock_torrent_info
         self.download.handle.rename_file = lambda *_: None
         self.download.tdef.get_infohash = lambda: b'a' * 20
-        self.download.orig_files = ['a', 'b']
 
         # If share mode is not enabled and everything else is fine, file priority should be set
         # when set_selected_files() is called. But in this test, no files attribute is set in torrent info
         # in order to test AttributeError, therfore, no call to set file priority is expected.
         self.download.get_share_mode = lambda: False
-        self.download.set_selected_files(['a'])
+        self.download.set_selected_files([0])
         self.assertFalse(mocked_set_file_prios.called)
 
     def test_get_share_mode(self):
