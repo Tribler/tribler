@@ -3,6 +3,7 @@ import shutil
 from asyncio import ensure_future, sleep
 from binascii import unhexlify
 from tempfile import mkstemp
+from unittest.mock import Mock
 
 from pony.orm import db_session
 
@@ -344,17 +345,13 @@ class TestDownloadsEndpoint(AbstractApiTest):
         video_tdef, _ = self.create_local_torrent(TESTS_DATA_DIR / 'video.avi')
         download = self.session.dlmgr.start_download(tdef=video_tdef)
         infohash = get_hex_infohash(video_tdef)
-
-        def mocked_set_selected_files(*_):
-            mocked_set_selected_files.called = True
-        mocked_set_selected_files.called = False
-        download.set_selected_files = mocked_set_selected_files
+        download.set_selected_files = Mock()
 
         await self.do_request(f'downloads/{infohash}', post_data={"selected_files": [0]},
                                expected_code=200, request_type='PATCH',
                                expected_json={"modified": True,
                                               "infohash": "c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5"})
-        self.assertTrue(mocked_set_selected_files.called)
+        download.set_selected_files.assert_called_once_with([0])
 
     @timeout(10)
     async def test_load_checkpoint_wrong_infohash(self):

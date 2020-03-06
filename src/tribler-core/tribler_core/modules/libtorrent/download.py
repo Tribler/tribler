@@ -331,7 +331,7 @@ class Download(TaskManager):
         settings = self.dlmgr.get_session_settings(lt_session)
         if alert.message().endswith("send buffer watermark too low (upload rate will suffer)"):
             if settings['send_buffer_watermark'] <= 26214400:
-                self._logger.info( "Setting send_buffer_watermark to %s", 2 * settings['send_buffer_watermark'])
+                self._logger.info("Setting send_buffer_watermark to %s", 2 * settings['send_buffer_watermark'])
                 settings['send_buffer_watermark'] *= 2
                 self.dlmgr.set_session_settings(self.dlmgr.get_session(), settings)
         # When the write cache is too small, double the buffer size to a maximum
@@ -384,9 +384,9 @@ class Download(TaskManager):
     def set_selected_files(self, selected_files=None):
         if not isinstance(self.tdef, TorrentDefNoMetainfo) and not self.get_share_mode():
             if selected_files is None:
-                selected_files = self.config.get_selected_file_indexes()
+                selected_files = self.config.get_selected_files()
             else:
-                self.config.set_selected_file_indexes(selected_files)
+                self.config.set_selected_files(selected_files)
 
             torrent_info = get_info_from_handle(self.handle)
             if not torrent_info or not hasattr(torrent_info, 'files'):
