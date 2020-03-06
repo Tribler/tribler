@@ -428,25 +428,11 @@ class Session(TaskManager):
             self.video_server = VideoServer(self.config.get_video_server_port(), self)
             self.video_server.start()
 
-        if self.config.get_libtorrent_enabled():
-            self.readable_status = STATE_START_LIBTORRENT
-            from tribler_core.modules.libtorrent.libtorrent_mgr import LibtorrentMgr
-            self.ltmgr = LibtorrentMgr(self)
-            self.ltmgr.initialize()
-            self.readable_status = STATE_LOAD_CHECKPOINTS
-            await self.ltmgr.load_checkpoints()
-        self.readable_status = STATE_READABLE_STARTED
-
         if self.config.get_chant_enabled():
             channels_dir = self.config.get_chant_channels_dir()
             metadata_db_name = 'metadata.db' if not self.config.get_testnet() else 'metadata_testnet.db'
             database_path = self.config.get_state_dir() / 'sqlite' / metadata_db_name
             self.mds = MetadataStore(database_path, channels_dir, self.trustchain_keypair)
-
-        if self.config.get_torrent_checking_enabled():
-            self.readable_status = STATE_START_TORRENT_CHECKER
-            self.torrent_checker = TorrentChecker(self)
-            await self.torrent_checker.initialize()
 
         # IPv8
         if self.config.get_ipv8_enabled():
@@ -475,6 +461,21 @@ class Session(TaskManager):
                 self.api_manager.set_ipv8_session(self.ipv8)
             if self.config.get_tunnel_community_enabled():
                 await self.tunnel_community.wait_for_socks_servers()
+
+        # Note that currently we should only start libtorrent after the SOCKS5 servers have been started
+        if self.config.get_libtorrent_enabled():
+            self.readable_status = STATE_START_LIBTORRENT
+            from tribler_core.modules.libtorrent.libtorrent_mgr import LibtorrentMgr
+            self.ltmgr = LibtorrentMgr(self)
+            self.ltmgr.initialize()
+            self.readable_status = STATE_LOAD_CHECKPOINTS
+            await self.ltmgr.load_checkpoints()
+        self.readable_status = STATE_READABLE_STARTED
+
+        if self.config.get_torrent_checking_enabled():
+            self.readable_status = STATE_START_TORRENT_CHECKER
+            self.torrent_checker = TorrentChecker(self)
+            await self.torrent_checker.initialize()
 
         # Wallets
         if self.config.get_bitcoinlib_enabled():
