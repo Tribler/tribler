@@ -221,6 +221,8 @@ class VideoPlayerPage(QWidget):
         self.window().video_player_play_pause_button.setEnabled(True)
         self.window().video_player_info_button.show()
 
+        self.window().video_player_position_slider.setDisabled(self.mediaplayer.is_seekable())
+
     def play_media_item(self, infohash, menu_index):
         """
         Play a specific media item in a torrent. If the index is -1, we play the item with the largest size.
