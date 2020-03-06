@@ -262,7 +262,8 @@ class Session(TaskManager):
         self.bootstrap.start_by_infohash(self.ltmgr.start_download, self.config.get_bootstrap_infohash())
         if self.trustchain_community:
             await self.bootstrap.download.future_finished
-            await get_event_loop().run_in_executor(None, self.import_bootstrap_file)
+            # Temporarily disabling SQL import for experimental release
+            #await get_event_loop().run_in_executor(None, self.import_bootstrap_file)
             self.bootstrap.bootstrap_finished = True
 
     def create_state_directory_structure(self):
