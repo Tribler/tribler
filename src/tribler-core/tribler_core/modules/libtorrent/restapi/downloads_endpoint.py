@@ -94,7 +94,7 @@ class DownloadsEndpoint(RESTEndpoint):
             download_config.set_dest_dir(dest_dir)
 
         if 'selected_files' in parameters:
-            download_config.set_selected_files(parameters['selected_files'])
+            download_config.set_selected_file_indexes(parameters['selected_files'])
 
         return download_config, None
 
@@ -434,7 +434,7 @@ class DownloadsEndpoint(RESTEndpoint):
             num_files = len(download.tdef.get_files())
             if not all([0 <= index < num_files for index in selected_files_list]):
                 return RESTResponse({"error": "index out of range"}, status=HTTP_BAD_REQUEST)
-            download.set_selected_file_indexes(selected_files_list)
+            download.set_selected_files(selected_files_list)
 
         if parameters.get('state'):
             state = parameters['state']
