@@ -10,6 +10,7 @@ import os
 import sys
 import time as timemod
 from asyncio import get_event_loop
+from io import StringIO
 from traceback import print_tb
 
 from anydex.wallet.dummy_wallet import DummyWallet1, DummyWallet2
@@ -368,12 +369,18 @@ class Session(TaskManager):
             return
 
         self._logger.error('Got unhandled error: %s', text)
+
+        text_long = text
         if context.get('exception', None):
             print_tb(context['exception'].__traceback__)
+            # Store in exception
+            with StringIO() as buffer:
+                print_tb(context['exception'].__traceback__, file=buffer)
+                text_long = buffer.getvalue()
 
-        if self.api_manager and len(text) > 0:
-            self.api_manager.get_endpoint('events').on_tribler_exception(text)
-            self.api_manager.get_endpoint('state').on_tribler_exception(text)
+        if self.api_manager and len(text_long) > 0:
+            self.api_manager.get_endpoint('events').on_tribler_exception(text_long)
+            self.api_manager.get_endpoint('state').on_tribler_exception(text_long)
 
     def get_tribler_statistics(self):
         """Return a dictionary with general Tribler statistics."""
