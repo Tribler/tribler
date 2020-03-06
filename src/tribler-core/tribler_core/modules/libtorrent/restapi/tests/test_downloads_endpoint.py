@@ -1,15 +1,17 @@
 import os
-from asyncio import ensure_future
+import shutil
+from asyncio import ensure_future, sleep
 from binascii import unhexlify
 
 from pony.orm import db_session
 
+from tribler_core.modules.libtorrent.download_config import DownloadConfig
 from tribler_core.modules.libtorrent.download_state import DownloadState
 from tribler_core.restapi.base_api_test import AbstractApiTest
 from tribler_core.tests.tools.base_test import MockObject
 from tribler_core.tests.tools.common import TESTS_DATA_DIR, TESTS_DIR, UBUNTU_1504_INFOHASH
 from tribler_core.tests.tools.tools import timeout
-from tribler_core.utilities.path_util import pathname2url
+from tribler_core.utilities.path_util import Path, pathname2url
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import fail, succeed
 
@@ -244,7 +246,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         Testing whether the API returns error 404 if a non-existent download is removed
         """
-        await self.do_request('downloads/abcd', post_data={"remove_data": True},
+        await self.do_request('downloads/abcd', post_data={"remove_data": 1},
                                expected_code=404, request_type='DELETE')
 
     @timeout(10)
@@ -255,11 +257,38 @@ class TestDownloadsEndpoint(AbstractApiTest):
         video_tdef, _ = self.create_local_torrent(TESTS_DATA_DIR / 'video.avi')
         self.session.ltmgr.start_download(tdef=video_tdef)
         infohash = get_hex_infohash(video_tdef)
-        await self.do_request('downloads/%s' % infohash, post_data={"remove_data": True},
+        await self.do_request('downloads/%s' % infohash, post_data={"remove_data": 0},
                                            expected_code=200, request_type='DELETE',
                                            expected_json={u"removed": True,
                                                           u"infohash": u"c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5"})
         self.assertEqual(len(self.session.ltmgr.get_downloads()), 0)
+
+    @timeout(10)
+    async def test_remove_with_files(self):
+        """
+        Testing whether the API returns 200 if a download is being removed
+        """
+        # Create a copy of the file, so we can remove it later
+        source_file = TESTS_DATA_DIR / 'video.avi'
+        tmpdir = self.temporary_directory()
+        copied_file = tmpdir / Path(source_file).name
+        shutil.copyfile(source_file, copied_file)
+        video_tdef, _ = self.create_local_torrent(copied_file)
+        dcfg = DownloadConfig()
+        dcfg.set_dest_dir(tmpdir)
+        download = self.session.ltmgr.start_download(tdef=video_tdef, config=dcfg)
+        infohash = get_hex_infohash(video_tdef)
+        while not download.handle:
+            await sleep(0.1)
+        await sleep(2)
+        await self.do_request('downloads/%s' % infohash, post_data={"remove_data": 1},
+                              expected_code=200, request_type='DELETE',
+                              expected_json={u"removed": True,
+                                             u"infohash": u"c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5"})
+        while copied_file.exists():
+            await sleep(0.1)
+        self.assertEqual(len(self.session.ltmgr.get_downloads()), 0)
+        self.assertFalse(copied_file.exists())
 
     @timeout(10)
     async def test_stop_download_wrong_infohash(self):
@@ -499,7 +528,7 @@ class TestDownloadsWithTunnelsEndpoint(AbstractApiTest):
         video_tdef, _ = self.create_local_torrent(TESTS_DATA_DIR / 'video.avi')
         self.session.ltmgr.start_download(tdef=video_tdef)
         infohash = get_hex_infohash(video_tdef)
-        await self.do_request('downloads/%s' % infohash, post_data={"remove_data": True}, expected_code=500,
+        await self.do_request('downloads/%s' % infohash, post_data={"remove_data": 1}, expected_code=500,
                                expected_json={'error': {'message': '', 'code': 'RuntimeError', 'handled': True}},
                                request_type='DELETE')
 
