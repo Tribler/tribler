@@ -94,7 +94,7 @@ class DownloadsEndpoint(RESTEndpoint):
             download_config.set_dest_dir(dest_dir)
 
         if 'selected_files' in parameters:
-            download_config.set_selected_files(parameters['selected_files'])
+            download_config.set_selected_file_indexes(parameters['selected_files'])
 
         return download_config, None
 
@@ -372,10 +372,8 @@ class DownloadsEndpoint(RESTEndpoint):
         if not download:
             return DownloadsEndpoint.return_404(request)
 
-        remove_data = parameters['remove_data'] == "1"
-
         try:
-            await self.session.ltmgr.remove_download(download, remove_content=remove_data)
+            await self.session.ltmgr.remove_download(download, remove_content=parameters['remove_data'] is True)
         except Exception as e:
             self._logger.exception(e)
             return return_handled_exception(request, e)
@@ -434,7 +432,7 @@ class DownloadsEndpoint(RESTEndpoint):
             num_files = len(download.tdef.get_files())
             if not all([0 <= index < num_files for index in selected_files_list]):
                 return RESTResponse({"error": "index out of range"}, status=HTTP_BAD_REQUEST)
-            download.set_selected_file_indexes(selected_files_list)
+            download.set_selected_files(selected_files_list)
 
         if parameters.get('state'):
             state = parameters['state']

@@ -90,6 +90,6 @@ def convert_config_to_tribler75(state_dir):
         if not config.config['download_defaults'].get('selected_files') or not metainfo:
             continue  # no conversion needed/possible, selected files will be reset to their default (i.e., all files)
         tdef = TorrentDef.load_from_dict(metainfo)
-        config.set_selected_files([tdef.get_index_of_file_in_files(fn)
-                                   for fn in config.config['download_defaults'].pop('selected_files')])
+        config.set_selected_file_indexes([tdef.get_index_of_file_in_files(fn)
+                                         for fn in config.config['download_defaults'].pop('selected_files')])
         config.write(str(filename))

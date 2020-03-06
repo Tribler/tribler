@@ -1,6 +1,8 @@
 import os
-from asyncio import ensure_future
+import shutil
+from asyncio import ensure_future, sleep
 from binascii import unhexlify
+from unittest import skipIf
 
 from pony.orm import db_session
 
@@ -9,7 +11,7 @@ from tribler_core.restapi.base_api_test import AbstractApiTest
 from tribler_core.tests.tools.base_test import MockObject
 from tribler_core.tests.tools.common import TESTS_DATA_DIR, TESTS_DIR, UBUNTU_1504_INFOHASH
 from tribler_core.tests.tools.tools import timeout
-from tribler_core.utilities.path_util import pathname2url
+from tribler_core.utilities.path_util import Path, pathname2url
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import fail, succeed
 
@@ -248,18 +250,45 @@ class TestDownloadsEndpoint(AbstractApiTest):
                                expected_code=404, request_type='DELETE')
 
     @timeout(10)
-    async def test_remove(self):
+    async def test_remove_keep_files(self):
         """
         Testing whether the API returns 200 if a download is being removed
         """
         video_tdef, _ = self.create_local_torrent(TESTS_DATA_DIR / 'video.avi')
         self.session.ltmgr.start_download(tdef=video_tdef)
         infohash = get_hex_infohash(video_tdef)
-        await self.do_request('downloads/%s' % infohash, post_data={"remove_data": True},
+        await self.do_request('downloads/%s' % infohash, post_data={"remove_data": False},
                                            expected_code=200, request_type='DELETE',
                                            expected_json={u"removed": True,
                                                           u"infohash": u"c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5"})
         self.assertEqual(len(self.session.ltmgr.get_downloads()), 0)
+
+    @skipIf(True, reason="Libtorrent's remove_torrent method seems not to react on remove files option")
+    @timeout(10)
+    async def test_remove_with_files(self):
+        """
+        Testing whether the API returns 200 if a download is being removed
+        """
+        # Create a copy of the file, so we can remove it later
+        source_file = TESTS_DATA_DIR / 'video.avi'
+        tmpdir = self.temporary_directory()
+        copied_file = tmpdir / Path(source_file).name
+        shutil.copyfile(source_file, copied_file)
+        video_tdef, _ = self.create_local_torrent(copied_file)
+        download = self.session.ltmgr.start_download(tdef=video_tdef)
+        infohash = get_hex_infohash(video_tdef)
+        while not download.handle:
+            await sleep(0.1)
+        await sleep(2)
+        await self.do_request('downloads/%s' % infohash, post_data={"remove_data": True},
+                              expected_code=200, request_type='DELETE',
+                              expected_json={u"removed": True,
+                                             u"infohash": u"c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5"})
+        while copied_file.exists():
+            await sleep(0.1)
+        self.assertEqual(len(self.session.ltmgr.get_downloads()), 0)
+        self.assertFalse(copied_file.exists())
+
 
     @timeout(10)
     async def test_stop_download_wrong_infohash(self):
@@ -315,7 +344,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         def mocked_set_selected_files(*_):
             mocked_set_selected_files.called = True
         mocked_set_selected_files.called = False
-        download.set_selected_file_indexes = mocked_set_selected_files
+        download.set_selected_files = mocked_set_selected_files
 
         await self.do_request(f'downloads/{infohash}', post_data={"selected_files": [0]},
                                expected_code=200, request_type='PATCH',
