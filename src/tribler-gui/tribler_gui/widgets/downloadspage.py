@@ -389,7 +389,8 @@ class DownloadsPage(QWidget):
                     self.window().video_player_page.reset_player()
 
                 TriblerNetworkRequest(
-                    "downloads/%s" % infohash, self.on_download_removed, method='DELETE', data={"remove_data": action}
+                    "downloads/%s" % infohash, self.on_download_removed, method='DELETE',
+                    data={"remove_data": bool(action)}
                 )
         if self.dialog:
             self.dialog.close_dialog()

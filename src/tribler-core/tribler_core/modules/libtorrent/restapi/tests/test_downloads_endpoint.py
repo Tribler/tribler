@@ -246,7 +246,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         Testing whether the API returns error 404 if a non-existent download is removed
         """
-        await self.do_request('downloads/abcd', post_data={"remove_data": 1},
+        await self.do_request('downloads/abcd', post_data={"remove_data": True},
                                expected_code=404, request_type='DELETE')
 
     @timeout(10)
@@ -257,7 +257,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         video_tdef, _ = self.create_local_torrent(TESTS_DATA_DIR / 'video.avi')
         self.session.ltmgr.start_download(tdef=video_tdef)
         infohash = get_hex_infohash(video_tdef)
-        await self.do_request('downloads/%s' % infohash, post_data={"remove_data": 0},
+        await self.do_request('downloads/%s' % infohash, post_data={"remove_data": False},
                                            expected_code=200, request_type='DELETE',
                                            expected_json={u"removed": True,
                                                           u"infohash": u"c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5"})
@@ -281,7 +281,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         while not download.handle:
             await sleep(0.1)
         await sleep(2)
-        await self.do_request('downloads/%s' % infohash, post_data={"remove_data": 1},
+        await self.do_request('downloads/%s' % infohash, post_data={"remove_data": True},
                               expected_code=200, request_type='DELETE',
                               expected_json={u"removed": True,
                                              u"infohash": u"c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5"})
@@ -528,7 +528,7 @@ class TestDownloadsWithTunnelsEndpoint(AbstractApiTest):
         video_tdef, _ = self.create_local_torrent(TESTS_DATA_DIR / 'video.avi')
         self.session.ltmgr.start_download(tdef=video_tdef)
         infohash = get_hex_infohash(video_tdef)
-        await self.do_request('downloads/%s' % infohash, post_data={"remove_data": 1}, expected_code=500,
+        await self.do_request('downloads/%s' % infohash, post_data={"remove_data": True}, expected_code=500,
                                expected_json={'error': {'message': '', 'code': 'RuntimeError', 'handled': True}},
                                request_type='DELETE')
 
