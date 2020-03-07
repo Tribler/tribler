@@ -11,7 +11,7 @@ import sys
 import time as timemod
 from asyncio import get_event_loop
 from io import StringIO
-from traceback import print_tb
+from traceback import print_exception
 
 from anydex.wallet.dummy_wallet import DummyWallet1, DummyWallet2
 from anydex.wallet.tc_wallet import TrustchainWallet
@@ -369,14 +369,11 @@ class Session(TaskManager):
             self._logger.error("Invalid info-hash found")
             return
 
-        self._logger.error('Got unhandled error: %s', text)
-
         text_long = text
-        if context.get('exception', None):
-            print_tb(context['exception'].__traceback__)
-            # Store in exception
+        exc = context.get('exception')
+        if exc:
             with StringIO() as buffer:
-                print_tb(context['exception'].__traceback__, file=buffer)
+                print_exception(type(exc), exc, exc.__traceback__, file=buffer)
                 text_long = buffer.getvalue()
 
         if self.api_manager and len(text_long) > 0:
