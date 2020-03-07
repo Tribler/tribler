@@ -47,7 +47,8 @@ class DownloadConfig:
                                         configspec=str(CONFIG_SPEC_PATH), default_encoding='utf-8'))
 
     def copy(self):
-        return DownloadConfig(ConfigObj(self.config, configspec=str(CONFIG_SPEC_PATH), default_encoding='utf-8'))
+        return DownloadConfig(ConfigObj(self.config, configspec=str(CONFIG_SPEC_PATH), default_encoding='utf-8'),
+                              state_dir=self.state_dir)
 
     def write(self, filename):
         self.config.filename = str_path(filename)

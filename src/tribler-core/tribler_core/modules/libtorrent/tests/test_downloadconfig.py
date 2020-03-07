@@ -55,6 +55,7 @@ class TestConfigParser(TriblerCoreTest):
         dlcfg_copy = dlcfg.copy()
 
         self.assertEqual(dlcfg_copy.get_hops(), 0)
+        self.assertEqual(dlcfg_copy.state_dir, dlcfg.state_dir)
 
     def test_download_save_load(self):
         dlcfg = DownloadConfig()
