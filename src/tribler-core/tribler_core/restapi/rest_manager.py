@@ -97,5 +97,4 @@ class RESTManager(TaskManager):
         """
         Stop the HTTP API and return a deferred that fires when the server has shut down.
         """
-        await self.root_endpoint.stop()
         await self.site.stop()
