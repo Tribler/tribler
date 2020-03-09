@@ -363,6 +363,10 @@ class Session(TaskManager):
             self._logger.error(text)
             return
 
+        if 'builtins.OSError' in text and '[Errno -2]' in text:
+            self._logger.error(text)
+            return
+
         # We already have a check for invalid infohash when adding a torrent, but if somehow we get this
         # error then we simply log and ignore it.
         if 'exceptions.RuntimeError: invalid info-hash' in text:
