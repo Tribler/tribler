@@ -306,8 +306,11 @@ class UdpTrackerSession(TrackerSession):
         try:
             async with timeout(self.timeout):
                 # Resolve the hostname to an IP address if not done already
-                task = ensure_future(get_event_loop().getaddrinfo(self.tracker_address[0], 0, family=socket.AF_INET))
-                infos = await self.register_anonymous_task("resolve", task, ignore=(socket.gaierror,))
+                coro = get_event_loop().getaddrinfo(self.tracker_address[0], 0, family=socket.AF_INET)
+                if isinstance(coro, Future):
+                    infos = await coro  # In Python <=3.6 getaddrinfo returns a Future
+                else:
+                    infos = await self.register_anonymous_task("resolve", coro, ignore=(socket.gaierror,))
                 self.ip_address = infos[0][-1][0]
                 await self.connect()
                 return await self.scrape()
