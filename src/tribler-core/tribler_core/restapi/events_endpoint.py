@@ -60,6 +60,7 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
         RESTEndpoint.__init__(self, session)
         TaskManager.__init__(self)
         self.events_responses = []
+        self.app.on_shutdown.append(self.on_shutdown)
 
         # We need to know that Tribler completed its startup sequence
         self.tribler_started = False
@@ -67,9 +68,8 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
 
         for event_type, event_lambda in reactions_dict.items():
             self.session.notifier.add_observer(event_type,
-                                      lambda *args, event_lambda=event_lambda, event_type=event_type: self.write_data(
-                                          {"type": event_type.value,
-                                           "event": event_lambda(*args)}))
+                                               lambda *args, el=event_lambda, et=event_type:
+                                               self.write_data({"type": et.value, "event": el(*args)}))
 
         def on_circuit_removed(circuit, *args):
             if isinstance(circuit, Circuit):
@@ -83,6 +83,9 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
 
         # Tribler tunnel circuit has been removed
         self.session.notifier.add_observer(NTFY.TUNNEL_REMOVE, on_circuit_removed)
+
+    async def on_shutdown(self, _):
+        await self.shutdown_task_manager()
 
     def _tribler_started(self):
         self.tribler_started = True

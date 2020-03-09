@@ -59,6 +59,12 @@ class DownloadsEndpoint(RESTEndpoint):
     def __init__(self, *args, **kwargs):
         super(DownloadsEndpoint, self).__init__(*args, **kwargs)
         self.streams = {}
+        self.app.on_shutdown.append(self.on_shutdown)
+
+    async def on_shutdown(self, _):
+        for stream in self.streams.values():
+            stream.close()
+        self.streams.clear()
 
     def setup_routes(self):
         self.app.add_routes([web.get('', self.get_downloads),

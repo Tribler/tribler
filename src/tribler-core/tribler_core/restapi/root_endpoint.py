@@ -2,7 +2,6 @@ from anydex.restapi.root_endpoint import RootEndpoint as AnyDexRootEndpoint
 from anydex.restapi.wallets_endpoint import WalletsEndpoint
 
 from ipv8.REST.root_endpoint import RootEndpoint as IPV8RootEndpoint
-from ipv8.taskmanager import TaskManager
 
 from tribler_core.modules.libtorrent.restapi.create_torrent_endpoint import CreateTorrentEndpoint
 from tribler_core.modules.libtorrent.restapi.downloads_endpoint import DownloadsEndpoint
@@ -67,8 +66,3 @@ class RootEndpoint(RESTEndpoint):
         if '/market' in self.endpoints:
             self.endpoints['/market'].initialize(ipv8_session)
         self.endpoints['/wallets'].session = ipv8_session
-
-    async def stop(self):
-        for endpoint in self.endpoints.values():
-            if isinstance(endpoint, TaskManager):
-                await endpoint.shutdown_task_manager()
