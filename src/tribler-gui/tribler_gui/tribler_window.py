@@ -39,8 +39,8 @@ from PyQt5.QtWidgets import (
 
 from tribler_core.modules.process_checker import ProcessChecker
 from tribler_core.utilities.unicode import hexlify
+from tribler_core.version import version_id
 
-# Pre-load form UI classes
 from tribler_gui.core_manager import CoreManager
 from tribler_gui.debug_window import DebugWindow
 from tribler_gui.defs import (
@@ -137,7 +137,8 @@ class TriblerWindow(QMainWindow):
         self.navigation_stack = []
         self.tribler_started = False
         self.tribler_settings = None
-        self.tribler_version = None
+        # TODO: move version_id to tribler_common and get core version in the core crash message
+        self.tribler_version = version_id
         self.debug_window = None
         self.core_manager = CoreManager(api_port, api_key)
         self.pending_requests = {}
