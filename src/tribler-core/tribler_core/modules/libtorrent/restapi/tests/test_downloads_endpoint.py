@@ -88,7 +88,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         Testing whether an error is returned when we start a download from a bad URI
         """
-        post_data = {'uri': 'abcd', 'destination': 'a/b/c', 'selected_files[]': '1'}
+        post_data = {'uri': 'abcd', 'destination': 'a/b/c', 'selected_files': [1]}
         await self.do_request('downloads', expected_code=500, request_type='PUT', post_data=post_data,
                                expected_json={'error': 'invalid uri'})
 
@@ -98,6 +98,17 @@ class TestDownloadsEndpoint(AbstractApiTest):
         Testing whether we can start a download from a file
         """
         post_data = {'uri': 'file:%s' % (TESTS_DATA_DIR / 'video.avi.torrent')}
+        expected_json = {'started': True, 'infohash': '9d5b2dbc52807325bfc28d688f2bb03f8d1e7667'}
+        await self.do_request('downloads', expected_code=200, request_type='PUT',
+                              post_data=post_data, expected_json=expected_json)
+        self.assertGreaterEqual(len(self.session.dlmgr.get_downloads()), 1)
+
+    @timeout(10)
+    async def test_start_download_with_selected_files(self):
+        """
+        Testing whether we can start a download with the selected_files parameter set
+        """
+        post_data = {'uri': 'file:%s' % (TESTS_DATA_DIR / 'video.avi.torrent'), 'selected_files': [0]}
         expected_json = {'started': True, 'infohash': '9d5b2dbc52807325bfc28d688f2bb03f8d1e7667'}
         await self.do_request('downloads', expected_code=200, request_type='PUT',
                               post_data=post_data, expected_json=expected_json)
