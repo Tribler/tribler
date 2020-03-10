@@ -109,7 +109,7 @@ class DownloadsEndpoint(RESTEndpoint):
             download_config.set_dest_dir(dest_dir)
 
         if 'selected_files' in parameters:
-            download_config.set_selected_file_indexes(parameters['selected_files'])
+            download_config.set_selected_files(parameters['selected_files'])
 
         return download_config, None
 
