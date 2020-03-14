@@ -3,7 +3,7 @@ import logging
 import random
 import socket
 import time
-from asyncio import CancelledError, ensure_future, gather
+from asyncio import CancelledError, gather
 
 from ipv8.database import database_blob
 from ipv8.taskmanager import TaskManager, task
@@ -38,9 +38,6 @@ class TorrentChecker(TaskManager):
 
         self._should_stop = False
         self._session_list = {'DHT': []}
-
-        # Track all session cleanups
-        self.session_stop_task_list = []
 
         self.socket_mgr = self.udp_transport = None
 
@@ -84,15 +81,6 @@ class TorrentChecker(TaskManager):
             self.udp_transport = None
 
         await self.shutdown_task_manager()
-
-        # kill all the tracker sessions.
-        # Wait for the defers to all have triggered by using a DeferredList
-        for tracker_url in self._session_list.keys():
-            for session in self._session_list[tracker_url]:
-                self.session_stop_task_list.append(session.cleanup())
-
-        if self.session_stop_task_list:
-            await gather(*self.session_stop_task_list)
 
     async def check_random_tracker(self):
         """
@@ -151,6 +139,7 @@ class TorrentChecker(TaskManager):
             return self._on_result_from_session(session, info_dict)
         except CancelledError:
             self._logger.info("Tracker session is being cancelled (url %s)", session.tracker_url)
+            self.clean_session(session)
         except Exception as e:
             self._logger.warning("Got session error for URL %s: %s", session.tracker_url, str(e).replace(u'\n]', u']'))
             self.clean_session(session)
@@ -325,7 +314,7 @@ class TorrentChecker(TaskManager):
 
     def clean_session(self, session):
         self.tribler_session.tracker_manager.update_tracker_info(session.tracker_url, not session.is_failed)
-        self.session_stop_task_list.append(ensure_future(session.cleanup()))
+        self.register_task(f"Stop tracker session {str(session.tracker_address)}-{str(id(session))}", session.cleanup)
 
         # Remove the session from our session list dictionary
         self._session_list[session.tracker_url].remove(session)
