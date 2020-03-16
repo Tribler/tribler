@@ -4,7 +4,7 @@ from ipv8.test.base import TestBase
 
 from pony.orm import db_session
 
-from tribler_core.modules.metadata_store.community.remote_query_community import RemoteQueryCommunity
+from tribler_core.modules.metadata_store.community.remote_query_community import RemoteQueryCommunity, sanitize_query
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import NEW
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, REGULAR_TORRENT
 from tribler_core.modules.metadata_store.store import MetadataStore
@@ -185,3 +185,14 @@ class TestRemoteQueryCommunity(TestBase):
 
         self.nodes[1].overlay.introduction_response_callback(Peer(default_eccrypto.generate_key("low")), None, None)
         self.assertEqual(len(self.nodes[1].overlay.queried_subscribed_channels_peers), 1)
+
+    def test_sanitize_query(self):
+        req_response_list = [
+            ({"first": None, "last": None}, {"first": 0, "last": 100}),
+            ({"first": 123, "last": None}, {"first": 123, "last": 223}),
+            ({"first": None, "last": 1000}, {"first": 0, "last": 100}),
+            ({"first": 100, "last": None}, {"first": 100, "last": 200}),
+            ({}, {"first": 0, "last": 100}),
+        ]
+        for req, resp in req_response_list:
+            self.assertDictEqual(sanitize_query(req), resp)

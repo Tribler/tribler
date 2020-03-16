@@ -16,6 +16,15 @@ from tribler_core.modules.metadata_store.store import UNKNOWN_CHANNEL
 from tribler_core.utilities.unicode import hexlify
 
 
+def sanitize_query(query_dict, cap=100):
+    # We impose a cap on max numbers of returned entries to prevent DDOS-like attacks
+    first, last = query_dict.get("first", None), query_dict.get("last", None)
+    first = first or 0
+    last = last if (last is not None and last <= (first + cap)) else (first + cap)
+    query_dict.update({"first": first, "last": last})
+    return query_dict
+
+
 @vp_compile
 class RemoteSelectPayload(VariablePayload):
     msg_id = 1
@@ -48,6 +57,7 @@ class RemoteQueryCommunitySettings:
         self.maximum_payload_size = 1300
         self.max_entries = self.maximum_payload_size // self.minimal_blob_size
         self.max_query_peers = 5
+        self.max_response_size = 100  # Max number of entries returned by SQL query
 
 
 class RemoteQueryCommunity(Community):
@@ -106,7 +116,8 @@ class RemoteQueryCommunity(Community):
 
     @lazy_wrapper(RemoteSelectPayload)
     async def on_remote_select(self, peer, request):
-        db_results = await self.mds.MetadataNode.get_entries_threaded(**json.loads(request.json))
+        request_sanitized = sanitize_query(json.loads(request.json), self.settings.max_response_size)
+        db_results = await self.mds.MetadataNode.get_entries_threaded(**request_sanitized)
         if not db_results:
             return
 
