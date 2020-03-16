@@ -334,7 +334,7 @@ class Session(TaskManager):
             self._logger.error("Could not send data: network is unreachable.")
             return
 
-        if 'builtins.OSError' in text and '[Errno 11001]' in text:
+        if 'socket.gaierror' in text and '[Errno 11001]' in text:
             self._logger.error("Unable to perform DNS lookup.")
             return
 
@@ -358,7 +358,7 @@ class Session(TaskManager):
             self._logger.error(text)
             return
 
-        if 'builtins.OSError' in text and '[Errno -2]' in text:
+        if 'socket.gaierror' in text and '[Errno -2]' in text:
             self._logger.error(text)
             return
 
