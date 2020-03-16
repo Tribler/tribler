@@ -389,8 +389,10 @@ class DownloadsPage(QWidget):
                     self.window().video_player_page.reset_player()
 
                 TriblerNetworkRequest(
-                    "downloads/%s" % infohash, self.on_download_removed, method='DELETE',
-                    data={"remove_data": bool(action)}
+                    "downloads/%s" % infohash,
+                    self.on_download_removed,
+                    method='DELETE',
+                    data={"remove_data": bool(action)},
                 )
         if self.dialog:
             self.dialog.close_dialog()
@@ -423,12 +425,7 @@ class DownloadsPage(QWidget):
 
     def on_explore_files(self):
         for selected_item in self.selected_items:
-            path = os.path.normpath(
-                os.path.join(
-                    self.window().tribler_settings['download_defaults']['saveas'],
-                    selected_item.download_info["destination"],
-                )
-            )
+            path = os.path.normpath(selected_item.download_info["destination"])
             QDesktopServices.openUrl(QUrl.fromLocalFile(path))
 
     def on_move_files(self):
@@ -441,6 +438,8 @@ class DownloadsPage(QWidget):
             self.selected_items[0].download_info["destination"],
             QFileDialog.ShowDirsOnly,
         )
+        if not dest_dir:
+            return
 
         _infohash = self.selected_items[0].download_info["infohash"]
         _name = self.selected_items[0].download_info["name"]
