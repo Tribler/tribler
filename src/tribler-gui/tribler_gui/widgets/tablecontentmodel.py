@@ -437,6 +437,10 @@ class PersonalChannelsModel(ChannelContentModel):
         }
     )
 
+    def __init__(self, *args, **kwargs):
+        kwargs["hide_xxx"] = kwargs.get("hide_xxx", False)
+        super(PersonalChannelsModel, self).__init__(*args, **kwargs)
+
     def delete_rows(self, rows):
 
         patch_data = []
@@ -480,3 +484,12 @@ class PersonalChannelsModel(ChannelContentModel):
     @property
     def edit_enabled(self):
         return self.channel_info.get("state", None) == "Personal"
+
+
+class SimplifiedPersonalChannelsModel(PersonalChannelsModel):
+    columns = [u'category', u'name', u'size', ACTION_BUTTONS]
+    column_headers = [u'Category', u'Name', u'Size', u'']
+
+    def __init__(self, *args, **kwargs):
+        kwargs["exclude_deleted"] = kwargs.get("exclude_deleted", True)
+        super(SimplifiedPersonalChannelsModel, self).__init__(*args, **kwargs)

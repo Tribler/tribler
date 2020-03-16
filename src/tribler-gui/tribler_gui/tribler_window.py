@@ -69,7 +69,12 @@ from tribler_gui.dialogs.startdownloaddialog import StartDownloadDialog
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest, TriblerRequestManager, request_manager
 from tribler_gui.utilities import get_gui_setting, get_image_path, get_ui_file_path, is_dir_writable
-from tribler_gui.widgets.tablecontentmodel import DiscoveredChannelsModel, PersonalChannelsModel, SearchResultsModel
+from tribler_gui.widgets.tablecontentmodel import (
+    DiscoveredChannelsModel,
+    PersonalChannelsModel,
+    SearchResultsModel,
+    SimplifiedPersonalChannelsModel,
+)
 from tribler_gui.widgets.triblertablecontrollers import sanitize_for_fts, to_fts_query
 
 fc_loading_list_item, _ = uic.loadUiType(get_ui_file_path('loading_list_item.ui'))
@@ -443,14 +448,19 @@ class TriblerWindow(QMainWindow):
             self.stackedWidget.setCurrentIndex(PAGE_DISCOVERED)
 
     def initialize_personal_channels_page(self):
+        autocommit_enabled = (
+            get_gui_setting(self.gui_settings, "autocommit_enabled", True, is_bool=True) if self.gui_settings else True
+        )
         self.personal_channel_page.initialize_content_page(self.gui_settings, edit_enabled=True)
-        self.personal_channel_page.default_channel_model = PersonalChannelsModel
+        self.personal_channel_page.default_channel_model = (
+            SimplifiedPersonalChannelsModel if autocommit_enabled else PersonalChannelsModel
+        )
         self.personal_channel_page.initialize_root_model(
-            PersonalChannelsModel(
+            self.personal_channel_page.default_channel_model(
                 hide_xxx=False,
                 channel_info={"name": "Personal channels root", "state": "Personal"},
                 endpoint_url="channels/mychannel/0",
-                exclude_deleted=get_gui_setting(self.gui_settings, "autocommit_enabled", True, is_bool=True),
+                exclude_deleted=autocommit_enabled,
             )
         )
 
