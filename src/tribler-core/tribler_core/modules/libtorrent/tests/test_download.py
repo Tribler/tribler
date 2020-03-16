@@ -7,12 +7,14 @@ from libtorrent import bencode
 from tribler_core.exceptions import SaveResumeDataError
 from tribler_core.modules.libtorrent.download import Download
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
-from tribler_core.modules.libtorrent.torrentdef import TorrentDef
+from tribler_core.modules.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
 from tribler_core.tests.tools.base_test import MockObject, TriblerCoreTest
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
 from tribler_core.tests.tools.test_as_server import TestAsServer
 from tribler_core.tests.tools.tools import timeout
 from tribler_core.utilities import path_util
+from tribler_core.utilities.path_util import Path
+from tribler_core.utilities.random_utils import random_infohash
 from tribler_core.utilities.torrent_utils import get_info_from_handle
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import bdecode_compat, succeed
@@ -141,6 +143,32 @@ class TestDownload(TestAsServer):
         filename = self.session.dlmgr.get_checkpoint_dir() / basename
         dcfg = DownloadConfig.load(filename)
         self.assertEqual(tdef.get_infohash(), dcfg.get_engineresumedata().get(b'info-hash'))
+
+    def test_move_storage(self):
+        """
+        Test that move_storage method works as expected by Libtorrent
+        """
+        result = []
+
+        def mock_move(s):
+            result.append(s)
+
+        tdef = self.create_tdef()
+        dl = Download(self.session, tdef)
+        dl.setup()
+        dl.handle = Mock()
+        dl.handle.move_storage = mock_move
+
+        dl.move_storage(Path("some_path"))
+        self.assertEquals("some_path", result[0])
+        self.assertTrue("some_path", dl.config.get_dest_dir().name)
+
+        # Check the same thing, this time for TorrentDefNoMetainfo
+        dl = Download(self.session, TorrentDefNoMetainfo(random_infohash(), "some_torrent"))
+        dl.setup()
+        dl.move_storage(Path("some_path"))
+        self.assertEquals("some_path", result[0])
+        self.assertTrue("some_path", dl.config.get_dest_dir().name)
 
     @timeout(10)
     async def test_save_resume_disabled(self):

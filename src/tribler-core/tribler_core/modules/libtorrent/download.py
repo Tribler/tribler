@@ -5,7 +5,6 @@ Author(s): Arno Bakker, Egbert Bouman
 """
 import base64
 import logging
-import time
 from asyncio import CancelledError, Future, TimeoutError, iscoroutine, sleep, wait_for
 from collections import defaultdict
 
@@ -402,9 +401,8 @@ class Download(TaskManager):
     @check_handle(False)
     def move_storage(self, new_dir):
         if not isinstance(self.tdef, TorrentDefNoMetainfo):
-            self.handle.move_storage(new_dir)
-            self.config.set_dest_dir(new_dir)
-            return True
+            self.handle.move_storage(str(new_dir))
+        self.config.set_dest_dir(new_dir)
 
     @check_handle()
     def force_recheck(self):
