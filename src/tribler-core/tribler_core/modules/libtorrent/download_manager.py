@@ -21,8 +21,8 @@ import libtorrent as lt
 from tribler_common.simpledefs import DLSTATUS_SEEDING, STATEDIR_CHECKPOINT_DIR
 
 from tribler_core.modules.dht_health_manager import DHTHealthManager
-from tribler_core.modules.libtorrent.download_config import DownloadConfig
 from tribler_core.modules.libtorrent.download import Download
+from tribler_core.modules.libtorrent.download_config import DownloadConfig
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
 from tribler_core.utilities import path_util, torrent_utils
 from tribler_core.utilities.path_util import mkdtemp
@@ -525,7 +525,8 @@ class DownloadManager(TaskManager):
         if infohash in self.metainfo_requests and self.metainfo_requests[infohash][0] != download:
             self._logger.info("Cancelling metainfo request(s) for infohash:%s", hexlify(infohash))
             metainfo_dl, _ = self.metainfo_requests.pop(infohash)
-            await self.remove_download(metainfo_dl, remove_content=True)
+            # Leave the checkpoint. Any checkpoint that exists will belong to the download we are currently starting.
+            await self.remove_download(metainfo_dl, remove_content=True, remove_checkpoint=False)
             self.downloads[infohash] = download
 
         known = {unhexlify(str(h.info_hash())): h for h in ltsession.get_torrents()}
@@ -587,7 +588,7 @@ class DownloadManager(TaskManager):
         elif hasattr(self.ltsessions[hops], "post_session_stats"):
             self.ltsessions[hops].post_session_stats()
 
-    async def remove_download(self, download, remove_content=False):
+    async def remove_download(self, download, remove_content=False, remove_checkpoint=True):
         infohash = download.get_def().get_infohash()
         handle = download.handle
 
@@ -608,7 +609,8 @@ class DownloadManager(TaskManager):
 
         if infohash in self.downloads and self.downloads[infohash] == download:
             self.downloads.pop(infohash)
-            self.remove_config(infohash)
+            if remove_checkpoint:
+                self.remove_config(infohash)
         else:
             self._logger.debug("Cannot remove unknown download")
 

@@ -1,5 +1,5 @@
 import shutil
-from asyncio import Future, gather, get_event_loop, sleep
+from asyncio import Future, ensure_future, gather, get_event_loop, sleep
 from unittest.mock import Mock
 
 from libtorrent import bencode
@@ -232,7 +232,7 @@ class TestDownloadManager(AbstractServer):
         self.assertNotEqual(metainfo_dl, download)
         await sleep(.1)
         self.assertEqual(self.dlmgr.downloads[infohash], download)
-        self.dlmgr.remove_download.assert_called_once_with(metainfo_dl, remove_content=True)
+        self.dlmgr.remove_download.assert_called_once_with(metainfo_dl, remove_content=True, remove_checkpoint=False)
 
     @timeout(20)
     async def test_start_download(self):
@@ -492,3 +492,18 @@ class TestDownloadManager(AbstractServer):
         await self.dlmgr.sesscb_states_callback([fake_error_state])
 
         return error_stop_future
+
+    @timeout(20)
+    async def test_checkpoint_after_metainfo_cancel(self):
+        """
+        Test whether there is a checkpoint after starting a download that already a pending metainfo request
+        """
+        dlcheckpoints_tempdir = mkdtemp(suffix='dlcheckpoints_tmpdir')
+        self.dlmgr.tribler_session = self.tribler_session
+        self.dlmgr.get_checkpoint_dir = lambda: dlcheckpoints_tempdir
+        infohash = b'\x00' * 20
+        ensure_future(self.dlmgr.get_metainfo(infohash))
+        await sleep(.1)
+        await self.dlmgr.start_download_from_uri(f'magnet:?xt=urn:btih:{hexlify(infohash)}&dn=name')
+        await sleep(.1)
+        self.assertTrue((dlcheckpoints_tempdir / f'{hexlify(infohash)}.conf').exists())
