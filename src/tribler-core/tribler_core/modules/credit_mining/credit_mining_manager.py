@@ -223,7 +223,7 @@ class CreditMiningManager(TaskManager):
 
         # If a download already exists or already has a checkpoint, skip this torrent
         if self.session.dlmgr.get_download(unhexlify(infohash)) or \
-                (self.session.dlmgr.get_checkpoint_dir() / infohash).with_suffix('.state').exists():
+                (self.session.dlmgr.get_checkpoint_dir() / infohash).with_suffix('.conf').exists():
             self._logger.debug('Skipping torrent %s (download already running or scheduled to run)', infohash)
             return
 

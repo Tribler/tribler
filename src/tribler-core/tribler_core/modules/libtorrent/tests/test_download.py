@@ -180,7 +180,7 @@ class TestDownload(TestAsServer):
 
         # This should not cause a checkpoint
         dl.setup(None, 0, checkpoint_disabled=True)
-        basename = hexlify(tdef.get_infohash()) + '.state'
+        basename = hexlify(tdef.get_infohash()) + '.conf'
         filename = self.session.dlmgr.get_checkpoint_dir() / basename
         self.assertFalse(filename.is_file())
 
@@ -188,6 +188,16 @@ class TestDownload(TestAsServer):
         await dl.checkpoint()
         self.assertFalse(filename.is_file())
         dl.stop()
+
+    @timeout(10)
+    async def test_save_checkpoint(self):
+        tdef = self.create_tdef()
+        dl = Download(self.session, tdef)
+        dl.setup()
+        basename = hexlify(tdef.get_infohash()) + '.conf'
+        filename = self.session.dlmgr.get_checkpoint_dir() / basename
+        await dl.checkpoint()
+        self.assertTrue(filename.is_file())
 
 
 class TestDownloadNoSession(TriblerCoreTest):
