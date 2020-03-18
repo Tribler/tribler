@@ -4,8 +4,13 @@ from asyncio import CancelledError
 
 from aiohttp import web
 
+from aiohttp_apispec import docs
+
+from ipv8.REST.schema import schema
 from ipv8.messaging.anonymization.tunnel import Circuit
 from ipv8.taskmanager import TaskManager, task
+
+from marshmallow.fields import Dict, String
 
 from tribler_common.simpledefs import NTFY
 
@@ -114,6 +119,16 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
     def on_tribler_exception(self, exception_text):
         self.write_data({"type": NTFY.TRIBLER_EXCEPTION.value, "event": {"text": exception_text}})
 
+    @docs(
+        tags=["General"],
+        summary="Open an EventStream for receiving Tribler events.",
+        responses={
+            200: {
+                "schema": schema(EventsResponse={'type': String,
+                                                 'event': Dict})
+            }
+        }
+    )
     async def get_events(self, request):
         """
         .. http:get:: /events

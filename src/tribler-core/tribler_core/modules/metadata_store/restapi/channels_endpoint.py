@@ -4,14 +4,21 @@ from binascii import unhexlify
 
 from aiohttp import ClientSession, ContentTypeError, web
 
+from aiohttp_apispec import docs, json_schema
+
+from ipv8.REST.schema import schema
 from ipv8.database import database_blob
+
+from marshmallow.fields import Boolean, Dict, Integer, String
 
 from pony.orm import db_session
 
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import DIRTY_STATUSES, NEW
 from tribler_core.modules.metadata_store.restapi.metadata_endpoint_base import MetadataEndpointBase
+from tribler_core.modules.metadata_store.restapi.metadata_schema import ChannelSchema
 from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_NOT_FOUND, RESTResponse
+from tribler_core.restapi.schema import HandledErrorSchema
 from tribler_core.utilities import path_util
 from tribler_core.utilities.utilities import is_infohash, parse_magnetlink
 
@@ -44,7 +51,22 @@ class ChannelsEndpoint(ChannelsEndpointBase):
         channel_id = int(request.match_info['channel_id'])
         return channel_pk, channel_id
 
-    # Get list of all channels known to the system
+    @docs(
+        tags=['Metadata'],
+        summary='Get a list of all channels known to the system.',
+        responses={
+            200: {
+                'schema': schema(GetChannelsResponse={
+                    'results': [ChannelSchema],
+                    'first': Integer(),
+                    'last': Integer(),
+                    'sort_by': String(),
+                    'sort_desc': Integer(),
+                    'total': Integer()
+                })
+            }
+        }
+    )
     # TODO: DRY it with SpecificChannel endpoint?
     async def get_channels(self, request):
         sanitized = self.sanitize_parameters(request.query)
@@ -67,7 +89,22 @@ class ChannelsEndpoint(ChannelsEndpointBase):
             response_dict.update({"total": total})
         return RESTResponse(response_dict)
 
-    # Get the list of the channel's contents (torrents/channels/etc.)
+    @docs(
+        tags=['Metadata'],
+        summary='Get a list of the channel\'s contents (torrents/channels/etc.).',
+        responses={
+            200: {
+                'schema': schema(GetChannelContentsResponse={
+                    'results': [Dict()],
+                    'first': Integer(),
+                    'last': Integer(),
+                    'sort_by': String(),
+                    'sort_desc': Integer(),
+                    'total': Integer()
+                })
+            }
+        }
+    )
     async def get_channel_contents(self, request):
         sanitized = self.sanitize_parameters(request.query)
         include_total = request.query.get('include_total', '')
@@ -89,7 +126,30 @@ class ChannelsEndpoint(ChannelsEndpointBase):
 
         return RESTResponse(response_dict)
 
-    # Create a copy of an entry/entries from another channel
+    @docs(
+        tags=['Metadata'],
+        summary='Create a copy of an entry/entries from another channel.',
+        parameters=[{
+            'in': 'body',
+            'name': 'entries',
+            'description': 'List of entries to copy',
+            'example': [{'public_key': '1234567890', 'id': 123}],
+            'required': True
+        }],
+        responses={
+            200: {
+                'description': 'Returns a list of copied content'
+            },
+            HTTP_NOT_FOUND : {
+                'schema': HandledErrorSchema,
+                'example': {"error": "Target channel not found"}
+            },
+            HTTP_BAD_REQUEST: {
+                'schema': HandledErrorSchema,
+                'example': {"error": "Source entry not found"}
+            }
+        }
+    )
     async def copy_channel(self, request):
         with db_session:
             channel_pk, channel_id = self.get_channel_from_request(request)
@@ -130,65 +190,69 @@ class ChannelsEndpoint(ChannelsEndpointBase):
                 results_list.append(rslt.to_simple_dict())
             return RESTResponse(results_list)
 
-    # Create a new channel entry in this channel
+    @docs(
+        tags=['Metadata'],
+        summary='Create a new channel entry in the given channel.',
+        responses={
+            200: {
+                'description': 'Returns the newly created channel',
+                'schema': schema(CreateChannelResponse={
+                    'results': [Dict()]
+                })
+            }
+        }
+    )
     async def create_channel(self, request):
         with db_session:
             _, channel_id = self.get_channel_from_request(request)
             md = self.session.mds.ChannelMetadata.create_channel("New channel", origin_id=channel_id)
             return RESTResponse({"results": [md.to_simple_dict()]})
 
-    # Create a new collection entry in this channel
+    @docs(
+        tags=['Metadata'],
+        summary='Create a new collection entry in the given channel.',
+        responses={
+            200: {
+                'description': 'Returns the newly created collection',
+                'schema': schema(CreateCollectionResponse={
+                    'results': [Dict()]
+                })
+            }
+        }
+    )
     async def create_collection(self, request):
         with db_session:
             _, channel_id = self.get_channel_from_request(request)
             md = self.session.mds.CollectionNode(origin_id=channel_id, title="New collection", status=NEW)
             return RESTResponse({"results": [md.to_simple_dict()]})
 
-    # Put a torrent into the channel.
+    @docs(
+        tags=['Metadata'],
+        summary='Add a torrent file to your own channel.',
+        responses={
+            200: {
+                'schema': schema(AddTorrentToChannelResponse={
+                    'added': (Integer, 'Number of torrent that were added to the channel')
+                })
+            },
+            HTTP_NOT_FOUND: {
+                'schema': HandledErrorSchema,
+                'example': {"error": "Unknown channel"}
+            },
+            HTTP_BAD_REQUEST: {
+                'schema': HandledErrorSchema,
+                'example': {"error": "unknown uri type"}
+            }
+        }
+    )
+    @json_schema(schema(AddTorrentToChannelRequest={
+        'torrent': (String, 'Base64-encoded torrent file'),
+        'uri': (String, 'Add a torrent from a magnet link or URL'),
+        'torrents_dir': (String, 'Add all .torrent files from a chosen directory'),
+        'recursive': (Boolean, 'Toggle recursive scanning of the chosen directory for .torrent files'),
+        'description': (String, 'Description for the torrent'),
+    }))
     async def add_torrent_to_channel(self, request):
-        """
-        .. http:put:: /channels/<public_key>/<id_>/torrents
-
-        Add a torrent file to your own channel. Returns error 500 if something is wrong with the torrent file
-        and DuplicateTorrentFileError if already added to your channel. The torrent data is passed as base-64 encoded
-        string. The description is optional.
-
-        Option torrents_dir adds all .torrent files from a chosen directory
-        Option recursive enables recursive scanning of the chosen directory for .torrent files
-
-            **Example request**:
-
-            .. sourcecode:: none
-
-                curl -X PUT http://localhost:8085/mychannel/torrents
-                --data "torrent=...&description=funny video"
-
-            **Example response**:
-
-            .. sourcecode:: javascript
-
-                {
-                    "added": True
-                }
-
-            **Example request**:
-
-            .. sourcecode:: none
-
-                curl -X PUT http://localhost:8085/mychannel/torrents? --data "torrents_dir=some_dir&recursive=1"
-
-            **Example response**:
-
-            .. sourcecode:: javascript
-
-                {
-                    "added": 13
-                }
-
-            :statuscode 404: if your channel does not exist.
-            :statuscode 500: if the passed torrent data is corrupt.
-        """
-
         channel_pk, channel_id = self.get_channel_from_request(request)
         with db_session:
             channel = self.session.mds.CollectionNode.get(public_key=database_blob(channel_pk), id_=channel_id)
@@ -242,7 +306,7 @@ class ChannelsEndpoint(ChannelsEndpointBase):
             recursive = parameters['recursive']
             if not torrents_dir:
                 return RESTResponse(
-                    {"error": "the torrents_dir parameter should be provided when the recursive " "parameter is set"},
+                    {"error": "the torrents_dir parameter should be provided when the recursive parameter is set"},
                     status=HTTP_BAD_REQUEST,
                 )
 
@@ -260,6 +324,17 @@ class ChannelsEndpoint(ChannelsEndpointBase):
         channel.add_torrent_to_channel(torrent_def, extra_info)
         return RESTResponse({"added": 1})
 
+    @docs(
+        tags=['Metadata'],
+        summary='Commit a channel.',
+        responses={
+            200: {
+                'schema': schema(CommitResponse={
+                    'success': Boolean()
+                })
+            }
+        }
+    )
     async def post_commit(self, request):
         channel_pk, channel_id = self.get_channel_from_request(request)
         with db_session:
@@ -276,6 +351,17 @@ class ChannelsEndpoint(ChannelsEndpointBase):
 
         return RESTResponse({"success": True})
 
+    @docs(
+        tags=['Metadata'],
+        summary='Check if a channel has uncommitted changes.',
+        responses={
+            200: {
+                'schema': schema(IsChannelDirtyResponse={
+                    'dirty': Boolean()
+                })
+            }
+        }
+    )
     async def is_channel_dirty(self, request):
         channel_pk, _ = self.get_channel_from_request(request)
         with db_session:

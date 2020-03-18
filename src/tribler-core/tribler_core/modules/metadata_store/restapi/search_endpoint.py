@@ -2,9 +2,16 @@ import asyncio
 
 from aiohttp import web
 
+from aiohttp_apispec import docs, querystring_schema
+
+from ipv8.REST.schema import schema
+
+from marshmallow.fields import Boolean, Integer, String
+
 from pony.orm import db_session
 
 from tribler_core.modules.metadata_store.restapi.metadata_endpoint import MetadataEndpointBase
+from tribler_core.modules.metadata_store.restapi.metadata_schema import MetadataParameters
 from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, RESTResponse
 
 
@@ -14,57 +21,43 @@ class SearchEndpoint(MetadataEndpointBase):
     """
 
     def setup_routes(self):
-        self.app.add_routes([web.get('', self.search), web.get('/completions', self.completions)])
+        self.app.add_routes([web.get('', self.search),
+                             web.get('/completions', self.completions)])
 
     @staticmethod
     def get_uuid(parameters):
         return parameters['uuid'] if 'uuid' in parameters else None
 
+    @docs(
+        tags=['Metadata'],
+        summary="Perform a search for a given query.",
+        responses={
+            200: {
+                'schema': schema(SearchResponse={
+                    'torrents': [
+                        schema(Torrent={
+                            'commit_status': Integer,
+                            'num_leechers': Integer,
+                            'date': Integer,
+                            'relevance_score': Integer,
+                            'id': Integer,
+                            'size': Integer,
+                            'category': String,
+                            'public_key': String,
+                            'name': String,
+                            'last_tracker_check': Integer,
+                            'infohash': String,
+                            'num_seeders': Integer,
+                            'type': String,
+                        })
+                    ],
+                    'chant_dirty': Boolean
+                })
+            }
+        }
+    )
+    @querystring_schema(MetadataParameters)
     async def search(self, request):
-        """
-        .. http:get:: /search?q=(string:query)
-
-        A GET request to this endpoint will create a search.
-
-        first and last options limit the range of the query.
-        xxx_filter option disables xxx filter
-        channel option limits search to a certain channel
-        sort_by option sorts results in forward or backward, based on column name (e.g. "id" vs "-id")
-        filter option uses FTS search on the chosen word* terms
-        type option limits query to certain metadata types (e.g. "torrent" or "channel")
-
-            **Example request**:
-
-            .. sourcecode:: none
-
-                curl -X GET 'http://localhost:8085/search?filter=ubuntu&first=0&last=30&type=torrent&sort_by=size'
-
-            **Example response**:
-
-            .. sourcecode:: javascript
-
-                {
-                   "torrents":[
-                      {
-                         "commit_status":1,
-                         "num_leechers":0,
-                         "date":"1539867830.0",
-                         "relevance_score":0,
-                         "id":21,
-                         "size":923795456,
-                         "category":"unknown",
-                         "public_key":"4c69624e...",
-                         "name":"ubuntu-18.10-live-server-amd64.iso",
-                         "last_tracker_check":0,
-                         "infohash":"8c4adbf9ebe66f1d804fb6a4fb9b74966c3ab609",
-                         "num_seeders":0,
-                         "type":"torrent"
-                      },
-                      ...
-                   ],
-                   "chant_dirty":false
-                }
-        """
         try:
             sanitized = self.sanitize_parameters(request.query)
         except (ValueError, KeyError):
@@ -101,28 +94,26 @@ class SearchEndpoint(MetadataEndpointBase):
 
         return RESTResponse(response_dict)
 
+    @docs(
+        tags=['Metadata'],
+        summary="Return auto-completion suggestions for a given query.",
+        parameters=[{
+            'in': 'query',
+            'name': 'q',
+            'description': 'Search query',
+            'type': 'string',
+            'required': True
+        }],
+        responses={
+            200: {
+                'schema': schema(CompletionsResponse={
+                    'completions': [String],
+                }),
+                'examples': {'completions': ['pioneer one', 'pioneer movie']}
+            }
+        }
+    )
     async def completions(self, request):
-        """
-        .. http:get:: /search/completions?q=(string:query)
-
-        A GET request to this endpoint will return autocompletion suggestions for the given query. For instance,
-        when searching for "pioneer", this endpoint might return "pioneer one" if that torrent is present in the
-        local database. This endpoint can be used to suggest terms to users while they type their search query.
-
-            **Example request**:
-
-            .. sourcecode:: none
-
-                curl -X GET http://localhost:8085/search/completions?q=pioneer
-
-            **Example response**:
-
-            .. sourcecode:: javascript
-
-                {
-                    "completions": ["pioneer one", "pioneer movie"]
-                }
-        """
         args = request.query
         if 'q' not in args:
             return RESTResponse({"error": "query parameter missing"}, status=HTTP_BAD_REQUEST)

@@ -1,5 +1,11 @@
 from aiohttp import web
 
+from aiohttp_apispec import docs
+
+from ipv8.REST.schema import schema
+
+from marshmallow.fields import Integer, String
+
 from tribler_core.restapi.rest_endpoint import RESTEndpoint, RESTResponse
 
 
@@ -12,52 +18,48 @@ class StatisticsEndpoint(RESTEndpoint):
         self.app.add_routes([web.get('/tribler', self.get_tribler_stats),
                              web.get('/ipv8', self.get_ipv8_stats)])
 
+    @docs(
+        tags=["General"],
+        summary="Return general statistics of Tribler.",
+        responses={
+            200: {
+                "schema": schema(TriblerStatisticsResponse={
+                    'statistics': schema(TriblerStatistics={
+                        'num_channels': Integer,
+                        'database_size': Integer,
+                        'torrent_queue_stats': [
+                            schema(TorrentQueueStats={
+                                'failed': Integer,
+                                'total': Integer,
+                                'type': String,
+                                'pending': Integer,
+                                'success': Integer
+                            })
+                        ],
+                    })
+                })
+            }
+        }
+    )
     async def get_tribler_stats(self, request):
-        """
-        .. http:get:: /statistics/tribler
-
-        A GET request to this endpoint returns general statistics in Tribler.
-        The size of the Tribler database is in bytes.
-
-            **Example request**:
-
-            .. sourcecode:: none
-
-                curl -X GET http://localhost:8085/statistics/tribler
-
-            **Example response**:
-
-            .. sourcecode:: javascript
-
-                {
-                    "tribler_statistics": {
-                        "num_channels": 1234,
-                        "database_size": 384923,
-                        "torrent_queue_stats": [{
-                            "failed": 2,
-                            "total": 9,
-                            "type": "TFTP",
-                            "pending": 1,
-                            "success": 6
-                        }, ...]
-                    }
-                }
-        """
         return RESTResponse({'tribler_statistics': self.session.get_tribler_statistics()})
 
+    @docs(
+        tags=["General"],
+        summary="Return general statistics of IPv8.",
+        responses={
+            200: {
+                "schema": schema(IPv8StatisticsResponse={
+                    'statistics': schema(IPv8Statistics={
+                        'total_up': Integer,
+                        'total_down': Integer
+                    })
+                })
+            }
+        }
+    )
     async def get_ipv8_stats(self, request):
         """
-        .. http:get:: /statistics/ipv8
-
-        A GET request to this endpoint returns general statistics of IPv8.
-
-            **Example request**:
-
-            .. sourcecode:: none
-
-                curl -X GET http://localhost:8085/statistics/ipv8
-
-            **Example response**:
 
             .. sourcecode:: javascript
 

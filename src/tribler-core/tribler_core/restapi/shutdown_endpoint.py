@@ -3,6 +3,12 @@ from asyncio import ensure_future, get_event_loop
 
 from aiohttp import web
 
+from aiohttp_apispec import docs
+
+from ipv8.REST.schema import schema
+
+from marshmallow.fields import Boolean
+
 from tribler_core.modules.process_checker import ProcessChecker
 from tribler_core.restapi.rest_endpoint import RESTEndpoint, RESTResponse
 
@@ -19,27 +25,18 @@ class ShutdownEndpoint(RESTEndpoint):
     def setup_routes(self):
         self.app.add_routes([web.put('', self.shutdown)])
 
+    @docs(
+        tags=["General"],
+        summary="Shutdown Tribler.",
+        responses={
+            200: {
+                "schema": schema(TriblerShutdownResponse={
+                    'shutdown': Boolean
+                })
+            }
+        }
+    )
     async def shutdown(self, request):
-        """
-        .. http:put:: /shutdown
-
-        A PUT request to this endpoint will shutdown Tribler.
-
-            **Example request**:
-
-            .. sourcecode:: none
-
-                curl -X PUT http://localhost:8085/shutdown
-
-            **Example response**:
-
-            .. sourcecode:: javascript
-
-                {
-                    "shutdown": True
-                }
-        """
-
         async def shutdown():
             try:
                 keep_loop_running = await self.session.shutdown()

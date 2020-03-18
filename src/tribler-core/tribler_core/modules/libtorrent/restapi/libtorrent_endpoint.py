@@ -2,6 +2,12 @@ from asyncio import Future
 
 from aiohttp import web
 
+from aiohttp_apispec import docs
+
+from ipv8.REST.schema import schema
+
+from marshmallow.fields import Integer
+
 from tribler_core.restapi.rest_endpoint import RESTEndpoint, RESTResponse
 from tribler_core.utilities.unicode import hexlify
 
@@ -15,34 +21,25 @@ class LibTorrentEndpoint(RESTEndpoint):
         self.app.add_routes([web.get('/settings', self.get_libtorrent_settings),
                              web.get('/session', self.get_libtorrent_session_info)])
 
+    @docs(
+        tags=["Libtorrent"],
+        summary="Return Libtorrent session settings.",
+        parameters=[{
+            'in': 'query',
+            'name': 'hop',
+            'description': 'The hop count of the session for which to return settings',
+            'type': 'string',
+            'required': False
+        }],
+        responses={
+            200: {
+                'description': 'Return a dictonary with key-value pairs from the Libtorrent session settings',
+                "schema": schema(LibtorrentSessionResponse={'hop': Integer,
+                                                            'settings': schema(LibtorrentSettings={})})
+            }
+        }
+    )
     async def get_libtorrent_settings(self, request):
-        """
-        .. http:get:: /libtorrent/settings
-
-        A GET request to this endpoint will return information about libtorrent.
-
-            **Example request**:
-
-                .. sourcecode:: none
-
-                    curl -X GET http://localhost:8085/libtorrent/settings?hop=0
-
-            **Example response**:
-
-                .. sourcecode:: javascript
-
-                    {
-                        "hop": 0,
-                        "settings": {
-                            "urlseed_wait_retry": 30,
-                            "enable_upnp": true,
-                            ...
-                            "send_socket_buffer_size": 0,
-                            "lock_disk_cache": false,
-                            "i2p_port": 0
-                        }
-                    }
-        """
         args = request.query
         hop = 0
         if 'hop' in args and args['hop']:
@@ -60,34 +57,25 @@ class LibTorrentEndpoint(RESTEndpoint):
 
         return RESTResponse({'hop': hop, "settings": lt_settings})
 
+    @docs(
+        tags=["Libtorrent"],
+        summary="Return Libtorrent session information.",
+        parameters=[{
+            'in': 'query',
+            'name': 'hop',
+            'description': 'The hop count of the session for which to return information',
+            'type': 'string',
+            'required': False
+        }],
+        responses={
+            200: {
+                'description': 'Return a dictonary with key-value pairs from the Libtorrent session information',
+                "schema": schema(LibtorrentinfoResponse={'hop': Integer,
+                                                         'settings': schema(LibtorrentInfo={})})
+            }
+        }
+    )
     async def get_libtorrent_session_info(self, request):
-        """
-        .. http:get:: /libtorrent/session
-
-        A GET request to this endpoint will return information about libtorrent session.
-
-            **Example request**:
-
-                .. sourcecode:: none
-
-                    curl -X GET http://localhost:8085/libtorrent/session?hop=0
-
-            **Example response**:
-
-                .. sourcecode:: javascript
-
-                    {
-                        "hop": 0,
-                        "session": {
-                            "peer.num_peers_end_game": 0,
-                            "utp.utp_timeout": 2,
-                            "dht.dht_put_out": 0,
-                            ...
-                            "peer.choked_piece_requests": 0,
-                            "ses.num_incoming_allowed_fast": 0
-                        }
-                    }
-        """
         session_stats = Future()
 
         def on_session_stats_alert_received(alert):
