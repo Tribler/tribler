@@ -5,6 +5,9 @@ import os
 import sys
 import shutil
 
+import aiohttp_apispec
+
+
 root_dir = os.path.abspath(os.path.dirname(__name__))
 src_dir = os.path.join(root_dir, "src")
 
@@ -37,7 +40,8 @@ data_to_copy = [
     (os.path.join(src_dir, "tribler-gui", "tribler_gui", "qt_resources"), 'qt_resources'),
     (os.path.join(src_dir, "tribler-gui", "tribler_gui", "images"), 'images'),
     (os.path.join(src_dir, "tribler-core", "tribler_core"), 'tribler_source/tribler_core'),
-    (os.path.join(root_dir, "build", "win", "resources"), 'tribler_source/resources')
+    (os.path.join(root_dir, "build", "win", "resources"), 'tribler_source/resources'),
+    (os.path.dirname(aiohttp_apispec.__file__), 'aiohttp_apispec')
 ]
 
 # For bitcoinlib, we have to copy the data directory to the root directory of the installation dir, otherwise
