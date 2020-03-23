@@ -21,5 +21,9 @@ def load_logger_config(log_dir):
     Loads tribler-core module logger configuration. Note that this function should be called explicitly to
     enable Core logs dump to a file in the log directory (default: inside state directory).
     """
-    logger_config = os.path.join("tribler-core", __name__, "logger.yaml")
-    setup_logging(config_path=logger_config, module='tribler-core', log_dir=log_dir)
+    if hasattr(sys, '_MEIPASS'):
+        logger_config_path = os.path.join(getattr(sys, '_MEIPASS'), "tribler_source", "tribler_core", "logger.yaml")
+    else:
+        logger_config_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "logger.yaml")
+
+    setup_logging(config_path=logger_config_path, module='tribler-core', log_dir=log_dir)
