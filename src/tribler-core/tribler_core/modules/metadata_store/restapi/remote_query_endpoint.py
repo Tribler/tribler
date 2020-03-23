@@ -2,7 +2,14 @@ from binascii import unhexlify
 
 from aiohttp import web
 
+from aiohttp_apispec import docs, querystring_schema
+
+from ipv8.REST.schema import schema
+
+from marshmallow.fields import Boolean
+
 from tribler_core.modules.metadata_store.restapi.metadata_endpoint import MetadataEndpointBase
+from tribler_core.modules.metadata_store.restapi.metadata_schema import RemoteQueryParameters
 from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, RESTResponse
 from tribler_core.utilities.unicode import hexlify
 
@@ -21,6 +28,18 @@ class RemoteQueryEndpoint(MetadataEndpointBase):
         sanitized.update({'uuid': parameters['uuid'], 'channel_pk': unhexlify(parameters.get('channel_pk', ""))})
         return sanitized
 
+    @docs(
+        tags=['Metadata'],
+        summary="Perform a search for a given query.",
+        responses={
+            200: {
+                'schema': schema(RemoteSearchResponse={
+                    'success': Boolean
+                })
+            }
+        }
+    )
+    @querystring_schema(RemoteQueryParameters)
     async def create_remote_search_request(self, request):
         # Query remote results from the GigaChannel Community v1.0.
         # v1.0 does not support searching for text limited by public key.

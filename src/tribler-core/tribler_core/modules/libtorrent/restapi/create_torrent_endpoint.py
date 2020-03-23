@@ -3,10 +3,17 @@ import json
 
 from aiohttp import web
 
+from aiohttp_apispec import docs, json_schema
+
+from ipv8.REST.schema import schema
+
+from marshmallow.fields import String
+
 from tribler_core.exceptions import DuplicateDownloadException
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, RESTEndpoint, RESTResponse
+from tribler_core.restapi.schema import HandledErrorSchema
 from tribler_core.restapi.util import return_handled_exception
 from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.unicode import ensure_unicode, recursive_bytes
@@ -22,38 +29,35 @@ class CreateTorrentEndpoint(RESTEndpoint):
     def setup_routes(self):
         self.app.add_routes([web.post('', self.create_torrent)])
 
+    @docs(
+        tags=["Libtorrent"],
+        summary="Create a torrent from local files and return it in base64 encoding.",
+        parameters=[{
+            'in': 'query',
+            'name': 'download',
+            'description': 'Flag indicating whether or not to start downloading',
+            'type': 'boolean',
+            'required': False
+        }],
+        responses={
+            200: {
+                "schema": schema(CreateTorrentResponse={'torrent': 'base64 encoded torrent file'}),
+                "examples": {'Success': {"success": True}}
+            },
+            HTTP_BAD_REQUEST: {
+                "schema": HandledErrorSchema,
+                "examples": {"Error": {"error": "files parameter missing"}}
+            }
+        }
+    )
+    @json_schema(schema(CreateTorrentRequest={
+        'files*': [String],
+        'name': String,
+        'description': String,
+        'trackers': [String],
+        'export_dir': String
+    }))
     async def create_torrent(self, request):
-        """
-        .. http:post:: /createtorrent?download=(boolean: download)
-
-        Create a torrent from local files and return it in base64 encoding.
-        Description and trackers list are optional.
-        This endpoint returns a 500 HTTP response if a source file does not exist.
-        You can optionally pass a flag to start downloading the created torrent.
-
-            **Example request**:
-
-            .. sourcecode:: none
-
-                curl -X POST http://localhost:8085/createtorrent
-                        --data "files[]=path/to/file.txt
-                        &files[]=path/to/another/file.mp4
-                        &description=Video
-                        &trackers[]=url_tracker1
-                        &trackers[]=url_backup1
-                        &trackers[]=url_backup2
-                        &export_dir=something"
-
-            **Example response**:
-
-            .. sourcecode:: javascript
-
-                {
-                    "torrent": { base64 encoded torrent file }
-                }
-
-            :statuscode 500: if source files do not exist.
-        """
         parameters = await request.json()
         params = {}
 

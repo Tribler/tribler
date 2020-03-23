@@ -5,7 +5,13 @@ from urllib.request import url2pathname
 
 from aiohttp import ClientResponseError, ClientSession, ServerConnectionError, web
 
+from aiohttp_apispec import docs
+
+from ipv8.REST.schema import schema
+
 from libtorrent import bencode
+
+from marshmallow.fields import String
 
 import tribler_core.utilities.json_util as json
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
@@ -23,27 +29,25 @@ class TorrentInfoEndpoint(RESTEndpoint):
     def setup_routes(self):
         self.app.add_routes([web.get('', self.get_torrent_info)])
 
+    @docs(
+        tags=["Libtorrent"],
+        summary="Return metainfo from a torrent found at a provided URI.",
+        parameters=[{
+            'in': 'query',
+            'name': 'torrent',
+            'description': 'URI for which to return torrent information. This URI can either represent '
+                           'a file location, a magnet link or a HTTP(S) url.',
+            'type': 'string',
+            'required': True
+        }],
+        responses={
+            200: {
+                'description': 'Return a hex-encoded json-encoded string with torrent metainfo',
+                "schema": schema(GetMetainfoResponse={'metainfo': String})
+            }
+        }
+    )
     async def get_torrent_info(self, request):
-        """
-        .. http:get:: /torrentinfo
-
-        A GET request to this endpoint will return information from a torrent found at a provided URI.
-        This URI can either represent a file location, a magnet link or a HTTP(S) url.
-        - torrent: the URI of the torrent file that should be downloaded. This parameter is required.
-
-            **Example request**:
-
-                .. sourcecode:: none
-
-                    curl -X GET http://localhost:8085/torrentinfo?torrent=file:/home/me/test.torrent
-
-            **Example response**:
-
-                .. sourcecode:: javascript
-
-                    {"metainfo": <torrent metainfo dictionary>}
-        """
-
         args = request.query
         if 'uri' not in args or not args['uri']:
             return RESTResponse({"error": "uri parameter missing"}, status=HTTP_BAD_REQUEST)

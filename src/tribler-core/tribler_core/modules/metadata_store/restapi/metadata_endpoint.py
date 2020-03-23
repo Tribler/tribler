@@ -2,13 +2,19 @@ from binascii import unhexlify
 
 from aiohttp import ContentTypeError, web
 
+from aiohttp_apispec import docs
+
+from ipv8.REST.schema import schema
 from ipv8.database import database_blob
+
+from marshmallow.fields import Integer, String
 
 from pony.orm import db_session
 
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import LEGACY_ENTRY
 from tribler_core.modules.metadata_store.restapi.metadata_endpoint_base import MetadataEndpointBase
 from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_NOT_FOUND, RESTResponse
+from tribler_core.restapi.schema import HandledErrorSchema
 from tribler_core.utilities.unicode import hexlify
 
 
@@ -24,7 +30,7 @@ class UpdateEntryMixin(object):
             if 'status' in update_dict:
                 return HTTP_BAD_REQUEST, {"error": "Cannot set status manually when changing signed attributes."}
             if entry.status == LEGACY_ENTRY:
-                return (HTTP_BAD_REQUEST, {"error": "Changing parameters of legacy entries is not supported."})
+                return HTTP_BAD_REQUEST, {"error": "Changing parameters of legacy entries is not supported."}
             if not entry.is_personal:
                 return (
                     HTTP_BAD_REQUEST,
@@ -55,6 +61,28 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
             ]
         )
 
+    @docs(
+        tags=['Metadata'],
+        summary='Update channel entries.',
+        parameters=[{
+            'in': 'body',
+            'name': 'entries',
+            'description': 'List of entries to update',
+            'example': [{'public_key': '1234567890', 'id': 123, 'property_to_update': 'new_value'}],
+            'required': True
+        }],
+        responses={
+            200: {
+                'description': 'Returns a list of updated entries',
+            },
+            HTTP_NOT_FOUND: {
+                'schema': HandledErrorSchema
+            },
+            HTTP_BAD_REQUEST: {
+                'schema': HandledErrorSchema
+            }
+        }
+    )
     async def update_channel_entries(self, request):
         try:
             request_parsed = await request.json()
@@ -71,6 +99,25 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
             results_list.append(result)
         return RESTResponse(results_list)
 
+    @docs(
+        tags=['Metadata'],
+        summary='Delete channel entries.',
+        parameters=[{
+            'in': 'body',
+            'name': 'entries',
+            'description': 'List of entries to delete',
+            'example': [{'public_key': '1234567890', 'id': 123}],
+            'required': True
+        }],
+        responses={
+            200: {
+                'description': 'Returns a list of deleted entries',
+            },
+            HTTP_BAD_REQUEST: {
+                'schema': HandledErrorSchema
+            }
+        }
+    )
     async def delete_channel_entries(self, request):
         with db_session:
             request_parsed = await request.json()
@@ -86,6 +133,21 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
                 results_list.append(result)
             return RESTResponse(results_list)
 
+    @docs(
+        tags=['Metadata'],
+        summary='Update a single channel entry.',
+        responses={
+            200: {
+                'description': 'The updated entry',
+            },
+            HTTP_NOT_FOUND: {
+                'schema': HandledErrorSchema
+            },
+            HTTP_BAD_REQUEST: {
+                'schema': HandledErrorSchema
+            }
+        }
+    )
     async def update_channel_entry(self, request):
         # TODO: unify checks for parts of the path, i.e. proper hex for public key, etc.
         try:
@@ -98,6 +160,18 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
         error, result = self.update_entry(public_key, id_, parameters)
         return RESTResponse(result, status=error or 200)
 
+    @docs(
+        tags=['Metadata'],
+        summary='Get channel entries.',
+        responses={
+            200: {
+                'description': 'Returns a list of entries',
+            },
+            HTTP_NOT_FOUND: {
+                'schema': HandledErrorSchema
+            }
+        }
+    )
     async def get_channel_entries(self, request):
         public_key = unhexlify(request.match_info['public_key'])
         id_ = request.match_info['id']
@@ -112,41 +186,73 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
 
         return RESTResponse(entry_dict)
 
-    async def get_torrent_health(self, request):
-        """
-        .. http:get:: /torrents/(string: torrent infohash)/health
-
-        Fetch the swarm health of a specific torrent. You can optionally specify the timeout to be used in the
-        connections to the trackers. This is by default 20 seconds.
-        By default, we will not check the health of a torrent again if it was recently checked. You can force a health
-        recheck by passing the refresh parameter.
-
-            **Example request**:
-
-            .. sourcecode:: none
-
-                curl http://localhost:8085/metadata/torrents/97d2d8f5d37e56cfaeaae151d55f05b077074779/health
-                     ?timeout=15&refresh=1
-
-            **Example response**:
-
-            .. sourcecode:: javascript
-
-                {
-                    "health": {
-                        "http://mytracker.com:80/announce": {
-                            "seeders": 43,
-                            "leechers": 20,
-                            "infohash": "97d2d8f5d37e56cfaeaae151d55f05b077074779"
-                        },
+    @docs(
+        tags=["Metadata"],
+        summary="Fetch the swarm health of a specific torrent.",
+        parameters=[{
+            'in': 'path',
+            'name': 'infohash',
+            'description': 'Infohash of the download to remove',
+            'type': 'string',
+            'required': True
+        },
+        {
+            'in': 'query',
+            'name': 'timeout',
+            'description': 'Timeout to be used in the connections to the trackers',
+            'type': 'integer',
+            'default': 20,
+            'required': False
+        },
+        {
+            'in': 'query',
+            'name': 'refresh',
+            'description': 'Whether or not to force a health recheck. Settings this to 0 means that the health of a '
+                           'torrent will not be checked again if it was recently checked.',
+            'type': 'integer',
+            'enum': [0, 1],
+            'required': False
+        },
+        {
+            'in': 'query',
+            'name': 'nowait',
+            'description': 'Whether or not to return immediately. If enabled, results '
+                           'will be passed through to the events endpoint.',
+            'type': 'integer',
+            'enum': [0, 1],
+            'required': False
+        }],
+        responses={
+            200: {
+                'schema': schema(HealthCheckResponse={
+                    'tracker': schema(HealthCheck={
+                        'seeders': Integer,
+                        'leechers': Integer,
+                        'infohash': String,
+                        'error': String
+                    }),
+                }),
+                'examples': [
+                    {
+                        "health": {
+                            "http://mytracker.com:80/announce": {
+                                "seeders": 43,
+                                "leechers": 20,
+                                "infohash": "97d2d8f5d37e56cfaeaae151d55f05b077074779"
+                            },
                             "http://nonexistingtracker.com:80/announce": {
                                 "error": "timeout"
+                            }
                         }
+                    },
+                    {
+                        'checking': 1
                     }
-                }
-
-            :statuscode 404: if the torrent is not found in the database
-        """
+                ]
+            }
+        },
+    )
+    async def get_torrent_health(self, request):
         timeout = request.query.get('timeout', 20)
         refresh = request.query.get('refresh', '0') == '1'
         nowait = request.query.get('nowait', '0') == '1'

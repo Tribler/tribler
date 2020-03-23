@@ -3,10 +3,15 @@ import os
 
 from aiohttp import web
 
+from aiohttp_apispec import AiohttpApiSpec
+
+from apispec.core import VALID_METHODS_OPENAPI_V2
+
 from ipv8.taskmanager import TaskManager
 
 from tribler_core.restapi.rest_endpoint import HTTP_INTERNAL_SERVER_ERROR, HTTP_UNAUTHORIZED, RESTResponse
 from tribler_core.restapi.root_endpoint import RootEndpoint
+from tribler_core.version import version_id
 
 
 @web.middleware
@@ -21,6 +26,8 @@ class ApiKeyMiddleware(object):
             return RESTResponse({'error': 'Unauthorized access'}, status=HTTP_UNAUTHORIZED)
 
     def authenticate(self, request):
+        if request.path.startswith('/docs') or request.path.startswith('/static'):
+            return True
         # The api key can either be in the headers or as part of the url query
         api_key = request.headers.get('X-Api-Key') or request.query.get('apikey')
         expected_api_key = self.config.get_http_api_key()
@@ -66,6 +73,25 @@ class RESTManager(TaskManager):
         """
         self.root_endpoint = RootEndpoint(self.session, middlewares=[ApiKeyMiddleware(self.session.config),
                                                                      error_middleware])
+
+        # Not using setup_aiohttp_apispec here, as we need access to the APISpec to set the security scheme
+        aiohttp_apispec = AiohttpApiSpec(
+            url='/docs/swagger.json',
+            app=self.root_endpoint.app,
+            title='Tribler REST API documentation',
+            version=version_id,
+            swagger_path='/docs'
+        )
+        if self.session.config.get_http_api_key():
+            # Set security scheme and apply to all endpoints
+            aiohttp_apispec.spec.options['security'] = [{'apiKey': []}]
+            aiohttp_apispec.spec.components.security_scheme('apiKey', {'type': 'apiKey',
+                                                                       'in': 'header',
+                                                                       'name': 'X-Api-Key'})
+
+        if 'head' in VALID_METHODS_OPENAPI_V2:
+            VALID_METHODS_OPENAPI_V2.remove('head')
+
         runner = web.AppRunner(self.root_endpoint.app, access_log=None)
         await runner.setup()
 

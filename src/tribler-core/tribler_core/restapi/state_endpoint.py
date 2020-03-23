@@ -1,5 +1,11 @@
 from aiohttp import web
 
+from aiohttp_apispec import docs
+
+from ipv8.REST.schema import schema
+
+from marshmallow.fields import String
+
 from tribler_common.simpledefs import NTFY, STATE_EXCEPTION, STATE_STARTED, STATE_STARTING, STATE_UPGRADING
 
 from tribler_core.restapi.rest_endpoint import RESTEndpoint, RESTResponse
@@ -35,32 +41,20 @@ class StateEndpoint(RESTEndpoint):
         self.tribler_state = STATE_EXCEPTION
         self.last_exception = exception_text
 
+    @docs(
+        tags=["General"],
+        summary="Return the current state of the Tribler core.",
+        responses={
+            200: {
+                "schema": schema(TriblerStateResponse={
+                    'state': (String, 'One of three stats: STARTING, UPGRADING, STARTED, EXCEPTION'),
+                    'last_exception': String,
+                    'readable_state': String
+                })
+            }
+        }
+    )
     async def get_state(self, request):
-        """
-        .. http:get:: /state
-
-        A GET request to this endpoint returns the current state of the Tribler core. There are three states:
-        - STARTING: The core of Tribler is starting
-        - UPGRADING: The upgrader is active
-        - STARTED: The Tribler core has started
-        - EXCEPTION: An exception has occurred in the core
-
-            **Example request**:
-
-            .. sourcecode:: none
-
-                curl -X GET http://localhost:8085/state
-
-            **Example response**:
-
-            .. sourcecode:: javascript
-
-                {
-                    "state": "STARTED",
-                    "last_exception": None,
-                    "readable_state": ""
-                }
-        """
         return RESTResponse({
             "state": self.tribler_state,
             "last_exception": self.last_exception,

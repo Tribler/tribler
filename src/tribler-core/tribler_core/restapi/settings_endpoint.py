@@ -2,6 +2,12 @@ from asyncio import gather
 
 from aiohttp import web
 
+from aiohttp_apispec import docs, json_schema
+
+from ipv8.REST.schema import schema
+
+from marshmallow.fields import Boolean
+
 from tribler_core.modules.credit_mining.credit_mining_manager import CreditMiningManager
 from tribler_core.restapi.rest_endpoint import RESTEndpoint, RESTResponse
 
@@ -15,60 +21,35 @@ class SettingsEndpoint(RESTEndpoint):
         self.app.add_routes([web.get('', self.get_settings),
                              web.post('', self.update_settings)])
 
+    @docs(
+        tags=["General"],
+        summary="Return all the session settings that can be found in Tribler.",
+        responses={
+            200: {
+                "schema": schema(GetTriblerSettingsResponse={})
+            }
+        },
+        description="This endpoint returns all the session settings that can be found in Tribler.\n\n It also returns "
+                    "the runtime-determined ports, i.e. the ports for the SOCKS5 servers. Please note that a port "
+                    "with a value of -1 in the settings means that the port is randomly assigned at startup."
+    )
     async def get_settings(self, request):
-        """
-        .. http:get:: /settings
-
-        A GET request to this endpoint returns all the session settings that can be found in Tribler.
-        It also returns the runtime-determined ports, i.e. the port for the video server.
-        Please note that a port with a value of -1 in the settings means that the port is randomly assigned at startup.
-
-            **Example request**:
-
-            .. sourcecode:: none
-
-                curl -X GET http://localhost:8085/settings
-
-            **Example response**:
-
-            .. sourcecode:: javascript
-
-                {
-                    "settings": {
-                        "libtorrent": {
-                            "anon_listen_port": -1,
-                            ...
-                        },
-                        ...
-                    }
-                }
-        """
         return RESTResponse({
             "settings": self.session.config.config,
             "ports": self.session.config.selected_ports
         })
 
+    @docs(
+        tags=["General"],
+        summary="Update Tribler settings.",
+        responses={
+            200: {
+                "schema": schema(UpdateTriblerSettingsResponse={'modified': Boolean})
+            }
+        }
+    )
+    @json_schema(schema(UpdateTriblerSettingsRequest={}))
     async def update_settings(self, request):
-        """
-        .. http:post:: /settings
-
-        A POST request to this endpoint will update Tribler settings. A JSON-dictionary should be passed as body
-        contents.
-
-            **Example request**:
-
-            .. sourcecode:: none
-
-                curl -X POST http://localhost:8085/settings --data "{"
-
-            **Example response**:
-
-            .. sourcecode:: javascript
-
-                {
-                    "modified": True
-                }
-        """
         settings_dict = await request.json()
         await self.parse_settings_dict(settings_dict)
         self.session.config.write()

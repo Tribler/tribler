@@ -1,5 +1,11 @@
 from aiohttp import web
 
+from aiohttp_apispec import docs
+
+from ipv8.REST.schema import schema
+
+from marshmallow.fields import Integer, String
+
 from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_NOT_FOUND, RESTEndpoint, RESTResponse
 from tribler_core.utilities.unicode import recursive_unicode
 
@@ -13,84 +19,56 @@ class TrustchainEndpoint(RESTEndpoint):
         self.app.add_routes([web.get('/statistics', self.get_statistics),
                              web.get('/bootstrap', self.bootstrap)])
 
+    @docs(
+        tags=["TrustChain"],
+        summary="Return statistics about the trustchain community.",
+        responses={
+            200: {
+                "schema": schema(TrustchainStatisticsResponse={
+                    'statistics': schema(TrustchainStatistics={
+                        'id': String,
+                        'peers_that_pk_helped': Integer,
+                        'peers_that_helped_pk': Integer,
+                        'total_blocks': Integer,
+                        'total_down': Integer,
+                        'total_up': Integer
+                    })
+                })
+            }
+        }
+    )
     async def get_statistics(self, request):
-        """
-        .. http:get:: /trustchain/statistics
-
-        A GET request to this endpoint returns statistics about the trustchain community
-
-            **Example request**:
-
-            .. sourcecode:: none
-
-                curl -X GET http://localhost:8085/trustchain/statistics
-
-            **Example response**:
-
-            Note: latest_block does not exist if there is no data
-
-            .. sourcecode:: javascript
-
-                {
-                    "statistics":
-                    {
-                        "id": "TGliTmFDTFBLO...VGbxS406vrI=",
-                        "total_blocks": 8537,
-                        "total_down": 108904042,
-                        "total_up": 95138354,
-                        "latest_block":
-                        {
-                            "hash": ab672fd6acc0...,
-                            "link_public_key": 7324b765a98e,
-                            "sequence_number": 50,
-                            "link_public_key": 9a5572ec59bbf,
-                            "link_sequence_number": 3482,
-                            "previous_hash": bd7830e7bdd1...,
-                            "transaction": {
-                                "up": 123,
-                                "down": 495,
-                                "total_up": 8393,
-                                "total_down": 8943,
-                            }
-                        }
-                    }
-                }
-        """
         if 'MB' not in self.session.wallets:
             return RESTResponse({"error": "TrustChain community not found"}, status=HTTP_NOT_FOUND)
         return RESTResponse({'statistics': recursive_unicode(self.session.wallets['MB'].get_statistics())})
 
+    @docs(
+        tags=["TrustChain"],
+        summary="Generate a new identity and transfers bandwidth tokens to it..",
+        parameters=[{
+            'in': 'query',
+            'name': 'amount',
+            'description': 'Specifies how much tokens need to be emptied into the new identity',
+            'type': 'integer',
+            'required': True
+        }],
+        responses={
+            200: {
+                "schema": schema(TrustchainBootstrapResponse={
+                    'private_key': String,
+                    'transaction': schema(BootstrapTransaction={
+                        'down': Integer,
+                        'up': Integer
+                    }),
+                    'block': schema(BootstrapBlock={
+                        'block_hash': String,
+                        'sequence_number': String
+                    })
+                })
+            }
+        }
+    )
     async def bootstrap(self, request):
-        """
-        .. http:get:: /trustchain/bootstrap?amount=int
-
-        A GET request to this endpoint generates a new identity and transfers bandwidth tokens to it.
-        The amount specifies how much tokens need to be emptied into the new identity
-
-            **Example request**:
-
-            .. sourcecode:: none
-
-                curl -X GET http://localhost:8085/trustchain/bootstrap?amount=1000
-
-            **Example response**:
-
-            .. sourcecode:: javascript
-
-                {
-                    "private_key": "TGliTmFDTFNLOmC4BR7otCpn+NzTBAFwKdSJdpT0KG9Zy5vPGX6s3rDXmNiDoGKyToLeYYB88vj9Rj5NW
-                                    pbNf/ldcixYZ2YxQ7Q=",
-                    "transaction": {
-                        "down": 0,
-                        "up": 1000
-                    },
-                    "block": {
-                        "block_hash": "THJxNlKWMQG1Tio+Yz5CUCrnWahcyk6TDVfRLQf7w6M=",
-                        "sequence_number": 1
-                    }
-                }
-        """
-
         if 'MB' not in self.session.wallets:
             return RESTResponse({"error": "bandwidth wallet not found"}, status=HTTP_NOT_FOUND)
         bandwidth_wallet = self.session.wallets['MB']

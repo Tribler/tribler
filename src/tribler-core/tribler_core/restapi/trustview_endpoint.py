@@ -5,6 +5,12 @@ from distutils.version import LooseVersion
 
 from aiohttp import web
 
+from aiohttp_apispec import docs
+
+from ipv8.REST.schema import schema
+
+from marshmallow.fields import Float, Integer, List, String
+
 import networkx as nx
 
 from tribler_common.simpledefs import DOWNLOAD, UPLOAD
@@ -161,6 +167,43 @@ class TrustViewEndpoint(RESTEndpoint):
             if not self.session.bootstrap:
                 self.session.start_bootstrap_download()
 
+    @docs(
+        tags=["TrustChain"],
+        summary="Return the trust graph.",
+        parameters=[{
+            'in': 'query',
+            'name': 'depth',
+            'description': 'Depth level (0 = all depths)',
+            'enum': [0, 1, 2, 3, 4],
+            'type': 'integer',
+            'required': False
+        }],
+        responses={
+            200: {
+                "schema": schema(GraphResponse={
+                    'root_public_key': String,
+                    'graph': schema(Graph={
+                        'node': schema(Node={
+                            'id': Integer,
+                            'key': String,
+                            'pos': [Float],
+                            'sequence_number': Integer,
+                            'total_up': Integer,
+                            'total_down': Integer
+                        }),
+                        'edge': List(List(Integer))
+                    }),
+                    'bootstrap': schema(Bootstrap={
+                        'download': Integer,
+                        'upload': Integer,
+                        'progress': Float
+                    }),
+                    'num_tx': Integer,
+                    'depth': Integer
+                })
+            }
+        }
+    )
     async def get_view(self, request):
         if not self.trust_graph:
             self.initialize_graph()

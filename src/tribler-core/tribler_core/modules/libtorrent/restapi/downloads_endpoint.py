@@ -7,9 +7,14 @@ from urllib.request import url2pathname
 
 from aiohttp import web
 
+from aiohttp_apispec import docs, json_schema
+
+from ipv8.REST.schema import schema
 from ipv8.messaging.anonymization.tunnel import CIRCUIT_ID_PORT
 
 from libtorrent import bencode, create_torrent
+
+from marshmallow.fields import Boolean, Float, Integer, List, String
 
 from pony.orm import db_session
 
@@ -132,79 +137,76 @@ class DownloadsEndpoint(RESTEndpoint):
             file_index += 1
         return files_json
 
+    @docs(
+        tags=["Libtorrent"],
+        summary="Return all downloads, both active and inactive",
+        parameters=[{
+            'in': 'query',
+            'name': 'get_peers',
+            'description': 'Flag indicating whether or not to include peers',
+            'type': 'boolean',
+            'required': False
+        },
+        {
+            'in': 'query',
+            'name': 'get_pieces',
+            'description': 'Flag indicating whether or not to include pieces',
+            'type': 'boolean',
+            'required': False
+        },
+        {
+            'in': 'query',
+            'name': 'get_files',
+            'description': 'Flag indicating whether or not to include files',
+            'type': 'boolean',
+            'required': False
+        }],
+        responses={
+            200: {
+                "schema": schema(DownloadsResponse={
+                    'downloads': schema(Download={
+                        'name': String,
+                        'progress': Float,
+                        'infohash': String,
+                        'speed_down': Float,
+                        'speed_up': Float,
+                        'status': String,
+                        'size': Integer,
+                        'eta': Integer,
+                        'num_peers': Integer,
+                        'num_seeds': Integer,
+                        'total_up': Integer,
+                        'total_down': Integer,
+                        'ratio': Float,
+                        'files': String,
+                        'trackers': String,
+                        'hops': Integer,
+                        'anon_download': Boolean,
+                        'safe_seeding': Boolean,
+                        'max_upload_speed': Integer,
+                        'max_download_speed': Integer,
+                        'destination': String,
+                        'availability': Float,
+                        'peers': String,
+                        'total_pieces': Integer,
+                        'vod_mode': Boolean,
+                        'vod_prebuffering_progress': Float,
+                        'vod_prebuffering_progress_consec': Float,
+                        'error': String,
+                        'time_added': Integer
+                    })
+                }),
+            }
+        },
+        description="This endpoint returns all downloads in Tribler, both active and inactive. The progress "
+                    "is a number ranging from 0 to 1, indicating the progress of the specific state (downloading, "
+                    "checking etc). The download speeds have the unit bytes/sec. The size of the torrent is given "
+                    "in bytes. The estimated time assumed is given in seconds.\n\n"
+                    "Detailed information about peers and pieces is only requested when the get_peers and/or "
+                    "get_pieces flag is set. Note that setting this flag has a negative impact on performance "
+                    "and should only be used in situations where this data is required. "
+    )
     async def get_downloads(self, request):
-        """
-        .. http:get:: /downloads?get_peers=(boolean: get_peers)&get_pieces=(boolean: get_pieces)
-
-        A GET request to this endpoint returns all downloads in Tribler, both active and inactive. The progress is a
-        number ranging from 0 to 1, indicating the progress of the specific state (downloading, checking etc). The
-        download speeds have the unit bytes/sec. The size of the torrent is given in bytes. The estimated time assumed
-        is given in seconds. A description of the possible download statuses can be found in the REST API documentation.
-
-        Detailed information about peers and pieces is only requested when the get_peers and/or get_pieces flag is set.
-        Note that setting this flag has a negative impact on performance and should only be used in situations
-        where this data is required.
-
-            **Example request**:
-
-            .. sourcecode:: none
-
-                curl -X GET http://localhost:8085/downloads?get_peers=1&get_pieces=1
-
-            **Example response**:
-
-            .. sourcecode:: javascript
-
-                {
-                    "downloads": [{
-                        "name": "Ubuntu-16.04-desktop-amd64",
-                        "progress": 0.31459265,
-                        "infohash": "4344503b7e797ebf31582327a5baae35b11bda01",
-                        "speed_down": 4938.83,
-                        "speed_up": 321.84,
-                        "status": "DLSTATUS_DOWNLOADING",
-                        "size": 89432483,
-                        "eta": 38493,
-                        "num_peers": 53,
-                        "num_seeds": 93,
-                        "total_up": 10000,
-                        "total_down": 100000,
-                        "ratio": 0.1,
-                        "files": [{
-                            "index": 0,
-                            "name": "ubuntu.iso",
-                            "size": 89432483,
-                            "included": True
-                        }, ...],
-                        "trackers": [{
-                            "url": "http://ipv6.torrent.ubuntu.com:6969/announce",
-                            "status": "Working",
-                            "peers": 42
-                        }, ...],
-                        "hops": 1,
-                        "anon_download": True,
-                        "safe_seeding": True,
-                        "max_upload_speed": 0,
-                        "max_download_speed": 0,
-                        "destination": "/home/user/file.txt",
-                        "availability": 1.234,
-                        "peers": [{
-                            "ip": "123.456.789.987",
-                            "dtotal": 23,
-                            "downrate": 0,
-                            "uinterested": False,
-                            "optimistic": False,
-                            ...
-                        }, ...],
-                        "total_pieces": 420,
-                        "vod_mod": True,
-                        "vod_prebuffering_progress": 0.89,
-                        "vod_prebuffering_progress_consec": 0.86,
-                        "error": "",
-                        "time_added": 1484819242,
-                    }
-                }, ...]
-        """
         get_peers = request.query.get('get_peers', '0') == '1'
         get_pieces = request.query.get('get_pieces', '0') == '1'
         get_files = request.query.get('get_files', '0') == '1'
@@ -300,30 +302,45 @@ class DownloadsEndpoint(RESTEndpoint):
             downloads_json.append(download_json)
         return RESTResponse({"downloads": downloads_json})
 
+    @docs(
+        tags=["Libtorrent"],
+        summary="Start a download from a provided URI.",
+        parameters=[{
+            'in': 'query',
+            'name': 'get_peers',
+            'description': 'Flag indicating whether or not to include peers',
+            'type': 'boolean',
+            'required': False
+        },
+        {
+            'in': 'query',
+            'name': 'get_pieces',
+            'description': 'Flag indicating whether or not to include pieces',
+            'type': 'boolean',
+            'required': False
+        },
+        {
+            'in': 'query',
+            'name': 'get_files',
+            'description': 'Flag indicating whether or not to include files',
+            'type': 'boolean',
+            'required': False
+        }],
+        responses={
+            200: {
+                "schema": schema(AddDownloadResponse={"started": Boolean, "infohash": String}),
+                'examples': {"started": True, "infohash": "4344503b7e797ebf31582327a5baae35b11bda01"}
+            }
+        },
+    )
+    @json_schema(schema(AddDownloadRequest={
+        'anon_hops': (Integer, 'Number of hops for the anonymous download. No hops is equivalent to a plain download'),
+        'safe_seeding': (Boolean, 'Whether the seeding of the download should be anonymous or not'),
+        'destination': (String, 'the download destination path of the torrent'),
+        'uri*': (String, 'The URI of the torrent file that should be downloaded. This URI can either represent a file '
+                         'location, a magnet link or a HTTP(S) url.'),
+    }))
     async def add_download(self, request):
-        """
-        .. http:put:: /downloads
-
-        A PUT request to this endpoint will start a download from a provided URI. This URI can either represent a file
-        location, a magnet link or a HTTP(S) url.
-        - anon_hops: the number of hops for the anonymous download. 0 hops is equivalent to a plain download
-        - safe_seeding: whether the seeding of the download should be anonymous or not (0 = off, 1 = on)
-        - destination: the download destination path of the torrent
-        - torrent: the URI of the torrent file that should be downloaded. This parameter is required.
-
-            **Example request**:
-
-                .. sourcecode:: none
-
-                    curl -X PUT http://localhost:8085/downloads
-                    --data "anon_hops=2&safe_seeding=1&destination=/my/dest/on/disk/&uri=file:/home/me/test.torrent
-
-            **Example response**:
-
-                .. sourcecode:: javascript
-
-                    {"started": True, "infohash": "4344503b7e797ebf31582327a5baae35b11bda01"}
-        """
         parameters = await request.json()
         if not parameters.get('uri'):
             return RESTResponse({"error": "uri parameter missing"}, status=HTTP_BAD_REQUEST)
@@ -362,26 +379,27 @@ class DownloadsEndpoint(RESTEndpoint):
 
         return RESTResponse({"started": True, "infohash": hexlify(download.get_def().get_infohash())})
 
+    @docs(
+        tags=["Libtorrent"],
+        summary="Remove a specific download.",
+        parameters=[{
+            'in': 'path',
+            'name': 'infohash',
+            'description': 'Infohash of the download to remove',
+            'type': 'string',
+            'required': True
+        }],
+        responses={
+            200: {
+                "schema": schema(DeleteDownloadResponse={"removed": Boolean, "infohash": String}),
+                'examples': {"removed": True, "infohash": "4344503b7e797ebf31582327a5baae35b11bda01"}
+            }
+        },
+    )
+    @json_schema(schema(RemoveDownloadRequest={
+        'remove_data': (Boolean, 'Whether or not to remove the associated data'),
+    }))
     async def delete_download(self, request):
-        """
-        .. http:delete:: /downloads/(string: infohash)
-
-        A DELETE request to this endpoint removes a specific download from Tribler. You can specify whether you only
-        want to remove the download or the download and the downloaded data using the remove_data parameter.
-
-            **Example request**:
-
-                .. sourcecode:: none
-
-                    curl -X DELETE http://localhost:8085/download/4344503b7e797ebf31582327a5baae35b11bda01
-                    --data "remove_data=1"
-
-            **Example response**:
-
-                .. sourcecode:: javascript
-
-                    {"removed": True, "infohash": "4344503b7e797ebf31582327a5baae35b11bda01"}
-        """
         parameters = await request.json()
         if 'remove_data' not in parameters:
             return RESTResponse({"error": "remove_data parameter missing"}, status=HTTP_BAD_REQUEST)
@@ -403,35 +421,30 @@ class DownloadsEndpoint(RESTEndpoint):
 
         return RESTResponse({"removed": True, "infohash": hexlify(download.get_def().get_infohash())})
 
+    @docs(
+        tags=["Libtorrent"],
+        summary="Update a specific download.",
+        parameters=[{
+            'in': 'path',
+            'name': 'infohash',
+            'description': 'Infohash of the download to update',
+            'type': 'string',
+            'required': True
+        }],
+        responses={
+            200: {
+                "schema": schema(UpdateDownloadResponse={"modified": Boolean, "infohash": String}),
+                'examples': {"modified": True, "infohash": "4344503b7e797ebf31582327a5baae35b11bda01"}
+            }
+        },
+    )
+    @json_schema(schema(UpdateDownloadRequest={
+        'state': (String, 'State parameter to be passed to modify the state of the download (resume/stop/recheck)'),
+        'selected_files': (List(Integer), 'File indexes to be included in the download'),
+        'anon_hops': (Integer, 'The anonymity of a download can be changed at runtime by passing the anon_hops '
+                               'parameter, however, this must be the only parameter in this request.')
+    }))
     async def update_download(self, request):
-        """
-        .. http:patch:: /downloads/(string: infohash)
-
-        A PATCH request to this endpoint will update a download in Tribler.
-
-        A state parameter can be passed to modify the state of the download. Valid states are "resume"
-        (to resume a stopped/paused download), "stop" (to stop a running download) and "recheck"
-        (to force a recheck of the hashes of a download).
-
-        Another possible parameter is selected_files which manipulates which files are included in the download.
-        The selected_files parameter is an array with the file indices as values.
-
-        The anonymity of a download can be changed at runtime by passing the anon_hops parameter, however, this must
-        be the only parameter in this request.
-
-            **Example request**:
-
-                .. sourcecode:: none
-
-                    curl -X PATCH http://localhost:8085/downloads/4344503b7e797ebf31582327a5baae35b11bda01
-                    --data "state=resume&selected_files[]=file1.iso&selected_files[]=1"
-
-            **Example response**:
-
-                .. sourcecode:: javascript
-
-                    {"modified": True, "infohash": "4344503b7e797ebf31582327a5baae35b11bda01"}
-        """
         infohash = unhexlify(request.match_info['infohash'])
         download = self.session.dlmgr.get_download(infohash)
         if not download:
@@ -476,22 +489,21 @@ class DownloadsEndpoint(RESTEndpoint):
 
         return RESTResponse({"modified": True, "infohash": hexlify(download.get_def().get_infohash())})
 
+    @docs(
+        tags=["Libtorrent"],
+        summary="Return the .torrent file associated with the specified download.",
+        parameters=[{
+            'in': 'path',
+            'name': 'infohash',
+            'description': 'Infohash of the download from which to get the .torrent file',
+            'type': 'string',
+            'required': True
+        }],
+        responses={
+            200: {'description': 'The torrent'}
+        }
+    )
     async def get_torrent(self, request):
-        """
-        .. http:get:: /download/(string: infohash)/torrent
-
-        A GET request to this endpoint returns the .torrent file associated with the specified download.
-
-            **Example request**:
-
-                .. sourcecode:: none
-
-                    curl -X GET http://localhost:8085/downloads/4344503b7e797ebf31582327a5baae35b11bda01/torrent
-
-            **Example response**:
-
-            The contents of the .torrent file.
-        """
         infohash = unhexlify(request.match_info['infohash'])
         download = self.session.dlmgr.get_download(infohash)
         if not download:
@@ -508,38 +520,54 @@ class DownloadsEndpoint(RESTEndpoint):
                                                        'Content-Disposition': 'attachment; filename=%s.torrent'
                                                                               % hexlify(infohash).encode('utf-8')})
 
+    @docs(
+        tags=["Libtorrent"],
+        summary="Return file information of a specific download.",
+        parameters=[{
+            'in': 'path',
+            'name': 'infohash',
+            'description': 'Infohash of the download to from which to get file information',
+            'type': 'string',
+            'required': True
+        }],
+        responses={
+            200: {
+                "schema": schema(GetFilesResponse={"files": [schema(File={'index': Integer,
+                                                                          'name': String,
+                                                                          'size': Integer,
+                                                                          'included': Boolean,
+                                                                          'progress': Float})]})
+            }
+        }
+    )
     async def get_files(self, request):
-        """
-        .. http:get:: /download/(string: infohash)/files
-
-        A GET request to this endpoint returns the file information of a specific download.
-
-            **Example request**:
-
-                .. sourcecode:: none
-
-                    curl -X GET http://localhost:8085/downloads/4344503b7e797ebf31582327a5baae35b11bda01/files
-
-            **Example response**:
-
-            .. sourcecode:: javascript
-
-                {
-                    "files": [{
-                        "index": 1,
-                        "name": "test.txt",
-                        "size": 12345,
-                        "included": True,
-                        "progress": 0.5448
-                    }, ...]
-                }
-        """
         infohash = unhexlify(request.match_info['infohash'])
         download = self.session.dlmgr.get_download(infohash)
         if not download:
             return DownloadsEndpoint.return_404(request)
         return RESTResponse({"files": self.get_files_info_json(download)})
 
+    @docs(
+        tags=["Libtorrent"],
+        summary="Stream the contents of a file that is being downloaded.",
+        parameters=[{
+            'in': 'path',
+            'name': 'infohash',
+            'description': 'Infohash of the download to stream',
+            'type': 'string',
+            'required': True
+        },
+        {
+            'in': 'path',
+            'name': 'fileindex',
+            'description': 'The fileindex to stream',
+            'type': 'string',
+            'required': True
+        }],
+        responses={
+            206: {'description': 'Contents of the stream'}
+        }
+    )
     async def stream(self, request):
         infohash = unhexlify(request.match_info['infohash'])
         download = self.session.dlmgr.get_download(infohash)

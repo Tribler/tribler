@@ -51,7 +51,7 @@ MOCK_MODULES = ['configobj', 'aiohttp', 'libtorrent', 'treq', 'pony', 'pony.orm'
                 'lz4', 'lz4.frame', 'psutil', 'meliae', 'libnacl',
                 'decorator', 'libnacl.dual', 'libnacl.sign', 'libnacl.encode', 'libnacl.public', 'networkx',
                 'netifaces', 'ipv8.messaging.anonymization.tunnel', 'Tribler.community.gigachannel.community',
-                'networkx', 'validate']
+                'networkx', 'validate', 'aiohttp_apispec']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 
