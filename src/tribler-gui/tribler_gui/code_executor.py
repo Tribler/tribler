@@ -66,7 +66,7 @@ class CodeExecutor(object):
     def on_crash(self, exception_text):
         self.stack_trace = exception_text
         for socket in self.sockets:
-            socket.write(b"crash %s\n" % b64encode(exception_text))
+            socket.write(b"crash %s\n" % b64encode(exception_text.encode('utf-8')))
 
     def _on_socket_read_ready(self):
         data = bytes(self.sockets[0].readAll())
