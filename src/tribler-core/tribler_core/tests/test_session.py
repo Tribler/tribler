@@ -35,16 +35,18 @@ class TestSessionAsServer(TestAsServer):
         """
         self.mock_endpoints()
 
-        expected_text = ""
 
         def on_tribler_exception(exception_text):
-            self.assertEqual(exception_text, expected_text)
+            self.assertTrue("abcd" in exception_text)
+            self.assertTrue("foobar" in exception_text)
+            on_tribler_exception.called = 1
+
 
         on_tribler_exception.called = 0
         self.session.api_manager.get_endpoint('events').on_tribler_exception = on_tribler_exception
         self.session.api_manager.get_endpoint('state').on_tribler_exception = on_tribler_exception
-        expected_text = "abcd"
-        self.session.unhandled_error_observer(None, {'message': 'abcd'})
+        self.session.unhandled_error_observer(None, {'message': 'abcd', 'context': 'foobar'})
+        self.assertTrue(on_tribler_exception.called)
 
     def test_error_observer_ignored_error(self):
         """

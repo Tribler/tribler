@@ -373,7 +373,8 @@ class Session(TaskManager):
         if exc:
             with StringIO() as buffer:
                 print_exception(type(exc), exc, exc.__traceback__, file=buffer)
-                text_long = buffer.getvalue()
+                text_long = text_long + "\n--LONG TEXT--\n" + buffer.getvalue()
+        text_long = text_long + "\n--CONTEXT--\n" + str(context)
 
         if self.api_manager and len(text_long) > 0:
             self.api_manager.get_endpoint('events').on_tribler_exception(text_long)
