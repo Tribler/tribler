@@ -10,13 +10,13 @@ The Tribler REST API allows you to create your own applications with the channel
 Making requests
 ===============
 
-The API has been built using `Twisted Web <http://twistedmatrix.com/trac/wiki/TwistedWeb>`_. Requests go over HTTP where GET requests should be used when data is fetched from the Tribler core and POST requests should be used if data in the core is manipulated (such as adding a torrent or removing a download). Responses of the requests are in JSON format. Tribler should be running either headless or with the GUI before you can use this API.
+The API has been built using the `aiohttp <https://aiohttp.readthedocs.io>`_ library. Requests go over HTTP where GET requests should be used when data is fetched from the Tribler core and POST requests should be used if data in the core is manipulated (such as adding a torrent or removing a download). Responses of the requests are in JSON format. Tribler should be running either headless or with the GUI before you can use this API. To make successful requests, you should pass the `X-Api-Key` header, which can be found in your Tribler configuration file (`triblerd.conf`).
 
 Some requests require one or more parameters. These parameters are passed using the JSON format. An example of performing a request with parameters using the curl command line tool can be found below:
 
 .. code-block:: none
 
-    curl -X PUT http://localhost:8085/mychannel/rssfeeds/http%3A%2F%2Frssfeed.com%2Frss.xml
+    curl -X PUT -H "X-Api-Key: <YOUR API KEY>" http://localhost:8085/mychannel/rssfeeds/http%3A%2F%2Frssfeed.com%2Frss.xml
 
 Error handling
 ==============
