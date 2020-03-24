@@ -143,6 +143,9 @@ class VideoPlayerPage(QWidget):
         self.freeze = False
 
     def on_should_change_video_time(self, position):
+        if not self.mediaplayer or not self.media:
+            return
+
         self.freeze = True
         self.mediaplayer.stop()
         self.mediaplayer.play()
