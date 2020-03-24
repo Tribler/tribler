@@ -2,6 +2,7 @@ import time
 from binascii import unhexlify
 from random import choice, randint, uniform
 
+from tribler_core.modules.metadata_store.serialization import REGULAR_TORRENT
 from tribler_core.utilities.unicode import hexlify
 
 from tribler_gui.tests.fake_tribler_api.constants import COMMITTED
@@ -48,6 +49,7 @@ class Torrent(object):
             "num_seeders": self.num_seeders,
             "num_leechers": self.num_leechers,
             "last_tracker_check": self.last_tracker_check,
+            "type": REGULAR_TORRENT,
         }
 
         if include_status:
