@@ -16,7 +16,7 @@ from tribler_common.simpledefs import CHANNELS_VIEW_UUID, NTFY
 from tribler_core.modules.metadata_store.community.payload import SearchRequestPayload, SearchResponsePayload
 from tribler_core.modules.metadata_store.community.request import SearchRequestCache
 from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import entries_to_chunk
-from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, REGULAR_TORRENT
+from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 from tribler_core.modules.metadata_store.store import (
     GOT_NEWER_VERSION,
     UNKNOWN_CHANNEL,
@@ -102,7 +102,7 @@ class GigaChannelCommunity(Community):
             personal_channels = list(self.metadata_store.ChannelMetadata.get_my_channels().random(1))
             personal_channel = personal_channels[0] if personal_channels else None
             md_list = (
-                [personal_channel] + list(personal_channel.get_random_torrents(max_entries - 1))
+                [personal_channel] + list(personal_channel.get_random_contents(max_entries - 1))
                 if personal_channel
                 else None
             )
@@ -115,7 +115,7 @@ class GigaChannelCommunity(Community):
             channel_l = list(
                 self.metadata_store.ChannelMetadata.get_random_channels(1, only_subscribed=True, only_downloaded=True)
             )
-            md_list = channel_l + list(channel_l[0].get_random_torrents(max_entries - 1)) if channel_l else None
+            md_list = channel_l + list(channel_l[0].get_random_contents(max_entries - 1)) if channel_l else None
             self.gossip_blob = entries_to_chunk(md_list, maximum_payload_size)[0] if md_list else None
         self.metadata_store.disconnect_thread()
 
@@ -258,7 +258,7 @@ class GigaChannelCommunity(Community):
         channel_pk = None
         normal_filter = txt_filter.replace('"', '').replace("*", "")
         if (
-            metadata_type == frozenset((REGULAR_TORRENT,))
+            metadata_type == frozenset((REGULAR_TORRENT, COLLECTION_NODE))
             and is_hex_string(normal_filter)
             and len(normal_filter) % 2 == 0
             and is_channel_public_key(normal_filter)
@@ -280,7 +280,7 @@ class GigaChannelCommunity(Community):
 
         def _get_search_results():
             with db_session:
-                db_results = self.metadata_store.TorrentMetadata.get_entries(**request_dict)
+                db_results = self.metadata_store.MetadataNode.get_entries(**request_dict)
                 result = entries_to_chunk(db_results[:max_entries], maximum_payload_size)[0] if db_results else None
             self.metadata_store.disconnect_thread()
             return result
