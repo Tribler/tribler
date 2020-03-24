@@ -1,4 +1,8 @@
+from asyncio import get_event_loop
 from binascii import unhexlify
+from unittest.mock import Mock
+
+from _socket import getaddrinfo
 
 from anydex.core.community import MarketCommunity
 
@@ -10,7 +14,7 @@ from tribler_core.modules.libtorrent.download_manager import DownloadManager
 from tribler_core.modules.libtorrent.tests.test_download_manager import create_fake_download_and_state
 from tribler_core.modules.metadata_store.community.gigachannel_community import GigaChannelCommunity
 from tribler_core.modules.payout_manager import PayoutManager
-from tribler_core.session import SOCKET_BLOCK_ERRORCODE
+from tribler_core.session import IGNORED_ERRORS
 from tribler_core.tests.tools.base_test import MockObject
 from tribler_core.tests.tools.test_as_server import TestAsServer
 from tribler_core.tests.tools.tools import timeout
@@ -26,8 +30,16 @@ class TestSessionAsServer(TestAsServer):
     def mock_endpoints(self):
         self.session.api_manager = MockObject()
         self.session.api_manager.stop = lambda: succeed(None)
-        endpoint = MockObject()
-        self.session.api_manager.get_endpoint = lambda _: endpoint
+        mocked_endpoints = {}
+
+        def get_endpoint_mock(name):
+            if name in mocked_endpoints:
+                return mocked_endpoints[name]
+            endpoint = Mock()
+            mocked_endpoints[name] = endpoint
+            return endpoint
+
+        self.session.api_manager.get_endpoint = get_endpoint_mock
 
     def test_unhandled_error_observer(self):
         """
@@ -35,18 +47,21 @@ class TestSessionAsServer(TestAsServer):
         """
         self.mock_endpoints()
 
+        mock_events = Mock()
+        mock_state = Mock()
+        self.session.api_manager.get_endpoint('events').on_tribler_exception = mock_events
+        self.session.api_manager.get_endpoint('state').on_tribler_exception = mock_state
 
-        def on_tribler_exception(exception_text):
-            self.assertTrue("abcd" in exception_text)
-            self.assertTrue("foobar" in exception_text)
-            on_tribler_exception.called = 1
+        # This indirect method of raising exceptions is necessary
+        # to circumvent the test runner catching exceptions by itself
+        def function_that_triggers_exception():
+            raise Exception("foobar")
 
-
-        on_tribler_exception.called = 0
-        self.session.api_manager.get_endpoint('events').on_tribler_exception = on_tribler_exception
-        self.session.api_manager.get_endpoint('state').on_tribler_exception = on_tribler_exception
-        self.session.unhandled_error_observer(None, {'message': 'abcd', 'context': 'foobar'})
-        self.assertTrue(on_tribler_exception.called)
+        get_event_loop().call_soon(function_that_triggers_exception)
+        self.loop._run_once()
+        for m in [mock_state, mock_events]:
+            self.assertTrue("function_that_triggers_exception" in m.call_args[0][0])
+            self.assertTrue("foobar" in m.call_args[0][0])
 
     def test_error_observer_ignored_error(self):
         """
@@ -54,21 +69,40 @@ class TestSessionAsServer(TestAsServer):
         """
         self.mock_endpoints()
 
-        def on_tribler_exception(_):
-            raise RuntimeError("This method cannot be called!")
+        self.session.api_manager.get_endpoint('events').on_tribler_exception = Mock()
+        self.session.api_manager.get_endpoint('state').on_tribler_exception = Mock()
 
-        self.session.api_manager.get_endpoint('events').on_tribler_exception = on_tribler_exception
-        self.session.api_manager.get_endpoint('state').on_tribler_exception = on_tribler_exception
+        def generate_exception_on_reactor(exception):
 
-        self.session.unhandled_error_observer(None, {'message': 'builtins.OSError: [Errno 113]'})
-        self.session.unhandled_error_observer(None, {'message': 'builtins.OSError: [Errno 51]'})
-        self.session.unhandled_error_observer(None, {'message': 'builtins.OSError: [Errno 16]'})
-        self.session.unhandled_error_observer(None, {'message': 'socket.gaierror [Errno 11001]'})
-        self.session.unhandled_error_observer(None, {'message': 'socket.gaierror [Errno -2]'})
-        self.session.unhandled_error_observer(None, {'message': 'builtins.OSError: [Errno 10053]'})
-        self.session.unhandled_error_observer(None, {'message': 'builtins.OSError: [Errno 10054]'})
-        self.session.unhandled_error_observer(None, {'message': 'builtins.OSError: [Errno %s]' % SOCKET_BLOCK_ERRORCODE})
-        self.session.unhandled_error_observer(None, {'message': 'exceptions.RuntimeError: invalid info-hash'})
+            def gen_except():
+                raise exception
+
+            get_event_loop().call_soon(gen_except)
+            self.loop._run_once()
+
+        exceptions_list = [exc_class(errno, "exc message") for exc_class, errno in IGNORED_ERRORS.keys()]
+        exceptions_list.append(RuntimeError(0, "invalid info-hash"))
+
+        for exception in exceptions_list:
+            generate_exception_on_reactor(exception)
+        self.session.api_manager.get_endpoint('state').on_tribler_exception.assert_not_called()
+        self.session.api_manager.get_endpoint('events').on_tribler_exception.assert_not_called()
+
+        # This is a "canary" to test that we can handle true exceptions
+        get_event_loop().call_soon(getaddrinfo, "dfdfddfd23424fdfdf", 2323)
+        self.loop._run_once()
+
+        self.session.api_manager.get_endpoint('state').on_tribler_exception.assert_not_called()
+        self.session.api_manager.get_endpoint('events').on_tribler_exception.assert_not_called()
+
+        # This is a "canary" to test to catch false negative tests
+        def real_raise():
+            raise Exception()
+
+        get_event_loop().call_soon(real_raise)
+        self.loop._run_once()
+        self.session.api_manager.get_endpoint('state').on_tribler_exception.assert_called_once()
+        self.session.api_manager.get_endpoint('events').on_tribler_exception.assert_called_once()
 
 
 class TestSessionWithLibTorrent(TestSessionAsServer):
