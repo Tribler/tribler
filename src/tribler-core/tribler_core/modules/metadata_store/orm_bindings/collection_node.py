@@ -109,7 +109,7 @@ def define_binding(db):
             return self.contents.where(lambda g: g.status != TODELETE)
 
         @db_session
-        def get_random_torrents(self, limit):
+        def get_random_contents(self, limit):
             return self.contents.where(lambda g: g.status not in [NEW, TODELETE]).random(limit)
 
         @property

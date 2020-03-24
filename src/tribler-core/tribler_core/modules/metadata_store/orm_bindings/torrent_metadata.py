@@ -8,7 +8,7 @@ from pony.orm import db_session
 
 from tribler_core.modules.category_filter.category import default_category_filter
 from tribler_core.modules.category_filter.family_filter import default_xxx_filter
-from tribler_core.modules.metadata_store.orm_bindings.channel_node import COMMITTED, LEGACY_ENTRY
+from tribler_core.modules.metadata_store.orm_bindings.channel_node import COMMITTED
 from tribler_core.modules.metadata_store.serialization import EPOCH, REGULAR_TORRENT, TorrentMetadataPayload
 from tribler_core.utilities.tracker_utils import get_uniformed_tracker_url
 from tribler_core.utilities.unicode import ensure_unicode, hexlify
@@ -120,16 +120,6 @@ def define_binding(db):
                 return None
             # Add the torrent as a free-for-all entry if it is unknown to GigaChannel
             return cls.from_dict(dict(ffa_dict, public_key=b'', status=COMMITTED, id_=id_))
-
-        @classmethod
-        @db_session
-        def get_random_torrents(cls, limit):
-            """
-            Return some random torrents from the database.
-            """
-            return TorrentMetadata.select(
-                lambda g: g.metadata_type == REGULAR_TORRENT and g.status != LEGACY_ENTRY
-            ).random(limit)
 
         def to_simple_dict(self, include_trackers=False):
             """
