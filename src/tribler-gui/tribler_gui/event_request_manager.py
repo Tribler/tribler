@@ -49,7 +49,7 @@ class EventRequestManager(QNetworkAccessManager):
         self.reactions_dict = {
             NTFY.CHANNEL_ENTITY_UPDATED.value: self.node_info_updated.emit,
             NTFY.TRIBLER_NEW_VERSION.value: lambda data: self.new_version_available.emit(data["version"]),
-            NTFY.UPGRADER_DONE.value: lambda _: self.upgrader_finished.emit(),
+            NTFY.UPGRADER_DONE.value: self.upgrader_finished.emit,
             NTFY.UPGRADER_TICK.value: lambda data: self.upgrader_tick.emit(data["text"]),
             NTFY.CHANNEL_DISCOVERED.value: self.discovered_channel.emit,
             NTFY.TORRENT_FINISHED.value: self.torrent_finished.emit,
