@@ -578,6 +578,9 @@ class DownloadsEndpoint(RESTEndpoint):
         if not 0 <= file_index < len(download.get_def().get_files()):
             return RESTResponse('Selected file out of range', status=HTTP_NOT_FOUND)
 
+        if request.method == "HEAD":
+            return RESTResponse(status=200)
+        
         stream = self.streams.get(infohash)
         if stream and stream.file_index != file_index:
             stream.close()
