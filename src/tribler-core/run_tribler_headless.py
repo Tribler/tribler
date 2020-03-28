@@ -11,11 +11,13 @@ from asyncio import ensure_future, get_event_loop, sleep
 from datetime import date
 from socket import inet_aton
 
-from tribler_core.config.tribler_config import TriblerConfig
+from tribler_core.config.tribler_config import TriblerConfig, CONFIG_FILENAME
 from tribler_core.modules.process_checker import ProcessChecker
 from tribler_core.session import Session
-from tribler_core.utilities.osutils import get_appstate_dir
+from tribler_core.utilities.osutils import get_root_state_directory
 from tribler_core.utilities.path_util import Path
+from tribler_core.upgrade.version_manager import get_versioned_state_directory, fork_state_directory_if_necessary
+from tribler_core.version import version_id
 
 
 class IPPortAction(argparse.Action):
@@ -27,7 +29,7 @@ class IPPortAction(argparse.Action):
         ip, port = parsed.group(1), int(parsed.group(2))
         try:
             inet_aton(ip)
-        except:
+        except Exception:
             raise argparse.ArgumentError("Invalid server address")
 
         if not (0 < port < 65535):
@@ -68,12 +70,21 @@ class TriblerService(object):
         signal.signal(signal.SIGINT, lambda sig, _: ensure_future(signal_handler(sig)))
         signal.signal(signal.SIGTERM, lambda sig, _: ensure_future(signal_handler(sig)))
 
-        config = TriblerConfig(options.statedir or Path(get_appstate_dir(), '.Tribler'))
+        root_state_dir = Path(options.statedir) if options.statedir else get_root_state_directory()
+        if not root_state_dir.exists():
+            root_state_dir.mkdir()
+        elif root_state_dir.is_file():
+            print("Statedir is not a directory %s" % root_state_dir)
+            get_event_loop().stop()
+            return
+        fork_state_directory_if_necessary(root_state_dir, version_id)
+        state_dir = get_versioned_state_directory(root_state_dir)
+        config = TriblerConfig(state_dir, config_file=state_dir / CONFIG_FILENAME)
 
         # Check if we are already running a Tribler instance
         self.process_checker = ProcessChecker()
         if self.process_checker.already_running:
-            print("Another Tribler instance is already using statedir %s" % config.get_state_dir())
+            print("Another Tribler instance is already using statedir %s" % state_dir)
             get_event_loop().stop()
             return
 
@@ -82,6 +93,7 @@ class TriblerService(object):
         if options.restapi > 0:
             config.set_http_api_enabled(True)
             config.set_http_api_port(options.restapi)
+            config.write()  # only write config when rest api is enabled
 
         if options.ipv8 > 0:
             config.set_ipv8_port(options.ipv8)
@@ -98,6 +110,7 @@ class TriblerService(object):
             config.set_testnet(True)
 
         self.session = Session(config)
+
         try:
             await self.session.start()
         except Exception as e:
