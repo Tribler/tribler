@@ -319,9 +319,11 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                 torrent.add_peer(peer)
             del self.bittorrent_peers[torrent]
 
-    async def update_torrent(self, peers, download):
-        handle = await download.get_handle()
-        peers = peers.intersection(handle.get_peer_info())
+    def update_torrent(self, peers, download):
+        if not download.handle or not download.handle.is_valid():
+            return
+
+        peers = peers.intersection(download.handle.get_peer_info())
         if peers:
             if download not in self.bittorrent_peers:
                 self.bittorrent_peers[download] = peers
@@ -367,11 +369,10 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             if tup[1] == circuit_id:
                 self.competing_slots[ind] = (0, None)
 
-    @task
-    async def remove_circuit(self, circuit_id, additional_info='', remove_now=False, destroy=False):
+    def remove_circuit(self, circuit_id, additional_info='', remove_now=False, destroy=False):
         if circuit_id not in self.circuits:
             self.logger.warning("Circuit %d not found when trying to remove it", circuit_id)
-            return
+            return succeed(None)
 
         circuit = self.circuits[circuit_id]
 
@@ -397,14 +398,16 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         affected_peers = self.dispatcher.circuit_dead(circuit)
 
-        # Now we actually remove the circuit
-        super(TriblerTunnelCommunity, self).remove_circuit(circuit_id, additional_info=additional_info,
-                                                           remove_now=remove_now, destroy=destroy)
+        # Make sure the circuit is marked as closing, otherwise we may end up reusing it
+        circuit.close()
 
         if self.tribler_session and self.tribler_session.config.get_libtorrent_enabled():
-            downloads = self.tribler_session.dlmgr.get_downloads()
-            if downloads:
-                await gather(*[self.update_torrent(affected_peers, download) for download in downloads])
+            for download in self.tribler_session.dlmgr.get_downloads():
+                self.update_torrent(affected_peers, download)
+
+        # Now we actually remove the circuit
+        return super(TriblerTunnelCommunity, self).remove_circuit(circuit_id, additional_info=additional_info,
+                                                                  remove_now=remove_now, destroy=destroy)
 
     @task
     async def remove_relay(self, circuit_id, additional_info='', remove_now=False, destroy=False,
