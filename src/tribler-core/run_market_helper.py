@@ -59,7 +59,7 @@ class MarketService(object):
             config.set_http_api_enabled(True)
             config.set_http_api_port(options.restapi)
 
-        if options.ipv8 != -1 and options.ipv8 > 0:
+        if options.ipv8 > 0:
             config.set_ipv8_port(options.ipv8)
 
         if options.testnet:
@@ -79,13 +79,16 @@ def main(argv):
     parser.add_argument('--help', '-h', action='help', default=argparse.SUPPRESS, help='Show this help message and exit')
     parser.add_argument('--statedir', '-s', default=None, help='Use an alternate statedir')
     parser.add_argument('--restapi', '-p', default=-1, type=int, help='Use an alternate port for REST API')
-    parser.add_argument('--ipv8', '-i', default=8085, type=int, help='Use an alternate port for the IPv8')
+    parser.add_argument('--ipv8', '-i', default=-1, type=int, help='Use an alternate port for the IPv8')
     
     parser.add_argument('--testnet', '-t', action='store_const', default=False, const=True, help='Join the testnet')
 
     args = parser.parse_args(sys.argv[1:])    
     service = MarketService()
-    
+
+    import uvloop
+    uvloop.install()
+
     loop = get_event_loop()
     coro = service.start_tribler(args)
     ensure_future(coro)

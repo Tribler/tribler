@@ -95,6 +95,8 @@ def start_tribler_core(base_path, api_port, api_key, root_state_dir):
         await session.start()
 
     logging.getLogger('asyncio').setLevel(logging.WARNING)
+    import uvloop
+    uvloop.install()
     get_event_loop().create_task(start_tribler())
     get_event_loop().run_forever()
 

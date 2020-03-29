@@ -27,6 +27,7 @@ dependencies = [
     {'module': 'pathlib', 'install_type': 'pip3', 'package': 'pathlib', 'optional': False, 'scope': 'core'},
     {'module': 'bitcoinlib', 'install_type': 'pip3', 'package': 'bitcoinlib', 'optional': True, 'scope': 'core'},
     {'module': 'PIL', 'install_type': 'pip3', 'package': 'PIL', 'optional': False, 'scope': 'gui'},
+    {'module': 'uvloop', 'install_type': 'pip3', 'package': 'uvloop', 'optional': False, 'scope': 'core'},
     {'module': 'pyasn1', 'install_type': 'pip3', 'package': 'pyasn1', 'optional': False, 'scope': 'core'},
 ]
 

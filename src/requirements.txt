@@ -16,3 +16,4 @@ aiohttp
 aiohttp_apispec
 faulthandler
 pyyaml
+uvloop

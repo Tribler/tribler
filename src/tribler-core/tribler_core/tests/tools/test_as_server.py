@@ -22,6 +22,8 @@ from aiohttp import web
 
 import asynctest
 
+import uvloop
+
 from tribler_common.simpledefs import DLSTATUS_SEEDING
 
 from tribler_core.config.tribler_config import TriblerConfig
@@ -37,6 +39,8 @@ from tribler_core.utilities.network_utils import get_random_port
 
 OUTPUT_DIR = path_util.abspath(os.environ.get('OUTPUT_DIR', 'output'))
 
+
+uvloop.install()
 
 class BaseTestCase(asynctest.TestCase):
 

@@ -177,6 +177,9 @@ def main(argv):
 
     args = parser.parse_args(sys.argv[1:])    
     service = TunnelHelperService()
+
+    import uvloop
+    uvloop.install()
     
     loop = get_event_loop()
     coro = service.start(args)

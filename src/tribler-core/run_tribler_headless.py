@@ -113,7 +113,7 @@ def main(argv):
                         help='Show this help message and exit')
     parser.add_argument('--statedir', '-s', default=None, help='Use an alternate statedir')
     parser.add_argument('--restapi', '-p', default=-1, type=int, help='Use an alternate port for REST API')
-    parser.add_argument('--ipv8', '-i', default=8085, type=int, help='Use an alternate port for the IPv8')
+    parser.add_argument('--ipv8', '-i', default=-1, type=int, help='Use an alternate port for the IPv8')
     parser.add_argument('--libtorrent', '-l', default=-1, type=int, help='Use an alternate port for libtorrent')
     parser.add_argument('--ipv8_bootstrap_override', '-b', default=None, type=str,
                         help='Force the usage of specific IPv8 bootstrap server (ip:port)', action=IPPortAction)
@@ -122,6 +122,9 @@ def main(argv):
 
     args = parser.parse_args(sys.argv[1:])
     service = TriblerService()
+
+    import uvloop
+    uvloop.install()
 
     loop = get_event_loop()
     coro = service.start_tribler(args)
