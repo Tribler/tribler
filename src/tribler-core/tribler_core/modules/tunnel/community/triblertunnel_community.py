@@ -323,7 +323,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         if not download.handle or not download.handle.is_valid():
             return
 
-        peers = peers.intersection(download.handle.get_peer_info())
+        peers = peers.intersection({pi.ip for pi in download.handle.get_peer_info()})
         if peers:
             if download not in self.bittorrent_peers:
                 self.bittorrent_peers[download] = peers
