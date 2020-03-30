@@ -252,16 +252,16 @@ class TestTriblerTunnelCommunity(TestBase):
         self.nodes[0].overlay.find_circuits = lambda: True
         self.nodes[0].overlay.readd_bittorrent_peers = lambda: None
         mock_handle = MockObject()
-        mock_handle.get_peer_info = lambda: {2, 3}
+        mock_handle.get_peer_info = lambda: {Mock(ip=('2.2.2.2', 2)), Mock(ip=('3.3.3.3', 3))}
         mock_handle.is_valid = lambda: True
         mock_download = MockObject()
         mock_download.handle = mock_handle
-        peers = {1, 2}
+        peers = {('1.1.1.1', 1), ('2.2.2.2', 2)}
         self.nodes[0].overlay.update_torrent(peers, mock_download)
         self.assertIn(mock_download, self.nodes[0].overlay.bittorrent_peers)
 
         # Test adding peers
-        self.nodes[0].overlay.bittorrent_peers[mock_download] = {4}
+        self.nodes[0].overlay.bittorrent_peers[mock_download] = {('4.4.4.4', 4)}
         self.nodes[0].overlay.update_torrent(peers, mock_download)
 
     async def test_payouts(self):
