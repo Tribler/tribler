@@ -33,7 +33,8 @@ class HTTPTracker(object):
         """
         Stop the HTTP Tracker, returns a deferred that fires when the server is closed.
         """
-        return await self.site.stop()
+        if self.site:
+            return await self.site.stop()
 
     async def handle_scrape_request(self, request):
         """

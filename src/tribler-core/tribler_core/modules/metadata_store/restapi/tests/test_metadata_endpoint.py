@@ -3,6 +3,7 @@ from ipv8.keyvault.crypto import default_eccrypto
 from pony.orm import db_session
 
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import COMMITTED, TODELETE, UPDATED
+from tribler_core.modules.metadata_store.restapi.metadata_endpoint import TORRENT_CHECK_TIMEOUT
 from tribler_core.modules.torrent_checker.torrent_checker import TorrentChecker
 from tribler_core.restapi.base_api_test import AbstractApiTest
 from tribler_core.tests.tools.base_test import MockObject
@@ -213,7 +214,7 @@ class TestTorrentHealthEndpoint(AbstractApiTest):
             await self.http_tracker.stop()
         await super(TestTorrentHealthEndpoint, self).tearDown()
 
-    @timeout(20)
+    @timeout(TORRENT_CHECK_TIMEOUT + 5)
     async def test_check_torrent_health(self):
         """
         Test the endpoint to fetch the health of a chant-managed, infohash-only torrent
@@ -228,7 +229,7 @@ class TestTorrentHealthEndpoint(AbstractApiTest):
             self.session.mds.TorrentMetadata(
                 infohash=infohash, title='ubuntu-torrent.iso', size=42, tracker_info=tracker_url, health=torrent_state
             )
-        url = 'metadata/torrents/%s/health?timeout=10&refresh=1' % hexlify(infohash)
+        url = 'metadata/torrents/%s/health?timeout=%s&refresh=1' % (hexlify(infohash), TORRENT_CHECK_TIMEOUT)
 
         # Initialize the torrent checker
         self.session.torrent_checker = TorrentChecker(self.session)
@@ -252,3 +253,12 @@ class TestTorrentHealthEndpoint(AbstractApiTest):
 
         json_response = await self.do_request(url + '&nowait=1')
         self.assertDictEqual(json_response, {u'checking': u'1'})
+
+    @timeout(TORRENT_CHECK_TIMEOUT)
+    async def test_check_torrent_query(self):
+        """
+        Test that the endpoint responds with an error message if the timeout parameter has a wrong value
+        """
+        infohash = b'a' * 20
+        await self.do_request("metadata/torrents/%s/health?timeout=wrong_value&refresh=1" % infohash,
+                              expected_code=400)
