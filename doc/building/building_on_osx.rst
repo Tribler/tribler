@@ -20,12 +20,12 @@ Next, we should inject version information into the files about the latest relea
 
 .. code-block:: none
 
-    Tribler/Main/Build/update_version_from_git.py
+    build/update_version_from_git.py
 
 Now execute the builder with the following command:
 
 .. code-block:: none
 
-    ./mac/makedistmac_64bit.sh
+    build/mac/makedist_macos.sh
 
 This will create the ``.dmg`` file in the ``tribler_source/dist`` directory.

@@ -13,13 +13,13 @@ Secondly, install python packages
 
 .. code-block:: bash
 
- pip3 install bitcoinlib chardet configobj decorator dnspython ecdsa feedparser jsonrpclib matplotlib netifaces networkx pbkdf2 pony protobuf psutil pyaes pyasn1 pysocks requests lz4 pyqtgraph
+    pip3 install bitcoinlib chardet configobj decorator dnspython ecdsa feedparser jsonrpclib matplotlib netifaces networkx pbkdf2 pony protobuf psutil pyaes pyasn1 pysocks requests lz4 pyqtgraph
 
 Then, install py-ipv8 python dependencies
 
 .. code-block:: bash
 
-    cd Tribler/pyipv8
+    cd src/pyipv8
     pip install --upgrade -r requirements.txt
 
 Finally, download the latest tribler .deb file from `here <https://jenkins-ci.tribler.org/job/Build-Tribler_Ubuntu-64_devel/lastStableBuild/>`__.
