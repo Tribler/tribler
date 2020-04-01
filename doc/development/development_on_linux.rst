@@ -28,11 +28,3 @@ Now installing the list of dependencies should no longer throw an error.
 
 If there are any problems with the guide above, please feel free to fix any errors or `create an issue <https://github.com/Tribler/tribler/issues/new>`_ so we can look into it.
 
-Arch Linux
-----------
-
-Execute the following command in your terminal:
-
-.. code-block:: bash
-
-    pacman -S libsodium libtorrent-rasterbar python3-pyqt5 qt5-svg phonon-qt5-vlc python3-cherrypy python3-cryptography python3-decorator python3-chardet python3-netifaces python3-twisted python3-configobj python3-matplotlib python3-networkx python3-psutil python3-scipy python3-libnacl python3-lz4 python3-pony python3-pyopenssl python3-typing
