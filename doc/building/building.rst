@@ -23,7 +23,7 @@ Run the following commands in your terminal:
 
     sudo apt-get install devscripts python-setuptools
     cd tribler
-    Tribler/Main/Build/update_version_from_git.py
+    build/update_version_from_git.py
     debuild -i -us -uc -b
 
 This will build the ``.deb`` file that can be used to install Tribler on other systems.
