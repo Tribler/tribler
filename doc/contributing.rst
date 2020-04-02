@@ -34,7 +34,7 @@ Reporting bugs
 Pull requests
 =============
 
-When creating a new Pull request, please observe the following:
+When creating a new Pull request, please take note of the following:
   * New features always go to ``devel``.
   * If there is an unreleased ``release-X.Y.Z`` branch, fixes go there.
   * Otherwise, fixes go to ``devel``.
@@ -49,6 +49,7 @@ When creating a new Pull request, please observe the following:
     code.
   * If implementing a reasonably big or experimental feature, make it toggleable
     if possible (For instance for a new community, new GUI stuff, etc.).
+  * When you make a change to the user interface, please attach a screenshot of your changes to the pull request. This helps reviewers since it avoids the need for them to manually checkout your code to see what has been changed.
   * Keep a clean and nice git history:
       * Rebase instead of merging back from the base branch.
       * Squash fixup commits together.

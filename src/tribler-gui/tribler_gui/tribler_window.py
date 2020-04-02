@@ -458,7 +458,7 @@ class TriblerWindow(QMainWindow):
         self.personal_channel_page.initialize_root_model(
             self.personal_channel_page.default_channel_model(
                 hide_xxx=False,
-                channel_info={"name": "Personal channels root", "state": "Personal"},
+                channel_info={"name": "My channels", "state": "Personal"},
                 endpoint_url="channels/mychannel/0",
                 exclude_deleted=autocommit_enabled,
             )

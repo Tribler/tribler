@@ -222,7 +222,9 @@ class ChannelContentModel(RemoteTableModel):
         ACTION_BUTTONS: Qt.ItemIsEnabled | Qt.ItemIsSelectable,
     }
 
-    column_width = {u'state': lambda _: 20, u'name': lambda table_width: table_width - 520}
+    column_width = {u'state': lambda _: 20,
+                    u'name': lambda table_width: table_width - 510,
+                    u'action_buttons': lambda _: 70}
 
     column_tooltip_filters = {
         u'state': lambda data: data,
@@ -262,7 +264,7 @@ class ChannelContentModel(RemoteTableModel):
 
         # Current channel attributes. This is intentionally NOT copied, so local changes
         # can propagate to the origin, e.g. parent channel.
-        self.channel_info = channel_info or {"name": "Personal channels root", "status": 123}
+        self.channel_info = channel_info or {"name": "My channels", "status": 123}
 
         self.endpoint_url_override = endpoint_url
 
@@ -415,7 +417,7 @@ class DiscoveredChannelsModel(ChannelContentModel):
     columns = [u'state', u'votes', u'name', u'torrents', u'updated']
     column_headers = [u'', u'Popularity', u'Name', u'Torrents', u'Updated']
 
-    column_width = {u'state': lambda _: 20, u'name': lambda table_width: table_width - 360}
+    column_width = {u'state': lambda _: 20, u'name': lambda table_width: table_width - 350}
 
     default_sort_column = 1
 
@@ -489,6 +491,8 @@ class PersonalChannelsModel(ChannelContentModel):
 class SimplifiedPersonalChannelsModel(PersonalChannelsModel):
     columns = [u'category', u'name', u'size', ACTION_BUTTONS]
     column_headers = [u'Category', u'Name', u'Size', u'']
+
+    column_width = {u'state': lambda _: 20, u'name': lambda table_width: table_width - 330}
 
     def __init__(self, *args, **kwargs):
         kwargs["exclude_deleted"] = kwargs.get("exclude_deleted", True)
