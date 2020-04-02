@@ -7,7 +7,7 @@ First, install the required dependencies by executing the following command in y
 
 .. code-block:: bash
 
-    sudo apt install ffmpeg libssl-dev libx11-6 vlc libgmp-dev python3 python3-minimal python3-pip python3-libtorrent python3-pyqt5 python3-pyqt5.qtsvg python3-scipy
+    sudo apt install git ffmpeg libssl-dev libx11-6 vlc libgmp-dev python3 python3-minimal python3-pip python3-libtorrent python3-pyqt5 python3-pyqt5.qtsvg python3-scipy
 
 Secondly, install python packages
 
@@ -22,9 +22,14 @@ Then, install py-ipv8 python dependencies
     cd src/pyipv8
     pip install --upgrade -r requirements.txt
 
-Finally, download the latest tribler .deb file from `here <https://jenkins-ci.tribler.org/job/Build-Tribler_Ubuntu-64_devel/lastStableBuild/>`__.
+You can now clone the Tribler source code, and run Tribler by executing the following commands:
 
-Now installing the list of dependencies should no longer throw an error.
+.. code-block:: bash
+
+    git clone https://github.com/tribler/tribler --recursive
+    cd tribler/src
+    ./tribler.sh
+
+Alternatively, you can run the latest stable version of Tribler by downloading and installing the .deb file from `here <https://github.com/tribler/tribler/releases/>`__. This option is only recommended for running Tribler and is not suitable for development.
 
 If there are any problems with the guide above, please feel free to fix any errors or `create an issue <https://github.com/Tribler/tribler/issues/new>`_ so we can look into it.
-
