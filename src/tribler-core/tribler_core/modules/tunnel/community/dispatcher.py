@@ -97,8 +97,8 @@ class TunnelDispatcher(object):
         """
         counter = 0
         affected_destinations = set()
-        for hops, destinations in self.destinations.items():
-            new_affected_destinations = set(destination for destination, tunnel_circuit in destinations.items()
+        for hops, destinations in list(self.destinations.items()):
+            new_affected_destinations = set(destination for destination, tunnel_circuit in list(destinations.items())
                                             if tunnel_circuit == broken_circuit)
             for destination in new_affected_destinations:
                 if destination in self.destinations[hops]:
