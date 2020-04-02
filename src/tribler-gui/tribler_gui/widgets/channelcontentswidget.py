@@ -345,10 +345,10 @@ class ChannelContentsWidget(widget_form, widget_class):
         if "total" in self.model.channel_info:
             if "torrents" in self.model.channel_info:
                 self.channel_num_torrents_label.setText(
-                    "{}/{} torrents".format(self.model.channel_info["total"], self.model.channel_info["torrents"])
+                    "{}/{} items".format(self.model.channel_info["total"], self.model.channel_info["torrents"])
                 )
             else:
-                self.channel_num_torrents_label.setText("{} results".format(self.model.channel_info["total"]))
+                self.channel_num_torrents_label.setText("{} items".format(self.model.channel_info["total"]))
 
     # ==============================
     # Channel menu related methods.

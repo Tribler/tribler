@@ -125,4 +125,4 @@ class TriblerContentTableView(QTableView):
         if self.model() is None:
             return
         for col_num, col in enumerate(self.model().columns):
-            self.setColumnWidth(col_num, self.model().column_width.get(col, lambda _: 100)(self.width()))
+            self.setColumnWidth(col_num, self.model().column_width.get(col, lambda _: 110)(self.width()))
