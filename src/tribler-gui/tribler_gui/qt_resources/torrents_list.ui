@@ -634,13 +634,13 @@ background-color: transparent;
        <widget class="EllipseButton" name="new_channel_button">
         <property name="minimumSize">
          <size>
-          <width>90</width>
+          <width>120</width>
           <height>24</height>
          </size>
         </property>
         <property name="maximumSize">
          <size>
-          <width>90</width>
+          <width>120</width>
           <height>24</height>
          </size>
         </property>
