@@ -70,9 +70,7 @@ In order to access some of the Windows API functions, pywin32 should be installe
 libtorrent
 ----------
 
-To install libtorrent, you can simply copy the ``libtorrent.pyd`` file from the Github repository `here <https://github.com/Tribler/libtorrent-binaries>`__ and place it inside your python site-packages directory.
-
-**Alternatively,** if above does not work then you can try to compile from source. First, install Boost which can be downloaded from `SourceForge <http://sourceforge.net/projects/boost/files/boost-binaries/>`__. Make sure to select the latest version and choose the version is compatible with your version of Visual C++ tools (probably msvc-14).
+First, install Boost which can be downloaded from `SourceForge <http://sourceforge.net/projects/boost/files/boost-binaries/>`__. Make sure to select the latest version and choose the version is compatible with your version of Visual C++ tools (probably msvc-14).
 
 After installation, you should set an environment variable to let libtorrent know where Boost can be found. You can do this by going to Control Panel > System > Advanced > Environment Variables (more information about setting environment variables can be found `here <http://www.computerhope.com/issues/ch000549.htm>`__). Now add a variable named BOOST_ROOT and with the value of your Boost location. The default installation location for the Boost libraries is ``C:\\local\\boost_<BOOST VERSION>`` where ``<BOOST VERSION>`` indicates the installed Boost version.
 
@@ -104,7 +102,7 @@ Libsodium can be download as precompiled binary from `their website <https://dow
 VLC
 ---
 
-To install VLC, you can download the official installer from the `VideoLAN website <http://www.videolan.org/vlc/download-windows.html>`_. Make sure to install the 64-bit version of VLC.
+To install VLC, you can download the official installer from the `VideoLAN website <http://www.videolan.org/vlc/download-windows.html>`_. Make sure to install the latest 64-bit version of VLC.
 
 NumPy & SciPy
 -------------
@@ -115,8 +113,6 @@ To install NumPy & SciPy, download the respective .whl files `here <http://www.l
     pip install scipy‑1.3.3‑cp37‑cp37m‑win_amd64.whl
     pip install numpy‑1.17.4+mkl‑cp37‑cp37m‑win_amd64.whl
 
-
-
 Additional Packages
 -------------------
 
@@ -124,13 +120,19 @@ There are some additional packages which should be installed. They can easily be
 
 .. code-block:: bash
 
-    pip install cython  # Needs to be installed first for meliae
-    pip install bitcoinlib cherrypy chardet configobj cryptography decorator libnacl meliae netifaces networkx pillow psutil typing aiohttp aiohttp_apispec
+    pip install aiohttp aiohttp_apispec cffi chardet configobj cryptography decorator gmpy2 idna libnacl lz4 \
+    netifaces networkx numpy pathlib pillow psutil pyasn1 pyopenssl pyqtgraph pyyaml
+
+To enable Bitcoin wallet management (optional), you should install the bitcoinlib library (support for this wallet is experimental):
+
+.. code-block:: bash
+
+    pip install bitcoinlib==0.4.10
 
 Running Tribler
 ---------------
 
-You should now be able to run Tribler from command line. Grab a copy of the Tribler source code and navigate in a command line interface to the source code directory. Start Tribler by running:
+You should now be able to run Tribler from command line. Grab a copy of the Tribler source code and navigate in a command line interface to the source code directory. Start Tribler by executing the following Python script in the ``tribler/src`` directory:
 
 .. code-block:: bash
 
