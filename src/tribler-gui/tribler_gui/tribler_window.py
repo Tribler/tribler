@@ -356,6 +356,7 @@ class TriblerWindow(QMainWindow):
         :return:
         """
         self.downloads_page.stop_loading_downloads()
+        self.core_manager.shutting_down = True
         self.core_manager.stop(False)
         close_dialog = ConfirmationDialog(
             self.window(),
