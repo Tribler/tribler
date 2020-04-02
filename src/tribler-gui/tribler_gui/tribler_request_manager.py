@@ -100,7 +100,7 @@ class TriblerRequestManager(QNetworkAccessManager):
             self.evict_timed_out_requests()
 
         self.requests_in_flight[id(request)] = request
-        log = [request.url, request.method, request.raw_data, request.time, 0]
+        log = [request, 0]
         performed_requests.append(log)
 
         # qt_request is managed by QNetworkAccessManager, so we don't have to
@@ -117,8 +117,7 @@ class TriblerRequestManager(QNetworkAccessManager):
         request.reply = self.sendCustomRequest(qt_request, request.method.encode("utf8"), buf)
         buf.setParent(request.reply)
 
-        log[-1] = request.reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)
-        request.reply.finished.connect(request.on_finished)
+        request.reply.finished.connect(lambda: request.on_finished(request))
 
 
 # Request manager singleton.
@@ -178,8 +177,14 @@ class TriblerNetworkRequest(QObject):
         # Pass the newly created object to the manager singleton, so the object can be dispatched immediately
         request_manager.add_request(self)
 
-    def on_finished(self):
+    def on_finished(self, request):
         status_code = self.reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)
+
+        # Set the status code in the performed requests log
+        for item in performed_requests:
+            if item[0] == request:
+                item[1] = status_code
+                break
 
         try:
             if not self.reply.isOpen() or not status_code:
