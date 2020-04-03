@@ -68,7 +68,8 @@ class TriblerService(object):
         signal.signal(signal.SIGINT, lambda sig, _: ensure_future(signal_handler(sig)))
         signal.signal(signal.SIGTERM, lambda sig, _: ensure_future(signal_handler(sig)))
 
-        config = TriblerConfig(options.statedir or Path(get_appstate_dir(), '.Tribler'))
+        statedir = Path(options.statedir or Path(get_appstate_dir(), '.Tribler'))
+        config = TriblerConfig(statedir, config_file=statedir / 'triblerd.conf')
 
         # Check if we are already running a Tribler instance
         self.process_checker = ProcessChecker()
@@ -113,7 +114,7 @@ def main(argv):
                         help='Show this help message and exit')
     parser.add_argument('--statedir', '-s', default=None, help='Use an alternate statedir')
     parser.add_argument('--restapi', '-p', default=-1, type=int, help='Use an alternate port for REST API')
-    parser.add_argument('--ipv8', '-i', default=8085, type=int, help='Use an alternate port for the IPv8')
+    parser.add_argument('--ipv8', '-i', default=-1, type=int, help='Use an alternate port for the IPv8')
     parser.add_argument('--libtorrent', '-l', default=-1, type=int, help='Use an alternate port for libtorrent')
     parser.add_argument('--ipv8_bootstrap_override', '-b', default=None, type=str,
                         help='Force the usage of specific IPv8 bootstrap server (ip:port)', action=IPPortAction)
