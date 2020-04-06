@@ -758,7 +758,7 @@ class DownloadManager(TaskManager):
             url = url.decode('utf-8') if url else url
             tdef = (TorrentDefNoMetainfo(metainfo[b'infohash'], metainfo[b'name'], url)
                     if b'infohash' in metainfo else TorrentDef.load_from_dict(metainfo))
-        except ValueError as e:
+        except (KeyError, ValueError) as e:
             self._logger.exception("Could not restore tdef from metainfo dict: %s %s ", e, metainfo)
             return
 
