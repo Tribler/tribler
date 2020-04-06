@@ -984,14 +984,20 @@ class TriblerWindow(QMainWindow):
             button.setChecked(False)
 
     def clicked_menu_button_search(self):
-        self.deselect_all_menu_buttons(self.left_menu_button_search)
+        self.deselect_all_menu_buttons()
+        self.left_menu_button_search.setChecked(True)
+        if self.stackedWidget.currentIndex() == PAGE_SEARCH_RESULTS:
+            self.search_results_page.go_back_to_level(0)
         self.stackedWidget.setCurrentIndex(PAGE_SEARCH_RESULTS)
         self.search_results_page.content_table.setFocus()
         self.navigation_stack = []
         self.hide_left_menu_playlist()
 
     def clicked_menu_button_discovered(self):
-        self.deselect_all_menu_buttons(self.left_menu_button_discovered)
+        self.deselect_all_menu_buttons()
+        self.left_menu_button_discovered.setChecked(True)
+        if self.stackedWidget.currentIndex() == PAGE_DISCOVERED:
+            self.discovered_page.go_back_to_level(0)
         self.stackedWidget.setCurrentIndex(PAGE_DISCOVERED)
         self.discovered_page.reset_view()
         self.discovered_page.content_table.setFocus()
@@ -999,7 +1005,10 @@ class TriblerWindow(QMainWindow):
         self.hide_left_menu_playlist()
 
     def clicked_menu_button_my_channel(self):
-        self.deselect_all_menu_buttons(self.left_menu_button_my_channel)
+        self.deselect_all_menu_buttons()
+        self.left_menu_button_my_channel.setChecked(True)
+        if self.stackedWidget.currentIndex() == PAGE_EDIT_CHANNEL:
+            self.personal_channel_page.go_back_to_level(0)
         self.stackedWidget.setCurrentIndex(PAGE_EDIT_CHANNEL)
         self.personal_channel_page.reset_view()
         self.personal_channel_page.content_table.setFocus()
@@ -1032,7 +1041,10 @@ class TriblerWindow(QMainWindow):
         self.debug_window.show()
 
     def clicked_menu_button_subscriptions(self):
-        self.deselect_all_menu_buttons(self.left_menu_button_subscriptions)
+        self.deselect_all_menu_buttons()
+        self.left_menu_button_subscriptions.setChecked(True)
+        if self.stackedWidget.currentIndex() == PAGE_SUBSCRIBED_CHANNELS:
+            self.subscribed_channels_page.go_back_to_level(0)
         self.stackedWidget.setCurrentIndex(PAGE_SUBSCRIBED_CHANNELS)
         self.subscribed_channels_page.reset_view()
         self.subscribed_channels_page.content_table.setFocus()
