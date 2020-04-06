@@ -438,7 +438,8 @@ class TriblerWindow(QMainWindow):
             self.discovering_page.is_discovering = True
             self.stackedWidget.setCurrentIndex(PAGE_DISCOVERING)
         else:
-            self.stackedWidget.setCurrentIndex(PAGE_DISCOVERED)
+            self.clicked_menu_button_discovered()
+            self.left_menu_button_discovered.setChecked(True)
 
     def stop_discovering(self):
         if not self.discovering_page.is_discovering:
@@ -446,7 +447,8 @@ class TriblerWindow(QMainWindow):
         self.core_manager.events_manager.discovered_channel.disconnect(self.stop_discovering)
         self.discovering_page.is_discovering = False
         if self.stackedWidget.currentIndex() == PAGE_DISCOVERING:
-            self.stackedWidget.setCurrentIndex(PAGE_DISCOVERED)
+            self.clicked_menu_button_discovered()
+            self.left_menu_button_discovered.setChecked(True)
 
     def initialize_personal_channels_page(self):
         autocommit_enabled = (
