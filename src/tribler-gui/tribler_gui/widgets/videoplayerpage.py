@@ -6,7 +6,8 @@ from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.QtWidgets import QWidget
 
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
-from tribler_gui.utilities import get_image_path, seconds_to_string
+from tribler_gui.tribler_request_manager import TriblerNetworkRequest
+from tribler_gui.utilities import format_speed, get_image_path, seconds_to_string
 
 
 class VideoPlayerPage(QWidget):
@@ -27,10 +28,16 @@ class VideoPlayerPage(QWidget):
         self.manager = None
         self.play_icon = None
         self.pause_icon = None
+        self.stop_icon = None
         self.volume_on_icon = None
         self.volume_off_icon = None
         self.update_timer = None
         self.freeze = False
+        self.prebuf = 0
+        self.headerbuf = 0
+        self.footerbuf = 0
+        self.buffering = False
+        self.filename = ""
 
     def initialize_player(self):
         vlc_available = True
@@ -57,23 +64,26 @@ class VideoPlayerPage(QWidget):
         self.mediaplayer = self.instance.media_player_new()
         self.window().video_player_widget.should_hide_video_widgets.connect(self.hide_video_widgets)
         self.window().video_player_widget.should_show_video_widgets.connect(self.show_video_widgets)
-        self.window().video_player_position_slider.should_change_video_position.connect(
-            self.on_should_change_video_time
-        )
+        #self.window().video_player_position_slider.should_change_video_position.connect(
+        #    self.on_should_change_video_time
+        #)
         self.window().video_player_volume_slider.valueChanged.connect(self.on_volume_change)
         self.window().video_player_volume_slider.setValue(self.mediaplayer.audio_get_volume())
         self.window().video_player_volume_slider.setFixedWidth(0)
 
         self.window().video_player_play_pause_button.clicked.connect(self.on_play_pause_button_click)
+        self.window().video_player_stop_button.clicked.connect(self.on_stop_button_click)
         self.window().video_player_volume_button.clicked.connect(self.on_volume_button_click)
         self.window().video_player_full_screen_button.clicked.connect(self.on_full_screen_button_click)
 
         # Create play/pause and volume button images
         self.play_icon = QIcon(QPixmap(get_image_path("play.png")))
         self.pause_icon = QIcon(QPixmap(get_image_path("pause.png")))
+        self.stop_icon = QIcon(QPixmap(get_image_path("stop.png")))
         self.volume_on_icon = QIcon(QPixmap(get_image_path("volume_on.png")))
         self.volume_off_icon = QIcon(QPixmap(get_image_path("volume_off.png")))
         self.window().video_player_play_pause_button.setIcon(self.play_icon)
+        self.window().video_player_stop_button.setIcon(self.stop_icon)
         self.window().video_player_volume_button.setIcon(self.volume_on_icon)
         self.window().video_player_full_screen_button.setIcon(QIcon(QPixmap(get_image_path("full_screen.png"))))
         self.window().video_player_info_button.setIcon(QIcon(QPixmap(get_image_path("info.png"))))
@@ -96,9 +106,26 @@ class VideoPlayerPage(QWidget):
         self.update_timer.start(500)
 
         self.window().left_menu_playlist.playing_item_change.connect(self.change_playing_index)
-        self.window().left_menu_playlist.item_should_play.connect(self.on_play_pause_button_click)
+        # now we have a buffering mechanism. so dont initiate the play without buffering
+        # self.window().left_menu_playlist.item_should_play.connect(self.on_play_pause_button_click)
         self.window().left_menu_playlist.list_loaded.connect(self.on_files_list_loaded)
         self.window().video_player_play_pause_button.setEnabled(False)
+        self.window().video_player_stop_button.setEnabled(False)
+
+    @property
+    def needsupdate(self):
+        if self.active_infohash != "":
+            if not self.isbuffered:
+                return True
+            try:
+                return not self.window().video_player_info_button.popup.isHidden()
+            except AttributeError:
+                pass
+        return False
+
+    @property
+    def isbuffered(self):
+        return self.prebuf >= 100 and self.footerbuf >= 100 and self.headerbuf >= 100
 
     def hide_video_widgets(self):
         if self.window().windowState() & Qt.WindowFullScreen:
@@ -112,12 +139,22 @@ class VideoPlayerPage(QWidget):
     def on_update_timer_tick(self):
         if self.freeze:
             return
-
         total_duration_str = "-:--"
         if self.media and self.media.get_duration() != 0:
             total_duration_str = seconds_to_string(self.media.get_duration() / 1000)
 
-        if self.active_infohash == "" or self.active_index == -1:
+        if self.buffering and self.isbuffered:
+            self.buffering = False
+            # self.media.parse()
+            self.mediaplayer.play()
+            self.window().video_player_play_pause_button.setEnabled(True)
+            self.window().video_player_stop_button.setEnabled(True)
+            self.window().video_player_header_label.setText(self.filename)
+        elif self.buffering and not self.isbuffered:
+            prebuff = self.prebuf * 0.45 + self.headerbuf * 0.45 + self.footerbuf * 0.1
+            self.window().video_player_position_slider.setValue(prebuff * 10)
+            self.window().video_player_header_label.setText("Prebuffering %s: %s%%" % (self.filename, int(prebuff)))
+        elif self.active_infohash == "" or self.active_index == -1:
             self.window().video_player_position_slider.setValue(0)
             self.window().video_player_time_label.setText("0:00 / -:--")
         else:
@@ -130,8 +167,25 @@ class VideoPlayerPage(QWidget):
                 "%s / %s" % (seconds_to_string(video_time / 1000), total_duration_str)
             )
 
+    def update_prebuf_info(self, download):
+        self.prebuf = download.get("vod_prebuffering_progress", 0.0) * 100
+        self.headerbuf = download.get("vod_header_progress", 0.0) * 100
+        self.footerbuf = download.get("vod_footer_progress", 0.0) * 100
+        popup = self.window().video_player_info_button.popup
+        for txt, label, value in [("Pre-buffer", popup.prebuf_label, self.prebuf),
+                                  ("Header-buffer", popup.headerbuf_label, self.headerbuf),
+                                  ("Footer-buffer", popup.footerbuf_label, self.footerbuf)]:
+            label.setText("<font color='%s'>%s: %2.f%%</font>" % ("orange" if value < 100 else "white",
+                                                                  txt,
+                                                                  value))
+
     def update_with_download_info(self, download):
-        self.window().video_player_info_button.popup.update(download)
+        self.update_prebuf_info(download)
+        popup = self.window().video_player_info_button.popup
+        popup.download_speed_label.setText(
+            "Speed: d %s u %s" % (format_speed(download["speed_down"]), format_speed(download["speed_up"]))
+        )
+        popup.peers_label.setText("Peers: S%d L%d" % (download["num_seeds"], download["num_peers"]))
 
     def on_vlc_player_buffering(self, event):
         pass
@@ -156,13 +210,20 @@ class VideoPlayerPage(QWidget):
         self.window().video_player_time_label.setText(f"{seconds_to_string(duration * position)} / "
                                                       f"{seconds_to_string(duration)}")
 
+    def on_stop_button_click(self):
+        if self.stop_media_item():
+            self.mediaplayer.stop()
+            self.window().video_player_stop_button.setEnabled(False)
+            self.window().video_player_play_pause_button.setIcon(self.play_icon)
+
     def on_play_pause_button_click(self):
         if not self.active_infohash or self.active_index == -1:
             return
 
-        if not self.mediaplayer.is_playing():
+        if not self.mediaplayer.is_playing() and not self.buffering:
             self.window().video_player_play_pause_button.setIcon(self.pause_icon)
             self.mediaplayer.play()
+            self.window().video_player_stop_button.setEnabled(True)
         else:
             self.window().video_player_play_pause_button.setIcon(self.play_icon)
             self.mediaplayer.pause()
@@ -198,33 +259,43 @@ class VideoPlayerPage(QWidget):
         else:
             self.window().exit_full_screen()
 
+    def on_enablestream(self, response):
+        self.update_prebuf_info(response)
+        self.window().video_player_play_pause_button.setIcon(self.pause_icon)
+        if self.isbuffered:
+            # self.media.parse()
+            self.mediaplayer.play()
+            self.window().video_player_play_pause_button.setEnabled(True)
+            self.window().video_player_stop_button.setEnabled(True)
+        else:
+            self.buffering = True
+        self.window().video_player_info_button.show()
+        self.window().video_player_position_slider.setDisabled(True)
+
     def play_active_item(self):
         self.window().left_menu_playlist.set_active_index(self.active_index)
         file_info = self.window().left_menu_playlist.get_file_info(self.active_index)
         if file_info is None:
             return
         file_index = file_info["index"]
-
-        self.window().video_player_header_label.setText(file_info["name"] if file_info else 'Unknown')
-
+        self.prebuf = 0.0
+        self.footerbuf = 0.0
+        self.headerbuf = 0.0
+        self.filename = file_info["name"] if file_info else 'Unknown'
+        self.window().video_player_header_label.setText(self.filename)
+        media_filename = f"http://127.0.0.1:8085/downloads/{self.active_infohash}/stream/" \
+                         f"{file_index}?apikey={self.video_player_api_key}"
         # reset video player controls
         self.mediaplayer.stop()
         self.window().video_player_play_pause_button.setIcon(self.play_icon)
         self.window().video_player_position_slider.setValue(0)
-
-        media_filename = f"http://127.0.0.1:8085/downloads/{self.active_infohash}/stream/" \
-                         f"{file_index}?apikey={self.video_player_api_key}"
         self.media = self.instance.media_new(media_filename)
         self.mediaplayer.set_media(self.media)
-        self.media.parse()
-
-        self.window().video_player_play_pause_button.setIcon(self.pause_icon)
-        self.mediaplayer.play()
-
-        self.window().video_player_play_pause_button.setEnabled(True)
-        self.window().video_player_info_button.show()
-
-        self.window().video_player_position_slider.setDisabled(self.mediaplayer.is_seekable())
+        TriblerNetworkRequest(
+                "downloads/%s" % self.active_infohash, self.on_enablestream,
+                method='PATCH',
+                data={"vod_mode": True, "fileindex": file_index}
+            )
 
     def play_media_item(self, infohash, menu_index):
         """
@@ -232,6 +303,8 @@ class VideoPlayerPage(QWidget):
         """
         if infohash == self.active_infohash and menu_index == self.active_index:
             return  # We're already playing this item
+        if self.mediaplayer.is_playing():
+            self.mediaplayer.stop()
 
         self.active_index = menu_index
 
@@ -244,6 +317,17 @@ class VideoPlayerPage(QWidget):
             self.window().left_menu_playlist.load_list(infohash)
 
         self.active_infohash = infohash
+
+    def stop_media_item(self):
+        """
+        Stop the active streaming in a torrent.
+        """
+        if self.active_infohash != "" and self.active_index != -1:
+            TriblerNetworkRequest(
+                "downloads/%s" % self.active_infohash, lambda _: None, method='PATCH', data={"vod_mode": False}
+            )
+            return True
+        return False
 
     def change_playing_index(self, index):
         self.play_media_item(self.active_infohash, index)
@@ -266,6 +350,7 @@ class VideoPlayerPage(QWidget):
         self.media = None
         self.window().video_player_play_pause_button.setIcon(self.play_icon)
         self.window().video_player_play_pause_button.setEnabled(False)
+        self.window().video_player_stop_button.setEnabled(False)
         self.window().video_player_position_slider.setValue(0)
         self.window().video_player_info_button.hide()
 

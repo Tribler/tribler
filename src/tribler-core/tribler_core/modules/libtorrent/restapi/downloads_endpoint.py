@@ -1,5 +1,4 @@
-import mimetypes
-from asyncio import CancelledError, sleep
+from asyncio import CancelledError, TimeoutError as AsyncTimeoutError, wait_for
 from binascii import unhexlify
 from contextlib import suppress
 from urllib.parse import unquote_plus
@@ -22,7 +21,7 @@ from tribler_common.simpledefs import DOWNLOAD, UPLOAD, dlstatus_strings
 
 from tribler_core.exceptions import InvalidSignatureException
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
-from tribler_core.modules.libtorrent.stream import Stream
+from tribler_core.modules.libtorrent.stream import STREAM_PAUSE_TIME, StreamChunk
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT
 from tribler_core.modules.metadata_store.store import UNKNOWN_CHANNEL, UPDATED_OUR_VERSION
 from tribler_core.restapi.rest_endpoint import (
@@ -63,13 +62,11 @@ class DownloadsEndpoint(RESTEndpoint):
 
     def __init__(self, *args, **kwargs):
         super(DownloadsEndpoint, self).__init__(*args, **kwargs)
-        self.streams = {}
+
         self.app.on_shutdown.append(self.on_shutdown)
 
     async def on_shutdown(self, _):
-        for stream in self.streams.values():
-            stream.close()
-        self.streams.clear()
+        pass
 
     def setup_routes(self):
         self.app.add_routes([web.get('', self.get_downloads),
@@ -78,7 +75,7 @@ class DownloadsEndpoint(RESTEndpoint):
                              web.patch('/{infohash}', self.update_download),
                              web.get('/{infohash}/torrent', self.get_torrent),
                              web.get('/{infohash}/files', self.get_files),
-                             web.get('/{infohash}/stream/{fileindex}', self.stream)])
+                             web.get('/{infohash}/stream/{fileindex}', self.stream, allow_head=False)])
 
     @staticmethod
     def return_404(request, message="this download does not exist"):
@@ -261,18 +258,16 @@ class DownloadsEndpoint(RESTEndpoint):
                 "destination": str(download.config.get_dest_dir()),
                 "availability": state.get_availability(),
                 "total_pieces": tdef.get_nr_pieces(),
-                "vod_prebuffering_progress": 0,
-                "vod_prebuffering_progress_consec": 0,
+                "vod_prebuffering_progress": download.stream.prebuffprogress,
+                "vod_prebuffering_progress_consec": download.stream.prebuffprogress_consec,
+                "vod_header_progress": download.stream.headerprogress,
+                "vod_footer_progress": download.stream.footerprogress,
+                "vod_mode": download.stream.enabled,
                 "error": repr(state.get_error()) if state.get_error() else "",
                 "time_added": download.config.get_time_added(),
                 "credit_mining": download.config.get_credit_mining(),
                 "channel_download": download.config.get_channel_download()
             }
-
-            stream = self.streams.get(tdef.get_infohash())
-            download_json['vod_mode'] = stream is not None
-            if stream:
-                download_json.update(stream.get_progress())
 
             # Add peers information if requested
             if get_peers:
@@ -409,10 +404,6 @@ class DownloadsEndpoint(RESTEndpoint):
         if not download:
             return DownloadsEndpoint.return_404(request)
 
-        stream = self.streams.pop(infohash, None)
-        if stream:
-            stream.close()
-
         try:
             await self.session.dlmgr.remove_download(download, remove_content=parameters['remove_data'])
         except Exception as e:
@@ -451,6 +442,34 @@ class DownloadsEndpoint(RESTEndpoint):
             return DownloadsEndpoint.return_404(request)
 
         parameters = await request.json()
+        vod_mode = parameters.get("vod_mode")
+        if vod_mode is not None:
+            if not isinstance(vod_mode, bool):
+                return RESTResponse({"error": "vod_mode must be bool flag"},
+                                    status=HTTP_BAD_REQUEST)
+            file_index = 0
+            modified = False
+            if vod_mode:
+                file_index = parameters.get("fileindex")
+                if file_index is None:
+                    return RESTResponse({"error": "fileindex is necessary to enable vod_mode"},
+                                        status=HTTP_BAD_REQUEST)
+                if not download.stream.enabled or download.stream.fileindex != file_index:
+                    await wait_for(download.stream.enable(file_index, request.http_range.start or 0), 10)
+                    await download.stream.updateprios()
+                    modified = True
+            elif not vod_mode and download.stream.enabled:
+                download.stream.disable()
+                modified = True
+            return RESTResponse({"vod_prebuffering_progress": download.stream.prebuffprogress,
+                                 "vod_prebuffering_progress_consec": download.stream.prebuffprogress_consec,
+                                 "vod_header_progress": download.stream.headerprogress,
+                                 "vod_footer_progress": download.stream.footerprogress,
+                                 "vod_mode": download.stream.enabled,
+                                 "infohash": hexlify(download.get_def().get_infohash()),
+                                 "modified": modified,
+                                 })
+
         if len(parameters) > 1 and 'anon_hops' in parameters:
             return RESTResponse({"error": "anon_hops must be the only parameter in this request"},
                                 status=HTTP_BAD_REQUEST)
@@ -575,58 +594,55 @@ class DownloadsEndpoint(RESTEndpoint):
             return DownloadsEndpoint.return_404(request)
 
         file_index = int(request.match_info['fileindex'])
-        if not 0 <= file_index < len(download.get_def().get_files()):
-            return RESTResponse('Selected file out of range', status=HTTP_NOT_FOUND)
-
-        stream = self.streams.get(infohash)
-        if stream and stream.file_index != file_index:
-            stream.close()
-        if not stream or stream.closed:
-            stream = self.streams[infohash] = Stream(download, file_index)
-        file_size = stream.file_size
 
         http_range = request.http_range
         start = http_range.start or 0
-        stop = http_range.stop if http_range.stop is not None else file_size
 
-        if not start < stop or not 0 <= start < file_size or not 0 < stop <= file_size:
+        await wait_for(download.stream.enable(file_index, None if start > 0 else 0), 10)
+
+        stop = download.stream.filesize if http_range.stop is None else min(http_range.stop, download.stream.filesize)
+
+        if not start < stop or not 0 <= start < download.stream.filesize or not 0 < stop <= download.stream.filesize:
             return RESTResponse('Requested Range Not Satisfiable', status=416)
 
-        mime_type = mimetypes.guess_type(str(stream.filename))[0]
-        response = RESTStreamResponse(status=206, reason='OK', headers={'Accept-Ranges': 'bytes',
-                                                                        'Content-Type': mime_type or 'text/html',
-                                                                        'Content-Length': f'{stop - start}',
-                                                                        'Content-Range': f'{start}-{stop}/{file_size}'})
-
-        with suppress(CancelledError):
-            await response.prepare(request)
-            await stream.seek(start)
-
-            bytes_todo = stop - start
-            bytes_done = 0
-            self._logger.info('Got range request for %s-%s (%s bytes)', start, stop, bytes_todo)
-            piecelen = download.get_def().get_piece_length()
-
-            # If we don't have enough to return the next piece, we wait with sending data until we have 5MB
-            if stream.get_byte_progress([(file_index, start, start + piecelen)]) < 1:
-                while stream.get_byte_progress([(file_index, start, start + 5 * 1024 ** 2)]) < 1 \
-                      and not request.transport.is_closing():
-                    await sleep(1)
-
-            while not request.transport.is_closing():
-                data = await stream.read(piecelen)
-
-                if len(data) == 0:
-                    break
-                if bytes_done + len(data) > bytes_todo:
-                    endlen = bytes_todo - bytes_done
-                    if endlen != 0:
-                        await response.write(data[:endlen])
+        response = RESTStreamResponse(status=206,
+                                      reason='OK',
+                                      headers={'Accept-Ranges': 'bytes',
+                                               'Content-Type': 'application/octet-stream',
+                                               'Content-Length': f'{stop - start}',
+                                               'Content-Range': f'{start}-{stop}/{download.stream.filesize}'})
+        response.force_close()
+        with suppress(CancelledError, ConnectionResetError):
+            async with StreamChunk(download.stream, start) as chunk:
+                await response.prepare(request)
+                bytes_todo = stop - start
+                bytes_done = 0
+                self._logger.info('Got range request for %s-%s (%s bytes)', start, stop, bytes_todo)
+                while not request.transport.is_closing():
+                    if chunk.seekpos >= download.stream.filesize:
+                        break
+                    data = await chunk.read()
+                    try:
+                        if len(data) == 0:
+                            break
+                        if bytes_done + len(data) > bytes_todo:
+                            # if we have more data than we need
+                            endlen = bytes_todo - bytes_done
+                            if endlen != 0:
+                                await wait_for(response.write(data[:endlen]), STREAM_PAUSE_TIME)
+                                self._logger.info('Sent %s bytes', len(data))
+                                bytes_done += endlen
+                            break
+                        await wait_for(response.write(data), STREAM_PAUSE_TIME)
+                        bytes_done += len(data)
                         self._logger.info('Sent %s bytes', len(data))
-                        bytes_done += endlen
-                    break
-                await response.write(data)
-                bytes_done += len(data)
-                self._logger.info('Sent %s bytes', len(data))
 
-            return response
+                        if chunk.resume():
+                            self._logger.debug("Stream %s-%s is resumed, starting sequential buffer", start, stop)
+                    except AsyncTimeoutError:
+                        # This means that stream writer has a full buffer, in practice means that
+                        # the client keeps the conenction but sets the window size to 0. In this case
+                        # there is no need to keep sequenial buffer if there are other chunks waiting for prios
+                        if chunk.pause():
+                            self._logger.debug("Stream %s-%s is paused, stopping sequential buffer", start, stop)
+                return response

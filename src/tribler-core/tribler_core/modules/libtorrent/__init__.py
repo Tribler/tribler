@@ -38,3 +38,16 @@ def require_handle(func):
         handle_future.add_done_callback(done_cb)
         return result_future
     return invoke_func
+
+
+def check_vod(default=None):
+    """
+    Check if torrent is vod mode, else return default
+    """
+    def wrap(f):
+        def invoke_func(self, *args, **kwargs):
+            if self.enabled:
+                return f(self, *args, **kwargs)
+            return default
+        return invoke_func
+    return wrap

@@ -1108,6 +1108,7 @@ class TriblerWindow(QMainWindow):
             self.core_manager.stop()
             self.core_manager.shutting_down = True
             self.downloads_page.stop_loading_downloads()
+            self.video_player_page.reset_player()
             request_manager.clear()
 
             # Stop the token balance timer
