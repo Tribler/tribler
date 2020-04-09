@@ -236,7 +236,7 @@ class GigaChannelManager(TaskManager):
         dcfg.set_channel_download(True)
         tdef = TorrentDefNoMetainfo(infohash=bytes(channel.infohash), name=channel.dirname)
 
-        metainfo = await self.session.dlmgr.get_metainfo(bytes(channel.infohash), timeout=60)
+        metainfo = await self.session.dlmgr.get_metainfo(bytes(channel.infohash), timeout=60, hops=0)
         if metainfo is None:
             # Timeout looking for the channel metainfo. Probably, there are no seeds.
             # TODO: count the number of tries we had with the channel, so we can stop trying eventually

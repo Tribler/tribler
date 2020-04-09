@@ -1,6 +1,3 @@
-import sys
-from unittest import skipIf
-
 from ipv8.database import database_blob
 
 from pony.orm import db_session
@@ -48,7 +45,7 @@ class TestChannelDownload(TestAsServer):
             self.session.mds.process_payload(payload)
             channel = self.session.mds.ChannelMetadata.get(signature=payload.signature)
 
-        def fake_get_metainfo(infohash, timeout=30):
+        def fake_get_metainfo(*args, **kwargs):
             return succeed({b'info': {b'name': channel.dirname.encode('utf-8')}})
 
         self.session.dlmgr.get_metainfo = fake_get_metainfo

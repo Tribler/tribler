@@ -271,10 +271,10 @@ class TestGigaChannelManager(TriblerCoreTest):
         self.mock_session.config.get_state_dir = lambda: None
         self.mock_session.dlmgr = MockObject()
 
-        def mock_get_metainfo_bad(_, timeout=None):
+        def mock_get_metainfo_bad(*args, **kwargs):
             return succeed({b'info': {b'name': b'bla'}})
 
-        def mock_get_metainfo_good(_, timeout=None):
+        def mock_get_metainfo_good(*args, **kwargs):
             return succeed({b'info': {b'name': channel.dirname.encode('utf-8')}})
 
         self.initiated_download = False
