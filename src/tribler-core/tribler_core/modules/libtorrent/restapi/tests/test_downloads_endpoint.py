@@ -661,7 +661,7 @@ class TestMetadataDownloadEndpoint(AbstractApiTest):
 
         with db_session:
             channel = self.session.mds.ChannelMetadata.create_channel(test_channel_name, 'bla')
-            def fake_get_metainfo(infohash, timeout=30):
+            def fake_get_metainfo(*args, **kwargs):
                 return succeed({b'info': {b'name': channel.dirname.encode('utf-8')}})
             self.session.dlmgr.get_metainfo = fake_get_metainfo
             ensure_future(self.session.gigachannel_manager.download_channel(channel))
