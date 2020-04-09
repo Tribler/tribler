@@ -213,6 +213,12 @@ class ChannelContentsWidget(widget_form, widget_class):
         self.channel_torrents_filter_input.setText("")
 
     def reset_view(self):
+        self.model.text_filter = ''
+        self.model.category_filter = None
+        self.model.sort_by = (
+            self.model.columns[self.model.default_sort_column] if self.model.default_sort_column >= 0 else None
+        )
+        self.model.sort_desc = True
         self.model.reset()
 
     def disconnect_current_model(self):
