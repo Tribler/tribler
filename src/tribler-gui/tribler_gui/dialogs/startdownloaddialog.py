@@ -57,6 +57,7 @@ class StartDownloadDialog(DialogContainer):
         self.dialog_widget.select_all_files_button.clicked.connect(self.on_all_files_selected_clicked)
         self.dialog_widget.deselect_all_files_button.clicked.connect(self.on_all_files_deselected_clicked)
         self.dialog_widget.loading_files_label.clicked.connect(self.on_reload_torrent_info)
+        self.dialog_widget.anon_download_checkbox.clicked.connect(self.on_reload_torrent_info)
 
         self.dialog_widget.destination_input.setStyleSheet(
             """
@@ -153,20 +154,22 @@ class StartDownloadDialog(DialogContainer):
         return included_files
 
     def perform_files_request(self):
-        self.rest_request = TriblerNetworkRequest(
-            "torrentinfo?uri=%s" % quote_plus_unicode(self.download_uri),
-            self.on_received_metainfo,
-            capture_errors=False,
-        )
+        direct = not self.dialog_widget.anon_download_checkbox.isChecked()
+        request = f"torrentinfo?uri={quote_plus_unicode(self.download_uri)}"
+        if direct is True:
+            request = request + f"&hops=0"
+        self.rest_request = TriblerNetworkRequest(request, self.on_received_metainfo, capture_errors=False)
 
         if self.metainfo_retries <= METAINFO_MAX_RETRIES:
-            loading_message = (
-                "Loading torrent files..."
-                if not self.metainfo_retries
-                else "Timeout in fetching files. Retrying (%s/%s)" % (self.metainfo_retries, METAINFO_MAX_RETRIES)
+            fetch_mode = 'directly' if direct else 'anonymously'
+            loading_message = f"Loading torrent files {fetch_mode}..."
+            timeout_message = (
+                f"Timeout in fetching files {fetch_mode}. Retrying ({self.metainfo_retries}/{METAINFO_MAX_RETRIES})"
             )
-            self.dialog_widget.loading_files_label.setText(loading_message)
 
+            self.dialog_widget.loading_files_label.setText(
+                loading_message if not self.metainfo_retries else timeout_message
+            )
             self.metainfo_fetch_timer = QTimer()
             self.metainfo_fetch_timer.timeout.connect(self.perform_files_request)
             self.metainfo_fetch_timer.setSingleShot(True)
@@ -230,10 +233,9 @@ class StartDownloadDialog(DialogContainer):
         This method is called when user clicks the QLabel text showing loading or error message. Here, we reset
         the number of retries to fetch the metainfo. Note color of QLabel is also reset to white.
         """
-        if self.metainfo_retries > METAINFO_MAX_RETRIES:
-            self.dialog_widget.loading_files_label.setStyleSheet("color:#ffffff;")
-            self.metainfo_retries = 0
-            self.perform_files_request()
+        self.dialog_widget.loading_files_label.setStyleSheet("color:#ffffff;")
+        self.metainfo_retries = 0
+        self.perform_files_request()
 
     def on_browse_dir_clicked(self):
         chosen_dir = QFileDialog.getExistingDirectory(
