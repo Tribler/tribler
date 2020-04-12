@@ -371,6 +371,7 @@ class DownloadManager(TaskManager):
         to a few peers, and downloading the metadata for the torrent.
         :param infohash: The (binary) infohash to lookup metainfo for.
         :param timeout: A timeout in seconds.
+        :param hops: the number of tunnel hops to use for this lookup. If None, use config default.
         :return: The metainfo
         """
         infohash_hex = hexlify(infohash)

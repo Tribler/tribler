@@ -66,7 +66,11 @@ class TestTorrentInfoEndpoint(AbstractApiTest):
         path = "http://localhost:%d/ubuntu.torrent" % file_server_port
         verify_valid_dict(await self.do_request('torrentinfo?uri=%s' % path, expected_code=200))
 
-        def get_metainfo(infohash, timeout=20):
+        hops_list = []
+
+        def get_metainfo(infohash, timeout=20, hops=None):
+            if hops is not None:
+                hops_list.append(hops)
             with open(TESTS_DATA_DIR / "bak_single.torrent", mode='rb') as torrent_file:
                 torrent_data = torrent_file.read()
             tdef = TorrentDef.load_from_memory(torrent_data)
@@ -91,6 +95,11 @@ class TestTorrentInfoEndpoint(AbstractApiTest):
 
         self.session.dlmgr.get_metainfo = get_metainfo
         verify_valid_dict(await self.do_request('torrentinfo?uri=%s' % path, expected_code=200))
+
+        await self.do_request('torrentinfo?uri=%s&hops=0' % path, expected_code=200)
+        self.assertListEqual([0], hops_list)
+
+        await self.do_request('torrentinfo?uri=%s&hops=foo' % path, expected_code=400)
 
         path = 'http://fdsafksdlafdslkdksdlfjs9fsafasdf7lkdzz32.n38/324.torrent'
         await self.do_request('torrentinfo?uri=%s' % path, expected_code=500)
