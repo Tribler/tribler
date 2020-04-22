@@ -200,6 +200,10 @@ class RemoteTableModel(QAbstractTableModel):
             if "total" in response:
                 self.channel_info["total"] = response["total"]
                 self.info_changed.emit(response['results'])
+            elif remote and uuid.UUID(response.get('uuid')) == CHANNELS_VIEW_UUID:
+                # This is a discovered channel (from a remote peer), update the total number of channels and the labels
+                self.channel_info["total"] += len(response["results"])
+                self.info_changed.emit(response['results'])
         return True
 
 

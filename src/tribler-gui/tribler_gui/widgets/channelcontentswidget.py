@@ -344,7 +344,7 @@ class ChannelContentsWidget(widget_form, widget_class):
             self.subscription_widget.update_subscribe_button(self.model.channel_info)
 
         self.channel_preview_button.setHidden((root and not search) or personal or legacy or complete)
-        self.channel_state_label.setHidden(root or personal)
+        self.channel_state_label.setHidden(root or personal or complete)
 
         self.commit_control_bar.setHidden(self.autocommit_enabled or not dirty or not personal)
 
