@@ -1,5 +1,5 @@
 """
-This script enables you to start Tribler headless.
+This script enables you to start Tribler MarketService headless.
 """
 import argparse
 import signal
