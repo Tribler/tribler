@@ -2,5 +2,7 @@
 Metadata
 ========
 
-.. automodule:: tribler_core.modules.metadata_store.restapi.metadata_endpoint
-    :members:
+.. openapi:: swagger.yaml
+   :include:
+      /metadata.*
+   :encoding: utf-8

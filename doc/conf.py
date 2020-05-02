@@ -69,6 +69,7 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinxcontrib.httpdomain',
     'sphinx.ext.autosummary',
+    'sphinxcontrib.openapi',
 ]
 
 autosummary_generate = True

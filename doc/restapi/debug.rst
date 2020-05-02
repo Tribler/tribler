@@ -2,5 +2,7 @@
 Debug
 =====
 
-.. automodule:: tribler_core.restapi.debug_endpoint
-    :members:
+.. openapi:: swagger.yaml
+   :include:
+      /debug.*
+   :encoding: utf-8

@@ -2,5 +2,7 @@
 Torrent info
 ============
 
-.. automodule:: tribler_core.modules.libtorrent.restapi.torrentinfo_endpoint
-    :members:
+.. openapi:: swagger.yaml
+   :include:
+      /torrentinfo.*
+   :encoding: utf-8

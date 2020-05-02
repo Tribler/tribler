@@ -2,5 +2,7 @@
 Upgrader
 ========
 
-.. automodule:: tribler_core.upgrade.upgrader_endpoint
-    :members:
+.. openapi:: swagger.yaml
+   :include:
+      /upgrader.*
+   :encoding: utf-8

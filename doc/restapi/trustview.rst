@@ -2,5 +2,7 @@
 Trust View
 ==========
 
-.. automodule:: tribler_core.restapi.trustview_endpoint
-    :members:
+.. openapi:: swagger.yaml
+   :include:
+      /trustview.*
+   :encoding: utf-8

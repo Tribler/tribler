@@ -2,5 +2,7 @@
 Statistics
 ==========
 
-.. automodule:: tribler_core.restapi.statistics_endpoint
-    :members:
+.. openapi:: swagger.yaml
+   :include:
+      /statistics.*
+   :encoding: utf-8

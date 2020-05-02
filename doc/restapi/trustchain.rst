@@ -2,5 +2,7 @@
 TrustChain
 ==========
 
-.. automodule:: tribler_core.restapi.trustchain_endpoint
-    :members:
+.. openapi:: swagger.yaml
+   :include:
+      /trustchain.*
+   :encoding: utf-8

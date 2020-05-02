@@ -2,5 +2,7 @@
 Shutdown
 ========
 
-.. automodule:: tribler_core.restapi.shutdown_endpoint
-    :members:
+.. openapi:: swagger.yaml
+   :include:
+      /shutdown.*
+   :encoding: utf-8
