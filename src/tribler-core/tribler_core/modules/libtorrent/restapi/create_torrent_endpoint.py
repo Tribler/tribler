@@ -51,7 +51,7 @@ class CreateTorrentEndpoint(RESTEndpoint):
         }
     )
     @json_schema(schema(CreateTorrentRequest={
-        'files*': [String],
+        'files': [String],
         'name': String,
         'description': String,
         'trackers': [String],

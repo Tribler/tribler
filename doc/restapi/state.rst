@@ -2,5 +2,7 @@
 State info
 ==========
 
-.. automodule:: tribler_core.restapi.state_endpoint
-    :members:
+.. openapi:: swagger.yaml
+   :include:
+      /state.*
+   :encoding: utf-8

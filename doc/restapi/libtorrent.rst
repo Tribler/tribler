@@ -2,5 +2,7 @@
 Libtorrent
 ==========
 
-.. automodule:: tribler_core.modules.libtorrent.restapi.libtorrent_endpoint
-    :members:
+.. openapi:: swagger.yaml
+   :include:
+      /libtorrent.*
+   :encoding: utf-8

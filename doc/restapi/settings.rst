@@ -2,5 +2,7 @@
 Settings
 ========
 
-.. automodule:: tribler_core.restapi.settings_endpoint
-    :members:
+.. openapi:: swagger.yaml
+   :include:
+      /settings.*
+   :encoding: utf-8
