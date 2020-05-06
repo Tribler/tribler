@@ -1,3 +1,5 @@
 sphinxcontrib-httpdomain==1.5.0
 sphinxcontrib.openapi
 cryptography
+aiohttp
+aiohttp_apispec

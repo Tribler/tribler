@@ -16,6 +16,7 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
+import asyncio
 import os
 import sys
 
@@ -28,6 +29,7 @@ tribler_components = [
     os.path.join(root_dir, "src", "tribler-common"),
     os.path.join(root_dir, "src", "tribler-core"),
     os.path.join(root_dir, "src", "tribler-gui"),
+    os.path.join(root_dir, "doc"),
 ]
 for component in tribler_components:
     sys.path.append(str(component))
@@ -40,6 +42,7 @@ _classnames = {
 
 
 class Mock(MagicMock):
+
     @classmethod
     def __getattr__(cls, name):
         if name == '__version__':
@@ -47,13 +50,26 @@ class Mock(MagicMock):
         return Mock if name in _classnames else Mock()
 
 
-MOCK_MODULES = ['configobj', 'aiohttp', 'libtorrent', 'treq', 'pony', 'pony.orm', 'pony.orm.core',
-                'lz4', 'lz4.frame', 'psutil', 'meliae', 'libnacl',
-                'decorator', 'libnacl.dual', 'libnacl.sign', 'libnacl.encode', 'libnacl.public', 'networkx',
+# Mock everything except aiohttp/aiohttp_apispec, since we need the libraries to extract the Swagger docs.
+MOCK_MODULES = ['configobj', 'libtorrent', 'treq', 'pony', 'pony.orm', 'pony.orm.core', 'lz4', 'lz4.frame', 'psutil',
+                'meliae', 'libnacl', 'decorator', 'libnacl.dual', 'libnacl.sign', 'libnacl.encode', 'libnacl.public',
                 'netifaces', 'ipv8.messaging.anonymization.tunnel', 'Tribler.community.gigachannel.community',
-                'networkx', 'validate', 'aiohttp_apispec']
+                'networkx', 'validate', 'ipv8.REST.root_endpoint', 'anydex.restapi.root_endpoint',
+                'anydex.restapi.wallets_endpoint']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
+# Ignore ipv8/anydex/wallet endpoints
+from tribler_core.restapi.root_endpoint import RootEndpoint
+add_endpoint = RootEndpoint.add_endpoint
+RootEndpoint.add_endpoint = lambda self, path, ep: add_endpoint(self, path, ep) \
+                                                   if path not in ['/ipv8', '/market', '/wallets'] else None
+
+# Extract Swagger docs
+from extract_swagger import extract_swagger
+asyncio.run(extract_swagger('restapi/swagger.yaml'))
+
+MOCK_MODULES = ['aiohttp', 'aiohttp_apispec']
+sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 # -- General configuration ------------------------------------------------
 
