@@ -30,8 +30,6 @@ class TestChannelMetadata(TriblerCoreTest):
     Contains various tests for the channel metadata type.
     """
 
-    CHANNEL_METADATA = TESTS_DATA_DIR / 'sample_channel/channel.mdblob'
-
     async def setUp(self):
         await super(TestChannelMetadata, self).setUp()
         self.torrent_template = {"title": "", "infohash": b"", "torrent_date": datetime(1970, 1, 1), "tags": "video"}
