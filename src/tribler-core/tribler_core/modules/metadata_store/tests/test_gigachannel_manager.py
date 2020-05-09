@@ -1,5 +1,6 @@
 from asyncio import Future
 from datetime import datetime
+from unittest.mock import patch
 
 from ipv8.database import database_blob
 from ipv8.keyvault.crypto import default_eccrypto
@@ -292,7 +293,8 @@ class TestGigaChannelManager(TriblerCoreTest):
         await self.chanman.download_channel(channel)
         self.assertFalse(self.initiated_download)
 
-        # Check that we download channels with correct dirname
-        self.mock_session.dlmgr.get_metainfo = mock_get_metainfo_good
-        await self.chanman.download_channel(channel)
-        self.assertTrue(self.initiated_download)
+        with patch.object(TorrentDef, "__init__", lambda *_, **__: None):
+            # Check that we download channels with correct dirname
+            self.mock_session.dlmgr.get_metainfo = mock_get_metainfo_good
+            await self.chanman.download_channel(channel)
+            self.assertTrue(self.initiated_download)

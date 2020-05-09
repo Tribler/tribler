@@ -652,7 +652,7 @@ class TestMetadataDownloadEndpoint(AbstractApiTest):
     @timeout(20)
     async def test_get_downloads_with_channels(self):
         """
-        Testing whether the API returns the right download when a download is added
+        Testing whether the API returns the right number of downloads when adding channel/regular downloads
         """
         test_channel_name = 'test_channel'
         video_tdef, _ = self.create_local_torrent(TESTS_DATA_DIR / 'video.avi')
@@ -660,9 +660,14 @@ class TestMetadataDownloadEndpoint(AbstractApiTest):
         await self.session.dlmgr.start_download_from_uri("file:" + pathname2url(TESTS_DATA_DIR / "bak_single.torrent"))
 
         with db_session:
-            channel = self.session.mds.ChannelMetadata.create_channel(test_channel_name, 'bla')
-            def fake_get_metainfo(*args, **kwargs):
-                return succeed({b'info': {b'name': channel.dirname.encode('utf-8')}})
+            channel, _ = self.session.mds.process_mdblob_file(TESTS_DIR / 'data/sample_channel/channel.mdblob')[0]
+
+            def fake_get_metainfo(*_, **__):
+                with open(TESTS_DIR / 'data/sample_channel/channel.torrent', mode='rb') as torrent_file:
+                    torrent_data = torrent_file.read()
+                tdef = TorrentDef.load_from_memory(torrent_data)
+                return succeed(tdef.get_metainfo())
+
             self.session.dlmgr.get_metainfo = fake_get_metainfo
             ensure_future(self.session.gigachannel_manager.download_channel(channel))
 
