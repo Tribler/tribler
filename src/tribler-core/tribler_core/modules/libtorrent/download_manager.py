@@ -633,7 +633,7 @@ class DownloadManager(TaskManager):
         """
         infohash = hexlify(download.tdef.get_infohash())
         self._logger.info("Updating the amount of hops of download %s", infohash)
-        download.config.set_engineresumedata((await download.save_resume_data()))
+        await download.save_resume_data()
         await self.remove_download(download)
 
         # copy the old download_config and change the hop count
