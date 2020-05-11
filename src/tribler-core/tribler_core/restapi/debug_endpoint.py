@@ -51,7 +51,7 @@ class DebugEndpoint(RESTEndpoint):
                              web.put('/profiler', self.start_profiler),
                              web.delete('/profiler', self.stop_profiler)])
         if HAS_MELIAE:
-            self.app.add_routes(web.get('/memory/dump', self.get_memory_dump))
+            self.app.add_routes([web.get('/memory/dump', self.get_memory_dump)])
 
     @docs(
         tags=['Debug'],
