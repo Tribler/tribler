@@ -86,6 +86,15 @@ def convert_config_to_tribler75(state_dir):
     """
     for filename in (state_dir / STATEDIR_CHECKPOINT_DIR).glob('*.conf'):
         config = DownloadConfig.load(filename)
+
+        # Convert resume data
+        resumedata = config.get_engineresumedata()
+        if b'mapped_files' in resumedata:
+            resumedata.pop(b'mapped_files')
+            config.set_engineresumedata(resumedata)
+            config.write(str(filename))
+
+        # Convert metainfo
         metainfo = config.get_metainfo()
         if not config.config['download_defaults'].get('selected_files') or not metainfo:
             continue  # no conversion needed/possible, selected files will be reset to their default (i.e., all files)
