@@ -356,6 +356,7 @@ class TriblerWindow(QMainWindow):
         :return:
         """
         self.downloads_page.stop_loading_downloads()
+        self.core_manager.shutting_down = True
         self.core_manager.stop(False)
         close_dialog = ConfirmationDialog(
             self.window(),
@@ -437,7 +438,8 @@ class TriblerWindow(QMainWindow):
             self.discovering_page.is_discovering = True
             self.stackedWidget.setCurrentIndex(PAGE_DISCOVERING)
         else:
-            self.stackedWidget.setCurrentIndex(PAGE_DISCOVERED)
+            self.clicked_menu_button_discovered()
+            self.left_menu_button_discovered.setChecked(True)
 
     def stop_discovering(self):
         if not self.discovering_page.is_discovering:
@@ -445,7 +447,8 @@ class TriblerWindow(QMainWindow):
         self.core_manager.events_manager.discovered_channel.disconnect(self.stop_discovering)
         self.discovering_page.is_discovering = False
         if self.stackedWidget.currentIndex() == PAGE_DISCOVERING:
-            self.stackedWidget.setCurrentIndex(PAGE_DISCOVERED)
+            self.clicked_menu_button_discovered()
+            self.left_menu_button_discovered.setChecked(True)
 
     def initialize_personal_channels_page(self):
         autocommit_enabled = (
@@ -458,7 +461,7 @@ class TriblerWindow(QMainWindow):
         self.personal_channel_page.initialize_root_model(
             self.personal_channel_page.default_channel_model(
                 hide_xxx=False,
-                channel_info={"name": "Personal channels root", "state": "Personal"},
+                channel_info={"name": "My channels", "state": "Personal"},
                 endpoint_url="channels/mychannel/0",
                 exclude_deleted=autocommit_enabled,
             )
@@ -981,14 +984,20 @@ class TriblerWindow(QMainWindow):
             button.setChecked(False)
 
     def clicked_menu_button_search(self):
-        self.deselect_all_menu_buttons(self.left_menu_button_search)
+        self.deselect_all_menu_buttons()
+        self.left_menu_button_search.setChecked(True)
+        if self.stackedWidget.currentIndex() == PAGE_SEARCH_RESULTS:
+            self.search_results_page.go_back_to_level(0)
         self.stackedWidget.setCurrentIndex(PAGE_SEARCH_RESULTS)
         self.search_results_page.content_table.setFocus()
         self.navigation_stack = []
         self.hide_left_menu_playlist()
 
     def clicked_menu_button_discovered(self):
-        self.deselect_all_menu_buttons(self.left_menu_button_discovered)
+        self.deselect_all_menu_buttons()
+        self.left_menu_button_discovered.setChecked(True)
+        if self.stackedWidget.currentIndex() == PAGE_DISCOVERED:
+            self.discovered_page.go_back_to_level(0)
         self.stackedWidget.setCurrentIndex(PAGE_DISCOVERED)
         self.discovered_page.reset_view()
         self.discovered_page.content_table.setFocus()
@@ -996,7 +1005,10 @@ class TriblerWindow(QMainWindow):
         self.hide_left_menu_playlist()
 
     def clicked_menu_button_my_channel(self):
-        self.deselect_all_menu_buttons(self.left_menu_button_my_channel)
+        self.deselect_all_menu_buttons()
+        self.left_menu_button_my_channel.setChecked(True)
+        if self.stackedWidget.currentIndex() == PAGE_EDIT_CHANNEL:
+            self.personal_channel_page.go_back_to_level(0)
         self.stackedWidget.setCurrentIndex(PAGE_EDIT_CHANNEL)
         self.personal_channel_page.reset_view()
         self.personal_channel_page.content_table.setFocus()
@@ -1029,7 +1041,10 @@ class TriblerWindow(QMainWindow):
         self.debug_window.show()
 
     def clicked_menu_button_subscriptions(self):
-        self.deselect_all_menu_buttons(self.left_menu_button_subscriptions)
+        self.deselect_all_menu_buttons()
+        self.left_menu_button_subscriptions.setChecked(True)
+        if self.stackedWidget.currentIndex() == PAGE_SUBSCRIBED_CHANNELS:
+            self.subscribed_channels_page.go_back_to_level(0)
         self.stackedWidget.setCurrentIndex(PAGE_SUBSCRIBED_CHANNELS)
         self.subscribed_channels_page.reset_view()
         self.subscribed_channels_page.content_table.setFocus()

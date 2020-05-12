@@ -8,7 +8,7 @@ from pony.orm import db_session
 from tribler_common.simpledefs import DLSTATUS_SEEDING, NTFY
 
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
-from tribler_core.modules.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
+from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import COMMITTED
 from tribler_core.utilities.unicode import hexlify
 
@@ -231,12 +231,8 @@ class GigaChannelManager(TaskManager):
         Download a channel with a given infohash and title.
         :param channel: The channel metadata ORM object.
         """
-        dcfg = DownloadConfig(state_dir=self.session.config.get_state_dir())
-        dcfg.set_dest_dir(self.session.mds.channels_dir)
-        dcfg.set_channel_download(True)
-        tdef = TorrentDefNoMetainfo(infohash=bytes(channel.infohash), name=channel.dirname)
 
-        metainfo = await self.session.dlmgr.get_metainfo(bytes(channel.infohash), timeout=60)
+        metainfo = await self.session.dlmgr.get_metainfo(bytes(channel.infohash), timeout=60, hops=0)
         if metainfo is None:
             # Timeout looking for the channel metainfo. Probably, there are no seeds.
             # TODO: count the number of tries we had with the channel, so we can stop trying eventually
@@ -248,6 +244,11 @@ class GigaChannelManager(TaskManager):
                 return
         except (KeyError, TypeError):
             return
+
+        dcfg = DownloadConfig(state_dir=self.session.config.get_state_dir())
+        dcfg.set_dest_dir(self.session.mds.channels_dir)
+        dcfg.set_channel_download(True)
+        tdef = TorrentDef(metainfo=metainfo)
 
         download = self.session.dlmgr.start_download(tdef=tdef, config=dcfg, hidden=True)
         await download.future_finished

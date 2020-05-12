@@ -7,7 +7,6 @@ libnacl
 pyasn1
 lz4
 pony
-cherrypy
 service_identity
 decorator
 networkx

@@ -1151,7 +1151,7 @@ background-color: #e67300;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>2</number>
+         <number>8</number>
         </property>
         <widget class="ChannelContentsWidget" name="personal_channel_page"/>
         <widget class="ChannelContentsWidget" name="search_results_page"/>
@@ -4691,8 +4691,8 @@ color: white</string>
                       <rect>
                        <x>0</x>
                        <y>0</y>
-                       <width>856</width>
-                       <height>387</height>
+                       <width>308</width>
+                       <height>276</height>
                       </rect>
                      </property>
                      <layout class="QFormLayout" name="formLayout_4">
@@ -6762,11 +6762,11 @@ font-weight: bold;</string>
                       <property name="sortingEnabled">
                        <bool>true</bool>
                       </property>
-                      <attribute name="headerMinimumSectionSize">
-                       <number>50</number>
-                      </attribute>
                       <attribute name="headerDefaultSectionSize">
                        <number>120</number>
+                      </attribute>
+                      <attribute name="headerMinimumSectionSize">
+                       <number>50</number>
                       </attribute>
                       <attribute name="headerStretchLastSection">
                        <bool>true</bool>

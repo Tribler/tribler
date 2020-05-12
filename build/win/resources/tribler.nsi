@@ -101,7 +101,6 @@ LangString DESC_SecMain ${LANG_ENGLISH} "Install ${PRODUCT}"
 LangString DESC_SecDesk ${LANG_ENGLISH} "Create Desktop Shortcuts"
 LangString DESC_SecStart ${LANG_ENGLISH} "Create Start Menu Shortcuts"
 LangString DESC_SecDefaultTorrent ${LANG_ENGLISH} "Associate .torrent files with ${PRODUCT}"
-LangString DESC_SecDefaultTStream ${LANG_ENGLISH} "Associate .tstream files with ${PRODUCT}"
 LangString DESC_SecDefaultMagnet ${LANG_ENGLISH} "Associate magnet links with ${PRODUCT}"
 
 ;--------------------------------
@@ -148,9 +147,9 @@ Section "!Main EXE" SecMain
     WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}" "DisplayVersion" '${VERSION}'
     WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}" "DisplayIcon" "$INSTDIR\${PRODUCT}.exe,0"
     WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}" "Publisher" "The Tribler Team"
-    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}" "HelpLink" 'http://forum.tribler.org'
-    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}" "URLInfoAbout" 'http://www.tribler.org'
-    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}" "URLUpdateInfo" 'http://www.tribler.org/trac/wiki/Download'
+    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}" "HelpLink" 'https://forum.tribler.org'
+    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}" "URLInfoAbout" 'https://www.tribler.org'
+    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}" "URLUpdateInfo" 'https://github.com/tribler/tribler/releases'
     ${GetSize} "$INSTDIR" "/S=0K" $0 $1 $2
     IntFmt $0 "0x%08X" $0
     WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}" "EstimatedSize" "$0"
@@ -190,28 +189,6 @@ Section "Make Default For .torrent" SecDefaultTorrent
     WriteRegStr HKCR "bittorrent\DefaultIcon" "" "$INSTDIR\Tribler\Main\vwxGUI\images\torrenticon.ico"
 SectionEnd
 
-
-Section "Make Default For .tstream" SecDefaultTStream
-    ; Arno: Poor man's attempt to check if already registered
-    ReadRegStr $0 HKCR .tstream ""
-    ReadRegStr $1 HKCR "tstream\shell\open\command" ""
-    StrCpy $2 $1 -4
-    StrCmp $0 "" 0 +2
-    return
-    MessageBox MB_YESNO ".tstream already registered to $2. Overwrite?" IDYES +2 IDNO 0
-    Return
-    DetailPrint "Arno registering .tstream: $0 $1 $2"
-
-    ; Register
-    WriteRegStr HKCR .tstream "" tstream
-    WriteRegStr HKCR .tstream "Content Type" application/x-tribler-stream
-    WriteRegStr HKCR "MIME\Database\Content Type\application/x-tribler-stream" Extension .tstream
-    WriteRegStr HKCR tstream "" "TSTREAM File"
-    WriteRegBin HKCR tstream EditFlags 00000100
-    WriteRegStr HKCR "tstream\shell" "" open
-    WriteRegStr HKCR "tstream\shell\open\command" "" '"$INSTDIR\${PRODUCT}.exe" "%1"'
-    WriteRegStr HKCR "tstream\DefaultIcon" "" "$INSTDIR\Tribler\Main\vwxGUI\images\torrenticon.ico"
-SectionEnd
 
 Section "Make Default For magnet://" SecDefaultMagnet
     WriteRegStr HKCR "magnet" "" "URL: Magnet Link Protocol"

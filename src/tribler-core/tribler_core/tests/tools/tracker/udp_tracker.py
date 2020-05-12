@@ -96,4 +96,5 @@ class UDPTracker(object):
         """
         Stop the UDP Tracker, returns a deferred that fires when the server is closed.
         """
-        self.transport.close()
+        if self.transport:
+            self.transport.close()

@@ -18,6 +18,9 @@ from tribler_core.restapi.schema import HandledErrorSchema
 from tribler_core.utilities.unicode import hexlify
 
 
+TORRENT_CHECK_TIMEOUT = 20
+
+
 class UpdateEntryMixin(object):
     @db_session
     def update_entry(self, public_key, id_, update_dict):
@@ -253,7 +256,13 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
         },
     )
     async def get_torrent_health(self, request):
-        timeout = request.query.get('timeout', 20)
+        timeout = request.query.get('timeout')
+        if not timeout:
+            timeout = TORRENT_CHECK_TIMEOUT
+        elif timeout.isdigit():
+            timeout = int(timeout)
+        else:
+            return RESTResponse({"error": "Error processing timeout parameter '%s'" % timeout}, status=HTTP_BAD_REQUEST)
         refresh = request.query.get('refresh', '0') == '1'
         nowait = request.query.get('nowait', '0') == '1'
 

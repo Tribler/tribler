@@ -37,7 +37,8 @@ class MarketService(object):
         signal.signal(signal.SIGINT, lambda sig, _: ensure_future(signal_handler(sig)))
         signal.signal(signal.SIGTERM, lambda sig, _: ensure_future(signal_handler(sig)))
 
-        config = TriblerConfig(options.statedir or Path(get_appstate_dir(), '.Tribler'))
+        statedir = Path(options.statedir or Path(get_appstate_dir(), '.Tribler'))
+        config = TriblerConfig(statedir, config_file=statedir / 'triblerd.conf')
         config.set_torrent_checking_enabled(False)
         config.set_libtorrent_enabled(True)
         config.set_http_api_enabled(True)
@@ -79,7 +80,7 @@ def main(argv):
     parser.add_argument('--help', '-h', action='help', default=argparse.SUPPRESS, help='Show this help message and exit')
     parser.add_argument('--statedir', '-s', default=None, help='Use an alternate statedir')
     parser.add_argument('--restapi', '-p', default=-1, type=int, help='Use an alternate port for REST API')
-    parser.add_argument('--ipv8', '-i', default=8085, type=int, help='Use an alternate port for the IPv8')
+    parser.add_argument('--ipv8', '-i', default=-1, type=int, help='Use an alternate port for the IPv8')
     
     parser.add_argument('--testnet', '-t', action='store_const', default=False, const=True, help='Join the testnet')
 

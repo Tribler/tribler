@@ -19,7 +19,7 @@ class TestHiddenServices(TestTunnelBase):
         Test the hidden services overlay by constructing an end-to-end circuit and downloading a torrent over it
         """
         await self.setup_nodes(num_relays=4, num_exitnodes=2, seed_hops=1)
-        await self.deliver_messages()
+        await self.deliver_messages(timeout=1)
 
         for c in self.tunnel_communities:
             self.assertEqual(7, len(c.get_peers()))

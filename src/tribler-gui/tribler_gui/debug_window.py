@@ -247,7 +247,12 @@ class DebugWindow(QMainWindow):
 
     def load_requests_tab(self):
         self.window().requests_tree_widget.clear()
-        for endpoint, method, data, timestamp, status_code in sorted(tribler_performed_requests, key=lambda x: x[3]):
+        for request, status_code in sorted(tribler_performed_requests, key=lambda rq: rq[0].time):
+            endpoint = request.url
+            method = request.method
+            data = request.raw_data
+            timestamp = request.time
+
             item = QTreeWidgetItem(self.window().requests_tree_widget)
             item.setText(0, "%s %s %s" % (method, repr(endpoint), repr(data)))
             item.setText(1, ("%d" % status_code) if status_code else "unknown")

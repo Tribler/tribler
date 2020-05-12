@@ -39,7 +39,7 @@ Note that for building 32 bit you need to pass anything but 64, i.e. 32 or 86 to
 .. code-block:: bash
 
     cd tribler
-    python Tribler/Main/Build/update_version_from_git.py 64
-    win\makedist_win.bat 64
+    python build/update_version_from_git.py 64
+    build\win\makedist_win.bat 64
 
 This builds an ``.exe`` installer which installs Tribler.
