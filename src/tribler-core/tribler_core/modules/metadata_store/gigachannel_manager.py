@@ -156,7 +156,7 @@ class GigaChannelManager(TaskManager):
                 elif not self.session.dlmgr.download_exists(bytes(channel.infohash)):
                     self._logger.info(
                         "Downloading new channel version %s ver %i->%i",
-                        hexlify(channel.public_key),
+                        channel.dirname,
                         channel.local_version,
                         channel.timestamp,
                     )
@@ -167,7 +167,7 @@ class GigaChannelManager(TaskManager):
                 ):
                     self._logger.info(
                         "Processing previously downloaded, but unprocessed channel torrent %s ver %i->%i",
-                        hexlify(channel.public_key),
+                        channel.dirname,
                         channel.local_version,
                         channel.timestamp,
                     )

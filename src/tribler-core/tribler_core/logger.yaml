@@ -173,3 +173,8 @@ loggers:
         level: INFO
         handlers: [console, error_console, info_memory_handler, error_memory_handler]
         propagate: no
+
+    GigaChannelManager:
+        level: INFO
+        handlers: [console, error_console, info_memory_handler, error_memory_handler]
+        propagate: no

@@ -54,6 +54,15 @@ def create_torrent_from_dir(directory, torrent_filename):
     return torrent, infohash
 
 
+def get_mdblob_sequence_number(filename):
+    filepath = Path(filename)
+    if filepath.suffixes == [BLOB_EXTENSION]:
+        return int(filename.stem)
+    elif filepath.suffixes == [BLOB_EXTENSION, '.lz4']:
+        return int(Path(filepath.stem).stem)
+    return None
+
+
 def entries_to_chunk(metadata_list, chunk_size, start_index=0):
     """
     For efficiency reasons, this is deliberately written in C style
@@ -198,29 +207,50 @@ def define_binding(db):
 
             return self.commit_channel_torrent(new_start_timestamp=start_timestamp)
 
-        def update_channel_torrent(self, metadata_list, final_timestamp):
+        def update_channel_torrent(self, metadata_list):
             """
             Channel torrents are append-only to support seeding the old versions
             from the same dir and avoid updating already downloaded blobs.
-            :param metadata_list: The list of metadata entries to add to the torrent dir
-            :param final_timestamp: The timestamp that will be used as the filename of the last mdblob in the update
-            :return The new infohash, should be used to update the downloads
+            :param metadata_list: The list of metadata entries to add to the torrent dir. TODELETE entries should be sorted to be at the end!
+            :param start_timestamp: the starting timestamp for the channel
+            :return The newly create channel torrent infohash, final timestamp for the channel and torrent date
             """
-            # Create dir for metadata files
+            # As a workaround for delete entries not having a timestamp in the DB, delete entries should
+            # be placed after create/modify entries:
+            # | create/modify entries | delete entries | <- final timestamp
+
+            # Create dir for the metadata files
             channel_dir = path_util.abspath(self._channels_dir / self.dirname)
             if not channel_dir.is_dir():
                 os.makedirs(str_path(channel_dir))
+
+            existing_contents = sorted(channel_dir.iterdir())
+            last_existing_blob_number = get_mdblob_sequence_number(existing_contents[-1]) if existing_contents else None
 
             index = 0
             while index < len(metadata_list):
                 # Squash several serialized and signed metadata entries into a single file
                 data, index = entries_to_chunk(metadata_list, self._CHUNK_SIZE_LIMIT, start_index=index)
-                # The final file in the sequence should get the same (new) timestamp as the channel entry itself.
+                # Blobs ending with TODELETE entries increase the final timestamp as a workaround for delete commands
+                # possessing no timestamp.
+                if metadata_list[index - 1].status == TODELETE:
+                    blob_timestamp = clock.tick()
+                else:
+                    blob_timestamp = metadata_list[index - 1].timestamp
+
+                # The final file in the sequence should get a timestamp that is higher than the timestamp of
+                # the last channel contents entry. This final timestamp then should be returned to the calling function
+                # to be assigned to the corresponding channel entry.
                 # Otherwise, the local channel version will never become equal to its timestamp.
-                blob_timestamp = metadata_list[index - 1].timestamp if index < len(metadata_list) else final_timestamp
-                blob_filename = str_path(Path(channel_dir, str(blob_timestamp).zfill(12) + BLOB_EXTENSION + '.lz4'))
-                with open(blob_filename, 'wb') as f:
-                    f.write(data)
+                if index >= len(metadata_list):
+                    blob_timestamp = clock.tick()
+                # Check that the mdblob we're going to create has a greater timestamp than the existing ones
+                assert last_existing_blob_number is None or (blob_timestamp > last_existing_blob_number)
+
+                blob_filename = Path(channel_dir, str(blob_timestamp).zfill(12) + BLOB_EXTENSION + '.lz4')
+                assert not blob_filename.exists()  # Never ever write over existing files.
+                blob_filename.write_bytes(data)
+                last_existing_blob_number = blob_timestamp
 
             # TODO: add error-handling routines to make sure the timestamp is not messed up in case of an error
 
@@ -228,13 +258,13 @@ def define_binding(db):
             torrent, infohash = create_torrent_from_dir(channel_dir, self._channels_dir / (self.dirname + ".torrent"))
             torrent_date = datetime.utcfromtimestamp(torrent[b'creation date'])
 
-            return {"infohash": infohash, "timestamp": final_timestamp, "torrent_date": torrent_date}, torrent
+            return {"infohash": infohash, "timestamp": last_existing_blob_number, "torrent_date": torrent_date}, torrent
 
         def commit_channel_torrent(self, new_start_timestamp=None, commit_list=None):
             """
             Collect new/uncommitted and marked for deletion metadata entries, commit them to a channel torrent and
             remove the obsolete entries if the commit succeeds.
-            :param new_start_timestamp: change the start_timestamp of the commited channel entry to this value
+            :param new_start_timestamp: change the start_timestamp of the committed channel entry to this value
             :param commit_list: the list of ORM objects to commit into this channel torrent
             :return The new infohash, should be used to update the downloads
             """
@@ -243,9 +273,8 @@ def define_binding(db):
             if not md_list:
                 return None
 
-            final_timestamp = clock.tick()
             try:
-                update_dict, torrent = self.update_channel_torrent(md_list, final_timestamp)
+                update_dict, torrent = self.update_channel_torrent(md_list)
             except IOError:
                 self._logger.error(
                     "Error during channel torrent commit, not going to garbage collect the channel. Channel %s",

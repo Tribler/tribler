@@ -5,6 +5,7 @@ from binascii import unhexlify
 from datetime import datetime
 from itertools import combinations
 from time import sleep
+from unittest.mock import patch
 
 from ipv8.database import database_blob
 from ipv8.keyvault.crypto import default_eccrypto
@@ -227,9 +228,39 @@ class TestChannelMetadata(TriblerCoreTest):
         torrent = channel_metadata.add_torrent_to_channel(tdef, None)
         channel_metadata.commit_channel_torrent()
         self.assertEqual(1, len(channel_metadata.contents_list))
+
         torrent.soft_delete()
         channel_metadata.commit_channel_torrent()
         self.assertEqual(0, len(channel_metadata.contents_list))
+
+    @db_session
+    def test_correct_commit_of_delete_entries(self):
+        """
+        Test that delete entries are committed to disk within mdblobs with correct filenames.
+        GitHub issue #5295
+        """
+
+        channel = self.mds.ChannelMetadata.create_channel('test', 'test')
+        # To trigger the bug we must ensure that the deletion commands will not fit in a single mdblob
+        with patch.object(self.mds.ChannelMetadata, "_CHUNK_SIZE_LIMIT", 300):
+            torrents = [
+                self.mds.TorrentMetadata(infohash=random_infohash(), origin_id=channel.id_, status=NEW)
+                for _ in range(0, self.mds.ChannelMetadata._CHUNK_SIZE_LIMIT * 2 // 100)
+            ]
+            channel.commit_channel_torrent()
+            for t in torrents:
+                t.soft_delete()
+            channel.commit_channel_torrent()
+
+            torrents = [
+                self.mds.TorrentMetadata(infohash=random_infohash(), origin_id=channel.id_, status=NEW)
+                for _ in range(0, self.mds.ChannelMetadata._CHUNK_SIZE_LIMIT * 2 // 100)
+            ]
+            channel.commit_channel_torrent()
+            torrents.append(self.mds.TorrentMetadata(infohash=random_infohash(), origin_id=channel.id_, status=NEW))
+            for t in torrents[:-1]:
+                t.soft_delete()
+            channel.commit_channel_torrent()
 
     @db_session
     def test_vsids(self):
