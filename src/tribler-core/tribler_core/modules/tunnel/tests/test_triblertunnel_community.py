@@ -223,9 +223,10 @@ class TestTriblerTunnelCommunity(TestBase):
         circuit.ctype = CIRCUIT_TYPE_RP_DOWNLOADER
         circuit.state = CIRCUIT_STATE_READY
         circuit.bytes_down = 0
+        circuit.last_activity = 0
         self.nodes[0].overlay.circuits[circuit.circuit_id] = circuit
 
-        download = Mock()
+        download = Mock(handle=None)
         download.config.get_hops = lambda: 1
         self.nodes[0].overlay.get_download = lambda _: download
 
@@ -233,6 +234,7 @@ class TestTriblerTunnelCommunity(TestBase):
         self.nodes[0].overlay.tribler_session = Mock()
         self.nodes[0].overlay.tribler_session.dlmgr.get_session = lambda _: lt_session
         self.nodes[0].overlay.tribler_session.dlmgr.update_ip_filter = Mock()
+        self.nodes[0].overlay.tribler_session.dlmgr.get_downloads = lambda: [download]
 
         self.nodes[0].overlay.update_ip_filter(0)
         ips = ['1.1.1.1']
@@ -243,23 +245,24 @@ class TestTriblerTunnelCommunity(TestBase):
         ips = [self.nodes[0].overlay.circuit_id_to_ip(circuit.circuit_id), '1.1.1.1']
         self.nodes[0].overlay.tribler_session.dlmgr.update_ip_filter.assert_called_with(lt_session, ips)
 
-    async def test_update_torrent(self):
+    def test_update_torrent(self):
         """
         Test updating a torrent when a circuit breaks
         """
         self.nodes[0].overlay.find_circuits = lambda: True
         self.nodes[0].overlay.readd_bittorrent_peers = lambda: None
         mock_handle = MockObject()
-        mock_handle.get_peer_info = lambda: {2, 3}
+        mock_handle.get_peer_info = lambda: {Mock(ip=('2.2.2.2', 2)), Mock(ip=('3.3.3.3', 3))}
+        mock_handle.is_valid = lambda: True
         mock_download = MockObject()
-        mock_download.get_handle = lambda: succeed(mock_handle)
-        peers = {1, 2}
-        await self.nodes[0].overlay.update_torrent(peers, mock_download)
+        mock_download.handle = mock_handle
+        peers = {('1.1.1.1', 1), ('2.2.2.2', 2)}
+        self.nodes[0].overlay.update_torrent(peers, mock_download)
         self.assertIn(mock_download, self.nodes[0].overlay.bittorrent_peers)
 
         # Test adding peers
-        self.nodes[0].overlay.bittorrent_peers[mock_download] = {4}
-        await self.nodes[0].overlay.update_torrent(peers, mock_download)
+        self.nodes[0].overlay.bittorrent_peers[mock_download] = {('4.4.4.4', 4)}
+        self.nodes[0].overlay.update_torrent(peers, mock_download)
 
     async def test_payouts(self):
         """

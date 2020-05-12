@@ -40,6 +40,7 @@ class AddToChannelDialog(DialogContainer):
         self.dialog_widget.channels_tree_wt.itemExpanded.connect(self.on_item_expanded)
 
         self.dialog_widget.channels_tree_wt.setHeaderLabels(['Name'])
+        self.on_main_window_resize()
 
     def on_create_new_channel_clicked(self):
         selected = self.dialog_widget.channels_tree_wt.selectedItems()

@@ -5,11 +5,11 @@ from urllib.request import url2pathname
 
 from aiohttp import ClientResponseError, ClientSession, ServerConnectionError, web
 
-from aiohttp_apispec import docs
-
 from ipv8.REST.schema import schema
 
 from libtorrent import bencode
+
+from aiohttp_apispec import docs
 
 from marshmallow.fields import String
 
@@ -49,6 +49,15 @@ class TorrentInfoEndpoint(RESTEndpoint):
     )
     async def get_torrent_info(self, request):
         args = request.query
+
+        hops = None
+        if 'hops' in args:
+            try:
+                hops = int(args['hops'])
+            except ValueError:
+                return RESTResponse({"error": f"wrong value of 'hops' parameter: {repr(args['hops'])}"},
+                                    status=HTTP_BAD_REQUEST)
+
         if 'uri' not in args or not args['uri']:
             return RESTResponse({"error": "uri parameter missing"}, status=HTTP_BAD_REQUEST)
 
@@ -71,14 +80,14 @@ class TorrentInfoEndpoint(RESTEndpoint):
             if response.startswith(b'magnet'):
                 _, infohash, _ = parse_magnetlink(response)
                 if infohash:
-                    metainfo = await self.session.dlmgr.get_metainfo(infohash, timeout=60)
+                    metainfo = await self.session.dlmgr.get_metainfo(infohash, timeout=60, hops=hops)
             else:
                 metainfo = bdecode_compat(response)
         elif uri.startswith('magnet'):
             infohash = parse_magnetlink(uri)[1]
             if infohash is None:
                 return RESTResponse({"error": "missing infohash"}, status=HTTP_BAD_REQUEST)
-            metainfo = await self.session.dlmgr.get_metainfo(infohash, timeout=60)
+            metainfo = await self.session.dlmgr.get_metainfo(infohash, timeout=60, hops=hops)
         else:
             return RESTResponse({"error": "invalid uri"}, status=HTTP_BAD_REQUEST)
 

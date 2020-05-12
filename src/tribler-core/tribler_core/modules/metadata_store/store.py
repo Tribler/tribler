@@ -263,7 +263,7 @@ class MetadataStore(object):
                 through gossip will be ignored. The default value is True.
         :param external_thread: indicate to the lower lever that we're running in the backround thread,
             to possibly pace down the upload process
-        :return ChannelNode objects list if we can correctly load the metadata
+        :return: a list of tuples of (<metadata or payload>, <action type>)
         """
         with open(str_path(filepath), 'rb') as f:
             serialized_data = f.read()
@@ -310,7 +310,7 @@ class MetadataStore(object):
             to get the database lock. This is an ugly workaround for Python and asynchronous programming (locking)
             imperfections. It only makes sense to use it when this routine runs on a non-reactor thread.
         :peer_vote_for_channels: Channel entries found in the blob will be vote bumped for the corresponding peer
-        :return ChannelNode objects list if we can correctly load the metadata
+        :return: a list of tuples of (<metadata or payload>, <action type>)
         """
 
         offset = 0

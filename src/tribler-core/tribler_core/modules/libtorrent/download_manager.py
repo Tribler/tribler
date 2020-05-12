@@ -371,6 +371,7 @@ class DownloadManager(TaskManager):
         to a few peers, and downloading the metadata for the torrent.
         :param infohash: The (binary) infohash to lookup metainfo for.
         :param timeout: A timeout in seconds.
+        :param hops: the number of tunnel hops to use for this lookup. If None, use config default.
         :return: The metainfo
         """
         infohash_hex = hexlify(infohash)
@@ -632,7 +633,7 @@ class DownloadManager(TaskManager):
         """
         infohash = hexlify(download.tdef.get_infohash())
         self._logger.info("Updating the amount of hops of download %s", infohash)
-        download.config.set_engineresumedata((await download.save_resume_data()))
+        await download.save_resume_data()
         await self.remove_download(download)
 
         # copy the old download_config and change the hop count
@@ -758,7 +759,7 @@ class DownloadManager(TaskManager):
             url = url.decode('utf-8') if url else url
             tdef = (TorrentDefNoMetainfo(metainfo[b'infohash'], metainfo[b'name'], url)
                     if b'infohash' in metainfo else TorrentDef.load_from_dict(metainfo))
-        except ValueError as e:
+        except (KeyError, ValueError) as e:
             self._logger.exception("Could not restore tdef from metainfo dict: %s %s ", e, metainfo)
             return
 

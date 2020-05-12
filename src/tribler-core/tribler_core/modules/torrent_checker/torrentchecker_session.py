@@ -75,7 +75,6 @@ class TrackerSession(TaskManager):
         Sets the _infohash_list to None and returns a deferred that has succeeded.
         :return: A deferred that succeeds immediately.
         """
-        await self.wait_for_tasks()
         await self.shutdown_task_manager()
         self.infohash_list = None
 

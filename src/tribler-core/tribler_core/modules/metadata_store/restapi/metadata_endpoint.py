@@ -2,20 +2,22 @@ from binascii import unhexlify
 
 from aiohttp import ContentTypeError, web
 
-from aiohttp_apispec import docs
-
 from ipv8.REST.schema import schema
 from ipv8.database import database_blob
 
-from marshmallow.fields import Integer, String
-
 from pony.orm import db_session
+
+from aiohttp_apispec import docs
+
+from marshmallow.fields import Integer, String
 
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import LEGACY_ENTRY
 from tribler_core.modules.metadata_store.restapi.metadata_endpoint_base import MetadataEndpointBase
 from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_NOT_FOUND, RESTResponse
 from tribler_core.restapi.schema import HandledErrorSchema
 from tribler_core.utilities.unicode import hexlify
+
+TORRENT_CHECK_TIMEOUT = 20
 
 
 class UpdateEntryMixin(object):
@@ -64,24 +66,20 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
     @docs(
         tags=['Metadata'],
         summary='Update channel entries.',
-        parameters=[{
-            'in': 'body',
-            'name': 'entries',
-            'description': 'List of entries to update',
-            'example': [{'public_key': '1234567890', 'id': 123, 'property_to_update': 'new_value'}],
-            'required': True
-        }],
-        responses={
-            200: {
-                'description': 'Returns a list of updated entries',
-            },
-            HTTP_NOT_FOUND: {
-                'schema': HandledErrorSchema
-            },
-            HTTP_BAD_REQUEST: {
-                'schema': HandledErrorSchema
+        parameters=[
+            {
+                'in': 'body',
+                'name': 'entries',
+                'description': 'List of entries to update',
+                'example': [{'public_key': '1234567890', 'id': 123, 'property_to_update': 'new_value'}],
+                'required': True,
             }
-        }
+        ],
+        responses={
+            200: {'description': 'Returns a list of updated entries'},
+            HTTP_NOT_FOUND: {'schema': HandledErrorSchema},
+            HTTP_BAD_REQUEST: {'schema': HandledErrorSchema},
+        },
     )
     async def update_channel_entries(self, request):
         try:
@@ -102,21 +100,19 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
     @docs(
         tags=['Metadata'],
         summary='Delete channel entries.',
-        parameters=[{
-            'in': 'body',
-            'name': 'entries',
-            'description': 'List of entries to delete',
-            'example': [{'public_key': '1234567890', 'id': 123}],
-            'required': True
-        }],
-        responses={
-            200: {
-                'description': 'Returns a list of deleted entries',
-            },
-            HTTP_BAD_REQUEST: {
-                'schema': HandledErrorSchema
+        parameters=[
+            {
+                'in': 'body',
+                'name': 'entries',
+                'description': 'List of entries to delete',
+                'example': [{'public_key': '1234567890', 'id': 123}],
+                'required': True,
             }
-        }
+        ],
+        responses={
+            200: {'description': 'Returns a list of deleted entries'},
+            HTTP_BAD_REQUEST: {'schema': HandledErrorSchema},
+        },
     )
     async def delete_channel_entries(self, request):
         with db_session:
@@ -137,16 +133,10 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
         tags=['Metadata'],
         summary='Update a single channel entry.',
         responses={
-            200: {
-                'description': 'The updated entry',
-            },
-            HTTP_NOT_FOUND: {
-                'schema': HandledErrorSchema
-            },
-            HTTP_BAD_REQUEST: {
-                'schema': HandledErrorSchema
-            }
-        }
+            200: {'description': 'The updated entry'},
+            HTTP_NOT_FOUND: {'schema': HandledErrorSchema},
+            HTTP_BAD_REQUEST: {'schema': HandledErrorSchema},
+        },
     )
     async def update_channel_entry(self, request):
         # TODO: unify checks for parts of the path, i.e. proper hex for public key, etc.
@@ -163,14 +153,7 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
     @docs(
         tags=['Metadata'],
         summary='Get channel entries.',
-        responses={
-            200: {
-                'description': 'Returns a list of entries',
-            },
-            HTTP_NOT_FOUND: {
-                'schema': HandledErrorSchema
-            }
-        }
+        responses={200: {'description': 'Returns a list of entries'}, HTTP_NOT_FOUND: {'schema': HandledErrorSchema}},
     )
     async def get_channel_entries(self, request):
         public_key = unhexlify(request.match_info['public_key'])
@@ -189,71 +172,74 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
     @docs(
         tags=["Metadata"],
         summary="Fetch the swarm health of a specific torrent.",
-        parameters=[{
-            'in': 'path',
-            'name': 'infohash',
-            'description': 'Infohash of the download to remove',
-            'type': 'string',
-            'required': True
-        },
-        {
-            'in': 'query',
-            'name': 'timeout',
-            'description': 'Timeout to be used in the connections to the trackers',
-            'type': 'integer',
-            'default': 20,
-            'required': False
-        },
-        {
-            'in': 'query',
-            'name': 'refresh',
-            'description': 'Whether or not to force a health recheck. Settings this to 0 means that the health of a '
-                           'torrent will not be checked again if it was recently checked.',
-            'type': 'integer',
-            'enum': [0, 1],
-            'required': False
-        },
-        {
-            'in': 'query',
-            'name': 'nowait',
-            'description': 'Whether or not to return immediately. If enabled, results '
-                           'will be passed through to the events endpoint.',
-            'type': 'integer',
-            'enum': [0, 1],
-            'required': False
-        }],
+        parameters=[
+            {
+                'in': 'path',
+                'name': 'infohash',
+                'description': 'Infohash of the download to remove',
+                'type': 'string',
+                'required': True,
+            },
+            {
+                'in': 'query',
+                'name': 'timeout',
+                'description': 'Timeout to be used in the connections to the trackers',
+                'type': 'integer',
+                'default': 20,
+                'required': False,
+            },
+            {
+                'in': 'query',
+                'name': 'refresh',
+                'description': 'Whether or not to force a health recheck. Settings this to 0 means that the health of a '
+                'torrent will not be checked again if it was recently checked.',
+                'type': 'integer',
+                'enum': [0, 1],
+                'required': False,
+            },
+            {
+                'in': 'query',
+                'name': 'nowait',
+                'description': 'Whether or not to return immediately. If enabled, results '
+                'will be passed through to the events endpoint.',
+                'type': 'integer',
+                'enum': [0, 1],
+                'required': False,
+            },
+        ],
         responses={
             200: {
-                'schema': schema(HealthCheckResponse={
-                    'tracker': schema(HealthCheck={
-                        'seeders': Integer,
-                        'leechers': Integer,
-                        'infohash': String,
-                        'error': String
-                    }),
-                }),
+                'schema': schema(
+                    HealthCheckResponse={
+                        'tracker': schema(
+                            HealthCheck={'seeders': Integer, 'leechers': Integer, 'infohash': String, 'error': String}
+                        )
+                    }
+                ),
                 'examples': [
                     {
                         "health": {
                             "http://mytracker.com:80/announce": {
                                 "seeders": 43,
                                 "leechers": 20,
-                                "infohash": "97d2d8f5d37e56cfaeaae151d55f05b077074779"
+                                "infohash": "97d2d8f5d37e56cfaeaae151d55f05b077074779",
                             },
-                            "http://nonexistingtracker.com:80/announce": {
-                                "error": "timeout"
-                            }
+                            "http://nonexistingtracker.com:80/announce": {"error": "timeout"},
                         }
                     },
-                    {
-                        'checking': 1
-                    }
-                ]
+                    {'checking': 1},
+                ],
             }
         },
     )
     async def get_torrent_health(self, request):
-        timeout = request.query.get('timeout', 20)
+        timeout = request.query.get('timeout')
+        if not timeout:
+            timeout = TORRENT_CHECK_TIMEOUT
+        elif timeout.isdigit():
+            timeout = int(timeout)
+        else:
+            return RESTResponse({"error": "Error processing timeout parameter '%s'" % timeout}, status=HTTP_BAD_REQUEST)
         refresh = request.query.get('refresh', '0') == '1'
         nowait = request.query.get('nowait', '0') == '1'
 

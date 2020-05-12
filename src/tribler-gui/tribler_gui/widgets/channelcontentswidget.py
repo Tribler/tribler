@@ -213,6 +213,12 @@ class ChannelContentsWidget(widget_form, widget_class):
         self.channel_torrents_filter_input.setText("")
 
     def reset_view(self):
+        self.model.text_filter = ''
+        self.model.category_filter = None
+        self.model.sort_by = (
+            self.model.columns[self.model.default_sort_column] if self.model.default_sort_column >= 0 else None
+        )
+        self.model.sort_desc = True
         self.model.reset()
 
     def disconnect_current_model(self):
@@ -338,17 +344,17 @@ class ChannelContentsWidget(widget_form, widget_class):
             self.subscription_widget.update_subscribe_button(self.model.channel_info)
 
         self.channel_preview_button.setHidden((root and not search) or personal or legacy or complete)
-        self.channel_state_label.setHidden(root or personal)
+        self.channel_state_label.setHidden(root or personal or complete)
 
         self.commit_control_bar.setHidden(self.autocommit_enabled or not dirty or not personal)
 
         if "total" in self.model.channel_info:
             if "torrents" in self.model.channel_info:
                 self.channel_num_torrents_label.setText(
-                    "{}/{} torrents".format(self.model.channel_info["total"], self.model.channel_info["torrents"])
+                    "{}/{} items".format(self.model.channel_info["total"], self.model.channel_info["torrents"])
                 )
             else:
-                self.channel_num_torrents_label.setText("{} results".format(self.model.channel_info["total"]))
+                self.channel_num_torrents_label.setText("{} items".format(self.model.channel_info["total"]))
 
     # ==============================
     # Channel menu related methods.
