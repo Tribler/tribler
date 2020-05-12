@@ -5,11 +5,11 @@ from urllib.request import url2pathname
 
 from aiohttp import ClientResponseError, ClientSession, ServerConnectionError, web
 
+from aiohttp_apispec import docs
+
 from ipv8.REST.schema import schema
 
 from libtorrent import bencode
-
-from aiohttp_apispec import docs
 
 from marshmallow.fields import String
 

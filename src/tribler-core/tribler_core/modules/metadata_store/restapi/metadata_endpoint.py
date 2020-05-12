@@ -2,14 +2,14 @@ from binascii import unhexlify
 
 from aiohttp import ContentTypeError, web
 
+from aiohttp_apispec import docs
+
 from ipv8.REST.schema import schema
 from ipv8.database import database_blob
 
-from pony.orm import db_session
-
-from aiohttp_apispec import docs
-
 from marshmallow.fields import Integer, String
+
+from pony.orm import db_session
 
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import LEGACY_ENTRY
 from tribler_core.modules.metadata_store.restapi.metadata_endpoint_base import MetadataEndpointBase
@@ -191,8 +191,8 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
             {
                 'in': 'query',
                 'name': 'refresh',
-                'description': 'Whether or not to force a health recheck. Settings this to 0 means that the health of a '
-                'torrent will not be checked again if it was recently checked.',
+                'description': 'Whether or not to force a health recheck. Settings this to 0 means that the '
+                'health of a torrent will not be checked again if it was recently checked.',
                 'type': 'integer',
                 'enum': [0, 1],
                 'required': False,

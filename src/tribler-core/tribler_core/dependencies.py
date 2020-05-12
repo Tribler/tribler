@@ -10,6 +10,8 @@ dependencies = [
     {'module': 'aiohttp', 'install_type': 'pip3', 'package': 'aiohttp', 'optional': False, 'scope': 'core'},
     {'module': 'aiohttp_apispec', 'install_type': 'pip3', 'package': 'aiohttp_apispec', 'optional': False,
      'scope': 'core'},
+    {'module': 'marshmallow', 'install_type': 'pip3', 'package':
+        'marshmallow', 'optional': False, 'scope': 'core'},
     {'module': 'bitcoinlib', 'install_type': 'pip3', 'package': 'bitcoinlib==0.4.10', 'optional': True,
      'scope': 'core'},
     {'module': 'chardet', 'install_type': 'pip3', 'package': 'chardet', 'optional': False, 'scope': 'core'},
