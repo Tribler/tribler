@@ -815,3 +815,7 @@ class DownloadManager(TaskManager):
         """
         return await asyncio.get_event_loop().run_in_executor(None, torrent_utils.create_torrent_file,
                                                               file_path_list, params or {})
+
+    def get_downloads_by_name(self, torrent_name, channels_only=False):
+        downloads = (self.get_channel_downloads() if channels_only else self.get_downloads())
+        return [d for d in downloads if d.get_def().get_name_utf8() == torrent_name]

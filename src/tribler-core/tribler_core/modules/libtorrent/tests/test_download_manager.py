@@ -10,7 +10,7 @@ from tribler_core.modules.libtorrent.download_manager import DownloadManager
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
 from tribler_core.notifier import Notifier
 from tribler_core.tests.tools.base_test import MockObject
-from tribler_core.tests.tools.common import TESTS_DATA_DIR
+from tribler_core.tests.tools.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE
 from tribler_core.tests.tools.test_as_server import AbstractServer
 from tribler_core.tests.tools.tools import timeout
 from tribler_core.utilities.path_util import mkdtemp
@@ -492,6 +492,15 @@ class TestDownloadManager(AbstractServer):
         await self.dlmgr.sesscb_states_callback([fake_error_state])
 
         return error_stop_future
+
+    def test_get_downloads_by_name(self):
+        dl = self.dlmgr.start_download(torrent_file=TORRENT_UBUNTU_FILE, checkpoint_disabled=True)
+        self.assertTrue(self.dlmgr.get_downloads_by_name("ubuntu-15.04-desktop-amd64.iso"))
+        self.assertFalse(self.dlmgr.get_downloads_by_name("ubuntu-15.04-desktop-amd64.iso", channels_only=True))
+        self.assertFalse(self.dlmgr.get_downloads_by_name("bla"))
+
+        dl.config.set_channel_download(True)
+        self.assertTrue(self.dlmgr.get_downloads_by_name("ubuntu-15.04-desktop-amd64.iso", channels_only=True))
 
     @timeout(20)
     async def test_checkpoint_after_metainfo_cancel(self):

@@ -1,4 +1,5 @@
-from asyncio import get_event_loop
+import asyncio
+from asyncio import get_event_loop, wait_for
 
 from ipv8.database import database_blob
 from ipv8.taskmanager import TaskManager, task
@@ -38,35 +39,28 @@ class GigaChannelManager(TaskManager):
         or subscribed channels require updating.
         """
 
-        # TODO: break this into smaller checks/functions
-        # TODO: account for all kinds of troubles: lost/wrong .mdblob/torrent, etc
-        # Test if we our channel is there, but we don't share it because Tribler was closed unexpectedly
+        # Test if our channels are there, but we don't share these because Tribler was closed unexpectedly
         try:
             with db_session:
-                for my_channel in self.session.mds.ChannelMetadata.get_my_channels():
-                    if (
-                        my_channel
-                        and my_channel.status == COMMITTED
-                        and not self.session.dlmgr.download_exists(bytes(my_channel.infohash))
-                    ):
-                        torrent_path = self.session.mds.channels_dir / (my_channel.dirname + ".torrent")
-                        mdblob_path = self.session.mds.channels_dir / (my_channel.dirname + ".mdblob")
-                        tdef = None
-                        if torrent_path.exists() and mdblob_path.exists():
-                            try:
-                                tdef = TorrentDef.load(str(torrent_path))
-                            except IOError:
-                                self._logger.warning(
-                                    "Can't open personal channel torrent file. Will try to regenerate it."
-                                )
-                        if not (tdef and tdef.infohash == bytes(my_channel.infohash)):
-                            regenerated = my_channel.consolidate_channel_torrent()
-                            # If the user created their channel, but added no torrents to it,\
-                            # the channel torrent will not be created.
-                            if regenerated:
-                                tdef = TorrentDef.load_from_dict(regenerated)
-                        if tdef:
-                            self.updated_my_channel(tdef)
+                for channel in self.session.mds.ChannelMetadata.get_my_channels().where(
+                    lambda g: g.status == COMMITTED
+                ):
+                    channel_download = self.session.dlmgr.get_download(bytes(channel.infohash))
+                    if channel_download is None:
+                        self._logger.warning(
+                            "Torrent for personal channel %s %i does not exist.",
+                            hexlify(channel.public_key),
+                            channel.id_,
+                        )
+                        self.regenerate_channel_torrent(channel.public_key, channel.id_)
+                    else:
+                        self.register_task(
+                            f"Check personal channel {hexlify(channel.public_key), channel.id_}",
+                            self.check_and_regen_personal_channel_torrent,
+                            channel.public_key,
+                            channel.id_,
+                            channel_download,
+                        )
         except Exception:
             self._logger.exception("Error when tried to resume personal channel seeding on GigaChannel Manager startup")
 
@@ -74,6 +68,32 @@ class GigaChannelManager(TaskManager):
         self.register_task(
             "Process channels download queue and remove cruft", self.service_channels, interval=channels_check_interval
         )
+
+    @task
+    async def regenerate_channel_torrent(self, channel_pk, channel_id):
+        self._logger.info("Regenerating personal channel %s %i", hexlify(channel_pk), channel_id)
+        with db_session:
+            channel = self.session.mds.ChannelMetadata.get(public_key=channel_pk, id_=channel_id)
+            if channel is None:
+                self._logger.warning("Tried to regenerate non-existing channel %s %i", hexlify(channel_pk), channel_id)
+                return None
+            for d in self.session.dlmgr.get_downloads_by_name(channel.dirname):
+                await self.session.dlmgr.remove_download(d, remove_content=True)
+            regenerated = channel.consolidate_channel_torrent()
+            # If the user created their channel, but added no torrents to it,
+            # the channel torrent will not be created.
+            if regenerated is None:
+                return None
+        tdef = TorrentDef.load_from_dict(regenerated)
+        self.updated_my_channel(tdef)
+        return tdef
+
+    async def check_and_regen_personal_channel_torrent(self, channel_pk, channel_id, channel_download, timeout=10):
+        try:
+            await wait_for(channel_download.wait_for_status(DLSTATUS_SEEDING), timeout=timeout)
+        except asyncio.TimeoutError:
+            self._logger.warning("Time out waiting for personal channel %s %i to seed", hexlify(channel_pk), channel_id)
+            await self.regenerate_channel_torrent(channel_pk, channel_id)
 
     async def shutdown(self):
         """
@@ -288,7 +308,7 @@ class GigaChannelManager(TaskManager):
             dcfg = DownloadConfig(state_dir=self.session.config.get_state_dir())
             dcfg.set_dest_dir(self.session.mds.channels_dir)
             dcfg.set_channel_download(True)
-            self.session.dlmgr.start_download(tdef=tdef, config=dcfg)
+            return self.session.dlmgr.start_download(tdef=tdef, config=dcfg)
 
     @db_session
     def clean_unsubscribed_channels(self):

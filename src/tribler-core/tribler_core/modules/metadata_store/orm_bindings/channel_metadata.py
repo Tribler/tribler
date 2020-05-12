@@ -58,7 +58,7 @@ def get_mdblob_sequence_number(filename):
     filepath = Path(filename)
     if filepath.suffixes == [BLOB_EXTENSION]:
         return int(filename.stem)
-    elif filepath.suffixes == [BLOB_EXTENSION, '.lz4']:
+    if filepath.suffixes == [BLOB_EXTENSION, '.lz4']:
         return int(Path(filepath.stem).stem)
     return None
 
@@ -211,8 +211,8 @@ def define_binding(db):
             """
             Channel torrents are append-only to support seeding the old versions
             from the same dir and avoid updating already downloaded blobs.
-            :param metadata_list: The list of metadata entries to add to the torrent dir. TODELETE entries should be sorted to be at the end!
-            :param start_timestamp: the starting timestamp for the channel
+            :param metadata_list: The list of metadata entries to add to the torrent dir.
+            ACHTUNG: TODELETE entries _MUST_ be sorted to the end of the list to prevent channel corruption!
             :return The newly create channel torrent infohash, final timestamp for the channel and torrent date
             """
             # As a workaround for delete entries not having a timestamp in the DB, delete entries should
@@ -284,6 +284,7 @@ def define_binding(db):
 
             if new_start_timestamp:
                 update_dict['start_timestamp'] = new_start_timestamp
+            # Update channel infohash, etc
             for attr, val in update_dict.items():
                 setattr(self, attr, val)
             self.local_version = self.timestamp
