@@ -339,7 +339,9 @@ def define_binding(db):
                     ).sum()
                     node.timestamp = clock.tick()
                     node.sign()
-            return sorted(commit_queue, key=lambda x: x.timestamp)[:-1]
+            # This perverted comparator lambda is necessary to ensure that delete entries are always
+            # sorted to the end of the list, as required by the channel serialization routine.
+            return sorted(commit_queue[:-1], key=lambda x: int(x.status == TODELETE) - 1 / x.timestamp)
 
         def delete(self, *args, **kwargs):
             # Recursively delete contents
