@@ -42,12 +42,13 @@ def _safe_extended_peer_info(ext_peer_info):
     """
     # First see if we can use this as-is
     if not ext_peer_info:
-        ext_peer_info = u''
+        return ''
+
     try:
         return ensure_unicode(ext_peer_info, "utf8")
     except UnicodeDecodeError:
         # We might have some special unicode characters in here
-        return u''.join([chr(ord(c)) for c in ext_peer_info])
+        return u''.join([chr(c) for c in ext_peer_info])
 
 
 class DownloadsEndpoint(RESTEndpoint):
