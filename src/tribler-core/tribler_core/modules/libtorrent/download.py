@@ -5,7 +5,7 @@ Author(s): Arno Bakker, Egbert Bouman
 """
 import base64
 import logging
-from asyncio import CancelledError, Future, TimeoutError, iscoroutine, sleep, wait_for
+from asyncio import CancelledError, Future, iscoroutine, sleep, wait_for
 from collections import defaultdict
 
 from ipv8.taskmanager import TaskManager, task
@@ -19,6 +19,7 @@ from tribler_core.exceptions import SaveResumeDataError
 from tribler_core.modules.libtorrent import check_handle, require_handle
 from tribler_core.modules.libtorrent.download_config import DownloadConfig, get_default_dest_dir
 from tribler_core.modules.libtorrent.download_state import DownloadState
+from tribler_core.modules.libtorrent.stream import Stream
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
 from tribler_core.utilities import path_util
 from tribler_core.utilities.osutils import fix_filebasename
@@ -75,6 +76,7 @@ class Download(TaskManager):
 
         for alert_type, alert_handler in alert_handlers.items():
             self.register_alert_handler(alert_type, alert_handler)
+        self.stream = Stream(self)
 
     def __str__(self):
         return "Download <name: '%s' hops: %d checkpoint_disabled: %d>" % \
@@ -358,7 +360,7 @@ class Download(TaskManager):
         self.update_lt_status(self.handle.status())
         self.checkpoint()
         if self.get_state().get_total_transferred(DOWNLOAD) > 0 \
-                and not (self.lt_status and self.lt_status.sequential_download):
+                and not self.stream.enabled:
             self.session.notifier.notify(NTFY.TORRENT_FINISHED, self.tdef.get_infohash(),
                                          self.tdef.get_name_as_unicode(), self.hidden)
 
@@ -380,7 +382,9 @@ class Download(TaskManager):
                 self.stop()
 
     @check_handle()
-    def set_selected_files(self, selected_files=None):
+    def set_selected_files(self, selected_files=None, prio=4, force=False):
+        if not force and self.stream.enabled:
+            return
         if not isinstance(self.tdef, TorrentDefNoMetainfo) and not self.get_share_mode():
             if selected_files is None:
                 selected_files = self.config.get_selected_files()
@@ -395,8 +399,8 @@ class Download(TaskManager):
             filepriorities = []
             torrent_storage = torrent_info.files()
             for index, file_entry in enumerate(torrent_storage):
-                filepriorities.append(1 if index in selected_files or not selected_files else 0)
-            self.handle.prioritize_files(filepriorities)
+                filepriorities.append(prio if index in selected_files or not selected_files else 0)
+            self.set_file_priorities(filepriorities)
 
     @check_handle(False)
     def move_storage(self, new_dir):
@@ -552,6 +556,7 @@ class Download(TaskManager):
 
     async def shutdown(self):
         self.alert_handlers.clear()
+        self.stream.close()
         for _, futures in self.futures.items():
             for future, _, _ in futures:
                 future.cancel()
@@ -560,10 +565,9 @@ class Download(TaskManager):
 
     def stop(self, user_stopped=None):
         self._logger.debug("Stopping %s", self.tdef.get_name())
-
+        self.stream.disable()
         if user_stopped is not None:
             self.config.set_user_stopped(user_stopped)
-
         if self.handle and self.handle.is_valid():
             self.handle.pause()
             return self.checkpoint()
@@ -681,7 +685,7 @@ class Download(TaskManager):
     def set_sequential_download(self, enable):
         self.handle.set_sequential_download(enable)
 
-    @require_handle
+    @check_handle(None)
     def set_piece_priorities(self, piece_priorities):
         self.handle.prioritize_pieces(piece_priorities)
 
@@ -689,9 +693,17 @@ class Download(TaskManager):
     def get_piece_priorities(self):
         return self.handle.piece_priorities()
 
-    @require_handle
+    @check_handle(None)
     def set_file_priorities(self, file_priorities):
         self.handle.prioritize_files(file_priorities)
+
+    @check_handle(None)
+    def reset_piece_deadline(self, piece):
+        self.handle.reset_piece_deadline(piece)
+
+    @check_handle(None)
+    def set_piece_deadline(self, piece, deadline, flags=0):
+        self.handle.set_piece_deadline(piece, deadline, flags)
 
     @check_handle([])
     def get_file_priorities(self):

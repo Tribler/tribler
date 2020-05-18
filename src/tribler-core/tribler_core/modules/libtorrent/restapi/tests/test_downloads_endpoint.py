@@ -537,6 +537,53 @@ class TestStreamingEndpoint(AbstractApiTest):
                                          expected_code=206, json_response=False)
         self.assertEqual(data[100:1000], response)
 
+    @timeout(10)
+    async def test_stream_enable(self):
+        info_hash, _data = await self.add_torrent() # pylint: disable=unused-variable
+        info_hash = hexlify(info_hash)
+        await self.do_request(f'downloads/{info_hash}', post_data={"vod_mode": True},
+                              expected_code=400, request_type='PATCH')
+        await self.do_request(f'downloads/{info_hash}', post_data={"vod_mode": "samueljackson", "fileindex": 0},
+                              expected_code=400, request_type='PATCH')
+        await self.do_request(f'downloads/{info_hash}', post_data={"vod_mode": True, "fileindex": 5},
+                              expected_code=500, request_type='PATCH')
+        await self.do_request(f'downloads/{info_hash}', post_data={"vod_mode": True, "fileindex": 0},
+                              expected_code=200, request_type='PATCH',
+                              expected_json={"modified": True,
+                                             "infohash": info_hash,
+                                             "vod_footer_progress": 1.0,
+                                             "vod_header_progress": 1.0,
+                                             "vod_prebuffering_progress": 1.0,
+                                             "vod_prebuffering_progress_consec": 1.0,
+                                             "vod_mode": True})
+        await self.do_request(f'downloads/{info_hash}', post_data={"vod_mode": True, "fileindex": 0},
+                              expected_code=200, request_type='PATCH',
+                              expected_json={"modified": False,
+                                             "infohash": info_hash,
+                                             "vod_footer_progress": 1.0,
+                                             "vod_header_progress": 1.0,
+                                             "vod_prebuffering_progress": 1.0,
+                                             "vod_prebuffering_progress_consec": 1.0,
+                                             "vod_mode": True})
+        await self.do_request(f'downloads/{info_hash}', post_data={"vod_mode": False, "fileindex": 0},
+                              expected_code=200, request_type='PATCH',
+                              expected_json={"modified": True,
+                                             "infohash": info_hash,
+                                             "vod_footer_progress": 0.0,
+                                             "vod_header_progress": 0.0,
+                                             "vod_prebuffering_progress": 0.0,
+                                             "vod_prebuffering_progress_consec": 0.0,
+                                             "vod_mode": False})
+        await self.do_request(f'downloads/{info_hash}', post_data={"vod_mode": False, "fileindex": 0},
+                              expected_code=200, request_type='PATCH',
+                              expected_json={"modified": False,
+                                             "infohash": info_hash,
+                                             "vod_footer_progress": 0.0,
+                                             "vod_header_progress": 0.0,
+                                             "vod_prebuffering_progress": 0.0,
+                                             "vod_prebuffering_progress_consec": 0.0,
+                                             "vod_mode": False})
+
     async def add_torrent(self, piece_length=1024):
         [srchandle, sourcefn] = mkstemp()
         data = b''.join([i.to_bytes(2, byteorder='big') for i in range(1000)])

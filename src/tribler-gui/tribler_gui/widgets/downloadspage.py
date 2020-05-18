@@ -141,10 +141,12 @@ class DownloadsPage(QWidget):
         elif self.window().download_details_widget.currentIndex() == 1:
             url += "&get_files=1"
 
-        if not self.isHidden() or (time.time() - self.downloads_last_update > 30):
+        isactive = not self.isHidden() or self.window().video_player_page.needsupdate
+
+        if isactive or (time.time() - self.downloads_last_update > 30):
             # Update if the downloads page is visible or if we haven't updated for longer than 30 seconds
             self.downloads_last_update = time.time()
-            priority = QNetworkRequest.LowPriority if self.isHidden() else QNetworkRequest.HighPriority
+            priority = QNetworkRequest.LowPriority if not isactive else QNetworkRequest.HighPriority
             if self.rest_request:
                 self.rest_request.cancel_request()
             self.rest_request = TriblerNetworkRequest(url, self.on_received_downloads, priority=priority)
@@ -351,10 +353,7 @@ class DownloadsPage(QWidget):
     def on_play_download_clicked(self):
         self.window().left_menu_button_video_player.click()
         selected_item = self.selected_items[:1]
-        if (
-            selected_item
-            and self.window().video_player_page.active_infohash != selected_item[0].download_info["infohash"]
-        ):
+        if selected_item:
             self.window().video_player_page.play_media_item(selected_item[0].download_info["infohash"], -1)
 
     def on_download_stopped(self, json_result):
@@ -364,6 +363,8 @@ class DownloadsPage(QWidget):
                     selected_item.download_info['status'] = "DLSTATUS_STOPPED"
                     selected_item.update_item()
                     self.on_download_item_clicked()
+                    if self.window().video_player_page.active_infohash == selected_item.download_info["infohash"]:
+                        self.window().video_player_page.reset_player()
 
     def on_remove_download_clicked(self):
         self.dialog = ConfirmationDialog(
@@ -418,10 +419,16 @@ class DownloadsPage(QWidget):
                     selected_item.update_item()
                     self.on_download_item_clicked()
 
+    def on_change_anonymity(self, result):
+        if result and "modified" in result:
+            if result["infohash"] == self.window().video_player_page.active_infohash:
+                self.window().video_player_page.reset_player()
+
     def change_anonymity(self, hops):
         for selected_item in self.selected_items:
             infohash = selected_item.download_info["infohash"]
-            TriblerNetworkRequest("downloads/%s" % infohash, lambda _: None, method='PATCH', data={"anon_hops": hops})
+            TriblerNetworkRequest("downloads/%s" % infohash, self.on_change_anonymity,
+                                  method='PATCH', data={"anon_hops": hops})
 
     def on_explore_files(self):
         for selected_item in self.selected_items:
