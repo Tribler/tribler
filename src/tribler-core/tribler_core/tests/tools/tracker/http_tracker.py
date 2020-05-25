@@ -40,16 +40,15 @@ class HTTPTracker(object):
         """
         Return a bencoded dictionary with information about the queried infohashes.
         """
-        parameters = await request.query
-        if 'info_hash' not in parameters:
+        if 'info_hash' not in request.query:
             return RESTResponse("infohash argument missing", status=HTTP_BAD_REQUEST)
 
         response_dict = {'files': {}}
-        for infohash in request.args[b'info_hash']:
-            if not self.session.tracker_info.has_info_about_infohash(infohash):
-                return RESTResponse("no info about infohash %s" % hexlify(infohash), status=HTTP_BAD_REQUEST)
+        for infohash in request.query['info_hash']:
+            if not self.tracker_info.has_info_about_infohash(infohash):
+                return RESTResponse("no info about infohash %s" % infohash, status=HTTP_BAD_REQUEST)
 
-            info_dict = self.session.tracker_info.get_info_about_infohash(infohash)
+            info_dict = self.tracker_info.get_info_about_infohash(infohash)
             response_dict['files'][infohash] = {'complete': info_dict['seeders'],
                                                 'downloaded': info_dict['downloaded'],
                                                 'incomplete': info_dict['leechers']}

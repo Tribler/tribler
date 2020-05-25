@@ -1,4 +1,5 @@
 from ipv8.attestation.trustchain.payload import HalfBlockPayload
+from ipv8.messaging.lazy_payload import VariablePayload
 from ipv8.messaging.payload import Payload
 
 
@@ -96,3 +97,15 @@ class BalanceRequestPayload(Payload):
     @property
     def circuit_id(self):
         return self._circuit_id
+
+
+class HTTPRequestPayload(VariablePayload):
+
+    format_list = ['I', 'I', 'varlenH', 'varlenH']
+    names = ['circuit_id', 'identifier', 'target', 'request']
+
+
+class HTTPResponsePayload(VariablePayload):
+
+    format_list = ['I', 'I', 'H', 'H', 'varlenH']
+    names = ['circuit_id', 'identifier', 'part', 'total', 'response']

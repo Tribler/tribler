@@ -9,10 +9,10 @@ class Socks5Server(object):
     This object represents a Socks5 server.
     """
 
-    def __init__(self, port, udp_output_stream):
+    def __init__(self, port, output_stream):
         self._logger = logging.getLogger(self.__class__.__name__)
         self.port = port
-        self.udp_output_stream = udp_output_stream
+        self.output_stream = output_stream
         self.server = None
         self.sessions = []
 
