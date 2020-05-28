@@ -356,6 +356,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         video_tdef, _ = self.create_local_torrent(TESTS_DATA_DIR / 'video.avi')
         download = self.session.dlmgr.start_download(tdef=video_tdef)
         infohash = get_hex_infohash(video_tdef)
+        await download.get_handle()
         download.set_selected_files = Mock()
 
         await self.do_request(f'downloads/{infohash}', post_data={"selected_files": [0]},
