@@ -1,5 +1,6 @@
 from asyncio import Future, wait_for
 from binascii import unhexlify
+from unittest.mock import Mock
 
 from tribler_core.modules.tunnel.socks5.connection import ConnectionState, Socks5Connection
 from tribler_core.tests.tools.base_test import MockObject
@@ -82,13 +83,26 @@ class TestSocks5Connection(AbstractServer):
         self.connection.data_received(unhexlify('0502000100000000263f'))
         self.assertEqual(len(self.connection.transport.written_data), 2)
 
-    def test_connect(self):
+    async def test_connect(self):
         """
-        Test sending a connect command (which should be denied, we don't support TCP over our SOCKS5)
+        Test sending a connect command and proxying data
         """
+        future = Future()
+
+        def fake_on_socks5_tcp_data(*args):
+            return future.set_result(args)
+
+        self.connection.socksserver = Mock()
+        self.connection.socksserver.output_stream.on_socks5_tcp_data = fake_on_socks5_tcp_data
         self.connection.data_received(unhexlify('050100'))
         self.connection.data_received(unhexlify('05010003096c6f63616c686f73740050'))
         self.assertEqual(len(self.connection.transport.written_data), 2)
+        self.assertEqual(self.connection.state, ConnectionState.PROXY_REQUEST_RECEIVED)
+        self.assertEqual(self.connection.connect_to, ('localhost', 80))
+        self.connection.data_received(b'GET / HTTP/1.1')
+
+        args = await wait_for(future, timeout=0.5)
+        self.assertEqual(args, (self.connection, ('localhost', 80), b'GET / HTTP/1.1'))
 
     def test_unknown_command(self):
         """

@@ -1,4 +1,5 @@
-from asyncio import Future, sleep
+import os
+from asyncio import Future, TimeoutError as AsyncTimeoutError, sleep, wait_for
 from unittest.mock import Mock
 
 from anydex.wallet.tc_wallet import TrustchainWallet
@@ -16,8 +17,9 @@ from ipv8.test.messaging.anonymization.test_community import MockDHTProvider
 from ipv8.test.mocking.exit_socket import MockTunnelExitSocket
 from ipv8.test.mocking.ipv8 import MockIPv8
 
-from tribler_core.modules.tunnel.community.triblertunnel_community import TriblerTunnelCommunity
+from tribler_core.modules.tunnel.community.triblertunnel_community import PEER_FLAG_EXIT_HTTP, TriblerTunnelCommunity
 from tribler_core.tests.tools.base_test import MockObject
+from tribler_core.tests.tools.tracker.http_tracker import HTTPTracker
 from tribler_core.utilities.path_util import mkdtemp
 from tribler_core.utilities.utilities import succeed
 
@@ -25,7 +27,6 @@ from tribler_core.utilities.utilities import succeed
 class TestTriblerTunnelCommunity(TestBase):
 
     def setUp(self):
-        super(TestTriblerTunnelCommunity, self).setUp()
         self.initialize(TriblerTunnelCommunity, 1)
 
     def create_node(self):
@@ -209,6 +210,7 @@ class TestTriblerTunnelCommunity(TestBase):
         mock_circuit.state = 'READY'
         mock_circuit.info_hash = b'a'
         mock_circuit.goal_hops = 1
+        mock_circuit.last_activity = 0
 
         self.nodes[0].overlay.remove_circuit = mocked_remove_circuit
         self.nodes[0].overlay.circuits[0] = mock_circuit
@@ -530,3 +532,106 @@ class TestTriblerTunnelCommunity(TestBase):
 
         # Node 0 should be rejected and the reject callback should be invoked by node 1
         await reject_future
+
+    async def test_perform_http_request(self):
+        """
+        Test whether we can make a http request through a circuit
+        """
+        self.add_node_to_experiment(self.create_node())
+        await self.nodes[0].overlay.bandwidth_wallet.shutdown_task_manager()
+        self.nodes[0].overlay.bandwidth_wallet = None
+        self.nodes[1].overlay.settings.peer_flags |= PEER_FLAG_EXIT_HTTP
+        await self.introduce_nodes()
+
+        self.nodes[0].overlay.build_tunnels(1)
+        await self.deliver_messages()
+
+        http_port = 1234
+        http_tracker = HTTPTracker(http_port)
+        http_tracker.tracker_info.add_info_about_infohash('0', 0, 0)
+        await http_tracker.start()
+        response = await self.nodes[0].overlay.perform_http_request(('127.0.0.1', http_port),
+                                                                    b'GET /scrape?info_hash=0 HTTP/1.1\r\n\r\n')
+
+        self.assertEqual(response.split(b'\r\n')[0], b'HTTP/1.1 200 OK')
+        self.assertEqual(response.split(b'\r\n\r\n')[1],
+                         (await http_tracker.handle_scrape_request(Mock(query={'info_hash': '0'}))).body)
+        await http_tracker.stop()
+
+    async def test_perform_http_request_multipart(self):
+        """
+        Test whether getting a large HTTP response works
+        """
+        self.add_node_to_experiment(self.create_node())
+        await self.nodes[0].overlay.bandwidth_wallet.shutdown_task_manager()
+        self.nodes[0].overlay.bandwidth_wallet = None
+        self.nodes[1].overlay.settings.peer_flags |= PEER_FLAG_EXIT_HTTP
+        await self.introduce_nodes()
+
+        self.nodes[0].overlay.build_tunnels(1)
+        await self.deliver_messages()
+
+        http_port = 1234
+        http_tracker = HTTPTracker(http_port)
+        http_tracker.tracker_info.add_info_about_infohash('0', 0, 0)
+        http_tracker.tracker_info.infohashes['0']['downloaded'] = os.urandom(10000)
+        await http_tracker.start()
+        response = await self.nodes[0].overlay.perform_http_request(('127.0.0.1', http_port),
+                                                                    b'GET /scrape?info_hash=0 HTTP/1.1\r\n\r\n')
+
+        self.assertEqual(response.split(b'\r\n')[0], b'HTTP/1.1 200 OK')
+        self.assertEqual(response.split(b'\r\n\r\n')[1],
+                         (await http_tracker.handle_scrape_request(Mock(query={'info_hash': '0'}))).body)
+        await http_tracker.stop()
+
+    async def test_perform_http_request_not_allowed(self):
+        """
+        Test whether we can make HTTP requests that don't have a bencoded response
+        """
+        self.add_node_to_experiment(self.create_node())
+        await self.nodes[0].overlay.bandwidth_wallet.shutdown_task_manager()
+        self.nodes[0].overlay.bandwidth_wallet = None
+        self.nodes[1].overlay.settings.peer_flags |= PEER_FLAG_EXIT_HTTP
+        await self.introduce_nodes()
+
+        self.nodes[0].overlay.build_tunnels(1)
+        await self.deliver_messages()
+
+        http_port = 1234
+        http_tracker = HTTPTracker(http_port)
+        await http_tracker.start()
+        with self.assertRaises(AsyncTimeoutError):
+            await wait_for(self.nodes[0].overlay.perform_http_request(('127.0.0.1', http_port),
+                                                                      b'GET /scrape?info_hash=0 HTTP/1.1\r\n\r\n'),
+                           timeout=.3)
+        await http_tracker.stop()
+
+    async def test_perform_http_request_no_http_exits(self):
+        """
+        Test whether we can make HTTP requests when we have no HTTP exits
+        """
+        self.add_node_to_experiment(self.create_node())
+        await self.nodes[0].overlay.bandwidth_wallet.shutdown_task_manager()
+        self.nodes[0].overlay.bandwidth_wallet = None
+        await self.introduce_nodes()
+        await self.deliver_messages()
+
+        with self.assertRaises(RuntimeError):
+            await self.nodes[0].overlay.perform_http_request(('127.0.0.1', 0),
+                                                             b'GET /scrape?info_hash=0 HTTP/1.1\r\n\r\n')
+
+    async def test_perform_http_request_circuit_failed(self):
+        """
+        Test whether we can make HTTP requests when circuit creation fails
+        """
+        self.add_node_to_experiment(self.create_node())
+        await self.nodes[0].overlay.bandwidth_wallet.shutdown_task_manager()
+        self.nodes[0].overlay.bandwidth_wallet = None
+        self.nodes[1].overlay.settings.peer_flags |= PEER_FLAG_EXIT_HTTP
+        await self.introduce_nodes()
+        await self.deliver_messages()
+        self.nodes[0].overlay.create_circuit = lambda *_, **__: None
+
+        with self.assertRaises(RuntimeError):
+            await self.nodes[0].overlay.perform_http_request(('127.0.0.1', 0),
+                                                             b'GET /scrape?info_hash=0 HTTP/1.1\r\n\r\n')

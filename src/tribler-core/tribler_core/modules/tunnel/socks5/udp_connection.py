@@ -48,7 +48,7 @@ class SocksUDPConnection(DatagramProtocol):
                 return False
 
             if request.frag == 0 and request.destination_host:
-                return self.socksconnection.socksserver.udp_output_stream.on_socks5_udp_data(self, request)
+                return self.socksconnection.socksserver.output_stream.on_socks5_udp_data(self, request)
             else:
                 self._logger.debug("No support for fragmented data or without destination host, dropping")
         else:

@@ -1,6 +1,8 @@
 import logging
 from asyncio import Protocol, ensure_future
 
+from ipv8.taskmanager import TaskManager
+
 from tribler_core.modules.tunnel.socks5 import conversion
 from tribler_core.modules.tunnel.socks5.conversion import SOCKS_VERSION
 from tribler_core.modules.tunnel.socks5.udp_connection import SocksUDPConnection
@@ -18,7 +20,7 @@ class ConnectionState(object):
     PROXY_REQUEST_ACCEPTED = 'PROXY_REQUEST_ACCEPTED'
 
 
-class Socks5Connection(Protocol):
+class Socks5Connection(Protocol, TaskManager):
     """
     SOCKS5 TCP Connection handler
 
@@ -26,9 +28,11 @@ class Socks5Connection(Protocol):
     """
 
     def __init__(self, socksserver):
+        super(Socks5Connection, self).__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
         self.socksserver = socksserver
         self.transport = None
+        self.connect_to = None
 
         self._udp_socket = None
         self.state = ConnectionState.BEFORE_METHOD_REQUEST
@@ -57,9 +61,13 @@ class Socks5Connection(Protocol):
             elif self.state == ConnectionState.CONNECTED:
                 if not self._try_request():
                     break  # Not enough bytes so wait till we got more
+            elif self.connect_to:
+                self.register_anonymous_task('on_socks5_tcp_data', self.socksserver.output_stream.on_socks5_tcp_data,
+                                             self, self.connect_to, self.buffer)
+                self.buffer = b''
             else:
                 self._logger.error("Throwing away buffer, not in CONNECTED or BEFORE_METHOD_REQUEST state")
-                self.buffer = ''
+                self.buffer = b''
 
     def _try_handshake(self):
         """
@@ -118,7 +126,7 @@ class Socks5Connection(Protocol):
 
         try:
             if request.cmd == conversion.REQ_CMD_UDP_ASSOCIATE:
-                ensure_future(self.on_udp_associate_request(self, request))
+                ensure_future(self.on_udp_associate_request(request))
 
             elif request.cmd == conversion.REQ_CMD_BIND:
                 response = conversion.encode_reply(0x05, conversion.REP_SUCCEEDED, 0x00,
@@ -128,11 +136,10 @@ class Socks5Connection(Protocol):
                 self.state = ConnectionState.PROXY_REQUEST_ACCEPTED
 
             elif request.cmd == conversion.REQ_CMD_CONNECT:
-                self._logger.info("TCP req to %s:%d support it. Returning HOST UNREACHABLE",
-                                  *request.destination)
-
-                response = conversion.encode_reply(0x05, conversion.REP_HOST_UNREACHABLE, 0x00,
-                                                   conversion.ADDRESS_TYPE_IPV4, "0.0.0.0", 0)
+                self._logger.info("Accepting TCP CONNECT request to %s:%d", *request.destination)
+                self.connect_to = request.destination
+                response = conversion.encode_reply(0x05, conversion.REP_SUCCEEDED, 0x00,
+                                                   conversion.ADDRESS_TYPE_IPV4, "127.0.0.1", 1081)
                 self.transport.write(response)
 
             else:
@@ -158,7 +165,7 @@ class Socks5Connection(Protocol):
         self.transport.write(response)
         self._logger.error("DENYING SOCKS5 request, reason: %s" % reason)
 
-    async def on_udp_associate_request(self, connection, request):
+    async def on_udp_associate_request(self, request):
         # The DST.ADDR and DST.PORT fields contain the address and port that the client expects
         # to use to send UDP datagrams on for the association.  The server MAY use this information
         # to limit access to the association.

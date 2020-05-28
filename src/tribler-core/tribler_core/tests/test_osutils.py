@@ -41,7 +41,6 @@ class Test_OsUtils(BaseTestCase):
           '\x5c\x5c': '__',
           '\x5c\x61\x5c': '_a_',
           '\x2f\x61': '_a',    # \x2f = '/'
-          '\x92\x97': '\x92\x97',
           '\x2f\x2f': '__',
           '\x2f\x61\x2f': '_a_',
           'a' * 300: 'a' * 255
