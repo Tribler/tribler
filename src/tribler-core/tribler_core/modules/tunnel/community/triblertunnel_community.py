@@ -39,6 +39,8 @@ from tribler_core.utilities import path_util
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import succeed
 
+DESTROY_REASON_BALANCE = 65535
+
 
 class TriblerTunnelCommunity(HiddenTunnelCommunity):
     """
@@ -63,7 +65,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         if self.tribler_session:
             if self.tribler_session.config.get_tunnel_community_exitnode_enabled():
-                self.settings.peer_flags |= PEER_FLAG_EXIT_ANY
+                self.settings.peer_flags.add(PEER_FLAG_EXIT_ANY)
 
             if not socks_listen_ports:
                 socks_listen_ports = self.tribler_session.config.get_tunnel_community_socks5_listen_ports()
@@ -176,8 +178,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                              old_circuit_id, lowest_balance, circuit_id, balance)
             self.competing_slots[lowest_index] = (balance, circuit_id)
 
-            self.remove_relay(old_circuit_id, destroy=True)
-            self.remove_exit_socket(old_circuit_id, destroy=True)
+            self.remove_relay(old_circuit_id, destroy=DESTROY_REASON_BALANCE)
+            self.remove_exit_socket(old_circuit_id, destroy=DESTROY_REASON_BALANCE)
 
             cache.balance_future.set_result(True)
         else:

@@ -62,7 +62,7 @@ class TestTriblerTunnelCommunity(TestBase):
         """
         exit_node = self.create_node()
         self.nodes.append(exit_node) # So it could be properly removed on exit
-        exit_node.overlay.settings.peer_flags |= PEER_FLAG_EXIT_ANY
+        exit_node.overlay.settings.peer_flags.add(PEER_FLAG_EXIT_ANY)
         public_peer = Peer(exit_node.my_peer.public_key, exit_node.my_peer.address)
         self.nodes[node_nr].network.add_verified_peer(public_peer)
         self.nodes[node_nr].network.discover_services(public_peer, exit_node.overlay.master_peer.mid)
@@ -79,7 +79,7 @@ class TestTriblerTunnelCommunity(TestBase):
         """
         # 1. Add and exit node
         exit_node = self.create_node()
-        exit_node.overlay.settings.peer_flags |= PEER_FLAG_EXIT_ANY
+        exit_node.overlay.settings.peer_flags.add(PEER_FLAG_EXIT_ANY)
         self.add_node_to_experiment(exit_node)
         self.nodes[0].overlay.candidates[exit_node.my_peer] = exit_node.overlay.settings.peer_flags
         self.assertGreaterEqual(len(self.nodes[0].overlay.get_candidates(PEER_FLAG_EXIT_ANY)), 1)
@@ -272,7 +272,7 @@ class TestTriblerTunnelCommunity(TestBase):
         self.add_node_to_experiment(self.create_node())
 
         # Build a tunnel
-        self.nodes[2].overlay.settings.peer_flags |= PEER_FLAG_EXIT_ANY
+        self.nodes[2].overlay.settings.peer_flags.add(PEER_FLAG_EXIT_ANY)
         await self.introduce_nodes()
         self.nodes[0].overlay.build_tunnels(2)
         await self.deliver_messages(timeout=.5)
@@ -282,7 +282,7 @@ class TestTriblerTunnelCommunity(TestBase):
         # Destroy the circuit
         for circuit_id, circuit in self.nodes[0].overlay.circuits.items():
             circuit.bytes_down = 250 * 1024 * 1024
-            self.nodes[0].overlay.remove_circuit(circuit_id, destroy=True)
+            self.nodes[0].overlay.remove_circuit(circuit_id, destroy=1)
 
         await sleep(0.5)
 
@@ -296,7 +296,7 @@ class TestTriblerTunnelCommunity(TestBase):
         Test whether a circuit is rejected by an exit node if it already joined the max number of circuits
         """
         self.add_node_to_experiment(self.create_node())
-        self.nodes[1].overlay.settings.peer_flags |= PEER_FLAG_EXIT_ANY
+        self.nodes[1].overlay.settings.peer_flags.add(PEER_FLAG_EXIT_ANY)
         self.nodes[1].overlay.settings.max_joined_circuits = 0
         await self.introduce_nodes()
         self.nodes[0].overlay.build_tunnels(1)
@@ -328,7 +328,7 @@ class TestTriblerTunnelCommunity(TestBase):
         for circuit_id, circuit in self.nodes[0].overlay.circuits.items():
             if circuit.ctype == CIRCUIT_TYPE_RP_DOWNLOADER:
                 circuit.bytes_down = 250 * 1024 * 1024
-                self.nodes[0].overlay.remove_circuit(circuit_id, destroy=True)
+                self.nodes[0].overlay.remove_circuit(circuit_id, destroy=1)
                 removed_circuits.append(circuit_id)
 
         await sleep(0.5)
@@ -341,7 +341,7 @@ class TestTriblerTunnelCommunity(TestBase):
         # Ensure balances remain unchanged after calling remove_circuit a second time
         balances = [self.nodes[i].overlay.bandwidth_wallet.get_bandwidth_tokens() for i in range(3)]
         for circuit_id in removed_circuits:
-            self.nodes[0].overlay.remove_circuit(circuit_id, destroy=True)
+            self.nodes[0].overlay.remove_circuit(circuit_id, destroy=1)
         for i in range(3):
             self.assertEqual(self.nodes[i].overlay.bandwidth_wallet.get_bandwidth_tokens(), balances[i])
 
@@ -352,7 +352,7 @@ class TestTriblerTunnelCommunity(TestBase):
         self.add_node_to_experiment(self.create_node())
 
         # Build a tunnel
-        self.nodes[1].overlay.settings.peer_flags |= PEER_FLAG_EXIT_ANY
+        self.nodes[1].overlay.settings.peer_flags.add(PEER_FLAG_EXIT_ANY)
         await self.introduce_nodes()
         self.nodes[0].overlay.build_tunnels(1)
         await self.deliver_messages(timeout=.5)
@@ -373,7 +373,7 @@ class TestTriblerTunnelCommunity(TestBase):
         Test whether a circuit is not created when a node does not have enough balance for a competing slot
         """
         self.add_node_to_experiment(self.create_node())
-        self.nodes[1].overlay.settings.peer_flags |= PEER_FLAG_EXIT_ANY
+        self.nodes[1].overlay.settings.peer_flags.add(PEER_FLAG_EXIT_ANY)
         await self.introduce_nodes()
         self.nodes[1].overlay.random_slots = []
         self.nodes[1].overlay.competing_slots = [(1000, 1234)]
@@ -388,7 +388,7 @@ class TestTriblerTunnelCommunity(TestBase):
         Test whether a circuit is created when a node has enough balance for a competing slot
         """
         self.add_node_to_experiment(self.create_node())
-        self.nodes[1].overlay.settings.peer_flags |= PEER_FLAG_EXIT_ANY
+        self.nodes[1].overlay.settings.peer_flags.add(PEER_FLAG_EXIT_ANY)
         await self.introduce_nodes()
         self.nodes[1].overlay.random_slots = []
         self.nodes[1].overlay.competing_slots = [(-1000, 1234)]
@@ -403,7 +403,7 @@ class TestTriblerTunnelCommunity(TestBase):
         Test whether a circuit is created when a node takes an empty competing slot
         """
         self.add_node_to_experiment(self.create_node())
-        self.nodes[1].overlay.settings.peer_flags |= PEER_FLAG_EXIT_ANY
+        self.nodes[1].overlay.settings.peer_flags.add(PEER_FLAG_EXIT_ANY)
         await self.introduce_nodes()
         self.nodes[1].overlay.random_slots = []
         self.nodes[1].overlay.competing_slots = [(0, None)]
@@ -419,7 +419,7 @@ class TestTriblerTunnelCommunity(TestBase):
         """
         self.add_node_to_experiment(self.create_node())
         self.add_node_to_experiment(self.create_node())
-        self.nodes[2].overlay.settings.peer_flags |= PEER_FLAG_EXIT_ANY
+        self.nodes[2].overlay.settings.peer_flags.add(PEER_FLAG_EXIT_ANY)
         await self.introduce_nodes()
         self.nodes[2].overlay.random_slots = []
         self.nodes[2].overlay.competing_slots = [(-1000, 1234)]
@@ -435,7 +435,7 @@ class TestTriblerTunnelCommunity(TestBase):
         """
         self.add_node_to_experiment(self.create_node())
         self.add_node_to_experiment(self.create_node())
-        self.nodes[2].overlay.settings.peer_flags |= PEER_FLAG_EXIT_ANY
+        self.nodes[2].overlay.settings.peer_flags.add(PEER_FLAG_EXIT_ANY)
         await self.introduce_nodes()
         self.nodes[1].overlay.random_slots = []
         self.nodes[1].overlay.competing_slots = [(-1000, 1234)]
@@ -451,7 +451,7 @@ class TestTriblerTunnelCommunity(TestBase):
         """
         self.add_node_to_experiment(self.create_node())
         self.add_node_to_experiment(self.create_node())
-        self.nodes[2].overlay.settings.peer_flags |= PEER_FLAG_EXIT_ANY
+        self.nodes[2].overlay.settings.peer_flags.add(PEER_FLAG_EXIT_ANY)
         await self.introduce_nodes()
 
         # Make sure that there's a token disbalance between node 0 and 1
@@ -486,7 +486,7 @@ class TestTriblerTunnelCommunity(TestBase):
         self.add_node_to_experiment(self.create_node())
         await self.nodes[0].overlay.bandwidth_wallet.shutdown_task_manager()
         self.nodes[0].overlay.bandwidth_wallet = None
-        self.nodes[1].overlay.settings.peer_flags |= PEER_FLAG_EXIT_ANY
+        self.nodes[1].overlay.settings.peer_flags.add(PEER_FLAG_EXIT_ANY)
         await self.introduce_nodes()
 
         # Initialize the slots
@@ -504,7 +504,7 @@ class TestTriblerTunnelCommunity(TestBase):
         """
         reject_future = Future()
         self.add_node_to_experiment(self.create_node())
-        self.nodes[1].overlay.settings.peer_flags |= PEER_FLAG_EXIT_ANY
+        self.nodes[1].overlay.settings.peer_flags.add(PEER_FLAG_EXIT_ANY)
         await self.introduce_nodes()
 
         # Make sure that there's a token disbalance between node 0 and 1

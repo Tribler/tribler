@@ -437,17 +437,7 @@
               </column>
               <column>
                <property name="text">
-                <string>Goal hops</string>
-               </property>
-              </column>
-              <column>
-               <property name="text">
-                <string>Actual hops</string>
-               </property>
-              </column>
-              <column>
-               <property name="text">
-                <string>Unverified hop</string>
+                <string>Hops</string>
                </property>
               </column>
               <column>
@@ -473,6 +463,11 @@
               <column>
                <property name="text">
                 <string>Uptime</string>
+               </property>
+              </column>
+              <column>
+               <property name="text">
+                <string>Exit flags</string>
                </property>
               </column>
              </widget>
@@ -655,6 +650,60 @@
               <column>
                <property name="text">
                 <string>Down</string>
+               </property>
+              </column>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+          <widget class="QWidget" name="tab_10">
+           <attribute name="title">
+            <string>Peers</string>
+           </attribute>
+           <layout class="QVBoxLayout" name="verticalLayout">
+            <property name="spacing">
+             <number>0</number>
+            </property>
+            <property name="leftMargin">
+             <number>0</number>
+            </property>
+            <property name="topMargin">
+             <number>0</number>
+            </property>
+            <property name="rightMargin">
+             <number>0</number>
+            </property>
+            <property name="bottomMargin">
+             <number>0</number>
+            </property>
+            <item>
+             <widget class="QTreeWidget" name="peers_tree_widget">
+              <property name="indentation">
+               <number>0</number>
+              </property>
+              <column>
+               <property name="text">
+                <string>Ip</string>
+               </property>
+              </column>
+              <column>
+               <property name="text">
+                <string>Port</string>
+               </property>
+              </column>
+              <column>
+               <property name="text">
+                <string>Mid</string>
+               </property>
+              </column>
+              <column>
+               <property name="text">
+                <string>Key compatible?</string>
+               </property>
+              </column>
+              <column>
+               <property name="text">
+                <string>Flags</string>
                </property>
               </column>
              </widget>

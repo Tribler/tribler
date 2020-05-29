@@ -189,6 +189,8 @@ class DebugWindow(QMainWindow):
             self.run_with_timer(self.load_tunnel_exits_tab)
         elif index == 3:
             self.run_with_timer(self.load_tunnel_swarms_tab)
+        elif index == 4:
+            self.run_with_timer(self.load_tunnel_peers_tab)
 
     def system_tab_changed(self, index):
         if index == 0:
@@ -376,25 +378,30 @@ class DebugWindow(QMainWindow):
             tree.addTopLevelItem(widget_item)
 
     def load_tunnel_circuits_tab(self):
+        self.window().circuits_tree_widget.setColumnWidth(3, 200)
         TriblerNetworkRequest("ipv8/tunnel/circuits", self.on_tunnel_circuits)
 
-    def on_tunnel_circuits(self, data):
-        if data:
-            self.add_items_to_tree(
-                self.window().circuits_tree_widget,
-                data.get("circuits"),
-                [
-                    "circuit_id",
-                    "goal_hops",
-                    "actual_hops",
-                    "unverified_hop",
-                    "type",
-                    "state",
-                    "bytes_up",
-                    "bytes_down",
-                    "creation_time",
-                ],
-            )
+    def on_tunnel_circuits(self, circuits):
+        if not circuits:
+            return
+
+        for c in circuits["circuits"]:
+            c["hops"] = f"{c['goal_hops']} / {c['goal_hops']}"
+
+        self.add_items_to_tree(
+            self.window().circuits_tree_widget,
+            circuits.get("circuits"),
+            [
+                "circuit_id",
+                "hops",
+                "type",
+                "state",
+                "bytes_up",
+                "bytes_down",
+                "creation_time",
+                "exit_flags"
+            ],
+        )
 
     def load_tunnel_relays_tab(self):
         TriblerNetworkRequest("ipv8/tunnel/relays", self.on_tunnel_relays)
@@ -435,6 +442,24 @@ class DebugWindow(QMainWindow):
                     "last_lookup",
                     "bytes_up",
                     "bytes_down",
+                ],
+            )
+
+    def load_tunnel_peers_tab(self):
+        self.window().peers_tree_widget.setColumnWidth(2, 300)
+        TriblerNetworkRequest("ipv8/tunnel/peers", self.on_tunnel_peers)
+
+    def on_tunnel_peers(self, data):
+        if data:
+            self.add_items_to_tree(
+                self.window().peers_tree_widget,
+                data.get("peers"),
+                [
+                    "ip",
+                    "port",
+                    "mid",
+                    "is_key_compatible",
+                    "flags",
                 ],
             )
 
