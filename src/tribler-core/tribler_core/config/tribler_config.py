@@ -42,6 +42,12 @@ class TriblerConfig(object):
         self.validate()
         self.selected_ports = {}
 
+        # Set the default destination dir. The value should be in the config dict
+        # because of the REST endpoint sending the whole dict to the GUI.
+        # TODO: do not write the value into the config file if the user did not change it
+        if self.config['download_defaults']['saveas'] is None:
+            self.config['download_defaults']['saveas'] = str(self.abspath(get_default_dest_dir()))
+
     def abspath(self, path):
         return path_util.abspath(path, optional_prefix=self.get_state_dir())
 
@@ -469,11 +475,7 @@ class TriblerConfig(object):
         self.config['download_defaults']['saveas'] = str(self.norm_path(value))
 
     def get_default_destination_dir(self):
-        # set defaults downloads path
-        value = self.config['download_defaults']['saveas']
-        if not value:
-            value = self.config['download_defaults']['saveas'] = str(get_default_dest_dir())
-        return self.abspath(value)
+        return Path(self.config['download_defaults']['saveas'])
 
     def set_default_add_download_to_channel(self, value):
         self.config['download_defaults']['add_download_to_channel'] = value
