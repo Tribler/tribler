@@ -1,4 +1,5 @@
 from unittest import TestCase
+from unittest.mock import Mock
 
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.messaging.anonymization.tunnel import PEER_FLAG_EXIT_ANY
@@ -30,6 +31,8 @@ class TestGoldenRatio(TestCase):
     @classmethod
     def _generate_overlay_and_peers(cls):
         overlay = FakeOverlay()
+        overlay.candidates = {}
+        overlay.send_introduction_request = Mock()
         peer1 = cls._generate_peer()  # Normal peer
         peer2 = cls._generate_peer()  # Exit node
         overlay.exit_candidates.append(peer2)
@@ -81,3 +84,16 @@ class TestGoldenRatio(TestCase):
         # The normal peer should be removed
         self.assertEqual(1, len(overlay.network.verified_peers))
         self.assertIn(peer1, overlay.network.verified_peers)
+
+    def test_send_introduction_request(self):
+        """
+        If a node has sent us its peer_flag, check if an introduction_request is sent.
+        """
+        overlay, peer1, peer2 = self._generate_overlay_and_peers()
+        overlay.candidates[peer2] = []
+
+        strategy = GoldenRatioStrategy(overlay, 1.0, 1)
+        strategy.take_step()
+
+        overlay.send_introduction_request.assert_called_once_with(peer1)
+
