@@ -99,11 +99,6 @@ cpu_priority = integer(min=0, max=5, default=1)
 poll_interval = integer(min=1, default=5)
 history_size = integer(min=1, default=20)
 
-[credit_mining]
-enabled = boolean(default=False)
-sources = string_list(default=list())
-max_disk_space = integer(min=0, default=53687091200)
-
 [popularity_community]
 enabled = boolean(default=True)
 cache_dir = string(default=health_cache)

@@ -229,7 +229,6 @@ class TriblerWindow(QMainWindow):
         self.core_manager.events_manager.discovered_channel.connect(self.discovered_page.model.on_new_entry_received)
 
         self.trust_page.initialize_trust_page()
-        self.token_mining_page.initialize_token_mining_page()
         self.trust_graph_page.initialize_trust_graph()
 
         self.stackedWidget.setCurrentIndex(PAGE_LOADING)
@@ -306,7 +305,6 @@ class TriblerWindow(QMainWindow):
         self.core_manager.events_manager.new_version_available.connect(self.on_new_version_available)
         self.core_manager.events_manager.tribler_started.connect(self.on_tribler_started)
         self.core_manager.events_manager.low_storage_signal.connect(self.on_low_storage)
-        self.core_manager.events_manager.credit_mining_signal.connect(self.on_credit_mining_error)
         self.core_manager.events_manager.tribler_shutdown_signal.connect(self.on_tribler_shutdown_state_update)
 
         # Install signal handler for ctrl+c events
@@ -635,8 +633,6 @@ class TriblerWindow(QMainWindow):
         self.video_player_page.video_player_port = self.core_manager.api_port
         self.video_player_page.video_player_api_key = self.core_manager.api_key.decode('utf-8')
 
-        # Disable various components based on the settings
-        self.downloads_creditmining_button.setHidden(not self.tribler_settings["credit_mining"]["enabled"])
         self.downloads_all_button.click()
 
         # process pending file requests (i.e. someone clicked a torrent file when Tribler was closed)
@@ -1067,9 +1063,6 @@ class TriblerWindow(QMainWindow):
             self.stackedWidget.setCurrentIndex(prev_page)
         except IndexError:
             logging.exception("Unknown page found in stack")
-
-    def on_credit_mining_error(self, error):
-        ConfirmationDialog.show_error(self, "Credit Mining Error", error[u'message'])
 
     def resizeEvent(self, _):
         # This thing here is necessary to send the resize event to dialogs, etc.

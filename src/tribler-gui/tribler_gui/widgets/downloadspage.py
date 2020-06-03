@@ -20,7 +20,6 @@ from tribler_gui.defs import (
     DOWNLOADS_FILTER_ALL,
     DOWNLOADS_FILTER_CHANNELS,
     DOWNLOADS_FILTER_COMPLETED,
-    DOWNLOADS_FILTER_CREDITMINING,
     DOWNLOADS_FILTER_DEFINITION,
     DOWNLOADS_FILTER_DOWNLOADING,
     DOWNLOADS_FILTER_INACTIVE,
@@ -28,7 +27,7 @@ from tribler_gui.defs import (
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import TriblerFileDownloadRequest, TriblerNetworkRequest
-from tribler_gui.utilities import compose_magnetlink, format_size, format_speed
+from tribler_gui.utilities import compose_magnetlink, format_speed
 from tribler_gui.widgets.downloadwidgetitem import DownloadWidgetItem
 from tribler_gui.widgets.loading_list_item import LoadingListItem
 
@@ -38,7 +37,6 @@ button_name2filter = {
     "downloads_completed_button": DOWNLOADS_FILTER_COMPLETED,
     "downloads_active_button": DOWNLOADS_FILTER_ACTIVE,
     "downloads_inactive_button": DOWNLOADS_FILTER_INACTIVE,
-    "downloads_creditmining_button": DOWNLOADS_FILTER_CREDITMINING,
     "downloads_channels_button": DOWNLOADS_FILTER_CHANNELS,
 }
 
@@ -213,8 +211,6 @@ class DownloadsPage(QWidget):
         if len(self.window().downloads_list.selectedItems()) > 0:
             self.on_download_item_clicked()
 
-        self.update_credit_mining_disk_usage()
-
         self.received_downloads.emit(downloads)
 
     def update_download_visibility(self):
@@ -224,17 +220,13 @@ class DownloadsPage(QWidget):
                 continue
 
             filter_match = self.window().downloads_filter_input.text().lower() in item.download_info["name"].lower()
-            is_creditmining = item.download_info["credit_mining"]
             is_channel = item.download_info["channel_download"]
-            if self.filter == DOWNLOADS_FILTER_CREDITMINING:
-                item.setHidden(not is_creditmining or not filter_match)
-            elif self.filter == DOWNLOADS_FILTER_CHANNELS:
+            if self.filter == DOWNLOADS_FILTER_CHANNELS:
                 item.setHidden(not is_channel or not filter_match)
             else:
                 item.setHidden(
                     not item.get_raw_download_status() in DOWNLOADS_FILTER_DEFINITION[self.filter]
                     or not filter_match
-                    or is_creditmining
                     or is_channel
                 )
 
@@ -244,37 +236,6 @@ class DownloadsPage(QWidget):
         self.window().downloads_list.clearSelection()
         self.window().download_details_widget.hide()
         self.update_download_visibility()
-        self.update_credit_mining_disk_usage()
-
-    def update_credit_mining_disk_usage(self):
-        on_credit_mining_tab = self.filter == DOWNLOADS_FILTER_CREDITMINING
-        self.window().diskspace_usage.setVisible(on_credit_mining_tab)
-
-        if not on_credit_mining_tab or not self.window().tribler_settings or not self.downloads:
-            return
-
-        bytes_max = self.window().tribler_settings["credit_mining"]["max_disk_space"]
-        bytes_used = 0
-        total_up = total_down = 0
-        for download in self.downloads["downloads"]:
-            if download["credit_mining"] and download["status"] in (
-                "DLSTATUS_DOWNLOADING",
-                "DLSTATUS_SEEDING",
-                "DLSTATUS_STOPPED",
-                "DLSTATUS_STOPPED_ON_ERROR",
-            ):
-                bytes_used += download["progress"] * download["size"]
-                total_up += download["total_up"]
-                total_down += download["total_down"]
-        self.window().diskspace_usage.setText(
-            "Disk usage: %s / %s \tUpload: %.3f MB \tDownload: %.3f MB"
-            % (
-                format_size(float(bytes_used)),
-                format_size(float(bytes_max)),
-                total_up / 1048576.0,
-                total_down / 1028576.0,
-            )
-        )
 
     @staticmethod
     def start_download_enabled(download_widgets):

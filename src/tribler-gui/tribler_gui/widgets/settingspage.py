@@ -1,9 +1,9 @@
 import sys
 
+from PIL.ImageQt import ImageQt
+
 from PyQt5 import QtCore, QtGui
 from PyQt5.QtWidgets import QFileDialog, QLabel, QSizePolicy, QWidget
-
-from PIL.ImageQt import ImageQt
 
 import tribler_core.utilities.json_util as json
 
@@ -83,7 +83,6 @@ class SettingsPage(QWidget):
             self.window().lt_utp_checkbox,
             self.window().watchfolder_enabled_checkbox,
             self.window().allow_exit_node_checkbox,
-            self.window().credit_mining_enabled_checkbox,
             self.window().developer_mode_enabled_checkbox,
             self.window().checkbox_enable_network_statistics,
             self.window().checkbox_enable_resource_log,
@@ -318,8 +317,6 @@ class SettingsPage(QWidget):
         self.window().number_hops_slider.setValue(int(settings['download_defaults']['number_hops']))
         self.window().number_hops_slider.valueChanged.connect(self.update_anonymity_cost_label)
         self.update_anonymity_cost_label(int(settings['download_defaults']['number_hops']))
-        self.window().credit_mining_enabled_checkbox.setChecked(settings['credit_mining']['enabled'])
-        self.window().max_disk_space_input.setText(str(settings['credit_mining']['max_disk_space']))
 
         # Debug
         self.window().developer_mode_enabled_checkbox.setChecked(
@@ -394,7 +391,6 @@ class SettingsPage(QWidget):
             'watch_folder': {},
             'tunnel_community': {},
             'trustchain': {},
-            'credit_mining': {},
             'resource_monitor': {},
             'ipv8': {},
             'chant': {},
@@ -506,15 +502,6 @@ class SettingsPage(QWidget):
                 self.window(),
                 "Invalid seeding time",
                 "You've entered an invalid format for the seeding time (expected HH:MM)",
-            )
-            return
-
-        settings_data['credit_mining']['enabled'] = self.window().credit_mining_enabled_checkbox.isChecked()
-        try:
-            settings_data['credit_mining']['max_disk_space'] = int(self.window().max_disk_space_input.text())
-        except ValueError:
-            ConfirmationDialog.show_error(
-                self.window(), "Invalid number", "You've entered an invalid number for max disk space value"
             )
             return
 

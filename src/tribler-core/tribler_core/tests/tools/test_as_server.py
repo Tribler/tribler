@@ -258,7 +258,6 @@ class TestAsServer(AbstractServer):
         self.config.set_libtorrent_enabled(False)
         self.config.set_http_api_enabled(False)
         self.config.set_tunnel_community_enabled(False)
-        self.config.set_credit_mining_enabled(False)
         self.config.set_market_community_enabled(False)
         self.config.set_popularity_community_enabled(False)
         self.config.set_dht_enabled(False)
@@ -316,7 +315,6 @@ class TestAsServer(AbstractServer):
         self.seed_config.set_version_checker_enabled(False)
         self.seed_config.set_bitcoinlib_enabled(False)
         self.seed_config.set_chant_enabled(False)
-        self.seed_config.set_credit_mining_enabled(False)
         self.seed_config.set_resource_monitor_enabled(False)
         self.seed_config.set_bootstrap_enabled(False)
 

@@ -10,7 +10,7 @@ from tribler_gui.tests.fake_tribler_api.models.download_peer import DownloadPeer
 
 
 class Download(object):
-    def __init__(self, torrent, is_credit_mining=False, is_channel_download=False):
+    def __init__(self, torrent, is_channel_download=False):
         self.torrent = torrent
         self.status = randint(0, 8)
         self.anon = True if randint(0, 1) == 0 else False
@@ -34,7 +34,6 @@ class Download(object):
         self.total_pieces = randint(100, 2000)
         self.has_pieces = [False] * self.total_pieces
         self.time_added = randint(1400000000, 1484819242)
-        self.is_credit_mining = is_credit_mining
         self.is_channel_download = is_channel_download
 
         # Set some pieces to True
@@ -91,7 +90,6 @@ class Download(object):
             "time_added": self.time_added,
             "vod_mode": False,
             "vod_prebuffering_progress_consec": 0.34,
-            "credit_mining": self.is_credit_mining,
             "num_connected_peers": self.num_connected_peers,
             "num_connected_seeds": self.num_connected_seeds,
             "channel_download": self.is_channel_download,

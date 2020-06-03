@@ -64,7 +64,6 @@ class TestDownloadManager(AbstractServer):
 
         self.tribler_session.dlmgr = self.dlmgr
         self.tribler_session.tunnel_community = None
-        self.tribler_session.credit_mining_manager = None
 
         self.tribler_session.config = MockObject()
         self.tribler_session.config.get_libtorrent_utp = lambda: True
@@ -218,7 +217,6 @@ class TestDownloadManager(AbstractServer):
         metainfo_session.get_torrents = lambda: []
 
         metainfo_dl = Mock()
-        metainfo_dl.config.get_credit_mining = lambda: False
         metainfo_dl.get_def = lambda: Mock(get_infohash=lambda: infohash)
 
         self.dlmgr.initialize()
@@ -294,7 +292,6 @@ class TestDownloadManager(AbstractServer):
         infohash = b'a' * 20
 
         mock_download = Mock()
-        mock_download.config.get_credit_mining = lambda: False
         mock_download.get_def = lambda: Mock(get_trackers_as_single_tuple=lambda: ())
 
         mock_ltsession = Mock()

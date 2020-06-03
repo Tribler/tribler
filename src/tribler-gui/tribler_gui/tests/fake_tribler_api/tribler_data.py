@@ -82,7 +82,6 @@ class TriblerData(object):
                 "trustchain": {"enabled": True},
                 "tunnel_community": {"exitnode_enabled": True},
                 "search_community": {"enabled": True},
-                "credit_mining": {"enabled": True, "sources": [], "max_disk_space": 100},
                 "resource_monitor": {"enabled": True},
                 "chant": {"enabled": True, "channel_edit": True},
             },
@@ -213,11 +212,6 @@ class TriblerData(object):
 
         for _ in range(randint(10, 30)):
             self.start_random_download()
-
-        # Start some credit mining downloads
-        for _ in range(randint(1, 5)):
-            random_torrent = sample(self.torrents, 1)[0]
-            self.downloads.append(Download(random_torrent, is_credit_mining=True))
 
         # Start some channel downloads
         for _ in range(randint(1, 5)):

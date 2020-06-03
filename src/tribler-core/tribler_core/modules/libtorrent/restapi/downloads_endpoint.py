@@ -26,7 +26,8 @@ from tribler_core.restapi.rest_endpoint import (
     HTTP_NOT_FOUND,
     RESTEndpoint,
     RESTResponse,
-    RESTStreamResponse)
+    RESTStreamResponse,
+)
 from tribler_core.restapi.util import return_handled_exception
 from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.torrent_utils import get_info_from_handle
@@ -264,7 +265,6 @@ class DownloadsEndpoint(RESTEndpoint):
                 "vod_prebuffering_progress_consec": 0,
                 "error": repr(state.get_error()) if state.get_error() else "",
                 "time_added": download.config.get_time_added(),
-                "credit_mining": download.config.get_credit_mining(),
                 "channel_download": download.config.get_channel_download()
             }
 
