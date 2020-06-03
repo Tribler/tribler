@@ -329,6 +329,8 @@ class ChannelContentsWidget(widget_form, widget_class):
             if must_elide:
                 break
 
+        self.new_channel_button.setText("NEW CHANNEL" if root else "NEW FOLDER")
+
         self.channel_name_label.setText(breadcrumb_text)
         self.channel_name_label.setTextInteractionFlags(Qt.TextBrowserInteraction)
 
