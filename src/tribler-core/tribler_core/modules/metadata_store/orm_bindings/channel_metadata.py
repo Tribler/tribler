@@ -132,6 +132,8 @@ def define_binding(db):
         # As channel metadata depends on the public key, we can't include the infohash in nonpersonal_attributes
         nonpersonal_attributes = set(db.CollectionNode.nonpersonal_attributes)
 
+        infohash_to_channel_name_cache = {}
+
         @classmethod
         @db_session
         def get_my_channels(cls):
@@ -429,25 +431,34 @@ def define_binding(db):
             return result
 
         @classmethod
+        def get_channel_name_cached(cls, dl_name, infohash):
+            # Querying the database each time is costly so we cache the name request in a dict.
+            chan_name = cls.infohash_to_channel_name_cache.get(infohash)
+            if chan_name is None:
+                chan_name = cls.get_channel_name(dl_name, infohash)
+                cls.infohash_to_channel_name_cache[infohash] = chan_name
+            return chan_name
+
+        @classmethod
         @db_session
-        def get_channel_name(cls, name, infohash):
+        def get_channel_name(cls, dl_name, infohash):
             """
             Try to translate a Tribler download name into matching channel name. By searching for a channel with the
             given dirname and/or infohash. Try do determine if infohash belongs to an older version of
             some channel we already have.
-            :param name - name of the download. Should match the directory name of the channel.
+            :param dl_name - name of the download. Should match the directory name of the channel.
             :param infohash - infohash of the download.
             :return: Channel title as a string, prefixed with 'OLD:' for older versions
             """
             channel = cls.get_channel_with_infohash(infohash)
             if not channel:
                 try:
-                    channel = cls.get_channel_with_dirname(name)
+                    channel = cls.get_channel_with_dirname(dl_name)
                 except UnicodeEncodeError:
                     channel = None
 
             if not channel:
-                return name
+                return dl_name
             if channel.infohash == database_blob(infohash):
                 return channel.title
             else:

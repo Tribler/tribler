@@ -5,7 +5,7 @@ from binascii import unhexlify
 from datetime import datetime
 from itertools import combinations
 from time import sleep
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from ipv8.database import database_blob
 from ipv8.keyvault.crypto import default_eccrypto
@@ -452,10 +452,15 @@ class TestChannelMetadata(TriblerCoreTest):
         dirname = chan.dirname
 
         self.assertEqual(title, self.mds.ChannelMetadata.get_channel_name(dirname, infohash))
+        self.assertEqual(title, self.mds.ChannelMetadata.get_channel_name_cached(dirname, infohash))
         chan.infohash = b"\x11" * 20
         self.assertEqual("OLD:" + title, self.mds.ChannelMetadata.get_channel_name(dirname, infohash))
         chan.delete()
         self.assertEqual(dirname, self.mds.ChannelMetadata.get_channel_name(dirname, infohash))
+        # Check that the cached version of the name is returned even if the channel has been deleted
+        self.mds.ChannelMetadata.get_channel_name = Mock()
+        self.assertEqual(title, self.mds.ChannelMetadata.get_channel_name_cached(dirname, infohash))
+        self.mds.ChannelMetadata.get_channel_name.assert_not_called()
 
     @db_session
     def check_add(self, torrents_in_dir, errors, recursive):
