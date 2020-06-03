@@ -32,7 +32,6 @@ class EventRequestManager(QNetworkAccessManager):
     market_payment_received = pyqtSignal(object)
     market_payment_sent = pyqtSignal(object)
     low_storage_signal = pyqtSignal(object)
-    credit_mining_signal = pyqtSignal(object)
     tribler_shutdown_signal = pyqtSignal(str)
 
     def __init__(self, api_port, api_key):
@@ -61,7 +60,6 @@ class EventRequestManager(QNetworkAccessManager):
             "market_payment_received": self.market_payment_received.emit,
             "market_payment_sent": self.market_payment_sent.emit,
             NTFY.LOW_SPACE.value: self.low_storage_signal.emit,
-            NTFY.CREDIT_MINING_ERROR.value: self.credit_mining_signal.emit,
             NTFY.REMOTE_QUERY_RESULTS.value: self.received_remote_query_results.emit,
             NTFY.TRIBLER_SHUTDOWN_STATE.value: self.tribler_shutdown_signal.emit,
             NTFY.EVENTS_START.value: self.events_start_received,

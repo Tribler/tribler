@@ -77,7 +77,6 @@ class TestSettingsEndpoint(AbstractApiTest):
         """
 
         dcfg = DownloadConfig()
-        dcfg.get_credit_mining = lambda: False
         download = MockObject()
         download.config = dcfg
         self.session.dlmgr.get_downloads = lambda: [download]

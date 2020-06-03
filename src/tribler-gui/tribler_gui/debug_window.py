@@ -21,7 +21,7 @@ from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler_gui.event_request_manager import received_events as tribler_received_events
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest, performed_requests as tribler_performed_requests
 from tribler_gui.utilities import format_size, get_ui_file_path
-from tribler_gui.widgets.tokenminingpage import TimeSeriesPlot
+from tribler_gui.widgets.graphs.timeseriesplot import TimeSeriesPlot
 
 try:
     from meliae import scanner
@@ -392,16 +392,7 @@ class DebugWindow(QMainWindow):
         self.add_items_to_tree(
             self.window().circuits_tree_widget,
             circuits.get("circuits"),
-            [
-                "circuit_id",
-                "hops",
-                "type",
-                "state",
-                "bytes_up",
-                "bytes_down",
-                "creation_time",
-                "exit_flags"
-            ],
+            ["circuit_id", "hops", "type", "state", "bytes_up", "bytes_down", "creation_time", "exit_flags"],
         )
 
     def load_tunnel_relays_tab(self):
@@ -453,15 +444,7 @@ class DebugWindow(QMainWindow):
     def on_tunnel_peers(self, data):
         if data:
             self.add_items_to_tree(
-                self.window().peers_tree_widget,
-                data.get("peers"),
-                [
-                    "ip",
-                    "port",
-                    "mid",
-                    "is_key_compatible",
-                    "flags",
-                ],
+                self.window().peers_tree_widget, data.get("peers"), ["ip", "port", "mid", "is_key_compatible", "flags"]
             )
 
     def load_dht_tab(self):

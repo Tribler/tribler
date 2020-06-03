@@ -594,22 +594,3 @@ class TriblerConfig(object):
 
     def get_resource_monitor_history_size(self):
         return self.config['resource_monitor']['history_size']
-
-    # Credit mining
-    def set_credit_mining_enabled(self, value):
-        self.config['credit_mining']['enabled'] = value
-
-    def get_credit_mining_enabled(self):
-        return self.config['credit_mining']['enabled']
-
-    def set_credit_mining_sources(self, source_list):
-        self.config['credit_mining']['sources'] = source_list
-
-    def get_credit_mining_sources(self):
-        return self.config['credit_mining']['sources']
-
-    def set_credit_mining_disk_space(self, value):
-        self.config['credit_mining']['max_disk_space'] = value
-
-    def get_credit_mining_disk_space(self):
-        return self.config['credit_mining']['max_disk_space']

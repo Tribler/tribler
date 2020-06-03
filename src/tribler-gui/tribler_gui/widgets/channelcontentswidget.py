@@ -51,7 +51,6 @@ class ChannelContentsWidget(widget_form, widget_class):
         # for each external resource (e.g. image/icon), we must reload it manually here.
         self.channel_options_button.setIcon(QIcon(get_image_path('ellipsis.png')))
         self.channel_preview_button.setIcon(QIcon(get_image_path('refresh.png')))
-        self.credit_mining_button.setIcon(QIcon(get_image_path('credit_mining_not.png')))
 
         self.default_channel_model = ChannelContentModel
 

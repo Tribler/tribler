@@ -78,11 +78,6 @@ class TestTriblerConfig(TriblerCoreTest):
         self.tribler_config.set_tunnel_community_socks5_listen_ports(ports)
         self.assertListEqual(self.tribler_config.get_tunnel_community_socks5_listen_ports(), ports)
 
-    def test_credit_mining_sources(self):
-        source_list = "listitem"
-        self.tribler_config.set_credit_mining_sources(source_list)
-        self.assertEqual(self.tribler_config.get_credit_mining_sources(), source_list)
-
     def test_bootstrap_configs(self):
 
         self.tribler_config.set_bootstrap_enabled(False)
@@ -282,17 +277,6 @@ class TestTriblerConfig(TriblerCoreTest):
         self.assertEqual(self.tribler_config.get_cpu_priority_order(), 1)
         self.tribler_config.set_cpu_priority_order(3)
         self.assertEqual(self.tribler_config.get_cpu_priority_order(), 3)
-
-    def test_get_set_methods_credit_mining(self):
-        """
-        Check whether credit mining get and set methods are working as expected.
-        """
-        self.tribler_config.set_credit_mining_enabled(True)
-        self.assertEqual(self.tribler_config.get_credit_mining_enabled(), True)
-        self.tribler_config.set_credit_mining_sources(True)
-        self.assertEqual(self.tribler_config.get_credit_mining_sources(), True)
-        self.tribler_config.set_credit_mining_disk_space(1024 ** 2)
-        self.assertEqual(self.tribler_config.get_credit_mining_disk_space(), 1024 ** 2)
 
     def test_get_set_methods_dht(self):
         """

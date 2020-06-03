@@ -369,9 +369,6 @@ class Download(TaskManager):
 
     def _stop_if_finished(self):
         state = self.get_state()
-        # Credit mining downloads are not affected by seeding policy
-        if self.config.get_credit_mining():
-            return
         if state.get_status() == DLSTATUS_SEEDING:
             mode = self.session.config.get_seeding_mode()
             if mode == 'never' \

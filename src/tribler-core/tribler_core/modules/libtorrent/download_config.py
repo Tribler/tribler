@@ -89,12 +89,6 @@ class DownloadConfig:
     def get_safe_seeding(self):
         return self.config['download_defaults']['safe_seeding']
 
-    def set_credit_mining(self, value):
-        self.config['download_defaults']['credit_mining'] = value
-
-    def get_credit_mining(self):
-        return bool(self.config['download_defaults']['credit_mining'])
-
     def set_user_stopped(self, value):
         self.config['download_defaults']['user_stopped'] = value
 

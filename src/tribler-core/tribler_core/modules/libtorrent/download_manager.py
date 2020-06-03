@@ -483,14 +483,6 @@ class DownloadManager(TaskManager):
         download = self.get_download(infohash)
 
         if download and infohash not in self.metainfo_requests:
-            # If there is an existing credit mining download with the same infohash
-            # then move to the user download directory and checkpoint the download immediately.
-            if download.config.get_credit_mining():
-                self.tribler_session.credit_mining_manager.torrents.pop(hexlify(tdef.get_infohash()), None)
-                download.config.set_credit_mining(False)
-                download.move_storage(config.get_dest_dir())
-                download.checkpoint()
-
             new_trackers = list(set(tdef.get_trackers_as_single_tuple()) -
                                 set(download.get_def().get_trackers_as_single_tuple()))
             if new_trackers:
@@ -730,8 +722,6 @@ class DownloadManager(TaskManager):
         if self.state_cb_count % 4 == 0:
             if self.tribler_session.tunnel_community:
                 self.tribler_session.tunnel_community.monitor_downloads(states_list)
-            if self.tribler_session.credit_mining_manager:
-                self.tribler_session.credit_mining_manager.monitor_downloads(states_list)
 
     async def load_checkpoints(self):
         for filename in self.get_checkpoint_dir().glob('*.conf'):
@@ -777,8 +767,6 @@ class DownloadManager(TaskManager):
         try:
             if self.download_exists(tdef.get_infohash()):
                 self._logger.info("Not resuming checkpoint because download has already been added")
-            elif config.get_credit_mining() and not self.tribler_session.config.get_credit_mining_enabled():
-                self._logger.info("Not resuming checkpoint since token mining is disabled")
             else:
                 self.start_download(tdef=tdef, config=config)
         except Exception:

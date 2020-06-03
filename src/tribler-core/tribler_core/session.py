@@ -37,7 +37,6 @@ from tribler_common.simpledefs import (
     STATE_LOAD_CHECKPOINTS,
     STATE_READABLE_STARTED,
     STATE_START_API,
-    STATE_START_CREDIT_MINING,
     STATE_START_LIBTORRENT,
     STATE_START_TORRENT_CHECKER,
     STATE_START_WATCH_FOLDER,
@@ -141,7 +140,6 @@ class Session(TaskManager):
         self.gigachannel_community = None
         self.remote_query_community = None
 
-        self.credit_mining_manager = None
         self.market_community = None
         self.dht_community = None
         self.payout_manager = None
@@ -495,11 +493,6 @@ class Session(TaskManager):
         if self.config.get_ipv8_enabled() and self.config.get_trustchain_enabled():
             self.payout_manager = PayoutManager(self.trustchain_community, self.dht_community)
 
-        if self.config.get_credit_mining_enabled():
-            self.readable_status = STATE_START_CREDIT_MINING
-            from tribler_core.modules.credit_mining.credit_mining_manager import CreditMiningManager
-            self.credit_mining_manager = CreditMiningManager(self)
-
         # GigaChannel Manager should be started *after* resuming the downloads,
         # because it depends on the states of torrent downloads
         if self.config.get_chant_enabled() and self.config.get_chant_manager_enabled()\
@@ -528,10 +521,6 @@ class Session(TaskManager):
         await self.shutdown_task_manager()
 
         self.shutdownstarttime = timemod.time()
-        if self.credit_mining_manager:
-            self.notify_shutdown_state("Shutting down Credit Mining...")
-            await self.credit_mining_manager.shutdown()
-        self.credit_mining_manager = None
 
         if self.torrent_checker:
             self.notify_shutdown_state("Shutting down Torrent Checker...")
