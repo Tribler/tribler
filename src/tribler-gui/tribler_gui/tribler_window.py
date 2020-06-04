@@ -208,11 +208,6 @@ class TriblerWindow(QMainWindow):
         self.search_results_page.channel_torrents_filter_input.setHidden(True)
 
         self.settings_page.initialize_settings_page()
-        self.subscribed_channels_page.initialize_content_page(self.gui_settings)
-        self.subscribed_channels_page.initialize_root_model(
-            DiscoveredChannelsModel(endpoint_url="channels", subscribed_only=True)
-        )
-        self.subscribed_channels_page.model.channel_info["name"] = "Subscribed channels"
         self.downloads_page.initialize_downloads_page()
         self.loading_page.initialize_loading_page()
         self.discovering_page.initialize_discovering_page()
@@ -220,12 +215,11 @@ class TriblerWindow(QMainWindow):
         self.discovered_page.initialize_content_page(self.gui_settings)
         self.discovered_page.initialize_root_model(
             DiscoveredChannelsModel(
-                channel_info={"name": "Discovered channels", "dirty": 0},
+                channel_info={"name": "Discovered channels"},
                 endpoint_url="channels",
                 hide_xxx=get_gui_setting(self.gui_settings, "family_filter", True, is_bool=True),
             )
         )
-        self.discovered_page.model.channel_info["name"] = "Discovered channels"
         self.core_manager.events_manager.discovered_channel.connect(self.discovered_page.model.on_new_entry_received)
 
         self.trust_page.initialize_trust_page()
@@ -426,7 +420,6 @@ class TriblerWindow(QMainWindow):
         self.setAcceptDrops(True)
         self.setWindowTitle("Tribler %s" % self.tribler_version)
 
-        self.initialize_personal_channels_page()
         self.add_to_channel_dialog.load_channel(0)
         self.discovered_page.reset_view()
 
@@ -994,8 +987,8 @@ class TriblerWindow(QMainWindow):
         self.left_menu_button_discovered.setChecked(True)
         if self.stackedWidget.currentIndex() == PAGE_DISCOVERED:
             self.discovered_page.go_back_to_level(0)
+            self.discovered_page.reset_view()
         self.stackedWidget.setCurrentIndex(PAGE_DISCOVERED)
-        self.discovered_page.reset_view()
         self.discovered_page.content_table.setFocus()
         self.navigation_stack = []
         self.hide_left_menu_playlist()
@@ -1003,10 +996,13 @@ class TriblerWindow(QMainWindow):
     def clicked_menu_button_my_channel(self):
         self.deselect_all_menu_buttons()
         self.left_menu_button_my_channel.setChecked(True)
+        if not self.personal_channel_page.channels_stack:
+            self.initialize_personal_channels_page()
+            self.personal_channel_page.reset_view()
         if self.stackedWidget.currentIndex() == PAGE_EDIT_CHANNEL:
             self.personal_channel_page.go_back_to_level(0)
+            self.personal_channel_page.reset_view()
         self.stackedWidget.setCurrentIndex(PAGE_EDIT_CHANNEL)
-        self.personal_channel_page.reset_view()
         self.personal_channel_page.content_table.setFocus()
         self.navigation_stack = []
         self.hide_left_menu_playlist()
@@ -1039,10 +1035,19 @@ class TriblerWindow(QMainWindow):
     def clicked_menu_button_subscriptions(self):
         self.deselect_all_menu_buttons()
         self.left_menu_button_subscriptions.setChecked(True)
+        if not self.subscribed_channels_page.channels_stack:
+            self.subscribed_channels_page.initialize_content_page(self.gui_settings)
+            self.subscribed_channels_page.initialize_root_model(
+                DiscoveredChannelsModel(
+                    channel_info={"name": "Subscribed channels"}, endpoint_url="channels", subscribed_only=True
+                )
+            )
+            self.subscribed_channels_page.reset_view()
+
         if self.stackedWidget.currentIndex() == PAGE_SUBSCRIBED_CHANNELS:
             self.subscribed_channels_page.go_back_to_level(0)
+            self.subscribed_channels_page.reset_view()
         self.stackedWidget.setCurrentIndex(PAGE_SUBSCRIBED_CHANNELS)
-        self.subscribed_channels_page.reset_view()
         self.subscribed_channels_page.content_table.setFocus()
         self.navigation_stack = []
         self.hide_left_menu_playlist()

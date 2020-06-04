@@ -226,9 +226,11 @@ class ChannelContentModel(RemoteTableModel):
         ACTION_BUTTONS: Qt.ItemIsEnabled | Qt.ItemIsSelectable,
     }
 
-    column_width = {u'state': lambda _: 20,
-                    u'name': lambda table_width: table_width - 510,
-                    u'action_buttons': lambda _: 70}
+    column_width = {
+        u'state': lambda _: 20,
+        u'name': lambda table_width: table_width - 510,
+        u'action_buttons': lambda _: 70,
+    }
 
     column_tooltip_filters = {
         u'state': lambda data: data,
@@ -289,6 +291,8 @@ class ChannelContentModel(RemoteTableModel):
     def headerData(self, num, orientation, role=None):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
             return self.column_headers[num]
+        if role == Qt.InitialSortOrderRole and num != self.column_position.get('name'):
+            return Qt.DescendingOrder
 
     def rowCount(self, parent=QModelIndex()):
         return len(self.data_items)
