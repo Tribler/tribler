@@ -85,6 +85,17 @@ class DownloadManager(TaskManager):
 
         # Status of libtorrent session to indicate if it can safely close and no pending writes to disk exists.
         self.lt_session_shutdown_ready = {}
+        self._dht_ready_task = None
+        self.dht_readiness_timeout = tribler_session.config.get_libtorrent_dht_readiness_timeout()
+
+    async def _check_dht_ready(self, min_dht_peers=60):
+        # Checks whether we got enough DHT peers. If the number of DHT peers is low,
+        # checking for a bunch of torrents in a short period of time may result in several consecutive requests
+        # sent to the same peers. This can trigger those peers' flood protection mechanism,
+        # which results in DHT checks stuck for hours.
+        # See https://github.com/Tribler/tribler/issues/5319
+        while not (self.get_session() and self.get_session().status().dht_nodes > min_dht_peers):
+            await asyncio.sleep(1)
 
     def initialize(self):
         # Start upnp
@@ -101,7 +112,8 @@ class DownloadManager(TaskManager):
 
         # Register tasks
         self.register_task("process_alerts", self._task_process_alerts, interval=1)
-        self.register_task("check_reachability", self._check_reachability)
+        if self.dht_readiness_timeout > 0:
+            self._dht_ready_task = self.register_task("check_dht_ready", self._check_dht_ready)
         self.register_task("request_torrent_updates", self._request_torrent_updates, interval=1)
         self.register_task('task_cleanup_metacache', self._task_cleanup_metainfo_cache, interval=60, delay=0)
 
@@ -436,10 +448,6 @@ class DownloadManager(TaskManager):
                 for alert in ltsession.pop_alerts():
                     self.process_alert(alert, hops=hops)
 
-    async def _check_reachability(self):
-        while not self.get_session() and self.get_session().status().has_incoming_connections:
-            await asyncio.sleep(5)
-
     def _map_call_on_ltsessions(self, hops, funcname, *args, **kwargs):
         if hops is None:
             for session in self.ltsessions.values():
@@ -531,6 +539,18 @@ class DownloadManager(TaskManager):
         else:
             # Otherwise, add it anew
             self._logger.debug("Adding handle %s", hexlify(infohash))
+            # To prevent flooding the DHT with a short burst of queries and triggering
+            # flood protection, we postpone adding torrents until we get enough DHT peers.
+            # The asynchronous wait should be done as close as possible to the actual
+            # Libtorrent calls, so the higher-level download-adding logic does not block.
+            # Otherwise, e.g. if added to the Session init sequence, this results in startup
+            # time increasing by 10-20 seconds.
+            # See https://github.com/Tribler/tribler/issues/5319
+            if self.dht_readiness_timeout > 0 and self._dht_ready_task is not None:
+                try:
+                    await wait_for(shield(self._dht_ready_task), timeout=self.dht_readiness_timeout)
+                except TimeoutError:
+                    self._logger.warning("Timeout waiting for libtorrent DHT getting enough peers")
             ltsession.async_add_torrent(encode_atp(atp))
         return await download.future_added
 
@@ -574,12 +594,9 @@ class DownloadManager(TaskManager):
             self.set_session_settings(lt_session, settings)
 
     def post_session_stats(self, hops=None):
-        if hops is None:
-            for lt_session in self.ltsessions.values():
-                if hasattr(lt_session, "post_session_stats"):
-                    lt_session.post_session_stats()
-        elif hasattr(self.ltsessions[hops], "post_session_stats"):
-            self.ltsessions[hops].post_session_stats()
+        for ltsession in self.ltsessions.values() if hops is None else [self.ltsessions[hops]]:
+            if hasattr(ltsession, "post_session_stats"):
+                ltsession.post_session_stats()
 
     async def remove_download(self, download, remove_content=False, remove_checkpoint=True):
         infohash = download.get_def().get_infohash()

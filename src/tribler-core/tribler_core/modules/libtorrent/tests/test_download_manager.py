@@ -1,5 +1,6 @@
 import shutil
-from asyncio import Future, ensure_future, gather, get_event_loop, sleep
+from asyncio import Future, TimeoutError as ToError, ensure_future, gather, get_event_loop, sleep
+from asyncio.tasks import wait_for
 from unittest.mock import Mock
 
 from libtorrent import bencode
@@ -59,12 +60,6 @@ class TestDownloadManager(AbstractServer):
         self.tribler_session.trustchain_keypair.key_to_hash = lambda: b'a' * 20
         self.tribler_session.notify_shutdown_state = lambda _: None
 
-        self.dlmgr = DownloadManager(self.tribler_session)
-        self.dlmgr.metadata_tmpdir = mkdtemp(suffix=u'tribler_metainfo_tmpdir')
-
-        self.tribler_session.dlmgr = self.dlmgr
-        self.tribler_session.tunnel_community = None
-
         self.tribler_session.config = MockObject()
         self.tribler_session.config.get_libtorrent_utp = lambda: True
         self.tribler_session.config.get_libtorrent_proxy_settings = lambda: (0, None, None)
@@ -79,6 +74,14 @@ class TestDownloadManager(AbstractServer):
         self.tribler_session.config.set_libtorrent_port_runtime = lambda _: None
         self.tribler_session.config.get_libtorrent_max_conn_download = lambda: 0
         self.tribler_session.config.get_default_number_hops = lambda: 1
+        self.tribler_session.config.get_libtorrent_dht_readiness_timeout = lambda: 0
+
+        self.dlmgr = DownloadManager(self.tribler_session)
+        self.dlmgr.metadata_tmpdir = mkdtemp(suffix=u'tribler_metainfo_tmpdir')
+
+        self.tribler_session.dlmgr = self.dlmgr
+        self.tribler_session.tunnel_community = None
+
 
     async def tearDown(self):
         await self.dlmgr.shutdown(timeout=0)
@@ -262,6 +265,34 @@ class TestDownloadManager(AbstractServer):
         handle = await download.get_handle()
         self.assertEqual(handle, mock_handle)
         self.dlmgr.downloads.clear()
+
+        # Test waiting on DHT getting enough nodes and adding the torrent after timing out
+        self.dlmgr.dht_readiness_timeout = 0.5
+        flag = []
+        check_was_run = Mock()
+
+        async def mock_check():
+            while not flag:
+                check_was_run()
+                await sleep(0.1)
+        self.dlmgr._check_dht_ready = mock_check
+        self.dlmgr.initialize()
+
+        mock_download = Mock()
+        mock_download.get_def().get_infohash = lambda: b"1"*20
+        mock_download.future_added = succeed(True)
+        mock_ltsession.async_add_torrent = Mock()
+        await self.dlmgr.start_handle(mock_download, {})
+        check_was_run.assert_called()
+        self.dlmgr.downloads.clear()
+
+        # Test waiting on DHT getting enough nodes
+        self.dlmgr.dht_readiness_timeout = 100
+        flag.append(True)
+        mock_download.future_added = succeed(True)
+        await self.dlmgr.start_handle(mock_download, {})
+        self.dlmgr.downloads.clear()
+
 
     @timeout(20)
     async def test_start_download_existing_handle(self):
@@ -513,3 +544,13 @@ class TestDownloadManager(AbstractServer):
         await self.dlmgr.start_download_from_uri(f'magnet:?xt=urn:btih:{hexlify(infohash)}&dn=name')
         await sleep(.1)
         self.assertTrue((dlcheckpoints_tempdir / f'{hexlify(infohash)}.conf').exists())
+
+    @timeout(10)
+    async def test_check_for_dht_ready(self):
+        # If there are no alerts, _check_dht_ready should wait indefinitely
+        await self.assertAsyncRaises(ToError, wait_for(self.dlmgr._check_dht_ready(), timeout=2))
+
+        self.dlmgr.get_session = Mock()
+        self.dlmgr.get_session().status().dht_nodes = 1000
+        # If the session has enough peers, it should finish instantly
+        await self.dlmgr._check_dht_ready()

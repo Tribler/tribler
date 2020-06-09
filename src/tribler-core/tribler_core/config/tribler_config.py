@@ -296,6 +296,12 @@ class TriblerConfig(object):
     def get_libtorrent_port(self):
         return self._obtain_port('libtorrent', 'port')
 
+    def set_libtorrent_dht_readiness_timeout(self, value):
+        self.config['libtorrent']['dht_readiness_timeout'] = value
+
+    def get_libtorrent_dht_readiness_timeout(self):
+        return self.config['libtorrent']['dht_readiness_timeout']
+
     def set_anon_listen_port(self, listen_port=None):
         self.config['libtorrent']['anon_listen_port'] = listen_port
 
