@@ -177,12 +177,12 @@ class StartDownloadDialog(DialogContainer):
 
             self.metainfo_retries += 1
 
-    def on_received_metainfo(self, metainfo):
-        if not metainfo or not self:
+    def on_received_metainfo(self, response):
+        if not response or not self:
             return
 
-        if 'error' in metainfo:
-            if metainfo['error'] == 'metainfo error':
+        if 'error' in response:
+            if response['error'] == 'metainfo error':
                 # If it failed to load metainfo for max number of times, show an error message in red.
                 if self.metainfo_retries > METAINFO_MAX_RETRIES:
                     self.dialog_widget.loading_files_label.setStyleSheet("color:#ff0000;")
@@ -190,22 +190,22 @@ class StartDownloadDialog(DialogContainer):
                     return
                 self.perform_files_request()
 
-            elif 'code' in metainfo['error'] and metainfo['error']['code'] == 'IOError':
+            elif 'code' in response['error'] and response['error']['code'] == 'IOError':
                 self.dialog_widget.loading_files_label.setText("Unable to read torrent file data")
             else:
-                self.dialog_widget.loading_files_label.setText("Error: %s" % metainfo['error'])
+                self.dialog_widget.loading_files_label.setText("Error: %s" % response['error'])
             return
 
-        metainfo = json.loads(unhexlify(metainfo['metainfo']), encoding='latin-1')
+        metainfo = json.loads(unhexlify(response['metainfo']), encoding='latin-1')
         if 'files' in metainfo['info']:  # Multi-file torrent
             files = metainfo['info']['files']
         else:
             files = [{'path': [metainfo['info']['name']], 'length': metainfo['info']['length']}]
 
         # Show if the torrent already exists in the downloads
-        if 'download_exists' in metainfo and metainfo['download_exists']:
+        if response.get('download_exists'):
             self.dialog_widget.existing_download_info_label.setText(
-                "Note: this torrent already exists in " "the Downloads"
+                "Note: this torrent already exists in the Downloads"
             )
         else:
             self.dialog_widget.existing_download_info_label.setText("")
