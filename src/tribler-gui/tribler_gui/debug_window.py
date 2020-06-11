@@ -79,10 +79,12 @@ class DebugWindow(QMainWindow):
         self.window().debug_tab_widget.setCurrentIndex(0)
         self.window().ipv8_tab_widget.setCurrentIndex(0)
         self.window().tunnel_tab_widget.setCurrentIndex(0)
+        self.window().dht_tab_widget.setCurrentIndex(0)
         self.window().system_tab_widget.setCurrentIndex(0)
         self.window().debug_tab_widget.currentChanged.connect(self.tab_changed)
         self.window().ipv8_tab_widget.currentChanged.connect(self.ipv8_tab_changed)
         self.window().tunnel_tab_widget.currentChanged.connect(self.tunnel_tab_changed)
+        self.window().dht_tab_widget.currentChanged.connect(self.dht_tab_changed)
         self.window().events_tree_widget.itemClicked.connect(self.on_event_clicked)
         self.window().system_tab_widget.currentChanged.connect(self.system_tab_changed)
         self.load_general_tab()
@@ -162,7 +164,7 @@ class DebugWindow(QMainWindow):
         elif index == 4:
             self.tunnel_tab_changed(self.window().tunnel_tab_widget.currentIndex())
         elif index == 5:
-            self.run_with_timer(self.load_dht_tab)
+            self.dht_tab_changed(self.window().dht_tab_widget.currentIndex())
         elif index == 6:
             self.run_with_timer(self.load_events_tab)
         elif index == 7:
@@ -191,6 +193,12 @@ class DebugWindow(QMainWindow):
             self.run_with_timer(self.load_tunnel_swarms_tab)
         elif index == 4:
             self.run_with_timer(self.load_tunnel_peers_tab)
+
+    def dht_tab_changed(self, index):
+        if index == 0:
+            self.run_with_timer(self.load_dht_statistics_tab)
+        elif index == 1:
+            self.run_with_timer(self.load_dht_buckets_tab)
 
     def system_tab_changed(self, index):
         if index == 0:
@@ -447,15 +455,34 @@ class DebugWindow(QMainWindow):
                 self.window().peers_tree_widget, data.get("peers"), ["ip", "port", "mid", "is_key_compatible", "flags"]
             )
 
-    def load_dht_tab(self):
+    def load_dht_statistics_tab(self):
         TriblerNetworkRequest("ipv8/dht/statistics", self.on_dht_statistics)
 
     def on_dht_statistics(self, data):
         if not data:
             return
-        self.window().dht_tree_widget.clear()
+        self.window().dhtstats_tree_widget.clear()
         for key, value in data["statistics"].items():
-            self.create_and_add_widget_item(key, value, self.window().dht_tree_widget)
+            self.create_and_add_widget_item(key, value, self.window().dhtstats_tree_widget)
+
+    def load_dht_buckets_tab(self):
+        TriblerNetworkRequest("ipv8/dht/buckets", self.on_dht_buckets)
+
+    def on_dht_buckets(self, data):
+        if data:
+            for bucket in data["buckets"]:
+                bucket["num_peers"] = len(bucket["peers"])
+                ts = bucket["last_changed"]
+                bucket["last_changed"] = str(datetime.timedelta(seconds=int(time() - ts))) if ts > 0 else '-'
+            self.add_items_to_tree(
+                self.window().buckets_tree_widget,
+                data.get("buckets"),
+                [
+                    "prefix",
+                    "last_changed",
+                    "num_peers"
+                ],
+            )
 
     def on_event_clicked(self, item):
         event_dict = item.data(0, Qt.UserRole)
