@@ -18,6 +18,7 @@ from _socket import gaierror
 from anydex.wallet.dummy_wallet import DummyWallet1, DummyWallet2
 from anydex.wallet.tc_wallet import TrustchainWallet
 
+from ipv8.dht.churn import PingChurn
 from ipv8.dht.provider import DHTCommunityProvider
 from ipv8.messaging.anonymization.community import TunnelSettings
 from ipv8.peer import Peer
@@ -179,6 +180,7 @@ class Session(TaskManager):
             self.dht_community = DHTDiscoveryCommunity(peer, self.ipv8.endpoint, self.ipv8.network)
             self.ipv8.overlays.append(self.dht_community)
             self.ipv8.strategies.append((RandomWalk(self.dht_community), 20))
+            self.ipv8.strategies.append((PingChurn(self.dht_community), -1))
 
         # Tunnel Community
         if self.config.get_tunnel_community_enabled():
