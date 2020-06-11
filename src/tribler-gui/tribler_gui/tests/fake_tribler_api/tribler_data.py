@@ -35,6 +35,7 @@ class TriblerData(object):
         self.transactions = []
         self.orders = []
         self.dht_stats = {}
+        self.dht_buckets = {}
         self.video_player_port = get_random_port()
         self.tunnel_circuits = []
         self.tunnel_relays = []
@@ -50,6 +51,7 @@ class TriblerData(object):
         self.generate_transactions()
         self.generate_orders()
         self.generate_dht_stats()
+        self.generate_dht_buckets()
         self.generate_tunnels()
 
         # Create settings
@@ -258,6 +260,13 @@ class TriblerData(object):
             "peer_id": hexlify(os.urandom(20)),
             "routing_table_size": randint(10, 50),
         }
+
+    def generate_dht_buckets(self):
+        self.dht_buckets = [{
+            "prefix": format(randint(1, 7), '03b'),
+            "last_changed": randint(1500000000, 1590000000),
+            "peers": []
+        }]
 
     def generate_tunnels(self):
         self.tunnel_circuits = [Circuit() for _ in range(randint(2, 10))]

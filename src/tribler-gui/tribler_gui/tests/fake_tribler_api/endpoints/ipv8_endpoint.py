@@ -16,6 +16,7 @@ class IPv8Endpoint(RESTEndpoint):
                 web.get('/tunnel/relays', self.get_relays),
                 web.get('/tunnel/exits', self.get_exits),
                 web.get('/dht/statistics', self.get_dht_stats),
+                web.get('/dht/buckets', self.get_dht_buckets),
                 web.get('/overlays', self.get_overlays),
             ]
         )
@@ -40,6 +41,9 @@ class IPv8Endpoint(RESTEndpoint):
 
     async def get_dht_stats(self, _):
         return RESTResponse({"statistics": tribler_utils.tribler_data.dht_stats})
+
+    async def get_dht_buckets(self, _):
+        return RESTResponse({"buckets": tribler_utils.tribler_data.dht_buckets})
 
     async def get_overlays(self, _):
         return RESTResponse(
