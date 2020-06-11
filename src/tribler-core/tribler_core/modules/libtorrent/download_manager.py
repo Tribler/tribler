@@ -363,11 +363,11 @@ class DownloadManager(TaskManager):
         elif alert_type == "dht_pkt_alert":
             # We received a raw DHT message - decode it and check whether it is a BEP33 message.
             decoded = bdecode_compat(alert.pkt_buf)
-            if decoded and 'r' in decoded:
-                if 'BFsd' in decoded['r'] and 'BFpe' in decoded['r']:
-                    self.dht_health_manager.received_bloomfilters(decoded['r']['id'],
-                                                                  bytearray(decoded['r']['BFsd']),
-                                                                  bytearray(decoded['r']['BFpe']))
+            if decoded and b'r' in decoded:
+                if b'BFsd' in decoded[b'r'] and b'BFpe' in decoded[b'r']:
+                    self.dht_health_manager.received_bloomfilters(decoded[b'r'][b'id'],
+                                                                  bytearray(decoded[b'r'][b'BFsd']),
+                                                                  bytearray(decoded[b'r'][b'BFpe']))
 
     def update_ip_filter(self, lt_session, ip_addresses):
         self._logger.debug('Updating IP filter %s', ip_addresses)
