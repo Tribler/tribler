@@ -489,8 +489,12 @@ class TriblerGUITest(AbstractTriblerGUITest):
         self.screenshot(window.debug_window, name="debug_panel_tunnel_exits_tab")
 
         window.debug_window.debug_tab_widget.setCurrentIndex(5)
-        self.wait_for_list_populated(window.debug_window.dht_tree_widget)
-        self.screenshot(window.debug_window, name="debug_panel_dht_tab")
+        self.wait_for_list_populated(window.debug_window.dhtstats_tree_widget)
+        self.screenshot(window.debug_window, name="debug_panel_dht_stats_tab")
+
+        window.debug_window.dht_tab_widget.setCurrentIndex(1)
+        self.wait_for_list_populated(window.debug_window.buckets_tree_widget)
+        self.screenshot(window.debug_window, name="debug_panel_dht_buckets_tab")
 
         window.debug_window.debug_tab_widget.setCurrentIndex(6)
         self.wait_for_list_populated(window.debug_window.events_tree_widget)

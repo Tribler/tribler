@@ -79,10 +79,12 @@ class DebugWindow(QMainWindow):
         self.window().debug_tab_widget.setCurrentIndex(0)
         self.window().ipv8_tab_widget.setCurrentIndex(0)
         self.window().tunnel_tab_widget.setCurrentIndex(0)
+        self.window().dht_tab_widget.setCurrentIndex(0)
         self.window().system_tab_widget.setCurrentIndex(0)
         self.window().debug_tab_widget.currentChanged.connect(self.tab_changed)
         self.window().ipv8_tab_widget.currentChanged.connect(self.ipv8_tab_changed)
         self.window().tunnel_tab_widget.currentChanged.connect(self.tunnel_tab_changed)
+        self.window().dht_tab_widget.currentChanged.connect(self.dht_tab_changed)
         self.window().events_tree_widget.itemClicked.connect(self.on_event_clicked)
         self.window().system_tab_widget.currentChanged.connect(self.system_tab_changed)
         self.load_general_tab()
@@ -162,7 +164,7 @@ class DebugWindow(QMainWindow):
         elif index == 4:
             self.tunnel_tab_changed(self.window().tunnel_tab_widget.currentIndex())
         elif index == 5:
-            self.run_with_timer(self.load_dht_tab)
+            self.dht_tab_changed(self.window().dht_tab_widget.currentIndex())
         elif index == 6:
             self.run_with_timer(self.load_events_tab)
         elif index == 7:
@@ -191,6 +193,12 @@ class DebugWindow(QMainWindow):
             self.run_with_timer(self.load_tunnel_swarms_tab)
         elif index == 4:
             self.run_with_timer(self.load_tunnel_peers_tab)
+
+    def dht_tab_changed(self, index):
+        if index == 0:
+            self.run_with_timer(self.load_dht_statistics_tab)
+        elif index == 1:
+            self.run_with_timer(self.load_dht_buckets_tab)
 
     def system_tab_changed(self, index):
         if index == 0:
@@ -288,15 +296,13 @@ class DebugWindow(QMainWindow):
     def load_ipv8_communities_tab(self):
         TriblerNetworkRequest("ipv8/overlays", self.on_ipv8_community_stats)
 
-    def _colored_peer_count(self, peer_count, overlay_count, master_peer):
-        is_discovery = (
-            master_peer == "3081a7301006072a8648ce3d020106052b81040027038192000403b3ab059ced9b20646ab5e01"
-            "762b3595c5e8855227ae1e424cff38a1e4edee73734ff2e2e829eb4f39bab20d7578284fcba72"
-            "51acd74e7daf96f21d01ea17077faf4d27a655837d072baeb671287a88554e1191d8904b0dc57"
-            "2d09ff95f10ff092c8a5e2a01cd500624376aec875a6e3028aab784cfaf0bac6527245db8d939"
-            "00d904ac2a922a02716ccef5a22f7968"
-        )
-        limits = [20, overlay_count * 30 + 1] if is_discovery else [20, 31]
+    def _colored_peer_count(self, peer_count, overlay_count, overlay_name):
+        if overlay_name == 'DiscoveryCommunity':
+            limits = [20, overlay_count * 30 + 1]
+        elif overlay_name == 'DHTDiscoveryCommunity':
+            limits = [20, 61]
+        else:
+            limits = [20, 31]
         color = 0xF4D03F if peer_count < limits[0] else (0x56F129 if peer_count < limits[1] else 0xF12929)
         return QBrush(QColor(color))
 
@@ -311,7 +317,7 @@ class DebugWindow(QMainWindow):
             item.setText(2, overlay["my_peer"][-12:])
             peer_count = len(overlay["peers"])
             item.setText(3, "%s" % peer_count)
-            item.setForeground(3, self._colored_peer_count(peer_count, len(data["overlays"]), overlay["master_peer"]))
+            item.setForeground(3, self._colored_peer_count(peer_count, len(data["overlays"]), overlay["overlay_name"]))
 
             if "statistics" in overlay and overlay["statistics"]:
                 statistics = overlay["statistics"]
@@ -447,15 +453,34 @@ class DebugWindow(QMainWindow):
                 self.window().peers_tree_widget, data.get("peers"), ["ip", "port", "mid", "is_key_compatible", "flags"]
             )
 
-    def load_dht_tab(self):
+    def load_dht_statistics_tab(self):
         TriblerNetworkRequest("ipv8/dht/statistics", self.on_dht_statistics)
 
     def on_dht_statistics(self, data):
         if not data:
             return
-        self.window().dht_tree_widget.clear()
+        self.window().dhtstats_tree_widget.clear()
         for key, value in data["statistics"].items():
-            self.create_and_add_widget_item(key, value, self.window().dht_tree_widget)
+            self.create_and_add_widget_item(key, value, self.window().dhtstats_tree_widget)
+
+    def load_dht_buckets_tab(self):
+        TriblerNetworkRequest("ipv8/dht/buckets", self.on_dht_buckets)
+
+    def on_dht_buckets(self, data):
+        if data:
+            for bucket in data["buckets"]:
+                bucket["num_peers"] = len(bucket["peers"])
+                ts = bucket["last_changed"]
+                bucket["last_changed"] = str(datetime.timedelta(seconds=int(time() - ts))) if ts > 0 else '-'
+            self.add_items_to_tree(
+                self.window().buckets_tree_widget,
+                data.get("buckets"),
+                [
+                    "prefix",
+                    "last_changed",
+                    "num_peers"
+                ],
+            )
 
     def on_event_clicked(self, item):
         event_dict = item.data(0, Qt.UserRole)
