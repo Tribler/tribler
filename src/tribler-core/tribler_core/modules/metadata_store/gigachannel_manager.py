@@ -88,7 +88,7 @@ class GigaChannelManager(TaskManager):
         self.updated_my_channel(tdef)
         return tdef
 
-    async def check_and_regen_personal_channel_torrent(self, channel_pk, channel_id, channel_download, timeout=10):
+    async def check_and_regen_personal_channel_torrent(self, channel_pk, channel_id, channel_download, timeout=60):
         try:
             await wait_for(channel_download.wait_for_status(DLSTATUS_SEEDING), timeout=timeout)
         except asyncio.TimeoutError:
