@@ -78,7 +78,7 @@ class TestDHTHealthManager(TriblerCoreTest):
         """
         Test whether the right operations happen when receiving a bloom filter
         """
-        infohash = 'a' * 20
+        infohash = b'a' * 20
         self.dht_health_manager.received_bloomfilters(infohash)  # It should not do anything
         self.assertFalse(self.dht_health_manager.bf_seeders)
         self.assertFalse(self.dht_health_manager.bf_peers)
