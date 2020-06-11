@@ -624,7 +624,7 @@ class DebugWindow(QMainWindow):
         TriblerNetworkRequest("debug/memory/history", self.on_core_memory_history)
 
     def on_core_memory_history(self, data):
-        if not data:
+        if not data or data.get("memory_history") is None:
             return
         self.memory_plot.reset_plot()
         for mem_info in data["memory_history"]:
