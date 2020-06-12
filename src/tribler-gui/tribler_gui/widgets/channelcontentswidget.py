@@ -352,7 +352,7 @@ class ChannelContentsWidget(widget_form, widget_class):
 
         self.channel_state_label.setText(self.model.channel_info.get("state", "This text should not ever be shown"))
 
-        self.subscription_widget.setHidden(root or personal or folder)
+        self.subscription_widget.setHidden(root or personal or folder or legacy)
         if not self.subscription_widget.isHidden():
             self.subscription_widget.update_subscribe_button(self.model.channel_info)
 
