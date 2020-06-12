@@ -1,8 +1,7 @@
 import os
-import subprocess
 import sys
 
-from PyQt5.QtCore import QObject, QTimer, pyqtSignal
+from PyQt5.QtCore import QObject, QProcess, QProcessEnvironment, QTimer, pyqtSignal
 from PyQt5.QtNetwork import QNetworkRequest
 from PyQt5.QtWidgets import QApplication
 
@@ -35,28 +34,33 @@ class CoreManager(QObject):
         self.events_manager = EventRequestManager(self.api_port, self.api_key)
 
         self.shutting_down = False
-        self.recorded_stderr = ""
+        self.should_stop_on_shutdown = False
         self.use_existing_core = True
         self.is_core_running = False
-
-        self.stop_timer = QTimer()
-        self.stop_timer.timeout.connect(self.check_stopped)
+        self.core_traceback = None
 
         self.check_state_timer = QTimer()
 
-    def check_stopped(self):
-        """
-        Checks if the core has stopped. Note that this method is called by stop timer which is called when trying to
-        stop the core manager.
-        There could be two cases when we stop the timer.
-        1. Core process is None. This means some external core process was used (could be run through twistd plugin)
-        which we don't kill so we stop the timer here.
-        2. Core process poll method returns non None value. The return value of poll method is None if the process
-        has not terminated so for any non None value we stop the timer.
-        """
-        if not self.core_process or self.core_process.poll() is not None:
-            self.stop_timer.stop()
+    def on_core_read_ready(self):
+        raw_output = bytes(self.core_process.readAll())
+        if b'Traceback' in raw_output:
+            self.core_traceback = raw_output.decode()
+        print(raw_output.decode().strip())
+
+    def on_core_finished(self, exit_code, exit_status):
+        if self.shutting_down and self.should_stop_on_shutdown:
             self.on_finished()
+        elif not self.shutting_down and exit_code != 0:
+            # Stop the event manager loop if it is running
+            if self.events_manager.connect_timer and self.events_manager.connect_timer.isActive():
+                self.events_manager.connect_timer.stop()
+
+            exception_msg = "The Tribler core has unexpectedly finished with exit code %s and status: %s!" % \
+                            (exit_code, exit_status)
+            if self.core_traceback:
+                exception_msg += "\n\n%s" % self.core_traceback
+
+            raise RuntimeError(exception_msg)
 
     def start(self, core_args=None, core_env=None):
         """
@@ -74,14 +78,22 @@ class CoreManager(QObject):
     def start_tribler_core(self, core_args=None, core_env=None):
         if not START_FAKE_API:
             if not core_env:
-                core_env = os.environ.copy()
-                core_env["CORE_PROCESS"] = "1"
-                core_env["CORE_BASE_PATH"] = self.base_path
-                core_env["CORE_API_PORT"] = "%s" % self.api_port
-                core_env["CORE_API_KEY"] = self.api_key.decode('utf-8')
+                core_env = QProcessEnvironment.systemEnvironment()
+                core_env.insert("CORE_PROCESS", "1")
+                core_env.insert("CORE_BASE_PATH", self.base_path)
+                core_env.insert("CORE_API_PORT", "%s" % self.api_port)
+                core_env.insert("CORE_API_KEY", self.api_key.decode('utf-8'))
             if not core_args:
                 core_args = sys.argv
-            self.core_process = subprocess.Popen([sys.executable] + core_args, env=core_env)
+
+            self.core_process = QProcess()
+            self.core_process.setProcessEnvironment(core_env)
+            self.core_process.setReadChannel(QProcess.StandardOutput)
+            self.core_process.setProcessChannelMode(QProcess.MergedChannels)
+            self.core_process.readyRead.connect(self.on_core_read_ready)
+            self.core_process.finished.connect(self.on_core_finished)
+            self.core_process.start(sys.executable, core_args)
+
         self.check_core_ready()
 
     def check_core_ready(self):
@@ -111,10 +123,7 @@ class CoreManager(QObject):
             TriblerNetworkRequest("shutdown", lambda _: None, method="PUT", priority=QNetworkRequest.HighPriority)
 
             if stop_app_on_shutdown:
-                self.stop_timer.start(100)
-
-    def throw_core_exception(self):
-        raise RuntimeError(self.recorded_stderr)
+                self.should_stop_on_shutdown = True
 
     def on_finished(self):
         self.tribler_stopped.emit()
