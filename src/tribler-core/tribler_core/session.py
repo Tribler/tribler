@@ -459,18 +459,6 @@ class Session(TaskManager):
             self.torrent_checker = TorrentChecker(self)
             await self.torrent_checker.initialize()
 
-        # Wallets
-        if self.config.get_bitcoinlib_enabled():
-            try:
-                from anydex.wallet.btc_wallet import BitcoinWallet, BitcoinTestnetWallet
-                wallet_path = self.config.get_state_dir() / 'wallet'
-                btc_wallet = BitcoinWallet(wallet_path)
-                btc_testnet_wallet = BitcoinTestnetWallet(wallet_path)
-                self.wallets[btc_wallet.get_identifier()] = btc_wallet
-                self.wallets[btc_testnet_wallet.get_identifier()] = btc_testnet_wallet
-            except Exception as exc:
-                self._logger.error("bitcoinlib library cannot be loaded: %s", exc)
-
         if self.config.get_dummy_wallets_enabled():
             # For debugging purposes, we create dummy wallets
             dummy_wallet1 = DummyWallet1()
