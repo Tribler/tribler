@@ -1,6 +1,7 @@
 import socket
 import struct
 from asyncio import CancelledError, DatagramProtocol, Future, ensure_future, get_event_loop, start_server
+from unittest.mock import Mock
 
 from aiohttp.web_exceptions import HTTPBadRequest
 
@@ -11,6 +12,7 @@ from tribler_core.modules.torrent_checker.torrentchecker_session import (
     FakeBep33DHTSession,
     FakeDHTSession,
     HttpTrackerSession,
+    UdpSocketManager,
     UdpTrackerSession,
 )
 from tribler_core.session import Session
@@ -111,6 +113,27 @@ class TestTorrentCheckerSession(TestAsServer):
         with self.assertRaises(ValueError):
             await session.connect_to_tracker()
         transport.close()
+
+    @timeout(5)
+    async def test_pop_finished_transaction(self):
+        """
+        Test that receiving a datagram for an already finished
+        tracker session does not result in InvalidStateError
+        """
+
+        mgr = UdpSocketManager()
+        transaction_id = 123
+        mgr.connection_made(Mock())
+        mock_tracker_session = Mock()
+        mock_tracker_session.transaction_id = transaction_id
+        mgr.send_request(Mock(), mock_tracker_session)
+        self.assertTrue(mgr.tracker_sessions)
+
+        mgr.tracker_sessions[transaction_id].cancel()
+
+        data = struct.pack("!iiq", 124, transaction_id, 126)
+        mgr.datagram_received(data, None)
+        self.assertFalse(mgr.tracker_sessions)
 
     @timeout(5)
     async def test_httpsession_cancel_operation(self):
