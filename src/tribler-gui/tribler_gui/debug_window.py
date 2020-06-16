@@ -22,6 +22,7 @@ from tribler_gui.event_request_manager import received_events as tribler_receive
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest, performed_requests as tribler_performed_requests
 from tribler_gui.utilities import format_size, get_ui_file_path
 from tribler_gui.widgets.graphs.timeseriesplot import TimeSeriesPlot
+from tribler_gui.widgets.ipv8health import MonitorWidget
 
 try:
     from meliae import scanner
@@ -116,11 +117,18 @@ class DebugWindow(QMainWindow):
 
         # Refresh timer
         self.refresh_timer = None
-
         self.rest_request = None
+        self.ipv8_health_widget = None
 
     def hideEvent(self, hide_event):
         self.stop_timer()
+        self.hide_ipv8_health_widget()
+
+    def showEvent(self, show_event):
+        if self.ipv8_health_widget and self.ipv8_health_widget.isVisible():
+            self.ipv8_health_widget.resume()
+            TriblerNetworkRequest("ipv8/health/enable", self.on_ipv8_health_enabled, data={"enable": True},
+                                  method='PUT')
 
     def run_with_timer(self, call_fn, timeout=DEBUG_PANE_REFRESH_TIMEOUT):
         call_fn()
@@ -181,6 +189,8 @@ class DebugWindow(QMainWindow):
             self.run_with_timer(self.load_ipv8_communities_tab)
         elif index == 2:
             self.run_with_timer(self.load_ipv8_community_details_tab)
+        elif index == 3:
+            self.run_with_timer(self.load_ipv8_health_monitor)
 
     def tunnel_tab_changed(self, index):
         if index == 0:
@@ -368,6 +378,55 @@ class DebugWindow(QMainWindow):
                     stat_item.setText(3, "%s" % stat["num_up"])
                     stat_item.setText(4, "%s" % stat["num_down"])
                     self.window().ipv8_communities_details_widget.addTopLevelItem(stat_item)
+
+    def load_ipv8_health_monitor(self):
+        """
+        Lazy load and enable the IPv8 core health monitor.
+        """
+        if self.ipv8_health_widget is None:
+            # Add the core monitor widget to the tab widget.
+            from PyQt5.QtWidgets import QVBoxLayout
+            widget = MonitorWidget()
+            layout = QVBoxLayout()
+            layout.setContentsMargins(0, 0, 0, 0)
+            layout.addWidget(widget)
+            self.window().ipv8_health_monitor_widget.setLayout(layout)
+            self.window().ipv8_health_monitor_widget.show()
+            self.ipv8_health_widget = widget
+        else:
+            # We already loaded the widget, just resume it.
+            self.ipv8_health_widget.resume()
+        # Whether the widget is newly loaded or not, start the measurements.
+        TriblerNetworkRequest("ipv8/health/enable", self.on_ipv8_health_enabled, data={"enable": True}, method='PUT')
+
+    def hide_ipv8_health_widget(self):
+        """
+        We need to hide the IPv8 health widget, involving two things:
+
+         1. Stop the smooth graphical updates in the widget.
+         2. Remove the observer from the IPv8 core.
+        """
+        if self.ipv8_health_widget is not None and not self.ipv8_health_widget.is_paused:
+            self.ipv8_health_widget.pause()
+            TriblerNetworkRequest("ipv8/health/enable", lambda _: None, data={"enable": False}, method='PUT')
+
+    def on_ipv8_health(self, data):
+        """
+        Measurements came in, send them to the widget for "plotting".
+        """
+        if not data or 'measurements' not in data or self.ipv8_health_widget is None:
+            return
+        self.ipv8_health_widget.set_history(data['measurements'])
+
+    def on_ipv8_health_enabled(self, data):
+        """
+        The request to enable IPv8 completed.
+
+        Start requesting measurements.
+        """
+        if not data:
+            return
+        self.run_with_timer(lambda: TriblerNetworkRequest("ipv8/health/drift", self.on_ipv8_health), 100)
 
     def add_items_to_tree(self, tree, items, keys):
         tree.clear()
