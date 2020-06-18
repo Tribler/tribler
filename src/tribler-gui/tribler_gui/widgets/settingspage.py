@@ -279,6 +279,9 @@ class SettingsPage(QWidget):
             get_gui_setting(gui_settings, "autocommit_enabled", True, is_bool=True)
         )
 
+        # Market settings
+        self.window().enable_market_checkbox.setChecked(settings['market_community']['enabled'])
+
         # Log directory
         self.window().log_location_input.setText(settings['general']['log_dir'])
 
@@ -390,6 +393,7 @@ class SettingsPage(QWidget):
             'libtorrent': {},
             'watch_folder': {},
             'tunnel_community': {},
+            'market_community': {},
             'trustchain': {},
             'resource_monitor': {},
             'ipv8': {},
@@ -401,6 +405,8 @@ class SettingsPage(QWidget):
         settings_data['watch_folder']['enabled'] = self.window().watchfolder_enabled_checkbox.isChecked()
         if settings_data['watch_folder']['enabled']:
             settings_data['watch_folder']['directory'] = self.window().watchfolder_location_input.text()
+
+        settings_data['market_community']['enabled'] = self.window().enable_market_checkbox.isChecked()
 
         settings_data['libtorrent']['proxy_type'] = self.window().lt_proxy_type_combobox.currentIndex()
 

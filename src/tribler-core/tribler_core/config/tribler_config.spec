@@ -12,7 +12,7 @@ random_slots = integer(default=5)
 competing_slots = integer(default=15)
 
 [market_community]
-enabled = boolean(default=True)
+enabled = boolean(default=False)
 matchmaker = boolean(default=True)
 record_transactions = boolean(default=False)
 
