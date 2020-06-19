@@ -1,6 +1,5 @@
-from PyQt5.QtCore import QEvent, QModelIndex, QObject, QRect, QRectF, QSize, Qt, pyqtSignal
+from PyQt5.QtCore import QEvent, QModelIndex, QObject, QRect, QSize, Qt, pyqtSignal
 from PyQt5.QtGui import QBrush, QColor, QIcon, QPainter, QPen
-from PyQt5.QtSvg import QSvgRenderer
 from PyQt5.QtWidgets import QComboBox, QStyle, QStyledItemDelegate, QToolTip
 
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
@@ -151,16 +150,8 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
 
 
 class ChannelStateMixin(object):
-    wait_svg = QSvgRenderer(get_image_path("wait_animation.svg"))
+    wait_png = QIcon(get_image_path("wait.png"))
     share_icon = QIcon(get_image_path("share.png"))
-
-    def init_animation(self):
-        # This signal is fired each time the animation objects wants to show the next frame.
-        # However, this happens even when the view is in the background. So, the signal
-        # continue to fire even when nothing is shown on the screen. This is just stupid
-        # and should be changed eventually.
-        # TODO: make the animation stop when the view becomes hidden. Use QMovie to do this.
-        self.wait_svg.repaintNeeded.connect(self.redraw_required)
 
     @staticmethod
     def get_indicator_rect(rect):
@@ -186,7 +177,12 @@ class ChannelStateMixin(object):
             self.share_icon.paint(painter, self.get_indicator_rect(option.rect))
             return True
         if data_item[u'state'] in [u'Updating', u'Downloading']:
-            self.wait_svg.render(painter, QRectF(self.get_indicator_rect(option.rect)))
+            rect = option.rect
+            rect_side = option.rect.height() * 0.8
+            x = rect.left() + (rect.width() - rect_side) / 2
+            y = rect.top() + (rect.height() - rect_side) / 2
+            icon_rect = QRect(x, y, rect_side, rect_side)
+            self.wait_png.paint(painter, icon_rect)
             return True
         return True
 
@@ -305,7 +301,6 @@ class TriblerContentDelegate(
         self.subscribe_control = SubscribeToggleControl(u'subscribed')
         self.rating_control = RatingControl(u'votes')
 
-        self.init_animation()
         self.health_status_widget = HealthStatusDisplay()
 
         self.play_button = PlayIconButton()

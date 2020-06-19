@@ -42,7 +42,6 @@ class MarketService(object):
         config.set_torrent_checking_enabled(False)
         config.set_libtorrent_enabled(True)
         config.set_http_api_enabled(True)
-        config.set_credit_mining_enabled(False)
         config.set_dummy_wallets_enabled(True)
         config.set_popularity_community_enabled(False)
         config.set_chant_enabled(False)

@@ -3,10 +3,10 @@ import time
 
 from PyQt5.QtWidgets import QWidget
 
-from tribler_gui.defs import GB, PAGE_MARKET, PAGE_TOKEN_MINING_PAGE, TB
+from tribler_gui.defs import GB, PAGE_MARKET, TB
 from tribler_gui.dialogs.trustexplanationdialog import TrustExplanationDialog
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.widgets.tokenminingpage import TimeSeriesPlot
+from tribler_gui.widgets.graphs.timeseriesplot import TimeSeriesPlot
 
 
 class TrustSeriesPlot(TimeSeriesPlot):
@@ -36,10 +36,8 @@ class TrustPage(QWidget):
     def showEvent(self, QShowEvent):
         super(TrustPage, self).showEvent(QShowEvent)
         if self.window().tribler_settings:  # It could be that the settings are not loaded yet
-            self.window().mine_button.setHidden(not self.window().tribler_settings["credit_mining"]["enabled"])
             self.window().trade_button.setHidden(not self.window().tribler_settings["market_community"]["enabled"])
         else:
-            self.window().mine_button.hide()
             self.window().trade_button.hide()
 
     def initialize_trust_page(self):
@@ -49,7 +47,6 @@ class TrustPage(QWidget):
             vlayout.addWidget(self.trust_plot)
 
         self.window().trade_button.clicked.connect(self.on_trade_button_clicked)
-        self.window().mine_button.clicked.connect(self.on_mine_button_clicked)
         self.window().trust_explain_button.clicked.connect(self.on_info_button_clicked)
 
     def on_trade_button_clicked(self):
@@ -60,11 +57,6 @@ class TrustPage(QWidget):
     def on_info_button_clicked(self):
         self.dialog = TrustExplanationDialog(self.window())
         self.dialog.show()
-
-    def on_mine_button_clicked(self):
-        self.window().token_mining_page.initialize_token_mining_page()
-        self.window().navigation_stack.append(self.window().stackedWidget.currentIndex())
-        self.window().stackedWidget.setCurrentIndex(PAGE_TOKEN_MINING_PAGE)
 
     def load_blocks(self):
         TriblerNetworkRequest("ipv8/trustchain/users/%s/blocks" % self.public_key, self.received_trustchain_blocks)

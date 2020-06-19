@@ -1,7 +1,7 @@
 import math
 from asyncio import Future
 
-from ipv8.dht.routing import distance, id_to_binary_string
+from ipv8.dht.routing import distance
 from ipv8.taskmanager import TaskManager
 
 import libtorrent as lt
@@ -127,9 +127,7 @@ class DHTHealthManager(TaskManager):
         # We do not know to which infohash the received get_peers response belongs so we have to manually go through
         # the infohashes and find the infohash that is the closest to the node id that sent us the message.
         for infohash in self.lookup_futures:
-            infohash_bin = id_to_binary_string(infohash)
-            node_id_bin = id_to_binary_string(node_id)
-            ih_distance = distance(infohash_bin, node_id_bin)
+            ih_distance = distance(infohash, node_id)
             if ih_distance < min_distance or min_distance == -1:
                 min_distance = ih_distance
                 closest_infohash = infohash

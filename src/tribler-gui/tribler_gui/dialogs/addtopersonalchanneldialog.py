@@ -29,22 +29,32 @@ class AddToChannelDialog(DialogContainer):
         self.dialog_widget.btn_cancel.clicked.connect(self.close_dialog)
         self.dialog_widget.btn_confirm.clicked.connect(self.on_confirm_clicked)
         self.dialog_widget.btn_new_channel.clicked.connect(self.on_create_new_channel_clicked)
+        self.dialog_widget.btn_new_folder.clicked.connect(self.on_create_new_folder_clicked)
 
         self.confirm_clicked_callback = None
 
         self.root_requests_list = []
 
         self.channels_tree = {}
-        root_chan = ChannelQTreeWidgetItem(self.dialog_widget.channels_tree_wt, ["My channel"], id_=0)
-        self.id2wt_mapping = {0: root_chan}
+        self.id2wt_mapping = {0: self.dialog_widget.channels_tree_wt}
         self.dialog_widget.channels_tree_wt.itemExpanded.connect(self.on_item_expanded)
 
         self.dialog_widget.channels_tree_wt.setHeaderLabels(['Name'])
         self.on_main_window_resize()
 
     def on_create_new_channel_clicked(self):
+        def on_new_channel_response(response):
+            if not response or not response.get("results", None):
+                return
+            self.load_channel(response["results"][0]["origin_id"])
+
+        TriblerNetworkRequest("channels/mychannel/0/channels", on_new_channel_response, method='POST')
+
+    def on_create_new_folder_clicked(self):
         selected = self.dialog_widget.channels_tree_wt.selectedItems()
-        channel_id = selected[0].id_ if selected else 0
+        if not selected:
+            return
+        channel_id = selected[0].id_
 
         def on_new_channel_response(response):
             if not response or not response.get("results", None):
@@ -59,8 +69,7 @@ class AddToChannelDialog(DialogContainer):
         for rq in self.root_requests_list:
             rq.cancel_request()
         self.dialog_widget.channels_tree_wt.clear()
-        root_chan = ChannelQTreeWidgetItem(self.dialog_widget.channels_tree_wt, ["My channel"], id_=0)
-        self.id2wt_mapping = {0: root_chan}
+        self.id2wt_mapping = {0: self.dialog_widget.channels_tree_wt}
         self.load_channel(0)
 
     def show_dialog(self, on_confirm, confirm_button_text="CONFIRM_BUTTON"):

@@ -40,8 +40,6 @@ reactions_dict = {
     NTFY.TORRENT_FINISHED: lambda *args: {"infohash": hexlify(args[0]), "name": args[1], "hidden": args[2]},
     # Information about some torrent has been updated (e.g. health). Contains updated torrent data
     NTFY.CHANNEL_ENTITY_UPDATED: passthrough,
-    # An error arisen in credit mining manager
-    NTFY.CREDIT_MINING_ERROR: passthrough,
     # Tribler is going to shutdown.
     NTFY.TRIBLER_SHUTDOWN_STATE: passthrough,
     # Remote GigaChannel search results were received by Tribler. Contains received entries.

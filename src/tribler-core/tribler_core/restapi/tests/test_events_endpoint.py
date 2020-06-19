@@ -62,7 +62,6 @@ class TestEventsEndpoint(AbstractApiTest):
             NTFY.CHANNEL_DISCOVERED: {"result": "bla"},
             NTFY.TORRENT_FINISHED: (b'a' * 10, None, False),
             NTFY.LOW_SPACE: ("", ),
-            NTFY.CREDIT_MINING_ERROR: {"message": "Some credit mining error"},
             NTFY.TUNNEL_REMOVE: (Circuit(1234, None), 'test'),
             NTFY.REMOTE_QUERY_RESULTS: {"query": "test"},
         }

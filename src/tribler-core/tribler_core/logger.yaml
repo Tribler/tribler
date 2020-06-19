@@ -75,7 +75,7 @@ loggers:
         propagate: no
 
     asyncio:
-        level: DEBUG
+        level: INFO 
         handlers: [console, error_console, info_memory_handler, error_memory_handler]
         propagate: no
 
@@ -95,16 +95,6 @@ loggers:
         propagate: no
 
     LibtorrentDownloadImpl:
-        level: INFO
-        handlers: [console, error_console, info_memory_handler, error_memory_handler]
-        propagate: no
-
-    CreditMiningManager:
-        level: INFO
-        handlers: [console, error_console, info_memory_handler, error_memory_handler]
-        propagate: no
-
-    CreditMiningSource:
         level: INFO
         handlers: [console, error_console, info_memory_handler, error_memory_handler]
         propagate: no
@@ -170,6 +160,11 @@ loggers:
         propagate: no
 
     MetadataStore:
+        level: INFO
+        handlers: [console, error_console, info_memory_handler, error_memory_handler]
+        propagate: no
+
+    GigaChannelManager:
         level: INFO
         handlers: [console, error_console, info_memory_handler, error_memory_handler]
         propagate: no

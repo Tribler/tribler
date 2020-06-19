@@ -75,7 +75,6 @@ STATE_START_LIBTORRENT = 'Starting libtorrent...'
 STATE_START_TORRENT_CHECKER = 'Starting torrent checker...'
 STATE_START_API_ENDPOINTS = 'Starting API endpoints...'
 STATE_START_WATCH_FOLDER = 'Starting watch folder...'
-STATE_START_CREDIT_MINING = 'Starting credit mining...'
 STATE_START_RESOURCE_MONITOR = 'Starting resource monitor...'
 STATE_READABLE_STARTED = 'Started'
 
@@ -98,7 +97,6 @@ class NTFY(Enum):
     UPGRADER_STARTED = "upgrader_started"
     UPGRADER_DONE = "upgrader_done"
     CHANNEL_ENTITY_UPDATED = "channel_entity_updated"
-    CREDIT_MINING_ERROR = "credit_mining_error"
     LOW_SPACE = "low_space"
     EVENTS_START = "events_start"
     TRIBLER_EXCEPTION = "tribler_exception"

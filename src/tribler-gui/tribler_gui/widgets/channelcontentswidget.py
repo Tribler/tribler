@@ -51,7 +51,6 @@ class ChannelContentsWidget(widget_form, widget_class):
         # for each external resource (e.g. image/icon), we must reload it manually here.
         self.channel_options_button.setIcon(QIcon(get_image_path('ellipsis.png')))
         self.channel_preview_button.setIcon(QIcon(get_image_path('refresh.png')))
-        self.credit_mining_button.setIcon(QIcon(get_image_path('credit_mining_not.png')))
 
         self.default_channel_model = ChannelContentModel
 
@@ -112,7 +111,7 @@ class ChannelContentsWidget(widget_form, widget_class):
         self.category_selector.currentIndexChanged.connect(self.on_category_selector_changed)
         self.channel_back_button.setIcon(QIcon(get_image_path('page_back.png')))
         self.channel_back_button.clicked.connect(self.go_back)
-        self.channel_name_label.linkActivated.connect(self.go_back_to_level)
+        self.channel_name_label.linkActivated.connect(self.on_breadcrumb_clicked)
         self.channel_options_button.clicked.connect(self.show_channel_options)
         self.commit_control_bar.setHidden(True)
 
@@ -215,6 +214,8 @@ class ChannelContentsWidget(widget_form, widget_class):
     def reset_view(self):
         self.model.text_filter = ''
         self.model.category_filter = None
+
+        self.controller.table_view.horizontalHeader().setSortIndicator(-1, Qt.DescendingOrder)
         self.model.sort_by = (
             self.model.columns[self.model.default_sort_column] if self.model.default_sort_column >= 0 else None
         )
@@ -248,6 +249,12 @@ class ChannelContentsWidget(widget_form, widget_class):
 
             self.model.info_changed.connect(self.on_model_info_changed)
             self.update_labels()
+
+    def on_breadcrumb_clicked(self, tgt_level):
+        if int(tgt_level) + 1 != len(self.channels_stack):
+            self.go_back_to_level(tgt_level)
+        else:
+            self.reset_view()
 
     def go_back_to_level(self, level):
         level = int(level)
@@ -311,11 +318,12 @@ class ChannelContentsWidget(widget_form, widget_class):
         # While building the breadcrumb label in RichText we also assemble an undecorated variant of the same text
         # to estimate if we need to elide the breadcrumb. We cannot use RichText contents directly with
         # .elidedText method because QT will elide the tags as well.
-        breadcrumb_text = f'{self.model.channel_info["name"]}'
-        breadcrumb_text_undecorated = breadcrumb_text
-        path_parts = [(m, model.channel_info["name"]) for m, model in enumerate(self.channels_stack[:-1])]
+        breadcrumb_text = ''
+        breadcrumb_text_undecorated = ''
+        path_parts = [(m, model.channel_info["name"]) for m, model in enumerate(self.channels_stack)]
+        slash_separator = '<font color=#A5A5A5>  /  </font>'
         for m, channel_name in reversed(path_parts):
-            breadcrumb_text_undecorated = channel_name + " / " + breadcrumb_text_undecorated
+            breadcrumb_text_undecorated = " / " + channel_name + breadcrumb_text_undecorated
             breadcrumb_text_elided = self.channel_name_label.fontMetrics().elidedText(
                 breadcrumb_text_undecorated, 0, self.channel_name_label.width()
             )
@@ -323,12 +331,17 @@ class ChannelContentsWidget(widget_form, widget_class):
             if must_elide:
                 channel_name = "..."
             breadcrumb_text = (
-                f'<a style="text-decoration:none;color:#A5A5A5;" href="{m}">{channel_name}</a>'
-                + '<font color=#A5A5A5>  /  </font>'
+                slash_separator
+                + f'<a style="text-decoration:none;color:#A5A5A5;" href="{m}">{channel_name}</a>'
                 + breadcrumb_text
             )
             if must_elide:
                 break
+        # Remove the leftmost slash:
+        if len(breadcrumb_text) >= len(slash_separator):
+            breadcrumb_text = breadcrumb_text[len(slash_separator) :]
+
+        self.new_channel_button.setText("NEW CHANNEL" if root else "NEW FOLDER")
 
         self.channel_name_label.setText(breadcrumb_text)
         self.channel_name_label.setTextInteractionFlags(Qt.TextBrowserInteraction)
@@ -339,7 +352,7 @@ class ChannelContentsWidget(widget_form, widget_class):
 
         self.channel_state_label.setText(self.model.channel_info.get("state", "This text should not ever be shown"))
 
-        self.subscription_widget.setHidden(root or personal or folder)
+        self.subscription_widget.setHidden(root or personal or folder or legacy)
         if not self.subscription_widget.isHidden():
             self.subscription_widget.update_subscribe_button(self.model.channel_info)
 

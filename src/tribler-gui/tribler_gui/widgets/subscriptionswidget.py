@@ -1,13 +1,11 @@
 import json
 
-from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.QtWidgets import QWidget
 
 import tribler_core.utilities.json_util as json
 
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.utilities import format_votes, get_image_path
+from tribler_gui.utilities import format_votes
 
 
 class SubscriptionsWidget(QWidget):
@@ -15,13 +13,10 @@ class SubscriptionsWidget(QWidget):
     This widget shows a favorite button and the number of subscriptions that a specific channel has.
     """
 
-    credit_mining_toggled = pyqtSignal(bool)
-
     def __init__(self, parent):
         QWidget.__init__(self, parent)
 
         self.subscribe_button = None
-        self.credit_mining_button = None
         self.initialized = False
         self.contents_widget = None
 
@@ -31,43 +26,21 @@ class SubscriptionsWidget(QWidget):
             # returns the current model in use (top of the stack)
             self.contents_widget = contents_widget
             self.subscribe_button = self.findChild(QWidget, "subscribe_button")
-            self.credit_mining_button = self.findChild(QWidget, "credit_mining_button")
 
             self.subscribe_button.clicked.connect(self.on_subscribe_button_click)
-            self.credit_mining_button.clicked.connect(self.on_credit_mining_button_click)
             self.initialized = True
 
     def update_subscribe_button(self, remote_response=None):
+        # A safeguard against race condition that happens when the user changed
+        # the channel view before the response came in
+        if self.isHidden():
+            return
         if remote_response and "subscribed" in remote_response:
             self.contents_widget.model.channel_info["subscribed"] = remote_response["subscribed"]
 
         color = '#FE6D01' if int(self.contents_widget.model.channel_info["subscribed"]) else '#fff'
         self.subscribe_button.setStyleSheet('border:none; color: %s' % color)
         self.subscribe_button.setText(format_votes(self.contents_widget.model.channel_info['votes']))
-
-        if self.window().tribler_settings:  # It could be that the settings are not loaded yet
-            self.credit_mining_button.setHidden(not self.window().tribler_settings["credit_mining"]["enabled"])
-            self.credit_mining_button.setIcon(
-                QIcon(
-                    QPixmap(
-                        get_image_path(
-                            'credit_mining_yes.png'
-                            if self.contents_widget.model.channel_info["public_key"]
-                            in self.window().tribler_settings["credit_mining"]["sources"]
-                            else 'credit_mining_not.png'
-                        )
-                    )
-                )
-            )
-        else:
-            self.credit_mining_button.hide()
-
-        # Disable channel control buttons for LEGACY_ENTRY channels
-        hide_controls = self.contents_widget.model.channel_info["status"] == 1000
-        self.subscribe_button.setHidden(hide_controls)
-        if hide_controls:
-            # This button could be hidden before for other reasons, that's why we only hide, but not _unhide_ it here
-            self.credit_mining_button.setHidden(True)
 
     def on_subscribe_button_click(self):
         TriblerNetworkRequest(
@@ -77,30 +50,3 @@ class SubscriptionsWidget(QWidget):
             raw_data=json.dumps({"subscribed": int(not self.contents_widget.model.channel_info["subscribed"])}),
             method='PATCH',
         )
-
-    def on_credit_mining_button_click(self):
-        old_sources = self.window().tribler_settings["credit_mining"]["sources"]
-        new_sources = (
-            []
-            if self.contents_widget.model.channel_info["public_key"] in old_sources
-            else [self.contents_widget.model.channel_info["public_key"]]
-        )
-        settings = {"credit_mining": {"sources": new_sources}}
-
-        TriblerNetworkRequest("settings", self.on_credit_mining_sources, method='POST', raw_data=json.dumps(settings))
-
-    def on_credit_mining_sources(self, json_result):
-        if not json_result:
-            return
-        if json_result["modified"]:
-            old_source = next(iter(self.window().tribler_settings["credit_mining"]["sources"]), None)
-            if self.contents_widget.model.channel_info["public_key"] != old_source:
-                self.credit_mining_toggled.emit(True)
-                new_sources = [self.contents_widget.model.channel_info["public_key"]]
-            else:
-                self.credit_mining_toggled.emit(False)
-                new_sources = []
-
-            self.window().tribler_settings["credit_mining"]["sources"] = new_sources
-
-            self.update_subscribe_button()

@@ -12,7 +12,7 @@ random_slots = integer(default=5)
 competing_slots = integer(default=15)
 
 [market_community]
-enabled = boolean(default=True)
+enabled = boolean(default=False)
 matchmaker = boolean(default=True)
 record_transactions = boolean(default=False)
 
@@ -54,6 +54,7 @@ max_download_rate = integer(default=0)
 max_upload_rate = integer(default=0)
 utp = boolean(default=True)
 dht = boolean(default=True)
+dht_readiness_timeout = integer(default=30)
 
 anon_listen_port = integer(min=-1, max=65536, default=-1)
 anon_proxy_type = integer(min=0, max=5, default=0)
@@ -98,11 +99,6 @@ enabled = boolean(default=True)
 cpu_priority = integer(min=0, max=5, default=1)
 poll_interval = integer(min=1, default=5)
 history_size = integer(min=1, default=20)
-
-[credit_mining]
-enabled = boolean(default=False)
-sources = string_list(default=list())
-max_disk_space = integer(min=0, default=53687091200)
 
 [popularity_community]
 enabled = boolean(default=True)

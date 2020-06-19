@@ -1,3 +1,4 @@
+import time
 from random import sample
 
 from ipv8.messaging.anonymization.tunnel import PEER_FLAG_EXIT_ANY
@@ -29,6 +30,7 @@ class GoldenRatioStrategy(DiscoveryStrategy):
         super(GoldenRatioStrategy, self).__init__(overlay)
         self.golden_ratio = golden_ratio
         self.target_peers = target_peers
+        self.intro_sent = {}
 
         assert target_peers > 0
         assert 0.0 <= golden_ratio <= 1.0
@@ -41,7 +43,21 @@ class GoldenRatioStrategy(DiscoveryStrategy):
         :returns: None
         """
         with self.walk_lock:
-            peer_count = len(self.overlay.get_peers())
+            peers = self.overlay.get_peers()
+            for peer in list(self.intro_sent.keys()):
+                if peer not in peers:
+                    self.intro_sent.pop(peer, None)
+
+            # Some of the peers in the community could have been discovered using the DiscoveryCommunity. If this
+            # happens we have no knowledge of their peer_flags. In order to still get the flags we send them an
+            # introduction request manually.
+            now = time.time()
+            for peer in peers:
+                if peer not in self.overlay.candidates and now > self.intro_sent.get(peer, 0) + 300:
+                    self.overlay.send_introduction_request(peer)
+                    self.intro_sent[peer] = now
+
+            peer_count = len(peers)
             if peer_count > self.target_peers:
                 exit_peers = set(self.overlay.get_candidates(PEER_FLAG_EXIT_ANY))
                 exit_count = len(exit_peers)

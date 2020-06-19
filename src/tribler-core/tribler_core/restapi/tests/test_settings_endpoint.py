@@ -1,9 +1,8 @@
-import json
-
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
 from tribler_core.restapi.base_api_test import AbstractApiTest
 from tribler_core.tests.tools.base_test import MockObject
 from tribler_core.tests.tools.tools import timeout
+from tribler_core.utilities.path_util import Path
 
 
 class TestSettingsEndpoint(AbstractApiTest):
@@ -21,6 +20,7 @@ class TestSettingsEndpoint(AbstractApiTest):
 
         self.assertTrue(settings_dict['settings'])
         self.assertTrue(settings_dict['ports'])
+        self.assertTrue(Path(settings_dict['settings']['download_defaults']['saveas']))
         for section in check_section:
             self.assertTrue(settings_dict['settings'][section])
 
@@ -77,7 +77,6 @@ class TestSettingsEndpoint(AbstractApiTest):
         """
 
         dcfg = DownloadConfig()
-        dcfg.get_credit_mining = lambda: False
         download = MockObject()
         download.config = dcfg
         self.session.dlmgr.get_downloads = lambda: [download]

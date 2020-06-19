@@ -228,7 +228,9 @@ class UdpSocketManager(DatagramProtocol):
         if data and len(data) >= 4:
             transaction_id = struct.unpack_from('!i', data, 4)[0]
             if transaction_id in self.tracker_sessions:
-                self.tracker_sessions.pop(transaction_id).set_result(data)
+                session = self.tracker_sessions.pop(transaction_id)
+                if not session.done():
+                    session.set_result(data)
 
 
 class UdpTrackerSession(TrackerSession):
