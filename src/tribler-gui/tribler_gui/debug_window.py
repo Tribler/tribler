@@ -21,7 +21,8 @@ from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler_gui.event_request_manager import received_events as tribler_received_events
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest, performed_requests as tribler_performed_requests
 from tribler_gui.utilities import format_size, get_ui_file_path
-from tribler_gui.widgets.tokenminingpage import TimeSeriesPlot
+from tribler_gui.widgets.graphs.timeseriesplot import TimeSeriesPlot
+from tribler_gui.widgets.ipv8health import MonitorWidget
 
 try:
     from meliae import scanner
@@ -79,10 +80,12 @@ class DebugWindow(QMainWindow):
         self.window().debug_tab_widget.setCurrentIndex(0)
         self.window().ipv8_tab_widget.setCurrentIndex(0)
         self.window().tunnel_tab_widget.setCurrentIndex(0)
+        self.window().dht_tab_widget.setCurrentIndex(0)
         self.window().system_tab_widget.setCurrentIndex(0)
         self.window().debug_tab_widget.currentChanged.connect(self.tab_changed)
         self.window().ipv8_tab_widget.currentChanged.connect(self.ipv8_tab_changed)
         self.window().tunnel_tab_widget.currentChanged.connect(self.tunnel_tab_changed)
+        self.window().dht_tab_widget.currentChanged.connect(self.dht_tab_changed)
         self.window().events_tree_widget.itemClicked.connect(self.on_event_clicked)
         self.window().system_tab_widget.currentChanged.connect(self.system_tab_changed)
         self.load_general_tab()
@@ -114,11 +117,18 @@ class DebugWindow(QMainWindow):
 
         # Refresh timer
         self.refresh_timer = None
-
         self.rest_request = None
+        self.ipv8_health_widget = None
 
     def hideEvent(self, hide_event):
         self.stop_timer()
+        self.hide_ipv8_health_widget()
+
+    def showEvent(self, show_event):
+        if self.ipv8_health_widget and self.ipv8_health_widget.isVisible():
+            self.ipv8_health_widget.resume()
+            TriblerNetworkRequest("ipv8/health/enable", self.on_ipv8_health_enabled, data={"enable": True},
+                                  method='PUT')
 
     def run_with_timer(self, call_fn, timeout=DEBUG_PANE_REFRESH_TIMEOUT):
         call_fn()
@@ -162,7 +172,7 @@ class DebugWindow(QMainWindow):
         elif index == 4:
             self.tunnel_tab_changed(self.window().tunnel_tab_widget.currentIndex())
         elif index == 5:
-            self.run_with_timer(self.load_dht_tab)
+            self.dht_tab_changed(self.window().dht_tab_widget.currentIndex())
         elif index == 6:
             self.run_with_timer(self.load_events_tab)
         elif index == 7:
@@ -179,6 +189,8 @@ class DebugWindow(QMainWindow):
             self.run_with_timer(self.load_ipv8_communities_tab)
         elif index == 2:
             self.run_with_timer(self.load_ipv8_community_details_tab)
+        elif index == 3:
+            self.run_with_timer(self.load_ipv8_health_monitor)
 
     def tunnel_tab_changed(self, index):
         if index == 0:
@@ -189,6 +201,14 @@ class DebugWindow(QMainWindow):
             self.run_with_timer(self.load_tunnel_exits_tab)
         elif index == 3:
             self.run_with_timer(self.load_tunnel_swarms_tab)
+        elif index == 4:
+            self.run_with_timer(self.load_tunnel_peers_tab)
+
+    def dht_tab_changed(self, index):
+        if index == 0:
+            self.run_with_timer(self.load_dht_statistics_tab)
+        elif index == 1:
+            self.run_with_timer(self.load_dht_buckets_tab)
 
     def system_tab_changed(self, index):
         if index == 0:
@@ -286,15 +306,13 @@ class DebugWindow(QMainWindow):
     def load_ipv8_communities_tab(self):
         TriblerNetworkRequest("ipv8/overlays", self.on_ipv8_community_stats)
 
-    def _colored_peer_count(self, peer_count, overlay_count, master_peer):
-        is_discovery = (
-            master_peer == "3081a7301006072a8648ce3d020106052b81040027038192000403b3ab059ced9b20646ab5e01"
-            "762b3595c5e8855227ae1e424cff38a1e4edee73734ff2e2e829eb4f39bab20d7578284fcba72"
-            "51acd74e7daf96f21d01ea17077faf4d27a655837d072baeb671287a88554e1191d8904b0dc57"
-            "2d09ff95f10ff092c8a5e2a01cd500624376aec875a6e3028aab784cfaf0bac6527245db8d939"
-            "00d904ac2a922a02716ccef5a22f7968"
-        )
-        limits = [20, overlay_count * 30 + 1] if is_discovery else [20, 31]
+    def _colored_peer_count(self, peer_count, overlay_count, overlay_name):
+        if overlay_name == 'DiscoveryCommunity':
+            limits = [20, overlay_count * 30 + 1]
+        elif overlay_name == 'DHTDiscoveryCommunity':
+            limits = [20, 61]
+        else:
+            limits = [20, 31]
         color = 0xF4D03F if peer_count < limits[0] else (0x56F129 if peer_count < limits[1] else 0xF12929)
         return QBrush(QColor(color))
 
@@ -309,7 +327,7 @@ class DebugWindow(QMainWindow):
             item.setText(2, overlay["my_peer"][-12:])
             peer_count = len(overlay["peers"])
             item.setText(3, "%s" % peer_count)
-            item.setForeground(3, self._colored_peer_count(peer_count, len(data["overlays"]), overlay["master_peer"]))
+            item.setForeground(3, self._colored_peer_count(peer_count, len(data["overlays"]), overlay["overlay_name"]))
 
             if "statistics" in overlay and overlay["statistics"]:
                 statistics = overlay["statistics"]
@@ -361,6 +379,55 @@ class DebugWindow(QMainWindow):
                     stat_item.setText(4, "%s" % stat["num_down"])
                     self.window().ipv8_communities_details_widget.addTopLevelItem(stat_item)
 
+    def load_ipv8_health_monitor(self):
+        """
+        Lazy load and enable the IPv8 core health monitor.
+        """
+        if self.ipv8_health_widget is None:
+            # Add the core monitor widget to the tab widget.
+            from PyQt5.QtWidgets import QVBoxLayout
+            widget = MonitorWidget()
+            layout = QVBoxLayout()
+            layout.setContentsMargins(0, 0, 0, 0)
+            layout.addWidget(widget)
+            self.window().ipv8_health_monitor_widget.setLayout(layout)
+            self.window().ipv8_health_monitor_widget.show()
+            self.ipv8_health_widget = widget
+        else:
+            # We already loaded the widget, just resume it.
+            self.ipv8_health_widget.resume()
+        # Whether the widget is newly loaded or not, start the measurements.
+        TriblerNetworkRequest("ipv8/health/enable", self.on_ipv8_health_enabled, data={"enable": True}, method='PUT')
+
+    def hide_ipv8_health_widget(self):
+        """
+        We need to hide the IPv8 health widget, involving two things:
+
+         1. Stop the smooth graphical updates in the widget.
+         2. Remove the observer from the IPv8 core.
+        """
+        if self.ipv8_health_widget is not None and not self.ipv8_health_widget.is_paused:
+            self.ipv8_health_widget.pause()
+            TriblerNetworkRequest("ipv8/health/enable", lambda _: None, data={"enable": False}, method='PUT')
+
+    def on_ipv8_health(self, data):
+        """
+        Measurements came in, send them to the widget for "plotting".
+        """
+        if not data or 'measurements' not in data or self.ipv8_health_widget is None:
+            return
+        self.ipv8_health_widget.set_history(data['measurements'])
+
+    def on_ipv8_health_enabled(self, data):
+        """
+        The request to enable IPv8 completed.
+
+        Start requesting measurements.
+        """
+        if not data:
+            return
+        self.run_with_timer(lambda: TriblerNetworkRequest("ipv8/health/drift", self.on_ipv8_health), 100)
+
     def add_items_to_tree(self, tree, items, keys):
         tree.clear()
         for item in items:
@@ -376,25 +443,22 @@ class DebugWindow(QMainWindow):
             tree.addTopLevelItem(widget_item)
 
     def load_tunnel_circuits_tab(self):
+        self.window().circuits_tree_widget.setColumnWidth(3, 200)
         TriblerNetworkRequest("ipv8/tunnel/circuits", self.on_tunnel_circuits)
 
-    def on_tunnel_circuits(self, data):
-        if data:
-            self.add_items_to_tree(
-                self.window().circuits_tree_widget,
-                data.get("circuits"),
-                [
-                    "circuit_id",
-                    "goal_hops",
-                    "actual_hops",
-                    "unverified_hop",
-                    "type",
-                    "state",
-                    "bytes_up",
-                    "bytes_down",
-                    "creation_time",
-                ],
-            )
+    def on_tunnel_circuits(self, circuits):
+        if not circuits:
+            return
+
+        for c in circuits["circuits"]:
+            c["hops"] = f"{c['goal_hops']} / {c['goal_hops']}"
+            c["exit_flags"] = c["exit_flags"] if c["state"] == "READY" else ""
+
+        self.add_items_to_tree(
+            self.window().circuits_tree_widget,
+            circuits.get("circuits"),
+            ["circuit_id", "hops", "type", "state", "bytes_up", "bytes_down", "creation_time", "exit_flags"],
+        )
 
     def load_tunnel_relays_tab(self):
         TriblerNetworkRequest("ipv8/tunnel/relays", self.on_tunnel_relays)
@@ -438,15 +502,44 @@ class DebugWindow(QMainWindow):
                 ],
             )
 
-    def load_dht_tab(self):
+    def load_tunnel_peers_tab(self):
+        self.window().peers_tree_widget.setColumnWidth(2, 300)
+        TriblerNetworkRequest("ipv8/tunnel/peers", self.on_tunnel_peers)
+
+    def on_tunnel_peers(self, data):
+        if data:
+            self.add_items_to_tree(
+                self.window().peers_tree_widget, data.get("peers"), ["ip", "port", "mid", "is_key_compatible", "flags"]
+            )
+
+    def load_dht_statistics_tab(self):
         TriblerNetworkRequest("ipv8/dht/statistics", self.on_dht_statistics)
 
     def on_dht_statistics(self, data):
         if not data:
             return
-        self.window().dht_tree_widget.clear()
+        self.window().dhtstats_tree_widget.clear()
         for key, value in data["statistics"].items():
-            self.create_and_add_widget_item(key, value, self.window().dht_tree_widget)
+            self.create_and_add_widget_item(key, value, self.window().dhtstats_tree_widget)
+
+    def load_dht_buckets_tab(self):
+        TriblerNetworkRequest("ipv8/dht/buckets", self.on_dht_buckets)
+
+    def on_dht_buckets(self, data):
+        if data:
+            for bucket in data["buckets"]:
+                bucket["num_peers"] = len(bucket["peers"])
+                ts = bucket["last_changed"]
+                bucket["last_changed"] = str(datetime.timedelta(seconds=int(time() - ts))) if ts > 0 else '-'
+            self.add_items_to_tree(
+                self.window().buckets_tree_widget,
+                data.get("buckets"),
+                [
+                    "prefix",
+                    "last_changed",
+                    "num_peers"
+                ],
+            )
 
     def on_event_clicked(self, item):
         event_dict = item.data(0, Qt.UserRole)
@@ -615,7 +708,7 @@ class DebugWindow(QMainWindow):
         TriblerNetworkRequest("debug/memory/history", self.on_core_memory_history)
 
     def on_core_memory_history(self, data):
-        if not data:
+        if not data or data.get("memory_history") is None:
             return
         self.memory_plot.reset_plot()
         for mem_info in data["memory_history"]:
@@ -767,7 +860,7 @@ class DebugWindow(QMainWindow):
         if len(base_dir) > 0:
             dest_path = os.path.join(base_dir, filename)
             try:
-                with open(dest_path, "wb") as torrent_file:
+                with open(dest_path, "w") as torrent_file:
                     torrent_file.write(json.dumps(data))
             except IOError as exc:
                 ConfirmationDialog.show_error(self.window(), "Error exporting file", str(exc))

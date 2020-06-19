@@ -19,6 +19,7 @@ class Circuit(Base):
         self.actual_hops = random.randint(0, self.goal_hops)
         self.type = random.choice(['DATA', 'IP', 'RP', 'RENDEZVOUS'])
         self.state = random.choice(['READY', 'EXTENDING', 'TO_BE_EXTENDED', 'CLOSING'])
+        self.exit_flags = [1, 2]
 
     def to_dictionary(self):
         result = super(Circuit, self).to_dictionary()
@@ -30,6 +31,7 @@ class Circuit(Base):
                 "type": self.type,
                 "state": self.state,
                 "unverified_hop": "",
+                "exit_flags": self.exit_flags
             }
         )
         return result

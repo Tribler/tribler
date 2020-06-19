@@ -26,7 +26,7 @@ from tribler_core.modules.metadata_store.orm_bindings import (
     tracker_state,
     vsids,
 )
-from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import BLOB_EXTENSION
+from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import get_mdblob_sequence_number
 from tribler_core.modules.metadata_store.serialization import (
     CHANNEL_TORRENT,
     COLLECTION_NODE,
@@ -204,13 +204,7 @@ class MetadataStore(object):
             )
 
         for full_filename in sorted(dirname.iterdir()):
-            filename = full_filename.name
-
-            blob_sequence_number = None
-            if filename.endswith(BLOB_EXTENSION):
-                blob_sequence_number = int(filename[: -len(BLOB_EXTENSION)])
-            elif filename.endswith(BLOB_EXTENSION + '.lz4'):
-                blob_sequence_number = int(filename[: -len(BLOB_EXTENSION + '.lz4')])
+            blob_sequence_number = get_mdblob_sequence_number(full_filename.name)
 
             if blob_sequence_number is not None:
                 # Skip blobs containing data we already have and those that are

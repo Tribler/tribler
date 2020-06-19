@@ -208,11 +208,6 @@ class TriblerWindow(QMainWindow):
         self.search_results_page.channel_torrents_filter_input.setHidden(True)
 
         self.settings_page.initialize_settings_page()
-        self.subscribed_channels_page.initialize_content_page(self.gui_settings)
-        self.subscribed_channels_page.initialize_root_model(
-            DiscoveredChannelsModel(endpoint_url="channels", subscribed_only=True)
-        )
-        self.subscribed_channels_page.model.channel_info["name"] = "Subscribed channels"
         self.downloads_page.initialize_downloads_page()
         self.loading_page.initialize_loading_page()
         self.discovering_page.initialize_discovering_page()
@@ -220,16 +215,14 @@ class TriblerWindow(QMainWindow):
         self.discovered_page.initialize_content_page(self.gui_settings)
         self.discovered_page.initialize_root_model(
             DiscoveredChannelsModel(
-                channel_info={"name": "Discovered channels", "dirty": 0},
+                channel_info={"name": "Discovered channels"},
                 endpoint_url="channels",
                 hide_xxx=get_gui_setting(self.gui_settings, "family_filter", True, is_bool=True),
             )
         )
-        self.discovered_page.model.channel_info["name"] = "Discovered channels"
         self.core_manager.events_manager.discovered_channel.connect(self.discovered_page.model.on_new_entry_received)
 
         self.trust_page.initialize_trust_page()
-        self.token_mining_page.initialize_token_mining_page()
         self.trust_graph_page.initialize_trust_graph()
 
         self.stackedWidget.setCurrentIndex(PAGE_LOADING)
@@ -306,7 +299,6 @@ class TriblerWindow(QMainWindow):
         self.core_manager.events_manager.new_version_available.connect(self.on_new_version_available)
         self.core_manager.events_manager.tribler_started.connect(self.on_tribler_started)
         self.core_manager.events_manager.low_storage_signal.connect(self.on_low_storage)
-        self.core_manager.events_manager.credit_mining_signal.connect(self.on_credit_mining_error)
         self.core_manager.events_manager.tribler_shutdown_signal.connect(self.on_tribler_shutdown_state_update)
 
         # Install signal handler for ctrl+c events
@@ -428,7 +420,6 @@ class TriblerWindow(QMainWindow):
         self.setAcceptDrops(True)
         self.setWindowTitle("Tribler %s" % self.tribler_version)
 
-        self.initialize_personal_channels_page()
         self.add_to_channel_dialog.load_channel(0)
         self.discovered_page.reset_view()
 
@@ -635,8 +626,6 @@ class TriblerWindow(QMainWindow):
         self.video_player_page.video_player_port = self.core_manager.api_port
         self.video_player_page.video_player_api_key = self.core_manager.api_key.decode('utf-8')
 
-        # Disable various components based on the settings
-        self.downloads_creditmining_button.setHidden(not self.tribler_settings["credit_mining"]["enabled"])
         self.downloads_all_button.click()
 
         # process pending file requests (i.e. someone clicked a torrent file when Tribler was closed)
@@ -998,8 +987,8 @@ class TriblerWindow(QMainWindow):
         self.left_menu_button_discovered.setChecked(True)
         if self.stackedWidget.currentIndex() == PAGE_DISCOVERED:
             self.discovered_page.go_back_to_level(0)
+            self.discovered_page.reset_view()
         self.stackedWidget.setCurrentIndex(PAGE_DISCOVERED)
-        self.discovered_page.reset_view()
         self.discovered_page.content_table.setFocus()
         self.navigation_stack = []
         self.hide_left_menu_playlist()
@@ -1007,10 +996,13 @@ class TriblerWindow(QMainWindow):
     def clicked_menu_button_my_channel(self):
         self.deselect_all_menu_buttons()
         self.left_menu_button_my_channel.setChecked(True)
+        if not self.personal_channel_page.channels_stack:
+            self.initialize_personal_channels_page()
+            self.personal_channel_page.reset_view()
         if self.stackedWidget.currentIndex() == PAGE_EDIT_CHANNEL:
             self.personal_channel_page.go_back_to_level(0)
+            self.personal_channel_page.reset_view()
         self.stackedWidget.setCurrentIndex(PAGE_EDIT_CHANNEL)
-        self.personal_channel_page.reset_view()
         self.personal_channel_page.content_table.setFocus()
         self.navigation_stack = []
         self.hide_left_menu_playlist()
@@ -1043,10 +1035,19 @@ class TriblerWindow(QMainWindow):
     def clicked_menu_button_subscriptions(self):
         self.deselect_all_menu_buttons()
         self.left_menu_button_subscriptions.setChecked(True)
+        if not self.subscribed_channels_page.channels_stack:
+            self.subscribed_channels_page.initialize_content_page(self.gui_settings)
+            self.subscribed_channels_page.initialize_root_model(
+                DiscoveredChannelsModel(
+                    channel_info={"name": "Subscribed channels"}, endpoint_url="channels", subscribed_only=True
+                )
+            )
+            self.subscribed_channels_page.reset_view()
+
         if self.stackedWidget.currentIndex() == PAGE_SUBSCRIBED_CHANNELS:
             self.subscribed_channels_page.go_back_to_level(0)
+            self.subscribed_channels_page.reset_view()
         self.stackedWidget.setCurrentIndex(PAGE_SUBSCRIBED_CHANNELS)
-        self.subscribed_channels_page.reset_view()
         self.subscribed_channels_page.content_table.setFocus()
         self.navigation_stack = []
         self.hide_left_menu_playlist()
@@ -1067,9 +1068,6 @@ class TriblerWindow(QMainWindow):
             self.stackedWidget.setCurrentIndex(prev_page)
         except IndexError:
             logging.exception("Unknown page found in stack")
-
-    def on_credit_mining_error(self, error):
-        ConfirmationDialog.show_error(self, "Credit Mining Error", error[u'message'])
 
     def resizeEvent(self, _):
         # This thing here is necessary to send the resize event to dialogs, etc.

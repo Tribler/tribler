@@ -295,11 +295,6 @@ class TriblerGUITest(AbstractTriblerGUITest):
         self.wait_for_list_populated(widget.content_table)
         self.screenshot(window, name=f"{widget_name}-channel_loaded")
 
-        # FIXME: credit mining for collections!
-        # Toggle credit mining
-        # QTest.mouseClick(widget.credit_mining_button, Qt.LeftButton)
-        # self.wait_for_signal(widget.subscription_widget.credit_mining_toggled)
-
         # Click the first torrent
         index = self.get_index_of_row(widget.content_table, 0)
         widget.content_table.on_table_item_clicked(index)
@@ -348,8 +343,6 @@ class TriblerGUITest(AbstractTriblerGUITest):
         self.screenshot(window, name="downloads_active")
         QTest.mouseClick(window.downloads_inactive_button, Qt.LeftButton)
         self.screenshot(window, name="downloads_inactive")
-        QTest.mouseClick(window.downloads_creditmining_button, Qt.LeftButton)
-        self.screenshot(window, name="downloads_creditmining")
         QTest.mouseClick(window.downloads_channels_button, Qt.LeftButton)
         self.screenshot(window, name="downloads_channels")
 
@@ -496,8 +489,12 @@ class TriblerGUITest(AbstractTriblerGUITest):
         self.screenshot(window.debug_window, name="debug_panel_tunnel_exits_tab")
 
         window.debug_window.debug_tab_widget.setCurrentIndex(5)
-        self.wait_for_list_populated(window.debug_window.dht_tree_widget)
-        self.screenshot(window.debug_window, name="debug_panel_dht_tab")
+        self.wait_for_list_populated(window.debug_window.dhtstats_tree_widget)
+        self.screenshot(window.debug_window, name="debug_panel_dht_stats_tab")
+
+        window.debug_window.dht_tab_widget.setCurrentIndex(1)
+        self.wait_for_list_populated(window.debug_window.buckets_tree_widget)
+        self.screenshot(window.debug_window, name="debug_panel_dht_buckets_tab")
 
         window.debug_window.debug_tab_widget.setCurrentIndex(6)
         self.wait_for_list_populated(window.debug_window.events_tree_widget)

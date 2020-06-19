@@ -42,6 +42,12 @@ class TriblerConfig(object):
         self.validate()
         self.selected_ports = {}
 
+        # Set the default destination dir. The value should be in the config dict
+        # because of the REST endpoint sending the whole dict to the GUI.
+        # TODO: do not write the value into the config file if the user did not change it
+        if self.config['download_defaults']['saveas'] is None:
+            self.config['download_defaults']['saveas'] = str(self.abspath(get_default_dest_dir()))
+
     def abspath(self, path):
         return path_util.abspath(path, optional_prefix=self.get_state_dir())
 
@@ -290,6 +296,12 @@ class TriblerConfig(object):
     def get_libtorrent_port(self):
         return self._obtain_port('libtorrent', 'port')
 
+    def set_libtorrent_dht_readiness_timeout(self, value):
+        self.config['libtorrent']['dht_readiness_timeout'] = value
+
+    def get_libtorrent_dht_readiness_timeout(self):
+        return self.config['libtorrent']['dht_readiness_timeout']
+
     def set_anon_listen_port(self, listen_port=None):
         self.config['libtorrent']['anon_listen_port'] = listen_port
 
@@ -469,11 +481,7 @@ class TriblerConfig(object):
         self.config['download_defaults']['saveas'] = str(self.norm_path(value))
 
     def get_default_destination_dir(self):
-        # set defaults downloads path
-        value = self.config['download_defaults']['saveas']
-        if not value:
-            value = self.config['download_defaults']['saveas'] = str(get_default_dest_dir())
-        return self.abspath(value)
+        return Path(self.config['download_defaults']['saveas'])
 
     def set_default_add_download_to_channel(self, value):
         self.config['download_defaults']['add_download_to_channel'] = value
@@ -592,22 +600,3 @@ class TriblerConfig(object):
 
     def get_resource_monitor_history_size(self):
         return self.config['resource_monitor']['history_size']
-
-    # Credit mining
-    def set_credit_mining_enabled(self, value):
-        self.config['credit_mining']['enabled'] = value
-
-    def get_credit_mining_enabled(self):
-        return self.config['credit_mining']['enabled']
-
-    def set_credit_mining_sources(self, source_list):
-        self.config['credit_mining']['sources'] = source_list
-
-    def get_credit_mining_sources(self):
-        return self.config['credit_mining']['sources']
-
-    def set_credit_mining_disk_space(self, value):
-        self.config['credit_mining']['max_disk_space'] = value
-
-    def get_credit_mining_disk_space(self):
-        return self.config['credit_mining']['max_disk_space']

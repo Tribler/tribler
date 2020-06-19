@@ -1,6 +1,7 @@
+import asyncio
 from asyncio import Future
 from datetime import datetime
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from ipv8.database import database_blob
 from ipv8.keyvault.crypto import default_eccrypto
@@ -16,6 +17,7 @@ from tribler_core.modules.metadata_store.store import MetadataStore
 from tribler_core.tests.tools.base_test import MockObject, TriblerCoreTest
 from tribler_core.tests.tools.common import TORRENT_UBUNTU_FILE
 from tribler_core.tests.tools.tools import timeout
+from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.random_utils import random_infohash
 from tribler_core.utilities.utilities import succeed
 
@@ -32,10 +34,8 @@ class TestGigaChannelManager(TriblerCoreTest):
         await super(TestGigaChannelManager, self).setUp()
         self.torrent_template = {"title": "", "infohash": b"", "torrent_date": datetime(1970, 1, 1), "tags": "video"}
         my_key = default_eccrypto.generate_key(u"curve25519")
-        self.mock_session = MockObject()
+        self.mock_session = Mock()
         self.mock_session.mds = MetadataStore(":memory:", self.session_base_dir, my_key)
-        self.mock_session.notifier = MockObject()
-        self.mock_session.notifier.notify = lambda *_: None
 
         self.chanman = GigaChannelManager(self.mock_session)
         self.torrents_added = 0
@@ -44,34 +44,118 @@ class TestGigaChannelManager(TriblerCoreTest):
         self.mock_session.mds.shutdown()
         await super(TestGigaChannelManager, self).tearDown()
 
-    async def test_update_my_channel(self):
+    @timeout(10)
+    async def test_regen_personal_channel_no_torrent(self):
+        """
+        Test regenerating a non-existing personal channel torrent at startup
+        """
         with db_session:
             chan = self.generate_personal_channel()
             chan.commit_channel_torrent()
+            self.mock_session.dlmgr = Mock()
 
-            def mock_start_download(**_):
-                self.torrents_added = 1
-
-            self.mock_session.dlmgr = MockObject()
-            self.mock_session.dlmgr.start_download = mock_start_download
-            self.mock_session.config = MockObject()
-            self.mock_session.config.get_state_dir = lambda: None
-            #   self.mock_session.dlmgr.download_exists = lambda x: x == str(chan.infohash)
-
-            # Check add personal channel on startup
-            self.mock_session.dlmgr.download_exists = lambda _: False
+            self.mock_session.dlmgr.get_download = lambda *_: None
+            self.chanman.regenerate_channel_torrent = Mock()
+            self.chanman.start()
             self.chanman.cancel_pending_task('service_channels')  # Disable looping call
-            self.chanman.start()
-            self.assertTrue(self.torrents_added)
+            self.chanman.regenerate_channel_torrent.assert_called_once()
             await self.chanman.shutdown()
 
-            # Check skip already added personal channel
-            self.mock_session.dlmgr.download_exists = lambda x: bytes(x) == bytes(chan.infohash)
-            self.torrents_added = False
+    @timeout(10)
+    async def test_regen_personal_channel_damaged_torrent(self):
+        """
+        Test regenerating a damaged personal channel torrent at startup
+        """
+        with db_session:
+            chan = self.generate_personal_channel()
+            chan.commit_channel_torrent()
+            self.mock_session.dlmgr = Mock()
+            complete = Future()
+
+            async def mock_regen(*_, **__):
+                complete.set_result(True)
+
+            self.mock_session.dlmgr.get_download = Mock()
+            self.chanman.check_and_regen_personal_channel_torrent = mock_regen
             self.chanman.start()
-            self.chanman.check_channels_updates()
-            self.assertFalse(self.torrents_added)
+            self.chanman.cancel_pending_task('service_channels')  # Disable looping call
+            await complete
             await self.chanman.shutdown()
+
+    @timeout(10)
+    async def test_regenerate_channel_torrent(self):
+        with db_session:
+            chan = self.generate_personal_channel()
+            chan.commit_channel_torrent()
+            chan_pk, chan_id = chan.public_key, chan.id_
+            channel_dir = Path(self.mock_session.mds.ChannelMetadata._channels_dir) / Path(chan.dirname)
+            for f in channel_dir.iterdir():
+                f.unlink()
+
+        # Test trying to regenerate a non-existing channel
+        self.assertIsNone(await self.chanman.regenerate_channel_torrent(chan_pk, chan_id + 1))
+
+        # Mock existing downloads removal-related functions
+        self.mock_session.dlmgr.get_downloads_by_name = lambda *_: [Mock()]
+        downloads_to_remove = []
+
+        async def mock_remove_download(download_obj, **_):
+            downloads_to_remove.append(download_obj)
+
+        self.mock_session.dlmgr.remove_download = mock_remove_download
+
+        # Test regenerating an empty channel
+        self.mock_session.mds.ChannelMetadata.consolidate_channel_torrent = lambda *_: None
+        self.assertIsNone(await self.chanman.regenerate_channel_torrent(chan_pk, chan_id))
+        self.assertEqual(1, len(downloads_to_remove))
+
+        # Test regenerating a non-empty channel
+        self.chanman.updated_my_channel = Mock()
+        self.mock_session.mds.ChannelMetadata.consolidate_channel_torrent = lambda *_: Mock()
+        with patch("tribler_core.modules.libtorrent.torrentdef.TorrentDef.load_from_dict"):
+            await self.chanman.regenerate_channel_torrent(chan_pk, chan_id)
+            self.chanman.updated_my_channel.assert_called_once()
+
+    def test_updated_my_channel(self):
+        with db_session:
+            chan = self.generate_personal_channel()
+            metainfo = chan.commit_channel_torrent()
+        tdef = TorrentDef.load_from_dict(metainfo)
+        self.mock_session.dlmgr.start_download = Mock()
+        self.mock_session.dlmgr.download_exists = lambda *_: False
+        self.mock_session.mds.channels_dir = "bla"
+        self.mock_session.config.get_state_dir = lambda: "foo"
+        self.chanman.updated_my_channel(tdef)
+        self.mock_session.dlmgr.start_download.assert_called_once()
+
+    async def test_check_and_regen_personal_channel_torrent(self):
+        with db_session:
+            chan = self.generate_personal_channel()
+            chan.commit_channel_torrent()
+            chan_pk, chan_id = chan.public_key, chan.id_
+            chan_download = Mock()
+
+            async def mock_wait(*status):
+                pass
+
+            chan_download.wait_for_status = mock_wait
+            # Test wait for status OK
+            await self.chanman.check_and_regen_personal_channel_torrent(chan_pk, chan_id, chan_download, timeout=0.5)
+
+            async def mock_wait(*status):
+                await asyncio.sleep(3)
+
+            chan_download.wait_for_status = mock_wait
+            # Test timeout waiting for seeding state and then regen
+
+            f = Mock()
+
+            async def mock_regen(*_):
+                f()
+
+            self.chanman.regenerate_channel_torrent = mock_regen
+            await self.chanman.check_and_regen_personal_channel_torrent(chan_pk, chan_id, chan_download, timeout=0.5)
+            f.assert_called_once()
 
     async def test_check_channels_updates(self):
         # We add our personal channel in an inconsistent state to make sure the GigaChannel Manager will

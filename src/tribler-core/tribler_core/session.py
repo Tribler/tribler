@@ -18,6 +18,7 @@ from _socket import gaierror
 from anydex.wallet.dummy_wallet import DummyWallet1, DummyWallet2
 from anydex.wallet.tc_wallet import TrustchainWallet
 
+from ipv8.dht.churn import PingChurn
 from ipv8.dht.provider import DHTCommunityProvider
 from ipv8.messaging.anonymization.community import TunnelSettings
 from ipv8.peer import Peer
@@ -37,7 +38,6 @@ from tribler_common.simpledefs import (
     STATE_LOAD_CHECKPOINTS,
     STATE_READABLE_STARTED,
     STATE_START_API,
-    STATE_START_CREDIT_MINING,
     STATE_START_LIBTORRENT,
     STATE_START_TORRENT_CHECKER,
     STATE_START_WATCH_FOLDER,
@@ -141,7 +141,6 @@ class Session(TaskManager):
         self.gigachannel_community = None
         self.remote_query_community = None
 
-        self.credit_mining_manager = None
         self.market_community = None
         self.dht_community = None
         self.payout_manager = None
@@ -181,6 +180,7 @@ class Session(TaskManager):
             self.dht_community = DHTDiscoveryCommunity(peer, self.ipv8.endpoint, self.ipv8.network)
             self.ipv8.overlays.append(self.dht_community)
             self.ipv8.strategies.append((RandomWalk(self.dht_community), 20))
+            self.ipv8.strategies.append((PingChurn(self.dht_community), -1))
 
         # Tunnel Community
         if self.config.get_tunnel_community_enabled():
@@ -459,18 +459,6 @@ class Session(TaskManager):
             self.torrent_checker = TorrentChecker(self)
             await self.torrent_checker.initialize()
 
-        # Wallets
-        if self.config.get_bitcoinlib_enabled():
-            try:
-                from anydex.wallet.btc_wallet import BitcoinWallet, BitcoinTestnetWallet
-                wallet_path = self.config.get_state_dir() / 'wallet'
-                btc_wallet = BitcoinWallet(wallet_path)
-                btc_testnet_wallet = BitcoinTestnetWallet(wallet_path)
-                self.wallets[btc_wallet.get_identifier()] = btc_wallet
-                self.wallets[btc_testnet_wallet.get_identifier()] = btc_testnet_wallet
-            except Exception as exc:
-                self._logger.error("bitcoinlib library cannot be loaded: %s", exc)
-
         if self.config.get_dummy_wallets_enabled():
             # For debugging purposes, we create dummy wallets
             dummy_wallet1 = DummyWallet1()
@@ -494,11 +482,6 @@ class Session(TaskManager):
 
         if self.config.get_ipv8_enabled() and self.config.get_trustchain_enabled():
             self.payout_manager = PayoutManager(self.trustchain_community, self.dht_community)
-
-        if self.config.get_credit_mining_enabled():
-            self.readable_status = STATE_START_CREDIT_MINING
-            from tribler_core.modules.credit_mining.credit_mining_manager import CreditMiningManager
-            self.credit_mining_manager = CreditMiningManager(self)
 
         # GigaChannel Manager should be started *after* resuming the downloads,
         # because it depends on the states of torrent downloads
@@ -528,10 +511,6 @@ class Session(TaskManager):
         await self.shutdown_task_manager()
 
         self.shutdownstarttime = timemod.time()
-        if self.credit_mining_manager:
-            self.notify_shutdown_state("Shutting down Credit Mining...")
-            await self.credit_mining_manager.shutdown()
-        self.credit_mining_manager = None
 
         if self.torrent_checker:
             self.notify_shutdown_state("Shutting down Torrent Checker...")

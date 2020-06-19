@@ -1,5 +1,3 @@
-from asyncio import gather
-
 from aiohttp import web
 
 from aiohttp_apispec import docs, json_schema
@@ -8,7 +6,6 @@ from ipv8.REST.schema import schema
 
 from marshmallow.fields import Boolean
 
-from tribler_core.modules.credit_mining.credit_mining_manager import CreditMiningManager
 from tribler_core.restapi.rest_endpoint import RESTEndpoint, RESTResponse
 
 
@@ -67,26 +64,6 @@ class SettingsEndpoint(RESTEndpoint):
         # Perform some actions when specific keys are set
         if section == "libtorrent" and (option == "max_download_rate" or option == "max_upload_rate"):
             self.session.dlmgr.update_max_rates_from_config()
-
-        if section == 'credit_mining' and option == 'enabled' and \
-             value != bool(self.session.credit_mining_manager):
-            if value:
-                self.session.credit_mining_manager = CreditMiningManager(self.session)
-            else:
-                await self.session.credit_mining_manager.shutdown(remove_downloads=True)
-                self.session.credit_mining_manager = None
-        elif section == 'credit_mining' and option == 'sources':
-            if self.session.config.get_credit_mining_enabled():
-                # Out with the old..
-                if self.session.credit_mining_manager.sources:
-                    await gather(*[self.session.credit_mining_manager.remove_source(source) for source in
-                                   list(self.session.credit_mining_manager.sources.keys())])
-                # In with the new
-                for source in value:
-                    self.session.credit_mining_manager.add_source(source)
-        elif section == 'credit_mining' and option == 'max_disk_space':
-            if self.session.config.get_credit_mining_enabled():
-                self.session.credit_mining_manager.settings.max_disk_space = value
 
     async def parse_settings_dict(self, settings_dict, depth=1, root_key=None):
         """

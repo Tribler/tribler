@@ -30,7 +30,8 @@ from tribler_core.restapi.rest_endpoint import (
     HTTP_NOT_FOUND,
     RESTEndpoint,
     RESTResponse,
-    RESTStreamResponse)
+    RESTStreamResponse,
+)
 from tribler_core.restapi.util import return_handled_exception
 from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.torrent_utils import get_info_from_handle
@@ -46,12 +47,13 @@ def _safe_extended_peer_info(ext_peer_info):
     """
     # First see if we can use this as-is
     if not ext_peer_info:
-        ext_peer_info = u''
+        return ''
+
     try:
         return ensure_unicode(ext_peer_info, "utf8")
     except UnicodeDecodeError:
         # We might have some special unicode characters in here
-        return u''.join([chr(ord(c)) for c in ext_peer_info])
+        return u''.join([chr(c) for c in ext_peer_info])
 
 
 class DownloadsEndpoint(RESTEndpoint):
@@ -226,7 +228,7 @@ class DownloadsEndpoint(RESTEndpoint):
             num_connected_seeds, num_connected_peers = download.get_num_connected_seeds_peers()
 
             if download.config.get_channel_download():
-                download_name = self.session.mds.ChannelMetadata.get_channel_name(
+                download_name = self.session.mds.ChannelMetadata.get_channel_name_cached(
                     tdef.get_name_utf8(), tdef.get_infohash())
             else:
                 download_name = self.session.mds.TorrentMetadata.get_torrent_title(tdef.get_infohash()) or \
@@ -265,7 +267,6 @@ class DownloadsEndpoint(RESTEndpoint):
                 "vod_mode": download.stream.enabled,
                 "error": repr(state.get_error()) if state.get_error() else "",
                 "time_added": download.config.get_time_added(),
-                "credit_mining": download.config.get_credit_mining(),
                 "channel_download": download.config.get_channel_download()
             }
 

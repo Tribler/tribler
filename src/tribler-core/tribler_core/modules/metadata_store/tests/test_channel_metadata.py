@@ -5,6 +5,7 @@ from binascii import unhexlify
 from datetime import datetime
 from itertools import combinations
 from time import sleep
+from unittest.mock import Mock, patch
 
 from ipv8.database import database_blob
 from ipv8.keyvault.crypto import default_eccrypto
@@ -227,9 +228,39 @@ class TestChannelMetadata(TriblerCoreTest):
         torrent = channel_metadata.add_torrent_to_channel(tdef, None)
         channel_metadata.commit_channel_torrent()
         self.assertEqual(1, len(channel_metadata.contents_list))
+
         torrent.soft_delete()
         channel_metadata.commit_channel_torrent()
         self.assertEqual(0, len(channel_metadata.contents_list))
+
+    @db_session
+    def test_correct_commit_of_delete_entries(self):
+        """
+        Test that delete entries are committed to disk within mdblobs with correct filenames.
+        GitHub issue #5295
+        """
+
+        channel = self.mds.ChannelMetadata.create_channel('test', 'test')
+        # To trigger the bug we must ensure that the deletion commands will not fit in a single mdblob
+        with patch.object(self.mds.ChannelMetadata, "_CHUNK_SIZE_LIMIT", 300):
+            torrents = [
+                self.mds.TorrentMetadata(infohash=random_infohash(), origin_id=channel.id_, status=NEW)
+                for _ in range(0, self.mds.ChannelMetadata._CHUNK_SIZE_LIMIT * 2 // 100)
+            ]
+            channel.commit_channel_torrent()
+            for t in torrents:
+                t.soft_delete()
+            channel.commit_channel_torrent()
+
+            torrents = [
+                self.mds.TorrentMetadata(infohash=random_infohash(), origin_id=channel.id_, status=NEW)
+                for _ in range(0, self.mds.ChannelMetadata._CHUNK_SIZE_LIMIT * 2 // 100)
+            ]
+            channel.commit_channel_torrent()
+            torrents.append(self.mds.TorrentMetadata(infohash=random_infohash(), origin_id=channel.id_, status=NEW))
+            for t in torrents[:-1]:
+                t.soft_delete()
+            channel.commit_channel_torrent()
 
     @db_session
     def test_vsids(self):
@@ -421,10 +452,15 @@ class TestChannelMetadata(TriblerCoreTest):
         dirname = chan.dirname
 
         self.assertEqual(title, self.mds.ChannelMetadata.get_channel_name(dirname, infohash))
+        self.assertEqual(title, self.mds.ChannelMetadata.get_channel_name_cached(dirname, infohash))
         chan.infohash = b"\x11" * 20
         self.assertEqual("OLD:" + title, self.mds.ChannelMetadata.get_channel_name(dirname, infohash))
         chan.delete()
         self.assertEqual(dirname, self.mds.ChannelMetadata.get_channel_name(dirname, infohash))
+        # Check that the cached version of the name is returned even if the channel has been deleted
+        self.mds.ChannelMetadata.get_channel_name = Mock()
+        self.assertEqual(title, self.mds.ChannelMetadata.get_channel_name_cached(dirname, infohash))
+        self.mds.ChannelMetadata.get_channel_name.assert_not_called()
 
     @db_session
     def check_add(self, torrents_in_dir, errors, recursive):

@@ -362,7 +362,8 @@ class Download(TaskManager):
         if self.get_state().get_total_transferred(DOWNLOAD) > 0 \
                 and not self.stream.enabled:
             self.session.notifier.notify(NTFY.TORRENT_FINISHED, self.tdef.get_infohash(),
-                                         self.tdef.get_name_as_unicode(), self.hidden)
+                                         self.tdef.get_name_as_unicode(), self.hidden or
+                                         self.config.get_channel_download())
 
     def update_lt_status(self, lt_status):
         """ Update libtorrent stats and check if the download should be stopped."""
@@ -371,9 +372,6 @@ class Download(TaskManager):
 
     def _stop_if_finished(self):
         state = self.get_state()
-        # Credit mining downloads are not affected by seeding policy
-        if self.config.get_credit_mining():
-            return
         if state.get_status() == DLSTATUS_SEEDING:
             mode = self.session.config.get_seeding_mode()
             if mode == 'never' \

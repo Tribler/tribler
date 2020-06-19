@@ -38,12 +38,19 @@ from tribler_common.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_METADATA, D
 from tribler_core.modules.tunnel.community.caches import BalanceRequestCache, HTTPRequestCache
 from tribler_core.modules.tunnel.community.discovery import GoldenRatioStrategy
 from tribler_core.modules.tunnel.community.dispatcher import TunnelDispatcher
-from tribler_core.modules.tunnel.community.payload import BalanceRequestPayload, BalanceResponsePayload,\
-                                                          HTTPRequestPayload, HTTPResponsePayload, PayoutPayload
+from tribler_core.modules.tunnel.community.payload import (
+    BalanceRequestPayload,
+    BalanceResponsePayload,
+    HTTPRequestPayload,
+    HTTPResponsePayload,
+    PayoutPayload,
+)
 from tribler_core.modules.tunnel.socks5.server import Socks5Server
 from tribler_core.utilities import path_util
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import succeed
+
+DESTROY_REASON_BALANCE = 65535
 
 PEER_FLAG_EXIT_HTTP = 32768
 
@@ -73,8 +80,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         if self.tribler_session:
             if self.tribler_session.config.get_tunnel_community_exitnode_enabled():
-                self.settings.peer_flags |= PEER_FLAG_EXIT_ANY
-                self.settings.peer_flags |= PEER_FLAG_EXIT_HTTP
+                self.settings.peer_flags.add(PEER_FLAG_EXIT_ANY)
+                self.settings.peer_flags.add(PEER_FLAG_EXIT_HTTP)
 
             if not socks_listen_ports:
                 socks_listen_ports = self.tribler_session.config.get_tunnel_community_socks5_listen_ports()
@@ -191,8 +198,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                              old_circuit_id, lowest_balance, circuit_id, balance)
             self.competing_slots[lowest_index] = (balance, circuit_id)
 
-            self.remove_relay(old_circuit_id, destroy=True)
-            self.remove_exit_socket(old_circuit_id, destroy=True)
+            self.remove_relay(old_circuit_id, destroy=DESTROY_REASON_BALANCE)
+            self.remove_exit_socket(old_circuit_id, destroy=DESTROY_REASON_BALANCE)
 
             cache.balance_future.set_result(True)
         else:

@@ -85,6 +85,17 @@ class DownloadManager(TaskManager):
 
         # Status of libtorrent session to indicate if it can safely close and no pending writes to disk exists.
         self.lt_session_shutdown_ready = {}
+        self._dht_ready_task = None
+        self.dht_readiness_timeout = tribler_session.config.get_libtorrent_dht_readiness_timeout()
+
+    async def _check_dht_ready(self, min_dht_peers=60):
+        # Checks whether we got enough DHT peers. If the number of DHT peers is low,
+        # checking for a bunch of torrents in a short period of time may result in several consecutive requests
+        # sent to the same peers. This can trigger those peers' flood protection mechanism,
+        # which results in DHT checks stuck for hours.
+        # See https://github.com/Tribler/tribler/issues/5319
+        while not (self.get_session() and self.get_session().status().dht_nodes > min_dht_peers):
+            await asyncio.sleep(1)
 
     def initialize(self):
         # Start upnp
@@ -101,7 +112,8 @@ class DownloadManager(TaskManager):
 
         # Register tasks
         self.register_task("process_alerts", self._task_process_alerts, interval=1)
-        self.register_task("check_reachability", self._check_reachability)
+        if self.dht_readiness_timeout > 0:
+            self._dht_ready_task = self.register_task("check_dht_ready", self._check_dht_ready)
         self.register_task("request_torrent_updates", self._request_torrent_updates, interval=1)
         self.register_task('task_cleanup_metacache', self._task_cleanup_metainfo_cache, interval=60, delay=0)
 
@@ -351,11 +363,11 @@ class DownloadManager(TaskManager):
         elif alert_type == "dht_pkt_alert":
             # We received a raw DHT message - decode it and check whether it is a BEP33 message.
             decoded = bdecode_compat(alert.pkt_buf)
-            if decoded and 'r' in decoded:
-                if 'BFsd' in decoded['r'] and 'BFpe' in decoded['r']:
-                    self.dht_health_manager.received_bloomfilters(decoded['r']['id'],
-                                                                  bytearray(decoded['r']['BFsd']),
-                                                                  bytearray(decoded['r']['BFpe']))
+            if decoded and b'r' in decoded:
+                if b'BFsd' in decoded[b'r'] and b'BFpe' in decoded[b'r']:
+                    self.dht_health_manager.received_bloomfilters(decoded[b'r'][b'id'],
+                                                                  bytearray(decoded[b'r'][b'BFsd']),
+                                                                  bytearray(decoded[b'r'][b'BFpe']))
 
     def update_ip_filter(self, lt_session, ip_addresses):
         self._logger.debug('Updating IP filter %s', ip_addresses)
@@ -365,13 +377,14 @@ class DownloadManager(TaskManager):
             ip_filter.add_rule(ip, ip, 0)
         lt_session.set_ip_filter(ip_filter)
 
-    async def get_metainfo(self, infohash, timeout=30, hops=None):
+    async def get_metainfo(self, infohash, timeout=30, hops=None, url=None):
         """
         Lookup metainfo for a given infohash. The mechanism works by joining the swarm for the infohash connecting
         to a few peers, and downloading the metadata for the torrent.
         :param infohash: The (binary) infohash to lookup metainfo for.
         :param timeout: A timeout in seconds.
         :param hops: the number of tunnel hops to use for this lookup. If None, use config default.
+        :param url: Optional URL. Can contain trackers info, etc.
         :return: The metainfo
         """
         infohash_hex = hexlify(infohash)
@@ -386,7 +399,7 @@ class DownloadManager(TaskManager):
         elif infohash in self.downloads:
             download = self.downloads[infohash]
         else:
-            tdef = TorrentDefNoMetainfo(infohash, 'metainfo request')
+            tdef = TorrentDefNoMetainfo(infohash, 'metainfo request', url=url)
             dcfg = DownloadConfig()
             dcfg.set_hops(self.tribler_session.config.get_default_number_hops() if hops is None else hops)
             dcfg.set_upload_mode(True)  # Upload mode should prevent libtorrent from creating files
@@ -436,10 +449,6 @@ class DownloadManager(TaskManager):
                 for alert in ltsession.pop_alerts():
                     self.process_alert(alert, hops=hops)
 
-    async def _check_reachability(self):
-        while not self.get_session() and self.get_session().status().has_incoming_connections:
-            await asyncio.sleep(5)
-
     def _map_call_on_ltsessions(self, hops, funcname, *args, **kwargs):
         if hops is None:
             for session in self.ltsessions.values():
@@ -483,14 +492,6 @@ class DownloadManager(TaskManager):
         download = self.get_download(infohash)
 
         if download and infohash not in self.metainfo_requests:
-            # If there is an existing credit mining download with the same infohash
-            # then move to the user download directory and checkpoint the download immediately.
-            if download.config.get_credit_mining():
-                self.tribler_session.credit_mining_manager.torrents.pop(hexlify(tdef.get_infohash()), None)
-                download.config.set_credit_mining(False)
-                download.move_storage(config.get_dest_dir())
-                download.checkpoint()
-
             new_trackers = list(set(tdef.get_trackers_as_single_tuple()) -
                                 set(download.get_def().get_trackers_as_single_tuple()))
             if new_trackers:
@@ -539,6 +540,18 @@ class DownloadManager(TaskManager):
         else:
             # Otherwise, add it anew
             self._logger.debug("Adding handle %s", hexlify(infohash))
+            # To prevent flooding the DHT with a short burst of queries and triggering
+            # flood protection, we postpone adding torrents until we get enough DHT peers.
+            # The asynchronous wait should be done as close as possible to the actual
+            # Libtorrent calls, so the higher-level download-adding logic does not block.
+            # Otherwise, e.g. if added to the Session init sequence, this results in startup
+            # time increasing by 10-20 seconds.
+            # See https://github.com/Tribler/tribler/issues/5319
+            if self.dht_readiness_timeout > 0 and self._dht_ready_task is not None:
+                try:
+                    await wait_for(shield(self._dht_ready_task), timeout=self.dht_readiness_timeout)
+                except asyncio.TimeoutError:
+                    self._logger.warning("Timeout waiting for libtorrent DHT getting enough peers")
             ltsession.async_add_torrent(encode_atp(atp))
         return await download.future_added
 
@@ -582,12 +595,9 @@ class DownloadManager(TaskManager):
             self.set_session_settings(lt_session, settings)
 
     def post_session_stats(self, hops=None):
-        if hops is None:
-            for lt_session in self.ltsessions.values():
-                if hasattr(lt_session, "post_session_stats"):
-                    lt_session.post_session_stats()
-        elif hasattr(self.ltsessions[hops], "post_session_stats"):
-            self.ltsessions[hops].post_session_stats()
+        for ltsession in self.ltsessions.values() if hops is None else [self.ltsessions[hops]]:
+            if hasattr(ltsession, "post_session_stats"):
+                ltsession.post_session_stats()
 
     async def remove_download(self, download, remove_content=False, remove_checkpoint=True):
         infohash = download.get_def().get_infohash()
@@ -731,8 +741,6 @@ class DownloadManager(TaskManager):
         if self.state_cb_count % 4 == 0:
             if self.tribler_session.tunnel_community:
                 self.tribler_session.tunnel_community.monitor_downloads(states_list)
-            if self.tribler_session.credit_mining_manager:
-                self.tribler_session.credit_mining_manager.monitor_downloads(states_list)
 
     async def load_checkpoints(self):
         for filename in self.get_checkpoint_dir().glob('*.conf'):
@@ -778,8 +786,6 @@ class DownloadManager(TaskManager):
         try:
             if self.download_exists(tdef.get_infohash()):
                 self._logger.info("Not resuming checkpoint because download has already been added")
-            elif config.get_credit_mining() and not self.tribler_session.config.get_credit_mining_enabled():
-                self._logger.info("Not resuming checkpoint since token mining is disabled")
             else:
                 self.start_download(tdef=tdef, config=config)
         except Exception:
@@ -816,3 +822,7 @@ class DownloadManager(TaskManager):
         """
         return await asyncio.get_event_loop().run_in_executor(None, torrent_utils.create_torrent_file,
                                                               file_path_list, params or {})
+
+    def get_downloads_by_name(self, torrent_name, channels_only=False):
+        downloads = (self.get_channel_downloads() if channels_only else self.get_downloads())
+        return [d for d in downloads if d.get_def().get_name_utf8() == torrent_name]
