@@ -146,12 +146,14 @@ class TunnelHelperService(TaskManager):
         self.session = Session(config)
 
         self.log_circuits = options.log_circuits
-        # Register reject event handler if set
-        if options.log_rejects:
-            self.session.tunnel_community.reject_callback = self.on_circuit_reject
         self.session.notifier.add_observer(NTFY.TUNNEL_REMOVE, self.circuit_removed)
 
         await self.session.start()
+
+        if options.log_rejects:
+            # We set this after Tribler has started since the tunnel_community won't be available otherwise
+            self.session.tunnel_community.reject_callback = self.on_circuit_reject
+
         self.tribler_started()
         
     async def stop(self):
