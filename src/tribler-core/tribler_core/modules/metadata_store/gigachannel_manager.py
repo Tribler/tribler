@@ -1,5 +1,5 @@
 import asyncio
-from asyncio import get_event_loop, wait_for
+from asyncio import CancelledError, get_event_loop, wait_for
 
 from ipv8.database import database_blob
 from ipv8.taskmanager import TaskManager, task
@@ -271,8 +271,12 @@ class GigaChannelManager(TaskManager):
         tdef = TorrentDef(metainfo=metainfo)
 
         download = self.session.dlmgr.start_download(tdef=tdef, config=dcfg, hidden=True)
-        await download.future_finished
-        self.channels_processing_queue[channel.infohash] = (PROCESS_CHANNEL_DIR, channel)
+        try:
+            await download.future_finished
+        except CancelledError:
+            pass
+        else:
+            self.channels_processing_queue[channel.infohash] = (PROCESS_CHANNEL_DIR, channel)
         return download
 
     async def process_channel_dir_threaded(self, channel):
