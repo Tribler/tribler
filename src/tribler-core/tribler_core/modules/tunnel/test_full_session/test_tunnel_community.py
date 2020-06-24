@@ -1,6 +1,4 @@
-import sys
 from asyncio import sleep, wait_for
-from unittest import skipIf
 
 from tribler_core.modules.tunnel.test_full_session.test_tunnel_base import TestTunnelBase
 from tribler_core.tests.tools.tools import timeout
