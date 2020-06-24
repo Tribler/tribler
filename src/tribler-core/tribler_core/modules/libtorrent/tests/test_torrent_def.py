@@ -267,3 +267,14 @@ class TestTorrentDef(BaseTestCase):
         """
         t = TorrentDef()
         self.assertRaises(ValueError, t.get_index_of_file_in_files, u'?')
+
+    def test_get_name_as_unicode(self):
+        name_bytes = b'\xe8\xaf\xad\xe8\xa8\x80\xe5\xa4\x84\xe7\x90\x86'
+        name_unicode = name_bytes.decode()
+        t = TorrentDef()
+        t.metainfo = {b'info': {b'name.utf-8': name_bytes}}
+        self.assertEqual(t.get_name_as_unicode(), name_unicode)
+        t.metainfo = {b'info': {b'name': name_bytes}}
+        self.assertEqual(t.get_name_as_unicode(), name_unicode)
+        t.metainfo = {b'info': {b'name': b'test\xff' + name_bytes}}
+        self.assertEqual(t.get_name_as_unicode(), 'test?????????????')
