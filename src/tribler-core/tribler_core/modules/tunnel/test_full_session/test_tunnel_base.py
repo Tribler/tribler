@@ -201,6 +201,7 @@ class TestTunnelBase(TestAsServer):
         """
         Start an anonymous download in the main Tribler session.
         """
+        self.session.config.set_libtorrent_dht_readiness_timeout(0)
         dscfg = DownloadConfig()
         dscfg.set_dest_dir(self.getDestDir())
         dscfg.set_hops(hops)
