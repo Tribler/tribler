@@ -311,6 +311,8 @@ class DebugWindow(QMainWindow):
             limits = [20, overlay_count * 30 + 1]
         elif overlay_name == 'DHTDiscoveryCommunity':
             limits = [20, 61]
+        elif overlay_name == 'RemoteQueryCommunity':
+            limits = [20, 51]
         else:
             limits = [20, 31]
         color = 0xF4D03F if peer_count < limits[0] else (0x56F129 if peer_count < limits[1] else 0xF12929)
