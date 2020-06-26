@@ -1,4 +1,4 @@
-from asyncio import get_event_loop
+from asyncio import get_event_loop, sleep
 from binascii import unhexlify
 from unittest.mock import Mock
 
@@ -63,7 +63,7 @@ class TestSessionAsServer(TestAsServer):
             self.assertTrue("function_that_triggers_exception" in m.call_args[0][0])
             self.assertTrue("foobar" in m.call_args[0][0])
 
-    def test_error_observer_ignored_error(self):
+    async def test_error_observer_ignored_error(self):
         """
         Testing whether some errors are ignored (like socket errors)
         """
@@ -78,19 +78,25 @@ class TestSessionAsServer(TestAsServer):
                 raise exception
 
             get_event_loop().call_soon(gen_except)
-            self.loop._run_once()
 
         exceptions_list = [exc_class(errno, "exc message") for exc_class, errno in IGNORED_ERRORS.keys()]
         exceptions_list.append(RuntimeError(0, "invalid info-hash"))
 
         for exception in exceptions_list:
             generate_exception_on_reactor(exception)
+
+        # Even though we could have used _run_once instead of a sleep, it seems that _run_once does not always
+        # immediately clean the reactor, leading to a possibility that the test starts to shut down before the exception
+        # is raised.
+        await sleep(0.05)
+
         self.session.api_manager.get_endpoint('state').on_tribler_exception.assert_not_called()
         self.session.api_manager.get_endpoint('events').on_tribler_exception.assert_not_called()
 
         # This is a "canary" to test that we can handle true exceptions
         get_event_loop().call_soon(getaddrinfo, "dfdfddfd23424fdfdf", 2323)
-        self.loop._run_once()
+
+        await sleep(0.05)
 
         self.session.api_manager.get_endpoint('state').on_tribler_exception.assert_not_called()
         self.session.api_manager.get_endpoint('events').on_tribler_exception.assert_not_called()
@@ -100,7 +106,7 @@ class TestSessionAsServer(TestAsServer):
             raise Exception()
 
         get_event_loop().call_soon(real_raise)
-        self.loop._run_once()
+        await sleep(0.05)
         self.session.api_manager.get_endpoint('state').on_tribler_exception.assert_called_once()
         self.session.api_manager.get_endpoint('events').on_tribler_exception.assert_called_once()
 
