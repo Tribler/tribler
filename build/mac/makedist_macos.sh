@@ -14,9 +14,6 @@ export RESOURCES=build/mac/resources
 
 # ----- Build
 PI=pyinstaller
-if [ "$(which pyinstaller-2.7)" != "" ]; then
-	PI=pyinstaller-2.7
-fi
 $PI tribler.spec
 
 mkdir -p dist/installdir
