@@ -8,7 +8,6 @@ from tribler_core.modules.torrent_checker.torrent_checker import TorrentChecker
 from tribler_core.restapi.base_api_test import AbstractApiTest
 from tribler_core.tests.tools.base_test import MockObject
 from tribler_core.tests.tools.tools import timeout
-from tribler_core.tests.tools.tracker.http_tracker import HTTPTracker
 from tribler_core.tests.tools.tracker.udp_tracker import UDPTracker
 from tribler_core.utilities.random_utils import random_infohash
 from tribler_core.utilities.unicode import hexlify
@@ -203,18 +202,13 @@ class TestTorrentHealthEndpoint(AbstractApiTest):
         self.udp_port = self.get_port()
         self.udp_tracker = UDPTracker(self.udp_port)
 
-        self.http_port = self.get_port()
-        self.http_tracker = HTTPTracker(self.http_port)
-
     async def tearDown(self):
         self.session.dlmgr = None
         if self.udp_tracker:
             await self.udp_tracker.stop()
-        if self.http_tracker:
-            await self.http_tracker.stop()
         await super(TestTorrentHealthEndpoint, self).tearDown()
 
-    @timeout(TORRENT_CHECK_TIMEOUT + 5)
+    @timeout(5)
     async def test_check_torrent_health(self):
         """
         Test the endpoint to fetch the health of a chant-managed, infohash-only torrent
@@ -244,7 +238,6 @@ class TestTorrentHealthEndpoint(AbstractApiTest):
 
         # Left for compatibility with other tests in this object
         await self.udp_tracker.start()
-        await self.http_tracker.start()
         json_response = await self.do_request(url)
         self.assertIn("health", json_response)
         self.assertIn("udp://localhost:%s" % self.udp_port, json_response['health'])
@@ -252,9 +245,9 @@ class TestTorrentHealthEndpoint(AbstractApiTest):
             self.assertIn("DHT", json_response['health'])
 
         json_response = await self.do_request(url + '&nowait=1')
-        self.assertDictEqual(json_response, {u'checking': u'1'})
+        self.assertDictEqual(json_response, {'checking': '1'})
 
-    @timeout(TORRENT_CHECK_TIMEOUT)
+    @timeout(5)
     async def test_check_torrent_query(self):
         """
         Test that the endpoint responds with an error message if the timeout parameter has a wrong value
