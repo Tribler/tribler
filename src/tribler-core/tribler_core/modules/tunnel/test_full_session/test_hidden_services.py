@@ -1,11 +1,7 @@
-import sys
 import time
 from asyncio import Future
-from unittest import skipIf
 
 from ipv8.messaging.anonymization.tunnel import CIRCUIT_TYPE_IP_SEEDER
-
-from tribler_common.simpledefs import DLSTATUS_SEEDING
 
 from tribler_core.modules.tunnel.test_full_session.test_tunnel_base import TestTunnelBase
 from tribler_core.tests.tools.tools import timeout
@@ -13,7 +9,7 @@ from tribler_core.tests.tools.tools import timeout
 
 class TestHiddenServices(TestTunnelBase):
 
-    @timeout(40)
+    @timeout(20)
     async def test_hidden_services(self):
         """
         Test the hidden services overlay by constructing an end-to-end circuit and downloading a torrent over it
@@ -25,15 +21,14 @@ class TestHiddenServices(TestTunnelBase):
             self.assertEqual(7, len(c.get_peers()))
         self.assertEqual(7, len(self.tunnel_community_seeder.get_peers()))
 
-        test_future = Future()
+        progress = Future()
 
         def download_state_callback(ds):
             self.tunnel_community.monitor_downloads([ds])
             print(time.time(), ds.get_status(), ds.get_progress())
-            if ds.get_progress() == 1.0 and ds.get_status() == DLSTATUS_SEEDING:
-                test_future.set_result(None)
-                return 0.0
-            return 2.0
+            if ds.get_progress():
+                progress.set_result(None)
+            return 2
 
         self.tunnel_community.build_tunnels(1)
 
@@ -42,5 +37,4 @@ class TestHiddenServices(TestTunnelBase):
 
         download = self.start_anon_download(hops=1)
         download.set_state_callback(download_state_callback)
-
-        await test_future
+        await progress
