@@ -175,7 +175,8 @@ class AbstractServer(BaseTestCase):
         if tasks:
             self._logger.error("The event loop was dirty during %s:", phase)
         for task in tasks:
-            self._logger.error(">     %s", task)
+            name = task.get_name() if hasattr(task, 'get_name') else getattr(task, 'name', 'unknown')
+            self._logger.error(">    name=%s, %s", name, task)
 
     async def tearDown(self):
         random.seed()
