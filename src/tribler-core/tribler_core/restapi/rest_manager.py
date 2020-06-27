@@ -42,7 +42,7 @@ async def error_middleware(request, handler):
     return response
 
 
-class RESTManager(TaskManager):
+class RESTManager():
     """
     This class is responsible for managing the startup and closing of the Tribler HTTP API.
     """
