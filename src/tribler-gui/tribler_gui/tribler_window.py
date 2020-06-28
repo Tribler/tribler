@@ -202,8 +202,6 @@ class TriblerWindow(QMainWindow):
             self.left_menu_button_trust_graph,
         ]
 
-        self.video_player_page.initialize_player()
-
         self.search_results_page.initialize_content_page(self.gui_settings)
         self.search_results_page.channel_torrents_filter_input.setHidden(True)
 
@@ -422,6 +420,10 @@ class TriblerWindow(QMainWindow):
 
         self.add_to_channel_dialog.load_channel(0)
         self.discovered_page.reset_view()
+
+        # We have to load the video player (and initialize VLC stuff) after spawning a subprocess to prevent a crash
+        # on Mac in frozen environments. Also see https://github.com/Tribler/tribler/issues/5420.
+        self.video_player_page.initialize_player()
 
         if not self.gui_settings.value("first_discover", False) and not self.core_manager.use_existing_core:
             self.core_manager.events_manager.discovered_channel.connect(self.stop_discovering)
