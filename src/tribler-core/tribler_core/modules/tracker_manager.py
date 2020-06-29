@@ -134,4 +134,4 @@ class TrackerManager(object):
 
         if not tracker:
             return None
-        return tracker[0].url
+        return tracker[0]

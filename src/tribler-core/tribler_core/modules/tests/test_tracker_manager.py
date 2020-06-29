@@ -65,7 +65,7 @@ class TestTrackerManager(TestAsServer):
         self.assertFalse(self.tracker_manager.get_next_tracker_for_auto_check())
 
         self.tracker_manager.add_tracker("http://test1.com:80/announce")
-        self.assertEqual('http://test1.com/announce', self.tracker_manager.get_next_tracker_for_auto_check())
+        self.assertEqual('http://test1.com/announce', self.tracker_manager.get_next_tracker_for_auto_check().url)
 
     def test_get_tracker_for_check_blacklist(self):
         """
