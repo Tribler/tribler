@@ -8,6 +8,7 @@ from pony.orm import db_session
 from tribler_core.modules.torrent_checker.torrent_checker import TorrentChecker
 from tribler_core.modules.torrent_checker.torrentchecker_session import HttpTrackerSession, UdpSocketManager
 from tribler_core.modules.tracker_manager import TrackerManager
+from tribler_core.tests.tools.base_test import MockObject
 from tribler_core.tests.tools.test_as_server import TestAsServer
 from tribler_core.tests.tools.tools import timeout
 from tribler_core.utilities.unicode import hexlify
@@ -74,7 +75,7 @@ class TestTorrentChecker(TestAsServer):
         with db_session:
             tracker = self.session.mds.TrackerState(url="http://localhost/tracker")
             self.session.mds.TorrentState(infohash=b'a' * 20, seeders=5, leechers=10, trackers={tracker},
-                                             last_check=int(time.time()))
+                                          last_check=int(time.time()))
 
         self.session.tracker_manager.blacklist.append("http://localhost/tracker")
         result = await self.torrent_checker.check_torrent_health(b'a' * 20)
@@ -89,7 +90,7 @@ class TestTorrentChecker(TestAsServer):
         with db_session:
             tracker = self.session.mds.TrackerState(url="http://localhost/tracker")
             self.session.mds.TorrentState(infohash=b'a' * 20, seeders=5, leechers=10, trackers={tracker},
-                                             last_check=int(time.time()))
+                                          last_check=int(time.time()))
 
         result = await self.torrent_checker.check_torrent_health(b'a' * 20)
         self.assertTrue('db' in result)
@@ -98,18 +99,48 @@ class TestTorrentChecker(TestAsServer):
 
     @timeout(10)
     async def test_task_select_no_tracker(self):
-        await self.torrent_checker.check_random_tracker()
+        """
+        Test whether we are not checking a random tracker if there are no trackers in the database.
+        """
+        result = await self.torrent_checker.check_random_tracker()
+        self.assertFalse(result)
 
+    @timeout(10)
+    async def test_check_random_tracker_shutdown(self):
+        """
+        Test whether we are not performing a tracker check if we are shutting down.
+        """
+        await self.torrent_checker.shutdown()
+        result = await self.torrent_checker.check_random_tracker()
+        self.assertFalse(result)
+
+    @timeout(10)
+    async def test_check_random_tracker_not_alive(self):
+        """
+        Test whether we correctly update the tracker state when the number of failures is too large.
+        """
+        with db_session:
+            self.session.mds.TrackerState(url="http://localhost/tracker", failures=1000, alive=True)
+
+        result = await self.torrent_checker.check_random_tracker()
+        self.assertFalse(result)
+
+        with db_session:
+            tracker = self.session.tracker_manager.tracker_store.get()
+            self.assertFalse(tracker.alive)
+
+    @timeout(10)
     async def test_task_select_tracker(self):
         with db_session:
             tracker = self.session.mds.TrackerState(url="http://localhost/tracker")
             self.session.mds.TorrentState(infohash=b'a' * 20, seeders=5, leechers=10, trackers={tracker})
 
-        controlled_session = HttpTrackerSession(None, None, None, None)
+        controlled_session = HttpTrackerSession("127.0.0.1", ("localhost", 8475), "/announce", 5)
         controlled_session.connect_to_tracker = lambda: succeed(None)
 
         self.torrent_checker._create_session_for_request = lambda *args, **kwargs: controlled_session
-        await self.torrent_checker.check_random_tracker()
+        result = await self.torrent_checker.check_random_tracker()
+        self.assertFalse(result)
 
         self.assertEqual(len(controlled_session.infohash_list), 1)
 
@@ -121,8 +152,9 @@ class TestTorrentChecker(TestAsServer):
         with db_session:
             tracker = self.session.mds.TrackerState(url="http://localhost/tracker")
             self.session.mds.TorrentState(infohash=b'a' * 20, seeders=5, leechers=10, trackers={tracker},
-                                             last_check=int(time.time()))
-        await self.torrent_checker.check_random_tracker()
+                                          last_check=int(time.time()))
+        result = await self.torrent_checker.check_random_tracker()
+        self.assertFalse(result)
 
         # Verify whether we successfully cleaned up the session after an error
         self.assertEqual(len(self.torrent_checker._session_list), 1)
@@ -133,25 +165,31 @@ class TestTorrentChecker(TestAsServer):
         Test the check of a tracker without associated torrents
         """
         self.session.tracker_manager.add_tracker('http://trackertest.com:80/announce')
-        await self.torrent_checker.check_random_tracker()
+        result = await self.torrent_checker.check_random_tracker()
+        self.assertFalse(result)
 
     def test_get_valid_next_tracker_for_auto_check(self):
-        """ Test if only valid tracker url is used for auto check """
-        test_tracker_list = ["http://anno nce.torrentsmd.com:8080/announce",
-                             "http://announce.torrentsmd.com:8080/announce"]
+        """
+        Test if only valid tracker url are used for auto check
+        """
+        mock_tracker_state_invalid = MockObject()
+        mock_tracker_state_invalid.url = "http://anno nce.torrentsmd.com:8080/announce"
+        mock_tracker_state_valid = MockObject()
+        mock_tracker_state_valid.url = "http://announce.torrentsmd.com:8080/announce"
+        tracker_states = [mock_tracker_state_invalid, mock_tracker_state_valid]
 
         def get_next_tracker_for_auto_check():
-            return test_tracker_list[0] if test_tracker_list else None
+            return tracker_states[0] if tracker_states else None
 
-        def remove_tracker(tracker_url):
-            test_tracker_list.remove(tracker_url)
+        def remove_tracker(_):
+            tracker_states.remove(mock_tracker_state_invalid)
 
         self.torrent_checker.get_next_tracker_for_auto_check = get_next_tracker_for_auto_check
         self.torrent_checker.remove_tracker = remove_tracker
 
-        next_tracker_url = self.torrent_checker.get_valid_next_tracker_for_auto_check()
-        self.assertEqual(len(test_tracker_list), 1)
-        self.assertEqual(next_tracker_url, "http://announce.torrentsmd.com:8080/announce")
+        next_tracker = self.torrent_checker.get_valid_next_tracker_for_auto_check()
+        self.assertEqual(len(tracker_states), 1)
+        self.assertEqual(next_tracker.url, "http://announce.torrentsmd.com:8080/announce")
 
     def test_on_health_check_completed(self):
         tracker1 = 'udp://localhost:2801'
