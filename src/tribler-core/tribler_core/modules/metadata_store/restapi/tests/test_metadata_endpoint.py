@@ -235,6 +235,7 @@ class TestTorrentHealthEndpoint(AbstractApiTest):
         self.session.dlmgr.dht_health_manager = MockObject()
         dht_health_dict = {"infohash": hexlify(infohash), "seeders": 1, "leechers": 2}
         self.session.dlmgr.dht_health_manager.get_health = lambda *_, **__: succeed({"DHT": [dht_health_dict]})
+        self.session.dlmgr.get_channel_downloads = lambda: []
 
         # Left for compatibility with other tests in this object
         await self.udp_tracker.start()

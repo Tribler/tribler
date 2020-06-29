@@ -12,7 +12,7 @@ from tribler_core.modules.libtorrent.torrentdef import TorrentDef, TorrentDefNoM
 from tribler_core.tests.tools.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE
 from tribler_core.tests.tools.test_as_server import BaseTestCase
 from tribler_core.tests.tools.tools import timeout
-from tribler_core.utilities.path_util import mkdtemp
+from tribler_core.utilities.path_util import Path, mkdtemp
 from tribler_core.utilities.utilities import bdecode_compat
 
 TRACKER = 'http://www.tribler.org/announce'
@@ -278,3 +278,26 @@ class TestTorrentDef(BaseTestCase):
         self.assertEqual(t.get_name_as_unicode(), name_unicode)
         t.metainfo = {b'info': {b'name': b'test\xff' + name_bytes}}
         self.assertEqual(t.get_name_as_unicode(), 'test?????????????')
+
+    def test_get_files_with_length(self):
+        name_bytes = b'\xe8\xaf\xad\xe8\xa8\x80\xe5\xa4\x84\xe7\x90\x86'
+        name_unicode = name_bytes.decode()
+        t = TorrentDef()
+        t.metainfo = {b'info': {b'files': [{b'path.utf-8': [name_bytes], b'length': 123},
+                                           {b'path.utf-8': [b'file.txt'], b'length': 456}]}}
+        self.assertEqual(t.get_files_with_length(), [(Path(name_unicode), 123),
+                                                     (Path('file.txt'), 456)])
+
+        t.metainfo = {b'info': {b'files': [{b'path': [name_bytes], b'length': 123},
+                                           {b'path': [b'file.txt'], b'length': 456}]}}
+        self.assertEqual(t.get_files_with_length(), [(Path(name_unicode), 123),
+                                                     (Path('file.txt'), 456)])
+
+        t.metainfo = {b'info': {b'files': [{b'path': [b'test\xff' + name_bytes], b'length': 123},
+                                           {b'path': [b'file.txt'], b'length': 456}]}}
+        self.assertEqual(t.get_files_with_length(), [(Path('test?????????????'), 123),
+                                                     (Path('file.txt'), 456)])
+
+        t.metainfo = {b'info': {b'files': [{b'path.utf-8': [b'test\xff' + name_bytes], b'length': 123},
+                                           {b'path': [b'file.txt'], b'length': 456}]}}
+        self.assertEqual(t.get_files_with_length(), [(Path('file.txt'), 456)])
