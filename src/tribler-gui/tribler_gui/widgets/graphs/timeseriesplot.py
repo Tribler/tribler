@@ -41,6 +41,9 @@ class TimeSeriesPlot(pg.PlotWidget):
         self.plot_data[timestamp] = data
 
     def render_plot(self):
+        # Sort the plot data before rendering via plot.setData() to prevent loops and extra lines in the graph.
+        self.plot_data = dict(sorted(self.plot_data.items(), key=lambda x: x[1]))
+
         for i, plot in enumerate(self.plots):
             plot.setData(
                 x=pg.np.array(list(self.plot_data.keys())), y=pg.np.array([data[i] for data in self.plot_data.values()])
