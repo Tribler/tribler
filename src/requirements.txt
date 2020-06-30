@@ -13,5 +13,4 @@ networkx
 cryptography
 aiohttp
 aiohttp_apispec
-faulthandler
 pyyaml
