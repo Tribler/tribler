@@ -58,11 +58,11 @@ or, if you haven't added your ssh key to your github account:
 Second, install the `dependencies <doc/development/development_on_linux.rst>`_.
 
 Done!
-Now you can run tribler by executing the ``tribler.sh`` script on the root of the repository:
+Now you can run tribler by executing the ``src/tribler.sh`` script from the root of the repository:
 
 .. code-block:: bash
 
-    ./tribler.sh
+    ./src/tribler.sh
 
 On Windows, you can use the following command to run Tribler:
 
