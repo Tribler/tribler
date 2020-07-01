@@ -43,9 +43,10 @@ class CoreManager(QObject):
 
     def on_core_read_ready(self):
         raw_output = bytes(self.core_process.readAll())
+        decoded_output = raw_output.decode(errors="replace")
         if b'Traceback' in raw_output:
-            self.core_traceback = raw_output.decode()
-        print(raw_output.decode().strip())
+            self.core_traceback = decoded_output
+        print(decoded_output.strip())
 
     def on_core_finished(self, exit_code, exit_status):
         if self.shutting_down and self.should_stop_on_shutdown:
