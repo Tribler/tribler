@@ -8,6 +8,7 @@ from tribler_core.modules.libtorrent.stream import (FOOTER_SIZE, HEADER_SIZE, No
                                                     NotStreamingError, PREBUFF_PERCENT, StreamChunk)
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.restapi.base_api_test import AbstractApiTest
+from tribler_core.tests.tools.common import TESTS_DIR
 from tribler_core.tests.tools.tools import timeout
 from tribler_core.utilities.path_util import Path
 
@@ -243,7 +244,7 @@ class TestStream(AbstractApiTest): # pylint: disable=too-many-ancestors
 
     @timeout(20)
     async def add_torrent(self):
-        [srchandle, sourcefn] = mkstemp()
+        [srchandle, sourcefn] = mkstemp(dir=TESTS_DIR)
         self.data = b'\xFF' * self.size # pylint: disable=attribute-defined-outside-init
         os.write(srchandle, self.data)
         os.close(srchandle)
