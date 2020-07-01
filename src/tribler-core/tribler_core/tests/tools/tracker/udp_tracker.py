@@ -20,6 +20,10 @@ class UDPTrackerProtocol(DatagramProtocol):
         self.transaction_id = -1
         self.connection_id = -1
         self.tracker_session = tracker_session
+        self.transport = None
+
+    def connection_made(self, transport):
+        self.transport = transport
 
     def datagram_received(self, response, host_and_port):
         """
@@ -56,7 +60,7 @@ class UDPTrackerProtocol(DatagramProtocol):
         """
         self.connection_id = random.randint(0, MAX_INT32)
         response_msg = struct.pack('!iiq', TRACKER_ACTION_CONNECT, self.transaction_id, self.connection_id)
-        self.transport.write(response_msg, (host, port))
+        self.transport.sendto(response_msg, (host, port))
 
     def send_scrape_reply(self, host, port, infohashes):
         """
@@ -66,7 +70,7 @@ class UDPTrackerProtocol(DatagramProtocol):
         for infohash in infohashes:
             ih_info = self.tracker_session.tracker_info.get_info_about_infohash(infohash)
             response_msg += struct.pack('!iii', ih_info['seeders'], ih_info['downloaded'], ih_info['leechers'])
-        self.transport.write(response_msg, (host, port))
+        self.transport.sendto(response_msg, (host, port))
 
     def send_error(self, host, port, error_msg):
         """
@@ -74,7 +78,7 @@ class UDPTrackerProtocol(DatagramProtocol):
         """
         response_msg = struct.pack('!ii' + str(len(error_msg)) + 's', TRACKER_ACTION_ERROR,
                                    self.transaction_id, error_msg)
-        self.transport.write(response_msg, (host, port))
+        self.transport.sendto(response_msg, (host, port))
 
 
 class UDPTracker(object):
