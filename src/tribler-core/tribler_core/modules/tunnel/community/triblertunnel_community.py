@@ -598,6 +598,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         self.logger.debug("Got http-request from %s", source_address)
         target_address = decode_address(payload.target)
 
+        writer = None
         try:
             with async_timeout.timeout(3):
                 self.logger.debug("Opening TCP connection to %s", target_address)
@@ -611,11 +612,15 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                         # Read HTTP response body (1MB max)
                         response += await reader.read(1024**2)
                         break
+        except OSError:
+            self.logger.warning('Tunnel HTTP request failed')
+            return
         except AsyncTimeoutError:
             self.logger.warning('Tunnel HTTP request timed out')
             return
         finally:
-            writer.close()
+            if writer:
+                writer.close()
 
         # Note that, depending on the libtorrent version, bdecode does not always raise
         # an exception, sometimes it returns None instead.
