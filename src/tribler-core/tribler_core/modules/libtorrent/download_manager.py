@@ -414,7 +414,7 @@ class DownloadManager(TaskManager):
             metainfo = download.tdef.get_metainfo() or await wait_for(shield(download.future_metainfo), timeout)
             self._logger.info('Successfully retrieved metainfo for %s', infohash_hex)
             self.metainfo_cache[infohash] = {'time': timemod.time(), 'meta_info': metainfo}
-        except (CancelledError, TimeoutError):
+        except (CancelledError, asyncio.TimeoutError):
             metainfo = None
             self._logger.info('Failed to retrieve metainfo for %s', infohash_hex)
 
