@@ -44,19 +44,21 @@ class TestDownload(TestAsServer):
 
         return tdef
 
-    def test_get_magnet_link_none(self):
+    async def test_get_magnet_link_none(self):
         tdef = self.create_tdef()
 
         dl = Download(self.session, tdef)
         link = dl.get_magnet_link()
         self.assertEqual(None, link, "Magnet link was not none while it should be!")
+        await dl.shutdown()
 
-    def test_get_tdef(self):
+    async def test_get_tdef(self):
         tdef = self.create_tdef()
 
         dl = Download(self.session, None)
         dl.set_def(tdef)
         self.assertEqual(dl.tdef, tdef, "Torrent definitions were not equal!")
+        await dl.shutdown()
 
     @timeout(20)
     async def test_setup(self):
@@ -65,6 +67,7 @@ class TestDownload(TestAsServer):
         dl.setup(None, 0)
         dl.cancel_all_pending_tasks()
         dl.stop()
+        await dl.shutdown()
 
     async def test_resume(self):
         tdef = self.create_tdef()
@@ -73,6 +76,7 @@ class TestDownload(TestAsServer):
         dl.handle = Mock()
         dl.resume()
         dl.handle.resume.assert_called()
+        await dl.shutdown()
 
     async def test_resume_in_upload_mode(self):
         tdef = self.create_tdef()
@@ -84,6 +88,7 @@ class TestDownload(TestAsServer):
         dl.resume()
         dl.handle.resume.assert_called()
         dl.handle.set_upload_mode.assert_called_with(dl.get_upload_mode())
+        await dl.shutdown()
 
     @timeout(20)
     async def test_multifile_torrent(self):
@@ -124,6 +129,7 @@ class TestDownload(TestAsServer):
         dl.config.set_engineresumedata({b"save_path": "some_local_dir",
                                         b"info-hash": b'\x00' * 20})
         dl.setup()
+        await dl.shutdown()
 
     @timeout(10)
     async def test_save_resume(self):
@@ -143,8 +149,9 @@ class TestDownload(TestAsServer):
         filename = self.session.dlmgr.get_checkpoint_dir() / basename
         dcfg = DownloadConfig.load(filename)
         self.assertEqual(tdef.get_infohash(), dcfg.get_engineresumedata().get(b'info-hash'))
+        await dl.shutdown()
 
-    def test_move_storage(self):
+    async def test_move_storage(self):
         """
         Test that move_storage method works as expected by Libtorrent
         """
@@ -160,15 +167,17 @@ class TestDownload(TestAsServer):
         dl.handle.move_storage = mock_move
 
         dl.move_storage(Path("some_path"))
-        self.assertEquals("some_path", result[0])
+        self.assertEqual("some_path", result[0])
         self.assertTrue("some_path", dl.config.get_dest_dir().name)
+        await dl.shutdown()
 
         # Check the same thing, this time for TorrentDefNoMetainfo
         dl = Download(self.session, TorrentDefNoMetainfo(random_infohash(), "some_torrent"))
         dl.setup()
         dl.move_storage(Path("some_path"))
-        self.assertEquals("some_path", result[0])
+        self.assertEqual("some_path", result[0])
         self.assertTrue("some_path", dl.config.get_dest_dir().name)
+        await dl.shutdown()
 
     @timeout(10)
     async def test_save_resume_disabled(self):
@@ -188,6 +197,7 @@ class TestDownload(TestAsServer):
         await dl.checkpoint()
         self.assertFalse(filename.is_file())
         dl.stop()
+        await dl.shutdown()
 
     @timeout(10)
     async def test_save_checkpoint(self):
@@ -198,6 +208,7 @@ class TestDownload(TestAsServer):
         filename = self.session.dlmgr.get_checkpoint_dir() / basename
         await dl.checkpoint()
         self.assertTrue(filename.is_file())
+        await dl.shutdown()
 
 
 class TestDownloadNoSession(TriblerCoreTest):

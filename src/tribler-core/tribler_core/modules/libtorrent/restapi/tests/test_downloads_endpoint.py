@@ -586,7 +586,7 @@ class TestStreamingEndpoint(AbstractApiTest):
                                              "vod_mode": False})
 
     async def add_torrent(self, piece_length=1024):
-        [srchandle, sourcefn] = mkstemp()
+        [srchandle, sourcefn] = mkstemp(dir=TESTS_DIR)
         data = b''.join([i.to_bytes(2, byteorder='big') for i in range(1000)])
         os.write(srchandle, data)
         os.close(srchandle)

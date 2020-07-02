@@ -635,3 +635,21 @@ class TestTriblerTunnelCommunity(TestBase):
         with self.assertRaises(RuntimeError):
             await self.nodes[0].overlay.perform_http_request(('127.0.0.1', 0),
                                                              b'GET /scrape?info_hash=0 HTTP/1.1\r\n\r\n')
+
+    async def test_perform_http_request_failed(self):
+        """
+        Test whether if a failed HTTP request is handled correctly
+        """
+        self.add_node_to_experiment(self.create_node())
+        await self.nodes[0].overlay.bandwidth_wallet.shutdown_task_manager()
+        self.nodes[0].overlay.bandwidth_wallet = None
+        self.nodes[1].overlay.settings.peer_flags.add(PEER_FLAG_EXIT_HTTP)
+        await self.introduce_nodes()
+
+        self.nodes[0].overlay.build_tunnels(1)
+        await self.deliver_messages()
+
+        with self.assertRaises(AsyncTimeoutError):
+            await wait_for(self.nodes[0].overlay.perform_http_request(('127.0.0.1', 1234),
+                                                                      b'GET /scrape?info_hash=0 HTTP/1.1\r\n\r\n'),
+                           timeout=.3)
