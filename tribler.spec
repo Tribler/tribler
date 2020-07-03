@@ -80,9 +80,10 @@ hiddenimports = [
     'pyaes',
     'scrypt', '_scrypt',
     'sqlalchemy', 'sqlalchemy.ext.baked', 'sqlalchemy.ext.declarative',
+    'pkg_resources', 'pkg_resources.py2_warn', # Workaround PyInstaller & SetupTools, https://github.com/pypa/setuptools/issues/1963
     'requests',
     'PyQt5.QtTest',
-    'pyqtgraph'] + widget_files + pony_deps,
+    'pyqtgraph'] + widget_files + pony_deps
 
 
 sys.modules['FixTk'] = None
@@ -90,7 +91,7 @@ a = Analysis(['src/run_tribler.py'],
              pathex=[''],
              binaries=None,
              datas=data_to_copy,
-             hiddenimports=['csv', 'ecdsa', 'pyaes', 'scrypt', '_scrypt', 'sqlalchemy', 'sqlalchemy.ext.baked', 'sqlalchemy.ext.declarative', 'requests', 'PyQt5.QtTest', 'pyqtgraph'] + widget_files + pony_deps,
+             hiddenimports=hiddenimports,
              hookspath=[],
              runtime_hooks=[],
              excludes=excluded_libs,
