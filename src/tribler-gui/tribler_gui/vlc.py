@@ -126,6 +126,11 @@ def is_frozen():
     return True
 
 
+def whitelist_dll_directory(dll_directory):
+    if hasattr(os, 'add_dll_directory'):
+        os.add_dll_directory(dll_directory)
+
+
 def find_lib():
     dll = None
     plugin_path = os.environ.get('PYTHON_VLC_MODULE_PATH', None)
@@ -169,6 +174,7 @@ def find_lib():
                 p = os.getcwd()
                 os.chdir(plugin_path)
                 # if chdir failed, this will raise an exception
+                whitelist_dll_directory(plugin_path)
                 dll = ctypes.CDLL(libname)
                 # restore cwd after dll has been loaded
                 os.chdir(p)
@@ -208,6 +214,7 @@ def find_lib():
                 if plugin_path is not None:  # try loading
                     p = os.getcwd()
                     os.chdir(plugin_path)
+                    whitelist_dll_directory(plugin_path)
                     # if chdir failed, this will raise an exception
                     dll = ctypes.CDLL(libname)
                     # restore cwd after dll has been loaded
@@ -215,6 +222,7 @@ def find_lib():
                 else:  # may fail
                     dll = ctypes.CDLL(libname)
             else:
+                whitelist_dll_directory(plugin_path)
                 plugin_path = os.path.dirname(p)
                 dll = ctypes.CDLL(p)
         ctypes.windll.kernel32.SetDllDirectoryW(dll_directory)
