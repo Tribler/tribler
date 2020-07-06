@@ -138,12 +138,12 @@ class RemoteTableModel(QAbstractTableModel):
         # Rows to remove must be grouped into continuous regions.
         # We have to remove the rows in a reversed order because otherwise row indexes
         # would be affected by the previous deletions.
-        rows_to_remove.sort(reverse=True)
+        rows_to_remove_reversed = sorted(rows_to_remove, reverse=True)
         groups = []
-        for n, row in enumerate(rows_to_remove):
+        for n, row in enumerate(rows_to_remove_reversed):
             if n == 0:
                 groups.append([row])
-            elif row == (rows_to_remove[n - 1] - 1):
+            elif row == (rows_to_remove_reversed[n - 1] - 1):
                 groups[-1].append(row)
             else:
                 groups.append([row])
@@ -151,7 +151,7 @@ class RemoteTableModel(QAbstractTableModel):
         for uid in uids_to_remove:
             self.item_uid_map.pop(uid)
         for group in groups:
-            first, last = group[0], group[-1]
+            first, last = group[-1], group[0]
             self.beginRemoveRows(QModelIndex(), first, last)
             for row in group:
                 del self.data_items[row]
@@ -159,7 +159,7 @@ class RemoteTableModel(QAbstractTableModel):
 
         # Update uids of the shifted rows
         for n, item in enumerate(self.data_items):
-            if n > rows_to_remove[0]:  # start just after the last removed row
+            if n >= rows_to_remove[0]:  # start from the first removed row
                 self.item_uid_map[get_item_uid(item)] = n
 
         self.info_changed.emit(items)
@@ -467,8 +467,7 @@ class PersonalChannelsModel(ChannelContentModel):
         def on_torrents_deleted(json_result):
             if not json_result:
                 return
-            # TODO: reload only the changed rows
-            self.reset()
+            self.remove_items(json_result)
             self.info_changed.emit(json_result)
 
         if patch_data:
