@@ -215,7 +215,8 @@ class ChannelContentsWidget(widget_form, widget_class):
         self.model.text_filter = ''
         self.model.category_filter = None
 
-        self.controller.table_view.horizontalHeader().setSortIndicator(-1, Qt.DescendingOrder)
+        with self.freeze_controls():
+            self.controller.table_view.horizontalHeader().setSortIndicator(-1, Qt.DescendingOrder)
         self.model.sort_by = (
             self.model.columns[self.model.default_sort_column] if self.model.default_sort_column >= 0 else None
         )
