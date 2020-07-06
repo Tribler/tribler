@@ -305,8 +305,13 @@ class ChannelContentModel(RemoteTableModel):
         return self.column_flags[self.columns[index.column()]]
 
     def filter_item_txt(self, txt_filter, index, show_default=True):
+        # FIXME: dumb workaround for some mysterious race condition
+        try:
+            item = self.data_items[index.row()]
+        except IndexError:
+            return ""
+
         column = self.columns[index.column()]
-        item = self.data_items[index.row()]
         data = item.get(column, u'')
 
         # Print number of torrents in the channel for channel rows in the "size" column
