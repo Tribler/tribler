@@ -13,6 +13,7 @@ from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import ch
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import (
     COMMITTED,
     DIRTY_STATUSES,
+    LEGACY_ENTRY,
     NEW,
     TODELETE,
     UPDATED,

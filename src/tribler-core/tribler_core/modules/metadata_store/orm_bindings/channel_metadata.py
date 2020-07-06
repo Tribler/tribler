@@ -311,19 +311,6 @@ def define_binding(db):
             )
             return torrent
 
-        @db_session
-        def torrent_exists(self, infohash):
-            """
-            Return True if torrent with given infohash exists in the user channel
-            :param infohash: The infohash of the torrent
-            :return: True if torrent exists else False
-            """
-            return db.TorrentMetadata.exists(
-                lambda g: g.public_key == self.public_key
-                and g.infohash == database_blob(infohash)
-                and g.status != LEGACY_ENTRY
-            )
-
         @property
         def dirname(self):
             # Have to limit this to support Windows file path length limit
