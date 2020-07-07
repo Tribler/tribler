@@ -134,14 +134,18 @@ class ChannelsEndpoint(ChannelsEndpointBase):
     async def create_channel(self, request):
         with db_session:
             _, channel_id = self.get_channel_from_request(request)
-            md = self.session.mds.ChannelMetadata.create_channel("New channel", origin_id=channel_id)
+            request_parsed = await request.json()
+            channel_name = request_parsed.get("name", "New channel")
+            md = self.session.mds.ChannelMetadata.create_channel(channel_name, origin_id=channel_id)
             return RESTResponse({"results": [md.to_simple_dict()]})
 
     # Create a new collection entry in this channel
     async def create_collection(self, request):
         with db_session:
             _, channel_id = self.get_channel_from_request(request)
-            md = self.session.mds.CollectionNode(origin_id=channel_id, title="New collection", status=NEW)
+            request_parsed = await request.json()
+            collection_name = request_parsed.get("name", "New collection")
+            md = self.session.mds.CollectionNode(origin_id=channel_id, title=collection_name, status=NEW)
             return RESTResponse({"results": [md.to_simple_dict()]})
 
     # Put a torrent into the channel.

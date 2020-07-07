@@ -480,11 +480,16 @@ class PersonalChannelsModel(ChannelContentModel):
         if delete_data:
             TriblerNetworkRequest("metadata", on_torrents_deleted, raw_data=json.dumps(delete_data), method='DELETE')
 
-    def create_new_channel(self):
+    def create_new_channel(self, channel_name=None):
         url = (
             self.endpoint_url_override or "channels/%s/%i" % (self.channel_info["public_key"], self.channel_info["id"])
         ) + ("/channels" if self.channel_info.get("id", 0) == 0 else "/collections")
-        TriblerNetworkRequest(url, self.on_create_query_results, method='POST')
+        TriblerNetworkRequest(
+            url,
+            self.on_create_query_results,
+            method='POST',
+            raw_data=json.dumps({"name": channel_name}) if channel_name else None,
+        )
 
     def on_query_results(self, response, **kwargs):
         if super(PersonalChannelsModel, self).on_query_results(response, **kwargs):
