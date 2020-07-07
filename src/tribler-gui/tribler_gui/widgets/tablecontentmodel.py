@@ -101,7 +101,7 @@ class RemoteTableModel(QAbstractTableModel):
             return
 
         # Else if remote items, to make space for new unique items shift the existing items
-        if on_top:
+        if on_top and insert_index > 0:
             new_items_map = {}
             for item in self.data_items:
                 old_item_uid = get_item_uid(item)
@@ -110,8 +110,7 @@ class RemoteTableModel(QAbstractTableModel):
                     new_items_map[old_item_uid] = shifted_index
                     if 'infohash' in item:
                         new_items_map[item['infohash']] = shifted_index
-            if new_items:
-                self.item_uid_map = new_items_map
+            self.item_uid_map.update(new_items_map)
 
         # Update the table model
         if on_top:
