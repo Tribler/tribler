@@ -105,11 +105,15 @@ class TestSpecificChannelEndpoint(BaseTestMetadataEndpoint):
         """
         Test creating a channel in your channel with REST API POST request
         """
+        # TODO: parametrize this to test collection creation too
         await self.do_request('channels/mychannel/0/channels', request_type='POST', expected_code=200)
         with db_session:
-            my_channel = self.session.mds.ChannelMetadata.get(title="New channel")
-            self.assertTrue(my_channel)
-            self.assertEqual(my_channel.title, 'New channel')
+            self.assertTrue(self.session.mds.ChannelMetadata.get(title="New channel"))
+        await self.do_request(
+            'channels/mychannel/0/channels', request_type='POST', post_data={"name": "foobar"}, expected_code=200
+        )
+        with db_session:
+            self.assertTrue(self.session.mds.ChannelMetadata.get(title="foobar"))
 
     async def test_get_contents_count(self):
         # Test getting total count of results

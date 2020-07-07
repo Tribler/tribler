@@ -12,6 +12,7 @@ from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, C
 
 from tribler_gui.defs import BUTTON_TYPE_CONFIRM, BUTTON_TYPE_NORMAL, CATEGORY_LIST
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
+from tribler_gui.dialogs.new_channel_dialog import NewChannelDialog
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import get_gui_setting, get_image_path, get_ui_file_path
@@ -285,7 +286,7 @@ class ChannelContentsWidget(widget_form, widget_class):
         TriblerNetworkRequest('remote_query', None, method="PUT", url_params=params)
 
     def create_new_channel(self):
-        self.model.create_new_channel()
+        NewChannelDialog(self, self.model.create_new_channel)
 
     def initialize_with_channel(self, channel_info):
         # Turn off sorting by default to speed up SQL queries

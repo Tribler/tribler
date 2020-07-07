@@ -1,3 +1,5 @@
+import json
+
 from PyQt5 import QtWidgets, uic
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import QTreeWidgetItem
@@ -5,6 +7,7 @@ from PyQt5.QtWidgets import QTreeWidgetItem
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE
 
 from tribler_gui.dialogs.dialogcontainer import DialogContainer
+from tribler_gui.dialogs.new_channel_dialog import NewChannelDialog
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import get_ui_file_path
 
@@ -42,27 +45,39 @@ class AddToChannelDialog(DialogContainer):
         self.dialog_widget.channels_tree_wt.setHeaderLabels(['Name'])
         self.on_main_window_resize()
 
-    def on_create_new_channel_clicked(self):
-        def on_new_channel_response(response):
-            if not response or not response.get("results", None):
-                return
-            self.load_channel(response["results"][0]["origin_id"])
+    def on_new_channel_response(self, response):
+        if not response or not response.get("results", None):
+            return
+        self.load_channel(response["results"][0]["origin_id"])
 
-        TriblerNetworkRequest("channels/mychannel/0/channels", on_new_channel_response, method='POST')
+    def on_create_new_channel_clicked(self):
+        def create_channel_callback(channel_name=None):
+            TriblerNetworkRequest(
+                "channels/mychannel/0/channels",
+                self.on_new_channel_response,
+                method='POST',
+                raw_data=json.dumps({"name": channel_name}) if channel_name else None,
+            )
+
+        NewChannelDialog(self, create_channel_callback)
 
     def on_create_new_folder_clicked(self):
         selected = self.dialog_widget.channels_tree_wt.selectedItems()
         if not selected:
             return
+
         channel_id = selected[0].id_
-
-        def on_new_channel_response(response):
-            if not response or not response.get("results", None):
-                return
-            self.load_channel(response["results"][0]["origin_id"])
-
         url = ("channels/mychannel/%i" % channel_id) + ("/channels" if channel_id == 0 else "/collections")
-        TriblerNetworkRequest(url, on_new_channel_response, method='POST')
+
+        def create_channel_callback(channel_name=None):
+            TriblerNetworkRequest(
+                url,
+                self.on_new_channel_response,
+                method='POST',
+                raw_data=json.dumps({"name": channel_name}) if channel_name else None,
+            )
+
+        NewChannelDialog(self, create_channel_callback)
 
     def clear_channels_tree(self):
         # ACHTUNG! All running requests must always be cancelled first to prevent race condition!
