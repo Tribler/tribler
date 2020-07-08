@@ -154,6 +154,9 @@ class TunnelHelperService(TaskManager):
             # We set this after Tribler has started since the tunnel_community won't be available otherwise
             self.session.tunnel_community.reject_callback = self.on_circuit_reject
 
+        # Tunnel helpers store more TrustChain blocks
+        self.session.trustchain_community.settings.max_db_blocks = 5000000
+
         self.tribler_started()
         
     async def stop(self):
