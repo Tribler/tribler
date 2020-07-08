@@ -9,7 +9,7 @@ from tribler_core.tests.tools.tools import timeout
 
 class TestHiddenServices(TestTunnelBase):
 
-    @timeout(20)
+    @timeout(30)
     async def test_hidden_services(self):
         """
         Test the hidden services overlay by constructing an end-to-end circuit and downloading a torrent over it
