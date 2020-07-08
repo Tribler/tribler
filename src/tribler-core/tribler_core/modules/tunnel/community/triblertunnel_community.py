@@ -648,7 +648,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         num_cells = math.ceil(len(response) / MAX_HTTP_PACKET_SIZE)
         for i in range(num_cells):
-            self.send_cell([source_address], "http-response",
+            self.send_cell(source_address, "http-response",
                            HTTPResponsePayload(circuit_id, payload.identifier, i, num_cells,
                                                response[i*MAX_HTTP_PACKET_SIZE:(i+1)*MAX_HTTP_PACKET_SIZE]))
 
@@ -685,7 +685,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             raise RuntimeError('No HTTP exits available')
 
         cache = self.request_cache.add(HTTPRequestCache(self, circuit.circuit_id))
-        self.increase_bytes_sent(circuit, self.send_cell([circuit.peer], "http-request",
+        self.increase_bytes_sent(circuit, self.send_cell(circuit.peer, "http-request",
                                                          HTTPRequestPayload(circuit.circuit_id,
                                                                             cache.number,
                                                                             encode_address(*destination),
