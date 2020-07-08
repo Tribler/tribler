@@ -364,6 +364,8 @@ class Session(TaskManager):
                 text_long = text_long + "\n--LONG TEXT--\n" + buffer.getvalue()
         text_long = text_long + "\n--CONTEXT--\n" + str(context)
 
+        self._logger.error("Unhandled exception occurred! %s", text_long)
+
         if self.api_manager and len(text_long) > 0:
             self.api_manager.get_endpoint('events').on_tribler_exception(text_long)
             self.api_manager.get_endpoint('state').on_tribler_exception(text_long)
