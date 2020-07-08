@@ -12,7 +12,7 @@ from ipv8.attestation.trustchain.block import EMPTY_PK
 from ipv8.messaging.anonymization.caches import CreateRequestCache
 from ipv8.messaging.anonymization.community import message_to_payload
 from ipv8.messaging.anonymization.hidden_services import HiddenTunnelCommunity
-from ipv8.messaging.anonymization.payload import NO_CRYPTO_PACKETS
+from ipv8.messaging.anonymization.payload import EstablishIntroPayload, NO_CRYPTO_PACKETS
 from ipv8.messaging.anonymization.tunnel import (
     CIRCUIT_STATE_CLOSING,
     CIRCUIT_STATE_READY,
@@ -508,6 +508,14 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             dl.add_peer(address)
         else:
             self.logger.error('Could not find download for adding hidden services peer %s:%d!', *address)
+
+    def on_establish_intro(self, source_address, data, circuit_id):
+        payload = self._ez_unpack_noauth(EstablishIntroPayload, data, global_time=False)
+        exists_before = payload.public_key in self.intro_point_for
+        super(TriblerTunnelCommunity, self).on_establish_intro(source_address, data, circuit_id)
+        # Check if an introduction point was just added
+        if not exists_before and payload.public_key in self.intro_point_for:
+            self.clean_from_slots(circuit_id)
 
     def on_rendezvous_established(self, source_address, data, circuit_id):
         super(TriblerTunnelCommunity, self).on_rendezvous_established(source_address, data, circuit_id)
