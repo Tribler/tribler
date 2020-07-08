@@ -100,10 +100,10 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             chr(27): self.on_relay_balance_response_cell,
         })
 
-        message_to_payload[u"balance-request"] = (24, BalanceRequestPayload)
-        message_to_payload[u"relay-balance-request"] = (25, BalanceRequestPayload)
-        message_to_payload[u"balance-response"] = (26, BalanceResponsePayload)
-        message_to_payload[u"relay-balance-response"] = (27, BalanceResponsePayload)
+        message_to_payload["balance-request"] = (24, BalanceRequestPayload)
+        message_to_payload["relay-balance-request"] = (25, BalanceRequestPayload)
+        message_to_payload["balance-response"] = (26, BalanceResponsePayload)
+        message_to_payload["relay-balance-response"] = (27, BalanceResponsePayload)
 
         NO_CRYPTO_PACKETS.extend([24, 26])
 
@@ -152,11 +152,11 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         """
         We received the token balance of a circuit initiator. Check whether we can allocate a slot to this user.
         """
-        if not self.request_cache.has(u"balance-request", circuit_id):
+        if not self.request_cache.has("balance-request", circuit_id):
             self.logger.warning("Received token balance without associated request cache!")
             return
 
-        cache = self.request_cache.pop(u"balance-request", circuit_id)
+        cache = self.request_cache.pop("balance-request", circuit_id)
 
         lowest_balance = sys.maxsize
         lowest_index = -1
@@ -213,7 +213,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         shared_secret, _, _ = self.crypto.generate_diffie_shared_secret(create_payload.key)
         self.relay_session_keys[circuit_id] = self.crypto.generate_session_keys(shared_secret)
 
-        self.send_cell(Peer(create_payload.node_public_key, previous_node_address), u"balance-request",
+        self.send_cell(Peer(create_payload.node_public_key, previous_node_address), "balance-request",
                        BalanceRequestPayload(circuit_id))
 
         self.directions.pop(circuit_id, None)
@@ -250,12 +250,12 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
     def on_balance_request_cell(self, source_address, data, _):
         payload = self._ez_unpack_noauth(BalanceRequestPayload, data, global_time=False)
 
-        if self.request_cache.has(u"create", payload.circuit_id):
-            request = self.request_cache.get(u"create", payload.circuit_id)
+        if self.request_cache.has("create", payload.circuit_id):
+            request = self.request_cache.get("create", payload.circuit_id)
             forwarding_relay = RelayRoute(request.from_circuit_id, request.peer)
-            self.send_cell(forwarding_relay.peer, u"relay-balance-request",
+            self.send_cell(forwarding_relay.peer, "relay-balance-request",
                            BalanceRequestPayload(forwarding_relay.circuit_id))
-        elif self.request_cache.has(u"retry", payload.circuit_id):
+        elif self.request_cache.has("retry", payload.circuit_id):
             self.on_balance_request(payload)
         else:
             self.logger.warning("Circuit creation cache for id %s not found!", payload.circuit_id)
@@ -283,12 +283,12 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         circuit = self.circuits[payload.circuit_id]
         if not circuit.hops:
             self.increase_bytes_sent(circuit, self.send_cell(circuit.peer,
-                                                             u"balance-response",
+                                                             "balance-response",
                                                              BalanceResponsePayload.from_half_block(
                                                                  latest_block, circuit.circuit_id)))
         else:
             self.increase_bytes_sent(circuit, self.send_cell(circuit.peer,
-                                                             u"relay-balance-response",
+                                                             "relay-balance-response",
                                                              BalanceResponsePayload.from_half_block(
                                                                  latest_block, circuit.circuit_id)))
 
@@ -310,7 +310,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         for cache in self.request_cache._identifiers.values():
             if isinstance(cache, CreateRequestCache) and cache.from_circuit_id == payload.circuit_id:
                 self.send_cell(cache.to_peer,
-                               u"balance-response",
+                               "balance-response",
                                BalanceResponsePayload.from_half_block(block, cache.to_circuit_id))
 
     def readd_bittorrent_peers(self):
