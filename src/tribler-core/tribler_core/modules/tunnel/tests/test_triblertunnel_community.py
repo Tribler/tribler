@@ -1,9 +1,11 @@
 from asyncio import Future, sleep
+from random import random
 from unittest.mock import Mock
 
 from anydex.wallet.tc_wallet import TrustchainWallet
 
 from ipv8.attestation.trustchain.community import TrustChainCommunity
+from ipv8.messaging.anonymization.payload import EstablishIntroPayload
 from ipv8.messaging.anonymization.tunnel import (
     CIRCUIT_STATE_READY,
     CIRCUIT_TYPE_RP_DOWNLOADER,
@@ -478,6 +480,25 @@ class TestTriblerTunnelCommunity(TestBase):
 
         # Check whether the exit node has been paid
         self.assertGreaterEqual(self.nodes[2].overlay.bandwidth_wallet.get_bandwidth_tokens(), 250 * 1024 * 1024)
+
+    async def test_intro_point_slot(self):
+        """
+        Test whether a introduction point occupies a slot
+        """
+        self.add_node_to_experiment(self.create_node())
+        self.nodes[1].overlay.settings.peer_flags.add(PEER_FLAG_EXIT_ANY)
+        await self.introduce_nodes()
+
+        circuit = self.nodes[0].overlay.create_circuit(1)
+        await circuit.ready
+
+        exit_socket = list(self.nodes[1].overlay.exit_sockets.values())[0]
+        self.assertTrue(exit_socket.circuit_id in self.nodes[1].overlay.random_slots)
+
+        self.nodes[0].overlay.send_cell(circuit.peer, 'establish-intro',
+                                        EstablishIntroPayload(circuit.circuit_id, int(random() * 2 ** 16), b'', b''))
+        await self.deliver_messages()
+        self.assertFalse(exit_socket.circuit_id in self.nodes[1].overlay.random_slots)
 
     async def test_create_circuit_without_wallet(self):
         """
