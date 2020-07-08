@@ -152,12 +152,12 @@ class TestChannelMetadata(TriblerCoreTest):
     @db_session
     def test_torrent_exists_in_channel(self):
         """
-        Test torrent already exists in the channel.
+        Test torrent already exists in the personal channel.
         """
         channel_metadata = self.mds.ChannelMetadata.create_channel('test', 'test')
-        self.mds.TorrentMetadata.from_dict(dict(self.torrent_template, infohash=b"1"))
-        self.assertTrue(channel_metadata.torrent_exists(b"1"))
-        self.assertFalse(channel_metadata.torrent_exists(b"0"))
+        self.mds.TorrentMetadata.from_dict(dict(self.torrent_template, infohash=b"1", origin_id=channel_metadata.id_))
+        self.assertTrue(self.mds.torrent_exists_in_personal_channel(b"1"))
+        self.assertFalse(self.mds.torrent_exists_in_personal_channel(b"0"))
 
     @db_session
     def test_copy_to_channel(self):

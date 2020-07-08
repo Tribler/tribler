@@ -7,8 +7,6 @@ from aiohttp_apispec import AiohttpApiSpec
 
 from apispec.core import VALID_METHODS_OPENAPI_V2
 
-from ipv8.taskmanager import TaskManager
-
 from tribler_core.restapi.rest_endpoint import HTTP_INTERNAL_SERVER_ERROR, HTTP_UNAUTHORIZED, RESTResponse
 from tribler_core.restapi.root_endpoint import RootEndpoint
 from tribler_core.version import version_id
@@ -49,7 +47,7 @@ async def error_middleware(request, handler):
     return response
 
 
-class RESTManager(TaskManager):
+class RESTManager():
     """
     This class is responsible for managing the startup and closing of the Tribler HTTP API.
     """

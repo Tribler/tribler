@@ -5,7 +5,7 @@ description: >
   Peer-to-peer Bittorrent client with enhanced privacy. Search and download torrents with less worries or censorship.
 grade: devel
 confinement: devmode
-base: core18
+base: core20
 
 architectures:
   - build-on: amd64
@@ -103,7 +103,7 @@ parts:
 
 apps:
   tribler-bittorrent:
-    command: desktop-launch ${SNAP}/usr/share/tribler/tribler
+    command: bin/desktop-launch $SNAP/usr/share/tribler/tribler
     plugs:
       - desktop
       - desktop-legacy

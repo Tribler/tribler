@@ -127,7 +127,7 @@ class DebugWindow(QMainWindow):
     def showEvent(self, show_event):
         if self.ipv8_health_widget and self.ipv8_health_widget.isVisible():
             self.ipv8_health_widget.resume()
-            TriblerNetworkRequest("ipv8/health/enable", self.on_ipv8_health_enabled, data={"enable": True},
+            TriblerNetworkRequest("ipv8/asyncio/drift", self.on_ipv8_health_enabled, data={"enable": True},
                                   method='PUT')
 
     def run_with_timer(self, call_fn, timeout=DEBUG_PANE_REFRESH_TIMEOUT):
@@ -399,7 +399,7 @@ class DebugWindow(QMainWindow):
             # We already loaded the widget, just resume it.
             self.ipv8_health_widget.resume()
         # Whether the widget is newly loaded or not, start the measurements.
-        TriblerNetworkRequest("ipv8/health/enable", self.on_ipv8_health_enabled, data={"enable": True}, method='PUT')
+        TriblerNetworkRequest("ipv8/asyncio/drift", self.on_ipv8_health_enabled, data={"enable": True}, method='PUT')
 
     def hide_ipv8_health_widget(self):
         """
@@ -410,7 +410,7 @@ class DebugWindow(QMainWindow):
         """
         if self.ipv8_health_widget is not None and not self.ipv8_health_widget.is_paused:
             self.ipv8_health_widget.pause()
-            TriblerNetworkRequest("ipv8/health/enable", lambda _: None, data={"enable": False}, method='PUT')
+            TriblerNetworkRequest("ipv8/asyncio/drift", lambda _: None, data={"enable": False}, method='PUT')
 
     def on_ipv8_health(self, data):
         """
@@ -428,7 +428,7 @@ class DebugWindow(QMainWindow):
         """
         if not data:
             return
-        self.run_with_timer(lambda: TriblerNetworkRequest("ipv8/health/drift", self.on_ipv8_health), 100)
+        self.run_with_timer(lambda: TriblerNetworkRequest("ipv8/asyncio/drift", self.on_ipv8_health), 100)
 
     def add_items_to_tree(self, tree, items, keys):
         tree.clear()

@@ -27,6 +27,7 @@ from tribler_core.modules.metadata_store.orm_bindings import (
     vsids,
 )
 from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import get_mdblob_sequence_number
+from tribler_core.modules.metadata_store.orm_bindings.channel_node import LEGACY_ENTRY
 from tribler_core.modules.metadata_store.serialization import (
     CHANNEL_TORRENT,
     COLLECTION_NODE,
@@ -486,3 +487,16 @@ class MetadataStore(object):
     @db_session
     def get_num_torrents(self):
         return orm.count(self.TorrentMetadata.select(lambda g: g.metadata_type == REGULAR_TORRENT))
+
+    @db_session
+    def torrent_exists_in_personal_channel(self, infohash):
+        """
+        Return True if torrent with given infohash exists in any of user's channels
+        :param infohash: The infohash of the torrent
+        :return: True if torrent exists else False
+        """
+        return self.TorrentMetadata.exists(
+            lambda g: g.public_key == self.my_key.pub().key_to_bin()[10:]
+            and g.infohash == database_blob(infohash)
+            and g.status != LEGACY_ENTRY
+        )

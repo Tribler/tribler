@@ -105,8 +105,12 @@ class TestRemoteQueryCommunity(TestBase):
         self.nodes[1].overlay.notifier.notify = lambda sub, args: mock_notify(self.nodes[1].overlay, args)
 
         with db_session:
+            # Create one channel with zero contents, to check that only non-empty channels are served
+            self.nodes[0].overlay.mds.ChannelMetadata.create_channel("channel sub", "")
             for _ in range(0, 5):
-                self.nodes[0].overlay.mds.ChannelMetadata.create_channel("channel sub", "")
+                chan = self.nodes[0].overlay.mds.ChannelMetadata.create_channel("channel sub", "")
+                chan.num_entries = 5
+                chan.sign()
             for _ in range(0, 5):
                 channel_uns = self.nodes[0].overlay.mds.ChannelMetadata.create_channel("channel unsub", "")
                 channel_uns.subscribed = False

@@ -534,6 +534,11 @@ class Session(TaskManager):
             await self.resource_monitor.stop()
         self.resource_monitor = None
 
+        if self.bootstrap:
+            # We shutdown the bootstrap module before IPv8 since it uses the DHTCommunity.
+            await self.bootstrap.shutdown()
+        self.bootstrap = None
+
         self.tracker_manager = None
 
         if self.tunnel_community and self.trustchain_community:
@@ -563,10 +568,6 @@ class Session(TaskManager):
 
         self.notify_shutdown_state("Saving configuration...")
         self.config.write()
-
-        if self.bootstrap:
-            await self.bootstrap.shutdown()
-        self.bootstrap = None
 
         if self.dlmgr:
             await self.dlmgr.shutdown()

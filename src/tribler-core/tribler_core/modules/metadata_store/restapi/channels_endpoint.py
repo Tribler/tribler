@@ -56,16 +56,18 @@ class ChannelsEndpoint(ChannelsEndpointBase):
         summary='Get a list of all channels known to the system.',
         responses={
             200: {
-                'schema': schema(GetChannelsResponse={
-                    'results': [ChannelSchema],
-                    'first': Integer(),
-                    'last': Integer(),
-                    'sort_by': String(),
-                    'sort_desc': Integer(),
-                    'total': Integer()
-                })
+                'schema': schema(
+                    GetChannelsResponse={
+                        'results': [ChannelSchema],
+                        'first': Integer(),
+                        'last': Integer(),
+                        'sort_by': String(),
+                        'sort_desc': Integer(),
+                        'total': Integer(),
+                    }
+                )
             }
-        }
+        },
     )
     # TODO: DRY it with SpecificChannel endpoint?
     async def get_channels(self, request):
@@ -94,16 +96,18 @@ class ChannelsEndpoint(ChannelsEndpointBase):
         summary='Get a list of the channel\'s contents (torrents/channels/etc.).',
         responses={
             200: {
-                'schema': schema(GetChannelContentsResponse={
-                    'results': [Dict()],
-                    'first': Integer(),
-                    'last': Integer(),
-                    'sort_by': String(),
-                    'sort_desc': Integer(),
-                    'total': Integer()
-                })
+                'schema': schema(
+                    GetChannelContentsResponse={
+                        'results': [Dict()],
+                        'first': Integer(),
+                        'last': Integer(),
+                        'sort_by': String(),
+                        'sort_desc': Integer(),
+                        'total': Integer(),
+                    }
+                )
             }
-        }
+        },
     )
     async def get_channel_contents(self, request):
         sanitized = self.sanitize_parameters(request.query)
@@ -129,26 +133,20 @@ class ChannelsEndpoint(ChannelsEndpointBase):
     @docs(
         tags=['Metadata'],
         summary='Create a copy of an entry/entries from another channel.',
-        parameters=[{
-            'in': 'body',
-            'name': 'entries',
-            'description': 'List of entries to copy',
-            'example': [{'public_key': '1234567890', 'id': 123}],
-            'required': True
-        }],
-        responses={
-            200: {
-                'description': 'Returns a list of copied content'
-            },
-            HTTP_NOT_FOUND : {
-                'schema': HandledErrorSchema,
-                'example': {"error": "Target channel not found"}
-            },
-            HTTP_BAD_REQUEST: {
-                'schema': HandledErrorSchema,
-                'example': {"error": "Source entry not found"}
+        parameters=[
+            {
+                'in': 'body',
+                'name': 'entries',
+                'description': 'List of entries to copy',
+                'example': [{'public_key': '1234567890', 'id': 123}],
+                'required': True,
             }
-        }
+        ],
+        responses={
+            200: {'description': 'Returns a list of copied content'},
+            HTTP_NOT_FOUND: {'schema': HandledErrorSchema, 'example': {"error": "Target channel not found"}},
+            HTTP_BAD_REQUEST: {'schema': HandledErrorSchema, 'example': {"error": "Source entry not found"}},
+        },
     )
     async def copy_channel(self, request):
         with db_session:
@@ -196,16 +194,16 @@ class ChannelsEndpoint(ChannelsEndpointBase):
         responses={
             200: {
                 'description': 'Returns the newly created channel',
-                'schema': schema(CreateChannelResponse={
-                    'results': [Dict()]
-                })
+                'schema': schema(CreateChannelResponse={'results': [Dict()]}),
             }
-        }
+        },
     )
     async def create_channel(self, request):
         with db_session:
             _, channel_id = self.get_channel_from_request(request)
-            md = self.session.mds.ChannelMetadata.create_channel("New channel", origin_id=channel_id)
+            request_parsed = await request.json()
+            channel_name = request_parsed.get("name", "New channel")
+            md = self.session.mds.ChannelMetadata.create_channel(channel_name, origin_id=channel_id)
             return RESTResponse({"results": [md.to_simple_dict()]})
 
     @docs(
@@ -214,16 +212,16 @@ class ChannelsEndpoint(ChannelsEndpointBase):
         responses={
             200: {
                 'description': 'Returns the newly created collection',
-                'schema': schema(CreateCollectionResponse={
-                    'results': [Dict()]
-                })
+                'schema': schema(CreateCollectionResponse={'results': [Dict()]}),
             }
-        }
+        },
     )
     async def create_collection(self, request):
         with db_session:
             _, channel_id = self.get_channel_from_request(request)
-            md = self.session.mds.CollectionNode(origin_id=channel_id, title="New collection", status=NEW)
+            request_parsed = await request.json()
+            collection_name = request_parsed.get("name", "New collection")
+            md = self.session.mds.CollectionNode(origin_id=channel_id, title=collection_name, status=NEW)
             return RESTResponse({"results": [md.to_simple_dict()]})
 
     @docs(
@@ -231,27 +229,25 @@ class ChannelsEndpoint(ChannelsEndpointBase):
         summary='Add a torrent file to your own channel.',
         responses={
             200: {
-                'schema': schema(AddTorrentToChannelResponse={
-                    'added': (Integer, 'Number of torrent that were added to the channel')
-                })
+                'schema': schema(
+                    AddTorrentToChannelResponse={'added': (Integer, 'Number of torrent that were added to the channel')}
+                )
             },
-            HTTP_NOT_FOUND: {
-                'schema': HandledErrorSchema,
-                'example': {"error": "Unknown channel"}
-            },
-            HTTP_BAD_REQUEST: {
-                'schema': HandledErrorSchema,
-                'example': {"error": "unknown uri type"}
-            }
-        }
+            HTTP_NOT_FOUND: {'schema': HandledErrorSchema, 'example': {"error": "Unknown channel"}},
+            HTTP_BAD_REQUEST: {'schema': HandledErrorSchema, 'example': {"error": "unknown uri type"}},
+        },
     )
-    @json_schema(schema(AddTorrentToChannelRequest={
-        'torrent': (String, 'Base64-encoded torrent file'),
-        'uri': (String, 'Add a torrent from a magnet link or URL'),
-        'torrents_dir': (String, 'Add all .torrent files from a chosen directory'),
-        'recursive': (Boolean, 'Toggle recursive scanning of the chosen directory for .torrent files'),
-        'description': (String, 'Description for the torrent'),
-    }))
+    @json_schema(
+        schema(
+            AddTorrentToChannelRequest={
+                'torrent': (String, 'Base64-encoded torrent file'),
+                'uri': (String, 'Add a torrent from a magnet link or URL'),
+                'torrents_dir': (String, 'Add all .torrent files from a chosen directory'),
+                'recursive': (Boolean, 'Toggle recursive scanning of the chosen directory for .torrent files'),
+                'description': (String, 'Description for the torrent'),
+            }
+        )
+    )
     async def add_torrent_to_channel(self, request):
         channel_pk, channel_id = self.get_channel_from_request(request)
         with db_session:
@@ -282,7 +278,7 @@ class ChannelsEndpoint(ChannelsEndpointBase):
                 ):
                     return RESTResponse({"added": 1})
 
-                meta_info = await self.session.dlmgr.get_metainfo(xt, timeout=30)
+                meta_info = await self.session.dlmgr.get_metainfo(xt, timeout=30, url=uri)
                 if not meta_info:
                     raise RuntimeError("Metainfo timeout")
                 tdef = TorrentDef.load_from_dict(meta_info)
@@ -327,13 +323,7 @@ class ChannelsEndpoint(ChannelsEndpointBase):
     @docs(
         tags=['Metadata'],
         summary='Commit a channel.',
-        responses={
-            200: {
-                'schema': schema(CommitResponse={
-                    'success': Boolean()
-                })
-            }
-        }
+        responses={200: {'schema': schema(CommitResponse={'success': Boolean()})}},
     )
     async def post_commit(self, request):
         channel_pk, channel_id = self.get_channel_from_request(request)
@@ -354,13 +344,7 @@ class ChannelsEndpoint(ChannelsEndpointBase):
     @docs(
         tags=['Metadata'],
         summary='Check if a channel has uncommitted changes.',
-        responses={
-            200: {
-                'schema': schema(IsChannelDirtyResponse={
-                    'dirty': Boolean()
-                })
-            }
-        }
+        responses={200: {'schema': schema(IsChannelDirtyResponse={'dirty': Boolean()})}},
     )
     async def is_channel_dirty(self, request):
         channel_pk, _ = self.get_channel_from_request(request)

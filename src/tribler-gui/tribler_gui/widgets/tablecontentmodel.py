@@ -101,7 +101,7 @@ class RemoteTableModel(QAbstractTableModel):
             return
 
         # Else if remote items, to make space for new unique items shift the existing items
-        if on_top:
+        if on_top and insert_index > 0:
             new_items_map = {}
             for item in self.data_items:
                 old_item_uid = get_item_uid(item)
@@ -110,8 +110,7 @@ class RemoteTableModel(QAbstractTableModel):
                     new_items_map[old_item_uid] = shifted_index
                     if 'infohash' in item:
                         new_items_map[item['infohash']] = shifted_index
-            if new_items:
-                self.item_uid_map = new_items_map
+            self.item_uid_map.update(new_items_map)
 
         # Update the table model
         if on_top:
@@ -138,12 +137,12 @@ class RemoteTableModel(QAbstractTableModel):
         # Rows to remove must be grouped into continuous regions.
         # We have to remove the rows in a reversed order because otherwise row indexes
         # would be affected by the previous deletions.
-        rows_to_remove.sort(reverse=True)
+        rows_to_remove_reversed = sorted(rows_to_remove, reverse=True)
         groups = []
-        for n, row in enumerate(rows_to_remove):
+        for n, row in enumerate(rows_to_remove_reversed):
             if n == 0:
                 groups.append([row])
-            elif row == (rows_to_remove[n - 1] - 1):
+            elif row == (rows_to_remove_reversed[n - 1] - 1):
                 groups[-1].append(row)
             else:
                 groups.append([row])
@@ -151,7 +150,7 @@ class RemoteTableModel(QAbstractTableModel):
         for uid in uids_to_remove:
             self.item_uid_map.pop(uid)
         for group in groups:
-            first, last = group[0], group[-1]
+            first, last = group[-1], group[0]
             self.beginRemoveRows(QModelIndex(), first, last)
             for row in group:
                 del self.data_items[row]
@@ -159,7 +158,7 @@ class RemoteTableModel(QAbstractTableModel):
 
         # Update uids of the shifted rows
         for n, item in enumerate(self.data_items):
-            if n > rows_to_remove[0]:  # start just after the last removed row
+            if n >= rows_to_remove[0]:  # start from the first removed row
                 self.item_uid_map[get_item_uid(item)] = n
 
         self.info_changed.emit(items)
@@ -305,8 +304,13 @@ class ChannelContentModel(RemoteTableModel):
         return self.column_flags[self.columns[index.column()]]
 
     def filter_item_txt(self, txt_filter, index, show_default=True):
+        # FIXME: dumb workaround for some mysterious race condition
+        try:
+            item = self.data_items[index.row()]
+        except IndexError:
+            return ""
+
         column = self.columns[index.column()]
-        item = self.data_items[index.row()]
         data = item.get(column, u'')
 
         # Print number of torrents in the channel for channel rows in the "size" column
@@ -357,7 +361,7 @@ class ChannelContentModel(RemoteTableModel):
             self.info_changed.emit([])
 
         row = self.item_uid_map.get(get_item_uid(update_dict))
-        if row is not None:
+        if row in self.data_items:
             self.data_items[row].update(**update_dict)
             self.dataChanged.emit(self.index(row, 0), self.index(row, len(self.columns)), [])
 
@@ -467,8 +471,7 @@ class PersonalChannelsModel(ChannelContentModel):
         def on_torrents_deleted(json_result):
             if not json_result:
                 return
-            # TODO: reload only the changed rows
-            self.reset()
+            self.remove_items(json_result)
             self.info_changed.emit(json_result)
 
         if patch_data:
@@ -476,11 +479,16 @@ class PersonalChannelsModel(ChannelContentModel):
         if delete_data:
             TriblerNetworkRequest("metadata", on_torrents_deleted, raw_data=json.dumps(delete_data), method='DELETE')
 
-    def create_new_channel(self):
+    def create_new_channel(self, channel_name=None):
         url = (
             self.endpoint_url_override or "channels/%s/%i" % (self.channel_info["public_key"], self.channel_info["id"])
         ) + ("/channels" if self.channel_info.get("id", 0) == 0 else "/collections")
-        TriblerNetworkRequest(url, self.on_create_query_results, method='POST')
+        TriblerNetworkRequest(
+            url,
+            self.on_create_query_results,
+            method='POST',
+            raw_data=json.dumps({"name": channel_name}) if channel_name else None,
+        )
 
     def on_query_results(self, response, **kwargs):
         if super(PersonalChannelsModel, self).on_query_results(response, **kwargs):
