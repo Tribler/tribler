@@ -111,7 +111,11 @@ class RemoteQueryCommunity(Community):
             self.send_remote_select(p, **kwargs)
 
     def send_remote_select_subscribed_channels(self, peer):
-        request_dict = {"metadata_type": [CHANNEL_TORRENT], "subscribed": True}
+        request_dict = {
+            "metadata_type": [CHANNEL_TORRENT],
+            "subscribed": True,
+            "attribute_ranges": (("num_entries", 1, None),),
+        }
         self.send_remote_select(peer, **request_dict)
 
     @lazy_wrapper(RemoteSelectPayload)
