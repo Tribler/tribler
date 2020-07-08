@@ -21,6 +21,7 @@ from ipv8.test.mocking.ipv8 import MockIPv8
 
 from tribler_core.modules.tunnel.community.triblertunnel_community import PEER_FLAG_EXIT_HTTP, TriblerTunnelCommunity
 from tribler_core.tests.tools.base_test import MockObject
+from tribler_core.tests.tools.tools import timeout
 from tribler_core.tests.tools.tracker.http_tracker import HTTPTracker
 from tribler_core.utilities.path_util import mkdtemp
 from tribler_core.utilities.utilities import succeed
@@ -76,6 +77,7 @@ class TestTriblerTunnelCommunity(TestBase):
         for exit_socket in exit_sockets:
             exit_sockets[exit_socket] = MockTunnelExitSocket(exit_sockets[exit_socket])
 
+    @timeout(timeout=5)
     async def test_backup_exitnodes(self):
         """
         Check if exitnodes are serialized and deserialized to and from disk properly.
@@ -268,6 +270,7 @@ class TestTriblerTunnelCommunity(TestBase):
         self.nodes[0].overlay.bittorrent_peers[mock_download] = {('4.4.4.4', 4)}
         self.nodes[0].overlay.update_torrent(peers, mock_download)
 
+    @timeout(timeout=5)
     async def test_payouts(self):
         """
         Test whether nodes are correctly paid after transferring data
@@ -295,6 +298,7 @@ class TestTriblerTunnelCommunity(TestBase):
         self.assertTrue(self.nodes[1].overlay.bandwidth_wallet.get_bandwidth_tokens() > 0)
         self.assertTrue(self.nodes[2].overlay.bandwidth_wallet.get_bandwidth_tokens() > 0)
 
+    @timeout(timeout=5)
     async def test_circuit_reject_too_many(self):
         """
         Test whether a circuit is rejected by an exit node if it already joined the max number of circuits
@@ -308,6 +312,7 @@ class TestTriblerTunnelCommunity(TestBase):
 
         self.assertEqual(self.nodes[0].overlay.tunnels_ready(1), 0.0)
 
+    @timeout(timeout=5)
     async def test_payouts_e2e(self):
         """
         Check if payouts work for an e2e-linked circuit
@@ -349,6 +354,7 @@ class TestTriblerTunnelCommunity(TestBase):
         for i in range(3):
             self.assertEqual(self.nodes[i].overlay.bandwidth_wallet.get_bandwidth_tokens(), balances[i])
 
+    @timeout(timeout=5)
     async def test_payouts_invalid_block(self):
         """
         Test whether we do not payout if we received an invalid payout block
@@ -372,6 +378,7 @@ class TestTriblerTunnelCommunity(TestBase):
         # Node 1 should not have counter-signed this block and thus not received tokens
         self.assertFalse(self.nodes[1].overlay.bandwidth_wallet.get_bandwidth_tokens())
 
+    @timeout(timeout=5)
     async def test_decline_competing_slot(self):
         """
         Test whether a circuit is not created when a node does not have enough balance for a competing slot
@@ -387,6 +394,7 @@ class TestTriblerTunnelCommunity(TestBase):
         # Assert whether we didn't create the circuit
         self.assertEqual(self.nodes[0].overlay.tunnels_ready(1), 0.0)
 
+    @timeout(timeout=5)
     async def test_win_competing_slot(self):
         """
         Test whether a circuit is created when a node has enough balance for a competing slot
@@ -402,6 +410,7 @@ class TestTriblerTunnelCommunity(TestBase):
         # Assert whether we didn't create the circuit
         self.assertEqual(self.nodes[0].overlay.tunnels_ready(1), 1.0)
 
+    @timeout(timeout=5)
     async def test_empty_competing_slot(self):
         """
         Test whether a circuit is created when a node takes an empty competing slot
@@ -417,6 +426,7 @@ class TestTriblerTunnelCommunity(TestBase):
         # Assert whether we did create the circuit
         self.assertEqual(self.nodes[0].overlay.tunnels_ready(1), 1.0)
 
+    @timeout(timeout=5)
     async def test_win_competing_slot_exit(self):
         """
         Test whether a two-hop circuit is created when a node has enough balance for a competing slot at the exit
@@ -433,6 +443,7 @@ class TestTriblerTunnelCommunity(TestBase):
         # Assert whether we did create the circuit
         self.assertEqual(self.nodes[0].overlay.tunnels_ready(2), 1.0)
 
+    @timeout(timeout=5)
     async def test_win_competing_slot_relay(self):
         """
         Test whether a two-hop circuit is created when a node has enough balance for a competing slot
@@ -449,6 +460,7 @@ class TestTriblerTunnelCommunity(TestBase):
         # Assert whether we did create the circuit
         self.assertEqual(self.nodes[0].overlay.tunnels_ready(2), 1.0)
 
+    @timeout(timeout=5)
     async def test_payout_on_competition_kick(self):
         """
         Test whether a payout is initiated when an existing node is kicked out from a competing slot
@@ -483,6 +495,7 @@ class TestTriblerTunnelCommunity(TestBase):
         # Check whether the exit node has been paid
         self.assertGreaterEqual(self.nodes[2].overlay.bandwidth_wallet.get_bandwidth_tokens(), 250 * 1024 * 1024)
 
+    @timeout(timeout=5)
     async def test_intro_point_slot(self):
         """
         Test whether a introduction point occupies a slot
@@ -502,6 +515,7 @@ class TestTriblerTunnelCommunity(TestBase):
         await self.deliver_messages()
         self.assertFalse(exit_socket.circuit_id in self.nodes[1].overlay.random_slots)
 
+    @timeout(timeout=5)
     async def test_create_circuit_without_wallet(self):
         """
         Test whether creating a circuit without bandwidth wallet, fails
@@ -521,6 +535,7 @@ class TestTriblerTunnelCommunity(TestBase):
 
         self.assertEqual(self.nodes[0].overlay.tunnels_ready(1), 0.0)
 
+    @timeout(timeout=5)
     async def test_reject_callback(self):
         """
         Test whether the rejection callback is correctly invoked when a circuit request is rejected
@@ -554,6 +569,7 @@ class TestTriblerTunnelCommunity(TestBase):
         # Node 0 should be rejected and the reject callback should be invoked by node 1
         await reject_future
 
+    @timeout(timeout=5)
     async def test_perform_http_request(self):
         """
         Test whether we can make a http request through a circuit
@@ -579,6 +595,7 @@ class TestTriblerTunnelCommunity(TestBase):
                          (await http_tracker.handle_scrape_request(Mock(query={'info_hash': '0'}))).body)
         await http_tracker.stop()
 
+    @timeout(timeout=5)
     async def test_perform_http_request_multipart(self):
         """
         Test whether getting a large HTTP response works
@@ -605,6 +622,7 @@ class TestTriblerTunnelCommunity(TestBase):
                          (await http_tracker.handle_scrape_request(Mock(query={'info_hash': '0'}))).body)
         await http_tracker.stop()
 
+    @timeout(timeout=5)
     async def test_perform_http_request_not_allowed(self):
         """
         Test whether we can make HTTP requests that don't have a bencoded response
@@ -627,6 +645,7 @@ class TestTriblerTunnelCommunity(TestBase):
                            timeout=.3)
         await http_tracker.stop()
 
+    @timeout(timeout=5)
     async def test_perform_http_request_no_http_exits(self):
         """
         Test whether we can make HTTP requests when we have no HTTP exits
@@ -641,6 +660,7 @@ class TestTriblerTunnelCommunity(TestBase):
             await self.nodes[0].overlay.perform_http_request(('127.0.0.1', 0),
                                                              b'GET /scrape?info_hash=0 HTTP/1.1\r\n\r\n')
 
+    @timeout(timeout=5)
     async def test_perform_http_request_circuit_failed(self):
         """
         Test whether we can make HTTP requests when circuit creation fails
@@ -657,6 +677,7 @@ class TestTriblerTunnelCommunity(TestBase):
             await self.nodes[0].overlay.perform_http_request(('127.0.0.1', 0),
                                                              b'GET /scrape?info_hash=0 HTTP/1.1\r\n\r\n')
 
+    @timeout(timeout=5)
     async def test_perform_http_request_failed(self):
         """
         Test whether if a failed HTTP request is handled correctly
