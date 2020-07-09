@@ -1,7 +1,6 @@
 import os
 from asyncio import Future, TimeoutError as AsyncTimeoutError, sleep, wait_for
 from random import random
-from unittest import skip
 from unittest.mock import Mock
 
 from anydex.wallet.tc_wallet import TrustchainWallet
@@ -22,25 +21,28 @@ from ipv8.test.mocking.ipv8 import MockIPv8
 
 from tribler_core.modules.tunnel.community.triblertunnel_community import PEER_FLAG_EXIT_HTTP, TriblerTunnelCommunity
 from tribler_core.tests.tools.base_test import MockObject
+from tribler_core.tests.tools.test_as_server import BaseTestCase
 from tribler_core.tests.tools.tools import timeout
 from tribler_core.tests.tools.tracker.http_tracker import HTTPTracker
 from tribler_core.utilities.path_util import mkdtemp
 from tribler_core.utilities.utilities import succeed
 
 
-class TestTriblerTunnelCommunity(TestBase):
+class TestTriblerTunnelCommunity(TestBase, BaseTestCase):  # pylint: disable=too-many-public-methods
 
     def setUp(self):
         self.initialize(TriblerTunnelCommunity, 1)
 
     def create_node(self):
-        mock_ipv8 = MockIPv8(u"curve25519", TriblerTunnelCommunity, socks_listen_ports=[],
+        mock_ipv8 = MockIPv8("curve25519", TriblerTunnelCommunity,
+                             socks_listen_ports=[self.get_port()],
+                             settings={'remove_tunnel_delay': 0},
                              exitnode_cache=mkdtemp(suffix="_tribler_test_cache") / 'cache.dat')
         mock_ipv8.overlay.settings.max_circuits = 1
 
         # Load the TrustChain community
         mock_ipv8.trustchain = TrustChainCommunity(mock_ipv8.my_peer, mock_ipv8.endpoint, mock_ipv8.network,
-                                      working_directory=u":memory:")
+                                                   working_directory=":memory:")
         mock_ipv8.overlay.bandwidth_wallet = TrustchainWallet(mock_ipv8.trustchain)
         mock_ipv8.overlay.dht_provider = MockDHTProvider(Peer(mock_ipv8.overlay.my_peer.key,
                                                               mock_ipv8.overlay.my_estimated_wan))
@@ -58,8 +60,8 @@ class TestTriblerTunnelCommunity(TestBase):
 
         for node in self.nodes:
             exit_sockets = node.overlay.exit_sockets
-            for exit_socket in exit_sockets:
-                exit_sockets[exit_socket] = MockTunnelExitSocket(exit_sockets[exit_socket])
+            for circuit_id in exit_sockets:
+                exit_sockets[circuit_id] = MockTunnelExitSocket(exit_sockets[circuit_id])
 
     async def assign_exit_node(self, node_nr):
         """
@@ -75,8 +77,8 @@ class TestTriblerTunnelCommunity(TestBase):
         self.nodes[node_nr].overlay.build_tunnels(1)
         await self.deliver_messages()
         exit_sockets = exit_node.overlay.exit_sockets
-        for exit_socket in exit_sockets:
-            exit_sockets[exit_socket] = MockTunnelExitSocket(exit_sockets[exit_socket])
+        for circuit_id in exit_sockets:
+            exit_sockets[circuit_id] = MockTunnelExitSocket(exit_sockets[circuit_id])
 
     @timeout(timeout=5)
     async def test_backup_exitnodes(self):
@@ -131,6 +133,7 @@ class TestTriblerTunnelCommunity(TestBase):
         mock_circuit.state = 'READY'
         mock_circuit.info_hash = b'a'
         mock_circuit.goal_hops = 1
+        mock_circuit.last_activity = 0
 
         self.nodes[0].overlay.remove_circuit = Mock()
         self.nodes[0].overlay.circuits[0] = mock_circuit
@@ -188,6 +191,7 @@ class TestTriblerTunnelCommunity(TestBase):
         mock_circuit.state = 'READY'
         mock_circuit.info_hash = b'a'
         mock_circuit.goal_hops = 1
+        mock_circuit.last_activity = 0
 
         self.nodes[0].overlay.remove_circuit = mocked_remove_circuit
         self.nodes[0].overlay.circuits[0] = mock_circuit
@@ -220,7 +224,6 @@ class TestTriblerTunnelCommunity(TestBase):
         self.nodes[0].overlay.monitor_downloads([])
         self.assertEqual(mocked_remove_circuit.circuit_id, 0)
 
-    @skip(reason="Fails on Windows after release to devel merge")
     def test_update_ip_filter(self):
         circuit = Mock()
         circuit.circuit_id = 123
@@ -392,7 +395,6 @@ class TestTriblerTunnelCommunity(TestBase):
         # Assert whether we didn't create the circuit
         self.assertEqual(self.nodes[0].overlay.tunnels_ready(1), 0.0)
 
-    @skip("fails after merge")
     @timeout(timeout=5)
     async def test_win_competing_slot(self):
         """
@@ -442,7 +444,6 @@ class TestTriblerTunnelCommunity(TestBase):
         # Assert whether we did create the circuit
         self.assertEqual(self.nodes[0].overlay.tunnels_ready(2), 1.0)
 
-    @skip("fails on Windows, should fix eventually")
     @timeout(timeout=5)
     async def test_win_competing_slot_relay(self):
         """
@@ -535,7 +536,6 @@ class TestTriblerTunnelCommunity(TestBase):
 
         self.assertEqual(self.nodes[0].overlay.tunnels_ready(1), 0.0)
 
-    @skip(reason="Fails on Windows after release to devel merge")
     @timeout(timeout=5)
     async def test_reject_callback(self):
         """
@@ -576,15 +576,10 @@ class TestTriblerTunnelCommunity(TestBase):
         Test whether we can make a http request through a circuit
         """
         self.add_node_to_experiment(self.create_node())
-        await self.nodes[0].overlay.bandwidth_wallet.shutdown_task_manager()
-        self.nodes[0].overlay.bandwidth_wallet = None
         self.nodes[1].overlay.settings.peer_flags.add(PEER_FLAG_EXIT_HTTP)
         await self.introduce_nodes()
 
-        self.nodes[0].overlay.build_tunnels(1)
-        await self.deliver_messages()
-
-        http_port = 1234
+        http_port = self.get_port()
         http_tracker = HTTPTracker(http_port)
         http_tracker.tracker_info.add_info_about_infohash('0', 0, 0)
         await http_tracker.start()
@@ -602,15 +597,10 @@ class TestTriblerTunnelCommunity(TestBase):
         Test whether getting a large HTTP response works
         """
         self.add_node_to_experiment(self.create_node())
-        await self.nodes[0].overlay.bandwidth_wallet.shutdown_task_manager()
-        self.nodes[0].overlay.bandwidth_wallet = None
         self.nodes[1].overlay.settings.peer_flags.add(PEER_FLAG_EXIT_HTTP)
         await self.introduce_nodes()
 
-        self.nodes[0].overlay.build_tunnels(1)
-        await self.deliver_messages()
-
-        http_port = 1234
+        http_port = self.get_port()
         http_tracker = HTTPTracker(http_port)
         http_tracker.tracker_info.add_info_about_infohash('0', 0, 0)
         http_tracker.tracker_info.infohashes['0']['downloaded'] = os.urandom(10000)
@@ -629,15 +619,10 @@ class TestTriblerTunnelCommunity(TestBase):
         Test whether we can make HTTP requests that don't have a bencoded response
         """
         self.add_node_to_experiment(self.create_node())
-        await self.nodes[0].overlay.bandwidth_wallet.shutdown_task_manager()
-        self.nodes[0].overlay.bandwidth_wallet = None
         self.nodes[1].overlay.settings.peer_flags.add(PEER_FLAG_EXIT_HTTP)
         await self.introduce_nodes()
 
-        self.nodes[0].overlay.build_tunnels(1)
-        await self.deliver_messages()
-
-        http_port = 1234
+        http_port = self.get_port()
         http_tracker = HTTPTracker(http_port)
         await http_tracker.start()
         with self.assertRaises(AsyncTimeoutError):
@@ -649,30 +634,10 @@ class TestTriblerTunnelCommunity(TestBase):
     @timeout(timeout=5)
     async def test_perform_http_request_no_http_exits(self):
         """
-        Test whether we can make HTTP requests when we have no HTTP exits
+        Test whether we can make HTTP requests when we have no exits
         """
         self.add_node_to_experiment(self.create_node())
-        await self.nodes[0].overlay.bandwidth_wallet.shutdown_task_manager()
-        self.nodes[0].overlay.bandwidth_wallet = None
         await self.introduce_nodes()
-        await self.deliver_messages()
-
-        with self.assertRaises(RuntimeError):
-            await self.nodes[0].overlay.perform_http_request(('127.0.0.1', 0),
-                                                             b'GET /scrape?info_hash=0 HTTP/1.1\r\n\r\n')
-
-    @timeout(timeout=5)
-    async def test_perform_http_request_circuit_failed(self):
-        """
-        Test whether we can make HTTP requests when circuit creation fails
-        """
-        self.add_node_to_experiment(self.create_node())
-        await self.nodes[0].overlay.bandwidth_wallet.shutdown_task_manager()
-        self.nodes[0].overlay.bandwidth_wallet = None
-        self.nodes[1].overlay.settings.peer_flags.add(PEER_FLAG_EXIT_HTTP)
-        await self.introduce_nodes()
-        await self.deliver_messages()
-        self.nodes[0].overlay.create_circuit = lambda *_, **__: None
 
         with self.assertRaises(RuntimeError):
             await self.nodes[0].overlay.perform_http_request(('127.0.0.1', 0),
@@ -684,13 +649,8 @@ class TestTriblerTunnelCommunity(TestBase):
         Test whether if a failed HTTP request is handled correctly
         """
         self.add_node_to_experiment(self.create_node())
-        await self.nodes[0].overlay.bandwidth_wallet.shutdown_task_manager()
-        self.nodes[0].overlay.bandwidth_wallet = None
         self.nodes[1].overlay.settings.peer_flags.add(PEER_FLAG_EXIT_HTTP)
         await self.introduce_nodes()
-
-        self.nodes[0].overlay.build_tunnels(1)
-        await self.deliver_messages()
 
         with self.assertRaises(AsyncTimeoutError):
             await wait_for(self.nodes[0].overlay.perform_http_request(('127.0.0.1', 1234),

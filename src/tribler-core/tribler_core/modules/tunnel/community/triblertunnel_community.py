@@ -546,7 +546,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         super(TriblerTunnelCommunity, self).on_rendezvous_established(source_address, data, circuit_id)
 
         circuit = self.circuits.get(circuit_id)
-        if circuit:
+        if circuit and self.tribler_session:
             self.update_ip_filter(circuit.info_hash)
 
     def update_ip_filter(self, info_hash):

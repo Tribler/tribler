@@ -38,3 +38,4 @@ class TestHiddenServices(TestTunnelBase):
         download = self.start_anon_download(hops=1)
         download.set_state_callback(download_state_callback)
         await progress
+        await self.session.dlmgr.remove_download(download, remove_content=True)
