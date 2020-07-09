@@ -424,6 +424,7 @@ class Session(TaskManager):
             ipv8_config['address'] = self.config.get_ipv8_address()
             ipv8_config['overlays'] = []
             ipv8_config['keys'] = []  # We load the keys ourselves
+            ipv8_config['working_directory'] = str(self.config.get_state_dir())
 
             if self.config.get_ipv8_bootstrap_override():
                 import ipv8.community as community_file
