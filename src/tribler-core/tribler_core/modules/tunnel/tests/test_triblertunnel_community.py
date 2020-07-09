@@ -125,10 +125,6 @@ class TestTriblerTunnelCommunity(TestBase):
         """
         Test whether we stop building IPs when a download doesn't exist anymore
         """
-        def mocked_remove_circuit(circuit_id, *_, **__):
-            mocked_remove_circuit.circuit_id = circuit_id
-        mocked_remove_circuit.circuit_id = -1
-
         mock_circuit = MockObject()
         mock_circuit.circuit_id = 0
         mock_circuit.ctype = 'IP_SEEDER'
@@ -136,12 +132,12 @@ class TestTriblerTunnelCommunity(TestBase):
         mock_circuit.info_hash = b'a'
         mock_circuit.goal_hops = 1
 
-        self.nodes[0].overlay.remove_circuit = mocked_remove_circuit
+        self.nodes[0].overlay.remove_circuit = Mock()
         self.nodes[0].overlay.circuits[0] = mock_circuit
         self.nodes[0].overlay.join_swarm(b'a', 1)
         self.nodes[0].overlay.download_states[b'a'] = 3
         self.nodes[0].overlay.monitor_downloads([])
-        self.assertEqual(mocked_remove_circuit.circuit_id, 0)
+        self.nodes[0].overlay.remove_circuit.assert_called_with(0, 'leaving hidden swarm', destroy=5)
 
     def test_monitor_downloads_recreate_ip(self):
         """

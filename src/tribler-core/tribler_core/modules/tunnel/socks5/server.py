@@ -4,7 +4,7 @@ from asyncio import get_event_loop
 from tribler_core.modules.tunnel.socks5.connection import Socks5Connection
 
 
-class Socks5Server(object):
+class Socks5Server:
     """
     This object represents a Socks5 server.
     """

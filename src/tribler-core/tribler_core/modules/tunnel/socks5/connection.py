@@ -1,8 +1,6 @@
 import logging
 from asyncio import Protocol, ensure_future
 
-from ipv8.taskmanager import TaskManager
-
 from tribler_core.modules.tunnel.socks5 import conversion
 from tribler_core.modules.tunnel.socks5.conversion import SOCKS_VERSION
 from tribler_core.modules.tunnel.socks5.udp_connection import SocksUDPConnection
@@ -20,7 +18,7 @@ class ConnectionState(object):
     PROXY_REQUEST_ACCEPTED = 'PROXY_REQUEST_ACCEPTED'
 
 
-class Socks5Connection(Protocol, TaskManager):
+class Socks5Connection(Protocol):
     """
     SOCKS5 TCP Connection handler
 
@@ -62,8 +60,7 @@ class Socks5Connection(Protocol, TaskManager):
                 if not self._try_request():
                     break  # Not enough bytes so wait till we got more
             elif self.connect_to:
-                self.register_anonymous_task('on_socks5_tcp_data', self.socksserver.output_stream.on_socks5_tcp_data,
-                                             self, self.connect_to, self.buffer)
+                self.socksserver.output_stream.on_socks5_tcp_data(self, self.connect_to, self.buffer)
                 self.buffer = b''
             else:
                 self._logger.error("Throwing away buffer, not in CONNECTED or BEFORE_METHOD_REQUEST state")

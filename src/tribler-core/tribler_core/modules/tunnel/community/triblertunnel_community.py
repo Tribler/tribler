@@ -590,6 +590,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
     async def unload(self):
         if self.bandwidth_wallet:
             await self.bandwidth_wallet.shutdown_task_manager()
+        await self.dispatcher.shutdown_task_manager()
         for socks_server in self.socks_servers:
             await socks_server.stop()
 
