@@ -1,4 +1,7 @@
+from unittest.mock import Mock
+
 from ipv8.messaging.anonymization.tunnel import CIRCUIT_STATE_EXTENDING, CIRCUIT_STATE_READY, CIRCUIT_TYPE_DATA
+from ipv8.util import succeed
 
 from tribler_core.modules.tunnel.community.dispatcher import TunnelDispatcher
 from tribler_core.tests.tools.base_test import MockObject
@@ -52,7 +55,7 @@ class TestTunnelDispatcher(AbstractServer):
         self.assertTrue(self.dispatcher.on_incoming_from_tunnel(self.mock_tunnel_community,
                                                                 mock_circuit, origin, b'a'))
 
-    def test_on_socks_in(self):
+    def test_on_socks_in_udp(self):
         """
         Test whether data is correctly dispatched to a circuit
         """
@@ -79,6 +82,21 @@ class TestTunnelDispatcher(AbstractServer):
 
         # Circuit ready, should be able to tunnel data
         self.assertTrue(self.dispatcher.on_socks5_udp_data(mock_udp_connection, mock_request))
+
+    async def test_on_socks_in_tcp(self):
+        """
+        Test whether TCP connect request are correctly dispatched to the TunnelCommunity
+        """
+        tcp_connection = Mock()
+        self.dispatcher.set_socks_servers([tcp_connection.socksserver])
+
+        self.dispatcher.tunnel_community.perform_http_request = Mock(return_value=succeed(None))
+        await self.dispatcher.on_socks5_tcp_data(tcp_connection, ("0.0.0.0", 1024), b'')
+        tcp_connection.transport.write.assert_not_called()
+
+        self.dispatcher.tunnel_community.perform_http_request = Mock(return_value=succeed(b'test'))
+        await self.dispatcher.on_socks5_tcp_data(tcp_connection, ("0.0.0.0", 1024), b'')
+        tcp_connection.transport.write.assert_called_once_with(b'test')
 
     def test_circuit_dead(self):
         """
