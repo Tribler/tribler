@@ -574,10 +574,13 @@ class DownloadManager(TaskManager):
             self.ltsettings[lt_session] = lt_session.get_settings()
         self.ltsettings[lt_session].update(new_settings)
 
-        if hasattr(lt_session, "apply_settings"):
-            lt_session.apply_settings(new_settings)
-        else:
-            lt_session.set_settings(new_settings)
+        try:
+            if hasattr(lt_session, "apply_settings"):
+                lt_session.apply_settings(new_settings)
+            else:
+                lt_session.set_settings(new_settings)
+        except OverflowError:
+            raise OverflowError("Overflow error when setting libtorrent sessions with settings: %s" % new_settings)
 
     def get_session_settings(self, lt_session):
         return deepcopy(self.ltsettings.get(lt_session, {}))
