@@ -6,7 +6,8 @@ fi
 # Make sure we have the latest packages
 apt-get update
 
-snapcraft
+BUILD_ARGS=${SNAP_BUILD_ARGS:-''}
+snapcraft $BUILD_ARGS
 
 # Remove intermediate files
 rm -rf parts stage prime
