@@ -7,7 +7,7 @@ First, install the required dependencies by executing the following command in y
 
 .. code-block:: bash
 
-    sudo apt install git ffmpeg libssl-dev libx11-6 vlc libgmp-dev python3 python3-minimal python3-pip python3-libtorrent python3-pyqt5 python3-pyqt5.qtsvg python3-scipy
+    sudo apt install git libssl-dev libx11-6 vlc libgmp-dev python3 python3-minimal python3-pip python3-libtorrent python3-pyqt5 python3-pyqt5.qtsvg python3-scipy
 
 Secondly, install python packages
 

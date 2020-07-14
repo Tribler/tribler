@@ -3,8 +3,7 @@ Version: __VERSION__
 Architecture: all
 Maintainer: Tribler Team <info@tribler.org>
 Homepage: https://www.tribler.org/
-Depends: ffmpeg | libav-tools,
-         libsodium23 | libsodium18 | libsodium13,
+Depends: libsodium23 | libsodium18 | libsodium13,
          libx11-6,
          vlc (>= 1.1.0)
 Description: Python based Bittorrent/Internet TV application
