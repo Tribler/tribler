@@ -71,7 +71,6 @@ The best solution to this problem is to link or copy ``libsodium.dylib`` into th
     cd tribler
     cp /usr/local/lib/libsodium.dylib ./ || cp /opt/local/lib/libsodium.dylib ./
     mkdir vlc
-    which ffmpeg | xargs -I {} cp "{}" vlc/
 
 You can now run Tribler by executing the following bash script in the ``src`` directory:
 
