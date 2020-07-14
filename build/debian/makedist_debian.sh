@@ -24,7 +24,7 @@ sed -i "s/__VERSION__/$(cat .TriblerVersion)/g" build/debian/snap/snapcraft.yaml
 dpkg-deb -b build/debian/tribler tribler_$(cat .TriblerVersion)_all.deb
 
 # Build Tribler snap if $BUILD_TRIBLER_SNAP
-if [[ -z "$BUILD_TRIBLER_SNAP" ]]; then
+if [ "$BUILD_TRIBLER_SNAP" == "false" ]; then
   exit 0
 fi
 
