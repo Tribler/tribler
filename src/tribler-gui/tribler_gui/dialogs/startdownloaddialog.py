@@ -239,7 +239,7 @@ class StartDownloadDialog(DialogContainer):
 
     def on_browse_dir_clicked(self):
         chosen_dir = QFileDialog.getExistingDirectory(
-            self.window(), "Please select the destination directory of your " "download", "", QFileDialog.ShowDirsOnly
+            self.window(), "Please select the destination directory of your download", "", QFileDialog.ShowDirsOnly
         )
 
         if len(chosen_dir) != 0:
