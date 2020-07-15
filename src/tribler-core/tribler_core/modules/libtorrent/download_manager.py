@@ -63,6 +63,7 @@ class DownloadManager(TaskManager):
         self.ltsettings = {}  # Stores a copy of the settings dict for each libtorrent session
         self.ltsessions = {}
         self.dht_health_manager = None
+        self.listen_ports = {}
 
         self.notifier = tribler_session.notifier
 
@@ -345,7 +346,10 @@ class DownloadManager(TaskManager):
         elif infohash:
             self._logger.debug("Got alert for unknown download %s: %s", hexlify(infohash), alert)
 
-        if alert_type == 'peer_disconnected_alert' and \
+        if alert_type == 'listen_succeeded_alert':
+            self.listen_ports[hops] = alert.port
+
+        elif alert_type == 'peer_disconnected_alert' and \
                 self.tribler_session and self.tribler_session.payout_manager:
             self.tribler_session.payout_manager.do_payout(alert.pid.to_bytes())
 
