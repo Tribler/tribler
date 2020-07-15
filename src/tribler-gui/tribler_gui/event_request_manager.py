@@ -11,6 +11,10 @@ import tribler_core.utilities.json_util as json
 received_events = []
 
 
+class CoreConnectTimeoutError(RuntimeError):
+    pass
+
+
 class EventRequestManager(QNetworkAccessManager):
     """
     The EventRequestManager class handles the events connection over which important events in Tribler are pushed.
@@ -73,7 +77,7 @@ class EventRequestManager(QNetworkAccessManager):
     def on_error(self, error, reschedule_on_err):
         self._logger.info("Got Tribler core error: %s" % error)
         if self.failed_attempts == 120:
-            raise RuntimeError("Could not connect with the Tribler Core within 60 seconds")
+            raise CoreConnectTimeoutError("Could not connect with the Tribler Core within 60 seconds")
 
         self.failed_attempts += 1
 

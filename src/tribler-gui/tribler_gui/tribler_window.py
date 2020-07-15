@@ -66,6 +66,7 @@ from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler_gui.dialogs.createtorrentdialog import CreateTorrentDialog
 from tribler_gui.dialogs.feedbackdialog import FeedbackDialog
 from tribler_gui.dialogs.startdownloaddialog import StartDownloadDialog
+from tribler_gui.event_request_manager import CoreConnectTimeoutError
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest, TriblerRequestManager, request_manager
 from tribler_gui.utilities import get_gui_setting, get_image_path, get_ui_file_path, is_dir_writable
@@ -122,6 +123,9 @@ class TriblerWindow(QMainWindow):
 
         if self.debug_window:
             self.debug_window.setHidden(True)
+
+        if exc_info[0] is CoreConnectTimeoutError:
+            exception_text = exception_text + self.core_manager.core_traceback
 
         dialog = FeedbackDialog(self, exception_text, self.tribler_version, self.start_time)
         dialog.show()
