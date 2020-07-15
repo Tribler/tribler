@@ -145,7 +145,11 @@ class AbstractServer(BaseTestCase):
 
         self.annotate(self._testMethodName, start=True)
         self.watchdog.start()
-        random.seed(123)
+
+        test_bucket = os.environ.get("TEST_BUCKET", None)
+        if test_bucket is not None:
+            test_bucket = int(test_bucket) + int(os.environ.get('TEST_BUCKET_OFFSET', 0))
+        random.seed(test_bucket)
 
     async def setUpFileServer(self, port, path):
         # Create a local file server, can be used to serve local files. This is preferred over an external network
