@@ -25,12 +25,14 @@ def get_random_port(socket_type="all", min_port=5000, max_port=60000):
     assert 0 < min_port <= max_port <= 65535, "Invalid min_port and mac_port values %s, %s" % (min_port, max_port)
 
     working_port = None
-    try_port = random.randint(min_port, max_port)
-    while try_port <= 65535:
-        if check_random_port(try_port, socket_type):
-            working_port = try_port
+    potential_ports = [p for p in range(min_port, max_port)]
+    random.shuffle(potential_ports)
+    for candidate_port in potential_ports:
+        if check_port_available(candidate_port, socket_type):
+            working_port = candidate_port
             break
-        try_port += 1
+    if working_port is None:
+        raise RuntimeError("Could not get a free network port!")
 
     if working_port:
         CLAIMED_PORTS.append(working_port)
@@ -39,7 +41,7 @@ def get_random_port(socket_type="all", min_port=5000, max_port=60000):
     return working_port
 
 
-def check_random_port(port, socket_type="all"):
+def check_port_available(port, socket_type="all"):
     """Returns an usable port number that can be bound with by the specific type of socket.
     @param socket_type: Type of the socket, can be "all", "tcp", or "udp".
     @param port: The port to try with.

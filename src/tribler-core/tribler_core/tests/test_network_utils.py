@@ -20,8 +20,8 @@ class TriblerCoreTestNetworkUtils(TriblerCoreTest):
         rand_port_num = random.randint(*self.get_bucket_range_port())
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
             sock.bind(('', rand_port_num))
-            random_port = get_random_port(socket_type='tcp', min_port=rand_port_num, max_port=rand_port_num)
-            self.assertGreaterEqual(random_port, rand_port_num+1)
+            random_port = get_random_port(socket_type='tcp', min_port=rand_port_num-1, max_port=rand_port_num+1)
+            self.assertNotEqual(random_port, rand_port_num)
 
     def test_get_random_port_udp(self):
         random_port = get_random_port(socket_type='udp')
