@@ -1,4 +1,3 @@
-import json
 import os
 
 from tribler_core.exceptions import TriblerException
@@ -13,22 +12,26 @@ def RaiseException(*args, **kwargs):
 
 
 class RestRequestTest(AbstractApiTest):
+    enable_https = True
+
+    async def test_https(self):
+        await self.do_request(f'https://localhost:{self.config.get_api_https_port()}/state')
 
     async def test_api_key_disabled(self):
-        self.session.config.set_http_api_key('')
+        self.session.config.set_api_key('')
         await self.do_request('state')
         await self.do_request('state?apikey=111')
         await self.do_request('state', headers={'X-Api-Key': '111'})
 
     async def test_api_key_success(self):
         api_key = '0' * 32
-        self.session.config.set_http_api_key(api_key)
+        self.session.config.set_api_key(api_key)
         await self.do_request('state?apikey=' + api_key)
         await self.do_request('state', headers={'X-Api-Key': api_key})
 
     async def test_api_key_fail(self):
         api_key = '0' * 32
-        self.session.config.set_http_api_key(api_key)
+        self.session.config.set_api_key(api_key)
         await self.do_request('state', expected_code=HTTP_UNAUTHORIZED, expected_json={'error': 'Unauthorized access'})
         await self.do_request('state?apikey=111',
                               expected_code=HTTP_UNAUTHORIZED, expected_json={'error': 'Unauthorized access'})

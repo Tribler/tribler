@@ -3,6 +3,7 @@ import json
 from aiohttp import ClientSession
 
 from tribler_core.restapi import get_param
+from tribler_core.tests.tools.common import TESTS_DIR
 from tribler_core.tests.tools.test_as_server import TestAsServer
 from tribler_core.utilities.path_util import Path
 from tribler_core.version import version_id
@@ -22,22 +23,27 @@ class AbstractBaseApiTest(TestAsServer):
     """
     Tests for the Tribler HTTP API should create a subclass of this class.
     """
+    enable_https = False
+
     def setUpPreSession(self):
         super(AbstractBaseApiTest, self).setUpPreSession()
-        self.config.set_http_api_enabled(True)
-        self.config.set_http_api_retry_port(True)
+        self.config.set_api_http_enabled(True)
+        # Make sure we select a random port for the HTTP API
+        self.config.set_api_http_port(self.get_port())
+        if self.enable_https:
+            self.config.set_api_https_enabled(True)
+            self.config.set_api_https_port(self.get_port())
+            self.config.set_api_https_certfile(TESTS_DIR / 'data/certfile.pem')
         self.config.set_tunnel_community_enabled(False)
         self.config.set_trustchain_enabled(False)
 
-        # Make sure we select a random port for the HTTP API
-        self.config.set_http_api_port(self.get_port())
-
-    async def do_request(self, endpoint, req_type, data, headers, json_response):
-        url = 'http://localhost:%d/%s' % (self.session.config.get_http_api_port(), endpoint)
+    async def do_request(self, path, req_type, data, headers, json_response):
+        is_url = path.startswith('http://') or path.startswith('https://')
+        url = path if is_url else f'http://localhost:{self.session.config.get_api_http_port()}/{path}'
         headers = headers or {'User-Agent': 'Tribler ' + version_id}
 
         async with ClientSession() as session:
-            async with session.request(req_type, url, data=data, headers=headers) as response:
+            async with session.request(req_type, url, data=data, headers=headers, ssl=False) as response:
                 return response.status, (await response.json(content_type=None)
                                          if json_response else await response.read())
 

@@ -391,7 +391,7 @@ class Session(TaskManager):
         self.init_keypair()
 
         # Start the REST API before the upgrader since we want to send interesting upgrader events over the socket
-        if self.config.get_http_api_enabled():
+        if self.config.get_api_http_enabled() or self.config.get_api_https_enabled():
             self.api_manager = RESTManager(self)
             self.readable_status = STATE_START_API
             await self.api_manager.start()

@@ -134,11 +134,19 @@ class TunnelHelperService(TaskManager):
         config.set_bootstrap_enabled(False)
 
         if not options.no_rest_api:
-            config.set_http_api_enabled(True)
+            https = bool(options.cert_file)
+            config.set_api_https_enabled(https)
+            config.set_api_http_enabled(not https)
+            config.set_api_key(options.api_key)
+
             api_port = options.restapi
             if "HELPER_INDEX" in os.environ and "HELPER_BASE" in os.environ:
                 api_port = int(os.environ["HELPER_BASE"]) + 10000 + int(os.environ["HELPER_INDEX"])
-            config.set_http_api_port(api_port)
+            if https:
+                config.set_api_https_port(api_port)
+                config.set_api_https_certfile(options.cert_file)
+            else:
+                config.set_api_http_port(api_port)
 
         if options.ipv8_bootstrap_override is not None:
             config.set_ipv8_bootstrap_override(options.ipv8_bootstrap_override)
@@ -172,6 +180,8 @@ def main(argv):
     parser.add_argument('--ipv8_address', '-i', default='0.0.0.0', type=str, help='IPv8 listening address', action=IPAction)
     parser.add_argument('--ipv8_bootstrap_override', '-b', default=None, type=str, help='Force the usage of specific IPv8 bootstrap server (ip:port)', action=IPPortAction)
     parser.add_argument('--restapi', '-p', default=8085, type=str, help='Use an alternate port for the REST API', action=PortAction, metavar='{0..65535}')
+    parser.add_argument('--cert-file', '-e', help='Path to combined certificate/key file. If not given HTTP is used.')
+    parser.add_argument('--api-key', '-k', help='API key to use. If not given API key protection is disabled.')
     parser.add_argument('--random_slots', '-r', default=10, type=int, help='Specifies the number of random slots')
     parser.add_argument('--competing_slots', '-c', default=20, type=int, help='Specifies the number of competing slots')
     

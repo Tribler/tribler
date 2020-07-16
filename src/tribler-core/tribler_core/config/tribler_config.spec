@@ -90,10 +90,12 @@ port = integer(min=-1, max=65536, default=-1)
 enabled = boolean(default=False)
 directory = string(default='')
 
-[http_api]
-enabled = boolean(default=False)
-port = integer(min=-1, max=65536, default=-1)
-retry_port = boolean(default=False)
+[api]
+http_enabled = boolean(default=False)
+http_port = integer(min=-1, max=65536, default=-1)
+https_enabled = boolean(default=False)
+https_port = integer(min=-1, max=65536, default=-1)
+https_certfile = string(default='')
 key = string(default=None)
 
 [resource_monitor]

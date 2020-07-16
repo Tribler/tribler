@@ -10,7 +10,8 @@ from tribler_common.simpledefs import NTFY
 from tribler_core.modules.category_filter.l2_filter import is_forbidden
 from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH
 from tribler_core.modules.metadata_store.store import MetadataStore
-from tribler_core.upgrade.config_converter import convert_config_to_tribler74, convert_config_to_tribler75
+from tribler_core.upgrade.config_converter import convert_config_to_tribler74, convert_config_to_tribler75, \
+                                                  convert_config_to_tribler76
 from tribler_core.upgrade.db72_to_pony import DispersyToPonyMigration, cleanup_pony_experimental_db, should_upgrade
 from tribler_core.utilities.configparser import CallbackConfigParser
 
@@ -85,6 +86,7 @@ class TriblerUpgrader(object):
         self.upgrade_pony_db_7to8()
         convert_config_to_tribler74(self.session.config.get_state_dir())
         convert_config_to_tribler75(self.session.config.get_state_dir())
+        convert_config_to_tribler76(self.session.config.get_state_dir())
 
     def upgrade_pony_db_7to8(self):
         """

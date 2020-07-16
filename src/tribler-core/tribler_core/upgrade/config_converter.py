@@ -102,3 +102,17 @@ def convert_config_to_tribler75(state_dir):
         config.set_selected_files([tdef.get_index_of_file_in_files(fn)
                                    for fn in config.config['download_defaults'].pop('selected_files')])
         config.write(str(filename))
+
+
+def convert_config_to_tribler76(state_dir):
+    """
+    Convert the download config files from Tribler 7.5 to 7.6 format.
+    """
+    config = ConfigObj(infile=(str(state_dir / 'triblerd.conf')), default_encoding='utf-8')
+    if 'http_api' in config:
+        config['api'] = {}
+        config['api']['http_enabled'] = config['http_api'].get('enabled', False)
+        config['api']['http_port'] = config['http_api'].get('port', -1)
+        config['api']['key'] = config['http_api'].get('key', None)
+        del config['http_api']
+        config.write()
