@@ -27,6 +27,10 @@ class TestResourceMonitor(TriblerCoreTest):
         self.resource_monitor.session.notifier = MockObject()
         self.resource_monitor.session.notifier.notify = lambda subject, changeType, obj_id, *args: None
 
+    async def tearDown(self):
+        await self.resource_monitor.stop()
+        await super(TestResourceMonitor, self).tearDown()
+
     def test_check_resources(self):
         """
         Test the resource monitor check
