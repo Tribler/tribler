@@ -129,6 +129,8 @@ if __name__ == "__main__":
 
             app_name = os.environ.get('TRIBLER_APP_NAME', 'triblerapp')
             app = TriblerApplication(app_name, sys.argv)
+            app.installTranslator(app.translator)
+
             if app.is_running():
                 for arg in sys.argv[1:]:
                     if os.path.exists(arg) and arg.endswith(".torrent"):

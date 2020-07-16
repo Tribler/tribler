@@ -6,6 +6,7 @@ from PyQt5.QtCore import QCoreApplication, QEvent, Qt
 from tribler_core.utilities.unicode import ensure_unicode
 
 from tribler_gui.code_executor import CodeExecutor
+from tribler_gui.i18n import get_default_system_translator
 from tribler_gui.single_application import QtSingleApplication
 
 # Set the QT application parameters before creating any instances of the application.
@@ -23,6 +24,7 @@ class TriblerApplication(QtSingleApplication):
         QtSingleApplication.__init__(self, app_name, args)
         self.code_executor = None
         self.messageReceived.connect(self.on_app_message)
+        self.translator = get_default_system_translator()
 
     def on_app_message(self, msg):
         if msg.startswith('file') or msg.startswith('magnet'):

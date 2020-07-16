@@ -11,6 +11,7 @@ from PyQt5.QtWidgets import QApplication
 
 import tribler_gui
 from tribler_gui.defs import HEALTH_DEAD, HEALTH_GOOD, HEALTH_MOOT, HEALTH_UNCHECKED, VIDEO_EXTS
+from tribler_gui.i18n import tr
 
 
 def index2uri(index):
@@ -109,33 +110,33 @@ def pretty_date(time=False):
 
     if day_diff == 0:
         if second_diff < 10:
-            return "just now"
+            return tr("just now")
         if second_diff < 60:
-            return str(second_diff) + " seconds ago"
+            return str(second_diff) + tr(" seconds ago")
         if second_diff < 120:
-            return "a minute ago"
+            return tr("a minute ago")
         if second_diff < 3600:
-            return str(second_diff // 60) + " minutes ago"
+            return str(second_diff // 60) + tr(" minutes ago")
         if second_diff < 7200:
-            return "an hour ago"
+            return tr("an hour ago")
         if second_diff < 86400:
-            return str(second_diff // 3600) + " hours ago"
+            return str(second_diff // 3600) + tr(" hours ago")
     if day_diff == 1:
-        return "yesterday"
+        return tr("yesterday")
     if day_diff < 7:
-        return str(day_diff) + " days ago"
+        return str(day_diff) + tr(" days ago")
     if day_diff < 31:
         weeks = day_diff // 7
-        word = "week" if weeks == 1 else "weeks"
-        return str(weeks) + " " + word + " ago"
+        word = tr("week") if weeks == 1 else tr("weeks")
+        return str(weeks) + " " + word + tr(" ago")
     if day_diff < 365:
         months = day_diff // 30
-        word = "month" if months == 1 else "months"
-        return str(months) + " " + word + " ago"
+        word = tr("month") if months == 1 else tr("months")
+        return str(months) + " " + word + tr(" ago")
 
     years = day_diff // 365
-    word = "year" if years == 1 else "years"
-    return str(years) + " " + word + " ago"
+    word = tr("year") if years == 1 else tr("years")
+    return str(years) + " " + word + tr(" ago")
 
 
 def duration_to_string(seconds):

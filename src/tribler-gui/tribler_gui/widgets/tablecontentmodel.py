@@ -9,6 +9,7 @@ from tribler_core.modules.metadata_store.orm_bindings.channel_node import NEW
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE
 
 from tribler_gui.defs import ACTION_BUTTONS, BITTORRENT_BIRTHDAY, COMMIT_STATUS_TODELETE
+from tribler_gui.i18n import tr
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import format_size, format_votes, pretty_date
 
@@ -210,7 +211,7 @@ class RemoteTableModel(QAbstractTableModel):
 class ChannelContentModel(RemoteTableModel):
 
     columns = [u'category', u'name', u'size', u'health', u'updated', ACTION_BUTTONS]
-    column_headers = [u'Category', u'Name', u'Size', u'Health', u'Updated', u'']
+    column_headers = [tr('Category'), tr('Name'), tr('Size'), tr('Health'), tr('Updated'), u'']
     unsortable_columns = [u'status', u'state', ACTION_BUTTONS]
     column_flags = {
         u'subscribed': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
@@ -428,7 +429,7 @@ class SearchResultsModel(ChannelContentModel):
 
 class DiscoveredChannelsModel(ChannelContentModel):
     columns = [u'state', u'votes', u'name', u'torrents', u'updated']
-    column_headers = [u'', u'Popularity', u'Name', u'Torrents', u'Updated']
+    column_headers = [u'', tr('Popularity'), tr('Name'), tr('Torrents'), tr('Updated')]
 
     column_width = {u'state': lambda _: 20, u'name': lambda table_width: table_width - 350}
 
@@ -442,7 +443,7 @@ class DiscoveredChannelsModel(ChannelContentModel):
 
 class PersonalChannelsModel(ChannelContentModel):
     columns = [u'category', u'name', u'size', u'status', ACTION_BUTTONS]
-    column_headers = [u'Category', u'Name', u'Size', u'', u'']
+    column_headers = [tr('Category'), tr('Name'), tr('Size'), u'', u'']
 
     column_flags = dict(ChannelContentModel.column_flags)
     column_flags.update(
@@ -507,7 +508,7 @@ class PersonalChannelsModel(ChannelContentModel):
 
 class SimplifiedPersonalChannelsModel(PersonalChannelsModel):
     columns = [u'category', u'name', u'size', ACTION_BUTTONS]
-    column_headers = [u'Category', u'Name', u'Size', u'']
+    column_headers = [tr('Category'), tr('Name'), tr('Size'), u'']
 
     column_width = {u'state': lambda _: 20, u'name': lambda table_width: table_width - 330}
 

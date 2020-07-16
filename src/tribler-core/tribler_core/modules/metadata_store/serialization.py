@@ -353,6 +353,8 @@ class TorrentMetadataPayload(ChannelNodePayload):
         )
         return dct
 
+
+
     # TODO:  DRY!(copypasted from TorrentMetadata)
     def get_magnet(self):
         return ("magnet:?xt=urn:btih:%s&dn=%s" % (hexlify(self.infohash), self.title.encode('utf8'))) + (
