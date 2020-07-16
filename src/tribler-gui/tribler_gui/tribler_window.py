@@ -494,6 +494,22 @@ class TriblerWindow(QMainWindow):
         if uri.startswith('file') or uri.startswith('magnet'):
             self.start_download_from_uri(uri)
 
+    def update_recent_download_locations(self, destination):
+        # Save the download location to the GUI settings
+        current_settings = get_gui_setting(self.gui_settings, "recent_download_locations", "")
+        recent_locations = current_settings.split(",") if len(current_settings) > 0 else []
+        if isinstance(destination, str):
+            destination = destination.encode('utf-8')
+        encoded_destination = hexlify(destination)
+        if encoded_destination in recent_locations:
+            recent_locations.remove(encoded_destination)
+        recent_locations.insert(0, encoded_destination)
+
+        if len(recent_locations) > 5:
+            recent_locations = recent_locations[:5]
+
+        self.gui_settings.setValue("recent_download_locations", ','.join(recent_locations))
+
     def perform_start_download_request(
         self,
         uri,
@@ -532,20 +548,7 @@ class TriblerWindow(QMainWindow):
             "downloads", callback if callback else self.on_download_added, method='PUT', data=post_data
         )
 
-        # Save the download location to the GUI settings
-        current_settings = get_gui_setting(self.gui_settings, "recent_download_locations", "")
-        recent_locations = current_settings.split(",") if len(current_settings) > 0 else []
-        if isinstance(destination, str):
-            destination = destination.encode('utf-8')
-        encoded_destination = hexlify(destination)
-        if encoded_destination in recent_locations:
-            recent_locations.remove(encoded_destination)
-        recent_locations.insert(0, encoded_destination)
-
-        if len(recent_locations) > 5:
-            recent_locations = recent_locations[:5]
-
-        self.gui_settings.setValue("recent_download_locations", ','.join(recent_locations))
+        self.update_recent_download_locations(destination)
 
         if add_to_channel:
 

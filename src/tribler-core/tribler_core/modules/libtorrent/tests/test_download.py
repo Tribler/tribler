@@ -210,6 +210,13 @@ class TestDownload(TestAsServer):
         self.assertTrue(filename.is_file())
         await dl.shutdown()
 
+    @timeout(10)
+    async def test_libtorrent_settings_overflow(self):
+        """
+        Test whether we are catching libtorrent overflow errors.
+        """
+        self.assertRaises(OverflowError, self.session.dlmgr.set_upload_rate_limit, 2 ** 70)
+
 
 class TestDownloadNoSession(TriblerCoreTest):
 

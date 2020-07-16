@@ -7,13 +7,13 @@ First, install the required dependencies by executing the following command in y
 
 .. code-block:: bash
 
-    sudo apt install git ffmpeg libssl-dev libx11-6 vlc libgmp-dev python3 python3-minimal python3-pip python3-libtorrent python3-pyqt5 python3-pyqt5.qtsvg python3-scipy
+    sudo apt install git libssl-dev libx11-6 vlc libgmp-dev python3 python3-minimal python3-pip python3-libtorrent python3-pyqt5 python3-pyqt5.qtsvg python3-scipy
 
 Secondly, install python packages
 
 .. code-block:: bash
 
-    pip3 install bitcoinlib chardet configobj decorator dnspython ecdsa feedparser jsonrpclib matplotlib netifaces networkx pbkdf2 pony protobuf psutil pyaes pyasn1 pysocks requests lz4 pyqtgraph
+    pip3 install aiohttp aiohttp_apispec chardet configobj decorator libnacl matplotlib netifaces networkx pony psutil pyasn1 requests lz4 pyqtgraph
 
 Then, install py-ipv8 python dependencies
 

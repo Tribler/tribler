@@ -108,16 +108,16 @@ class DownloadsEndpoint(RESTEndpoint):
         if safe_seeding:
             download_config.set_safe_seeding(True)
 
-        if parameters.get('destination'):
-            dest_dir = parameters['destination']
-            download_config.set_dest_dir(dest_dir)
+        if 'destination' in parameters:
+            download_config.set_dest_dir(parameters['destination'])
 
         if 'selected_files' in parameters:
             download_config.set_selected_files(parameters['selected_files'])
 
         return download_config, None
 
-    def get_files_info_json(self, download):
+    @staticmethod
+    def get_files_info_json(download):
         """
         Return file information as JSON from a specified download.
         """

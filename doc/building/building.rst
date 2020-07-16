@@ -24,9 +24,11 @@ Run the following commands in your terminal:
     sudo apt-get install devscripts python-setuptools
     cd tribler
     build/update_version_from_git.py
-    debuild -i -us -uc -b
+    python3 -m PyInstaller tribler.spec
+    cp -r dist/tribler build/debian/tribler/usr/share/tribler
+    dpkg-deb -b build/debian/tribler tribler.deb
 
-This will build the ``.deb`` file that can be used to install Tribler on other systems.
+This will build a ``tribler.deb`` file, including all dependencies and required libraries.
 
 Other Unixes
 ============

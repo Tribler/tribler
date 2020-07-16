@@ -574,13 +574,16 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             # an outgoing message through the SOCKS5 port.
             # This does not seem to work anymore in libtorrent 1.2.0 (and probably higher) so we manually associate
             # the connection and the libtorrent listen port.
+            # Starting from libtorrent 1.2.4 on Windows, listen_port() returns 0 if used in combination with a
+            # SOCKS5 proxy. Therefore on Windows, we resort to using ports received through listen_succeeded_alert.
             if LooseVersion(self.tribler_session.dlmgr.get_libtorrent_version()) < LooseVersion("1.2.0"):
                 download.add_peer(('1.1.1.1', 1024))
             else:
                 hops = download.config.get_hops()
-                lt_listen_port = self.tribler_session.dlmgr.get_session(hops).listen_port()
+                lt_listen_port = self.tribler_session.dlmgr.listen_ports.get(hops)
+                lt_listen_port = lt_listen_port or self.tribler_session.dlmgr.get_session(hops).listen_port()
                 for session in self.socks_servers[hops - 1].sessions:
-                    if session.get_udp_socket():
+                    if session.get_udp_socket() and lt_listen_port:
                         session.get_udp_socket().remote_udp_address = ("127.0.0.1", lt_listen_port)
         await super(TriblerTunnelCommunity, self).create_introduction_point(info_hash, required_ip=required_ip)
 

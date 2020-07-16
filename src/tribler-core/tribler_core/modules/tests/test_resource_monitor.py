@@ -1,11 +1,12 @@
 import os
 import sys
 import time
+import unittest
 from collections import namedtuple
 
 from tribler_common.simpledefs import NTFY
 
-from tribler_core.modules.resource_monitor import ResourceMonitor
+from tribler_core.modules.resource_monitor import HAS_YAPPI, ResourceMonitor
 from tribler_core.tests.tools.base_test import MockObject, TriblerCoreTest
 from tribler_core.utilities import path_util
 
@@ -25,6 +26,10 @@ class TestResourceMonitor(TriblerCoreTest):
         self.resource_monitor = ResourceMonitor(mock_session)
         self.resource_monitor.session.notifier = MockObject()
         self.resource_monitor.session.notifier.notify = lambda subject, changeType, obj_id, *args: None
+
+    async def tearDown(self):
+        await self.resource_monitor.stop()
+        await super(TestResourceMonitor, self).tearDown()
 
     def test_check_resources(self):
         """
@@ -89,6 +94,7 @@ class TestResourceMonitor(TriblerCoreTest):
         self.resource_monitor.session.notifier.notify = on_notify
         self.resource_monitor.check_resources()
 
+    @unittest.skipIf(not HAS_YAPPI, "Yappi not installed")
     def test_profiler(self):
         """
         Test the profiler functionality
