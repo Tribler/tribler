@@ -81,8 +81,8 @@ class TriblerService(object):
         print("Starting Tribler")
 
         if options.restapi > 0:
-            config.set_http_api_enabled(True)
-            config.set_http_api_port(options.restapi)
+            config.set_api_http_enabled(True)
+            config.set_api_http_port(options.restapi)
 
         if options.ipv8 > 0:
             config.set_ipv8_port(options.ipv8)

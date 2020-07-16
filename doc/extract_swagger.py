@@ -12,8 +12,9 @@ from tribler_core.restapi.rest_manager import RESTManager
 
 async def extract_swagger(destination_fn):
     session = Mock()
-    session.config.get_http_api_key = lambda: 'apikey'
-    session.config.get_http_api_port = lambda: 8085
+    session.config.get_api_key = lambda: 'apikey'
+    session.config.get_api_http_port = lambda: 8085
+    session.config.get_api_https_enabled = lambda: False
     api_manager = RESTManager(session)
     await api_manager.start()
 

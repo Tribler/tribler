@@ -16,7 +16,7 @@ class TestSettingsEndpoint(AbstractApiTest):
         Verify that the expected sections are present.
         """
         check_section = ['libtorrent', 'general', 'torrent_checking',
-                         'tunnel_community', 'http_api', 'trustchain', 'watch_folder']
+                         'tunnel_community', 'api', 'trustchain', 'watch_folder']
 
         self.assertTrue(settings_dict['settings'])
         self.assertTrue(settings_dict['ports'])

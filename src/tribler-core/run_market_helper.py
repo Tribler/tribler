@@ -41,7 +41,7 @@ class MarketService(object):
         config = TriblerConfig(statedir, config_file=statedir / 'triblerd.conf')
         config.set_torrent_checking_enabled(False)
         config.set_libtorrent_enabled(True)
-        config.set_http_api_enabled(True)
+        config.set_api_http_enabled(True)
         config.set_dummy_wallets_enabled(True)
         config.set_popularity_community_enabled(False)
         config.set_chant_enabled(False)
@@ -56,8 +56,8 @@ class MarketService(object):
         print("Starting Tribler")
 
         if options.restapi > 0:
-            config.set_http_api_enabled(True)
-            config.set_http_api_port(options.restapi)
+            config.set_api_http_enabled(True)
+            config.set_api_http_port(options.restapi)
 
         if options.ipv8 != -1 and options.ipv8 > 0:
             config.set_ipv8_port(options.ipv8)

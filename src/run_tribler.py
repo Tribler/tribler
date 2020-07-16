@@ -61,12 +61,12 @@ def start_tribler_core(base_path, api_port, api_key, root_state_dir):
         state_dir = get_versioned_state_directory(root_state_dir)
 
         config = TriblerConfig(state_dir, config_file=state_dir / CONFIG_FILENAME)
-        config.set_http_api_port(int(api_port))
+        config.set_api_http_port(int(api_port))
         # If the API key is set to an empty string, it will remain disabled
-        if config.get_http_api_key() not in ('', api_key):
-            config.set_http_api_key(api_key)
+        if config.get_api_key() not in ('', api_key):
+            config.set_api_key(api_key)
             config.write()  # Immediately write the API key so other applications can use it
-        config.set_http_api_enabled(True)
+        config.set_api_http_enabled(True)
 
         priority_order = config.get_cpu_priority_order()
         set_process_priority(pid=os.getpid(), priority_order=priority_order)

@@ -218,31 +218,43 @@ class TriblerConfig(object):
     def get_torrent_checking_enabled(self):
         return self.config['torrent_checking']['enabled']
 
-    # HTTP API
+    # REST API
 
-    def set_http_api_enabled(self, http_api_enabled):
-        self.config['http_api']['enabled'] = http_api_enabled
+    def set_api_http_enabled(self, http_enabled):
+        self.config['api']['http_enabled'] = http_enabled
 
-    def get_http_api_enabled(self):
-        return self.config['http_api']['enabled']
+    def get_api_http_enabled(self):
+        return self.config['api']['http_enabled']
 
-    def set_http_api_port(self, http_api_port):
-        self.config['http_api']['port'] = http_api_port
+    def set_api_http_port(self, http_port):
+        self.config['api']['http_port'] = http_port
 
-    def get_http_api_port(self):
-        return self._obtain_port('http_api', 'port')
+    def get_api_http_port(self):
+        return self._obtain_port('api', 'http_port')
 
-    def set_http_api_retry_port(self, retry_port):
-        self.config['http_api']['retry_port'] = retry_port
+    def set_api_https_enabled(self, https_enabled):
+        self.config['api']['https_enabled'] = https_enabled
 
-    def get_http_api_retry_port(self):
-        return self.config['http_api']['retry_port']
+    def get_api_https_enabled(self):
+        return self.config['api']['https_enabled']
 
-    def set_http_api_key(self, api_key):
-        self.config['http_api']['key'] = api_key
+    def set_api_https_port(self, https_port):
+        self.config['api']['https_port'] = https_port
 
-    def get_http_api_key(self):
-        return self.config['http_api']['key']
+    def get_api_https_port(self):
+        return self._obtain_port('api', 'https_port')
+
+    def set_api_https_certfile(self, certfile):
+        self.config['api']['https_certfile'] = certfile
+
+    def get_api_https_certfile(self):
+        return self.abspath(self.config['api']['https_certfile'])
+
+    def set_api_key(self, key):
+        self.config['api']['key'] = key
+
+    def get_api_key(self):
+        return self.config['api']['key']
 
     # IPv8
 

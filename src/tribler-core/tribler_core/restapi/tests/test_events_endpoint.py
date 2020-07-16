@@ -29,7 +29,7 @@ class TestEventsEndpoint(AbstractApiTest):
             await self.event_socket_task
 
     async def open_events_socket(self):
-        url = 'http://localhost:%s/events' % self.session.config.get_http_api_port()
+        url = 'http://localhost:%s/events' % self.session.config.get_api_http_port()
         headers = {'User-Agent': 'Tribler ' + version_id}
 
         async with ClientSession() as session:

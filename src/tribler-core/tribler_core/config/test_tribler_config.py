@@ -142,16 +142,23 @@ class TestTriblerConfig(TriblerCoreTest):
         self.tribler_config.set_torrent_checking_enabled(True)
         self.assertEqual(self.tribler_config.get_torrent_checking_enabled(), True)
 
-    def test_get_set_methods_http_api(self):
+    def test_get_set_methods_rest_api(self):
         """
         Check whether http api get and set methods are working as expected.
         """
-        self.tribler_config.set_http_api_enabled(True)
-        self.assertEqual(self.tribler_config.get_http_api_enabled(), True)
-        self.tribler_config.set_http_api_port(True)
-        self.assertEqual(self.tribler_config.get_http_api_port(), True)
-        self.tribler_config.set_http_api_retry_port(True)
-        self.assertTrue(self.tribler_config.get_http_api_retry_port())
+        self.tribler_config.set_api_http_enabled(True)
+        self.assertEqual(self.tribler_config.get_api_http_enabled(), True)
+        self.tribler_config.set_api_http_port(123)
+        self.assertEqual(self.tribler_config.get_api_http_port(), 123)
+        self.tribler_config.set_api_https_enabled(True)
+        self.assertEqual(self.tribler_config.get_api_https_enabled(), True)
+        self.tribler_config.set_api_https_port(123)
+        self.assertEqual(self.tribler_config.get_api_https_port(), 123)
+        self.tribler_config.set_api_https_certfile('certfile.pem')
+        self.assertEqual(self.tribler_config.get_api_https_certfile(),
+                         self.tribler_config.get_state_dir() / 'certfile.pem')
+        self.tribler_config.set_api_key('000')
+        self.assertEqual(self.tribler_config.get_api_key(), '000')
 
     def test_get_set_methods_ipv8(self):
         """

@@ -1,5 +1,6 @@
 import logging
 import os
+import ssl
 
 from aiohttp import web
 
@@ -30,7 +31,7 @@ class ApiKeyMiddleware(object):
             return True
         # The api key can either be in the headers or as part of the url query
         api_key = request.headers.get('X-Api-Key') or request.query.get('apikey')
-        expected_api_key = self.config.get_http_api_key()
+        expected_api_key = self.config.get_api_key()
         return not expected_api_key or expected_api_key == api_key
 
 
@@ -61,6 +62,7 @@ class RESTManager():
         self.root_endpoint = None
         self.session = session
         self.site = None
+        self.site_https = None
 
     def get_endpoint(self, name):
         return self.root_endpoint.endpoints['/' + name]
@@ -72,7 +74,9 @@ class RESTManager():
         """
         Starts the HTTP API with the listen port as specified in the session configuration.
         """
-        self.root_endpoint = RootEndpoint(self.session, middlewares=[ApiKeyMiddleware(self.session.config),
+        config = self.session.config
+
+        self.root_endpoint = RootEndpoint(self.session, middlewares=[ApiKeyMiddleware(config),
                                                                      error_middleware])
 
         # Not using setup_aiohttp_apispec here, as we need access to the APISpec to set the security scheme
@@ -83,7 +87,7 @@ class RESTManager():
             version=version_id,
             swagger_path='/docs'
         )
-        if self.session.config.get_http_api_key():
+        if config.get_api_key():
             # Set security scheme and apply to all endpoints
             aiohttp_apispec.spec.options['security'] = [{'apiKey': []}]
             aiohttp_apispec.spec.components.security_scheme('apiKey', {'type': 'apiKey',
@@ -96,22 +100,17 @@ class RESTManager():
         runner = web.AppRunner(self.root_endpoint.app, access_log=None)
         await runner.setup()
 
-        api_port = self.session.config.get_http_api_port()
-        if not self.session.config.get_http_api_retry_port():
-            self.site = web.TCPSite(runner, 'localhost', api_port)
+        if config.get_api_http_enabled():
+            self.site = web.TCPSite(runner, 'localhost', config.get_api_http_port())
             await self.site.start()
-        else:
-            bind_attempts = 0
-            while bind_attempts < 10:
-                try:
-                    self.site = web.TCPSite(runner, 'localhost', api_port + bind_attempts)
-                    await self.site.start()
-                    self.session.config.set_http_api_port(api_port + bind_attempts)
-                    break
-                except OSError:
-                    bind_attempts += 1
+            self._logger.info("Started HTTP REST API: %s", self.site.name)
 
-        self._logger.info("Starting REST API on port %d", self.site._port)
+        if config.get_api_https_enabled():
+            ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+            ssl_context.load_cert_chain(config.get_api_https_certfile())
+            self.site_https = web.TCPSite(runner, '0.0.0.0', config.get_api_https_port(), ssl_context=ssl_context)
+            await self.site_https.start()
+            self._logger.info("Started HTTPS REST API: %s", self.site_https.name)
 
         # REST Manager does not accept any new requests if Tribler is shutting down.
         # Note that environment variable 'TRIBLER_SHUTTING_DOWN' is set to 'TRUE' (string)
@@ -124,4 +123,7 @@ class RESTManager():
         """
         Stop the HTTP API and return a deferred that fires when the server has shut down.
         """
-        await self.site.stop()
+        if self.site:
+            await self.site.stop()
+        if self.site_https:
+            await self.site_https.stop()
