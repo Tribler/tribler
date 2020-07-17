@@ -31,7 +31,7 @@ dependencies = [
     {'module': 'pyasn1', 'install_type': 'pip3', 'package': 'pyasn1', 'optional': False, 'scope': 'core'},
     {'module': 'pyqtgraph', 'install_type': 'pip3', 'package': 'pyqtgraph', 'optional': False, 'scope': 'gui'},
     {'module': 'PyQt5', 'install_type': 'pip3', 'package': 'PyQt5', 'optional': False, 'scope': 'gui'},
-    {'module': 'pyyaml', 'install_type': 'pip3', 'package': 'pyyaml', 'optional': False, 'scope': 'core'},
+    {'module': 'yaml', 'install_type': 'pip3', 'package': 'pyyaml', 'optional': False, 'scope': 'core'},
 ]
 
 
@@ -64,14 +64,14 @@ def check_for_missing_dependencies(scope='both'):
     for dep in dependencies:
         if not is_scope_both and dep['scope'] != 'both' and dep['scope'] != scope:
             continue
-            try:
-                importlib.import_module(dep['module'])
-            except ImportError:
-                if not dep['optional']:
-                    if dep['install_type'] == 'pip3':
-                        missing_deps['pip3'].append(dep['package'])
-                    elif dep['install_type'] == 'apt':
-                        missing_deps['apt'].append(dep['package'])
+        try:
+            importlib.import_module(dep['module'])
+        except ImportError:
+            if not dep['optional']:
+                if dep['install_type'] == 'pip3':
+                    missing_deps['pip3'].append(dep['package'])
+                elif dep['install_type'] == 'apt':
+                    missing_deps['apt'].append(dep['package'])
 
     if missing_deps['pip3'] or missing_deps['apt']:
         pip3_install = f"\n pip3 install {' '.join(missing_deps['pip3'])}" if missing_deps['pip3'] else ''
