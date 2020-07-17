@@ -347,7 +347,10 @@ class DownloadManager(TaskManager):
             self._logger.debug("Got alert for unknown download %s: %s", hexlify(infohash), alert)
 
         if alert_type == 'listen_succeeded_alert':
-            self.listen_ports[hops] = alert.port
+            # The ``port`` attribute was added in libtorrent 1.1.14.
+            # Older versions (most notably libtorrent 1.1.13 - the default  on Ubuntu 20.04) do not have this attribute.
+            # We use the now-deprecated ``endpoint`` attribute for these older versions.
+            self.listen_ports[hops] = getattr(alert, "port", alert.endpoint[1])
 
         elif alert_type == 'peer_disconnected_alert' and \
                 self.tribler_session and self.tribler_session.payout_manager:
