@@ -311,8 +311,7 @@ class UdpTrackerSession(TrackerSession):
                 if isinstance(coro, Future):
                     infos = await coro  # In Python <=3.6 getaddrinfo returns a Future
                 else:
-                    infos = await self.register_anonymous_task("resolve", ensure_future(coro),
-                                                               ignore=(socket.gaierror,))
+                    infos = await self.register_anonymous_task("resolve", ensure_future(coro))
                 self.ip_address = infos[0][-1][0]
                 await self.connect()
                 return await self.scrape()
