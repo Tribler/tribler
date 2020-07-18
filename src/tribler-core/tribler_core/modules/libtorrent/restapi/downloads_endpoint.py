@@ -595,11 +595,9 @@ class DownloadsEndpoint(RESTEndpoint):
                     endlen = bytes_todo - bytes_done
                     if endlen != 0:
                         await response.write(data[:endlen])
-                        self._logger.info('Sent %s bytes', len(data))
                         bytes_done += endlen
                     break
                 await response.write(data)
                 bytes_done += len(data)
-                self._logger.info('Sent %s bytes', len(data))
 
             return response
