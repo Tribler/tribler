@@ -1,3 +1,4 @@
+import asyncio
 import logging.config
 import os
 import signal
@@ -28,6 +29,11 @@ def start_tribler_core(base_path, api_port, api_key, root_state_dir):
     from tribler_core.session import Session
 
     trace_logger = None
+
+    # TODO for the moment being, we use the SelectorEventLoop on Windows, since with the ProactorEventLoop, ipv8
+    # peer discovery becomes unstable. Also see issue #5485.
+    if sys.platform.startswith('win'):
+        asyncio.set_event_loop(asyncio.SelectorEventLoop())
 
     def on_tribler_shutdown(future):
         future.result()
