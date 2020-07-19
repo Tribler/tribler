@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 import subprocess
@@ -37,18 +38,14 @@ else:
     window = None
 
 
-def start_loop(task, *args):
-    loop = new_event_loop()
-    set_event_loop(loop)
-
-    loop.run_until_complete(task(*args))
-    loop.close()
-
-
 def start_fake_core(port):
     from tribler_gui.tests.fake_tribler_api.endpoints.root_endpoint import RootEndpoint
     from tribler_gui.tests.fake_tribler_api.tribler_data import TriblerData
     import tribler_gui.tests.fake_tribler_api.tribler_utils as tribler_utils
+
+    # TODO it looks like the Proactor event loop does not play nice with Qt on Windows
+    if sys.platform.startswith('win'):
+        asyncio.set_event_loop(asyncio.SelectorEventLoop())
 
     def generate_tribler_data():
         tribler_utils.tribler_data = TriblerData()
