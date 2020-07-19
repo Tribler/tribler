@@ -79,11 +79,7 @@ IGNORED_ERRORS = {
     (OSError, 10022): "Failed to get address info. Error code: 10022",
     (OSError, 16): "Socket error: Device or resource busy. Error code: 16",
     (OSError, 0): "",
-    (gaierror, 11001): "Unable to perform DNS lookup.",
-    (gaierror, 11004): "Unable to perform DNS lookup.", # Windows specific ?
-    (gaierror, 8): "Unable to perform DNS lookup.", # MacOS specific
-    (gaierror, -2): "",
-    (gaierror, -5): "No address associated with hostname",
+    gaierror: "Unable to perform DNS lookup."
 }
 
 
@@ -342,7 +338,9 @@ class Session(TaskManager):
 
         ignored_message = None
         try:
-            ignored_message = IGNORED_ERRORS.get((exception.__class__, exception.errno))
+            ignored_message = IGNORED_ERRORS.get(
+                (exception.__class__, exception.errno),
+                IGNORED_ERRORS.get(exception.__class__))
         except (ValueError, AttributeError):
             pass
         if ignored_message is not None:
