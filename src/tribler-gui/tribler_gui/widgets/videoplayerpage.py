@@ -33,12 +33,14 @@ class VideoPlayerPage(QWidget):
         self.freeze = False
 
     def initialize_player(self):
-        vlc_available = True
+        # TODO: We disabled VLC loading for the moment being, due to a crash when parsing media.
+        # Also see issue #5483.
+        vlc_available = False
         vlc = None
-        try:
-            from tribler_gui import vlc
-        except OSError:
-            vlc_available = False
+        # try:
+        #     from tribler_gui import vlc
+        # except OSError:
+        #     vlc_available = False
 
         if vlc and vlc.plugin_path:
             os.environ['VLC_PLUGIN_PATH'] = vlc.plugin_path

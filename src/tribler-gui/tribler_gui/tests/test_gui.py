@@ -5,7 +5,7 @@ import sys
 import threading
 import time
 from asyncio import new_event_loop, set_event_loop
-from unittest import TestCase, skipIf, skipUnless
+from unittest import TestCase, skip, skipIf, skipUnless
 
 from PyQt5.QtCore import QPoint, QTimer, Qt
 from PyQt5.QtGui import QPixmap, QRegion
@@ -406,7 +406,7 @@ class TriblerGUITest(AbstractTriblerGUITest):
         self.wait_for_signal(window.left_menu_playlist.list_loaded, no_args=True)
         self.screenshot(window, name="video_player_left_menu_loaded")
 
-    @skipIf(sys.platform == "darwin", "VLC playback from  nosetests seems to be unreliable on Mac")
+    @skip("This test is currently disabled due to issue #5483")
     def test_video_playback(self):
         """
         Test video playback of a Tribler instance.
