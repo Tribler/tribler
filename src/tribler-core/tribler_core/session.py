@@ -83,6 +83,7 @@ IGNORED_ERRORS = {
     (gaierror, 11004): "Unable to perform DNS lookup.", # Windows specific ?
     (gaierror, 8): "Unable to perform DNS lookup.", # MacOS specific
     (gaierror, -2): "",
+    (gaierror, -5): "No address associated with hostname",
 }
 
 
