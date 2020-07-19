@@ -79,7 +79,9 @@ class TestSessionAsServer(TestAsServer):
 
             get_event_loop().call_soon(gen_except)
 
-        exceptions_list = [exc_class(errno, "exc message") for exc_class, errno in IGNORED_ERRORS.keys()]
+        exceptions_list = [(exc[0](exc[1], "exc message") if isinstance(exc, tuple) else exc(123, "exc message"))
+                           for exc in IGNORED_ERRORS.keys()]
+
         exceptions_list.append(RuntimeError(0, "invalid info-hash"))
 
         for exception in exceptions_list:
