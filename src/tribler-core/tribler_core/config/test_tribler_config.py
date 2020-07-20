@@ -117,9 +117,10 @@ class TestTriblerConfig(TriblerCoreTest):
         self.tribler_config.set_trustchain_testnet_keypair_filename("bla2")
         self.assertEqual(self.tribler_config.get_trustchain_testnet_keypair_filename(),
                          self.tribler_config.get_state_dir() / "bla2")
-
-        self.tribler_config.set_testnet(True)
-        self.assertTrue(self.tribler_config.get_testnet())
+        self.tribler_config.set_trustchain_testnet(True)
+        self.assertTrue(self.tribler_config.get_trustchain_testnet())
+        self.tribler_config.set_log_dir(self.tribler_config.get_state_dir() / "bla3")
+        self.assertEqual(self.tribler_config.get_log_dir(), self.tribler_config.get_state_dir() / "bla3")
 
     def test_get_set_methods_version_checker(self):
         """
@@ -219,6 +220,8 @@ class TestTriblerConfig(TriblerCoreTest):
         self.assertEqual(self.tribler_config.get_tunnel_community_random_slots(), 10)
         self.tribler_config.set_tunnel_community_competing_slots(20)
         self.assertEqual(self.tribler_config.get_tunnel_community_competing_slots(), 20)
+        self.tribler_config.set_tunnel_testnet(True)
+        self.assertTrue(self.tribler_config.get_tunnel_testnet())
 
     def test_get_set_methods_wallets(self):
         """
@@ -238,6 +241,8 @@ class TestTriblerConfig(TriblerCoreTest):
         self.tribler_config.set_chant_channels_dir('test')
         self.assertEqual(self.tribler_config.get_chant_channels_dir(),
                          self.tribler_config.get_state_dir() / 'test')
+        self.tribler_config.set_chant_testnet(True)
+        self.assertTrue(self.tribler_config.get_chant_testnet())
 
     def test_get_set_is_matchmaker(self):
         """
