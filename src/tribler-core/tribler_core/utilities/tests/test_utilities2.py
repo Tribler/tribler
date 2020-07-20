@@ -1,7 +1,7 @@
-from aiohttp import ClientSession, web
+from aiohttp import ClientSession
 
-from tribler_core.tests.tools.test_as_server import AbstractServer
-from tribler_core.tests.tools.tools import timeout
+import pytest
+
 from tribler_core.utilities.utilities import (
     is_channel_public_key,
     is_infohash,
@@ -11,101 +11,82 @@ from tribler_core.utilities.utilities import (
 )
 
 
-class TestMakeTorrent(AbstractServer):
+def test_parse_magnetlink_lowercase():
+    """
+    Test if a lowercase magnet link can be parsed
+    """
+    _, hashed, _ = parse_magnetlink('magnet:?xt=urn:btih:apctqfwnowubxzoidazgaj2ba6fs6juc')
 
-    def __init__(self, *argv, **kwargs):
-        super(TestMakeTorrent, self).__init__(*argv, **kwargs)
-        self.http_server = None
+    assert hashed == b"\x03\xc58\x16\xcdu\xa8\x1b\xe5\xc8\x182`'A\x07\x8b/&\x82"
 
-    async def setUpHttpRedirectServer(self, port, redirect_url):
-        async def redirect_handler(_):
-            return web.HTTPFound(redirect_url)
 
-        app = web.Application()
-        app.add_routes([web.get('/', redirect_handler)])
-        runner = web.AppRunner(app, access_log=None)
-        await runner.setup()
-        self.http_server = web.TCPSite(runner, 'localhost', port)
-        await self.http_server.start()
+def test_parse_magnetlink_uppercase():
+    """
+    Test if an uppercase magnet link can be parsed
+    """
+    _, hashed, _ = parse_magnetlink('magnet:?xt=urn:btih:APCTQFWNOWUBXZOIDAZGAJ2BA6FS6JUC')
 
-    async def tearDown(self):
-        if self.http_server:
-            await self.http_server.stop()
-        await super(TestMakeTorrent, self).tearDown()
+    assert hashed == b"\x03\xc58\x16\xcdu\xa8\x1b\xe5\xc8\x182`'A\x07\x8b/&\x82"
 
-    def test_parse_magnetlink_lowercase(self):
-        """
-        Test if a lowercase magnet link can be parsed
-        """
-        _, hashed, _ = parse_magnetlink('magnet:?xt=urn:btih:apctqfwnowubxzoidazgaj2ba6fs6juc')
 
-        self.assertEqual(hashed, b"\x03\xc58\x16\xcdu\xa8\x1b\xe5\xc8\x182`'A\x07\x8b/&\x82")
+def test_valid_url():
+    """ Test if the URL is valid """
+    test_url = "http://anno nce.torrentsmd.com:8080/announce"
+    assert not is_valid_url(test_url)
 
-    def test_parse_magnetlink_uppercase(self):
-        """
-        Test if an uppercase magnet link can be parsed
-        """
-        _, hashed, _ = parse_magnetlink('magnet:?xt=urn:btih:APCTQFWNOWUBXZOIDAZGAJ2BA6FS6JUC')
+    test_url2 = "http://announce.torrentsmd.com:8080/announce "
+    assert is_valid_url(test_url2)
 
-        self.assertEqual(hashed, b"\x03\xc58\x16\xcdu\xa8\x1b\xe5\xc8\x182`'A\x07\x8b/&\x82")
+    test_url3 = "http://localhost:1920/announce"
+    assert is_valid_url(test_url3)
 
-    def test_valid_url(self):
-        """ Test if the URL is valid """
-        test_url = "http://anno nce.torrentsmd.com:8080/announce"
-        self.assertFalse(is_valid_url(test_url), "%s is not a valid URL" % test_url)
+    test_url4 = "udp://localhost:1264"
+    assert is_valid_url(test_url4)
 
-        test_url2 = "http://announce.torrentsmd.com:8080/announce "
-        self.assertTrue(is_valid_url(test_url2), "%s is a valid URL" % test_url2)
 
-        test_url3 = "http://localhost:1920/announce"
-        self.assertTrue(is_valid_url(test_url3))
+@pytest.mark.asyncio
+async def test_http_get_with_redirect(magnet_redirect_server):
+    """
+    Test if http_get is working properly if url redirects to a magnet link.
+    """
+    # Setup a redirect server which redirects to a magnet link
+    magnet_link = "magnet:?xt=urn:btih:DC4B96CF85A85CEEDB8ADC4B96CF85A85CEEDB8A"
 
-        test_url4 = "udp://localhost:1264"
-        self.assertTrue(is_valid_url(test_url4))
+    test_url = "http://localhost:%d" % magnet_redirect_server
+    async with ClientSession() as session:
+        response = await session.get(test_url, allow_redirects=False)
+    assert response.headers['Location'] == magnet_link
 
-    @timeout(5)
-    async def test_http_get_with_redirect(self):
-        """
-        Test if http_get is working properly if url redirects to a magnet link.
-        """
-        # Setup a redirect server which redirects to a magnet link
-        magnet_link = "magnet:?xt=urn:btih:DC4B96CF85A85CEEDB8ADC4B96CF85A85CEEDB8A"
-        port = self.get_port()
 
-        await self.setUpHttpRedirectServer(port, magnet_link)
+def test_simple_search_query():
+    query = '"\xc1ubuntu"* AND "debian"*'
+    assert is_simple_match_query(query)
 
-        test_url = "http://localhost:%d" % port
-        async with ClientSession() as session:
-            response = await session.get(test_url, allow_redirects=False)
-        self.assertEqual(response.headers['Location'], magnet_link)
+    query = '""* AND "Petersburg"*'
+    assert not is_simple_match_query(query)
 
-    def test_simple_search_query(self):
-        query = '"\xc1ubuntu"* AND "debian"*'
-        self.assertTrue(is_simple_match_query(query))
+    query2 = '"\xc1ubuntu"* OR "debian"*'
+    assert not is_simple_match_query(query2)
 
-        query = '""* AND "Petersburg"*'
-        self.assertFalse(is_simple_match_query(query))
 
-        query2 = '"\xc1ubuntu"* OR "debian"*'
-        self.assertFalse(is_simple_match_query(query2))
+def test_is_infohash():
+    hex_40 = "DC4B96CF85A85CEEDB8ADC4B96CF85A85CEEDB8A"
+    assert is_infohash(hex_40)
 
-    def test_is_infohash(self):
-        hex_40 = "DC4B96CF85A85CEEDB8ADC4B96CF85A85CEEDB8A"
-        self.assertTrue(is_infohash(hex_40))
+    hex_not_40 = "DC4B96CF85A85CEEDB8ADC4B96CF85"
+    assert not is_infohash(hex_not_40)
 
-        hex_not_40 = "DC4B96CF85A85CEEDB8ADC4B96CF85"
-        self.assertFalse(is_infohash(hex_not_40))
+    not_hex = "APPLE6CF85A85CEEDB8ADC4B96CF85A85CEEDB8A"
+    assert not is_infohash(not_hex)
 
-        not_hex = "APPLE6CF85A85CEEDB8ADC4B96CF85A85CEEDB8A"
-        self.assertFalse(is_infohash(not_hex))
 
-    def test_is_channel_public_key(self):
-        hex_128 = "224b20c30b90d0fc7b2cf844f3d651de4481e21c7cdbbff258fa737d117d2c4ac7536de5cc93f4e9d5" \
-                  "1012a1ae0c46e9a05505bd017f0ecb78d8eec4506e848a"
-        self.assertTrue(is_channel_public_key(hex_128))
+def test_is_channel_public_key():
+    hex_128 = "224b20c30b90d0fc7b2cf844f3d651de4481e21c7cdbbff258fa737d117d2c4ac7536de5cc93f4e9d5" \
+              "1012a1ae0c46e9a05505bd017f0ecb78d8eec4506e848a"
+    assert is_channel_public_key(hex_128)
 
-        hex_not_128 = "DC4B96CF85A85CEEDB8ADC4B96CF85"
-        self.assertFalse(is_channel_public_key(hex_not_128))
+    hex_not_128 = "DC4B96CF85A85CEEDB8ADC4B96CF85"
+    assert not is_channel_public_key(hex_not_128)
 
-        not_hex = "APPLE6CF85A85CEEDB8ADC4B96CF85A85CEEDB8A"
-        self.assertFalse(is_channel_public_key(not_hex))
+    not_hex = "APPLE6CF85A85CEEDB8ADC4B96CF85A85CEEDB8A"
+    assert not is_channel_public_key(not_hex)

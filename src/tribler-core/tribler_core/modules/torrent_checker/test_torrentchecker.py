@@ -1,261 +1,253 @@
 import os
 import socket
 import time
-from unittest.mock import Mock
+
+from ipv8.util import succeed
 
 from pony.orm import db_session
 
+import pytest
+
 from tribler_core.modules.torrent_checker.torrent_checker import TorrentChecker
 from tribler_core.modules.torrent_checker.torrentchecker_session import HttpTrackerSession, UdpSocketManager
-from tribler_core.modules.tracker_manager import TrackerManager
 from tribler_core.tests.tools.base_test import MockObject
-from tribler_core.tests.tools.test_as_server import TestAsServer
-from tribler_core.tests.tools.tools import timeout
 from tribler_core.utilities.unicode import hexlify
-from tribler_core.utilities.utilities import succeed
 
 
-class TestTorrentChecker(TestAsServer):
+@pytest.fixture
+async def torrent_checker(session):
+    torrent_checker = TorrentChecker(session)
+    yield torrent_checker
+    await torrent_checker.shutdown()
+
+
+@pytest.mark.asyncio
+async def test_initialize(torrent_checker):
     """
-    This class contains tests which test the torrent checker class.
+    Test the initialization of the torrent checker
     """
+    await torrent_checker.initialize()
+    assert torrent_checker.is_pending_task_active("tracker_check")
+    assert torrent_checker.is_pending_task_active("torrent_check")
 
-    def setUpPreSession(self):
-        super(TestTorrentChecker, self).setUpPreSession()
-        self.config.set_chant_enabled(True)
 
-    async def setUp(self):
-        await super(TestTorrentChecker, self).setUp()
+@pytest.mark.asyncio
+async def test_create_socket_fail(torrent_checker):
+    """
+    Test creation of the UDP socket of the torrent checker when it fails
+    """
+    def mocked_listen_on_udp():
+        raise socket.error("Something went wrong")
 
-        self.session.torrent_checker = TorrentChecker(self.session)
-        self.session.tracker_manager = TrackerManager(self.session)
+    torrent_checker.socket_mgr = UdpSocketManager()
+    torrent_checker.listen_on_udp = mocked_listen_on_udp
+    await torrent_checker.create_socket_or_schedule()
 
-        self.torrent_checker = self.session.torrent_checker
-        self.torrent_checker.listen_on_udp = lambda: succeed(None)
+    assert torrent_checker.udp_transport is None
+    assert torrent_checker.is_pending_task_active("listen_udp_port")
 
-        def get_metainfo(_, callback, **__):
-            callback({"seeders": 1, "leechers": 2})
 
-        self.session.dlmgr = Mock()
-        self.session.dlmgr.get_metainfo = get_metainfo
-        self.session.dlmgr.shutdown = lambda: succeed(None)
-        self.session.dlmgr.shutdown_downloads = lambda: succeed(None)
-        self.session.dlmgr.checkpoint_downloads = lambda: succeed(None)
+@pytest.mark.asyncio
+async def test_health_check_blacklisted_trackers(enable_chant, torrent_checker, session):
+    """
+    Test whether only cached results of a torrent are returned with only blacklisted trackers
+    """
+    with db_session:
+        tracker = session.mds.TrackerState(url="http://localhost/tracker")
+        session.mds.TorrentState(infohash=b'a' * 20, seeders=5, leechers=10, trackers={tracker},
+                                 last_check=int(time.time()))
 
-    async def tearDown(self):
-        await self.torrent_checker.shutdown()
-        await super(TestTorrentChecker, self).tearDown()
+    session.tracker_manager.blacklist.append("http://localhost/tracker")
+    result = await torrent_checker.check_torrent_health(b'a' * 20)
+    assert {'db'} == set(result.keys())
+    assert result['db']['seeders'] == 5
+    assert result['db']['leechers'] == 10
 
-    async def test_initialize(self):
-        """
-        Test the initialization of the torrent checker
-        """
-        await self.torrent_checker.initialize()
-        self.assertTrue(self.torrent_checker.is_pending_task_active("tracker_check"))
-        self.assertTrue(self.torrent_checker.is_pending_task_active("torrent_check"))
 
-    async def test_create_socket_fail(self):
-        """
-        Test creation of the UDP socket of the torrent checker when it fails
-        """
-        def mocked_listen_on_udp():
-            raise socket.error("Something went wrong")
+@pytest.mark.asyncio
+async def test_health_check_cached(enable_chant, torrent_checker, session):
+    """
+    Test whether cached results of a torrent are returned when fetching the health of a torrent
+    """
+    with db_session:
+        tracker = session.mds.TrackerState(url="http://localhost/tracker")
+        session.mds.TorrentState(infohash=b'a' * 20, seeders=5, leechers=10, trackers={tracker},
+                                 last_check=int(time.time()))
 
-        self.torrent_checker.socket_mgr = UdpSocketManager()
-        self.torrent_checker.listen_on_udp = mocked_listen_on_udp
-        await self.torrent_checker.create_socket_or_schedule()
+    result = await torrent_checker.check_torrent_health(b'a' * 20)
+    assert 'db' in result
+    assert result['db']['seeders'] == 5
+    assert result['db']['leechers'] == 10
 
-        self.assertIsNone(self.torrent_checker.udp_transport)
-        self.assertTrue(self.torrent_checker.is_pending_task_active("listen_udp_port"))
 
-    async def test_health_check_blacklisted_trackers(self):
-        """
-        Test whether only cached results of a torrent are returned with only blacklisted trackers
-        """
-        with db_session:
-            tracker = self.session.mds.TrackerState(url="http://localhost/tracker")
-            self.session.mds.TorrentState(infohash=b'a' * 20, seeders=5, leechers=10, trackers={tracker},
-                                          last_check=int(time.time()))
+@pytest.mark.asyncio
+async def test_task_select_no_tracker(enable_chant, torrent_checker):
+    """
+    Test whether we are not checking a random tracker if there are no trackers in the database.
+    """
+    result = await torrent_checker.check_random_tracker()
+    assert not result
 
-        self.session.tracker_manager.blacklist.append("http://localhost/tracker")
-        result = await self.torrent_checker.check_torrent_health(b'a' * 20)
-        self.assertSetEqual({'db'}, set(result.keys()))
-        self.assertEqual(result['db']['seeders'], 5)
-        self.assertEqual(result['db']['leechers'], 10)
 
-    async def test_health_check_cached(self):
-        """
-        Test whether cached results of a torrent are returned when fetching the health of a torrent
-        """
-        with db_session:
-            tracker = self.session.mds.TrackerState(url="http://localhost/tracker")
-            self.session.mds.TorrentState(infohash=b'a' * 20, seeders=5, leechers=10, trackers={tracker},
-                                          last_check=int(time.time()))
+@pytest.mark.asyncio
+async def test_check_random_tracker_shutdown(enable_chant, torrent_checker):
+    """
+    Test whether we are not performing a tracker check if we are shutting down.
+    """
+    await torrent_checker.shutdown()
+    result = await torrent_checker.check_random_tracker()
+    assert not result
 
-        result = await self.torrent_checker.check_torrent_health(b'a' * 20)
-        self.assertTrue('db' in result)
-        self.assertEqual(result['db']['seeders'], 5)
-        self.assertEqual(result['db']['leechers'], 10)
 
-    @timeout(10)
-    async def test_task_select_no_tracker(self):
-        """
-        Test whether we are not checking a random tracker if there are no trackers in the database.
-        """
-        result = await self.torrent_checker.check_random_tracker()
-        self.assertFalse(result)
+@pytest.mark.asyncio
+async def test_check_random_tracker_not_alive(enable_chant, torrent_checker, session):
+    """
+    Test whether we correctly update the tracker state when the number of failures is too large.
+    """
+    with db_session:
+        session.mds.TrackerState(url="http://localhost/tracker", failures=1000, alive=True)
 
-    @timeout(10)
-    async def test_check_random_tracker_shutdown(self):
-        """
-        Test whether we are not performing a tracker check if we are shutting down.
-        """
-        await self.torrent_checker.shutdown()
-        result = await self.torrent_checker.check_random_tracker()
-        self.assertFalse(result)
+    result = await torrent_checker.check_random_tracker()
+    assert not result
 
-    @timeout(10)
-    async def test_check_random_tracker_not_alive(self):
-        """
-        Test whether we correctly update the tracker state when the number of failures is too large.
-        """
-        with db_session:
-            self.session.mds.TrackerState(url="http://localhost/tracker", failures=1000, alive=True)
+    with db_session:
+        tracker = session.tracker_manager.tracker_store.get()
+        assert not tracker.alive
 
-        result = await self.torrent_checker.check_random_tracker()
-        self.assertFalse(result)
 
-        with db_session:
-            tracker = self.session.tracker_manager.tracker_store.get()
-            self.assertFalse(tracker.alive)
+@pytest.mark.asyncio
+async def test_task_select_tracker(enable_chant, torrent_checker, session):
+    with db_session:
+        tracker = session.mds.TrackerState(url="http://localhost/tracker")
+        session.mds.TorrentState(infohash=b'a' * 20, seeders=5, leechers=10, trackers={tracker})
 
-    @timeout(10)
-    async def test_task_select_tracker(self):
-        with db_session:
-            tracker = self.session.mds.TrackerState(url="http://localhost/tracker")
-            self.session.mds.TorrentState(infohash=b'a' * 20, seeders=5, leechers=10, trackers={tracker})
+    controlled_session = HttpTrackerSession("127.0.0.1", ("localhost", 8475), "/announce", 5)
+    controlled_session.connect_to_tracker = lambda: succeed(None)
 
-        controlled_session = HttpTrackerSession("127.0.0.1", ("localhost", 8475), "/announce", 5)
-        controlled_session.connect_to_tracker = lambda: succeed(None)
+    torrent_checker._create_session_for_request = lambda *args, **kwargs: controlled_session
+    result = await torrent_checker.check_random_tracker()
+    assert not result
 
-        self.torrent_checker._create_session_for_request = lambda *args, **kwargs: controlled_session
-        result = await self.torrent_checker.check_random_tracker()
-        self.assertFalse(result)
+    assert len(controlled_session.infohash_list) == 1
 
-        self.assertEqual(len(controlled_session.infohash_list), 1)
 
-    @timeout(30)
-    async def test_tracker_test_error_resolve(self):
-        """
-        Test whether we capture the error when a tracker check fails
-        """
-        with db_session:
-            tracker = self.session.mds.TrackerState(url="http://localhost/tracker")
-            self.session.mds.TorrentState(infohash=b'a' * 20, seeders=5, leechers=10, trackers={tracker},
-                                          last_check=int(time.time()))
-        result = await self.torrent_checker.check_random_tracker()
-        self.assertFalse(result)
+@pytest.mark.asyncio
+async def test_tracker_test_error_resolve(enable_chant, torrent_checker, session):
+    """
+    Test whether we capture the error when a tracker check fails
+    """
+    with db_session:
+        tracker = session.mds.TrackerState(url="http://localhost/tracker")
+        session.mds.TorrentState(infohash=b'a' * 20, seeders=5, leechers=10, trackers={tracker},
+                                 last_check=int(time.time()))
+    result = await torrent_checker.check_random_tracker()
+    assert not result
 
-        # Verify whether we successfully cleaned up the session after an error
-        self.assertEqual(len(self.torrent_checker._session_list), 1)
+    # Verify whether we successfully cleaned up the session after an error
+    assert len(torrent_checker._session_list) == 1
 
-    @timeout(10)
-    async def test_tracker_no_infohashes(self):
-        """
-        Test the check of a tracker without associated torrents
-        """
-        self.session.tracker_manager.add_tracker('http://trackertest.com:80/announce')
-        result = await self.torrent_checker.check_random_tracker()
-        self.assertFalse(result)
 
-    def test_get_valid_next_tracker_for_auto_check(self):
-        """
-        Test if only valid tracker url are used for auto check
-        """
-        mock_tracker_state_invalid = MockObject()
-        mock_tracker_state_invalid.url = "http://anno nce.torrentsmd.com:8080/announce"
-        mock_tracker_state_valid = MockObject()
-        mock_tracker_state_valid.url = "http://announce.torrentsmd.com:8080/announce"
-        tracker_states = [mock_tracker_state_invalid, mock_tracker_state_valid]
+@pytest.mark.asyncio
+async def test_tracker_no_infohashes(enable_chant, torrent_checker, session):
+    """
+    Test the check of a tracker without associated torrents
+    """
+    session.tracker_manager.add_tracker('http://trackertest.com:80/announce')
+    result = await torrent_checker.check_random_tracker()
+    assert not result
 
-        def get_next_tracker_for_auto_check():
-            return tracker_states[0] if tracker_states else None
 
-        def remove_tracker(_):
-            tracker_states.remove(mock_tracker_state_invalid)
+def test_get_valid_next_tracker_for_auto_check(torrent_checker):
+    """
+    Test if only valid tracker url are used for auto check
+    """
+    mock_tracker_state_invalid = MockObject()
+    mock_tracker_state_invalid.url = "http://anno nce.torrentsmd.com:8080/announce"
+    mock_tracker_state_valid = MockObject()
+    mock_tracker_state_valid.url = "http://announce.torrentsmd.com:8080/announce"
+    tracker_states = [mock_tracker_state_invalid, mock_tracker_state_valid]
 
-        self.torrent_checker.get_next_tracker_for_auto_check = get_next_tracker_for_auto_check
-        self.torrent_checker.remove_tracker = remove_tracker
+    def get_next_tracker_for_auto_check():
+        return tracker_states[0] if tracker_states else None
 
-        next_tracker = self.torrent_checker.get_valid_next_tracker_for_auto_check()
-        self.assertEqual(len(tracker_states), 1)
-        self.assertEqual(next_tracker.url, "http://announce.torrentsmd.com:8080/announce")
+    def remove_tracker(_):
+        tracker_states.remove(mock_tracker_state_invalid)
 
-    def test_on_health_check_completed(self):
-        tracker1 = 'udp://localhost:2801'
-        tracker2 = "http://badtracker.org/announce"
-        infohash_bin = b'\xee'*20
-        infohash_hex = hexlify(infohash_bin)
+    torrent_checker.get_next_tracker_for_auto_check = get_next_tracker_for_auto_check
+    torrent_checker.remove_tracker = remove_tracker
 
-        exception = Exception()
-        exception.tracker_url = tracker2
-        result = [
-            {tracker1: [{'leechers': 1, 'seeders': 2, 'infohash': infohash_hex}]},
-            exception,
-            {'DHT': [{'leechers': 12, 'seeders': 13, 'infohash': infohash_hex}]}
-        ]
-        # Check that everything works fine even if the database contains no proper infohash
-        res_dict = {
-            'DHT': {
-                'leechers': 12,
-                'seeders': 13,
-                'infohash': infohash_hex
-            },
-            'http://badtracker.org/announce': {
-                'error': ''
-            },
-            'udp://localhost:2801': {
-                'leechers': 1,
-                'seeders': 2,
-                'infohash': infohash_hex
-            }
+    next_tracker = torrent_checker.get_valid_next_tracker_for_auto_check()
+    assert len(tracker_states) == 1
+    assert next_tracker.url == "http://announce.torrentsmd.com:8080/announce"
+
+
+def test_on_health_check_completed(enable_chant, torrent_checker, session):
+    tracker1 = 'udp://localhost:2801'
+    tracker2 = "http://badtracker.org/announce"
+    infohash_bin = b'\xee'*20
+    infohash_hex = hexlify(infohash_bin)
+
+    exception = Exception()
+    exception.tracker_url = tracker2
+    result = [
+        {tracker1: [{'leechers': 1, 'seeders': 2, 'infohash': infohash_hex}]},
+        exception,
+        {'DHT': [{'leechers': 12, 'seeders': 13, 'infohash': infohash_hex}]}
+    ]
+    # Check that everything works fine even if the database contains no proper infohash
+    res_dict = {
+        'DHT': {
+            'leechers': 12,
+            'seeders': 13,
+            'infohash': infohash_hex
+        },
+        'http://badtracker.org/announce': {
+            'error': ''
+        },
+        'udp://localhost:2801': {
+            'leechers': 1,
+            'seeders': 2,
+            'infohash': infohash_hex
         }
-        self.torrent_checker.on_torrent_health_check_completed(infohash_bin, result)
-        self.assertDictEqual(self.torrent_checker.on_torrent_health_check_completed(infohash_bin, result), res_dict)
-        self.assertFalse(self.torrent_checker.on_torrent_health_check_completed(infohash_bin, None))
+    }
+    torrent_checker.on_torrent_health_check_completed(infohash_bin, result)
+    assert torrent_checker.on_torrent_health_check_completed(infohash_bin, result) == res_dict
+    assert not torrent_checker.on_torrent_health_check_completed(infohash_bin, None)
 
-        with db_session:
-            ts = self.session.mds.TorrentState(infohash=infohash_bin)
-            previous_check = ts.last_check
-            self.torrent_checker.on_torrent_health_check_completed(infohash_bin, result)
-            self.assertEqual(result[2]['DHT'][0]['leechers'], ts.leechers)
-            self.assertEqual(result[2]['DHT'][0]['seeders'], ts.seeders)
-            self.assertLess(previous_check, ts.last_check)
+    with db_session:
+        ts = session.mds.TorrentState(infohash=infohash_bin)
+        previous_check = ts.last_check
+        torrent_checker.on_torrent_health_check_completed(infohash_bin, result)
+        assert result[2]['DHT'][0]['leechers'] == ts.leechers
+        assert result[2]['DHT'][0]['seeders'] == ts.seeders
+        assert previous_check < ts.last_check
 
-    def test_on_health_check_failed(self):
-        """
-        Check whether there is no crash when the torrent health check failed and the response is None
-        """
-        infohash_bin = b'\xee' * 20
-        self.torrent_checker.on_torrent_health_check_completed(infohash_bin, [None])
-        self.assertEqual(1, len(self.torrent_checker.torrents_checked))
-        self.assertEqual(0, list(self.torrent_checker.torrents_checked)[0][1])
 
-    @db_session
-    def test_check_random_torrent(self):
-        """
-        Test that the random torrent health checking mechanism picks the right torrents
-        """
-        for ind in range(1, 20):
-            torrent = self.session.mds.TorrentMetadata(title='torrent1', infohash=os.urandom(20))
-            torrent.health.last_check = ind
+def test_on_health_check_failed(enable_chant, torrent_checker):
+    """
+    Check whether there is no crash when the torrent health check failed and the response is None
+    """
+    infohash_bin = b'\xee' * 20
+    torrent_checker.on_torrent_health_check_completed(infohash_bin, [None])
+    assert 1 == len(torrent_checker.torrents_checked)
+    assert 0 == list(torrent_checker.torrents_checked)[0][1]
 
-        self.torrent_checker.check_torrent_health = lambda _: succeed(None)
 
-        random_infohashes = self.torrent_checker.check_random_torrent()
-        self.assertTrue(random_infohashes)
+@db_session
+def test_check_random_torrent(enable_chant, torrent_checker, session):
+    """
+    Test that the random torrent health checking mechanism picks the right torrents
+    """
+    for ind in range(1, 20):
+        torrent = session.mds.TorrentMetadata(title='torrent1', infohash=os.urandom(20))
+        torrent.health.last_check = ind
 
-        # Now we should only check a single torrent
-        self.torrent_checker.torrents_checked.add((b'a' * 20, 5, 5, int(time.time())))
-        random_infohashes = self.torrent_checker.check_random_torrent()
-        self.assertEqual(len(random_infohashes), 1)
+    torrent_checker.check_torrent_health = lambda _: succeed(None)
+
+    random_infohashes = torrent_checker.check_random_torrent()
+    assert random_infohashes
+
+    # Now we should only check a single torrent
+    torrent_checker.torrents_checked.add((b'a' * 20, 5, 5, int(time.time())))
+    random_infohashes = torrent_checker.check_random_torrent()
+    assert len(random_infohashes) == 1

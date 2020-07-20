@@ -291,10 +291,10 @@ class Stream: # pylint: disable=too-many-instance-attributes
     @check_vod([])
     def iterpieces(self, have=None, consec=False, startfrom=None):
         """
-        Generator function taht yield the pieces for the active fileindex
-        have: None: nofilter, True: only pieces we have, False: only pieces we dont have
-        consec: True: sequentially, False: all pieces
-        startfrom: int: start form index, None: start from first piece
+        Generator function that yield the pieces for the active fileindex
+        @param have: None: nofilter, True: only pieces we have, False: only pieces we dont have
+        @param consec: True: sequentially, False: all pieces
+        @param startfrom: int: start form index, None: start from first piece
         """
         if have is not None:
             pieces_have = self.pieceshave
@@ -460,7 +460,6 @@ class StreamChunk:
     @property
     def isclosed(self):
         return self.file is None or self.file.closed
-
 
     @property
     def isstarted(self):

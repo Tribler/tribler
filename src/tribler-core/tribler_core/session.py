@@ -502,6 +502,7 @@ class Session(TaskManager):
         Checkpoints the session and closes it, stopping the download engine.
         This method has to be called from the reactor thread.
         """
+        self.shutdownstarttime = timemod.time()
 
         # Indicates we are shutting down core. With this environment variable set
         # to 'TRUE', RESTManager will no longer accepts any new requests.
@@ -511,8 +512,6 @@ class Session(TaskManager):
             self.dlmgr.stop_download_states_callback()
 
         await self.shutdown_task_manager()
-
-        self.shutdownstarttime = timemod.time()
 
         if self.torrent_checker:
             self.notify_shutdown_state("Shutting down Torrent Checker...")

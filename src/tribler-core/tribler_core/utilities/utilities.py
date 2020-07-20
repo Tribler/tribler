@@ -6,7 +6,6 @@ Author(s): Jie Yang
 import binascii
 import logging
 import re
-from asyncio import Future
 from base64 import b32decode
 from urllib.parse import parse_qsl, urlsplit
 
@@ -166,18 +165,6 @@ def is_hex_string(text):
         return True
     except ValueError:
         return False
-
-
-def succeed(result):
-    future = Future()
-    future.set_result(result)
-    return future
-
-
-def fail(exception):
-    future = Future()
-    future.set_exception(exception)
-    return future
 
 
 def bdecode_compat(packet_buffer):

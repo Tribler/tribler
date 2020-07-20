@@ -7,11 +7,13 @@ import base64
 import logging
 from asyncio import CancelledError, Future, iscoroutine, sleep, wait_for
 from collections import defaultdict
+from pathlib import Path
 
 from ipv8.taskmanager import TaskManager, task
-from ipv8.util import int2byte
+from ipv8.util import int2byte, succeed
 
 import libtorrent as lt
+from libtorrent import create_torrent
 
 from tribler_common.simpledefs import DLSTATUS_SEEDING, DLSTATUS_STOPPED, DOWNLOAD, NTFY
 
@@ -25,7 +27,7 @@ from tribler_core.utilities import path_util
 from tribler_core.utilities.osutils import fix_filebasename
 from tribler_core.utilities.torrent_utils import get_info_from_handle
 from tribler_core.utilities.unicode import ensure_unicode, hexlify
-from tribler_core.utilities.utilities import bdecode_compat, succeed
+from tribler_core.utilities.utilities import bdecode_compat
 
 
 class Download(TaskManager):
@@ -40,6 +42,7 @@ class Download(TaskManager):
         self.config = None
         self.tdef = tdef
         self.handle = None
+        self.config = None
         self.state_dir = self.session.config.get_state_dir() if self.session else None
         self.dlmgr = self.session.dlmgr if self.session else None
 
@@ -85,6 +88,17 @@ class Download(TaskManager):
 
     def __repr__(self):
         return self.__str__()
+
+    def get_torrent_data(self):
+        """
+        Return torrent data, if the handle is valid and metadata is available.
+        """
+        if not self.handle or not self.handle.is_valid() or not self.handle.has_metadata():
+            return None
+
+        torrent_info = get_info_from_handle(self.handle)
+        t = create_torrent(torrent_info)
+        return t.generate()
 
     def register_alert_handler(self, alert_type, handler):
         self.alert_handlers[alert_type].append(handler)
@@ -609,7 +623,7 @@ class Download(TaskManager):
             # Libtorrent hasn't received or initialized this download yet
             # 1. Check if we have data for this infohash already (don't overwrite it if we do!)
             basename = hexlify(self.tdef.get_infohash()) + '.conf'
-            filename = self.dlmgr.get_checkpoint_dir() / basename
+            filename = Path(self.dlmgr.get_checkpoint_dir() / basename)
             if not filename.is_file():
                 # 2. If there is no saved data for this infohash, checkpoint it without data so we do not
                 #    lose it when we crash or restart before the download becomes known.

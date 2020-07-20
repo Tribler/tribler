@@ -1,49 +1,56 @@
-from tribler_core.tests.tools.base_test import MockObject, TriblerCoreTest
+from unittest.mock import Mock
+
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
 from tribler_core.utilities.torrent_utils import create_torrent_file, get_info_from_handle
 
 
-class TriblerCoreTestTorrentUtils(TriblerCoreTest):
-    TORRENT_DATA_DIR = TESTS_DATA_DIR / "torrent_creation_files"
-    FILE1_NAME = "file1.txt"
-    FILE2_NAME = "file2.txt"
+TORRENT_DATA_DIR = TESTS_DATA_DIR / "torrent_creation_files"
+FILE1_NAME = "file1.txt"
+FILE2_NAME = "file2.txt"
 
-    def get_params(self):
-        return {"comment": "Proudly created by Tribler", "created by": "someone",
-                "announce": "http://tracker.com/announce", "announce-list": ["http://tracker.com/announce"],
-                "httpseeds": "http://seed.com", "urllist": "http://urlseed.com/seed.php",
-                "nodes": []}
 
-    def test_create_torrent_one_file(self):
-        result = create_torrent_file([self.TORRENT_DATA_DIR / self.FILE1_NAME], self.get_params())
-        self.verify_created_torrent(result)
+def get_params():
+    return {"comment": "Proudly created by Tribler", "created by": "someone",
+            "announce": "http://tracker.com/announce", "announce-list": ["http://tracker.com/announce"],
+            "httpseeds": "http://seed.com", "urllist": "http://urlseed.com/seed.php",
+            "nodes": []}
 
-    def test_create_torrent_one_file_2(self):
-        result = create_torrent_file([self.TORRENT_DATA_DIR / self.FILE2_NAME], {})
-        self.verify_created_torrent(result)
 
-    def test_create_torrent_with_nodes(self):
-        params = self.get_params()
-        params["nodes"] = [("127.0.0.1", 1234)]
-        result = create_torrent_file([self.TORRENT_DATA_DIR / self.FILE1_NAME], params)
-        self.verify_created_torrent(result)
+def verify_created_torrent(result):
+    assert isinstance(result, dict)
+    assert result["base_path"] == TORRENT_DATA_DIR
+    assert result["success"]
 
-    def verify_created_torrent(self, result):
-        self.assertIsInstance(result, dict)
-        self.assertEqual(result["base_path"], self.TORRENT_DATA_DIR)
-        self.assertTrue(result["success"])
 
-    def test_create_torrent_two_files(self):
-        file_path_list = [self.TORRENT_DATA_DIR / self.FILE1_NAME,
-                          self.TORRENT_DATA_DIR / self.FILE2_NAME]
-        result = create_torrent_file(file_path_list, self.get_params())
-        self.assertTrue(result["success"])
+def test_create_torrent_one_file():
+    result = create_torrent_file([TORRENT_DATA_DIR / FILE1_NAME], get_params())
+    verify_created_torrent(result)
 
-    def test_get_info_from_handle(self):
-        mock_handle = MockObject()
 
-        def mock_get_torrent_file():
-            raise RuntimeError
+def test_create_torrent_one_file_2():
+    result = create_torrent_file([TORRENT_DATA_DIR / FILE2_NAME], {})
+    verify_created_torrent(result)
 
-        mock_handle.torrent_file = mock_get_torrent_file
-        self.assertIsNone(get_info_from_handle(mock_handle))
+
+def test_create_torrent_with_nodes():
+    params = get_params()
+    params["nodes"] = [("127.0.0.1", 1234)]
+    result = create_torrent_file([TORRENT_DATA_DIR / FILE1_NAME], params)
+    verify_created_torrent(result)
+
+
+def test_create_torrent_two_files():
+    file_path_list = [TORRENT_DATA_DIR / FILE1_NAME,
+                      TORRENT_DATA_DIR / FILE2_NAME]
+    result = create_torrent_file(file_path_list, get_params())
+    assert result["success"]
+
+
+def test_get_info_from_handle():
+    mock_handle = Mock()
+
+    def mock_get_torrent_file():
+        raise RuntimeError
+
+    mock_handle.torrent_file = mock_get_torrent_file
+    assert not get_info_from_handle(mock_handle)

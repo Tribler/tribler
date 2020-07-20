@@ -3,46 +3,29 @@ Seeding tests.
 
 Author(s): Arno Bakker, Niels Zeilemaker
 """
+import pytest
 
 from tribler_common.simpledefs import DLSTATUS_SEEDING
 
-from tribler_core.modules.libtorrent.torrentdef import TorrentDef
+from tribler_core.modules.libtorrent.download_config import DownloadConfig
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
-from tribler_core.tests.tools.test_as_server import TestAsServer
-from tribler_core.tests.tools.tools import timeout
 
 
-class TestSeeding(TestAsServer):
+@pytest.mark.asyncio
+@pytest.mark.timeout(20)
+async def test_seeding(enable_libtorrent, video_seeder_session, video_tdef, session, tmpdir):
     """
-    Test whether the seeding works correctly.
+    Test whether a torrent is correctly seeded
     """
+    dscfg = DownloadConfig()
+    dscfg.set_dest_dir(tmpdir)
+    download = session.dlmgr.start_download(tdef=video_tdef, config=dscfg)
+    download.add_peer(("127.0.0.1", video_seeder_session.config.get_libtorrent_port()))
+    await download.wait_for_status(DLSTATUS_SEEDING)
 
-    async def setUp(self):
-        await super(TestSeeding, self).setUp()
-        self.tdef = TorrentDef.load(TESTS_DATA_DIR / 'video.avi.torrent')
-        self.sourcefn = TESTS_DATA_DIR / 'video.avi'
+    with open(tmpdir / "video.avi", "rb") as f:
+        realdata = f.read()
+    with open(TESTS_DATA_DIR / 'video.avi', "rb") as f:
+        expdata = f.read()
 
-    def setUpPreSession(self):
-        super(TestSeeding, self).setUpPreSession()
-        self.config.set_libtorrent_enabled(True)
-
-    @timeout(60)
-    async def test_seeding(self):
-        """
-        Test whether a torrent is correctly seeded
-        """
-        await self.setup_seeder(self.tdef, TESTS_DATA_DIR)
-        dscfg = self.dscfg_seed.copy()
-        dscfg.set_dest_dir(self.getDestDir())
-        download = self.session.dlmgr.start_download(tdef=self.tdef, config=dscfg)
-        download.add_peer(("127.0.0.1", self.seeder_session.config.get_libtorrent_port()))
-        await download.wait_for_status(DLSTATUS_SEEDING)
-
-        # File is in
-        destfn = self.getDestDir() / "video.avi"
-        with open(destfn, "rb") as f:
-            realdata = f.read()
-        with open(self.sourcefn, "rb") as f:
-            expdata = f.read()
-
-        self.assertEqual(realdata, expdata)
+    assert realdata == expdata

@@ -1,75 +1,63 @@
-import base64
-import os
-import shutil
+from ipv8.util import succeed
 
-from tribler_core.modules.libtorrent.torrentdef import TorrentDef
-from tribler_core.restapi.base_api_test import AbstractApiTest
+import pytest
+
+from tribler_core.restapi.base_api_test import do_request
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
-from tribler_core.tests.tools.tools import timeout
 
 
-class TestMyChannelCreateTorrentEndpoint(AbstractApiTest):
+@pytest.mark.asyncio
+async def test_create_torrent(enable_api, tmpdir, mock_dlmgr, session):
+    """
+    Testing whether the API returns a proper base64 encoded torrent
+    """
+    def fake_create_torrent_file(*_, **__):
+        with open(TESTS_DATA_DIR / "bak_single.torrent", mode='rb') as torrent_file:
+            encoded_metainfo = torrent_file.read()
+        return succeed({"metainfo": encoded_metainfo, "base_dir": str(tmpdir)})
 
-    def setUpPreSession(self):
-        super(TestMyChannelCreateTorrentEndpoint, self).setUpPreSession()
-        # Create temporary test directory with test files
-        self.files_path = self.session_base_dir / 'TestMyChannelCreateTorrentEndpoint'
-        if not self.files_path.exists():
-            os.mkdir(self.files_path)
-        shutil.copyfile(TESTS_DATA_DIR / 'video.avi',
-                        self.files_path / 'video.avi')
-        shutil.copyfile(TESTS_DATA_DIR / 'video.avi.torrent',
-                        self.files_path / 'video.avi.torrent')
-        self.config.set_libtorrent_enabled(True)
+    session.dlmgr.create_torrent_file = fake_create_torrent_file
 
-    @timeout(10)
-    async def test_create_torrent(self):
-        """
-        Testing whether the API returns a proper base64 encoded torrent
-        """
-        torrent_path = self.files_path / "video.avi.torrent"
-        expected_tdef = TorrentDef.load(torrent_path)
-        export_dir = self.temporary_directory()
+    torrent_path = tmpdir / "video.avi.torrent"
+    post_data = {
+        "files": [str(torrent_path / "video.avi"),
+                  str(torrent_path / "video.avi.torrent")],
+        "description": "Video of my cat",
+        "trackers": "http://localhost/announce",
+        "name": "test_torrent",
+        "export_dir": str(tmpdir)
+    }
+    response_dict = await do_request(session, 'createtorrent?download=1', expected_code=200, request_type='POST',
+                                     post_data=post_data)
+    assert response_dict["torrent"]
 
-        post_data = {
-            "files": [self.files_path / "video.avi",
-                      self.files_path / "video.avi.torrent"],
-            "description": "Video of my cat",
-            "trackers": "http://localhost/announce",
-            "name": "test_torrent",
-            "export_dir": export_dir
+
+@pytest.mark.asyncio
+async def test_create_torrent_io_error(enable_api, mock_dlmgr, session):
+    """
+    Testing whether the API returns a formatted 500 error if IOError is raised
+    """
+    def fake_create_torrent_file(*_, **__):
+        raise IOError("test")
+
+    session.dlmgr.create_torrent_file = fake_create_torrent_file
+
+    post_data = {
+        "files": ["non_existing_file.avi"]
+    }
+    error_response = await do_request(session, 'createtorrent', expected_code=500, request_type='POST',
+                                      post_data=post_data)
+    expected_response = {
+        "error": {
+            "code": "OSError",
+            "handled": True,
+            "message": "test"
         }
-        response_dict = await self.do_request('createtorrent?download=1', 200, None, 'POST', post_data)
-        torrent = base64.b64decode(response_dict["torrent"])
-        tdef = TorrentDef.load_from_memory(torrent)
+    }
+    assert expected_response == error_response
 
-        # Copy expected creation date and created by (Tribler version) from actual result
-        creation_date = tdef.get_creation_date()
-        expected_tdef.metainfo[b"creation date"] = creation_date
-        expected_tdef.metainfo[b"created by"] = tdef.metainfo[b'created by']
 
-        self.assertEqual(dir(expected_tdef), dir(tdef))
-        self.assertTrue((export_dir / "test_torrent.torrent").exists())
-
-    @timeout(10)
-    async def test_create_torrent_io_error(self):
-        """
-        Testing whether the API returns a formatted 500 error if IOError is raised
-        """
-        post_data = {
-            "files": ["non_existing_file.avi"]
-        }
-        error_response = await self.do_request('createtorrent', 500, None, 'POST', post_data)
-        expected_response = {
-            u"error": {
-                u"handled": True,
-                u"message": u"Path does not exist: %s" % post_data["files"][0]
-            }
-        }
-        self.assertDictContainsSubset(expected_response[u"error"], error_response[u"error"])
-        self.assertIn(error_response[u"error"][u"code"], [u"IOError", u"OSError"])
-
-    @timeout(10)
-    async def test_create_torrent_missing_files_parameter(self):
-        expected_json = {"error": "files parameter missing"}
-        await self.do_request('createtorrent', 400, expected_json, 'POST')
+@pytest.mark.asyncio
+async def test_create_torrent_missing_files_parameter(enable_api, session):
+    expected_json = {"error": "files parameter missing"}
+    await do_request(session, 'createtorrent', expected_code=400, expected_json=expected_json, request_type='POST')

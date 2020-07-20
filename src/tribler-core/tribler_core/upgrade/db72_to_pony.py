@@ -5,6 +5,7 @@ import logging
 import os
 import sqlite3
 from asyncio import sleep
+from pathlib import Path
 
 from pony import orm
 from pony.orm import db_session
@@ -258,7 +259,7 @@ class DispersyToPonyMigration(object):
 
             with db_session:
                 my_channel = self.mds.ChannelMetadata.get_my_channels().first()
-                folder = my_channel._channels_dir / my_channel.dirname
+                folder = Path(my_channel._channels_dir) / my_channel.dirname
 
                 # We check if we need to re-create the channel dir in case it was deleted for some reason
                 if not folder.is_dir():

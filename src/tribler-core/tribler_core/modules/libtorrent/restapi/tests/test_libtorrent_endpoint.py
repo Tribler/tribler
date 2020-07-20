@@ -1,103 +1,89 @@
-from tribler_core.restapi.base_api_test import AbstractApiTest
-from tribler_core.tests.tools.tools import timeout
+from unittest.mock import Mock
+
+import pytest
+
+from tribler_core.restapi.base_api_test import do_request
+from tribler_core.utilities.unicode import hexlify
 
 
-class TestLibTorrentSettingsEndpoint(AbstractApiTest):
+@pytest.fixture
+def mock_lt_session(mock_dlmgr, session):
+    mock_alert = Mock()
+    mock_alert.values = {"a": "b"}
 
-    def setUpPreSession(self):
-        super(TestLibTorrentSettingsEndpoint, self).setUpPreSession()
-        self.config.set_libtorrent_enabled(True)
+    lt_session = Mock()
+    lt_session.post_session_stats = lambda: session.dlmgr.session_stats_callback(mock_alert)
+    lt_session.settings = {"peer_fingerprint": b"abcd", "user_agent": "Tribler"}
 
-    @timeout(5)
-    async def test_get_settings_zero_hop(self):
-        """
-        Tests getting session settings for zero hop session.
-        By default, there should always be a zero hop session so we should be able to get settings for
-        zero hop session.
-        """
-        hop = 0
-        response_dict = await self.do_request('libtorrent/settings?hop=%d' % hop, expected_code=200)
-        settings_dict = response_dict['settings']
-        self.assertEqual(response_dict['hop'], hop)
-        self.assertTrue("Tribler" in settings_dict['user_agent'])
-        self.assertEqual(settings_dict['outgoing_port'], 0)
-        self.assertEqual(settings_dict['num_outgoing_ports'], 1)
+    anon_lt_session = Mock()
+    anon_lt_session.get_settings = lambda: {"user_agent": "libtorrent"}
 
-    @timeout(5)
-    async def test_get_settings_for_uninitialized_session(self):
-        """
-        Tests getting session for non initialized session.
-        By default, anonymous sessions with hops > 1 are not initialized so test is done for
-        a 2 hop session expecting empty stats.
-        """
-        hop = 2
-        response_dict = await self.do_request('libtorrent/settings?hop=%d' % hop, expected_code=200)
-        self.assertEqual(response_dict['hop'], hop)
-        self.assertEqual(response_dict['settings'], {})
-
-    @timeout(5)
-    async def test_get_settings_for_one_session(self):
-        """
-        Tests getting session for initialized anonymous session.
-        """
-        hop = 1
-        self.session.dlmgr.get_session(hops=hop)
-        response_dict = await self.do_request('libtorrent/settings?hop=%d' % hop, expected_code=200)
-        settings_dict = response_dict['settings']
-        self.assertEqual(response_dict['hop'], hop)
-        self.assertTrue("libtorrent" in settings_dict['user_agent'] or settings_dict['user_agent'] == '')
-        self.assertEqual(settings_dict['outgoing_port'], 0)
-        self.assertEqual(settings_dict['num_outgoing_ports'], 1)
+    session.dlmgr.ltsessions = {0: lt_session, 1: anon_lt_session}
+    session.dlmgr.get_session_settings = lambda ses: ses.settings
+    return lt_session
 
 
-class TestLibTorrentSessionEndpoint(AbstractApiTest):
+@pytest.mark.asyncio
+async def test_get_settings_zero_hop(enable_api, mock_lt_session, session):
+    """
+    Tests getting session settings for zero hop session.
+    By default, there should always be a zero hop session so we should be able to get settings for
+    zero hop session.
+    """
+    hop = 0
+    response_dict = await do_request(session, 'libtorrent/settings?hop=%d' % hop, expected_code=200)
+    settings_dict = response_dict['settings']
+    assert response_dict['hop'] == hop
+    assert hexlify(b"abcd") == settings_dict["peer_fingerprint"]
+    assert "Tribler" in settings_dict['user_agent']
 
-    def setUpPreSession(self):
-        super(TestLibTorrentSessionEndpoint, self).setUpPreSession()
-        self.config.set_libtorrent_enabled(True)
 
-    @timeout(5)
-    async def test_get_stats_zero_hop_session(self):
-        """
-        Tests getting session stats for zero hop session.
-        By default, there should always be a zero hop session so we should be able to get stats for this session.
-        """
-        hop = 0
-        # expected sample stats
-        expected_stats = [u'dht.dht_peers', u'dht.dht_torrents', u'disk.num_jobs', u'net.recv_bytes', u'net.sent_bytes',
-                          u'peer.perm_peers', u'peer.disconnected_peers', u'ses.num_seeding_torrents',
-                          u'ses.num_incoming_choke']
+@pytest.mark.asyncio
+async def test_get_settings_for_uninitialized_session(enable_api, mock_dlmgr, session):
+    """
+    Tests getting session for non initialized session.
+    By default, anonymous sessions with hops > 1 are not initialized so test is done for
+    a 2 hop session expecting empty stats.
+    """
+    hop = 2
+    response_dict = await do_request(session, 'libtorrent/settings?hop=%d' % hop, expected_code=200)
+    assert response_dict['hop'] == hop
+    assert response_dict['settings'] == {}
 
-        response_dict = await self.do_request('libtorrent/session?hop=%d' % hop, expected_code=200)
-        self.assertEqual(response_dict['hop'], hop)
-        self.assertTrue(set(expected_stats) < set(response_dict['session'].keys()))
 
-    @timeout(5)
-    async def test_get_stats_for_uninitialized_session(self):
-        """
-        Tests getting stats for non initialized session.
-        By default, anonymous sessions with hops > 1 are not initialized so test is done for
-        a 2 hop session expecting empty stats.
-        """
-        hop = 2
+@pytest.mark.asyncio
+async def test_get_settings_for_one_session(enable_api, mock_lt_session, session):
+    """
+    Tests getting session for initialized anonymous session.
+    """
+    hop = 1
+    response_dict = await do_request(session, 'libtorrent/settings?hop=%d' % hop, expected_code=200)
+    settings_dict = response_dict['settings']
+    assert response_dict['hop'] == hop
+    assert "libtorrent" in settings_dict['user_agent'] or settings_dict['user_agent'] == ''
 
-        response_dict = await self.do_request('libtorrent/session?hop=%d' % hop, expected_code=200)
-        self.assertEqual(response_dict['hop'], hop)
-        self.assertEqual(response_dict['session'], {})
 
-    @timeout(5)
-    async def test_get_stats_for_one_hop_session(self):
-        """
-        Tests getting stats for initialized anonymous session.
-        """
-        hop = 1
-        self.session.dlmgr.get_session(hops=hop)
+@pytest.mark.asyncio
+async def test_get_stats_zero_hop_session(enable_api, mock_lt_session, session):
+    """
+    Tests getting session stats for zero hop session.
+    By default, there should always be a zero hop session so we should be able to get stats for this session.
+    """
+    hop = 0
+    response_dict = await do_request(session, 'libtorrent/session?hop=%d' % hop, expected_code=200)
+    assert response_dict['hop'] == hop
+    assert response_dict["session"] == {"a": "b"}
 
-        # expected sample stats
-        expected_stats = [u'dht.dht_peers', u'dht.dht_torrents', u'disk.num_jobs', u'net.recv_bytes', u'net.sent_bytes',
-                          u'peer.perm_peers', u'peer.disconnected_peers', u'ses.num_seeding_torrents',
-                          u'ses.num_incoming_choke']
 
-        response_dict = await self.do_request('libtorrent/session?hop=%d' % hop, expected_code=200)
-        self.assertEqual(response_dict['hop'], hop)
-        self.assertTrue(set(expected_stats) < set(response_dict['session'].keys()))
+@pytest.mark.asyncio
+async def test_get_stats_for_uninitialized_session(enable_api, mock_dlmgr, session):
+    """
+    Tests getting stats for non initialized session.
+    By default, anonymous sessions with hops > 1 are not initialized so test is done for
+    a 2 hop session expecting empty stats.
+    """
+    hop = 2
+
+    response_dict = await do_request(session, 'libtorrent/session?hop=%d' % hop, expected_code=200)
+    assert response_dict['hop'] == hop
+    assert response_dict['session'] == {}

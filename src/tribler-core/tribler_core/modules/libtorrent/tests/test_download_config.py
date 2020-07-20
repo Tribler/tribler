@@ -2,74 +2,72 @@ from pathlib import Path
 
 from configobj import ConfigObjError
 
-from nose.tools import raises
+import pytest
 
 from tribler_core.modules.libtorrent.download_config import DownloadConfig, get_default_dest_dir
-from tribler_core.tests.tools.base_test import TriblerCoreTest
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
 
 
-class TestConfigParser(TriblerCoreTest):
+CONFIG_FILES_DIR = TESTS_DATA_DIR / "config_files"
 
-    CONFIG_FILES_DIR = TESTS_DATA_DIR / "config_files"
 
-    def test_downloadconfig(self):
-        dlcfg = DownloadConfig()
+def test_downloadconfig(download_config, tmpdir):
+    assert isinstance(download_config.get_dest_dir(), Path)
+    download_config.set_dest_dir(tmpdir)
+    assert download_config.get_dest_dir() == tmpdir
 
-        self.assertIsInstance(dlcfg.get_dest_dir(), Path)
-        dlcfg.set_dest_dir(self.session_base_dir)
-        self.assertEqual(dlcfg.get_dest_dir(), self.session_base_dir)
+    download_config.set_hops(4)
+    assert download_config.get_hops() == 4
 
-        dlcfg.set_hops(4)
-        self.assertEqual(dlcfg.get_hops(), 4)
+    download_config.set_safe_seeding(False)
+    assert not download_config.get_safe_seeding()
 
-        dlcfg.set_safe_seeding(False)
-        self.assertFalse(dlcfg.get_safe_seeding())
+    download_config.set_selected_files([1])
+    assert download_config.get_selected_files() == [1]
 
-        dlcfg.set_selected_files([1])
-        self.assertEqual(dlcfg.get_selected_files(), [1])
+    download_config.set_channel_download(True)
+    assert download_config.get_channel_download()
 
-        dlcfg.set_channel_download(True)
-        self.assertTrue(dlcfg.get_channel_download())
+    download_config.set_add_to_channel(True)
+    assert download_config.get_add_to_channel()
 
-        dlcfg.set_add_to_channel(True)
-        self.assertTrue(dlcfg.get_add_to_channel())
+    download_config.set_bootstrap_download(True)
+    assert download_config.get_bootstrap_download()
 
-        dlcfg.set_bootstrap_download(True)
-        self.assertTrue(dlcfg.get_bootstrap_download())
 
-    def test_downloadconfig_copy(self):
-        dlcfg = DownloadConfig()
-        dlcfg_copy = dlcfg.copy()
+def test_downloadconfig_copy(download_config):
+    dlcfg_copy = download_config.copy()
 
-        self.assertEqual(dlcfg_copy.get_hops(), 0)
-        self.assertEqual(dlcfg_copy.state_dir, dlcfg.state_dir)
+    assert dlcfg_copy.get_hops() == 0
+    assert dlcfg_copy.state_dir == download_config.state_dir
 
-    def test_download_save_load(self):
-        dlcfg = DownloadConfig()
-        file_path = self.session_base_dir / "downloadconfig.conf"
-        dlcfg.write(file_path)
-        dlcfg.load(file_path)
 
-    @raises(ConfigObjError)
-    def test_download_load_corrupt(self):
-        dlcfg = DownloadConfig()
-        dlcfg.load(self.CONFIG_FILES_DIR / "corrupt_download_config.conf")
+def test_download_save_load(download_config, tmpdir):
+    file_path = tmpdir / "downloadconfig.conf"
+    download_config.write(file_path)
+    assert download_config.load(file_path)
 
-    def test_get_default_dest_dir(self):
-        self.assertIsInstance(get_default_dest_dir(), Path)
 
-    def test_default_download_config_load(self):
-        with open(self.session_base_dir / "dlconfig.conf", 'wb') as conf_file:
-            conf_file.write(b"[Tribler]\nabc=def")
+def test_download_load_corrupt(download_config):
+    with pytest.raises(ConfigObjError):
+        download_config.load(CONFIG_FILES_DIR / "corrupt_download_config.conf")
 
-        dcfg = DownloadConfig.load(self.session_base_dir / "dlconfig.conf")
-        self.assertEqual(dcfg.config['Tribler']['abc'], 'def')
 
-    def test_user_stopped(self):
-        dlcfg = DownloadConfig()
-        dlcfg.set_user_stopped(False)
-        self.assertFalse(dlcfg.get_user_stopped())
+def test_get_default_dest_dir():
+    assert isinstance(get_default_dest_dir(), Path)
 
-        dlcfg.set_user_stopped(True)
-        self.assertTrue(dlcfg.get_user_stopped())
+
+def test_default_download_config_load(tmpdir):
+    with open(tmpdir / "dlconfig.conf", 'wb') as conf_file:
+        conf_file.write(b"[Tribler]\nabc=def")
+
+    dcfg = DownloadConfig.load(tmpdir / "dlconfig.conf")
+    assert dcfg.config['Tribler']['abc'] == 'def'
+
+
+def test_user_stopped(download_config):
+    download_config.set_user_stopped(False)
+    assert not download_config.get_user_stopped()
+
+    download_config.set_user_stopped(True)
+    assert download_config.get_user_stopped()
