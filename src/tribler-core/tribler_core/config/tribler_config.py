@@ -158,6 +158,9 @@ class TriblerConfig(object):
     def get_state_dir(self):
         return self._state_dir
 
+    def set_state_dir(self, new_state_dir):
+        self._state_dir = new_state_dir
+
     # TrustChain
 
     def set_trustchain_keypair_filename(self, keypairfilename):

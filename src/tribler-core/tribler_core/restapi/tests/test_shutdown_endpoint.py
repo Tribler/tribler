@@ -1,27 +1,27 @@
-from tribler_core.restapi.base_api_test import AbstractApiTest
-from tribler_core.tests.tools.tools import timeout
-from tribler_core.utilities.utilities import succeed
+from ipv8.util import succeed
+
+import pytest
+
+from tribler_core.restapi.base_api_test import do_request
 
 
-class TestShutdownEndpoint(AbstractApiTest):
+@pytest.mark.asyncio
+async def test_shutdown(enable_api, session):
+    """
+    Testing whether the API triggers a Tribler shutdown
+    """
+    orig_shutdown = session.shutdown
 
-    @timeout(10)
-    async def test_shutdown(self):
-        """
-        Testing whether the API triggers a Tribler shutdown
-        """
-        self.orig_shutdown = self.session.shutdown
-        self.shutdown_called = False
+    def fake_shutdown():
+        # Record session.shutdown was called
+        fake_shutdown.shutdown_called = True
+        # Restore original shutdown for test teardown
+        session.shutdown = orig_shutdown
+        return succeed(True)
 
-        def fake_shutdown():
-            # Record session.shutdown was called
-            self.shutdown_called = True
-            # Restore original shutdown for test teardown
-            self.session.shutdown = self.orig_shutdown
-            return succeed(True)
+    session.shutdown = fake_shutdown
+    fake_shutdown.shutdown_called = False
 
-        self.session.shutdown = fake_shutdown
-
-        expected_json = {"shutdown": True}
-        await self.do_request('shutdown', expected_code=200, expected_json=expected_json, request_type='PUT')
-        self.assertTrue(self.shutdown_called)
+    expected_json = {"shutdown": True}
+    await do_request(session, 'shutdown', expected_code=200, expected_json=expected_json, request_type='PUT')
+    assert fake_shutdown.shutdown_called

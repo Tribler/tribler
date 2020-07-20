@@ -495,7 +495,7 @@ class DownloadManager(TaskManager):
         # so if we have tdef, and torrent_file will be ignored, and so on.
         if tdef is None:
             if torrent_file is None:
-                raise ValueError("Torrent file must be provided if tdef not given")
+                raise ValueError("Torrent file must be provided if tdef is not given")
             # try to get the torrent from the given torrent file
             tdef = TorrentDef.load(torrent_file)
 

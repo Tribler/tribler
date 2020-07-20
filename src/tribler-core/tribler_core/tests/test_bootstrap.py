@@ -1,11 +1,19 @@
 from binascii import unhexlify
 
 from ipv8.keyvault.crypto import ECCrypto
+from ipv8.util import succeed
+
+import pytest
 
 from tribler_core.modules.bootstrap import Bootstrap
 from tribler_core.tests.tools.base_test import MockObject
-from tribler_core.tests.tools.test_as_server import TestAsServer
-from tribler_core.utilities.utilities import succeed
+
+
+@pytest.fixture
+async def bootstrap(tmpdir):
+    bootstrap = Bootstrap(tmpdir, dht=FakeDHT())
+    yield bootstrap
+    await bootstrap.shutdown()
 
 
 class FakeDHT(object):
@@ -22,23 +30,17 @@ class FakeDHT(object):
         return succeed([matched_node, nearby_node])
 
 
-class TestBootstrapDownload(TestAsServer):
+@pytest.mark.asyncio
+async def test_load_and_fetch_bootstrap_peers(bootstrap):
+    # Before bootstrap download
+    nodes = await bootstrap.fetch_bootstrap_peers()
+    assert nodes == {}
 
-    async def setUp(self):
-        await super(TestBootstrapDownload, self).setUp()
-        self.bootstrap = Bootstrap(self.temporary_directory(), dht=FakeDHT())
+    # Assuming after bootstrap download
+    bootstrap.download = MockObject()
+    bootstrap.download.get_peerlist = lambda: [{'id': 'a' * 20}]
+    await bootstrap.fetch_bootstrap_peers()
 
-    async def test_load_and_fetch_bootstrap_peers(self):
-        # Before bootstrap download
-        nodes = await self.bootstrap.fetch_bootstrap_peers()
-        self.assertEqual(nodes, {})
-
-        # Assuming after bootstrap download
-        self.bootstrap.download = MockObject()
-        self.bootstrap.download.get_peerlist = lambda: [{'id': 'a' * 20}]
-
-        await self.bootstrap.fetch_bootstrap_peers()
-
-        # Assuming DHT returns two peers for bootstrap download
-        self.assertIsNotNone(self.bootstrap.bootstrap_nodes['a' * 20])
-        self.assertIsNotNone(self.bootstrap.bootstrap_nodes['b' * 20])
+    # Assuming DHT returns two peers for bootstrap download
+    assert bootstrap.bootstrap_nodes['a' * 20]
+    assert bootstrap.bootstrap_nodes['b' * 20]

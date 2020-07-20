@@ -368,7 +368,7 @@ class DownloadsEndpoint(RESTEndpoint):
             download_uri = unquote_plus(uri)
 
         try:
-            download = await self.session.dlmgr.start_download_from_uri(download_uri, download_config)
+            download = await self.session.dlmgr.start_download_from_uri(download_uri, config=download_config)
         except Exception as e:
             return RESTResponse({"error": str(e)}, status=HTTP_INTERNAL_SERVER_ERROR)
 
@@ -528,7 +528,7 @@ class DownloadsEndpoint(RESTEndpoint):
         if not download:
             return DownloadsEndpoint.return_404(request)
 
-        torrent = download.get_torrent()
+        torrent = download.get_torrent_data()
         if not torrent:
             return DownloadsEndpoint.return_404(request)
 

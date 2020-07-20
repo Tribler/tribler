@@ -36,6 +36,7 @@ from ipv8.messaging.anonymization.tunnel import (
 from ipv8.peer import Peer
 from ipv8.peerdiscovery.network import Network
 from ipv8.taskmanager import task
+from ipv8.util import succeed
 
 import libtorrent as lt
 
@@ -56,7 +57,6 @@ from tribler_core.modules.tunnel.community.payload import (
 from tribler_core.modules.tunnel.socks5.server import Socks5Server
 from tribler_core.utilities import path_util
 from tribler_core.utilities.unicode import hexlify
-from tribler_core.utilities.utilities import succeed
 
 DESTROY_REASON_BALANCE = 65535
 

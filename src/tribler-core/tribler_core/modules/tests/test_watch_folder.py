@@ -2,49 +2,48 @@ import os
 import shutil
 
 from tribler_core.tests.tools.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE
-from tribler_core.tests.tools.test_as_server import TestAsServer
 
 
-class TestWatchFolder(TestAsServer):
+def test_watchfolder_no_files(enable_watch_folder, mock_dlmgr, session):
+    session.watch_folder.check_watch_folder()
+    session.dlmgr.start_download.assert_not_called()
 
-    def setUpPreSession(self):
-        super(TestWatchFolder, self).setUpPreSession()
-        self.config.set_libtorrent_enabled(True)
-        self.config.set_watch_folder_enabled(True)
 
-        self.watch_dir = self.session_base_dir / 'watch'
-        os.mkdir(self.watch_dir)
+def test_watchfolder_no_torrent_file(enable_watch_folder, mock_dlmgr, tribler_state_dir, session):
+    shutil.copyfile(TORRENT_UBUNTU_FILE, tribler_state_dir / "watch" / "test.txt")
+    session.watch_folder.check_watch_folder()
+    session.dlmgr.start_download.assert_not_called()
 
-        self.config.set_watch_folder_path(self.watch_dir)
 
-    def test_watchfolder_no_files(self):
-        self.session.watch_folder.check_watch_folder()
-        self.assertEqual(len(self.session.dlmgr.get_downloads()), 0)
+def test_watchfolder_invalid_dir(enable_watch_folder, mock_dlmgr, tribler_state_dir, session):
+    shutil.copyfile(TORRENT_UBUNTU_FILE, tribler_state_dir / "watch" / "test.txt")
+    session.config.set_watch_folder_path(tribler_state_dir / "watch" / "test.txt")
+    session.watch_folder.check_watch_folder()
+    session.dlmgr.start_download.assert_not_called()
 
-    def test_watchfolder_no_torrent_file(self):
-        shutil.copyfile(TORRENT_UBUNTU_FILE, self.watch_dir / "test.txt")
-        self.session.watch_folder.check_watch_folder()
-        self.assertEqual(len(self.session.dlmgr.get_downloads()), 0)
 
-    def test_watchfolder_invalid_dir(self):
-        shutil.copyfile(TORRENT_UBUNTU_FILE, self.watch_dir / "test.txt")
-        self.session.config.set_watch_folder_path(self.watch_dir / "test.txt")
-        self.session.watch_folder.check_watch_folder()
-        self.assertEqual(len(self.session.dlmgr.get_downloads()), 0)
+def test_watchfolder_utf8_dir(enable_watch_folder, mock_dlmgr, tribler_state_dir, session):
+    os.mkdir(tribler_state_dir / "watch" / "\xe2\x82\xac")
+    shutil.copyfile(TORRENT_UBUNTU_FILE, tribler_state_dir / "watch" / "\xe2\x82\xac" / "\xe2\x82\xac.torrent")
+    session.config.set_watch_folder_path(tribler_state_dir / "watch")
+    session.watch_folder.check_watch_folder()
 
-    def test_watchfolder_utf8_dir(self):
-        os.mkdir(self.watch_dir / u"\xe2\x82\xac")
-        shutil.copyfile(TORRENT_UBUNTU_FILE, self.watch_dir / u"\xe2\x82\xac" / u"\xe2\x82\xac.torrent")
-        self.session.config.set_watch_folder_path(self.watch_dir)
-        self.session.watch_folder.check_watch_folder()
 
-    def test_watchfolder_torrent_file_one_corrupt(self):
-        shutil.copyfile(TORRENT_UBUNTU_FILE, self.watch_dir / "test.torrent")
-        shutil.copyfile(TESTS_DATA_DIR / 'test_rss.xml', self.watch_dir / "test2.torrent")
-        self.session.watch_folder.check_watch_folder()
-        self.assertEqual(len(self.session.dlmgr.get_downloads()), 1)
-        self.assertTrue((self.watch_dir / "test2.torrent.corrupt").is_file())
+def test_watchfolder_torrent_file_one_corrupt(enable_watch_folder, mock_dlmgr, tribler_state_dir, session):
+    def mock_start_download(*_, **__):
+        mock_start_download.downloads_started += 1
 
-    def test_cleanup(self):
-        self.session.watch_folder.cleanup_torrent_file(TESTS_DATA_DIR, 'thisdoesnotexist123.bla')
-        self.assertFalse((TESTS_DATA_DIR / 'thisdoesnotexist123.bla.corrupt').exists())
+    mock_start_download.downloads_started = 0
+
+    shutil.copyfile(TORRENT_UBUNTU_FILE, tribler_state_dir / "watch" / "test.torrent")
+    shutil.copyfile(TESTS_DATA_DIR / 'test_rss.xml', tribler_state_dir / "watch" / "test2.torrent")
+    session.dlmgr.start_download = mock_start_download
+    session.dlmgr.download_exists = lambda *_: False
+    session.watch_folder.check_watch_folder()
+    assert mock_start_download.downloads_started == 1
+    assert (tribler_state_dir / "watch" / "test2.torrent.corrupt").is_file()
+
+
+def test_cleanup(enable_watch_folder, mock_dlmgr, tribler_state_dir, session):
+    session.watch_folder.cleanup_torrent_file(TESTS_DATA_DIR, 'thisdoesnotexist123.bla')
+    assert not (TESTS_DATA_DIR / 'thisdoesnotexist123.bla.corrupt').exists()

@@ -183,7 +183,7 @@ def define_binding(db):
                 if entry.status == TODELETE:
                     entry.delete()
 
-            folder = self._channels_dir / self.dirname
+            folder = Path(self._channels_dir) / self.dirname
             # We check if we need to re-create the channel dir in case it was deleted for some reason
             if not folder.is_dir():
                 os.makedirs(folder)

@@ -1,92 +1,93 @@
 import os
-from multiprocessing import Process, Value
+from multiprocessing import Process
+from pathlib import Path
 from time import sleep
 
+import pytest
+
 from tribler_core.modules.process_checker import LOCK_FILE_NAME, ProcessChecker
-from tribler_core.tests.tools.test_as_server import AbstractServer
 
 
-def process_dummy_function(stop_flag):
-    while stop_flag.value == 0:
-        sleep(0.01)
+@pytest.fixture
+def process_checker(tmpdir):
+    return ProcessChecker(state_directory=Path(tmpdir))
 
 
-class TestProcessChecker(AbstractServer):
-    """A test class for the ProcessChecker which checks if the Tribler Core is already running."""
-    async def tearDown(self):
-        await super(TestProcessChecker, self).tearDown()
-        if self.process:
-            self.stop_flag.value = 1
-            self.process.join()
+@pytest.fixture
+def background_process():
+    def process_dummy_function():
+        while True:
+            sleep(0.01)
 
-    async def setUp(self):
-        await super(TestProcessChecker, self).setUp()
-        self.process = None
-        self.stop_flag = Value('b', 0)
-        self.state_dir = self.getRootStateDir()
+    process = Process(target=process_dummy_function)
+    process.start()
+    yield process
+    process.terminate()
 
-    def create_lock_file_with_pid(self, pid):
-        with open(self.state_dir / LOCK_FILE_NAME, 'w') as lock_file:
-            lock_file.write(str(pid))
 
-    def test_create_lock_file(self):
-        """
-        Testing if lock file is created
-        """
-        process_checker = ProcessChecker(state_directory=self.state_dir)
-        process_checker.create_lock_file()
-        self.assertTrue((self.state_dir / LOCK_FILE_NAME).exists())
+def create_lock_file_with_pid(tmpdir, pid):
+    with open(tmpdir / LOCK_FILE_NAME, 'w') as lock_file:
+        lock_file.write(str(pid))
 
-    def test_remove_lock_file(self):
-        """
-        Testing if lock file is removed on calling remove_lock_file()
-        """
-        process_checker = ProcessChecker(state_directory=self.state_dir)
-        process_checker.create_lock_file()
-        process_checker.remove_lock_file()
-        self.assertFalse((self.state_dir / LOCK_FILE_NAME).exists())
 
-    def test_no_lock_file(self):
-        """
-        Testing whether the process checker returns false when there is no lock file
-        """
-        process_checker = ProcessChecker(state_directory=self.state_dir)
-        # Process checker does not create a lock file itself now, Core manager will call to create it.
-        self.assertFalse((self.state_dir / LOCK_FILE_NAME).exists())
-        self.assertFalse(process_checker.already_running)
+def test_create_lock_file(tmpdir, process_checker):
+    """
+    Testing if lock file is created
+    """
+    process_checker.create_lock_file()
+    assert (tmpdir / LOCK_FILE_NAME).exists()
 
-    def test_invalid_pid_in_lock_file(self):
-        """
-        Testing pid should be -1 if the lock file is invalid
-        """
-        with open(self.state_dir / LOCK_FILE_NAME, 'wb') as lock_file:
-            lock_file.write(b"Hello world")
 
-        process_checker = ProcessChecker(state_directory=self.state_dir)
-        self.assertEqual(process_checker.get_pid_from_lock_file(), -1)
+def test_remove_lock_file(tmpdir, process_checker):
+    """
+    Testing if lock file is removed on calling remove_lock_file()
+    """
+    process_checker.create_lock_file()
+    process_checker.remove_lock_file()
+    assert not (tmpdir / LOCK_FILE_NAME).exists()
 
-    def test_own_pid_in_lock_file(self):
-        """
-        Testing whether the process checker returns True when it finds its own pid in the lock file
-        """
-        self.create_lock_file_with_pid(os.getpid())
-        process_checker = ProcessChecker(state_directory=self.state_dir)
-        self.assertTrue(process_checker.already_running)
 
-    def test_other_instance_running(self):
-        """Testing whether the process checker returns true when another process is running."""
-        self.process = Process(target=process_dummy_function, args=(self.stop_flag,))
-        self.process.start()
+def test_no_lock_file(tmpdir, process_checker):
+    """
+    Testing whether the process checker returns false when there is no lock file
+    """
+    # Process checker does not create a lock file itself now, Core manager will call to create it.
+    assert not (tmpdir / LOCK_FILE_NAME).exists()
+    assert not process_checker.already_running
 
-        self.create_lock_file_with_pid(self.process.pid)
-        process_checker = ProcessChecker(state_directory=self.state_dir)
-        self.assertTrue(process_checker.is_pid_running(self.process.pid))
-        self.assertTrue(process_checker.already_running)
 
-    def test_dead_pid_in_lock_file(self):
-        """Testing whether the process checker returns false when there is a dead pid in the lock file."""
-        dead_pid = 134824733
-        self.create_lock_file_with_pid(dead_pid)
-        process_checker = ProcessChecker(state_directory=self.state_dir)
-        self.assertFalse(process_checker.is_pid_running(dead_pid))
-        self.assertFalse(process_checker.already_running)
+def test_invalid_pid_in_lock_file(tmpdir):
+    """
+    Testing pid should be -1 if the lock file is invalid
+    """
+    with open(tmpdir / LOCK_FILE_NAME, 'wb') as lock_file:
+        lock_file.write(b"Hello world")
+
+    process_checker = ProcessChecker(state_directory=Path(tmpdir))
+    assert process_checker.get_pid_from_lock_file() == -1
+
+
+def test_own_pid_in_lock_file(tmpdir):
+    """
+    Testing whether the process checker returns True when it finds its own pid in the lock file
+    """
+    create_lock_file_with_pid(tmpdir, os.getpid())
+    process_checker = ProcessChecker(state_directory=Path(tmpdir))
+    assert process_checker.already_running
+
+
+def test_other_instance_running(tmpdir, background_process):
+    """Testing whether the process checker returns true when another process is running."""
+    create_lock_file_with_pid(tmpdir, background_process.pid)
+    process_checker = ProcessChecker(state_directory=Path(tmpdir))
+    assert process_checker.is_pid_running(background_process.pid)
+    assert process_checker.already_running
+
+
+def test_dead_pid_in_lock_file(tmpdir):
+    """Testing whether the process checker returns false when there is a dead pid in the lock file."""
+    dead_pid = 134824733
+    create_lock_file_with_pid(tmpdir, dead_pid)
+    process_checker = ProcessChecker(state_directory=Path(tmpdir))
+    assert not process_checker.is_pid_running(dead_pid)
+    assert not process_checker.already_running

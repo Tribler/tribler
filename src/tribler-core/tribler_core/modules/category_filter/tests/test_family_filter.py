@@ -1,38 +1,42 @@
+import pytest
+
 from tribler_core.modules.category_filter.family_filter import XXXFilter
 from tribler_core.modules.category_filter.l2_filter import is_forbidden
-from tribler_core.tests.tools.test_as_server import AbstractServer
 
 
-class TriblerCategoryTestFamilyFilter(AbstractServer):
+@pytest.fixture
+def family_filter():
+    family_filter = XXXFilter()
+    family_filter.xxx_terms.add("term1")
+    family_filter.xxx_terms.add("term2")
+    family_filter.xxx_searchterms.add("term3")
+    return family_filter
 
-    async def setUp(self):
-        await super(TriblerCategoryTestFamilyFilter, self).setUp()
-        self.family_filter = XXXFilter()
-        self.family_filter.xxx_terms.add("term1")
-        self.family_filter.xxx_terms.add("term2")
-        self.family_filter.xxx_searchterms.add("term3")
 
-    def test_is_xxx(self):
-        self.assertFalse(self.family_filter.isXXX(None))
-        self.assertTrue(self.family_filter.isXXX("term1"))
-        self.assertFalse(self.family_filter.isXXX("term0"))
-        self.assertTrue(self.family_filter.isXXX("term3"))
+def test_is_xxx(family_filter):
+    assert not family_filter.isXXX(None)
+    assert family_filter.isXXX("term1")
+    assert not family_filter.isXXX("term0")
+    assert family_filter.isXXX("term3")
 
-    def test_is_xxx_term(self):
-        self.assertTrue(self.family_filter.isXXXTerm("term1es"))
-        self.assertFalse(self.family_filter.isXXXTerm("term0es"))
-        self.assertTrue(self.family_filter.isXXXTerm("term1s"))
-        self.assertFalse(self.family_filter.isXXXTerm("term0n"))
 
-    def test_xxx_torrent_metadata_dict(self):
-        d = {
-            "title": "XXX",
-            "tags": "",
-            "tracker": "http://sooo.dfd/announce"
-        }
-        self.assertTrue(self.family_filter.isXXXTorrentMetadataDict(d))
+def test_is_xxx_term(family_filter):
+    assert family_filter.isXXXTerm("term1es")
+    assert not family_filter.isXXXTerm("term0es")
+    assert family_filter.isXXXTerm("term1s")
+    assert not family_filter.isXXXTerm("term0n")
 
-    def test_l2_filter(self):
-        self.assertTrue(is_forbidden("9yo ponies"))
-        self.assertTrue(is_forbidden("12yo ponies"))
-        self.assertFalse(is_forbidden("18yo ponies"))
+
+def test_xxx_torrent_metadata_dict(family_filter):
+    d = {
+        "title": "XXX",
+        "tags": "",
+        "tracker": "http://sooo.dfd/announce"
+    }
+    assert family_filter.isXXXTorrentMetadataDict(d)
+
+
+def test_l2_filter():
+    assert is_forbidden("9yo ponies")
+    assert is_forbidden("12yo ponies")
+    assert not is_forbidden("18yo ponies")
