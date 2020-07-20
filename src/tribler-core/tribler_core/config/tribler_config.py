@@ -118,6 +118,18 @@ class TriblerConfig(object):
     def get_version(self):
         return self.config['general']['version']
 
+    def set_log_dir(self, value):
+        self.config['general']['log_dir'] = str(self.norm_path(value))
+
+    def get_log_dir(self):
+        return self.abspath(self.config['general']['log_dir'])
+
+    def set_version_checker_enabled(self, value):
+        self.config['general']['version_checker_enabled'] = value
+
+    def get_version_checker_enabled(self):
+        return self.config['general']['version_checker_enabled']
+
     # Chant
     def set_chant_enabled(self, value):
         self.config['chant']['enabled'] = bool(value)
@@ -137,8 +149,16 @@ class TriblerConfig(object):
     def get_chant_channels_dir(self):
         return self.abspath(self.config['chant']['channels_dir'])
 
+    def set_chant_testnet(self, value):
+        self.config['chant']['testnet'] = value
+
+    def get_chant_testnet(self):
+        return 'TESTNET' in os.environ or 'CHANT_TESTNET' in os.environ or self.config['chant']['testnet']
+
     def get_state_dir(self):
         return self._state_dir
+
+    # TrustChain
 
     def set_trustchain_keypair_filename(self, keypairfilename):
         self.config['trustchain']['ec_keypair_filename'] = str(self.norm_path(keypairfilename))
@@ -161,6 +181,14 @@ class TriblerConfig(object):
     def set_trustchain_live_edges_enabled(self, value):
         self.config['trustchain']['live_edges_enabled'] = value
 
+    def get_trustchain_testnet(self):
+        return 'TESTNET' in os.environ or 'TRUSTCHAIN_TESTNET' in os.environ or self.config['trustchain']['testnet']
+
+    def set_trustchain_testnet(self, value):
+        self.config['trustchain']['testnet'] = value
+
+    # Bootstrap
+
     def set_bootstrap_enabled(self, value):
         self.config['bootstrap']['enabled'] = value
 
@@ -181,27 +209,6 @@ class TriblerConfig(object):
 
     def get_trustchain_live_edges_enabled(self):
         return self.config['trustchain']['live_edges_enabled']
-
-    def set_log_dir(self, value):
-        self.config['general']['log_dir'] = str(self.norm_path(value))
-
-    def get_log_dir(self):
-        return self.abspath(self.config['general']['log_dir'])
-
-    def set_testnet(self, value):
-        self.config['general']['testnet'] = value
-
-    def get_testnet(self):
-        return 'TESTNET' in os.environ or self.config['general']['testnet']
-
-    # Version Checker
-    def set_version_checker_enabled(self, value):
-        self.config['general']['version_checker_enabled'] = value
-
-    def get_version_checker_enabled(self):
-        if 'version_checker_enabled' not in self.config['general']:
-            return True
-        return self.config['general']['version_checker_enabled']
 
     # Torrent checking
 
@@ -458,6 +465,12 @@ class TriblerConfig(object):
 
     def get_tunnel_community_competing_slots(self):
         return self.config['tunnel_community']['competing_slots']
+
+    def set_tunnel_testnet(self, value):
+        self.config['tunnel_community']['testnet'] = value
+
+    def get_tunnel_testnet(self):
+        return 'TESTNET' in os.environ or 'TUNNEL_TESTNET' in os.environ or self.config['tunnel_community']['testnet']
 
     def set_default_number_hops(self, value):
         self.config['download_defaults']['number_hops'] = value
