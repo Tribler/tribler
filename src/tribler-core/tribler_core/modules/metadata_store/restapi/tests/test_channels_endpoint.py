@@ -428,13 +428,15 @@ class TestSpecificChannelTorrentsEndpoint(BaseTestMyChannelEndpoint):
             return succeed(meta_info)
 
         self.session.dlmgr.get_metainfo = fake_get_metainfo
+        self.session.mds.torrent_exists_in_personal_channel = Mock()
 
-        post_params = {'uri': 'magnet:?fake'}
+        post_params = {'uri': 'magnet:?xt=urn:btih:111111111111111111111111111111111111111111'}
         await self.do_request(
             'channels/%s/%s/torrents' % (hexlify(channel.public_key), channel.id_),
             request_type='PUT',
             post_data=post_params,
         )
+        self.session.mds.torrent_exists_in_personal_channel.assert_called_once()
 
     @timeout(10)
     async def test_add_torrent_from_magnet_error(self):
