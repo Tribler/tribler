@@ -9,7 +9,7 @@ from aiohttp import web
 
 from ipv8.messaging.anonymization.tunnel import CIRCUIT_ID_PORT
 
-from libtorrent import bencode, create_torrent
+from libtorrent import bencode
 
 from pony.orm import db_session
 
@@ -498,12 +498,9 @@ class DownloadsEndpoint(RESTEndpoint):
         if not download:
             return DownloadsEndpoint.return_404(request)
 
-        if not download.handle or not download.handle.is_valid() or not download.handle.has_metadata():
+        torrent = download.get_torrent()
+        if not torrent:
             return DownloadsEndpoint.return_404(request)
-
-        torrent_info = get_info_from_handle(download.handle)
-        t = create_torrent(torrent_info)
-        torrent = t.generate()
 
         return RESTResponse(bencode(torrent), headers={'content-type': 'application/x-bittorrent',
                                                        'Content-Disposition': 'attachment; filename=%s.torrent'

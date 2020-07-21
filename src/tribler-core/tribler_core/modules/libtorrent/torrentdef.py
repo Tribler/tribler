@@ -57,11 +57,12 @@ class TorrentDef(object):
     It can be used to create new torrents, or analyze existing ones.
     """
 
-    def __init__(self, metainfo=None, torrent_parameters=None):
+    def __init__(self, metainfo=None, torrent_parameters=None, ignore_validation=False):
         """
         Create a new TorrentDef object, possibly based on existing data.
         :param metainfo: A dictionary with metainfo, i.e. from a .torrent file.
         :param torrent_parameters: User-defined parameters for the new TorrentDef.
+        :param ignore_validation: Whether we ignore the libtorrent validation.
         """
         self._logger = logging.getLogger(self.__class__.__name__)
         self.torrent_parameters = {}
@@ -71,10 +72,11 @@ class TorrentDef(object):
 
         if metainfo is not None:
             # First, make sure the passed metainfo is valid
-            try:
-                lt.torrent_info(metainfo)
-            except RuntimeError as exc:
-                raise ValueError(str(exc))
+            if not ignore_validation:
+                try:
+                    lt.torrent_info(metainfo)
+                except RuntimeError as exc:
+                    raise ValueError(str(exc))
             self.metainfo = metainfo
             self.infohash = sha1(bencode(self.metainfo[b'info'])).digest()
             self.copy_metainfo_to_torrent_parameters()

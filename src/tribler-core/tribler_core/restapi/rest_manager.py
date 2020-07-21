@@ -3,10 +3,11 @@ import os
 
 from aiohttp import web
 
-from ipv8.taskmanager import TaskManager
-
 from tribler_core.restapi.rest_endpoint import HTTP_INTERNAL_SERVER_ERROR, HTTP_UNAUTHORIZED, RESTResponse
 from tribler_core.restapi.root_endpoint import RootEndpoint
+
+
+logger = logging.getLogger(__name__)
 
 
 @web.middleware
@@ -34,6 +35,7 @@ async def error_middleware(request, handler):
             raise Exception('Tribler is shutting down')
         response = await handler(request)
     except Exception as e:
+        logger.exception(e)
         return RESTResponse({"error": {
             "handled": False,
             "code": e.__class__.__name__,
