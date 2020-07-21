@@ -142,17 +142,21 @@ class DownloadManager(TaskManager):
             await self.dht_health_manager.shutdown_task_manager()
 
         # Save libtorrent state
-        with open(self.tribler_session.config.get_state_dir() / LTSTATE_FILENAME, 'wb') as ltstate_file:
-            ltstate_file.write(lt.bencode(self.get_session().save_state()))
+        if self.has_session():
+            with open(self.tribler_session.config.get_state_dir() / LTSTATE_FILENAME, 'wb') as ltstate_file:
+                ltstate_file.write(lt.bencode(self.get_session().save_state()))
 
-        self.get_session().stop_upnp()
+        if self.has_session():
+            self.get_session().stop_upnp()
+
         for ltsession in self.ltsessions.values():
             del ltsession
         self.ltsessions = None
 
         # Remove metadata temporary directory
-        rmtree(self.metadata_tmpdir)
-        self.metadata_tmpdir = None
+        if self.metadata_tmpdir:
+            rmtree(self.metadata_tmpdir)
+            self.metadata_tmpdir = None
 
         self.tribler_session = None
 
@@ -252,6 +256,9 @@ class DownloadManager(TaskManager):
         self.lt_session_shutdown_ready[hops] = False
 
         return ltsession
+
+    def has_session(self, hops=0):
+        return hops in self.ltsessions
 
     def get_session(self, hops=0):
         if hops not in self.ltsessions:

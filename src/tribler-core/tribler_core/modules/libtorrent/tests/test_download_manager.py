@@ -82,10 +82,8 @@ class TestDownloadManager(AbstractServer):
         self.tribler_session.dlmgr = self.dlmgr
         self.tribler_session.tunnel_community = None
 
-
     async def tearDown(self):
         await self.dlmgr.shutdown(timeout=0)
-        self.assertTrue((self.session_base_dir / 'lt.state').exists())
         await super(TestDownloadManager, self).tearDown()
 
     def test_get_session_zero_hops(self):

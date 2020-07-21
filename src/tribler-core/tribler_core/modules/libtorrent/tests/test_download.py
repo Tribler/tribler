@@ -206,6 +206,11 @@ class TestDownload(TestAsServer):
         """
         self.assertRaises(OverflowError, self.session.dlmgr.set_upload_rate_limit, 2 ** 70)
 
+    def test_get_torrent(self):
+        tdef = self.create_tdef()
+        dl = Download(self.session, tdef)
+        self.assertIsNone(dl.get_torrent())
+
 
 class TestDownloadNoSession(TriblerCoreTest):
 

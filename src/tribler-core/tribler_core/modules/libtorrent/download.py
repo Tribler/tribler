@@ -36,6 +36,7 @@ class Download(TaskManager):
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.session = session
+        self.config = None
         self.tdef = tdef
         self.handle = None
         self.state_dir = self.session.config.get_state_dir() if self.session else None
@@ -509,6 +510,14 @@ class Download(TaskManager):
                 num_peers += 1
 
         return num_seeds, num_peers
+
+    def get_torrent(self):
+        if not self.handle or not self.handle.is_valid() or not self.handle.has_metadata():
+            return None
+
+        torrent_info = get_info_from_handle(self.handle)
+        t = lt.create_torrent(torrent_info)
+        return t.generate()
 
     @check_handle(default={})
     def get_tracker_status(self):
