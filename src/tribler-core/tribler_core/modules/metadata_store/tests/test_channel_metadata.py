@@ -20,6 +20,7 @@ from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import CH
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import COMMITTED, NEW, TODELETE, UPDATED
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 from tribler_core.modules.metadata_store.store import MetadataStore
+from tribler_core.modules.metadata_store.tests.test_store import TEST_PERSONAL_KEY
 from tribler_core.tests.tools.base_test import TriblerCoreTest
 from tribler_core.tests.tools.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE
 from tribler_core.utilities import path_util
@@ -34,8 +35,7 @@ class TestChannelMetadata(TriblerCoreTest):
     async def setUp(self):
         await super(TestChannelMetadata, self).setUp()
         self.torrent_template = {"title": "", "infohash": b"", "torrent_date": datetime(1970, 1, 1), "tags": "video"}
-        self.my_key = default_eccrypto.generate_key(u"curve25519")
-        self.mds = MetadataStore(":memory:", self.session_base_dir, self.my_key)
+        self.mds = MetadataStore(":memory:", self.session_base_dir, TEST_PERSONAL_KEY)
 
     async def tearDown(self):
         self.mds.shutdown()
@@ -106,14 +106,14 @@ class TestChannelMetadata(TriblerCoreTest):
         """
         Test whether the correct directory name is returned for channel metadata
         """
-        sample_channel_dict = TestChannelMetadata.get_sample_channel_dict(self.my_key)
+        sample_channel_dict = TestChannelMetadata.get_sample_channel_dict(TEST_PERSONAL_KEY)
         channel_metadata = self.mds.ChannelMetadata.from_dict(sample_channel_dict)
 
         self.assertEqual(len(channel_metadata.dirname), CHANNEL_DIR_NAME_LENGTH)
 
     @db_session
     def test_get_channel_with_dirname(self):
-        sample_channel_dict = TestChannelMetadata.get_sample_channel_dict(self.my_key)
+        sample_channel_dict = TestChannelMetadata.get_sample_channel_dict(TEST_PERSONAL_KEY)
         channel_metadata = self.mds.ChannelMetadata.from_dict(sample_channel_dict)
         dirname = channel_metadata.dirname
         channel_result = self.mds.ChannelMetadata.get_channel_with_dirname(dirname)
