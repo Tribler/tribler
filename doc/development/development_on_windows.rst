@@ -5,7 +5,7 @@ Introduction
 
 In this guide, all required dependencies of Tribler will be explained. It presents how to install these dependencies. Some dependencies have to be built from source whereas other dependencies can be installed using a .msi or .exe installer. The guide targets Windows 7 or higher, 64-bit systems, however, it is probably not very hard to install 32-bit packages.
 
-First, Python 3.7 should be installed. If you already have a Python version installed, please check whether this version is 64 bit before proceeding.
+First, Python 3 should be installed. If you already have a Python version installed, please check whether this version is 64 bit before proceeding.
 
 .. code-block:: bash
 
@@ -13,59 +13,11 @@ First, Python 3.7 should be installed. If you already have a Python version inst
 
 This outputs whether your current installation is 32 or 64 bit.
 
-Python can be downloaded from the official `Python website <https://www.python.org/downloads/release/python-375/>`_. You should download the Windows x86-64 MSI Installer which is an executable. **During the setup, remember to install pip/setuptools and to add Python to the PATH variable to access Python from the command line. The option to add Python to the PATH variable is unchecked by default!** You can verify whether Python is installed correctly by typing ``python`` in the command line. Also check whether pip is working by typing ``pip`` in the command line. If they are not working, check whether the PATH variables are correctly set.
+Python can be downloaded from the official `Python website <https://www.python.org/downloads/>`_. You should download the Windows x86-64 MSI Installer which is an executable. **During the setup, remember to add Python to the PATH variable to access Python from the command line. The option to add Python to the PATH variable is unchecked by default!** You can verify whether Python is installed correctly by typing ``python`` in the command line. If they are not working, verify whether the PATH variables are correctly set. Instructions on how to set path variable can be found `here <http://www.computerhope.com/issues/ch000549.htm>`__.
 
-If you did not change the default installation location, Python should be located at ``C:\\Python37\\``. The third-party libraries are located in ``C:\\Python37\\Lib\\site-packages``. If you forgot to add Python to your PATH during the setup, you need to add the ``C:\\Python37\\`` and ``C:\\Python37\\Scripts`` directories to your PATH variable. Information about how to set path variable can be found `here <http://www.computerhope.com/issues/ch000549.htm>`__.
+In order to compile some of the dependencies of Tribler, you will need the Visual Studio installed which can be downloaded from `here <https://www.visualstudio.com/downloads/download-visual-studio-vs>`__ or `here <https://imagine.microsoft.com/en-us/Catalog/Product/101>`__. You should select the community edition. Visual Studio ships with a command line interface and all required tools that are used for building some of the Python packages. After the installation of Visual Studio, you should install the Visual C++ tools. This can be done from within Visual Studio by creating a new Visual C++ project. Visual Studio then gives an option to install the Visual C++ developer tools.
 
-In order to compile some of the dependencies of Tribler, you will need Visual Studio 2015 which can be downloaded from `here <https://www.visualstudio.com/downloads/download-visual-studio-vs>`__ or `here <https://imagine.microsoft.com/en-us/Catalog/Product/101>`__. You should select the community edition. Visual Studio ships with a command line interface that can be used for building some of the Python packages. Moreover, it provides a nice IDE which can be used to work on Python projects. After installation of Visual Studio, you should install the Visual C++ tools. This can be done from within Visual Studio by creating a new Visual C++ project. Visual Studio then gives an option to install the Visual C++ developer tools.
-
-In case importing one of the modules fail due to a DLL error, you can inspect if there are files missing by opening it with `Dependency Walker <www.dependencywalker.com>`_. It should show missing dependencies. In our case, we were missing ``MSVCR100.DLL`` which belongs to the Microsoft Visual C++ 2010 SP1 Redistributable Package (x64). This package can be downloaded `from the Microsoft website <https://www.microsoft.com/en-us/download/details.aspx?id=13523>`_.
-One other DLL that was missing was ``MSVCR110.DLL``, which belongs to the `Visual C++ Redistributable for Visual Studio 2012 Update 4 <https://www.microsoft.com/en-us/download/details.aspx?id=30679>`_.
-After installing these two packages, there should be no more import errors.
-It may be required to enable Visual C++ Toolset on the Command Line if Native Command Line tool is not available. You can do that by following article `here <https://msdn.microsoft.com/en-us/library/x4d2c09s.aspx>`__.
-
-PyQt5
------
-
-If you wish to run the Tribler Graphical User Interface, PyQt5 should be available on the system. While PyQt5 is available in the pip repository, this is only compatible with Python 3. There is an unofficial distribution available for Python 3.7 here `https://github.com/pyqt/python-qt5 <https://github.com/pyqt/python-qt5/>`_. You can simply install PyQt5 from this repository.
-
-.. code-block:: bash
-
-    pip install git+git://github.com/pyqt/python-qt5.git
-
-After installation, check it was correctly installed
-
-.. code-block:: bash
-
-    python -c "import PyQt5" # this should work without any error
-
-**Alternatively,** if above steps do not work, follow the instructions below.
-
-Start by downloading the Qt library from `here <https://www.qt.io/download-open-source>`__. You can either compile it from source or use a Qt installer which automatically installs the pre-compiled libraries. Make sure to choose the correct distribution based on your platform(32/64 bit).
-
-After the Qt installation is completed, PyQt5 should be compiled. This library depends on SIP, another library to automatically generate Python bindings from C++ code. Download the latest SIP version `here <https://riverbankcomputing.com/software/sip/download>`__, extract it, navigate to the directory where it has been extracted and compile/install it (don't forget to execute these commands in the Visual Studio command line):
-
-.. code-block:: bash
-
-    python configure.py
-    nmake
-    nmake install
-
-Next, download PyQt5 from `here <https://sourceforge.net/projects/pyqt/files/PyQt5/>`__ and make sure that you download the version that matches with the version of Qt you installed in the previous steps. Extract the binary and compile it:
-
-.. code-block:: bash
-
-    python configure.py --qmake=<qmake_path> --disable=QtNfc --disable=QtBluetooth
-    nmake
-    nmake install
-    python -c "import PyQt5" # this should work without any error
-
-Note that ``<qmake_path>`` is the path to the qmake.exe file path. For eg. qmake could be here ``C:\Qt\Qt5.6.2\5.6\msvc2015_64\bin\qmake.exe`` but depends on your installation. Here, we are disabling QtNfc and QtBluetooth modules which contains classes that provide connectivity between NFC & Bluetooth enabled devices respectively which we do not require in Tribler. Moreover, not disabling these modules may lead to missing DLL files causing installation to fail. So, we can safely disable them. The installation can take a while. After it has finished, the PyQt5 library is installed correctly.
-
-pyWin32 Tools
--------------
-
-In order to access some of the Windows API functions, pywin32 should be installed. The pywin32 installer can be downloaded from `Sourceforge <http://sourceforge.net/projects/pywin32/files/pywin32/>`__ and make sure to select the amd64 version and the version compatible with Python 3.7.
+In case importing one of the modules fail due to a DLL error, you can inspect if there are files missing by opening it with `Dependency Walker <www.dependencywalker.com>`_. It should show missing dependencies.
 
 libtorrent
 ----------
@@ -93,25 +45,18 @@ After successfully copying the ``libtorrent.pyd`` file either compiled or from t
 libsodium
 ---------
 
-Libsodium can be download as precompiled binary from `their website <https://download.libsodium.org/libsodium/releases/>`__. Download the latest version, built with msvc. Extract the archive to any location on your machine. Next, you should add the location of the dynamic library to your ``PATH`` variables (either as system variable or as user variable). These library files can be found in ``LIBSODIUM_ROOT\\x64\\Release\\v140\\dynamic\\`` where ``LIBSODIUM_ROOT`` is the location of your extracted libsodium files. After modifying your PATH, you should reopen your command prompt. You test whether Python is able to load ``libsodium.dll`` by executing:
+Libsodium is required for the ``libnacl`` library, used for cryptographic operations. Libsodium can be download as precompiled binary from `their website <https://download.libsodium.org/libsodium/releases/>`__. Download the latest version, built with msvc. Extract the archive to any location on your machine. Next, you should add the location of the dynamic library to your ``PATH`` variables (either as system variable or as user variable). These library files can be found in ``LIBSODIUM_ROOT\\x64\\Release\\v142\\dynamic\\`` where ``LIBSODIUM_ROOT`` is the location of your extracted libsodium files. After modifying your PATH, you should reopen your command prompt. You test whether Python is able to load ``libsodium.dll`` by executing:
 
 .. code-block:: bash
 
     python -c "import ctypes; ctypes.cdll.LoadLibrary('libsodium')"
 
+Note that this might fail on Python 3.8, since directories have to be explicitly whitelisted to load DLLs from them. You can either copy the ``libsodium.dll`` to your ``System32`` directory or by whitelisting that directory using ``os.add_dll_directory`` when running Tribler.
+
 VLC
 ---
 
 To install VLC, you can download the official installer from the `VideoLAN website <http://www.videolan.org/vlc/download-windows.html>`_. Make sure to install the latest 64-bit version of VLC.
-
-NumPy & SciPy
--------------
-To install NumPy & SciPy, download the respective .whl files `here <http://www.lfd.uci.edu/~gohlke/pythonlibs/>`__ and install using with pip as below. Make sure to download files with cp37 in names as they are for python 3.7
-
-.. code-block:: bash
-
-    pip install scipy‑1.3.3‑cp37‑cp37m‑win_amd64.whl
-    pip install numpy‑1.17.4+mkl‑cp37‑cp37m‑win_amd64.whl
 
 Additional Packages
 -------------------
@@ -121,9 +66,9 @@ There are some additional packages which should be installed. They can easily be
 .. code-block:: bash
 
     pip install aiohttp aiohttp_apispec cffi chardet configobj cryptography decorator gmpy2 idna libnacl lz4 \
-    netifaces networkx numpy pathlib pillow psutil pyasn1 pyopenssl pyqtgraph pyyaml
+    netifaces networkx numpy pillow psutil pyasn1 PyQt5 pyqtgraph pywin32 pyyaml
 
-To enable Bitcoin wallet management (optional), you should install the bitcoinlib library (support for this wallet is experimental):
+To enable Bitcoin wallet management (optional), you should install the bitcoinlib library (support for this wallet is highly experimental):
 
 .. code-block:: bash
 
@@ -132,12 +77,10 @@ To enable Bitcoin wallet management (optional), you should install the bitcoinli
 Running Tribler
 ---------------
 
-You should now be able to run Tribler from command line. Grab a copy of the Tribler source code and navigate in a command line interface to the source code directory. Start Tribler by executing the following Python script in the ``tribler/src`` directory:
+You should now be able to run Tribler from command line. Grab a copy of the Tribler source code and navigate in a command line interface to the source code directory. Start Tribler by executing the Batch script in the ``tribler/src`` directory:
 
 .. code-block:: bash
 
-    python run_tribler.py
-
-You might get errors about imports in the Tribler module. To fix this, you should add the location where the Tribler directory is located to the ``PYTHONPATH`` user environment variables. Information about changing environment variables can be found `here <http://www.computerhope.com/issues/ch000549.htm>`__.
+    tribler.bat
 
 If there are any problems with the guide above, please feel free to fix any errors or `create an issue <https://github.com/Tribler/tribler/issues/new>`_ so we can look into it.

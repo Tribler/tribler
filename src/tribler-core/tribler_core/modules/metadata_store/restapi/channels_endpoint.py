@@ -274,7 +274,10 @@ class ChannelsEndpoint(ChannelsEndpointBase):
                 if (
                     xt
                     and is_infohash(codecs.encode(xt, 'hex'))
-                    and (channel.torrent_exists(xt) or channel.copy_torrent_from_infohash(xt))
+                    and (
+                        self.session.mds.torrent_exists_in_personal_channel(xt)
+                        or channel.copy_torrent_from_infohash(xt)
+                    )
                 ):
                     return RESTResponse({"added": 1})
 

@@ -1,7 +1,6 @@
 [general]
 version = string(default='')
 log_dir = string(default='logs')
-testnet = boolean(default=False)
 version_checker_enabled = boolean(default=True)
 
 [tunnel_community]
@@ -10,6 +9,7 @@ socks5_listen_ports = string_list(default=list('-1', '-1', '-1', '-1', '-1'))
 exitnode_enabled = boolean(default=False)
 random_slots = integer(default=5)
 competing_slots = integer(default=15)
+testnet = boolean(default=False)
 
 [market_community]
 enabled = boolean(default=False)
@@ -24,6 +24,7 @@ enabled = boolean(default=True)
 ec_keypair_filename = string(default='ec_multichain.pem')
 testnet_keypair_filename = string(default='ec_trustchain_testnet.pem')
 live_edges_enabled = boolean(default=True)
+testnet = boolean(default=False)
 
 [bootstrap]
 enabled = boolean(default=True)
@@ -39,6 +40,7 @@ enabled = boolean(default=True)
 manager_enabled = boolean(default=True)
 channel_edit = boolean(default=False)
 channels_dir = string(default='channels')
+testnet = boolean(default=False)
 
 [torrent_checking]
 enabled = boolean(default=True)

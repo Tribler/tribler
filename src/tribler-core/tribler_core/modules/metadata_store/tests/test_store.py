@@ -2,12 +2,15 @@ import os
 import random
 import string
 from binascii import unhexlify
+from datetime import datetime
 
 from ipv8.database import database_blob
 from ipv8.keyvault.crypto import default_eccrypto
+from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 
 from pony.orm import db_session, flush
 
+from tribler_core.modules.metadata_store.discrete_clock import clock
 from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH, entries_to_chunk
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import NEW
 from tribler_core.modules.metadata_store.serialization import (
@@ -29,6 +32,11 @@ from tribler_core.tests.tools.base_test import TriblerCoreTest
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
 from tribler_core.utilities.path_util import str_path
 from tribler_core.utilities.random_utils import random_infohash
+
+TEST_PERSONAL_KEY = LibNaCLSK(
+    b'4c69624e61434c534b3af56022aa5d556c07aeed704ee98df7dca580f'
+    b'522e1405663f0d36508d2189cb8991af2dd27b34bc18b4d24869e2c4f2cfdb164a78ea6e687daf7a21640d62b1b'[10:]
+)
 
 
 def make_wrong_payload(filename):
@@ -57,8 +65,8 @@ class TestMetadataStore(TriblerCoreTest):
 
     async def setUp(self):
         await super(TestMetadataStore, self).setUp()
-        my_key = default_eccrypto.generate_key(u"curve25519")
-        self.mds = MetadataStore(":memory:", self.session_base_dir, my_key)
+        self.mds = MetadataStore(":memory:", self.session_base_dir, TEST_PERSONAL_KEY)
+        clock.clock = 1000
 
     async def tearDown(self):
         self.mds.shutdown()
@@ -103,6 +111,7 @@ class TestMetadataStore(TriblerCoreTest):
             self.mds.TorrentMetadata(
                 title=''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(20)),
                 infohash=database_blob(random_infohash()),
+                torrent_date=datetime.utcfromtimestamp(100),
             )
             for _ in range(0, 10)
         ]
@@ -124,6 +133,7 @@ class TestMetadataStore(TriblerCoreTest):
                 self.mds.TorrentMetadata(
                     title=''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(20)),
                     infohash=database_blob(random_infohash()),
+                    torrent_date=datetime.utcfromtimestamp(100),
                 )
                 for _ in range(0, 10)
             ]
@@ -131,6 +141,7 @@ class TestMetadataStore(TriblerCoreTest):
             chunk, index = entries_to_chunk(md_list, chunk_size=900)
             chunk2, _ = entries_to_chunk(md_list, chunk_size=900, start_index=index)
             dict_list = [d.to_dict()["signature"] for d in md_list]
+
             for d in md_list:
                 d.delete()
         self.assertListEqual(
@@ -140,6 +151,7 @@ class TestMetadataStore(TriblerCoreTest):
                 for d in self.mds.process_compressed_mdblob(chunk, skip_personal_metadata_payload=False)
             ],
         )
+
         self.assertListEqual(
             dict_list[index:],
             [

@@ -3,6 +3,7 @@ Testing as server.
 
 Author(s): Arno Bakker, Jie Yang, Niels Zeilemaker
 """
+import asyncio
 import functools
 import inspect
 import logging
@@ -36,6 +37,11 @@ from tribler_core.utilities.instrumentation import WatchDog
 from tribler_core.utilities.network_utils import get_random_port
 
 OUTPUT_DIR = path_util.abspath(os.environ.get('OUTPUT_DIR', 'output'))
+
+
+# TODO We are using the SelectorEventLoop on Windows for the moment being to address deadlocks.
+if sys.platform.startswith('win'):
+    asyncio.set_event_loop(asyncio.SelectorEventLoop())
 
 
 class BaseTestCase(asynctest.TestCase):

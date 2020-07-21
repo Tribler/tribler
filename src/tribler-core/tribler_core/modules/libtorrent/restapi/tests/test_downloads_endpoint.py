@@ -1,15 +1,17 @@
 import os
-import shutil
-from asyncio import ensure_future, sleep
+from asyncio import ensure_future
 from binascii import unhexlify
 from tempfile import mkstemp
-from unittest.mock import Mock
+
+from libtorrent import bencode
 
 from pony.orm import db_session
 
 from tribler_common.simpledefs import DLSTATUS_SEEDING
 
+from tribler_core.modules.libtorrent.download import Download
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
+from tribler_core.modules.libtorrent.download_manager import DownloadManager
 from tribler_core.modules.libtorrent.download_state import DownloadState
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.restapi.base_api_test import AbstractApiTest
@@ -17,6 +19,7 @@ from tribler_core.tests.tools.base_test import MockObject
 from tribler_core.tests.tools.common import TESTS_DATA_DIR, TESTS_DIR, UBUNTU_1504_INFOHASH
 from tribler_core.tests.tools.tools import timeout
 from tribler_core.utilities.path_util import Path, pathname2url
+from tribler_core.utilities.random_utils import random_infohash
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import fail, succeed
 
@@ -25,31 +28,56 @@ def get_hex_infohash(tdef):
     return hexlify(tdef.get_infohash())
 
 
-class TestDownloadsEndpoint(AbstractApiTest):
+class FakeDownload(Download):
+
+    def get_state(self):
+        state = DownloadState(self, {}, None)
+        return state
+
+
+class TestDownloadsBaseEndpoint(AbstractApiTest):
+
+    async def setUp(self):
+        await super(TestDownloadsBaseEndpoint, self).setUp()
+        self.session.dlmgr = DownloadManager(self.session)
+
     def setUpPreSession(self):
-        super(TestDownloadsEndpoint, self).setUpPreSession()
-        self.config.set_libtorrent_enabled(True)
+        super(TestDownloadsBaseEndpoint, self).setUpPreSession()
         self.config.set_chant_enabled(True)
+
+    def add_mock_download(self):
+        infohash = random_infohash()
+        tdef = TorrentDef(metainfo={b'info': {b'files': [{b'path': [b'a.txt'], b'length': 123}],
+                                              b'name': b'text.txt',
+                                              b'pieces': b'a' * 20}},
+                          ignore_validation=True)
+        tdef.infohash = infohash
+        fake_download = FakeDownload(self.session, tdef)
+        fake_download.config = DownloadConfig(state_dir=self.session.config.get_state_dir())
+        self.session.dlmgr.downloads[infohash] = fake_download
+
+        return fake_download
+
+
+class TestDownloadsEndpoint(TestDownloadsBaseEndpoint):
 
     @timeout(10)
     async def test_get_downloads_no_downloads(self):
         """
         Testing whether the API returns an empty list when downloads are fetched but no downloads are active
         """
-        await self.do_request('downloads?get_peers=1&get_pieces=1',
-                               expected_code=200, expected_json={"downloads": []})
+        self.session.dlmgr.get_downloads = lambda: []
+        await self.do_request('downloads', expected_code=200, expected_json={"downloads": []})
 
-    @timeout(20)
+    @timeout(10)
     async def test_get_downloads(self):
         """
         Testing whether the API returns the right download when a download is added
         """
-        video_tdef, _ = self.create_local_torrent(TESTS_DATA_DIR / 'video.avi')
-        self.session.dlmgr.start_download(tdef=video_tdef)
-        await self.session.dlmgr.start_download_from_uri("file:" +
-                                                         pathname2url(TESTS_DATA_DIR / "bak_single.torrent"))
+        for _ in range(2):
+            self.add_mock_download()
 
-        downloads = await self.do_request('downloads?get_peers=1&get_pieces=1', expected_code=200)
+        downloads = await self.do_request('downloads', expected_code=200)
         self.assertEqual(len(downloads['downloads']), 2)
 
     @timeout(20)
@@ -284,27 +312,13 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         Testing whether the API returns 200 if a download is being removed
         """
-        # Create a copy of the file, so we can remove it later
-        source_file = TESTS_DATA_DIR / 'video.avi'
-        tmpdir = self.temporary_directory()
-        copied_file = tmpdir / Path(source_file).name
-        shutil.copyfile(source_file, copied_file)
-        video_tdef, _ = self.create_local_torrent(copied_file)
-        dcfg = DownloadConfig()
-        dcfg.set_dest_dir(tmpdir)
-        download = self.session.dlmgr.start_download(tdef=video_tdef, config=dcfg)
-        infohash = get_hex_infohash(video_tdef)
-        while not download.handle:
-            await sleep(0.1)
-        await sleep(2)
-        await self.do_request('downloads/%s' % infohash, post_data={"remove_data": True},
+        fake_download = self.add_mock_download()
+        self.assertEqual(len(self.session.dlmgr.get_downloads()), 1)
+
+        await self.do_request('downloads/%s' % get_hex_infohash(fake_download.tdef), post_data={"remove_data": True},
                               expected_code=200, request_type='DELETE',
-                              expected_json={u"removed": True,
-                                             u"infohash": u"c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5"})
-        while copied_file.exists():
-            await sleep(0.1)
+                              expected_json={"removed": True, "infohash": get_hex_infohash(fake_download.tdef)})
         self.assertEqual(len(self.session.dlmgr.get_downloads()), 0)
-        self.assertFalse(copied_file.exists())
 
     @timeout(10)
     async def test_stop_download_wrong_infohash(self):
@@ -353,17 +367,12 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         Testing whether files can be correctly toggled in a download
         """
-        video_tdef, _ = self.create_local_torrent(TESTS_DATA_DIR / 'video.avi')
-        download = self.session.dlmgr.start_download(tdef=video_tdef)
-        infohash = get_hex_infohash(video_tdef)
-        await download.get_handle()
-        download.set_selected_files = Mock()
+        fake_download = self.add_mock_download()
+        infohash = get_hex_infohash(fake_download.tdef)
 
         await self.do_request(f'downloads/{infohash}', post_data={"selected_files": [0]},
-                               expected_code=200, request_type='PATCH',
-                               expected_json={"modified": True,
-                                              "infohash": "c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5"})
-        download.set_selected_files.assert_called_once_with([0])
+                              expected_code=200, request_type='PATCH',
+                              expected_json={"modified": True, "infohash": infohash})
 
     @timeout(10)
     async def test_load_checkpoint_wrong_infohash(self):
@@ -484,13 +493,12 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         Testing whether the API returns the contents of the torrent file if a download is exported
         """
-        video_tdef, _ = self.create_local_torrent(TESTS_DATA_DIR / 'video.avi')
-        download = self.session.dlmgr.start_download(tdef=video_tdef)
+        fake_download = self.add_mock_download()
+        fake_download.get_torrent = lambda: 'abcdefg'
 
-        await download.get_handle()
-        result = await self.do_request('downloads/%s/torrent' % get_hex_infohash(video_tdef),
+        result = await self.do_request('downloads/%s/torrent' % get_hex_infohash(fake_download.tdef),
                                        expected_code=200, request_type='GET', json_response=False)
-        self.assertTrue(result)
+        self.assertEqual(result, bencode('abcdefg'))
 
     @timeout(10)
     async def test_get_files_unknown_download(self):
@@ -510,6 +518,32 @@ class TestDownloadsEndpoint(AbstractApiTest):
                                               expected_code=200, request_type='GET')
         self.assertIn('files', response_dict)
         self.assertTrue(response_dict['files'])
+
+    @timeout(10)
+    async def test_change_hops(self):
+        """
+        Testing whether the API returns 200 if we change the amount of hops of a download
+        """
+        self.session.dlmgr.update_hops = lambda *_: succeed(None)
+        mock_download = self.add_mock_download()
+        infohash = get_hex_infohash(mock_download.tdef)
+
+        await self.do_request('downloads/%s' % infohash, post_data={'anon_hops': 1},
+                              expected_code=200, request_type='PATCH',
+                              expected_json={'modified': True, "infohash": infohash})
+
+    @timeout(10)
+    async def test_change_hops_fail(self):
+        mock_download = self.add_mock_download()
+        infohash = get_hex_infohash(mock_download.tdef)
+
+        def remove_download(*_, **__):
+            return fail(RuntimeError())
+
+        self.session.dlmgr.remove_download = remove_download
+        await self.do_request('downloads/%s' % infohash, post_data={"remove_data": True}, expected_code=500,
+                              expected_json={'error': {'message': '', 'code': 'RuntimeError', 'handled': True}},
+                              request_type='DELETE')
 
 
 class TestStreamingEndpoint(AbstractApiTest):
@@ -606,45 +640,7 @@ class TestStreamingEndpoint(AbstractApiTest):
         return tdef.get_infohash(), data
 
 
-class TestDownloadsWithTunnelsEndpoint(AbstractApiTest):
-    def setUpPreSession(self):
-        super(TestDownloadsWithTunnelsEndpoint, self).setUpPreSession()
-        self.config.set_libtorrent_enabled(True)
-        self.config.set_tunnel_community_enabled(True)
-
-    @timeout(10)
-    async def test_change_hops(self):
-        """
-        Testing whether the API returns 200 if we change the amount of hops of a download
-        """
-        video_tdef, _ = self.create_local_torrent(TESTS_DATA_DIR / 'video.avi')
-        download = self.session.dlmgr.start_download(tdef=video_tdef)
-        infohash = get_hex_infohash(video_tdef)
-        await download.get_handle()
-        await self.do_request('downloads/%s' % infohash, post_data={'anon_hops': 1},
-                              expected_code=200, request_type='PATCH',
-                              expected_json={'modified': True,
-                                             "infohash": "c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5"})
-
-    @timeout(10)
-    async def test_change_hops_fail(self):
-        def remove_download(*_, **__):
-            return fail(RuntimeError())
-        self.session.dlmgr.remove_download = remove_download
-
-        video_tdef, _ = self.create_local_torrent(TESTS_DATA_DIR / 'video.avi')
-        self.session.dlmgr.start_download(tdef=video_tdef)
-        infohash = get_hex_infohash(video_tdef)
-        await self.do_request('downloads/%s' % infohash, post_data={"remove_data": True}, expected_code=500,
-                               expected_json={'error': {'message': '', 'code': 'RuntimeError', 'handled': True}},
-                               request_type='DELETE')
-
-
-class TestMetadataDownloadEndpoint(AbstractApiTest):
-    def setUpPreSession(self):
-        super(TestMetadataDownloadEndpoint, self).setUpPreSession()
-        self.config.set_libtorrent_enabled(True)
-        self.config.set_chant_enabled(True)
+class TestMetadataDownloadEndpoint(TestDownloadsBaseEndpoint):
 
     @timeout(10)
     async def test_add_metadata_download(self):

@@ -23,7 +23,7 @@ class VersionCheckManager(TaskManager):
 
     def start(self, interval=VERSION_CHECK_INTERVAL):
         if 'GIT' not in version_id:
-            self.register_task("tribler version check", self.check_new_version, interval=interval)
+            self.register_task("tribler version check", self.check_new_version, interval=interval, delay=0)
 
     async def stop(self):
         await self.shutdown_task_manager()

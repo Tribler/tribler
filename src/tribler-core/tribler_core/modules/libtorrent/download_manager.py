@@ -142,17 +142,21 @@ class DownloadManager(TaskManager):
             await self.dht_health_manager.shutdown_task_manager()
 
         # Save libtorrent state
-        with open(self.tribler_session.config.get_state_dir() / LTSTATE_FILENAME, 'wb') as ltstate_file:
-            ltstate_file.write(lt.bencode(self.get_session().save_state()))
+        if self.has_session():
+            with open(self.tribler_session.config.get_state_dir() / LTSTATE_FILENAME, 'wb') as ltstate_file:
+                ltstate_file.write(lt.bencode(self.get_session().save_state()))
 
-        self.get_session().stop_upnp()
+        if self.has_session():
+            self.get_session().stop_upnp()
+
         for ltsession in self.ltsessions.values():
             del ltsession
         self.ltsessions = None
 
         # Remove metadata temporary directory
-        rmtree(self.metadata_tmpdir)
-        self.metadata_tmpdir = None
+        if self.metadata_tmpdir:
+            rmtree(self.metadata_tmpdir)
+            self.metadata_tmpdir = None
 
         self.tribler_session = None
 
@@ -253,6 +257,9 @@ class DownloadManager(TaskManager):
 
         return ltsession
 
+    def has_session(self, hops=0):
+        return hops in self.ltsessions
+
     def get_session(self, hops=0):
         if hops not in self.ltsessions:
             self.ltsessions[hops] = self.create_session(hops)
@@ -347,7 +354,10 @@ class DownloadManager(TaskManager):
             self._logger.debug("Got alert for unknown download %s: %s", hexlify(infohash), alert)
 
         if alert_type == 'listen_succeeded_alert':
-            self.listen_ports[hops] = alert.port
+            # The ``port`` attribute was added in libtorrent 1.1.14.
+            # Older versions (most notably libtorrent 1.1.13 - the default  on Ubuntu 20.04) do not have this attribute.
+            # We use the now-deprecated ``endpoint`` attribute for these older versions.
+            self.listen_ports[hops] = getattr(alert, "port", alert.endpoint[1])
 
         elif alert_type == 'peer_disconnected_alert' and \
                 self.tribler_session and self.tribler_session.payout_manager:

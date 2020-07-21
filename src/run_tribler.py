@@ -1,12 +1,10 @@
+import asyncio
 import logging.config
 import os
 import signal
 import sys
 from asyncio import ensure_future, get_event_loop
 
-# https://github.com/Tribler/tribler/issues/3702
-# We need to make sure that anyone running cp65001 can print to the stdout before we print anything.
-# Annoyingly cp65001 is not shipped by default, so we add support for it through mapping it to mbcs.
 import tribler_core
 from tribler_core.config.tribler_config import CONFIG_FILENAME
 from tribler_core.dependencies import check_for_missing_dependencies
@@ -15,23 +13,6 @@ from tribler_core.utilities.osutils import get_root_state_directory
 from tribler_core.version import version_id
 
 import tribler_gui
-
-if getattr(sys.stdout, 'encoding', None) == 'cp65001':
-    import codecs
-
-    def remapped_mbcs(_):
-        mbcs_codec = codecs.lookup('mbcs')
-        return codecs.CodecInfo(
-            name='cp65001',
-            encode=mbcs_codec.encode,
-            decode=mbcs_codec.decode,
-            incrementalencoder=mbcs_codec.incrementalencoder,
-            incrementaldecoder=mbcs_codec.incrementaldecoder,
-            streamreader=mbcs_codec.streamreader,
-            streamwriter=mbcs_codec.streamwriter,
-        )
-
-    codecs.register(remapped_mbcs)
 
 
 def start_tribler_core(base_path, api_port, api_key, root_state_dir):
@@ -48,6 +29,11 @@ def start_tribler_core(base_path, api_port, api_key, root_state_dir):
     from tribler_core.session import Session
 
     trace_logger = None
+
+    # TODO for the moment being, we use the SelectorEventLoop on Windows, since with the ProactorEventLoop, ipv8
+    # peer discovery becomes unstable. Also see issue #5485.
+    if sys.platform.startswith('win'):
+        asyncio.set_event_loop(asyncio.SelectorEventLoop())
 
     def on_tribler_shutdown(future):
         future.result()

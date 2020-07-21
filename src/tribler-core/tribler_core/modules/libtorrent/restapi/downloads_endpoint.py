@@ -11,7 +11,7 @@ from aiohttp_apispec import docs, json_schema
 from ipv8.REST.schema import schema
 from ipv8.messaging.anonymization.tunnel import CIRCUIT_ID_PORT
 
-from libtorrent import bencode, create_torrent
+from libtorrent import bencode
 
 from marshmallow.fields import Boolean, Float, Integer, List, String
 
@@ -34,7 +34,6 @@ from tribler_core.restapi.rest_endpoint import (
 )
 from tribler_core.restapi.util import return_handled_exception
 from tribler_core.utilities.path_util import Path
-from tribler_core.utilities.torrent_utils import get_info_from_handle
 from tribler_core.utilities.unicode import ensure_unicode, hexlify
 
 
@@ -529,12 +528,9 @@ class DownloadsEndpoint(RESTEndpoint):
         if not download:
             return DownloadsEndpoint.return_404(request)
 
-        if not download.handle or not download.handle.is_valid() or not download.handle.has_metadata():
+        torrent = download.get_torrent()
+        if not torrent:
             return DownloadsEndpoint.return_404(request)
-
-        torrent_info = get_info_from_handle(download.handle)
-        t = create_torrent(torrent_info)
-        torrent = t.generate()
 
         return RESTResponse(bencode(torrent), headers={'content-type': 'application/x-bittorrent',
                                                        'Content-Disposition': 'attachment; filename=%s.torrent'
@@ -631,12 +627,12 @@ class DownloadsEndpoint(RESTEndpoint):
                             endlen = bytes_todo - bytes_done
                             if endlen != 0:
                                 await wait_for(response.write(data[:endlen]), STREAM_PAUSE_TIME)
-                                self._logger.info('Sent %s bytes', len(data))
+
                                 bytes_done += endlen
                             break
                         await wait_for(response.write(data), STREAM_PAUSE_TIME)
                         bytes_done += len(data)
-                        self._logger.info('Sent %s bytes', len(data))
+
 
                         if chunk.resume():
                             self._logger.debug("Stream %s-%s is resumed, starting sequential buffer", start, stop)

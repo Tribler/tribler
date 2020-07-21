@@ -79,10 +79,7 @@ IGNORED_ERRORS = {
     (OSError, 10022): "Failed to get address info. Error code: 10022",
     (OSError, 16): "Socket error: Device or resource busy. Error code: 16",
     (OSError, 0): "",
-    (gaierror, 11001): "Unable to perform DNS lookup.",
-    (gaierror, 11004): "Unable to perform DNS lookup.", # Windows specific ?
-    (gaierror, 8): "Unable to perform DNS lookup.", # MacOS specific
-    (gaierror, -2): "",
+    gaierror: "Unable to perform DNS lookup."
 }
 
 
@@ -147,7 +144,7 @@ class Session(TaskManager):
         self.mds = None  # Metadata Store
 
     def load_ipv8_overlays(self):
-        if self.config.get_testnet():
+        if self.config.get_trustchain_testnet():
             peer = Peer(self.trustchain_testnet_keypair)
         else:
             peer = Peer(self.trustchain_keypair)
@@ -163,7 +160,7 @@ class Session(TaskManager):
             from ipv8.attestation.trustchain.community import TrustChainCommunity, \
                 TrustChainTestnetCommunity
 
-            community_cls = TrustChainTestnetCommunity if self.config.get_testnet() else TrustChainCommunity
+            community_cls = TrustChainTestnetCommunity if self.config.get_trustchain_testnet() else TrustChainCommunity
             self.trustchain_community = community_cls(peer, self.ipv8.endpoint,
                                                       self.ipv8.network,
                                                       working_directory=self.config.get_state_dir())
@@ -187,7 +184,7 @@ class Session(TaskManager):
             from tribler_core.modules.tunnel.community.triblertunnel_community import TriblerTunnelCommunity,\
                                                                                TriblerTunnelTestnetCommunity
             from tribler_core.modules.tunnel.community.discovery import GoldenRatioStrategy
-            community_cls = TriblerTunnelTestnetCommunity if self.config.get_testnet() else \
+            community_cls = TriblerTunnelTestnetCommunity if self.config.get_tunnel_testnet() else \
                 TriblerTunnelCommunity
 
             random_slots = self.config.get_tunnel_community_random_slots()
@@ -213,7 +210,7 @@ class Session(TaskManager):
         if self.config.get_market_community_enabled() and self.config.get_dht_enabled():
             from anydex.core.community import MarketCommunity, MarketTestnetCommunity
 
-            community_cls = MarketTestnetCommunity if self.config.get_testnet() else MarketCommunity
+            community_cls = MarketTestnetCommunity if self.config.get_trustchain_testnet() else MarketCommunity
             self.market_community = community_cls(peer, self.ipv8.endpoint, self.ipv8.network,
                                                   trustchain=self.trustchain_community,
                                                   dht=self.dht_community,
@@ -241,7 +238,7 @@ class Session(TaskManager):
             from tribler_core.modules.metadata_store.community.gigachannel_community import GigaChannelCommunity, GigaChannelTestnetCommunity
             from tribler_core.modules.metadata_store.community.sync_strategy import SyncChannels
 
-            community_cls = GigaChannelTestnetCommunity if self.config.get_testnet() else GigaChannelCommunity
+            community_cls = GigaChannelTestnetCommunity if self.config.get_chant_testnet() else GigaChannelCommunity
             self.gigachannel_community = community_cls(peer, self.ipv8.endpoint, self.ipv8.network, self.mds,
                                                        notifier=self.notifier)
 
@@ -254,7 +251,7 @@ class Session(TaskManager):
             from tribler_core.modules.metadata_store.community.remote_query_community \
                 import RemoteQueryCommunity, RemoteQueryTestnetCommunity
 
-            community_cls = RemoteQueryTestnetCommunity if self.config.get_testnet() else RemoteQueryCommunity
+            community_cls = RemoteQueryTestnetCommunity if self.config.get_chant_testnet() else RemoteQueryCommunity
             self.remote_query_community = community_cls(peer, self.ipv8.endpoint, self.ipv8.network, self.mds,
                                                         notifier=self.notifier)
 
@@ -341,7 +338,9 @@ class Session(TaskManager):
 
         ignored_message = None
         try:
-            ignored_message = IGNORED_ERRORS.get((exception.__class__, exception.errno))
+            ignored_message = IGNORED_ERRORS.get(
+                (exception.__class__, exception.errno),
+                IGNORED_ERRORS.get(exception.__class__))
         except (ValueError, AttributeError):
             pass
         if ignored_message is not None:
@@ -414,7 +413,7 @@ class Session(TaskManager):
 
         if self.config.get_chant_enabled():
             channels_dir = self.config.get_chant_channels_dir()
-            metadata_db_name = 'metadata.db' if not self.config.get_testnet() else 'metadata_testnet.db'
+            metadata_db_name = 'metadata.db' if not self.config.get_chant_testnet() else 'metadata_testnet.db'
             database_path = self.config.get_state_dir() / 'sqlite' / metadata_db_name
             self.mds = MetadataStore(database_path, channels_dir, self.trustchain_keypair)
 

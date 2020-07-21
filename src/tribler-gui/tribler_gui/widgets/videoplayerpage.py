@@ -40,12 +40,14 @@ class VideoPlayerPage(QWidget):
         self.filename = ""
 
     def initialize_player(self):
-        vlc_available = True
+        # TODO: We disabled VLC loading for the moment being, due to a crash when parsing media.
+        # Also see issue #5483.
+        vlc_available = False
         vlc = None
-        try:
-            from tribler_gui import vlc
-        except OSError:
-            vlc_available = False
+        # try:
+        #     from tribler_gui import vlc
+        # except OSError:
+        #     vlc_available = False
 
         if vlc and vlc.plugin_path:
             os.environ['VLC_PLUGIN_PATH'] = vlc.plugin_path
@@ -64,9 +66,9 @@ class VideoPlayerPage(QWidget):
         self.mediaplayer = self.instance.media_player_new()
         self.window().video_player_widget.should_hide_video_widgets.connect(self.hide_video_widgets)
         self.window().video_player_widget.should_show_video_widgets.connect(self.show_video_widgets)
-        #self.window().video_player_position_slider.should_change_video_position.connect(
+        # self.window().video_player_position_slider.should_change_video_position.connect(
         #    self.on_should_change_video_time
-        #)
+        # )
         self.window().video_player_volume_slider.valueChanged.connect(self.on_volume_change)
         self.window().video_player_volume_slider.setValue(self.mediaplayer.audio_get_volume())
         self.window().video_player_volume_slider.setFixedWidth(0)
@@ -172,12 +174,12 @@ class VideoPlayerPage(QWidget):
         self.headerbuf = download.get("vod_header_progress", 0.0) * 100
         self.footerbuf = download.get("vod_footer_progress", 0.0) * 100
         popup = self.window().video_player_info_button.popup
-        for txt, label, value in [("Pre-buffer", popup.prebuf_label, self.prebuf),
-                                  ("Header-buffer", popup.headerbuf_label, self.headerbuf),
-                                  ("Footer-buffer", popup.footerbuf_label, self.footerbuf)]:
-            label.setText("<font color='%s'>%s: %2.f%%</font>" % ("orange" if value < 100 else "white",
-                                                                  txt,
-                                                                  value))
+        for txt, label, value in [
+            ("Pre-buffer", popup.prebuf_label, self.prebuf),
+            ("Header-buffer", popup.headerbuf_label, self.headerbuf),
+            ("Footer-buffer", popup.footerbuf_label, self.footerbuf),
+        ]:
+            label.setText("<font color='%s'>%s: %2.f%%</font>" % ("orange" if value < 100 else "white", txt, value))
 
     def update_with_download_info(self, download):
         self.update_prebuf_info(download)
@@ -207,8 +209,9 @@ class VideoPlayerPage(QWidget):
 
         # Guess the current position
         duration = self.media.get_duration() / 1000
-        self.window().video_player_time_label.setText(f"{seconds_to_string(duration * position)} / "
-                                                      f"{seconds_to_string(duration)}")
+        self.window().video_player_time_label.setText(
+            f"{seconds_to_string(duration * position)} / " f"{seconds_to_string(duration)}"
+        )
 
     def on_stop_button_click(self):
         if self.stop_media_item():
@@ -283,8 +286,10 @@ class VideoPlayerPage(QWidget):
         self.headerbuf = 0.0
         self.filename = file_info["name"] if file_info else 'Unknown'
         self.window().video_player_header_label.setText(self.filename)
-        media_filename = f"http://127.0.0.1:8085/downloads/{self.active_infohash}/stream/" \
-                         f"{file_index}?apikey={self.video_player_api_key}"
+        media_filename = (
+            f"http://127.0.0.1:8085/downloads/{self.active_infohash}/stream/"
+            f"{file_index}?apikey={self.video_player_api_key}"
+        )
         # reset video player controls
         self.mediaplayer.stop()
         self.window().video_player_play_pause_button.setIcon(self.play_icon)
@@ -292,10 +297,11 @@ class VideoPlayerPage(QWidget):
         self.media = self.instance.media_new(media_filename)
         self.mediaplayer.set_media(self.media)
         TriblerNetworkRequest(
-                "downloads/%s" % self.active_infohash, self.on_enablestream,
-                method='PATCH',
-                data={"vod_mode": True, "fileindex": file_index}
-            )
+            "downloads/%s" % self.active_infohash,
+            self.on_enablestream,
+            method='PATCH',
+            data={"vod_mode": True, "fileindex": file_index},
+        )
 
     def play_media_item(self, infohash, menu_index):
         """

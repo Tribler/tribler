@@ -11,6 +11,8 @@ from tribler_core.restapi.rest_endpoint import HTTP_INTERNAL_SERVER_ERROR, HTTP_
 from tribler_core.restapi.root_endpoint import RootEndpoint
 from tribler_core.version import version_id
 
+logger = logging.getLogger(__name__)
+
 
 @web.middleware
 class ApiKeyMiddleware(object):
@@ -39,6 +41,7 @@ async def error_middleware(request, handler):
             raise Exception('Tribler is shutting down')
         response = await handler(request)
     except Exception as e:
+        logger.exception(e)
         return RESTResponse({"error": {
             "handled": False,
             "code": e.__class__.__name__,
