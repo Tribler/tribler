@@ -283,6 +283,15 @@ class ChannelContentsWidget(widget_form, widget_class):
             # GigaChannel Community v1.0 does not support searching for text in a specific channel
             params.update({'txt_filter': self.model.text_filter})
 
+        if self.model.hide_xxx is not None:
+            params.update({'hide_xxx': self.model.hide_xxx})
+        if self.model.sort_by is not None:
+            params.update({'sort_by': self.model.sort_by})
+        if self.model.sort_desc is not None:
+            params.update({'sort_desc': self.model.sort_desc})
+        if self.model.category_filter is not None:
+            params.update({'category_filter': self.model.category_filter})
+
         TriblerNetworkRequest('remote_query', None, method="PUT", url_params=params)
 
     def create_new_channel(self):
