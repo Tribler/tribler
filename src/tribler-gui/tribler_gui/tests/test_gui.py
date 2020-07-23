@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 import sys
@@ -22,6 +23,10 @@ from tribler_gui.dialogs.feedbackdialog import FeedbackDialog
 from tribler_gui.tribler_app import TriblerApplication
 from tribler_gui.tribler_window import TriblerWindow
 from tribler_gui.widgets.loading_list_item import LoadingListItem
+
+
+if sys.platform.startswith('win'):
+    asyncio.set_event_loop(asyncio.SelectorEventLoop())
 
 
 @pytest.fixture(scope="module")
