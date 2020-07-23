@@ -13,13 +13,13 @@ from tribler_core.restapi.rest_manager import RESTManager
 async def extract_swagger(destination_fn):
     session = Mock()
     session.config.get_api_key = lambda: 'apikey'
-    session.config.get_api_http_port = lambda: 8085
+    session.config.get_api_http_enabled = lambda: False
     session.config.get_api_https_enabled = lambda: False
     api_manager = RESTManager(session)
     await api_manager.start()
 
     fp = StringIO()
-    proto = aiohttp.web_protocol.RequestHandler(api_manager.site._runner._server, loop=get_event_loop())
+    proto = aiohttp.web_protocol.RequestHandler(api_manager.runner._server, loop=get_event_loop())
     proto.connection_made(Mock(is_closing=lambda: False, write=lambda b: fp.write(b.decode())))
     proto.data_received(b'GET /docs/swagger.json HTTP/1.1\r\n'
                         b'Connection: close\r\n\r\n')

@@ -57,6 +57,7 @@ MOCK_MODULES = ['configobj', 'libtorrent', 'treq', 'pony', 'pony.orm', 'pony.orm
                 'networkx', 'validate', 'ipv8.REST.root_endpoint', 'anydex.restapi.root_endpoint',
                 'anydex.restapi.wallets_endpoint']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
+sys.modules['psutil'].boot_time = lambda: 0
 
 # Ignore ipv8/anydex/wallet endpoints
 from tribler_core.restapi.root_endpoint import RootEndpoint
