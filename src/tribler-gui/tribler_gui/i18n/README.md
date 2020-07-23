@@ -1,6 +1,6 @@
 # Internationalization
 
-This app uses QT multi language feature to provider internationalization. 
+This app uses the QT multi language feature to provide internationalization. 
 
 ## Improving a translation
 
