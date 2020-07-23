@@ -61,6 +61,7 @@ class RESTManager():
         self._logger = logging.getLogger(self.__class__.__name__)
         self.root_endpoint = None
         self.session = session
+        self.runner = None
         self.site = None
         self.site_https = None
 
@@ -97,18 +98,18 @@ class RESTManager():
         if 'head' in VALID_METHODS_OPENAPI_V2:
             VALID_METHODS_OPENAPI_V2.remove('head')
 
-        runner = web.AppRunner(self.root_endpoint.app, access_log=None)
-        await runner.setup()
+        self.runner = web.AppRunner(self.root_endpoint.app, access_log=None)
+        await self.runner.setup()
 
         if config.get_api_http_enabled():
-            self.site = web.TCPSite(runner, 'localhost', config.get_api_http_port())
+            self.site = web.TCPSite(self.runner, 'localhost', config.get_api_http_port())
             await self.site.start()
             self._logger.info("Started HTTP REST API: %s", self.site.name)
 
         if config.get_api_https_enabled():
             ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
             ssl_context.load_cert_chain(config.get_api_https_certfile())
-            self.site_https = web.TCPSite(runner, '0.0.0.0', config.get_api_https_port(), ssl_context=ssl_context)
+            self.site_https = web.TCPSite(self.runner, '0.0.0.0', config.get_api_https_port(), ssl_context=ssl_context)
             await self.site_https.start()
             self._logger.info("Started HTTPS REST API: %s", self.site_https.name)
 
