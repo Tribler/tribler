@@ -43,7 +43,7 @@ class SearchEndpoint(RESTEndpoint):
         torrents_json = []
         for index in picked_torrents:
             torrent_json = tribler_utils.tribler_data.torrents[index].get_json()
-            torrent_json['type'] = 'torrent'
+            torrent_json['type'] = 300  # TODO this should be replaced by REGULAR_TORRENT
             torrents_json.append(torrent_json)
 
         if sort_by:
@@ -52,7 +52,7 @@ class SearchEndpoint(RESTEndpoint):
         channels_json = []
         for index in picked_channels:
             channel_json = tribler_utils.tribler_data.channels[index].get_json()
-            channel_json['type'] = 'channel'
+            channel_json['type'] = 400  # TODO this should be replaced by CHANNEL_TORRENT
             channels_json.append(channel_json)
 
         if sort_by and sort_by not in ['category', 'size']:

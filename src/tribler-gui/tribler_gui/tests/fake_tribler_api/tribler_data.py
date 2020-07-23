@@ -85,6 +85,7 @@ class TriblerData(object):
                 "tunnel_community": {"exitnode_enabled": True},
                 "search_community": {"enabled": True},
                 "resource_monitor": {"enabled": True},
+                "market_community": {"enabled": True},
                 "chant": {"enabled": True, "channel_edit": True},
             },
             "ports": {},
