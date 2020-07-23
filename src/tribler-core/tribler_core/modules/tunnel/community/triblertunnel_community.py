@@ -546,7 +546,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         super(TriblerTunnelCommunity, self).on_rendezvous_established(source_address, data, circuit_id)
 
         circuit = self.circuits.get(circuit_id)
-        if circuit:
+        if circuit and self.tribler_session:
             self.update_ip_filter(circuit.info_hash)
 
     def update_ip_filter(self, info_hash):
@@ -590,6 +590,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
     async def unload(self):
         if self.bandwidth_wallet:
             await self.bandwidth_wallet.shutdown_task_manager()
+        await self.dispatcher.shutdown_task_manager()
         for socks_server in self.socks_servers:
             await socks_server.stop()
 

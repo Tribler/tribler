@@ -6,18 +6,19 @@ from ipv8.messaging.anonymization.tunnel import (
     CIRCUIT_TYPE_RP_DOWNLOADER,
     CIRCUIT_TYPE_RP_SEEDER,
 )
+from ipv8.taskmanager import TaskManager, task
 
 from tribler_core.modules.tunnel.socks5 import conversion
 
 
-class TunnelDispatcher(object):
+class TunnelDispatcher(TaskManager):
     """
     This class is responsible for dispatching SOCKS5 traffic to the right circuits and vice versa.
     This dispatcher acts as a "secondary" proxy between the SOCKS5 UDP session and the tunnel community.
     """
 
     def __init__(self, tunnel_community):
-        self._logger = logging.getLogger(self.__class__.__name__)
+        super(TunnelDispatcher, self).__init__()
         self.tunnel_community = tunnel_community
         self.socks_servers = []
 
@@ -91,6 +92,7 @@ class TunnelDispatcher(object):
                                         ('0.0.0.0', 0), request.payload)
         return True
 
+    @task
     async def on_socks5_tcp_data(self, tcp_connection, destination, request):
         self._logger.debug('Got request for %s: %s', destination, request)
         hops = self.socks_servers.index(tcp_connection.socksserver) + 1

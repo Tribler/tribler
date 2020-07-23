@@ -28,6 +28,10 @@ class TestTunnelDispatcher(AbstractServer):
         self.mock_circuit.peer.address = ("1.1.1.1", 1234)
         self.mock_circuit.tunnel_data = lambda *_: None
 
+    async def tearDown(self):
+        await self.dispatcher.shutdown_task_manager()
+        await super(TestTunnelDispatcher, self).tearDown()
+
     def test_on_tunnel_in(self):
         """
         Test whether no data is sent to the SOCKS5 server when we receive data from the tunnels
