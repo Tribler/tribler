@@ -9,7 +9,8 @@ from tribler_common.simpledefs import NTFY
 
 from tribler_core.version import version_id
 
-VERSION_CHECK_URL = 'https://api.github.com/repos/tribler/tribler/releases/latest'
+VERSION_CHECK_URLS = ['https://release.tribler.org/releases/latest',  # Main Tribler release page
+                      'https://api.github.com/repos/tribler/tribler/releases/latest']  # Fallback GitHub API
 VERSION_CHECK_INTERVAL = 86400  # One day
 
 
@@ -29,19 +30,24 @@ class VersionCheckManager(TaskManager):
         await self.shutdown_task_manager()
 
     async def check_new_version(self):
+        for version_check_url in VERSION_CHECK_URLS:
+            if await self.check_new_version_api(version_check_url):
+                break
+
+    async def check_new_version_api(self, version_check_url):
         try:
             async with ClientSession(raise_for_status=True) as session:
-                response = await session.get(VERSION_CHECK_URL)
+                response = await session.get(version_check_url)
                 response_dict = await response.json(content_type=None)
         except (ServerConnectionError, ClientConnectionError) as e:
             self._logger.error("Error when performing version check request: %s", e)
-            return
+            return False
         except ClientResponseError as e:
             self._logger.warning("Got response code %s when performing version check request", e.status)
-            return
+            return False
         except ContentTypeError:
             self._logger.warning("Response was not in JSON format")
-            return
+            return False
 
         try:
             version = response_dict['name'][1:]
@@ -49,3 +55,4 @@ class VersionCheckManager(TaskManager):
                 self.session.notifier.notify(NTFY.TRIBLER_NEW_VERSION, version)
         except ValueError as ve:
             raise ValueError("Failed to parse Tribler version response.\nError:%s" % ve)
+        return True
