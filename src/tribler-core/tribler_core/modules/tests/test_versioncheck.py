@@ -17,7 +17,7 @@ class TestVersionCheck(TestAsServer):
         self.site = None
         self.should_call_new_version_callback = False
         self.new_version_called = False
-        versioncheck_manager.VERSION_CHECK_URL = 'http://localhost:%s' % self.port
+        versioncheck_manager.VERSION_CHECK_URLS = ['http://localhost:%s' % self.port]
         await super(TestVersionCheck, self).setUp()
         self.session.version_check_manager = VersionCheckManager(self.session)
 
@@ -83,7 +83,7 @@ class TestVersionCheck(TestAsServer):
     @timeout(20)
     async def test_connection_error(self):
         await self.setup_version_server(json.dumps({'name': 'v1.0'}))
-        versioncheck_manager.VERSION_CHECK_URL = "http://this.will.not.exist"
+        versioncheck_manager.VERSION_CHECK_URLS = ["http://this.will.not.exist"]
         await self.check_version()
 
     @timeout(20)
