@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from distutils.version import LooseVersion
 
@@ -12,6 +13,7 @@ from tribler_core.version import version_id
 VERSION_CHECK_URLS = [f'https://release.tribler.org/releases/latest?current={version_id}',  # Tribler Release API
                       'https://api.github.com/repos/tribler/tribler/releases/latest']  # Fallback GitHub API
 VERSION_CHECK_INTERVAL = 6*3600  # Six hours
+VERSION_CHECK_TIMEOUT = 5  # Five seconds timeout
 
 
 class VersionCheckManager(TaskManager):
@@ -31,8 +33,11 @@ class VersionCheckManager(TaskManager):
 
     async def check_new_version(self):
         for version_check_url in VERSION_CHECK_URLS:
-            if await self.check_new_version_api(version_check_url):
-                break
+            try:
+                if await asyncio.wait_for(self.check_new_version_api(version_check_url), VERSION_CHECK_TIMEOUT):
+                    break
+            except asyncio.TimeoutError:
+                self._logger.warning("Checking for new version failed for %s", version_check_url)
 
     async def check_new_version_api(self, version_check_url):
         try:
