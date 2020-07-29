@@ -97,3 +97,40 @@ class TestVersionCheck(TestAsServer):
             versioncheck_manager.check_failed = True
 
         self.assertTrue(versioncheck_manager.check_failed)
+
+    @timeout(10)
+    async def test_version_check_timeout(self):
+        await self.setup_version_server(json.dumps({'name': 'v1337.0'}))
+
+        self.new_version_called = False
+        # Default timeout is 5 seconds so under normal circumstance, we don't expect timeout
+        await self.session.version_check_manager.check_new_version()
+        self.assertTrue(self.new_version_called)
+
+        # Setting a timeout of 1ms, version checks should fail
+        versioncheck_manager.VERSION_CHECK_TIMEOUT = 0.001
+
+        self.new_version_called = False
+        await self.session.version_check_manager.check_new_version()
+        self.assertFalse(self.new_version_called)
+
+        await self.site.stop()
+
+    @timeout(20)
+    async def test_fallback_on_multiple_urls(self):
+        """
+        Scenario: Two release API URLs. First one is a non-existing URL so is expected to fail.
+        The second one is of a local webserver (http://localhost:{port}) which is configured to
+        return a new version available response. Here we test if the version checking still works
+        if the first URL fails.
+        """
+        versioncheck_manager.VERSION_CHECK_URLS = ["http://this.will.not.exist",
+                                                   f"http://localhost:{self.port}"]
+
+        # Local server which responds with a new version available on the API response
+        await self.setup_version_server(json.dumps({'name': 'v1337.0'}))
+
+        await self.session.version_check_manager.check_new_version()
+        self.assertTrue(self.new_version_called)
+
+        return await self.site.stop()
