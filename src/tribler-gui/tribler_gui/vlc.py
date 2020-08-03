@@ -48,6 +48,8 @@ import sys
 from ctypes.util import find_library
 from inspect import getargspec
 
+from tribler_common.utilities import is_frozen
+
 logger = logging.getLogger(__name__)
 
 __version__ = "3.0.8111"
@@ -113,17 +115,6 @@ else:
 # instanciated.
 _internal_guard = object()
 
-
-def is_frozen():
-    """
-    Return whether we are running in a frozen environment
-    """
-    try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
-        sys._MEIPASS
-    except Exception:
-        return False
-    return True
 
 
 def whitelist_dll_directory(dll_directory):

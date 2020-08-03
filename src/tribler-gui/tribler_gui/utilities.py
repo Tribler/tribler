@@ -176,18 +176,6 @@ def get_base_path():
     return base_path
 
 
-def is_frozen():
-    """
-    Return whether we are running in a frozen environment
-    """
-    try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
-        _ = sys._MEIPASS
-    except Exception:
-        return False
-    return True
-
-
 def get_ui_file_path(filename):
     return os.path.join(get_base_path(), 'qt_resources', filename)
 
