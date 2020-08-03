@@ -5,20 +5,10 @@ Author(s): Elric Milon
 """
 import sys
 
+from tribler_common.utilities import is_frozen
+
 import tribler_core
 from tribler_core.utilities.path_util import Path, str_path
-
-
-def is_frozen():
-    """
-    Return whether we are running in a frozen environment
-    """
-    try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
-        sys._MEIPASS
-    except Exception:
-        return False
-    return True
 
 
 def get_base_path():

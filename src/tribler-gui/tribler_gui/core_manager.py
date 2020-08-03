@@ -5,9 +5,11 @@ from PyQt5.QtCore import QObject, QProcess, QProcessEnvironment, QTimer, pyqtSig
 from PyQt5.QtNetwork import QNetworkRequest
 from PyQt5.QtWidgets import QApplication
 
+from tribler_common.utilities import is_frozen
+
 from tribler_gui.event_request_manager import EventRequestManager
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.utilities import get_base_path, is_frozen
+from tribler_gui.utilities import get_base_path
 
 START_FAKE_API = False
 
@@ -56,8 +58,10 @@ class CoreManager(QObject):
             if self.events_manager.connect_timer and self.events_manager.connect_timer.isActive():
                 self.events_manager.connect_timer.stop()
 
-            exception_msg = "The Tribler core has unexpectedly finished with exit code %s and status: %s!" % \
-                            (exit_code, exit_status)
+            exception_msg = "The Tribler core has unexpectedly finished with exit code %s and status: %s!" % (
+                exit_code,
+                exit_status,
+            )
             if self.core_traceback:
                 exception_msg += "\n\n%s" % self.core_traceback
 
