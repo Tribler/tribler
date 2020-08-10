@@ -61,7 +61,9 @@ class PlayIconButton(IconButton):
     icon = QIcon(get_image_path("play.png"))
 
     def should_draw(self, index):
-        return index.model().data_items[index.row()][u'category'] == u'Video'
+        # Commented out for 7.5.2 because VLC does not work
+        # return index.model().data_items[index.row()][u'category'] == u'Video'
+        return False
 
 
 class DeleteIconButton(IconButton):
