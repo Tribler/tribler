@@ -4,7 +4,6 @@ from binascii import unhexlify
 
 from ipv8.community import Community
 from ipv8.lazy_community import lazy_wrapper
-from ipv8.messaging.payload_headers import BinMemberAuthenticationPayload
 from ipv8.peer import Peer
 
 from pony.orm import db_session
@@ -13,8 +12,6 @@ from tribler_core.modules.popularity.payload import TorrentsHealthPayload
 from tribler_core.utilities.unicode import hexlify
 
 PUBLISH_INTERVAL = 5
-
-MSG_TORRENTS_HEALTH = 1
 
 
 class PopularityCommunity(Community):
@@ -32,9 +29,7 @@ class PopularityCommunity(Community):
 
         super(PopularityCommunity, self).__init__(*args, **kwargs)
 
-        self.decode_map.update({
-            chr(MSG_TORRENTS_HEALTH): self.on_torrents_health
-        })
+        self.add_message_handler(TorrentsHealthPayload, self.on_torrents_health)
 
         self.logger.info('Popularity Community initialized (peer mid %s)', hexlify(self.my_peer.mid))
         self.register_task("publish", self.gossip_torrents_health, interval=PUBLISH_INTERVAL)
@@ -54,17 +49,12 @@ class PopularityCommunity(Community):
 
         random_peer = random.choice(self.get_peers())
 
-        auth = BinMemberAuthenticationPayload(self.my_peer.public_key.key_to_bin()).to_pack_list()
-        payload = TorrentsHealthPayload(random_torrents_checked, popular_torrents_checked).to_pack_list()
-
-        packet = self._ez_pack(self._prefix, MSG_TORRENTS_HEALTH, [auth, payload])
-        self.endpoint.send(random_peer.address, packet)
+        self.ez_send(random_peer, TorrentsHealthPayload.create(random_torrents_checked, popular_torrents_checked))
 
     @lazy_wrapper(TorrentsHealthPayload)
     async def on_torrents_health(self, _, payload):
         self.logger.info("Received torrent health information for %d random torrents and %d checked torrents",
                          len(payload.random_torrents), len(payload.torrents_checked))
-
         all_torrents = payload.random_torrents + payload.torrents_checked
 
         def _put_health_entries_in_db():
