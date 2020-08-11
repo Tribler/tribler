@@ -1,54 +1,43 @@
-import struct
-
-from ipv8.messaging.payload import Payload
-
-TORRENT_INFO_FORMAT = '20sIIQ'  # Infohash, seeders, leechers and a timestamp
+from ipv8.messaging.lazy_payload import VariablePayload, vp_compile
+from ipv8.messaging.serialization import default_serializer
 
 
-class TorrentsHealthPayload(Payload):
+@vp_compile
+class TorrentInfoFormat(VariablePayload):
+    format_list = ['20s', 'I', 'I', 'Q']
+    names = ['infohash', 'seeders', 'leechers', 'timestamp']
+    length = 36
 
-    format_list = ['I', 'I', 'varlenI', 'raw']  # Number of random torrents, number of torrents checked by you
-
-    def __init__(self, random_torrents, torrents_checked):
-        """
-        Initialize a TorrentsHealthPayload, containing information on the health of both random torrents and popular
-        torrents that have been checked by you.
-        :param random_torrents: List of tuple of (infohash, seeders, leechers, checked_timestamp)
-        :param torrents_checked: List of tuple of (infohash, seeders, leechers, checked_timestamp)
-        """
-        super(TorrentsHealthPayload, self).__init__()
-        self.random_torrents = random_torrents
-        self.torrents_checked = torrents_checked
-
-    def to_pack_list(self):
-        random_torrents_items = [item for sublist in self.random_torrents for item in sublist]
-        checked_torrents_items = [item for sublist in self.torrents_checked for item in sublist]
-        data = [('I', len(self.random_torrents)),
-                ('I', len(self.torrents_checked)),
-                ('varlenI', struct.pack("!" + TORRENT_INFO_FORMAT * len(self.random_torrents), *random_torrents_items)),
-                ('raw', struct.pack("!" + TORRENT_INFO_FORMAT * len(self.torrents_checked), *checked_torrents_items))]
-
-        return data
+    def to_tuple(self):
+        return self.infohash, self.seeders, self.leechers, self.timestamp
 
     @classmethod
-    def from_unpack_list(cls, *args):
-        num_random_torrents, num_checked_torrents, raw_random_torrents, raw_checked_torrents = args
+    def from_list_bytes(cls, serialized):
+        return default_serializer.unpack_to_serializables([cls] * (len(serialized)//cls.length), serialized)[:-1]
 
-        random_torrents_list = struct.unpack("!" + TORRENT_INFO_FORMAT * num_random_torrents, raw_random_torrents)
-        checked_torrents_list = struct.unpack("!" + TORRENT_INFO_FORMAT * num_checked_torrents, raw_checked_torrents)
 
-        random_torrents = []
-        checked_torrents = []
-        for ind in range(num_random_torrents):
-            random_torrents.append((random_torrents_list[ind * 4],
-                                    random_torrents_list[ind * 4 + 1],
-                                    random_torrents_list[ind * 4 + 2],
-                                    random_torrents_list[ind * 4 + 3]))
+@vp_compile
+class TorrentsHealthPayload(VariablePayload):
 
-        for ind in range(num_checked_torrents):
-            checked_torrents.append((checked_torrents_list[ind * 4],
-                                     checked_torrents_list[ind * 4 + 1],
-                                     checked_torrents_list[ind * 4 + 2],
-                                     checked_torrents_list[ind * 4 + 3]))
+    msg_id = 1
+    format_list = ['I', 'I', 'varlenI', 'raw']  # Number of random torrents, number of torrents checked by you
+    names = ['random_torrents_length', 'torrents_checked_length', 'random_torrents', 'torrents_checked']
 
-        return TorrentsHealthPayload(random_torrents, checked_torrents)
+    def fix_pack_random_torrents(self, value):
+        return b''.join(default_serializer.ez_pack_serializables([TorrentInfoFormat(*sublist)]) for sublist in value)
+
+    def fix_pack_torrents_checked(self, value):
+        return b''.join(default_serializer.ez_pack_serializables([TorrentInfoFormat(*sublist)]) for sublist in value)
+
+    @classmethod
+    def fix_unpack_random_torrents(cls, value):
+        return [payload.to_tuple() for payload in TorrentInfoFormat.from_list_bytes(value)]
+
+    @classmethod
+    def fix_unpack_torrents_checked(cls, value):
+        return [payload.to_tuple() for payload in TorrentInfoFormat.from_list_bytes(value)]
+
+    @classmethod
+    def create(cls, random_torrents_checked, popular_torrents_checked):
+        return cls(len(random_torrents_checked), len(popular_torrents_checked),
+                   random_torrents_checked, popular_torrents_checked)
