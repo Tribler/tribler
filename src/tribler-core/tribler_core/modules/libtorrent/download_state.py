@@ -5,7 +5,7 @@ Author(s): Arno Bakker
 """
 import logging
 
-from ipv8.messaging.anonymization.tunnel import PEER_FLAG_EXIT_ANY
+from ipv8.messaging.anonymization.tunnel import PEER_FLAG_EXIT_BT
 
 from tribler_common.simpledefs import (
     DLSTATUS_ALLOCATING_DISKSPACE,
@@ -72,7 +72,7 @@ class DownloadState(object):
         @return DLSTATUS_* """
         if not self.lt_status:
             return (DLSTATUS_CIRCUITS if not self.download.session.tunnel_community
-                    or self.download.session.tunnel_community.get_candidates(PEER_FLAG_EXIT_ANY)
+                    or self.download.session.tunnel_community.get_candidates(PEER_FLAG_EXIT_BT)
                     else DLSTATUS_EXIT_NODES) if self.download.config.get_hops() > 0 else DLSTATUS_WAITING4HASHCHECK
         elif self.get_error():
             return DLSTATUS_STOPPED_ON_ERROR
