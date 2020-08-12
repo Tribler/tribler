@@ -2,7 +2,7 @@ from unittest import TestCase
 from unittest.mock import Mock
 
 from ipv8.keyvault.crypto import default_eccrypto
-from ipv8.messaging.anonymization.tunnel import PEER_FLAG_EXIT_ANY
+from ipv8.messaging.anonymization.tunnel import PEER_FLAG_EXIT_BT
 from ipv8.peer import Peer
 from ipv8.peerdiscovery.network import Network
 
@@ -16,7 +16,7 @@ class FakeOverlay(object):
         self.network = Network()
 
     def get_candidates(self, flag):
-        return self.exit_candidates if flag == PEER_FLAG_EXIT_ANY else []
+        return self.exit_candidates if flag == PEER_FLAG_EXIT_BT else []
 
     def get_peers(self):
         return self.network.verified_peers

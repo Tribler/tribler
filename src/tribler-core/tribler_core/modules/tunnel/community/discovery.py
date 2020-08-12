@@ -1,7 +1,7 @@
 import time
 from random import sample
 
-from ipv8.messaging.anonymization.tunnel import PEER_FLAG_EXIT_ANY
+from ipv8.messaging.anonymization.tunnel import PEER_FLAG_EXIT_BT
 from ipv8.peerdiscovery.discovery import DiscoveryStrategy
 
 
@@ -59,7 +59,7 @@ class GoldenRatioStrategy(DiscoveryStrategy):
 
             peer_count = len(peers)
             if peer_count > self.target_peers:
-                exit_peers = set(self.overlay.get_candidates(PEER_FLAG_EXIT_ANY))
+                exit_peers = set(self.overlay.get_candidates(PEER_FLAG_EXIT_BT))
                 exit_count = len(exit_peers)
                 ratio = 1.0 - exit_count / peer_count  # Peer count is > 0 per definition
                 if ratio < self.golden_ratio:
