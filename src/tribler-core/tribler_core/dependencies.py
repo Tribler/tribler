@@ -22,7 +22,7 @@ dependencies = [
     {'module': 'lz4', 'install_type': 'pip3', 'package': 'lz4', 'optional': False, 'scope': 'core'},
     {'module': 'netifaces', 'install_type': 'pip3', 'package': 'netifaces', 'optional': False, 'scope': 'core'},
     {'module': 'networkx', 'install_type': 'pip3', 'package': 'networkx', 'optional': False, 'scope': 'both'},
-    {'module': 'PIL', 'install_type': 'pip3', 'package': 'PIL', 'optional': False, 'scope': 'gui'},
+    {'module': 'PIL', 'install_type': 'pip3', 'package': 'Pillow', 'optional': False, 'scope': 'gui'},
     {'module': 'pony', 'install_type': 'pip3', 'package': 'pony>=0.7.10', 'optional': False, 'scope': 'core'},
     {'module': 'psutil', 'install_type': 'pip3', 'package': 'psutil', 'optional': False, 'scope': 'both'},
     {'module': 'pyasn1', 'install_type': 'pip3', 'package': 'pyasn1', 'optional': False, 'scope': 'core'},
