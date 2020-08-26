@@ -8,6 +8,11 @@ then
   echo "Please run this script from project root as:\n./build/debian/makedist_debian.sh"
 fi
 
+if [ ! -z "$VENV" ]; then
+  echo "Setting venv to $VENV"
+  source $VENV/bin/activate
+fi
+
 rm -rf build/tribler
 rm -rf dist/tribler
 rm -rf build/debian/tribler/usr/share/tribler
