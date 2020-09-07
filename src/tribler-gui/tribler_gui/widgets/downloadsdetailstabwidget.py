@@ -6,7 +6,7 @@ from tribler_common.simpledefs import dlstatus_strings
 from tribler_gui.defs import *
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.utilities import compose_magnetlink, copy_to_clipboard, format_size, format_speed, is_video_file
+from tribler_gui.utilities import compose_magnetlink, copy_to_clipboard, format_size, format_speed
 from tribler_gui.widgets.downloadfilewidgetitem import DownloadFileWidgetItem
 
 
@@ -188,23 +188,7 @@ class DownloadsDetailsTabWidget(QTabWidget):
         menu.addAction(include_action)
         menu.addAction(exclude_action)
 
-        if (
-            len(selected_files_info) == 1
-            and is_video_file(selected_files_info[0]['name'])
-            and self.window().vlc_available
-        ):
-            play_action = QAction('Play', self)
-            play_action.triggered.connect(lambda: self.on_play_file(selected_files_info[0]))
-            menu.addAction(play_action)
-
         menu.exec_(self.window().download_files_list.mapToGlobal(pos))
-
-    def get_video_file_index(self, file_index):
-        video_index = 0
-        for index in range(file_index):
-            if is_video_file(self.current_download["files"][index]['name']):
-                video_index += 1
-        return video_index
 
     def get_included_file_list(self):
         return [file_info["index"] for file_info in self.current_download["files"] if file_info["included"]]
@@ -224,12 +208,6 @@ class DownloadsDetailsTabWidget(QTabWidget):
                 included_list.remove(file_data["index"])
 
         self.set_included_files(included_list)
-
-    def on_play_file(self, file_info):
-        self.window().left_menu_button_video_player.click()
-        self.window().video_player_page.play_media_item(
-            self.current_download["infohash"], self.get_video_file_index(file_info["index"])
-        )
 
     def set_included_files(self, files):
         post_data = {"selected_files": [ind for ind in files]}

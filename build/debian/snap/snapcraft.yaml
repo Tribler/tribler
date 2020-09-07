@@ -79,7 +79,6 @@ parts:
       - libxcb-icccm4
       - libxcb-image0
       - libxcb-render-util0
-      - vlc
       - libappindicator3-1
       - libasound2
       - libcurl3-gnutls

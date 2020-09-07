@@ -24,7 +24,6 @@ from tribler_gui.tribler_app import TriblerApplication
 from tribler_gui.tribler_window import TriblerWindow
 from tribler_gui.widgets.loading_list_item import LoadingListItem
 
-
 if sys.platform.startswith('win'):
     asyncio.set_event_loop(asyncio.SelectorEventLoop())
 
@@ -101,7 +100,6 @@ class TimeoutException(Exception):
 
 
 def wait_for_signal(signal, timeout=10, no_args=False):
-
     def on_signal(_):
         global signal_received
         signal_received = True
@@ -377,35 +375,6 @@ def test_add_download_url(tribler_api, window):
     screenshot(window, name="add_torrent_url_startdownload_dialog_files")
     QTest.mouseClick(window.dialog.dialog_widget.download_button, Qt.LeftButton)
     wait_for_signal(window.downloads_page.received_downloads)
-
-
-@pytest.mark.guitest
-def test_video_player_page(tribler_api, window):
-    go_to_and_wait_for_downloads(window)
-    QTest.mouseClick(window.downloads_list.topLevelItem(0).progress_slider, Qt.LeftButton)
-    QTest.mouseClick(window.play_download_button, Qt.LeftButton)
-    screenshot(window, name="video_player_page")
-
-    wait_for_signal(window.left_menu_playlist.list_loaded, no_args=True)
-    screenshot(window, name="video_player_left_menu_loaded")
-
-
-@pytest.mark.guitest
-@pytest.mark.skip("This test is currently disabled due to issue #5483")
-def test_video_playback(tribler_api, window):
-    """
-    Test video playback of a Tribler instance.
-    """
-    wait_for_variable(window, "tribler_settings")
-    QTest.mouseClick(window.left_menu_button_video_player, Qt.LeftButton)
-    window.left_menu_playlist.set_files([{"name": "test.wmv", "index": 1}])
-    window.video_player_page.active_infohash = 'a' * 20
-    window.video_player_page.active_index = 0
-    window.video_player_page.play_active_item()
-
-    QTest.qWait(3000)
-    screenshot(window, name="video_playback")
-    window.video_player_page.reset_player()
 
 
 @pytest.mark.guitest
