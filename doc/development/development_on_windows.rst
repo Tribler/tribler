@@ -53,10 +53,6 @@ Libsodium is required for the ``libnacl`` library, used for cryptographic operat
 
 Note that this might fail on Python 3.8, since directories have to be explicitly whitelisted to load DLLs from them. You can either copy the ``libsodium.dll`` to your ``System32`` directory or by whitelisting that directory using ``os.add_dll_directory`` when running Tribler.
 
-VLC
----
-
-To install VLC, you can download the official installer from the `VideoLAN website <http://www.videolan.org/vlc/download-windows.html>`_. Make sure to install the latest 64-bit version of VLC.
 
 Additional Packages
 -------------------

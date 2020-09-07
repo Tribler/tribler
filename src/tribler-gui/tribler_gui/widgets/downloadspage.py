@@ -81,7 +81,6 @@ class DownloadsPage(QWidget):
         self.window().start_download_button.clicked.connect(self.on_start_download_clicked)
         self.window().stop_download_button.clicked.connect(self.on_stop_download_clicked)
         self.window().remove_download_button.clicked.connect(self.on_remove_download_clicked)
-        self.window().play_download_button.clicked.connect(self.on_play_download_clicked)
 
         self.window().downloads_list.itemSelectionChanged.connect(self.on_download_item_clicked)
 
@@ -94,9 +93,6 @@ class DownloadsPage(QWidget):
 
         self.window().downloads_list.header().setSortIndicator(12, Qt.AscendingOrder)
         self.window().downloads_list.header().resizeSection(12, 146)
-
-        if not self.window().vlc_available:
-            self.window().play_download_button.setHidden(True)
 
     def on_filter_text_changed(self, text):
         self.window().downloads_list.clearSelection()
@@ -139,7 +135,7 @@ class DownloadsPage(QWidget):
         elif self.window().download_details_widget.currentIndex() == 1:
             url += "&get_files=1"
 
-        isactive = not self.isHidden() or self.window().video_player_page.needsupdate
+        isactive = not self.isHidden()
 
         if isactive or (time.time() - self.downloads_last_update > 30):
             # Update if the downloads page is visible or if we haven't updated for longer than 30 seconds
@@ -174,11 +170,6 @@ class DownloadsPage(QWidget):
                 items.append(item)
 
             item.update_with_download(download)
-
-            # Update video player with download info
-            video_infohash = self.window().video_player_page.active_infohash
-            if video_infohash != "" and download["infohash"] == video_infohash:
-                self.window().video_player_page.update_with_download_info(download)
 
             self.total_download += download["speed_down"]
             self.total_upload += download["speed_up"]
@@ -267,14 +258,12 @@ class DownloadsPage(QWidget):
     def on_download_item_clicked(self):
         selected_count = len(self.window().downloads_list.selectedItems())
         if selected_count == 0:
-            self.window().play_download_button.setEnabled(False)
             self.window().remove_download_button.setEnabled(False)
             self.window().start_download_button.setEnabled(False)
             self.window().stop_download_button.setEnabled(False)
             self.window().download_details_widget.hide()
         elif selected_count == 1:
             self.selected_items = self.window().downloads_list.selectedItems()
-            self.window().play_download_button.setEnabled(True)
             self.window().remove_download_button.setEnabled(True)
             self.window().start_download_button.setEnabled(DownloadsPage.start_download_enabled(self.selected_items))
             self.window().stop_download_button.setEnabled(DownloadsPage.stop_download_enabled(self.selected_items))
@@ -283,7 +272,6 @@ class DownloadsPage(QWidget):
             self.window().download_details_widget.show()
         else:
             self.selected_items = self.window().downloads_list.selectedItems()
-            self.window().play_download_button.setEnabled(False)
             self.window().remove_download_button.setEnabled(True)
             self.window().start_download_button.setEnabled(DownloadsPage.start_download_enabled(self.selected_items))
             self.window().stop_download_button.setEnabled(DownloadsPage.stop_download_enabled(self.selected_items))
@@ -311,12 +299,6 @@ class DownloadsPage(QWidget):
                 "downloads/%s" % infohash, self.on_download_stopped, method='PATCH', data={"state": "stop"}
             )
 
-    def on_play_download_clicked(self):
-        self.window().left_menu_button_video_player.click()
-        selected_item = self.selected_items[:1]
-        if selected_item:
-            self.window().video_player_page.play_media_item(selected_item[0].download_info["infohash"], -1)
-
     def on_download_stopped(self, json_result):
         if json_result and "modified" in json_result:
             for selected_item in self.selected_items:
@@ -324,8 +306,6 @@ class DownloadsPage(QWidget):
                     selected_item.download_info['status'] = "DLSTATUS_STOPPED"
                     selected_item.update_item()
                     self.on_download_item_clicked()
-                    if self.window().video_player_page.active_infohash == selected_item.download_info["infohash"]:
-                        self.window().video_player_page.reset_player()
 
     def on_remove_download_clicked(self):
         self.dialog = ConfirmationDialog(
@@ -345,10 +325,6 @@ class DownloadsPage(QWidget):
         if action != 2:
             for selected_item in self.selected_items:
                 infohash = selected_item.download_info["infohash"]
-
-                # Reset video player if necessary before doing the actual request
-                if self.window().video_player_page.active_infohash == infohash:
-                    self.window().video_player_page.reset_player()
 
                 TriblerNetworkRequest(
                     "downloads/%s" % infohash,
@@ -381,9 +357,7 @@ class DownloadsPage(QWidget):
                     self.on_download_item_clicked()
 
     def on_change_anonymity(self, result):
-        if result and "modified" in result:
-            if result["infohash"] == self.window().video_player_page.active_infohash:
-                self.window().video_player_page.reset_player()
+        pass
 
     def change_anonymity(self, hops):
         for selected_item in self.selected_items:
@@ -533,10 +507,6 @@ class DownloadsPage(QWidget):
         menu.addAction(start_action)
         menu.addAction(stop_action)
 
-        if self.window().vlc_available and len(self.selected_items) == 1:
-            play_action = QAction('Play', self)
-            play_action.triggered.connect(self.on_play_download_clicked)
-            menu.addAction(play_action)
         menu.addSeparator()
         menu.addAction(add_to_channel_action)
         menu.addSeparator()

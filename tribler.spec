@@ -61,10 +61,6 @@ except ImportError:
     pass
 
 if sys.platform.startswith('darwin'):
-    data_to_copy += [
-        ('/Applications/VLC.app/Contents/MacOS/lib', 'vlc/lib'),
-        ('/Applications/VLC.app/Contents/MacOS/plugins', 'vlc/plugins')
-    ]
     # Create the right version info in the Info.plist file
     with open('build/mac/resources/Info.plist', 'r') as f:
         content = f.read()

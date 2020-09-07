@@ -150,8 +150,6 @@ class ContextMenuMixin(object):
         num_selected = len(self.table_view.selectionModel().selectedRows())
         if num_selected == 1 and item_index.model().data_items[item_index.row()]["type"] == REGULAR_TORRENT:
             self.add_menu_item(menu, ' Download ', item_index, self.table_view.on_download_button_clicked)
-            if item_index.model().data_items[item_index.row()][u'category'] == u'Video':
-                self.add_menu_item(menu, ' Play ', item_index, self.table_view.on_play_button_clicked)
 
         # Add menu separator for channel stuff
         menu.addSeparator()

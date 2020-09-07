@@ -58,7 +58,6 @@ from tribler_gui.defs import (
     PAGE_SUBSCRIBED_CHANNELS,
     PAGE_TRUST,
     PAGE_TRUST_GRAPH_PAGE,
-    PAGE_VIDEO_PLAYER,
     SHUTDOWN_WAITING_PERIOD,
 )
 from tribler_gui.dialogs.addtopersonalchanneldialog import AddToChannelDialog
@@ -159,7 +158,6 @@ class TriblerWindow(QMainWindow):
         self.new_version_dialog = None
         self.start_download_dialog_active = False
         self.selected_torrent_files = []
-        self.vlc_available = True
         self.has_search_results = False
         self.last_search_query = None
         self.last_search_time = None
@@ -200,7 +198,6 @@ class TriblerWindow(QMainWindow):
             self.left_menu_button_search,
             self.left_menu_button_my_channel,
             self.left_menu_button_subscriptions,
-            self.left_menu_button_video_player,
             self.left_menu_button_downloads,
             self.left_menu_button_discovered,
             self.left_menu_button_trust_graph,
@@ -252,7 +249,6 @@ class TriblerWindow(QMainWindow):
         else:
             self.tray_icon = None
 
-        self.hide_left_menu_playlist()
         self.left_menu_button_debug.setHidden(True)
         self.top_menu_button.setHidden(True)
         self.left_menu.setHidden(True)
@@ -308,8 +304,6 @@ class TriblerWindow(QMainWindow):
             self.close_tribler()
 
         signal.signal(signal.SIGINT, sigint_handler)
-
-        self.installEventFilter(self.video_player_page)
 
         # Resize the window according to the settings
         center = QApplication.desktop().availableGeometry(self).center()
@@ -414,7 +408,6 @@ class TriblerWindow(QMainWindow):
         self.add_torrent_button.setHidden(False)
         self.top_search_bar.setHidden(False)
 
-        # fetch the settings, needed for the video player port
         self.fetch_settings()
 
         self.downloads_page.start_loading_downloads()
@@ -424,10 +417,6 @@ class TriblerWindow(QMainWindow):
 
         self.add_to_channel_dialog.load_channel(0)
         self.discovered_page.reset_view()
-
-        # We have to load the video player (and initialize VLC stuff) after spawning a subprocess to prevent a crash
-        # on Mac in frozen environments. Also see https://github.com/Tribler/tribler/issues/5420.
-        self.video_player_page.initialize_player()
 
         if not self.gui_settings.value("first_discover", False) and not self.core_manager.use_existing_core:
             self.core_manager.events_manager.discovered_channel.connect(self.stop_discovering)
@@ -631,10 +620,6 @@ class TriblerWindow(QMainWindow):
 
         self.tribler_settings = settings['settings']
 
-        # Set the video server port
-        self.video_player_page.video_player_port = self.core_manager.api_port
-        self.video_player_page.video_player_api_key = self.core_manager.api_key.decode('utf-8')
-
         self.downloads_all_button.click()
 
         # process pending file requests (i.e. someone clicked a torrent file when Tribler was closed)
@@ -684,7 +669,6 @@ class TriblerWindow(QMainWindow):
         self.stackedWidget.setCurrentIndex(PAGE_SETTINGS)
         self.settings_page.load_settings()
         self.navigation_stack = []
-        self.hide_left_menu_playlist()
 
     def on_token_balance_click(self, _):
         self.raise_window()
@@ -693,7 +677,6 @@ class TriblerWindow(QMainWindow):
         self.load_token_balance()
         self.trust_page.load_blocks()
         self.navigation_stack = []
-        self.hide_left_menu_playlist()
 
     def load_token_balance(self):
         TriblerNetworkRequest("trustchain/statistics", self.received_trustchain_statistics, capture_errors=False)
@@ -913,11 +896,6 @@ class TriblerWindow(QMainWindow):
         # Make sure that the window is visible (this action might be triggered from the tray icon)
         self.raise_window()
 
-        if self.video_player_page.isVisible():
-            # If we're adding a torrent from the video player page, go to the home page.
-            # This is necessary since VLC takes the screen and the popup becomes invisible.
-            self.clicked_menu_button_downloads()
-
         if not self.add_torrent_url_dialog_active:
             self.dialog = ConfirmationDialog(
                 self,
@@ -989,7 +967,6 @@ class TriblerWindow(QMainWindow):
         self.stackedWidget.setCurrentIndex(PAGE_SEARCH_RESULTS)
         self.search_results_page.content_table.setFocus()
         self.navigation_stack = []
-        self.hide_left_menu_playlist()
 
     def clicked_menu_button_discovered(self):
         self.deselect_all_menu_buttons()
@@ -1000,7 +977,6 @@ class TriblerWindow(QMainWindow):
         self.stackedWidget.setCurrentIndex(PAGE_DISCOVERED)
         self.discovered_page.content_table.setFocus()
         self.navigation_stack = []
-        self.hide_left_menu_playlist()
 
     def clicked_menu_button_my_channel(self):
         self.deselect_all_menu_buttons()
@@ -1014,19 +990,11 @@ class TriblerWindow(QMainWindow):
         self.stackedWidget.setCurrentIndex(PAGE_EDIT_CHANNEL)
         self.personal_channel_page.content_table.setFocus()
         self.navigation_stack = []
-        self.hide_left_menu_playlist()
-
-    def clicked_menu_button_video_player(self):
-        self.deselect_all_menu_buttons(self.left_menu_button_video_player)
-        self.stackedWidget.setCurrentIndex(PAGE_VIDEO_PLAYER)
-        self.navigation_stack = []
-        self.show_left_menu_playlist()
 
     def clicked_menu_button_trust_graph(self):
         self.deselect_all_menu_buttons(self.left_menu_button_trust_graph)
         self.stackedWidget.setCurrentIndex(PAGE_TRUST_GRAPH_PAGE)
         self.navigation_stack = []
-        self.hide_left_menu_playlist()
 
     def clicked_menu_button_downloads(self):
         self.deselect_all_menu_buttons(self.left_menu_button_downloads)
@@ -1034,7 +1002,6 @@ class TriblerWindow(QMainWindow):
         self.left_menu_button_downloads.setChecked(True)
         self.stackedWidget.setCurrentIndex(PAGE_DOWNLOADS)
         self.navigation_stack = []
-        self.hide_left_menu_playlist()
 
     def clicked_menu_button_debug(self):
         if not self.debug_window:
@@ -1059,17 +1026,6 @@ class TriblerWindow(QMainWindow):
         self.stackedWidget.setCurrentIndex(PAGE_SUBSCRIBED_CHANNELS)
         self.subscribed_channels_page.content_table.setFocus()
         self.navigation_stack = []
-        self.hide_left_menu_playlist()
-
-    def hide_left_menu_playlist(self):
-        self.left_menu_seperator.setHidden(True)
-        self.left_menu_playlist_label.setHidden(True)
-        self.left_menu_playlist.setHidden(True)
-
-    def show_left_menu_playlist(self):
-        self.left_menu_seperator.setHidden(False)
-        self.left_menu_playlist_label.setHidden(False)
-        self.left_menu_playlist.setHidden(False)
 
     def on_page_back_clicked(self):
         try:
@@ -1081,12 +1037,6 @@ class TriblerWindow(QMainWindow):
     def resizeEvent(self, _):
         # This thing here is necessary to send the resize event to dialogs, etc.
         self.resize_event.emit()
-
-    def exit_full_screen(self):
-        self.top_bar.show()
-        self.left_menu.show()
-        self.video_player_page.is_full_screen = False
-        self.showNormal()
 
     def close_tribler(self):
         if not self.core_manager.shutting_down:
@@ -1115,7 +1065,6 @@ class TriblerWindow(QMainWindow):
             self.core_manager.stop()
             self.core_manager.shutting_down = True
             self.downloads_page.stop_loading_downloads()
-            self.video_player_page.reset_player()
             request_manager.clear()
 
             # Stop the token balance timer
@@ -1125,12 +1074,6 @@ class TriblerWindow(QMainWindow):
     def closeEvent(self, close_event):
         self.close_tribler()
         close_event.ignore()
-
-    def keyReleaseEvent(self, event):
-        if event.key() == Qt.Key_Escape:
-            self.escape_pressed.emit()
-            if self.isFullScreen():
-                self.exit_full_screen()
 
     def dragEnterEvent(self, e):
         file_urls = [_qurl_to_path(url) for url in e.mimeData().urls()] if e.mimeData().hasUrls() else []

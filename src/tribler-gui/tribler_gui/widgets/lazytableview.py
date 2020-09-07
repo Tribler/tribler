@@ -33,7 +33,6 @@ class TriblerContentTableView(QTableView):
 
         # Mix-in connects
         self.clicked.connect(self.on_table_item_clicked)
-        self.delegate.play_button.clicked.connect(self.on_play_button_clicked)
         self.delegate.subscribe_control.clicked.connect(self.on_subscribe_control_clicked)
         self.delegate.rating_control.clicked.connect(self.on_subscribe_control_clicked)
         self.delegate.download_button.clicked.connect(self.on_download_button_clicked)
@@ -53,25 +52,6 @@ class TriblerContentTableView(QTableView):
 
     def on_download_button_clicked(self, index):
         self.window().start_download_from_uri(index2uri(index))
-
-    def on_play_button_clicked(self, index):
-        infohash = index.model().data_items[index.row()][u'infohash']
-
-        def on_play_request_done(_):
-            if not self:
-                return
-            self.window().left_menu_button_video_player.click()
-            self.window().video_player_page.play_media_item(infohash, -1)
-
-        self.window().perform_start_download_request(
-            index2uri(index),
-            self.window().tribler_settings['download_defaults']['anonymity_enabled'],
-            self.window().tribler_settings['download_defaults']['safeseeding_enabled'],
-            self.window().tribler_settings['download_defaults']['saveas'],
-            [],
-            0,
-            callback=on_play_request_done,
-        )
 
     def on_subscribe_control_clicked(self, index):
         item = index.model().data_items[index.row()]
