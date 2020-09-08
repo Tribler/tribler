@@ -35,29 +35,35 @@ Contributions are very welcome!
 If you are interested in contributing code or otherwise, please have a look at `our contributing page <http://tribler.readthedocs.io/en/devel/contributing.html>`_.
 Have a look at the `issue tracker <https://github.com/Tribler/tribler/issues>`_ if you are looking for inspiration :).
 
-Setting up your development environment
-=======================================
-
-We support development on Linux, macOS and Windows. We have written documentation that guides you through installing the required packages when setting up a Tribler development environment. See `our Linux development guide <http://tribler.readthedocs.io/en/devel/development/development_on_linux.html>`_ for the guide on setting up a development environment on Linux distributions. See `our Windows development guide <http://tribler.readthedocs.io/en/devel/development/development_on_windows.html>`_ for setting everything up on Windows. See `our OS X development guide <http://tribler.readthedocs.io/en/devel/development/development_on_osx.html>`_ for the guide to setup the development environment on macOS.
 
 Running Tribler from the repository
-===================================
+###################################
 
 First clone the repository:
 
 .. code-block:: bash
 
-    git clone --recursive git@github.com:Tribler/tribler.git
-
-or, if you haven't added your ssh key to your github account:
-
-.. code-block:: bash
-
     git clone --recursive https://github.com/Tribler/tribler.git
 
-Second, install the `dependencies <doc/development/development_on_linux.rst>`_.
+Setting up your development environment
+***************************************
 
-Done!
+We support development on Linux, macOS and Windows. We have written
+documentation that guides you through installing the required packages when
+setting up a Tribler development environment.
+
+See `our Linux development guide <http://tribler.readthedocs.io/en/devel/development/development_on_linux.html>`_
+for the guide on setting up a development environment on Linux distributions.
+
+See `our Windows development guide <http://tribler.readthedocs.io/en/devel/development/development_on_windows.html>`_
+for setting everything up on Windows.
+
+See `our OS X development guide <http://tribler.readthedocs.io/en/devel/development/development_on_osx.html>`_ for the guide to setup the development environment on macOS.
+
+
+Running
+***************************************
+
 Now you can run tribler by executing the ``tribler.sh`` script on the root of the repository:
 
 .. code-block:: bash
