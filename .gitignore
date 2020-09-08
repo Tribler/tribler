@@ -88,3 +88,6 @@ tribler_gui/screenshots
 
 # Tests output directory
 temp
+
+#venv
+venv/
