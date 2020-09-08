@@ -14,6 +14,8 @@ If you wish to run the Tribler Graphical User Interface, PyQt5 should be availab
 
     brew install python3, qt5, sip, pyqt5
     brew cask install qt-creator # if you want the visual designer
+    brew link qt5 --force # to allow access qmake from the terminal
+
     qmake --version # test whether qt is installed correctly
 
 Libtorrent
