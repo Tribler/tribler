@@ -15,4 +15,5 @@ aiohttp
 aiohttp_apispec
 pyyaml
 marshmallow
+Pillow
 faulthandler
