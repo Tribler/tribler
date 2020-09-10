@@ -71,16 +71,9 @@ There are a bunch of other packages that can easily be installed using pip3 and 
 
 .. code-block:: bash
 
-    brew install homebrew/python/pillow gmp mpfr libmpc libsodium
+    brew install gmp mpfr libmpc libsodium
     cd src && pip3 install -r requirements.txt
 
-If you encounter any error during the installation of Pillow, make sure that libjpeg and zlib are installed. They can be installed using:
-
-.. code-block:: bash
-
-    brew tap homebrew/dupes
-    brew install libjpeg zlib
-    brew link --force zlib
 
 To enable Bitcoin wallet management (optional), you should install the bitcoinlib library (support for this wallet is experimental):
 
