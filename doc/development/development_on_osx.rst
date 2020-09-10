@@ -72,8 +72,7 @@ There are a bunch of other packages that can easily be installed using pip3 and 
 .. code-block:: bash
 
     brew install homebrew/python/pillow gmp mpfr libmpc libsodium
-    pip3 install --user aiohttp aiohttp_apispec cffi chardet configobj cryptography decorator gmpy2 idna libnacl lz4 \
-    netifaces networkx numpy pathlib pillow psutil pyasn1 pyopenssl pyqtgraph pyyaml
+    cd src && pip3 install -r requirements.txt
 
 If you encounter any error during the installation of Pillow, make sure that libjpeg and zlib are installed. They can be installed using:
 
