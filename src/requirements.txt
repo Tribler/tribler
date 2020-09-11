@@ -16,4 +16,6 @@ aiohttp_apispec
 pyyaml
 marshmallow
 Pillow
+netifaces
+pyqtgraph
 faulthandler

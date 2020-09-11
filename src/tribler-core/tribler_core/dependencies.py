@@ -5,6 +5,7 @@ Note that this file should not depend on any external modules itself other than 
 """
 import importlib
 import sys
+import os
 
 dependencies = [
     {'module': 'aiohttp', 'install_type': 'pip3', 'package': 'aiohttp', 'optional': False, 'scope': 'core'},
@@ -42,8 +43,15 @@ def _show_system_popup(title, text):
     :param text: the pop-up body
     """
     try:
-        import win32api
-        win32api.MessageBox(0, text, title)
+        if os.name == 'Windows':
+            import win32api
+            win32api.MessageBox(0, text, title)
+        elif os.name == 'Linux':
+            import subprocess
+            subprocess.Popen(['xmessage', '-center', text])
+        elif os.name == 'Darwin':
+            import subprocess
+            subprocess.Popen(['/usr/bin/osascript', '-e', text])
     except ImportError:
         import subprocess
         subprocess.Popen(['xmessage', '-center', text])
