@@ -67,19 +67,19 @@ or by using this workaround from PR:
 Other Packages
 ~~~~~~~~~~~~~~
 
-There are a bunch of other packages that can easily be installed using pip3 and brew:
+There are a bunch of other packages that can easily be installed using pip and brew:
 
 .. code-block:: bash
 
     brew install gmp mpfr libmpc libsodium
-    cd src && pip3 install -r requirements.txt
+    cd src && python3 -m pip install -r requirements.txt
 
 
 To enable Bitcoin wallet management (optional), you should install the bitcoinlib library (support for this wallet is experimental):
 
 .. code-block:: bash
 
-    pip3 install bitcoinlib==0.4.10
+    python3 -m pip install bitcoinlib==0.4.10
 
 Tribler
 -------
