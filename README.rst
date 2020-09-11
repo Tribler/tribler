@@ -52,13 +52,9 @@ We support development on Linux, macOS and Windows. We have written
 documentation that guides you through installing the required packages when
 setting up a Tribler development environment.
 
-See `our Linux development guide <http://tribler.readthedocs.io/en/devel/development/development_on_linux.html>`_
-for the guide on setting up a development environment on Linux distributions.
-
-See `our Windows development guide <http://tribler.readthedocs.io/en/devel/development/development_on_windows.html>`_
-for setting everything up on Windows.
-
-See `our OS X development guide <http://tribler.readthedocs.io/en/devel/development/development_on_osx.html>`_ for the guide to setup the development environment on macOS.
+* `Linux <http://tribler.readthedocs.io/en/devel/development/development_on_linux.html>`_
+* `Windows <http://tribler.readthedocs.io/en/devel/development/development_on_windows.html>`_
+* `macOS <http://tribler.readthedocs.io/en/devel/development/development_on_osx.html>`_
 
 
 Running
