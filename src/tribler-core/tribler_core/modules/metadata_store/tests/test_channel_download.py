@@ -21,6 +21,8 @@ class TestChannelDownload(TestAsServer):
         super(TestChannelDownload, self).setUpPreSession()
         self.config.set_chant_enabled(True)
         self.config.set_libtorrent_enabled(True)
+        self.config.set_libtorrent_dht_readiness_timeout(0)
+        self.config.set_libtorrent_dht_enabled(False)
 
     @timeout(20)
     async def test_channel_update_and_download(self):

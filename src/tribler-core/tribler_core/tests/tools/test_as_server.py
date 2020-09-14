@@ -317,6 +317,7 @@ class TestAsServer(AbstractServer):
         self.seed_config.set_ipv8_enabled(False)
         self.seed_config.set_api_http_enabled(False)
         self.seed_config.set_libtorrent_enabled(True)
+        self.seed_config.set_libtorrent_dht_enabled(False)
         self.seed_config.set_libtorrent_dht_readiness_timeout(0)
         self.seed_config.set_tunnel_community_enabled(False)
         self.seed_config.set_market_community_enabled(False)
