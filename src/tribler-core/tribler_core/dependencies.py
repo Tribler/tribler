@@ -4,8 +4,8 @@ This file lists the python dependencies for Tribler.
 Note that this file should not depend on any external modules itself other than builtin ones.
 """
 import importlib
-import sys
 import os
+import sys
 
 dependencies = [
     {'module': 'aiohttp', 'install_type': 'pip3', 'package': 'aiohttp', 'optional': False, 'scope': 'core'},
