@@ -603,7 +603,7 @@ class TriblerWindow(QMainWindow):
         self.search_completion_model.setStringList(completions["completions"])
 
     def fetch_settings(self):
-        TriblerNetworkRequest("settings", self.received_settings, capture_errors=False)
+        TriblerNetworkRequest("settings", self.received_settings, capture_core_errors=False)
 
     def received_settings(self, settings):
         if not settings:
@@ -679,7 +679,7 @@ class TriblerWindow(QMainWindow):
         self.navigation_stack = []
 
     def load_token_balance(self):
-        TriblerNetworkRequest("trustchain/statistics", self.received_trustchain_statistics, capture_errors=False)
+        TriblerNetworkRequest("trustchain/statistics", self.received_trustchain_statistics, capture_core_errors=False)
 
     def received_trustchain_statistics(self, statistics):
         if not statistics or "statistics" not in statistics:

@@ -158,7 +158,7 @@ class StartDownloadDialog(DialogContainer):
         request = f"torrentinfo?uri={quote_plus_unicode(self.download_uri)}"
         if direct is True:
             request = request + f"&hops=0"
-        self.rest_request = TriblerNetworkRequest(request, self.on_received_metainfo, capture_errors=False)
+        self.rest_request = TriblerNetworkRequest(request, self.on_received_metainfo, capture_core_errors=False)
 
         if self.metainfo_retries <= METAINFO_MAX_RETRIES:
             fetch_mode = 'directly' if direct else 'anonymously'
