@@ -4,7 +4,7 @@ This file lists the python dependencies for Tribler.
 Note that this file should not depend on any external modules itself other than builtin ones.
 """
 import importlib
-import os
+import platform
 import sys
 
 dependencies = [
@@ -45,15 +45,18 @@ def _show_system_popup(title, text):
     sep = "*" * 80
     print('\n'.join([sep, title, sep, text, sep]), file=sys.stderr)
 
-    if os.name == 'Windows':
+    system = platform.system()
+    if system == 'Windows':
         import win32api
         win32api.MessageBox(0, text, title)
-    elif os.name == 'Linux':
+    elif system == 'Linux':
         import subprocess
         subprocess.Popen(['xmessage', '-center', text])
-    elif os.name == 'Darwin':
+    elif system == 'Darwin':
         import subprocess
         subprocess.Popen(['/usr/bin/osascript', '-e', text])
+    else:
+        print(f'cannot create native pop-up for system {system}')
 
 
 def check_for_missing_dependencies(scope='both'):
