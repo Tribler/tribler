@@ -130,8 +130,9 @@ class TriblerNetworkRequest(QObject):
     # We implement the callback as a signal call and not as a direct callback
     # because we want the request object be deleted independent of what happens
     # during the callback call.
-    received_json = pyqtSignal(object, int)
+    received_json = pyqtSignal(object)
     request_finished = pyqtSignal(object, int)
+    received_error = pyqtSignal(int)
 
     def __init__(
         self,
@@ -141,10 +142,11 @@ class TriblerNetworkRequest(QObject):
         data=None,
         raw_data=None,
         method='GET',
-        capture_errors=True,
+        capture_core_errors=True,
         priority=QNetworkRequest.NormalPriority,
         on_cancel=lambda: None,
         decode_json_response=True,
+        on_error_callback=None,
     ):
         QObject.__init__(self)
 
@@ -164,7 +166,7 @@ class TriblerNetworkRequest(QObject):
         self.priority = priority
         self.on_cancel = on_cancel
         self.method = method
-        self.capture_errors = capture_errors
+        self.capture_core_errors = capture_core_errors
         if data:
             raw_data = json.dumps(data)
         self.raw_data = raw_data if (issubclass(type(raw_data), bytes) or raw_data is None) else raw_data.encode('utf8')
@@ -172,6 +174,9 @@ class TriblerNetworkRequest(QObject):
         if self.reply_callback:
             self.received_json.connect(self.reply_callback)
 
+        self.on_error_callback = on_error_callback
+        if on_error_callback is not None:
+            self.received_error.connect(on_error_callback)
         self.reply = None  # to hold the associated QNetworkReply object
 
         # Pass the newly created object to the manager singleton, so the object can be dispatched immediately
@@ -188,22 +193,22 @@ class TriblerNetworkRequest(QObject):
 
         try:
             if not self.reply.isOpen() or not status_code:
-                self.received_json.emit(None, self.reply.error())
+                self.received_error.emit(self.reply.error())
                 return
 
             data = self.reply.readAll()
             if not self.decode_json_response:
-                self.received_json.emit(data, self.reply.error())
+                self.received_json.emit(data)
                 return
             json_result = json.loads(bytes(data), encoding='latin_1')
             if (
                 'error' in json_result
-                and self.capture_errors
+                and self.capture_core_errors
                 and not TriblerRequestManager.window.core_manager.shutting_down
             ):
                 request_manager.show_error(TriblerRequestManager.get_message_from_error(json_result))
             else:
-                self.received_json.emit(json_result, self.reply.error())
+                self.received_json.emit(json_result)
         except ValueError:
             self.received_json.emit(None, self.reply.error())
             logging.error("No json object could be decoded from data: %s" % data)

@@ -177,7 +177,7 @@ class TorrentDetailsTabWidget(QTabWidget):
             "metadata/torrents/%s/health" % infohash,
             self.on_health_response,
             url_params={"nowait": True, "refresh": True},
-            capture_errors=False,
+            capture_core_errors=False,
             priority=QNetworkRequest.LowPriority,
             on_cancel=on_cancel_health_check,
         )

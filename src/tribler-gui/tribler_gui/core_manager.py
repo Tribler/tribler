@@ -103,7 +103,7 @@ class CoreManager(QObject):
 
     def check_core_ready(self):
         TriblerNetworkRequest(
-            "state", self.on_received_state, capture_errors=False, priority=QNetworkRequest.HighPriority
+            "state", self.on_received_state, capture_core_errors=False, priority=QNetworkRequest.HighPriority
         )
 
     def on_received_state(self, state):
