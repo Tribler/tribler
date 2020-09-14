@@ -42,23 +42,18 @@ def _show_system_popup(title, text):
     :param title: the pop-up title
     :param text: the pop-up body
     """
-    try:
-        if os.name == 'Windows':
-            import win32api
-            win32api.MessageBox(0, text, title)
-        elif os.name == 'Linux':
-            import subprocess
-            subprocess.Popen(['xmessage', '-center', text])
-        elif os.name == 'Darwin':
-            import subprocess
-            subprocess.Popen(['/usr/bin/osascript', '-e', text])
-    except:
-        print(f'Error while showing message box with text: {text}')
-        raise
-
-
     sep = "*" * 80
     print('\n'.join([sep, title, sep, text, sep]), file=sys.stderr)
+
+    if os.name == 'Windows':
+        import win32api
+        win32api.MessageBox(0, text, title)
+    elif os.name == 'Linux':
+        import subprocess
+        subprocess.Popen(['xmessage', '-center', text])
+    elif os.name == 'Darwin':
+        import subprocess
+        subprocess.Popen(['/usr/bin/osascript', '-e', text])
 
 
 def check_for_missing_dependencies(scope='both'):
