@@ -52,10 +52,10 @@ def _show_system_popup(title, text):
         elif os.name == 'Darwin':
             import subprocess
             subprocess.Popen(['/usr/bin/osascript', '-e', text])
-    except Exception as exception:
-        # Use base Exception, because code above is tricky and can raise many
-        # types of exceptions (SubprocessError, ImportError, win32api.error)
-        print(f'Error while showing message box: {exception}')
+    except:
+        print(f'Error while showing message box with text: {text}')
+        raise
+
 
     sep = "*" * 80
     print('\n'.join([sep, title, sep, text, sep]), file=sys.stderr)
