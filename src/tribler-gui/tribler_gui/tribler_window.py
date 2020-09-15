@@ -190,12 +190,13 @@ class TriblerWindow(QMainWindow):
         self.add_torrent_url_shortcut = QShortcut(QKeySequence("Ctrl+i"), self)
         self.add_torrent_url_shortcut.activated.connect(self.on_add_torrent_from_url)
 
+        self.top_search_bar.clicked.connect(self.clicked_search_bar)
+
         # Remove the focus rect on OS X
         for widget in self.findChildren(QLineEdit) + self.findChildren(QListWidget) + self.findChildren(QTreeWidget):
             widget.setAttribute(Qt.WA_MacShowFocusRect, 0)
 
         self.menu_buttons = [
-            self.left_menu_button_search,
             self.left_menu_button_my_channel,
             self.left_menu_button_subscriptions,
             self.left_menu_button_downloads,
@@ -646,7 +647,9 @@ class TriblerWindow(QMainWindow):
             logging.info("Same search query already sent within 500ms so dropping this one")
             return
 
-        self.left_menu_button_search.setChecked(True)
+        if not query:
+            return
+
         self.has_search_results = True
         self.search_results_page.initialize_root_model(
             SearchResultsModel(
@@ -657,10 +660,11 @@ class TriblerWindow(QMainWindow):
             )
         )
 
+        self.clicked_search_bar()
+
         # Trigger remote search
         self.search_results_page.preview_clicked()
 
-        self.clicked_menu_button_search()
         self.last_search_query = query
         self.last_search_time = current_ts
 
@@ -953,20 +957,16 @@ class TriblerWindow(QMainWindow):
                 button.setEnabled(False)
                 continue
             button.setEnabled(True)
-
-            if button == self.left_menu_button_search and not self.has_search_results:
-                button.setEnabled(False)
-
             button.setChecked(False)
 
-    def clicked_menu_button_search(self):
-        self.deselect_all_menu_buttons()
-        self.left_menu_button_search.setChecked(True)
-        if self.stackedWidget.currentIndex() == PAGE_SEARCH_RESULTS:
-            self.search_results_page.go_back_to_level(0)
-        self.stackedWidget.setCurrentIndex(PAGE_SEARCH_RESULTS)
-        self.search_results_page.content_table.setFocus()
-        self.navigation_stack = []
+    def clicked_search_bar(self):
+        query = self.top_search_bar.text()
+        if query and self.has_search_results:
+            self.deselect_all_menu_buttons()
+            if self.stackedWidget.currentIndex() == PAGE_SEARCH_RESULTS:
+                self.search_results_page.go_back_to_level(0)
+            self.stackedWidget.setCurrentIndex(PAGE_SEARCH_RESULTS)
+            self.navigation_stack = []
 
     def clicked_menu_button_discovered(self):
         self.deselect_all_menu_buttons()
