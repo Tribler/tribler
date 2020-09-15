@@ -304,7 +304,7 @@ font-family: &quot;Arial&quot;;</string>
         </spacer>
        </item>
        <item>
-        <widget class="QLineEdit" name="top_search_bar">
+        <widget class="ClickableLineEdit" name="top_search_bar">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
            <horstretch>0</horstretch>
@@ -679,61 +679,6 @@ color: white;
          <property name="leftMargin">
           <number>0</number>
          </property>
-         <item>
-          <widget class="QPushButton" name="left_menu_button_search">
-           <property name="enabled">
-            <bool>false</bool>
-           </property>
-           <property name="minimumSize">
-            <size>
-             <width>0</width>
-             <height>26</height>
-            </size>
-           </property>
-           <property name="maximumSize">
-            <size>
-             <width>16777215</width>
-             <height>30</height>
-            </size>
-           </property>
-           <property name="cursor">
-            <cursorShape>PointingHandCursor</cursorShape>
-           </property>
-           <property name="focusPolicy">
-            <enum>Qt::NoFocus</enum>
-           </property>
-           <property name="styleSheet">
-            <string notr="true"/>
-           </property>
-           <property name="text">
-            <string> Search results</string>
-           </property>
-           <property name="icon">
-            <iconset>
-             <normaloff>../images/search.png</normaloff>
-             <disabledoff>../images/search.png</disabledoff>
-             <disabledon>../images/search.png</disabledon>../images/search.png</iconset>
-           </property>
-           <property name="iconSize">
-            <size>
-             <width>16</width>
-             <height>16</height>
-            </size>
-           </property>
-           <property name="checkable">
-            <bool>true</bool>
-           </property>
-           <property name="checked">
-            <bool>false</bool>
-           </property>
-           <property name="autoDefault">
-            <bool>false</bool>
-           </property>
-           <property name="flat">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
          <item>
           <widget class="QPushButton" name="left_menu_button_discovered">
            <property name="sizePolicy">
@@ -1433,7 +1378,7 @@ border-top: 1px solid #555;
                <x>0</x>
                <y>0</y>
                <width>300</width>
-               <height>561</height>
+               <height>607</height>
               </rect>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_22">
@@ -3978,8 +3923,8 @@ color: white</string>
                       <rect>
                        <x>0</x>
                        <y>0</y>
-                       <width>321</width>
-                       <height>259</height>
+                       <width>308</width>
+                       <height>276</height>
                       </rect>
                      </property>
                      <layout class="QFormLayout" name="formLayout_4">
@@ -6027,11 +5972,11 @@ font-weight: bold;</string>
                       <property name="sortingEnabled">
                        <bool>true</bool>
                       </property>
-                      <attribute name="headerMinimumSectionSize">
-                       <number>50</number>
-                      </attribute>
                       <attribute name="headerDefaultSectionSize">
                        <number>120</number>
+                      </attribute>
+                      <attribute name="headerMinimumSectionSize">
+                       <number>50</number>
                       </attribute>
                       <attribute name="headerStretchLastSection">
                        <bool>true</bool>
@@ -7939,6 +7884,11 @@ margin: 10px 4px 2px 10px;</string>
    <header>tribler_gui.widgets.trustgraphpage.h</header>
    <container>1</container>
   </customwidget>
+  <customwidget>
+   <class>ClickableLineEdit</class>
+   <extends>QLineEdit</extends>
+   <header>tribler_gui.widgets.clickable_line_edit.h</header>
+  </customwidget>
  </customwidgets>
  <resources/>
  <connections>
@@ -8083,22 +8033,6 @@ margin: 10px 4px 2px 10px;</string>
     <hint type="destinationlabel">
      <x>427</x>
      <y>317</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>left_menu_button_search</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>clicked_menu_button_search()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>95</x>
-     <y>151</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>327</y>
     </hint>
    </hints>
   </connection>
