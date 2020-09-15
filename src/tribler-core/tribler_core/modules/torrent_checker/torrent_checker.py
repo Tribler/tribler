@@ -29,6 +29,7 @@ MIN_TORRENT_CHECK_INTERVAL = 900   # How much time we should wait before checkin
 TORRENT_CHECK_RETRY_INTERVAL = 30  # Interval when the torrent was successfully checked for the last time
 MAX_TORRENTS_CHECKED_PER_SESSION = 50
 
+
 class TorrentChecker(TaskManager):
 
     def __init__(self, session):
@@ -208,7 +209,8 @@ class TorrentChecker(TaskManager):
         """
         new_result_tuple = (new_result['infohash'], new_result['seeders'],
                             new_result['leechers'], new_result['last_check'])
-        self.torrents_checked.add(new_result_tuple)
+        if new_result['seeders'] > 0:
+            self.torrents_checked.add(new_result_tuple)
 
     def on_torrent_health_check_completed(self, infohash, result):
         final_response = {}
