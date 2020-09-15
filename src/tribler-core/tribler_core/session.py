@@ -406,6 +406,12 @@ class Session(TaskManager):
 
         self.tracker_manager = TrackerManager(self)
 
+        # Start torrent checker before Popularity community is loaded
+        if self.config.get_torrent_checking_enabled():
+            self.readable_status = STATE_START_TORRENT_CHECKER
+            self.torrent_checker = TorrentChecker(self)
+            await self.torrent_checker.initialize()
+
         # On Mac, we bundle the root certificate for the SSL validation since Twisted is not using the root
         # certificates provided by the system trust store.
         if sys.platform == 'darwin':
@@ -455,11 +461,6 @@ class Session(TaskManager):
             self.readable_status = STATE_LOAD_CHECKPOINTS
             await self.dlmgr.load_checkpoints()
         self.readable_status = STATE_READABLE_STARTED
-
-        if self.config.get_torrent_checking_enabled():
-            self.readable_status = STATE_START_TORRENT_CHECKER
-            self.torrent_checker = TorrentChecker(self)
-            await self.torrent_checker.initialize()
 
         if self.config.get_dummy_wallets_enabled():
             # For debugging purposes, we create dummy wallets
