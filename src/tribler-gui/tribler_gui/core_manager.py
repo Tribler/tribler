@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 
 from PyQt5.QtCore import QObject, QProcess, QProcessEnvironment, QTimer, pyqtSignal
 from PyQt5.QtNetwork import QNetworkRequest
@@ -38,6 +39,7 @@ class CoreManager(QObject):
         self.use_existing_core = True
         self.is_core_running = False
         self.core_traceback = None
+        self.core_traceback_timestamp = 0
 
         self.check_state_timer = QTimer()
 
@@ -46,6 +48,7 @@ class CoreManager(QObject):
         decoded_output = raw_output.decode(errors="replace")
         if b'Traceback' in raw_output:
             self.core_traceback = decoded_output
+            self.core_traceback_timestamp = int(round(time.time() * 1000))
         print(decoded_output.strip())
 
     def on_core_finished(self, exit_code, exit_status):
@@ -59,7 +62,8 @@ class CoreManager(QObject):
             exception_msg = "The Tribler core has unexpectedly finished with exit code %s and status: %s!" % \
                             (exit_code, exit_status)
             if self.core_traceback:
-                exception_msg += "\n\n%s" % self.core_traceback
+                exception_msg += "\n\n%s\n(Timestamp: %d, traceback timestamp: %d)" % \
+                                 (self.core_traceback, int(round(time.time() * 1000)), self.core_traceback_timestamp)
 
             raise RuntimeError(exception_msg)
 
