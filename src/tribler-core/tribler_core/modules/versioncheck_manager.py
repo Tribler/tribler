@@ -53,6 +53,8 @@ class VersionCheckManager(TaskManager):
         except ContentTypeError:
             self._logger.warning("Response was not in JSON format")
             return False
+        except asyncio.TimeoutError:
+            self._logger.warning("Checking for new version failed for %s", version_check_url)
 
         try:
             version = response_dict['name'][1:]
