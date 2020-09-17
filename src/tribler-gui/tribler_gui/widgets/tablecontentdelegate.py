@@ -187,26 +187,6 @@ class ChannelStateMixin(object):
         return True
 
 
-class SubscribedControlMixin(object):
-    def draw_subscribed_control(self, painter, option, index, data_item):
-        # Draw empty cell as the background
-        self.paint_empty_background(painter, option)
-
-        if u'type' in data_item and data_item[u'type'] != CHANNEL_TORRENT:
-            return True
-        if data_item[u'status'] == 1000:  # LEGACY ENTRIES!
-            return True
-        if data_item[u'state'] == u'Personal':
-            return True
-
-        if index == self.hover_index:
-            self.subscribe_control.paint_hover(painter, option.rect, index, toggled=data_item['subscribed'])
-        else:
-            self.subscribe_control.paint(painter, option.rect, index, toggled=data_item['subscribed'])
-
-        return True
-
-
 class RatingControlMixin(object):
     def draw_rating_control(self, painter, option, index, data_item):
         # Draw empty cell as the background
@@ -298,7 +278,6 @@ class TriblerContentDelegate(
     def __init__(self, parent=None):
         # TODO: refactor this not to rely on inheritance order, but instead use interface method pattern
         TriblerButtonsDelegate.__init__(self, parent)
-        self.subscribe_control = SubscribeToggleControl(u'subscribed')
         self.rating_control = RatingControl(u'votes')
 
         self.health_status_widget = HealthStatusDisplay()
@@ -406,18 +385,6 @@ class ToggleControl(QObject, CheckClickedMixin):
         icon_rect = QRect(x, y, self.w, self.h)
 
         icon.paint(painter, icon_rect)
-
-
-class SubscribeToggleControl(ToggleControl):
-    def __init__(self, column_name, parent=None):
-        ToggleControl.__init__(
-            self,
-            column_name,
-            QIcon(get_image_path("subscribed_yes.png")),
-            QIcon(get_image_path("subscribed_not.png")),
-            QIcon(get_image_path("subscribed.png")),
-            parent=parent,
-        )
 
 
 class CommitStatusControl(QObject):

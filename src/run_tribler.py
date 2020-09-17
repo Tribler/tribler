@@ -15,7 +15,7 @@ from tribler_core.version import version_id
 import tribler_gui
 
 
-def start_tribler_core(base_path, api_port, api_key, root_state_dir):
+def start_tribler_core(base_path, api_port, api_key, root_state_dir, core_test_mode=False):
     """
     This method will start a new Tribler session.
     Note that there is no direct communication between the GUI process and the core: all communication is performed
@@ -75,7 +75,7 @@ def start_tribler_core(base_path, api_port, api_key, root_state_dir):
         # Enable tracer if --trace-debug or --trace-exceptions flag is present in sys.argv
         trace_logger = check_and_enable_code_tracing('core', config.get_log_dir())
 
-        session = Session(config)
+        session = Session(config, core_test_mode=core_test_mode)
 
         signal.signal(signal.SIGTERM, lambda signum, stack: shutdown(session, signum, stack))
         await session.start()
@@ -97,8 +97,9 @@ if __name__ == "__main__":
         base_path = os.environ['CORE_BASE_PATH']
         api_port = os.environ['CORE_API_PORT']
         api_key = os.environ['CORE_API_KEY']
+        core_test_mode = bool(os.environ.get("TRIBLER_CORE_TEST_MODE", False))
 
-        start_tribler_core(base_path, api_port, api_key, root_state_dir)
+        start_tribler_core(base_path, api_port, api_key, root_state_dir, core_test_mode=core_test_mode)
     else:
         # Set up logging
         tribler_gui.load_logger_config(root_state_dir)
