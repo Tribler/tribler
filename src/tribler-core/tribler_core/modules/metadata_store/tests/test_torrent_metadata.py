@@ -283,7 +283,10 @@ class TestTorrentMetadata(TriblerCoreTest):
         Test the updating of several properties of a TorrentMetadata object
         """
         metadata = self.mds.TorrentMetadata(title='foo', infohash=random_infohash())
+        orig_timestamp = metadata.timestamp
 
         # Test updating the status only
         self.assertEqual(metadata.update_properties({"status": 456}).status, 456)
+        self.assertEqual(orig_timestamp, metadata.timestamp)
         self.assertEqual(metadata.update_properties({"title": "bar"}).title, "bar")
+        self.assertLess(orig_timestamp, metadata.timestamp)

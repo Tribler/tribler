@@ -14,6 +14,7 @@ from tribler_core.modules.metadata_store.discrete_clock import clock
 from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH, entries_to_chunk
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import NEW
 from tribler_core.modules.metadata_store.serialization import (
+    CHANNEL_TORRENT,
     ChannelMetadataPayload,
     DeletedMetadataPayload,
     SignedPayload,
@@ -37,6 +38,13 @@ TEST_PERSONAL_KEY = LibNaCLSK(
     b'4c69624e61434c534b3af56022aa5d556c07aeed704ee98df7dca580f'
     b'522e1405663f0d36508d2189cb8991af2dd27b34bc18b4d24869e2c4f2cfdb164a78ea6e687daf7a21640d62b1b'[10:]
 )
+
+
+def get_payloads(entity_class):
+    c = entity_class(infohash=database_blob(random_infohash()))
+    payload = c._payload_class.from_signed_blob(c.serialized())
+    deleted_payload = DeletedMetadataPayload.from_signed_blob(c.serialized_delete())
+    return c, payload, deleted_payload
 
 
 def make_wrong_payload(filename):
@@ -245,11 +253,6 @@ class TestMetadataStore(TriblerCoreTest):
 
     @db_session
     def test_process_payload(self):
-        def get_payloads(entity_class):
-            c = entity_class(infohash=database_blob(random_infohash()))
-            payload = c._payload_class.from_signed_blob(c.serialized())
-            deleted_payload = DeletedMetadataPayload.from_signed_blob(c.serialized_delete())
-            return c, payload, deleted_payload
 
         _, node_payload, node_deleted_payload = get_payloads(self.mds.ChannelNode)
 
@@ -277,6 +280,24 @@ class TestMetadataStore(TriblerCoreTest):
         result = self.mds.process_payload(node_payload)
         self.assertEqual(UNKNOWN_CHANNEL, result[0][1])
         self.assertEqual(node_dict['metadata_type'], result[0][0].to_dict()['metadata_type'])
+
+    @db_session
+    def test_process_payload_update_type(self):
+        # Check if applying class-changing update to an entry works
+        # First, create a node and get a payload from it, then update it to another type, then get payload
+        # for the updated version, then delete the updated version, then bring back the original one by processing it,
+        # then try processing the payload of updated version and see if it works. Phew!
+        node, node_payload, node_deleted_payload = get_payloads(self.mds.CollectionNode)
+        updated_node = node.update_properties(
+            {"origin_id": 0}
+        )  # This will implicitly change the node to ChannelTorrent
+        self.assertEqual(updated_node.metadata_type, CHANNEL_TORRENT)
+        updated_node_payload = updated_node._payload_class.from_signed_blob(updated_node.serialized())
+        updated_node.delete()
+
+        old_node, _ = self.mds.process_payload(node_payload, skip_personal_metadata_payload=False)[0]
+        updated_node2, _ = self.mds.process_payload(updated_node_payload, skip_personal_metadata_payload=False)[0]
+        self.assertEqual(updated_node2.metadata_type, CHANNEL_TORRENT)
 
     @db_session
     def test_process_payload_ffa(self):
