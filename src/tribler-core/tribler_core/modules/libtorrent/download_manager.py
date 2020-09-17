@@ -55,8 +55,9 @@ def encode_atp(atp):
 
 class DownloadManager(TaskManager):
 
-    def __init__(self, tribler_session):
+    def __init__(self, tribler_session, dummy_mode=False):
         super(DownloadManager, self).__init__()
+        self.dummy_mode = dummy_mode
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.tribler_session = tribler_session
@@ -87,7 +88,8 @@ class DownloadManager(TaskManager):
         # Status of libtorrent session to indicate if it can safely close and no pending writes to disk exists.
         self.lt_session_shutdown_ready = {}
         self._dht_ready_task = None
-        self.dht_readiness_timeout = tribler_session.config.get_libtorrent_dht_readiness_timeout()
+        self.dht_readiness_timeout = tribler_session.config.get_libtorrent_dht_readiness_timeout() \
+            if not self.dummy_mode else 0
 
     async def _check_dht_ready(self, min_dht_peers=60):
         # Checks whether we got enough DHT peers. If the number of DHT peers is low,
@@ -175,7 +177,14 @@ class DownloadManager(TaskManager):
 
         # Elric: Strip out the -rcX, -beta, -whatever tail on the version string.
         fingerprint = ['TL'] + [int(x) for x in version_id.split('-')[0].split('.')] + [0]
-        ltsession = lt.session(lt.fingerprint(*fingerprint), flags=0) if hops == 0 else lt.session(flags=0)
+        if self.dummy_mode:
+            from unittest.mock import Mock
+            ltsession = Mock()
+            ltsession.pop_alerts = lambda: {}
+            ltsession.listen_port = lambda: 123
+            ltsession.get_settings = lambda: {"peer_fingerprint": "000"}
+        else:
+            ltsession = lt.session(lt.fingerprint(*fingerprint), flags=0) if hops == 0 else lt.session(flags=0)
 
         if hops == 0:
             settings['user_agent'] = 'Tribler/' + version_id
@@ -246,7 +255,7 @@ class DownloadManager(TaskManager):
                         'download_rate_limit': self.tribler_session.config.get_libtorrent_max_download_rate()}
             self.set_session_settings(ltsession, settings)
 
-        if self.tribler_session.config.get_libtorrent_dht_enabled():
+        if self.tribler_session.config.get_libtorrent_dht_enabled() and not self.dummy_mode:
             ltsession.start_dht()
             for router in DEFAULT_DHT_ROUTERS:
                 ltsession.add_dht_router(*router)
@@ -523,14 +532,15 @@ class DownloadManager(TaskManager):
             config.set_time_added(int(timemod.time()))
 
         # Create the download
-        download = Download(self.tribler_session, tdef)
+        download = Download(self.tribler_session, tdef, dummy=self.dummy_mode)
         atp = download.setup(config, checkpoint_disabled=checkpoint_disabled,
                              hidden=hidden or config.get_bootstrap_download())
         # Keep metainfo downloads in self.downloads for now because we will need to remove it later,
         # and removing the download at this point will stop us from receiving any further alerts.
         if infohash not in self.metainfo_requests or self.metainfo_requests[infohash][0] == download:
             self.downloads[infohash] = download
-        self.start_handle(download, atp)
+        if not self.dummy_mode:
+            self.start_handle(download, atp)
         return download
 
     @task

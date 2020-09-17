@@ -21,6 +21,7 @@ from anydex.wallet.tc_wallet import TrustchainWallet
 from ipv8.dht.churn import PingChurn
 from ipv8.dht.provider import DHTCommunityProvider
 from ipv8.messaging.anonymization.community import TunnelSettings
+from ipv8.messaging.interfaces.dispatcher.endpoint import DispatcherEndpoint
 from ipv8.peer import Peer
 from ipv8.peerdiscovery.churn import RandomChurn
 from ipv8.peerdiscovery.community import DiscoveryCommunity, PeriodicSimilarity
@@ -48,6 +49,7 @@ import tribler_core.utilities.permid as permid_module
 from tribler_core.modules.bootstrap import Bootstrap
 from tribler_core.modules.metadata_store.gigachannel_manager import GigaChannelManager
 from tribler_core.modules.metadata_store.store import MetadataStore
+from tribler_core.modules.metadata_store.utils import generate_test_channels
 from tribler_core.modules.payout_manager import PayoutManager
 from tribler_core.modules.resource_monitor import ResourceMonitor
 from tribler_core.modules.torrent_checker.torrent_checker import TorrentChecker
@@ -89,11 +91,11 @@ class Session(TaskManager):
     """
     __single = None
 
-    def __init__(self, config):
+    def __init__(self, config, core_test_mode = False):
         """
         A Session object is created
         Only a single session instance can exist at a time in a process.
-        :config TriblerConfig object parametrising the Session
+        :config TriblerConfig object parametrizing the Session
         """
         super(Session, self).__init__()
 
@@ -142,6 +144,9 @@ class Session(TaskManager):
         self.dht_community = None
         self.payout_manager = None
         self.mds = None  # Metadata Store
+
+        # In test mode, the Core does not communicate with the external world and the state dir is read-only
+        self.core_test_mode = core_test_mode
 
     def load_ipv8_overlays(self):
         if self.config.get_trustchain_testnet():
@@ -299,6 +304,9 @@ class Session(TaskManager):
 
     def get_ports_in_config(self):
         """Claim all required random ports."""
+        if self.core_test_mode:
+            self.config.selected_ports = {}
+            return
         self.config.get_libtorrent_port()
         self.config.get_anon_listen_port()
         self.config.get_tunnel_community_socks5_listen_ports()
@@ -396,7 +404,7 @@ class Session(TaskManager):
             self.readable_status = STATE_START_API
             await self.api_manager.start()
 
-        if self.upgrader_enabled:
+        if self.upgrader_enabled and not self.core_test_mode:
             self.upgrader = TriblerUpgrader(self)
             self.readable_status = STATE_UPGRADING_READABLE
             try:
@@ -415,7 +423,10 @@ class Session(TaskManager):
             channels_dir = self.config.get_chant_channels_dir()
             metadata_db_name = 'metadata.db' if not self.config.get_chant_testnet() else 'metadata_testnet.db'
             database_path = self.config.get_state_dir() / 'sqlite' / metadata_db_name
-            self.mds = MetadataStore(database_path, channels_dir, self.trustchain_keypair)
+            self.mds = MetadataStore(database_path, channels_dir, self.trustchain_keypair,
+                                     disable_sync=self.core_test_mode)
+            if self.core_test_mode:
+                generate_test_channels(self.mds)
 
         # IPv8
         if self.config.get_ipv8_enabled():
@@ -433,7 +444,10 @@ class Session(TaskManager):
                 community_file._DEFAULT_ADDRESSES = [self.config.get_ipv8_bootstrap_override()]
                 community_file._DNS_ADDRESSES = []
 
-            self.ipv8 = IPv8(ipv8_config_builder.finalize(), enable_statistics=self.config.get_ipv8_statistics())
+            self.ipv8 = IPv8(ipv8_config_builder.finalize(),
+                             enable_statistics=self.config.get_ipv8_statistics()) \
+                if not self.core_test_mode else IPv8(ipv8_config_builder.finalize(),
+                                                     endpoint_override=DispatcherEndpoint([]))
             await self.ipv8.start()
 
             self.config.set_anon_proxy_settings(2, ("127.0.0.1",
@@ -441,7 +455,8 @@ class Session(TaskManager):
                                                     config.get_tunnel_community_socks5_listen_ports()))
             self.ipv8_start_time = timemod.time()
             self.load_ipv8_overlays()
-            self.enable_ipv8_statistics()
+            if not self.core_test_mode:
+                self.enable_ipv8_statistics()
             if self.api_manager:
                 self.api_manager.set_ipv8_session(self.ipv8)
             if self.config.get_tunnel_community_enabled():
@@ -456,13 +471,15 @@ class Session(TaskManager):
         if self.config.get_libtorrent_enabled():
             self.readable_status = STATE_START_LIBTORRENT
             from tribler_core.modules.libtorrent.download_manager import DownloadManager
-            self.dlmgr = DownloadManager(self)
+            self.dlmgr = DownloadManager(self, dummy_mode=self.core_test_mode)
             self.dlmgr.initialize()
             self.readable_status = STATE_LOAD_CHECKPOINTS
             await self.dlmgr.load_checkpoints()
+            if self.core_test_mode:
+                await self.dlmgr.start_download_from_uri("magnet:?xt=urn:btih:0000000000000000000000000000000000000000")
         self.readable_status = STATE_READABLE_STARTED
 
-        if self.config.get_torrent_checking_enabled():
+        if self.config.get_torrent_checking_enabled() and not self.core_test_mode:
             self.readable_status = STATE_START_TORRENT_CHECKER
             self.torrent_checker = TorrentChecker(self)
             await self.torrent_checker.initialize()
@@ -480,11 +497,11 @@ class Session(TaskManager):
             self.watch_folder = WatchFolder(self)
             self.watch_folder.start()
 
-        if self.config.get_resource_monitor_enabled():
+        if self.config.get_resource_monitor_enabled() and not self.core_test_mode:
             self.resource_monitor = ResourceMonitor(self)
             self.resource_monitor.start()
 
-        if self.config.get_version_checker_enabled():
+        if self.config.get_version_checker_enabled() and not self.core_test_mode:
             self.version_check_manager = VersionCheckManager(self)
             self.version_check_manager.start()
 
@@ -496,9 +513,10 @@ class Session(TaskManager):
         if self.config.get_chant_enabled() and self.config.get_chant_manager_enabled()\
                 and self.config.get_libtorrent_enabled:
             self.gigachannel_manager = GigaChannelManager(self)
-            self.gigachannel_manager.start()
+            if not self.core_test_mode:
+                self.gigachannel_manager.start()
 
-        if self.config.get_bootstrap_enabled():
+        if self.config.get_bootstrap_enabled() and not self.core_test_mode:
             self.register_task('bootstrap_download', self.start_bootstrap_download)
 
         self.notifier.notify(NTFY.TRIBLER_STARTED)
@@ -571,8 +589,9 @@ class Session(TaskManager):
             await self.watch_folder.stop()
         self.watch_folder = None
 
-        self.notify_shutdown_state("Saving configuration...")
-        self.config.write()
+        if not self.core_test_mode:
+            self.notify_shutdown_state("Saving configuration...")
+            self.config.write()
 
         if self.dlmgr:
             await self.dlmgr.shutdown()

@@ -33,7 +33,6 @@ class TriblerContentTableView(QTableView):
 
         # Mix-in connects
         self.clicked.connect(self.on_table_item_clicked)
-        self.delegate.subscribe_control.clicked.connect(self.on_subscribe_control_clicked)
         self.delegate.rating_control.clicked.connect(self.on_subscribe_control_clicked)
         self.delegate.download_button.clicked.connect(self.on_download_button_clicked)
         # TODO: status changing feature should remain turned off until we fix the undo mess
@@ -71,7 +70,6 @@ class TriblerContentTableView(QTableView):
             (ACTION_BUTTONS in column_position and item.column() == column_position[ACTION_BUTTONS])
             or (u'status' in column_position and item.column() == column_position[u'status'])
             or (u'votes' in column_position and item.column() == column_position[u'votes'])
-            or (u'subscribed' in column_position and item.column() == column_position[u'subscribed'])
         ):
             return
 

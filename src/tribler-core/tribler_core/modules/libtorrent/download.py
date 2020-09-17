@@ -33,11 +33,12 @@ from tribler_core.utilities.utilities import bdecode_compat
 class Download(TaskManager):
     """ Download subclass that represents a libtorrent download."""
 
-    def __init__(self, session, tdef):
+    def __init__(self, session, tdef, dummy=False):
         super(Download, self).__init__()
 
         self._logger = logging.getLogger(self.__class__.__name__)
 
+        self.dummy = dummy
         self.session = session
         self.config = None
         self.tdef = tdef
@@ -55,7 +56,7 @@ class Download(TaskManager):
         self.pause_after_next_hashcheck = False
         self.checkpoint_after_next_hashcheck = False
         self.tracker_status = {}  # {url: [num_peers, status_str]}
-        self.checkpoint_disabled = False
+        self.checkpoint_disabled = self.dummy
 
         self.futures = defaultdict(list)
         self.alert_handlers = defaultdict(list)
@@ -136,7 +137,7 @@ class Download(TaskManager):
         :returns a Deferred to which a callback can be added which returns the result of network_create_engine_wrapper.
         """
         self.hidden = hidden
-        self.checkpoint_disabled = checkpoint_disabled
+        self.checkpoint_disabled = checkpoint_disabled or self.dummy
         self.config = config or DownloadConfig(state_dir=self.session.config.get_state_dir())
 
         self._logger.debug("Setup: %s", hexlify(self.tdef.get_infohash()))

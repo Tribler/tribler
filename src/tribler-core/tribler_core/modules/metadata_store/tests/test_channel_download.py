@@ -10,14 +10,16 @@ from tribler_core.tests.tools.common import TESTS_DATA_DIR
 
 CHANNEL_DIR = TESTS_DATA_DIR / 'sample_channel'
 CHANNEL_TORRENT = CHANNEL_DIR / 'channel.torrent'
+CHANNEL_TORRENT_UPDATED = CHANNEL_DIR / 'channel_upd.torrent'
 CHANNEL_METADATA = CHANNEL_DIR / 'channel.mdblob'
 CHANNEL_METADATA_UPDATED = CHANNEL_DIR / 'channel_upd.mdblob'
 
 
 @pytest.mark.asyncio
 @pytest.mark.timeout(20)
-async def test_channel_update_and_download(enable_chant, enable_libtorrent, channel_tdef, channel_seeder_session,
-                                           session):
+async def test_channel_update_and_download(
+    enable_chant, enable_libtorrent, channel_tdef, channel_seeder_session, session
+):
     """
     Test whether we can successfully update a channel and download the new version
     """

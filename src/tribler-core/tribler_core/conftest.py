@@ -232,9 +232,9 @@ TEST_PERSONAL_KEY = LibNaCLSK(
 @pytest.fixture
 def metadata_store(tmpdir):
     metadata_store_path = Path(tmpdir) / 'test.db'
-    metadata_store = MetadataStore(metadata_store_path, tmpdir, TEST_PERSONAL_KEY)
-    yield metadata_store
-    metadata_store.shutdown()
+    mds = MetadataStore(metadata_store_path, tmpdir, TEST_PERSONAL_KEY, disable_sync=True)
+    yield mds
+    mds.shutdown()
 
 
 @pytest.fixture

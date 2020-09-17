@@ -24,6 +24,13 @@ SAMPLE_DIR = DATA_DIR / 'sample_channel'
 my_key = default_eccrypto.generate_key(u"curve25519")
 
 
+ALL_PRINTABLE_CHARS = ''.join(tuple(chr(i) for i in range(32, 0x110000) if chr(i).isprintable()))
+
+
+def get_random_text_string(size=200):
+    return "".join(random.sample(ALL_PRINTABLE_CHARS, size))
+
+
 def gen_random_entry():
     return {
         "title": "test entry " + str(random.randint(0, 1000000)),

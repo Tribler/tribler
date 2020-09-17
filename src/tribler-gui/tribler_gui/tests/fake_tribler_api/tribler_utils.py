@@ -1,1 +1,0 @@
-tribler_data = None
