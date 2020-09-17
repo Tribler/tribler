@@ -459,9 +459,32 @@ class MetadataStore(object):
         node = self.ChannelNode.get_for_update(public_key=database_blob(payload.public_key), id_=payload.id_)
         if node:
             if node.timestamp < payload.timestamp:
-                node.set(**payload.to_dict())
-                result.append((node, UPDATED_OUR_VERSION))
-                return result
+                # Workaround for a corner case of remote change of md type.
+                # We delete the original node and replace it with the updated one
+                if node.metadata_type != payload.metadata_type:
+                    if payload.metadata_type == REGULAR_TORRENT:
+                        node.delete()
+                        renewed_node = self.TorrentMetadata.from_payload(payload)
+                    elif payload.metadata_type == CHANNEL_TORRENT:
+                        node.delete()
+                        renewed_node = self.ChannelMetadata.from_payload(payload)
+                    elif payload.metadata_type == COLLECTION_NODE:
+                        node.delete()
+                        renewed_node = self.CollectionNode.from_payload(payload)
+                    else:
+                        self._logger.warning(
+                            f"Tried to update channel node to illegal type: "
+                            f" original type: {node.metadata_type}"
+                            f" updated type: {payload.metadata_type}"
+                            f" {hexlify(payload.public_key)}, {payload.id_} "
+                        )
+                        return result
+                    result.append((renewed_node, UPDATED_OUR_VERSION))
+                    return result
+                else:
+                    node.set(**payload.to_dict())
+                    result.append((node, UPDATED_OUR_VERSION))
+                    return result
             elif node.timestamp > payload.timestamp:
                 result.append((node, GOT_NEWER_VERSION))
                 return result
