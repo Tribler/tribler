@@ -310,17 +310,19 @@ class GigaChannelCommunity(Community):
                 self.metadata_store.disconnect_thread()
                 return None, None
 
+            # it is incorrect to call md.simple_dict() for metadata objects from md_results
+            # as previous db_session is already over, so we are going to fetch them again in a new db_session
+            md_ids = [
+                md.rowid for md, action in md_results
+                if md
+                   and (md.metadata_type in [CHANNEL_TORRENT, REGULAR_TORRENT])
+                   and action in [UNKNOWN_CHANNEL, UNKNOWN_TORRENT, UPDATED_OUR_VERSION, UNKNOWN_COLLECTION]
+            ]
+
             with db_session:
+                md_list = self.metadata_store.ChannelNode.select(lambda md: md.rowid in md_ids)[:]
                 result = (
-                    [
-                        md.to_simple_dict()
-                        for (md, action) in md_results
-                        if (
-                            md
-                            and (md.metadata_type in [CHANNEL_TORRENT, REGULAR_TORRENT])
-                            and action in [UNKNOWN_CHANNEL, UNKNOWN_TORRENT, UPDATED_OUR_VERSION, UNKNOWN_COLLECTION]
-                        )
-                    ],
+                    [md.to_simple_dict() for md in md_list],
                     gen_have_newer_results_blob(md_results),
                 )
             self.metadata_store.disconnect_thread()
