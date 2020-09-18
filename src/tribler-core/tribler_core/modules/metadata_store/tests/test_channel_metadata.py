@@ -286,6 +286,7 @@ def test_commit_channel_torrent(metadata_store):
     assert not channel.commit_channel_torrent()
 
 
+@pytest.mark.timeout(10)
 @db_session
 def test_recursive_commit_channel_torrent(metadata_store):
     status_types = [NEW, UPDATED, TODELETE, COMMITTED]
