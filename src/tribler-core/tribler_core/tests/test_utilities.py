@@ -1,3 +1,5 @@
+import logging
+
 from ipv8.messaging.deprecated.encoding import add_url_params
 
 from tribler_core import load_logger_config
@@ -34,3 +36,12 @@ def test_add_url_param_clean():
     result = add_url_params(url, new_params)
     assert "data=some" in result
     assert "data=values" in result
+
+
+def test_load_logger(tmpdir):
+    """
+    Test loading the Tribler logger configuration.
+    """
+    logger_count = len(logging.root.manager.loggerDict)
+    load_logger_config(tmpdir)
+    assert len(logging.root.manager.loggerDict) >= logger_count
