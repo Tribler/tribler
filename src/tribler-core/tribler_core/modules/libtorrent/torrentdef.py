@@ -40,17 +40,6 @@ def escape_as_utf8(string, encoding='utf8'):
             return string.encode('utf8', 'ignore').decode('utf8')
 
 
-def convert_dict_unicode_to_bytes(orig_dict):
-    result = {}
-    for k, v in orig_dict.items():
-        k = k.encode('utf-8') if isinstance(k, str) else k
-        if isinstance(v, dict):
-            result[k] = convert_dict_unicode_to_bytes(v)
-        else:
-            result[k] = v.encode('utf-8') if isinstance(v, str) else v
-    return result
-
-
 class TorrentDef(object):
     """
     This object acts as a wrapper around some libtorrent metadata.
