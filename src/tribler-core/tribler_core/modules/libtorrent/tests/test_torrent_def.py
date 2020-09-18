@@ -196,6 +196,8 @@ def test_torrent_no_metainfo():
     assert tdef.get_files_with_length() == []
     assert not tdef.get_trackers_as_single_tuple()
     assert not tdef.is_private()
+    assert tdef.get_name_utf8() == "video.avi"
+    assert tdef.get_nr_pieces() == 0
 
     torrent2 = TorrentDefNoMetainfo(b"12345678901234567890", VIDEO_FILE_NAME, "magnet:")
     assert not torrent2.get_trackers_as_single_tuple()
@@ -221,6 +223,10 @@ def test_get_index(tdef):
 
     tdef.metainfo = {b'info': {b'files': [{b'path': [b'a.txt'], b'path.utf-8': [b'b.txt'], b'length': 123}]}}
     assert tdef.get_index_of_file_in_files('b.txt') == 0
+
+    tdef.metainfo = None
+    with pytest.raises(ValueError):
+        tdef.get_index_of_file_in_files('b.txt')
 
 
 def test_get_name_as_unicode(tdef):
