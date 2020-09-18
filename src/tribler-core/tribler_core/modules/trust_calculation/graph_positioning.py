@@ -10,8 +10,7 @@ class GraphPositioning(object):
     """
 
     @staticmethod
-    def hierarchy_pos(G, root=None, width=1., vert_gap=0.2,
-                      vert_loc=0, xcenter=0.5):
+    def hierarchy_pos(G, root=None, width=1., vert_gap=0.2, vert_loc=0, xcenter=0.5):
         """
         Taken from: https://bit.ly/2tetWxf
 
@@ -39,8 +38,7 @@ class GraphPositioning(object):
         """
 
         if not nx.is_tree(G):
-            raise TypeError('cannot use hierarchy_pos on a'
-                            ' graph that is not a tree')
+            raise TypeError('cannot use hierarchy_pos on a graph that is not a tree')
 
         if root is None:
             if isinstance(G, nx.DiGraph):
@@ -49,13 +47,11 @@ class GraphPositioning(object):
             else:
                 root = random.choice(list(G.nodes))
 
-        def _hierarchy_pos(G, root, width=1., vert_gap=0.2, vert_loc=0,
-                           xcenter=0.5, pos=None, parent=None):
+        def _hierarchy_pos(G, root, width=1., vert_gap=0.2, vert_loc=0, xcenter=0.5, pos=None, parent=None):
             """
             see hierarchy_pos docstring for most arguments
             pos: a dict saying where all nodes go if they have been assigned
             parent: parent of this branch. - only affects it if non-directed
-
             """
 
             if pos is None:
