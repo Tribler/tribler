@@ -13,12 +13,13 @@ def process_checker(tmpdir):
     return ProcessChecker(state_directory=Path(tmpdir))
 
 
+def process_dummy_function():
+    while True:
+        sleep(0.01)
+
+
 @pytest.fixture
 def background_process():
-    def process_dummy_function():
-        while True:
-            sleep(0.01)
-
     process = Process(target=process_dummy_function)
     process.start()
     yield process
