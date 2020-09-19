@@ -249,6 +249,7 @@ def dispersy_to_pony_migrator(metadata_store):
 def enable_api(tribler_config, free_port):
     tribler_config.set_api_http_enabled(True)
     tribler_config.set_api_http_port(free_port)
+    tribler_config.set_api_retry_port(True)
 
 
 @pytest.fixture

@@ -97,6 +97,7 @@ https_enabled = boolean(default=False)
 https_port = integer(min=-1, max=65536, default=-1)
 https_certfile = string(default='')
 key = string(default=None)
+retry_port = boolean(default=False)
 
 [resource_monitor]
 enabled = boolean(default=True)

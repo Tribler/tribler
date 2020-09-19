@@ -102,8 +102,21 @@ class RESTManager():
         await self.runner.setup()
 
         if config.get_api_http_enabled():
-            self.site = web.TCPSite(self.runner, 'localhost', config.get_api_http_port())
-            await self.site.start()
+            api_port = config.get_api_http_port()
+            if not self.session.config.get_api_retry_port():
+                self.site = web.TCPSite(self.runner, 'localhost', api_port)
+                await self.site.start()
+            else:
+                bind_attempts = 0
+                while bind_attempts < 10:
+                    try:
+                        self.site = web.TCPSite(self.runner, 'localhost', api_port + bind_attempts)
+                        await self.site.start()
+                        self.session.config.set_api_http_port(api_port + bind_attempts)
+                        break
+                    except OSError:
+                        bind_attempts += 1
+
             self._logger.info("Started HTTP REST API: %s", self.site.name)
 
         if config.get_api_https_enabled():
