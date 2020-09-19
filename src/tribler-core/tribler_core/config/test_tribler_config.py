@@ -139,6 +139,8 @@ def test_get_set_methods_rest_api(tribler_config):
     assert tribler_config.get_api_https_certfile() == tribler_config.get_state_dir() / 'certfile.pem'
     tribler_config.set_api_key('000')
     assert tribler_config.get_api_key() == '000'
+    tribler_config.set_api_retry_port(True)
+    assert tribler_config.get_api_retry_port()
 
 
 def test_get_set_methods_ipv8(tribler_config):

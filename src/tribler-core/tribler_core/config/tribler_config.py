@@ -259,6 +259,12 @@ class TriblerConfig(object):
     def get_api_key(self):
         return self.config['api']['key']
 
+    def set_api_retry_port(self, retry_port):
+        self.config['api']['retry_port'] = retry_port
+
+    def get_api_retry_port(self):
+        return self.config['api']['retry_port']
+
     # IPv8
 
     def set_ipv8_enabled(self, value):
