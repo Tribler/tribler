@@ -46,7 +46,10 @@ When creating a new Pull request, please take note of the following:
   * Create one PR per feature/bugfix.
   * Provide tests for any new features/fixes you implement and make sure they
     cover all methods and at least the important branches in the new/updated
-    code.
+    code. We use the `pytest <https://pytest.org>`_ framework, and use fixtures to specify the components enabled
+    in each test by using `fixtures <https://docs.pytest.org/en/stable/fixture.html>`_. Please do not enable
+    components that are not strictly necessary for the test you are writing (e.g., libtorrent) as they will slow down
+    the duration of test execution.
   * If implementing a reasonably big or experimental feature, make it toggleable
     if possible (For instance for a new community, new GUI stuff, etc.).
   * When you make a change to the user interface, please attach a screenshot of your changes to the pull request. This helps reviewers since it avoids the need for them to manually checkout your code to see what has been changed.
