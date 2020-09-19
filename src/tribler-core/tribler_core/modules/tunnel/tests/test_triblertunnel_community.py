@@ -1,5 +1,6 @@
 import os
 from asyncio import Future, TimeoutError as AsyncTimeoutError, sleep, wait_for
+from collections import defaultdict
 from random import random
 from unittest.mock import Mock
 
@@ -15,6 +16,7 @@ from ipv8.messaging.anonymization.tunnel import (
 )
 from ipv8.peer import Peer
 from ipv8.test.base import TestBase
+from ipv8.test.messaging.anonymization import test_community
 from ipv8.test.messaging.anonymization.test_community import MockDHTProvider
 from ipv8.test.mocking.exit_socket import MockTunnelExitSocket
 from ipv8.test.mocking.ipv8 import MockIPv8
@@ -31,6 +33,10 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
 
     def setUp(self):
         self.initialize(TriblerTunnelCommunity, 1)
+
+    async def tearDown(self):
+        test_community.global_dht_services = defaultdict(list)  # Reset the global_dht_services variable
+        await super(TestTriblerTunnelCommunity, self).tearDown()
 
     def create_node(self):
         mock_ipv8 = MockIPv8("curve25519", TriblerTunnelCommunity,
