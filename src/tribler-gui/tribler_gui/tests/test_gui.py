@@ -5,6 +5,7 @@ import sys
 import threading
 import time
 from asyncio import new_event_loop, set_event_loop
+from multiprocessing import Process
 
 from PyQt5.QtCore import QPoint, QTimer, Qt
 from PyQt5.QtGui import QPixmap, QRegion
@@ -50,40 +51,42 @@ def window(api_port):
     QApplication.quit()
 
 
+def start_tribler_api(api_port):
+    from tribler_gui.tests.fake_tribler_api.endpoints.root_endpoint import RootEndpoint
+    from tribler_gui.tests.fake_tribler_api.tribler_data import TriblerData
+    import tribler_gui.tests.fake_tribler_api.tribler_utils as tribler_utils
+
+    def generate_tribler_data():
+        tribler_utils.tribler_data = TriblerData()
+        tribler_utils.tribler_data.generate()
+
+    logging.basicConfig()
+    logger = logging.getLogger(__file__)
+    logger.setLevel(logging.INFO)
+
+    logger.info("Generating random Tribler data")
+    generate_tribler_data()
+
+    root_endpoint = RootEndpoint(None)
+    runner = web.AppRunner(root_endpoint.app)
+
+    loop = new_event_loop()
+    set_event_loop(loop)
+
+    loop.run_until_complete(runner.setup())
+    logger.info("Starting fake Tribler API on port %d", api_port)
+    site = web.TCPSite(runner, 'localhost', api_port)
+    loop.run_until_complete(site.start())
+    loop.run_forever()
+
+
 @pytest.fixture(scope="module")
 def tribler_api(api_port):
-    def start():
-        from tribler_gui.tests.fake_tribler_api.endpoints.root_endpoint import RootEndpoint
-        from tribler_gui.tests.fake_tribler_api.tribler_data import TriblerData
-        import tribler_gui.tests.fake_tribler_api.tribler_utils as tribler_utils
-
-        def generate_tribler_data():
-            tribler_utils.tribler_data = TriblerData()
-            tribler_utils.tribler_data.generate()
-
-        logging.basicConfig()
-        logger = logging.getLogger(__file__)
-        logger.setLevel(logging.INFO)
-
-        logger.info("Generating random Tribler data")
-        generate_tribler_data()
-
-        root_endpoint = RootEndpoint(None)
-        runner = web.AppRunner(root_endpoint.app)
-
-        loop = new_event_loop()
-        set_event_loop(loop)
-
-        loop.run_until_complete(runner.setup())
-        logger.info("Starting fake Tribler API on port %d", api_port)
-        site = web.TCPSite(runner, 'localhost', api_port)
-        loop.run_until_complete(site.start())
-        loop.run_forever()
-
     # Start the fake API
-    t = threading.Thread(target=start)
-    t.setDaemon(True)
-    t.start()
+    p = Process(target=start_tribler_api, args=(api_port,))
+    p.start()
+    yield p
+    p.terminate()
 
 
 def no_abort(*args, **kwargs):
