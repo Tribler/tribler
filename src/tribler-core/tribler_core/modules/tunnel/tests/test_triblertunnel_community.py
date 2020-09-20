@@ -573,7 +573,7 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
         http_tracker = HTTPTracker(http_port)
         http_tracker.tracker_info.add_info_about_infohash('0', 0, 0)
         await http_tracker.start()
-        response = await self.nodes[0].overlay.perform_http_request(('127.0.0.1', http_port),
+        response = await self.nodes[0].overlay.perform_http_request(('127.0.0.1', http_tracker.port),
                                                                     b'GET /scrape?info_hash=0 HTTP/1.1\r\n\r\n')
 
         self.assertEqual(response.split(b'\r\n')[0], b'HTTP/1.1 200 OK')
@@ -594,7 +594,7 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
         http_tracker.tracker_info.add_info_about_infohash('0', 0, 0)
         http_tracker.tracker_info.infohashes['0']['downloaded'] = os.urandom(10000)
         await http_tracker.start()
-        response = await self.nodes[0].overlay.perform_http_request(('127.0.0.1', http_port),
+        response = await self.nodes[0].overlay.perform_http_request(('127.0.0.1', http_tracker.port),
                                                                     b'GET /scrape?info_hash=0 HTTP/1.1\r\n\r\n')
 
         self.assertEqual(response.split(b'\r\n')[0], b'HTTP/1.1 200 OK')
@@ -614,7 +614,7 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
         http_tracker = HTTPTracker(http_port)
         await http_tracker.start()
         with self.assertRaises(AsyncTimeoutError):
-            await wait_for(self.nodes[0].overlay.perform_http_request(('127.0.0.1', http_port),
+            await wait_for(self.nodes[0].overlay.perform_http_request(('127.0.0.1', http_tracker.port),
                                                                       b'GET /scrape?info_hash=0 HTTP/1.1\r\n\r\n'),
                            timeout=.3)
         await http_tracker.stop()
