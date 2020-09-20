@@ -26,8 +26,16 @@ class HTTPTracker(object):
         app.add_routes([web.get('/scrape', self.handle_scrape_request)])
         runner = web.AppRunner(app, access_log=None)
         await runner.setup()
-        self.site = web.TCPSite(runner, 'localhost', self.port)
-        await self.site.start()
+
+        attempts = 0
+        while attempts < 20:
+            try:
+                self.site = web.TCPSite(runner, 'localhost', self.port)
+                await self.site.start()
+                break
+            except OSError:
+                attempts += 1
+                self.port += 1
 
     async def stop(self):
         """
