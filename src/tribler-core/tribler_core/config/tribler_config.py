@@ -301,6 +301,24 @@ class TriblerConfig(object):
     def get_ipv8_statistics(self):
         return self.config['ipv8']['statistics']
 
+    def set_ipv8_walk_interval(self, value: float) -> None:
+        self.config['ipv8']['walk_interval'] = value
+
+    def get_ipv8_walk_interval(self) -> float:
+        return self.config['ipv8']['walk_interval']
+
+    def set_ipv8_walk_scaling_enabled(self, value: bool) -> None:
+        self.config['ipv8']['walk_scaling_enabled'] = value
+
+    def get_ipv8_walk_scaling_enabled(self) -> bool:
+        return self.config['ipv8']['walk_scaling_enabled']
+
+    def set_ipv8_walk_scaling_upper_limit(self, value: float) -> None:
+        self.config['ipv8']['walk_scaling_upper_limit'] = value
+
+    def get_ipv8_walk_scaling_upper_limit(self) -> float:
+        return self.config['ipv8']['walk_scaling_upper_limit']
+
     # Libtorrent
 
     def set_libtorrent_enabled(self, value):
