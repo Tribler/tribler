@@ -29,8 +29,9 @@ class MonitorWidget(QWidget):
 
         self.update_lock = threading.Lock()
         self.draw_times = []
-        self.median_drift = "-"
-        self.mean_drift = "-"
+        self.median_drift = "?"
+        self.mean_drift = "?"
+        self.walk_interval_target = "?"
 
         self.timer = QTimer()
         self.timer.timeout.connect(self.repaint)
@@ -60,9 +61,16 @@ class MonitorWidget(QWidget):
                 drifts = [entry[1] for entry in self.draw_times]
                 self.median_drift = round(statistics.median(drifts), 5)
                 self.mean_drift = round(statistics.mean(drifts), 5)
+                if len(drifts) > 1:
+                    self.walk_interval_target = round(self.draw_times[-1][0]
+                                                      - self.draw_times[-2][0]
+                                                      - self.draw_times[-1][1], 4)
+                else:
+                    self.walk_interval_target = "?"
             else:
-                self.median_drift = "-"
-                self.mean_drift = "-"
+                self.median_drift = "?"
+                self.mean_drift = "?"
+                self.walk_interval_target = "?"
 
     def paintEvent(self, e):
         painter = QPainter()
@@ -85,8 +93,9 @@ class MonitorWidget(QWidget):
 
         # Draw the statistics
         painter.setPen(Qt.white)
-        painter.drawText(0, 20, f" Mean:\t{self.mean_drift}")
-        painter.drawText(0, 40, f" Median:\t{self.median_drift}")
+        painter.drawText(0, 20, f" Target:\t{self.walk_interval_target}")
+        painter.drawText(0, 40, f" Mean:\t+{self.mean_drift}")
+        painter.drawText(0, 60, f" Median:\t+{self.median_drift}")
 
         # Draw the baseline frequency bands (a perfect score of 0.0 drift).
         midy = (size.height() - 1) // 2

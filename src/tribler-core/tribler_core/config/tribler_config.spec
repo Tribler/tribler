@@ -81,6 +81,9 @@ port = integer(min=-1, max=65536, default=7759)
 address = string(default='0.0.0.0')
 bootstrap_override = string(default='')
 statistics = boolean(default=False)
+walk_interval = float(default=0.5)
+walk_scaling_enabled = boolean(default=True)
+walk_scaling_upper_limit = float(default=3.0)
 
 [video_server]
 enabled = boolean(default=True)
