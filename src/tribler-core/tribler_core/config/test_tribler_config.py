@@ -155,6 +155,12 @@ def test_get_set_methods_ipv8(tribler_config):
     assert tribler_config.get_ipv8_bootstrap_override() == ("127.0.0.1", 12345)
     tribler_config.set_ipv8_statistics(True)
     assert tribler_config.get_ipv8_statistics()
+    tribler_config.set_ipv8_walk_interval(0.77)
+    assert tribler_config.get_ipv8_walk_interval() == 0.77
+    tribler_config.set_ipv8_walk_scaling_enabled(False)
+    assert not tribler_config.get_ipv8_walk_scaling_enabled()
+    tribler_config.set_ipv8_walk_scaling_upper_limit(9.6)
+    assert tribler_config.get_ipv8_walk_scaling_upper_limit() == 9.6
 
 
 def test_get_set_methods_libtorrent(tribler_config):
