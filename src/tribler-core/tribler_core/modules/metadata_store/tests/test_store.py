@@ -81,6 +81,7 @@ def test_process_channel_dir_file(tmpdir, metadata_store):
 
 
 @db_session
+@pytest.mark.flaky
 def test_squash_mdblobs(metadata_store):
     chunk_size = metadata_store.ChannelMetadata._CHUNK_SIZE_LIMIT
     md_list = [
@@ -102,6 +103,7 @@ def test_squash_mdblobs(metadata_store):
 
 
 @db_session
+@pytest.mark.flaky
 def test_squash_mdblobs_multiple_chunks(metadata_store):
     md_list = [
         metadata_store.TorrentMetadata(
