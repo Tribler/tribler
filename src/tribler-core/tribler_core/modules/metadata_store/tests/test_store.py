@@ -80,6 +80,7 @@ def test_process_channel_dir_file(tmpdir, metadata_store):
         metadata_store.process_mdblob_file(invalid_metadata, skip_personal_metadata_payload=False)
 
 
+@pytest.mark.skip(reason="This test is currently unstable")
 @db_session
 def test_squash_mdblobs(metadata_store):
     chunk_size = metadata_store.ChannelMetadata._CHUNK_SIZE_LIMIT
@@ -101,6 +102,7 @@ def test_squash_mdblobs(metadata_store):
         ]
 
 
+@pytest.mark.skip(reason="This test is currently unstable")
 @db_session
 def test_squash_mdblobs_multiple_chunks(metadata_store):
     md_list = [
