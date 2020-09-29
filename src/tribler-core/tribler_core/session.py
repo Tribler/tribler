@@ -419,20 +419,21 @@ class Session(TaskManager):
 
         # IPv8
         if self.config.get_ipv8_enabled():
-            from ipv8.configuration import get_default_configuration
-            ipv8_config = get_default_configuration()
-            ipv8_config['port'] = self.config.get_ipv8_port()
-            ipv8_config['address'] = self.config.get_ipv8_address()
-            ipv8_config['overlays'] = []
-            ipv8_config['keys'] = []  # We load the keys ourselves
-            ipv8_config['working_directory'] = str(self.config.get_state_dir())
+            from ipv8.configuration import ConfigBuilder
+            ipv8_config_builder = (ConfigBuilder()
+                                   .set_port(self.config.get_ipv8_port())
+                                   .set_address(self.config.get_ipv8_address())
+                                   .clear_overlays()
+                                   .clear_keys()  # We load the keys ourselves
+                                   .set_working_directory(str(self.config.get_state_dir()))
+                                   .set_walker_interval(self.config.get_ipv8_walk_interval()))
 
             if self.config.get_ipv8_bootstrap_override():
                 import ipv8.community as community_file
                 community_file._DEFAULT_ADDRESSES = [self.config.get_ipv8_bootstrap_override()]
                 community_file._DNS_ADDRESSES = []
 
-            self.ipv8 = IPv8(ipv8_config, enable_statistics=self.config.get_ipv8_statistics())
+            self.ipv8 = IPv8(ipv8_config_builder.finalize(), enable_statistics=self.config.get_ipv8_statistics())
             await self.ipv8.start()
 
             self.config.set_anon_proxy_settings(2, ("127.0.0.1",
@@ -445,6 +446,11 @@ class Session(TaskManager):
                 self.api_manager.set_ipv8_session(self.ipv8)
             if self.config.get_tunnel_community_enabled():
                 await self.tunnel_community.wait_for_socks_servers()
+            if self.config.get_ipv8_walk_scaling_enabled():
+                from tribler_core.modules.ipv8_health_monitor import IPv8Monitor
+                IPv8Monitor(self.ipv8,
+                            self.config.get_ipv8_walk_interval(),
+                            self.config.get_ipv8_walk_scaling_upper_limit()).start(self)
 
         # Note that currently we should only start libtorrent after the SOCKS5 servers have been started
         if self.config.get_libtorrent_enabled():

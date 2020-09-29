@@ -196,6 +196,7 @@ async def create_nodes(proxy_factory, num_relays=1, num_exitnodes=1):
 
 @pytest.mark.asyncio
 @pytest.mark.timeout(20)
+@pytest.mark.tunneltest
 async def test_anon_download(enable_ipv8, proxy_factory, session, video_seeder_session, video_tdef):
     """
     Testing whether an anonymous download over our tunnels works
@@ -217,6 +218,7 @@ async def test_anon_download(enable_ipv8, proxy_factory, session, video_seeder_s
 
 @pytest.mark.asyncio
 @pytest.mark.timeout(30)
+@pytest.mark.tunneltest
 async def test_hidden_services(enable_ipv8, proxy_factory, session, hidden_seeder_session, video_tdef):
     """
     Test the hidden services overlay by constructing an end-to-end circuit and downloading a torrent over it
