@@ -55,7 +55,7 @@ class Configuration:
     output_file_name = 'result.csv'
 
     tribler_target_peers_count = 20
-    tribler_working_dir = os.path.join('/tmp', '.Tribler')
+    tribler_working_dir = os.path.join('/tmp/tribler/experiment/popularity_community/initial_filling', '.Tribler')
     tribler_config_path = os.path.join(tribler_working_dir, 'triblerd.conf')
 
     def __str__(self):
