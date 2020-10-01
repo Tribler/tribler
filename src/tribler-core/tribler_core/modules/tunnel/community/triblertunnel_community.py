@@ -362,7 +362,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         block.sign(self.my_peer.key)
         self.bandwidth_wallet.trustchain.persistence.add_block(block)
 
-        payload = PayoutPayload.from_half_block(block, circuit_id, base_amount).to_pack_list()
+        payload = PayoutPayload.from_half_block(block, circuit_id, base_amount)
         packet = self._ez_pack(self._prefix, 23, [payload], False)
         self.send_packet(peer, packet)
 

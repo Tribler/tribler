@@ -106,7 +106,7 @@ class SignedPayload(Payload):
             else:
                 raise InvalidSignatureException("Tried to create FFA payload with non-null signature")
 
-        serialized_data = default_serializer.pack_multiple(self.to_pack_list())[0]
+        serialized_data = default_serializer.pack_serializable(self)
         if "key" in kwargs and kwargs["key"]:
             key = kwargs["key"]
             if self.public_key != key.pub().key_to_bin()[10:]:
@@ -136,13 +136,15 @@ class SignedPayload(Payload):
     @classmethod
     def from_signed_blob_with_offset(cls, data, check_signature=True, offset=0):
         # TODO: stop serializing/deserializing stuff twice
-        unpack_list, end_offset = default_serializer.unpack_multiple(cls.format_list, data, offset=offset)
+        unpack_list = []
+        for format_str in cls.format_list:
+            offset = default_serializer.get_packer_for(format_str).unpack(data, offset, unpack_list)
         if check_signature:
-            signature = data[end_offset : end_offset + SIGNATURE_SIZE]
+            signature = data[offset : offset + SIGNATURE_SIZE]
             payload = cls.from_unpack_list(*unpack_list, signature=signature)
         else:
             payload = cls.from_unpack_list(*unpack_list, skip_key_check=True)
-        return payload, end_offset + SIGNATURE_SIZE
+        return payload, offset + SIGNATURE_SIZE
 
     def to_dict(self):
         return {
@@ -153,7 +155,7 @@ class SignedPayload(Payload):
         }
 
     def _serialized(self):
-        serialized_data = default_serializer.pack_multiple(self.to_pack_list())[0]
+        serialized_data = default_serializer.pack_serializable(self)
         return serialized_data, self.signature
 
     def serialized(self):
