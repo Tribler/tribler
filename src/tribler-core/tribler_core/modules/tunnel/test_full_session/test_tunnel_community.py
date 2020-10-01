@@ -217,7 +217,7 @@ async def test_anon_download(enable_ipv8, proxy_factory, session, video_seeder_s
 
 
 @pytest.mark.asyncio
-@pytest.mark.timeout(30)
+@pytest.mark.timeout(40)
 @pytest.mark.tunneltest
 async def test_hidden_services(enable_ipv8, proxy_factory, session, hidden_seeder_session, video_tdef):
     """
