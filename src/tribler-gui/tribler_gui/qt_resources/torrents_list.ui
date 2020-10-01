@@ -664,6 +664,11 @@ QComboBox QAbstractViewItem{
        </widget>
       </item>
       <item>
+       <widget class="QtBug" name="HORRIBLE_BUG_CONTAINER" native="true">
+        <layout class="QHBoxLayout" name="horizontalLayout_2"/>
+       </widget>
+      </item>
+      <item>
        <spacer name="horizontalSpacer_3">
         <property name="orientation">
          <enum>Qt::Horizontal</enum>
@@ -873,41 +878,21 @@ QTableView::item::hover {
        <bool>false</bool>
       </attribute>
      </widget>
-     <widget class="TorrentDetailsTabWidget" name="details_container">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
-      <property name="minimumSize">
-       <size>
-        <width>0</width>
-        <height>180</height>
-       </size>
-      </property>
-      <property name="maximumSize">
-       <size>
-        <width>16777215</width>
-        <height>180</height>
-       </size>
-      </property>
-     </widget>
     </widget>
    </item>
   </layout>
  </widget>
  <customwidgets>
   <customwidget>
+   <class>QtBug</class>
+   <extends>QWidget</extends>
+   <header>tribler_gui.widgets.qtbug.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
    <class>EllipseButton</class>
    <extends>QToolButton</extends>
    <header>tribler_gui.widgets.ellipsebutton.h</header>
-  </customwidget>
-  <customwidget>
-   <class>TorrentDetailsTabWidget</class>
-   <extends>QTabWidget</extends>
-   <header>tribler_gui.widgets.torrentdetailstabwidget.h</header>
-   <container>1</container>
   </customwidget>
   <customwidget>
    <class>SubscriptionsWidget</class>

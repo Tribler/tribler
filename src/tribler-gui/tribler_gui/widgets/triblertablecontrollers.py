@@ -70,53 +70,6 @@ class TriblerTableViewController(QObject):
         self.model.reset()
 
 
-class TableSelectionMixin(object):
-    def brain_dead_refresh(self):
-        """
-        FIXME! Brain-dead way to show the rows covered by a newly-opened details_container
-        Note that none of the more civilized ways to fix it work:
-        various updateGeometry, viewport().update, adjustSize - nothing works!
-        """
-        window = self.table_view.window()
-        window.resize(window.geometry().width() + 1, window.geometry().height())
-        window.resize(window.geometry().width() - 1, window.geometry().height())
-
-    def _on_selection_changed(self, _):
-        selected_indices = self.table_view.selectedIndexes()
-        if not selected_indices:
-            self.details_container.hide()
-            self.table_view.clearSelection()
-            self.brain_dead_refresh()
-            return
-
-        torrent_info = selected_indices[0].model().data_items[selected_indices[0].row()]
-        if 'type' in torrent_info and torrent_info['type'] != REGULAR_TORRENT:
-            self.details_container.hide()
-            self.brain_dead_refresh()
-            return
-
-        first_show = False
-        if self.details_container.isHidden():
-            first_show = True
-
-        self.details_container.show()
-        self.details_container.update_with_torrent(selected_indices[0], torrent_info)
-        if first_show:
-            self.brain_dead_refresh()
-
-
-class TorrentHealthDetailsMixin(object):
-    def update_health_details(self, update_dict):
-        if (
-            self.details_container.torrent_info
-            and self.details_container.torrent_info["infohash"] == update_dict["infohash"]
-        ):
-            self.details_container.torrent_info.update(update_dict)
-            self.details_container.update_health_label(
-                update_dict["num_seeders"], update_dict["num_leechers"], update_dict["last_tracker_check"]
-            )
-
-
 class ContextMenuMixin(object):
     table_view = None
     model = None
@@ -203,12 +156,9 @@ class ContextMenuMixin(object):
         return False
 
 
-class ContentTableViewController(
-    TableSelectionMixin, ContextMenuMixin, TriblerTableViewController, TorrentHealthDetailsMixin
-):
-    def __init__(self, table_view, details_container, filter_input=None):
+class ContentTableViewController(ContextMenuMixin, TriblerTableViewController):
+    def __init__(self, table_view, filter_input=None):
         TriblerTableViewController.__init__(self, table_view)
-        self.details_container = details_container
         self.filter_input = filter_input
         if self.filter_input:
             self.filter_input.textChanged.connect(self._on_filter_input_change)
@@ -216,11 +166,11 @@ class ContentTableViewController(
         # self.model.row_edited.connect(self._on_row_edited)
         self.enable_context_menu(self.table_view)
 
-    def set_model(self, model):
-        super(ContentTableViewController, self).set_model(model)
-        self.table_view.selectionModel().selectionChanged.connect(self._on_selection_changed)
+    # def set_model(self, model):
+    # super(ContentTableViewController, self).set_model(model)
+    # self.table_view.selectionModel().selectionChanged.connect(self._on_selection_changed)
 
     def unset_model(self):
-        if self.table_view.model:
-            self.table_view.selectionModel().selectionChanged.disconnect()
+        # if self.table_view.model:
+        # self.table_view.selectionModel().selectionChanged.disconnect()
         self.model = None

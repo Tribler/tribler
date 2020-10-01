@@ -22,7 +22,6 @@ from tribler_gui.widgets.tablecontentmodel import (
     PersonalChannelsModel,
     SearchResultsModel,
 )
-from tribler_gui.widgets.torrentdetailstabwidget import TorrentDetailsTabWidget
 from tribler_gui.widgets.triblertablecontrollers import ContentTableViewController
 
 CHANNEL_COMMIT_DELAY = 30000  # milliseconds
@@ -61,9 +60,6 @@ class ChannelContentsWidget(widget_form, widget_class):
         self.controller = None
         self.commit_timer = None
         self.autocommit_enabled = None
-
-        self.details_tab_widget = self.findChild(TorrentDetailsTabWidget, "details_container")
-        self.details_tab_widget.initialize_details_widget()
 
         self.channels_stack = []
 
@@ -116,17 +112,11 @@ class ChannelContentsWidget(widget_form, widget_class):
         self.channel_options_button.clicked.connect(self.show_channel_options)
         self.commit_control_bar.setHidden(True)
 
-        self.controller = ContentTableViewController(
-            self.content_table, self.details_container, self.channel_torrents_filter_input
-        )
-
-        self.window().core_manager.events_manager.node_info_updated.connect(self.controller.update_health_details)
-        self.splitter.splitterMoved.connect(self.controller.brain_dead_refresh)
+        self.controller = ContentTableViewController(self.content_table, self.channel_torrents_filter_input)
 
         # To reload the preview
         self.channel_preview_button.clicked.connect(self.preview_clicked)
 
-        self.details_container.hide()
         # self.channel_options_button.hide()
         self.autocommit_enabled = edit_enabled and (
             get_gui_setting(gui_settings, "autocommit_enabled", True, is_bool=True) if gui_settings else True
@@ -234,7 +224,6 @@ class ChannelContentsWidget(widget_form, widget_class):
 
     def go_back(self):
         if len(self.channels_stack) > 1:
-            self.details_container.hide()
             self.disconnect_current_model()
             self.channels_stack.pop().deleteLater()
 
@@ -304,7 +293,6 @@ class ChannelContentsWidget(widget_form, widget_class):
         self.controller.table_view.resizeEvent(None)
 
         self.content_table.setFocus()
-        self.details_container.hide()
         self.channel_options_button.show()
 
         self.update_labels()
