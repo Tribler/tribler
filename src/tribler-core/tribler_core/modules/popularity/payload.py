@@ -13,7 +13,8 @@ class TorrentInfoFormat(VariablePayload):
 
     @classmethod
     def from_list_bytes(cls, serialized):
-        return default_serializer.unpack_to_serializables([cls] * (len(serialized)//cls.length), serialized)[:-1]
+        return default_serializer.unpack_serializable_list([cls] * (len(serialized)//cls.length),
+                                                           serialized, consume_all=False)[:-1]
 
 
 @vp_compile
@@ -24,10 +25,10 @@ class TorrentsHealthPayload(VariablePayload):
     names = ['random_torrents_length', 'torrents_checked_length', 'random_torrents', 'torrents_checked']
 
     def fix_pack_random_torrents(self, value):
-        return b''.join(default_serializer.ez_pack_serializables([TorrentInfoFormat(*sublist)]) for sublist in value)
+        return b''.join(default_serializer.pack_serializable(TorrentInfoFormat(*sublist)) for sublist in value)
 
     def fix_pack_torrents_checked(self, value):
-        return b''.join(default_serializer.ez_pack_serializables([TorrentInfoFormat(*sublist)]) for sublist in value)
+        return b''.join(default_serializer.pack_serializable(TorrentInfoFormat(*sublist)) for sublist in value)
 
     @classmethod
     def fix_unpack_random_torrents(cls, value):
