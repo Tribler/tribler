@@ -3,17 +3,16 @@ import time
 from asyncio import Future, all_tasks, sleep
 from collections import defaultdict
 
-from ipv8.keyvault.crypto import ECCrypto
 from ipv8.messaging.anonymization.tunnel import CIRCUIT_TYPE_IP_SEEDER, PEER_FLAG_EXIT_BT
 from ipv8.peer import Peer
-from ipv8.peerdiscovery.community import DiscoveryCommunity
-from ipv8.peerdiscovery.network import Network
 from ipv8.test.messaging.anonymization import test_community
 from ipv8.test.messaging.anonymization.test_community import MockDHTProvider
+from ipv8.test.mocking.exit_socket import MockTunnelExitSocket
+from ipv8.test.mocking.ipv8 import MockIPv8
+from ipv8.util import succeed
 
 import pytest
 
-from ipv8.test.mocking.ipv8 import MockIPv8
 from tribler_common.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, dlstatus_strings
 
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
@@ -105,6 +104,7 @@ async def load_tunnel_community_in_session(session, exitnode=False, start_lt=Fal
     session.config.set_tunnel_community_exitnode_enabled(exitnode)
 
     mock_ipv8 = MockIPv8("curve25519", TriblerTunnelCommunity, settings={"max_circuits": 1}, tribler_session=session)
+    mock_ipv8.stop = lambda **_: succeed(None)
     session.ipv8 = mock_ipv8
 
     if exitnode:
@@ -241,6 +241,11 @@ async def test_hidden_services(enable_ipv8, proxy_factory, session, hidden_seede
 
     while not hidden_seeder_session.tunnel_community.find_circuits(ctype=CIRCUIT_TYPE_IP_SEEDER):
         await sleep(0.5)
+    await sleep(0.5)
+
+    for e in exit_nodes:
+        for cid in list(e.tunnel_community.exit_sockets.keys()):
+            e.tunnel_community.exit_sockets[cid] = MockTunnelExitSocket(e.tunnel_community.exit_sockets[cid])
 
     download = start_anon_download(session, hidden_seeder_session, video_tdef, hops=1)
     download.set_state_callback(download_state_callback)
