@@ -1,3 +1,4 @@
+import logging
 import time
 from asyncio import Future, all_tasks, sleep
 from collections import defaultdict
@@ -44,6 +45,11 @@ class ProxyFactory:
         await load_tunnel_community_in_session(session, exitnode=exitnode)
 
         return session
+
+
+@pytest.fixture
+async def logger():
+    return logging.getLogger("TunnelTests")
 
 
 @pytest.fixture
@@ -197,7 +203,7 @@ async def create_nodes(proxy_factory, num_relays=1, num_exitnodes=1):
 @pytest.mark.asyncio
 @pytest.mark.timeout(20)
 @pytest.mark.tunneltest
-async def test_anon_download(enable_ipv8, proxy_factory, session, video_seeder_session, video_tdef):
+async def test_anon_download(enable_ipv8, proxy_factory, session, video_seeder_session, video_tdef, logger):
     """
     Testing whether an anonymous download over our tunnels works
     """
@@ -210,7 +216,9 @@ async def test_anon_download(enable_ipv8, proxy_factory, session, video_seeder_s
     await download.wait_for_status(DLSTATUS_DOWNLOADING)
     session.dlmgr.set_download_states_callback(session.dlmgr.sesscb_states_callback, interval=.1)
     while not session.tunnel_community.find_circuits():
-        await sleep(.1)
+        num_verified_peers = len(session.ipv8.network.verified_peers)
+        logger.warning("No circuits found - checking again later (verified peers: %d)", num_verified_peers)
+        await sleep(.5)
     await sleep(.6)
     assert session.tunnel_community.find_circuits()[0].bytes_up > 0
     assert session.tunnel_community.find_circuits()[0].bytes_down > 0
@@ -219,7 +227,7 @@ async def test_anon_download(enable_ipv8, proxy_factory, session, video_seeder_s
 @pytest.mark.asyncio
 @pytest.mark.timeout(40)
 @pytest.mark.tunneltest
-async def test_hidden_services(enable_ipv8, proxy_factory, session, hidden_seeder_session, video_tdef):
+async def test_hidden_services(enable_ipv8, proxy_factory, session, hidden_seeder_session, video_tdef, logger):
     """
     Test the hidden services overlay by constructing an end-to-end circuit and downloading a torrent over it
     """
@@ -238,7 +246,7 @@ async def test_hidden_services(enable_ipv8, proxy_factory, session, hidden_seede
 
     def download_state_callback(ds):
         session.tunnel_community.monitor_downloads([ds])
-        print(time.time(), ds.get_status(), ds.get_progress())
+        logger.info("Time: %s, status: %s, progress: %s", time.time(), ds.get_status(), ds.get_progress())
         if ds.get_progress():
             progress.set_result(None)
         return 2
