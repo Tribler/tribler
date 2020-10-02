@@ -46,7 +46,7 @@ Where:
 * `timeout_in_sec` means a time that the experiment will last
 * `output_file.csv` means a path and a result file name 
 
-#### Example
+### Example
 
 ```
 python3 initial_filling.py -i 60

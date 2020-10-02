@@ -18,3 +18,5 @@ marshmallow
 Pillow
 netifaces
 pyqtgraph
+pytest~=6.1.0
+
