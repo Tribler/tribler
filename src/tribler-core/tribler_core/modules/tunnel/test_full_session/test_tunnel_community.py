@@ -13,6 +13,7 @@ from ipv8.test.messaging.anonymization.test_community import MockDHTProvider
 
 import pytest
 
+from ipv8.test.mocking.ipv8 import MockIPv8
 from tribler_common.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, dlstatus_strings
 
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
@@ -35,9 +36,6 @@ class ProxyFactory:
 
     async def get(self, exitnode=False):
         config = self.base_tribler_config.copy()
-        config.set_ipv8_enabled(True)
-        config.set_ipv8_port(-1)
-        config.set_trustchain_enabled(False)
         config.set_libtorrent_enabled(False)
         config.set_tunnel_community_socks5_listen_ports(self.free_ports_factory(5))
 
@@ -68,7 +66,6 @@ async def proxy_factory(request, tribler_config, free_ports):
 
 @pytest.fixture
 async def hidden_seeder_session(seed_config, video_tdef):
-    seed_config.set_ipv8_port(-1)
     seed_config.set_libtorrent_enabled(False)
     seeder_session = Session(seed_config)
     seeder_session.upgrader_enabled = False
@@ -100,37 +97,23 @@ async def hidden_seeder_session(seed_config, video_tdef):
     await seeder_session.shutdown()
 
 
-async def sanitize_network(session):
-    # We disable the discovery communities in this session since we don't want to walk to the live network
-    for overlay in session.ipv8.overlays:
-        if isinstance(overlay, DiscoveryCommunity):
-            await overlay.unload()
-    session.ipv8.overlays = []
-    session.ipv8.strategies = []
-
-    # Also reset the IPv8 network
-    session.ipv8.network = Network()
-
-
 async def load_tunnel_community_in_session(session, exitnode=False, start_lt=False):
     """
     Load the tunnel community in a given session. We are using our own tunnel community here instead of the one
     used in Tribler.
     """
-    await sanitize_network(session)
-
-    keypair = ECCrypto().generate_key(u"curve25519")
-    tunnel_peer = Peer(keypair)
     session.config.set_tunnel_community_exitnode_enabled(exitnode)
-    overlay = TriblerTunnelCommunity(tunnel_peer, session.ipv8.endpoint, session.ipv8.network,
-                                     tribler_session=session, settings={"max_circuits": 1})
-    if exitnode:
-        overlay.settings.peer_flags.add(PEER_FLAG_EXIT_BT)
-    overlay.dht_provider = MockDHTProvider(Peer(overlay.my_peer.key, overlay.my_estimated_wan))
-    overlay.settings.remove_tunnel_delay = 0
-    session.ipv8.overlays.append(overlay)
 
-    await overlay.wait_for_socks_servers()
+    mock_ipv8 = MockIPv8("curve25519", TriblerTunnelCommunity, settings={"max_circuits": 1}, tribler_session=session)
+    session.ipv8 = mock_ipv8
+
+    if exitnode:
+        mock_ipv8.overlay.settings.peer_flags.add(PEER_FLAG_EXIT_BT)
+    mock_ipv8.overlay.dht_provider = MockDHTProvider(
+        Peer(mock_ipv8.overlay.my_peer.key, mock_ipv8.overlay.my_estimated_wan))
+    mock_ipv8.overlay.settings.remove_tunnel_delay = 0
+
+    await mock_ipv8.overlay.wait_for_socks_servers()
 
     if start_lt:
         # If libtorrent tries to connect to the socks5 servers before they are loaded,
@@ -142,9 +125,9 @@ async def load_tunnel_community_in_session(session, exitnode=False, start_lt=Fal
         session.dlmgr.initialize()
         session.dlmgr.is_shutdown_ready = lambda: True
 
-    session.tunnel_community = overlay
+    session.tunnel_community = mock_ipv8.overlay
 
-    return overlay
+    return mock_ipv8.overlay
 
 
 def start_anon_download(session, seed_session, tdef, hops=1):
@@ -164,8 +147,7 @@ async def introduce_peers(sessions):
     for session_introduce in sessions:
         for session in sessions:
             if session_introduce != session:
-                session.tunnel_community.walk_to(
-                    ('127.0.0.1', session_introduce.tunnel_community.endpoint.get_address()[1]))
+                session.tunnel_community.walk_to(session_introduce.tunnel_community.endpoint.wan_address)
 
     await deliver_messages()
 
@@ -207,7 +189,7 @@ async def create_nodes(proxy_factory, num_relays=1, num_exitnodes=1):
 @pytest.mark.asyncio
 @pytest.mark.timeout(20)
 @pytest.mark.tunneltest
-async def test_anon_download(enable_ipv8, proxy_factory, session, video_seeder_session, video_tdef, logger):
+async def test_anon_download(proxy_factory, session, video_seeder_session, video_tdef, logger):
     """
     Testing whether an anonymous download over our tunnels works
     """
@@ -258,7 +240,7 @@ async def test_hidden_services(enable_ipv8, proxy_factory, session, hidden_seede
     session.tunnel_community.build_tunnels(1)
 
     while not hidden_seeder_session.tunnel_community.find_circuits(ctype=CIRCUIT_TYPE_IP_SEEDER):
-        await deliver_messages()
+        await sleep(0.5)
 
     download = start_anon_download(session, hidden_seeder_session, video_tdef, hops=1)
     download.set_state_callback(download_state_callback)
