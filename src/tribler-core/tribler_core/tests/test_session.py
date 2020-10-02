@@ -11,10 +11,15 @@ from tribler_core.session import IGNORED_ERRORS
 from tribler_core.tests.tools.base_test import MockObject
 
 
+# Pylint does not agree with the way pytest handles fixtures.
+# pylint: disable=W0613,W0621
+
+
 @pytest.fixture
 def mocked_endpoints(session):
     session.api_manager = MockObject()
     session.api_manager.stop = lambda: succeed(None)
+    session.api_manager.set_ipv8_session = lambda _: None
     mocked_endpoints = {}
 
     def get_endpoint_mock(name):
@@ -94,3 +99,69 @@ async def test_error_observer_ignored_error(mocked_endpoints, session):
     await sleep(0.05)
     session.api_manager.get_endpoint('state').on_tribler_exception.assert_called_once()
     session.api_manager.get_endpoint('events').on_tribler_exception.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_load_ipv8_overlays(mocked_endpoints, enable_ipv8, session):
+    """
+    Test whether non-testnet communities are loaded, if configured to do so.
+    """
+    session.config.set_trustchain_testnet(False)
+    session.config.set_tunnel_testnet(False)
+    session.config.set_chant_testnet(False)
+    session.config.set_trustchain_enabled(True)
+    session.config.set_dht_enabled(True)
+    session.config.set_tunnel_community_enabled(True)
+    session.config.set_market_community_enabled(True)
+    session.config.set_popularity_community_enabled(True)
+    session.config.set_chant_enabled(True)
+
+    await session.start()
+
+    loaded_launchers = [overlay.__class__.__name__ for overlay in session.ipv8.overlays]
+    assert "DiscoveryCommunity" in loaded_launchers
+    assert "TrustChainCommunity" in loaded_launchers
+    assert "TrustChainTestnetCommunity" not in loaded_launchers
+    assert "DHTDiscoveryCommunity" in loaded_launchers
+    assert "TriblerTunnelCommunity" in loaded_launchers
+    assert "TriblerTunnelTestnetCommunity" not in loaded_launchers
+    assert "MarketCommunity" in loaded_launchers
+    assert "MarketTestnetCommunity" not in loaded_launchers
+    assert "PopularityCommunity" in loaded_launchers
+    assert "GigaChannelCommunity" in loaded_launchers
+    assert "GigaChannelTestnetCommunity" not in loaded_launchers
+    assert "RemoteQueryCommunity" in loaded_launchers
+    assert "RemoteQueryTestnetCommunity" not in loaded_launchers
+
+
+@pytest.mark.asyncio
+async def test_load_ipv8_overlays_testnet(mocked_endpoints, enable_ipv8, session):
+    """
+    Test whether testnet communities are loaded, if configured to do so.
+    """
+    session.config.set_trustchain_testnet(True)
+    session.config.set_tunnel_testnet(True)
+    session.config.set_chant_testnet(True)
+    session.config.set_trustchain_enabled(True)
+    session.config.set_dht_enabled(True)
+    session.config.set_tunnel_community_enabled(True)
+    session.config.set_market_community_enabled(True)
+    session.config.set_popularity_community_enabled(True)
+    session.config.set_chant_enabled(True)
+
+    await session.start()
+
+    loaded_launchers = [overlay.__class__.__name__ for overlay in session.ipv8.overlays]
+    assert "DiscoveryCommunity" in loaded_launchers
+    assert "TrustChainCommunity" not in loaded_launchers
+    assert "TrustChainTestnetCommunity" in loaded_launchers
+    assert "DHTDiscoveryCommunity" in loaded_launchers
+    assert "TriblerTunnelCommunity" not in loaded_launchers
+    assert "TriblerTunnelTestnetCommunity" in loaded_launchers
+    assert "MarketCommunity" not in loaded_launchers
+    assert "MarketTestnetCommunity" in loaded_launchers
+    assert "PopularityCommunity" in loaded_launchers
+    assert "GigaChannelCommunity" not in loaded_launchers
+    assert "GigaChannelTestnetCommunity" in loaded_launchers
+    assert "RemoteQueryCommunity" not in loaded_launchers
+    assert "RemoteQueryTestnetCommunity" in loaded_launchers
