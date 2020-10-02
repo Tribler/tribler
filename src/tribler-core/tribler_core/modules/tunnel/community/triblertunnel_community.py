@@ -164,7 +164,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             for exit_node in exit_nodes.get_walkable_addresses():
                 self.endpoint.send(exit_node, self.create_introduction_request(exit_node))
         else:
-            self.logger.error('Could not retrieve backup exitnode cache, file does not exist!')
+            self.logger.warning('Could not retrieve backup exitnode cache, file does not exist!')
 
     def on_token_balance(self, circuit_id, balance):
         """
