@@ -16,16 +16,9 @@ from traceback import print_exception
 from _socket import gaierror
 
 from anydex.wallet.dummy_wallet import DummyWallet1, DummyWallet2
-from anydex.wallet.tc_wallet import TrustchainWallet
 
-from ipv8.dht.churn import PingChurn
-from ipv8.dht.provider import DHTCommunityProvider
-from ipv8.messaging.anonymization.community import TunnelSettings
+from ipv8.loader import IPv8CommunityLoader
 from ipv8.messaging.interfaces.dispatcher.endpoint import DispatcherEndpoint
-from ipv8.peer import Peer
-from ipv8.peerdiscovery.churn import RandomChurn
-from ipv8.peerdiscovery.community import DiscoveryCommunity, PeriodicSimilarity
-from ipv8.peerdiscovery.discovery import EdgeWalk, RandomWalk
 from ipv8.taskmanager import TaskManager
 
 from ipv8_service import IPv8
@@ -47,6 +40,7 @@ from tribler_common.simpledefs import (
 
 import tribler_core.utilities.permid as permid_module
 from tribler_core.modules.bootstrap import Bootstrap
+from tribler_core.modules.ipv8_module_catalog import register_default_launchers
 from tribler_core.modules.metadata_store.gigachannel_manager import GigaChannelManager
 from tribler_core.modules.metadata_store.store import MetadataStore
 from tribler_core.modules.metadata_store.utils import generate_test_channels
@@ -123,6 +117,8 @@ class Session(TaskManager):
         self.bootstrap = None
 
         # modules
+        self.ipv8_community_loader = IPv8CommunityLoader()
+
         self.api_manager = None
         self.watch_folder = None
         self.version_check_manager = None
@@ -149,119 +145,8 @@ class Session(TaskManager):
         self.core_test_mode = core_test_mode
 
     def load_ipv8_overlays(self):
-        if self.config.get_trustchain_testnet():
-            peer = Peer(self.trustchain_testnet_keypair)
-        else:
-            peer = Peer(self.trustchain_keypair)
-        discovery_community = DiscoveryCommunity(peer, self.ipv8.endpoint, self.ipv8.network)
-        discovery_community.resolve_dns_bootstrap_addresses()
-        self.ipv8.overlays.append(discovery_community)
-        self.ipv8.strategies.append((RandomChurn(discovery_community), -1))
-        self.ipv8.strategies.append((PeriodicSimilarity(discovery_community), -1))
-        self.ipv8.strategies.append((RandomWalk(discovery_community), 20))
-
-        # TrustChain Community
-        if self.config.get_trustchain_enabled():
-            from ipv8.attestation.trustchain.community import TrustChainCommunity, \
-                TrustChainTestnetCommunity
-
-            community_cls = TrustChainTestnetCommunity if self.config.get_trustchain_testnet() else TrustChainCommunity
-            self.trustchain_community = community_cls(peer, self.ipv8.endpoint,
-                                                      self.ipv8.network,
-                                                      working_directory=self.config.get_state_dir())
-            self.ipv8.overlays.append(self.trustchain_community)
-            self.ipv8.strategies.append((EdgeWalk(self.trustchain_community), 20))
-
-            tc_wallet = TrustchainWallet(self.trustchain_community)
-            self.wallets[tc_wallet.get_identifier()] = tc_wallet
-
-        # DHT Community
-        if self.config.get_dht_enabled():
-            from ipv8.dht.discovery import DHTDiscoveryCommunity
-
-            self.dht_community = DHTDiscoveryCommunity(peer, self.ipv8.endpoint, self.ipv8.network)
-            self.ipv8.overlays.append(self.dht_community)
-            self.ipv8.strategies.append((RandomWalk(self.dht_community), 20))
-            self.ipv8.strategies.append((PingChurn(self.dht_community), -1))
-
-        # Tunnel Community
-        if self.config.get_tunnel_community_enabled():
-            from tribler_core.modules.tunnel.community.triblertunnel_community import TriblerTunnelCommunity,\
-                                                                               TriblerTunnelTestnetCommunity
-            from tribler_core.modules.tunnel.community.discovery import GoldenRatioStrategy
-            community_cls = TriblerTunnelTestnetCommunity if self.config.get_tunnel_testnet() else \
-                TriblerTunnelCommunity
-
-            random_slots = self.config.get_tunnel_community_random_slots()
-            competing_slots = self.config.get_tunnel_community_competing_slots()
-
-            dht_provider = DHTCommunityProvider(self.dht_community, self.config.get_ipv8_port())
-            settings = TunnelSettings()
-            settings.min_circuits = 3
-            settings.max_circuits = 10
-            self.tunnel_community = community_cls(peer, self.ipv8.endpoint, self.ipv8.network,
-                                                  tribler_session=self,
-                                                  dht_provider=dht_provider,
-                                                  ipv8=self.ipv8,
-                                                  bandwidth_wallet=self.wallets["MB"],
-                                                  random_slots=random_slots,
-                                                  competing_slots=competing_slots,
-                                                  settings=settings)
-            self.ipv8.overlays.append(self.tunnel_community)
-            self.ipv8.strategies.append((RandomWalk(self.tunnel_community), 20))
-            self.ipv8.strategies.append((GoldenRatioStrategy(self.tunnel_community), -1))
-
-        # Market Community
-        if self.config.get_market_community_enabled() and self.config.get_dht_enabled():
-            from anydex.core.community import MarketCommunity, MarketTestnetCommunity
-
-            community_cls = MarketTestnetCommunity if self.config.get_trustchain_testnet() else MarketCommunity
-            self.market_community = community_cls(peer, self.ipv8.endpoint, self.ipv8.network,
-                                                  trustchain=self.trustchain_community,
-                                                  dht=self.dht_community,
-                                                  wallets=self.wallets,
-                                                  working_directory=self.config.get_state_dir(),
-                                                  record_transactions=self.config.get_record_transactions())
-
-            self.ipv8.overlays.append(self.market_community)
-
-            self.ipv8.strategies.append((RandomWalk(self.market_community), 20))
-
-        # Popular Community
-        if self.config.get_popularity_community_enabled():
-            from tribler_core.modules.popularity.popularity_community import PopularityCommunity
-
-            self.popularity_community = PopularityCommunity(peer, self.ipv8.endpoint, self.ipv8.network,
-                                                            metadata_store=self.mds,
-                                                            torrent_checker=self.torrent_checker)
-
-            self.ipv8.overlays.append(self.popularity_community)
-            self.ipv8.strategies.append((RandomWalk(self.popularity_community), 20))
-
-        # Gigachannel Community
-        if self.config.get_chant_enabled():
-            from tribler_core.modules.metadata_store.community.gigachannel_community import GigaChannelCommunity, GigaChannelTestnetCommunity
-            from tribler_core.modules.metadata_store.community.sync_strategy import SyncChannels
-
-            community_cls = GigaChannelTestnetCommunity if self.config.get_chant_testnet() else GigaChannelCommunity
-            self.gigachannel_community = community_cls(peer, self.ipv8.endpoint, self.ipv8.network, self.mds,
-                                                       notifier=self.notifier)
-
-            self.ipv8.overlays.append(self.gigachannel_community)
-
-            self.ipv8.strategies.append((RandomWalk(self.gigachannel_community), 20))
-            self.ipv8.strategies.append((SyncChannels(self.gigachannel_community), 20))
-
-            # Gigachannel RemoteQuery Community
-            from tribler_core.modules.metadata_store.community.remote_query_community \
-                import RemoteQueryCommunity, RemoteQueryTestnetCommunity
-
-            community_cls = RemoteQueryTestnetCommunity if self.config.get_chant_testnet() else RemoteQueryCommunity
-            self.remote_query_community = community_cls(peer, self.ipv8.endpoint, self.ipv8.network, self.mds,
-                                                        notifier=self.notifier)
-
-            self.ipv8.overlays.append(self.remote_query_community)
-            self.ipv8.strategies.append((RandomWalk(self.remote_query_community), 50))
+        register_default_launchers(self.ipv8_community_loader)
+        self.ipv8_community_loader.load(self.ipv8, self)
 
     def enable_ipv8_statistics(self):
         if self.config.get_ipv8_statistics():
