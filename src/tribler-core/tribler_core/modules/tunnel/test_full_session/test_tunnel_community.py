@@ -22,6 +22,10 @@ from tribler_core.session import Session
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
 
 
+# Pylint does not agree with the way pytest handles fixtures.
+# pylint: disable=W0613,W0621
+
+
 class ProxyFactory:
 
     def __init__(self, tribler_config, free_ports_factory):
