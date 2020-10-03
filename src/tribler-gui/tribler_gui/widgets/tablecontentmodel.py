@@ -210,8 +210,8 @@ class RemoteTableModel(QAbstractTableModel):
 
 class ChannelContentModel(RemoteTableModel):
 
-    columns = [u'category', u'name', u'size', u'health', u'updated', ACTION_BUTTONS]
-    column_headers = [tr('Category'), tr('Name'), tr('Size'), tr('Health'), tr('Updated'), u'']
+    columns = [ACTION_BUTTONS, u'category', u'name', u'size', u'health', u'updated']
+    column_headers = [u'', tr('Category'), tr('Name'), tr('Size'), tr('Health'), tr('Updated')]
     unsortable_columns = [u'status', u'state', ACTION_BUTTONS]
     column_flags = {
         u'subscribed': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
@@ -230,8 +230,8 @@ class ChannelContentModel(RemoteTableModel):
     column_width = {
         u'state': lambda _: 20,
         u'name': lambda table_width: table_width - 510,
-        u'action_buttons': lambda _: 70,
-        u'category': lambda _: 10,
+        u'action_buttons': lambda _: 20,
+        u'category': lambda _: 20,
     }
 
     column_tooltip_filters = {
@@ -443,8 +443,8 @@ class DiscoveredChannelsModel(ChannelContentModel):
 
 
 class PersonalChannelsModel(ChannelContentModel):
-    columns = [u'category', u'name', u'size', u'status', ACTION_BUTTONS]
-    column_headers = [tr('Category'), tr('Name'), tr('Size'), u'', u'']
+    columns = [ACTION_BUTTONS, u'category', u'name', u'size', u'status']
+    column_headers = [u'', tr('Category'), tr('Name'), tr('Size'), u'']
 
     column_flags = dict(ChannelContentModel.column_flags)
     column_flags.update(
@@ -508,8 +508,8 @@ class PersonalChannelsModel(ChannelContentModel):
 
 
 class SimplifiedPersonalChannelsModel(PersonalChannelsModel):
-    columns = [u'category', u'name', u'size', ACTION_BUTTONS]
-    column_headers = [tr('Category'), tr('Name'), tr('Size'), u'']
+    columns = [ACTION_BUTTONS, u'category', u'name', u'size']
+    column_headers = [u'', tr('Category'), tr('Name'), tr('Size')]
 
     column_width = dict(ChannelContentModel.column_width, **{u'name': lambda table_width: table_width - 330})
 

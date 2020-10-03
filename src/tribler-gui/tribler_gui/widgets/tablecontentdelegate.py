@@ -19,7 +19,7 @@ from tribler_gui.defs import (
     HEALTH_UNCHECKED,
 )
 from tribler_gui.utilities import format_votes, get_health, get_image_path
-from tribler_gui.widgets.tableiconbuttons import DeleteIconButton, DownloadIconButton
+from tribler_gui.widgets.tableiconbuttons import DownloadIconButton
 
 
 def draw_text(painter, rect, text, color=QColor("#B5B5B5"), font=None, alignment=Qt.AlignVCenter):
@@ -280,11 +280,10 @@ class TriblerContentDelegate(
         self.health_status_widget = HealthStatusDisplay()
 
         self.download_button = DownloadIconButton()
-        self.delete_button = DeleteIconButton()
-        self.ondemand_container = [self.delete_button, self.download_button]
+        self.ondemand_container = [self.download_button]
 
         self.commit_control = CommitStatusControl(u'status')
-        self.controls = [self.download_button, self.commit_control, self.delete_button, self.rating_control]
+        self.controls = [self.download_button, self.commit_control, self.rating_control]
         self.health_status_widget = HealthStatusDisplay()
         self.column_drawing_actions = [
             (u'votes', self.draw_rating_control),
@@ -399,7 +398,6 @@ class CommitStatusControl(QObject):
     todelete_icon = QIcon(get_image_path("minus.svg"))
     updated_icon = QIcon(get_image_path("update.svg"))
 
-    delete_action_icon = QIcon(get_image_path("delete.png"))
     restore_action_icon = QIcon(get_image_path("undo.svg"))
 
     def __init__(self, column_name, parent=None):

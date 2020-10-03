@@ -36,7 +36,6 @@ class TriblerContentTableView(QTableView):
         self.delegate.rating_control.clicked.connect(self.on_subscribe_control_clicked)
         self.delegate.download_button.clicked.connect(self.on_download_button_clicked)
         # TODO: status changing feature should remain turned off until we fix the undo mess
-        self.delegate.delete_button.clicked.connect(self.on_delete_button_clicked)
 
     def mouseMoveEvent(self, event):
         index = QModelIndex(self.indexAt(event.pos()))
