@@ -187,6 +187,26 @@ class ChannelStateMixin(object):
         return True
 
 
+class SubscribedControlMixin(object):
+    def draw_subscribed_control(self, painter, option, index, data_item):
+        # Draw empty cell as the background
+        self.paint_empty_background(painter, option)
+
+        if u'type' in data_item and data_item[u'type'] != CHANNEL_TORRENT:
+            return True
+        if data_item[u'status'] == 1000:  # LEGACY ENTRIES!
+            return True
+        if data_item[u'state'] == u'Personal':
+            return True
+
+        if index == self.hover_index:
+            self.subscribe_control.paint_hover(painter, option.rect, index, toggled=data_item['subscribed'])
+        else:
+            self.subscribe_control.paint(painter, option.rect, index, toggled=data_item['subscribed'])
+
+        return True
+
+
 class RatingControlMixin(object):
     def draw_rating_control(self, painter, option, index, data_item):
         # Draw empty cell as the background
@@ -271,21 +291,22 @@ class TriblerContentDelegate(
     DownloadControlsMixin,
     HealthLabelMixin,
     ChannelStateMixin,
+    SubscribedControlMixin,
 ):
     def __init__(self, parent=None):
         # TODO: refactor this not to rely on inheritance order, but instead use interface method pattern
         TriblerButtonsDelegate.__init__(self, parent)
+        self.subscribe_control = SubscribeToggleControl(u'subscribed')
         self.rating_control = RatingControl(u'votes')
-
-        self.health_status_widget = HealthStatusDisplay()
 
         self.download_button = DownloadIconButton()
         self.ondemand_container = [self.download_button]
 
         self.commit_control = CommitStatusControl(u'status')
-        self.controls = [self.download_button, self.commit_control, self.rating_control]
+        self.controls = [self.subscribe_control, self.download_button, self.commit_control, self.rating_control]
         self.health_status_widget = HealthStatusDisplay()
         self.column_drawing_actions = [
+            (u'subscribed', self.draw_subscribed_control),
             (u'votes', self.draw_rating_control),
             (ACTION_BUTTONS, self.draw_action_column),
             (u'category', self.draw_category_label),
@@ -381,6 +402,18 @@ class ToggleControl(QObject, CheckClickedMixin):
         icon_rect = QRect(x, y, self.w, self.h)
 
         icon.paint(painter, icon_rect)
+
+
+class SubscribeToggleControl(ToggleControl):
+    def __init__(self, column_name, parent=None):
+        ToggleControl.__init__(
+            self,
+            column_name,
+            QIcon(get_image_path("subscribed_yes.png")),
+            QIcon(get_image_path("subscribed_not.png")),
+            QIcon(get_image_path("subscribed.png")),
+            parent=parent,
+        )
 
 
 class CommitStatusControl(QObject):

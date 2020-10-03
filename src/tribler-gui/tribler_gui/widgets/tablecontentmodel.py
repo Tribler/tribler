@@ -229,6 +229,7 @@ class ChannelContentModel(RemoteTableModel):
 
     column_width = {
         u'state': lambda _: 20,
+        u'subscribed': lambda _: 20,
         u'name': lambda table_width: table_width - 510,
         u'action_buttons': lambda _: 20,
         u'category': lambda _: 20,
@@ -429,12 +430,11 @@ class SearchResultsModel(ChannelContentModel):
 
 
 class DiscoveredChannelsModel(ChannelContentModel):
-    columns = [u'state', u'votes', u'name', u'torrents', u'updated']
-    column_headers = [u'', tr('Popularity'), tr('Name'), tr('Torrents'), tr('Updated')]
+    columns = [u'state', u'subscribed', u'name', u'torrents', u'votes', u'updated']
+    column_headers = [u'', u'Subscribed', tr('Name'), tr('Torrents'), tr('Popularity'), tr('Updated')]
 
-    column_width = dict(ChannelContentModel.column_width, **{u'name': lambda table_width: table_width - 350})
-
-    default_sort_column = 1
+    column_width = dict(ChannelContentModel.column_width, **{u'name': lambda table_width: table_width - 400})
+    default_sort_column = columns.index(u'votes')
 
     def __init__(self, *args, **kwargs):
         super(DiscoveredChannelsModel, self).__init__(*args, **kwargs)
