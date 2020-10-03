@@ -325,7 +325,7 @@ class DebugWindow(QMainWindow):
         for overlay in data["overlays"]:
             item = QTreeWidgetItem(self.window().communities_tree_widget)
             item.setText(0, overlay["overlay_name"])
-            item.setText(1, overlay["master_peer"][-12:])
+            item.setText(1, overlay["id"][:10])
             item.setText(2, overlay["my_peer"][-12:])
             peer_count = len(overlay["peers"])
             item.setText(3, "%s" % peer_count)

@@ -18,10 +18,7 @@ class PopularityCommunity(Community):
     """
     Community for disseminating the content across the network. Follows publish-subscribe model.
     """
-    MASTER_PUBLIC_KEY = ("4c69624e61434c504b3a4fcd9aa5256e8859d38509dd53ab93e70b351ac770817acfdccd836cf766ee345ea"
-                         "5c7f6659cc410f3447bafaec8472c40032984d197ffd565903c6e799570bc")
-
-    master_peer = Peer(unhexlify(MASTER_PUBLIC_KEY))
+    community_id = unhexlify('9aca62f878969c437da9844cba29a134917e1648')
 
     def __init__(self, *args, **kwargs):
         self.metadata_store = kwargs.pop('metadata_store')
