@@ -77,7 +77,7 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
         exit_node.overlay.settings.peer_flags.add(PEER_FLAG_EXIT_BT)
         public_peer = Peer(exit_node.my_peer.public_key, exit_node.my_peer.address)
         self.nodes[node_nr].network.add_verified_peer(public_peer)
-        self.nodes[node_nr].network.discover_services(public_peer, exit_node.overlay.master_peer.mid)
+        self.nodes[node_nr].network.discover_services(public_peer, exit_node.overlay.community_id)
         self.nodes[node_nr].overlay.candidates[public_peer] = exit_node.overlay.settings.peer_flags
         self.nodes[node_nr].overlay.build_tunnels(1)
         await self.deliver_messages()

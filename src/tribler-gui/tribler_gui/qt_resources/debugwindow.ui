@@ -253,7 +253,7 @@
               </column>
               <column>
                <property name="text">
-                <string>Master peer</string>
+                <string>Community ID</string>
                </property>
               </column>
               <column>

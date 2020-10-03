@@ -65,12 +65,7 @@ class RemoteQueryCommunity(Community):
     Community for general purpose SELECT-like queries into remote Channels database
     """
 
-    master_peer = Peer(
-        unhexlify(
-            "4c69624e61434c504b3a667b8dee4645475512c0780990cfaca234ad19c5dabcb065751776"
-            "b75a4b4210c06e2eb4d8bbf4a775ed735eb16bbc3e44193479ad7426d7cd1067807f95b696"
-        )
-    )
+    community_id = unhexlify('dc43e3465cbd83948f30d3d3e8336d71cce33aa7')
 
     def __init__(self, my_peer, endpoint, network, metadata_store, settings=None, notifier=None):
         super(RemoteQueryCommunity, self).__init__(my_peer, endpoint, network)
@@ -173,9 +168,4 @@ class RemoteQueryCommunity(Community):
 
 
 class RemoteQueryTestnetCommunity(RemoteQueryCommunity):
-    master_peer = Peer(
-        unhexlify(
-            "4c69624e61434c504b3a7fcf64783215dba08c1623fb14c3c86127b8591f858c56763e2281"
-            "a8e121ef08caae395b2597879f7f4658b608f22df280073661f85174fd7c565cbee3e4328f"
-        )
-    )
+    community_id = unhexlify('ad8cece0dfdb0e03344b59a4d31a38fe9812da9d')
