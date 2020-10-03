@@ -1,6 +1,8 @@
 """
 This file contains various definitions used by the Tribler GUI.
 """
+from collections import namedtuple
+
 DEFAULT_API_PROTOCOL = "http"
 DEFAULT_API_HOST = "localhost"
 DEFAULT_API_PORT = 8085
@@ -150,24 +152,49 @@ HEALTH_UNCHECKED = u'Unknown'
 # Interval for refreshing the results in the debug pane
 DEBUG_PANE_REFRESH_TIMEOUT = 5000  # 5 seconds
 
-# This list of content categories is used in drop-down menu when editing a personal channel
-# TODO: build this automatically and/or move it somewhere
-CATEGORY_LIST = (
-    u'Video',
-    u'VideoClips',
-    u'Audio',
-    u'Documents',
-    u'CD/DVD/BD',
-    u'Compressed',
-    u'Games',
-    u'Pictures',
-    u'Books',
-    u'Comics',
-    u'Software',
-    u'Science',
-    u'XXX',
-    u'Other',
-)
+
+ContentCategoryTuple = namedtuple("ContentCategoryTuple", "code emoji long_name short_name")
+
+
+class ContentCategories:
+    # This class contains definitions of content categories and associated representation
+    # methods, e.g. emojis, names, etc.
+    # It should never be instanced, but instead used as a collection of classmethods.
+
+    _category_emojis = (
+        (u'Video', u'🎦'),
+        (u'VideoClips', u'📹'),
+        (u'Audio', u'🎧'),
+        (u'Documents', u'📝'),
+        (u'CD/DVD/BD', u'📀'),
+        (u'Compressed', u'🗜'),
+        (u'Games', u'👾'),
+        (u'Pictures', u'📷'),
+        (u'Books', u'📚'),
+        (u'Comics', u'💢'),
+        (u'Software', u'💾'),
+        (u'Science', u'🔬'),
+        (u'XXX', u'💋'),
+        (u'Other', u'🤔'),
+    )
+    _category_tuples = tuple(
+        ContentCategoryTuple(code, emoji, emoji + " " + code, code) for code, emoji in _category_emojis
+    )
+
+    _associative_dict = {}
+    for cat_index, cat_tuple in enumerate(_category_tuples):
+        _associative_dict[cat_tuple.code] = cat_tuple
+        _associative_dict[cat_index] = cat_tuple
+        _associative_dict[cat_tuple.long_name] = cat_tuple
+
+    codes = tuple(t.code for t in _category_tuples)
+    long_names = tuple(t.long_name for t in _category_tuples)
+    short_names = tuple(t.short_name for t in _category_tuples)
+
+    @classmethod
+    def get(cls, item, default=None):
+        return cls._associative_dict.get(item, default)
+
 
 # Trust Graph constants
 COLOR_RED = "#b37477"

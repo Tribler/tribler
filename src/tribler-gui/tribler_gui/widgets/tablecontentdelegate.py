@@ -6,11 +6,11 @@ from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, C
 
 from tribler_gui.defs import (
     ACTION_BUTTONS,
-    CATEGORY_LIST,
     COMMIT_STATUS_COMMITTED,
     COMMIT_STATUS_NEW,
     COMMIT_STATUS_TODELETE,
     COMMIT_STATUS_UPDATED,
+    ContentCategories,
     HEALTH_CHECKING,
     HEALTH_DEAD,
     HEALTH_ERROR,
@@ -143,7 +143,7 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
             return
         if index.column() == index.model().column_position['category']:
             cbox = QComboBox(parent)
-            cbox.addItems(CATEGORY_LIST)
+            cbox.addItems(ContentCategories.codes)
             return cbox
 
         return super(TriblerButtonsDelegate, self).createEditor(parent, option, index)
@@ -214,22 +214,19 @@ class CategoryLabelMixin(object):
         # Draw empty cell as the background
         self.paint_empty_background(painter, option)
 
-        draw_border = True
         if 'type' in data_item and data_item['type'] == CHANNEL_TORRENT:
             if data_item['state'] == u'Personal':
-                category = "\U0001F3E0"  # 'home' emoji
+                category_txt = "\U0001F3E0"  # 'home' emoji
             else:
-                category = "\U0001F536"  # "large orange diamond" emoji
-            draw_border = False
+                category_txt = "\U0001F536"  # "large orange diamond" emoji
         elif 'type' in data_item and data_item['type'] == COLLECTION_NODE:
-            category = "\U0001F4C1"  # 'folder' emoji
-            draw_border = False
+            category_txt = "\U0001F4C1"  # 'folder' emoji
         else:
-            category = data_item[u'category']
             # Precautions to safely draw wrong category descriptions
-            if not category or category not in CATEGORY_LIST:
-                category = "Unknown"
-        CategoryLabel(category).paint(painter, option, index, draw_border=draw_border)
+            category = ContentCategories.get(data_item[u'category'])
+            category_txt = category.emoji if category else '?'
+
+        CategoryLabel(category_txt).paint(painter, option, index, draw_border=False)
         return True
 
 

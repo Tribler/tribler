@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import QAction, QFileDialog
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import DIRTY_STATUSES, NEW
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE
 
-from tribler_gui.defs import BUTTON_TYPE_CONFIRM, BUTTON_TYPE_NORMAL, CATEGORY_LIST
+from tribler_gui.defs import BUTTON_TYPE_CONFIRM, BUTTON_TYPE_NORMAL, ContentCategories
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler_gui.dialogs.new_channel_dialog import NewChannelDialog
 from tribler_gui.tribler_action_menu import TriblerActionMenu
@@ -25,7 +25,7 @@ from tribler_gui.widgets.tablecontentmodel import (
 from tribler_gui.widgets.triblertablecontrollers import ContentTableViewController
 
 CHANNEL_COMMIT_DELAY = 30000  # milliseconds
-CATEGORY_SELECTOR_ITEMS = ("All", "Channels") + CATEGORY_LIST
+CATEGORY_SELECTOR_ITEMS = ("All", "Channels") + ContentCategories.long_names
 
 widget_form, widget_class = uic.loadUiType(get_ui_file_path('torrents_list.ui'))
 
@@ -144,8 +144,10 @@ class ChannelContentsWidget(widget_form, widget_class):
 
     def on_category_selector_changed(self, ind):
         category = CATEGORY_SELECTOR_ITEMS[ind] if ind else None
-        if self.model.category_filter != category:
-            self.model.category_filter = category
+        content_category = ContentCategories.get(category)
+        category_code = content_category.code if content_category else category
+        if self.model.category_filter != category_code:
+            self.model.category_filter = category_code
             self.model.reset()
 
     def empty_channels_stack(self):
@@ -229,9 +231,12 @@ class ChannelContentsWidget(widget_form, widget_class):
 
             # We block signals to prevent triggering redundant model reloading
             with self.freeze_controls():
+                # Set filter category selector to correct index corresponding to loaded model
+                content_category = ContentCategories.get(self.model.category_filter)
+                filter_display_name = content_category.long_name if content_category else self.model.category_filter
                 self.category_selector.setCurrentIndex(
-                    CATEGORY_SELECTOR_ITEMS.index(self.model.category_filter)
-                    if self.model.category_filter in CATEGORY_SELECTOR_ITEMS
+                    CATEGORY_SELECTOR_ITEMS.index(filter_display_name)
+                    if filter_display_name in CATEGORY_SELECTOR_ITEMS
                     else 0
                 )
                 if self.model.text_filter:
