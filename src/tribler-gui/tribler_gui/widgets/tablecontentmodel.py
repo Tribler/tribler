@@ -231,6 +231,7 @@ class ChannelContentModel(RemoteTableModel):
         u'state': lambda _: 20,
         u'name': lambda table_width: table_width - 510,
         u'action_buttons': lambda _: 70,
+        u'category': lambda _: 10,
     }
 
     column_tooltip_filters = {
@@ -431,7 +432,7 @@ class DiscoveredChannelsModel(ChannelContentModel):
     columns = [u'state', u'votes', u'name', u'torrents', u'updated']
     column_headers = [u'', tr('Popularity'), tr('Name'), tr('Torrents'), tr('Updated')]
 
-    column_width = {u'state': lambda _: 20, u'name': lambda table_width: table_width - 350}
+    column_width = dict(ChannelContentModel.column_width, **{u'name': lambda table_width: table_width - 350})
 
     default_sort_column = 1
 
@@ -510,7 +511,7 @@ class SimplifiedPersonalChannelsModel(PersonalChannelsModel):
     columns = [u'category', u'name', u'size', ACTION_BUTTONS]
     column_headers = [tr('Category'), tr('Name'), tr('Size'), u'']
 
-    column_width = {u'state': lambda _: 20, u'name': lambda table_width: table_width - 330}
+    column_width = dict(ChannelContentModel.column_width, **{u'name': lambda table_width: table_width - 330})
 
     def __init__(self, *args, **kwargs):
         kwargs["exclude_deleted"] = kwargs.get("exclude_deleted", True)
