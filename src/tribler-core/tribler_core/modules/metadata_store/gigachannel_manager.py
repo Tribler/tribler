@@ -39,6 +39,14 @@ class GigaChannelManager(TaskManager):
         or subscribed channels require updating.
         """
 
+        self.register_task("Check and regen personal channels", self.check_and_regen_personal_channels)
+
+        channels_check_interval = 5.0  # seconds
+        self.register_task(
+            "Process channels download queue and remove cruft", self.service_channels, interval=channels_check_interval
+        )
+
+    async def check_and_regen_personal_channels(self):
         # Test if our channels are there, but we don't share these because Tribler was closed unexpectedly
         try:
             with db_session:
@@ -63,11 +71,6 @@ class GigaChannelManager(TaskManager):
                         )
         except Exception:
             self._logger.exception("Error when tried to resume personal channel seeding on GigaChannel Manager startup")
-
-        channels_check_interval = 5.0  # seconds
-        self.register_task(
-            "Process channels download queue and remove cruft", self.service_channels, interval=channels_check_interval
-        )
 
     @task
     async def regenerate_channel_torrent(self, channel_pk, channel_id):

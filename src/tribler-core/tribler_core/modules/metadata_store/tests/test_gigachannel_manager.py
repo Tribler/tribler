@@ -46,20 +46,21 @@ async def channel_manager(session):
     await chanman.shutdown()
 
 
-@db_session
-def test_regen_personal_channel_no_torrent(enable_chant, personal_channel, channel_manager, mock_dlmgr, session):
+@pytest.mark.asyncio
+async def test_regen_personal_channel_no_torrent(enable_chant, personal_channel, channel_manager, mock_dlmgr, session):
     """
     Test regenerating a non-existing personal channel torrent at startup
     """
     session.dlmgr.get_download = lambda _: None
     channel_manager.regenerate_channel_torrent = Mock()
-    channel_manager.start()
+    await channel_manager.check_and_regen_personal_channels()
     channel_manager.regenerate_channel_torrent.assert_called_once()
 
 
 @pytest.mark.asyncio
-async def test_regen_personal_channel_damaged_torrent(enable_chant, personal_channel, channel_manager, mock_dlmgr,
-                                                      session):
+async def test_regen_personal_channel_damaged_torrent(
+    enable_chant, personal_channel, channel_manager, mock_dlmgr, session
+):
     """
     Test regenerating a damaged personal channel torrent at startup
     """
@@ -118,8 +119,9 @@ def test_updated_my_channel(enable_chant, personal_channel, channel_manager, moc
 
 
 @pytest.mark.asyncio
-async def test_check_and_regen_personal_channel_torrent(enable_chant, personal_channel, channel_manager, mock_dlmgr,
-                                                        session):
+async def test_check_and_regen_personal_channel_torrent(
+    enable_chant, personal_channel, channel_manager, mock_dlmgr, session
+):
     with db_session:
         chan_pk, chan_id = personal_channel.public_key, personal_channel.id_
         chan_download = Mock()
@@ -199,11 +201,7 @@ async def test_check_channels_updates(enable_chant, personal_channel, channel_ma
 
         @db_session
         def fake_get_metainfo(infohash, **_):
-            return {
-                'info': {
-                    'name': session.mds.ChannelMetadata.get(infohash=database_blob(infohash)).dirname
-                }
-            }
+            return {'info': {'name': session.mds.ChannelMetadata.get(infohash=database_blob(infohash)).dirname}}
 
         session.dlmgr.get_metainfo = fake_get_metainfo
         session.dlmgr.metainfo_requests = {}
@@ -238,17 +236,16 @@ async def test_check_channels_updates(enable_chant, personal_channel, channel_ma
 
 
 @pytest.mark.asyncio
-async def test_remove_cruft_channels(torrent_template, enable_chant, personal_channel, channel_manager, mock_dlmgr,
-                                     session):
+async def test_remove_cruft_channels(
+    torrent_template, enable_chant, personal_channel, channel_manager, mock_dlmgr, session
+):
     remove_list = []
     with db_session:
         # Our personal chan is created, then updated, so there are 2 files on disk and there are 2 torrents:
         # the old one and the new one
         personal_channel = session.mds.ChannelMetadata.get_my_channels().first()
         my_chan_old_infohash = personal_channel.infohash
-        _ = session.mds.TorrentMetadata.from_dict(
-            dict(torrent_template, origin_id=personal_channel.id_, status=NEW)
-        )
+        _ = session.mds.TorrentMetadata.from_dict(dict(torrent_template, origin_id=personal_channel.id_, status=NEW))
         personal_channel.commit_channel_torrent()
 
         # Now we add an external channel we are subscribed to.
@@ -322,12 +319,12 @@ async def test_remove_cruft_channels(torrent_template, enable_chant, personal_ch
     await channel_manager.process_queued_channels()
     # We want to remove torrents for (a) deleted channels and (b) unsubscribed channels
     assert remove_list == [
-            (mock_dl_list[0], False),
-            (mock_dl_list[2], False),
-            (mock_dl_list[4], True),
-            (mock_dl_list[5], True),
-            (mock_dl_list[6], True),
-        ]
+        (mock_dl_list[0], False),
+        (mock_dl_list[2], False),
+        (mock_dl_list[4], True),
+        (mock_dl_list[5], True),
+        (mock_dl_list[6], True),
+    ]
 
 
 initiated_download = False
