@@ -8,6 +8,10 @@ from tribler_core.session import Session
 
 
 class TinyTriblerService:
+    """Lightweight tribler service, that used for experiments.
+
+    All overlays are disabled by default.
+    """
 
     def __init__(self, config, timeout_in_sec=None, working_dir='/tmp/tribler',
                  config_path='tribler.conf'):
@@ -21,7 +25,10 @@ class TinyTriblerService:
         self.timeout_in_sec = timeout_in_sec
 
     async def on_tribler_started(self):
-        pass
+        """Function will calls after the Tribler session is started
+
+        It is good place to add a custom code.
+        """
 
     async def start_tribler(self):
         self.logger.info(f'Starting tribler instance in directory: {self.working_dir}')
@@ -68,7 +75,6 @@ class TinyTriblerService:
         if self.process_checker.already_running:
             self.logger.error(f"Another Tribler instance is already using directory: {self.working_dir}")
             asyncio.get_running_loop().stop()
-            return
 
     def _enable_graceful_shutdown(self):
         self.logger.info(f"Enabling graceful shutdown")
@@ -81,7 +87,7 @@ class TinyTriblerService:
         signal.signal(signal.SIGTERM, signal_handler)
 
     def _graceful_shutdown(self):
-        self.logger.info(f"Shutdown gracefully")
+        self.logger.info("Shutdown gracefully")
 
         if not self.session.shutdownstarttime:
             task = asyncio.create_task(self.session.shutdown())
@@ -91,5 +97,5 @@ class TinyTriblerService:
         self.logger.info(f"Scheduling terminating by timeout {self.timeout_in_sec}s from now")
         await asyncio.sleep(self.timeout_in_sec)
 
-        self.logger.info(f"Terminating by timeout")
+        self.logger.info("Terminating by timeout")
         self._graceful_shutdown()
