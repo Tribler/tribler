@@ -15,6 +15,9 @@ export PYTHONPATH
 
 TRIBLER_SCRIPT=$SRC_DIR/run_tribler.py
 
+PYQTGRAPH_QT_LIB="PyQt5"
+export PYQTGRAPH_QT_LIB
+
 if [ "$UNAME" = "Linux" ]; then
     # Find the Tribler dir
     TRIBLER_DIR="$(dirname "$(readlink -f "$0")")"
