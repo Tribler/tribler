@@ -2,7 +2,7 @@
 hops = integer(default=0)
 selected_files = string_list(default=list())
 selected_file_indexes = int_list(default=list())
-safe_seeding = boolean(default=False)
+safe_seeding = boolean(default=True)
 user_stopped = boolean(default=False)
 share_mode = boolean(default=False)
 upload_mode = boolean(default=False)
