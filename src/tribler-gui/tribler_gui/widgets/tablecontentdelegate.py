@@ -199,10 +199,7 @@ class SubscribedControlMixin(object):
         if data_item[u'state'] == u'Personal':
             return True
 
-        if index == self.hover_index:
-            self.subscribe_control.paint_hover(painter, option.rect, index, toggled=data_item['subscribed'])
-        else:
-            self.subscribe_control.paint(painter, option.rect, index, toggled=data_item['subscribed'])
+        self.subscribe_control.paint(painter, option.rect, index)
 
         return True
 
@@ -217,14 +214,7 @@ class RatingControlMixin(object):
         if data_item[u'status'] == 1000:  # LEGACY ENTRIES!
             return True
 
-        if index == self.hover_index:
-            self.rating_control.paint_hover(
-                painter, option.rect, index, votes=data_item['votes'], subscribed=data_item['subscribed']
-            )
-        else:
-            self.rating_control.paint(
-                painter, option.rect, index, votes=data_item['votes'], subscribed=data_item['subscribed']
-            )
+        self.rating_control.paint(painter, option.rect, index, votes=data_item['votes'])
 
         return True
 
@@ -323,10 +313,7 @@ class TriblerContentDelegate(
         # Draw empty cell as the background
         self.paint_empty_background(painter, option)
 
-        if index == self.hover_index:
-            self.commit_control.paint_hover(painter, option.rect, index)
-        else:
-            self.commit_control.paint(painter, option.rect, index)
+        self.commit_control.paint(painter, option.rect, index, hover=index == self.hover_index)
 
         return True
 
@@ -387,16 +374,10 @@ class ToggleControl(QObject, CheckClickedMixin):
         self.column_name = column_name
         self.last_index = QModelIndex()
 
-    def paint(self, painter, rect, _, toggled=False):
+    def paint(self, painter, rect, _, toggled=False, hover=False):
         icon = self.on_icon if toggled else self.off_icon
-        x = rect.left() + (rect.width() - self.w) / 2
-        y = rect.top() + (rect.height() - self.h) / 2
-        icon_rect = QRect(x, y, self.w, self.h)
-
-        icon.paint(painter, icon_rect)
-
-    def paint_hover(self, painter, rect, _index, toggled=False):
-        icon = self.on_icon if toggled else self.hover_icon
+        if hover:
+            icon = self.on_icon if toggled else self.hover_icon
         x = rect.left() + (rect.width() - self.w) / 2
         y = rect.top() + (rect.height() - self.h) / 2
         icon_rect = QRect(x, y, self.w, self.h)
@@ -439,7 +420,7 @@ class CommitStatusControl(QObject):
         self.rect = QRect()
         self.last_index = QModelIndex()
 
-    def paint(self, painter, rect, index):
+    def paint(self, painter, rect, index, hover=False):
         data_item = index.model().data_items[index.row()]
         if self.column_name not in data_item or data_item[self.column_name] == '':
             return
@@ -461,34 +442,6 @@ class CommitStatusControl(QObject):
 
         icon.paint(painter, icon_rect)
         self.rect = rect
-
-    def paint_hover(self, painter, rect, index):
-        # FIXME: This should remain disabled until we implement the undo feature in the GUI.
-        """
-        data_item = index.model().data_items[index.row()]
-        if self.column_name not in data_item or data_item[self.column_name] == '':
-            return
-        state = data_item[self.column_name]
-        icon = QIcon()
-
-        if state == COMMIT_STATUS_COMMITTED:
-            icon = self.delete_action_icon
-        elif state == COMMIT_STATUS_NEW:
-            icon = self.delete_action_icon
-        elif state == COMMIT_STATUS_TODELETE:
-            icon = self.restore_action_icon
-        elif state == COMMIT_STATUS_UPDATED:
-            icon = self.delete_action_icon
-
-        x = rect.left() + (rect.width() - self.w) / 2
-        y = rect.top() + (rect.height() - self.h) / 2
-        icon_rect = QRect(x, y, self.w, self.h)
-
-        icon.paint(painter, icon_rect)
-        self.rect = rect
-        """
-        # This line must be removed when the above code is uncommented
-        return self.paint(painter, rect, index)
 
     def check_clicked(self, event, _, __, index):
         data_item = index.model().data_items[index.row()]
@@ -528,7 +481,7 @@ class HealthStatusDisplay(QObject):
         HEALTH_ERROR: QColor(Qt.red),
     }
 
-    def paint(self, painter, rect, index):
+    def paint(self, painter, rect, index, hover=False):
         data_item = index.model().data_items[index.row()]
 
         if u'health' not in data_item or data_item[u'health'] == "updated":
@@ -583,10 +536,9 @@ class RatingControl(QObject, CheckClickedMixin):
     """
 
     rating_colors = {
-        "UNSUBSCRIBED": QColor("#888888"),
-        "UNSUBSCRIBED_HOVER": QColor("#ffffff"),
-        "SUBSCRIBED": QColor("#FE6D01"),
-        "SUBSCRIBED_HOVER": QColor("#FF5722"),
+        "BACKGROUND": QColor("#444444"),
+        "FOREGROUND": QColor("#BBBBBB"),
+        # "SUBSCRIBED_HOVER": QColor("#FF5722"),
     }
 
     clicked = pyqtSignal(QModelIndex)
@@ -596,10 +548,6 @@ class RatingControl(QObject, CheckClickedMixin):
         self.column_name = column_name
         self.last_index = QModelIndex()
 
-    def paint(self, painter, rect, _index, votes=0, subscribed=False):
-        color = self.rating_colors["SUBSCRIBED" if subscribed else "UNSUBSCRIBED"]
-        draw_text(painter, rect, format_votes(votes), color=color)
-
-    def paint_hover(self, painter, rect, _index, votes=0, subscribed=False):
-        color = self.rating_colors["SUBSCRIBED_HOVER" if subscribed else "UNSUBSCRIBED_HOVER"]
-        draw_text(painter, rect, format_votes(votes), color=color)
+    def paint(self, painter, rect, _index, votes=0):
+        draw_text(painter, rect, format_votes(1.0), color=self.rating_colors["BACKGROUND"])
+        draw_text(painter, rect, format_votes(votes), color=self.rating_colors["FOREGROUND"])
