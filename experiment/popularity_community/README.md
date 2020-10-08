@@ -36,15 +36,15 @@ time_in_sec,total,alive
 ### Usage
 
 ```
-export PYTHONPATH=${PYTHONPATH}:`echo ../../src/{pyipv8,tribler-common,tribler-core} | tr " " :`
+export PYTHONPATH=${PYTHONPATH}:`echo ../.. ../../src/{pyipv8,tribler-common,tribler-core} | tr " " :`
 
 python3 initial_filling.py [-i <check_interval_in_sec>] [-t <timeout_in_sec>] [-f <output_file.csv>]
 ```
 
 Where:
 * `check_interval_in_sec` means how frequently we check the torrent list
-* `timeout_in_sec` means a time that the experiment will last
-* `output_file.csv` means a path and a result file name 
+* `timeout_in_sec` means the time that the experiment will last
+* `output_file.csv` means the path to a result file  
 
 ### Example
 
@@ -60,65 +60,40 @@ Source: [crawl_torrents.py](crawl_torrents.py)
 
 ### Description
 
-This script crawl first 50 torrents from random nodes in the network.
+This script crawl first 100 torrents from random nodes in the network.
 
-Result will be stored in a json file:
+Result will be stored in a `sqlite` db:
 ```
-{
-  "3409ac2015b264f77c35a694c7a2f28794944de1": [
-    [
-      21,
-      "69a949f0c162314cd0fa1dca6ced91fb6409a9c7",
-      "Collection1"
-    ],
-    [
-      2,
-      "738108f29a5783b8e8f341de498f3b50089cdee7",
-      "Favorite Torrents"
-    ],
-    [
-      29,
-      "f58ed7d43b6ea56d092060304cbcb29ec17df274",
-      "Ubuntu"
-    ],
-  ],
-  "618acf017f802d429a0c0af7910efd1fc57c9134": [
-    [
-      2,
-      "bafa14cd54c28a25f189cb2e877160803aa7ada4",
-      "My collection"
-    ]
-  ],
-  "fa21132cb45a30137473dc2728015f089685807a": [
-    [
-      44,
-      "99ea9de71f25916331378731c2e8742f4611725e",
-      "SomeTorrents"
-    ]
-  ]
-}
+class RawData(db.Entity):
+    peer_hash = Required(str)
+    torrent_hash = Required(str)
+    torrent_title = Required(str)
+    torrent_votes = Required(int)
+    torrent_position = Required(int)
+    date_add = Required(datetime)
 ```
 
-Where tuples are:
-* votes
-* infohash
-* title
+Where:
+* `position` is a torrent's rank inside single `query response`, ordered by `HEALTH`
 
 ### Usage
 
 ```
-export PYTHONPATH=${PYTHONPATH}:`echo ../../src/{pyipv8,tribler-common,tribler-core} | tr " " :`
+export PYTHONPATH=${PYTHONPATH}:`echo ../.. ../../src/{pyipv8,tribler-common,tribler-core} | tr " " :`
 
-python3 crawl_torrents.py [-t <timeout_in_sec>] [-f <output_file.json>]
+python3 crawl_torrents.py [-t <timeout_in_sec>] [-f <db_file.sqlite>]
 ```
 
 Where:
-* `timeout_in_sec` means a time that the experiment will last
-* `output_file.json` means a path and a result file name 
+* `timeout_in_sec` means the time that the experiment will last
+* `db_file.sqlite` means the path to `sqlite` db file. 
+    If file doesn't exists, then new file will be created. 
+    If file exists, then crawler will append it.
+ 
 
 ### Example
 
 ```
 python3 crawl_torrents.py -t 600
-python3 crawl_torrents.py -t 600 -f result.json
+python3 crawl_torrents.py -t 600 -f torrents.sqlite
 ```

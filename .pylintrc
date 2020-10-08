@@ -187,6 +187,12 @@ notes=FIXME,XXX,TODO
 # function parameter format
 logging-modules=logging
 
+# Format style used to check logging format string.
+# `old` means using %
+# `new` is for `{}` formatting
+# `fstr` is for f-strings
+logging-format-style=fstr
+
 
 [FORMAT]
 

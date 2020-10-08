@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import signal
+from pathlib import Path
 
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.modules.process_checker import ProcessChecker
@@ -13,8 +14,8 @@ class TinyTriblerService:
     All overlays are disabled by default.
     """
 
-    def __init__(self, config, timeout_in_sec=None, working_dir='/tmp/tribler',
-                 config_path='tribler.conf'):
+    def __init__(self, config, timeout_in_sec=None, working_dir=Path('/tmp/tribler'),
+                 config_path=Path('tribler.conf')):
         self.logger = logging.getLogger(self.__class__.__name__)
 
         self.session = None
@@ -77,7 +78,7 @@ class TinyTriblerService:
             asyncio.get_running_loop().stop()
 
     def _enable_graceful_shutdown(self):
-        self.logger.info(f"Enabling graceful shutdown")
+        self.logger.info("Enabling graceful shutdown")
 
         def signal_handler(signum, frame):
             self.logger.info(f"Received shut down signal {signum} in frame {frame}")

@@ -2,19 +2,19 @@ import argparse
 import asyncio
 import csv
 import logging
-import os
 import time
+from pathlib import Path
 
 from pony.orm import db_session, count
 
 from ipv8.peer import Peer
 from ipv8.peerdiscovery.discovery import RandomWalk
-from tool.tiny_tribler_service import TinyTriblerService
+from experiment.tool.tiny_tribler_service import TinyTriblerService
 from tribler_core.modules.popularity.popularity_community import PopularityCommunity
 
 _logger = logging.getLogger(__name__)
 
-TARGET_PEERS_COUNT = 20  # Tribler uses this number for some reason
+TARGET_PEERS_COUNT = 20  # Tribler uses this number for walking strategy
 
 
 class ObservablePopularityCommunity(PopularityCommunity):
@@ -107,13 +107,13 @@ def _parse_argv():
 
 
 def _run_tribler(arguments):
+    working_dir = Path('/tmp/tribler/experiment/popularity_community/initial_filling/.Tribler')
+
     service = Service(arguments.interval,
                       arguments.file,
                       arguments.timeout,
-                      working_dir=os.path.join(
-                          '/tmp/tribler/experiment/popularity_community/initial_filling',
-                          '.Tribler'),
-                      config_path='./tribler.conf')
+                      working_dir=working_dir,
+                      config_path=Path('./tribler.conf'))
 
     loop = asyncio.get_event_loop()
     loop.create_task(service.start_tribler())
@@ -128,9 +128,7 @@ if __name__ == "__main__":
     _arguments = _parse_argv()
     print(f"Arguments: {_arguments}")
 
-    if _arguments.verbosity:
-        logging.basicConfig(level=logging.DEBUG)
-    else:
-        logging.basicConfig(level=logging.INFO)
+    logging_level = logging.DEBUG if _arguments.verbosity else logging.INFO
+    logging.basicConfig(level=logging_level)
 
     _run_tribler(_arguments)
