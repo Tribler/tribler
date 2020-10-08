@@ -29,17 +29,20 @@ import logging
 from datetime import datetime
 from pathlib import Path
 
-import lz4
-from pony.orm import Database, Required, db_session
-
 from ipv8.lazy_community import lazy_wrapper
 from ipv8.peer import Peer
 from ipv8.peerdiscovery.discovery import RandomWalk
+
+import lz4
+
+from pony.orm import Database, Required, db_session
+
+from experiment.tool.tiny_tribler_service import TinyTriblerService
+
 from tribler_core.modules.metadata_store.community.remote_query_community import RemoteQueryCommunity, \
-    SelectResponsePayload, SelectRequest, RemoteSelectPayload
+    RemoteSelectPayload, SelectRequest, SelectResponsePayload
 from tribler_core.modules.metadata_store.serialization import REGULAR_TORRENT
 from tribler_core.utilities.unicode import hexlify
-from experiment.tool.tiny_tribler_service import TinyTriblerService
 
 UNLIMITED = -1  # const. Don't change.
 

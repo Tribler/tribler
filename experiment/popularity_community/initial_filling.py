@@ -5,11 +5,13 @@ import logging
 import time
 from pathlib import Path
 
-from pony.orm import db_session, count
-
 from ipv8.peer import Peer
 from ipv8.peerdiscovery.discovery import RandomWalk
+
+from pony.orm import count, db_session
+
 from experiment.tool.tiny_tribler_service import TinyTriblerService
+
 from tribler_core.modules.popularity.popularity_community import PopularityCommunity
 
 _logger = logging.getLogger(__name__)
