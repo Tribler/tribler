@@ -99,11 +99,6 @@ loggers:
         handlers: [console, error_console, info_memory_handler, error_memory_handler]
         propagate: no
 
-    TrustChainDB:
-        level: INFO
-        handlers: [console, error_console, info_memory_handler, error_memory_handler]
-        propagate: no
-
     MarketDB:
         level: INFO
         handlers: [console, error_console, info_memory_handler, error_memory_handler]
@@ -130,11 +125,6 @@ loggers:
         propagate: no
 
     DHTDiscoveryCommunity:
-        level: INFO
-        handlers: [console, error_console, info_memory_handler, error_memory_handler]
-        propagate: no
-
-    TrustChainCommunity:
         level: INFO
         handlers: [console, error_console, info_memory_handler, error_memory_handler]
         propagate: no

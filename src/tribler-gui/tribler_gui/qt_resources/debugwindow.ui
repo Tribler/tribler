@@ -21,7 +21,7 @@
     <item>
      <widget class="QTabWidget" name="debug_tab_widget">
       <property name="currentIndex">
-       <number>8</number>
+       <number>2</number>
       </property>
       <widget class="QWidget" name="tab">
        <attribute name="title">
@@ -114,7 +114,7 @@
       </widget>
       <widget class="QWidget" name="tab_3">
        <attribute name="title">
-        <string>Trustchain</string>
+        <string>Bandwidth Accounting</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_2">
         <property name="spacing">
@@ -133,7 +133,7 @@
          <number>0</number>
         </property>
         <item>
-         <widget class="QTreeWidget" name="trustchain_tree_widget">
+         <widget class="QTreeWidget" name="bandwidth_tree_widget">
           <property name="columnCount">
            <number>2</number>
           </property>
@@ -377,15 +377,15 @@
            </layout>
           </widget>
           <widget class="QWidget" name="ipv8_health_monitor_widget">
-           <attribute name="title">
-            <string>Health</string>
-           </attribute>
            <property name="styleSheet">
             <string notr="true">QWidget {
                 background-color: #000;
                 }
             </string>
            </property>
+           <attribute name="title">
+            <string>Health</string>
+           </attribute>
           </widget>
          </widget>
         </item>
@@ -1372,7 +1372,7 @@
              <x>0</x>
              <y>0</y>
              <width>450</width>
-             <height>32</height>
+             <height>33</height>
             </rect>
            </property>
            <layout class="QHBoxLayout" name="lt_horizontal_layout">

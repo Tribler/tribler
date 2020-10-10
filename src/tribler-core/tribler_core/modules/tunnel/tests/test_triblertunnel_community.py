@@ -4,9 +4,6 @@ from collections import defaultdict
 from random import random
 from unittest.mock import Mock
 
-from anydex.wallet.tc_wallet import TrustchainWallet
-
-from ipv8.attestation.trustchain.community import TrustChainCommunity
 from ipv8.messaging.anonymization.payload import EstablishIntroPayload
 from ipv8.messaging.anonymization.tunnel import (
     CIRCUIT_STATE_READY,
@@ -22,6 +19,8 @@ from ipv8.test.mocking.exit_socket import MockTunnelExitSocket
 from ipv8.test.mocking.ipv8 import MockIPv8
 from ipv8.util import succeed
 
+from tribler_core.modules.bandwidth_accounting.community import BandwidthAccountingCommunity
+from tribler_core.modules.tunnel.community.payload import BandwidthTransactionPayload
 from tribler_core.modules.tunnel.community.triblertunnel_community import PEER_FLAG_EXIT_HTTP, TriblerTunnelCommunity
 from tribler_core.tests.tools.base_test import MockObject
 from tribler_core.tests.tools.tracker.http_tracker import HTTPTracker
@@ -36,6 +35,8 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
 
     async def tearDown(self):
         test_community.global_dht_services = defaultdict(list)  # Reset the global_dht_services variable
+        for node in self.nodes:
+            await node.overlay.bandwidth_community.unload()
         await super(TestTriblerTunnelCommunity, self).tearDown()
 
     def create_node(self):
@@ -45,10 +46,9 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
                              exitnode_cache=mkdtemp(suffix="_tribler_test_cache") / 'cache.dat')
         mock_ipv8.overlay.settings.max_circuits = 1
 
-        # Load the TrustChain community
-        mock_ipv8.trustchain = TrustChainCommunity(mock_ipv8.my_peer, mock_ipv8.endpoint, mock_ipv8.network,
-                                                   working_directory=":memory:")
-        mock_ipv8.overlay.bandwidth_wallet = TrustchainWallet(mock_ipv8.trustchain)
+        # Load the bandwidth accounting community
+        mock_ipv8.overlay.bandwidth_community = BandwidthAccountingCommunity(
+            mock_ipv8.my_peer, mock_ipv8.endpoint, mock_ipv8.network, database_path=":memory:")
         mock_ipv8.overlay.dht_provider = MockDHTProvider(Peer(mock_ipv8.overlay.my_peer.key,
                                                               mock_ipv8.overlay.my_estimated_wan))
 
@@ -298,9 +298,23 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
         await sleep(0.5)
 
         # Verify whether the downloader (node 0) correctly paid the relay and exit nodes.
-        self.assertTrue(self.nodes[0].overlay.bandwidth_wallet.get_bandwidth_tokens() < 0)
-        self.assertTrue(self.nodes[1].overlay.bandwidth_wallet.get_bandwidth_tokens() > 0)
-        self.assertTrue(self.nodes[2].overlay.bandwidth_wallet.get_bandwidth_tokens() > 0)
+        self.assertTrue(self.nodes[0].overlay.bandwidth_community.database.get_my_balance() < 0)
+        self.assertTrue(self.nodes[1].overlay.bandwidth_community.database.get_my_balance() > 0)
+        self.assertTrue(self.nodes[2].overlay.bandwidth_community.database.get_my_balance() > 0)
+
+    async def test_invalid_payout(self):
+        """
+        Test whether an invalid payout to another peer is ignored
+        """
+        self.add_node_to_experiment(self.create_node())
+
+        tx = self.nodes[0].overlay.bandwidth_community.construct_signed_transaction(self.nodes[1].my_peer, 1024 * 1024)
+        tx.signature_a = b"a" * 32
+        payload = BandwidthTransactionPayload.from_transaction(tx, 0, 1024)
+        packet = self.nodes[0].overlay._ez_pack(self.nodes[0].overlay._prefix, 30, [payload], False)
+        self.nodes[0].overlay.send_packet(self.nodes[1].my_peer, packet)
+
+        assert not self.nodes[1].overlay.bandwidth_community.database.get_my_balance()
 
     async def test_circuit_reject_too_many(self):
         """
@@ -345,39 +359,16 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
         await sleep(0.5)
 
         # Verify whether the downloader (node 0) correctly paid the subsequent nodes.
-        self.assertTrue(self.nodes[0].overlay.bandwidth_wallet.get_bandwidth_tokens() < 0)
-        self.assertTrue(self.nodes[1].overlay.bandwidth_wallet.get_bandwidth_tokens() >= 0)
-        self.assertTrue(self.nodes[2].overlay.bandwidth_wallet.get_bandwidth_tokens() > 0)
+        self.assertTrue(self.nodes[0].overlay.bandwidth_community.database.get_my_balance() < 0)
+        self.assertTrue(self.nodes[1].overlay.bandwidth_community.database.get_my_balance() >= 0)
+        self.assertTrue(self.nodes[2].overlay.bandwidth_community.database.get_my_balance() > 0)
 
         # Ensure balances remain unchanged after calling remove_circuit a second time
-        balances = [self.nodes[i].overlay.bandwidth_wallet.get_bandwidth_tokens() for i in range(3)]
+        balances = [self.nodes[i].overlay.bandwidth_community.database.get_my_balance() for i in range(3)]
         for circuit_id in removed_circuits:
             self.nodes[0].overlay.remove_circuit(circuit_id, destroy=1)
         for i in range(3):
-            self.assertEqual(self.nodes[i].overlay.bandwidth_wallet.get_bandwidth_tokens(), balances[i])
-
-    async def test_payouts_invalid_block(self):
-        """
-        Test whether we do not payout if we received an invalid payout block
-        """
-        self.add_node_to_experiment(self.create_node())
-
-        # Build a tunnel
-        self.nodes[1].overlay.settings.peer_flags.add(PEER_FLAG_EXIT_BT)
-        await self.introduce_nodes()
-        self.nodes[0].overlay.build_tunnels(1)
-        await self.deliver_messages(timeout=.5)
-
-        self.assertEqual(self.nodes[0].overlay.tunnels_ready(1), 1.0)
-
-        # Perform an invalid payout
-        payout_amount = -250 * 1024 * 1024
-        self.nodes[0].overlay.do_payout(self.nodes[1].my_peer, 1234, payout_amount, 1)
-
-        await self.deliver_messages(timeout=.5)
-
-        # Node 1 should not have counter-signed this block and thus not received tokens
-        self.assertFalse(self.nodes[1].overlay.bandwidth_wallet.get_bandwidth_tokens())
+            self.assertEqual(self.nodes[i].overlay.bandwidth_community.database.get_my_balance(), balances[i])
 
     async def test_decline_competing_slot(self):
         """
@@ -466,10 +457,7 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
         await self.introduce_nodes()
 
         # Make sure that there's a token disbalance between node 0 and 1
-        his_pubkey = self.nodes[1].overlay.my_peer.public_key.key_to_bin()
-        await self.nodes[0].overlay.bandwidth_wallet.trustchain.sign_block(
-            self.nodes[1].overlay.my_peer, public_key=his_pubkey,
-            block_type=b'tribler_bandwidth', transaction={b'up': 0, b'down': 1024 * 1024})
+        await self.nodes[0].overlay.bandwidth_community.do_payout(self.nodes[1].my_peer, 1024 * 1024)
 
         self.nodes[2].overlay.random_slots = []
         self.nodes[2].overlay.competing_slots = [(0, None)]
@@ -488,7 +476,7 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
         self.assertEqual(self.nodes[1].overlay.tunnels_ready(1), 1.0)
 
         # Check whether the exit node has been paid
-        self.assertGreaterEqual(self.nodes[2].overlay.bandwidth_wallet.get_bandwidth_tokens(), 250 * 1024 * 1024)
+        self.assertGreaterEqual(self.nodes[2].overlay.bandwidth_community.database.get_my_balance(), 250 * 1024 * 1024)
 
     async def test_intro_point_slot(self):
         """
@@ -509,25 +497,6 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
         await self.deliver_messages()
         self.assertFalse(exit_socket.circuit_id in self.nodes[1].overlay.random_slots)
 
-    async def test_create_circuit_without_wallet(self):
-        """
-        Test whether creating a circuit without bandwidth wallet, fails
-        """
-        self.add_node_to_experiment(self.create_node())
-        await self.nodes[0].overlay.bandwidth_wallet.shutdown_task_manager()
-        self.nodes[0].overlay.bandwidth_wallet = None
-        self.nodes[1].overlay.settings.peer_flags.add(PEER_FLAG_EXIT_BT)
-        await self.introduce_nodes()
-
-        # Initialize the slots
-        self.nodes[1].overlay.random_slots = []
-        self.nodes[1].overlay.competing_slots = [(0, None)]
-
-        self.nodes[0].overlay.build_tunnels(1)
-        await self.deliver_messages()
-
-        self.assertEqual(self.nodes[0].overlay.tunnels_ready(1), 0.0)
-
     async def test_reject_callback(self):
         """
         Test whether the rejection callback is correctly invoked when a circuit request is rejected
@@ -538,10 +507,7 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
         await self.introduce_nodes()
 
         # Make sure that there's a token disbalance between node 0 and 1
-        his_pubkey = self.nodes[1].overlay.my_peer.public_key.key_to_bin()
-        await self.nodes[0].overlay.bandwidth_wallet.trustchain.sign_block(
-            self.nodes[1].overlay.my_peer, public_key=his_pubkey,
-            block_type=b'tribler_bandwidth', transaction={b'up': 0, b'down': 1024 * 1024})
+        await self.nodes[0].overlay.bandwidth_community.do_payout(self.nodes[1].my_peer, 1024 * 1024)
 
         def on_reject(_, balance):
             self.assertEqual(balance, -1024 * 1024)

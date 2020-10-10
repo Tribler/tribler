@@ -42,7 +42,8 @@ class TimeSeriesPlot(pg.PlotWidget):
 
     def render_plot(self):
         # Sort the plot data before rendering via plot.setData() to prevent loops and extra lines in the graph.
-        self.plot_data = dict(sorted(self.plot_data.items(), key=lambda x: x[1]))
+        self.plot_data = dict(sorted(self.plot_data.items(), key=lambda x: x[0]))
+        print(self.plot_data)
 
         for i, plot in enumerate(self.plots):
             plot.setData(

@@ -131,7 +131,7 @@ class Session(TaskManager):
         self.tracker_manager = None
         self.torrent_checker = None
         self.tunnel_community = None
-        self.trustchain_community = None
+        self.bandwidth_community = None
         self.wallets = {}
         self.popularity_community = None
         self.gigachannel_community = None
@@ -156,20 +156,18 @@ class Session(TaskManager):
     def import_bootstrap_file(self):
         with open(self.bootstrap.bootstrap_file, 'r') as f:
             sql_dumb = f.read()
-        self._logger.info("Executing script for trustchain bootstrap")
-        self.trustchain_community.persistence.executescript(sql_dumb)
-        self.trustchain_community.persistence.commit()
+        self._logger.info("Executing bootstrap script")
+        # TODO we should do something here...
 
     async def start_bootstrap_download(self):
         if not self.payout_manager:
             self._logger.warning("Running bootstrap without payout enabled")
         self.bootstrap = Bootstrap(self.config.get_state_dir(), dht=self.dht_community)
         self.bootstrap.start_by_infohash(self.dlmgr.start_download, self.config.get_bootstrap_infohash())
-        if self.trustchain_community:
-            await self.bootstrap.download.future_finished
-            # Temporarily disabling SQL import for experimental release
-            #await get_event_loop().run_in_executor(None, self.import_bootstrap_file)
-            self.bootstrap.bootstrap_finished = True
+        await self.bootstrap.download.future_finished
+        # Temporarily disabling SQL import for experimental release
+        #await get_event_loop().run_in_executor(None, self.import_bootstrap_file)
+        self.bootstrap.bootstrap_finished = True
 
     def create_state_directory_structure(self):
         """Create directory structure of the state directory."""
@@ -391,8 +389,8 @@ class Session(TaskManager):
             self.version_check_manager = VersionCheckManager(self)
             self.version_check_manager.start()
 
-        if self.config.get_ipv8_enabled() and self.config.get_trustchain_enabled():
-            self.payout_manager = PayoutManager(self.trustchain_community, self.dht_community)
+        if self.config.get_ipv8_enabled():
+            self.payout_manager = PayoutManager(self.bandwidth_community, self.dht_community)
 
         # GigaChannel Manager should be started *after* resuming the downloads,
         # because it depends on the states of torrent downloads
@@ -450,16 +448,16 @@ class Session(TaskManager):
 
         self.tracker_manager = None
 
-        if self.tunnel_community and self.trustchain_community:
+        if self.tunnel_community and self.bandwidth_community:
             # We unload these overlays manually since the TrustChain has to be unloaded after the tunnel overlay.
             tunnel_community = self.tunnel_community
             self.tunnel_community = None
             self.notify_shutdown_state("Unloading Tunnel Community...")
             await self.ipv8.unload_overlay(tunnel_community)
-            trustchain_community = self.trustchain_community
-            self.trustchain_community = None
-            self.notify_shutdown_state("Shutting down TrustChain Community...")
-            await self.ipv8.unload_overlay(trustchain_community)
+            bandwidth_community = self.bandwidth_community
+            self.bandwidth_community = None
+            self.notify_shutdown_state("Shutting down Bandwidth Community...")
+            await self.ipv8.unload_overlay(bandwidth_community)
 
         if self.ipv8:
             self.notify_shutdown_state("Shutting down IPv8...")

@@ -9,8 +9,7 @@ from tribler_core.modules.payout_manager import PayoutManager
 
 @pytest.fixture
 def payout_manager():
-    fake_tc = Mock()
-    fake_tc.add_listener = lambda *_: None
+    fake_bw_community = Mock()
 
     fake_response_peer = Mock()
     fake_response_peer.public_key = Mock()
@@ -18,7 +17,7 @@ def payout_manager():
     fake_dht = Mock()
     fake_dht.connect_peer = lambda *_: succeed([fake_response_peer])
 
-    payout_manager = PayoutManager(fake_tc, fake_dht)
+    payout_manager = PayoutManager(fake_bw_community, fake_dht)
     return payout_manager
 
 
@@ -31,12 +30,10 @@ async def test_do_payout(payout_manager):
     payout_manager.update_peer(b'b', b'c', 10 * 1024 * 1024)
     payout_manager.update_peer(b'b', b'd', 1337)
 
-    def mocked_sign_block(*_, **kwargs):
-        tx = kwargs.pop('transaction')
-        assert tx[b'down'] == 10 * 1024 * 1024 + 1337
-        return succeed((None, None))
+    def mocked_do_payout(*_, **__):
+        return succeed(None)
 
-    payout_manager.bandwidth_wallet.trustchain.sign_block = mocked_sign_block
+    payout_manager.bandwidth_community.do_payout = mocked_do_payout
     await payout_manager.do_payout(b'b')
 
 

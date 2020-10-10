@@ -30,27 +30,18 @@ class IPv8DiscoveryCommunityLauncher(IPv8CommunityLauncher):
         return super()
 
 
-@precondition('session.config.get_trustchain_enabled()')
-@precondition('not session.config.get_trustchain_testnet()')
-@set_in_session('trustchain_community')
-@overlay('ipv8.attestation.trustchain.community', 'TrustChainCommunity')
-@kwargs(working_directory='session.config.get_state_dir()')
-@walk_strategy('ipv8.peerdiscovery.discovery', 'EdgeWalk')
-class TrustChainCommunityLauncher(IPv8CommunityLauncher):
-
-    def finalize(self, ipv8, session, community):
-        from anydex.wallet.tc_wallet import TrustchainWallet
-
-        tc_wallet = TrustchainWallet(community)
-        session.wallets[tc_wallet.get_identifier()] = tc_wallet
-
-        return super()
+@overlay('tribler_core.modules.bandwidth_accounting.community', 'BandwidthAccountingCommunity')
+@precondition('not session.config.get_bandwidth_testnet()')
+@kwargs(database_path='session.config.get_state_dir() / "sqlite" / "bandwidth.db"')
+@walk_strategy('ipv8.peerdiscovery.discovery', 'RandomWalk')
+@set_in_session('bandwidth_community')
+class BandwidthCommunityLauncher(IPv8CommunityLauncher):
+    pass
 
 
-@precondition('session.config.get_trustchain_enabled()')
-@precondition('session.config.get_trustchain_testnet()')
-@overlay('ipv8.attestation.trustchain.community', 'TrustChainTestnetCommunity')
-class TrustChainTestnetCommunityLauncher(TestnetMixIn, TrustChainCommunityLauncher):
+@overlay('tribler_core.modules.bandwidth_accounting.community', 'BandwidthAccountingTestnetCommunity')
+@precondition('session.config.get_bandwidth_testnet()')
+class BandwidthTestnetCommunityLauncher(TestnetMixIn, BandwidthCommunityLauncher):
     pass
 
 
@@ -63,12 +54,12 @@ class DHTCommunityLauncher(IPv8CommunityLauncher):
     pass
 
 
-@after('DHTDiscoveryCommunity', 'TrustChainCommunity', 'TrustChainTestnetCommunity')
+@after('DHTDiscoveryCommunity', 'BandwidthAccountingCommunity', 'BandwidthAccountingTestnetCommunity')
 @precondition('session.config.get_tunnel_community_enabled()')
 @precondition('not session.config.get_tunnel_testnet()')
 @set_in_session('tunnel_community')
 @overlay('tribler_core.modules.tunnel.community.triblertunnel_community', 'TriblerTunnelCommunity')
-@kwargs(bandwidth_wallet='session.wallets["MB"]',
+@kwargs(bandwidth_community='session.bandwidth_community',
         competing_slots='session.config.get_tunnel_community_competing_slots()',
         ipv8='session.ipv8',
         random_slots='session.config.get_tunnel_community_random_slots()',
@@ -96,14 +87,12 @@ class TriblerTunnelTestnetCommunityLauncher(TestnetMixIn, TriblerTunnelCommunity
     pass
 
 
-@after('DHTDiscoveryCommunity', 'TrustChainCommunity', 'TrustChainTestnetCommunity')
+@after('DHTDiscoveryCommunity')
 @precondition('session.config.get_market_community_enabled()')
 @precondition('not session.config.get_trustchain_testnet()')
 @set_in_session('market_community')
 @overlay('anydex.core.community', 'MarketCommunity')
-@kwargs(trustchain='session.trustchain_community',
-        dht='session.dht_community',
-        wallets='session.wallets',
+@kwargs(dht='session.dht_community',
         working_directory='session.config.get_state_dir()',
         record_transactions='session.config.get_record_transactions()')
 @walk_strategy('ipv8.peerdiscovery.discovery', 'RandomWalk')
@@ -128,7 +117,7 @@ class PopularityCommunityLauncher(IPv8CommunityLauncher):
     pass
 
 
-@after('TrustChainCommunity', 'TrustChainTestnetCommunity')
+@overlay('tribler_core.modules.metadata_store.community.gigachannel_community', 'GigaChannelCommunity')
 @precondition('session.config.get_chant_enabled()')
 @precondition('not session.config.get_chant_testnet()')
 @set_in_session('gigachannel_community')
@@ -187,8 +176,8 @@ def register_default_launchers(loader):
      the CommunityLaunchers themselves to be properly scoped and lazy-loaded.
     """
     loader.set_launcher(IPv8DiscoveryCommunityLauncher())
-    loader.set_launcher(TrustChainCommunityLauncher())
-    loader.set_launcher(TrustChainTestnetCommunityLauncher())
+    loader.set_launcher(BandwidthCommunityLauncher())
+    loader.set_launcher(BandwidthTestnetCommunityLauncher())
     loader.set_launcher(DHTCommunityLauncher())
     loader.set_launcher(TriblerTunnelCommunityLauncher())
     loader.set_launcher(TriblerTunnelTestnetCommunityLauncher())
