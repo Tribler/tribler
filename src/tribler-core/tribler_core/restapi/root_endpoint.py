@@ -3,6 +3,7 @@ from anydex.restapi.wallets_endpoint import WalletsEndpoint
 
 from ipv8.REST.root_endpoint import RootEndpoint as IPV8RootEndpoint
 
+from tribler_core.modules.bandwidth_accounting.bandwidth_endpoint import BandwidthEndpoint
 from tribler_core.modules.libtorrent.restapi.create_torrent_endpoint import CreateTorrentEndpoint
 from tribler_core.modules.libtorrent.restapi.downloads_endpoint import DownloadsEndpoint
 from tribler_core.modules.libtorrent.restapi.libtorrent_endpoint import LibTorrentEndpoint
@@ -18,7 +19,6 @@ from tribler_core.restapi.settings_endpoint import SettingsEndpoint
 from tribler_core.restapi.shutdown_endpoint import ShutdownEndpoint
 from tribler_core.restapi.state_endpoint import StateEndpoint
 from tribler_core.restapi.statistics_endpoint import StatisticsEndpoint
-from tribler_core.restapi.trustchain_endpoint import TrustchainEndpoint
 from tribler_core.restapi.trustview_endpoint import TrustViewEndpoint
 from tribler_core.upgrade.upgrader_endpoint import UpgraderEndpoint
 
@@ -38,7 +38,7 @@ class RootEndpoint(RESTEndpoint):
                      '/downloads': DownloadsEndpoint,
                      '/createtorrent': CreateTorrentEndpoint,
                      '/debug': DebugEndpoint,
-                     '/trustchain': TrustchainEndpoint,
+                     '/bandwidth': BandwidthEndpoint,
                      '/trustview': TrustViewEndpoint,
                      '/statistics': StatisticsEndpoint,
                      '/libtorrent': LibTorrentEndpoint,

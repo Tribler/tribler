@@ -101,8 +101,6 @@ def test_get_set_methods_general(tribler_config, state_dir):
     tribler_config.set_trustchain_testnet_keypair_filename("bla2")
     assert tribler_config.get_trustchain_testnet_keypair_filename(), state_dir / "bla2"
 
-    tribler_config.set_trustchain_testnet(True)
-    assert tribler_config.get_trustchain_testnet()
     tribler_config.set_log_dir(tribler_config.get_state_dir() / "bla3")
     assert tribler_config.get_log_dir() == tribler_config.get_state_dir() / "bla3"
 

@@ -1,95 +1,63 @@
-from ipv8.attestation.trustchain.payload import HalfBlockPayload
+from __future__ import annotations
+
 from ipv8.messaging.lazy_payload import VariablePayload, vp_compile
 
 
-class PayoutPayload(HalfBlockPayload):
-    msg_id = 23
-    format_list = HalfBlockPayload.format_list + ["I", "I"]
-
-    def __init__(self, public_key, sequence_number, link_public_key, link_sequence_number, previous_hash,
-                 signature, block_type, transaction, timestamp, circuit_id, base_amount):
-        super(PayoutPayload, self).__init__(public_key, sequence_number, link_public_key, link_sequence_number,
-                                            previous_hash, signature, block_type, transaction, timestamp)
-        self.circuit_id = circuit_id
-        self.base_amount = base_amount
+@vp_compile
+class BandwidthTransactionPayload(VariablePayload):
+    """
+    Payload for a message containing a bandwidth transaction.
+    """
+    msg_id = 30
+    format_list = ['I', '74s', '74s', '64s', '64s', 'Q', 'Q', 'I', 'I']
+    names = ["sequence_number", "public_key_a", "public_key_b", "signature_a", "signature_b", "amount", "timestamp",
+             "circuit_id", "base_amount"]
 
     @classmethod
-    def from_half_block(cls, block, circuit_id, base_amount):
-        return PayoutPayload(
-            block.public_key,
-            block.sequence_number,
-            block.link_public_key,
-            block.link_sequence_number,
-            block.previous_hash,
-            block.signature,
-            block.type,
-            block._transaction,
-            block.timestamp,
+    def from_transaction(cls, transaction: BandwidthTransaction, circuit_id: int, base_amount: int):  # noqa: F821
+        """
+        Create a transaction from the provided payload.
+        :param transaction: The transaction to convert to a payload.
+        :param circuit_id: The circuit identifier to include in the payload.
+        :param base_amount: The base amount of bandwidth to payout.
+        """
+        return BandwidthTransactionPayload(
+            transaction.sequence_number,
+            transaction.public_key_a,
+            transaction.public_key_b,
+            transaction.signature_a,
+            transaction.signature_b,
+            transaction.amount,
+            transaction.timestamp,
             circuit_id,
             base_amount
         )
 
-    def to_pack_list(self):
-        data = super(PayoutPayload, self).to_pack_list()
-        data.append(('I', self.circuit_id))
-        data.append(('I', self.base_amount))
-        return data
 
-    @classmethod
-    def from_unpack_list(cls, *args):
-        return PayoutPayload(*args)
-
-
-class BalanceResponsePayload(HalfBlockPayload):
-    msg_id = 26
-    format_list = ["I"] + HalfBlockPayload.format_list
-
-    def __init__(self, circuit_id, public_key, sequence_number, link_public_key, link_sequence_number, previous_hash,
-                 signature, block_type, transaction, timestamp):
-        super(BalanceResponsePayload, self).__init__(public_key, sequence_number, link_public_key,
-                                                     link_sequence_number, previous_hash, signature, block_type,
-                                                     transaction, timestamp)
-        self.circuit_id = circuit_id
-
-    @classmethod
-    def from_half_block(cls, block, circuit_id):
-        return cls(
-            circuit_id,
-            block.public_key,
-            block.sequence_number,
-            block.link_public_key,
-            block.link_sequence_number,
-            block.previous_hash,
-            block.signature,
-            block.type,
-            block._transaction,
-            block.timestamp
-        )
-
-    def to_pack_list(self):
-        data = super(BalanceResponsePayload, self).to_pack_list()
-        data.insert(0, ('I', self.circuit_id))
-        return data
-
-    @classmethod
-    def from_unpack_list(cls, *args):
-        return cls(*args)
+@vp_compile
+class BalanceResponsePayload(VariablePayload):
+    """
+    Payload that contains the bandwidth balance of a specific peer.
+    """
+    msg_id = 31
+    format_list = ["I", "q"]
+    names = ["circuit_id", "balance"]
 
 
 class RelayBalanceResponsePayload(BalanceResponsePayload):
-    msg_id = 27
+    msg_id = 32
 
 
 @vp_compile
 class BalanceRequestPayload(VariablePayload):
-    msg_id = 24
+    msg_id = 33
     format_list = ['I']
     names = ['circuit_id']
 
 
 @vp_compile
 class RelayBalanceRequestPayload(VariablePayload):
-    msg_id = 25
+    msg_id = 34
     format_list = ['I']
     names = ['circuit_id']
 

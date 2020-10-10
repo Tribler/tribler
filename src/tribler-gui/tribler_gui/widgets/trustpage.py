@@ -1,5 +1,6 @@
 import datetime
 import time
+from typing import Dict
 
 from PyQt5.QtWidgets import QWidget
 
@@ -12,11 +13,10 @@ from tribler_gui.widgets.graphs.timeseriesplot import TimeSeriesPlot
 class TrustSeriesPlot(TimeSeriesPlot):
     def __init__(self, parent, **kargs):
         series = [
-            {'name': 'Bytes taken', 'pen': (255, 0, 0), 'symbolBrush': (255, 0, 0), 'symbolPen': 'w'},
-            {'name': 'Bytes given', 'pen': (0, 255, 0), 'symbolBrush': (0, 255, 0), 'symbolPen': 'w'},
+            {'name': 'Token balance', 'pen': (224, 94, 0), 'symbolBrush': (224, 94, 0), 'symbolPen': 'w'},
         ]
-        super(TrustSeriesPlot, self).__init__(parent, 'Mbytes given/taken over time', series, **kargs)
-        self.setLabel('left', 'Given/taken data', units='bytes')
+        super().__init__(parent, 'Token balance over time', series, **kargs)
+        self.setLabel('left', 'Data', units='bytes')
         self.setLimits(yMin=-GB, yMax=TB)
 
 
@@ -28,8 +28,7 @@ class TrustPage(QWidget):
     def __init__(self):
         QWidget.__init__(self)
         self.trust_plot = None
-        self.public_key = None
-        self.blocks = None
+        self.history = None
         self.byte_scale = 1024 * 1024
         self.dialog = None
 
@@ -58,41 +57,47 @@ class TrustPage(QWidget):
         self.dialog = TrustExplanationDialog(self.window())
         self.dialog.show()
 
-    def load_blocks(self):
-        TriblerNetworkRequest("ipv8/trustchain/users/%s/blocks" % self.public_key, self.received_trustchain_blocks)
-
-    def received_trustchain_statistics(self, statistics):
+    def received_bandwidth_statistics(self, statistics: Dict) -> None:
+        """
+        We received bandwidth statistics from the Tribler core. Update the labels on the trust page with the
+        received information.
+        :param statistics: The received statistics, in JSON format.
+        """
         if not statistics or "statistics" not in statistics:
             return
-        statistics = statistics["statistics"]
-        self.public_key = statistics["id"]
 
+        statistics = statistics["statistics"]
         total_up = statistics.get("total_up", 0)
         total_down = statistics.get("total_down", 0)
 
         self.window().trust_contribution_amount_label.setText("%s MBytes" % (total_up // self.byte_scale))
         self.window().trust_consumption_amount_label.setText("%s MBytes" % (total_down // self.byte_scale))
 
-        self.window().trust_people_helped_label.setText("%d" % statistics["peers_that_pk_helped"])
-        self.window().trust_people_helped_you_label.setText("%d" % statistics["peers_that_helped_pk"])
+        self.window().trust_people_helped_label.setText("%d" % statistics["num_peers_helped"])
+        self.window().trust_people_helped_you_label.setText("%d" % statistics["num_peers_helped_by"])
 
-    def received_trustchain_blocks(self, blocks):
-        if blocks:
-            self.blocks = blocks["blocks"]
+    def load_history(self) -> None:
+        """
+        Load the bandwidth balance history by initiating a request to the Tribler core.
+        """
+        TriblerNetworkRequest("bandwidth/history", self.received_history)
+
+    def received_history(self, history: Dict):
+        """
+        We received the bandwidth history from the Tribler core. Plot it in the trust chart.
+        :param history: The received bandwidth history, in JSON format.
+        """
+        if history:
+            self.history = history["history"]
             self.plot_absolute_values()
 
-    def plot_absolute_values(self):
+    def plot_absolute_values(self) -> None:
         """
-        Plot two lines of the absolute amounts of contributed and consumed bytes.
+        Plot the evolution of the token balance.
         """
         # Convert all dates to a datetime object
-        num_bandwidth_blocks = 0
-        for block in self.blocks:
-            if block["type"] != "tribler_bandwidth":
-                continue
-
-            num_bandwidth_blocks += 1
-            timestamp = time.mktime(datetime.datetime.strptime(block["insert_time"], "%Y-%m-%d %H:%M:%S").timetuple())
-            self.trust_plot.add_data(timestamp, [block["transaction"]["total_down"], block["transaction"]["total_up"]])
+        for history_item in self.history:
+            timestamp = history_item["timestamp"] // 1000
+            self.trust_plot.add_data(timestamp, [history_item["balance"]])
 
         self.trust_plot.render_plot()

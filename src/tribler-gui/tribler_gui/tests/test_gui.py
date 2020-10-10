@@ -421,8 +421,8 @@ def test_debug_pane(tribler_api, window):
     screenshot(window.debug_window, name="debug_panel_requests_tab")
 
     window.debug_window.debug_tab_widget.setCurrentIndex(2)
-    wait_for_list_populated(window.debug_window.trustchain_tree_widget)
-    screenshot(window.debug_window, name="debug_panel_trustchain_tab")
+    wait_for_list_populated(window.debug_window.bandwidth_tree_widget)
+    screenshot(window.debug_window, name="debug_panel_bandwidth_tab")
 
     window.debug_window.debug_tab_widget.setCurrentIndex(3)
     wait_for_list_populated(window.debug_window.ipv8_general_tree_widget)
@@ -509,7 +509,7 @@ def test_debug_pane(tribler_api, window):
 @pytest.mark.guitest
 def test_trust_page(tribler_api, window):
     QTest.mouseClick(window.token_balance_widget, Qt.LeftButton)
-    wait_for_variable(window, "trust_page.blocks")
+    wait_for_variable(window, "trust_page.history")
     screenshot(window, name="trust_page_values")
 
 

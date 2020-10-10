@@ -48,7 +48,6 @@ class TinyTriblerService:
         config = TriblerConfig(working_dir, config_path)
 
         config.set_tunnel_community_enabled(False)
-        config.set_trustchain_enabled(False)
         config.set_market_community_enabled(False)
         config.set_popularity_community_enabled(False)
         config.set_bootstrap_enabled(False)

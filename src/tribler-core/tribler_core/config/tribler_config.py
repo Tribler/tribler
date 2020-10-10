@@ -175,20 +175,20 @@ class TriblerConfig(object):
     def get_trustchain_testnet_keypair_filename(self):
         return self.abspath(self.config['trustchain']['testnet_keypair_filename'])
 
-    def set_trustchain_enabled(self, value):
-        self.config['trustchain']['enabled'] = value
-
-    def get_trustchain_enabled(self):
-        return self.config['trustchain']['enabled']
-
-    def set_trustchain_live_edges_enabled(self, value):
-        self.config['trustchain']['live_edges_enabled'] = value
-
     def get_trustchain_testnet(self):
         return 'TESTNET' in os.environ or 'TRUSTCHAIN_TESTNET' in os.environ or self.config['trustchain']['testnet']
 
     def set_trustchain_testnet(self, value):
         self.config['trustchain']['testnet'] = value
+
+    # Bandwidth accounting
+
+    def get_bandwidth_testnet(self) -> bool:
+        return 'TESTNET' in os.environ or 'BANDWIDTH_TESTNET' in os.environ \
+               or self.config['bandwidth_accounting']['testnet']
+
+    def set_bandwidth_testnet(self, value: bool) -> None:
+        self.config['bandwidth_accounting']['testnet'] = value
 
     # Bootstrap
 
@@ -209,9 +209,6 @@ class TriblerConfig(object):
 
     def set_bootstrap_infohash(self, value):
         self.config['bootstrap']['infohash'] = value
-
-    def get_trustchain_live_edges_enabled(self):
-        return self.config['trustchain']['live_edges_enabled']
 
     # Torrent checking
 

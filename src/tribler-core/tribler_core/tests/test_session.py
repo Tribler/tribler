@@ -109,7 +109,6 @@ async def test_load_ipv8_overlays(mocked_endpoints, enable_ipv8, session):
     session.config.set_trustchain_testnet(False)
     session.config.set_tunnel_testnet(False)
     session.config.set_chant_testnet(False)
-    session.config.set_trustchain_enabled(True)
     session.config.set_dht_enabled(True)
     session.config.set_tunnel_community_enabled(True)
     session.config.set_market_community_enabled(True)
@@ -119,8 +118,6 @@ async def test_load_ipv8_overlays(mocked_endpoints, enable_ipv8, session):
     await session.start()
 
     loaded_launchers = [overlay.__class__.__name__ for overlay in session.ipv8.overlays]
-    assert "TrustChainCommunity" in loaded_launchers
-    assert "TrustChainTestnetCommunity" not in loaded_launchers
     assert "DHTDiscoveryCommunity" in loaded_launchers
     assert "TriblerTunnelCommunity" in loaded_launchers
     assert "TriblerTunnelTestnetCommunity" not in loaded_launchers
@@ -139,9 +136,9 @@ async def test_load_ipv8_overlays_testnet(mocked_endpoints, enable_ipv8, session
     Test whether testnet communities are loaded, if configured to do so.
     """
     session.config.set_trustchain_testnet(True)
+    session.config.set_bandwidth_testnet(True)
     session.config.set_tunnel_testnet(True)
     session.config.set_chant_testnet(True)
-    session.config.set_trustchain_enabled(True)
     session.config.set_dht_enabled(True)
     session.config.set_tunnel_community_enabled(True)
     session.config.set_market_community_enabled(True)
@@ -151,8 +148,8 @@ async def test_load_ipv8_overlays_testnet(mocked_endpoints, enable_ipv8, session
     await session.start()
 
     loaded_launchers = [overlay.__class__.__name__ for overlay in session.ipv8.overlays]
-    assert "TrustChainCommunity" not in loaded_launchers
-    assert "TrustChainTestnetCommunity" in loaded_launchers
+    assert "BandwidthAccountingCommunity" not in loaded_launchers
+    assert "BandwidthAccountingTestnetCommunity" in loaded_launchers
     assert "DHTDiscoveryCommunity" in loaded_launchers
     assert "TriblerTunnelCommunity" not in loaded_launchers
     assert "TriblerTunnelTestnetCommunity" in loaded_launchers

@@ -23,10 +23,11 @@ enabled = boolean(default=True)
 enabled = boolean(default=True)
 
 [trustchain]
-enabled = boolean(default=True)
 ec_keypair_filename = string(default='ec_multichain.pem')
 testnet_keypair_filename = string(default='ec_trustchain_testnet.pem')
-live_edges_enabled = boolean(default=True)
+testnet = boolean(default=False)
+
+[bandwidth_accounting]
 testnet = boolean(default=False)
 
 [bootstrap]

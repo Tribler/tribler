@@ -49,8 +49,6 @@ async def fake_dlmgr(tmpdir):
     tribler_session = Mock()
     tribler_session.notifier = Notifier()
     tribler_session.state_dir = tmpdir
-    tribler_session.trustchain_keypair = Mock()
-    tribler_session.trustchain_keypair.key_to_hash = lambda: b'a' * 20
     tribler_session.notify_shutdown_state = lambda _: None
 
     tribler_session.config = Mock()

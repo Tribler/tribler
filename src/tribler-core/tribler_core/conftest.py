@@ -61,7 +61,6 @@ def tribler_config(tribler_state_dir, tribler_download_dir):
     config.set_chant_enabled(False)
     config.set_resource_monitor_enabled(False)
     config.set_bootstrap_enabled(False)
-    config.set_trustchain_enabled(False)
 
     return config
 

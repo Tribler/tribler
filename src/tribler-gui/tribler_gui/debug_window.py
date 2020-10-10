@@ -4,6 +4,7 @@ import os
 import socket
 import sys
 from time import localtime, strftime, time
+from typing import Dict
 
 from PyQt5 import QtGui, uic
 from PyQt5.QtCore import QTimer, Qt, pyqtSignal
@@ -94,7 +95,7 @@ class DebugWindow(QMainWindow):
         self.window().open_files_tree_widget.header().setSectionResizeMode(0, QHeaderView.Stretch)
 
         # Enable/disable tabs, based on settings
-        self.window().debug_tab_widget.setTabEnabled(2, settings and settings['trustchain']['enabled'])
+        self.window().debug_tab_widget.setTabEnabled(2, settings is not None)
         self.window().debug_tab_widget.setTabEnabled(3, settings and settings['ipv8']['enabled'])
         self.window().system_tab_widget.setTabEnabled(3, settings and settings['resource_monitor']['enabled'])
         self.window().system_tab_widget.setTabEnabled(4, settings and settings['resource_monitor']['enabled'])
@@ -167,7 +168,7 @@ class DebugWindow(QMainWindow):
         elif index == 1:
             self.load_requests_tab()
         elif index == 2:
-            self.run_with_timer(self.load_trustchain_tab)
+            self.run_with_timer(self.load_bandwidth_accounting_tab)
         elif index == 3:
             self.ipv8_tab_changed(self.window().ipv8_tab_widget.currentIndex())
         elif index == 4:
@@ -281,15 +282,22 @@ class DebugWindow(QMainWindow):
             item.setText(2, "%s" % strftime("%H:%M:%S", localtime(timestamp)))
             self.window().requests_tree_widget.addTopLevelItem(item)
 
-    def load_trustchain_tab(self):
-        TriblerNetworkRequest("trustchain/statistics", self.on_trustchain_statistics)
+    def load_bandwidth_accounting_tab(self) -> None:
+        """
+        Initiate a request to the Tribler core to fetch statistics on bandwidth accounting.
+        """
+        TriblerNetworkRequest("bandwidth/statistics", self.on_bandwidth_statistics)
 
-    def on_trustchain_statistics(self, data):
+    def on_bandwidth_statistics(self, data: Dict) -> None:
+        """
+        We received bandwidth statistics from the core.
+        :param data: The bandwidth statistics, in JSON format.
+        """
         if not data:
             return
-        self.window().trustchain_tree_widget.clear()
+        self.window().bandwidth_tree_widget.clear()
         for key, value in data["statistics"].items():
-            self.create_and_add_widget_item(key, value, self.window().trustchain_tree_widget)
+            self.create_and_add_widget_item(key, value, self.window().bandwidth_tree_widget)
 
     def load_ipv8_general_tab(self):
         TriblerNetworkRequest("statistics/ipv8", self.on_ipv8_general_stats)
