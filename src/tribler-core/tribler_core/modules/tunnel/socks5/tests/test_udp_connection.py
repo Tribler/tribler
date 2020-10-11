@@ -34,6 +34,6 @@ def test_send_diagram(connection):
     """
     Test sending a diagram over the SOCKS5 UDP connection
     """
-    assert connection.sendDatagram(b'a')
+    assert connection.send_datagram(b'a')
     connection.remote_udp_address = None
-    assert not connection.sendDatagram(b'a')
+    assert not connection.send_datagram(b'a')

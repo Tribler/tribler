@@ -449,8 +449,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             self.readd_bittorrent_peers()
 
     def on_raw_data(self, circuit, origin, data):
-        anon_seed = circuit.ctype == CIRCUIT_TYPE_RP_SEEDER
-        self.dispatcher.on_incoming_from_tunnel(self, circuit, origin, data, anon_seed)
+        self.dispatcher.on_incoming_from_tunnel(self, circuit, origin, data)
 
     def monitor_downloads(self, dslist):
         # Monitor downloads with anonymous flag set, and build rendezvous/introduction points when needed.
@@ -562,8 +561,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                 lt_listen_port = self.tribler_session.dlmgr.listen_ports.get(hops)
                 lt_listen_port = lt_listen_port or self.tribler_session.dlmgr.get_session(hops).listen_port()
                 for session in self.socks_servers[hops - 1].sessions:
-                    if session.get_udp_socket() and lt_listen_port:
-                        session.get_udp_socket().remote_udp_address = ("127.0.0.1", lt_listen_port)
+                    if session.udp_connection and lt_listen_port:
+                        session.udp_connection.remote_udp_address = ("127.0.0.1", lt_listen_port)
         await super(TriblerTunnelCommunity, self).create_introduction_point(info_hash, required_ip=required_ip)
 
     async def unload(self):

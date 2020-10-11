@@ -32,17 +32,11 @@ class Socks5Connection(Protocol):
         self.transport = None
         self.connect_to = None
 
-        self._udp_socket = None
+        self.udp_connection = None
         self.state = ConnectionState.BEFORE_METHOD_REQUEST
         self.buffer = b''
 
         self.destinations = {}
-
-    def get_udp_socket(self):
-        """
-        Return the UDP socket. This socket is only available if a SOCKS5 ASSOCIATE request is sent.
-        """
-        return self._udp_socket
 
     def connection_made(self, transport):
         self.transport = transport
@@ -166,10 +160,10 @@ class Socks5Connection(Protocol):
         # The DST.ADDR and DST.PORT fields contain the address and port that the client expects
         # to use to send UDP datagrams on for the association.  The server MAY use this information
         # to limit access to the association.
-        self._udp_socket = SocksUDPConnection(self, request.destination)
-        await self._udp_socket.open()
+        self.udp_connection = SocksUDPConnection(self, request.destination)
+        await self.udp_connection.open()
         ip, _ = self.transport.get_extra_info('sockname')
-        port = self._udp_socket.get_listen_port()
+        port = self.udp_connection.get_listen_port()
 
         self._logger.info("Accepting UDP ASSOCIATE request to %s:%d", ip, port)
 
@@ -202,9 +196,9 @@ class Socks5Connection(Protocol):
 
     def close(self, reason='unspecified'):
         self._logger.info("Closing session, reason %s", reason)
-        if self._udp_socket:
-            self._udp_socket.close()
-            self._udp_socket = None
+        if self.udp_connection:
+            self.udp_connection.close()
+            self.udp_connection = None
 
         if self.transport:
             self.transport.close()
