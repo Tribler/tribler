@@ -1,7 +1,9 @@
 import logging
 from asyncio import DatagramProtocol, get_event_loop
 
-from tribler_core.modules.tunnel.socks5 import conversion
+from ipv8.messaging.serialization import PackError
+
+from tribler_core.modules.tunnel.socks5.conversion import UdpPacket, socks5_serializer
 
 
 class SocksUDPConnection(DatagramProtocol):
@@ -29,27 +31,22 @@ class SocksUDPConnection(DatagramProtocol):
             return False
 
     def datagram_received(self, data, source):
-        # if remote_address was not set before, use first one
+        # If remote_address was not set before, use first one
         if self.remote_udp_address is None:
             self.remote_udp_address = source
 
         if self.remote_udp_address == source:
             try:
-                request = conversion.decode_udp_packet(data)
-            except conversion.IPV6AddrError:
-                self._logger.warning("Received an IPV6 udp datagram, dropping it (Not implemented yet)")
-                return False
-            except conversion.InvalidAddressException as ide:
-                self._logger.warning("Received an invalid host address. %r", ide)
+                request, _ = socks5_serializer.unpack_serializable(UdpPacket, data)
+            except PackError:
+                self._logger.warning("Cannot serialize UDP packet")
                 return False
 
-            if request.frag == 0 and request.destination_host:
+            if request.frag == 0 and request.destination:
                 return self.socksconnection.socksserver.output_stream.on_socks5_udp_data(self, request)
-            else:
-                self._logger.debug("No support for fragmented data or without destination host, dropping")
+            self._logger.debug("No support for fragmented data or without destination host, dropping")
         else:
-            self._logger.debug("Ignoring data from %s:%d, is not %s:%d",
-                               source[0], source[1], self.remote_udp_address[0], self.remote_udp_address[1])
+            self._logger.debug("Ignoring data from %s:%d, is not %s:%d", *source, *self.remote_udp_address)
 
         return False
 

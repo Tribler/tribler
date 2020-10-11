@@ -5,18 +5,16 @@ from asyncio import DatagramProtocol, Protocol, Queue, get_event_loop
 from tribler_core.modules.tunnel.socks5.conversion import (
     ADDRESS_TYPE_DOMAIN_NAME,
     ADDRESS_TYPE_IPV4,
-    MethodRequest,
+    CommandRequest,
+    CommandResponse,
+    MethodsRequest,
+    MethodsResponse,
     REQ_CMD_CONNECT,
     REQ_CMD_UDP_ASSOCIATE,
-    Request,
     SOCKS_AUTH_ANON,
     SOCKS_VERSION,
-    decode_method_selection_message,
-    decode_reply,
-    decode_udp_packet,
-    encode_methods_request,
-    encode_request,
-    encode_udp_packet,
+    UdpPacket,
+    socks5_serializer,
 )
 
 
@@ -35,11 +33,11 @@ class Socks5ClientUDPConnection(DatagramProtocol):
         self.transport = transport
 
     def datagram_received(self, data, _):
-        request = decode_udp_packet(data)
-        self.callback(request.payload, request.destination)
+        request, _ = socks5_serializer.unpack_serializable(UdpPacket, data)
+        self.callback(request.data, request.destination)
 
     def sendto(self, data, target_addr):
-        packet = encode_udp_packet(0, 0, ADDRESS_TYPE_IPV4, *target_addr, data)
+        packet = socks5_serializer.pack_serializable(UdpPacket(0, 0, target_addr, data))
         self.transport.sendto(packet, self.proxy_udp_addr)
 
 
@@ -73,11 +71,11 @@ class Socks5Client(Protocol):
     async def _login(self):
         self.transport, _ = await get_event_loop().create_connection(lambda: self, *self.proxy_addr)
 
-        request = MethodRequest(SOCKS_VERSION, [SOCKS_AUTH_ANON])
-        response = await self._send(encode_methods_request(request))
-        version, auth_method = decode_method_selection_message(response)
+        request = MethodsRequest(SOCKS_VERSION, [SOCKS_AUTH_ANON])
+        data = await self._send(socks5_serializer.pack_serializable(request))
+        response, _ = socks5_serializer.unpack_serializable(MethodsResponse, data)
 
-        if version != SOCKS_VERSION or auth_method != SOCKS_AUTH_ANON:
+        if response.version != SOCKS_VERSION or response.method != SOCKS_AUTH_ANON:
             raise Socks5Error('Unsupported proxy server')
 
     async def _associate_udp(self, local_addr=None):
@@ -86,15 +84,15 @@ class Socks5Client(Protocol):
         transport, _ = await get_event_loop().create_datagram_endpoint(lambda: connection, local_addr=local_addr)
         sock = transport.get_extra_info("socket")
 
-        request = Request(SOCKS_VERSION, REQ_CMD_UDP_ASSOCIATE, 0, ADDRESS_TYPE_IPV4, *sock.getsockname())
-        response = await self._send(encode_request(request))
-        version, reply, _, bind_address, bind_port = decode_reply(response)
-        connection.proxy_udp_addr = (bind_address, bind_port[0])
+        request = CommandRequest(SOCKS_VERSION, REQ_CMD_UDP_ASSOCIATE, 0, sock.getsockname())
+        data = await self._send(socks5_serializer.pack_serializable(request))
+        response, _ = socks5_serializer.unpack_serializable(CommandResponse, data)
+        connection.proxy_udp_addr = response.bind
 
-        if version != SOCKS_VERSION:
+        if response.version != SOCKS_VERSION:
             raise Socks5Error('Unsupported proxy server')
 
-        if reply > 0:
+        if response.reply > 0:
             raise Socks5Error('UDP associate failed')
 
         self.connection = connection
@@ -106,14 +104,14 @@ class Socks5Client(Protocol):
         except (ValueError, OSError):
             address_type = ADDRESS_TYPE_DOMAIN_NAME
 
-        request = Request(SOCKS_VERSION, REQ_CMD_CONNECT, 0, address_type, *target_addr)
-        response = await self._send(encode_request(request))
-        version, reply, _, _, _ = decode_reply(response)
+        request = CommandRequest(SOCKS_VERSION, REQ_CMD_CONNECT, 0, (address_type, *target_addr))
+        data = await self._send(socks5_serializer.pack_serializable(request))
+        response, _ = socks5_serializer.unpack_serializable(CommandResponse, data)
 
-        if version != SOCKS_VERSION:
+        if response.version != SOCKS_VERSION:
             raise Socks5Error('Unsupported proxy server')
 
-        if reply > 0:
+        if response.reply > 0:
             raise Socks5Error('TCP connect failed')
 
         self.connected_to = target_addr

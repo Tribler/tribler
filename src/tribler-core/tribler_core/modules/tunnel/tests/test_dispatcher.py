@@ -58,7 +58,7 @@ def test_on_socks_in_udp(dispatcher, mock_circuit):
     """
     Test whether data is correctly dispatched to a circuit
     """
-    mock_request = Mock(destination=("0.0.0.0", 1024), payload=b'a')
+    mock_request = Mock(destination=("0.0.0.0", 1024), data=b'a')
     mock_udp_connection = Mock()
     dispatcher.set_socks_servers([mock_udp_connection.socksconnection.socksserver])
     dispatcher.tunnels.create_circuit = lambda **_: None

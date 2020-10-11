@@ -3,8 +3,8 @@ from unittest.mock import Mock
 
 import pytest
 
-from tribler_core.modules.tunnel.socks5 import conversion
 from tribler_core.modules.tunnel.socks5.client import Socks5Client, Socks5Error
+from tribler_core.modules.tunnel.socks5.conversion import UdpPacket, socks5_serializer
 from tribler_core.modules.tunnel.socks5.server import Socks5Server
 
 
@@ -63,10 +63,10 @@ async def test_socks5_sendto_success(socks5_server):
     socks5_server.output_stream.on_socks5_udp_data.assert_called_once()
     connection = socks5_server.output_stream.on_socks5_udp_data.call_args[0][0]
     request = socks5_server.output_stream.on_socks5_udp_data.call_args[0][1]
-    assert request.payload == data
+    assert request.data == data
     assert request.destination == target
 
-    packet = conversion.encode_udp_packet(0, 0, conversion.ADDRESS_TYPE_IPV4, *target, data)
+    packet = socks5_serializer.pack_serializable(UdpPacket(0, 0, target, data))
     client.callback.assert_not_called()
     connection.send_datagram(packet)
     await sleep(0.1)

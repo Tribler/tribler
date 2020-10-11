@@ -3,6 +3,9 @@ import logging
 import socket
 import struct
 
+from ipv8.messaging.lazy_payload import VariablePayload, vp_compile
+from ipv8.messaging.serialization import Serializer
+
 SOCKS_VERSION = 0x05
 
 SOCKS_AUTH_ANON = 0x00
@@ -30,290 +33,99 @@ REP_ADDRESS_TYPE_NOT_SUPPORTED = 0x08
 logger = logging.getLogger(__name__)
 
 
-class MethodRequest(object):
-
-    def __init__(self, version, methods):
-        self.version = version
-        self.methods = methods
-
-
-class Request(object):
-
-    def __init__(self, version, cmd, rsv, address_type, destination_address,
-                 destination_port):
-        self.version = version
-        self.cmd = cmd
-        self.rsv = rsv
-        self.address_type = address_type
-        self.destination_host = destination_address
-        self.destination_port = destination_port
-
-    @property
-    def destination(self):
-        """
-        The destination address as a tuple
-        @rtype: (str, int)
-        """
-        return self.destination_host, self.destination_port
+@vp_compile
+class MethodsRequest(VariablePayload):
+    names = ['version', 'methods']
+    format_list = ['B', 'list_of_chars']
 
 
-class UdpRequest(object):
-
-    """
-
-    @param rsv: the reserved bits in the SOCKS protocol
-    @param frag:
-    @param address_type: whether we deal with an IPv4 or IPv6 address
-    @param str destination_address: the destination host
-    @param int destination_port: the destination port
-    @param str payload: the payload
-    """
-
-    def __init__(self, rsv, frag, address_type, destination_address,
-                 destination_port, payload):
-        self.rsv = rsv
-        self.frag = frag
-        self.address_type = address_type
-        self.destination_host = destination_address
-        self.destination_port = destination_port
-        self.payload = payload
-
-    @property
-    def destination(self):
-        """
-        The destination address as a tuple
-        @rtype: (str, int)
-        """
-        return self.destination_host, self.destination_port
+@vp_compile
+class MethodsResponse(VariablePayload):
+    names = ['version', 'method']
+    format_list = ['B', 'B']
 
 
-def encode_methods_request(request):
-    """
-    Try to encode a METHOD request
-    @param MethodRequest request: the request to encode
-    @return: the encoded request
-    @rtype: bytes
-    """
-    return b''.join([struct.pack("!BB", request.version, len(request.methods)),
-                     struct.pack(f"!{len(request.methods)}B", *request.methods)])
+@vp_compile
+class CommandRequest(VariablePayload):
+    names = ['version', 'cmd', 'rsv', 'destination']
+    format_list = ['B', 'B', 'B', 'socks5_address']
 
 
-def decode_methods_request(offset, data):
-    """
-    Try to decode a METHOD request
-    @param int offset: the offset to start in the data
-    @param str data: the serialised data to decode from
-    @return: Tuple (offset, None) on failure, else (new_offset, MethodRequest)
-    @rtype: (int, None|MethodRequest)
-    """
-    # Check if we have enough bytes
-    if len(data) - offset < 2:
-        return offset, None
+@vp_compile
+class CommandResponse(VariablePayload):
+    names = ['version', 'reply', 'rsv', 'bind']
+    format_list = ['B', 'B', 'B', 'socks5_address']
 
-    (version, number_of_methods) = struct.unpack_from("!BB", data, offset)
 
-    offset += 2
+@vp_compile
+class UdpPacket(VariablePayload):
+    names = ['rsv', 'frag', 'destination', 'data']
+    format_list = ['H', 'B', 'socks5_address', 'raw']
 
-    # Check whether there are enough bytes for the number of methods
-    if len(data) - offset < number_of_methods:
-        return offset, None
 
-    methods = set([])
-    for i in range(number_of_methods):
-        method, = struct.unpack_from("!B", data, offset)
-        methods.add(method)
+class Socks5Serializer(Serializer):
+    def __init__(self):
+        super().__init__()
+        self._packers['list_of_chars'] = ListOf('B')
+        self._packers['socks5_address'] = Socks5Address()
+
+
+class ListOf:
+
+    def __init__(self, format_str):
+        self.format_str = format_str
+        self.format_size = struct.Struct(format_str).size
+
+    def pack(self, data):
+        return struct.pack('>B' + self.format_str * len(data), len(data), *data)
+
+    def unpack(self, data, offset, unpack_list):
+        length, = struct.unpack_from('>B', data, offset)
+        unpack_list.append(struct.unpack_from(self.format_str * length, data, offset + 1))
+        return offset + 1 + self.format_size * length
+
+
+class Socks5Address:
+
+    def pack(self, data):
+        # If the address_type is omitted we assume it's a IPv4 address
+        if len(data) == 2 or data[0] == ADDRESS_TYPE_IPV4:
+            offset = int(len(data) == 3)
+            return struct.pack('>B4sH', ADDRESS_TYPE_IPV4, socket.inet_aton(data[offset]), data[offset + 1])
+
+        host = data[1].encode()
+        return struct.pack('>BB', data[0], len(host)) + host + struct.pack('>H', data[2])
+
+    def unpack(self, data, offset, unpack_list):
+        address_type, = struct.unpack_from('>B', data, offset)
         offset += 1
 
-    return offset, MethodRequest(version, methods)
+        if address_type == ADDRESS_TYPE_IPV4:
+            host = socket.inet_ntoa(data[offset:offset + 4])
+            offset += 4
+        elif address_type == ADDRESS_TYPE_DOMAIN_NAME:
+            domain_length, = struct.unpack_from('>B', data, offset)
+            offset += 1
+            try:
+                host = data[offset:offset + domain_length]
+                host = host.decode()
+                offset += domain_length
+            except UnicodeDecodeError as e:
+                raise InvalidAddressException(f'Invalid address: {host}') from e
+        elif address_type == ADDRESS_TYPE_IPV6:
+            raise IPV6AddrError()
+        else:
+            raise InvalidAddressException('Invalid address type')
+
+        port, = struct.unpack_from('>H', data, offset)
+        offset += 2
+
+        unpack_list.append((host, port))
+        return offset
 
 
-def decode_method_selection_message(data):
-    """
-    Unserialise a Method Selection message
-    @param data: the Method Selection message to unserialize
-    @return: Tuple (version, method)
-    @rtype: (int, int))
-    """
-    return struct.unpack("!BB", data)
-
-
-def encode_method_selection_message(version, method):
-    """
-    Serialise a Method Selection message
-    @param version: the SOCKS5 version
-    @param method: the authentication method to select
-    @return: the serialised format
-    @rtype: str
-    """
-    return struct.pack("!BB", version, method)
-
-
-def __encode_address(address_type, address):
-    if address_type == ADDRESS_TYPE_IPV4:
-        data = socket.inet_aton(address)
-    elif address_type == ADDRESS_TYPE_IPV6:
-        raise IPV6AddrError()
-    elif address_type == ADDRESS_TYPE_DOMAIN_NAME:
-        bin_address = address.encode('utf8')
-        data = struct.pack("!B", len(bin_address)) + bin_address
-    else:
-        raise ValueError(
-            "address_type must be either IPv4, IPv6 or a domain name")
-
-    return data
-
-
-def __decode_address(address_type, offset, data):
-    if address_type == ADDRESS_TYPE_IPV4:
-        destination_address = socket.inet_ntoa(data[offset:offset + 4])
-        offset += 4
-    elif address_type == ADDRESS_TYPE_DOMAIN_NAME:
-        domain_length, = struct.unpack_from("!B", data, offset)
-        offset += 1
-        try:
-            destination_address = data[offset:offset + domain_length].decode('utf-8')
-            offset += domain_length
-        except UnicodeDecodeError as ude:
-            raise InvalidAddressException(data[offset:offset + domain_length], str(ude))
-    elif address_type == ADDRESS_TYPE_IPV6:
-        raise IPV6AddrError()
-    else:
-        logger.error("Unsupported address type %r", address_type)
-        return offset, None
-
-    return offset, destination_address
-
-
-def encode_request(request):
-    """
-    Try to encode a SOCKS5 request
-    @param Request request: the request to be encoded
-    @return: the encoded request
-    @rtype: bytes
-    """
-    return b''.join([struct.pack("!BBBB", request.version, request.cmd, request.rsv, request.address_type),
-                     __encode_address(request.address_type, request.destination_host),
-                     struct.pack("!H", request.destination_port)])
-
-
-def decode_request(orig_offset, data):
-    """
-    Try to decode a SOCKS5 request
-    @param int orig_offset: the offset to start decoding in the data
-    @param str data: the raw data
-    @return: tuple (new_offset, Request) or (original_offset, None) on failure
-    @rtype: (int, Request|None)
-    """
-    offset = orig_offset
-
-    # Check if we have enough bytes
-    if len(data) - offset < 4:
-        return orig_offset, None
-
-    version, cmd, rsv, address_type = struct.unpack_from("!BBBB", data, offset)
-    offset += 4
-
-    assert version == SOCKS_VERSION, (version, SOCKS_VERSION)
-    assert rsv == 0
-
-    try:
-        offset, destination_address = __decode_address(address_type, offset, data)
-    except IPV6AddrError:
-        logger.error("Not supporting IPv6 address in datagrams yet")
-        return orig_offset, None
-    except InvalidAddressException as ide:
-        logger.error("Failed to decode address: %s", str(ide))
-        return orig_offset, None
-
-    # Check if we could decode address, if not bail out
-    if not destination_address:
-        return orig_offset, None
-
-    # Check if we have enough bytes
-    if len(data) - offset < 2:
-        return orig_offset, None
-
-    destination_port, = struct.unpack_from("!H", data, offset)
-    offset += 2
-
-    return offset, Request(version, cmd, rsv, address_type,
-                           destination_address, destination_port)
-
-
-def encode_reply(version, rep, rsv, address_type, bind_address, bind_port):
-    """
-    Encode a REPLY
-    @param int version: SOCKS5 version
-    @param int rep: the response
-    @param int rsv: reserved bytes
-    @param address_type: the address type of the bind address
-    @param bind_address: the bind address host
-    @param bind_port: the bind address port
-    @return:
-    """
-    data = struct.pack("BBBB", version, rep, rsv, address_type)
-
-    data += __encode_address(address_type, bind_address)
-
-    data += struct.pack("!H", bind_port)
-    return data
-
-
-def decode_reply(data):
-    """
-    Decode a REPLY
-    @param str data: the serialised data to decode from
-    @return: Tuple (version, reply, address_type, bind_address, bind_port)
-    @rtype: (int, int, int, str, int))
-    """
-    version, reply, rsv, address_type = struct.unpack_from("!BBBB", data, 0)
-    assert rsv == 0
-    offset, host = __decode_address(address_type, 4, data)
-    port = struct.unpack_from("!H", data, offset)
-    return version, reply, address_type, host, port
-
-
-def decode_udp_packet(data):  # type: (bytes) -> UdpRequest
-    """
-    Decodes a SOCKS5 UDP packet
-    @param str data: the raw packet data
-    @return: An UdpRequest object containing the parsed data
-    @rtype: UdpRequest
-    """
-    offset = 0
-    (rsv, frag, address_type) = struct.unpack_from("!HBB", data, offset)
-    offset += 4
-
-    offset, destination_address = __decode_address(address_type, offset, data)
-
-    destination_port, = struct.unpack_from("!H", data, offset)
-    offset += 2
-
-    payload = data[offset:]
-
-    return UdpRequest(rsv, frag, address_type, destination_address, destination_port, payload)
-
-
-def encode_udp_packet(rsv, frag, address_type, address, port, payload):
-    """
-    Encodes a SOCKS5 UDP packet
-    @param rsv: reserved bytes
-    @param frag: fragment
-    @param address_type: the address's type
-    @param address: address host
-    @param port: address port
-    @param payload: the original UDP payload
-    @return: serialised byte string
-    @rtype: str
-    """
-    strings = [
-        struct.pack("!HBB", rsv, frag, address_type),
-        __encode_address(address_type, address),
-        struct.pack("!H", port),
-        payload
-    ]
-
-    return b''.join(strings)
+class InvalidAddressException(Exception):
+    pass
 
 
 class IPV6AddrError(NotImplementedError):
@@ -321,11 +133,4 @@ class IPV6AddrError(NotImplementedError):
         return "IPV6 support not implemented"
 
 
-class InvalidAddressException(Exception):
-    def __init__(self, address, reason=None):
-        super(InvalidAddressException, self).__init__(address, reason)
-        self.address = address
-        self.reason = reason if reason else 'N/A'
-
-    def __str__(self):
-        return "Invalid address: %r\nException: %r" % (self.address, self.reason)
+socks5_serializer = Socks5Serializer()

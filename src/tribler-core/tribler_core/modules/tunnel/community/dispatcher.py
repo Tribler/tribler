@@ -9,7 +9,7 @@ from ipv8.messaging.anonymization.tunnel import (
 )
 from ipv8.taskmanager import TaskManager, task
 
-from tribler_core.modules.tunnel.socks5 import conversion
+from tribler_core.modules.tunnel.socks5.conversion import UdpPacket, socks5_serializer
 
 
 class TunnelDispatcher(TaskManager):
@@ -56,7 +56,7 @@ class TunnelDispatcher(TaskManager):
             self.connection_dead(connection)
             return False
 
-        packet = conversion.encode_udp_packet(0, 0, conversion.ADDRESS_TYPE_IPV4, *origin, data)
+        packet = socks5_serializer.pack_serializable(UdpPacket(0, 0, origin, data))
         connection.udp_connection.send_datagram(packet)
         return True
 
@@ -75,11 +75,11 @@ class TunnelDispatcher(TaskManager):
                 return False
 
         if circuit.state != CIRCUIT_STATE_READY:
-            self._logger.debug("Circuit not ready, dropping %d bytes to %s", len(request.payload), request.destination)
+            self._logger.debug("Circuit not ready, dropping %d bytes to %s", len(request.data), request.destination)
             return False
 
         self._logger.debug("Sending data over circuit %d destined for %r:%r", circuit.circuit_id, *request.destination)
-        self.tunnels.send_data(circuit.peer, circuit.circuit_id, request.destination, ('0.0.0.0', 0), request.payload)
+        self.tunnels.send_data(circuit.peer, circuit.circuit_id, request.destination, ('0.0.0.0', 0), request.data)
         return True
 
     @task

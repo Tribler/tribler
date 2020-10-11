@@ -1,8 +1,21 @@
 import logging
 from asyncio import Protocol, ensure_future
 
-from tribler_core.modules.tunnel.socks5 import conversion
-from tribler_core.modules.tunnel.socks5.conversion import SOCKS_VERSION
+from ipv8.messaging.serialization import PackError
+
+from tribler_core.modules.tunnel.socks5.conversion import (
+    CommandRequest,
+    CommandResponse,
+    MethodsRequest,
+    MethodsResponse,
+    REP_COMMAND_NOT_SUPPORTED,
+    REP_SUCCEEDED,
+    REQ_CMD_BIND,
+    REQ_CMD_CONNECT,
+    REQ_CMD_UDP_ASSOCIATE,
+    SOCKS_VERSION,
+    socks5_serializer,
+)
 from tribler_core.modules.tunnel.socks5.udp_connection import SocksUDPConnection
 
 
@@ -66,10 +79,10 @@ class Socks5Connection(Protocol):
 
         :return: False if command could not been processes due to lack of bytes, True otherwise
         """
-        offset, request = conversion.decode_methods_request(0, self.buffer)
-
-        # No (complete) HANDSHAKE received, so dont do anything
-        if request is None:
+        try:
+            request, offset = socks5_serializer.unpack_serializable(MethodsRequest, self.buffer)
+        except PackError:
+            # No (complete) HANDSHAKE received, so dont do anything
             return False
 
         # Consume the buffer
@@ -85,7 +98,7 @@ class Socks5Connection(Protocol):
 
             # Respond that we would like to use NO AUTHENTICATION (0x00)
             if self.state is not ConnectionState.CONNECTED:
-                response = conversion.encode_method_selection_message(conversion.SOCKS_VERSION, 0x00)
+                response = socks5_serializer.pack_serializable(MethodsResponse(SOCKS_VERSION, 0))
                 self.transport.write(response)
 
             # We are connected now, the next incoming message will be a REQUEST
@@ -106,9 +119,9 @@ class Socks5Connection(Protocol):
         """
         self._logger.debug("Client has sent PROXY REQUEST")
 
-        offset, request = conversion.decode_request(0, self.buffer)
-
-        if request is None:
+        try:
+            request, offset = socks5_serializer.unpack_serializable(CommandRequest, self.buffer)
+        except PackError:
             return False
 
         self.buffer = self.buffer[offset:]
@@ -116,28 +129,27 @@ class Socks5Connection(Protocol):
         self.state = ConnectionState.PROXY_REQUEST_RECEIVED
 
         try:
-            if request.cmd == conversion.REQ_CMD_UDP_ASSOCIATE:
+            if request.cmd == REQ_CMD_UDP_ASSOCIATE:
                 ensure_future(self.on_udp_associate_request(request))
 
-            elif request.cmd == conversion.REQ_CMD_BIND:
-                response = conversion.encode_reply(0x05, conversion.REP_SUCCEEDED, 0x00,
-                                                   conversion.ADDRESS_TYPE_IPV4, "127.0.0.1", 1081)
-
+            elif request.cmd == REQ_CMD_BIND:
+                payload = CommandResponse(SOCKS_VERSION, REP_SUCCEEDED, 0, ("127.0.0.1", 1081))
+                response = socks5_serializer.pack_serializable(payload)
                 self.transport.write(response)
                 self.state = ConnectionState.PROXY_REQUEST_ACCEPTED
 
-            elif request.cmd == conversion.REQ_CMD_CONNECT:
+            elif request.cmd == REQ_CMD_CONNECT:
                 self._logger.info("Accepting TCP CONNECT request to %s:%d", *request.destination)
                 self.connect_to = request.destination
-                response = conversion.encode_reply(0x05, conversion.REP_SUCCEEDED, 0x00,
-                                                   conversion.ADDRESS_TYPE_IPV4, "127.0.0.1", 1081)
+                payload = CommandResponse(SOCKS_VERSION, REP_SUCCEEDED, 0, ("127.0.0.1", 1081))
+                response = socks5_serializer.pack_serializable(payload)
                 self.transport.write(response)
 
             else:
                 self.deny_request(request, "CMD not recognized")
         except:
-            response = conversion.encode_reply(0x05, conversion.REP_COMMAND_NOT_SUPPORTED, 0x00,
-                                               conversion.ADDRESS_TYPE_IPV4, "0.0.0.0", 0)
+            payload = CommandResponse(SOCKS_VERSION, REP_COMMAND_NOT_SUPPORTED, 0, ("0.0.0.0", 0))
+            response = socks5_serializer.pack_serializable(payload)
             self.transport.write(response)
             self._logger.exception("Exception thrown, returning unsupported command response")
 
@@ -150,9 +162,8 @@ class Socks5Connection(Protocol):
         """
         self.state = ConnectionState.CONNECTED
 
-        response = conversion.encode_reply(0x05, conversion.REP_COMMAND_NOT_SUPPORTED, 0x00,
-                                           conversion.ADDRESS_TYPE_IPV4, "0.0.0.0", 0)
-
+        payload = CommandResponse(SOCKS_VERSION, REP_COMMAND_NOT_SUPPORTED, 0, ("0.0.0.0", 0))
+        response = socks5_serializer.pack_serializable(payload)
         self.transport.write(response)
         self._logger.error("DENYING SOCKS5 request, reason: %s" % reason)
 
@@ -165,10 +176,9 @@ class Socks5Connection(Protocol):
         ip, _ = self.transport.get_extra_info('sockname')
         port = self.udp_connection.get_listen_port()
 
-        self._logger.info("Accepting UDP ASSOCIATE request to %s:%d", ip, port)
-
-        response = conversion.encode_reply(
-            0x05, conversion.REP_SUCCEEDED, 0x00, conversion.ADDRESS_TYPE_IPV4, ip, port)
+        self._logger.info("Accepting UDP ASSOCIATE request to %s:%d (BIND addr %s:%d)", ip, port, *request.destination)
+        payload = CommandResponse(SOCKS_VERSION, REP_SUCCEEDED, 0, (ip, port))
+        response = socks5_serializer.pack_serializable(payload)
         self.transport.write(response)
 
     def circuit_dead(self, broken_circuit):
