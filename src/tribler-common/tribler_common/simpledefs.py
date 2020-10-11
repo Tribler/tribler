@@ -101,3 +101,12 @@ class NTFY(Enum):
     EVENTS_START = "events_start"
     TRIBLER_EXCEPTION = "tribler_exception"
     POPULARITY_COMMUNITY_ADD_UNKNOWN_TORRENT = "PopularityCommunity:added_unknown_torrent"
+
+
+class CHANNEL_STATUS(Enum):
+    PERSONAL = "Personal"
+    LEGACY = "Legacy"
+    COMPLETE = "Complete"
+    UPDATING = "Updating"
+    DOWNLOADING = "Downloading"
+    PREVIEW = "Preview"

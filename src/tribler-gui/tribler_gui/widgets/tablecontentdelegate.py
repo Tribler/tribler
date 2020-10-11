@@ -21,6 +21,10 @@ from tribler_gui.defs import (
 from tribler_gui.utilities import format_votes, get_health, get_image_path
 from tribler_gui.widgets.tableiconbuttons import DownloadIconButton
 
+TRIBLER_ORANGE = QColor("#e67300")
+TRIBLER_PALETTE = QPalette()
+TRIBLER_PALETTE.setColor(QPalette.Highlight, TRIBLER_ORANGE)
+
 
 def draw_text(painter, rect, text, color=QColor("#B5B5B5"), font=None, alignment=Qt.AlignVCenter):
     painter.save()
@@ -167,7 +171,10 @@ class ChannelStateMixin(object):
 
     def draw_channel_state(self, painter, option, index, data_item):
         # Draw empty cell as the background
+
+        progress = 0.5
         self.paint_empty_background(painter, option)
+        self.draw_progress_bar(painter, option, progress)
 
         if u'type' in data_item and data_item[u'type'] != CHANNEL_TORRENT:
             return True
@@ -177,14 +184,45 @@ class ChannelStateMixin(object):
             self.share_icon.paint(painter, self.get_indicator_rect(option.rect))
             return True
         if data_item[u'state'] in [u'Updating', u'Downloading']:
-            rect = option.rect
-            rect_side = option.rect.height() * 0.8
-            x = rect.left() + (rect.width() - rect_side) / 2
-            y = rect.top() + (rect.height() - rect_side) / 2
-            icon_rect = QRect(x, y, rect_side, rect_side)
-            self.wait_png.paint(painter, icon_rect)
+            self.wait_png.paint(painter, self.get_indicator_rect(option.rect))
             return True
         return True
+
+    def draw_progress_bar(self, painter, option, progress=0.0):
+        painter.save()
+
+        outer_margin = 2
+        bar_height = 16
+        p = painter
+        r = option.rect
+
+        x = r.x() + outer_margin
+        y = r.y() + (r.height() - bar_height) / 2
+        h = bar_height
+
+        # Draw background rect
+        w_border = r.width() - 2 * outer_margin
+        bg_rect = QRect(x, y, w_border, h)
+        p.setPen(TRIBLER_PALETTE.light().color())
+        p.setBrush(TRIBLER_PALETTE.light().color())
+        p.drawRect(bg_rect)
+
+        w_progress = int((r.width() - 2 * outer_margin) * progress)
+        progress_rect = QRect(x, y, w_progress, h)
+        p.setPen(TRIBLER_PALETTE.highlight().color())
+        p.setBrush(TRIBLER_PALETTE.highlight().color())
+        p.drawRect(progress_rect)
+
+        # Draw border rect over the bar rect
+
+        painter.setCompositionMode(QPainter.CompositionMode_Xor)
+        p.setPen(TRIBLER_PALETTE.light().color())
+        font = p.font()
+        # font.setPixelSize(1.5 * self._thumb_radius)
+        p.setFont(font)
+        p.drawText(bg_rect, Qt.AlignCenter, str(progress))
+
+        painter.restore()
 
 
 class SubscribedControlMixin(object):
@@ -376,16 +414,14 @@ class SubscribeToggleControl(QObject, CheckClickedMixin):
 
         self._offset = self._base_offset
 
-        palette = QPalette()
-        self.palette = palette
-        palette.setColor(QPalette.Highlight, QColor(90, 205, 90))
-        self._thumb_color = {True: palette.highlightedText(), False: palette.light()}
-        self._track_color = {True: palette.highlight(), False: palette.dark()}
-        self._text_color = {True: palette.highlight().color(), False: palette.dark().color()}
+        self._thumb_color = {True: TRIBLER_PALETTE.highlightedText(), False: TRIBLER_PALETTE.light()}
+        self._track_color = {True: TRIBLER_PALETTE.highlight(), False: TRIBLER_PALETTE.dark()}
+        self._text_color = {True: TRIBLER_PALETTE.highlight().color(), False: TRIBLER_PALETTE.dark().color()}
         self._thumb_text = {True: '✔', False: '✕'}
         self._track_opacity = 1
 
     def paint(self, painter, rect, _, toggled=False, hover=False):
+        painter.save()
 
         x = rect.x() + (rect.width() - self._width) / 2
         y = rect.y() + (rect.height() - self._height) / 2
@@ -435,6 +471,8 @@ class SubscribeToggleControl(QObject, CheckClickedMixin):
             Qt.AlignCenter,
             self._thumb_text[toggled],
         )
+
+        painter.restore()
 
 
 class CommitStatusControl(QObject):
