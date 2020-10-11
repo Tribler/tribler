@@ -2,6 +2,7 @@ import logging
 import time
 from asyncio import Future, all_tasks, sleep
 from collections import defaultdict
+from pathlib import Path
 
 from ipv8.messaging.anonymization.tunnel import CIRCUIT_TYPE_IP_SEEDER, PEER_FLAG_EXIT_BT
 from ipv8.peer import Peer
@@ -28,15 +29,17 @@ from tribler_core.tests.tools.common import TESTS_DATA_DIR
 
 class ProxyFactory:
 
-    def __init__(self, tribler_config, free_ports_factory):
+    def __init__(self, tribler_config, free_ports_factory, tmpdir_factory):
         self.base_tribler_config = tribler_config
         self.free_ports_factory = free_ports_factory
+        self.tmpdir_factory = tmpdir_factory
         self.sessions = []
 
     async def get(self, exitnode=False):
         config = self.base_tribler_config.copy()
         config.set_libtorrent_enabled(False)
         config.set_tunnel_community_socks5_listen_ports(self.free_ports_factory(5))
+        config.set_state_dir(Path(self.tmpdir_factory.mktemp("session")))
 
         session = Session(config)
         session.upgrader_enabled = False
@@ -54,8 +57,8 @@ async def logger():
 
 
 @pytest.fixture
-async def proxy_factory(request, tribler_config, free_ports):
-    factory = ProxyFactory(tribler_config, free_ports)
+async def proxy_factory(tribler_config, free_ports, tmpdir_factory):
+    factory = ProxyFactory(tribler_config, free_ports, tmpdir_factory)
     yield factory
 
     for session in factory.sessions:
