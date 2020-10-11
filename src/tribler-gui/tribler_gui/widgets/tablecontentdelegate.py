@@ -1,5 +1,5 @@
-from PyQt5.QtCore import QEvent, QModelIndex, QObject, QRect, QSize, Qt, pyqtSignal
-from PyQt5.QtGui import QBrush, QColor, QIcon, QPainter, QPen
+from PyQt5.QtCore import QEvent, QModelIndex, QObject, QRect, QRectF, QSize, Qt, pyqtSignal
+from PyQt5.QtGui import QBrush, QColor, QIcon, QPainter, QPalette, QPen
 from PyQt5.QtWidgets import QComboBox, QStyle, QStyledItemDelegate, QToolTip
 
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
@@ -199,7 +199,9 @@ class SubscribedControlMixin(object):
         if data_item[u'state'] == u'Personal':
             return True
 
-        self.subscribe_control.paint(painter, option.rect, index)
+        self.subscribe_control.paint(
+            painter, option.rect, index, toggled=data_item.get('subscribed'), hover=index == self.hover_index
+        )
 
         return True
 
@@ -228,7 +230,7 @@ class CategoryLabelMixin(object):
             if data_item['state'] == u'Personal':
                 category_txt = "\U0001F3E0"  # 'home' emoji
             else:
-                category_txt = "\U0001F536"  # "large orange diamond" emoji
+                category_txt = "🌐"
         elif 'type' in data_item and data_item['type'] == COLLECTION_NODE:
             category_txt = "\U0001F4C1"  # 'folder' emoji
         else:
@@ -352,48 +354,86 @@ class CategoryLabel(QObject):
         painter.restore()
 
 
-class ToggleControl(QObject, CheckClickedMixin):
-    """
-    Column-level controls are stateless collections of methods for visualizing cell data and
-    triggering corresponding events.
-    """
-
-    icon_border = 4
-    icon_size = 16
-    h = icon_size + 2 * icon_border
-    w = h
-    size = QSize(w, h)
+class SubscribeToggleControl(QObject, CheckClickedMixin):
 
     clicked = pyqtSignal(QModelIndex)
 
-    def __init__(self, column_name, on_icon, off_icon, hover_icon, parent=None):
+    def __init__(self, column_name, parent=None):
         QObject.__init__(self, parent=parent)
-        self.on_icon = on_icon
-        self.off_icon = off_icon
-        self.hover_icon = hover_icon
         self.column_name = column_name
         self.last_index = QModelIndex()
 
+        self._track_radius = 10
+        self._thumb_radius = 8
+        self._line_thickness = self._track_radius - self._thumb_radius
+        self._margin = max(0, self._thumb_radius - self._track_radius)
+        self._base_offset = max(self._thumb_radius, self._track_radius)
+
+        self._width = 4 * self._track_radius + 2 * self._margin
+        self._height = 2 * self._track_radius + 2 * self._margin
+
+        self._end_offset = {True: lambda: self._width - self._base_offset, False: lambda: self._base_offset}
+
+        self._offset = self._base_offset
+
+        palette = QPalette()
+        self.palette = palette
+        palette.setColor(QPalette.Highlight, QColor(90, 205, 90))
+        self._thumb_color = {True: palette.highlightedText(), False: palette.light()}
+        self._track_color = {True: palette.highlight(), False: palette.dark()}
+        self._text_color = {True: palette.highlight().color(), False: palette.dark().color()}
+        self._thumb_text = {True: '✔', False: '✕'}
+        self._track_opacity = 1
+
     def paint(self, painter, rect, _, toggled=False, hover=False):
-        icon = self.on_icon if toggled else self.off_icon
-        if hover:
-            icon = self.on_icon if toggled else self.hover_icon
-        x = rect.left() + (rect.width() - self.w) / 2
-        y = rect.top() + (rect.height() - self.h) / 2
-        icon_rect = QRect(x, y, self.w, self.h)
 
-        icon.paint(painter, icon_rect)
+        x = rect.x() + (rect.width() - self._width) / 2
+        y = rect.y() + (rect.height() - self._height) / 2
 
+        offset = self._end_offset[toggled]()
+        p = painter
 
-class SubscribeToggleControl(ToggleControl):
-    def __init__(self, column_name, parent=None):
-        ToggleControl.__init__(
-            self,
-            column_name,
-            QIcon(get_image_path("subscribed_yes.png")),
-            QIcon(get_image_path("subscribed_not.png")),
-            QIcon(get_image_path("subscribed.png")),
-            parent=parent,
+        p.setRenderHint(QPainter.Antialiasing, True)
+        track_opacity = self._track_opacity
+        thumb_opacity = 1.0
+        text_opacity = 1.0
+        track_brush = self._track_color[toggled]
+        thumb_brush = self._thumb_color[toggled]
+        text_color = self._text_color[toggled]
+
+        p.setPen(Qt.NoPen)
+        p.setBrush(track_brush)
+        p.setOpacity(track_opacity)
+        p.drawRoundedRect(
+            x,
+            y,
+            self._width - 2 * self._margin,
+            self._height - 2 * self._margin,
+            self._track_radius,
+            self._track_radius,
+        )
+        p.setBrush(thumb_brush)
+        p.setOpacity(thumb_opacity)
+        p.drawEllipse(
+            x + offset - self._thumb_radius,
+            y + self._base_offset - self._thumb_radius,
+            2 * self._thumb_radius,
+            2 * self._thumb_radius,
+        )
+        p.setPen(text_color)
+        p.setOpacity(text_opacity)
+        font = p.font()
+        font.setPixelSize(1.5 * self._thumb_radius)
+        p.setFont(font)
+        p.drawText(
+            QRectF(
+                x + offset - self._thumb_radius,
+                y + self._base_offset - self._thumb_radius,
+                2 * self._thumb_radius,
+                2 * self._thumb_radius,
+            ),
+            Qt.AlignCenter,
+            self._thumb_text[toggled],
         )
 
 

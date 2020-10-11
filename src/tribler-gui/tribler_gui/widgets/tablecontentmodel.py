@@ -210,8 +210,8 @@ class RemoteTableModel(QAbstractTableModel):
 
 class ChannelContentModel(RemoteTableModel):
 
-    columns = [ACTION_BUTTONS, u'category', u'name', u'size', u'health', u'updated']
-    column_headers = [u'', tr('Category'), tr('Name'), tr('Size'), tr('Health'), tr('Updated')]
+    columns = [u'category', u'name', u'size', u'health', u'updated']
+    column_headers = [tr('Category'), tr('Name'), tr('Size'), tr('Health'), tr('Updated')]
     unsortable_columns = [u'status', u'state', ACTION_BUTTONS]
     column_flags = {
         u'subscribed': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
@@ -430,8 +430,8 @@ class SearchResultsModel(ChannelContentModel):
 
 
 class DiscoveredChannelsModel(ChannelContentModel):
-    columns = [u'state', u'subscribed', u'name', u'torrents', u'votes', u'updated']
-    column_headers = [u'', u'Subscribed', tr('Name'), tr('Torrents'), tr('Popularity'), tr('Updated')]
+    columns = [u'subscribed', u'state', u'category', u'name', u'torrents', u'votes', u'updated']
+    column_headers = [u'Subscribed', u'', u'Category', tr('Name'), tr('Torrents'), tr('Popularity'), tr('Updated')]
 
     column_width = dict(ChannelContentModel.column_width, **{u'name': lambda table_width: table_width - 400})
     default_sort_column = columns.index(u'votes')
@@ -443,8 +443,8 @@ class DiscoveredChannelsModel(ChannelContentModel):
 
 
 class PersonalChannelsModel(ChannelContentModel):
-    columns = [ACTION_BUTTONS, u'category', u'name', u'size', u'status']
-    column_headers = [u'', tr('Category'), tr('Name'), tr('Size'), u'']
+    columns = [u'category', u'name', u'size', u'status']
+    column_headers = [tr('Category'), tr('Name'), tr('Size'), u'']
 
     column_flags = dict(ChannelContentModel.column_flags)
     column_flags.update(
@@ -508,8 +508,8 @@ class PersonalChannelsModel(ChannelContentModel):
 
 
 class SimplifiedPersonalChannelsModel(PersonalChannelsModel):
-    columns = [ACTION_BUTTONS, u'category', u'name', u'size']
-    column_headers = [u'', tr('Category'), tr('Name'), tr('Size')]
+    columns = [u'category', u'name', u'size']
+    column_headers = [tr('Category'), tr('Name'), tr('Size')]
 
     column_width = dict(ChannelContentModel.column_width, **{u'name': lambda table_width: table_width - 330})
 
