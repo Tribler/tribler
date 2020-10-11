@@ -121,7 +121,7 @@ async def test_task_select_tracker(enable_chant, torrent_checker, session):
         tracker = session.mds.TrackerState(url="http://localhost/tracker")
         session.mds.TorrentState(infohash=b'a' * 20, seeders=5, leechers=10, trackers={tracker})
 
-    controlled_session = HttpTrackerSession("127.0.0.1", ("localhost", 8475), "/announce", 5)
+    controlled_session = HttpTrackerSession("127.0.0.1", ("localhost", 8475), "/announce", 5, None)
     controlled_session.connect_to_tracker = lambda: succeed(None)
 
     torrent_checker._create_session_for_request = lambda *args, **kwargs: controlled_session

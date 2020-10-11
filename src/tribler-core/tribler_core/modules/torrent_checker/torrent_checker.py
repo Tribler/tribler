@@ -29,6 +29,7 @@ MIN_TORRENT_CHECK_INTERVAL = 900   # How much time we should wait before checkin
 TORRENT_CHECK_RETRY_INTERVAL = 30  # Interval when the torrent was successfully checked for the last time
 MAX_TORRENTS_CHECKED_PER_SESSION = 50
 
+
 class TorrentChecker(TaskManager):
 
     def __init__(self, session):
@@ -285,9 +286,13 @@ class TorrentChecker(TaskManager):
                 # get torrent's tracker list from DB
                 tracker_set = self.get_valid_trackers_of_torrent(torrent_id)
 
+        hops = self.tribler_session.config.get_default_number_hops()
+        socks_listen_ports = self.tribler_session.config.get_tunnel_community_socks5_listen_ports()
+        proxy = ('127.0.0.1', socks_listen_ports[hops - 1]) if hops > 0 else None
+
         tasks = []
         for tracker_url in tracker_set:
-            session = self._create_session_for_request(tracker_url, timeout=timeout)
+            session = self._create_session_for_request(tracker_url, timeout=timeout, proxy=proxy)
             session.add_infohash(infohash)
             tasks.append(self.connect_to_tracker(session))
 
@@ -305,8 +310,8 @@ class TorrentChecker(TaskManager):
         res = await gather(*tasks, return_exceptions=True)
         return self.on_torrent_health_check_completed(infohash, res)
 
-    def _create_session_for_request(self, tracker_url, timeout=20):
-        session = create_tracker_session(tracker_url, timeout, self.socket_mgr)
+    def _create_session_for_request(self, tracker_url, timeout=20, proxy=None):
+        session = create_tracker_session(tracker_url, timeout, proxy, self.socket_mgr)
 
         if tracker_url not in self._session_list:
             self._session_list[tracker_url] = []

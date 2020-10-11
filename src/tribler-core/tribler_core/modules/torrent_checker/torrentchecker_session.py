@@ -9,11 +9,13 @@ from asyncio import DatagramProtocol, Future, TimeoutError, ensure_future, get_e
 
 from aiohttp import ClientResponseError, ClientSession, ClientTimeout
 
-from async_timeout import timeout
+import async_timeout
 
 from ipv8.messaging.deprecated.encoding import add_url_params
 from ipv8.taskmanager import TaskManager
 
+from tribler_core.modules.tunnel.socks5.aiohttp_connector import Socks5Connector
+from tribler_core.modules.tunnel.socks5.client import Socks5Client
 from tribler_core.utilities.tracker_utils import parse_tracker_url
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import bdecode_compat
@@ -31,7 +33,7 @@ UDP_TRACKER_INIT_CONNECTION_ID = 0x41727101980
 MAX_INFOHASHES_IN_SCRAPE = 60
 
 
-def create_tracker_session(tracker_url, timeout, socket_manager):
+def create_tracker_session(tracker_url, timeout, proxy, socket_manager):
     """
     Creates a tracker session with the given tracker URL.
     :param tracker_url: The given tracker URL.
@@ -40,9 +42,9 @@ def create_tracker_session(tracker_url, timeout, socket_manager):
     """
     tracker_type, tracker_address, announce_page = parse_tracker_url(tracker_url)
 
-    if tracker_type == u'udp':
-        return UdpTrackerSession(tracker_url, tracker_address, announce_page, timeout, socket_manager)
-    return HttpTrackerSession(tracker_url, tracker_address, announce_page, timeout)
+    if tracker_type == 'udp':
+        return UdpTrackerSession(tracker_url, tracker_address, announce_page, timeout, proxy, socket_manager)
+    return HttpTrackerSession(tracker_url, tracker_address, announce_page, timeout, proxy)
 
 
 class TrackerSession(TaskManager):
@@ -86,8 +88,8 @@ class TrackerSession(TaskManager):
         Adds an infohash into this session.
         :param infohash: The infohash to be added.
         """
-        assert not self.is_initiated, u"Must not add request to an initiated session."
-        assert not self.has_infohash(infohash), u"Must not add duplicate requests"
+        assert not self.is_initiated, "Must not add request to an initiated session."
+        assert not self.has_infohash(infohash), "Must not add duplicate requests"
         if len(self.infohash_list) < MAX_INFOHASHES_IN_SCRAPE:
             self.infohash_list.append(infohash)
 
@@ -109,9 +111,11 @@ class TrackerSession(TaskManager):
 
 
 class HttpTrackerSession(TrackerSession):
-    def __init__(self, tracker_url, tracker_address, announce_page, timeout):
-        super(HttpTrackerSession, self).__init__(u'http', tracker_url, tracker_address, announce_page, timeout)
-        self._session = ClientSession(raise_for_status=True, timeout=ClientTimeout(total=self.timeout))
+    def __init__(self, tracker_url, tracker_address, announce_page, timeout, proxy):
+        super().__init__('http', tracker_url, tracker_address, announce_page, timeout)
+        self._session = ClientSession(connector=Socks5Connector(proxy) if proxy else None,
+                                      raise_for_status=True,
+                                      timeout=ClientTimeout(total=self.timeout))
 
     async def connect_to_tracker(self):
         # create the HTTP GET message
@@ -122,7 +126,7 @@ class HttpTrackerSession(TrackerSession):
 
         url = add_url_params("http://%s:%s%s" %
                              (self.tracker_address[0], self.tracker_address[1],
-                              self.announce_page.replace(u'announce', u'scrape')),
+                              self.announce_page.replace('announce', 'scrape')),
                              {"info_hash": self.infohash_list})
 
         # no more requests can be appended to this session
@@ -130,14 +134,14 @@ class HttpTrackerSession(TrackerSession):
         self.last_contact = int(time.time())
 
         try:
-            self._logger.debug(u"%s HTTP SCRAPE message sent: %s", self, url)
+            self._logger.debug("%s HTTP SCRAPE message sent: %s", self, url)
             async with self._session:
                 async with self._session.get(url.encode('ascii').decode('utf-8')) as response:
                     body = await response.read()
         except UnicodeEncodeError as e:
             raise e
         except ClientResponseError as e:
-            self._logger.warning(u"%s HTTP SCRAPE error response code %s", self, e.status)
+            self._logger.warning("%s HTTP SCRAPE error response code %s", self, e.status)
             self.failed(msg="error code %s" % e.status)
         except Exception as e:
             self.failed(msg=str(e))
@@ -181,7 +185,7 @@ class HttpTrackerSession(TrackerSession):
                     unprocessed_infohash_list.remove(infohash)
 
         elif b'failure reason' in response_dict:
-            self._logger.info(u"%s Failure as reported by tracker [%s]", self, repr(response_dict[b'failure reason']))
+            self._logger.info("%s Failure as reported by tracker [%s]", self, repr(response_dict[b'failure reason']))
             self.failed(msg=repr(response_dict[b'failure reason']))
 
         # handle the infohashes with no result (seeders/leechers = 0/0)
@@ -209,15 +213,26 @@ class UdpSocketManager(DatagramProtocol):
         self._logger = logging.getLogger(self.__class__.__name__)
         self.tracker_sessions = {}
         self.transport = None
+        self.proxy_transports = {}
 
     def connection_made(self, transport):
         self.transport = transport
 
-    def send_request(self, data, tracker_session):
+    async def send_request(self, data, tracker_session):
+        transport = self.transport
+        proxy = tracker_session.proxy
+
+        if proxy:
+            transport = self.proxy_transports.get(proxy, Socks5Client(proxy, self.datagram_received))
+            if not transport.associated:
+                await transport.associate_udp()
+            if proxy not in self.proxy_transports:
+                self.proxy_transports[proxy] = transport
+
         try:
-            self.transport.sendto(data, (tracker_session.ip_address, tracker_session.port))
+            transport.sendto(data, (tracker_session.ip_address, tracker_session.port))
             f = self.tracker_sessions[tracker_session.transaction_id] = Future()
-            return f
+            return await f
         except socket.error as e:
             self._logger.warning("Unable to write data to %s:%d - %s",
                                  tracker_session.ip_address, tracker_session.port, e)
@@ -243,8 +258,8 @@ class UdpTrackerSession(TrackerSession):
     # A list of transaction IDs that have been used in order to avoid conflict.
     _active_session_dict = dict()
 
-    def __init__(self, tracker_url, tracker_address, announce_page, timeout, socket_mgr):
-        super(UdpTrackerSession, self).__init__(u'udp', tracker_url, tracker_address, announce_page, timeout)
+    def __init__(self, tracker_url, tracker_address, announce_page, timeout, proxy, socket_mgr):
+        super().__init__('udp', tracker_url, tracker_address, announce_page, timeout)
 
         self._logger.setLevel(logging.INFO)
         self._connection_id = 0
@@ -252,6 +267,7 @@ class UdpTrackerSession(TrackerSession):
         self.port = tracker_address[1]
         self.ip_address = None
         self.socket_mgr = socket_mgr
+        self.proxy = proxy
 
         # prepare connection message
         self._connection_id = UDP_TRACKER_INIT_CONNECTION_ID
@@ -305,7 +321,7 @@ class UdpTrackerSession(TrackerSession):
         await self.cancel_pending_task("resolve")
 
         try:
-            async with timeout(self.timeout):
+            async with async_timeout.timeout(self.timeout):
                 # Resolve the hostname to an IP address if not done already
                 coro = get_event_loop().getaddrinfo(self.tracker_address[0], 0, family=socket.AF_INET)
                 if isinstance(coro, Future):
@@ -333,7 +349,7 @@ class UdpTrackerSession(TrackerSession):
 
         # check message size
         if len(response) < 16:
-            self._logger.error(u"%s Invalid response for UDP CONNECT: %s", self, repr(response))
+            self._logger.error("%s Invalid response for UDP CONNECT: %s", self, repr(response))
             self.failed(msg="invalid response size")
 
         # check the response
@@ -343,7 +359,7 @@ class UdpTrackerSession(TrackerSession):
             errmsg_length = len(response) - 8
             error_message, = struct.unpack_from('!' + str(errmsg_length) + 's', response, 8)
 
-            self._logger.info(u"%s Error response for UDP CONNECT [%s]: %s",
+            self._logger.info("%s Error response for UDP CONNECT [%s]: %s",
                               self, repr(response), repr(error_message))
             self.failed(msg=error_message.decode('utf8', errors='ignore'))
 
@@ -368,7 +384,7 @@ class UdpTrackerSession(TrackerSession):
 
         # check message size
         if len(response) < 8:
-            self._logger.info(u"%s Invalid response for UDP SCRAPE: %s", self, repr(response))
+            self._logger.info("%s Invalid response for UDP SCRAPE: %s", self, repr(response))
             self.failed("invalid message size")
 
         # check response
@@ -378,13 +394,13 @@ class UdpTrackerSession(TrackerSession):
             errmsg_length = len(response) - 8
             error_message, = struct.unpack_from('!' + str(errmsg_length) + 's', response, 8)
 
-            self._logger.info(u"%s Error response for UDP SCRAPE: [%s] [%s]",
+            self._logger.info("%s Error response for UDP SCRAPE: [%s] [%s]",
                               self, repr(response), repr(error_message))
             self.failed(msg=error_message.decode('utf8', errors='ignore'))
 
         # get results
         if len(response) - 8 != len(self.infohash_list) * 12:
-            self._logger.info(u"%s UDP SCRAPE response mismatch: %s", self, len(response))
+            self._logger.info("%s UDP SCRAPE response mismatch: %s", self, len(response))
             self.failed(msg="invalid response size")
 
         offset = 8
@@ -415,7 +431,7 @@ class FakeDHTSession(TrackerSession):
     """
 
     def __init__(self, session, infohash, timeout):
-        super(FakeDHTSession, self).__init__(u'DHT', u'DHT', u'DHT', u'DHT', timeout)
+        super().__init__('DHT', 'DHT', 'DHT', 'DHT', timeout)
 
         self.infohash = infohash
         self._session = session
@@ -464,7 +480,7 @@ class FakeBep33DHTSession(FakeDHTSession):
         :return: A deferred that fires with the health information.
         """
         try:
-            async with timeout(self.timeout):
+            async with async_timeout.timeout(self.timeout):
                 return await self._session.dlmgr.dht_health_manager.get_health(self.infohash)
         except TimeoutError:
             self.failed(msg='request timed out')
