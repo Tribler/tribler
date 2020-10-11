@@ -651,20 +651,18 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
     async def perform_http_request(self, destination, request, hops=1):
         # We need a circuit that supports HTTP requests, meaning that the circuit will have to end
         # with a node that has the PEER_FLAG_EXIT_HTTP flag set.
-        allowed_peers = self.get_candidates(PEER_FLAG_EXIT_HTTP)
-        allowed_pks = [p.key.key_to_bin() for p in allowed_peers]
-        circuits = [c for c in self.circuits.values() if c.state == CIRCUIT_STATE_READY
-                    and c.hops[-1].public_key in allowed_pks
-                    and c.goal_hops == hops]
-
+        circuits = self.find_circuits(exit_flags=[PEER_FLAG_EXIT_HTTP])
         if circuits:
             circuit = circuits[0]
-        elif allowed_peers:
-            circuit = self.create_circuit(hops, required_exit=allowed_peers[0])
-            if not circuit or not await circuit.ready:
-                raise RuntimeError('No HTTP circuit could be created')
         else:
-            raise RuntimeError('No HTTP exits available')
+            # Try to create a circuit. Attempt at most 3 times.
+            for _ in range(3):
+                circuit = self.create_circuit(hops, exit_flags=[PEER_FLAG_EXIT_HTTP])
+                if circuit and await circuit.ready:
+                    break
+
+        if not circuit:
+            raise RuntimeError('No HTTP circuit available')
 
         cache = self.request_cache.add(HTTPRequestCache(self, circuit.circuit_id))
         self.send_cell(circuit.peer, HTTPRequestPayload(circuit.circuit_id, cache.number,
