@@ -5,6 +5,9 @@ import struct
 
 SOCKS_VERSION = 0x05
 
+SOCKS_AUTH_ANON = 0x00
+SOCKS_AUTH_PWD = 0x01
+
 ADDRESS_TYPE_IPV4 = 0x01
 ADDRESS_TYPE_DOMAIN_NAME = 0x03
 ADDRESS_TYPE_IPV6 = 0x04
@@ -84,9 +87,20 @@ class UdpRequest(object):
         return self.destination_host, self.destination_port
 
 
+def encode_methods_request(request):
+    """
+    Try to encode a METHOD request
+    @param MethodRequest request: the request to encode
+    @return: the encoded request
+    @rtype: bytes
+    """
+    return b''.join([struct.pack("!BB", request.version, len(request.methods)),
+                     struct.pack(f"!{len(request.methods)}B", *request.methods)])
+
+
 def decode_methods_request(offset, data):
     """
-    Try to decodes a METHOD request
+    Try to decode a METHOD request
     @param int offset: the offset to start in the data
     @param str data: the serialised data to decode from
     @return: Tuple (offset, None) on failure, else (new_offset, MethodRequest)
@@ -111,6 +125,16 @@ def decode_methods_request(offset, data):
         offset += 1
 
     return offset, MethodRequest(version, methods)
+
+
+def decode_method_selection_message(data):
+    """
+    Unserialise a Method Selection message
+    @param data: the Method Selection message to unserialize
+    @return: Tuple (version, method)
+    @rtype: (int, int))
+    """
+    return struct.unpack("!BB", data)
 
 
 def encode_method_selection_message(version, method):
@@ -160,6 +184,18 @@ def __decode_address(address_type, offset, data):
     return offset, destination_address
 
 
+def encode_request(request):
+    """
+    Try to encode a SOCKS5 request
+    @param Request request: the request to be encoded
+    @return: the encoded request
+    @rtype: bytes
+    """
+    return b''.join([struct.pack("!BBBB", request.version, request.cmd, request.rsv, request.address_type),
+                     __encode_address(request.address_type, request.destination_host),
+                     struct.pack("!H", request.destination_port)])
+
+
 def decode_request(orig_offset, data):
     """
     Try to decode a SOCKS5 request
@@ -193,7 +229,7 @@ def decode_request(orig_offset, data):
     if not destination_address:
         return orig_offset, None
 
-        # Check if we have enough bytes
+    # Check if we have enough bytes
     if len(data) - offset < 2:
         return orig_offset, None
 
@@ -223,6 +259,20 @@ def encode_reply(version, rep, rsv, address_type, bind_address, bind_port):
     return data
 
 
+def decode_reply(data):
+    """
+    Decode a REPLY
+    @param str data: the serialised data to decode from
+    @return: Tuple (version, reply, address_type, bind_address, bind_port)
+    @rtype: (int, int, int, str, int))
+    """
+    version, reply, rsv, address_type = struct.unpack_from("!BBBB", data, 0)
+    assert rsv == 0
+    offset, host = __decode_address(address_type, 4, data)
+    port = struct.unpack_from("!H", data, offset)
+    return version, reply, address_type, host, port
+
+
 def decode_udp_packet(data):  # type: (bytes) -> UdpRequest
     """
     Decodes a SOCKS5 UDP packet
@@ -241,8 +291,7 @@ def decode_udp_packet(data):  # type: (bytes) -> UdpRequest
 
     payload = data[offset:]
 
-    return UdpRequest(rsv, frag, address_type, destination_address,
-                      destination_port, payload)
+    return UdpRequest(rsv, frag, address_type, destination_address, destination_port, payload)
 
 
 def encode_udp_packet(rsv, frag, address_type, address, port, payload):
