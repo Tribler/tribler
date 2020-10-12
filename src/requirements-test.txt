@@ -1,0 +1,11 @@
+-r requirements.txt
+
+pytest
+pytest-asyncio                        
+pytest-cov                            
+pytest-mock
+pytest-randomly                        
+pytest-timeout                         
+pytest-xdist
+
+asynctest
