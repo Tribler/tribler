@@ -90,9 +90,14 @@ class TinyTriblerService:
     def _graceful_shutdown(self):
         self.logger.info("Shutdown gracefully")
 
+        def exit_async_loop(_):
+            for pending_task in asyncio.Task.all_tasks():
+                pending_task.cancel()
+            asyncio.get_event_loop().stop()
+
         if not self.session.shutdownstarttime:
             task = asyncio.create_task(self.session.shutdown())
-            task.add_done_callback(lambda result: asyncio.get_running_loop().stop())
+            task.add_done_callback(exit_async_loop)
 
     async def _terminate_by_timeout(self):
         self.logger.info(f"Scheduling terminating by timeout {self.timeout_in_sec}s from now")
