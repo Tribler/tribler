@@ -23,7 +23,7 @@ class IPv8DiscoveryCommunityLauncher(IPv8CommunityLauncher):
         return DiscoveryCommunity
 
     def should_launch(self, session):
-        return True
+        return session.config.get_discovery_community_enabled()
 
     def get_kwargs(self, session):
         return {}

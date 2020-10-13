@@ -309,3 +309,12 @@ def test_get_set_default_add_download_to_channel(tribler_config):
     assert not tribler_config.get_default_add_download_to_channel()
     tribler_config.set_default_add_download_to_channel(True)
     assert tribler_config.get_default_add_download_to_channel()
+
+
+def test_get_set_discovery_community_enabled(tribler_config):
+    """
+    Test disabling the discovery community.
+    """
+    assert not tribler_config.get_discovery_community_enabled()
+    tribler_config.set_discovery_community_enabled(True)
+    assert tribler_config.get_discovery_community_enabled()
