@@ -11,7 +11,7 @@ import lz4.frame
 from pony import orm
 from pony.orm import db_session, desc, raw_sql, select
 
-from tribler_common.simpledefs import CHANNEL_STATUS
+from tribler_common.simpledefs import CHANNEL_STATE
 
 from tribler_core.modules.metadata_store.discrete_clock import clock
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import (
@@ -394,16 +394,16 @@ def define_binding(db):
             """
             # TODO: optimize this by stopping doing blob comparisons on each call, and instead remember rowid?
             if self.is_personal:
-                return CHANNEL_STATUS.PERSONAL.value
+                return CHANNEL_STATE.PERSONAL.value
             if self.status == LEGACY_ENTRY:
-                return CHANNEL_STATUS.LEGACY.value
+                return CHANNEL_STATE.LEGACY.value
             if self.local_version == self.timestamp:
-                return CHANNEL_STATUS.COMPLETE.value
+                return CHANNEL_STATE.COMPLETE.value
             if self.local_version > 0:
-                return CHANNEL_STATUS.UPDATING.value
+                return CHANNEL_STATE.UPDATING.value
             if self.subscribed:
-                return CHANNEL_STATUS.DOWNLOADING.value
-            return CHANNEL_STATUS.PREVIEW.value
+                return CHANNEL_STATE.DOWNLOADING.value
+            return CHANNEL_STATE.PREVIEW.value
 
         def to_simple_dict(self, **kwargs):
             """
@@ -413,7 +413,6 @@ def define_binding(db):
             result.update(
                 {
                     "state": self.state,
-                    "progress": 0.5,
                     "subscribed": self.subscribed,
                     "votes": self.votes / db.ChannelMetadata.votes_scaling,
                 }

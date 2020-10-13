@@ -243,7 +243,6 @@ class ChannelContentModel(RemoteTableModel):
     column_display_filters = {
         u'size': lambda data: (format_size(float(data)) if data != '' else ''),
         u'votes': format_votes,
-        u'state': lambda data: str(data)[:1] if data == u'Downloading' else "",
         u'updated': lambda timestamp: pretty_date(timestamp)
         if timestamp and timestamp > BITTORRENT_BIRTHDAY
         else 'N/A',
@@ -362,9 +361,10 @@ class ChannelContentModel(RemoteTableModel):
         ):
             self.channel_info.update(**update_dict)
             self.info_changed.emit([])
+            return
 
         row = self.item_uid_map.get(get_item_uid(update_dict))
-        if row in self.data_items:
+        if row is not None and row < len(self.data_items):
             self.data_items[row].update(**update_dict)
             self.dataChanged.emit(self.index(row, 0), self.index(row, len(self.columns)), [])
 

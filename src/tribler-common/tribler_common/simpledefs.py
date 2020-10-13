@@ -103,7 +103,7 @@ class NTFY(Enum):
     POPULARITY_COMMUNITY_ADD_UNKNOWN_TORRENT = "PopularityCommunity:added_unknown_torrent"
 
 
-class CHANNEL_STATUS(Enum):
+class CHANNEL_STATE(Enum):
     PERSONAL = "Personal"
     LEGACY = "Legacy"
     COMPLETE = "Complete"

@@ -1,6 +1,10 @@
+from math import floor
+
 from PyQt5.QtCore import QEvent, QModelIndex, QObject, QRect, QRectF, QSize, Qt, pyqtSignal
 from PyQt5.QtGui import QBrush, QColor, QIcon, QPainter, QPalette, QPen
 from PyQt5.QtWidgets import QComboBox, QStyle, QStyledItemDelegate, QToolTip
+
+from tribler_common.simpledefs import CHANNEL_STATE
 
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 
@@ -172,19 +176,20 @@ class ChannelStateMixin(object):
     def draw_channel_state(self, painter, option, index, data_item):
         # Draw empty cell as the background
 
-        progress = 0.5
         self.paint_empty_background(painter, option)
-        self.draw_progress_bar(painter, option, progress)
 
         if u'type' in data_item and data_item[u'type'] != CHANNEL_TORRENT:
             return True
-        if data_item[u'status'] == 1000:  # LEGACY ENTRIES!
+        if data_item[u'status'] == CHANNEL_STATE.LEGACY.value:
             return True
-        if data_item[u'state'] == u'Personal':
+        if data_item[u'state'] == CHANNEL_STATE.PERSONAL.value:
             self.share_icon.paint(painter, self.get_indicator_rect(option.rect))
             return True
-        if data_item[u'state'] in [u'Updating', u'Downloading']:
-            self.wait_png.paint(painter, self.get_indicator_rect(option.rect))
+        if data_item[u'state'] in [CHANNEL_STATE.UPDATING.value, CHANNEL_STATE.DOWNLOADING.value]:
+            progress = data_item.get('progress')
+            if progress is not None:
+                self.draw_progress_bar(painter, option, float(progress))
+            # self.wait_png.paint(painter, self.get_indicator_rect(option.rect))
             return True
         return True
 
@@ -220,7 +225,7 @@ class ChannelStateMixin(object):
         font = p.font()
         # font.setPixelSize(1.5 * self._thumb_radius)
         p.setFont(font)
-        p.drawText(bg_rect, Qt.AlignCenter, str(progress))
+        p.drawText(bg_rect, Qt.AlignCenter, f"{str(floor(progress*100))}%")
 
         painter.restore()
 

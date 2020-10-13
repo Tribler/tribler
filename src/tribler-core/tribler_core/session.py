@@ -313,6 +313,7 @@ class Session(TaskManager):
             metadata_db_name = 'metadata.db' if not self.config.get_chant_testnet() else 'metadata_testnet.db'
             database_path = self.config.get_state_dir() / 'sqlite' / metadata_db_name
             self.mds = MetadataStore(database_path, channels_dir, self.trustchain_keypair,
+                                     notifier=self.notifier,
                                      disable_sync=self.core_test_mode)
             if self.core_test_mode:
                 generate_test_channels(self.mds)

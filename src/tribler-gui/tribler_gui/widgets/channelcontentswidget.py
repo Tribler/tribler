@@ -83,6 +83,7 @@ class ChannelContentsWidget(widget_form, widget_class):
                     obj.blockSignals(False)
 
         self.freeze_controls = freeze_controls_class
+        self.setStyleSheet("QToolTip { color: #ffffff; background-color: #000000; border: 0px; }")
 
     @property
     def model(self):

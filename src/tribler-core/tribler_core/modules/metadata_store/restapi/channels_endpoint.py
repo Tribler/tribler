@@ -13,6 +13,8 @@ from marshmallow.fields import Boolean, Dict, Integer, String
 
 from pony.orm import db_session
 
+from tribler_common.simpledefs import CHANNEL_STATE
+
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import DIRTY_STATUSES, NEW
 from tribler_core.modules.metadata_store.restapi.metadata_endpoint_base import MetadataEndpointBase
@@ -79,7 +81,13 @@ class ChannelsEndpoint(ChannelsEndpointBase):
         with db_session:
             channels = self.session.mds.ChannelMetadata.get_entries(**sanitized)
             total = self.session.mds.ChannelMetadata.get_total_count(**sanitized) if include_total else None
-            channels_list = [channel.to_simple_dict() for channel in channels]
+            channels_list = []
+            for channel in channels:
+                channel_dict = channel.to_simple_dict()
+                # Add progress info for those channels that are still being processed
+                if channel_dict["state"] == CHANNEL_STATE.UPDATING.value:
+                    channel_dict["progress"] = self.session.mds.compute_channel_update_progress(channel)
+                channels_list.append(channel_dict)
         response_dict = {
             "results": channels_list,
             "first": sanitized["first"],
