@@ -119,7 +119,6 @@ async def test_load_ipv8_overlays(mocked_endpoints, enable_ipv8, session):
     await session.start()
 
     loaded_launchers = [overlay.__class__.__name__ for overlay in session.ipv8.overlays]
-    assert "DiscoveryCommunity" in loaded_launchers
     assert "TrustChainCommunity" in loaded_launchers
     assert "TrustChainTestnetCommunity" not in loaded_launchers
     assert "DHTDiscoveryCommunity" in loaded_launchers
@@ -152,7 +151,6 @@ async def test_load_ipv8_overlays_testnet(mocked_endpoints, enable_ipv8, session
     await session.start()
 
     loaded_launchers = [overlay.__class__.__name__ for overlay in session.ipv8.overlays]
-    assert "DiscoveryCommunity" in loaded_launchers
     assert "TrustChainCommunity" not in loaded_launchers
     assert "TrustChainTestnetCommunity" in loaded_launchers
     assert "DHTDiscoveryCommunity" in loaded_launchers

@@ -16,6 +16,9 @@ enabled = boolean(default=False)
 matchmaker = boolean(default=True)
 record_transactions = boolean(default=False)
 
+[discovery_community]
+enabled = boolean(default=True)
+
 [dht]
 enabled = boolean(default=True)
 

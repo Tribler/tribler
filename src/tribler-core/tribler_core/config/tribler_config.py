@@ -579,6 +579,14 @@ class TriblerConfig(object):
     def get_record_transactions(self):
         return self.config['market_community']['record_transactions']
 
+    # Discovery Community
+
+    def set_discovery_community_enabled(self, value: bool) -> None:
+        self.config['discovery_community']['enabled'] = value
+
+    def get_discovery_community_enabled(self) -> bool:
+        return self.config['discovery_community']['enabled']
+
     # DHT
 
     def set_dht_enabled(self, value):

@@ -46,6 +46,7 @@ def tribler_config(tribler_state_dir, tribler_download_dir):
     config.set_default_destination_dir(tribler_download_dir)
     config.set_torrent_checking_enabled(False)
     config.set_ipv8_enabled(False)
+    config.set_discovery_community_enabled(False)
     config.set_ipv8_walk_scaling_enabled(False)
     config.set_libtorrent_enabled(False)
     config.set_libtorrent_dht_readiness_timeout(0)
