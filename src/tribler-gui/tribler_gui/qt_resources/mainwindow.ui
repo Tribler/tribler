@@ -975,7 +975,7 @@ color: white;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>3</number>
+         <number>2</number>
         </property>
         <widget class="ChannelContentsWidget" name="personal_channel_page"/>
         <widget class="ChannelContentsWidget" name="search_results_page"/>
@@ -1377,8 +1377,8 @@ border-top: 1px solid #555;
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>300</width>
-               <height>607</height>
+               <width>854</width>
+               <height>710</height>
               </rect>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_22">
@@ -2735,143 +2735,6 @@ High anonymity</string>
                     </property>
                     <property name="textFormat">
                      <enum>Qt::RichText</enum>
-                    </property>
-                    <property name="wordWrap">
-                     <bool>true</bool>
-                    </property>
-                   </widget>
-                  </item>
-                  <item>
-                   <widget class="QLineEdit" name="max_disk_space_input">
-                    <property name="sizePolicy">
-                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                      <horstretch>0</horstretch>
-                      <verstretch>0</verstretch>
-                     </sizepolicy>
-                    </property>
-                    <property name="minimumSize">
-                     <size>
-                      <width>100</width>
-                      <height>0</height>
-                     </size>
-                    </property>
-                    <property name="maximumSize">
-                     <size>
-                      <width>250</width>
-                      <height>16777215</height>
-                     </size>
-                    </property>
-                   </widget>
-                  </item>
-                  <item>
-                   <widget class="QLabel" name="label_58">
-                    <property name="font">
-                     <font>
-                      <weight>75</weight>
-                      <bold>true</bold>
-                     </font>
-                    </property>
-                    <property name="styleSheet">
-                     <string notr="true">font-weight: bold;
-color: white;</string>
-                    </property>
-                    <property name="text">
-                     <string>Bandwidth tokens emptying into another account (offline)</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item>
-                   <widget class="QLabel" name="label_60">
-                    <property name="text">
-                     <string>Bandwidth tokens can be emptied into another </string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item>
-                   <layout class="QHBoxLayout" name="empty_tokens_button_layout">
-                    <item>
-                     <widget class="EllipseButton" name="fully_empty_tokens_button">
-                      <property name="minimumSize">
-                       <size>
-                        <width>0</width>
-                        <height>24</height>
-                       </size>
-                      </property>
-                      <property name="maximumSize">
-                       <size>
-                        <width>16777215</width>
-                        <height>24</height>
-                       </size>
-                      </property>
-                      <property name="text">
-                       <string>FULLY EMPTY TOKENS</string>
-                      </property>
-                     </widget>
-                    </item>
-                    <item>
-                     <spacer name="horizontalSpacer_87">
-                      <property name="orientation">
-                       <enum>Qt::Horizontal</enum>
-                      </property>
-                      <property name="sizeType">
-                       <enum>QSizePolicy::Fixed</enum>
-                      </property>
-                      <property name="sizeHint" stdset="0">
-                       <size>
-                        <width>15</width>
-                        <height>20</height>
-                       </size>
-                      </property>
-                     </spacer>
-                    </item>
-                    <item>
-                     <widget class="EllipseButton" name="partially_empty_tokens_button">
-                      <property name="minimumSize">
-                       <size>
-                        <width>0</width>
-                        <height>24</height>
-                       </size>
-                      </property>
-                      <property name="maximumSize">
-                       <size>
-                        <width>16777215</width>
-                        <height>24</height>
-                       </size>
-                      </property>
-                      <property name="styleSheet">
-                       <string notr="true"/>
-                      </property>
-                      <property name="text">
-                       <string>PARTIALLY EMPTY TOKENS</string>
-                      </property>
-                     </widget>
-                    </item>
-                    <item>
-                     <spacer name="horizontalSpacer_74">
-                      <property name="orientation">
-                       <enum>Qt::Horizontal</enum>
-                      </property>
-                      <property name="sizeType">
-                       <enum>QSizePolicy::Expanding</enum>
-                      </property>
-                      <property name="sizeHint" stdset="0">
-                       <size>
-                        <width>40</width>
-                        <height>20</height>
-                       </size>
-                      </property>
-                     </spacer>
-                    </item>
-                   </layout>
-                  </item>
-                  <item>
-                   <widget class="QLabel" name="label_59">
-                    <property name="styleSheet">
-                     <string notr="true">font-weight: bold;
-color: orange;</string>
-                    </property>
-                    <property name="text">
-                     <string>Warning: this is a one-way action that cannot be reverted. If the QR code is not scanned, funds will be lost.</string>
                     </property>
                     <property name="wordWrap">
                      <bool>true</bool>
