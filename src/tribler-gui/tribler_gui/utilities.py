@@ -140,6 +140,8 @@ def pretty_date(time=False):
 
 
 def duration_to_string(seconds):
+    years = int(seconds // (60 * 60 * 24 * 365.249))
+    seconds -= years * (60 * 60 * 24 * 365.249)
     weeks = int(seconds // (60 * 60 * 24 * 7))
     seconds -= weeks * (60 * 60 * 24 * 7)
     days = int(seconds // (60 * 60 * 24))
@@ -150,6 +152,10 @@ def duration_to_string(seconds):
     seconds -= minutes * 60
     seconds = int(seconds)
 
+    if years >= 100:
+        return "Forever"
+    if years > 0:
+        return "{}y {}w".format(years, weeks)
     if weeks > 0:
         return "{}w {}d".format(weeks, days)
     if days > 0:
