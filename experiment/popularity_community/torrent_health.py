@@ -1,3 +1,30 @@
+"""This script observes the popularity community messages and verifies the health data (seeders/leechers)
+of received torrents based on a given probability.
+
+### Usage
+
+```
+cd tribler  # Run from the project root directory
+
+export PYTHONPATH=${PYTHONPATH}:.:`echo src/{pyipv8,tribler-common,tribler-core} | tr " " :`
+
+python3 experiment/popularity_community/torrent_health.py [-t <timeout_in_sec>] [-f <result.csv>]
+```
+
+Where:
+* `timeout_in_sec` means the time that the experiment will last
+* `result.csv` means the path to `csv` db file.
+    If the file exists, it will be overwritten.
+
+### Example
+
+```
+python3 experiment/popularity_community/torrent_health.py -t 600
+python3 experiment/popularity_community/torrent_health.py -t 600 -f result.csv
+```
+
+"""
+
 import argparse
 import asyncio
 import csv
@@ -15,10 +42,11 @@ from ipv8.lazy_community import lazy_wrapper_wd
 from ipv8.peer import Peer
 from ipv8.peerdiscovery.discovery import RandomWalk
 
+from experiment.tool.tiny_tribler_service import TinyTriblerService
+
 from tribler_core.modules.popularity.payload import TorrentsHealthPayload
 from tribler_core.modules.popularity.popularity_community import PopularityCommunity
 
-from experiment.tool.tiny_tribler_service import TinyTriblerService
 
 _logger = logging.getLogger(__name__)
 
@@ -170,7 +198,7 @@ class ObservablePopularityCommunity(PopularityCommunity):
     def write_measurements(self):
         time_since_start = time.time() - self._start_time
         print(f"time:{time_since_start}, dht [sent:{self.dht_checks_sent}, success: {self.dht_checks_success}, "
-              f"alive: {self.dht_confirmed_alive_torrents}, diff: {self.sum_of_dht_health_diff}")
+              f"alive: {self.dht_confirmed_alive_torrents}, diff: {self.sum_of_dht_health_diff}]")
         self._csv_writer.writerow([time_since_start,
                                    len(self.get_peers()), self.peers_count_unique,
                                    self.num_messages_received, self.bandwidth_received_bytes,
