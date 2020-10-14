@@ -280,6 +280,14 @@ class RemoteQueryTestnetCommunityLauncher(RemoteQueryCommunityLauncher):
 
 
 def register_default_launchers(loader):
+    """
+    Register the default CommunityLaunchers into the given CommunityLoader.
+    If you define a new default CommunityLauncher, add it here.
+
+    = Warning =
+     Do not perform any state changes in this function. All imports and state changes should be performed within
+     the CommunityLaunchers themselves to be properly scoped and lazy-loaded.
+    """
     loader.set_launcher(IPv8DiscoveryCommunityLauncher())
     loader.set_launcher(TrustChainCommunityLauncher())
     loader.set_launcher(TrustChainTestnetCommunityLauncher())
