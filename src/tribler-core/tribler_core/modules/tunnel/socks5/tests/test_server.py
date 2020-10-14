@@ -1,8 +1,11 @@
 from asyncio import sleep
 from unittest.mock import Mock
 
+from aiohttp import ClientSession
+
 import pytest
 
+from tribler_core.modules.tunnel.socks5.aiohttp_connector import Socks5Connector
 from tribler_core.modules.tunnel.socks5.client import Socks5Client, Socks5Error
 from tribler_core.modules.tunnel.socks5.conversion import UdpPacket, socks5_serializer
 from tribler_core.modules.tunnel.socks5.server import Socks5Server
@@ -71,3 +74,47 @@ async def test_socks5_sendto_success(socks5_server):
     connection.send_datagram(packet)
     await sleep(0.1)
     client.callback.assert_called_once_with(data, target)
+
+
+@pytest.mark.asyncio
+async def test_socks5_tcp_connect(socks5_server):
+    """
+    Test is sending a TCP connect request to the server succeeds.
+    """
+    await socks5_server.start()
+    client = Socks5Client(('127.0.0.1', socks5_server.port), Mock())
+    await client.connect_tcp(('127.0.0.1', 123))
+    assert client.transport is not None
+    assert client.connection is None
+
+
+@pytest.mark.asyncio
+async def test_socks5_write(socks5_server):
+    """
+    Test is sending a TCP data to the server succeeds.
+    """
+    await socks5_server.start()
+    client = Socks5Client(('127.0.0.1', socks5_server.port), Mock())
+    await client.connect_tcp(('127.0.0.1', 123))
+    client.write(b' ')
+    await sleep(.1)
+    socks5_server.output_stream.on_socks5_tcp_data.assert_called_once_with(socks5_server.sessions[0],
+                                                                           ('127.0.0.1', 123), b' ')
+
+
+@pytest.mark.asyncio
+async def test_socks5_aiohttp_connector(socks5_server):
+    """
+    Test if making a HTTP request through Socks5Server using the Socks5Connector works as expected.
+    """
+    await socks5_server.start()
+
+    def return_data(conn, target, _):
+        assert target == ('localhost', 80)
+        conn.transport.write(b'HTTP/1.1 200\r\nContent-Type: text/html\r\n\r\nHello')
+        conn.transport.close()
+    socks5_server.output_stream.on_socks5_tcp_data = return_data
+
+    async with ClientSession(connector=Socks5Connector(('127.0.0.1', socks5_server.port))) as session:
+        async with session.get('http://localhost') as response:
+            assert (await response.read()) == b'Hello'
