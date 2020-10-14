@@ -22,6 +22,7 @@ from tribler_core.modules.metadata_store.restapi.metadata_schema import ChannelS
 from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_NOT_FOUND, RESTResponse
 from tribler_core.restapi.schema import HandledErrorSchema
 from tribler_core.utilities import path_util
+from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import is_infohash, parse_magnetlink
 
 
@@ -85,8 +86,25 @@ class ChannelsEndpoint(ChannelsEndpointBase):
             for channel in channels:
                 channel_dict = channel.to_simple_dict()
                 # Add progress info for those channels that are still being processed
-                if channel_dict["state"] == CHANNEL_STATE.UPDATING.value:
-                    channel_dict["progress"] = self.session.mds.compute_channel_update_progress(channel)
+                if channel.subscribed:
+                    if channel_dict["state"] == CHANNEL_STATE.UPDATING.value:
+                        try:
+                            progress = self.session.mds.compute_channel_update_progress(channel)
+                            channel_dict["progress"] = progress
+                        except ZeroDivisionError:
+                            self._logger.error(
+                                "ZeroDivisionError when calculating channel update progress. Channel data: %s-%i %i/%i",
+                                hexlify(channel.public_key),
+                                channel.id_,
+                                channel.start_timestamp,
+                                channel.local_version,
+                            )
+                    elif channel_dict["state"] == CHANNEL_STATE.METAINFO_LOOKUP.value:
+                        if not self.session.dlmgr.metainfo_requests.get(
+                            bytes(channel.infohash)
+                        ) and self.session.dlmgr.download_exists(bytes(channel.infohash)):
+                            channel_dict["state"] = CHANNEL_STATE.DOWNLOADING.value
+
                 channels_list.append(channel_dict)
         response_dict = {
             "results": channels_list,

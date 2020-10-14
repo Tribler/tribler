@@ -110,3 +110,4 @@ class CHANNEL_STATE(Enum):
     UPDATING = "Updating"
     DOWNLOADING = "Downloading"
     PREVIEW = "Preview"
+    METAINFO_LOOKUP = "Searching for metainfo"

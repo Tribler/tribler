@@ -402,7 +402,7 @@ def define_binding(db):
             if self.local_version > 0:
                 return CHANNEL_STATE.UPDATING.value
             if self.subscribed:
-                return CHANNEL_STATE.DOWNLOADING.value
+                return CHANNEL_STATE.METAINFO_LOOKUP.value
             return CHANNEL_STATE.PREVIEW.value
 
         def to_simple_dict(self, **kwargs):

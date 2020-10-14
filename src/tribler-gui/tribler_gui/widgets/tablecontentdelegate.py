@@ -195,6 +195,9 @@ class ChannelStateMixin(object):
         if data_item[u'state'] == CHANNEL_STATE.DOWNLOADING.value:
             painter.drawText(text_rect, Qt.AlignCenter, "⏳")
             return True
+        if data_item[u'state'] == CHANNEL_STATE.METAINFO_LOOKUP.value:
+            painter.drawText(text_rect, Qt.AlignCenter, "❓")
+            return True
         if data_item[u'state'] == CHANNEL_STATE.UPDATING.value:
             progress = data_item.get('progress')
             if progress is not None:
