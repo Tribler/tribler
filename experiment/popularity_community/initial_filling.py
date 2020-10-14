@@ -53,8 +53,7 @@ class ObservablePopularityCommunity(PopularityCommunity):
         time_since_start = time.time() - self._start_time
         torrents_total, torrents_with_seeders = self.get_torrents_info_tuple()
 
-        self._logger.info(f"Time: {time_since_start:.0f}s, total: {torrents_total}, live: {torrents_with_seeders}")
-
+        print(f"Time: {time_since_start:.0f}s, total: {torrents_total}, live: {torrents_with_seeders}")
         self._csv_writer.writerow([f"{time_since_start:.0f}", torrents_total, torrents_with_seeders])
         self._csv_file.flush()
 
@@ -130,7 +129,7 @@ if __name__ == "__main__":
     _arguments = _parse_argv()
     print(f"Arguments: {_arguments}")
 
-    logging_level = logging.DEBUG if _arguments.verbosity else logging.INFO
+    logging_level = logging.DEBUG if _arguments.verbosity else logging.CRITICAL
     logging.basicConfig(level=logging_level)
 
     _run_tribler(_arguments)
