@@ -160,6 +160,7 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
 class ChannelStateMixin(object):
     wait_png = QIcon(get_image_path("wait.png"))
     share_icon = QIcon(get_image_path("share.png"))
+    downloading_icon = QIcon(get_image_path("downloads.png"))
 
     @staticmethod
     def get_indicator_rect(rect):
@@ -177,19 +178,27 @@ class ChannelStateMixin(object):
         # Draw empty cell as the background
 
         self.paint_empty_background(painter, option)
+        text_rect = option.rect
+
+        if data_item[u'status'] == CHANNEL_STATE.LEGACY.value:
+            painter.drawText(text_rect, Qt.AlignCenter, "Legacy")
+            return True
 
         if u'type' in data_item and data_item[u'type'] != CHANNEL_TORRENT:
             return True
-        if data_item[u'status'] == CHANNEL_STATE.LEGACY.value:
+        if data_item[u'state'] == CHANNEL_STATE.COMPLETE.value:
+            painter.drawText(text_rect, Qt.AlignCenter, "✔")
             return True
         if data_item[u'state'] == CHANNEL_STATE.PERSONAL.value:
             self.share_icon.paint(painter, self.get_indicator_rect(option.rect))
             return True
-        if data_item[u'state'] in [CHANNEL_STATE.UPDATING.value, CHANNEL_STATE.DOWNLOADING.value]:
+        if data_item[u'state'] == CHANNEL_STATE.DOWNLOADING.value:
+            painter.drawText(text_rect, Qt.AlignCenter, "⏳")
+            return True
+        if data_item[u'state'] == CHANNEL_STATE.UPDATING.value:
             progress = data_item.get('progress')
             if progress is not None:
                 self.draw_progress_bar(painter, option, float(progress))
-            # self.wait_png.paint(painter, self.get_indicator_rect(option.rect))
             return True
         return True
 
