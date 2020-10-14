@@ -118,6 +118,7 @@ class Session(TaskManager):
 
         # modules
         self.ipv8_community_loader = IPv8CommunityLoader()
+        register_default_launchers(self.ipv8_community_loader)
 
         self.api_manager = None
         self.watch_folder = None
@@ -145,7 +146,6 @@ class Session(TaskManager):
         self.core_test_mode = core_test_mode
 
     def load_ipv8_overlays(self):
-        register_default_launchers(self.ipv8_community_loader)
         self.ipv8_community_loader.load(self.ipv8, self)
 
     def enable_ipv8_statistics(self):
