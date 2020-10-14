@@ -112,7 +112,7 @@ class TorrentCrawler(RemoteQueryCommunity):
         time = self.seconds_since_start()
         peers_count = len(self.get_peers())
         peers_crawled = len(self._crawled_peers)
-        print(f"Time: {time}, peers: {peers_count}, crawled: {peers_crawled}")
+        print(f"\nTime: {time}, peers: {peers_count}, crawled: {peers_crawled}")
         self._peers_count_csv_file.write(f"{time},{peers_count},{peers_crawled}\n")
 
     def request_torrents_from_new_peers(self):
