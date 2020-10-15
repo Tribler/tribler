@@ -95,6 +95,7 @@ class TunnelDispatcher(TaskManager):
 
         if response:
             tcp_connection.transport.write(response)
+        tcp_connection.transport.close()
 
     def select_circuit(self, connection, request):
         if request.destination[1] == CIRCUIT_ID_PORT:
@@ -118,6 +119,7 @@ class TunnelDispatcher(TaskManager):
                 self._logger.debug("Failed to create circuit for data to %s", request.destination)
                 return None
             self._logger.debug("Creating circuit for data to %s. Retrying later..", request.destination)
+            self.cid_to_con[circuit.circuit_id] = connection
             circuit.ready.add_done_callback(lambda f, c=connection.udp_connection, r=request:
                                             self.on_socks5_udp_data(c, r) if f.result() else None)
             return None

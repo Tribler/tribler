@@ -595,7 +595,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         writer = None
         try:
-            with async_timeout.timeout(3):
+            with async_timeout.timeout(10):
                 self.logger.debug("Opening TCP connection to %s", target_address)
                 reader, writer = await open_connection(*target_address)
                 writer.write(payload.request)
@@ -624,7 +624,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         except (IndexError, RuntimeError):
             response_decoded = None
 
-        if response_decoded is None:
+        if response_decoded is None and not response.startswith(b'HTTP/1.1 307'):
             self.logger.warning('Tunnel HTTP request not allowed')
             return
 
