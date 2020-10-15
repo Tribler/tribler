@@ -15,6 +15,7 @@ import libtorrent
 import psutil
 
 import tribler_core.utilities.json_util as json
+from tribler_core.utilities.utilities import has_bep33_support
 
 from tribler_gui.defs import DEBUG_PANE_REFRESH_TIMEOUT, GB, MB
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
@@ -243,6 +244,7 @@ class DebugWindow(QMainWindow):
             "Python version", sys.version.replace('\n', ''), self.window().general_tree_widget  # to fit in one line
         )
         self.create_and_add_widget_item("Libtorrent version", libtorrent.version, self.window().general_tree_widget)
+        self.create_and_add_widget_item("BEP33 support", has_bep33_support(), self.window().general_tree_widget)
         self.create_and_add_widget_item("", "", self.window().general_tree_widget)
 
         self.create_and_add_widget_item("Number of channels", data["num_channels"], self.window().general_tree_widget)
