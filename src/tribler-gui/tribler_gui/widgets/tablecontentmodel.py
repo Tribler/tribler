@@ -236,6 +236,9 @@ class ChannelContentModel(RemoteTableModel):
     }
 
     column_tooltip_filters = {
+        u'subscribed': lambda data: "Subscribed.\n(Click to unsubscribe)"
+        if data
+        else "Not subscribed.\n(Click to subscribe)",
         u'state': lambda data: data,
         u'votes': lambda data: "{0:.0%}".format(float(data)) if data else None,
     }
