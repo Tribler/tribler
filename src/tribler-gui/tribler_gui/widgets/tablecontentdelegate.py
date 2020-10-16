@@ -235,7 +235,6 @@ class ChannelStateMixin(object):
         painter.setCompositionMode(QPainter.CompositionMode_Xor)
         p.setPen(TRIBLER_PALETTE.light().color())
         font = p.font()
-        # font.setPixelSize(1.5 * self._thumb_radius)
         p.setFont(font)
         p.drawText(bg_rect, Qt.AlignCenter, f"{str(floor(progress*100))}%")
 
@@ -450,8 +449,7 @@ class SubscribeToggleControl(QObject, CheckClickedMixin):
         p = painter
 
         p.setRenderHint(QPainter.Antialiasing, True)
-        track_opacity = self._track_opacity * (1.0 if complete else 0.7)
-        track_opacity = 1.0 if hover else track_opacity
+        track_opacity = 1.0 if hover else self._track_opacity
         thumb_opacity = 1.0
         text_opacity = 1.0
         track_brush = self._track_color[toggled]
@@ -460,6 +458,9 @@ class SubscribeToggleControl(QObject, CheckClickedMixin):
 
         p.setPen(Qt.NoPen)
         p.setBrush(track_brush)
+        p.setPen(QPen(track_brush.color(), 2))
+        if not complete and toggled:
+            p.setBrush(Qt.NoBrush)
         p.setOpacity(track_opacity)
         p.drawRoundedRect(
             x,
@@ -469,6 +470,8 @@ class SubscribeToggleControl(QObject, CheckClickedMixin):
             self._track_radius,
             self._track_radius,
         )
+        p.setPen(Qt.NoPen)
+
         p.setBrush(thumb_brush)
         p.setOpacity(thumb_opacity)
         p.drawEllipse(
