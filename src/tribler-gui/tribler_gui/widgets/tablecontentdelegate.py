@@ -435,9 +435,12 @@ class SubscribeToggleControl(QObject, CheckClickedMixin):
         self._track_color = {True: TRIBLER_PALETTE.highlight(), False: TRIBLER_PALETTE.dark()}
         self._text_color = {True: TRIBLER_PALETTE.highlight().color(), False: TRIBLER_PALETTE.dark().color()}
         self._thumb_text = {True: '✔', False: '✕'}
-        self._track_opacity = 1
+        self._track_opacity = 0.8
 
-    def paint(self, painter, rect, _, toggled=False, hover=False):
+    def paint(self, painter, rect, index, toggled=False, hover=False):
+        data_item = index.model().data_items[index.row()]
+        complete = data_item.get('state') == CHANNEL_STATE.COMPLETE.value
+
         painter.save()
 
         x = rect.x() + (rect.width() - self._width) / 2
@@ -447,7 +450,8 @@ class SubscribeToggleControl(QObject, CheckClickedMixin):
         p = painter
 
         p.setRenderHint(QPainter.Antialiasing, True)
-        track_opacity = self._track_opacity
+        track_opacity = self._track_opacity * (1.0 if complete else 0.7)
+        track_opacity = 1.0 if hover else track_opacity
         thumb_opacity = 1.0
         text_opacity = 1.0
         track_brush = self._track_color[toggled]
