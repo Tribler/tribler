@@ -1,3 +1,6 @@
+import inspect
+import sys
+
 from ipv8.loader import CommunityLauncher, after, kwargs, overlay, precondition, set_in_session, walk_strategy
 from ipv8.peer import Peer
 
@@ -159,6 +162,18 @@ class RemoteQueryCommunityLauncher(IPv8CommunityLauncher):
 @precondition('session.config.get_chant_testnet()')
 class RemoteQueryTestnetCommunityLauncher(TestnetMixIn, RemoteQueryCommunityLauncher):
     pass
+
+
+def get_hiddenimports():
+    """
+    Return the set of all hidden imports defined by all CommunityLaunchers in this file.
+    """
+    hiddenimports = set()
+
+    for _, obj in inspect.getmembers(sys.modules[__name__]):
+        hiddenimports.update(getattr(obj, "hiddenimports", set()))
+
+    return hiddenimports
 
 
 def register_default_launchers(loader):
