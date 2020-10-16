@@ -210,8 +210,8 @@ class RemoteTableModel(QAbstractTableModel):
 
 class ChannelContentModel(RemoteTableModel):
 
-    columns = [u'category', u'name', u'size', u'health', u'updated']
-    column_headers = [tr('Category'), tr('Name'), tr('Size'), tr('Health'), tr('Updated')]
+    columns = [ACTION_BUTTONS, u'category', u'name', u'size', u'health', u'updated']
+    column_headers = ['', tr('Category'), tr('Name'), tr('Size'), tr('Health'), tr('Updated')]
     unsortable_columns = [u'status', u'state', ACTION_BUTTONS]
     column_flags = {
         u'subscribed': Qt.ItemIsEnabled | Qt.ItemIsSelectable,

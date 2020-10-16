@@ -2,15 +2,22 @@
 This file contains various controllers for table views.
 The responsibility of the controller is to populate the table view with some data, contained in a specific model.
 """
-from PyQt5.QtCore import QObject, Qt
+import time
+
+from PyQt5.QtCore import QObject, QTimer, Qt
 from PyQt5.QtGui import QCursor
+from PyQt5.QtNetwork import QNetworkRequest
 from PyQt5.QtWidgets import QAction
 
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 from tribler_core.utilities.json_util import dumps
 
+from tribler_gui.defs import HEALTH_CHECKING
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
+from tribler_gui.utilities import get_health
+
+HEALTHCHECK_DELAY = 500
 
 
 def sanitize_for_fts(text):
@@ -31,8 +38,9 @@ class TriblerTableViewController(QObject):
     Base controller for a table view that displays some data.
     """
 
-    def __init__(self, table_view):
-        super(TriblerTableViewController, self).__init__()
+    def __init__(self, table_view, **kwargs):
+        super().__init__()
+
         self.model = None
         self.table_view = table_view
         self.table_view.verticalScrollBar().valueChanged.connect(self._on_list_scroll)
@@ -70,10 +78,105 @@ class TriblerTableViewController(QObject):
         self.model.reset()
 
 
-class ContextMenuMixin(object):
-    table_view = None
-    model = None
+class TableSelectionMixin(object):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
+        self.healthcheck_cooldown = QTimer()
+        self.healthcheck_cooldown.setSingleShot(True)
+
+        # When the user stops scrolling and selection settles on a row,
+        # trigger the health check.
+        self.healthcheck_cooldown.timeout.connect(lambda: self._on_selection_changed(None))
+
+    def set_model(self, model):
+        super(TableSelectionMixin, self).set_model(model)
+        self.table_view.selectionModel().selectionChanged.connect(self._on_selection_changed)
+
+    def unset_model(self, model):
+        if self.table_view.model:
+            self.table_view.selectionModel().selectionChanged.disconnect()
+        super(TableSelectionMixin, self).unset_model(model)
+
+    def _on_selection_changed(self, _):
+        selected_indices = self.table_view.selectedIndexes()
+        if not selected_indices:
+            self.table_view.clearSelection()
+            return
+
+        data_item = selected_indices[-1].model().data_items[selected_indices[-1].row()]
+        if 'type' in data_item and data_item['type'] != REGULAR_TORRENT:
+            return
+
+        # Trigger health check if necessary
+        # When the user scrolls the list, we only want to trigger health checks on the line
+        # that the user stopped on, so we do not generate excessive health checks.
+        if data_item['last_tracker_check'] == 0 and data_item.get(u'health') != HEALTH_CHECKING:
+            if self.healthcheck_cooldown.isActive():
+                self.healthcheck_cooldown.stop()
+            else:
+                self.check_torrent_health(data_item)
+            self.healthcheck_cooldown.start(HEALTHCHECK_DELAY)
+
+    def check_torrent_health(self, data_item):
+        infohash = data_item[u'infohash']
+
+        if u'health' in self.model.column_position:
+            # Check if the entry still exists in the table
+            row = self.model.item_uid_map.get(infohash)
+            data_item = self.model.data_items[row]
+            data_item[u'health'] = HEALTH_CHECKING
+            health_cell_index = self.model.index(row, self.model.column_position[u'health'])
+            self.model.dataChanged.emit(health_cell_index, health_cell_index, [])
+
+        TriblerNetworkRequest(
+            "metadata/torrents/%s/health" % infohash,
+            self.on_health_response,
+            url_params={"nowait": True, "refresh": True},
+            capture_core_errors=False,
+            priority=QNetworkRequest.LowPriority,
+        )
+
+    def on_health_response(self, response):
+        total_seeders = 0
+        total_leechers = 0
+
+        if not response or 'error' in response:
+            self.update_torrent_health(0, 0)  # Just set the health to 0 seeders, 0 leechers
+            return
+
+        if 'checking' in response:
+            return
+
+        infohash = response['infohash']
+        for _, status in response['health'].items():
+            if 'error' in status:
+                continue  # Timeout or invalid status
+            total_seeders += int(status['seeders'])
+            total_leechers += int(status['leechers'])
+
+        self.update_torrent_health(infohash, total_seeders, total_leechers)
+
+    def update_torrent_health(self, infohash, seeders, leechers):
+        # Check if details widget is still showing the same entry and the entry still exists in the table
+        row = self.model.item_uid_map.get(infohash)
+        if row is None:
+            return
+
+        data_item = self.model.data_items[row]
+        data_item[u'num_seeders'] = seeders
+        data_item[u'num_leechers'] = leechers
+        data_item[u'last_tracker_check'] = time.time()
+        data_item[u'health'] = get_health(
+            data_item[u'num_seeders'], data_item[u'num_leechers'], data_item[u'last_tracker_check']
+        )
+
+        if u'health' in self.model.column_position:
+            index = self.model.index(row, self.model.column_position[u'health'])
+            self.model.dataChanged.emit(index, index, [])
+
+
+class ContextMenuMixin(object):
     def enable_context_menu(self, widget):
         self.table_view = widget
         self.table_view.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -156,9 +259,9 @@ class ContextMenuMixin(object):
         return False
 
 
-class ContentTableViewController(ContextMenuMixin, TriblerTableViewController):
-    def __init__(self, table_view, filter_input=None):
-        TriblerTableViewController.__init__(self, table_view)
+class ContentTableViewController(TableSelectionMixin, ContextMenuMixin, TriblerTableViewController):
+    def __init__(self, *args, filter_input=None, **kwargs):
+        super().__init__(*args, **kwargs)
         self.filter_input = filter_input
         if self.filter_input:
             self.filter_input.textChanged.connect(self._on_filter_input_change)
@@ -166,11 +269,5 @@ class ContentTableViewController(ContextMenuMixin, TriblerTableViewController):
         # self.model.row_edited.connect(self._on_row_edited)
         self.enable_context_menu(self.table_view)
 
-    # def set_model(self, model):
-    # super(ContentTableViewController, self).set_model(model)
-    # self.table_view.selectionModel().selectionChanged.connect(self._on_selection_changed)
-
     def unset_model(self):
-        # if self.table_view.model:
-        # self.table_view.selectionModel().selectionChanged.disconnect()
         self.model = None

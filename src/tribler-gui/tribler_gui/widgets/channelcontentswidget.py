@@ -113,7 +113,9 @@ class ChannelContentsWidget(widget_form, widget_class):
         self.channel_options_button.clicked.connect(self.show_channel_options)
         self.commit_control_bar.setHidden(True)
 
-        self.controller = ContentTableViewController(self.content_table, self.channel_torrents_filter_input)
+        self.controller = ContentTableViewController(
+            self.content_table, filter_input=self.channel_torrents_filter_input
+        )
 
         # To reload the preview
         self.channel_preview_button.clicked.connect(self.preview_clicked)
