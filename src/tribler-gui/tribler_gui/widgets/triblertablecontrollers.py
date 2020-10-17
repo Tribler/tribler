@@ -93,10 +93,10 @@ class TableSelectionMixin(object):
         super(TableSelectionMixin, self).set_model(model)
         self.table_view.selectionModel().selectionChanged.connect(self._on_selection_changed)
 
-    def unset_model(self, model):
+    def unset_model(self):
         if self.table_view.model:
             self.table_view.selectionModel().selectionChanged.disconnect()
-        super(TableSelectionMixin, self).unset_model(model)
+        super(TableSelectionMixin, self).unset_model()
 
     def _on_selection_changed(self, _):
         selected_indices = self.table_view.selectedIndexes()
@@ -118,6 +118,8 @@ class TableSelectionMixin(object):
                 self.check_torrent_health(data_item)
             self.healthcheck_cooldown.start(HEALTHCHECK_DELAY)
 
+
+class HealthCheckerMixin:
     def check_torrent_health(self, data_item):
         infohash = data_item[u'infohash']
 
@@ -176,7 +178,11 @@ class TableSelectionMixin(object):
             self.model.dataChanged.emit(index, index, [])
 
 
-class ContextMenuMixin(object):
+class ContextMenuMixin:
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.enable_context_menu(self.table_view)
+
     def enable_context_menu(self, widget):
         self.table_view = widget
         self.table_view.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -259,15 +265,12 @@ class ContextMenuMixin(object):
         return False
 
 
-class ContentTableViewController(TableSelectionMixin, ContextMenuMixin, TriblerTableViewController):
+class ContentTableViewController(TableSelectionMixin, ContextMenuMixin, HealthCheckerMixin, TriblerTableViewController):
     def __init__(self, *args, filter_input=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.filter_input = filter_input
         if self.filter_input:
             self.filter_input.textChanged.connect(self._on_filter_input_change)
-
-        # self.model.row_edited.connect(self._on_row_edited)
-        self.enable_context_menu(self.table_view)
 
     def unset_model(self):
         self.model = None
