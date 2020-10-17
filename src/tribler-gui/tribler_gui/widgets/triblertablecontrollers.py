@@ -12,7 +12,7 @@ from PyQt5.QtWidgets import QAction
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 from tribler_core.utilities.json_util import dumps
 
-from tribler_gui.defs import HEALTH_CHECKING
+from tribler_gui.defs import HEALTH_CHECKING, HEALTH_UNCHECKED
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import get_health
@@ -49,7 +49,7 @@ class TriblerTableViewController(QObject):
         self.table_view.delegate.subscribe_control.clicked.connect(self.table_view.on_subscribe_control_clicked)
         self.table_view.delegate.download_button.clicked.connect(self.table_view.on_download_button_clicked)
         self.table_view.delegate.health_status_widget.clicked.connect(
-            lambda index: self.check_torrent_health(index.model().data_items[index.row()])
+            lambda index: self.check_torrent_health(index.model().data_items[index.row()], forced=True)
         )
         self.table_view.torrent_clicked.connect(self.check_torrent_health)
 
@@ -128,17 +128,22 @@ class TableSelectionMixin(object):
 
 
 class HealthCheckerMixin:
-    def check_torrent_health(self, data_item):
+    def check_torrent_health(self, data_item, forced=False):
         # TODO: stop triggering multiple checks over a single infohash by e.g. selection and click signals
         infohash = data_item[u'infohash']
 
-        if u'health' in self.model.column_position:
-            # Check if the entry still exists in the table
-            row = self.model.item_uid_map.get(infohash)
-            data_item = self.model.data_items[row]
-            data_item[u'health'] = HEALTH_CHECKING
-            health_cell_index = self.model.index(row, self.model.column_position[u'health'])
-            self.model.dataChanged.emit(health_cell_index, health_cell_index, [])
+        if u'health' not in self.model.column_position:
+            return
+        # Check if the entry still exists in the table
+        row = self.model.item_uid_map.get(infohash)
+        if row is None:
+            return
+        data_item = self.model.data_items[row]
+        if not forced and data_item[u'health'] != HEALTH_UNCHECKED:
+            return
+        data_item[u'health'] = HEALTH_CHECKING
+        health_cell_index = self.model.index(row, self.model.column_position[u'health'])
+        self.model.dataChanged.emit(health_cell_index, health_cell_index, [])
 
         TriblerNetworkRequest(
             "metadata/torrents/%s/health" % infohash,
@@ -152,11 +157,7 @@ class HealthCheckerMixin:
         total_seeders = 0
         total_leechers = 0
 
-        if not response or 'error' in response:
-            self.update_torrent_health(0, 0)  # Just set the health to 0 seeders, 0 leechers
-            return
-
-        if 'checking' in response:
+        if not response or 'error' in response or 'checking' in response:
             return
 
         infohash = response['infohash']
