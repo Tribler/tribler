@@ -349,8 +349,14 @@ class TriblerContentDelegate(
         self.ondemand_container = [self.download_button]
 
         self.commit_control = CommitStatusControl(u'status')
-        self.controls = [self.subscribe_control, self.download_button, self.commit_control, self.rating_control]
-        self.health_status_widget = HealthStatusDisplay()
+        self.health_status_widget = HealthStatusControl(u'health')
+        self.controls = [
+            self.subscribe_control,
+            self.download_button,
+            self.commit_control,
+            self.rating_control,
+            self.health_status_widget,
+        ]
         self.column_drawing_actions = [
             (u'subscribed', self.draw_subscribed_control),
             (u'votes', self.draw_rating_control),
@@ -630,6 +636,16 @@ class HealthStatusDisplay(QObject):
             txt = u'S' + str(seeders) + u' L' + str(leechers)
 
             draw_text(painter, text_box, txt)
+
+
+class HealthStatusControl(HealthStatusDisplay, CheckClickedMixin):
+
+    clicked = pyqtSignal(QModelIndex)
+
+    def __init__(self, column_name, parent=None):
+        QObject.__init__(self, parent=parent)
+        self.column_name = column_name
+        self.last_index = QModelIndex()
 
 
 class RatingControl(QObject, CheckClickedMixin):

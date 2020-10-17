@@ -2,7 +2,7 @@ from PyQt5.QtCore import QModelIndex, QPoint, QRect, Qt, pyqtSignal
 from PyQt5.QtGui import QGuiApplication
 from PyQt5.QtWidgets import QTableView
 
-from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE
+from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 
 from tribler_gui.defs import ACTION_BUTTONS, COMMIT_STATUS_COMMITTED
 from tribler_gui.utilities import index2uri
@@ -20,6 +20,7 @@ class TriblerContentTableView(QTableView):
     mouse_moved = pyqtSignal(QPoint, QModelIndex)
 
     channel_clicked = pyqtSignal(dict)
+    torrent_clicked = pyqtSignal(dict)
 
     def __init__(self, parent=None):
         QTableView.__init__(self, parent)
@@ -33,10 +34,6 @@ class TriblerContentTableView(QTableView):
 
         # Mix-in connects
         self.clicked.connect(self.on_table_item_clicked)
-        self.delegate.subscribe_control.clicked.connect(self.on_subscribe_control_clicked)
-        self.delegate.rating_control.clicked.connect(self.on_subscribe_control_clicked)
-        self.delegate.download_button.clicked.connect(self.on_download_button_clicked)
-        # TODO: status changing feature should remain turned off until we fix the undo mess
 
     def mouseMoveEvent(self, event):
         index = QModelIndex(self.indexAt(event.pos()))
@@ -72,13 +69,17 @@ class TriblerContentTableView(QTableView):
             or (u'status' in column_position and item.column() == column_position[u'status'])
             or (u'votes' in column_position and item.column() == column_position[u'votes'])
             or (u'subscribed' in column_position and item.column() == column_position[u'subscribed'])
+            or (u'health' in column_position and item.column() == column_position[u'health'])
         ):
             return
 
-        content_info = self.model().data_items[item.row()]
+        data_item = self.model().data_items[item.row()]
         # Safely determine if the thing is a channel. A little bit hackish
-        if content_info.get('type', None) in [CHANNEL_TORRENT, COLLECTION_NODE]:
-            self.channel_clicked.emit(content_info)
+        if data_item.get('type') in [CHANNEL_TORRENT, COLLECTION_NODE]:
+            self.channel_clicked.emit(data_item)
+
+        if data_item.get('type') == REGULAR_TORRENT:
+            self.torrent_clicked.emit(data_item)
 
     def on_torrent_status_updated(self, json_result, index):
         if not json_result:

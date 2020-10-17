@@ -45,6 +45,14 @@ class TriblerTableViewController(QObject):
         self.table_view = table_view
         self.table_view.verticalScrollBar().valueChanged.connect(self._on_list_scroll)
 
+        # FIXME: The M-V-C stuff is a complete mess. It should be refactored in a more structured way.
+        self.table_view.delegate.subscribe_control.clicked.connect(self.table_view.on_subscribe_control_clicked)
+        self.table_view.delegate.download_button.clicked.connect(self.table_view.on_download_button_clicked)
+        self.table_view.delegate.health_status_widget.clicked.connect(
+            lambda index: self.check_torrent_health(index.model().data_items[index.row()])
+        )
+        self.table_view.torrent_clicked.connect(self.check_torrent_health)
+
     def set_model(self, model):
         self.model = model
         self.table_view.setModel(self.model)
@@ -121,6 +129,7 @@ class TableSelectionMixin(object):
 
 class HealthCheckerMixin:
     def check_torrent_health(self, data_item):
+        # TODO: stop triggering multiple checks over a single infohash by e.g. selection and click signals
         infohash = data_item[u'infohash']
 
         if u'health' in self.model.column_position:
@@ -212,6 +221,9 @@ class ContextMenuMixin:
         num_selected = len(self.table_view.selectionModel().selectedRows())
         if num_selected == 1 and item_index.model().data_items[item_index.row()]["type"] == REGULAR_TORRENT:
             self.add_menu_item(menu, ' Download ', item_index, self.table_view.on_download_button_clicked)
+            self.add_menu_item(
+                menu, ' Recheck health', item_index.model().data_items[item_index.row()], self.check_torrent_health
+            )
 
         # Add menu separator for channel stuff
         menu.addSeparator()
