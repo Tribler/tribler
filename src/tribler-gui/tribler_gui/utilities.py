@@ -14,10 +14,12 @@ from tribler_gui.defs import HEALTH_DEAD, HEALTH_GOOD, HEALTH_MOOT, HEALTH_UNCHE
 from tribler_gui.i18n import tr
 
 
+def data_item2uri(data_item):
+    return f"magnet:?xt=urn:btih:{data_item[u'infohash']}&dn={data_item[u'name']}"
+
+
 def index2uri(index):
-    infohash = index.model().data_items[index.row()][u'infohash']
-    name = index.model().data_items[index.row()][u'name']
-    return u"magnet:?xt=urn:btih:%s&dn=%s" % (infohash, name)
+    return data_item2uri(index.model().data_items[index.row()])
 
 
 def format_size(num, suffix='B'):

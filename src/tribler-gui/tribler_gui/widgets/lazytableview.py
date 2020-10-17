@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import QTableView
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 
 from tribler_gui.defs import ACTION_BUTTONS, COMMIT_STATUS_COMMITTED
-from tribler_gui.utilities import index2uri
+from tribler_gui.utilities import data_item2uri, index2uri
 from tribler_gui.widgets.tablecontentdelegate import TriblerContentDelegate
 
 
@@ -21,6 +21,7 @@ class TriblerContentTableView(QTableView):
 
     channel_clicked = pyqtSignal(dict)
     torrent_clicked = pyqtSignal(dict)
+    torrent_doubleclicked = pyqtSignal(dict)
 
     def __init__(self, parent=None):
         QTableView.__init__(self, parent)
@@ -34,6 +35,7 @@ class TriblerContentTableView(QTableView):
 
         # Mix-in connects
         self.clicked.connect(self.on_table_item_clicked)
+        self.doubleClicked.connect(lambda item: self.on_table_item_clicked(item, doubleclick=True))
 
     def mouseMoveEvent(self, event):
         index = QModelIndex(self.indexAt(event.pos()))
@@ -46,9 +48,6 @@ class TriblerContentTableView(QTableView):
         for control in self.delegate.controls:
             control.rect = QRect()
 
-    def on_download_button_clicked(self, index):
-        self.window().start_download_from_uri(index2uri(index))
-
     def on_subscribe_control_clicked(self, index):
         item = index.model().data_items[index.row()]
         # skip LEGACY entries, regular torrents and personal channel
@@ -58,7 +57,7 @@ class TriblerContentTableView(QTableView):
         status = int(item[u'subscribed'])
         index.model().setData(index, int(not status), role=Qt.EditRole)
 
-    def on_table_item_clicked(self, item):
+    def on_table_item_clicked(self, item, doubleclick=False):
         # We don't want to trigger the click-based events on, say, Ctrl-click based selection
         if QGuiApplication.keyboardModifiers() != Qt.NoModifier:
             return
@@ -79,7 +78,10 @@ class TriblerContentTableView(QTableView):
             self.channel_clicked.emit(data_item)
 
         if data_item.get('type') == REGULAR_TORRENT:
-            self.torrent_clicked.emit(data_item)
+            if not doubleclick:
+                self.torrent_clicked.emit(data_item)
+            else:
+                self.torrent_doubleclicked.emit(data_item)
 
     def on_torrent_status_updated(self, json_result, index):
         if not json_result:
@@ -107,3 +109,9 @@ class TriblerContentTableView(QTableView):
             return
         for col_num, col in enumerate(self.model().columns):
             self.setColumnWidth(col_num, self.model().column_width.get(col, lambda _: 110)(self.width()))
+
+    def start_download_from_index(self, index):
+        self.window().start_download_from_uri(index2uri(index))
+
+    def start_download_from_dataitem(self, data_item):
+        self.window().start_download_from_uri(data_item2uri(data_item))
