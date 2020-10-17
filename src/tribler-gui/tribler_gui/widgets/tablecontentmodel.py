@@ -238,6 +238,7 @@ class ChannelContentModel(RemoteTableModel):
     column_tooltip_filters = {
         u'state': lambda data: data,
         u'votes': lambda data: "{0:.0%}".format(float(data)) if data else None,
+        u'category': lambda data: data,
         u'health': lambda data: f"{data}" + ('' if data == HEALTH_CHECKING else '\n(Click to recheck)'),
     }
 
