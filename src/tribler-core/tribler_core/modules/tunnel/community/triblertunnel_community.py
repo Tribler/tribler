@@ -449,8 +449,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             self.readd_bittorrent_peers()
 
     def on_raw_data(self, circuit, origin, data):
-        anon_seed = circuit.ctype == CIRCUIT_TYPE_RP_SEEDER
-        self.dispatcher.on_incoming_from_tunnel(self, circuit, origin, data, anon_seed)
+        self.dispatcher.on_incoming_from_tunnel(self, circuit, origin, data)
 
     def monitor_downloads(self, dslist):
         # Monitor downloads with anonymous flag set, and build rendezvous/introduction points when needed.
@@ -562,8 +561,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                 lt_listen_port = self.tribler_session.dlmgr.listen_ports.get(hops)
                 lt_listen_port = lt_listen_port or self.tribler_session.dlmgr.get_session(hops).listen_port()
                 for session in self.socks_servers[hops - 1].sessions:
-                    if session.get_udp_socket() and lt_listen_port:
-                        session.get_udp_socket().remote_udp_address = ("127.0.0.1", lt_listen_port)
+                    if session.udp_connection and lt_listen_port:
+                        session.udp_connection.remote_udp_address = ("127.0.0.1", lt_listen_port)
         await super(TriblerTunnelCommunity, self).create_introduction_point(info_hash, required_ip=required_ip)
 
     async def unload(self):
@@ -596,7 +595,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         writer = None
         try:
-            with async_timeout.timeout(3):
+            with async_timeout.timeout(10):
                 self.logger.debug("Opening TCP connection to %s", target_address)
                 reader, writer = await open_connection(*target_address)
                 writer.write(payload.request)
@@ -625,7 +624,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         except (IndexError, RuntimeError):
             response_decoded = None
 
-        if response_decoded is None:
+        if response_decoded is None and not response.startswith(b'HTTP/1.1 307'):
             self.logger.warning('Tunnel HTTP request not allowed')
             return
 
@@ -652,20 +651,18 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
     async def perform_http_request(self, destination, request, hops=1):
         # We need a circuit that supports HTTP requests, meaning that the circuit will have to end
         # with a node that has the PEER_FLAG_EXIT_HTTP flag set.
-        allowed_peers = self.get_candidates(PEER_FLAG_EXIT_HTTP)
-        allowed_pks = [p.key.key_to_bin() for p in allowed_peers]
-        circuits = [c for c in self.circuits.values() if c.state == CIRCUIT_STATE_READY
-                    and c.hops[-1].public_key in allowed_pks
-                    and c.goal_hops == hops]
-
+        circuits = self.find_circuits(exit_flags=[PEER_FLAG_EXIT_HTTP])
         if circuits:
             circuit = circuits[0]
-        elif allowed_peers:
-            circuit = self.create_circuit(hops, required_exit=allowed_peers[0])
-            if not circuit or not await circuit.ready:
-                raise RuntimeError('No HTTP circuit could be created')
         else:
-            raise RuntimeError('No HTTP exits available')
+            # Try to create a circuit. Attempt at most 3 times.
+            for _ in range(3):
+                circuit = self.create_circuit(hops, exit_flags=[PEER_FLAG_EXIT_HTTP])
+                if circuit and await circuit.ready:
+                    break
+
+        if not circuit:
+            raise RuntimeError('No HTTP circuit available')
 
         cache = self.request_cache.add(HTTPRequestCache(self, circuit.circuit_id))
         self.send_cell(circuit.peer, HTTPRequestPayload(circuit.circuit_id, cache.number,

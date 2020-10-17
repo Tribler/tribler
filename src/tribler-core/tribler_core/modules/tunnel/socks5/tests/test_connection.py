@@ -41,8 +41,8 @@ def connection():
     connection = Socks5Connection(None)
     connection.transport = MockTransport()
     yield connection
-    if connection._udp_socket:  # Close opened UDP sockets
-        connection._udp_socket.close()
+    if connection.udp_connection:  # Close opened UDP sockets
+        connection.udp_connection.close()
 
 
 def test_invalid_version(connection):
