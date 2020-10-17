@@ -8,7 +8,7 @@ from tribler_common.simpledefs import CHANNELS_VIEW_UUID, CHANNEL_STATE
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import NEW
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE
 
-from tribler_gui.defs import ACTION_BUTTONS, BITTORRENT_BIRTHDAY, COMMIT_STATUS_TODELETE
+from tribler_gui.defs import ACTION_BUTTONS, BITTORRENT_BIRTHDAY, COMMIT_STATUS_TODELETE, HEALTH_CHECKING
 from tribler_gui.i18n import tr
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import format_size, format_votes, pretty_date
@@ -238,6 +238,7 @@ class ChannelContentModel(RemoteTableModel):
     column_tooltip_filters = {
         u'state': lambda data: data,
         u'votes': lambda data: "{0:.0%}".format(float(data)) if data else None,
+        u'health': lambda data: f"{data}" + ('' if data == HEALTH_CHECKING else '\n(Click to recheck)'),
     }
 
     column_display_filters = {

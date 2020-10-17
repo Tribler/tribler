@@ -25,12 +25,13 @@ from tribler_gui.defs import (
 from tribler_gui.utilities import format_votes, get_health, get_image_path
 from tribler_gui.widgets.tableiconbuttons import DownloadIconButton
 
+TRIBLER_NEUTRAL = QColor("#B5B5B5")
 TRIBLER_ORANGE = QColor("#e67300")
 TRIBLER_PALETTE = QPalette()
 TRIBLER_PALETTE.setColor(QPalette.Highlight, TRIBLER_ORANGE)
 
 
-def draw_text(painter, rect, text, color=QColor("#B5B5B5"), font=None, alignment=Qt.AlignVCenter):
+def draw_text(painter, rect, text, color=TRIBLER_NEUTRAL, font=None, alignment=Qt.AlignVCenter):
     painter.save()
     text_flags = Qt.AlignLeft | alignment | Qt.TextSingleLine
     text_box = painter.boundingRect(rect, text_flags, text)
@@ -325,7 +326,7 @@ class HealthLabelMixin(object):
 
         # This dumb check is required because some endpoints do not return entry type
         if 'type' not in data_item or data_item['type'] == REGULAR_TORRENT:
-            self.health_status_widget.paint(painter, option.rect, index)
+            self.health_status_widget.paint(painter, option.rect, index, hover=index == self.hover_index)
 
         return True
 
@@ -606,6 +607,8 @@ class HealthStatusDisplay(QObject):
 
         r = rect
 
+        painter.save()
+
         # Indicator ellipse rectangle
         y = r.top() + (r.height() - self.indicator_side) / 2
         x = r.left() + self.indicator_border
@@ -614,11 +617,9 @@ class HealthStatusDisplay(QObject):
         indicator_rect = QRect(x, y, w, h)
 
         # Paint indicator
-        painter.save()
         painter.setBrush(QBrush(self.health_colors[health]))
         painter.setPen(QPen(self.health_colors[health], 0, Qt.SolidLine, Qt.RoundCap))
         painter.drawEllipse(indicator_rect)
-        painter.restore()
 
         x = indicator_rect.left() + indicator_rect.width() + 2 * self.indicator_border
         y = r.top()
@@ -627,15 +628,17 @@ class HealthStatusDisplay(QObject):
         text_box = QRect(x, y, w, h)
 
         # Paint status text, if necessary
-        if health in [HEALTH_CHECKING, HEALTH_UNCHECKED, HEALTH_ERROR]:
-            draw_text(painter, text_box, health)
+        if health in (HEALTH_CHECKING, HEALTH_UNCHECKED, HEALTH_ERROR):
+            txt = health
         else:
             seeders = int(data_item[u'num_seeders'])
             leechers = int(data_item[u'num_leechers'])
 
             txt = u'S' + str(seeders) + u' L' + str(leechers)
 
-            draw_text(painter, text_box, txt)
+        color = TRIBLER_PALETTE.light().color() if hover else TRIBLER_NEUTRAL
+        draw_text(painter, text_box, txt, color=color)
+        painter.restore()
 
 
 class HealthStatusControl(HealthStatusDisplay, CheckClickedMixin):
