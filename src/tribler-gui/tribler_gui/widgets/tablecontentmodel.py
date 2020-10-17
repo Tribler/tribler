@@ -3,7 +3,7 @@ import uuid
 
 from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt, pyqtSignal
 
-from tribler_common.simpledefs import CHANNELS_VIEW_UUID
+from tribler_common.simpledefs import CHANNELS_VIEW_UUID, CHANNEL_STATE
 
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import NEW
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE
@@ -236,9 +236,6 @@ class ChannelContentModel(RemoteTableModel):
     }
 
     column_tooltip_filters = {
-        u'subscribed': lambda data: "Subscribed.\n(Click to unsubscribe)"
-        if data
-        else "Not subscribed.\n(Click to subscribe)",
         u'state': lambda data: data,
         u'votes': lambda data: "{0:.0%}".format(float(data)) if data else None,
     }
@@ -326,6 +323,23 @@ class ChannelContentModel(RemoteTableModel):
             and item["type"] in (CHANNEL_TORRENT, COLLECTION_NODE)
         ):
             return item["torrents"]
+
+        # 'subscribed' column gets special treatment in case of ToolTipRole, because
+        # its tooltip uses information from both 'subscribed' and 'state' keys
+        # TODO: refactor data, roles and filters to be less hacky and more readable
+        if (
+            column == 'subscribed'
+            and txt_filter == self.column_tooltip_filters
+            and 'subscribed' in item
+            and 'state' in item
+        ):
+            state_message = f" ({item['state']})" if item['state'] != CHANNEL_STATE.COMPLETE.value else ""
+            tooltip_txt = (
+                f"Subscribed.{state_message}\n(Click to unsubscribe)"
+                if item['subscribed']
+                else "Not subscribed.\n(Click to subscribe)"
+            )
+            return tooltip_txt
 
         if column in txt_filter:
             display_txt = txt_filter.get(column, str(data))(data)
