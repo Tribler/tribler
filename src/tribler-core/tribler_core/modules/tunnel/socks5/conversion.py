@@ -4,7 +4,7 @@ import socket
 import struct
 
 from ipv8.messaging.lazy_payload import VariablePayload, vp_compile
-from ipv8.messaging.serialization import Serializer
+from ipv8.messaging.serialization import DefaultStruct, ListOf, Serializer
 
 SOCKS_VERSION = 0x05
 
@@ -63,28 +63,6 @@ class UdpPacket(VariablePayload):
     format_list = ['H', 'B', 'socks5_address', 'raw']
 
 
-class Socks5Serializer(Serializer):
-    def __init__(self):
-        super().__init__()
-        self._packers['list_of_chars'] = ListOf('B')
-        self._packers['socks5_address'] = Socks5Address()
-
-
-class ListOf:
-
-    def __init__(self, format_str):
-        self.format_str = format_str
-        self.format_size = struct.Struct(format_str).size
-
-    def pack(self, data):
-        return struct.pack('>B' + self.format_str * len(data), len(data), *data)
-
-    def unpack(self, data, offset, unpack_list):
-        length, = struct.unpack_from('>B', data, offset)
-        unpack_list.append(struct.unpack_from(self.format_str * length, data, offset + 1))
-        return offset + 1 + self.format_size * length
-
-
 class Socks5Address:
 
     def pack(self, data):
@@ -133,4 +111,6 @@ class IPV6AddrError(NotImplementedError):
         return "IPV6 support not implemented"
 
 
-socks5_serializer = Socks5Serializer()
+socks5_serializer = Serializer()
+socks5_serializer.add_packer('list_of_chars', ListOf(DefaultStruct('>B')))
+socks5_serializer.add_packer('socks5_address', Socks5Address())
