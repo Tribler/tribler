@@ -19,6 +19,7 @@ from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import DIRTY_STATUSES, NEW
 from tribler_core.modules.metadata_store.restapi.metadata_endpoint_base import MetadataEndpointBase
 from tribler_core.modules.metadata_store.restapi.metadata_schema import ChannelSchema
+from tribler_core.modules.metadata_store.serialization import REGULAR_TORRENT
 from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_NOT_FOUND, RESTResponse
 from tribler_core.restapi.schema import HandledErrorSchema
 from tribler_core.utilities import path_util
@@ -144,6 +145,11 @@ class ChannelsEndpoint(ChannelsEndpointBase):
             contents = self.session.mds.MetadataNode.get_entries(**sanitized)
             contents_list = [c.to_simple_dict() for c in contents]
             total = self.session.mds.MetadataNode.get_total_count(**sanitized) if include_total else None
+        for torrent in contents_list:
+            if torrent['type'] == REGULAR_TORRENT:
+                dl = self.session.dlmgr.get_download(unhexlify(torrent['infohash']))
+                if dl is not None:
+                    torrent['progress'] = dl.get_state().get_progress()
         response_dict = {
             "results": contents_list,
             "first": sanitized['first'],

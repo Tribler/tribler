@@ -224,7 +224,10 @@ class ContextMenuMixin:
         if num_selected == 1 and item_index.model().data_items[item_index.row()]["type"] == REGULAR_TORRENT:
             self.add_menu_item(menu, ' Download ', item_index, self.table_view.start_download_from_index)
             self.add_menu_item(
-                menu, ' Recheck health', item_index.model().data_items[item_index.row()], self.check_torrent_health
+                menu,
+                ' Recheck health',
+                item_index.model().data_items[item_index.row()],
+                lambda x: self.check_torrent_health(x, forced=True),
             )
 
         # Add menu separator for channel stuff

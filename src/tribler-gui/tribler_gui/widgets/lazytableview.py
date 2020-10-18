@@ -1,6 +1,6 @@
 from PyQt5.QtCore import QModelIndex, QPoint, QRect, Qt, pyqtSignal
 from PyQt5.QtGui import QGuiApplication
-from PyQt5.QtWidgets import QTableView
+from PyQt5.QtWidgets import QAbstractItemView, QTableView
 
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 
@@ -32,6 +32,10 @@ class TriblerContentTableView(QTableView):
         self.setItemDelegate(self.delegate)
         self.mouse_moved.connect(self.delegate.on_mouse_moved)
         self.delegate.redraw_required.connect(self.redraw)
+
+        # Stop triggering editor events on doubleclick, because we already use doubleclick to start downloads.
+        # Editing should be started manually, from drop-down menu instead.
+        self.setEditTriggers(QAbstractItemView.NoEditTriggers)
 
         # Mix-in connects
         self.clicked.connect(self.on_table_item_clicked)

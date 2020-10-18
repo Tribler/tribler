@@ -31,15 +31,52 @@ TRIBLER_PALETTE = QPalette()
 TRIBLER_PALETTE.setColor(QPalette.Highlight, TRIBLER_ORANGE)
 
 
-def draw_text(painter, rect, text, color=TRIBLER_NEUTRAL, font=None, alignment=Qt.AlignVCenter):
+def draw_text(
+    painter, rect, text, color=TRIBLER_NEUTRAL, font=None, text_flags=Qt.AlignLeft | Qt.AlignVCenter | Qt.TextSingleLine
+):
     painter.save()
-    text_flags = Qt.AlignLeft | alignment | Qt.TextSingleLine
     text_box = painter.boundingRect(rect, text_flags, text)
     painter.setPen(QPen(color, 1, Qt.SolidLine, Qt.RoundCap))
     if font:
         painter.setFont(font)
 
     painter.drawText(text_box, text_flags, text)
+    painter.restore()
+
+
+def draw_progress_bar(painter, rect, progress=0.0):
+    painter.save()
+
+    outer_margin = 2
+    bar_height = 16
+    p = painter
+    r = rect
+
+    x = r.x() + outer_margin
+    y = r.y() + (r.height() - bar_height) / 2
+    h = bar_height
+
+    # Draw background rect
+    w_border = r.width() - 2 * outer_margin
+    bg_rect = QRect(x, y, w_border, h)
+    p.setPen(TRIBLER_PALETTE.light().color())
+    p.setBrush(TRIBLER_PALETTE.light().color())
+    p.drawRect(bg_rect)
+
+    w_progress = int((r.width() - 2 * outer_margin) * progress)
+    progress_rect = QRect(x, y, w_progress, h)
+    p.setPen(TRIBLER_PALETTE.highlight().color())
+    p.setBrush(TRIBLER_PALETTE.highlight().color())
+    p.drawRect(progress_rect)
+
+    # Draw border rect over the bar rect
+
+    painter.setCompositionMode(QPainter.CompositionMode_Xor)
+    p.setPen(TRIBLER_PALETTE.light().color())
+    font = p.font()
+    p.setFont(font)
+    p.drawText(bg_rect, Qt.AlignCenter, f"{str(floor(progress*100))}%")
+
     painter.restore()
 
 
@@ -114,12 +151,13 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
             self.redraw_required.emit()
 
     @staticmethod
-    def split_rect_into_squares(rect, buttons):
-        r = rect
-        side_size = min(r.width() / len(buttons), r.height() - 2)
+    def split_rect_into_squares(r, buttons):
+        x_border = 2
+        side_size = min(r.width() / len(buttons), r.height() - x_border)
         y_border = (r.height() - side_size) / 2
+        x_start = r.left() + (r.width() - len(buttons) * side_size) / 2  # Center the squares horizontally
         for n, button in enumerate(buttons):
-            x = r.left() + n * side_size
+            x = x_start + n * side_size
             y = r.top() + y_border
             h = side_size
             w = side_size
@@ -202,44 +240,9 @@ class ChannelStateMixin(object):
         if data_item[u'state'] == CHANNEL_STATE.UPDATING.value:
             progress = data_item.get('progress')
             if progress is not None:
-                self.draw_progress_bar(painter, option, float(progress))
+                draw_progress_bar(painter, option.rect, float(progress))
             return True
         return True
-
-    def draw_progress_bar(self, painter, option, progress=0.0):
-        painter.save()
-
-        outer_margin = 2
-        bar_height = 16
-        p = painter
-        r = option.rect
-
-        x = r.x() + outer_margin
-        y = r.y() + (r.height() - bar_height) / 2
-        h = bar_height
-
-        # Draw background rect
-        w_border = r.width() - 2 * outer_margin
-        bg_rect = QRect(x, y, w_border, h)
-        p.setPen(TRIBLER_PALETTE.light().color())
-        p.setBrush(TRIBLER_PALETTE.light().color())
-        p.drawRect(bg_rect)
-
-        w_progress = int((r.width() - 2 * outer_margin) * progress)
-        progress_rect = QRect(x, y, w_progress, h)
-        p.setPen(TRIBLER_PALETTE.highlight().color())
-        p.setBrush(TRIBLER_PALETTE.highlight().color())
-        p.drawRect(progress_rect)
-
-        # Draw border rect over the bar rect
-
-        painter.setCompositionMode(QPainter.CompositionMode_Xor)
-        p.setPen(TRIBLER_PALETTE.light().color())
-        font = p.font()
-        p.setFont(font)
-        p.drawText(bg_rect, Qt.AlignCenter, f"{str(floor(progress*100))}%")
-
-        painter.restore()
 
 
 class SubscribedControlMixin(object):
@@ -298,13 +301,29 @@ class CategoryLabelMixin(object):
 
 
 class DownloadControlsMixin(object):
-    def draw_download_controls(self, painter, option, index, _):
+    def draw_download_controls(self, painter, option, index, data_item):
         # Draw empty cell as the background
         self.paint_empty_background(painter, option)
 
-        # When the cursor leaves the table, we must "forget" about the button_box
+        border_thickness = 2
+        bordered_rect = QRect(
+            option.rect.left() + border_thickness,
+            option.rect.top() + border_thickness,
+            option.rect.width() - 2 * border_thickness,
+            option.rect.height() - 2 * border_thickness,
+        )
+        # When cursor leaves the table, we must "forget" about the button_box
         if self.hoverrow == -1:
             self.button_box = QRect()
+
+        progress = data_item.get('progress')
+        if progress is not None:
+            if int(progress) == 1.0:
+                draw_text(painter, bordered_rect, text="✔", text_flags=Qt.AlignCenter | Qt.TextSingleLine)
+            else:
+                draw_progress_bar(painter, bordered_rect, progress=progress)
+            return True
+
         if index.row() == self.hoverrow:
             extended_border_height = int(option.rect.height() * self.button_box_extended_border_ratio)
             button_box_extended_rect = option.rect.adjusted(0, -extended_border_height, 0, extended_border_height)
@@ -370,7 +389,7 @@ class TriblerContentDelegate(
 
     def draw_action_column(self, painter, option, index, data_item):
         if data_item['type'] == REGULAR_TORRENT:
-            return self.draw_download_controls(painter, option, index, None)
+            return self.draw_download_controls(painter, option, index, data_item)
 
     def draw_commit_status_column(self, painter, option, index, _):
         # Draw empty cell as the background
@@ -463,7 +482,6 @@ class SubscribeToggleControl(QObject, CheckClickedMixin):
         thumb_brush = self._thumb_color[toggled]
         text_color = self._text_color[toggled]
 
-        p.setPen(Qt.NoPen)
         p.setBrush(track_brush)
         p.setPen(QPen(track_brush.color(), 2))
         if not complete and toggled:
