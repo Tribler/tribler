@@ -462,8 +462,8 @@ class DiscoveredChannelsModel(ChannelContentModel):
 
 
 class PersonalChannelsModel(ChannelContentModel):
-    columns = [ACTION_BUTTONS, u'category', u'name', u'size', u'health', u'status']
-    column_headers = ['', tr('Category'), tr('Name'), tr('Size'), tr('Health'), u'']
+    columns = [ACTION_BUTTONS, u'category', u'name', u'size', u'health', u'updated', u'status']
+    column_headers = ['', tr('Category'), tr('Name'), tr('Size'), tr('Health'), tr('Updated'), u'']
 
     column_flags = dict(ChannelContentModel.column_flags)
     column_flags.update(
@@ -527,8 +527,8 @@ class PersonalChannelsModel(ChannelContentModel):
 
 
 class SimplifiedPersonalChannelsModel(PersonalChannelsModel):
-    columns = [ACTION_BUTTONS, u'category', u'name', u'size', u'health']
-    column_headers = ['', tr('Category'), tr('Name'), tr('Size'), tr('Health')]
+    columns = [ACTION_BUTTONS, u'category', u'name', u'size', u'health', u'updated']
+    column_headers = ['', tr('Category'), tr('Name'), tr('Size'), tr('Health'), tr('Updated')]
 
     column_width = dict(ChannelContentModel.column_width, **{u'name': lambda table_width: table_width - 330})
 

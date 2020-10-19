@@ -25,6 +25,8 @@ from tribler_gui.defs import (
 from tribler_gui.utilities import format_votes, get_health, get_image_path
 from tribler_gui.widgets.tableiconbuttons import DownloadIconButton
 
+PROGRESS_BAR_BACKGROUND = QColor("#444444")
+PROGRESS_BAR_FOREGROUND = QColor("#BBBBBB")
 TRIBLER_NEUTRAL = QColor("#B5B5B5")
 TRIBLER_ORANGE = QColor("#e67300")
 TRIBLER_PALETTE = QPalette()
@@ -59,19 +61,21 @@ def draw_progress_bar(painter, rect, progress=0.0):
     # Draw background rect
     w_border = r.width() - 2 * outer_margin
     bg_rect = QRect(x, y, w_border, h)
-    p.setPen(TRIBLER_PALETTE.light().color())
-    p.setBrush(TRIBLER_PALETTE.light().color())
+    background_color = PROGRESS_BAR_BACKGROUND
+    p.setPen(background_color)
+    p.setBrush(background_color)
     p.drawRect(bg_rect)
 
     w_progress = int((r.width() - 2 * outer_margin) * progress)
     progress_rect = QRect(x, y, w_progress, h)
-    p.setPen(TRIBLER_PALETTE.highlight().color())
-    p.setBrush(TRIBLER_PALETTE.highlight().color())
+    foreground_color = PROGRESS_BAR_FOREGROUND
+    p.setPen(foreground_color)
+    p.setBrush(foreground_color)
     p.drawRect(progress_rect)
 
     # Draw border rect over the bar rect
 
-    painter.setCompositionMode(QPainter.CompositionMode_Xor)
+    painter.setCompositionMode(QPainter.CompositionMode_Difference)
     p.setPen(TRIBLER_PALETTE.light().color())
     font = p.font()
     p.setFont(font)
