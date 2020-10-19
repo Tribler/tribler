@@ -4,6 +4,7 @@ import string
 from binascii import unhexlify
 from datetime import datetime
 from pathlib import Path
+from unittest.mock import patch
 
 from ipv8.database import database_blob
 from ipv8.keyvault.crypto import default_eccrypto
@@ -29,6 +30,7 @@ from tribler_core.modules.metadata_store.store import (
     UNKNOWN_TORRENT,
     UPDATED_OUR_VERSION,
 )
+from tribler_core.modules.metadata_store.tests.test_channel_download import CHANNEL_METADATA_UPDATED
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
 from tribler_core.utilities.path_util import str_path
 from tribler_core.utilities.random_utils import random_infohash
@@ -228,6 +230,19 @@ def test_process_channel_dir(metadata_store):
     assert len(channel.contents_list) == 4
     assert channel.timestamp == 1565621688015
     assert channel.local_version == channel.timestamp
+
+
+@db_session
+def test_compute_channel_update_progress(metadata_store, tmpdir):
+    """
+    Test estimating progress of channel processing
+    """
+    payload = ChannelMetadataPayload.from_file(CHANNEL_METADATA_UPDATED)
+    channel = metadata_store.process_payload(payload)[0][0]
+    with patch.object(metadata_store, 'get_channel_dir_path', lambda _: Path(CHANNEL_DIR)):
+        assert metadata_store.compute_channel_update_progress(channel) == 0.0
+        metadata_store.process_channel_dir(CHANNEL_DIR, channel.public_key, channel.id_)
+        assert metadata_store.compute_channel_update_progress(channel) == 1.0
 
 
 @db_session

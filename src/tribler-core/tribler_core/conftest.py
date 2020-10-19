@@ -102,6 +102,11 @@ def mock_dlmgr(session, mocker, tmpdir):
 
 
 @pytest.fixture
+def mock_dlmgr_get_download(session, mocker, tmpdir, mock_dlmgr):
+    session.dlmgr.get_download = lambda _: None
+
+
+@pytest.fixture
 async def session(tribler_config):
     session = Session(tribler_config)
     session.upgrader_enabled = False

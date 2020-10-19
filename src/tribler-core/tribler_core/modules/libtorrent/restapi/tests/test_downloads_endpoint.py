@@ -277,6 +277,7 @@ async def test_change_hops_error(enable_api, mock_dlmgr, test_download, session)
     """
     Testing whether the API returns 400 if we supply both anon_hops and another parameter
     """
+    session.dlmgr.get_download = lambda _: True
     await do_request(session, 'downloads/%s' % test_download.infohash, post_data={"state": "resume", 'anon_hops': 1},
                      expected_code=400, request_type='PATCH')
 

@@ -203,8 +203,7 @@ class MetadataStore(object):
 
     @db_session
     def compute_channel_update_progress(self, channel):
-        # This procedure copy-pastes some stuff from process_channel_dir
-        # TODO: maybe DRY it somehow?
+        # TODO: This procedure copy-pastes some stuff from process_channel_dir. Maybe DRY it somehow?
         blobs_to_process, total_blobs_size = self.get_list_of_channel_blobs_to_process(
             self.get_channel_dir_path(channel), channel.start_timestamp
         )

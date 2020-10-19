@@ -92,9 +92,10 @@ class ChannelsEndpoint(ChannelsEndpointBase):
                         try:
                             progress = self.session.mds.compute_channel_update_progress(channel)
                             channel_dict["progress"] = progress
-                        except ZeroDivisionError:
+                        except (ZeroDivisionError, FileNotFoundError) as e:
                             self._logger.error(
-                                "ZeroDivisionError when calculating channel update progress. Channel data: %s-%i %i/%i",
+                                "Error %s when calculating channel update progress. Channel data: %s-%i %i/%i",
+                                e,
                                 hexlify(channel.public_key),
                                 channel.id_,
                                 channel.start_timestamp,
