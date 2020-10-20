@@ -218,6 +218,7 @@ def test_on_health_check_completed(enable_chant, torrent_checker, session):
         ts = session.mds.TorrentState(infohash=infohash_bin)
         previous_check = ts.last_check
         torrent_checker.on_torrent_health_check_completed(infohash_bin, result)
+        assert 1 == len(torrent_checker.torrents_checked)
         assert result[2]['DHT'][0]['leechers'] == ts.leechers
         assert result[2]['DHT'][0]['seeders'] == ts.seeders
         assert previous_check < ts.last_check
@@ -226,6 +227,7 @@ def test_on_health_check_completed(enable_chant, torrent_checker, session):
 def test_on_health_check_failed(enable_chant, torrent_checker):
     """
     Check whether there is no crash when the torrent health check failed and the response is None
+    No torrent info is added to torrent_checked list.
     """
     infohash_bin = b'\xee' * 20
     torrent_checker.on_torrent_health_check_completed(infohash_bin, [None])

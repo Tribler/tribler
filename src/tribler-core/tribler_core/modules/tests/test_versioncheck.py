@@ -91,7 +91,7 @@ async def test_bad_request(version_check_manager, version_server):
 async def test_connection_error(version_check_manager):
     global response
     response = json.dumps({'name': 'v1.0'})
-    versioncheck_manager.VERSION_CHECK_URL = "http://this.will.not.exist"
+    versioncheck_manager.VERSION_CHECK_URLS = ["http://this.will.not.exist"]
     has_new_version = await version_check_manager.check_new_version()
     assert not has_new_version
 
@@ -104,3 +104,29 @@ async def test_non_json_response(version_check_manager, version_server):
     versioncheck_manager.check_failed = False
     with pytest.raises(ValueError):
         await version_check_manager.check_new_version()
+
+@pytest.mark.asyncio
+async def test_version_check_timeout(version_check_manager, version_server):
+    #await setup_version_server(json.dumps({'name': 'v1337.0'}))
+
+    # Setting a timeout of 1ms, version checks should fail
+    versioncheck_manager.VERSION_CHECK_TIMEOUT = 0.001
+    version_check_manager.should_call_new_version_callback = False
+    await version_check_manager.check_version()
+
+@pytest.mark.asyncio
+async def test_fallback_on_multiple_urls(version_check_manager, version_server):
+    """
+    Scenario: Two release API URLs. First one is a non-existing URL so is expected to fail.
+    The second one is of a local webserver (http://localhost:{port}) which is configured to
+    return a new version available response. Here we test if the version checking still works
+    if the first URL fails.
+    """
+    versioncheck_manager.VERSION_CHECK_URLS = ["http://this.will.not.exist",
+                                               f"http://localhost:{version_check_manager.port}"]
+
+    # Local server which responds with a new version available on the API response
+    #await self.setup_version_server(json.dumps({'name': 'v1337.0'}))
+
+    #self.should_call_new_version_callback = True
+    #await self.check_version()

@@ -201,11 +201,7 @@ def test_get_entries(metadata_store):
     keys = [*(default_eccrypto.generate_key('curve25519') for _ in range(4)), metadata_store.ChannelNode._my_key]
     for ind, key in enumerate(keys):
         metadata_store.ChannelMetadata(
-            title='channel%d' % ind,
-            subscribed=(ind % 2 == 0),
-            infohash=random_infohash(),
-            num_entries=5,
-            sign_with=key,
+            title='channel%d' % ind, subscribed=(ind % 2 == 0), infohash=random_infohash(), num_entries=5, sign_with=key
         )
         tlist.extend(
             [
@@ -284,7 +280,10 @@ def test_update_properties(metadata_store):
     Test the updating of several properties of a TorrentMetadata object
     """
     metadata = metadata_store.TorrentMetadata(title='foo', infohash=random_infohash())
+    orig_timestamp = metadata.timestamp
 
     # Test updating the status only
     assert metadata.update_properties({"status": 456}).status == 456
+    assert orig_timestamp == metadata.timestamp
     assert metadata.update_properties({"title": "bar"}).title == "bar"
+    assert orig_timestamp == metadata.timestamp

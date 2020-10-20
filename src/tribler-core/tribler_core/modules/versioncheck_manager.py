@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from distutils.version import LooseVersion
 
@@ -9,8 +10,10 @@ from tribler_common.simpledefs import NTFY
 
 from tribler_core.version import version_id
 
-VERSION_CHECK_URL = 'https://api.github.com/repos/tribler/tribler/releases/latest'
-VERSION_CHECK_INTERVAL = 86400  # One day
+VERSION_CHECK_URLS = [f'https://release.tribler.org/releases/latest?current={version_id}',  # Tribler Release API
+                      'https://api.github.com/repos/tribler/tribler/releases/latest']  # Fallback GitHub API
+VERSION_CHECK_INTERVAL = 6*3600  # Six hours
+VERSION_CHECK_TIMEOUT = 5  # Five seconds timeout
 
 
 class VersionCheckManager(TaskManager):
@@ -29,9 +32,17 @@ class VersionCheckManager(TaskManager):
         await self.shutdown_task_manager()
 
     async def check_new_version(self):
+        for version_check_url in VERSION_CHECK_URLS:
+            try:
+                if await asyncio.wait_for(self.check_new_version_api(version_check_url), VERSION_CHECK_TIMEOUT):
+                    break
+            except asyncio.TimeoutError:
+                self._logger.warning("Checking for new version failed for %s", version_check_url)
+
+    async def check_new_version_api(self, version_check_url):
         try:
             async with ClientSession(raise_for_status=True) as session:
-                response = await session.get(VERSION_CHECK_URL)
+                response = await session.get(version_check_url)
                 response_dict = await response.json(content_type=None)
         except (ServerConnectionError, ClientConnectionError) as e:
             self._logger.error("Error when performing version check request: %s", e)
@@ -42,6 +53,8 @@ class VersionCheckManager(TaskManager):
         except ContentTypeError:
             self._logger.warning("Response was not in JSON format")
             return False
+        except asyncio.TimeoutError:
+            self._logger.warning("Checking for new version failed for %s", version_check_url)
 
         try:
             version = response_dict['name'][1:]
@@ -51,3 +64,4 @@ class VersionCheckManager(TaskManager):
             return False
         except ValueError as ve:
             raise ValueError("Failed to parse Tribler version response.\nError:%s" % ve)
+        return True

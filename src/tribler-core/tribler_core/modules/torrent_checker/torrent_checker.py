@@ -209,7 +209,8 @@ class TorrentChecker(TaskManager):
         """
         new_result_tuple = (new_result['infohash'], new_result['seeders'],
                             new_result['leechers'], new_result['last_check'])
-        self.torrents_checked.add(new_result_tuple)
+        if new_result['seeders'] > 0:
+            self.torrents_checked.add(new_result_tuple)
 
     def on_torrent_health_check_completed(self, infohash, result):
         final_response = {}

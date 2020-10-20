@@ -43,6 +43,8 @@ First clone the repository:
 
     git clone --recursive https://github.com/Tribler/tribler.git
 
+Second, install the `dependencies <doc/development/development_on_linux.rst>`_.
+
 Setting up your development environment
 ***************************************
 
@@ -62,7 +64,7 @@ Now you can run tribler by executing the ``tribler.sh`` script on the root of th
 
 .. code-block:: bash
 
-    ./tribler.sh
+    ./src/tribler.sh
 
 On Windows, you can use the following command to run Tribler:
 

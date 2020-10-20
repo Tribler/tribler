@@ -4,7 +4,6 @@ from binascii import unhexlify
 
 from ipv8.community import Community
 from ipv8.lazy_community import lazy_wrapper
-from ipv8.peer import Peer
 
 from pony.orm import db_session
 
@@ -55,7 +54,7 @@ class PopularityCommunity(Community):
         all_torrents = payload.random_torrents + payload.torrents_checked
 
         def _put_health_entries_in_db():
-            with db_session:
+            with db_session(immediate=True):
                 for infohash, seeders, leechers, last_check in all_torrents:
                     torrent_state = self.metadata_store.TorrentState.get(infohash=infohash)
                     if torrent_state and last_check > torrent_state.last_check:

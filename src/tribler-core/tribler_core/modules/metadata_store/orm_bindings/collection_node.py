@@ -410,6 +410,7 @@ def define_binding(db):
                 updated_self.delete(recursive=False)
                 self_dict.pop("rowid")
                 self_dict.pop("metadata_type")
+                self_dict.pop("timestamp")
                 self_dict['infohash'] = random_infohash()
                 self_dict["sign_with"] = self._my_key
                 updated_self = db.ChannelMetadata.from_dict(self_dict)

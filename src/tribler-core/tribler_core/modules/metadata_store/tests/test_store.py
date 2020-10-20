@@ -15,6 +15,7 @@ import pytest
 from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH, entries_to_chunk
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import NEW
 from tribler_core.modules.metadata_store.serialization import (
+    CHANNEL_TORRENT,
     ChannelMetadataPayload,
     DeletedMetadataPayload,
     SignedPayload,
@@ -31,6 +32,13 @@ from tribler_core.modules.metadata_store.store import (
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
 from tribler_core.utilities.path_util import str_path
 from tribler_core.utilities.random_utils import random_infohash
+
+
+def get_payloads(entity_class):
+    c = entity_class(infohash=database_blob(random_infohash()))
+    payload = c._payload_class.from_signed_blob(c.serialized())
+    deleted_payload = DeletedMetadataPayload.from_signed_blob(c.serialized_delete())
+    return c, payload, deleted_payload
 
 
 def make_wrong_payload(filename):
@@ -97,9 +105,9 @@ def test_squash_mdblobs(metadata_store):
     for d in md_list:
         d.delete()
     assert dict_list == [
-            d[0].to_dict()["signature"]
-            for d in metadata_store.process_compressed_mdblob(chunk, skip_personal_metadata_payload=False)
-        ]
+        d[0].to_dict()["signature"]
+        for d in metadata_store.process_compressed_mdblob(chunk, skip_personal_metadata_payload=False)
+    ]
 
 
 @pytest.mark.skip(reason="This test is currently unstable")
@@ -120,14 +128,14 @@ def test_squash_mdblobs_multiple_chunks(metadata_store):
     for d in md_list:
         d.delete()
     assert dict_list[:index] == [
-            d[0].to_dict()["signature"]
-            for d in metadata_store.process_compressed_mdblob(chunk, skip_personal_metadata_payload=False)
-        ]
+        d[0].to_dict()["signature"]
+        for d in metadata_store.process_compressed_mdblob(chunk, skip_personal_metadata_payload=False)
+    ]
 
     assert dict_list[index:] == [
-            d[0].to_dict()["signature"]
-            for d in metadata_store.process_compressed_mdblob(chunk2, skip_personal_metadata_payload=False)
-        ]
+        d[0].to_dict()["signature"]
+        for d in metadata_store.process_compressed_mdblob(chunk2, skip_personal_metadata_payload=False)
+    ]
 
 
 @db_session
@@ -153,8 +161,9 @@ def test_multiple_squashed_commit_and_read(metadata_store):
 
     channel_dir = Path(metadata_store.ChannelMetadata._channels_dir) / channel.dirname
     assert len(os.listdir(channel_dir)) > 1  # make sure it was broken into more than one .mdblob file
-    metadata_store.process_channel_dir(channel_dir, channel.public_key, channel.id_,
-                                       skip_personal_metadata_payload=False)
+    metadata_store.process_channel_dir(
+        channel_dir, channel.public_key, channel.id_, skip_personal_metadata_payload=False
+    )
     assert num_entries == len(channel.contents)
 
 
@@ -181,8 +190,9 @@ def test_skip_processing_of_received_personal_channel_torrents(metadata_store):
 
     # Enable processing of personal channel torrent metadata
     channel.local_version = 0
-    metadata_store.process_channel_dir(channel_dir, channel.public_key, channel.id_,
-                                       skip_personal_metadata_payload=False)
+    metadata_store.process_channel_dir(
+        channel_dir, channel.public_key, channel.id_, skip_personal_metadata_payload=False
+    )
     assert len(channel.contents) == 1
 
 
@@ -222,11 +232,6 @@ def test_process_channel_dir(metadata_store):
 
 @db_session
 def test_process_payload(metadata_store):
-    def get_payloads(entity_class):
-        c = entity_class(infohash=database_blob(random_infohash()))
-        payload = c._payload_class.from_signed_blob(c.serialized())
-        deleted_payload = DeletedMetadataPayload.from_signed_blob(c.serialized_delete())
-        return c, payload, deleted_payload
 
     _, node_payload, node_deleted_payload = get_payloads(metadata_store.ChannelNode)
 
@@ -306,8 +311,9 @@ def test_process_payload_merge_entries(metadata_store):
     result = metadata_store.process_payload(node_updated_payload, skip_personal_metadata_payload=False)
     assert (None, DELETED_METADATA) in result
     assert (metadata_store.TorrentMetadata.get(), UPDATED_OUR_VERSION) in result
-    assert database_blob(metadata_store.TorrentMetadata.select()[:][0].signature) ==\
-           database_blob(node_updated_payload.signature)
+    assert database_blob(metadata_store.TorrentMetadata.select()[:][0].signature) == database_blob(
+        node_updated_payload.signature
+    )
 
 
 @db_session
@@ -404,3 +410,21 @@ def test_get_num_channels_nodes(metadata_store):
 
     assert metadata_store.get_num_channels() == 4
     assert metadata_store.get_num_torrents() == 3
+
+    @db_session
+    def test_process_payload_update_type(metadata_store):
+        # Check if applying class-changing update to an entry works
+        # First, create a node and get a payload from it, then update it to another type, then get payload
+        # for the updated version, then delete the updated version, then bring back the original one by processing it,
+        # then try processing the payload of updated version and see if it works. Phew!
+        node, node_payload, node_deleted_payload = get_payloads(metadata_store.CollectionNode)
+        updated_node = node.update_properties(
+            {"origin_id": 0}
+        )  # This will implicitly change the node to ChannelTorrent
+        assert updated_node.metadata_type == CHANNEL_TORRENT
+        updated_node_payload = updated_node._payload_class.from_signed_blob(updated_node.serialized())
+        updated_node.delete()
+
+        old_node, _ = metadata_store.process_payload(node_payload, skip_personal_metadata_payload=False)[0]
+        updated_node2, _ = metadata_store.process_payload(updated_node_payload, skip_personal_metadata_payload=False)[0]
+        assert updated_node2.metadata_type == CHANNEL_TORRENT
