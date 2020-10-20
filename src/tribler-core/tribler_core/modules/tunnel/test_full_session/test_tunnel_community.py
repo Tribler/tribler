@@ -104,7 +104,6 @@ async def load_tunnel_community_in_session(session, exitnode=False, start_lt=Fal
     session.config.set_tunnel_community_exitnode_enabled(exitnode)
 
     mock_ipv8 = MockIPv8("curve25519", TriblerTunnelCommunity, settings={"max_circuits": 1}, tribler_session=session)
-    mock_ipv8.stop = lambda **_: succeed(None)
     session.ipv8 = mock_ipv8
 
     if exitnode:
@@ -213,7 +212,7 @@ async def test_anon_download(proxy_factory, session, video_seeder_session, video
 @pytest.mark.asyncio
 @pytest.mark.timeout(40)
 @pytest.mark.tunneltest
-async def test_hidden_services(enable_ipv8, proxy_factory, session, hidden_seeder_session, video_tdef, logger):
+async def test_hidden_services(proxy_factory, session, hidden_seeder_session, video_tdef, logger):
     """
     Test the hidden services overlay by constructing an end-to-end circuit and downloading a torrent over it
     """
