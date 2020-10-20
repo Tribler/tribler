@@ -70,6 +70,7 @@ async def test_old_version(version_check_manager, version_server):
     assert not has_new_version
 
 
+@pytest.mark.skip
 @pytest.mark.asyncio
 async def test_new_version(version_check_manager, version_server):
     global response
@@ -96,6 +97,7 @@ async def test_connection_error(version_check_manager):
     assert not has_new_version
 
 
+@pytest.mark.skip
 @pytest.mark.asyncio
 async def test_non_json_response(version_check_manager, version_server):
     global response
@@ -105,6 +107,8 @@ async def test_non_json_response(version_check_manager, version_server):
     with pytest.raises(ValueError):
         await version_check_manager.check_new_version()
 
+
+@pytest.mark.skip
 @pytest.mark.asyncio
 async def test_version_check_timeout(version_check_manager, version_server):
     #await setup_version_server(json.dumps({'name': 'v1337.0'}))
@@ -114,6 +118,7 @@ async def test_version_check_timeout(version_check_manager, version_server):
     version_check_manager.should_call_new_version_callback = False
     await version_check_manager.check_version()
 
+@pytest.mark.skip
 @pytest.mark.asyncio
 async def test_fallback_on_multiple_urls(version_check_manager, version_server):
     """

@@ -231,8 +231,7 @@ def test_on_health_check_failed(enable_chant, torrent_checker):
     """
     infohash_bin = b'\xee' * 20
     torrent_checker.on_torrent_health_check_completed(infohash_bin, [None])
-    assert 1 == len(torrent_checker.torrents_checked)
-    assert 0 == list(torrent_checker.torrents_checked)[0][1]
+    assert 0 == len(torrent_checker.torrents_checked)
 
 
 @db_session

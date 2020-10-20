@@ -286,4 +286,4 @@ def test_update_properties(metadata_store):
     assert metadata.update_properties({"status": 456}).status == 456
     assert orig_timestamp == metadata.timestamp
     assert metadata.update_properties({"title": "bar"}).title == "bar"
-    assert orig_timestamp == metadata.timestamp
+    assert metadata.timestamp > orig_timestamp
