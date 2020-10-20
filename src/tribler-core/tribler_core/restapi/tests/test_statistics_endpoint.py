@@ -16,7 +16,7 @@ async def mock_ipv8(session):
     session.config.set_ipv8_enabled(True)
     yield mock_ipv8
     session.ipv8 = None
-    await mock_ipv8.unload()
+    await mock_ipv8.stop()
 
 
 @pytest.mark.asyncio

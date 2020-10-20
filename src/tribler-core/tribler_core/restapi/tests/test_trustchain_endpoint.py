@@ -19,7 +19,7 @@ async def mock_ipv8(session):
     session.trustchain_community = mock_ipv8.overlay
     session.wallets['MB'] = TrustchainWallet(session.trustchain_community)
     yield mock_ipv8
-    await mock_ipv8.unload()
+    await mock_ipv8.stop()
 
 
 @pytest.mark.asyncio

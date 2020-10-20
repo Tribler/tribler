@@ -33,7 +33,7 @@ async def mock_trustchain(session):
     mock_ipv8 = MockIPv8(u"low", TrustChainCommunity, working_directory=session.config.get_state_dir())
     session.trustchain_community = mock_ipv8.overlay
     yield
-    await mock_ipv8.unload()
+    await mock_ipv8.stop()
 
 
 @pytest.fixture
