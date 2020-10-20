@@ -70,6 +70,7 @@ def define_binding(db):
             subscribed=None,
             category=None,
             attribute_ranges=None,
+            infohash=None,
             id_=None,
         ):
             """
@@ -109,6 +110,7 @@ def define_binding(db):
             pony_query = pony_query.where(lambda g: g.status != TODELETE) if exclude_deleted else pony_query
             pony_query = pony_query.where(lambda g: g.xxx == 0) if hide_xxx else pony_query
             pony_query = pony_query.where(lambda g: g.status != LEGACY_ENTRY) if exclude_legacy else pony_query
+            pony_query = pony_query.where(lambda g: g.infohash == infohash) if infohash else pony_query
 
             # Sort the query
             if sort_by == "HEALTH":

@@ -4,13 +4,16 @@ from ipv8.test.base import TestBase
 
 from pony.orm import db_session
 
+from tribler_common.simpledefs import NTFY
+
 from tribler_core.modules.metadata_store.community.remote_query_community import RemoteQueryCommunity, sanitize_query
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import NEW
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, REGULAR_TORRENT
 from tribler_core.modules.metadata_store.store import MetadataStore
-from tribler_core.tests.tools.base_test import MockObject
+from tribler_core.notifier import Notifier
 from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.random_utils import random_infohash, random_string
+from tribler_core.utilities.unicode import hexlify
 
 
 def add_random_torrent(metadata_cls, name="test", channel=None):
@@ -39,6 +42,7 @@ class TestRemoteQueryCommunity(TestBase):
             disable_sync=True,
         )
         kwargs['metadata_store'] = metadata_store
+        kwargs['notifier'] = Notifier()
         node = super(TestRemoteQueryCommunity, self).create_node(*args, **kwargs)
         self.count += 1
         return node
@@ -101,7 +105,7 @@ class TestRemoteQueryCommunity(TestBase):
             overlay.notified_results = True
             self.assertTrue("results" in args[0])
 
-        self.nodes[1].overlay.notifier = MockObject()
+        self.nodes[1].overlay.notifier = Notifier()
         self.nodes[1].overlay.notifier.notify = lambda sub, args: mock_notify(self.nodes[1].overlay, args)
 
         with db_session:
@@ -200,3 +204,90 @@ class TestRemoteQueryCommunity(TestBase):
         ]
         for req, resp in req_response_list:
             self.assertDictEqual(sanitize_query(req), resp)
+
+    def test_sanitize_query_infohash(self):
+        infohash_in_b = b'0' * 20
+        infohash_in_hex = hexlify(infohash_in_b)
+
+        query = {'infohash': infohash_in_hex}
+        sanitize_query(query)
+        assert query['infohash'] == infohash_in_b
+
+        # assert no exception raises when 'infohash' is missed
+        sanitize_query({})
+
+    async def test_infohash_select(self):
+        db1 = self.nodes[0].overlay.mds.TorrentMetadata
+        db2 = self.nodes[1].overlay.mds.TorrentMetadata
+
+        torrent_infohash = b'0' * 20
+        torrent_title = 'title'
+
+        def has_testing_infohash(t):
+            return t.infohash == torrent_infohash
+
+        with db_session:
+            db1.from_dict({"infohash": torrent_infohash, "title": torrent_title}).sign()
+
+            torrent_has_been_added_to_db1 = db1.select(has_testing_infohash).count() == 1
+            torrent_not_presented_on_db2 = db2.select(has_testing_infohash).count() == 0
+
+        assert torrent_has_been_added_to_db1
+        assert torrent_not_presented_on_db2
+
+        remote_query = {"infohash": hexlify(torrent_infohash)}
+        self.nodes[1].overlay.send_remote_select_to_many(**remote_query)
+
+        await self.deliver_messages(timeout=0.5)
+        with db_session:
+            torrents = list(db2.select(has_testing_infohash))
+
+        torrent_is_presented_on_db2 = len(torrents) == 1
+        torrent_has_valid_title = torrents[0].title == torrent_title
+
+        assert torrent_is_presented_on_db2
+        assert torrent_has_valid_title
+
+    async def test_add_unknown_torrent(self):
+        db1 = self.nodes[0].overlay.mds.TorrentMetadata
+        db2 = self.nodes[1].overlay.mds.TorrentMetadata
+
+        torrent_infohash = b'0' * 20
+
+        def has_testing_infohash(t):
+            return t.infohash == torrent_infohash
+
+        with db_session:
+            db1.from_dict({"infohash": torrent_infohash, "title": 'title'}).sign()
+
+            torrent_has_been_added_to_db1 = db1.select(has_testing_infohash).count() == 1
+            torrent_not_presented_on_db2 = db2.select(has_testing_infohash).count() == 0
+
+        assert torrent_has_been_added_to_db1
+        assert torrent_not_presented_on_db2
+
+        # notify second node that new torrent hash has been received from the first node
+        self.nodes[1].overlay.notifier.notify(NTFY.POPULARITY_COMMUNITY_ADD_UNKNOWN_TORRENT,
+                                              self.nodes[0].my_peer,
+                                              torrent_infohash)
+
+        await self.deliver_messages(timeout=0.5)
+        with db_session:
+            torrent_is_presented_on_db2 = db2.select(has_testing_infohash).count() == 1
+
+        assert torrent_is_presented_on_db2
+
+    async def test_unknown_query_attribute(self):
+        rqc_node2 = self.nodes[1].overlay
+
+        # only the new attribute
+        rqc_node2.send_remote_select_to_many(**{'new_attribute': 'some_value'})
+        await self.deliver_messages(timeout=0.1)
+
+        # mixed: the old and a new attribute
+        rqc_node2.send_remote_select_to_many(**{'infohash': hexlify(b'0' * 20),
+                                                'new_attribute': 'some_value'})
+        await self.deliver_messages(timeout=0.1)
+
+        # no exception have been raised
+        assert True
