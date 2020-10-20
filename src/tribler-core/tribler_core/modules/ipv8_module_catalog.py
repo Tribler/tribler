@@ -120,7 +120,8 @@ class MarketTestnetCommunityLauncher(TestnetMixIn, MarketCommunityLauncher):
 
 @overlay('tribler_core.modules.popularity.popularity_community', 'PopularityCommunity')
 @precondition('session.config.get_popularity_community_enabled()')
-@kwargs(metadata_store='session.mds', torrent_checker='session.torrent_checker')
+@kwargs(metadata_store='session.mds', torrent_checker='session.torrent_checker',
+        notifier='session.notifier')
 @walk_strategy('ipv8.peerdiscovery.discovery', 'RandomWalk')
 @set_in_session('popularity_community')
 class PopularityCommunityLauncher(IPv8CommunityLauncher):

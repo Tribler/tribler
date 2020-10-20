@@ -5,7 +5,6 @@ from random import sample
 from ipv8.community import Community
 from ipv8.lazy_community import lazy_wrapper
 from ipv8.messaging.lazy_payload import VariablePayload, vp_compile
-from ipv8.peer import Peer
 from ipv8.requestcache import RandomNumberCache, RequestCache
 
 from tribler_common.simpledefs import CHANNELS_VIEW_UUID, NTFY
@@ -22,6 +21,12 @@ def sanitize_query(query_dict, cap=100):
     first = first or 0
     last = last if (last is not None and last <= (first + cap)) else (first + cap)
     query_dict.update({"first": first, "last": last})
+
+    # convert hex infohash to binary
+    infohash = query_dict.get('infohash', None)
+    if infohash:
+        query_dict['infohash'] = unhexlify(infohash)
+
     return query_dict
 
 
@@ -84,10 +89,18 @@ class RemoteQueryCommunity(Community):
         self.queried_subscribed_channels_peers = set()
         self.queried_peers_limit = 1000
 
+        if self.notifier:
+            self.notifier.add_observer(NTFY.POPULARITY_COMMUNITY_ADD_UNKNOWN_TORRENT,
+                                       self.on_pc_add_unknown_torrent)
+
         self.add_message_handler(RemoteSelectPayload, self.on_remote_select)
         self.add_message_handler(SelectResponsePayload, self.on_remote_select_response)
 
         self.request_cache = RequestCache()
+
+    def on_pc_add_unknown_torrent(self, peer, infohash):
+        query = {'infohash': hexlify(infohash)}
+        self.send_remote_select(peer, **query)
 
     def get_random_peers(self, sample_size=None):
         # Randomly sample sample_size peers from the complete list of our peers
@@ -99,6 +112,8 @@ class RemoteQueryCommunity(Community):
     def send_remote_select(self, peer, **kwargs):
         request = SelectRequest(self.request_cache, hexlify(peer.mid), kwargs)
         self.request_cache.add(request)
+
+        self.logger.info(f"Select to {hexlify(peer.mid)} with ({kwargs})")
         self.ez_send(peer, RemoteSelectPayload(request.number, json.dumps(kwargs).encode('utf8')))
 
     def send_remote_select_to_many(self, **kwargs):
@@ -127,6 +142,7 @@ class RemoteQueryCommunity(Community):
 
     @lazy_wrapper(SelectResponsePayload)
     async def on_remote_select_response(self, peer, response):
+        self.logger.info(f"Response from {hexlify(peer.mid)}")
 
         request = self.request_cache.get(hexlify(peer.mid), response.id)
         if request is None:
@@ -142,6 +158,8 @@ class RemoteQueryCommunity(Community):
         peer_vote = peer if request.request_kwargs.get("subscribed", None) is True else None
 
         result = await self.mds.process_compressed_mdblob_threaded(response.raw_blob, peer_vote_for_channels=peer_vote)
+
+        self.logger.info(f"Response result: {result}")
         # Maybe move this callback to MetadataStore side?
         if self.notifier:
             new_channels = [
@@ -165,6 +183,10 @@ class RemoteQueryCommunity(Community):
     async def unload(self):
         await self.request_cache.shutdown()
         await super(RemoteQueryCommunity, self).unload()
+
+        if self.notifier:
+            self.notifier.remove_observer(NTFY.POPULARITY_COMMUNITY_ADD_UNKNOWN_TORRENT,
+                                          self.on_pc_add_unknown_torrent)
 
 
 class RemoteQueryTestnetCommunity(RemoteQueryCommunity):

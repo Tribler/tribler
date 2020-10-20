@@ -20,6 +20,15 @@ class Notifier(object):
         self.observers[subject].append(callback)
         self._logger.debug(f"Add observer topic {subject} callback {callback}")
 
+    def remove_observer(self, subject, callback):
+        if subject not in self.observers:
+            return
+        if callback not in self.observers[subject]:
+            return
+
+        self.observers[subject].remove(callback)
+        self._logger.debug(f"Remove observer topic {subject} callback {callback}")
+
     def notify(self, subject, *args):
         if subject not in self.observers:
             self._logger.warning(f"Called notification on a non-existing subject {subject}")
