@@ -18,8 +18,8 @@ class TestnetMixIn:
         return True
 
 
-@overlay('ipv8.peerdiscovery.community', 'DiscoveryCommunity')
 @precondition('session.config.get_discovery_community_enabled()')
+@overlay('ipv8.peerdiscovery.community', 'DiscoveryCommunity')
 @walk_strategy('ipv8.peerdiscovery.churn', 'RandomChurn', target_peers=-1)
 @walk_strategy('ipv8.peerdiscovery.discovery', 'RandomWalk')
 @walk_strategy('ipv8.peerdiscovery.community', 'PeriodicSimilarity', target_peers=-1)
@@ -30,12 +30,12 @@ class IPv8DiscoveryCommunityLauncher(IPv8CommunityLauncher):
         return super()
 
 
-@overlay('ipv8.attestation.trustchain.community', 'TrustChainCommunity')
 @precondition('session.config.get_trustchain_enabled()')
 @precondition('not session.config.get_trustchain_testnet()')
+@set_in_session('trustchain_community')
+@overlay('ipv8.attestation.trustchain.community', 'TrustChainCommunity')
 @kwargs(working_directory='session.config.get_state_dir()')
 @walk_strategy('ipv8.peerdiscovery.discovery', 'EdgeWalk')
-@set_in_session('trustchain_community')
 class TrustChainCommunityLauncher(IPv8CommunityLauncher):
 
     def finalize(self, ipv8, session, community):
@@ -47,26 +47,27 @@ class TrustChainCommunityLauncher(IPv8CommunityLauncher):
         return super()
 
 
-@overlay('ipv8.attestation.trustchain.community', 'TrustChainTestnetCommunity')
 @precondition('session.config.get_trustchain_enabled()')
 @precondition('session.config.get_trustchain_testnet()')
+@overlay('ipv8.attestation.trustchain.community', 'TrustChainTestnetCommunity')
 class TrustChainTestnetCommunityLauncher(TestnetMixIn, TrustChainCommunityLauncher):
     pass
 
 
-@overlay('ipv8.dht.discovery', 'DHTDiscoveryCommunity')
 @precondition('session.config.get_dht_enabled()')
+@set_in_session('dht_community')
+@overlay('ipv8.dht.discovery', 'DHTDiscoveryCommunity')
 @walk_strategy('ipv8.dht.churn', 'PingChurn', target_peers=-1)
 @walk_strategy('ipv8.peerdiscovery.discovery', 'RandomWalk')
-@set_in_session('dht_community')
 class DHTCommunityLauncher(IPv8CommunityLauncher):
     pass
 
 
 @after('DHTDiscoveryCommunity', 'TrustChainCommunity', 'TrustChainTestnetCommunity')
-@overlay('tribler_core.modules.tunnel.community.triblertunnel_community', 'TriblerTunnelCommunity')
 @precondition('session.config.get_tunnel_community_enabled()')
 @precondition('not session.config.get_tunnel_testnet()')
+@set_in_session('tunnel_community')
+@overlay('tribler_core.modules.tunnel.community.triblertunnel_community', 'TriblerTunnelCommunity')
 @kwargs(bandwidth_wallet='session.wallets["MB"]',
         competing_slots='session.config.get_tunnel_community_competing_slots()',
         ipv8='session.ipv8',
@@ -74,7 +75,6 @@ class DHTCommunityLauncher(IPv8CommunityLauncher):
         tribler_session='session')
 @walk_strategy('ipv8.peerdiscovery.discovery', 'RandomWalk')
 @walk_strategy('tribler_core.modules.tunnel.community.discovery', 'GoldenRatioStrategy', target_peers=-1)
-@set_in_session('tunnel_community')
 class TriblerTunnelCommunityLauncher(IPv8CommunityLauncher):
 
     def get_kwargs(self, session):
@@ -89,78 +89,78 @@ class TriblerTunnelCommunityLauncher(IPv8CommunityLauncher):
         return {'dht_provider': dht_provider, 'settings': settings}
 
 
-@overlay('tribler_core.modules.tunnel.community.triblertunnel_community', 'TriblerTunnelTestnetCommunity')
 @precondition('session.config.get_tunnel_community_enabled()')
 @precondition('session.config.get_tunnel_testnet()')
+@overlay('tribler_core.modules.tunnel.community.triblertunnel_community', 'TriblerTunnelTestnetCommunity')
 class TriblerTunnelTestnetCommunityLauncher(TestnetMixIn, TriblerTunnelCommunityLauncher):
     pass
 
 
 @after('DHTDiscoveryCommunity', 'TrustChainCommunity', 'TrustChainTestnetCommunity')
-@overlay('anydex.core.community', 'MarketCommunity')
 @precondition('session.config.get_market_community_enabled()')
 @precondition('not session.config.get_trustchain_testnet()')
+@set_in_session('market_community')
+@overlay('anydex.core.community', 'MarketCommunity')
 @kwargs(trustchain='session.trustchain_community',
         dht='session.dht_community',
         wallets='session.wallets',
         working_directory='session.config.get_state_dir()',
         record_transactions='session.config.get_record_transactions()')
 @walk_strategy('ipv8.peerdiscovery.discovery', 'RandomWalk')
-@set_in_session('market_community')
 class MarketCommunityLauncher(IPv8CommunityLauncher):
     pass
 
 
-@overlay('anydex.core.community', 'MarketTestnetCommunity')
 @precondition('session.config.get_market_community_enabled()')
 @precondition('session.config.get_trustchain_testnet()')
+@overlay('anydex.core.community', 'MarketTestnetCommunity')
 class MarketTestnetCommunityLauncher(TestnetMixIn, MarketCommunityLauncher):
     pass
 
 
-@overlay('tribler_core.modules.popularity.popularity_community', 'PopularityCommunity')
 @precondition('session.config.get_popularity_community_enabled()')
+@set_in_session('popularity_community')
+@overlay('tribler_core.modules.popularity.popularity_community', 'PopularityCommunity')
 @kwargs(metadata_store='session.mds', torrent_checker='session.torrent_checker',
         notifier='session.notifier')
 @walk_strategy('ipv8.peerdiscovery.discovery', 'RandomWalk')
-@set_in_session('popularity_community')
 class PopularityCommunityLauncher(IPv8CommunityLauncher):
     pass
 
 
 @after('TrustChainCommunity', 'TrustChainTestnetCommunity')
-@overlay('tribler_core.modules.metadata_store.community.gigachannel_community', 'GigaChannelCommunity')
 @precondition('session.config.get_chant_enabled()')
 @precondition('not session.config.get_chant_testnet()')
+@set_in_session('gigachannel_community')
+@overlay('tribler_core.modules.metadata_store.community.gigachannel_community', 'GigaChannelCommunity')
 @kwargs(metadata_store='session.mds', notifier='session.notifier')
 @walk_strategy('ipv8.peerdiscovery.discovery', 'RandomWalk')
 @walk_strategy('tribler_core.modules.metadata_store.community.sync_strategy', 'SyncChannels')
-@set_in_session('gigachannel_community')
 class GigaChannelCommunityLauncher(IPv8CommunityLauncher):
     pass
 
 
-@overlay('tribler_core.modules.metadata_store.community.gigachannel_community', 'GigaChannelTestnetCommunity')
 @precondition('session.config.get_chant_enabled()')
 @precondition('session.config.get_chant_testnet()')
+@overlay('tribler_core.modules.metadata_store.community.gigachannel_community', 'GigaChannelTestnetCommunity')
 class GigaChannelTestnetCommunityLauncher(TestnetMixIn, GigaChannelCommunityLauncher):
     pass
 
 
 @after('GigaChannelCommunity', 'GigaChannelTestnetCommunity')
-@overlay('tribler_core.modules.metadata_store.community.remote_query_community', 'RemoteQueryCommunity')
 @precondition('session.config.get_chant_enabled()')
 @precondition('not session.config.get_chant_testnet()')
+@set_in_session('remote_query_community')
+@overlay('tribler_core.modules.metadata_store.community.remote_query_community', 'RemoteQueryCommunity')
 @kwargs(metadata_store='session.mds', notifier='session.notifier')
 @walk_strategy('ipv8.peerdiscovery.discovery', 'RandomWalk', target_peers=50)
-@set_in_session('remote_query_community')
 class RemoteQueryCommunityLauncher(IPv8CommunityLauncher):
     pass
 
 
-@overlay('tribler_core.modules.metadata_store.community.remote_query_community', 'RemoteQueryTestnetCommunity')
 @precondition('session.config.get_chant_enabled()')
 @precondition('session.config.get_chant_testnet()')
+@overlay('tribler_core.modules.metadata_store.community.remote_query_community', 'RemoteQueryTestnetCommunity')
 class RemoteQueryTestnetCommunityLauncher(TestnetMixIn, RemoteQueryCommunityLauncher):
     pass
 
