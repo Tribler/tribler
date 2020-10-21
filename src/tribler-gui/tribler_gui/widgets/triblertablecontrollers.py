@@ -17,7 +17,7 @@ from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import get_health
 
-HEALTHCHECK_DELAY = 500
+HEALTHCHECK_DELAY_MS = 500
 
 
 def sanitize_for_fts(text):
@@ -125,7 +125,7 @@ class TableSelectionMixin(object):
                 self.healthcheck_cooldown.stop()
             else:
                 self.check_torrent_health(data_item)
-            self.healthcheck_cooldown.start(HEALTHCHECK_DELAY)
+            self.healthcheck_cooldown.start(HEALTHCHECK_DELAY_MS)
 
 
 class HealthCheckerMixin:

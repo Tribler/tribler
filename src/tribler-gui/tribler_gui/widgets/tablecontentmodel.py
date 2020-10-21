@@ -228,10 +228,10 @@ class ChannelContentModel(RemoteTableModel):
     }
 
     column_width = {
-        u'state': lambda _: 20,
-        u'subscribed': lambda _: 20,
+        u'state': lambda _: 100,
+        u'subscribed': lambda _: 100,
         u'name': lambda table_width: table_width - 510,
-        u'action_buttons': lambda _: 20,
+        u'action_buttons': lambda _: 80,
         u'category': lambda _: 20,
     }
 
@@ -297,6 +297,12 @@ class ChannelContentModel(RemoteTableModel):
             return self.column_headers[num]
         if role == Qt.InitialSortOrderRole and num != self.column_position.get('name'):
             return Qt.DescendingOrder
+        elif role == Qt.TextAlignmentRole:
+            return (
+                Qt.AlignHCenter
+                if num in [self.column_position.get('subscribed'), self.column_position.get('torrents')]
+                else Qt.AlignLeft
+            )
 
     def rowCount(self, parent=QModelIndex()):
         return len(self.data_items)
@@ -359,6 +365,8 @@ class ChannelContentModel(RemoteTableModel):
         elif role == Qt.TextAlignmentRole:
             if index.column() == self.column_position.get(u'votes', -1):
                 return Qt.AlignLeft | Qt.AlignVCenter
+            if index.column() == self.column_position.get(u'torrents', -1):
+                return Qt.AlignHCenter | Qt.AlignVCenter
         return None
 
     def reset(self):
@@ -449,10 +457,10 @@ class SearchResultsModel(ChannelContentModel):
 
 
 class DiscoveredChannelsModel(ChannelContentModel):
-    columns = [u'subscribed', u'state', u'name', u'torrents', u'votes', u'updated']
-    column_headers = [u'Subscribed', u'', tr('Name'), tr('Torrents'), tr('Popularity'), tr('Updated')]
+    columns = [u'subscribed', u'name', u'state', u'torrents', u'votes', u'updated']
+    column_headers = [tr('Subscribed'), tr('Name'), u'', tr('Torrents'), tr('Popularity'), tr('Updated')]
 
-    column_width = dict(ChannelContentModel.column_width, **{u'name': lambda table_width: table_width - 450})
+    column_width = dict(ChannelContentModel.column_width, **{u'name': lambda table_width: table_width - 630})
     default_sort_column = columns.index(u'votes')
 
     def __init__(self, *args, **kwargs):

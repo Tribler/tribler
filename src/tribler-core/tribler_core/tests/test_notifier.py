@@ -1,18 +1,17 @@
+import asyncio
 from unittest.mock import Mock
-
-import pytest
 
 import pytest
 
 from tribler_common.simpledefs import NTFY
 
-from tribler_core.modules.tunnel.test_full_session.test_tunnel_community import deliver_messages
 from tribler_core.notifier import Notifier
 
 
 @pytest.fixture(name="notifier")
 def fixture_notifier():
     return Notifier()
+
 
 @pytest.mark.asyncio
 async def test_notifier(notifier):
@@ -21,7 +20,7 @@ async def test_notifier(notifier):
     notifier.add_observer(NTFY.TORRENT_FINISHED, mock_foo.bar)
     notifier.notify(NTFY.TORRENT_FINISHED)
     # Notifier uses asyncio loop internally, so we must wait at least a single loop cycle
-    await deliver_messages()
+    await asyncio.sleep(0)
     mock_foo.bar.assert_called_once()
 
 
