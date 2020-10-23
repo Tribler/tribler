@@ -1,12 +1,14 @@
 import json
 
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QLabel, QWidget
 
 import tribler_core.utilities.json_util as json
 
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import votes_count
+from tribler_gui.widgets.tablecontentdelegate import DARWIN
 
 
 class SubscriptionsWidget(QWidget):
@@ -57,6 +59,10 @@ class SubscriptionsWidget(QWidget):
             f"<font color=#BBBBBB>{'┃'*votes_count_full}</font>" + f"<font color=#444444>{'┃'*votes_count_empty}</font>"
         )
         self.channel_rating_label.setText(rating_rich_text)
+        if DARWIN:
+            font = QFont()
+            font.setLetterSpacing(QFont.PercentageSpacing, 60.0)
+            self.channel_rating_label.setFont(font)
 
     def on_subscribe_button_click(self):
         TriblerNetworkRequest(
