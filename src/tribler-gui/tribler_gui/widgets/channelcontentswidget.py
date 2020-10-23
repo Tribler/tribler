@@ -303,8 +303,6 @@ class ChannelContentsWidget(widget_form, widget_class):
         self.content_table.setFocus()
         self.channel_options_button.show()
 
-        self.update_labels()
-
     def update_labels(self, dirty=False):
 
         folder = self.model.channel_info.get("type", None) == COLLECTION_NODE

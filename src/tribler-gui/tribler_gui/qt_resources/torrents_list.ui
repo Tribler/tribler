@@ -483,49 +483,12 @@ background-color: transparent;
           <number>0</number>
          </property>
          <item>
-          <widget class="QToolButton" name="subscribe_button">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
+          <widget class="ToggleButton" name="subscribe_button" native="true">
            <property name="minimumSize">
             <size>
-             <width>50</width>
-             <height>28</height>
+             <width>20</width>
+             <height>0</height>
             </size>
-           </property>
-           <property name="maximumSize">
-            <size>
-             <width>100</width>
-             <height>28</height>
-            </size>
-           </property>
-           <property name="cursor">
-            <cursorShape>PointingHandCursor</cursorShape>
-           </property>
-           <property name="styleSheet">
-            <string notr="true">QToolButton {
-border: none;
-background-color: transparent;
-}</string>
-           </property>
-           <property name="text">
-            <string>Subscribe</string>
-           </property>
-           <property name="icon">
-            <iconset>
-             <normaloff>../images/subscribed_not.png</normaloff>../images/subscribed_not.png</iconset>
-           </property>
-           <property name="iconSize">
-            <size>
-             <width>18</width>
-             <height>18</height>
-            </size>
-           </property>
-           <property name="toolButtonStyle">
-            <enum>Qt::ToolButtonTextOnly</enum>
            </property>
           </widget>
          </item>
@@ -884,15 +847,20 @@ QTableView::item::hover {
  </widget>
  <customwidgets>
   <customwidget>
+   <class>EllipseButton</class>
+   <extends>QToolButton</extends>
+   <header>tribler_gui.widgets.ellipsebutton.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ToggleButton</class>
+   <extends>QAbstractButton</extends>
+   <header>tribler_gui.widgets.togglebutton.h</header>
+  </customwidget>
+  <customwidget>
    <class>QtBug</class>
    <extends>QWidget</extends>
    <header>tribler_gui.widgets.qtbug.h</header>
    <container>1</container>
-  </customwidget>
-  <customwidget>
-   <class>EllipseButton</class>
-   <extends>QToolButton</extends>
-   <header>tribler_gui.widgets.ellipsebutton.h</header>
   </customwidget>
   <customwidget>
    <class>SubscriptionsWidget</class>
