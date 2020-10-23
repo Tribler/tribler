@@ -1,7 +1,8 @@
+import sys
 from math import floor
 
 from PyQt5.QtCore import QEvent, QModelIndex, QObject, QRect, QRectF, QSize, Qt, pyqtSignal
-from PyQt5.QtGui import QBrush, QColor, QIcon, QPainter, QPalette, QPen
+from PyQt5.QtGui import QBrush, QColor, QFont, QIcon, QPainter, QPalette, QPen
 from PyQt5.QtWidgets import QComboBox, QStyle, QStyledItemDelegate, QToolTip
 
 from tribler_common.simpledefs import CHANNEL_STATE
@@ -31,6 +32,8 @@ TRIBLER_NEUTRAL = QColor("#B5B5B5")
 TRIBLER_ORANGE = QColor("#e67300")
 TRIBLER_PALETTE = QPalette()
 TRIBLER_PALETTE.setColor(QPalette.Highlight, TRIBLER_ORANGE)
+
+DARWIN = sys.platform == 'darwin'
 
 
 def draw_text(
@@ -690,7 +693,13 @@ class RatingControl(QObject, CheckClickedMixin):
         QObject.__init__(self, parent=parent)
         self.column_name = column_name
         self.last_index = QModelIndex()
+        self.font = None
+        # For some reason, on MacOS default inter-character spacing for some symbols
+        # is too wide. We have to adjust it manually.
+        if DARWIN:
+            self.font = QFont()
+            self.font.setLetterSpacing(QFont.PercentageSpacing, 60.0)
 
     def paint(self, painter, rect, _index, votes=0):
-        draw_text(painter, rect, format_votes(1.0), color=self.rating_colors["BACKGROUND"])
-        draw_text(painter, rect, format_votes(votes), color=self.rating_colors["FOREGROUND"])
+        draw_text(painter, rect, format_votes(1.0), color=self.rating_colors["BACKGROUND"], font=self.font)
+        draw_text(painter, rect, format_votes(votes), color=self.rating_colors["FOREGROUND"], font=self.font)
