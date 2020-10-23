@@ -493,6 +493,29 @@ background-color: transparent;
           </widget>
          </item>
          <item>
+          <spacer name="horizontalSpacer_2">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeType">
+            <enum>QSizePolicy::Fixed</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>10</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QLabel" name="channel_rating_label">
+           <property name="text">
+            <string>|||||</string>
+           </property>
+          </widget>
+         </item>
+         <item>
           <spacer name="horizontalSpacer_70">
            <property name="orientation">
             <enum>Qt::Horizontal</enum>
@@ -852,11 +875,6 @@ QTableView::item::hover {
    <header>tribler_gui.widgets.ellipsebutton.h</header>
   </customwidget>
   <customwidget>
-   <class>ToggleButton</class>
-   <extends>QAbstractButton</extends>
-   <header>tribler_gui.widgets.togglebutton.h</header>
-  </customwidget>
-  <customwidget>
    <class>QtBug</class>
    <extends>QWidget</extends>
    <header>tribler_gui.widgets.qtbug.h</header>
@@ -872,6 +890,11 @@ QTableView::item::hover {
    <class>TriblerContentTableView</class>
    <extends>QTableView</extends>
    <header>tribler_gui.widgets.lazytableview.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ToggleButton</class>
+   <extends>QAbstractButton</extends>
+   <header>tribler_gui.widgets.togglebutton.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

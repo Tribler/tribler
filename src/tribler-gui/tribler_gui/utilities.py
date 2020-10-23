@@ -13,6 +13,8 @@ import tribler_gui
 from tribler_gui.defs import HEALTH_DEAD, HEALTH_GOOD, HEALTH_MOOT, HEALTH_UNCHECKED, VIDEO_EXTS
 from tribler_gui.i18n import tr
 
+NUM_VOTES_BARS = 8
+
 
 def data_item2uri(data_item):
     return f"magnet:?xt=urn:btih:{data_item[u'infohash']}&dn={data_item[u'name']}"
@@ -311,15 +313,16 @@ def get_checkbox_style(color="#B5B5B5"):
     )
 
 
+def votes_count(votes=0.0):
+    votes = float(votes)
+    # FIXME: this is a temp fix to cap the normalized value to 1.
+    #  The votes should already be normalized before formatting it.
+    votes = 1.0 if votes > 1 else votes
+    # We add sqrt to flatten the votes curve a bit
+    votes = math.sqrt(votes)
+    votes = int(math.ceil(votes * NUM_VOTES_BARS))
+    return votes
+
+
 def format_votes(votes=0.0):
-    # Votes are represented as unicode hearts in this implementation.
-    # The number of hearts range from one to five.
-    if votes:
-        votes = float(votes)
-        # FIXME: this is a temp fix to cap the normalized value to 1.
-        #  The votes should already be normalized before formatting it.
-        votes = 1.0 if votes > 1 else votes
-        # We add sqrt to flatten the votes curve a bit
-        votes = math.sqrt(votes)
-        votes = int(math.ceil(votes * 8))
-        return u"  %s " % (u"┃" * votes)
+    return u"  %s " % (u"┃" * votes_count(votes))
