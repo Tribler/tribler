@@ -285,14 +285,15 @@ class GigaChannelManager(TaskManager):
     async def process_channel_dir_threaded(self, channel):
         def _process_download():
             try:
-                channel_dirname = self.session.mds.channels_dir / channel.dirname
+                channel_dirname = self.session.mds.get_channel_dir_path(channel)
                 self.session.mds.process_channel_dir(
                     channel_dirname, channel.public_key, channel.id_, external_thread=True
                 )
-                self.session.mds._db.disconnect()
             except Exception as e:
                 self._logger.error("Error when processing channel dir download: %s", e)
                 return
+            finally:
+                self.session.mds._db.disconnect()
 
         await get_event_loop().run_in_executor(None, _process_download)
 

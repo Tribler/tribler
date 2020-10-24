@@ -64,15 +64,14 @@ async def test_regen_personal_channel_damaged_torrent(
     """
     Test regenerating a damaged personal channel torrent at startup
     """
-    with db_session:
-        complete = Future()
+    complete = Future()
 
-        async def mock_regen(*_, **__):
-            complete.set_result(True)
+    async def mock_regen(*_, **__):
+        complete.set_result(True)
 
-        channel_manager.check_and_regen_personal_channel_torrent = mock_regen
-        channel_manager.start()
-        await complete
+    channel_manager.check_and_regen_personal_channel_torrent = mock_regen
+    channel_manager.start()
+    await complete
 
 
 @pytest.mark.asyncio

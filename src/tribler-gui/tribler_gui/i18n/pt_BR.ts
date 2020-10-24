@@ -2000,64 +2000,6 @@ High anonymity</source>
     </message>
 </context>
 <context>
-    <name>details_tab_widget</name>
-    <message>
-        <location filename="../qt_resources/torrent_details_container.ui" line="43"/>
-        <source>Details</source>
-        <translation>Detalhes</translation>
-    </message>
-    <message>
-        <location filename="../qt_resources/torrent_details_container.ui" line="78"/>
-        <source>Name</source>
-        <translation>Nome</translation>
-    </message>
-    <message>
-        <location filename="../qt_resources/torrent_details_container.ui" line="101"/>
-        <source>Category</source>
-        <translation>Categoria</translation>
-    </message>
-    <message>
-        <location filename="../qt_resources/torrent_details_container.ui" line="118"/>
-        <source>Size</source>
-        <translation>Tamanho</translation>
-    </message>
-    <message>
-        <location filename="../qt_resources/torrent_details_container.ui" line="176"/>
-        <source> Re-check </source>
-        <translation> Verificar novamente</translation>
-    </message>
-    <message>
-        <location filename="../qt_resources/torrent_details_container.ui" line="201"/>
-        <source>Health</source>
-        <translation>Saúde</translation>
-    </message>
-    <message>
-        <location filename="../qt_resources/torrent_details_container.ui" line="211"/>
-        <source>Infohash</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qt_resources/torrent_details_container.ui" line="220"/>
-        <source>00000000000000000000</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qt_resources/torrent_details_container.ui" line="261"/>
-        <source>Click to copy magnet link</source>
-        <translation>Clique para copiar o link magnet</translation>
-    </message>
-    <message>
-        <location filename="../qt_resources/torrent_details_container.ui" line="302"/>
-        <source>Trackers</source>
-        <translation>Trackers</translation>
-    </message>
-    <message>
-        <location filename="../qt_resources/torrent_details_container.ui" line="363"/>
-        <source>NAME</source>
-        <translation>NOME</translation>
-    </message>
-</context>
-<context>
     <name>torrents_list</name>
     <message>
         <location filename="../qt_resources/torrents_list.ui" line="29"/>

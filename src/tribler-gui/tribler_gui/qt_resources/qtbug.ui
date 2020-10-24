@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>details_tab_widgetk</class>
+ <widget class="QtBug" name="qt_bug_do_not_delete">
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QtBug</class>
+   <extends>QWidget</extends>
+   <header>tribler_gui.widgets.qtbug.h</header>
+   <container>0</container>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>

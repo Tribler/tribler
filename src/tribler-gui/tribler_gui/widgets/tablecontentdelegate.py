@@ -1,16 +1,21 @@
-from PyQt5.QtCore import QEvent, QModelIndex, QObject, QRect, QSize, Qt, pyqtSignal
-from PyQt5.QtGui import QBrush, QColor, QIcon, QPainter, QPen
+import sys
+from math import floor
+
+from PyQt5.QtCore import QEvent, QModelIndex, QObject, QRect, QRectF, QSize, Qt, pyqtSignal
+from PyQt5.QtGui import QBrush, QColor, QFont, QIcon, QPainter, QPalette, QPen
 from PyQt5.QtWidgets import QComboBox, QStyle, QStyledItemDelegate, QToolTip
+
+from tribler_common.simpledefs import CHANNEL_STATE
 
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 
 from tribler_gui.defs import (
     ACTION_BUTTONS,
-    CATEGORY_LIST,
     COMMIT_STATUS_COMMITTED,
     COMMIT_STATUS_NEW,
     COMMIT_STATUS_TODELETE,
     COMMIT_STATUS_UPDATED,
+    ContentCategories,
     HEALTH_CHECKING,
     HEALTH_DEAD,
     HEALTH_ERROR,
@@ -19,18 +24,66 @@ from tribler_gui.defs import (
     HEALTH_UNCHECKED,
 )
 from tribler_gui.utilities import format_votes, get_health, get_image_path
-from tribler_gui.widgets.tableiconbuttons import DeleteIconButton, DownloadIconButton
+from tribler_gui.widgets.tableiconbuttons import DownloadIconButton
+
+PROGRESS_BAR_BACKGROUND = QColor("#444444")
+PROGRESS_BAR_FOREGROUND = QColor("#BBBBBB")
+TRIBLER_NEUTRAL = QColor("#B5B5B5")
+TRIBLER_ORANGE = QColor("#e67300")
+TRIBLER_PALETTE = QPalette()
+TRIBLER_PALETTE.setColor(QPalette.Highlight, TRIBLER_ORANGE)
+
+DARWIN = sys.platform == 'darwin'
 
 
-def draw_text(painter, rect, text, color=QColor("#B5B5B5"), font=None, alignment=Qt.AlignVCenter):
+def draw_text(
+    painter, rect, text, color=TRIBLER_NEUTRAL, font=None, text_flags=Qt.AlignLeft | Qt.AlignVCenter | Qt.TextSingleLine
+):
     painter.save()
-    text_flags = Qt.AlignLeft | alignment | Qt.TextSingleLine
     text_box = painter.boundingRect(rect, text_flags, text)
     painter.setPen(QPen(color, 1, Qt.SolidLine, Qt.RoundCap))
     if font:
         painter.setFont(font)
 
     painter.drawText(text_box, text_flags, text)
+    painter.restore()
+
+
+def draw_progress_bar(painter, rect, progress=0.0):
+    painter.save()
+
+    outer_margin = 2
+    bar_height = 16
+    p = painter
+    r = rect
+
+    x = r.x() + outer_margin
+    y = r.y() + (r.height() - bar_height) / 2
+    h = bar_height
+
+    # Draw background rect
+    w_border = r.width() - 2 * outer_margin
+    bg_rect = QRect(x, y, w_border, h)
+    background_color = PROGRESS_BAR_BACKGROUND
+    p.setPen(background_color)
+    p.setBrush(background_color)
+    p.drawRect(bg_rect)
+
+    w_progress = int((r.width() - 2 * outer_margin) * progress)
+    progress_rect = QRect(x, y, w_progress, h)
+    foreground_color = PROGRESS_BAR_FOREGROUND
+    p.setPen(foreground_color)
+    p.setBrush(foreground_color)
+    p.drawRect(progress_rect)
+
+    # Draw border rect over the bar rect
+
+    painter.setCompositionMode(QPainter.CompositionMode_Difference)
+    p.setPen(TRIBLER_PALETTE.light().color())
+    font = p.font()
+    p.setFont(font)
+    p.drawText(bg_rect, Qt.AlignCenter, f"{str(floor(progress*100))}%")
+
     painter.restore()
 
 
@@ -105,12 +158,13 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
             self.redraw_required.emit()
 
     @staticmethod
-    def split_rect_into_squares(rect, buttons):
-        r = rect
-        side_size = min(r.width() / len(buttons), r.height() - 2)
+    def split_rect_into_squares(r, buttons):
+        x_border = 2
+        side_size = min(r.width() / len(buttons), r.height() - x_border)
         y_border = (r.height() - side_size) / 2
+        x_start = r.left() + (r.width() - len(buttons) * side_size) / 2  # Center the squares horizontally
         for n, button in enumerate(buttons):
-            x = r.left() + n * side_size
+            x = x_start + n * side_size
             y = r.top() + y_border
             h = side_size
             w = side_size
@@ -143,7 +197,7 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
             return
         if index.column() == index.model().column_position['category']:
             cbox = QComboBox(parent)
-            cbox.addItems(CATEGORY_LIST)
+            cbox.addItems(ContentCategories.codes)
             return cbox
 
         return super(TriblerButtonsDelegate, self).createEditor(parent, option, index)
@@ -152,6 +206,7 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
 class ChannelStateMixin(object):
     wait_png = QIcon(get_image_path("wait.png"))
     share_icon = QIcon(get_image_path("share.png"))
+    downloading_icon = QIcon(get_image_path("downloads.png"))
 
     @staticmethod
     def get_indicator_rect(rect):
@@ -167,6 +222,39 @@ class ChannelStateMixin(object):
 
     def draw_channel_state(self, painter, option, index, data_item):
         # Draw empty cell as the background
+
+        self.paint_empty_background(painter, option)
+        text_rect = option.rect
+
+        if data_item[u'status'] == CHANNEL_STATE.LEGACY.value:
+            painter.drawText(text_rect, Qt.AlignCenter, "Legacy")
+            return True
+
+        if u'type' in data_item and data_item[u'type'] != CHANNEL_TORRENT:
+            return True
+        if data_item[u'state'] == CHANNEL_STATE.COMPLETE.value:
+            painter.drawText(text_rect, Qt.AlignCenter, "✔")
+            return True
+        if data_item[u'state'] == CHANNEL_STATE.PERSONAL.value:
+            self.share_icon.paint(painter, self.get_indicator_rect(option.rect))
+            return True
+        if data_item[u'state'] == CHANNEL_STATE.DOWNLOADING.value:
+            painter.drawText(text_rect, Qt.AlignCenter, "⏳")
+            return True
+        if data_item[u'state'] == CHANNEL_STATE.METAINFO_LOOKUP.value:
+            painter.drawText(text_rect, Qt.AlignCenter, "❓")
+            return True
+        if data_item[u'state'] == CHANNEL_STATE.UPDATING.value:
+            progress = data_item.get('progress')
+            if progress is not None:
+                draw_progress_bar(painter, option.rect, float(progress))
+            return True
+        return True
+
+
+class SubscribedControlMixin(object):
+    def draw_subscribed_control(self, painter, option, index, data_item):
+        # Draw empty cell as the background
         self.paint_empty_background(painter, option)
 
         if u'type' in data_item and data_item[u'type'] != CHANNEL_TORRENT:
@@ -174,16 +262,12 @@ class ChannelStateMixin(object):
         if data_item[u'status'] == 1000:  # LEGACY ENTRIES!
             return True
         if data_item[u'state'] == u'Personal':
-            self.share_icon.paint(painter, self.get_indicator_rect(option.rect))
             return True
-        if data_item[u'state'] in [u'Updating', u'Downloading']:
-            rect = option.rect
-            rect_side = option.rect.height() * 0.8
-            x = rect.left() + (rect.width() - rect_side) / 2
-            y = rect.top() + (rect.height() - rect_side) / 2
-            icon_rect = QRect(x, y, rect_side, rect_side)
-            self.wait_png.paint(painter, icon_rect)
-            return True
+
+        self.subscribe_control.paint(
+            painter, option.rect, index, toggled=data_item.get('subscribed'), hover=index == self.hover_index
+        )
+
         return True
 
 
@@ -197,14 +281,7 @@ class RatingControlMixin(object):
         if data_item[u'status'] == 1000:  # LEGACY ENTRIES!
             return True
 
-        if index == self.hover_index:
-            self.rating_control.paint_hover(
-                painter, option.rect, index, votes=data_item['votes'], subscribed=data_item['subscribed']
-            )
-        else:
-            self.rating_control.paint(
-                painter, option.rect, index, votes=data_item['votes'], subscribed=data_item['subscribed']
-            )
+        self.rating_control.paint(painter, option.rect, index, votes=data_item['votes'])
 
         return True
 
@@ -214,33 +291,46 @@ class CategoryLabelMixin(object):
         # Draw empty cell as the background
         self.paint_empty_background(painter, option)
 
-        draw_border = True
         if 'type' in data_item and data_item['type'] == CHANNEL_TORRENT:
             if data_item['state'] == u'Personal':
-                category = "\U0001F3E0"  # 'home' emoji
+                category_txt = "\U0001F3E0"  # 'home' emoji
             else:
-                category = "\U0001F536"  # "large orange diamond" emoji
-            draw_border = False
+                category_txt = "🌐"
         elif 'type' in data_item and data_item['type'] == COLLECTION_NODE:
-            category = "\U0001F4C1"  # 'folder' emoji
-            draw_border = False
+            category_txt = "\U0001F4C1"  # 'folder' emoji
         else:
-            category = data_item[u'category']
             # Precautions to safely draw wrong category descriptions
-            if not category or category not in CATEGORY_LIST:
-                category = "Unknown"
-        CategoryLabel(category).paint(painter, option, index, draw_border=draw_border)
+            category = ContentCategories.get(data_item[u'category'])
+            category_txt = category.emoji if category else '?'
+
+        CategoryLabel(category_txt).paint(painter, option, index, draw_border=False)
         return True
 
 
 class DownloadControlsMixin(object):
-    def draw_download_controls(self, painter, option, index, _):
+    def draw_download_controls(self, painter, option, index, data_item):
         # Draw empty cell as the background
         self.paint_empty_background(painter, option)
 
-        # When the cursor leaves the table, we must "forget" about the button_box
+        border_thickness = 2
+        bordered_rect = QRect(
+            option.rect.left() + border_thickness,
+            option.rect.top() + border_thickness,
+            option.rect.width() - 2 * border_thickness,
+            option.rect.height() - 2 * border_thickness,
+        )
+        # When cursor leaves the table, we must "forget" about the button_box
         if self.hoverrow == -1:
             self.button_box = QRect()
+
+        progress = data_item.get('progress')
+        if progress is not None:
+            if int(progress) == 1.0:
+                draw_text(painter, bordered_rect, text="✔", text_flags=Qt.AlignCenter | Qt.TextSingleLine)
+            else:
+                draw_progress_bar(painter, bordered_rect, progress=progress)
+            return True
+
         if index.row() == self.hoverrow:
             extended_border_height = int(option.rect.height() * self.button_box_extended_border_ratio)
             button_box_extended_rect = option.rect.adjusted(0, -extended_border_height, 0, extended_border_height)
@@ -262,7 +352,7 @@ class HealthLabelMixin(object):
 
         # This dumb check is required because some endpoints do not return entry type
         if 'type' not in data_item or data_item['type'] == REGULAR_TORRENT:
-            self.health_status_widget.paint(painter, option.rect, index)
+            self.health_status_widget.paint(painter, option.rect, index, hover=index == self.hover_index)
 
         return True
 
@@ -274,22 +364,28 @@ class TriblerContentDelegate(
     DownloadControlsMixin,
     HealthLabelMixin,
     ChannelStateMixin,
+    SubscribedControlMixin,
 ):
     def __init__(self, parent=None):
         # TODO: refactor this not to rely on inheritance order, but instead use interface method pattern
         TriblerButtonsDelegate.__init__(self, parent)
+        self.subscribe_control = SubscribeToggleControl(u'subscribed')
         self.rating_control = RatingControl(u'votes')
 
-        self.health_status_widget = HealthStatusDisplay()
-
         self.download_button = DownloadIconButton()
-        self.delete_button = DeleteIconButton()
-        self.ondemand_container = [self.delete_button, self.download_button]
+        self.ondemand_container = [self.download_button]
 
         self.commit_control = CommitStatusControl(u'status')
-        self.controls = [self.download_button, self.commit_control, self.delete_button, self.rating_control]
-        self.health_status_widget = HealthStatusDisplay()
+        self.health_status_widget = HealthStatusControl(u'health')
+        self.controls = [
+            self.subscribe_control,
+            self.download_button,
+            self.commit_control,
+            self.rating_control,
+            self.health_status_widget,
+        ]
         self.column_drawing_actions = [
+            (u'subscribed', self.draw_subscribed_control),
             (u'votes', self.draw_rating_control),
             (ACTION_BUTTONS, self.draw_action_column),
             (u'category', self.draw_category_label),
@@ -300,16 +396,13 @@ class TriblerContentDelegate(
 
     def draw_action_column(self, painter, option, index, data_item):
         if data_item['type'] == REGULAR_TORRENT:
-            return self.draw_download_controls(painter, option, index, None)
+            return self.draw_download_controls(painter, option, index, data_item)
 
     def draw_commit_status_column(self, painter, option, index, _):
         # Draw empty cell as the background
         self.paint_empty_background(painter, option)
 
-        if index == self.hover_index:
-            self.commit_control.paint_hover(painter, option.rect, index)
-        else:
-            self.commit_control.paint(painter, option.rect, index)
+        self.commit_control.paint(painter, option.rect, index, hover=index == self.hover_index)
 
         return True
 
@@ -348,43 +441,94 @@ class CategoryLabel(QObject):
         painter.restore()
 
 
-class ToggleControl(QObject, CheckClickedMixin):
-    """
-    Column-level controls are stateless collections of methods for visualizing cell data and
-    triggering corresponding events.
-    """
-
-    icon_border = 4
-    icon_size = 16
-    h = icon_size + 2 * icon_border
-    w = h
-    size = QSize(w, h)
+class SubscribeToggleControl(QObject, CheckClickedMixin):
 
     clicked = pyqtSignal(QModelIndex)
 
-    def __init__(self, column_name, on_icon, off_icon, hover_icon, parent=None):
+    def __init__(self, column_name, parent=None):
         QObject.__init__(self, parent=parent)
-        self.on_icon = on_icon
-        self.off_icon = off_icon
-        self.hover_icon = hover_icon
         self.column_name = column_name
         self.last_index = QModelIndex()
 
-    def paint(self, painter, rect, _, toggled=False):
-        icon = self.on_icon if toggled else self.off_icon
-        x = rect.left() + (rect.width() - self.w) / 2
-        y = rect.top() + (rect.height() - self.h) / 2
-        icon_rect = QRect(x, y, self.w, self.h)
+        self._track_radius = 10
+        self._thumb_radius = 8
+        self._line_thickness = self._track_radius - self._thumb_radius
+        self._margin = max(0, self._thumb_radius - self._track_radius)
+        self._base_offset = max(self._thumb_radius, self._track_radius)
 
-        icon.paint(painter, icon_rect)
+        self._width = 4 * self._track_radius + 2 * self._margin
+        self._height = 2 * self._track_radius + 2 * self._margin
 
-    def paint_hover(self, painter, rect, _index, toggled=False):
-        icon = self.on_icon if toggled else self.hover_icon
-        x = rect.left() + (rect.width() - self.w) / 2
-        y = rect.top() + (rect.height() - self.h) / 2
-        icon_rect = QRect(x, y, self.w, self.h)
+        self._end_offset = {True: lambda: self._width - self._base_offset, False: lambda: self._base_offset}
 
-        icon.paint(painter, icon_rect)
+        self._offset = self._base_offset
+
+        self._thumb_color = {True: TRIBLER_PALETTE.highlightedText(), False: TRIBLER_PALETTE.light()}
+        self._track_color = {True: TRIBLER_PALETTE.highlight(), False: TRIBLER_PALETTE.dark()}
+        self._text_color = {True: TRIBLER_PALETTE.highlight().color(), False: TRIBLER_PALETTE.dark().color()}
+        self._thumb_text = {True: '✔', False: '✕'}
+        self._track_opacity = 0.8
+
+    def paint(self, painter, rect, index, toggled=False, hover=False):
+        data_item = index.model().data_items[index.row()]
+        complete = data_item.get('state') == CHANNEL_STATE.COMPLETE.value
+
+        painter.save()
+
+        x = rect.x() + (rect.width() - self._width) / 2
+        y = rect.y() + (rect.height() - self._height) / 2
+
+        offset = self._end_offset[toggled]()
+        p = painter
+
+        p.setRenderHint(QPainter.Antialiasing, True)
+        track_opacity = 1.0 if hover else self._track_opacity
+        thumb_opacity = 1.0
+        text_opacity = 1.0
+        track_brush = self._track_color[toggled]
+        thumb_brush = self._thumb_color[toggled]
+        text_color = self._text_color[toggled]
+
+        p.setBrush(track_brush)
+        p.setPen(QPen(track_brush.color(), 2))
+        if not complete and toggled:
+            p.setBrush(Qt.NoBrush)
+        p.setOpacity(track_opacity)
+        p.drawRoundedRect(
+            x,
+            y,
+            self._width - 2 * self._margin,
+            self._height - 2 * self._margin,
+            self._track_radius,
+            self._track_radius,
+        )
+        p.setPen(Qt.NoPen)
+
+        p.setBrush(thumb_brush)
+        p.setOpacity(thumb_opacity)
+        p.drawEllipse(
+            x + offset - self._thumb_radius,
+            y + self._base_offset - self._thumb_radius,
+            2 * self._thumb_radius,
+            2 * self._thumb_radius,
+        )
+        p.setPen(text_color)
+        p.setOpacity(text_opacity)
+        font = p.font()
+        font.setPixelSize(1.5 * self._thumb_radius)
+        p.setFont(font)
+        p.drawText(
+            QRectF(
+                x + offset - self._thumb_radius,
+                y + self._base_offset - self._thumb_radius,
+                2 * self._thumb_radius,
+                2 * self._thumb_radius,
+            ),
+            Qt.AlignCenter,
+            self._thumb_text[toggled],
+        )
+
+        painter.restore()
 
 
 class CommitStatusControl(QObject):
@@ -402,7 +546,6 @@ class CommitStatusControl(QObject):
     todelete_icon = QIcon(get_image_path("minus.svg"))
     updated_icon = QIcon(get_image_path("update.svg"))
 
-    delete_action_icon = QIcon(get_image_path("delete.png"))
     restore_action_icon = QIcon(get_image_path("undo.svg"))
 
     def __init__(self, column_name, parent=None):
@@ -411,7 +554,7 @@ class CommitStatusControl(QObject):
         self.rect = QRect()
         self.last_index = QModelIndex()
 
-    def paint(self, painter, rect, index):
+    def paint(self, painter, rect, index, hover=False):
         data_item = index.model().data_items[index.row()]
         if self.column_name not in data_item or data_item[self.column_name] == '':
             return
@@ -433,34 +576,6 @@ class CommitStatusControl(QObject):
 
         icon.paint(painter, icon_rect)
         self.rect = rect
-
-    def paint_hover(self, painter, rect, index):
-        # FIXME: This should remain disabled until we implement the undo feature in the GUI.
-        """
-        data_item = index.model().data_items[index.row()]
-        if self.column_name not in data_item or data_item[self.column_name] == '':
-            return
-        state = data_item[self.column_name]
-        icon = QIcon()
-
-        if state == COMMIT_STATUS_COMMITTED:
-            icon = self.delete_action_icon
-        elif state == COMMIT_STATUS_NEW:
-            icon = self.delete_action_icon
-        elif state == COMMIT_STATUS_TODELETE:
-            icon = self.restore_action_icon
-        elif state == COMMIT_STATUS_UPDATED:
-            icon = self.delete_action_icon
-
-        x = rect.left() + (rect.width() - self.w) / 2
-        y = rect.top() + (rect.height() - self.h) / 2
-        icon_rect = QRect(x, y, self.w, self.h)
-
-        icon.paint(painter, icon_rect)
-        self.rect = rect
-        """
-        # This line must be removed when the above code is uncommented
-        return self.paint(painter, rect, index)
 
     def check_clicked(self, event, _, __, index):
         data_item = index.model().data_items[index.row()]
@@ -500,7 +615,7 @@ class HealthStatusDisplay(QObject):
         HEALTH_ERROR: QColor(Qt.red),
     }
 
-    def paint(self, painter, rect, index):
+    def paint(self, painter, rect, index, hover=False):
         data_item = index.model().data_items[index.row()]
 
         if u'health' not in data_item or data_item[u'health'] == "updated":
@@ -517,6 +632,8 @@ class HealthStatusDisplay(QObject):
 
         r = rect
 
+        painter.save()
+
         # Indicator ellipse rectangle
         y = r.top() + (r.height() - self.indicator_side) / 2
         x = r.left() + self.indicator_border
@@ -525,11 +642,9 @@ class HealthStatusDisplay(QObject):
         indicator_rect = QRect(x, y, w, h)
 
         # Paint indicator
-        painter.save()
         painter.setBrush(QBrush(self.health_colors[health]))
         painter.setPen(QPen(self.health_colors[health], 0, Qt.SolidLine, Qt.RoundCap))
         painter.drawEllipse(indicator_rect)
-        painter.restore()
 
         x = indicator_rect.left() + indicator_rect.width() + 2 * self.indicator_border
         y = r.top()
@@ -538,28 +653,20 @@ class HealthStatusDisplay(QObject):
         text_box = QRect(x, y, w, h)
 
         # Paint status text, if necessary
-        if health in [HEALTH_CHECKING, HEALTH_UNCHECKED, HEALTH_ERROR]:
-            draw_text(painter, text_box, health)
+        if health in (HEALTH_CHECKING, HEALTH_UNCHECKED, HEALTH_ERROR):
+            txt = health
         else:
             seeders = int(data_item[u'num_seeders'])
             leechers = int(data_item[u'num_leechers'])
 
             txt = u'S' + str(seeders) + u' L' + str(leechers)
 
-            draw_text(painter, text_box, txt)
+        color = TRIBLER_PALETTE.light().color() if hover else TRIBLER_NEUTRAL
+        draw_text(painter, text_box, txt, color=color)
+        painter.restore()
 
 
-class RatingControl(QObject, CheckClickedMixin):
-    """
-    Controls for visualizing the votes and subscription information for channels.
-    """
-
-    rating_colors = {
-        "UNSUBSCRIBED": QColor("#888888"),
-        "UNSUBSCRIBED_HOVER": QColor("#ffffff"),
-        "SUBSCRIBED": QColor("#FE6D01"),
-        "SUBSCRIBED_HOVER": QColor("#FF5722"),
-    }
+class HealthStatusControl(HealthStatusDisplay, CheckClickedMixin):
 
     clicked = pyqtSignal(QModelIndex)
 
@@ -568,10 +675,31 @@ class RatingControl(QObject, CheckClickedMixin):
         self.column_name = column_name
         self.last_index = QModelIndex()
 
-    def paint(self, painter, rect, _index, votes=0, subscribed=False):
-        color = self.rating_colors["SUBSCRIBED" if subscribed else "UNSUBSCRIBED"]
-        draw_text(painter, rect, format_votes(votes), color=color)
 
-    def paint_hover(self, painter, rect, _index, votes=0, subscribed=False):
-        color = self.rating_colors["SUBSCRIBED_HOVER" if subscribed else "UNSUBSCRIBED_HOVER"]
-        draw_text(painter, rect, format_votes(votes), color=color)
+class RatingControl(QObject, CheckClickedMixin):
+    """
+    Controls for visualizing the votes and subscription information for channels.
+    """
+
+    rating_colors = {
+        "BACKGROUND": QColor("#444444"),
+        "FOREGROUND": QColor("#BBBBBB"),
+        # "SUBSCRIBED_HOVER": QColor("#FF5722"),
+    }
+
+    clicked = pyqtSignal(QModelIndex)
+
+    def __init__(self, column_name, parent=None):
+        QObject.__init__(self, parent=parent)
+        self.column_name = column_name
+        self.last_index = QModelIndex()
+        self.font = None
+        # For some reason, on MacOS default inter-character spacing for some symbols
+        # is too wide. We have to adjust it manually.
+        if DARWIN:
+            self.font = QFont()
+            self.font.setLetterSpacing(QFont.PercentageSpacing, 60.0)
+
+    def paint(self, painter, rect, _index, votes=0):
+        draw_text(painter, rect, format_votes(1.0), color=self.rating_colors["BACKGROUND"], font=self.font)
+        draw_text(painter, rect, format_votes(votes), color=self.rating_colors["FOREGROUND"], font=self.font)

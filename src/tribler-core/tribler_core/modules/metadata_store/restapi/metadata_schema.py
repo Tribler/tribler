@@ -39,6 +39,7 @@ class ChannelSchema(Schema):
     updated = Integer()
     subscribed = Boolean()
     votes = Float()
+    progress = Float()
 
 
 class TorrentSchema(Schema):
@@ -60,3 +61,4 @@ class TorrentSchema(Schema):
     updated = Integer()
     subscribed = Boolean()
     votes = Float()
+    progress = Float()

@@ -1,3 +1,6 @@
+import asyncio
+from unittest.mock import Mock
+
 import pytest
 
 from tribler_common.simpledefs import NTFY
@@ -10,13 +13,15 @@ def fixture_notifier():
     return Notifier()
 
 
-def test_notifier(notifier):
-    def callback_func(*_):
-        callback_func.called = True
+@pytest.mark.asyncio
+async def test_notifier(notifier):
 
-    notifier.add_observer(NTFY.TORRENT_FINISHED, callback_func)
+    mock_foo = Mock()
+    notifier.add_observer(NTFY.TORRENT_FINISHED, mock_foo.bar)
     notifier.notify(NTFY.TORRENT_FINISHED)
-    assert callback_func.called
+    # Notifier uses asyncio loop internally, so we must wait at least a single loop cycle
+    await asyncio.sleep(0)
+    mock_foo.bar.assert_called_once()
 
 
 def test_remove_observer(notifier):

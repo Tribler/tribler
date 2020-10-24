@@ -24,15 +24,14 @@ def add_fake_torrents_channels(session):
                 infohash=random_infohash(),
                 id_=123,
                 sign_with=ext_key,
+                version=10,
+                local_version=(ind % 11),
             )
             for torrent_ind in range(torrents_per_channel):
                 rand_infohash = random_infohash()
                 infohashes.append(rand_infohash)
                 session.mds.TorrentMetadata(
-                    origin_id=channel.id_,
-                    title='torrent%d' % torrent_ind,
-                    infohash=rand_infohash,
-                    sign_with=ext_key,
+                    origin_id=channel.id_, title='torrent%d' % torrent_ind, infohash=rand_infohash, sign_with=ext_key
                 )
 
 
@@ -45,9 +44,7 @@ def my_channel(session):
                 origin_id=chan.id_, title='torrent%d' % ind, status=NEW, infohash=random_infohash()
             )
         for ind in range(5, 9):
-            _ = session.mds.TorrentMetadata(
-                origin_id=chan.id_, title='torrent%d' % ind, infohash=random_infohash()
-            )
+            _ = session.mds.TorrentMetadata(origin_id=chan.id_, title='torrent%d' % ind, infohash=random_infohash())
 
         chan2 = session.mds.ChannelMetadata.create_channel('test2', 'test2')
         for ind in range(5):
@@ -55,7 +52,5 @@ def my_channel(session):
                 origin_id=chan2.id_, title='torrentB%d' % ind, status=NEW, infohash=random_infohash()
             )
         for ind in range(5, 9):
-            _ = session.mds.TorrentMetadata(
-                origin_id=chan2.id_, title='torrentB%d' % ind, infohash=random_infohash()
-            )
+            _ = session.mds.TorrentMetadata(origin_id=chan2.id_, title='torrentB%d' % ind, infohash=random_infohash())
         return chan

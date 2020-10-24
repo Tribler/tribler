@@ -26,6 +26,11 @@ class DialogContainer(QWidget):
         except RuntimeError:
             pass
 
+    def mouseReleaseEvent(self, qevent):
+        # Close the dialog window if user clicks outside it
+        if not self.dialog_widget.geometry().contains(qevent.localPos().toPoint()):
+            self.close_dialog()
+
     def on_main_window_resize(self):
         try:
             if not self or not self.parentWidget():

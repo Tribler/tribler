@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import QAction, QFileDialog
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import DIRTY_STATUSES, NEW
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE
 
-from tribler_gui.defs import BUTTON_TYPE_CONFIRM, BUTTON_TYPE_NORMAL, CATEGORY_LIST
+from tribler_gui.defs import BUTTON_TYPE_CONFIRM, BUTTON_TYPE_NORMAL, ContentCategories
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler_gui.dialogs.new_channel_dialog import NewChannelDialog
 from tribler_gui.tribler_action_menu import TriblerActionMenu
@@ -22,11 +22,10 @@ from tribler_gui.widgets.tablecontentmodel import (
     PersonalChannelsModel,
     SearchResultsModel,
 )
-from tribler_gui.widgets.torrentdetailstabwidget import TorrentDetailsTabWidget
 from tribler_gui.widgets.triblertablecontrollers import ContentTableViewController
 
 CHANNEL_COMMIT_DELAY = 30000  # milliseconds
-CATEGORY_SELECTOR_ITEMS = ("All", "Channels") + CATEGORY_LIST
+CATEGORY_SELECTOR_ITEMS = ("All", "Channels") + ContentCategories.long_names
 
 widget_form, widget_class = uic.loadUiType(get_ui_file_path('torrents_list.ui'))
 
@@ -52,6 +51,7 @@ class ChannelContentsWidget(widget_form, widget_class):
         # for each external resource (e.g. image/icon), we must reload it manually here.
         self.channel_options_button.setIcon(QIcon(get_image_path('ellipsis.png')))
         self.channel_preview_button.setIcon(QIcon(get_image_path('refresh.png')))
+        self.channel_preview_button.setToolTip('Click to load preview contents')
 
         self.default_channel_model = ChannelContentModel
 
@@ -61,9 +61,6 @@ class ChannelContentsWidget(widget_form, widget_class):
         self.controller = None
         self.commit_timer = None
         self.autocommit_enabled = None
-
-        self.details_tab_widget = self.findChild(TorrentDetailsTabWidget, "details_container")
-        self.details_tab_widget.initialize_details_widget()
 
         self.channels_stack = []
 
@@ -87,6 +84,7 @@ class ChannelContentsWidget(widget_form, widget_class):
                     obj.blockSignals(False)
 
         self.freeze_controls = freeze_controls_class
+        self.setStyleSheet("QToolTip { color: #222222; background-color: #eeeeee; border: 0px; }")
 
     @property
     def model(self):
@@ -117,16 +115,12 @@ class ChannelContentsWidget(widget_form, widget_class):
         self.commit_control_bar.setHidden(True)
 
         self.controller = ContentTableViewController(
-            self.content_table, self.details_container, self.channel_torrents_filter_input
+            self.content_table, filter_input=self.channel_torrents_filter_input
         )
-
-        self.window().core_manager.events_manager.node_info_updated.connect(self.controller.update_health_details)
-        self.splitter.splitterMoved.connect(self.controller.brain_dead_refresh)
 
         # To reload the preview
         self.channel_preview_button.clicked.connect(self.preview_clicked)
 
-        self.details_container.hide()
         # self.channel_options_button.hide()
         self.autocommit_enabled = edit_enabled and (
             get_gui_setting(gui_settings, "autocommit_enabled", True, is_bool=True) if gui_settings else True
@@ -154,8 +148,10 @@ class ChannelContentsWidget(widget_form, widget_class):
 
     def on_category_selector_changed(self, ind):
         category = CATEGORY_SELECTOR_ITEMS[ind] if ind else None
-        if self.model.category_filter != category:
-            self.model.category_filter = category
+        content_category = ContentCategories.get(category)
+        category_code = content_category.code if content_category else category
+        if self.model.category_filter != category_code:
+            self.model.category_filter = category_code
             self.model.reset()
 
     def empty_channels_stack(self):
@@ -234,15 +230,17 @@ class ChannelContentsWidget(widget_form, widget_class):
 
     def go_back(self):
         if len(self.channels_stack) > 1:
-            self.details_container.hide()
             self.disconnect_current_model()
             self.channels_stack.pop().deleteLater()
 
             # We block signals to prevent triggering redundant model reloading
             with self.freeze_controls():
+                # Set filter category selector to correct index corresponding to loaded model
+                content_category = ContentCategories.get(self.model.category_filter)
+                filter_display_name = content_category.long_name if content_category else self.model.category_filter
                 self.category_selector.setCurrentIndex(
-                    CATEGORY_SELECTOR_ITEMS.index(self.model.category_filter)
-                    if self.model.category_filter in CATEGORY_SELECTOR_ITEMS
+                    CATEGORY_SELECTOR_ITEMS.index(filter_display_name)
+                    if filter_display_name in CATEGORY_SELECTOR_ITEMS
                     else 0
                 )
                 if self.model.text_filter:
@@ -304,10 +302,7 @@ class ChannelContentsWidget(widget_form, widget_class):
         self.controller.table_view.resizeEvent(None)
 
         self.content_table.setFocus()
-        self.details_container.hide()
         self.channel_options_button.show()
-
-        self.update_labels()
 
     def update_labels(self, dirty=False):
 
@@ -332,7 +327,7 @@ class ChannelContentsWidget(widget_form, widget_class):
         breadcrumb_text = ''
         breadcrumb_text_undecorated = ''
         path_parts = [(m, model.channel_info["name"]) for m, model in enumerate(self.channels_stack)]
-        slash_separator = '<font color=#A5A5A5>  /  </font>'
+        slash_separator = '<font color=#CCCCCC>  /  </font>'
         for m, channel_name in reversed(path_parts):
             breadcrumb_text_undecorated = " / " + channel_name + breadcrumb_text_undecorated
             breadcrumb_text_elided = self.channel_name_label.fontMetrics().elidedText(

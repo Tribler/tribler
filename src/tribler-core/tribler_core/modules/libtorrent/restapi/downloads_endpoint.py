@@ -633,7 +633,6 @@ class DownloadsEndpoint(RESTEndpoint):
                         await wait_for(response.write(data), STREAM_PAUSE_TIME)
                         bytes_done += len(data)
 
-
                         if chunk.resume():
                             self._logger.debug("Stream %s-%s is resumed, starting sequential buffer", start, stop)
                     except AsyncTimeoutError:

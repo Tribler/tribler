@@ -13,11 +13,23 @@ import tribler_gui
 from tribler_gui.defs import HEALTH_DEAD, HEALTH_GOOD, HEALTH_MOOT, HEALTH_UNCHECKED, VIDEO_EXTS
 from tribler_gui.i18n import tr
 
+NUM_VOTES_BARS = 8
+
+VOTES_RATING_DESCRIPTIONS = (
+    "Zero popularity",
+    "Very low popularity",
+    "3rd tier popularity",
+    "2nd tier popularity",
+    "1st tier popularity",
+)
+
+
+def data_item2uri(data_item):
+    return f"magnet:?xt=urn:btih:{data_item[u'infohash']}&dn={data_item[u'name']}"
+
 
 def index2uri(index):
-    infohash = index.model().data_items[index.row()][u'infohash']
-    name = index.model().data_items[index.row()][u'name']
-    return u"magnet:?xt=urn:btih:%s&dn=%s" % (infohash, name)
+    return data_item2uri(index.model().data_items[index.row()])
 
 
 def format_size(num, suffix='B'):
@@ -309,14 +321,30 @@ def get_checkbox_style(color="#B5B5B5"):
     )
 
 
+def votes_count(votes=0.0):
+    votes = float(votes)
+    # FIXME: this is a temp fix to cap the normalized value to 1.
+    #  The votes should already be normalized before formatting it.
+    votes = 1.0 if votes > 1 else votes
+    # We add sqrt to flatten the votes curve a bit
+    votes = math.sqrt(votes)
+    votes = int(math.ceil(votes * NUM_VOTES_BARS))
+    return votes
+
+
 def format_votes(votes=0.0):
-    # Votes are represented as unicode hearts in this implementation.
-    # The number of hearts range from one to five.
-    if votes:
-        votes = float(votes)
-        # FIXME: this is a temp fix to cap the normalized value to 1.
-        #  The votes should already be normalized before formatting it.
-        votes = 1.0 if votes > 1 else votes
-        votes = 1 + int(math.ceil(votes * 4))
-        return u"  %s " % (u"\u2665" * votes)
-    return u"  \u2665 "
+    return u"  %s " % (u"┃" * votes_count(votes))
+
+
+def format_votes_rich_text(votes=0.0):
+    votes_count_full = votes_count(votes)
+    votes_count_empty = votes_count(1.0) - votes_count_full
+
+    rating_rich_text = (
+        f"<font color=#BBBBBB>{'┃' * votes_count_full}</font>" + f"<font color=#444444>{'┃' * votes_count_empty}</font>"
+    )
+    return rating_rich_text
+
+
+def get_votes_rating_description(votes=0.0):
+    return VOTES_RATING_DESCRIPTIONS[math.ceil(float(votes_count(votes)) / 2)]

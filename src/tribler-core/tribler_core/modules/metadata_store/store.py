@@ -11,6 +11,8 @@ import lz4.frame
 from pony import orm
 from pony.orm import CacheIndexError, TransactionIntegrityError, db_session
 
+from tribler_common.simpledefs import NTFY
+
 from tribler_core.exceptions import InvalidSignatureException
 from tribler_core.modules.category_filter.l2_filter import is_forbidden
 from tribler_core.modules.metadata_store.orm_bindings import (
@@ -78,7 +80,8 @@ sql_add_fts_trigger_update = """
 
 
 class MetadataStore(object):
-    def __init__(self, db_filename, channels_dir, my_key, disable_sync=False):
+    def __init__(self, db_filename, channels_dir, my_key, disable_sync=False, notifier=None):
+        self.notifier = notifier  # Reference to app-level notification service
         self.db_filename = db_filename
         self.channels_dir = channels_dir
         self.my_key = my_key
@@ -128,7 +131,7 @@ class MetadataStore(object):
 
         self.ChannelMetadata._channels_dir = channels_dir
 
-        self._db.bind(provider='sqlite', filename=str(db_filename), create_db=str(create_db), timeout=120.0)
+        self._db.bind(provider='sqlite', filename=str(db_filename), create_db=create_db, timeout=120.0)
         if create_db:
             with db_session:
                 self._db.execute(sql_create_fts_table)
@@ -180,6 +183,36 @@ class MetadataStore(object):
         if not isinstance(threading.current_thread(), threading._MainThread):
             self._db.disconnect()
 
+    @staticmethod
+    def get_list_of_channel_blobs_to_process(dirname, start_timestamp):
+        blobs_to_process = []
+        total_blobs_size = 0
+        for full_filename in sorted(dirname.iterdir()):
+            blob_sequence_number = get_mdblob_sequence_number(full_filename.name)
+
+            if blob_sequence_number is None or blob_sequence_number <= start_timestamp:
+                continue
+            blob_size = full_filename.stat().st_size
+            total_blobs_size += blob_size
+            blobs_to_process.append((blob_sequence_number, full_filename, blob_size))
+        return blobs_to_process, total_blobs_size
+
+    @db_session
+    def get_channel_dir_path(self, channel):
+        return self.channels_dir / channel.dirname
+
+    @db_session
+    def compute_channel_update_progress(self, channel):
+        # TODO: This procedure copy-pastes some stuff from process_channel_dir. Maybe DRY it somehow?
+        blobs_to_process, total_blobs_size = self.get_list_of_channel_blobs_to_process(
+            self.get_channel_dir_path(channel), channel.start_timestamp
+        )
+        processed_blobs_size = 0
+        for blob_sequence_number, _, blob_size in blobs_to_process:
+            if channel.local_version >= blob_sequence_number >= channel.start_timestamp:
+                processed_blobs_size += blob_size
+        return float(processed_blobs_size) / total_blobs_size
+
     def process_channel_dir(self, dirname, public_key, id_, **kwargs):
         """
         Load all metadata blobs in a given directory.
@@ -204,39 +237,47 @@ class MetadataStore(object):
                 channel.timestamp,
             )
 
-        for full_filename in sorted(dirname.iterdir()):
-            blob_sequence_number = get_mdblob_sequence_number(full_filename.name)
+        blobs_to_process, total_blobs_size = self.get_list_of_channel_blobs_to_process(dirname, channel.start_timestamp)
 
-            if blob_sequence_number is not None:
-                # Skip blobs containing data we already have and those that are
-                # ahead of the channel version known to us
-                # ==================|          channel data       |===
-                # ===start_timestamp|---local_version----timestamp|===
-                # local_version is essentially a cursor pointing into the current state of update process
+        # We count total size of all the processed blobs to estimate the progress of channel processing
+        # Counting the blobs' sizes are the only reliable way to estimate the remaining processing time,
+        # because it accounts for potential deletions, entry modifications, etc.
+        processed_blobs_size = 0
+        for blob_sequence_number, full_filename, blob_size in blobs_to_process:
+            processed_blobs_size += blob_size
+            # Skip blobs containing data we already have and those that are
+            # ahead of the channel version known to us
+            # ==================|          channel data       |===
+            # ===start_timestamp|---local_version----timestamp|===
+            # local_version is essentially a cursor pointing into the current state of update process
+            with db_session:
+                channel = self.ChannelMetadata.get(public_key=public_key, id_=id_)
+                if not channel:
+                    return
+                if (
+                    blob_sequence_number <= channel.start_timestamp
+                    or blob_sequence_number <= channel.local_version
+                    or blob_sequence_number > channel.timestamp
+                ):
+                    continue
+            try:
+                self.process_mdblob_file(str(full_filename), **kwargs)
+                # If we stopped mdblob processing due to shutdown flag, we should stop
+                # processing immediately, so that the channel local version will not increase
+                if self._shutting_down:
+                    return
+                # We track the local version of the channel while reading blobs
                 with db_session:
-                    channel = self.ChannelMetadata.get(public_key=public_key, id_=id_)
+                    channel = self.ChannelMetadata.get_for_update(public_key=public_key, id_=id_)
                     if not channel:
                         return
-                    if (
-                        blob_sequence_number <= channel.start_timestamp
-                        or blob_sequence_number <= channel.local_version
-                        or blob_sequence_number > channel.timestamp
-                    ):
-                        continue
-                try:
-                    self.process_mdblob_file(str(full_filename), **kwargs)
-                    # If we stopped mdblob processing due to shutdown flag, we should stop
-                    # processing immediately, so that channel local version will not increase
-                    if self._shutting_down:
-                        return
-                    # We track the local version of the channel while reading blobs
-                    with db_session:
-                        channel = self.ChannelMetadata.get_for_update(public_key=public_key, id_=id_)
-                        if not channel:
-                            return
-                        channel.local_version = blob_sequence_number
-                except InvalidSignatureException:
-                    self._logger.error("Not processing metadata located at %s: invalid signature", full_filename)
+                    channel.local_version = blob_sequence_number
+                    if self.notifier:
+                        channel_update_dict = channel.to_simple_dict()
+                        channel_update_dict["progress"] = float(processed_blobs_size) / total_blobs_size
+                        self.notifier.notify(NTFY.CHANNEL_ENTITY_UPDATED, channel_update_dict)
+            except InvalidSignatureException:
+                self._logger.error("Not processing metadata located at %s: invalid signature", full_filename)
 
         with db_session:
             channel = self.ChannelMetadata.get(public_key=public_key, id_=id_)

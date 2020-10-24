@@ -9,6 +9,8 @@ from pony.orm import db_session
 
 import pytest
 
+from tribler_common.simpledefs import CHANNEL_STATE
+
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.modules.metadata_store.serialization import COLLECTION_NODE, REGULAR_TORRENT
 from tribler_core.restapi.base_api_test import do_request
@@ -18,22 +20,46 @@ from tribler_core.utilities.unicode import hexlify
 
 
 @pytest.mark.asyncio
-async def test_get_channels(enable_chant, enable_api, add_fake_torrents_channels, session):
+async def test_get_channels(enable_chant, enable_api, add_fake_torrents_channels, mock_dlmgr, session):
     """
     Test whether we can query some channels in the database with the REST API
     """
-    json_dict = await do_request(session, 'channels?sort_by=title')
+    json_dict = await do_request(session, 'channels')
     assert len(json_dict['results']) == 10
+    # Default channel state should be METAINFO_LOOKUP
+    assert json_dict['results'][0]['state'] == CHANNEL_STATE.METAINFO_LOOKUP.value
+
+    # We test out different combinations of channels' states and download progress
+    # State UPDATING:
+    session.mds.compute_channel_update_progress = lambda _: 0.5
+    with db_session:
+        channel = session.mds.ChannelMetadata.select().first()
+        channel.subscribed = True
+        channel.local_version = 123
+
+    json_dict = await do_request(session, 'channels')
+    assert json_dict['results'][0]['progress'] == 0.5
+
+    # State DOWNLOADING
+    with db_session:
+        channel = session.mds.ChannelMetadata.select().first()
+        channel.subscribed = True
+        channel.local_version = 0
+
+    session.dlmgr.metainfo_requests.get = lambda _: False
+    session.dlmgr.download_exists = lambda _: True
+    json_dict = await do_request(session, 'channels')
+    assert json_dict['results'][0]['state'] == CHANNEL_STATE.DOWNLOADING.value
 
 
 @pytest.mark.asyncio
-async def test_get_channels_sort_by_health(enable_chant, enable_api, add_fake_torrents_channels, session):
+async def test_get_channels_sort_by_health(enable_chant, enable_api, add_fake_torrents_channels, mock_dlmgr, session):
     json_dict = await do_request(session, 'channels?sort_by=health')
     assert len(json_dict['results']) == 10
 
 
 @pytest.mark.asyncio
-async def test_get_channels_invalid_sort(enable_chant, enable_api, add_fake_torrents_channels, session):
+async def test_get_channels_invalid_sort(enable_chant, enable_api, add_fake_torrents_channels, mock_dlmgr, session):
     """
     Test whether we can query some channels in the database with the REST API and an invalid sort parameter
     """
@@ -42,7 +68,7 @@ async def test_get_channels_invalid_sort(enable_chant, enable_api, add_fake_torr
 
 
 @pytest.mark.asyncio
-async def test_get_subscribed_channels(enable_chant, enable_api, add_fake_torrents_channels, session):
+async def test_get_subscribed_channels(enable_chant, enable_api, add_fake_torrents_channels, mock_dlmgr, session):
     """
     Test whether we can successfully query channels we are subscribed to with the REST API
     """
@@ -51,7 +77,7 @@ async def test_get_subscribed_channels(enable_chant, enable_api, add_fake_torren
 
 
 @pytest.mark.asyncio
-async def test_get_channels_count(enable_chant, enable_api, add_fake_torrents_channels, session):
+async def test_get_channels_count(enable_chant, enable_api, add_fake_torrents_channels, mock_dlmgr, session):
     """
     Test getting the total number of channels through the API
     """
@@ -68,15 +94,16 @@ async def test_create_channel(enable_chant, enable_api, session):
     with db_session:
         assert session.mds.ChannelMetadata.get(title="New channel")
     await do_request(
-        session,
-        'channels/mychannel/0/channels', request_type='POST', post_data={"name": "foobar"}, expected_code=200
+        session, 'channels/mychannel/0/channels', request_type='POST', post_data={"name": "foobar"}, expected_code=200
     )
     with db_session:
         assert session.mds.ChannelMetadata.get(title="foobar")
 
 
 @pytest.mark.asyncio
-async def test_get_contents_count(enable_chant, enable_api, add_fake_torrents_channels, session):
+async def test_get_contents_count(
+    enable_chant, enable_api, add_fake_torrents_channels, mock_dlmgr_get_download, session
+):
     """
     Test getting the total number of items in a specific channel
     """
@@ -87,19 +114,22 @@ async def test_get_contents_count(enable_chant, enable_api, add_fake_torrents_ch
 
 
 @pytest.mark.asyncio
-async def test_get_channel_contents(enable_chant, enable_api, add_fake_torrents_channels, session):
+async def test_get_channel_contents(enable_chant, enable_api, add_fake_torrents_channels, mock_dlmgr, session):
     """
     Test whether we can query torrents from a channel
     """
+    session.dlmgr.get_download().get_state().get_progress = lambda: 0.5
     with db_session:
         chan = session.mds.ChannelMetadata.select().first()
     json_dict = await do_request(session, 'channels/%s/123' % hexlify(chan.public_key), expected_code=200)
+    print(json_dict)
     assert len(json_dict['results']) == 5
     assert 'status' in json_dict['results'][0]
+    assert json_dict['results'][0]['progress'] == 0.5
 
 
 @pytest.mark.asyncio
-async def test_get_channel_contents_by_type(enable_chant, enable_api, my_channel, session):
+async def test_get_channel_contents_by_type(enable_chant, enable_api, my_channel, mock_dlmgr_get_download, session):
     """
     Test filtering channel contents by a list of data types
     """
@@ -108,9 +138,9 @@ async def test_get_channel_contents_by_type(enable_chant, enable_api, my_channel
 
         json_dict = await do_request(
             session,
-            'channels/%s/%d?metadata_type=%d&metadata_type=%d' %
-            (hexlify(my_channel.public_key), my_channel.id_, COLLECTION_NODE, REGULAR_TORRENT),
-            expected_code=200
+            'channels/%s/%d?metadata_type=%d&metadata_type=%d'
+            % (hexlify(my_channel.public_key), my_channel.id_, COLLECTION_NODE, REGULAR_TORRENT),
+            expected_code=200,
         )
 
     assert len(json_dict['results']) == 10
@@ -388,6 +418,7 @@ async def test_add_torrent_from_magnet(enable_chant, enable_api, my_channel, moc
     """
     Test whether we can add a torrent to your channel from a magnet link
     """
+
     def fake_get_metainfo(_, **__):
         meta_info = TorrentDef.load(TORRENT_UBUNTU_FILE).get_metainfo()
         return succeed(meta_info)
@@ -410,6 +441,7 @@ async def test_add_torrent_from_magnet_error(enable_chant, enable_api, my_channe
     """
     Test whether an error while adding magnets to your channel results in a proper 500 error
     """
+
     def fake_get_metainfo(*_, **__):
         return succeed(None)
 
@@ -426,7 +458,7 @@ async def test_add_torrent_from_magnet_error(enable_chant, enable_api, my_channe
 
 
 @pytest.mark.asyncio
-async def test_get_torrents(enable_chant, enable_api, my_channel, session):
+async def test_get_torrents(enable_chant, enable_api, my_channel, mock_dlmgr_get_download, session):
     """
     Test whether we can query some torrents in the database with the REST API
     """
@@ -437,7 +469,7 @@ async def test_get_torrents(enable_chant, enable_api, my_channel, session):
 
 
 @pytest.mark.asyncio
-async def test_get_torrents_ffa_channel(enable_chant, enable_api, my_channel, session):
+async def test_get_torrents_ffa_channel(enable_chant, enable_api, my_channel, mock_dlmgr_get_download, session):
     """
     Test whether we can query channel contents for unsigned (legacy/FFA) channels
     """
