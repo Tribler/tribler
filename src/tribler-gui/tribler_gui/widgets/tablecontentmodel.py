@@ -11,7 +11,7 @@ from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, C
 from tribler_gui.defs import ACTION_BUTTONS, BITTORRENT_BIRTHDAY, COMMIT_STATUS_TODELETE, HEALTH_CHECKING
 from tribler_gui.i18n import tr
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.utilities import format_size, format_votes, pretty_date
+from tribler_gui.utilities import format_size, format_votes, get_votes_rating_description, pretty_date
 
 
 def get_item_uid(item):
@@ -242,7 +242,7 @@ class ChannelContentModel(RemoteTableModel):
 
     column_tooltip_filters = {
         u'state': lambda data: data,
-        u'votes': lambda data: "{0:.0%}".format(float(data)) if data else None,
+        u'votes': lambda data: get_votes_rating_description(data) if data is not None else None,
         u'category': lambda data: data,
         u'health': lambda data: f"{data}" + ('' if data == HEALTH_CHECKING else '\n(Click to recheck)'),
     }

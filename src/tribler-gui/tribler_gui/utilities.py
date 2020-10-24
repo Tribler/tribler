@@ -15,6 +15,14 @@ from tribler_gui.i18n import tr
 
 NUM_VOTES_BARS = 8
 
+VOTES_RATING_DESCRIPTIONS = (
+    "Zero popularity",
+    "Very low popularity",
+    "3rd tier popularity",
+    "2nd tier popularity",
+    "1st tier popularity",
+)
+
 
 def data_item2uri(data_item):
     return f"magnet:?xt=urn:btih:{data_item[u'infohash']}&dn={data_item[u'name']}"
@@ -326,3 +334,17 @@ def votes_count(votes=0.0):
 
 def format_votes(votes=0.0):
     return u"  %s " % (u"┃" * votes_count(votes))
+
+
+def format_votes_rich_text(votes=0.0):
+    votes_count_full = votes_count(votes)
+    votes_count_empty = votes_count(1.0) - votes_count_full
+
+    rating_rich_text = (
+        f"<font color=#BBBBBB>{'┃' * votes_count_full}</font>" + f"<font color=#444444>{'┃' * votes_count_empty}</font>"
+    )
+    return rating_rich_text
+
+
+def get_votes_rating_description(votes=0.0):
+    return VOTES_RATING_DESCRIPTIONS[math.ceil(float(votes_count(votes)) / 2)]

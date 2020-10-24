@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import QLabel, QWidget
 import tribler_core.utilities.json_util as json
 
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.utilities import votes_count
+from tribler_gui.utilities import format_votes_rich_text, get_votes_rating_description
 from tribler_gui.widgets.tablecontentdelegate import DARWIN
 
 
@@ -52,17 +52,16 @@ class SubscriptionsWidget(QWidget):
 
         self.subscribe_button.setChecked(bool(remote_response["subscribed"]))
         self._adjust_tooltip(bool(remote_response["subscribed"]))
-        votes_count_full = votes_count(remote_response['votes'])
-        votes_count_empty = votes_count(1.0) - votes_count_full
 
-        rating_rich_text = (
-            f"<font color=#BBBBBB>{'┃'*votes_count_full}</font>" + f"<font color=#444444>{'┃'*votes_count_empty}</font>"
-        )
-        self.channel_rating_label.setText(rating_rich_text)
+        # Update rating display
+        votes = remote_response['votes']
+        self.channel_rating_label.setText(format_votes_rich_text(votes))
         if DARWIN:
             font = QFont()
             font.setLetterSpacing(QFont.PercentageSpacing, 60.0)
             self.channel_rating_label.setFont(font)
+
+        self.channel_rating_label.setToolTip(get_votes_rating_description(votes))
 
     def on_subscribe_button_click(self):
         TriblerNetworkRequest(
