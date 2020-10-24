@@ -9,6 +9,8 @@ from PyQt5.QtGui import QCursor
 from PyQt5.QtNetwork import QNetworkRequest
 from PyQt5.QtWidgets import QAction
 
+from tribler_common.simpledefs import CHANNEL_STATE
+
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 from tribler_core.utilities.json_util import dumps
 
@@ -229,6 +231,15 @@ class ContextMenuMixin:
                 item_index.model().data_items[item_index.row()],
                 lambda x: self.check_torrent_health(x, forced=True),
             )
+        if num_selected == 1 and item_index.model().column_position.get('subscribed') is not None:
+            data_item = item_index.model().data_items[item_index.row()]
+            if data_item["type"] == CHANNEL_TORRENT and data_item["state"] != CHANNEL_STATE.PERSONAL.value:
+                self.add_menu_item(
+                    menu,
+                    f' {"Unsubscribe" if data_item["subscribed"] else "Subscribe"} channel',
+                    item_index.model().index(item_index.row(), item_index.model().column_position['subscribed']),
+                    self.table_view.delegate.subscribe_control.clicked.emit,
+                )
 
         # Add menu separator for channel stuff
         menu.addSeparator()
@@ -259,13 +270,13 @@ class ContextMenuMixin:
 
         if not self.model.edit_enabled:
             if self.selection_can_be_added_to_channel():
-                self.add_menu_item(menu, ' Add to My Channel ', item_index, on_add_to_channel)
+                self.add_menu_item(menu, ' Copy into personal channel', item_index, on_add_to_channel)
         else:
             self.add_menu_item(menu, ' Move ', item_index, on_move)
             self.add_menu_item(menu, ' Rename ', item_index, self._trigger_name_editor)
             self.add_menu_item(menu, ' Change category ', item_index, self._trigger_category_editor)
             menu.addSeparator()
-            self.add_menu_item(menu, ' Remove from My Channel ', item_index, self.table_view.on_delete_button_clicked)
+            self.add_menu_item(menu, ' Remove from channel', item_index, self.table_view.on_delete_button_clicked)
 
         menu.exec_(QCursor.pos())
 
