@@ -216,7 +216,7 @@ class RemoteTableModel(QAbstractTableModel):
 class ChannelContentModel(RemoteTableModel):
 
     columns = [ACTION_BUTTONS, u'category', u'name', u'size', u'health', u'updated']
-    column_headers = ['', tr('Category'), tr('Name'), tr('Size'), tr('Health'), tr('Updated')]
+    column_headers = ['', '', tr('Name'), tr('Size'), tr('Health'), tr('Updated')]
     unsortable_columns = [u'status', u'state', ACTION_BUTTONS]
     column_flags = {
         u'subscribed': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
@@ -235,9 +235,9 @@ class ChannelContentModel(RemoteTableModel):
     column_width = {
         u'state': lambda _: 100,
         u'subscribed': lambda _: 100,
-        u'name': lambda table_width: table_width - 510,
-        u'action_buttons': lambda _: 80,
-        u'category': lambda _: 20,
+        u'name': lambda table_width: table_width - 450,
+        u'action_buttons': lambda _: 50,
+        u'category': lambda _: 30,
     }
 
     column_tooltip_filters = {
@@ -465,7 +465,7 @@ class DiscoveredChannelsModel(ChannelContentModel):
     columns = [u'subscribed', u'name', u'state', u'torrents', u'votes', u'updated']
     column_headers = [tr('Subscribed'), tr('Name'), u'', tr('Torrents'), tr('Popularity'), tr('Updated')]
 
-    column_width = dict(ChannelContentModel.column_width, **{u'name': lambda table_width: table_width - 630})
+    column_width = dict(ChannelContentModel.column_width, **{u'name': lambda table_width: table_width - 540})
     default_sort_column = columns.index(u'votes')
 
     def __init__(self, *args, **kwargs):
@@ -476,7 +476,7 @@ class DiscoveredChannelsModel(ChannelContentModel):
 
 class PersonalChannelsModel(ChannelContentModel):
     columns = [ACTION_BUTTONS, u'category', u'name', u'size', u'health', u'updated', u'status']
-    column_headers = ['', tr('Category'), tr('Name'), tr('Size'), tr('Health'), tr('Updated'), u'']
+    column_headers = ['', '', tr('Name'), tr('Size'), tr('Health'), tr('Updated'), u'']
 
     column_flags = dict(ChannelContentModel.column_flags)
     column_flags.update(
@@ -541,9 +541,9 @@ class PersonalChannelsModel(ChannelContentModel):
 
 class SimplifiedPersonalChannelsModel(PersonalChannelsModel):
     columns = [ACTION_BUTTONS, u'category', u'name', u'size', u'health', u'updated']
-    column_headers = ['', tr('Category'), tr('Name'), tr('Size'), tr('Health'), tr('Updated')]
+    column_headers = ['', '', tr('Name'), tr('Size'), tr('Health'), tr('Updated')]
 
-    column_width = dict(ChannelContentModel.column_width, **{u'name': lambda table_width: table_width - 330})
+    column_width = dict(ChannelContentModel.column_width, **{u'name': lambda table_width: table_width - 440})
 
     def __init__(self, *args, **kwargs):
         kwargs["exclude_deleted"] = kwargs.get("exclude_deleted", True)

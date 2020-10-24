@@ -215,7 +215,7 @@ class TriblerWindow(QMainWindow):
         self.discovered_page.initialize_content_page(self.gui_settings)
         self.discovered_page.initialize_root_model(
             DiscoveredChannelsModel(
-                channel_info={"name": "🌐 Discovered channels"},
+                channel_info={"name": "Discovered channels"},
                 endpoint_url="channels",
                 hide_xxx=get_gui_setting(self.gui_settings, "family_filter", True, is_bool=True),
             )

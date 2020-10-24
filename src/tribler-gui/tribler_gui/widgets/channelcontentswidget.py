@@ -51,6 +51,7 @@ class ChannelContentsWidget(widget_form, widget_class):
         # for each external resource (e.g. image/icon), we must reload it manually here.
         self.channel_options_button.setIcon(QIcon(get_image_path('ellipsis.png')))
         self.channel_preview_button.setIcon(QIcon(get_image_path('refresh.png')))
+        self.channel_preview_button.setToolTip('Click to load preview contents')
 
         self.default_channel_model = ChannelContentModel
 
@@ -326,7 +327,7 @@ class ChannelContentsWidget(widget_form, widget_class):
         breadcrumb_text = ''
         breadcrumb_text_undecorated = ''
         path_parts = [(m, model.channel_info["name"]) for m, model in enumerate(self.channels_stack)]
-        slash_separator = '<font color=#A5A5A5>  /  </font>'
+        slash_separator = '<font color=#CCCCCC>  /  </font>'
         for m, channel_name in reversed(path_parts):
             breadcrumb_text_undecorated = " / " + channel_name + breadcrumb_text_undecorated
             breadcrumb_text_elided = self.channel_name_label.fontMetrics().elidedText(
