@@ -69,8 +69,7 @@ class RemoteQueryCommunity(Community):
     """
     Community for general purpose SELECT-like queries into remote Channels database
     """
-
-    community_id = unhexlify('dc43e3465cbd83948f30d3d3e8336d71cce33aa7')
+    community_id = unhexlify('3858429c966a4eaba10ec5cde93a70e35152ff50')
 
     def __init__(self, my_peer, endpoint, network, metadata_store, settings=None, notifier=None):
         super(RemoteQueryCommunity, self).__init__(my_peer, endpoint, network)
