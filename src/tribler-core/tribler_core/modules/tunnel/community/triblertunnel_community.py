@@ -14,9 +14,7 @@ from ipv8.messaging.anonymization.community import unpack_cell
 from ipv8.messaging.anonymization.hidden_services import HiddenTunnelCommunity
 from ipv8.messaging.anonymization.payload import (
     EstablishIntroPayload,
-    NO_CRYPTO_PACKETS,
-    decode_address,
-    encode_address,
+    NO_CRYPTO_PACKETS
 )
 from ipv8.messaging.anonymization.tunnel import (
     CIRCUIT_STATE_CLOSING,
@@ -30,9 +28,10 @@ from ipv8.messaging.anonymization.tunnel import (
     PEER_FLAG_EXIT_IPV8,
     RelayRoute
 )
-from ipv8.peer import AddressType, Peer
+from ipv8.peer import Peer
 from ipv8.peerdiscovery.network import Network
 from ipv8.taskmanager import task
+from ipv8.types import Address
 from ipv8.util import succeed
 
 import libtorrent as lt
@@ -320,7 +319,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         packet = self._ez_pack(self._prefix, 30, [payload], False)
         self.send_packet(peer, packet)
 
-    def on_payout(self, source_address: AddressType, data: bytes) -> None:
+    def on_payout(self, source_address: Address, data: bytes) -> None:
         """
         We received a payout from another peer.
         :param source_address: The address of the peer that sent us this payout.
@@ -585,13 +584,12 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             return
 
         self.logger.debug("Got http-request from %s", source_address)
-        target_address = decode_address(payload.target)
 
         writer = None
         try:
             with async_timeout.timeout(10):
-                self.logger.debug("Opening TCP connection to %s", target_address)
-                reader, writer = await open_connection(*target_address)
+                self.logger.debug("Opening TCP connection to %s", payload.target)
+                reader, writer = await open_connection(*payload.target)
                 writer.write(payload.request)
                 response = b''
                 while True:
@@ -659,8 +657,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             raise RuntimeError('No HTTP circuit available')
 
         cache = self.request_cache.add(HTTPRequestCache(self, circuit.circuit_id))
-        self.send_cell(circuit.peer, HTTPRequestPayload(circuit.circuit_id, cache.number,
-                                                        encode_address(*destination), request))
+        self.send_cell(circuit.peer, HTTPRequestPayload(circuit.circuit_id, cache.number, destination, request))
         return await cache.response_future
 
 
