@@ -65,7 +65,7 @@ class RelayBalanceRequestPayload(VariablePayload):
 @vp_compile
 class HTTPRequestPayload(VariablePayload):
     msg_id = 28
-    format_list = ['I', 'I', 'varlenH', 'varlenH']
+    format_list = ['I', 'I', 'address', 'varlenH']
     names = ['circuit_id', 'identifier', 'target', 'request']
 
 

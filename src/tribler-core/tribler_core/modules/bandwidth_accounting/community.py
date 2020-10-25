@@ -6,8 +6,9 @@ from pathlib import Path
 from typing import Dict
 
 from ipv8.community import Community
-from ipv8.peer import AddressType, Peer
+from ipv8.peer import Peer
 from ipv8.requestcache import RequestCache
+from ipv8.types import Address
 
 from pony.orm import db_session
 
@@ -89,7 +90,7 @@ class BandwidthAccountingCommunity(Community):
         packet = self._ez_pack(self._prefix, 1, [payload], False)
         self.endpoint.send(peer.address, packet)
 
-    async def received_transaction(self, source_address: AddressType, data: bytes) -> None:
+    async def received_transaction(self, source_address: Address, data: bytes) -> None:
         """
         Callback when we receive a transaction from another peer.
         :param source_address: The network address of the peer that has sent us the transaction.
