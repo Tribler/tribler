@@ -51,8 +51,8 @@ class RelayBalanceResponsePayload(BalanceResponsePayload):
 @vp_compile
 class BalanceRequestPayload(VariablePayload):
     msg_id = 33
-    format_list = ['I']
-    names = ['circuit_id']
+    format_list = ['I', 'H']
+    names = ['circuit_id', 'identifier']
 
 
 @vp_compile
