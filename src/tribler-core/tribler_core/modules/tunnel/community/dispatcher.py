@@ -4,6 +4,7 @@ from collections import defaultdict
 from ipv8.messaging.anonymization.tunnel import (
     CIRCUIT_ID_PORT,
     CIRCUIT_STATE_READY,
+    CIRCUIT_TYPE_DATA,
     CIRCUIT_TYPE_RP_DOWNLOADER,
     CIRCUIT_TYPE_RP_SEEDER,
 )
@@ -106,7 +107,7 @@ class TunnelDispatcher(TaskManager):
 
         hops = self.socks_servers.index(connection.socksserver) + 1
         options = [c for c in self.tunnels.circuits.values()
-                   if c.goal_hops == hops and c.state == CIRCUIT_STATE_READY
+                   if c.goal_hops == hops and c.state == CIRCUIT_STATE_READY and c.ctype == CIRCUIT_TYPE_DATA
                    and self.cid_to_con.get(c.circuit_id, connection) == connection]
         if not options:
             # We allow each connection to claim at least 1 circuit. If no such circuit exists we'll create one.
