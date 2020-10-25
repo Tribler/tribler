@@ -146,6 +146,9 @@ class TunnelHelperService(TaskManager):
                 config.set_api_https_certfile(options.cert_file)
             else:
                 config.set_api_http_port(api_port)
+        else:
+            config.set_api_https_enabled(False)
+            config.set_api_http_enabled(False)
 
         if options.ipv8_bootstrap_override is not None:
             config.set_ipv8_bootstrap_override(options.ipv8_bootstrap_override)
