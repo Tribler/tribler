@@ -226,7 +226,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         shared_secret, _, _ = self.crypto.generate_diffie_shared_secret(create_payload.key)
         self.relay_session_keys[circuit_id] = self.crypto.generate_session_keys(shared_secret)
 
-        self.send_cell(Peer(create_payload.node_public_key, previous_node_address), BalanceRequestPayload(circuit_id))
+        self.send_cell(Peer(create_payload.node_public_key, previous_node_address),
+                       BalanceRequestPayload(circuit_id, create_payload.identifier))
 
         self.directions.pop(circuit_id, None)
         self.relay_session_keys.pop(circuit_id, None)
@@ -235,11 +236,11 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
     @unpack_cell(BalanceRequestPayload)
     def on_balance_request_cell(self, source_address, payload, _):
-        if self.request_cache.has("create", payload.circuit_id):
-            request = self.request_cache.get("create", payload.circuit_id)
+        if self.request_cache.has("create", payload.identifier):
+            request = self.request_cache.get("create", payload.identifier)
             forwarding_relay = RelayRoute(request.from_circuit_id, request.peer)
             self.send_cell(forwarding_relay.peer, RelayBalanceRequestPayload(forwarding_relay.circuit_id))
-        elif self.request_cache.has("retry", payload.circuit_id):
+        elif self.request_cache.has("retry", payload.identifier):
             self.on_balance_request(payload)
         else:
             self.logger.warning("Circuit creation cache for id %s not found!", payload.circuit_id)
