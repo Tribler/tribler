@@ -93,12 +93,17 @@ class RemoteQueryCommunity(Community):
             self.notifier.add_observer(NTFY.POPULARITY_COMMUNITY_ADD_UNKNOWN_TORRENT,
                                        self.on_pc_add_unknown_torrent)
 
+        # this flag enable or disable https://github.com/Tribler/tribler/pull/5657
+        # it can be changed in runtime
+        self.enable_resolve_unknown_torrents_feature = False
         self.add_message_handler(RemoteSelectPayload, self.on_remote_select)
         self.add_message_handler(SelectResponsePayload, self.on_remote_select_response)
 
         self.request_cache = RequestCache()
 
     def on_pc_add_unknown_torrent(self, peer, infohash):
+        if not self.enable_resolve_unknown_torrents_feature:
+            return
         query = {'infohash': hexlify(infohash)}
         self.send_remote_select(peer, **query)
 

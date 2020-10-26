@@ -248,11 +248,17 @@ class TestRemoteQueryCommunity(TestBase):
         assert torrent_is_presented_on_db2
         assert torrent_has_valid_title
 
-    async def test_add_unknown_torrent(self):
-        db1 = self.nodes[0].overlay.mds.TorrentMetadata
-        db2 = self.nodes[1].overlay.mds.TorrentMetadata
+    async def add_unknown_torrent(self, enabled):
+        rqc1 = self.nodes[0].overlay
+        rqc2 = self.nodes[1].overlay
 
-        torrent_infohash = b'0' * 20
+        rqc1.enable_resolve_unknown_torrents_feature = enabled
+        rqc2.enable_resolve_unknown_torrents_feature = enabled
+
+        db1 = rqc1.mds.TorrentMetadata
+        db2 = rqc2.mds.TorrentMetadata
+
+        torrent_infohash = random_infohash()
 
         def has_testing_infohash(t):
             return t.infohash == torrent_infohash
@@ -267,15 +273,22 @@ class TestRemoteQueryCommunity(TestBase):
         assert torrent_not_presented_on_db2
 
         # notify second node that new torrent hash has been received from the first node
-        self.nodes[1].overlay.notifier.notify(NTFY.POPULARITY_COMMUNITY_ADD_UNKNOWN_TORRENT,
-                                              self.nodes[0].my_peer,
-                                              torrent_infohash)
+        rqc2.notifier.notify(NTFY.POPULARITY_COMMUNITY_ADD_UNKNOWN_TORRENT,
+                             self.nodes[0].my_peer,
+                             torrent_infohash)
 
         await self.deliver_messages(timeout=0.5)
         with db_session:
             torrent_is_presented_on_db2 = db2.select(has_testing_infohash).count() == 1
 
-        assert torrent_is_presented_on_db2
+        if rqc2.enable_resolve_unknown_torrents_feature:
+            assert torrent_is_presented_on_db2
+        else:
+            assert not torrent_is_presented_on_db2
+
+    async def test_add_unknown_torrent(self):
+        await self.add_unknown_torrent(True)
+        await self.add_unknown_torrent(False)
 
     async def test_unknown_query_attribute(self):
         rqc_node2 = self.nodes[1].overlay
