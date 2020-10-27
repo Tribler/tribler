@@ -25,3 +25,11 @@ class BandwidthTransactionPayload(VariablePayload):
             transaction.timestamp,
             request_id
         )
+
+
+@vp_compile
+class BandwidthTransactionQueryPayload(VariablePayload):
+    """
+    (empty) payload for an outgoing query to fetch transactions by the counterparty.
+    """
+    msg_id = 2

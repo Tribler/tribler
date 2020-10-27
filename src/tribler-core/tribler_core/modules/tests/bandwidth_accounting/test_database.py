@@ -27,12 +27,39 @@ def bandwidth_db(tmpdir, my_key):
 def test_add_transaction(bandwidth_db):
     tx1 = BandwidthTransactionData(1, b"a", b"b", EMPTY_SIGNATURE, EMPTY_SIGNATURE, 3000)
     bandwidth_db.BandwidthTransaction.insert(tx1)
-    tx2 = BandwidthTransactionData(1, b"a", b"b", EMPTY_SIGNATURE, EMPTY_SIGNATURE, 4000)
+    assert bandwidth_db.has_transaction(tx1)
+    tx2 = BandwidthTransactionData(2, b"a", b"b", EMPTY_SIGNATURE, EMPTY_SIGNATURE, 4000)
     bandwidth_db.BandwidthTransaction.insert(tx2)
 
     latest_tx = bandwidth_db.get_latest_transaction(b"a", b"b")
     assert latest_tx
     assert latest_tx.amount == 4000
+
+    # Test storing all transactions
+    bandwidth_db.store_all_transactions = True
+    tx3 = BandwidthTransactionData(3, b"a", b"b", EMPTY_SIGNATURE, EMPTY_SIGNATURE, 4000)
+    bandwidth_db.BandwidthTransaction.insert(tx3)
+    assert len(list(bandwidth_db.BandwidthTransaction.select())) == 2
+    assert bandwidth_db.has_transaction(tx2)
+    assert bandwidth_db.has_transaction(tx3)
+
+    # Test whether adding a transaction again does not result in an error
+    bandwidth_db.BandwidthTransaction.insert(tx2)
+
+
+@db_session
+def test_get_my_latest_transactions(bandwidth_db):
+    assert not bandwidth_db.get_my_latest_transactions()
+
+    tx1 = BandwidthTransactionData(1, b"a", bandwidth_db.my_pub_key, EMPTY_SIGNATURE, EMPTY_SIGNATURE, 3000)
+    bandwidth_db.BandwidthTransaction.insert(tx1)
+    tx2 = BandwidthTransactionData(1, bandwidth_db.my_pub_key, b"c", EMPTY_SIGNATURE, EMPTY_SIGNATURE, 3000)
+    bandwidth_db.BandwidthTransaction.insert(tx2)
+    tx3 = BandwidthTransactionData(1, b"c", b"d", EMPTY_SIGNATURE, EMPTY_SIGNATURE, 3000)
+    bandwidth_db.BandwidthTransaction.insert(tx3)
+
+    assert len(bandwidth_db.get_my_latest_transactions()) == 2
+    assert len(bandwidth_db.get_my_latest_transactions(limit=1)) == 1
 
 
 @db_session

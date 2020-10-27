@@ -60,7 +60,7 @@ class TestBandwidthAccountingCommunity(TestBase):
         tx.signature_a = b"invalid"
         self.nodes[0].overlay.database.BandwidthTransaction.insert(tx)
         cache = self.nodes[0].overlay.request_cache.add(BandwidthTransactionSignCache(self.nodes[0].overlay, tx))
-        self.nodes[0].overlay.send_transaction(tx, other_peer, cache.number)
+        self.nodes[0].overlay.send_transaction(tx, other_peer.address, cache.number)
 
         await self.deliver_messages()
 
@@ -75,7 +75,7 @@ class TestBandwidthAccountingCommunity(TestBase):
 
         tx = BandwidthTransactionData(1, pk1, pk2, EMPTY_SIGNATURE, EMPTY_SIGNATURE, 1000)
         tx.sign(self.nodes[0].my_peer.key, as_a=True)
-        self.nodes[0].overlay.send_transaction(tx, self.nodes[1].my_peer, 1234)
+        self.nodes[0].overlay.send_transaction(tx, self.nodes[1].my_peer.address, 1234)
         await self.deliver_messages()
         assert not self.nodes[0].overlay.database.get_latest_transaction(pk1, pk2)
 
@@ -91,14 +91,44 @@ class TestBandwidthAccountingCommunity(TestBase):
 
         # Send them in reverse order
         cache = self.nodes[0].overlay.request_cache.add(BandwidthTransactionSignCache(self.nodes[0].overlay, tx1))
-        self.nodes[0].overlay.send_transaction(tx2, self.nodes[1].my_peer, cache.number)
+        self.nodes[0].overlay.send_transaction(tx2, self.nodes[1].my_peer.address, cache.number)
         await self.deliver_messages()
 
         # This one should be ignored by node 1
         cache = self.nodes[0].overlay.request_cache.add(BandwidthTransactionSignCache(self.nodes[0].overlay, tx1))
-        self.nodes[0].overlay.send_transaction(tx1, self.nodes[1].my_peer, cache.number)
+        self.nodes[0].overlay.send_transaction(tx1, self.nodes[1].my_peer.address, cache.number)
         await self.deliver_messages()
 
         # Both parties should have the transaction with amount 2000 in their database
         assert self.nodes[0].overlay.database.get_total_taken(pk1) == 2000
         assert self.nodes[1].overlay.database.get_total_taken(pk1) == 2000
+
+    async def test_querying_peer(self):
+        """
+        Test whether node C can query node B to get the transaction between A and B.
+        """
+        await self.nodes[0].overlay.do_payout(self.nodes[1].overlay.my_peer, 500)
+
+        # Add an additional node to the experiment
+        self.add_node_to_experiment(self.create_node())
+        self.nodes[2].overlay.query_transactions(self.nodes[1].my_peer)
+
+        await self.deliver_messages()
+
+        pk1 = self.nodes[0].my_peer.public_key.key_to_bin()
+        assert self.nodes[2].overlay.database.get_total_taken(pk1) == 500
+
+    async def test_query_random_peer(self):
+        """
+        Test whether node C can query node B to get the transaction between A and B.
+        """
+        await self.nodes[0].overlay.do_payout(self.nodes[1].overlay.my_peer, 500)
+
+        # Add an additional node to the experiment
+        self.add_node_to_experiment(self.create_node())
+        self.nodes[2].overlay.query_random_peer()
+
+        await self.deliver_messages()
+
+        pk1 = self.nodes[0].my_peer.public_key.key_to_bin()
+        assert self.nodes[2].overlay.database.get_total_taken(pk1) == 500

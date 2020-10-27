@@ -148,12 +148,17 @@ def define_binding(bandwidth_database):
             Remove the last transaction with that specific counterparty while doing so.
             :param transaction: The transaction to insert in the database.
             """
-            for tx in cls.select(
-                    lambda c: c.public_key_a == transaction.public_key_a and
-                              c.public_key_b == transaction.public_key_b):
-                tx.delete()
-            db.commit()
-            cls(**transaction.get_db_kwargs())
+            if not bandwidth_database.store_all_transactions:
+                # Make sure to only store the latest pairwise transaction.
+                for tx in cls.select(
+                        lambda c: c.public_key_a == transaction.public_key_a and
+                                  c.public_key_b == transaction.public_key_b):
+                    tx.delete()
+                db.commit()
+                cls(**transaction.get_db_kwargs())
+            elif not bandwidth_database.has_transaction(transaction):
+                # We store all transactions and it does not exist yet - insert it.
+                cls(**transaction.get_db_kwargs())
 
             if transaction.public_key_a == bandwidth_database.my_pub_key or \
                     transaction.public_key_b == bandwidth_database.my_pub_key:
