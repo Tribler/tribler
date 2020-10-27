@@ -127,7 +127,7 @@ class TunnelHelperService(TaskManager):
         config.set_dht_enabled(True)
         config.set_tunnel_community_exitnode_enabled(bool(options.exit))
         config.set_popularity_community_enabled(False)
-        config.set_testnet(bool(options.testnet))
+        config.set_tunnel_testnet(bool(options.testnet))
         config.set_chant_enabled(False)
         config.set_bootstrap_enabled(False)
 
@@ -162,9 +162,6 @@ class TunnelHelperService(TaskManager):
         if options.log_rejects:
             # We set this after Tribler has started since the tunnel_community won't be available otherwise
             self.session.tunnel_community.reject_callback = self.on_circuit_reject
-
-        # Tunnel helpers store more TrustChain blocks
-        self.session.trustchain_community.settings.max_db_blocks = 5000000
 
         self.tribler_started()
         
