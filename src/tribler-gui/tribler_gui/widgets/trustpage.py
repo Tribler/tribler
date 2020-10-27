@@ -52,8 +52,8 @@ class TrustPage(QWidget):
             return
 
         statistics = statistics["statistics"]
-        total_up = statistics.get("total_up", 0)
-        total_down = statistics.get("total_down", 0)
+        total_up = statistics.get("total_given", 0)
+        total_down = statistics.get("total_taken", 0)
 
         self.window().trust_contribution_amount_label.setText("%s MBytes" % (total_up // self.byte_scale))
         self.window().trust_consumption_amount_label.setText("%s MBytes" % (total_down // self.byte_scale))
