@@ -133,9 +133,9 @@ class AddToChannelDialog(DialogContainer):
             return
 
         # No results means this node is a leaf
-        self.channels_tree[channel_id] = set() if response["results"] else None
+        self.channels_tree[channel_id] = set() if response.get("results") else None
 
-        for subchannel in response["results"]:
+        for subchannel in response.get("results", []):
             subchannel_id = subchannel["id"]
             if subchannel_id in self.id2wt_mapping:
                 continue
