@@ -4,6 +4,7 @@ Testing as server.
 Author(s): Arno Bakker, Jie Yang, Niels Zeilemaker
 """
 import asyncio
+import binascii
 import functools
 import inspect
 import logging
@@ -82,7 +83,7 @@ class BaseTestCase(asynctest.TestCase):
             shutil.rmtree(directory, ignore_errors=ignore_errors)
 
     def temporary_directory(self, suffix='', exist_ok=False):
-        random_string = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(8))
+        random_string = binascii.hexlify(os.urandom(4)).decode()
         temp = TESTS_DIR / "temp" / (self.__class__.__name__ + suffix + random_string)
         self._tempdirs.append(temp)
         try:
