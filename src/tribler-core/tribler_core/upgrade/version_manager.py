@@ -9,7 +9,6 @@ from tribler_common.simpledefs import (
     STATEDIR_CHANNELS_DIR,
     STATEDIR_CHECKPOINT_DIR,
     STATEDIR_DB_DIR,
-    STATEDIR_WALLET_DIR,
 )
 
 from tribler_core.utilities import json_util as json
@@ -25,7 +24,7 @@ STATE_FILES_TO_COPY = ('ec_multichain.pem',
                        'ecpub_trustchain_testnet.pem',
                        'triblerd.conf')
 
-STATE_DIRS_TO_COPY = (STATEDIR_DB_DIR, STATEDIR_CHECKPOINT_DIR, STATEDIR_WALLET_DIR, STATEDIR_CHANNELS_DIR)
+STATE_DIRS_TO_COPY = (STATEDIR_DB_DIR, STATEDIR_CHECKPOINT_DIR, STATEDIR_CHANNELS_DIR)
 
 """
 The main purpose of the Version Management mechanism is to provide a safe fallback for both users

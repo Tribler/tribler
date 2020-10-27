@@ -26,7 +26,6 @@ from tribler_common.simpledefs import (
     STATEDIR_CHANNELS_DIR,
     STATEDIR_CHECKPOINT_DIR,
     STATEDIR_DB_DIR,
-    STATEDIR_WALLET_DIR,
     STATE_LOAD_CHECKPOINTS,
     STATE_READABLE_STARTED,
     STATE_START_API,
@@ -179,7 +178,6 @@ class Session(TaskManager):
         create_dir(self.config.get_state_dir())
         create_in_state_dir(STATEDIR_DB_DIR)
         create_in_state_dir(STATEDIR_CHECKPOINT_DIR)
-        create_in_state_dir(STATEDIR_WALLET_DIR)
         create_in_state_dir(STATEDIR_CHANNELS_DIR)
 
     def get_ports_in_config(self):
