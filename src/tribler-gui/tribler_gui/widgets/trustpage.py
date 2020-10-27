@@ -1,10 +1,8 @@
-import datetime
-import time
 from typing import Dict
 
 from PyQt5.QtWidgets import QWidget
 
-from tribler_gui.defs import GB, PAGE_MARKET, TB
+from tribler_gui.defs import GB, TB
 from tribler_gui.dialogs.trustexplanationdialog import TrustExplanationDialog
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.widgets.graphs.timeseriesplot import TimeSeriesPlot
@@ -32,26 +30,13 @@ class TrustPage(QWidget):
         self.byte_scale = 1024 * 1024
         self.dialog = None
 
-    def showEvent(self, QShowEvent):
-        super(TrustPage, self).showEvent(QShowEvent)
-        if self.window().tribler_settings:  # It could be that the settings are not loaded yet
-            self.window().trade_button.setHidden(not self.window().tribler_settings["market_community"]["enabled"])
-        else:
-            self.window().trade_button.hide()
-
     def initialize_trust_page(self):
         vlayout = self.window().plot_widget.layout()
         if vlayout.isEmpty():
             self.trust_plot = TrustSeriesPlot(self.window().plot_widget)
             vlayout.addWidget(self.trust_plot)
 
-        self.window().trade_button.clicked.connect(self.on_trade_button_clicked)
         self.window().trust_explain_button.clicked.connect(self.on_info_button_clicked)
-
-    def on_trade_button_clicked(self):
-        self.window().market_page.initialize_market_page()
-        self.window().navigation_stack.append(self.window().stackedWidget.currentIndex())
-        self.window().stackedWidget.setCurrentIndex(PAGE_MARKET)
 
     def on_info_button_clicked(self):
         self.dialog = TrustExplanationDialog(self.window())

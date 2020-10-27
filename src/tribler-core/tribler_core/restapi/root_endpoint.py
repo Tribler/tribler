@@ -1,6 +1,3 @@
-from anydex.restapi.root_endpoint import RootEndpoint as AnyDexRootEndpoint
-from anydex.restapi.wallets_endpoint import WalletsEndpoint
-
 from ipv8.REST.root_endpoint import RootEndpoint as IPV8RootEndpoint
 
 from tribler_core.modules.bandwidth_accounting.bandwidth_endpoint import BandwidthEndpoint
@@ -55,14 +52,6 @@ class RootEndpoint(RESTEndpoint):
         if self.session.config.get_ipv8_enabled():
             self.add_endpoint('/ipv8', IPV8RootEndpoint())
 
-        if self.session.config.get_market_community_enabled():
-            self.add_endpoint('/market', AnyDexRootEndpoint(enable_ipv8_endpoints=False))
-
-        self.add_endpoint("/wallets", WalletsEndpoint())
-
     def set_ipv8_session(self, ipv8_session):
         if '/ipv8' in self.endpoints:
             self.endpoints['/ipv8'].initialize(ipv8_session)
-        if '/market' in self.endpoints:
-            self.endpoints['/market'].initialize(ipv8_session)
-        self.endpoints['/wallets'].session = ipv8_session

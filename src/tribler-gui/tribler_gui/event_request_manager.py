@@ -28,13 +28,6 @@ class EventRequestManager(QNetworkAccessManager):
     new_version_available = pyqtSignal(str)
     discovered_channel = pyqtSignal(object)
     torrent_finished = pyqtSignal(object)
-    received_market_ask = pyqtSignal(object)
-    received_market_bid = pyqtSignal(object)
-    expired_market_ask = pyqtSignal(object)
-    expired_market_bid = pyqtSignal(object)
-    market_transaction_complete = pyqtSignal(object)
-    market_payment_received = pyqtSignal(object)
-    market_payment_sent = pyqtSignal(object)
     low_storage_signal = pyqtSignal(object)
     tribler_shutdown_signal = pyqtSignal(str)
 
@@ -56,13 +49,6 @@ class EventRequestManager(QNetworkAccessManager):
             NTFY.UPGRADER_TICK.value: lambda data: self.upgrader_tick.emit(data["text"]),
             NTFY.CHANNEL_DISCOVERED.value: self.discovered_channel.emit,
             NTFY.TORRENT_FINISHED.value: self.torrent_finished.emit,
-            "market_ask": self.received_market_ask.emit,
-            "market_bid": self.received_market_bid.emit,
-            "market_ask_timeout": self.expired_market_ask.emit,
-            "market_bid_timeout": self.expired_market_bid.emit,
-            "market_transaction_complete": self.market_transaction_complete.emit,
-            "market_payment_received": self.market_payment_received.emit,
-            "market_payment_sent": self.market_payment_sent.emit,
             NTFY.LOW_SPACE.value: self.low_storage_signal.emit,
             NTFY.REMOTE_QUERY_RESULTS.value: self.received_remote_query_results.emit,
             NTFY.TRIBLER_SHUTDOWN_STATE.value: self.tribler_shutdown_signal.emit,

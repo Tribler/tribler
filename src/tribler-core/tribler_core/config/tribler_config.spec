@@ -11,11 +11,6 @@ random_slots = integer(default=5)
 competing_slots = integer(default=15)
 testnet = boolean(default=False)
 
-[market_community]
-enabled = boolean(default=False)
-matchmaker = boolean(default=True)
-record_transactions = boolean(default=False)
-
 [discovery_community]
 enabled = boolean(default=True)
 
@@ -34,10 +29,6 @@ testnet = boolean(default=False)
 enabled = boolean(default=True)
 max_download_rate = integer(min=1, default=1000000)
 infohash = string(default='b496932f32daad964e1b63188faabf74d22b45ea')
-
-[wallets]
-bitcoinlib_enabled = boolean(default=True)
-dummy_wallets_enabled = boolean(default=False)
 
 [chant]
 enabled = boolean(default=True)

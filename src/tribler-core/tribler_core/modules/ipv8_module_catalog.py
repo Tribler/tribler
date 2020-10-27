@@ -87,26 +87,6 @@ class TriblerTunnelTestnetCommunityLauncher(TestnetMixIn, TriblerTunnelCommunity
     pass
 
 
-@after('DHTDiscoveryCommunity')
-@precondition('session.config.get_market_community_enabled()')
-@precondition('not session.config.get_trustchain_testnet()')
-@set_in_session('market_community')
-@overlay('anydex.core.community', 'MarketCommunity')
-@kwargs(dht='session.dht_community',
-        working_directory='session.config.get_state_dir()',
-        record_transactions='session.config.get_record_transactions()')
-@walk_strategy('ipv8.peerdiscovery.discovery', 'RandomWalk')
-class MarketCommunityLauncher(IPv8CommunityLauncher):
-    pass
-
-
-@precondition('session.config.get_market_community_enabled()')
-@precondition('session.config.get_trustchain_testnet()')
-@overlay('anydex.core.community', 'MarketTestnetCommunity')
-class MarketTestnetCommunityLauncher(TestnetMixIn, MarketCommunityLauncher):
-    pass
-
-
 @precondition('session.config.get_popularity_community_enabled()')
 @set_in_session('popularity_community')
 @overlay('tribler_core.modules.popularity.popularity_community', 'PopularityCommunity')
@@ -181,8 +161,6 @@ def register_default_launchers(loader):
     loader.set_launcher(DHTCommunityLauncher())
     loader.set_launcher(TriblerTunnelCommunityLauncher())
     loader.set_launcher(TriblerTunnelTestnetCommunityLauncher())
-    loader.set_launcher(MarketCommunityLauncher())
-    loader.set_launcher(MarketTestnetCommunityLauncher())
     loader.set_launcher(PopularityCommunityLauncher())
     loader.set_launcher(GigaChannelCommunityLauncher())
     loader.set_launcher(GigaChannelTestnetCommunityLauncher())

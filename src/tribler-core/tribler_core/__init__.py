@@ -9,9 +9,6 @@ from tribler_common.logger import setup_logging
 
 dir_path = Path(__file__).parent.parent.parent
 
-# Make sure AnyDex can be imported
-sys.path.append(os.path.join(dir_path, "anydex"))
-
 # Make sure IPv8 can be imported
 sys.path.insert(0, os.path.join(dir_path, "pyipv8"))
 
