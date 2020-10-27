@@ -8,6 +8,8 @@ from ipv8.messaging.lazy_payload import VariablePayload, vp_compile
 from ipv8.peer import Peer
 from ipv8.requestcache import RandomNumberCache, RequestCache
 
+from pony.orm.dbapiprovider import OperationalError
+
 from tribler_common.simpledefs import CHANNELS_VIEW_UUID, NTFY
 
 from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import entries_to_chunk
@@ -118,11 +120,21 @@ class RemoteQueryCommunity(Community):
         }
         self.send_remote_select(peer, **request_dict)
 
+    async def process_rpc_query(self, json_bytes: bytes):
+        """
+        Retrieve the result of a database query from a third party, encoded as raw JSON bytes (through `dumps`).
+
+        :raises TypeError: if the JSON contains invalid keys.
+        :raises ValueError: if no JSON could be decoded.
+        :raises pony.orm.dbapiprovider.OperationalError: if an illegal query was performed.
+        """
+        request_sanitized = sanitize_query(json.loads(json_bytes), self.settings.max_response_size)
+        return await self.mds.MetadataNode.get_entries_threaded(**request_sanitized)
+
     @lazy_wrapper(RemoteSelectPayload)
     async def on_remote_select(self, peer, request):
         try:
-            request_sanitized = sanitize_query(json.loads(request.json), self.settings.max_response_size)
-            db_results = await self.mds.MetadataNode.get_entries_threaded(**request_sanitized)
+            db_results = await self.process_rpc_query(request.json)
             if not db_results:
                 return
 
@@ -130,7 +142,7 @@ class RemoteQueryCommunity(Community):
             while index < len(db_results):
                 data, index = entries_to_chunk(db_results, self.settings.maximum_payload_size, start_index=index)
                 self.ez_send(peer, SelectResponsePayload(request.id, data))
-        except TypeError as error:
+        except (OperationalError, TypeError, ValueError) as error:
             self.logger.error(f"Remote select. The error occurred: {error}")
 
     @lazy_wrapper(SelectResponsePayload)
