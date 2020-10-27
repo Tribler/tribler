@@ -1,9 +1,9 @@
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 from pony.orm import Database, count, db_session, select, sum
 
-from tribler_core.modules.bandwidth_accounting import history, misc, transaction
+from tribler_core.modules.bandwidth_accounting import history, misc, transaction as db_transaction
 from tribler_core.modules.bandwidth_accounting.transaction import BandwidthTransactionData
 
 
@@ -14,14 +14,17 @@ class BandwidthDatabase:
     CURRENT_DB_VERSION = 8
     MAX_HISTORY_ITEMS = 100  # The maximum number of history items to store.
 
-    def __init__(self, db_path: Path, my_pub_key: bytes) -> None:
+    def __init__(self, db_path: Path, my_pub_key: bytes, store_all_transactions: bool = False) -> None:
         """
         Sets up the persistence layer ready for use.
         :param db_path: The full path of the database.
         :param my_pub_key: The public key of the user operating the database.
+        :param store_all_transactions: Whether we store all pairwise transactions in the database. This is disabled by
+        default and used for data collection purposes.
         """
         self.db_path = db_path
         self.my_pub_key = my_pub_key
+        self.store_all_transactions = store_all_transactions
         create_db = str(db_path) == ":memory:" or not self.db_path.is_file()
         self.database = Database()
 
@@ -37,7 +40,7 @@ class BandwidthDatabase:
             # pylint: enable=unused-variable
 
         self.MiscData = misc.define_binding(self.database)
-        self.BandwidthTransaction = transaction.define_binding(self)
+        self.BandwidthTransaction = db_transaction.define_binding(self)
         self.BandwidthHistory = history.define_binding(self)
 
         self.database.bind(provider='sqlite', filename=str(db_path), create_db=create_db, timeout=120.0)
@@ -46,6 +49,32 @@ class BandwidthDatabase:
         if create_db:
             with db_session:
                 self.MiscData(name="db_version", value=str(self.CURRENT_DB_VERSION))
+
+    @db_session
+    def has_transaction(self, transaction: BandwidthTransactionData) -> bool:
+        """
+        Return whether a transaction is persisted to the database.
+        :param transaction: The transaction to check.
+        :return: A boolean value, indicating whether we have the transaction in the database or not.
+        """
+        return self.BandwidthTransaction.exists(public_key_a=transaction.public_key_a,
+                                                public_key_b=transaction.public_key_b,
+                                                sequence_number=transaction.sequence_number)
+
+    @db_session
+    def get_my_latest_transactions(self, limit: Optional[int] = None) -> List[BandwidthTransactionData]:
+        """
+        Return all latest transactions involving you.
+        :param limit: An optional integer, to limit the number of results returned. Pass None to get all results.
+        :return A list containing all latest transactions involving you.
+        """
+        results = []
+        db_txs = select(tx for tx in self.BandwidthTransaction
+                        if tx.public_key_a == self.my_pub_key or tx.public_key_b == self.my_pub_key)\
+            .limit(limit)
+        for db_tx in db_txs:
+            results.append(BandwidthTransactionData.from_db(db_tx))
+        return results
 
     @db_session
     def get_latest_transaction(self, public_key_a: bytes, public_key_b: bytes) -> BandwidthTransactionData:
