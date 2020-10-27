@@ -34,7 +34,6 @@ UPLOAD = 'up'
 DOWNLOAD = 'down'
 
 STATEDIR_CHECKPOINT_DIR = u'dlcheckpoints'
-STATEDIR_WALLET_DIR = u'wallet'
 STATEDIR_CHANNELS_DIR = u'channels'
 STATEDIR_DB_DIR = u"sqlite"
 

@@ -6,7 +6,6 @@ from tribler_common.simpledefs import (
     STATEDIR_CHANNELS_DIR,
     STATEDIR_CHECKPOINT_DIR,
     STATEDIR_DB_DIR,
-    STATEDIR_WALLET_DIR,
 )
 
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
@@ -180,7 +179,7 @@ def test_copy_state_directory(tmpdir):
     copy_state_directory(src_dir, tgt_dir)
 
     # Make sure only the neccessary stuff is copied, and junk is omitted
-    backup_list = {STATEDIR_DB_DIR, STATEDIR_CHECKPOINT_DIR, STATEDIR_WALLET_DIR, STATEDIR_CHANNELS_DIR,
+    backup_list = {STATEDIR_DB_DIR, STATEDIR_CHECKPOINT_DIR, STATEDIR_CHANNELS_DIR,
                    'ec_multichain.pem', 'ecpub_multichain.pem', 'ec_trustchain_testnet.pem',
                    'ecpub_trustchain_testnet.pem', 'triblerd.conf'}
     tgt_list = set(os.listdir(tgt_dir))
