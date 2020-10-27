@@ -96,7 +96,9 @@ class TriblerService(object):
             config.set_ipv8_bootstrap_override(options.ipv8_bootstrap_override)
 
         if options.testnet:
-            config.set_testnet(True)
+            config.set_tunnel_testnet(True)
+            config.set_chant_testnet(True)
+            config.set_bandwidth_testnet(True)
 
         self.session = Session(config)
         try:
