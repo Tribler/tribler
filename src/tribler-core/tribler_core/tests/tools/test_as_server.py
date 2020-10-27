@@ -217,7 +217,7 @@ class AbstractServer(BaseTestCase):
 
     def annotate(self, annotation, start=True, destdir=OUTPUT_DIR):
         if not destdir.exists():
-            os.makedirs(path_util.abspath(destdir))
+            os.makedirs(path_util.abspath(destdir), exist_ok=True)
 
         if start:
             self.annotate_dict[annotation] = time.time()
