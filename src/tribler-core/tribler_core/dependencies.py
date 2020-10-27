@@ -13,8 +13,6 @@ dependencies = [
      'scope': 'core'},
     {'module': 'marshmallow', 'install_type': 'pip3', 'package':
         'marshmallow', 'optional': False, 'scope': 'core'},
-    {'module': 'bitcoinlib', 'install_type': 'pip3', 'package': 'bitcoinlib==0.4.10', 'optional': True,
-     'scope': 'core'},
     {'module': 'chardet', 'install_type': 'pip3', 'package': 'chardet', 'optional': False, 'scope': 'core'},
     {'module': 'configobj', 'install_type': 'pip3', 'package': 'configobj', 'optional': False, 'scope': 'both'},
     {'module': 'cryptography', 'install_type': 'pip3', 'package': 'cryptography>=2.3', 'optional': False,

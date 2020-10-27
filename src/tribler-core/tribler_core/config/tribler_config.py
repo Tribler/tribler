@@ -556,26 +556,6 @@ class TriblerConfig(object):
     def get_seeding_ratio(self):
         return self.config['download_defaults']['seeding_ratio']
 
-    # Market Community
-
-    def set_market_community_enabled(self, value):
-        self.config['market_community']['enabled'] = value
-
-    def get_market_community_enabled(self):
-        return self.config['market_community']['enabled']
-
-    def set_is_matchmaker(self, value):
-        self.config['market_community']['matchmaker'] = value
-
-    def get_is_matchmaker(self):
-        return self.config['market_community']['matchmaker']
-
-    def set_record_transactions(self, value):
-        self.config['market_community']['record_transactions'] = value
-
-    def get_record_transactions(self):
-        return self.config['market_community']['record_transactions']
-
     # Discovery Community
 
     def set_discovery_community_enabled(self, value: bool) -> None:
@@ -591,20 +571,6 @@ class TriblerConfig(object):
 
     def get_dht_enabled(self):
         return self.config['dht']['enabled']
-
-    # Wallets
-
-    def set_dummy_wallets_enabled(self, value):
-        self.config['wallets']['dummy_wallets_enabled'] = value
-
-    def get_dummy_wallets_enabled(self):
-        return self.config['wallets']['dummy_wallets_enabled']
-
-    def set_bitcoinlib_enabled(self, value):
-        self.config['wallets']['bitcoinlib_enabled'] = value
-
-    def get_bitcoinlib_enabled(self):
-        return self.config['wallets']['bitcoinlib_enabled']
 
     # Popular Community
 

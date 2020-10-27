@@ -111,7 +111,6 @@ async def test_load_ipv8_overlays(mocked_endpoints, enable_ipv8, session):
     session.config.set_chant_testnet(False)
     session.config.set_dht_enabled(True)
     session.config.set_tunnel_community_enabled(True)
-    session.config.set_market_community_enabled(True)
     session.config.set_popularity_community_enabled(True)
     session.config.set_chant_enabled(True)
 
@@ -121,8 +120,6 @@ async def test_load_ipv8_overlays(mocked_endpoints, enable_ipv8, session):
     assert "DHTDiscoveryCommunity" in loaded_launchers
     assert "TriblerTunnelCommunity" in loaded_launchers
     assert "TriblerTunnelTestnetCommunity" not in loaded_launchers
-    assert "MarketCommunity" in loaded_launchers
-    assert "MarketTestnetCommunity" not in loaded_launchers
     assert "PopularityCommunity" in loaded_launchers
     assert "GigaChannelCommunity" in loaded_launchers
     assert "GigaChannelTestnetCommunity" not in loaded_launchers
@@ -141,7 +138,6 @@ async def test_load_ipv8_overlays_testnet(mocked_endpoints, enable_ipv8, session
     session.config.set_chant_testnet(True)
     session.config.set_dht_enabled(True)
     session.config.set_tunnel_community_enabled(True)
-    session.config.set_market_community_enabled(True)
     session.config.set_popularity_community_enabled(True)
     session.config.set_chant_enabled(True)
 
@@ -153,8 +149,6 @@ async def test_load_ipv8_overlays_testnet(mocked_endpoints, enable_ipv8, session
     assert "DHTDiscoveryCommunity" in loaded_launchers
     assert "TriblerTunnelCommunity" not in loaded_launchers
     assert "TriblerTunnelTestnetCommunity" in loaded_launchers
-    assert "MarketCommunity" not in loaded_launchers
-    assert "MarketTestnetCommunity" in loaded_launchers
     assert "PopularityCommunity" in loaded_launchers
     assert "GigaChannelCommunity" not in loaded_launchers
     assert "GigaChannelTestnetCommunity" in loaded_launchers

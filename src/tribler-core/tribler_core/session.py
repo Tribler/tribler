@@ -15,8 +15,6 @@ from traceback import print_exception
 
 from _socket import gaierror
 
-from anydex.wallet.dummy_wallet import DummyWallet1, DummyWallet2
-
 from ipv8.loader import IPv8CommunityLoader
 from ipv8.messaging.interfaces.dispatcher.endpoint import DispatcherEndpoint
 from ipv8.taskmanager import TaskManager
@@ -137,7 +135,6 @@ class Session(TaskManager):
         self.gigachannel_community = None
         self.remote_query_community = None
 
-        self.market_community = None
         self.dht_community = None
         self.payout_manager = None
         self.mds = None  # Metadata Store
@@ -368,14 +365,6 @@ class Session(TaskManager):
             if self.core_test_mode:
                 await self.dlmgr.start_download_from_uri("magnet:?xt=urn:btih:0000000000000000000000000000000000000000")
         self.readable_status = STATE_READABLE_STARTED
-
-        if self.config.get_dummy_wallets_enabled():
-            # For debugging purposes, we create dummy wallets
-            dummy_wallet1 = DummyWallet1()
-            self.wallets[dummy_wallet1.get_identifier()] = dummy_wallet1
-
-            dummy_wallet2 = DummyWallet2()
-            self.wallets[dummy_wallet2.get_identifier()] = dummy_wallet2
 
         if self.config.get_watch_folder_enabled():
             self.readable_status = STATE_START_WATCH_FOLDER

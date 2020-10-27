@@ -124,7 +124,6 @@ class TunnelHelperService(TaskManager):
         config.set_libtorrent_enabled(False)
         config.set_ipv8_port(ipv8_port)
         config.set_ipv8_address(options.ipv8_address)
-        config.set_market_community_enabled(False)
         config.set_dht_enabled(True)
         config.set_tunnel_community_exitnode_enabled(bool(options.exit))
         config.set_popularity_community_enabled(False)

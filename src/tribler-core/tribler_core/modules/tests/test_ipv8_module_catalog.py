@@ -7,7 +7,6 @@ def test_hiddenimports():
     """
     hiddenimports = get_hiddenimports()
 
-    assert 'anydex.core.community' in hiddenimports
     assert 'ipv8.dht.churn' in hiddenimports
     assert 'ipv8.dht.discovery' in hiddenimports
     assert 'ipv8.peerdiscovery.churn' in hiddenimports

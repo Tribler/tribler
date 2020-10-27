@@ -220,16 +220,6 @@ def test_get_set_methods_tunnel_community(tribler_config):
     assert tribler_config.get_tunnel_testnet()
 
 
-def test_get_set_methods_wallets(tribler_config):
-    """
-    Check whether wallet get and set methods are working as expected.
-    """
-    tribler_config.set_dummy_wallets_enabled(True)
-    assert tribler_config.get_dummy_wallets_enabled()
-    tribler_config.set_bitcoinlib_enabled(False)
-    assert not tribler_config.get_bitcoinlib_enabled()
-
-
 def test_get_set_chant_methods(tribler_config, state_dir):
     """
     Check whether chant get and set methods are working as expected.
@@ -240,14 +230,6 @@ def test_get_set_chant_methods(tribler_config, state_dir):
     assert tribler_config.get_chant_channels_dir() == state_dir / 'test'
     tribler_config.set_chant_testnet(True)
     assert tribler_config.get_chant_testnet()
-
-
-def test_get_set_is_matchmaker(tribler_config):
-    """
-    Check whether matchmaker get and set methods are working as expected.
-    """
-    tribler_config.set_is_matchmaker(False)
-    assert not tribler_config.get_is_matchmaker()
 
 
 def test_get_set_methods_popularity_community(tribler_config):
@@ -290,14 +272,6 @@ def test_get_set_methods_dht(tribler_config):
     """
     tribler_config.set_dht_enabled(False)
     assert not tribler_config.get_dht_enabled()
-
-
-def test_get_set_methods_record_transactions(tribler_config):
-    """
-    Check whether record_transactions get and set methods are working as expected.
-    """
-    tribler_config.set_record_transactions(True)
-    assert tribler_config.get_record_transactions()
 
 
 def test_get_set_default_add_download_to_channel(tribler_config):
