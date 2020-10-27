@@ -10,7 +10,7 @@ from anydex.wallet.bandwidth_block import TriblerBandwidthBlock
 
 from ipv8.attestation.trustchain.block import EMPTY_PK
 from ipv8.messaging.anonymization.caches import CreateRequestCache
-from ipv8.messaging.anonymization.community import message_to_payload
+from ipv8.messaging.anonymization.community import unpack_cell
 from ipv8.messaging.anonymization.hidden_services import HiddenTunnelCommunity
 from ipv8.messaging.anonymization.payload import EstablishIntroPayload, NO_CRYPTO_PACKETS
 from ipv8.messaging.anonymization.tunnel import (
@@ -21,8 +21,9 @@ from ipv8.messaging.anonymization.tunnel import (
     CIRCUIT_TYPE_RP_DOWNLOADER,
     CIRCUIT_TYPE_RP_SEEDER,
     EXIT_NODE,
-    PEER_FLAG_EXIT_ANY,
-    RelayRoute,
+    PEER_FLAG_EXIT_BT,
+    PEER_FLAG_EXIT_IPV8,
+    RelayRoute
 )
 from ipv8.peer import Peer
 from ipv8.peerdiscovery.network import Network
@@ -33,7 +34,13 @@ from tribler_common.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_METADATA, D
 from tribler_core.modules.tunnel.community.caches import BalanceRequestCache
 from tribler_core.modules.tunnel.community.discovery import GoldenRatioStrategy
 from tribler_core.modules.tunnel.community.dispatcher import TunnelDispatcher
-from tribler_core.modules.tunnel.community.payload import BalanceRequestPayload, BalanceResponsePayload, PayoutPayload
+from tribler_core.modules.tunnel.community.payload import (
+    BalanceRequestPayload,
+    BalanceResponsePayload,
+    PayoutPayload,
+    RelayBalanceRequestPayload,
+    RelayBalanceResponsePayload
+)
 from tribler_core.modules.tunnel.socks5.server import Socks5Server
 from tribler_core.utilities import path_util
 from tribler_core.utilities.unicode import hexlify
@@ -65,7 +72,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         if self.tribler_session:
             if self.tribler_session.config.get_tunnel_community_exitnode_enabled():
-                self.settings.peer_flags.add(PEER_FLAG_EXIT_ANY)
+                self.settings.peer_flags.add(PEER_FLAG_EXIT_BT)
+                self.settings.peer_flags.add(PEER_FLAG_EXIT_IPV8)
 
             if not socks_listen_ports:
                 socks_listen_ports = self.tribler_session.config.get_tunnel_community_socks5_listen_ports()
@@ -89,21 +97,12 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         self.dispatcher.set_socks_servers(self.socks_servers)
 
-        self.decode_map.update({
-            chr(23): self.on_payout_block,
-        })
+        self.add_message_handler(PayoutPayload, self.on_payout_block)
 
-        self.decode_map_private.update({
-            chr(24): self.on_balance_request_cell,
-            chr(25): self.on_relay_balance_request_cell,
-            chr(26): self.on_balance_response_cell,
-            chr(27): self.on_relay_balance_response_cell,
-        })
-
-        message_to_payload["balance-request"] = (24, BalanceRequestPayload)
-        message_to_payload["relay-balance-request"] = (25, BalanceRequestPayload)
-        message_to_payload["balance-response"] = (26, BalanceResponsePayload)
-        message_to_payload["relay-balance-response"] = (27, BalanceResponsePayload)
+        self.add_cell_handler(BalanceRequestPayload, self.on_balance_request_cell)
+        self.add_cell_handler(RelayBalanceRequestPayload, self.on_relay_balance_request_cell)
+        self.add_cell_handler(BalanceResponsePayload, self.on_balance_response_cell)
+        self.add_cell_handler(RelayBalanceResponsePayload, self.on_relay_balance_response_cell)
 
         NO_CRYPTO_PACKETS.extend([24, 26])
 
@@ -126,7 +125,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         :returns: None
         """
         exit_nodes = Network()
-        for peer in self.get_candidates(PEER_FLAG_EXIT_ANY):
+        for peer in self.get_candidates(PEER_FLAG_EXIT_BT):
             exit_nodes.add_verified_peer(peer)
         self.logger.debug('Writing exit nodes to cache: %s', self.exitnode_cache)
         with open(self.exitnode_cache, 'wb') as cache:
@@ -213,8 +212,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         shared_secret, _, _ = self.crypto.generate_diffie_shared_secret(create_payload.key)
         self.relay_session_keys[circuit_id] = self.crypto.generate_session_keys(shared_secret)
 
-        self.send_cell(Peer(create_payload.node_public_key, previous_node_address), "balance-request",
-                       BalanceRequestPayload(circuit_id))
+        self.send_cell(Peer(create_payload.node_public_key, previous_node_address), BalanceRequestPayload(circuit_id))
 
         self.directions.pop(circuit_id, None)
         self.relay_session_keys.pop(circuit_id, None)
@@ -247,21 +245,19 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             self.logger.warning("Not proceeding with payout - received payout block is not valid")
             return
 
-    def on_balance_request_cell(self, source_address, data, _):
-        payload = self._ez_unpack_noauth(BalanceRequestPayload, data, global_time=False)
-
+    @unpack_cell(BalanceRequestPayload)
+    def on_balance_request_cell(self, source_address, payload, _):
         if self.request_cache.has("create", payload.circuit_id):
             request = self.request_cache.get("create", payload.circuit_id)
             forwarding_relay = RelayRoute(request.from_circuit_id, request.peer)
-            self.send_cell(forwarding_relay.peer, "relay-balance-request",
-                           BalanceRequestPayload(forwarding_relay.circuit_id))
+            self.send_cell(forwarding_relay.peer, RelayBalanceRequestPayload(forwarding_relay.circuit_id))
         elif self.request_cache.has("retry", payload.circuit_id):
             self.on_balance_request(payload)
         else:
             self.logger.warning("Circuit creation cache for id %s not found!", payload.circuit_id)
 
-    def on_relay_balance_request_cell(self, source_address, data, _):
-        payload = self._ez_unpack_noauth(BalanceRequestPayload, data, global_time=False)
+    @unpack_cell(RelayBalanceRequestPayload)
+    def on_relay_balance_request_cell(self, source_address, payload, _):
         self.on_balance_request(payload)
 
     def on_balance_request(self, payload):
@@ -282,18 +278,12 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         # We either send the response directly or relay the response to the last verified hop
         circuit = self.circuits[payload.circuit_id]
         if not circuit.hops:
-            self.increase_bytes_sent(circuit, self.send_cell(circuit.peer,
-                                                             "balance-response",
-                                                             BalanceResponsePayload.from_half_block(
-                                                                 latest_block, circuit.circuit_id)))
+            self.send_cell(circuit.peer, BalanceResponsePayload.from_half_block(latest_block, circuit.circuit_id))
         else:
-            self.increase_bytes_sent(circuit, self.send_cell(circuit.peer,
-                                                             "relay-balance-response",
-                                                             BalanceResponsePayload.from_half_block(
-                                                                 latest_block, circuit.circuit_id)))
+            self.send_cell(circuit.peer, RelayBalanceResponsePayload.from_half_block(latest_block, circuit.circuit_id))
 
-    def on_balance_response_cell(self, source_address, data, _):
-        payload = self._ez_unpack_noauth(BalanceResponsePayload, data, global_time=False)
+    @unpack_cell(BalanceResponsePayload)
+    def on_balance_response_cell(self, source_address, payload, _):
         block = TriblerBandwidthBlock.from_payload(payload, self.serializer)
         if not block.transaction:
             self.on_token_balance(payload.circuit_id, 0)
@@ -301,17 +291,15 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             self.on_token_balance(payload.circuit_id,
                                   block.transaction[b"total_up"] - block.transaction[b"total_down"])
 
-    def on_relay_balance_response_cell(self, source_address, data, _):
-        payload = self._ez_unpack_noauth(BalanceResponsePayload, data, global_time=False)
+    @unpack_cell(RelayBalanceResponsePayload)
+    def on_relay_balance_response_cell(self, source_address, payload, _):
         block = TriblerBandwidthBlock.from_payload(payload, self.serializer)
 
         # At this point, we don't have the circuit ID of the follow-up hop. We have to iterate over the items in the
         # request cache and find the link to the next hop.
         for cache in self.request_cache._identifiers.values():
             if isinstance(cache, CreateRequestCache) and cache.from_circuit_id == payload.circuit_id:
-                self.send_cell(cache.to_peer,
-                               "balance-response",
-                               BalanceResponsePayload.from_half_block(block, cache.to_circuit_id))
+                self.send_cell(cache.to_peer, BalanceResponsePayload.from_half_block(block, cache.to_circuit_id))
 
     def readd_bittorrent_peers(self):
         for torrent, peers in list(self.bittorrent_peers.items()):

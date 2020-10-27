@@ -1,7 +1,7 @@
 from asyncio import all_tasks, gather, sleep
 
 from ipv8.keyvault.crypto import ECCrypto
-from ipv8.messaging.anonymization.tunnel import PEER_FLAG_EXIT_ANY
+from ipv8.messaging.anonymization.tunnel import PEER_FLAG_EXIT_BT
 from ipv8.peer import Peer
 from ipv8.peerdiscovery.community import DiscoveryCommunity
 from ipv8.peerdiscovery.network import Network
@@ -114,7 +114,7 @@ class TestTunnelBase(TestAsServer):
         overlay = self.test_class(tunnel_peer, session.ipv8.endpoint, session.ipv8.network,
                                   tribler_session=session, settings={"max_circuits": 1})
         if exitnode:
-            overlay.settings.peer_flags.add(PEER_FLAG_EXIT_ANY)
+            overlay.settings.peer_flags.add(PEER_FLAG_EXIT_BT)
         overlay._use_main_thread = False
         overlay.dht_provider = MockDHTProvider(Peer(overlay.my_peer.key, overlay.my_estimated_wan))
         overlay.settings.remove_tunnel_delay = 0
