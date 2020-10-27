@@ -1,4 +1,5 @@
 import os
+import shutil
 from asyncio import ensure_future
 from binascii import unhexlify
 from tempfile import mkstemp
@@ -147,8 +148,9 @@ class TestDownloadsEndpoint(TestDownloadsBaseEndpoint):
         """
         Testing whether we can start a download from a file with a unicode name
         """
-        ufile = TESTS_DATA_DIR / 'video\u266b.avi.torrent'
+        ufile = self.session_base_dir / 'video\u266b.avi.torrent'
         udest = self.session_base_dir / 'video\u266b'
+        shutil.copyfile(TESTS_DATA_DIR / 'video.avi.torrent', ufile)
 
         post_data = {'uri': 'file:' + str(ufile),
                      'destination': str(udest)}
