@@ -1,8 +1,12 @@
+from datetime import datetime
+from json import dumps
+
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.peer import Peer
 from ipv8.test.base import TestBase
 
 from pony.orm import db_session
+from pony.orm.dbapiprovider import OperationalError
 
 from tribler_core.modules.metadata_store.community.remote_query_community import RemoteQueryCommunity, sanitize_query
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import NEW
@@ -30,6 +34,7 @@ class TestRemoteQueryCommunity(TestBase):
         super(TestRemoteQueryCommunity, self).setUp()
         self.count = 0
         self.initialize(RemoteQueryCommunity, 2)
+        self.torrent_template = {"title": "", "infohash": b"", "torrent_date": datetime(1970, 1, 1), "tags": "video"}
 
     def create_node(self, *args, **kwargs):
         metadata_store = MetadataStore(
@@ -42,6 +47,15 @@ class TestRemoteQueryCommunity(TestBase):
         node = super(TestRemoteQueryCommunity, self).create_node(*args, **kwargs)
         self.count += 1
         return node
+
+    def channel_metadata(self, i):
+        return self.nodes[i].overlay.mds.ChannelMetadata
+
+    def torrent_metadata(self, i):
+        return self.nodes[i].overlay.mds.TorrentMetadata
+
+    def overlay(self, i):
+        return self.nodes[i].overlay
 
     async def test_remote_select(self):
         # Fill Node 0 DB with channels and torrents entries
@@ -200,3 +214,76 @@ class TestRemoteQueryCommunity(TestBase):
         ]
         for req, resp in req_response_list:
             self.assertDictEqual(sanitize_query(req), resp)
+
+    async def test_process_rpc_query_match_many(self):
+        """
+        Check if a correct query with a match in our database returns a result.
+        """
+        with db_session:
+            channel = self.channel_metadata(0).create_channel("a channel", "")
+            add_random_torrent(self.torrent_metadata(0), name="a torrent", channel=channel)
+
+        results = await self.overlay(0).process_rpc_query(dumps({}))
+        self.assertEqual(2, len(results))
+
+        channel_md, torrent_md = results if isinstance(results[0], self.channel_metadata(0)) else results[::-1]
+        self.assertEqual("a channel", channel_md.title)
+        self.assertEqual("a torrent", torrent_md.title)
+
+    async def test_process_rpc_query_match_one(self):
+        """
+        Check if a correct query with one match in our database returns one result.
+        """
+        with db_session:
+            self.channel_metadata(0).create_channel("a channel", "")
+
+        results = await self.overlay(0).process_rpc_query(dumps({}))
+        self.assertEqual(1, len(results))
+
+        channel_md, = results
+        self.assertEqual("a channel", channel_md.title)
+
+    async def test_process_rpc_query_match_none(self):
+        """
+        Check if a correct query with no match in our database returns no result.
+        """
+        results = await self.overlay(0).process_rpc_query(dumps({}))
+        self.assertEqual(0, len(results))
+
+    async def test_process_rpc_query_match_empty_json(self):
+        """
+        Check if processing an empty request causes a ValueError (JSONDecodeError) to be raised.
+        """
+        with self.assertRaises(ValueError):
+            await self.overlay(0).process_rpc_query(b'')
+
+    async def test_process_rpc_query_match_illegal_json(self):
+        """
+        Check if processing a request with illegal JSON causes a UnicodeDecodeError to be raised.
+        """
+        with self.assertRaises(UnicodeDecodeError):
+            await self.overlay(0).process_rpc_query(b'{"akey":\x80}')
+
+    async def test_process_rpc_query_match_invalid_json(self):
+        """
+        Check if processing a request with invalid JSON causes a ValueError to be raised.
+        """
+        with db_session:
+            self.channel_metadata(0).create_channel("a channel", "")
+        query = b'{"id_":' + b'\x31' * 200 + b'}'
+        with self.assertRaises(ValueError):
+            await self.overlay(0).process_rpc_query(query)
+
+    async def test_process_rpc_query_match_invalid_key(self):
+        """
+        Check if processing a request with invalid flags causes a UnicodeDecodeError to be raised.
+        """
+        with self.assertRaises(TypeError):
+            await self.overlay(0).process_rpc_query(b'{"bla":":("}')
+
+    async def test_process_rpc_query_no_column(self):
+        """
+        Check if processing a request with no database columns causes an OperationalError.
+        """
+        with self.assertRaises(OperationalError):
+            await self.overlay(0).process_rpc_query(b'{"txt_filter":{"key":"bla"}}')
