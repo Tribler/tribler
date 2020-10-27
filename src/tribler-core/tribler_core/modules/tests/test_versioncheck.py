@@ -25,6 +25,8 @@ class TestVersionCheck(TestAsServer):
 
         self.session.notifier.notify = Mock()
 
+        self.response_lag = 0  # lag in seconds to send a response
+
     def notifier_callback(self, subject, *args):
         self.new_version_called = True
 
@@ -45,7 +47,9 @@ class TestVersionCheck(TestAsServer):
         site = web.TCPSite(self.runner, 'localhost', self.port)
         await site.start()
 
-    def handle_version_request(self, request):
+    async def handle_version_request(self, _):
+        if self.response_lag > 0:
+            await sleep(self.response_lag)
         return RESTResponse(self.response, status=self.response_code)
 
     async def assert_new_version_called(self):
@@ -115,6 +119,19 @@ class TestVersionCheck(TestAsServer):
         versioncheck_manager.VERSION_CHECK_TIMEOUT = 0.001
         self.should_call_new_version_callback = False
         await self.check_version()
+
+    @timeout(10)
+    async def test_version_check_api_timeout(self):
+        await self.setup_version_server(json.dumps({'name': 'v1337.0'}))
+
+        # Setting the API response lag to 2 seconds and
+        # client's version checkout timeout of 1 second, version checks should fail returning False
+        versioncheck_manager.VERSION_CHECK_TIMEOUT = 1  # seconds
+        self.response_lag = 2  # seconds
+
+        version_check_api = f"http://localhost:{self.port}"
+        has_new_version = await self.session.version_check_manager.check_new_version_api(version_check_api)
+        self.assertFalse(has_new_version)
 
     @timeout(20)
     async def test_fallback_on_multiple_urls(self):

@@ -2,7 +2,8 @@ import asyncio
 import logging
 from distutils.version import LooseVersion
 
-from aiohttp import ClientConnectionError, ClientResponseError, ClientSession, ContentTypeError, ServerConnectionError
+from aiohttp import ClientConnectionError, ClientResponseError, ClientSession, ClientTimeout, \
+    ContentTypeError, ServerConnectionError
 
 from ipv8.taskmanager import TaskManager
 
@@ -42,7 +43,7 @@ class VersionCheckManager(TaskManager):
     async def check_new_version_api(self, version_check_url):
         try:
             async with ClientSession(raise_for_status=True) as session:
-                response = await session.get(version_check_url)
+                response = await session.get(version_check_url, timeout=ClientTimeout(total=VERSION_CHECK_TIMEOUT))
                 response_dict = await response.json(content_type=None)
                 version = response_dict['name'][1:]
                 if LooseVersion(version) > LooseVersion(version_id):
