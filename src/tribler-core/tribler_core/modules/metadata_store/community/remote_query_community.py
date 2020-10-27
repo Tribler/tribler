@@ -120,15 +120,18 @@ class RemoteQueryCommunity(Community):
 
     @lazy_wrapper(RemoteSelectPayload)
     async def on_remote_select(self, peer, request):
-        request_sanitized = sanitize_query(json.loads(request.json), self.settings.max_response_size)
-        db_results = await self.mds.MetadataNode.get_entries_threaded(**request_sanitized)
-        if not db_results:
-            return
+        try:
+            request_sanitized = sanitize_query(json.loads(request.json), self.settings.max_response_size)
+            db_results = await self.mds.MetadataNode.get_entries_threaded(**request_sanitized)
+            if not db_results:
+                return
 
-        index = 0
-        while index < len(db_results):
-            data, index = entries_to_chunk(db_results, self.settings.maximum_payload_size, start_index=index)
-            self.ez_send(peer, SelectResponsePayload(request.id, data))
+            index = 0
+            while index < len(db_results):
+                data, index = entries_to_chunk(db_results, self.settings.maximum_payload_size, start_index=index)
+                self.ez_send(peer, SelectResponsePayload(request.id, data))
+        except TypeError as error:
+            self.logger.error(f"Remote select. The error occurred: {error}")
 
     @lazy_wrapper(SelectResponsePayload)
     async def on_remote_select_response(self, peer, response):
