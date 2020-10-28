@@ -18,6 +18,7 @@ Contents:
    Building Tribler <building/building>
    restapi/introduction
    trustchain
+   metadata_store/channels_architecture
 
 Indices and tables
 ==================
