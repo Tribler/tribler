@@ -6,6 +6,7 @@ from ipv8.community import Community
 from ipv8.lazy_community import lazy_wrapper
 from ipv8.messaging.lazy_payload import VariablePayload, vp_compile
 from ipv8.peer import Peer
+from ipv8.peerdiscovery.network import Network
 from ipv8.requestcache import RandomNumberCache, RequestCache
 
 from pony.orm.dbapiprovider import OperationalError
@@ -75,10 +76,9 @@ class RemoteQueryCommunity(Community):
     )
 
     def __init__(self, my_peer, endpoint, network, metadata_store, settings=None, notifier=None):
-        super(RemoteQueryCommunity, self).__init__(my_peer, endpoint, network)
+        super().__init__(my_peer, endpoint, Network())
 
         self.notifier = notifier
-        self.max_peers = 60
 
         self.settings = settings or RemoteQueryCommunitySettings()
 

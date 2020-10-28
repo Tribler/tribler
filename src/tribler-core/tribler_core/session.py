@@ -236,7 +236,7 @@ class Session(TaskManager):
         # Gigachannel Community
         if self.config.get_chant_enabled():
             from tribler_core.modules.metadata_store.community.gigachannel_community import GigaChannelCommunity, GigaChannelTestnetCommunity
-            from tribler_core.modules.metadata_store.community.sync_strategy import SyncChannels
+            from tribler_core.modules.metadata_store.community.sync_strategy import RemovePeers, SyncChannels
 
             community_cls = GigaChannelTestnetCommunity if self.config.get_chant_testnet() else GigaChannelCommunity
             self.gigachannel_community = community_cls(peer, self.ipv8.endpoint, self.ipv8.network, self.mds,
@@ -245,7 +245,7 @@ class Session(TaskManager):
             self.ipv8.overlays.append(self.gigachannel_community)
 
             self.ipv8.strategies.append((RandomWalk(self.gigachannel_community), 20))
-            self.ipv8.strategies.append((SyncChannels(self.gigachannel_community), 20))
+            self.ipv8.strategies.append((SyncChannels(self.gigachannel_community), -1))
 
             # Gigachannel RemoteQuery Community
             from tribler_core.modules.metadata_store.community.remote_query_community \
@@ -256,7 +256,8 @@ class Session(TaskManager):
                                                         notifier=self.notifier)
 
             self.ipv8.overlays.append(self.remote_query_community)
-            self.ipv8.strategies.append((RandomWalk(self.remote_query_community), 50))
+            self.ipv8.strategies.append((RandomWalk(self.remote_query_community), 30))
+            self.ipv8.strategies.append((RemovePeers(self.remote_query_community), -1))
 
     def enable_ipv8_statistics(self):
         if self.config.get_ipv8_statistics():
