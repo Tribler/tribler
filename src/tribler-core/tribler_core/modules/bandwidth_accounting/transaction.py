@@ -136,7 +136,7 @@ def define_binding(bandwidth_database):
         public_key_b = Required(bytes, index=True)
         signature_a = Required(bytes)
         signature_b = Required(bytes)
-        amount = Required(int)
+        amount = Required(int, size=64)
         timestamp = Required(int, size=64)
         PrimaryKey(sequence_number, public_key_a, public_key_b)
 

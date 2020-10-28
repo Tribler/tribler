@@ -46,6 +46,15 @@ def test_get_latest_transaction(bandwidth_db):
     assert tx2.amount == 3000
 
 
+@db_session
+def test_store_large_transaction(bandwidth_db):
+    large_tx = BandwidthTransactionData(1, b"a", b"b", EMPTY_SIGNATURE, EMPTY_SIGNATURE, 1024 * 1024 * 1024 * 3)
+    bandwidth_db.BandwidthTransaction.insert(large_tx)
+
+    latest_tx = bandwidth_db.get_latest_transaction(b"a", b"b")
+    assert latest_tx
+
+
 @pytest.mark.asyncio
 async def test_totals(bandwidth_db):
     with db_session:
