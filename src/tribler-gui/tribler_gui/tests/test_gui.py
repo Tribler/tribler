@@ -375,6 +375,21 @@ def test_add_download_url(tribler_api, window):
 
 
 @pytest.mark.guitest
+def test_multiple_new_version_popup(tribler_api, window):
+    new_version = 'v1337.0.0'
+    # Trying to generate 10 new version popups
+    for _ in range(10):
+        window.on_new_version_available(new_version)
+    screenshot(window, name="on_new_version_available")
+
+    # There are three actions on the new version dialog.
+    # Action at index 1 is to close.
+    action_close = 1
+    window.on_new_version_dialog_done(new_version, action_close)
+    assert window.new_version_dialog is None
+
+
+@pytest.mark.guitest
 def test_video_player_page(tribler_api, window):
     go_to_and_wait_for_downloads(window)
     QTest.mouseClick(window.downloads_list.topLevelItem(0).progress_slider, Qt.LeftButton)
