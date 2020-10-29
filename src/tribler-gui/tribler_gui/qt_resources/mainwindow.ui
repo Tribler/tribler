@@ -495,57 +495,6 @@ background: none;</string>
          </property>
         </spacer>
        </item>
-       <item>
-        <widget class="CircleButton" name="add_torrent_button">
-         <property name="minimumSize">
-          <size>
-           <width>32</width>
-           <height>32</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>32</width>
-           <height>32</height>
-          </size>
-         </property>
-         <property name="cursor">
-          <cursorShape>PointingHandCursor</cursorShape>
-         </property>
-         <property name="styleSheet">
-          <string notr="true"/>
-         </property>
-         <property name="text">
-          <string/>
-         </property>
-         <property name="icon">
-          <iconset>
-           <normaloff>../images/add.png</normaloff>../images/add.png</iconset>
-         </property>
-         <property name="iconSize">
-          <size>
-           <width>16</width>
-           <height>16</height>
-          </size>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <spacer name="horizontalSpacer">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-         <property name="sizeType">
-          <enum>QSizePolicy::Fixed</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>12</width>
-           <height>20</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
       </layout>
      </widget>
     </item>
@@ -638,7 +587,7 @@ color: #eee;</string>
         </property>
         <property name="maximumSize">
          <size>
-          <width>200</width>
+          <width>180</width>
           <height>16777215</height>
          </size>
         </property>
@@ -679,6 +628,60 @@ color: white;
          <property name="leftMargin">
           <number>0</number>
          </property>
+         <item>
+          <widget class="QPushButton" name="add_torrent_button">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>32</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>10000</width>
+             <height>32</height>
+            </size>
+           </property>
+           <property name="cursor">
+            <cursorShape>PointingHandCursor</cursorShape>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QPushButton#add_torrent_button {
+    border-style: outset;
+    border-width: 2px;
+    border-radius: 15px;
+    border-color: grey;
+    padding-left: 5px;
+    margin-left: 17px;
+    margin-right: 30px;
+    font: bold;
+}
+QPushButton::menu-indicator{width:0px;}</string>
+           </property>
+           <property name="text">
+            <string>Add torrent</string>
+           </property>
+           <property name="icon">
+            <iconset>
+             <normaloff>../images/add.png</normaloff>../images/add.png</iconset>
+           </property>
+           <property name="iconSize">
+            <size>
+             <width>16</width>
+             <height>16</height>
+            </size>
+           </property>
+           <property name="flat">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
          <item>
           <widget class="QPushButton" name="left_menu_button_discovered">
            <property name="sizePolicy">
@@ -1377,8 +1380,8 @@ border-top: 1px solid #555;
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>854</width>
-               <height>710</height>
+               <width>300</width>
+               <height>498</height>
               </rect>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_22">
@@ -3760,8 +3763,8 @@ color: white</string>
                       <rect>
                        <x>0</x>
                        <y>0</y>
-                       <width>308</width>
-                       <height>276</height>
+                       <width>321</width>
+                       <height>259</height>
                       </rect>
                      </property>
                      <layout class="QFormLayout" name="formLayout_4">
@@ -5725,22 +5728,6 @@ margin: 10px 4px 2px 10px;</string>
     <hint type="destinationlabel">
      <x>20</x>
      <y>20</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>add_torrent_button</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>on_add_torrent_button_click()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>1045</x>
-     <y>33</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>317</y>
     </hint>
    </hints>
   </connection>
