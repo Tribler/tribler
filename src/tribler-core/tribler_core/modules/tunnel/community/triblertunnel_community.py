@@ -12,10 +12,7 @@ import async_timeout
 from ipv8.messaging.anonymization.caches import CreateRequestCache
 from ipv8.messaging.anonymization.community import unpack_cell
 from ipv8.messaging.anonymization.hidden_services import HiddenTunnelCommunity
-from ipv8.messaging.anonymization.payload import (
-    EstablishIntroPayload,
-    NO_CRYPTO_PACKETS
-)
+from ipv8.messaging.anonymization.payload import EstablishIntroPayload, NO_CRYPTO_PACKETS
 from ipv8.messaging.anonymization.tunnel import (
     CIRCUIT_STATE_CLOSING,
     CIRCUIT_STATE_READY,
@@ -26,7 +23,7 @@ from ipv8.messaging.anonymization.tunnel import (
     EXIT_NODE,
     PEER_FLAG_EXIT_BT,
     PEER_FLAG_EXIT_IPV8,
-    RelayRoute
+    RelayRoute,
 )
 from ipv8.peer import Peer
 from ipv8.peerdiscovery.network import Network
@@ -49,7 +46,7 @@ from tribler_core.modules.tunnel.community.payload import (
     HTTPRequestPayload,
     HTTPResponsePayload,
     RelayBalanceRequestPayload,
-    RelayBalanceResponsePayload
+    RelayBalanceResponsePayload,
 )
 from tribler_core.modules.tunnel.socks5.server import Socks5Server
 from tribler_core.utilities import path_util

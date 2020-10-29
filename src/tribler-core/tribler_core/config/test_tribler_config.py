@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from tribler_common.simpledefs import MAX_LIBTORRENT_RATE_LIMIT
+
 from tribler_core.config.tribler_config import CONFIG_FILENAME, TriblerConfig
 from tribler_core.utilities.osutils import get_home_dir
 
@@ -190,6 +192,19 @@ def test_get_set_methods_libtorrent(tribler_config):
     assert tribler_config.get_libtorrent_max_download_rate() == 83924
     tribler_config.set_libtorrent_dht_enabled(False)
     assert not tribler_config.get_libtorrent_dht_enabled()
+
+    # Add tests for setting libtorrent rate limits
+    rate_limit = MAX_LIBTORRENT_RATE_LIMIT - 1024  # lower than the max value set
+    tribler_config.set_libtorrent_max_upload_rate(rate_limit)
+    assert tribler_config.get_libtorrent_max_upload_rate() == rate_limit
+    tribler_config.set_libtorrent_max_download_rate(rate_limit)
+    assert tribler_config.get_libtorrent_max_download_rate() == rate_limit
+
+    rate_limit = MAX_LIBTORRENT_RATE_LIMIT + 1024  # higher than the max value set
+    tribler_config.set_libtorrent_max_upload_rate(rate_limit)
+    assert tribler_config.get_libtorrent_max_upload_rate() == MAX_LIBTORRENT_RATE_LIMIT
+    tribler_config.set_libtorrent_max_download_rate(rate_limit)
+    assert tribler_config.get_libtorrent_max_download_rate() == MAX_LIBTORRENT_RATE_LIMIT
 
 
 def test_get_set_methods_tunnel_community(tribler_config):

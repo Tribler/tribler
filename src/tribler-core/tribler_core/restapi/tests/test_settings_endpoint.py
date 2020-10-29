@@ -3,6 +3,8 @@ from unittest.mock import Mock
 
 import pytest
 
+from tribler_common.simpledefs import MAX_LIBTORRENT_RATE_LIMIT
+
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
 from tribler_core.restapi.base_api_test import do_request
 
@@ -87,3 +89,27 @@ async def test_set_settings(enable_api, mock_dlmgr, session):
     assert session.config.get_seeding_mode() == 'ratio'
     assert session.config.get_seeding_ratio() == 3
     assert session.config.get_seeding_time() == 123
+
+
+@pytest.mark.asyncio
+async def test_set_rate_settings(enable_api, mock_dlmgr, session):
+    """
+    Testing whether libtorrent rate limits works for large number without overflow error.
+    """
+
+    dcfg = DownloadConfig()
+    download = Mock()
+    download.config = dcfg
+    session.dlmgr.get_downloads = lambda: [download]
+
+    extra_rate = 1024 * 1024 * 1024  # 1GB/s
+    post_data = {
+        'libtorrent': {
+            'max_download_rate': MAX_LIBTORRENT_RATE_LIMIT + extra_rate,
+            'max_upload_rate': MAX_LIBTORRENT_RATE_LIMIT + extra_rate
+        }
+    }
+    await do_request(session, 'settings', expected_code=200, request_type='POST', post_data=post_data)
+
+    assert session.config.get_libtorrent_max_download_rate() == MAX_LIBTORRENT_RATE_LIMIT
+    assert session.config.get_libtorrent_max_upload_rate() == MAX_LIBTORRENT_RATE_LIMIT

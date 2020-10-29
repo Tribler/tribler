@@ -10,7 +10,6 @@ from ipv8.test.messaging.anonymization import test_community
 from ipv8.test.messaging.anonymization.test_community import MockDHTProvider
 from ipv8.test.mocking.exit_socket import MockTunnelExitSocket
 from ipv8.test.mocking.ipv8 import MockIPv8
-from ipv8.util import succeed
 
 import pytest
 
@@ -21,7 +20,6 @@ from tribler_core.modules.libtorrent.download_manager import DownloadManager
 from tribler_core.modules.tunnel.community.triblertunnel_community import TriblerTunnelCommunity
 from tribler_core.session import Session
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
-
 
 # Pylint does not agree with the way pytest handles fixtures.
 # pylint: disable=W0613,W0621

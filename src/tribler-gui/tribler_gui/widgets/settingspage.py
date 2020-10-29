@@ -1,9 +1,9 @@
-import sys
-
 from PIL.ImageQt import ImageQt
 
 from PyQt5 import QtCore, QtGui
 from PyQt5.QtWidgets import QFileDialog, QLabel, QSizePolicy, QWidget
+
+from tribler_common.simpledefs import MAX_LIBTORRENT_RATE_LIMIT
 
 import tribler_core.utilities.json_util as json
 
@@ -343,14 +343,14 @@ class SettingsPage(QWidget):
 
         try:
             if self.window().upload_rate_limit_input.text():
-                user_upload_rate_limit = int(self.window().upload_rate_limit_input.text()) * 1024
-                if user_upload_rate_limit < sys.maxsize:
+                user_upload_rate_limit = int(float(self.window().upload_rate_limit_input.text()) * 1024)
+                if user_upload_rate_limit < MAX_LIBTORRENT_RATE_LIMIT:
                     settings_data['libtorrent']['max_upload_rate'] = user_upload_rate_limit
                 else:
                     raise ValueError
             if self.window().download_rate_limit_input.text():
-                user_download_rate_limit = int(self.window().download_rate_limit_input.text()) * 1024
-                if user_download_rate_limit < sys.maxsize:
+                user_download_rate_limit = int(float(self.window().download_rate_limit_input.text()) * 1024)
+                if user_download_rate_limit < MAX_LIBTORRENT_RATE_LIMIT:
                     settings_data['libtorrent']['max_download_rate'] = user_download_rate_limit
                 else:
                     raise ValueError
@@ -358,8 +358,9 @@ class SettingsPage(QWidget):
             ConfirmationDialog.show_error(
                 self.window(),
                 "Invalid value for bandwidth limit",
-                "You've entered an invalid value for the maximum upload/download rate. "
-                "Please enter a whole number (max: %d)" % (sys.maxsize / 1000),
+                "You've entered an invalid value for the maximum upload/download rate. \n"
+                "The rate is specified in KB/s and the value permitted is between 0 and %d KB/s.\n"
+                "Note that the decimal values are truncated." % (MAX_LIBTORRENT_RATE_LIMIT / 1024),
             )
             return
 

@@ -573,6 +573,12 @@ class TriblerWindow(QMainWindow):
         if version == str(self.gui_settings.value('last_reported_version')):
             return
 
+        # To prevent multiple dialogs on top of each other,
+        # close any existing dialog first.
+        if self.new_version_dialog:
+            self.new_version_dialog.close_dialog()
+            self.new_version_dialog = None
+
         self.new_version_dialog = ConfirmationDialog(
             self,
             "New version available",

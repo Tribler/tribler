@@ -110,3 +110,11 @@ class CHANNEL_STATE(Enum):
     DOWNLOADING = "Downloading"
     PREVIEW = "Preview"
     METAINFO_LOOKUP = "Searching for metainfo"
+
+
+# Max download or upload rate limit for libtorrent.
+# On Win64, the compiled version of libtorrent only supported 2^31 - 1
+# as rate limit values instead of sys.maxsize or 2^63 -1. Since 2^31
+# is a sufficiently large value for download/upload rate limit,
+# here we set the max values for these parameters.
+MAX_LIBTORRENT_RATE_LIMIT = 2 ** 31 - 1  # bytes per second

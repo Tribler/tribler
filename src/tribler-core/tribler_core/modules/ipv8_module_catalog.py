@@ -122,7 +122,8 @@ class GigaChannelTestnetCommunityLauncher(TestnetMixIn, GigaChannelCommunityLaun
 @set_in_session('remote_query_community')
 @overlay('tribler_core.modules.metadata_store.community.remote_query_community', 'RemoteQueryCommunity')
 @kwargs(metadata_store='session.mds', notifier='session.notifier')
-@walk_strategy('ipv8.peerdiscovery.discovery', 'RandomWalk', target_peers=50)
+@walk_strategy('ipv8.peerdiscovery.discovery', 'RandomWalk', target_peers=30)
+@walk_strategy('tribler_core.modules.metadata_store.community.sync_strategy', 'RemovePeers', target_peers=-1)
 class RemoteQueryCommunityLauncher(IPv8CommunityLauncher):
     pass
 

@@ -151,7 +151,7 @@ class Session(TaskManager):
 
     def import_bootstrap_file(self):
         with open(self.bootstrap.bootstrap_file, 'r') as f:
-            sql_dumb = f.read()
+            f.read()
         self._logger.info("Executing bootstrap script")
         # TODO we should do something here...
 

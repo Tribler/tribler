@@ -17,3 +17,17 @@ class SyncChannels(DiscoveryStrategy):
             if peers:
                 peer = choice(peers)
                 self.overlay.send_random_to(peer)
+
+
+class RemovePeers(DiscoveryStrategy):
+    """
+    Synchronization strategy for remote query community.
+
+    Remove a random peer, if we have enough peers to walk to.
+    """
+
+    def take_step(self):
+        with self.walk_lock:
+            peers = self.overlay.get_peers()
+            if peers and len(peers) > 20:
+                self.overlay.network.remove_peer(choice(peers))

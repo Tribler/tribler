@@ -5,7 +5,10 @@ from random import sample
 from ipv8.community import Community
 from ipv8.lazy_community import lazy_wrapper
 from ipv8.messaging.lazy_payload import VariablePayload, vp_compile
+from ipv8.peerdiscovery.network import Network
 from ipv8.requestcache import RandomNumberCache, RequestCache
+
+from pony.orm.dbapiprovider import OperationalError
 
 from tribler_common.simpledefs import CHANNELS_VIEW_UUID, NTFY
 
@@ -73,10 +76,9 @@ class RemoteQueryCommunity(Community):
     community_id = unhexlify('dc43e3465cbd83948f30d3d3e8336d71cce33aa7')
 
     def __init__(self, my_peer, endpoint, network, metadata_store, settings=None, notifier=None):
-        super(RemoteQueryCommunity, self).__init__(my_peer, endpoint, network)
+        super().__init__(my_peer, endpoint, Network())
 
         self.notifier = notifier
-        self.max_peers = 60
 
         self.settings = settings or RemoteQueryCommunitySettings()
 
@@ -90,8 +92,7 @@ class RemoteQueryCommunity(Community):
         self.queried_peers_limit = 1000
 
         if self.notifier:
-            self.notifier.add_observer(NTFY.POPULARITY_COMMUNITY_ADD_UNKNOWN_TORRENT,
-                                       self.on_pc_add_unknown_torrent)
+            self.notifier.add_observer(NTFY.POPULARITY_COMMUNITY_ADD_UNKNOWN_TORRENT, self.on_pc_add_unknown_torrent)
 
         # this flag enable or disable https://github.com/Tribler/tribler/pull/5657
         # it can be changed in runtime
@@ -133,17 +134,30 @@ class RemoteQueryCommunity(Community):
         }
         self.send_remote_select(peer, **request_dict)
 
+    async def process_rpc_query(self, json_bytes: bytes):
+        """
+        Retrieve the result of a database query from a third party, encoded as raw JSON bytes (through `dumps`).
+
+        :raises TypeError: if the JSON contains invalid keys.
+        :raises ValueError: if no JSON could be decoded.
+        :raises pony.orm.dbapiprovider.OperationalError: if an illegal query was performed.
+        """
+        request_sanitized = sanitize_query(json.loads(json_bytes), self.settings.max_response_size)
+        return await self.mds.MetadataNode.get_entries_threaded(**request_sanitized)
+
     @lazy_wrapper(RemoteSelectPayload)
     async def on_remote_select(self, peer, request):
-        request_sanitized = sanitize_query(json.loads(request.json), self.settings.max_response_size)
-        db_results = await self.mds.MetadataNode.get_entries_threaded(**request_sanitized)
-        if not db_results:
-            return
+        try:
+            db_results = await self.process_rpc_query(request.json)
+            if not db_results:
+                return
 
-        index = 0
-        while index < len(db_results):
-            data, index = entries_to_chunk(db_results, self.settings.maximum_payload_size, start_index=index)
-            self.ez_send(peer, SelectResponsePayload(request.id, data))
+            index = 0
+            while index < len(db_results):
+                data, index = entries_to_chunk(db_results, self.settings.maximum_payload_size, start_index=index)
+                self.ez_send(peer, SelectResponsePayload(request.id, data))
+        except (OperationalError, TypeError, ValueError) as error:
+            self.logger.error(f"Remote select. The error occurred: {error}")
 
     @lazy_wrapper(SelectResponsePayload)
     async def on_remote_select_response(self, peer, response):
@@ -190,8 +204,7 @@ class RemoteQueryCommunity(Community):
         await super(RemoteQueryCommunity, self).unload()
 
         if self.notifier:
-            self.notifier.remove_observer(NTFY.POPULARITY_COMMUNITY_ADD_UNKNOWN_TORRENT,
-                                          self.on_pc_add_unknown_torrent)
+            self.notifier.remove_observer(NTFY.POPULARITY_COMMUNITY_ADD_UNKNOWN_TORRENT, self.on_pc_add_unknown_torrent)
 
 
 class RemoteQueryTestnetCommunity(RemoteQueryCommunity):
