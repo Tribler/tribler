@@ -31,6 +31,7 @@ from PyQt5.QtWidgets import (
     QLineEdit,
     QListWidget,
     QMainWindow,
+    QPushButton,
     QShortcut,
     QStyledItemDelegate,
     QSystemTrayIcon,
@@ -317,6 +318,10 @@ class TriblerWindow(QMainWindow):
         self.show()
 
         self.add_to_channel_dialog = AddToChannelDialog(self.window())
+
+        self.add_torrent_menu = self.findChild(QPushButton, "add_torrent_button")
+        self.add_torrent_menu = self.create_add_torrent_menu()
+        self.add_torrent_button.setMenu(self.add_torrent_menu)
 
     def update_tray_icon(self, use_monochrome_icon):
         if not QSystemTrayIcon.isSystemTrayAvailable() or not self.tray_icon:
@@ -752,13 +757,6 @@ class TriblerWindow(QMainWindow):
 
     def on_create_torrent_updates(self, update_dict):
         self.tray_show_message("Torrent updates", update_dict['msg'])
-
-    def on_add_torrent_button_click(self, _pos):
-        plus_btn_pos = self.add_torrent_button.pos()
-        plus_btn_geometry = self.add_torrent_button.geometry()
-        plus_btn_pos.setX(plus_btn_pos.x() - CONTEXT_MENU_WIDTH)
-        plus_btn_pos.setY(plus_btn_pos.y() + plus_btn_geometry.height())
-        self.create_add_torrent_menu().exec_(self.mapToParent(plus_btn_pos))
 
     def on_add_torrent_browse_file(self):
         filenames = QFileDialog.getOpenFileNames(
