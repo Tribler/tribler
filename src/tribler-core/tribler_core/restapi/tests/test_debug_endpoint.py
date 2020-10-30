@@ -1,10 +1,12 @@
 import os
 import sys
+from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
 
 from tribler_core.restapi.base_api_test import do_request
+from tribler_core.utilities.osutils import get_root_state_directory
 
 
 @pytest.fixture
@@ -82,33 +84,56 @@ async def test_dump_memory(enable_api, session):
     assert response
 
 
+@pytest.fixture(name='env_state_directory')
+def fixture_env_state_directory(tribler_root_dir):
+    old_state_dir = os.environ.get('TSTATEDIR', None)
+    os.environ['TSTATEDIR'] = str(tribler_root_dir)
+
+    yield tribler_root_dir
+
+    if old_state_dir:
+        os.environ['TSTATEDIR'] = old_state_dir
+    else:
+        os.environ.pop('TSTATEDIR', None)
+
+
+def create_dummy_logs(log_dir: Path, process: str = 'core', log_message: str = None, num_logs: int = 100):
+    """
+    Create dummy log lines to test debug log endpoint.
+    :param log_dir: Directory to place the log files.
+    :param process: Either 'core' or 'gui'
+    :param log_message: log line to write to file.
+    :param num_logs: Number of log lines to write
+    :return: None
+    """
+    if not log_dir.exists():
+        os.makedirs(log_dir)
+
+    info_log_file_path = log_dir / f'tribler-{process}-info.log'
+    log_message = log_message if log_message else f"This is a {process} test log message."
+
+    with open(info_log_file_path, "w") as info_log_file:
+        for log_index in range(num_logs):
+            info_log_file.write(f"{log_message} {log_index}\n")
+
+
 @pytest.mark.asyncio
 async def test_debug_pane_core_logs(enable_api, session):
     """
     Test whether the API returns the logs
     """
-
-    test_core_log_message = "This is the core test log message"
-    max_lines = 100
-
-    # Directory for logs
     log_dir = session.config.get_log_dir()
-    if not log_dir.exists():
-        os.makedirs(log_dir)
+    process = 'core'
+    test_core_log_message = "This is the core test log message"
+    num_logs = 100
 
-    # Fill logging files with statements
-    core_info_log_file_path = log_dir / 'tribler-core-info.log'
+    create_dummy_logs(log_dir, process='core', log_message=test_core_log_message, num_logs=num_logs)
 
-    # write 100 test lines which is used to test for its presence in the response
-    with open(core_info_log_file_path, "w") as core_info_log_file:
-        for log_index in range(max_lines):
-            core_info_log_file.write("%s %d\n" % (test_core_log_message, log_index))
-
-    json_response = await do_request(session, 'debug/log?process=core&max_lines=%d' % max_lines, expected_code=200)
+    json_response = await do_request(session, f'debug/log?process={process}&max_lines={num_logs}', expected_code=200)
     logs = json_response['content'].strip().split("\n")
 
     # Check number of logs returned is correct
-    assert len(logs) == max_lines
+    assert len(logs) == num_logs
 
     # Check if test log message is present in the logs, at least once
     log_exists = any((True for log in logs if test_core_log_message in log))
@@ -116,27 +141,55 @@ async def test_debug_pane_core_logs(enable_api, session):
 
 
 @pytest.mark.asyncio
+async def test_debug_pane_core_logs_in_root_dir(env_state_directory, enable_api, session):
+    """
+    Test whether the API returns the logs when logs are present in the root directory.
+    """
+
+    # Tribler logs are by default set to root state directory. Here we define the
+    # root state directory by updating 'TSTATEDIR' environment variable.
+    log_dir = get_root_state_directory()
+
+    process = 'core'
+    num_logs = 100
+
+    create_dummy_logs(log_dir, process='core', num_logs=num_logs)
+
+    json_response = await do_request(session, f'debug/log?process={process}&max_lines={num_logs}', expected_code=200)
+    logs = json_response['content'].strip().split("\n")
+
+    # Check number of logs returned is correct
+    assert len(logs) == num_logs
+
+
+@pytest.mark.asyncio
 async def test_debug_pane_default_num_logs(enable_api, session):
     """
     Test whether the API returns the last 100 logs when no max_lines parameter is not provided
     """
-    test_core_log_message = "This is the gui test log message"
-    expected_num_lines = 100
+    module = 'gui'
+    default_num_logs_returned = 100
+    num_logs_to_write = 200
 
     # Log directory
     log_dir = session.config.get_log_dir()
-    if not log_dir.exists():
-        os.makedirs(log_dir)
-    gui_info_log_file_path = log_dir / 'tribler-gui-info.log'
+    create_dummy_logs(log_dir, process=module, log_message=log_dir, num_logs=num_logs_to_write)
 
-    # write 200 (greater than expected_num_lines) test logs in file
-    with open(gui_info_log_file_path, "w") as core_info_log_file:
-        for log_index in range(200):   # write more logs
-            core_info_log_file.write("%s %d\n" % (test_core_log_message, log_index))
-
-    json_response = await do_request(session, 'debug/log?process=gui&max_lines=', expected_code=200)
+    json_response = await do_request(session, f'debug/log?process={module}&max_lines=', expected_code=200)
     logs = json_response['content'].strip().split("\n")
-    assert len(logs) == expected_num_lines
+    assert len(logs) == default_num_logs_returned
+
+
+@pytest.mark.asyncio
+async def test_debug_pane_no_logs(env_state_directory, enable_api, session):
+    """
+    Test whether the API returns the default response when no log files are found.
+    """
+    module = 'gui'
+    json_response = await do_request(session, f'debug/log?process={module}&max_lines=', expected_code=200)
+
+    assert not json_response['content']
+    assert json_response['max_lines'] == 0
 
 
 @pytest.mark.asyncio

@@ -16,6 +16,7 @@ import psutil
 
 from tribler_core.restapi.rest_endpoint import RESTEndpoint, RESTResponse
 from tribler_core.utilities.instrumentation import WatchDog
+from tribler_core.utilities.osutils import get_root_state_directory
 
 HAS_MELIAE = True
 try:
@@ -243,24 +244,31 @@ class DebugEndpoint(RESTEndpoint):
         for handler in logging.getLogger().handlers:
             handler.flush()
 
+        # Default response
+        response = {'content': '', 'max_lines': 0}
+
         # Get the location of log file
         param_process = request.query.get('process', 'core')
         log_file_name = self.session.config.get_log_dir() / ('tribler-%s-info.log' % param_process)
 
-        # Default response
-        response = {'content': '', 'max_lines': 0}
+        # If the log file is not present in the versioned state directory, try root state directory location
+        if not log_file_name.exists():
+            log_file_name = get_root_state_directory() / ('tribler-%s-info.log' % param_process)
 
-        # Check if log file exists and return last requested 'max_lines' of log
-        if log_file_name.exists():
-            try:
-                max_lines = int(request.query['max_lines'])
-                with log_file_name.open(mode='r') as log_file:
-                    response['content'] = self.tail(log_file, max_lines)
-                response['max_lines'] = max_lines
-            except ValueError:
-                with log_file_name.open(mode='r') as log_file:
-                    response['content'] = self.tail(log_file, 100)  # default 100 lines
-                response['max_lines'] = 0
+        # If the log file is still not found, maybe it is not created yet, then return the default response
+        if not log_file_name.exists():
+            return RESTResponse(response)
+
+        # If the log file exists and return last requested 'max_lines' of log
+        try:
+            max_lines = int(request.query['max_lines'])
+            with log_file_name.open(mode='r') as log_file:
+                response['content'] = self.tail(log_file, max_lines)
+            response['max_lines'] = max_lines
+        except ValueError:
+            with log_file_name.open(mode='r') as log_file:
+                response['content'] = self.tail(log_file, 100)  # default 100 lines
+            response['max_lines'] = 0
 
         return RESTResponse(response)
 
