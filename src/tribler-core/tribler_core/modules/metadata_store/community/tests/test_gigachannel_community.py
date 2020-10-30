@@ -199,7 +199,7 @@ class TestGigaChannelUnits(TestBase):
 
         def mock_notify(overlay, args):
             overlay.notified_results = True
-            self.assertTrue("results" in args[0])
+            self.assertTrue("results" in args)
 
         self.nodes[1].overlay.notifier = MockObject()
         self.nodes[1].overlay.notifier.notify = lambda sub, args: mock_notify(self.nodes[1].overlay, args)
