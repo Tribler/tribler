@@ -35,12 +35,14 @@ class PayoutManager(TaskManager):
             return None
 
         self.logger.debug("Received %d nodes for DHT lookup", len(nodes))
-        if nodes:
-            try:
-                await self.bandwidth_community.do_payout(nodes[0], total_bytes)
-            except Exception as e:
-                self.logger.error("Error while doing bandwidth payout, error %s", e)
-                return None
+        if not nodes:
+            return None
+
+        try:
+            await self.bandwidth_community.do_payout(nodes[0], total_bytes)
+        except Exception as e:
+            self.logger.error("Error while doing bandwidth payout, error %s", e)
+            return None
 
         # Remove the outstanding bytes; otherwise we will payout again
         self.tribler_peers.pop(mid, None)

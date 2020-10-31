@@ -55,6 +55,20 @@ async def test_do_payout_dht_error(payout_manager):
 
 
 @pytest.mark.asyncio
+async def test_do_payout_no_dht_peers(payout_manager):
+    """
+    Test whether we are not doing a payout when there are no peers returned by the DHT
+    """
+    def connect_peer(_):
+        return succeed([])
+
+    payout_manager.update_peer(b'a', b'b', 10 * 1024 * 1024)
+    payout_manager.dht.connect_peer = connect_peer
+    res = await payout_manager.do_payout(b'a')
+    assert not res
+
+
+@pytest.mark.asyncio
 async def test_do_payout_error(payout_manager):
     """
     Test whether we are not doing a payout when the payout fails
