@@ -960,6 +960,44 @@ QPushButton::menu-indicator{width:0px;}</string>
           </widget>
          </item>
          <item>
+          <layout class="QVBoxLayout" name="verticalLayout_5">
+           <item>
+            <widget class="ChannelsMenuListWidget" name="channels_menu_list">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="cursor" stdset="0">
+              <cursorShape>PointingHandCursor</cursorShape>
+             </property>
+             <property name="styleSheet">
+              <string notr="true">QListWidget::item:hover {color:white;}
+QListWidget {
+    margin-left: 19px;
+}</string>
+             </property>
+             <property name="horizontalScrollBarPolicy">
+              <enum>Qt::ScrollBarAlwaysOff</enum>
+             </property>
+             <property name="editTriggers">
+              <set>QAbstractItemView::NoEditTriggers</set>
+             </property>
+             <property name="iconSize">
+              <size>
+               <width>16</width>
+               <height>16</height>
+              </size>
+             </property>
+             <property name="itemAlignment">
+              <set>Qt::AlignVCenter</set>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <item>
           <spacer name="verticalSpacer">
            <property name="orientation">
             <enum>Qt::Vertical</enum>
@@ -972,13 +1010,33 @@ QPushButton::menu-indicator{width:0px;}</string>
            </property>
           </spacer>
          </item>
+         <item>
+          <widget class="QPushButton" name="left_menu_button_new_channel">
+           <property name="focusPolicy">
+            <enum>Qt::NoFocus</enum>
+           </property>
+           <property name="text">
+            <string>New channel</string>
+           </property>
+           <property name="icon">
+            <iconset>
+             <normaloff>../images/plus.svg</normaloff>../images/plus.svg</iconset>
+           </property>
+           <property name="checkable">
+            <bool>false</bool>
+           </property>
+           <property name="flat">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
         </layout>
        </widget>
       </item>
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>9</number>
+         <number>2</number>
         </property>
         <widget class="ChannelContentsWidget" name="personal_channel_page"/>
         <widget class="ChannelContentsWidget" name="search_results_page"/>
@@ -1380,8 +1438,8 @@ border-top: 1px solid #555;
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>300</width>
-               <height>498</height>
+               <width>854</width>
+               <height>710</height>
               </rect>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_22">
@@ -5464,6 +5522,7 @@ margin: 10px 4px 2px 10px;</string>
           </item>
          </layout>
         </widget>
+        <widget class="ChannelContentsWidget" name="channel_contents_page"/>
        </widget>
       </item>
      </layout>
@@ -5552,6 +5611,11 @@ margin: 10px 4px 2px 10px;</string>
    <extends>QLineEdit</extends>
    <header>tribler_gui.widgets.clickable_line_edit.h</header>
   </customwidget>
+  <customwidget>
+   <class>ChannelsMenuListWidget</class>
+   <extends>QListWidget</extends>
+   <header>tribler_gui.widgets.channelsmenulistwidget.h</header>
+  </customwidget>
  </customwidgets>
  <resources/>
  <connections>
@@ -5620,86 +5684,6 @@ margin: 10px 4px 2px 10px;</string>
    </hints>
   </connection>
   <connection>
-   <sender>left_menu_button_subscriptions</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>clicked_menu_button_subscriptions()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>101</x>
-     <y>259</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>317</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>left_menu_button_my_channel</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>clicked_menu_button_my_channel()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>101</x>
-     <y>223</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>317</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>left_menu_button_downloads</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>clicked_menu_button_downloads()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>101</x>
-     <y>295</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>317</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>left_menu_button_discovered</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>clicked_menu_button_discovered()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>101</x>
-     <y>187</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>327</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>left_menu_button_debug</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>clicked_menu_button_debug()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>95</x>
-     <y>403</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>327</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
    <sender>force_shutdown_btn</sender>
    <signal>clicked()</signal>
    <receiver>MainWindow</receiver>
@@ -5732,6 +5716,38 @@ margin: 10px 4px 2px 10px;</string>
    </hints>
   </connection>
   <connection>
+   <sender>left_menu_button_subscriptions</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>clicked_menu_button_subscriptions()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>101</x>
+     <y>259</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>427</x>
+     <y>317</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>left_menu_button_downloads</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>clicked_menu_button_downloads()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>101</x>
+     <y>295</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>427</x>
+     <y>317</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
    <sender>left_menu_button_trust_graph</sender>
    <signal>clicked()</signal>
    <receiver>MainWindow</receiver>
@@ -5747,6 +5763,54 @@ margin: 10px 4px 2px 10px;</string>
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>left_menu_button_my_channel</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>clicked_menu_button_my_channel()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>101</x>
+     <y>223</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>427</x>
+     <y>317</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>left_menu_button_debug</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>clicked_menu_button_debug()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>95</x>
+     <y>403</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>427</x>
+     <y>327</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>left_menu_button_discovered</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>clicked_menu_button_discovered()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>101</x>
+     <y>187</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>427</x>
+     <y>327</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>on_top_search_button_click()</slot>
@@ -5758,7 +5822,6 @@ margin: 10px 4px 2px 10px;</string>
   <slot>clicked_menu_button_subscriptions()</slot>
   <slot>clicked_edit_channel_commit_button()</slot>
   <slot>on_search_text_change()</slot>
-  <slot>on_page_back_clicked()</slot>
   <slot>on_edit_channel_clicked()</slot>
   <slot>clicked_menu_button_discovered()</slot>
   <slot>clicked_menu_button_debug()</slot>

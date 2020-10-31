@@ -7,6 +7,8 @@ from PyQt5.QtCore import QDir, QTimer, Qt, pyqtSignal
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QAction, QFileDialog
 
+from tribler_common.simpledefs import CHANNEL_STATE
+
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import DIRTY_STATUSES, NEW
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE
 
@@ -15,12 +17,13 @@ from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler_gui.dialogs.new_channel_dialog import NewChannelDialog
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.utilities import get_gui_setting, get_image_path, get_ui_file_path
+from tribler_gui.utilities import get_image_path, get_ui_file_path
 from tribler_gui.widgets.tablecontentmodel import (
     ChannelContentModel,
     DiscoveredChannelsModel,
     PersonalChannelsModel,
     SearchResultsModel,
+    SimplifiedPersonalChannelsModel,
 )
 from tribler_gui.widgets.triblertablecontrollers import ContentTableViewController
 
@@ -66,6 +69,8 @@ class ChannelContentsWidget(widget_form, widget_class):
 
         self_ref = self
 
+        self.hide_xxx = None
+
         # This context manager is used to freeze the state of controls in the models stack to
         # prevent signals from triggering for inactive models.
         class freeze_controls_class:
@@ -87,6 +92,10 @@ class ChannelContentsWidget(widget_form, widget_class):
         self.setStyleSheet("QToolTip { color: #222222; background-color: #eeeeee; border: 0px; }")
 
     @property
+    def personal_channel_model(self):
+        return SimplifiedPersonalChannelsModel if self.autocommit_enabled else PersonalChannelsModel
+
+    @property
     def model(self):
         return self.channels_stack[-1] if self.channels_stack else None
 
@@ -94,18 +103,19 @@ class ChannelContentsWidget(widget_form, widget_class):
         if response and response.get("success", False):
             if not self.autocommit_enabled:
                 self.commit_control_bar.setHidden(True)
-            self.model.reset()
-            self.update_labels()
+            if self.model:
+                self.model.reset()
+                self.update_labels()
 
     def commit_channels(self):
         TriblerNetworkRequest("channels/mychannel/0/commit", self.on_channel_committed, method='POST')
 
-    def initialize_content_page(self, gui_settings, edit_enabled=False):
+    def initialize_content_page(self, autocommit_enabled=True, hide_xxx=None):
         if self.initialized:
             return
 
+        self.hide_xxx = hide_xxx
         self.initialized = True
-        self.edit_channel_contents_top_bar.setHidden(not edit_enabled)
         self.category_selector.addItems(CATEGORY_SELECTOR_ITEMS)
         self.category_selector.currentIndexChanged.connect(self.on_category_selector_changed)
         self.channel_back_button.setIcon(QIcon(get_image_path('page_back.png')))
@@ -121,10 +131,9 @@ class ChannelContentsWidget(widget_form, widget_class):
         # To reload the preview
         self.channel_preview_button.clicked.connect(self.preview_clicked)
 
-        # self.channel_options_button.hide()
-        self.autocommit_enabled = edit_enabled and (
-            get_gui_setting(gui_settings, "autocommit_enabled", True, is_bool=True) if gui_settings else True
-        )
+        self.autocommit_enabled = autocommit_enabled
+        if self.autocommit_enabled:
+            self._enable_autocommit_timer()
 
         # New channel button
         self.new_channel_button.clicked.connect(self.create_new_channel)
@@ -132,19 +141,18 @@ class ChannelContentsWidget(widget_form, widget_class):
         self.edit_channel_commit_button.clicked.connect(self.commit_channels)
 
         self.subscription_widget.initialize(self)
+
+    def _enable_autocommit_timer(self):
+
+        self.commit_timer = QTimer()
+        self.commit_timer.setSingleShot(True)
+        self.commit_timer.timeout.connect(self.commit_channels)
+
         # Commit the channel just in case there are uncommitted changes left since the last time (e.g. Tribler crashed)
         # The timer thing here is a workaround for race condition with the core startup
-        if self.autocommit_enabled:
-            if not self.commit_timer:
-                self.commit_timer = QTimer()
-                self.commit_timer.setSingleShot(True)
-                self.commit_timer.timeout.connect(self.commit_channels)
-
-            self.controller.table_view.setColumnHidden(3, True)
-            self.commit_timer.stop()
-            self.commit_timer.start(10000)
-        else:
-            self.controller.table_view.setColumnHidden(4, True)
+        self.controller.table_view.setColumnHidden(3, True)
+        self.commit_timer.stop()
+        self.commit_timer.start(10000)
 
     def on_category_selector_changed(self, ind):
         category = CATEGORY_SELECTOR_ITEMS[ind] if ind else None
@@ -179,6 +187,7 @@ class ChannelContentsWidget(widget_form, widget_class):
             self.channel_torrents_filter_input.setText("")
 
     def on_model_info_changed(self, changed_entries):
+        self.window().channels_menu_list.reload_if_necessary(changed_entries)
         dirty = False
         structure_changed = False
         for entry in changed_entries:
@@ -198,6 +207,16 @@ class ChannelContentsWidget(widget_form, widget_class):
 
         # TODO: optimize me: maybe we don't need to update the labels each time?
         self.update_labels(dirty)
+
+    def initialize_root_model_from_channel_info(self, channel_info):
+        if channel_info.get("state") == CHANNEL_STATE.PERSONAL.value:
+            self.default_channel_model = self.personal_channel_model
+            self.hide_xxx = False
+        else:
+            self.default_channel_model = ChannelContentModel
+            self.hide_xxx = True
+        model = self.default_channel_model(hide_xxx=self.hide_xxx, channel_info=channel_info)
+        self.initialize_root_model(model)
 
     def initialize_root_model(self, root_model):
         self.empty_channels_stack()
@@ -314,6 +333,7 @@ class ChannelContentsWidget(widget_form, widget_class):
         search = isinstance(self.model, SearchResultsModel)
         discovered = isinstance(self.model, DiscoveredChannelsModel)
         personal_model = isinstance(self.model, PersonalChannelsModel)
+        is_a_channel = self.model.channel_info.get("type", None) == CHANNEL_TORRENT
 
         self.category_selector.setHidden(root and (discovered or personal_model))
         # initialize the channel page
@@ -347,13 +367,14 @@ class ChannelContentsWidget(widget_form, widget_class):
         if len(breadcrumb_text) >= len(slash_separator):
             breadcrumb_text = breadcrumb_text[len(slash_separator) :]
 
-        self.new_channel_button.setText("NEW CHANNEL" if root else "NEW FOLDER")
+        self.edit_channel_contents_top_bar.setHidden(not personal)
+        self.new_channel_button.setText("NEW CHANNEL" if not is_a_channel and not folder else "NEW FOLDER")
 
         self.channel_name_label.setText(breadcrumb_text)
         self.channel_name_label.setTextInteractionFlags(Qt.TextBrowserInteraction)
 
         self.channel_back_button.setHidden(root)
-        self.channel_options_button.setHidden(not personal or root)
+        self.channel_options_button.setHidden(not personal or (root and not is_a_channel))
         self.new_channel_button.setHidden(not personal)
 
         self.channel_state_label.setText(self.model.channel_info.get("state", "This text should not ever be shown"))
