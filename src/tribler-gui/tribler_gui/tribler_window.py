@@ -53,11 +53,9 @@ from tribler_gui.defs import (
     PAGE_DISCOVERED,
     PAGE_DISCOVERING,
     PAGE_DOWNLOADS,
-    PAGE_EDIT_CHANNEL,
     PAGE_LOADING,
     PAGE_SEARCH_RESULTS,
     PAGE_SETTINGS,
-    PAGE_SUBSCRIBED_CHANNELS,
     PAGE_TRUST,
     PAGE_TRUST_GRAPH_PAGE,
     SHUTDOWN_WAITING_PERIOD,
@@ -148,7 +146,6 @@ class TriblerWindow(QMainWindow):
         self.gui_settings.setValue("api_key", api_key)
         request_manager.port, request_manager.key = api_port, api_key
 
-        self.navigation_stack = []
         self.tribler_started = False
         self.tribler_settings = None
         # TODO: move version_id to tribler_common and get core version in the core crash message
@@ -203,8 +200,6 @@ class TriblerWindow(QMainWindow):
             widget.setAttribute(Qt.WA_MacShowFocusRect, 0)
 
         self.menu_buttons = [
-            self.left_menu_button_my_channel,
-            self.left_menu_button_subscriptions,
             self.left_menu_button_downloads,
             self.left_menu_button_discovered,
             self.left_menu_button_trust_graph,
@@ -1013,18 +1008,6 @@ class TriblerWindow(QMainWindow):
         self.stackedWidget.setCurrentIndex(PAGE_DISCOVERED)
         self.discovered_page.content_table.setFocus()
 
-    def clicked_menu_button_my_channel(self):
-        self.deselect_all_menu_buttons()
-        self.left_menu_button_my_channel.setChecked(True)
-        if not self.personal_channel_page.channels_stack:
-            self.initialize_personal_channels_page()
-            self.personal_channel_page.reset_view()
-        if self.stackedWidget.currentIndex() == PAGE_EDIT_CHANNEL:
-            self.personal_channel_page.go_back_to_level(0)
-            self.personal_channel_page.reset_view()
-        self.stackedWidget.setCurrentIndex(PAGE_EDIT_CHANNEL)
-        self.personal_channel_page.content_table.setFocus()
-
     def clicked_menu_button_trust_graph(self):
         self.deselect_all_menu_buttons(self.left_menu_button_trust_graph)
         self.stackedWidget.setCurrentIndex(PAGE_TRUST_GRAPH_PAGE)
@@ -1039,24 +1022,6 @@ class TriblerWindow(QMainWindow):
         if not self.debug_window:
             self.debug_window = DebugWindow(self.tribler_settings, self.tribler_version)
         self.debug_window.show()
-
-    def clicked_menu_button_subscriptions(self):
-        self.deselect_all_menu_buttons()
-        self.left_menu_button_subscriptions.setChecked(True)
-        if not self.subscribed_channels_page.channels_stack:
-            self.subscribed_channels_page.initialize_content_page()
-            self.subscribed_channels_page.initialize_root_model(
-                DiscoveredChannelsModel(
-                    channel_info={"name": "Subscribed channels"}, endpoint_url="channels", subscribed_only=True
-                )
-            )
-            self.subscribed_channels_page.reset_view()
-
-        if self.stackedWidget.currentIndex() == PAGE_SUBSCRIBED_CHANNELS:
-            self.subscribed_channels_page.go_back_to_level(0)
-            self.subscribed_channels_page.reset_view()
-        self.stackedWidget.setCurrentIndex(PAGE_SUBSCRIBED_CHANNELS)
-        self.subscribed_channels_page.content_table.setFocus()
 
     def resizeEvent(self, _):
         # This thing here is necessary to send the resize event to dialogs, etc.
