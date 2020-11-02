@@ -1,7 +1,6 @@
 import math
 
 from PyQt5 import QtCore
-from PyQt5.QtCore import QTimer
 from PyQt5.QtNetwork import QNetworkRequest
 from PyQt5.QtWidgets import QWidget
 
@@ -80,14 +79,9 @@ class TrustGraph(pg.GraphItem):
 
 
 class TrustGraphPage(QWidget):
-    REFRESH_INTERVAL_MS = 2000
-    TIMEOUT_INTERVAL_MS = 30000
 
     def __init__(self):
         QWidget.__init__(self)
-
-        self.fetch_data_timer = QTimer()
-        self.fetch_data_timeout_timer = QTimer()
 
         self.trust_graph = None
         self.graph_view = None
@@ -95,18 +89,14 @@ class TrustGraphPage(QWidget):
 
         self.root_public_key = None
         self.graph_data = None
-        self.graph_depth_to_fetch = 1
-        self.refresh_graph_data = False
-
         self.rest_request = None
 
     def showEvent(self, QShowEvent):
         super(TrustGraphPage, self).showEvent(QShowEvent)
-        self.schedule_fetch_data_timer(True)
+        self.fetch_graph_data()
 
     def hideEvent(self, QHideEvent):
         super(TrustGraphPage, self).hideEvent(QHideEvent)
-        self.stop_fetch_data_request()
 
     def initialize_trust_graph(self):
         pg.setConfigOption('background', '222222')
@@ -128,7 +118,7 @@ class TrustGraphPage(QWidget):
         self.graph_view.addItem(pg.TextItem(text='YOU'))
         self.window().trust_graph_plot_widget.layout().addWidget(graph_layout)
 
-        self.window().tr_control_refresh_btn.clicked.connect(self.refresh_graph)
+        self.window().tr_control_refresh_btn.clicked.connect(self.fetch_graph_data)
 
         self.window().tr_selected_node_pub_key.setHidden(True)
         self.window().tr_selected_node_stats.setHidden(True)
@@ -180,42 +170,15 @@ class TrustGraphPage(QWidget):
         self.window().tr_selected_node_stats.setHidden(False)
         self.window().tr_selected_node_stats.setText(bandwidth_message)
 
-    def schedule_fetch_data_timer(self, now=False):
-        self.fetch_data_timer = QTimer()
-        self.fetch_data_timer.setSingleShot(True)
-        self.fetch_data_timer.timeout.connect(self.fetch_graph_data)
-        self.fetch_data_timer.start(0 if now else self.REFRESH_INTERVAL_MS)
-
-        self.fetch_data_timeout_timer = QTimer()
-        self.fetch_data_timeout_timer.setSingleShot(True)
-        self.fetch_data_timeout_timer.timeout.connect(self.on_fetch_data_request_timeout)
-        self.fetch_data_timeout_timer.start(self.TIMEOUT_INTERVAL_MS)
-
-    def on_fetch_data_request_timeout(self):
-        if self.rest_request:
-            self.rest_request.cancel_request()
-        self.schedule_fetch_data_timer()
-
-    def stop_fetch_data_request(self):
-        self.fetch_data_timer.stop()
-        self.fetch_data_timeout_timer.stop()
-
     def reset_graph(self):
         self.graph_view.setXRange(-1, 1)
         self.graph_view.setYRange(-1, 1)
 
-    def refresh_graph(self):
-        self.graph_depth_to_fetch = 0
-        self.schedule_fetch_data_timer(now=True)
-
     def fetch_graph_data(self):
         if self.rest_request:
             self.rest_request.cancel_request()
-        self.rest_request = TriblerNetworkRequest(
-            "trustview?depth=%d" % self.graph_depth_to_fetch,
-            self.on_received_data,
-            priority=QNetworkRequest.LowPriority,
-        )
+        self.rest_request = TriblerNetworkRequest("trustview", self.on_received_data,
+                                                  priority=QNetworkRequest.LowPriority)
 
     def on_received_data(self, data):
         if data is None or not isinstance(data, dict) or 'graph' not in data:
@@ -239,13 +202,6 @@ class TrustGraphPage(QWidget):
 
         self.trust_graph.setData(**plot_data)
 
-        # if depth is less than 4, fetch the next batch
-        if 0 < data['depth'] < 4:
-            self.graph_depth_to_fetch = data['depth'] + 1
-            self.schedule_fetch_data_timer()
-        else:
-            self.stop_fetch_data_request()
-
     def get_node_color(self, node, selected=False):
         if not selected and self.root_public_key == node['key']:
             return COLOR_ROOT
@@ -265,7 +221,7 @@ class TrustGraphPage(QWidget):
             return 0.06  # max node size in graph
         elif diff > TB:
             return 0.05 + 0.005 * diff / TB  # 0.005 for each extra TB of balance
-        return math.log(diff / (1024 * 1024), 2) / 512 + min_size
+        return math.log(diff, 2) / 512 + min_size
 
     def update_gui_labels(self, data):
         header_message = (

@@ -88,6 +88,16 @@ class BandwidthDatabase:
         return BandwidthTransactionData.from_db(db_obj) if db_obj else None
 
     @db_session
+    def get_latest_transactions(self, public_key: bytes) -> List[BandwidthTransactionData]:
+        """
+        Return the latest transactions of a given public key, or an empty list if no transactions exist.
+        :param public_key: The public key of the party transferring the bandwidth.
+        :return The latest transactions of the specified public key, or an empty list if no transactions exist.
+        """
+        db_objs = self.BandwidthTransaction.select(lambda bt: public_key in (bt.public_key_a, bt.public_key_b))[:]
+        return [BandwidthTransactionData.from_db(db_obj) for db_obj in db_objs]
+
+    @db_session
     def get_total_taken(self, public_key: bytes) -> int:
         """
         Return the total amount of bandwidth taken by a given party.
