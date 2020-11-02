@@ -1,4 +1,6 @@
-from PyQt5.QtCore import QSize
+import json
+
+from PyQt5.QtCore import QSize, Qt
 from PyQt5.QtGui import QColor, QIcon, QPixmap
 from PyQt5.QtWidgets import QAbstractItemView, QAction, QListWidget, QListWidgetItem
 
@@ -18,6 +20,19 @@ class ChannelListItem(QListWidgetItem):
         QListWidgetItem.__init__(self, title, parent=parent)
         # This is necessary to increase vertical height of the items
         self.setSizeHint(QSize(50, 25))
+
+    def setData(self, role, new_value):
+        # TODO: call higher-level signal to propagate the change to other widgets
+        if role == Qt.EditRole:
+            item = self.channel_info
+            if item['name'] != new_value:
+                TriblerNetworkRequest(
+                    f"metadata/{item['public_key']}/{item['id']}",
+                    lambda _: None,
+                    method='PATCH',
+                    raw_data=json.dumps({"title": new_value}),
+                )
+        return super(ChannelListItem, self).setData(role, new_value)
 
 
 class ChannelsMenuListWidget(QListWidget):
@@ -58,7 +73,14 @@ class ChannelsMenuListWidget(QListWidget):
         delete_action = QAction('Delete channel', self)
         delete_action.triggered.connect(self._on_delete_action)
         menu.addAction(delete_action)
+
+        rename_action = QAction('Rename channel', self)
+        rename_action.triggered.connect(self._trigger_name_editor)
+        menu.addAction(rename_action)
         return menu
+
+    def _trigger_name_editor(self):
+        self.editItem(self.currentItem())
 
     def _on_unsubscribe_action(self):
         self.window().on_channel_unsubscribe(self.currentItem().channel_info)
@@ -76,6 +98,7 @@ class ChannelsMenuListWidget(QListWidget):
             self.addItem(item)
             # ACHTUNG! Qt bug prevents moving this thing into ChannelListItem !
             if channel_info.get('state') == 'Personal':
+                item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable)
                 item.setIcon(self.personal_channel_icon)
             else:
                 # We assign a transparent icon to foreign channels to align
@@ -84,7 +107,7 @@ class ChannelsMenuListWidget(QListWidget):
         self.items_set = frozenset((channel_info["public_key"], channel_info["id"], True) for channel_info in channels)
 
     def load_channels(self):
-        TriblerNetworkRequest(self.base_url, self.on_query_results, url_params={"subscribed": True})
+        TriblerNetworkRequest(self.base_url, self.on_query_results, url_params={"subscribed": True, "last": 1000})
 
     def reload_if_necessary(self, changed_entries):
         # Compare the state changes in the changed entries list to our current list
