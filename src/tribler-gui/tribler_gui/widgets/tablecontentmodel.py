@@ -430,7 +430,9 @@ class ChannelContentModel(RemoteTableModel):
         attribute_name = self.columns[index.column()]
         attribute_name = u'tags' if attribute_name == u'category' else attribute_name
         attribute_name = u'title' if attribute_name == u'name' else attribute_name
-        attribute_name = u'subscribed' if attribute_name == u'votes' else attribute_name
+
+        if attribute_name == 'subscribed':
+            return True
 
         def on_row_update_results(response):
             if not response:

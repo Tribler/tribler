@@ -8,10 +8,12 @@ from tribler_gui.widgets.tablecontentdelegate import TRIBLER_PALETTE
 
 
 class ToggleButton(QAbstractButton):
-    def __init__(self, parent=None, track_radius=10, thumb_radius=8):
+    def __init__(self, parent=None, track_radius=10, thumb_radius=8, auto_check_on_click=False):
         super().__init__(parent=parent)
         self.setCheckable(True)
         self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+
+        self.auto_check_on_click = auto_check_on_click
 
         self._track_radius = track_radius
         self._thumb_radius = thumb_radius
@@ -47,9 +49,23 @@ class ToggleButton(QAbstractButton):
     def sizeHint(self):  # pylint: disable=invalid-name
         return QSize(4 * self._track_radius + 2 * self._margin, 2 * self._track_radius + 2 * self._margin)
 
-    def setChecked(self, checked):
+    def setCheckedInstant(self, checked):
         super().setChecked(checked)
         self.offset = self._end_offset[checked]()
+
+    def setChecked(self, checked):
+        super().setChecked(checked)
+        if self.auto_check_on_click:
+            self.offset = self._end_offset[checked]()
+        else:
+            self.animate_thumb_move(checked)
+
+    def animate_thumb_move(self, checked):
+        anim = QPropertyAnimation(self, b'offset', self)
+        anim.setDuration(120)
+        anim.setStartValue(self.offset)
+        anim.setEndValue(self._end_offset[checked]())
+        anim.start()
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
@@ -108,12 +124,9 @@ class ToggleButton(QAbstractButton):
 
     def mouseReleaseEvent(self, event):  # pylint: disable=invalid-name
         super().mouseReleaseEvent(event)
-        if event.button() == Qt.LeftButton:
-            anim = QPropertyAnimation(self, b'offset', self)
-            anim.setDuration(120)
-            anim.setStartValue(self.offset)
-            anim.setEndValue(self._end_offset[self.isChecked()]())
-            anim.start()
+        if self.auto_check_on_click:
+            if event.button() == Qt.LeftButton:
+                self.animate_thumb_move(self.isChecked())
 
     def enterEvent(self, event):  # pylint: disable=invalid-name
         self.setCursor(Qt.PointingHandCursor)

@@ -1,5 +1,3 @@
-import json
-
 from PyQt5.QtCore import QSize
 from PyQt5.QtGui import QColor, QIcon, QPixmap
 from PyQt5.QtWidgets import QAbstractItemView, QAction, QListWidget, QListWidgetItem
@@ -63,14 +61,10 @@ class ChannelsMenuListWidget(QListWidget):
         return menu
 
     def _on_unsubscribe_action(self):
-        entry = self.currentItem().channel_info
-        patch_data = [{"public_key": entry['public_key'], "id": entry['id'], "subscribed": False}]
-        TriblerNetworkRequest("metadata", self.load_channels, raw_data=json.dumps(patch_data), method='PATCH')
+        self.window().on_channel_unsubscribe(self.currentItem().channel_info)
 
     def _on_delete_action(self):
-        entry = self.currentItem().channel_info
-        delete_data = [{"public_key": entry[u'public_key'], "id": entry[u'id']}]
-        TriblerNetworkRequest("metadata", self.load_channels, raw_data=json.dumps(delete_data), method='DELETE')
+        self.window().on_channel_delete(self.currentItem().channel_info)
 
     def on_query_results(self, response):
         channels = response.get('results')

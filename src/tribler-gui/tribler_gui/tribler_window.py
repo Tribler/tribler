@@ -324,12 +324,15 @@ class TriblerWindow(QMainWindow):
         self.channels_menu_list = self.findChild(ChannelsMenuListWidget, "channels_menu_list")
 
         self.channels_menu_list.itemClicked.connect(self.open_channel_contents_page)
+
         autocommit_enabled = (
             get_gui_setting(self.gui_settings, "autocommit_enabled", True, is_bool=True) if self.gui_settings else True
         )
         hide_xxx = get_gui_setting(self.gui_settings, "family_filter", True, is_bool=True)
         self.channel_contents_page.initialize_content_page(autocommit_enabled=autocommit_enabled, hide_xxx=hide_xxx)
-
+        self.core_manager.events_manager.node_info_updated.connect(
+            lambda data: self.channels_menu_list.reload_if_necessary([data])
+        )
         self.left_menu_button_new_channel.clicked.connect(self.create_new_channel)
 
     def create_new_channel(self):
@@ -1101,6 +1104,69 @@ class TriblerWindow(QMainWindow):
             [('ABORT', BUTTON_TYPE_CONFIRM), ('CONTINUE', BUTTON_TYPE_NORMAL)],
         )
         self.dialog.button_clicked.connect(self.on_skip_conversion_dialog)
+        self.dialog.show()
+
+    def on_channel_subscribe(self, channel_info):
+        patch_data = [{"public_key": channel_info['public_key'], "id": channel_info['id'], "subscribed": True}]
+        TriblerNetworkRequest(
+            "metadata",
+            lambda data: self.core_manager.events_manager.node_info_updated.emit(data[0]),
+            raw_data=json.dumps(patch_data),
+            method='PATCH',
+        )
+
+    def on_channel_unsubscribe(self, channel_info):
+        def _on_unsubscribe_action(action):
+            if action == 0:
+                patch_data = [{"public_key": channel_info['public_key'], "id": channel_info['id'], "subscribed": False}]
+                TriblerNetworkRequest(
+                    "metadata",
+                    lambda data: self.core_manager.events_manager.node_info_updated.emit(data[0]),
+                    raw_data=json.dumps(patch_data),
+                    method='PATCH',
+                )
+            if self.dialog:
+                self.dialog.close_dialog()
+                self.dialog = None
+
+        self.dialog = ConfirmationDialog(
+            self,
+            "Unsubscribe from channel",
+            "Are you sure you want to unsubscribe from channel\n"
+            + '\"'
+            + channel_info['name']
+            + '\"'
+            + "\nand remove its contents?",
+            [('UNSUBSCRIBE', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
+        )
+        self.dialog.button_clicked.connect(_on_unsubscribe_action)
+        self.dialog.show()
+
+    def on_channel_delete(self, channel_info):
+        def _on_delete_action(action):
+            if action == 0:
+                delete_data = [{"public_key": channel_info[u'public_key'], "id": channel_info[u'id']}]
+                TriblerNetworkRequest(
+                    "metadata",
+                    lambda data: self.core_manager.events_manager.node_info_updated.emit(data[0]),
+                    raw_data=json.dumps(delete_data),
+                    method='DELETE',
+                )
+            if self.dialog:
+                self.dialog.close_dialog()
+                self.dialog = None
+
+        self.dialog = ConfirmationDialog(
+            self,
+            "Delete channel",
+            "Are you sure you want to delete you personal channel\n"
+            + '\"'
+            + channel_info['name']
+            + '\"'
+            + "\nand all its contents?",
+            [('DELETE', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
+        )
+        self.dialog.button_clicked.connect(_on_delete_action)
         self.dialog.show()
 
     def on_skip_conversion_dialog(self, action):
