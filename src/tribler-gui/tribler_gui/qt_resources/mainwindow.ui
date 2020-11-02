@@ -886,6 +886,10 @@ QPushButton::menu-indicator{width:0px;}</string>
               <string notr="true">QListWidget::item:hover {color:white;}
 QListWidget {
     margin-left: 19px;
+}
+QListWidget::item:disabled
+{
+    color: grey;
 }</string>
              </property>
              <property name="horizontalScrollBarPolicy">

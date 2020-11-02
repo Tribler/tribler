@@ -13,6 +13,10 @@ from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import get_image_path
 
 
+def entry_to_tuple(entry):
+    return (entry["public_key"], entry["id"], entry.get('subscribed', False), entry.get('state'), entry.get('progress'))
+
+
 class ChannelListItem(QListWidgetItem):
     def __init__(self, parent=None, channel_info=None):
         self.channel_info = channel_info
@@ -97,14 +101,21 @@ class ChannelsMenuListWidget(QListWidget):
             item = ChannelListItem(channel_info=channel_info)
             self.addItem(item)
             # ACHTUNG! Qt bug prevents moving this thing into ChannelListItem !
-            if channel_info.get('state') == 'Personal':
+            if channel_info.get('state') == CHANNEL_STATE.PERSONAL.value:
                 item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable)
                 item.setIcon(self.personal_channel_icon)
             else:
                 # We assign a transparent icon to foreign channels to align
                 # their text with the personal ones
                 item.setIcon(self.empty_image)
-        self.items_set = frozenset((channel_info["public_key"], channel_info["id"], True) for channel_info in channels)
+                if channel_info.get('state') != CHANNEL_STATE.COMPLETE.value:
+                    item.setFlags(Qt.NoItemFlags)
+            tooltip_text = channel_info['name'] + "\n" + channel_info['state']
+            if channel_info.get('progress'):
+                tooltip_text += f" {int(float(channel_info['progress'])*100)}%"
+            item.setToolTip(tooltip_text)
+
+        self.items_set = frozenset(entry_to_tuple(channel_info) for channel_info in channels)
 
     def load_channels(self):
         TriblerNetworkRequest(self.base_url, self.on_query_results, url_params={"subscribed": True, "last": 1000})
@@ -113,7 +124,7 @@ class ChannelsMenuListWidget(QListWidget):
         # Compare the state changes in the changed entries list to our current list
         # and update the list if necessary
         changeset = frozenset(
-            (entry["public_key"], entry["id"], entry.get('subscribed', False))
+            entry_to_tuple(entry)
             for entry in changed_entries
             if entry.get("state") == "Deleted" or entry.get("type") == CHANNEL_TORRENT
         )

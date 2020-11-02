@@ -349,6 +349,9 @@ class TriblerWindow(QMainWindow):
         NewChannelDialog(self, create_channel_callback)
 
     def open_channel_contents_page(self, channel_list_item):
+        if not (channel_list_item.flags() & Qt.ItemIsEnabled):
+            return
+
         self.channel_contents_page.initialize_root_model_from_channel_info(channel_list_item.channel_info)
         self.stackedWidget.setCurrentIndex(PAGE_CHANNEL_CONTENTS)
         self.deselect_all_menu_buttons()
