@@ -874,7 +874,7 @@ QPushButton::menu-indicator{width:0px;}</string>
            <item>
             <widget class="ChannelsMenuListWidget" name="channels_menu_list">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+              <sizepolicy hsizetype="Expanding" vsizetype="MinimumExpanding">
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
@@ -912,10 +912,13 @@ QListWidget {
            <property name="orientation">
             <enum>Qt::Vertical</enum>
            </property>
+           <property name="sizeType">
+            <enum>QSizePolicy::Minimum</enum>
+           </property>
            <property name="sizeHint" stdset="0">
             <size>
              <width>20</width>
-             <height>40</height>
+             <height>10</height>
             </size>
            </property>
           </spacer>
@@ -1347,8 +1350,8 @@ border-top: 1px solid #555;
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>854</width>
-               <height>710</height>
+               <width>300</width>
+               <height>498</height>
               </rect>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_22">

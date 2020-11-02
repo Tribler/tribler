@@ -32,7 +32,6 @@ from PyQt5.QtWidgets import (
     QLineEdit,
     QListWidget,
     QMainWindow,
-    QPushButton,
     QShortcut,
     QStyledItemDelegate,
     QSystemTrayIcon,
