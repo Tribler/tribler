@@ -54,12 +54,20 @@ import csv
 import json
 import logging
 import math
+import os
 from pathlib import Path
 
 from pony.orm import Database, db_session
 
+import sentry_sdk
+
 db = Database()
 logger = logging.getLogger(__name__)
+
+sentry_sdk.init(
+    os.environ.get('SENTRY_URL'),
+    traces_sample_rate=1.0
+)
 
 
 @db_session
