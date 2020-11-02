@@ -12,6 +12,7 @@ json2pony_columns = {
     'status': 'status',
     'torrents': 'num_entries',
     'votes': 'votes',
+    'subscribed': 'subscribed',
     'health': 'HEALTH',
 }
 
