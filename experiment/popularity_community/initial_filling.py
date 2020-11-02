@@ -2,6 +2,7 @@ import argparse
 import asyncio
 import csv
 import logging
+import os
 import time
 from pathlib import Path
 
@@ -10,6 +11,8 @@ from ipv8.peerdiscovery.discovery import RandomWalk
 
 from pony.orm import count, db_session
 
+import sentry_sdk
+
 from experiment.tool.tiny_tribler_service import TinyTriblerService
 
 from tribler_core.modules.popularity.popularity_community import PopularityCommunity
@@ -17,6 +20,11 @@ from tribler_core.modules.popularity.popularity_community import PopularityCommu
 _logger = logging.getLogger(__name__)
 
 TARGET_PEERS_COUNT = 20  # Tribler uses this number for walking strategy
+
+sentry_sdk.init(
+    os.environ.get('SENTRY_URL'),
+    traces_sample_rate=1.0
+)
 
 
 class ObservablePopularityCommunity(PopularityCommunity):

@@ -29,6 +29,7 @@ import argparse
 import asyncio
 import json
 import logging
+import os
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
@@ -41,6 +42,8 @@ from ipv8.peerdiscovery.discovery import RandomWalk
 import lz4
 
 from pony.orm import Database, Required, db_session
+
+import sentry_sdk
 
 from experiment.tool.tiny_tribler_service import TinyTriblerService
 
@@ -63,6 +66,11 @@ CRAWLER_SELECT_COUNT_LIMIT_PER_ONE_REQUEST = 20
 CRAWLER_REQUEST_TIMEOUT_IN_SEC = 60
 
 db = Database()
+
+sentry_sdk.init(
+    os.environ.get('SENTRY_URL'),
+    traces_sample_rate=1.0
+)
 
 
 class RawData(db.Entity):
