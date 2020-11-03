@@ -3,6 +3,7 @@ import logging
 import socket
 import struct
 
+from ipv8.messaging.interfaces.udp.endpoint import DomainAddress, UDPv4Address
 from ipv8.messaging.lazy_payload import VariablePayload, vp_compile
 from ipv8.messaging.serialization import DefaultStruct, ListOf, Serializer
 
@@ -66,13 +67,12 @@ class UdpPacket(VariablePayload):
 class Socks5Address:
 
     def pack(self, data):
-        # If the address_type is omitted we assume it's a IPv4 address
-        if len(data) == 2 or data[0] == ADDRESS_TYPE_IPV4:
-            offset = int(len(data) == 3)
-            return struct.pack('>B4sH', ADDRESS_TYPE_IPV4, socket.inet_aton(data[offset]), data[offset + 1])
-
-        host = data[1].encode()
-        return struct.pack('>BB', data[0], len(host)) + host + struct.pack('>H', data[2])
+        if isinstance(data, DomainAddress):
+            host = data[0].encode()
+            return struct.pack('>BB', ADDRESS_TYPE_DOMAIN_NAME, len(host)) + host + struct.pack('>H', data[1])
+        if isinstance(data, tuple):
+            return struct.pack('>B4sH', ADDRESS_TYPE_IPV4, socket.inet_aton(data[0]), data[1])
+        raise InvalidAddressException('Invalid address type')
 
     def unpack(self, data, offset, unpack_list):
         address_type, = struct.unpack_from('>B', data, offset)
@@ -80,25 +80,26 @@ class Socks5Address:
 
         if address_type == ADDRESS_TYPE_IPV4:
             host = socket.inet_ntoa(data[offset:offset + 4])
-            offset += 4
+            port, = struct.unpack_from('>H', data, offset + 4)
+            offset += 6
+            address = UDPv4Address(host, port)
         elif address_type == ADDRESS_TYPE_DOMAIN_NAME:
             domain_length, = struct.unpack_from('>B', data, offset)
             offset += 1
             try:
                 host = data[offset:offset + domain_length]
                 host = host.decode()
-                offset += domain_length
             except UnicodeDecodeError as e:
                 raise InvalidAddressException(f'Invalid address: {host}') from e
+            port, = struct.unpack_from('>H', data, offset + domain_length)
+            offset += domain_length + 2
+            address = DomainAddress(host, port)
         elif address_type == ADDRESS_TYPE_IPV6:
             raise IPV6AddrError()
         else:
             raise InvalidAddressException('Invalid address type')
 
-        port, = struct.unpack_from('>H', data, offset)
-        offset += 2
-
-        unpack_list.append((host, port))
+        unpack_list.append(address)
         return offset
 
 

@@ -2,9 +2,9 @@ import logging
 import socket
 from asyncio import DatagramProtocol, Protocol, Queue, get_event_loop
 
+from ipv8.messaging.interfaces.udp.endpoint import DomainAddress
+
 from tribler_core.modules.tunnel.socks5.conversion import (
-    ADDRESS_TYPE_DOMAIN_NAME,
-    ADDRESS_TYPE_IPV4,
     CommandRequest,
     CommandResponse,
     MethodsRequest,
@@ -100,11 +100,10 @@ class Socks5Client(Protocol):
     async def _connect_tcp(self, target_addr):
         try:
             socket.inet_aton(target_addr[0])
-            address_type = ADDRESS_TYPE_IPV4
         except (ValueError, OSError):
-            address_type = ADDRESS_TYPE_DOMAIN_NAME
+            target_addr = DomainAddress(*target_addr)
 
-        request = CommandRequest(SOCKS_VERSION, REQ_CMD_CONNECT, 0, (address_type, *target_addr))
+        request = CommandRequest(SOCKS_VERSION, REQ_CMD_CONNECT, 0, target_addr)
         data = await self._send(socks5_serializer.pack_serializable(request))
         response, _ = socks5_serializer.unpack_serializable(CommandResponse, data)
 
