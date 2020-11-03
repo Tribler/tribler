@@ -1,5 +1,6 @@
 import struct
 
+from ipv8.messaging.interfaces.udp.endpoint import DomainAddress
 from ipv8.messaging.serialization import PackError
 
 import pytest
@@ -16,17 +17,17 @@ from tribler_core.modules.tunnel.socks5.conversion import (
 def test_encode_decode_udp_packet():
     rsv = 0
     frag = 0
-    address = ('tracker1.good-tracker.com', 8084)
+    address = DomainAddress('tracker1.good-tracker.com', 8084)
     data = b'0x000'
-    encoded = socks5_serializer.pack_serializable(UdpPacket(rsv, frag, (ADDRESS_TYPE_DOMAIN_NAME, *address), data))
+    encoded = socks5_serializer.pack_serializable(UdpPacket(rsv, frag, address, data))
     decoded, _ = socks5_serializer.unpack_serializable(UdpPacket, encoded)
 
     assert rsv == decoded.rsv
     assert frag == decoded.frag
     assert address == decoded.destination
 
-    address = ('tracker1.unicode-tracker\xc4\xe95\x11$\x00', 8084)
-    encoded = socks5_serializer.pack_serializable(UdpPacket(rsv, frag, (ADDRESS_TYPE_DOMAIN_NAME, *address), data))
+    address = DomainAddress('tracker1.unicode-tracker\xc4\xe95\x11$\x00', 8084)
+    encoded = socks5_serializer.pack_serializable(UdpPacket(rsv, frag, address, data))
     decoded, _ = socks5_serializer.unpack_serializable(UdpPacket, encoded)
 
     assert rsv == decoded.rsv
@@ -43,21 +44,19 @@ def test_decode_udp_packet_fail():
 
 def test_encode_decode_command_request():
     rsv = 0
-    address = ('tracker1.good-tracker.com', 8084)
+    address = DomainAddress('tracker1.good-tracker.com', 8084)
     rep = 0
     version = 5
 
-    encoded = socks5_serializer.pack_serializable(CommandRequest(version, rep, rsv,
-                                                                 (ADDRESS_TYPE_DOMAIN_NAME, *address)))
+    encoded = socks5_serializer.pack_serializable(CommandRequest(version, rep, rsv, address))
     decoded, _ = socks5_serializer.unpack_serializable(CommandRequest, encoded)
 
     assert version == decoded.version
     assert rsv == decoded.rsv
     assert address == decoded.destination
 
-    address = ('tracker1.unicode-tracker\xc4\xe95\x11$\x00', 8084)
-    encoded = socks5_serializer.pack_serializable(CommandResponse(version, rep, rsv,
-                                                                  (ADDRESS_TYPE_DOMAIN_NAME, *address)))
+    address = DomainAddress('tracker1.unicode-tracker\xc4\xe95\x11$\x00', 8084)
+    encoded = socks5_serializer.pack_serializable(CommandResponse(version, rep, rsv, address))
     decoded, _ = socks5_serializer.unpack_serializable(CommandResponse, encoded)
 
     assert version == decoded.version
