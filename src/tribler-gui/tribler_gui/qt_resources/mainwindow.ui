@@ -639,7 +639,7 @@ color: white;
            <property name="minimumSize">
             <size>
              <width>0</width>
-             <height>32</height>
+             <height>38</height>
             </size>
            </property>
            <property name="maximumSize">
@@ -681,6 +681,22 @@ QPushButton::menu-indicator{width:0px;}</string>
             <bool>true</bool>
            </property>
           </widget>
+         </item>
+         <item>
+          <spacer name="verticalSpacer_3">
+           <property name="orientation">
+            <enum>Qt::Vertical</enum>
+           </property>
+           <property name="sizeType">
+            <enum>QSizePolicy::Fixed</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>20</width>
+             <height>5</height>
+            </size>
+           </property>
+          </spacer>
          </item>
          <item>
           <widget class="QPushButton" name="left_menu_button_discovered">
@@ -870,6 +886,22 @@ QPushButton::menu-indicator{width:0px;}</string>
           </widget>
          </item>
          <item>
+          <spacer name="verticalSpacer_2">
+           <property name="orientation">
+            <enum>Qt::Vertical</enum>
+           </property>
+           <property name="sizeType">
+            <enum>QSizePolicy::Fixed</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>20</width>
+             <height>5</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
           <layout class="QVBoxLayout" name="verticalLayout_5">
            <item>
             <widget class="ChannelsMenuListWidget" name="channels_menu_list">
@@ -891,6 +923,12 @@ QListWidget::item:disabled
 {
     color: grey;
 }</string>
+             </property>
+             <property name="frameShape">
+              <enum>QFrame::NoFrame</enum>
+             </property>
+             <property name="frameShadow">
+              <enum>QFrame::Sunken</enum>
              </property>
              <property name="horizontalScrollBarPolicy">
               <enum>Qt::ScrollBarAlwaysOff</enum>
