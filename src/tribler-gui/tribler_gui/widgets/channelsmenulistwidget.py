@@ -1,7 +1,7 @@
 import json
 
 from PyQt5.QtCore import QSize, Qt
-from PyQt5.QtGui import QColor, QIcon, QPixmap
+from PyQt5.QtGui import QBrush, QColor, QIcon, QPixmap
 from PyQt5.QtWidgets import QAbstractItemView, QAction, QListWidget, QListWidgetItem
 
 from tribler_common.simpledefs import CHANNEL_STATE
@@ -14,16 +14,20 @@ from tribler_gui.utilities import get_image_path
 
 
 def entry_to_tuple(entry):
-    return (entry["public_key"], entry["id"], entry.get('subscribed', False), entry.get('state'), entry.get('progress'))
+    return entry["public_key"], entry["id"], entry.get('subscribed', False), entry.get('state'), entry.get('progress')
 
 
 class ChannelListItem(QListWidgetItem):
+    loading_brush = QBrush(Qt.darkGray)
+
     def __init__(self, parent=None, channel_info=None):
         self.channel_info = channel_info
         title = channel_info.get('name')
         QListWidgetItem.__init__(self, title, parent=parent)
         # This is necessary to increase vertical height of the items
         self.setSizeHint(QSize(50, 25))
+        if channel_info.get('state') not in (CHANNEL_STATE.COMPLETE.value, CHANNEL_STATE.PERSONAL.value):
+            self.setForeground(self.loading_brush)
 
     def setData(self, role, new_value):
         # TODO: call higher-level signal to propagate the change to other widgets
@@ -36,7 +40,7 @@ class ChannelListItem(QListWidgetItem):
                     method='PATCH',
                     raw_data=json.dumps({"title": new_value}),
                 )
-        return super(ChannelListItem, self).setData(role, new_value)
+        return super().setData(role, new_value)
 
 
 class ChannelsMenuListWidget(QListWidget):
@@ -108,8 +112,6 @@ class ChannelsMenuListWidget(QListWidget):
                 # We assign a transparent icon to foreign channels to align
                 # their text with the personal ones
                 item.setIcon(self.empty_image)
-                if channel_info.get('state') != CHANNEL_STATE.COMPLETE.value:
-                    item.setFlags(Qt.NoItemFlags)
             tooltip_text = channel_info['name'] + "\n" + channel_info['state']
             if channel_info.get('progress'):
                 tooltip_text += f" {int(float(channel_info['progress'])*100)}%"

@@ -211,10 +211,8 @@ class ChannelContentsWidget(widget_form, widget_class):
     def initialize_root_model_from_channel_info(self, channel_info):
         if channel_info.get("state") == CHANNEL_STATE.PERSONAL.value:
             self.default_channel_model = self.personal_channel_model
-            self.hide_xxx = False
         else:
             self.default_channel_model = ChannelContentModel
-            self.hide_xxx = True
         model = self.default_channel_model(hide_xxx=self.hide_xxx, channel_info=channel_info)
         self.initialize_root_model(model)
 
@@ -374,8 +372,8 @@ class ChannelContentsWidget(widget_form, widget_class):
         self.channel_name_label.setTextInteractionFlags(Qt.TextBrowserInteraction)
 
         self.channel_back_button.setHidden(root)
-        self.channel_options_button.setHidden(not personal or (root and not is_a_channel))
-        self.new_channel_button.setHidden(not personal)
+        self.channel_options_button.setHidden(not personal_model or not personal or (root and not is_a_channel))
+        self.new_channel_button.setHidden(not personal_model or not personal)
 
         self.channel_state_label.setText(self.model.channel_info.get("state", "This text should not ever be shown"))
 
@@ -383,8 +381,10 @@ class ChannelContentsWidget(widget_form, widget_class):
         if not self.subscription_widget.isHidden():
             self.subscription_widget.update_subscribe_button(self.model.channel_info)
 
-        self.channel_preview_button.setHidden((root and not search) or personal or legacy or complete)
-        self.channel_state_label.setHidden(root or personal or complete)
+        self.channel_preview_button.setHidden(
+            (root and not search and not is_a_channel) or personal or legacy or complete
+        )
+        self.channel_state_label.setHidden((root and not is_a_channel) or personal)
 
         self.commit_control_bar.setHidden(self.autocommit_enabled or not dirty or not personal)
 

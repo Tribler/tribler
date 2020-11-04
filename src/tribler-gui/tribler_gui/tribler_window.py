@@ -203,8 +203,8 @@ class TriblerWindow(QMainWindow):
             self.left_menu_button_discovered,
             self.left_menu_button_trust_graph,
         ]
-
-        self.search_results_page.initialize_content_page()
+        hide_xxx = get_gui_setting(self.gui_settings, "family_filter", True, is_bool=True)
+        self.search_results_page.initialize_content_page(hide_xxx=hide_xxx)
         self.search_results_page.channel_torrents_filter_input.setHidden(True)
 
         self.settings_page.initialize_settings_page()
@@ -212,12 +212,10 @@ class TriblerWindow(QMainWindow):
         self.loading_page.initialize_loading_page()
         self.discovering_page.initialize_discovering_page()
 
-        self.discovered_page.initialize_content_page()
+        self.discovered_page.initialize_content_page(hide_xxx=hide_xxx)
         self.discovered_page.initialize_root_model(
             DiscoveredChannelsModel(
-                channel_info={"name": "Discovered channels"},
-                endpoint_url="channels",
-                hide_xxx=get_gui_setting(self.gui_settings, "family_filter", True, is_bool=True),
+                channel_info={"name": "Discovered channels"}, endpoint_url="channels", hide_xxx=hide_xxx
             )
         )
         self.core_manager.events_manager.discovered_channel.connect(self.discovered_page.model.on_new_entry_received)
@@ -328,8 +326,9 @@ class TriblerWindow(QMainWindow):
         autocommit_enabled = (
             get_gui_setting(self.gui_settings, "autocommit_enabled", True, is_bool=True) if self.gui_settings else True
         )
-        hide_xxx = get_gui_setting(self.gui_settings, "family_filter", True, is_bool=True)
-        self.channel_contents_page.initialize_content_page(autocommit_enabled=autocommit_enabled, hide_xxx=hide_xxx)
+        # The channels content page is only used to show subscribed channels, so we always show xxx
+        # contents in it.
+        self.channel_contents_page.initialize_content_page(autocommit_enabled=autocommit_enabled, hide_xxx=False)
         self.core_manager.events_manager.node_info_updated.connect(
             lambda data: self.channels_menu_list.reload_if_necessary([data])
         )
@@ -349,7 +348,7 @@ class TriblerWindow(QMainWindow):
         NewChannelDialog(self, create_channel_callback)
 
     def open_channel_contents_page(self, channel_list_item):
-        if not (channel_list_item.flags() & Qt.ItemIsEnabled):
+        if not channel_list_item.flags() & Qt.ItemIsEnabled:
             return
 
         self.channel_contents_page.initialize_root_model_from_channel_info(channel_list_item.channel_info)
@@ -1135,11 +1134,11 @@ class TriblerWindow(QMainWindow):
         self.dialog = ConfirmationDialog(
             self,
             "Unsubscribe from channel",
-            "Are you sure you want to unsubscribe from channel\n"
+            "Are you sure you want to <b>unsubscribe</b> from channel<br/>"
             + '\"'
-            + channel_info['name']
+            + f"<b>{channel_info['name']}</b>"
             + '\"'
-            + "\nand remove its contents?",
+            + "<br/>and remove its contents?",
             [('UNSUBSCRIBE', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
         )
         self.dialog.button_clicked.connect(_on_unsubscribe_action)
@@ -1162,11 +1161,11 @@ class TriblerWindow(QMainWindow):
         self.dialog = ConfirmationDialog(
             self,
             "Delete channel",
-            "Are you sure you want to delete you personal channel\n"
+            "Are you sure you want to <b>delete</b> your personal channel<br/>"
             + '\"'
-            + channel_info['name']
+            + f"<b>{channel_info['name']}</b>"
             + '\"'
-            + "\nand all its contents?",
+            + "<br/>and all its contents?",
             [('DELETE', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
         )
         self.dialog.button_clicked.connect(_on_delete_action)
