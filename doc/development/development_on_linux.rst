@@ -13,14 +13,14 @@ Secondly, install python packages
 
 .. code-block:: bash
 
-    pip3 install aiohttp aiohttp_apispec chardet configobj decorator libnacl matplotlib netifaces networkx pony psutil pyasn1 requests lz4 pyqtgraph
+    pip3 install aiohttp aiohttp_apispec chardet configobj decorator libnacl matplotlib netifaces networkx pony psutil pyasn1 requests lz4 pyqtgraph pyyaml
 
 Then, install py-ipv8 python dependencies
 
 .. code-block:: bash
 
     cd src/pyipv8
-    pip install --upgrade -r requirements.txt
+    pip3 install --upgrade -r requirements.txt
 
 You can now clone the Tribler source code, and run Tribler by executing the following commands:
 
