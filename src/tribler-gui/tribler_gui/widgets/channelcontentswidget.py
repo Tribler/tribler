@@ -64,6 +64,7 @@ class ChannelContentsWidget(widget_form, widget_class):
         self.controller = None
         self.commit_timer = None
         self.autocommit_enabled = None
+        self.channel_options_menu = None
 
         self.channels_stack = []
 
@@ -121,7 +122,6 @@ class ChannelContentsWidget(widget_form, widget_class):
         self.channel_back_button.setIcon(QIcon(get_image_path('page_back.png')))
         self.channel_back_button.clicked.connect(self.go_back)
         self.channel_name_label.linkActivated.connect(self.on_breadcrumb_clicked)
-        self.channel_options_button.clicked.connect(self.show_channel_options)
         self.commit_control_bar.setHidden(True)
 
         self.controller = ContentTableViewController(
@@ -141,6 +141,9 @@ class ChannelContentsWidget(widget_form, widget_class):
         self.edit_channel_commit_button.clicked.connect(self.commit_channels)
 
         self.subscription_widget.initialize(self)
+
+        self.channel_options_menu = self.create_channel_options_menu()
+        self.channel_options_button.setMenu(self.channel_options_menu)
 
     def _enable_autocommit_timer(self):
 
@@ -319,7 +322,6 @@ class ChannelContentsWidget(widget_form, widget_class):
         self.controller.table_view.resizeEvent(None)
 
         self.content_table.setFocus()
-        self.channel_options_button.show()
 
     def update_labels(self, dirty=False):
 
@@ -401,7 +403,7 @@ class ChannelContentsWidget(widget_form, widget_class):
     # TODO: make this into a separate object, stop reconnecting stuff each time
     # ==============================
 
-    def show_channel_options(self):
+    def create_channel_options_menu(self):
         browse_files_action = QAction('Add .torrent file', self)
         browse_dir_action = QAction('Add torrent(s) directory', self)
         add_url_action = QAction('Add URL/magnet links', self)
@@ -422,14 +424,7 @@ class ChannelContentsWidget(widget_form, widget_class):
         channel_options_menu.addAction(remove_all_action)
         channel_options_menu.addSeparator()
         channel_options_menu.addAction(export_channel_action)
-
-        options_btn_pos = self.channel_options_button.pos()
-        options_btn_geometry = self.channel_options_button.geometry()
-        options_btn_pos.setX(
-            options_btn_pos.x() - channel_options_menu.geometry().width() + options_btn_geometry.width()
-        )
-        options_btn_pos.setY(options_btn_pos.y() + options_btn_geometry.height())
-        channel_options_menu.exec_(self.mapToGlobal(options_btn_pos))
+        return channel_options_menu
 
     def on_export_mdblob(self):
         export_dir = QFileDialog.getExistingDirectory(
