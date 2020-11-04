@@ -137,6 +137,8 @@ class TriblerWindow(QMainWindow):
         QCoreApplication.setOrganizationName("TUDelft")
         QCoreApplication.setApplicationName("Tribler")
 
+        self.setWindowIcon(QIcon(QPixmap(get_image_path('tribler.png'))))
+
         self.gui_settings = QSettings()
         api_port = api_port or int(get_gui_setting(self.gui_settings, "api_port", DEFAULT_API_PORT))
         api_key = api_key or get_gui_setting(self.gui_settings, "api_key", hexlify(os.urandom(16)).encode('utf-8'))
