@@ -1,4 +1,3 @@
-import os
 import uuid
 from base64 import b64encode
 
@@ -408,13 +407,11 @@ class ChannelContentsWidget(widget_form, widget_class):
         browse_dir_action = QAction('Add torrent(s) directory', self)
         add_url_action = QAction('Add URL/magnet links', self)
         remove_all_action = QAction('Remove all', self)
-        export_channel_action = QAction('Export channel', self)
 
         browse_files_action.triggered.connect(self.on_add_torrent_browse_file)
         browse_dir_action.triggered.connect(self.on_add_torrents_browse_dir)
         add_url_action.triggered.connect(self.on_add_torrent_from_url)
         remove_all_action.triggered.connect(self.on_torrents_remove_all_clicked)
-        export_channel_action.triggered.connect(self.on_export_mdblob)
 
         channel_options_menu = TriblerActionMenu(self)
         channel_options_menu.addAction(browse_files_action)
@@ -423,56 +420,7 @@ class ChannelContentsWidget(widget_form, widget_class):
         channel_options_menu.addSeparator()
         channel_options_menu.addAction(remove_all_action)
         channel_options_menu.addSeparator()
-        channel_options_menu.addAction(export_channel_action)
         return channel_options_menu
-
-    def on_export_mdblob(self):
-        export_dir = QFileDialog.getExistingDirectory(
-            self, "Please select the destination directory", "", QFileDialog.ShowDirsOnly
-        )
-
-        if len(export_dir) == 0:
-            return
-
-        # Show confirmation dialog where we specify the name of the file
-        mdblob_name = self.model.channel_info["public_key"]
-        dialog = ConfirmationDialog(
-            self,
-            "Export mdblob file",
-            "Please enter the name of the channel metadata file:",
-            [('SAVE', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
-            show_input=True,
-        )
-
-        def on_export_download_dialog_done(action):
-            if action == 0:
-                dest_path = os.path.join(export_dir, dialog.dialog_widget.dialog_input.text())
-                TriblerNetworkRequest(
-                    "channels/discovered/%s/mdblob" % mdblob_name,
-                    lambda data, _: on_export_download_request_done(dest_path, data),
-                )
-
-            dialog.close_dialog()
-
-        def on_export_download_request_done(dest_path, data):
-            try:
-                torrent_file = open(dest_path, "wb")
-                torrent_file.write(data)
-                torrent_file.close()
-            except IOError as exc:
-                ConfirmationDialog.show_error(
-                    self.window(),
-                    "Error when exporting file",
-                    "An error occurred when exporting the torrent file: %s" % str(exc),
-                )
-            else:
-                self.window().tray_show_message("Torrent file exported", "Torrent file exported to %s" % dest_path)
-
-        dialog.dialog_widget.dialog_input.setPlaceholderText('Channel file name')
-        dialog.dialog_widget.dialog_input.setText("%s.mdblob" % mdblob_name)
-        dialog.dialog_widget.dialog_input.setFocus()
-        dialog.button_clicked.connect(on_export_download_dialog_done)
-        dialog.show()
 
     # Torrent removal-related methods
     def on_torrents_remove_all_clicked(self):

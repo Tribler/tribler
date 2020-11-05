@@ -518,12 +518,6 @@ class TriblerWindow(QMainWindow):
 
         uri = self.pending_uri_requests.pop()
 
-        # TODO: create a proper confirmation dialog to show results of adding .mdblob files
-        # the case for .mdblob files is handled without torrentinfo endpoint
-        if uri.startswith('file') and (uri.endswith('.mdblob') or uri.endswith('.mdblob.lz4')):
-            TriblerNetworkRequest("downloads", lambda _: None, method='PUT', data={"uri": uri})
-            return
-
         if uri.startswith('file') or uri.startswith('magnet'):
             self.start_download_from_uri(uri)
 
@@ -767,19 +761,16 @@ class TriblerWindow(QMainWindow):
         browse_files_action = QAction('Import torrent from file', self)
         browse_directory_action = QAction('Import torrent(s) from directory', self)
         add_url_action = QAction('Import torrent from magnet/URL', self)
-        add_mdblob_action = QAction('Import Tribler metadata from file', self)
         create_torrent_action = QAction('Create torrent from file(s)', self)
 
         browse_files_action.triggered.connect(self.on_add_torrent_browse_file)
         browse_directory_action.triggered.connect(self.on_add_torrent_browse_dir)
         add_url_action.triggered.connect(self.on_add_torrent_from_url)
-        add_mdblob_action.triggered.connect(self.on_add_mdblob_browse_file)
         create_torrent_action.triggered.connect(self.on_create_torrent)
 
         menu.addAction(browse_files_action)
         menu.addAction(browse_directory_action)
         menu.addAction(add_url_action)
-        menu.addAction(add_mdblob_action)
         menu.addSeparator()
         menu.addAction(create_torrent_action)
 
@@ -799,15 +790,6 @@ class TriblerWindow(QMainWindow):
     def on_add_torrent_browse_file(self):
         filenames = QFileDialog.getOpenFileNames(
             self, "Please select the .torrent file", QDir.homePath(), "Torrent files (*.torrent)"
-        )
-        if len(filenames[0]) > 0:
-            for filename in filenames[0]:
-                self.pending_uri_requests.append(u"file:%s" % filename)
-            self.process_uri_request()
-
-    def on_add_mdblob_browse_file(self):
-        filenames = QFileDialog.getOpenFileNames(
-            self, "Please select the .mdblob file", QDir.homePath(), "Tribler metadata files (*.mdblob.lz4)"
         )
         if len(filenames[0]) > 0:
             for filename in filenames[0]:

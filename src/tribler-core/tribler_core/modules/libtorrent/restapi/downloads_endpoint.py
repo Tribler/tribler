@@ -15,15 +15,10 @@ from libtorrent import bencode
 
 from marshmallow.fields import Boolean, Float, Integer, List, String
 
-from pony.orm import db_session
-
 from tribler_common.simpledefs import DOWNLOAD, UPLOAD, dlstatus_strings
 
-from tribler_core.exceptions import InvalidSignatureException
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
 from tribler_core.modules.libtorrent.stream import STREAM_PAUSE_TIME, StreamChunk
-from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT
-from tribler_core.modules.metadata_store.store import UNKNOWN_CHANNEL, UPDATED_OUR_VERSION
 from tribler_core.restapi.rest_endpoint import (
     HTTP_BAD_REQUEST,
     HTTP_INTERNAL_SERVER_ERROR,
@@ -347,23 +342,7 @@ class DownloadsEndpoint(RESTEndpoint):
         uri = parameters['uri']
         if uri.startswith("file:"):
             filename = url2pathname(uri[5:])
-            if uri.endswith(".mdblob") or uri.endswith(".mdblob.lz4"):
-                with db_session:
-                    try:
-                        results = self.session.mds.process_mdblob_file(filename)
-                        if results:
-                            node, status = results[0]
-                            if (status == UNKNOWN_CHANNEL or
-                                    (status == UPDATED_OUR_VERSION and node.metadata_type == CHANNEL_TORRENT)):
-                                node.subscribed = True
-                                return RESTResponse({"started": True, "infohash": hexlify(node.infohash)})
-                        return RESTResponse({"error": "Could not import Tribler metadata file"})
-                    except IOError:
-                        return RESTResponse({"error": "Metadata file not found"}, status=HTTP_BAD_REQUEST)
-                    except InvalidSignatureException:
-                        return RESTResponse({"error": "Metadata has invalid signature"}, status=HTTP_BAD_REQUEST)
-            else:
-                download_uri = u"file:%s" % filename
+            download_uri = u"file:%s" % filename
         else:
             download_uri = unquote_plus(uri)
 
