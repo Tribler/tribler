@@ -25,6 +25,17 @@ class BandwidthDatabase:
         create_db = str(db_path) == ":memory:" or not self.db_path.is_file()
         self.database = Database()
 
+        # This attribute is internally called by Pony on startup, though pylint cannot detect it
+        # with the static analysis.
+        # pylint: disable=unused-variable
+        @self.database.on_connect(provider='sqlite')
+        def sqlite_disable_sync(_, connection):
+            cursor = connection.cursor()
+            cursor.execute("PRAGMA journal_mode = WAL")
+            cursor.execute("PRAGMA synchronous = 1")
+            cursor.execute("PRAGMA temp_store = 2")
+            # pylint: enable=unused-variable
+
         self.MiscData = misc.define_binding(self.database)
         self.BandwidthTransaction = transaction.define_binding(self)
         self.BandwidthHistory = history.define_binding(self)
