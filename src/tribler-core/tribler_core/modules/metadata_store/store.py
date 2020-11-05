@@ -99,19 +99,22 @@ class MetadataStore(object):
         # at definition.
         self._db = orm.Database()
 
-        # Possibly disable disk sync.
-        # !!! ACHTUNG !!! This should be used only for special cases (e.g. DB upgrades), because
-        # losing power during a write will corrupt the database.
-        if disable_sync:
-            # This attribute is internally called by Pony on startup, though pylint cannot detect it
-            # with the static analysis.
-            # pylint: disable=unused-variable
-            @self._db.on_connect(provider='sqlite')
-            def sqlite_disable_sync(_, connection):
-                cursor = connection.cursor()
-                cursor.execute("PRAGMA synchronous = 0")
-                cursor.execute("PRAGMA temp_store = 2")
+        # This attribute is internally called by Pony on startup, though pylint cannot detect it
+        # with the static analysis.
+        # pylint: disable=unused-variable
+        @self._db.on_connect(provider='sqlite')
+        def sqlite_disable_sync(_, connection):
+            cursor = connection.cursor()
+            cursor.execute("PRAGMA journal_mode = WAL")
+            cursor.execute("PRAGMA synchronous = 1")
+            cursor.execute("PRAGMA temp_store = 2")
 
+            # Disable disk sync for special cases
+            if disable_sync:
+                # !!! ACHTUNG !!! This should be used only for special cases (e.g. DB upgrades), because
+                # losing power during a write will corrupt the database.
+                cursor.execute("PRAGMA journal_mode = 0")
+                cursor.execute("PRAGMA synchronous = 0")
             # pylint: enable=unused-variable
 
         self.MiscData = misc.define_binding(self._db)
