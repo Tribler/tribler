@@ -419,7 +419,8 @@ background-color: transparent;
             <string/>
            </property>
            <property name="styleSheet">
-            <string notr="true">border:none;margin-left:16px;</string>
+            <string notr="true">QToolButton::menu-indicator{width:0px;}
+QToolButton{border:none;margin-left:16px;}</string>
            </property>
            <property name="text">
             <string/>
@@ -433,6 +434,9 @@ background-color: transparent;
              <width>32</width>
              <height>32</height>
             </size>
+           </property>
+           <property name="popupMode">
+            <enum>QToolButton::InstantPopup</enum>
            </property>
            <property name="autoRaise">
             <bool>false</bool>
@@ -893,7 +897,7 @@ QTableView::item::hover {
   </customwidget>
   <customwidget>
    <class>ToggleButton</class>
-   <extends>QAbstractButton</extends>
+   <extends>QWidget</extends>
    <header>tribler_gui.widgets.togglebutton.h</header>
   </customwidget>
  </customwidgets>

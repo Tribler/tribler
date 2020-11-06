@@ -142,7 +142,7 @@ class HealthCheckerMixin:
         if row is None:
             return
         data_item = self.model.data_items[row]
-        if not forced and data_item[u'health'] != HEALTH_UNCHECKED:
+        if not forced and data_item.get('health', HEALTH_UNCHECKED) != HEALTH_UNCHECKED:
             return
         data_item[u'health'] = HEALTH_CHECKING
         health_cell_index = self.model.index(row, self.model.column_position[u'health'])

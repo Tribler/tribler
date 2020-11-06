@@ -48,6 +48,7 @@ class AddToChannelDialog(DialogContainer):
     def on_new_channel_response(self, response):
         if not response or not response.get("results", None):
             return
+        self.window().channels_menu_list.reload_if_necessary(response["results"])
         self.load_channel(response["results"][0]["origin_id"])
 
     def on_create_new_channel_clicked(self):

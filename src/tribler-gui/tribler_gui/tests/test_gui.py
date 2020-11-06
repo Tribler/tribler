@@ -1,6 +1,5 @@
 import os
 import sys
-import time
 from pathlib import Path
 
 from PyQt5.QtCore import QPoint, QProcess, QProcessEnvironment, QTimer, Qt
@@ -227,9 +226,11 @@ def tst_channels_widget(window, widget, widget_name, sort_column=1, test_filter=
         index = get_index_of_row_column(widget.content_table, 0, widget.model.column_position[u'votes'])
         widget.content_table.on_subscribe_control_clicked(index)
         QTest.qWait(200)
+        window.dialog.button_clicked.emit(0)
         screenshot(window, name=f"{widget_name}-unsubscribed")
         widget.content_table.on_subscribe_control_clicked(index)
         QTest.qWait(200)
+        window.dialog.button_clicked.emit(0)
 
     # Test channel view
     index = get_index_of_row_column(widget.content_table, 0, widget.model.column_position[u'name'])
@@ -245,12 +246,6 @@ def tst_channels_widget(window, widget, widget_name, sort_column=1, test_filter=
 
 
 @pytest.mark.guitest
-def test_subscriptions(tribler_api, window):
-    QTest.mouseClick(window.left_menu_button_subscriptions, Qt.LeftButton)
-    tst_channels_widget(window, window.subscribed_channels_page, "subscriptions", sort_column=2)
-
-
-@pytest.mark.guitest
 def test_discovered_page(tribler_api, window):
     QTest.mouseClick(window.left_menu_button_discovered, Qt.LeftButton)
     tst_channels_widget(window, window.discovered_page, "discovered_page", sort_column=2)
@@ -258,12 +253,11 @@ def test_discovered_page(tribler_api, window):
 
 @pytest.mark.guitest
 def test_edit_channel_torrents(tribler_api, window):
-    QTest.mouseClick(window.left_menu_button_my_channel, Qt.LeftButton)
-    tst_channels_widget(
-        window, window.personal_channel_page, "personal_channels_page", sort_column=0, test_subscribe=False
-    )
-    # Commit the result
-    QTest.mouseClick(window.personal_channel_page.edit_channel_commit_button, Qt.LeftButton)
+    wait_for_list_populated(window.channels_menu_list)
+    idx = window.channels_menu_list.model().index(0, 0)
+    item_pos = window.channels_menu_list.visualRect(idx).center()
+    QTest.mouseClick(window.channels_menu_list.viewport(), Qt.LeftButton, pos=item_pos)
+    wait_for_list_populated(window.channel_contents_page.content_table)
     screenshot(window, name="edit_channel_committed")
 
 

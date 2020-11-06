@@ -1,4 +1,5 @@
 import glob
+import json
 import logging
 import os
 import signal
@@ -31,7 +32,6 @@ from PyQt5.QtWidgets import (
     QLineEdit,
     QListWidget,
     QMainWindow,
-    QPushButton,
     QShortcut,
     QStyledItemDelegate,
     QSystemTrayIcon,
@@ -47,16 +47,14 @@ from tribler_gui.debug_window import DebugWindow
 from tribler_gui.defs import (
     BUTTON_TYPE_CONFIRM,
     BUTTON_TYPE_NORMAL,
-    CONTEXT_MENU_WIDTH,
     DEFAULT_API_PORT,
+    PAGE_CHANNEL_CONTENTS,
     PAGE_DISCOVERED,
     PAGE_DISCOVERING,
     PAGE_DOWNLOADS,
-    PAGE_EDIT_CHANNEL,
     PAGE_LOADING,
     PAGE_SEARCH_RESULTS,
     PAGE_SETTINGS,
-    PAGE_SUBSCRIBED_CHANNELS,
     PAGE_TRUST,
     PAGE_TRUST_GRAPH_PAGE,
     SHUTDOWN_WAITING_PERIOD,
@@ -65,11 +63,13 @@ from tribler_gui.dialogs.addtopersonalchanneldialog import AddToChannelDialog
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler_gui.dialogs.createtorrentdialog import CreateTorrentDialog
 from tribler_gui.dialogs.feedbackdialog import FeedbackDialog
+from tribler_gui.dialogs.new_channel_dialog import NewChannelDialog
 from tribler_gui.dialogs.startdownloaddialog import StartDownloadDialog
 from tribler_gui.event_request_manager import CoreConnectTimeoutError
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest, TriblerRequestManager, request_manager
 from tribler_gui.utilities import get_gui_setting, get_image_path, get_ui_file_path, is_dir_writable
+from tribler_gui.widgets.channelsmenulistwidget import ChannelsMenuListWidget
 from tribler_gui.widgets.tablecontentmodel import (
     DiscoveredChannelsModel,
     PersonalChannelsModel,
@@ -145,7 +145,6 @@ class TriblerWindow(QMainWindow):
         self.gui_settings.setValue("api_key", api_key)
         request_manager.port, request_manager.key = api_port, api_key
 
-        self.navigation_stack = []
         self.tribler_started = False
         self.tribler_settings = None
         # TODO: move version_id to tribler_common and get core version in the core crash message
@@ -200,14 +199,12 @@ class TriblerWindow(QMainWindow):
             widget.setAttribute(Qt.WA_MacShowFocusRect, 0)
 
         self.menu_buttons = [
-            self.left_menu_button_my_channel,
-            self.left_menu_button_subscriptions,
             self.left_menu_button_downloads,
             self.left_menu_button_discovered,
             self.left_menu_button_trust_graph,
         ]
-
-        self.search_results_page.initialize_content_page(self.gui_settings)
+        hide_xxx = get_gui_setting(self.gui_settings, "family_filter", True, is_bool=True)
+        self.search_results_page.initialize_content_page(hide_xxx=hide_xxx)
         self.search_results_page.channel_torrents_filter_input.setHidden(True)
 
         self.settings_page.initialize_settings_page()
@@ -215,12 +212,10 @@ class TriblerWindow(QMainWindow):
         self.loading_page.initialize_loading_page()
         self.discovering_page.initialize_discovering_page()
 
-        self.discovered_page.initialize_content_page(self.gui_settings)
+        self.discovered_page.initialize_content_page(hide_xxx=hide_xxx)
         self.discovered_page.initialize_root_model(
             DiscoveredChannelsModel(
-                channel_info={"name": "Discovered channels"},
-                endpoint_url="channels",
-                hide_xxx=get_gui_setting(self.gui_settings, "family_filter", True, is_bool=True),
+                channel_info={"name": "Discovered channels"}, endpoint_url="channels", hide_xxx=hide_xxx
             )
         )
         self.core_manager.events_manager.discovered_channel.connect(self.discovered_page.model.on_new_entry_received)
@@ -321,9 +316,44 @@ class TriblerWindow(QMainWindow):
 
         self.add_to_channel_dialog = AddToChannelDialog(self.window())
 
-        self.add_torrent_menu = self.findChild(QPushButton, "add_torrent_button")
         self.add_torrent_menu = self.create_add_torrent_menu()
         self.add_torrent_button.setMenu(self.add_torrent_menu)
+
+        self.channels_menu_list = self.findChild(ChannelsMenuListWidget, "channels_menu_list")
+
+        self.channels_menu_list.itemClicked.connect(self.open_channel_contents_page)
+
+        autocommit_enabled = (
+            get_gui_setting(self.gui_settings, "autocommit_enabled", True, is_bool=True) if self.gui_settings else True
+        )
+        # The channels content page is only used to show subscribed channels, so we always show xxx
+        # contents in it.
+        self.channel_contents_page.initialize_content_page(autocommit_enabled=autocommit_enabled, hide_xxx=False)
+        self.core_manager.events_manager.node_info_updated.connect(
+            lambda data: self.channels_menu_list.reload_if_necessary([data])
+        )
+        self.left_menu_button_new_channel.clicked.connect(self.create_new_channel)
+
+    def create_new_channel(self):
+        # TODO: DRY this with tablecontentmodel, possibly using QActions
+
+        def create_channel_callback(channel_name):
+            TriblerNetworkRequest(
+                "channels/mychannel/0/channels",
+                self.channels_menu_list.load_channels,
+                method='POST',
+                raw_data=json.dumps({"name": channel_name}) if channel_name else None,
+            )
+
+        NewChannelDialog(self, create_channel_callback)
+
+    def open_channel_contents_page(self, channel_list_item):
+        if not channel_list_item.flags() & Qt.ItemIsEnabled:
+            return
+
+        self.channel_contents_page.initialize_root_model_from_channel_info(channel_list_item.channel_info)
+        self.stackedWidget.setCurrentIndex(PAGE_CHANNEL_CONTENTS)
+        self.deselect_all_menu_buttons()
 
     def update_tray_icon(self, use_monochrome_icon):
         if not QSystemTrayIcon.isSystemTrayAvailable() or not self.tray_icon:
@@ -435,6 +465,8 @@ class TriblerWindow(QMainWindow):
             self.clicked_menu_button_discovered()
             self.left_menu_button_discovered.setChecked(True)
 
+        self.channels_menu_list.load_channels()
+
     def stop_discovering(self):
         if not self.discovering_page.is_discovering:
             return
@@ -448,7 +480,7 @@ class TriblerWindow(QMainWindow):
         autocommit_enabled = (
             get_gui_setting(self.gui_settings, "autocommit_enabled", True, is_bool=True) if self.gui_settings else True
         )
-        self.personal_channel_page.initialize_content_page(self.gui_settings, edit_enabled=True)
+        self.personal_channel_page.initialize_content_page(autocommit_enabled=autocommit_enabled)
         self.personal_channel_page.default_channel_model = (
             SimplifiedPersonalChannelsModel if autocommit_enabled else PersonalChannelsModel
         )
@@ -485,12 +517,6 @@ class TriblerWindow(QMainWindow):
             return
 
         uri = self.pending_uri_requests.pop()
-
-        # TODO: create a proper confirmation dialog to show results of adding .mdblob files
-        # the case for .mdblob files is handled without torrentinfo endpoint
-        if uri.startswith('file') and (uri.endswith('.mdblob') or uri.endswith('.mdblob.lz4')):
-            TriblerNetworkRequest("downloads", lambda _: None, method='PUT', data={"uri": uri})
-            return
 
         if uri.startswith('file') or uri.startswith('magnet'):
             self.start_download_from_uri(uri)
@@ -685,7 +711,6 @@ class TriblerWindow(QMainWindow):
         self.deselect_all_menu_buttons()
         self.stackedWidget.setCurrentIndex(PAGE_SETTINGS)
         self.settings_page.load_settings()
-        self.navigation_stack = []
 
     def on_token_balance_click(self, _):
         self.raise_window()
@@ -693,7 +718,6 @@ class TriblerWindow(QMainWindow):
         self.stackedWidget.setCurrentIndex(PAGE_TRUST)
         self.load_token_balance()
         self.trust_page.load_history()
-        self.navigation_stack = []
 
     def load_token_balance(self):
         TriblerNetworkRequest("bandwidth/statistics", self.received_bandwidth_statistics, capture_core_errors=False)
@@ -737,19 +761,16 @@ class TriblerWindow(QMainWindow):
         browse_files_action = QAction('Import torrent from file', self)
         browse_directory_action = QAction('Import torrent(s) from directory', self)
         add_url_action = QAction('Import torrent from magnet/URL', self)
-        add_mdblob_action = QAction('Import Tribler metadata from file', self)
         create_torrent_action = QAction('Create torrent from file(s)', self)
 
         browse_files_action.triggered.connect(self.on_add_torrent_browse_file)
         browse_directory_action.triggered.connect(self.on_add_torrent_browse_dir)
         add_url_action.triggered.connect(self.on_add_torrent_from_url)
-        add_mdblob_action.triggered.connect(self.on_add_mdblob_browse_file)
         create_torrent_action.triggered.connect(self.on_create_torrent)
 
         menu.addAction(browse_files_action)
         menu.addAction(browse_directory_action)
         menu.addAction(add_url_action)
-        menu.addAction(add_mdblob_action)
         menu.addSeparator()
         menu.addAction(create_torrent_action)
 
@@ -769,15 +790,6 @@ class TriblerWindow(QMainWindow):
     def on_add_torrent_browse_file(self):
         filenames = QFileDialog.getOpenFileNames(
             self, "Please select the .torrent file", QDir.homePath(), "Torrent files (*.torrent)"
-        )
-        if len(filenames[0]) > 0:
-            for filename in filenames[0]:
-                self.pending_uri_requests.append(u"file:%s" % filename)
-            self.process_uri_request()
-
-    def on_add_mdblob_browse_file(self):
-        filenames = QFileDialog.getOpenFileNames(
-            self, "Please select the .mdblob file", QDir.homePath(), "Tribler metadata files (*.mdblob.lz4)"
         )
         if len(filenames[0]) > 0:
             for filename in filenames[0]:
@@ -972,7 +984,6 @@ class TriblerWindow(QMainWindow):
             if self.stackedWidget.currentIndex() == PAGE_SEARCH_RESULTS:
                 self.search_results_page.go_back_to_level(0)
             self.stackedWidget.setCurrentIndex(PAGE_SEARCH_RESULTS)
-            self.navigation_stack = []
 
     def clicked_menu_button_discovered(self):
         self.deselect_all_menu_buttons()
@@ -982,100 +993,59 @@ class TriblerWindow(QMainWindow):
             self.discovered_page.reset_view()
         self.stackedWidget.setCurrentIndex(PAGE_DISCOVERED)
         self.discovered_page.content_table.setFocus()
-        self.navigation_stack = []
-
-    def clicked_menu_button_my_channel(self):
-        self.deselect_all_menu_buttons()
-        self.left_menu_button_my_channel.setChecked(True)
-        if not self.personal_channel_page.channels_stack:
-            self.initialize_personal_channels_page()
-            self.personal_channel_page.reset_view()
-        if self.stackedWidget.currentIndex() == PAGE_EDIT_CHANNEL:
-            self.personal_channel_page.go_back_to_level(0)
-            self.personal_channel_page.reset_view()
-        self.stackedWidget.setCurrentIndex(PAGE_EDIT_CHANNEL)
-        self.personal_channel_page.content_table.setFocus()
-        self.navigation_stack = []
 
     def clicked_menu_button_trust_graph(self):
         self.deselect_all_menu_buttons(self.left_menu_button_trust_graph)
         self.stackedWidget.setCurrentIndex(PAGE_TRUST_GRAPH_PAGE)
-        self.navigation_stack = []
 
     def clicked_menu_button_downloads(self):
         self.deselect_all_menu_buttons(self.left_menu_button_downloads)
         self.raise_window()
         self.left_menu_button_downloads.setChecked(True)
         self.stackedWidget.setCurrentIndex(PAGE_DOWNLOADS)
-        self.navigation_stack = []
 
     def clicked_menu_button_debug(self):
         if not self.debug_window:
             self.debug_window = DebugWindow(self.tribler_settings, self.tribler_version)
         self.debug_window.show()
 
-    def clicked_menu_button_subscriptions(self):
-        self.deselect_all_menu_buttons()
-        self.left_menu_button_subscriptions.setChecked(True)
-        if not self.subscribed_channels_page.channels_stack:
-            self.subscribed_channels_page.initialize_content_page(self.gui_settings)
-            self.subscribed_channels_page.initialize_root_model(
-                DiscoveredChannelsModel(
-                    channel_info={"name": "Subscribed channels"}, endpoint_url="channels", subscribed_only=True
-                )
-            )
-            self.subscribed_channels_page.reset_view()
-
-        if self.stackedWidget.currentIndex() == PAGE_SUBSCRIBED_CHANNELS:
-            self.subscribed_channels_page.go_back_to_level(0)
-            self.subscribed_channels_page.reset_view()
-        self.stackedWidget.setCurrentIndex(PAGE_SUBSCRIBED_CHANNELS)
-        self.subscribed_channels_page.content_table.setFocus()
-        self.navigation_stack = []
-
-    def on_page_back_clicked(self):
-        try:
-            prev_page = self.navigation_stack.pop()
-            self.stackedWidget.setCurrentIndex(prev_page)
-        except IndexError:
-            logging.exception("Unknown page found in stack")
-
     def resizeEvent(self, _):
         # This thing here is necessary to send the resize event to dialogs, etc.
         self.resize_event.emit()
 
     def close_tribler(self):
-        if not self.core_manager.shutting_down:
+        if self.core_manager.shutting_down:
+            return
 
-            def show_force_shutdown():
-                self.window().force_shutdown_btn.show()
+        def show_force_shutdown():
+            self.window().force_shutdown_btn.show()
 
-            self.delete_tray_icon()
-            self.show_loading_screen()
-            self.hide_status_bar()
-            self.loading_text_label.setText("Shutting down...")
-            if self.debug_window:
-                self.debug_window.setHidden(True)
+        self.delete_tray_icon()
+        self.show_loading_screen()
+        self.hide_status_bar()
+        self.loading_text_label.setText("Shutting down...")
+        if self.debug_window:
+            self.debug_window.setHidden(True)
 
-            self.shutdown_timer = QTimer()
-            self.shutdown_timer.timeout.connect(show_force_shutdown)
-            self.shutdown_timer.start(SHUTDOWN_WAITING_PERIOD)
+        self.shutdown_timer = QTimer()
+        self.shutdown_timer.timeout.connect(show_force_shutdown)
+        self.shutdown_timer.start(SHUTDOWN_WAITING_PERIOD)
 
-            self.gui_settings.setValue("pos", self.pos())
-            self.gui_settings.setValue("size", self.size())
+        self.gui_settings.setValue("pos", self.pos())
+        self.gui_settings.setValue("size", self.size())
 
-            if self.core_manager.use_existing_core:
-                # Don't close the core that we are using
-                QApplication.quit()
+        if self.core_manager.use_existing_core:
+            # Don't close the core that we are using
+            QApplication.quit()
 
-            self.core_manager.stop()
-            self.core_manager.shutting_down = True
-            self.downloads_page.stop_loading_downloads()
-            request_manager.clear()
+        self.core_manager.stop()
+        self.core_manager.shutting_down = True
+        self.downloads_page.stop_loading_downloads()
+        request_manager.clear()
 
-            # Stop the token balance timer
-            if self.token_refresh_timer:
-                self.token_refresh_timer.stop()
+        # Stop the token balance timer
+        if self.token_refresh_timer:
+            self.token_refresh_timer.stop()
 
     def closeEvent(self, close_event):
         self.close_tribler()
@@ -1118,6 +1088,69 @@ class TriblerWindow(QMainWindow):
             [('ABORT', BUTTON_TYPE_CONFIRM), ('CONTINUE', BUTTON_TYPE_NORMAL)],
         )
         self.dialog.button_clicked.connect(self.on_skip_conversion_dialog)
+        self.dialog.show()
+
+    def on_channel_subscribe(self, channel_info):
+        patch_data = [{"public_key": channel_info['public_key'], "id": channel_info['id'], "subscribed": True}]
+        TriblerNetworkRequest(
+            "metadata",
+            lambda data: self.core_manager.events_manager.node_info_updated.emit(data[0]),
+            raw_data=json.dumps(patch_data),
+            method='PATCH',
+        )
+
+    def on_channel_unsubscribe(self, channel_info):
+        def _on_unsubscribe_action(action):
+            if action == 0:
+                patch_data = [{"public_key": channel_info['public_key'], "id": channel_info['id'], "subscribed": False}]
+                TriblerNetworkRequest(
+                    "metadata",
+                    lambda data: self.core_manager.events_manager.node_info_updated.emit(data[0]),
+                    raw_data=json.dumps(patch_data),
+                    method='PATCH',
+                )
+            if self.dialog:
+                self.dialog.close_dialog()
+                self.dialog = None
+
+        self.dialog = ConfirmationDialog(
+            self,
+            "Unsubscribe from channel",
+            "Are you sure you want to <b>unsubscribe</b> from channel<br/>"
+            + '\"'
+            + f"<b>{channel_info['name']}</b>"
+            + '\"'
+            + "<br/>and remove its contents?",
+            [('UNSUBSCRIBE', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
+        )
+        self.dialog.button_clicked.connect(_on_unsubscribe_action)
+        self.dialog.show()
+
+    def on_channel_delete(self, channel_info):
+        def _on_delete_action(action):
+            if action == 0:
+                delete_data = [{"public_key": channel_info[u'public_key'], "id": channel_info[u'id']}]
+                TriblerNetworkRequest(
+                    "metadata",
+                    lambda data: self.core_manager.events_manager.node_info_updated.emit(data[0]),
+                    raw_data=json.dumps(delete_data),
+                    method='DELETE',
+                )
+            if self.dialog:
+                self.dialog.close_dialog()
+                self.dialog = None
+
+        self.dialog = ConfirmationDialog(
+            self,
+            "Delete channel",
+            "Are you sure you want to <b>delete</b> your personal channel<br/>"
+            + '\"'
+            + f"<b>{channel_info['name']}</b>"
+            + '\"'
+            + "<br/>and all its contents?",
+            [('DELETE', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
+        )
+        self.dialog.button_clicked.connect(_on_delete_action)
         self.dialog.show()
 
     def on_skip_conversion_dialog(self, action):

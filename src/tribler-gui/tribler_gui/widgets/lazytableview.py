@@ -59,7 +59,13 @@ class TriblerContentTableView(QTableView):
             return
 
         status = int(item[u'subscribed'])
-        index.model().setData(index, int(not status), role=Qt.EditRole)
+        # index.model().setData(index, int(not status), role=Qt.EditRole)
+
+        if status:
+            self.window().on_channel_unsubscribe(item)
+        else:
+            self.window().on_channel_subscribe(item)
+        return True
 
     def on_table_item_clicked(self, item, doubleclick=False):
         # We don't want to trigger the click-based events on, say, Ctrl-click based selection

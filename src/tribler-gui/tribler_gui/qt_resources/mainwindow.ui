@@ -639,7 +639,7 @@ color: white;
            <property name="minimumSize">
             <size>
              <width>0</width>
-             <height>32</height>
+             <height>38</height>
             </size>
            </property>
            <property name="maximumSize">
@@ -683,6 +683,22 @@ QPushButton::menu-indicator{width:0px;}</string>
           </widget>
          </item>
          <item>
+          <spacer name="verticalSpacer_3">
+           <property name="orientation">
+            <enum>Qt::Vertical</enum>
+           </property>
+           <property name="sizeType">
+            <enum>QSizePolicy::Fixed</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>20</width>
+             <height>5</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
           <widget class="QPushButton" name="left_menu_button_discovered">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
@@ -719,96 +735,6 @@ QPushButton::menu-indicator{width:0px;}</string>
              <normaloff>../images/discovered.png</normaloff>
              <disabledoff>../images/discovered.png</disabledoff>
              <disabledon>../images/discovered.png</disabledon>../images/discovered.png</iconset>
-           </property>
-           <property name="iconSize">
-            <size>
-             <width>16</width>
-             <height>16</height>
-            </size>
-           </property>
-           <property name="checkable">
-            <bool>true</bool>
-           </property>
-           <property name="flat">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QPushButton" name="left_menu_button_my_channel">
-           <property name="minimumSize">
-            <size>
-             <width>0</width>
-             <height>26</height>
-            </size>
-           </property>
-           <property name="maximumSize">
-            <size>
-             <width>16777215</width>
-             <height>30</height>
-            </size>
-           </property>
-           <property name="cursor">
-            <cursorShape>PointingHandCursor</cursorShape>
-           </property>
-           <property name="focusPolicy">
-            <enum>Qt::NoFocus</enum>
-           </property>
-           <property name="styleSheet">
-            <string notr="true"/>
-           </property>
-           <property name="text">
-            <string> My Channel</string>
-           </property>
-           <property name="icon">
-            <iconset>
-             <normaloff>../images/share.png</normaloff>
-             <disabledon>../images/share.png</disabledon>../images/share.png</iconset>
-           </property>
-           <property name="iconSize">
-            <size>
-             <width>16</width>
-             <height>16</height>
-            </size>
-           </property>
-           <property name="checkable">
-            <bool>true</bool>
-           </property>
-           <property name="flat">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QPushButton" name="left_menu_button_subscriptions">
-           <property name="minimumSize">
-            <size>
-             <width>0</width>
-             <height>26</height>
-            </size>
-           </property>
-           <property name="maximumSize">
-            <size>
-             <width>16777215</width>
-             <height>30</height>
-            </size>
-           </property>
-           <property name="cursor">
-            <cursorShape>PointingHandCursor</cursorShape>
-           </property>
-           <property name="focusPolicy">
-            <enum>Qt::NoFocus</enum>
-           </property>
-           <property name="styleSheet">
-            <string notr="true"/>
-           </property>
-           <property name="text">
-            <string> Subscriptions</string>
-           </property>
-           <property name="icon">
-            <iconset>
-             <normaloff>../images/subscribed.png</normaloff>
-             <disabledon>../images/subscribed.png</disabledon>../images/subscribed.png</iconset>
            </property>
            <property name="iconSize">
             <size>
@@ -960,17 +886,104 @@ QPushButton::menu-indicator{width:0px;}</string>
           </widget>
          </item>
          <item>
-          <spacer name="verticalSpacer">
+          <spacer name="verticalSpacer_2">
            <property name="orientation">
             <enum>Qt::Vertical</enum>
+           </property>
+           <property name="sizeType">
+            <enum>QSizePolicy::Fixed</enum>
            </property>
            <property name="sizeHint" stdset="0">
             <size>
              <width>20</width>
-             <height>40</height>
+             <height>5</height>
             </size>
            </property>
           </spacer>
+         </item>
+         <item>
+          <layout class="QVBoxLayout" name="verticalLayout_5">
+           <item>
+            <widget class="ChannelsMenuListWidget" name="channels_menu_list">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Expanding" vsizetype="MinimumExpanding">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="cursor" stdset="0">
+              <cursorShape>PointingHandCursor</cursorShape>
+             </property>
+             <property name="styleSheet">
+              <string notr="true">QListWidget::item:hover {color:white;}
+QListWidget {
+    margin-left: 19px;
+}
+QListWidget::item:disabled
+{
+    color: grey;
+}</string>
+             </property>
+             <property name="frameShape">
+              <enum>QFrame::NoFrame</enum>
+             </property>
+             <property name="frameShadow">
+              <enum>QFrame::Sunken</enum>
+             </property>
+             <property name="horizontalScrollBarPolicy">
+              <enum>Qt::ScrollBarAlwaysOff</enum>
+             </property>
+             <property name="editTriggers">
+              <set>QAbstractItemView::NoEditTriggers</set>
+             </property>
+             <property name="iconSize">
+              <size>
+               <width>16</width>
+               <height>16</height>
+              </size>
+             </property>
+             <property name="itemAlignment">
+              <set>Qt::AlignVCenter</set>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <item>
+          <spacer name="verticalSpacer">
+           <property name="orientation">
+            <enum>Qt::Vertical</enum>
+           </property>
+           <property name="sizeType">
+            <enum>QSizePolicy::Minimum</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>20</width>
+             <height>10</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QPushButton" name="left_menu_button_new_channel">
+           <property name="focusPolicy">
+            <enum>Qt::NoFocus</enum>
+           </property>
+           <property name="text">
+            <string>New channel</string>
+           </property>
+           <property name="icon">
+            <iconset>
+             <normaloff>../images/plus.svg</normaloff>../images/plus.svg</iconset>
+           </property>
+           <property name="checkable">
+            <bool>false</bool>
+           </property>
+           <property name="flat">
+            <bool>true</bool>
+           </property>
+          </widget>
          </item>
         </layout>
        </widget>
@@ -978,9 +991,8 @@ QPushButton::menu-indicator{width:0px;}</string>
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>9</number>
+         <number>0</number>
         </property>
-        <widget class="ChannelContentsWidget" name="personal_channel_page"/>
         <widget class="ChannelContentsWidget" name="search_results_page"/>
         <widget class="SettingsPage" name="settings_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -2951,7 +2963,6 @@ color: white;</string>
           </item>
          </layout>
         </widget>
-        <widget class="ChannelContentsWidget" name="subscribed_channels_page"/>
         <widget class="DownloadsPage" name="downloads_page">
          <property name="styleSheet">
           <string notr="true">QTreeWidget {
@@ -5464,6 +5475,7 @@ margin: 10px 4px 2px 10px;</string>
           </item>
          </layout>
         </widget>
+        <widget class="ChannelContentsWidget" name="channel_contents_page"/>
        </widget>
       </item>
      </layout>
@@ -5552,6 +5564,11 @@ margin: 10px 4px 2px 10px;</string>
    <extends>QLineEdit</extends>
    <header>tribler_gui.widgets.clickable_line_edit.h</header>
   </customwidget>
+  <customwidget>
+   <class>ChannelsMenuListWidget</class>
+   <extends>QListWidget</extends>
+   <header>tribler_gui.widgets.channelsmenulistwidget.h</header>
+  </customwidget>
  </customwidgets>
  <resources/>
  <connections>
@@ -5620,86 +5637,6 @@ margin: 10px 4px 2px 10px;</string>
    </hints>
   </connection>
   <connection>
-   <sender>left_menu_button_subscriptions</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>clicked_menu_button_subscriptions()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>101</x>
-     <y>259</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>317</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>left_menu_button_my_channel</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>clicked_menu_button_my_channel()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>101</x>
-     <y>223</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>317</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>left_menu_button_downloads</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>clicked_menu_button_downloads()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>101</x>
-     <y>295</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>317</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>left_menu_button_discovered</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>clicked_menu_button_discovered()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>101</x>
-     <y>187</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>327</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>left_menu_button_debug</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>clicked_menu_button_debug()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>95</x>
-     <y>403</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>327</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
    <sender>force_shutdown_btn</sender>
    <signal>clicked()</signal>
    <receiver>MainWindow</receiver>
@@ -5732,6 +5669,22 @@ margin: 10px 4px 2px 10px;</string>
    </hints>
   </connection>
   <connection>
+   <sender>left_menu_button_downloads</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>clicked_menu_button_downloads()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>101</x>
+     <y>295</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>427</x>
+     <y>317</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
    <sender>left_menu_button_trust_graph</sender>
    <signal>clicked()</signal>
    <receiver>MainWindow</receiver>
@@ -5747,6 +5700,38 @@ margin: 10px 4px 2px 10px;</string>
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>left_menu_button_debug</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>clicked_menu_button_debug()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>95</x>
+     <y>403</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>427</x>
+     <y>327</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>left_menu_button_discovered</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>clicked_menu_button_discovered()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>101</x>
+     <y>187</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>427</x>
+     <y>327</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>on_top_search_button_click()</slot>
@@ -5758,7 +5743,6 @@ margin: 10px 4px 2px 10px;</string>
   <slot>clicked_menu_button_subscriptions()</slot>
   <slot>clicked_edit_channel_commit_button()</slot>
   <slot>on_search_text_change()</slot>
-  <slot>on_page_back_clicked()</slot>
   <slot>on_edit_channel_clicked()</slot>
   <slot>clicked_menu_button_discovered()</slot>
   <slot>clicked_menu_button_debug()</slot>

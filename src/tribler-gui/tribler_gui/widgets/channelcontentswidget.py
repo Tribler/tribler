@@ -1,11 +1,12 @@
-import os
 import uuid
 from base64 import b64encode
 
 from PyQt5 import uic
-from PyQt5.QtCore import QDir, QTimer, Qt, pyqtSignal
+from PyQt5.QtCore import QDir, QTimer, Qt
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QAction, QFileDialog
+
+from tribler_common.simpledefs import CHANNEL_STATE
 
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import DIRTY_STATUSES, NEW
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE
@@ -15,12 +16,13 @@ from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler_gui.dialogs.new_channel_dialog import NewChannelDialog
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.utilities import get_gui_setting, get_image_path, get_ui_file_path
+from tribler_gui.utilities import get_image_path, get_ui_file_path
 from tribler_gui.widgets.tablecontentmodel import (
     ChannelContentModel,
     DiscoveredChannelsModel,
     PersonalChannelsModel,
     SearchResultsModel,
+    SimplifiedPersonalChannelsModel,
 )
 from tribler_gui.widgets.triblertablecontrollers import ContentTableViewController
 
@@ -31,9 +33,6 @@ widget_form, widget_class = uic.loadUiType(get_ui_file_path('torrents_list.ui'))
 
 
 class ChannelContentsWidget(widget_form, widget_class):
-    on_torrents_removed = pyqtSignal(list)
-    on_all_torrents_removed = pyqtSignal()
-
     def __init__(self, parent=None):
         super(widget_class, self).__init__(parent=parent)
         # FIXME!!! This is a dumb workaround for a bug(?) in PyQT bindings in Python 3.7
@@ -61,10 +60,13 @@ class ChannelContentsWidget(widget_form, widget_class):
         self.controller = None
         self.commit_timer = None
         self.autocommit_enabled = None
+        self.channel_options_menu = None
 
         self.channels_stack = []
 
         self_ref = self
+
+        self.hide_xxx = None
 
         # This context manager is used to freeze the state of controls in the models stack to
         # prevent signals from triggering for inactive models.
@@ -87,6 +89,10 @@ class ChannelContentsWidget(widget_form, widget_class):
         self.setStyleSheet("QToolTip { color: #222222; background-color: #eeeeee; border: 0px; }")
 
     @property
+    def personal_channel_model(self):
+        return SimplifiedPersonalChannelsModel if self.autocommit_enabled else PersonalChannelsModel
+
+    @property
     def model(self):
         return self.channels_stack[-1] if self.channels_stack else None
 
@@ -94,24 +100,24 @@ class ChannelContentsWidget(widget_form, widget_class):
         if response and response.get("success", False):
             if not self.autocommit_enabled:
                 self.commit_control_bar.setHidden(True)
-            self.model.reset()
-            self.update_labels()
+            if self.model:
+                self.model.reset()
+                self.update_labels()
 
     def commit_channels(self):
         TriblerNetworkRequest("channels/mychannel/0/commit", self.on_channel_committed, method='POST')
 
-    def initialize_content_page(self, gui_settings, edit_enabled=False):
+    def initialize_content_page(self, autocommit_enabled=True, hide_xxx=None):
         if self.initialized:
             return
 
+        self.hide_xxx = hide_xxx
         self.initialized = True
-        self.edit_channel_contents_top_bar.setHidden(not edit_enabled)
         self.category_selector.addItems(CATEGORY_SELECTOR_ITEMS)
         self.category_selector.currentIndexChanged.connect(self.on_category_selector_changed)
         self.channel_back_button.setIcon(QIcon(get_image_path('page_back.png')))
         self.channel_back_button.clicked.connect(self.go_back)
         self.channel_name_label.linkActivated.connect(self.on_breadcrumb_clicked)
-        self.channel_options_button.clicked.connect(self.show_channel_options)
         self.commit_control_bar.setHidden(True)
 
         self.controller = ContentTableViewController(
@@ -121,10 +127,9 @@ class ChannelContentsWidget(widget_form, widget_class):
         # To reload the preview
         self.channel_preview_button.clicked.connect(self.preview_clicked)
 
-        # self.channel_options_button.hide()
-        self.autocommit_enabled = edit_enabled and (
-            get_gui_setting(gui_settings, "autocommit_enabled", True, is_bool=True) if gui_settings else True
-        )
+        self.autocommit_enabled = autocommit_enabled
+        if self.autocommit_enabled:
+            self._enable_autocommit_timer()
 
         # New channel button
         self.new_channel_button.clicked.connect(self.create_new_channel)
@@ -132,19 +137,21 @@ class ChannelContentsWidget(widget_form, widget_class):
         self.edit_channel_commit_button.clicked.connect(self.commit_channels)
 
         self.subscription_widget.initialize(self)
+
+        self.channel_options_menu = self.create_channel_options_menu()
+        self.channel_options_button.setMenu(self.channel_options_menu)
+
+    def _enable_autocommit_timer(self):
+
+        self.commit_timer = QTimer()
+        self.commit_timer.setSingleShot(True)
+        self.commit_timer.timeout.connect(self.commit_channels)
+
         # Commit the channel just in case there are uncommitted changes left since the last time (e.g. Tribler crashed)
         # The timer thing here is a workaround for race condition with the core startup
-        if self.autocommit_enabled:
-            if not self.commit_timer:
-                self.commit_timer = QTimer()
-                self.commit_timer.setSingleShot(True)
-                self.commit_timer.timeout.connect(self.commit_channels)
-
-            self.controller.table_view.setColumnHidden(3, True)
-            self.commit_timer.stop()
-            self.commit_timer.start(10000)
-        else:
-            self.controller.table_view.setColumnHidden(4, True)
+        self.controller.table_view.setColumnHidden(3, True)
+        self.commit_timer.stop()
+        self.commit_timer.start(10000)
 
     def on_category_selector_changed(self, ind):
         category = CATEGORY_SELECTOR_ITEMS[ind] if ind else None
@@ -179,6 +186,7 @@ class ChannelContentsWidget(widget_form, widget_class):
             self.channel_torrents_filter_input.setText("")
 
     def on_model_info_changed(self, changed_entries):
+        self.window().channels_menu_list.reload_if_necessary(changed_entries)
         dirty = False
         structure_changed = False
         for entry in changed_entries:
@@ -198,6 +206,14 @@ class ChannelContentsWidget(widget_form, widget_class):
 
         # TODO: optimize me: maybe we don't need to update the labels each time?
         self.update_labels(dirty)
+
+    def initialize_root_model_from_channel_info(self, channel_info):
+        if channel_info.get("state") == CHANNEL_STATE.PERSONAL.value:
+            self.default_channel_model = self.personal_channel_model
+        else:
+            self.default_channel_model = ChannelContentModel
+        model = self.default_channel_model(hide_xxx=self.hide_xxx, channel_info=channel_info)
+        self.initialize_root_model(model)
 
     def initialize_root_model(self, root_model):
         self.empty_channels_stack()
@@ -302,7 +318,6 @@ class ChannelContentsWidget(widget_form, widget_class):
         self.controller.table_view.resizeEvent(None)
 
         self.content_table.setFocus()
-        self.channel_options_button.show()
 
     def update_labels(self, dirty=False):
 
@@ -314,6 +329,7 @@ class ChannelContentsWidget(widget_form, widget_class):
         search = isinstance(self.model, SearchResultsModel)
         discovered = isinstance(self.model, DiscoveredChannelsModel)
         personal_model = isinstance(self.model, PersonalChannelsModel)
+        is_a_channel = self.model.channel_info.get("type", None) == CHANNEL_TORRENT
 
         self.category_selector.setHidden(root and (discovered or personal_model))
         # initialize the channel page
@@ -347,23 +363,26 @@ class ChannelContentsWidget(widget_form, widget_class):
         if len(breadcrumb_text) >= len(slash_separator):
             breadcrumb_text = breadcrumb_text[len(slash_separator) :]
 
-        self.new_channel_button.setText("NEW CHANNEL" if root else "NEW FOLDER")
+        self.edit_channel_contents_top_bar.setHidden(not personal)
+        self.new_channel_button.setText("NEW CHANNEL" if not is_a_channel and not folder else "NEW FOLDER")
 
         self.channel_name_label.setText(breadcrumb_text)
         self.channel_name_label.setTextInteractionFlags(Qt.TextBrowserInteraction)
 
         self.channel_back_button.setHidden(root)
-        self.channel_options_button.setHidden(not personal or root)
-        self.new_channel_button.setHidden(not personal)
+        self.channel_options_button.setHidden(not personal_model or not personal or (root and not is_a_channel))
+        self.new_channel_button.setHidden(not personal_model or not personal)
 
         self.channel_state_label.setText(self.model.channel_info.get("state", "This text should not ever be shown"))
 
-        self.subscription_widget.setHidden(root or personal or folder or legacy)
+        self.subscription_widget.setHidden(not is_a_channel or personal or folder or legacy)
         if not self.subscription_widget.isHidden():
             self.subscription_widget.update_subscribe_button(self.model.channel_info)
 
-        self.channel_preview_button.setHidden((root and not search) or personal or legacy or complete)
-        self.channel_state_label.setHidden(root or personal or complete)
+        self.channel_preview_button.setHidden(
+            (root and not search and not is_a_channel) or personal or legacy or complete
+        )
+        self.channel_state_label.setHidden((root and not is_a_channel) or personal)
 
         self.commit_control_bar.setHidden(self.autocommit_enabled or not dirty or not personal)
 
@@ -380,109 +399,20 @@ class ChannelContentsWidget(widget_form, widget_class):
     # TODO: make this into a separate object, stop reconnecting stuff each time
     # ==============================
 
-    def show_channel_options(self):
+    def create_channel_options_menu(self):
         browse_files_action = QAction('Add .torrent file', self)
         browse_dir_action = QAction('Add torrent(s) directory', self)
         add_url_action = QAction('Add URL/magnet links', self)
-        remove_all_action = QAction('Remove all', self)
-        export_channel_action = QAction('Export channel', self)
 
         browse_files_action.triggered.connect(self.on_add_torrent_browse_file)
         browse_dir_action.triggered.connect(self.on_add_torrents_browse_dir)
         add_url_action.triggered.connect(self.on_add_torrent_from_url)
-        remove_all_action.triggered.connect(self.on_torrents_remove_all_clicked)
-        export_channel_action.triggered.connect(self.on_export_mdblob)
 
         channel_options_menu = TriblerActionMenu(self)
         channel_options_menu.addAction(browse_files_action)
         channel_options_menu.addAction(browse_dir_action)
         channel_options_menu.addAction(add_url_action)
-        channel_options_menu.addSeparator()
-        channel_options_menu.addAction(remove_all_action)
-        channel_options_menu.addSeparator()
-        channel_options_menu.addAction(export_channel_action)
-
-        options_btn_pos = self.channel_options_button.pos()
-        options_btn_geometry = self.channel_options_button.geometry()
-        options_btn_pos.setX(
-            options_btn_pos.x() - channel_options_menu.geometry().width() + options_btn_geometry.width()
-        )
-        options_btn_pos.setY(options_btn_pos.y() + options_btn_geometry.height())
-        channel_options_menu.exec_(self.mapToGlobal(options_btn_pos))
-
-    def on_export_mdblob(self):
-        export_dir = QFileDialog.getExistingDirectory(
-            self, "Please select the destination directory", "", QFileDialog.ShowDirsOnly
-        )
-
-        if len(export_dir) == 0:
-            return
-
-        # Show confirmation dialog where we specify the name of the file
-        mdblob_name = self.model.channel_info["public_key"]
-        dialog = ConfirmationDialog(
-            self,
-            "Export mdblob file",
-            "Please enter the name of the channel metadata file:",
-            [('SAVE', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
-            show_input=True,
-        )
-
-        def on_export_download_dialog_done(action):
-            if action == 0:
-                dest_path = os.path.join(export_dir, dialog.dialog_widget.dialog_input.text())
-                TriblerNetworkRequest(
-                    "channels/discovered/%s/mdblob" % mdblob_name,
-                    lambda data, _: on_export_download_request_done(dest_path, data),
-                )
-
-            dialog.close_dialog()
-
-        def on_export_download_request_done(dest_path, data):
-            try:
-                torrent_file = open(dest_path, "wb")
-                torrent_file.write(data)
-                torrent_file.close()
-            except IOError as exc:
-                ConfirmationDialog.show_error(
-                    self.window(),
-                    "Error when exporting file",
-                    "An error occurred when exporting the torrent file: %s" % str(exc),
-                )
-            else:
-                self.window().tray_show_message("Torrent file exported", "Torrent file exported to %s" % dest_path)
-
-        dialog.dialog_widget.dialog_input.setPlaceholderText('Channel file name')
-        dialog.dialog_widget.dialog_input.setText("%s.mdblob" % mdblob_name)
-        dialog.dialog_widget.dialog_input.setFocus()
-        dialog.button_clicked.connect(on_export_download_dialog_done)
-        dialog.show()
-
-    # Torrent removal-related methods
-    def on_torrents_remove_all_clicked(self):
-        self.dialog = ConfirmationDialog(
-            self.window(),
-            "Remove all torrents",
-            "Are you sure that you want to remove all torrents from your channel?",
-            [('CONFIRM', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
-        )
-        self.dialog.button_clicked.connect(self.on_torrents_remove_all_action)
-        self.dialog.show()
-
-    def on_torrents_remove_all_action(self, action):
-        if action == 0:
-            TriblerNetworkRequest("mychannel/torrents", self.on_all_torrents_removed_response, method='DELETE')
-
-        self.dialog.close_dialog()
-        self.dialog = None
-
-    def on_all_torrents_removed_response(self, json_result):
-        if not json_result:
-            return
-
-        if 'success' in json_result and json_result['success']:
-            self.on_all_torrents_removed.emit()
-            self.model.reset()
+        return channel_options_menu
 
     # Torrent addition-related methods
     def on_add_torrents_browse_dir(self):

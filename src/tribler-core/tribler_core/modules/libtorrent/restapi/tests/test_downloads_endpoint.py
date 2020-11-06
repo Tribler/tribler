@@ -1,16 +1,13 @@
 import os
-from binascii import unhexlify
 from unittest.mock import Mock
 
 from ipv8.util import fail, succeed
-
-from pony.orm import db_session
 
 import pytest
 
 from tribler_core.modules.libtorrent.download_state import DownloadState
 from tribler_core.restapi.base_api_test import do_request
-from tribler_core.tests.tools.common import TESTS_DATA_DIR, TESTS_DIR
+from tribler_core.tests.tools.common import TESTS_DATA_DIR
 from tribler_core.utilities.unicode import hexlify
 
 
@@ -436,58 +433,3 @@ async def test_change_hops_fail(enable_api, mock_dlmgr, test_download, session):
     await do_request(session, 'downloads/%s' % test_download.infohash, post_data={'anon_hops': 1},
                      expected_code=500, request_type='PATCH',
                      expected_json={'error': {'message': '', 'code': 'RuntimeError', 'handled': True}})
-
-
-@pytest.mark.asyncio
-async def test_add_metadata_download(enable_chant, enable_api, session):
-    """
-    Test adding a channel metadata download to the Tribler core
-    """
-    post_data = {'uri': 'file:%s' % (TESTS_DIR / 'data/sample_channel/channel.mdblob')}
-    expected_json = {'started': True, 'infohash': 'ea95d47988b4dcb07667194c998d2c5b473132e5'}
-    await do_request(session, 'downloads', expected_code=200, request_type='PUT',
-                     post_data=post_data, expected_json=expected_json)
-    with db_session:
-        assert session.mds.ChannelMetadata.select().count() == 1
-        assert session.mds.ChannelMetadata.get().subscribed
-
-
-@pytest.mark.asyncio
-async def test_add_metadata_download_already_added(enable_chant, enable_api, session):
-    """
-    Test adding a channel metadata download to the Tribler core
-    """
-    with db_session:
-        session.mds.process_mdblob_file(TESTS_DIR / 'data/sample_channel/channel.mdblob')
-    post_data = {'uri': 'file:%s' % (TESTS_DIR / 'data/sample_channel/channel.mdblob')}
-    expected_json = {'error': 'Could not import Tribler metadata file'}
-    await do_request(session, 'downloads', expected_code=200, request_type='PUT', post_data=post_data,
-                     expected_json=expected_json)
-
-
-@pytest.mark.asyncio
-async def test_add_metadata_download_invalid_sig(enable_chant, enable_api, session, tmpdir):
-    """
-    Test whether adding metadata with an invalid signature results in an error
-    """
-    file_path = tmpdir / "invalid.mdblob"
-    with open(file_path, "wb") as out_file:
-        with db_session:
-            my_channel = session.mds.ChannelMetadata.create_channel('test', 'test')
-
-        hexed = hexlify(my_channel.serialized()).encode('utf-8')[:-5] + b"aaaaa"
-        out_file.write(unhexlify(hexed))
-
-    post_data = {'uri': f'file:{file_path}', 'metadata_download': '1'}
-    expected_json = {'error': "Metadata has invalid signature"}
-    await do_request(session, 'downloads', expected_code=400, request_type='PUT', post_data=post_data,
-                     expected_json=expected_json)
-
-
-@pytest.mark.asyncio
-async def test_add_invalid_metadata_download(enable_chant, enable_api, session):
-    """
-    Test adding an invalid metadata download to the Tribler core
-    """
-    post_data = {'uri': 'file:%s' % (TESTS_DATA_DIR / 'notexisting.mdblob'), 'metadata_download': '1'}
-    await do_request(session, 'downloads', expected_code=400, request_type='PUT', post_data=post_data)

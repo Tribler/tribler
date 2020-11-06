@@ -430,7 +430,9 @@ class ChannelContentModel(RemoteTableModel):
         attribute_name = self.columns[index.column()]
         attribute_name = u'tags' if attribute_name == u'category' else attribute_name
         attribute_name = u'title' if attribute_name == u'name' else attribute_name
-        attribute_name = u'subscribed' if attribute_name == u'votes' else attribute_name
+
+        if attribute_name == 'subscribed':
+            return True
 
         def on_row_update_results(response):
             if not response:
@@ -502,16 +504,10 @@ class PersonalChannelsModel(ChannelContentModel):
                     {"public_key": entry[u'public_key'], "id": entry[u'id'], "status": COMMIT_STATUS_TODELETE}
                 )
 
-        def on_torrents_deleted(json_result):
-            if not json_result:
-                return
-            self.remove_items(json_result)
-            self.info_changed.emit(json_result)
-
         if patch_data:
-            TriblerNetworkRequest("metadata", on_torrents_deleted, raw_data=json.dumps(patch_data), method='PATCH')
+            TriblerNetworkRequest("metadata", self.remove_items, raw_data=json.dumps(patch_data), method='PATCH')
         if delete_data:
-            TriblerNetworkRequest("metadata", on_torrents_deleted, raw_data=json.dumps(delete_data), method='DELETE')
+            TriblerNetworkRequest("metadata", self.remove_items, raw_data=json.dumps(delete_data), method='DELETE')
 
     def create_new_channel(self, channel_name=None):
         url = (

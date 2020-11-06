@@ -1,12 +1,7 @@
-import json
-
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QLabel, QWidget
 
-import tribler_core.utilities.json_util as json
-
-from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import format_votes_rich_text, get_votes_rating_description
 from tribler_gui.widgets.tablecontentdelegate import DARWIN
 
@@ -42,11 +37,24 @@ class SubscriptionsWidget(QWidget):
         tooltip = ("Subscribed." if toggled else "Not subscribed.") + "\n(Click to unsubscribe)"
         self.subscribe_button.setToolTip(tooltip)
 
+    def update_subscribe_button_if_channel_matches(self, changed_channels_list):
+        # TODO: the stuff requires MAJOR refactoring with properly implemented QT MVC model...
+        if not (self.contents_widget.model and self.contents_widget.model.channel_info.get("public_key")):
+            return
+        for channel_info in changed_channels_list:
+            if (
+                self.contents_widget.model.channel_info["public_key"] == channel_info["public_key"]
+                and self.contents_widget.model.channel_info["id"] == channel_info["id"]
+            ):
+                self.update_subscribe_button(remote_response=channel_info)
+                return
+
     def update_subscribe_button(self, remote_response=None):
         # A safeguard against race condition that happens when the user changed
         # the channel view before the response came in
         if self.isHidden():
             return
+
         if remote_response and "subscribed" in remote_response:
             self.contents_widget.model.channel_info["subscribed"] = remote_response["subscribed"]
 
@@ -64,10 +72,10 @@ class SubscriptionsWidget(QWidget):
         self.channel_rating_label.setToolTip(get_votes_rating_description(votes))
 
     def on_subscribe_button_click(self):
-        TriblerNetworkRequest(
-            "metadata/%s/%i"
-            % (self.contents_widget.model.channel_info[u'public_key'], self.contents_widget.model.channel_info[u'id']),
-            lambda data: self.update_subscribe_button(remote_response=data),
-            raw_data=json.dumps({"subscribed": int(not self.contents_widget.model.channel_info["subscribed"])}),
-            method='PATCH',
-        )
+        self.subscribe_button.setCheckedInstant(bool(self.contents_widget.model.channel_info["subscribed"]))
+        channel_info = self.contents_widget.model.channel_info
+        if channel_info["subscribed"]:
+            # Show the global unsubscribe confirmation dialog
+            self.window().on_channel_unsubscribe(channel_info)
+        else:
+            self.window().on_channel_subscribe(channel_info)
