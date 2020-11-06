@@ -2,7 +2,7 @@ import uuid
 from base64 import b64encode
 
 from PyQt5 import uic
-from PyQt5.QtCore import QDir, QTimer, Qt, pyqtSignal
+from PyQt5.QtCore import QDir, QTimer, Qt
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QAction, QFileDialog
 
@@ -33,9 +33,6 @@ widget_form, widget_class = uic.loadUiType(get_ui_file_path('torrents_list.ui'))
 
 
 class ChannelContentsWidget(widget_form, widget_class):
-    on_torrents_removed = pyqtSignal(list)
-    on_all_torrents_removed = pyqtSignal()
-
     def __init__(self, parent=None):
         super(widget_class, self).__init__(parent=parent)
         # FIXME!!! This is a dumb workaround for a bug(?) in PyQT bindings in Python 3.7
@@ -406,47 +403,16 @@ class ChannelContentsWidget(widget_form, widget_class):
         browse_files_action = QAction('Add .torrent file', self)
         browse_dir_action = QAction('Add torrent(s) directory', self)
         add_url_action = QAction('Add URL/magnet links', self)
-        remove_all_action = QAction('Remove all', self)
 
         browse_files_action.triggered.connect(self.on_add_torrent_browse_file)
         browse_dir_action.triggered.connect(self.on_add_torrents_browse_dir)
         add_url_action.triggered.connect(self.on_add_torrent_from_url)
-        remove_all_action.triggered.connect(self.on_torrents_remove_all_clicked)
 
         channel_options_menu = TriblerActionMenu(self)
         channel_options_menu.addAction(browse_files_action)
         channel_options_menu.addAction(browse_dir_action)
         channel_options_menu.addAction(add_url_action)
-        channel_options_menu.addSeparator()
-        channel_options_menu.addAction(remove_all_action)
-        channel_options_menu.addSeparator()
         return channel_options_menu
-
-    # Torrent removal-related methods
-    def on_torrents_remove_all_clicked(self):
-        self.dialog = ConfirmationDialog(
-            self.window(),
-            "Remove all torrents",
-            "Are you sure that you want to remove all torrents from your channel?",
-            [('CONFIRM', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
-        )
-        self.dialog.button_clicked.connect(self.on_torrents_remove_all_action)
-        self.dialog.show()
-
-    def on_torrents_remove_all_action(self, action):
-        if action == 0:
-            TriblerNetworkRequest("mychannel/torrents", self.on_all_torrents_removed_response, method='DELETE')
-
-        self.dialog.close_dialog()
-        self.dialog = None
-
-    def on_all_torrents_removed_response(self, json_result):
-        if not json_result:
-            return
-
-        if 'success' in json_result and json_result['success']:
-            self.on_all_torrents_removed.emit()
-            self.model.reset()
 
     # Torrent addition-related methods
     def on_add_torrents_browse_dir(self):
