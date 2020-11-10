@@ -264,9 +264,16 @@ class SubscribedControlMixin(object):
         if data_item[u'state'] == u'Personal':
             return True
 
-        self.subscribe_control.paint(
-            painter, option.rect, index, toggled=data_item.get('subscribed'), hover=index == self.hover_index
-        )
+        # When cursor leaves the table, we must "forget" about the button_box
+        if self.hoverrow == -1:
+            self.button_box = QRect()
+
+        if index.row() == self.hoverrow:
+            self.subscribe_control.paint(
+                painter, option.rect, index, toggled=data_item.get('subscribed'), hover=index == self.hover_index
+            )
+        else:
+            self.draw_channel_state(painter, option, index, data_item)
 
         return True
 

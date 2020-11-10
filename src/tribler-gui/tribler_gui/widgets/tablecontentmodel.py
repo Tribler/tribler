@@ -464,8 +464,8 @@ class SearchResultsModel(ChannelContentModel):
 
 
 class DiscoveredChannelsModel(ChannelContentModel):
-    columns = [u'subscribed', u'name', u'state', u'torrents', u'votes', u'updated']
-    column_headers = [tr('Subscribed'), tr('Name'), u'', tr('Torrents'), tr('Popularity'), tr('Updated')]
+    columns = [u'subscribed', u'name', u'torrents', u'votes', u'updated']
+    column_headers = [tr('Subscribed'), tr('Name'), tr('Torrents'), tr('Popularity'), tr('Updated')]
 
     column_width = dict(ChannelContentModel.column_width, **{u'name': lambda table_width: table_width - 540})
     default_sort_column = columns.index(u'votes')
