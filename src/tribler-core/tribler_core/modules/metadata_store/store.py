@@ -52,6 +52,11 @@ UNKNOWN_TORRENT = 5
 DELETED_METADATA = 6
 UNKNOWN_COLLECTION = 7
 
+
+MIN_BATCH_SIZE = 10
+MAX_BATCH_SIZE = 1000
+
+
 # This table should never be used from ORM directly.
 # It is created as a VIRTUAL table by raw SQL and
 # maintained by SQL triggers.
@@ -370,8 +375,6 @@ class MetadataStore(object):
             with db_session:
                 for payload in batch:
                     result.extend(self.process_payload(payload, **kwargs))
-            if external_thread:
-                sleep(self.sleep_on_external_thread)
 
             # Batch size adjustment
             batch_end_time = datetime.now() - batch_start_time
@@ -382,7 +385,9 @@ class MetadataStore(object):
                     self.batch_size += self.batch_size
                 elif target_coeff > 1.0:
                     self.batch_size = int(float(self.batch_size) / target_coeff)
-                self.batch_size += 1  # we want to guarantee that at least something will go through
+                # we want to guarantee that at least something
+                # will go through, but not too much
+                self.batch_size = min(max(self.batch_size, MIN_BATCH_SIZE), MAX_BATCH_SIZE)
             self._logger.debug(
                 (
                     "Added payload batch to DB (entries, seconds): %i %f",
@@ -392,6 +397,9 @@ class MetadataStore(object):
             start = end
             if self._shutting_down:
                 break
+
+            if external_thread:
+                sleep(self.sleep_on_external_thread)
 
         # TODO: this is not the best place to bump votes. It is more correct to do it directly in process_payload.
         if peer_vote_for_channels is not None:
