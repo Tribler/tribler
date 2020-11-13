@@ -154,8 +154,8 @@ class BandwidthAccountingCommunity(Community):
         Query a random peer neighbouring peer and ask their bandwidth transactions.
         """
         peers = list(self.network.verified_peers)
-        random_peer = self.random.choice(peers)
-        if random_peer:
+        if peers:
+            random_peer = self.random.choice(peers)
             self.query_transactions(random_peer)
 
     def query_transactions(self, peer: Peer) -> None:
