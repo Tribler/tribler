@@ -60,8 +60,6 @@ def define_binding(db):
         torrent_date = orm.Optional(datetime, default=datetime.utcnow, index=True)
         tracker_info = orm.Optional(str, default='')
 
-        orm.composite_key(db.ChannelNode.public_key, db.ChannelNode.origin_id, infohash)
-
         # Local
         xxx = orm.Optional(float, default=0)
         health = orm.Optional('TorrentState', reverse='metadata')

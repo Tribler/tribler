@@ -248,9 +248,9 @@ def test_compute_channel_update_progress(metadata_store, tmpdir):
 @db_session
 def test_process_payload(metadata_store):
 
+    metadata_store.ChannelNode._my_key = default_eccrypto.generate_key(u"curve25519")
     _, node_payload, node_deleted_payload = get_payloads(metadata_store.ChannelNode)
 
-    metadata_store.ChannelNode._my_key = default_eccrypto.generate_key(u"curve25519")
     assert not metadata_store.process_payload(node_payload)
     assert [(None, DELETED_METADATA)] == metadata_store.process_payload(node_deleted_payload)
     # Do nothing in case it is unknown/abstract payload type, like ChannelNode
@@ -285,7 +285,7 @@ def test_process_payload_ffa(metadata_store):
 
     # Assert that FFA is never added to DB if there is already a signed entry with the same infohash
     signed_md = metadata_store.TorrentMetadata(infohash=infohash, title="sdfsdfsdf")
-    signed_md_payload = metadata_store.TorrentMetadata._payload_class.from_signed_blob(signed_md.serialized())
+    metadata_store.TorrentMetadata._payload_class.from_signed_blob(signed_md.serialized())
     assert [(None, NO_ACTION)] == metadata_store.process_payload(ffa_payload)
     signed_md.delete()
 
@@ -297,38 +297,13 @@ def test_process_payload_ffa(metadata_store):
     # Assert that older FFAs are never replaced by newer ones with the same infohash
     assert [(None, NO_ACTION)] == metadata_store.process_payload(ffa_payload)
 
-    # Assert that FFA entry is replaced by a signed entry when we receive one with the same infohash
-    metadata_store.process_payload(signed_md_payload, skip_personal_metadata_payload=False)
-    assert database_blob(signed_md_payload.signature) == metadata_store.TorrentMetadata.get(infohash=infohash).signature
-
 
 @db_session
-def test_process_payload_merge_entries(metadata_store):
-    # Check the corner case where the new entry must replace two old entries: one with a matching infohash, and
-    # another one with a non-matching id
-    node = metadata_store.TorrentMetadata(infohash=database_blob(random_infohash()))
-    node_dict = node.to_dict()
-    node.delete()
-
-    node2 = metadata_store.TorrentMetadata(infohash=database_blob(random_infohash()))
-    node2_dict = node2.to_dict()
-    node2.delete()
-
-    node_updated = metadata_store.TorrentMetadata(
-        infohash=node_dict["infohash"], id_=node2_dict["id_"], timestamp=node2_dict["timestamp"] + 1
-    )
-    node_updated_payload = node_updated._payload_class.from_signed_blob(node_updated.serialized())
-    node_updated.delete()
-
-    metadata_store.TorrentMetadata(**node_dict)
-    metadata_store.TorrentMetadata(**node2_dict)
-
-    result = metadata_store.process_payload(node_updated_payload, skip_personal_metadata_payload=False)
-    assert (None, DELETED_METADATA) in result
-    assert (metadata_store.TorrentMetadata.get(), UPDATED_OUR_VERSION) in result
-    assert database_blob(metadata_store.TorrentMetadata.select()[:][0].signature) == database_blob(
-        node_updated_payload.signature
-    )
+def test_get_parents_ids(metadata_store):
+    channel = metadata_store.ChannelMetadata(infohash=database_blob(random_infohash()))
+    folder = metadata_store.CollectionNode(origin_id=channel.id_)
+    torrent = metadata_store.TorrentMetadata(origin_id=folder.id_, infohash=database_blob(random_infohash()))
+    assert (0, channel.id_, folder.id_) == torrent.get_parents_ids()
 
 
 @db_session
@@ -336,44 +311,16 @@ def test_process_payload_reject_older(metadata_store):
     # Check there is no action if the processed payload has a timestamp that is less than the
     # local_version of the corresponding local channel. (I.e. remote peer trying to push back a deleted entry)
     channel = metadata_store.ChannelMetadata(
-        title='bla', version=123, timestamp=10, local_version=12, infohash=database_blob(random_infohash())
+        title='bla', version=123, timestamp=12, local_version=12, infohash=database_blob(random_infohash())
     )
     torrent = metadata_store.TorrentMetadata(
         title='blabla', timestamp=11, origin_id=channel.id_, infohash=database_blob(random_infohash())
     )
     payload = torrent._payload_class(**torrent.to_dict())
     torrent.delete()
-    assert [(None, NO_ACTION)] == metadata_store.process_payload(payload, skip_personal_metadata_payload=False)
-
-
-@db_session
-def test_process_payload_reject_older_entry_with_known_infohash_or_merge(metadata_store):
-    # Check there is no action if the processed payload has a timestamp that is less than the
-    # local_version of the corresponding local channel. (I.e. remote peer trying to push back a deleted entry)
-    torrent = metadata_store.TorrentMetadata(
-        title='blabla', timestamp=10, id_=10, infohash=database_blob(random_infohash())
+    assert [(channel, GOT_NEWER_VERSION)] == metadata_store.process_payload(
+        payload, skip_personal_metadata_payload=False
     )
-    payload = torrent._payload_class(**torrent.to_dict())
-    torrent.delete()
-
-    torrent2 = metadata_store.TorrentMetadata(title='blabla', timestamp=11, id_=3, infohash=payload.infohash)
-    payload2 = torrent._payload_class(**torrent2.to_dict())
-    torrent2.delete()
-
-    torrent3 = metadata_store.TorrentMetadata(title='blabla', timestamp=12, id_=4, infohash=payload.infohash)
-    payload3 = torrent._payload_class(**torrent3.to_dict())
-    torrent3.delete()
-
-    # Test rejecting older entry with the same infohash
-    metadata_store.process_payload(payload2, skip_personal_metadata_payload=False)
-    assert GOT_NEWER_VERSION == metadata_store.process_payload(payload, skip_personal_metadata_payload=False)[0][1]
-
-    # In this corner case the newly arrived payload contains a newer node
-    # that has the same infohash as the one that is already there.
-    # The older one should be deleted, and the newer one should be installed instead.
-    results = metadata_store.process_payload(payload3, skip_personal_metadata_payload=False)
-    assert (None, DELETED_METADATA) in results
-    assert (metadata_store.TorrentMetadata.get(), UNKNOWN_TORRENT) in results
 
 
 @db_session
