@@ -428,6 +428,13 @@ class MetadataStore(object):
 
         # In case we're processing a channel, we allow only payloads with the channel's public_key
         if channel_public_key is not None and payload.public_key != channel_public_key:
+            self._logger.warning(
+                "Tried to push metadata entry with foreign public key.\
+             Expected public key: %s, entry public key / id: %s / %i",
+                hexlify(channel_public_key),
+                payload.public_key,
+                payload.id_,
+            )
             return [(None, NO_ACTION)]
 
         if payload.metadata_type == DELETED:
@@ -468,7 +475,7 @@ class MetadataStore(object):
                     if 0 in parents_ids:
                         parent_channel = self.ChannelNode.get(public_key=payload.public_key, id_=parents_ids[1])
                 if parent_channel and parent_channel.local_version > payload.timestamp:
-                    return [(parent_channel, GOT_NEWER_VERSION)]
+                    return [(None, NO_ACTION)]
 
         # Check for the older version of the added node
         node = self.ChannelNode.get_for_update(public_key=database_blob(payload.public_key), id_=payload.id_)
@@ -501,7 +508,7 @@ class MetadataStore(object):
                 return [(node, UPDATED_OUR_VERSION)]
             # Workaround for the corner case of remote change of md type.
             # We delete the original node and replace it with the updated one.
-            for orm_class in (self.TorrentMetadata, self.ChannelMetadata, self.CollectionNode):
+            for orm_class in (self.ChannelMetadata, self.CollectionNode):
                 if orm_class._discriminator_ == payload.metadata_type:
                     node.delete()
                     return [(orm_class.from_payload(payload), UPDATED_OUR_VERSION)]
@@ -534,7 +541,7 @@ class MetadataStore(object):
         :return: True if torrent exists else False
         """
         return self.TorrentMetadata.exists(
-            lambda g: g.public_key == self.my_key.pub().key_to_bin()[10:]
+            lambda g: g.public_key == self.my_public_key_bin
             and g.infohash == database_blob(infohash)
             and g.status != LEGACY_ENTRY
         )
