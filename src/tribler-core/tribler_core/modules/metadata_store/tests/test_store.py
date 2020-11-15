@@ -9,7 +9,7 @@ from unittest.mock import Mock, patch
 from ipv8.database import database_blob
 from ipv8.keyvault.crypto import default_eccrypto
 
-from pony.orm import db_session, flush
+from pony.orm import db_session
 
 import pytest
 
@@ -338,9 +338,36 @@ def test_process_payload_reject_older(metadata_store):
         payload, skip_personal_metadata_payload=False
     )
 
+    # Now test the same, but for a torrent within a hierarchy of nested channel
+    folder_1 = metadata_store.CollectionNode(origin_id=channel.id_)
+    folder_2 = metadata_store.CollectionNode(origin_id=folder_1.id_)
+
+    torrent = metadata_store.TorrentMetadata(
+        title='blabla', timestamp=11, origin_id=folder_2.id_, infohash=database_blob(random_infohash())
+    )
+    payload = torrent._payload_class(**torrent.to_dict())
+    torrent.delete()
+    assert [(channel, GOT_NEWER_VERSION)] == metadata_store.process_payload(
+        payload, skip_personal_metadata_payload=False
+    )
+
+    # Now test that we still add the torrent for the case of a broken hierarchy
+    folder_1 = metadata_store.CollectionNode(origin_id=123123)
+    folder_2 = metadata_store.CollectionNode(origin_id=folder_1.id_)
+    torrent = metadata_store.TorrentMetadata(
+        title='blabla', timestamp=11, origin_id=folder_2.id_, infohash=database_blob(random_infohash())
+    )
+    payload = torrent._payload_class(**torrent.to_dict())
+    torrent.delete()
+    assert UNKNOWN_TORRENT == metadata_store.process_payload(payload, skip_personal_metadata_payload=False)[0][1]
+
 
 @db_session
 def test_process_payload_reject_older_entry(metadata_store):
+    """
+    Test rejecting and returning GOT_NEWER_VERSION upon receiving an older version
+    of an already known metadata entry
+    """
     torrent_old = metadata_store.TorrentMetadata(
         title='blabla', timestamp=11, id_=3, infohash=database_blob(random_infohash())
     )
@@ -350,14 +377,10 @@ def test_process_payload_reject_older_entry(metadata_store):
     torrent_updated = metadata_store.TorrentMetadata(
         title='blabla', timestamp=12, id_=3, infohash=database_blob(random_infohash())
     )
-    torrent_updated_dict = torrent_updated.to_dict()
-    torrent_updated.delete()
-    flush()
-
-    metadata_store.TorrentMetadata.from_dict(torrent_updated_dict)
-
-    # Test rejecting older version of the same entry with a different infohash
-    assert GOT_NEWER_VERSION == metadata_store.process_payload(payload_old, skip_personal_metadata_payload=False)[0][1]
+    # Test rejecting older version of the same entry
+    assert [(torrent_updated, GOT_NEWER_VERSION)] == metadata_store.process_payload(
+        payload_old, skip_personal_metadata_payload=False
+    )
 
 
 @db_session
