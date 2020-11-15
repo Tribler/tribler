@@ -273,14 +273,15 @@ def define_binding(db, logger=None, key=None):
             return self
 
         def get_parents_ids(self, max_recursion_depth=15):
-            if not max_recursion_depth:
+            if max_recursion_depth == 0:
                 return tuple()
             if self.origin_id == 0:
                 return (0,)
             parent = db.CollectionNode.get(public_key=self.public_key, id_=self.origin_id)
             if parent:
-                result = parent.get_parents_ids(max_recursion_depth=max_recursion_depth - 1)
-            return result + (parent.id_,)
+                return parent.get_parents_ids(max_recursion_depth=max_recursion_depth - 1) + (parent.id_,)
+            else:
+                return tuple()
 
         def make_copy(self, tgt_parent_id, attributes_override=None):
             dst_dict = attributes_override or {}
