@@ -323,6 +323,27 @@ def test_get_parents_ids(metadata_store):
 
 
 @db_session
+def test_process_payload_with_known_channel_public_key(metadata_store):
+    """
+    Test processing a payload when the channel public key is known, e.g. from disk.
+    """
+    key1 = default_eccrypto.generate_key(u"curve25519")
+    key2 = default_eccrypto.generate_key(u"curve25519")
+    torrent = metadata_store.TorrentMetadata(infohash=database_blob(random_infohash()), sign_with=key1)
+    payload = torrent._payload_class(**torrent.to_dict())
+    torrent.delete()
+    # Check rejecting a payload with non-matching public key
+    assert [(None, NO_ACTION)] == metadata_store.process_payload(
+        payload, channel_public_key=key2.pub().key_to_bin()[10:]
+    )
+    # Check accepting a payload with matching public key
+    assert (
+        UNKNOWN_TORRENT
+        == metadata_store.process_payload(payload, channel_public_key=key1.pub().key_to_bin()[10:])[0][1]
+    )
+
+
+@db_session
 def test_process_payload_reject_older(metadata_store):
     # Check there is no action if the processed payload has a timestamp that is less than the
     # local_version of the corresponding local channel. (I.e. remote peer trying to push back a deleted entry)
@@ -334,9 +355,7 @@ def test_process_payload_reject_older(metadata_store):
     )
     payload = torrent._payload_class(**torrent.to_dict())
     torrent.delete()
-    assert [(channel, GOT_NEWER_VERSION)] == metadata_store.process_payload(
-        payload, skip_personal_metadata_payload=False
-    )
+    assert [(None, NO_ACTION)] == metadata_store.process_payload(payload, skip_personal_metadata_payload=False)
 
     # Now test the same, but for a torrent within a hierarchy of nested channel
     folder_1 = metadata_store.CollectionNode(origin_id=channel.id_)
@@ -347,9 +366,7 @@ def test_process_payload_reject_older(metadata_store):
     )
     payload = torrent._payload_class(**torrent.to_dict())
     torrent.delete()
-    assert [(channel, GOT_NEWER_VERSION)] == metadata_store.process_payload(
-        payload, skip_personal_metadata_payload=False
-    )
+    assert [(None, NO_ACTION)] == metadata_store.process_payload(payload, skip_personal_metadata_payload=False)
 
     # Now test that we still add the torrent for the case of a broken hierarchy
     folder_1 = metadata_store.CollectionNode(origin_id=123123)
@@ -412,20 +429,19 @@ def test_get_num_channels_nodes(metadata_store):
     assert metadata_store.get_num_channels() == 4
     assert metadata_store.get_num_torrents() == 3
 
-    @db_session
-    def test_process_payload_update_type(metadata_store):
-        # Check if applying class-changing update to an entry works
-        # First, create a node and get a payload from it, then update it to another type, then get payload
-        # for the updated version, then delete the updated version, then bring back the original one by processing it,
-        # then try processing the payload of updated version and see if it works. Phew!
-        node, node_payload, node_deleted_payload = get_payloads(metadata_store.CollectionNode)
-        updated_node = node.update_properties(
-            {"origin_id": 0}
-        )  # This will implicitly change the node to ChannelTorrent
-        assert updated_node.metadata_type == CHANNEL_TORRENT
-        updated_node_payload = updated_node._payload_class.from_signed_blob(updated_node.serialized())
-        updated_node.delete()
 
-        old_node, _ = metadata_store.process_payload(node_payload, skip_personal_metadata_payload=False)[0]
-        updated_node2, _ = metadata_store.process_payload(updated_node_payload, skip_personal_metadata_payload=False)[0]
-        assert updated_node2.metadata_type == CHANNEL_TORRENT
+@db_session
+def test_process_payload_update_type(metadata_store):
+    # Check if applying class-changing update to an entry works
+    # First, create a node and get a payload from it, then update it to another type, then get payload
+    # for the updated version, then delete the updated version, then bring back the original one by processing it,
+    # then try processing the payload of updated version and see if it works. Phew!
+    node, node_payload, node_deleted_payload = get_payloads(metadata_store.CollectionNode)
+    updated_node = node.update_properties({"origin_id": 0})  # This will implicitly change the node to ChannelTorrent
+    assert updated_node.metadata_type == CHANNEL_TORRENT
+    updated_node_payload = updated_node._payload_class.from_signed_blob(updated_node.serialized())
+    updated_node.delete()
+
+    old_node, _ = metadata_store.process_payload(node_payload, skip_personal_metadata_payload=False)[0]
+    updated_node2, _ = metadata_store.process_payload(updated_node_payload, skip_personal_metadata_payload=False)[0]
+    assert updated_node2.metadata_type == CHANNEL_TORRENT
