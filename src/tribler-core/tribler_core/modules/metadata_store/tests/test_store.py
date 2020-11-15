@@ -4,7 +4,7 @@ import string
 from binascii import unhexlify
 from datetime import datetime
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from ipv8.database import database_blob
 from ipv8.keyvault.crypto import default_eccrypto
@@ -274,6 +274,22 @@ def test_process_payload(metadata_store):
     result = metadata_store.process_payload(node_payload)
     assert UNKNOWN_CHANNEL == result[0][1]
     assert node_dict['metadata_type'] == result[0][0].to_dict()['metadata_type']
+
+
+@db_session
+def test_process_squashed_mdblob_update_vsids(metadata_store):
+    """
+    Test if VSIDS channels votes stats are updated after processing a channel metadata entry
+    """
+    channel = metadata_store.ChannelMetadata(
+        infohash=database_blob(random_infohash()), sign_with=default_eccrypto.generate_key(u"curve25519")
+    )
+    serialized = channel.serialized()
+    channel.delete()
+    mock_peer = Mock()
+    mock_peer.public_key = default_eccrypto.generate_key(u"curve25519").pub()
+    metadata_store.process_squashed_mdblob(serialized, peer_vote_for_channels=mock_peer)
+    assert metadata_store.ChannelVote.get()
 
 
 @db_session
