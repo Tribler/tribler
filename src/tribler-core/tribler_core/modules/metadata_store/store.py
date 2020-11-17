@@ -149,6 +149,17 @@ class MetadataStore(object):
                 default_vsids = self.Vsids.create_default_vsids()
             self.ChannelMetadata.votes_scaling = default_vsids.max_val
 
+        with db_session:
+            self.pk_infohash_uniq_index_exists = False
+            for ind in range(0, 10):
+                result = list(self._db.execute(f"pragma index_info(sqlite_autoindex_ChannelNode_{ind});"))
+                if result:
+                    indexed_columns = []
+                    for col in result:
+                        indexed_columns.append(col[2])
+                    if len(indexed_columns) == 2 and 'public_key' in indexed_columns and 'infohash' in indexed_columns:
+                        self.pk_infohash_uniq_index_exists = True
+
     @db_session
     def upsert_vote(self, channel, peer_pk):
         voter = self.ChannelPeer.get(public_key=peer_pk)
@@ -440,19 +451,20 @@ class MetadataStore(object):
             ):
                 return check_update_opportunity()
 
-            # Check for a node with the same infohash
-            node = self.TorrentMetadata.get_for_update(
-                public_key=database_blob(payload.public_key), infohash=database_blob(payload.infohash)
-            )
-            if node:
-                if node.timestamp < payload.timestamp:
-                    node.delete()
-                    result.append((None, DELETED_METADATA))
-                elif node.timestamp > payload.timestamp:
-                    result.append((node, GOT_NEWER_VERSION))
-                    return result
-                else:
-                    return result
+            if self.pk_infohash_uniq_index_exists:
+                # Check for a node with the same infohash
+                node = self.TorrentMetadata.get_for_update(
+                    public_key=database_blob(payload.public_key), infohash=database_blob(payload.infohash)
+                )
+                if node:
+                    if node.timestamp < payload.timestamp:
+                        node.delete()
+                        result.append((None, DELETED_METADATA))
+                    elif node.timestamp > payload.timestamp:
+                        result.append((node, GOT_NEWER_VERSION))
+                        return result
+                    else:
+                        return result
                 # Otherwise, we got the same version locally and do nothing.
 
         # Check for the older version of the same node

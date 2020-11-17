@@ -328,6 +328,7 @@ class TestMetadataStore(TriblerCoreTest):
 
     @db_session
     def test_process_payload_merge_entries(self):
+        self.mds.pk_infohash_uniq_index_exists = True
         # Check the corner case where the new entry must replace two old entries: one with a matching infohash, and
         # another one with a non-matching id
         node = self.mds.TorrentMetadata(infohash=database_blob(random_infohash()))
@@ -371,6 +372,7 @@ class TestMetadataStore(TriblerCoreTest):
 
     @db_session
     def test_process_payload_reject_older_entry_with_known_infohash_or_merge(self):
+        self.mds.pk_infohash_uniq_index_exists = True
         # Check there is no action if the processed payload has a timestamp that is less than the
         # local_version of the corresponding local channel. (I.e. remote peer trying to push back a deleted entry)
         torrent = self.mds.TorrentMetadata(
