@@ -27,6 +27,7 @@ from tribler_core.modules.metadata_store.store import (
     GOT_NEWER_VERSION,
     NO_ACTION,
     UNKNOWN_CHANNEL,
+    UNKNOWN_COLLECTION,
     UNKNOWN_TORRENT,
     UPDATED_OUR_VERSION,
 )
@@ -256,24 +257,25 @@ def test_process_payload(metadata_store):
     # Do nothing in case it is unknown/abstract payload type, like ChannelNode
     assert not metadata_store.process_payload(node_payload)
 
-    # Check if node metadata object is properly created on payload processing
-    node, node_payload, node_deleted_payload = get_payloads(metadata_store.TorrentMetadata)
-    node_dict = node.to_dict()
-    node.delete()
-    result = metadata_store.process_payload(node_payload)
-    assert UNKNOWN_TORRENT == result[0][1]
-    assert node_dict['metadata_type'] == result[0][0].to_dict()['metadata_type']
+    for md_class, expected_reaction in (
+        (metadata_store.ChannelMetadata, UNKNOWN_CHANNEL),
+        (metadata_store.TorrentMetadata, UNKNOWN_TORRENT),
+        (metadata_store.CollectionNode, UNKNOWN_COLLECTION),
+    ):
+        node, node_payload, node_deleted_payload = get_payloads(md_class)
+        node_dict = node.to_dict()
+        node.delete()
 
-    # Check the same for a channel
-    node, node_payload, node_deleted_payload = get_payloads(metadata_store.ChannelMetadata)
-    node_dict = node.to_dict()
-    node.delete()
+        # Check that there is no action if trying to delete an unknown object
+        assert not metadata_store.process_payload(node_deleted_payload)
 
-    # Check that there is no action if the signature on the delete object is unknown
-    assert not metadata_store.process_payload(node_deleted_payload)
-    result = metadata_store.process_payload(node_payload)
-    assert UNKNOWN_CHANNEL == result[0][1]
-    assert node_dict['metadata_type'] == result[0][0].to_dict()['metadata_type']
+        # Check if node metadata object is properly created on payload processing
+        processed_node, reaction = metadata_store.process_payload(node_payload)[0]
+        assert reaction == expected_reaction
+        assert node_dict['metadata_type'] == processed_node.to_dict()['metadata_type']
+
+        # Check that payload processing returns the local node in case we already now about it
+        assert processed_node, NO_ACTION == metadata_store.process_payload(node_payload)[0]
 
 
 @db_session
@@ -290,6 +292,14 @@ def test_process_squashed_mdblob_update_vsids(metadata_store):
     mock_peer.public_key = default_eccrypto.generate_key(u"curve25519").pub()
     metadata_store.process_squashed_mdblob(serialized, peer_vote_for_channels=mock_peer)
     assert metadata_store.ChannelVote.get()
+    channel = metadata_store.ChannelMetadata.get()
+    channel_votes1 = channel.votes
+
+    # Now test that the bump happens if another host votes for the same channel
+    mock_peer.public_key = default_eccrypto.generate_key(u"curve25519").pub()
+    metadata_store.process_squashed_mdblob(serialized, peer_vote_for_channels=mock_peer)
+    channel = metadata_store.ChannelMetadata.get()
+    assert channel.votes > channel_votes1
 
 
 @db_session

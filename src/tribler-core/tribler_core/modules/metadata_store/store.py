@@ -523,7 +523,9 @@ class MetadataStore(object):
         elif node.timestamp > payload.timestamp:
             return [(node, GOT_NEWER_VERSION)]
         # Otherwise, we got the same version locally and do nothing.
-        return []
+        # Nevertheless, it is important to indicate to upper levels that we recognised
+        # the entry, for e.g. channel votes bumping
+        return [(node, GOT_NEWER_VERSION)]
 
     @db_session
     def get_num_channels(self):
