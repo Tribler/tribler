@@ -132,7 +132,6 @@ class Session(TaskManager):
         self.wallets = {}
         self.popularity_community = None
         self.gigachannel_community = None
-        self.remote_query_community = None
 
         self.dht_community = None
         self.payout_manager = None

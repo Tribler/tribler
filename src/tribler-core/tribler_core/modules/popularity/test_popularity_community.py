@@ -2,6 +2,7 @@ import logging
 import time
 from random import randint
 from types import SimpleNamespace
+from unittest.mock import Mock
 
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.test.base import TestBase
@@ -11,11 +12,8 @@ from pony.orm import db_session
 
 import pytest
 
-from tribler_common.simpledefs import NTFY
-
 from tribler_core.modules.metadata_store.store import MetadataStore
 from tribler_core.modules.popularity.popularity_community import PopularityCommunity
-from tribler_core.notifier import Notifier
 from tribler_core.tests.tools.base_test import MockObject
 from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.random_utils import random_infohash
@@ -38,7 +36,7 @@ class TestPopularityCommunity(TestBase):
         torrent_checker.torrents_checked = set()
 
         return MockIPv8(u"curve25519", PopularityCommunity, metadata_store=mds,
-                        torrent_checker=torrent_checker, notifier=Notifier())
+                        torrent_checker=torrent_checker)
 
     @db_session
     def fill_database(self, metadata_store, last_check_now=False):
@@ -60,8 +58,8 @@ class TestPopularityCommunity(TestBase):
         Test whether torrent health information is correctly gossiped around
         """
         checked_torrent_info = (b'a' * 20, 200, 0, int(time.time()))
-        db1 = self.nodes[0].overlay.metadata_store.TorrentState
-        db2 = self.nodes[1].overlay.metadata_store.TorrentState
+        db1 = self.nodes[0].overlay.mds.TorrentState
+        db2 = self.nodes[1].overlay.mds.TorrentState
 
         with db_session:
             assert db1.select().count() == 0
@@ -77,52 +75,41 @@ class TestPopularityCommunity(TestBase):
             assert torrent.leechers == checked_torrent_info[2]
             assert torrent.last_check == checked_torrent_info[3]
 
-    async def test_torrents_health_override(self):
+    async def test_torrents_health_update(self):
         """
-        Test whether torrent health information is overridden when it's more fresh
+        Test updating the local torrent health information from network
         """
-        self.fill_database(self.nodes[1].overlay.metadata_store)
+        self.fill_database(self.nodes[1].overlay.mds)
 
         checked_torrent_info = (b'0' * 20, 200, 0, int(time.time()))
         await self.init_first_node_and_gossip(checked_torrent_info, deliver_timeout=0.5)
 
         # Check whether node 1 has new torrent health information
         with db_session:
-            state = self.nodes[1].overlay.metadata_store.TorrentState.get(infohash=b'0' * 20)
+            state = self.nodes[1].overlay.mds.TorrentState.get(infohash=b'0' * 20)
             self.assertIsNot(state.last_check, 0)
 
-    async def test_unknown_torrent_notification(self):
-        """Test Popularity Community publish event about receiving an unknown torrent
+    async def test_unknown_torrent_query_back(self):
         """
-        notifier = self.nodes[1].overlay.notifier
+        Test querying sender for metadata upon receiving an unknown torrent
+        """
 
-        class MockRemoteQueryCommunity:
-            added_peer = None
-            torrent_hash = None
+        infohash = b'1' * 20
+        with db_session:
+            self.nodes[0].overlay.mds.TorrentMetadata(infohash=infohash)
+        await self.init_first_node_and_gossip((infohash, 200, 0, int(time.time())))
+        with db_session:
+            assert self.nodes[1].overlay.mds.TorrentMetadata.get()
 
-            def on_torrent_state_added(self, peer, torrent_hash):
-                self.added_peer = peer
-                self.torrent_hash = torrent_hash
-
-        remote_query_community = MockRemoteQueryCommunity()
-        notifier.add_observer(NTFY.POPULARITY_COMMUNITY_ADD_UNKNOWN_TORRENT,
-                              remote_query_community.on_torrent_state_added)
-
-        assert not remote_query_community.added_peer
-        assert not remote_query_community.torrent_hash
-
-        # check that no NPE when notifier is None
-        self.nodes[1].overlay.notifier = None
-        await self.init_first_node_and_gossip((b'1' * 20, 200, 0, int(time.time())))
-        assert not remote_query_community.added_peer
-        assert not remote_query_community.torrent_hash
-
-        # check that notifications are works
-        self.nodes[1].overlay.notifier = notifier
-        await self.init_first_node_and_gossip((b'2' * 20, 200, 0, int(time.time())))
-
-        assert remote_query_community.added_peer
-        assert remote_query_community.torrent_hash
+    async def test_skip_torrent_query_back_for_known_torrent(self):
+        # Test that we _don't_ send the query if we already know about the infohash
+        infohash = b'1' * 20
+        with db_session:
+            self.nodes[0].overlay.mds.TorrentMetadata(infohash=infohash)
+            self.nodes[1].overlay.mds.TorrentMetadata(infohash=infohash)
+        self.nodes[1].overlay.send_remote_select = Mock()
+        await self.init_first_node_and_gossip((infohash, 200, 0, int(time.time())))
+        self.nodes[1].overlay.send_remote_select.assert_not_called()
 
 
 @pytest.mark.asyncio
