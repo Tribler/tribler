@@ -25,6 +25,16 @@ def sanitize_query(query_dict, cap=100):
     first = first or 0
     last = last if (last is not None and last <= (first + cap)) else (first + cap)
     query_dict.update({"first": first, "last": last})
+
+    # convert hex infohash to binary
+    infohash = query_dict.get('infohash', None)
+    if infohash:
+        query_dict['infohash'] = unhexlify(infohash)
+
+    channel_pk = query_dict.get('channel_pk', None)
+    if channel_pk:
+        query_dict['channel_pk'] = unhexlify(channel_pk)
+
     return query_dict
 
 
