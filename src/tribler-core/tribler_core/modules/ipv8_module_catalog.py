@@ -104,7 +104,7 @@ class PopularityCommunityLauncher(IPv8CommunityLauncher):
 @overlay('tribler_core.modules.metadata_store.community.gigachannel_community', 'GigaChannelCommunity')
 @kwargs(metadata_store='session.mds', notifier='session.notifier')
 @walk_strategy('ipv8.peerdiscovery.discovery', 'RandomWalk')
-@walk_strategy('tribler_core.modules.metadata_store.community.sync_strategy', 'SyncChannels')
+@walk_strategy('tribler_core.modules.metadata_store.community.sync_strategy', 'SyncChannels', target_peers=-1)
 class GigaChannelCommunityLauncher(IPv8CommunityLauncher):
     pass
 
