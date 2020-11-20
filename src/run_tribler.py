@@ -101,6 +101,10 @@ if __name__ == "__main__":
 
         start_tribler_core(base_path, api_port, api_key, root_state_dir, core_test_mode=core_test_mode)
     else:
+        # Workaround for macOS Big Sur, see https://github.com/Tribler/tribler/issues/5728
+        if sys.platform == "darwin":
+            os.environ["QT_MAC_WANTS_LAYER"] = "1"
+
         # Set up logging
         tribler_gui.load_logger_config(root_state_dir)
 
