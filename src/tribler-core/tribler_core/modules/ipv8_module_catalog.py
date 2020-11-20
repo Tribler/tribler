@@ -5,6 +5,12 @@ from ipv8.loader import CommunityLauncher, after, kwargs, overlay, precondition,
 from ipv8.peer import Peer
 
 
+INFINITE = -1
+"""
+The amount of target_peers for a walk_strategy definition to never stop.
+"""
+
+
 class IPv8CommunityLauncher(CommunityLauncher):
 
     def get_my_peer(self, ipv8, session):
@@ -20,9 +26,9 @@ class TestnetMixIn:
 
 @precondition('session.config.get_discovery_community_enabled()')
 @overlay('ipv8.peerdiscovery.community', 'DiscoveryCommunity')
-@walk_strategy('ipv8.peerdiscovery.churn', 'RandomChurn', target_peers=-1)
+@walk_strategy('ipv8.peerdiscovery.churn', 'RandomChurn', target_peers=INFINITE)
 @walk_strategy('ipv8.peerdiscovery.discovery', 'RandomWalk')
-@walk_strategy('ipv8.peerdiscovery.community', 'PeriodicSimilarity', target_peers=-1)
+@walk_strategy('ipv8.peerdiscovery.community', 'PeriodicSimilarity', target_peers=INFINITE)
 class IPv8DiscoveryCommunityLauncher(IPv8CommunityLauncher):
 
     def finalize(self, ipv8, session, community):
@@ -48,7 +54,7 @@ class BandwidthTestnetCommunityLauncher(TestnetMixIn, BandwidthCommunityLauncher
 @precondition('session.config.get_dht_enabled()')
 @set_in_session('dht_community')
 @overlay('ipv8.dht.discovery', 'DHTDiscoveryCommunity')
-@walk_strategy('ipv8.dht.churn', 'PingChurn', target_peers=-1)
+@walk_strategy('ipv8.dht.churn', 'PingChurn', target_peers=INFINITE)
 @walk_strategy('ipv8.peerdiscovery.discovery', 'RandomWalk')
 class DHTCommunityLauncher(IPv8CommunityLauncher):
     pass
@@ -65,7 +71,7 @@ class DHTCommunityLauncher(IPv8CommunityLauncher):
         random_slots='session.config.get_tunnel_community_random_slots()',
         tribler_session='session')
 @walk_strategy('ipv8.peerdiscovery.discovery', 'RandomWalk')
-@walk_strategy('tribler_core.modules.tunnel.community.discovery', 'GoldenRatioStrategy', target_peers=-1)
+@walk_strategy('tribler_core.modules.tunnel.community.discovery', 'GoldenRatioStrategy', target_peers=INFINITE)
 class TriblerTunnelCommunityLauncher(IPv8CommunityLauncher):
 
     def get_kwargs(self, session):
@@ -104,7 +110,7 @@ class PopularityCommunityLauncher(IPv8CommunityLauncher):
 @overlay('tribler_core.modules.metadata_store.community.gigachannel_community', 'GigaChannelCommunity')
 @kwargs(metadata_store='session.mds', notifier='session.notifier')
 @walk_strategy('ipv8.peerdiscovery.discovery', 'RandomWalk')
-@walk_strategy('tribler_core.modules.metadata_store.community.sync_strategy', 'SyncChannels', target_peers=-1)
+@walk_strategy('tribler_core.modules.metadata_store.community.sync_strategy', 'SyncChannels', target_peers=INFINITE)
 class GigaChannelCommunityLauncher(IPv8CommunityLauncher):
     pass
 
@@ -123,7 +129,7 @@ class GigaChannelTestnetCommunityLauncher(TestnetMixIn, GigaChannelCommunityLaun
 @overlay('tribler_core.modules.metadata_store.community.remote_query_community', 'RemoteQueryCommunity')
 @kwargs(metadata_store='session.mds', notifier='session.notifier')
 @walk_strategy('ipv8.peerdiscovery.discovery', 'RandomWalk', target_peers=30)
-@walk_strategy('tribler_core.modules.metadata_store.community.sync_strategy', 'RemovePeers', target_peers=-1)
+@walk_strategy('tribler_core.modules.metadata_store.community.sync_strategy', 'RemovePeers', target_peers=INFINITE)
 class RemoteQueryCommunityLauncher(IPv8CommunityLauncher):
     pass
 
