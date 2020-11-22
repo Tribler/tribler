@@ -28,7 +28,7 @@ class GigaChannelCommunitySettings(RemoteQueryCommunitySettings):
 
 
 class GigaChannelCommunity(RemoteQueryCommunity):
-    community_id = unhexlify('dce2e4e31c57b7b54600251ce3bc8945ee31b7eb')
+    community_id = unhexlify('cccce4e31c57b7b54600251ce3bc8945ee31b7eb')
 
     def __init__(self, my_peer, endpoint, network, metadata_store, **kwargs):
         kwargs["settings"] = kwargs.get("settings", GigaChannelCommunitySettings())
