@@ -200,7 +200,7 @@ class TriblerNetworkRequest(QObject):
             if not self.decode_json_response:
                 self.received_json.emit(data)
                 return
-            json_result = json.loads(bytes(data), encoding='latin_1')
+            json_result = json.loads(bytes(data))
             if (
                 'error' in json_result
                 and self.capture_core_errors
