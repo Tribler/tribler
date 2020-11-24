@@ -25,8 +25,13 @@ Export to PYTHONPATH the following directories:
 * tribler-core
 * tribler-gui
 
+Shortcut for macOS:
+```shell script
+export PYTHONPATH=${PYTHONPATH}:`echo {pyipv8,tribler-common,tribler-core,tribler-gui} | tr " " :`
+```
 Execute:
 ```
 python3 -m pytest tribler-core
+python3 -m pytest tribler-common
 python3 -m pytest tribler-gui --guitests
 ```

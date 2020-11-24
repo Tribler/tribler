@@ -20,6 +20,7 @@ class StateEndpoint(RESTEndpoint):
         super(StateEndpoint, self).__init__(session)
         self.tribler_state = STATE_STARTING
         self.last_exception = None
+        self.sentry_event = None
 
         self.session.notifier.add_observer(NTFY.UPGRADER_STARTED, self.on_tribler_upgrade_started)
         self.session.notifier.add_observer(NTFY.UPGRADER_DONE, self.on_tribler_upgrade_finished)
@@ -37,9 +38,10 @@ class StateEndpoint(RESTEndpoint):
     def on_tribler_started(self, *_):
         self.tribler_state = STATE_STARTED
 
-    def on_tribler_exception(self, exception_text):
+    def on_tribler_exception(self, exception_text, sentry_event):
         self.tribler_state = STATE_EXCEPTION
         self.last_exception = exception_text
+        self.sentry_event = sentry_event
 
     @docs(
         tags=["General"],

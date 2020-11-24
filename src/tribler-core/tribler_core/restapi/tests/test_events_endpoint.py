@@ -49,13 +49,13 @@ async def test_events(enable_api, session):
 
     testdata = {
         NTFY.CHANNEL_ENTITY_UPDATED: {"state": "Complete"},
-        NTFY.UPGRADER_TICK: ("bla", ),
+        NTFY.UPGRADER_TICK: ("bla",),
         NTFY.UPGRADER_DONE: None,
-        NTFY.WATCH_FOLDER_CORRUPT_FILE: ("foo", ),
+        NTFY.WATCH_FOLDER_CORRUPT_FILE: ("foo",),
         NTFY.TRIBLER_NEW_VERSION: ("123",),
         NTFY.CHANNEL_DISCOVERED: {"result": "bla"},
         NTFY.TORRENT_FINISHED: (b'a' * 10, None, False),
-        NTFY.LOW_SPACE: ("", ),
+        NTFY.LOW_SPACE: ("",),
         NTFY.TUNNEL_REMOVE: (Circuit(1234, None), 'test'),
         NTFY.REMOTE_QUERY_RESULTS: {"query": "test"},
     }
@@ -66,7 +66,7 @@ async def test_events(enable_api, session):
             session.notifier.notify(subject, *data)
         else:
             session.notifier.notify(subject)
-    session.api_manager.root_endpoint.endpoints['/events'].on_tribler_exception("hi")
+    session.api_manager.root_endpoint.endpoints['/events'].on_tribler_exception("hi", None)
     await events_future
 
     event_socket_task.cancel()

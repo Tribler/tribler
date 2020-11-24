@@ -3,7 +3,6 @@ A Session is a running instance of the Tribler Core and the Core's central class
 
 Author(s): Arno Bakker, Niels Zeilmaker, Vadim Bulavintsev
 """
-
 import errno
 import logging
 import os
@@ -21,6 +20,7 @@ from ipv8.taskmanager import TaskManager
 
 from ipv8_service import IPv8
 
+from tribler_common.sentry_reporter.sentry_reporter import AllowSentryReports, SentryReporter
 from tribler_common.simpledefs import (
     NTFY,
     STATEDIR_CHANNELS_DIR,
@@ -82,7 +82,7 @@ class Session(TaskManager):
     """
     __single = None
 
-    def __init__(self, config, core_test_mode = False):
+    def __init__(self, config, core_test_mode=False):
         """
         A Session object is created
         Only a single session instance can exist at a time in a process.
@@ -162,7 +162,7 @@ class Session(TaskManager):
         self.bootstrap.start_by_infohash(self.dlmgr.start_download, self.config.get_bootstrap_infohash())
         await self.bootstrap.download.future_finished
         # Temporarily disabling SQL import for experimental release
-        #await get_event_loop().run_in_executor(None, self.import_bootstrap_file)
+        # await get_event_loop().run_in_executor(None, self.import_bootstrap_file)
         self.bootstrap.bootstrap_finished = True
 
     def create_state_directory_structure(self):
@@ -221,7 +221,6 @@ class Session(TaskManager):
         It broadcasts the tribler_exception event.
         """
         exception = context.get('exception')
-
         ignored_message = None
         try:
             ignored_message = IGNORED_ERRORS.get(
@@ -249,11 +248,20 @@ class Session(TaskManager):
                 text_long = text_long + "\n--LONG TEXT--\n" + buffer.getvalue()
         text_long = text_long + "\n--CONTEXT--\n" + str(context)
 
-        self._logger.error("Unhandled exception occurred! %s", text_long)
+        description = 'session.unhandled_error_observer()'
+        with AllowSentryReports(value=False, description=description):
+            self._logger.error("Unhandled exception occurred! %s", text_long)
 
-        if self.api_manager and len(text_long) > 0:
-            self.api_manager.get_endpoint('events').on_tribler_exception(text_long)
-            self.api_manager.get_endpoint('state').on_tribler_exception(text_long)
+        sentry_event = SentryReporter.last_event
+
+        if not self.api_manager:
+            return
+
+        events = self.api_manager.get_endpoint('events')
+        events.on_tribler_exception(text_long, sentry_event)
+
+        state = self.api_manager.get_endpoint('state')
+        state.on_tribler_exception(text_long, sentry_event)
 
     def get_tribler_statistics(self):
         """Return a dictionary with general Tribler statistics."""
@@ -270,11 +278,11 @@ class Session(TaskManager):
 
         :param config: a TriblerConfig object
         """
-
         self._logger.info("Session is using state directory: %s", self.config.get_state_dir())
         self.get_ports_in_config()
         self.create_state_directory_structure()
         self.init_keypair()
+        SentryReporter.set_user(self.trustchain_keypair.key.pk)
 
         # Start the REST API before the upgrader since we want to send interesting upgrader events over the socket
         if self.config.get_api_http_enabled() or self.config.get_api_https_enabled():
@@ -382,7 +390,7 @@ class Session(TaskManager):
 
         # GigaChannel Manager should be started *after* resuming the downloads,
         # because it depends on the states of torrent downloads
-        if self.config.get_chant_enabled() and self.config.get_chant_manager_enabled()\
+        if self.config.get_chant_enabled() and self.config.get_chant_manager_enabled() \
                 and self.config.get_libtorrent_enabled:
             self.gigachannel_manager = GigaChannelManager(self)
             if not self.core_test_mode:

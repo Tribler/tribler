@@ -3,22 +3,23 @@ import os
 import platform
 import sys
 import time
+from collections import defaultdict
 
 from PyQt5 import uic
 from PyQt5.QtWidgets import QAction, QApplication, QDialog, QMessageBox, QTreeWidgetItem
 
+from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
+
 from tribler_gui.event_request_manager import received_events
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import (
-    TriblerNetworkRequest,
-    performed_requests as tribler_performed_requests,
-    tribler_urlencode,
-)
+    TriblerNetworkRequest, performed_requests as tribler_performed_requests, tribler_urlencode, )
 from tribler_gui.utilities import get_ui_file_path
 
 
 class FeedbackDialog(QDialog):
-    def __init__(self, parent, exception_text, tribler_version, start_time):
+    def __init__(self, parent, exception_text, tribler_version, start_time,  # pylint: disable=R0914
+                 backend_sentry_event=None):
         QDialog.__init__(self, parent)
 
         uic.loadUi(get_ui_file_path('feedback_dialog.ui'), self)
@@ -26,6 +27,7 @@ class FeedbackDialog(QDialog):
         self.setWindowTitle("Unexpected error")
         self.selected_item_index = 0
         self.tribler_version = tribler_version
+        self.backend_sentry_event = backend_sentry_event
 
         # Qt 5.2 does not have the setPlaceholderText property
         if hasattr(self.comments_text_edit, "setPlaceholderText"):
@@ -124,9 +126,14 @@ class FeedbackDialog(QDialog):
         endpoint = 'http://reporter.tribler.org/report'
 
         sys_info = ""
+        sys_info_dict = defaultdict(lambda: [])
         for ind in range(self.env_variables_list.topLevelItemCount()):
             item = self.env_variables_list.topLevelItem(ind)
-            sys_info += "%s\t%s\n" % (item.text(0), item.text(1))
+            key = item.text(0)
+            value = item.text(1)
+
+            sys_info += "%s\t%s\n" % (key, value)
+            sys_info_dict[key].append(value)
 
         comments = self.comments_text_edit.toPlainText()
         if len(comments) == 0:
@@ -142,6 +149,10 @@ class FeedbackDialog(QDialog):
             "comments": comments,
             "stack": stack,
         }
+
+        # if no backend_sentry_event, then try to restore GUI exception
+        sentry_event = self.backend_sentry_event or SentryReporter.last_event
+        SentryReporter.send(sentry_event, post_data, sys_info_dict)
 
         TriblerNetworkRequest(endpoint, self.on_report_sent, raw_data=tribler_urlencode(post_data), method='POST')
 
