@@ -153,8 +153,6 @@ class TestGigaChannelUnits(TestBase):
 
         await self.deliver_messages(timeout=0.5)
 
-        # TODO: query only "complete" channels
-
         with db_session:
             received_channels = self.nodes[1].overlay.mds.ChannelMetadata.select(lambda g: g.title == "channel sub")
             self.assertEqual(num_channels, received_channels.count())

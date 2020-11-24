@@ -28,7 +28,7 @@ class GigaChannelCommunitySettings(RemoteQueryCommunitySettings):
 
 
 class GigaChannelCommunity(RemoteQueryCommunity):
-    community_id = unhexlify('cccce4e31c57b7b54600251ce3bc8945ee31b7eb')
+    community_id = unhexlify('dc43e3465cbd83948f30d3d3e8336d71cce33aa7')
 
     def __init__(self, my_peer, endpoint, network, metadata_store, **kwargs):
         kwargs["settings"] = kwargs.get("settings", GigaChannelCommunitySettings())
@@ -105,4 +105,4 @@ class GigaChannelTestnetCommunity(GigaChannelCommunity):
     This community defines a testnet for the giga channels, used for testing purposes.
     """
 
-    community_id = unhexlify('f58df52d10f7339ff6e2888322011489e9ab3d59')
+    community_id = unhexlify('ad8cece0dfdb0e03344b59a4d31a38fe9812da9d')
