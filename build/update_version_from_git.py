@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import logging
+import os
 import sys
 from os import linesep, path
 from subprocess import PIPE, Popen
@@ -28,13 +29,24 @@ if __name__ == '__main__':
     commit_id = run_command(cmd).strip()[1:].replace("'", "")
     logger.info("Commit: %s", commit_id)
 
+    sentry_url = os.environ.get('SENTRY_URL', None)
+    logger.info(f'Sentry url: {sentry_url}')
+    if not sentry_url:
+        logger.critical('Sentry url is not defined. To define sentry url use:'
+                        'EXPORT SENTRY_URL=<sentry_url>')
+        sys.exit(1)
+
     build_date = ctime()
     logger.info("Build date: %s", build_date)
 
     logger.info('Writing runtime version info.')
     with open(path.join('src', 'tribler-core', 'tribler_core', 'version.py'), 'w') as f:
-        f.write('version_id = "%s"%sbuild_date = "%s"%scommit_id = "%s"%s' %
-                (version_id, linesep, build_date, linesep, commit_id, linesep))
+        f.write(
+            f'version_id = "{version_id}"{linesep}'
+            f'build_date = "{build_date}"{linesep}'
+            f'commit_id = "{commit_id}"{linesep}'
+            f'sentry_url = "{sentry_url}"{linesep}'
+        )
 
     with open('.TriblerVersion', 'w') as f:
         f.write(version_id)

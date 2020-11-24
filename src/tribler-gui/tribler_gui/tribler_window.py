@@ -38,6 +38,8 @@ from PyQt5.QtWidgets import (
     QTreeWidget,
 )
 
+from tribler_common.sentry_reporter.sentry_reporter import AllowSentryReports
+
 from tribler_core.modules.process_checker import ProcessChecker
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.version import version_id
@@ -103,11 +105,20 @@ class TriblerWindow(QMainWindow):
             return
 
         self.exception_handler_called = True
-
+        info_type, info_error, _ = exc_info
         exception_text = "".join(traceback.format_exception(*exc_info))
-        logging.error(exception_text)
-        self.tribler_crashed.emit(exception_text)
 
+        backend_sentry_event = None
+        for arg in info_error.args:
+            key = 'sentry_event'
+            if isinstance(arg, dict) and key in arg:
+                backend_sentry_event = arg[key]
+                break
+
+        with AllowSentryReports(value=False, description='TriblerWindow.on_exception()'):
+            logging.error(exception_text)
+
+        self.tribler_crashed.emit(exception_text)
         self.delete_tray_icon()
 
         # Stop the download loop
@@ -124,10 +135,10 @@ class TriblerWindow(QMainWindow):
         if self.debug_window:
             self.debug_window.setHidden(True)
 
-        if exc_info[0] is CoreConnectTimeoutError:
+        if info_type is CoreConnectTimeoutError:
             exception_text = exception_text + self.core_manager.core_traceback
 
-        dialog = FeedbackDialog(self, exception_text, self.tribler_version, self.start_time)
+        dialog = FeedbackDialog(self, exception_text, self.tribler_version, self.start_time, backend_sentry_event)
         dialog.show()
 
     def __init__(self, core_args=None, core_env=None, api_port=None, api_key=None):
@@ -170,7 +181,6 @@ class TriblerWindow(QMainWindow):
         self.add_torrent_url_dialog_active = False
 
         sys.excepthook = self.on_exception
-
         uic.loadUi(get_ui_file_path('mainwindow.ui'), self)
         TriblerRequestManager.window = self
         self.tribler_status_bar.hide()

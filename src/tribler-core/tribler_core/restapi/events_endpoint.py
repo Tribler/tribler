@@ -113,9 +113,14 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
         for request in self.events_responses:
             await request.write(message_bytes)
 
-    # An exception has occurred in Tribler. The event includes a readable string of the error.
-    def on_tribler_exception(self, exception_text):
-        self.write_data({"type": NTFY.TRIBLER_EXCEPTION.value, "event": {"text": exception_text}})
+    # An exception has occurred in Tribler. The event includes a readable
+    # string of the error and a Sentry event.
+    def on_tribler_exception(self, exception_text, sentry_event):
+        self.write_data({
+            "type": NTFY.TRIBLER_EXCEPTION.value,
+            "event": {"text": exception_text},
+            "sentry_event": sentry_event
+        })
 
     @docs(
         tags=["General"],

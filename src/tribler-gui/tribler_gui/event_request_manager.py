@@ -99,7 +99,9 @@ class EventRequestManager(QNetworkAccessManager):
                     else:
                         reaction()
                 elif event_type == NTFY.TRIBLER_EXCEPTION.value:
-                    raise RuntimeError(json_dict["event"]["text"])
+                    text = json_dict["event"]["text"]
+                    sentry_event = {'sentry_event': json_dict['sentry_event']}
+                    raise RuntimeError(text, sentry_event)
             self.current_event_string = ""
 
     def on_finished(self):
