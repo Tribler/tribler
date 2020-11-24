@@ -1,4 +1,5 @@
 from datetime import datetime
+from unittest.mock import Mock
 
 from ipv8.database import database_blob
 from ipv8.keyvault.crypto import default_eccrypto
@@ -7,7 +8,10 @@ from ipv8.test.base import TestBase
 
 from pony.orm import db_session
 
-from tribler_core.modules.metadata_store.community.gigachannel_community import GigaChannelCommunity
+from tribler_core.modules.metadata_store.community.gigachannel_community import (
+    GigaChannelCommunity,
+    MAGIC_GIGACHAN_VERSION_MARK,
+)
 from tribler_core.modules.metadata_store.store import MetadataStore
 from tribler_core.notifier import Notifier
 from tribler_core.utilities.path_util import Path
@@ -98,20 +102,22 @@ class TestGigaChannelUnits(TestBase):
 
         self.nodes[1].overlay.send_remote_select_subscribed_channels = mock_send
         peer = self.nodes[0].my_peer
-        self.nodes[1].overlay.introduction_response_callback(peer, None, None)
+        payload = Mock()
+        payload.extra_bytes = MAGIC_GIGACHAN_VERSION_MARK
+        self.nodes[1].overlay.introduction_response_callback(peer, None, payload)
         self.assertIn(peer.mid, self.nodes[1].overlay.queried_peers)
         self.assertTrue(send_ok)
 
         # Make sure the same peer will not be queried twice in case the walker returns to it
-        self.nodes[1].overlay.introduction_response_callback(peer, None, None)
+        self.nodes[1].overlay.introduction_response_callback(peer, None, payload)
         self.assertEqual(len(send_ok), 1)
 
         # Test clearing queried peers set when it outgrows its capacity
         self.nodes[1].overlay.settings.queried_peers_limit = 2
-        self.nodes[1].overlay.introduction_response_callback(Peer(default_eccrypto.generate_key("low")), None, None)
+        self.nodes[1].overlay.introduction_response_callback(Peer(default_eccrypto.generate_key("low")), None, payload)
         self.assertEqual(len(self.nodes[1].overlay.queried_peers), 2)
 
-        self.nodes[1].overlay.introduction_response_callback(Peer(default_eccrypto.generate_key("low")), None, None)
+        self.nodes[1].overlay.introduction_response_callback(Peer(default_eccrypto.generate_key("low")), None, payload)
         # The set has been cleared, so the number of queried peers must be dropped back to 1
         self.assertEqual(len(self.nodes[1].overlay.queried_peers), 1)
 
