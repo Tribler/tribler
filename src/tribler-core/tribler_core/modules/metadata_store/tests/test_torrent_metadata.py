@@ -263,6 +263,17 @@ def test_get_entries(metadata_store):
     torrents = metadata_store.TorrentMetadata.get_entries(first=1, last=10, **args)
     assert list(torrents) == [entry]
 
+    # Test getting complete channels
+    with db_session:
+        complete_chan = metadata_store.ChannelMetadata(
+            infohash=random_infohash(), title='bla', local_version=222, timestamp=222
+        )
+        incomplete_chan = metadata_store.ChannelMetadata(
+            infohash=random_infohash(), title='bla', local_version=222, timestamp=223
+        )
+        channels = metadata_store.ChannelMetadata.get_entries(complete_channel=True)
+        assert [complete_chan] == channels
+
 
 @db_session
 def test_metadata_conflicting(metadata_store):

@@ -78,6 +78,7 @@ class GigaChannelCommunity(RemoteQueryCommunity):
             "metadata_type": [CHANNEL_TORRENT],
             "subscribed": True,
             "attribute_ranges": (("num_entries", 1, None),),
+            "complete_channel": True,
         }
         self.send_remote_select(peer, **request_dict, processing_callback=on_packet_callback)
 

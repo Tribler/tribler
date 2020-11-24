@@ -128,8 +128,13 @@ class TestGigaChannelUnits(TestBase):
         with db_session:
             # Create one channel with zero contents, to check that only non-empty channels are served
             self.nodes[0].overlay.mds.ChannelMetadata.create_channel("channel sub", "")
+            # Create one channel that has not yet been processed (with local_version<timestamp)
+            incomplete_chan = self.nodes[0].overlay.mds.ChannelMetadata.create_channel("channel sub", "")
+            incomplete_chan.num_entries = 10
+            incomplete_chan.sign()
             for _ in range(0, num_channels):
                 chan = self.nodes[0].overlay.mds.ChannelMetadata.create_channel("channel sub", "")
+                chan.local_version = chan.timestamp
                 chan.num_entries = 10
                 chan.sign()
             for _ in range(0, num_channels):
