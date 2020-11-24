@@ -5,12 +5,12 @@ from dataclasses import dataclass
 from ipv8.community import Community
 from ipv8.lazy_community import lazy_wrapper
 from ipv8.messaging.lazy_payload import VariablePayload, vp_compile
-from ipv8.requestcache import RandomNumberCache, RequestCache
+from ipv8.requestcache import NumberCache, RandomNumberCache, RequestCache
 
 from pony.orm.dbapiprovider import OperationalError
 
 from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import entries_to_chunk
-from tribler_core.modules.metadata_store.store import UNKNOWN_CHANNEL, UNKNOWN_COLLECTION
+from tribler_core.modules.metadata_store.store import GOT_NEWER_VERSION, UNKNOWN_CHANNEL, UNKNOWN_COLLECTION
 from tribler_core.utilities.unicode import hexlify
 
 BINARY_FIELDS = ("infohash", "channel_pk")
@@ -63,6 +63,18 @@ class SelectRequest(RandomNumberCache):
         pass
 
 
+class PushbackWindow(NumberCache):
+    def __init__(self, request_cache, prefix, original_request_id):
+        super().__init__(request_cache, prefix, original_request_id)
+
+        # The maximum number of packets to receive from any given peer from a single request.
+        # This limit is imposed as a safety precaution to prevent spam/flooding
+        self.packets_limit = 10
+
+    def on_timeout(self):
+        pass
+
+
 @dataclass
 class RemoteQueryCommunitySettings:
     minimal_blob_size: int = 200
@@ -71,6 +83,7 @@ class RemoteQueryCommunitySettings:
     max_query_peers: int = 5
     max_response_size: int = 100  # Max number of entries returned by SQL query
     max_channel_query_back: int = 4  # Max number of entries to query back on receiving an unknown channel
+    push_updates_back_enabled = True
 
     @property
     def channel_query_back_enabled(self):
@@ -87,6 +100,11 @@ class RemoteQueryCommunity(Community):
 
         self.settings = settings or RemoteQueryCommunitySettings()
         self.mds = metadata_store
+
+        # This object stores requests for "select" queries that we sent to other hosts.
+        # We keep track of peers we actually requested for data so people can't randomly push spam at us.
+        # Also, this keeps track of hosts we responded to. There is a possibility that
+        # those hosts will push back updates at us, so we need to allow it.
         self.request_cache = RequestCache()
 
         self.add_message_handler(RemoteSelectPayload, self.on_remote_select)
@@ -110,29 +128,37 @@ class RemoteQueryCommunity(Community):
         request_sanitized = sanitize_query(json.loads(json_bytes), self.settings.max_response_size)
         return await self.mds.MetadataNode.get_entries_threaded(**request_sanitized)
 
-    @lazy_wrapper(RemoteSelectPayload)
-    async def on_remote_select(self, peer, request):
-        try:
-            db_results = await self.process_rpc_query(request.json)
-            if not db_results:
-                return
+    def send_db_results(self, peer, request_payload_id, db_results):
+        index = 0
+        while index < len(db_results):
+            data, index = entries_to_chunk(db_results, self.settings.maximum_payload_size, start_index=index)
+            self.ez_send(peer, SelectResponsePayload(request_payload_id, data))
 
-            index = 0
-            while index < len(db_results):
-                data, index = entries_to_chunk(db_results, self.settings.maximum_payload_size, start_index=index)
-                self.ez_send(peer, SelectResponsePayload(request.id, data))
+    @lazy_wrapper(RemoteSelectPayload)
+    async def on_remote_select(self, peer, request_payload):
+        try:
+            db_results = await self.process_rpc_query(request_payload.json)
+
+            # When we send our response to a host, we open a window of opportunity
+            # for it to push back updates
+            if db_results and not self.request_cache.has(hexlify(peer.mid), request_payload.id):
+                self.request_cache.add(PushbackWindow(self.request_cache, hexlify(peer.mid), request_payload.id))
+
+            self.send_db_results(peer, request_payload.id, db_results)
         except (OperationalError, TypeError, ValueError) as error:
             self.logger.error(f"Remote select. The error occurred: {error}")
 
     @lazy_wrapper(SelectResponsePayload)
-    async def on_remote_select_response(self, peer, response):
+    async def on_remote_select_response(self, peer, response_payload):
         """
         Match the the response that we received from the network to a query cache
-        and process it by adding the corresponding entries to the MetadataStore database
+        and process it by adding the corresponding entries to the MetadataStore database.
+        This processes both direct responses and pushback (updates) responses
         """
         self.logger.info(f"Response from {hexlify(peer.mid)}")
 
-        request = self.request_cache.get(hexlify(peer.mid), response.id)
+        # ACHTUNG! the returned request cache can be either a SelectRequest or PushbackWindow
+        request = self.request_cache.get(hexlify(peer.mid), response_payload.id)
         if request is None:
             return
 
@@ -140,10 +166,15 @@ class RemoteQueryCommunity(Community):
         if request.packets_limit > 1:
             request.packets_limit -= 1
         else:
-            self.request_cache.pop(hexlify(peer.mid), response.id)
+            self.request_cache.pop(hexlify(peer.mid), response_payload.id)
 
-        processing_results = await self.mds.process_compressed_mdblob_threaded(response.raw_blob)
+        processing_results = await self.mds.process_compressed_mdblob_threaded(response_payload.raw_blob)
         self.logger.info(f"Response result: {processing_results}")
+
+        # If we now about updated versions of the received stuff, push the updates back
+        if isinstance(request, SelectRequest) and self.settings.push_updates_back_enabled:
+            newer_entities = [md for md, result in processing_results if result == GOT_NEWER_VERSION]
+            self.send_db_results(peer, response_payload.id, newer_entities)
 
         # Query back the sender for preview contents for the new channels
         # TODO: maybe transform this into a processing_callback?
@@ -158,7 +189,7 @@ class RemoteQueryCommunity(Community):
                 }
                 self.send_remote_select(peer=peer, **request_dict)
 
-        if request.processing_callback:
+        if isinstance(request, SelectRequest) and request.processing_callback:
             request.processing_callback(request, processing_results)
 
     async def unload(self):

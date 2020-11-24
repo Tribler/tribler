@@ -120,6 +120,49 @@ class TestRemoteQueryCommunity(TestBase):
             )
             self.assertEqual(num_channels * max_received_torrents_per_channel_query_back, received_torrents.count())
 
+    async def test_push_back_entry_update(self):
+        """
+        Test pushing back update for an entry.
+        Scenario: both hosts 0 and 1 have metadata entries for the same channel,
+        but host 1's version was created later (its timestamp is higher).
+        When host 1 queries -> host 0 for channel info, host 0 sends it back.
+        Upon receiving the response, host 1 sees that it has a newer version of the channel entry,
+        so it pushes it back to host 0.
+        """
+
+        # Create the old and new versions of the test channel
+        # We sign it with a different private key to prevent the special treatment
+        # of personal channels during processing interfering with the test.
+        fake_key = default_eccrypto.generate_key(u"curve25519")
+        with db_session:
+            chan = self.nodes[0].overlay.mds.ChannelMetadata(
+                infohash=random_infohash(), title="foo", sign_with=fake_key
+            )
+            chan_payload_old = chan._payload_class.from_signed_blob(chan.serialized())
+            chan.timestamp = chan.timestamp + 1
+            chan.sign(key=fake_key)
+            chan_payload_updated = chan._payload_class.from_signed_blob(chan.serialized())
+            chan.delete()
+
+            # Add the older channel version to node 0
+            self.nodes[0].overlay.mds.ChannelMetadata.from_payload(chan_payload_old)
+
+            # Add the updated channel version to node 1
+            self.nodes[1].overlay.mds.ChannelMetadata.from_payload(chan_payload_updated)
+
+            # Just in case, assert the first node only got the older version for now
+            assert self.nodes[0].overlay.mds.ChannelMetadata.get(timestamp=chan_payload_old.timestamp)
+
+        # Node 0 requests channel peers from node 0
+        peer = self.nodes[0].my_peer
+        kwargs_dict = {"metadata_type": [CHANNEL_TORRENT]}
+        self.nodes[1].overlay.send_remote_select(peer, **kwargs_dict)
+        await self.deliver_messages(timeout=0.5)
+
+        with db_session:
+            # Check that node0 now got the updated version
+            assert self.nodes[0].overlay.mds.ChannelMetadata.get(timestamp=chan_payload_updated.timestamp)
+
     async def test_push_entry_update(self):
         """
         Test if sending back information on updated version of a metadata entry works
