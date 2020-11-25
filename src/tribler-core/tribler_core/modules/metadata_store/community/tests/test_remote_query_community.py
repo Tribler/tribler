@@ -1,20 +1,18 @@
+from binascii import unhexlify
 from datetime import datetime
 from json import dumps
+from unittest.mock import Mock
 
 from ipv8.keyvault.crypto import default_eccrypto
-from ipv8.peer import Peer
 from ipv8.test.base import TestBase
 
 from pony.orm import db_session
 from pony.orm.dbapiprovider import OperationalError
 
-from tribler_common.simpledefs import NTFY
-
 from tribler_core.modules.metadata_store.community.remote_query_community import RemoteQueryCommunity, sanitize_query
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import NEW
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, REGULAR_TORRENT
 from tribler_core.modules.metadata_store.store import MetadataStore
-from tribler_core.notifier import Notifier
 from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.random_utils import random_infohash, random_string
 from tribler_core.utilities.unicode import hexlify
@@ -28,15 +26,19 @@ def add_random_torrent(metadata_cls, name="test", channel=None):
     torrent_metadata.sign()
 
 
+class BasicRemoteQueryCommunity(RemoteQueryCommunity):
+    community_id = unhexlify('eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee')
+
+
 class TestRemoteQueryCommunity(TestBase):
     """
-    Unit tests for the GigaChannel community which do not need a real Session.
+    Unit tests for the base RemoteQueryCommunity which do not need a real Session.
     """
 
     def setUp(self):
         super(TestRemoteQueryCommunity, self).setUp()
         self.count = 0
-        self.initialize(RemoteQueryCommunity, 2)
+        self.initialize(BasicRemoteQueryCommunity, 2)
         self.torrent_template = {"title": "", "infohash": b"", "torrent_date": datetime(1970, 1, 1), "tags": "video"}
 
     def create_node(self, *args, **kwargs):
@@ -47,7 +49,6 @@ class TestRemoteQueryCommunity(TestBase):
             disable_sync=True,
         )
         kwargs['metadata_store'] = metadata_store
-        kwargs['notifier'] = Notifier()
         node = super(TestRemoteQueryCommunity, self).create_node(*args, **kwargs)
         self.count += 1
         return node
@@ -58,108 +59,123 @@ class TestRemoteQueryCommunity(TestBase):
     def torrent_metadata(self, i):
         return self.nodes[i].overlay.mds.TorrentMetadata
 
-    def overlay(self, i):
-        return self.nodes[i].overlay
-
     async def test_remote_select(self):
-        # Fill Node 0 DB with channels and torrents entries
+        """
+        Test querying metadata entries from a remote machine
+        """
+
+        # We do not want the query back mechanism to interfere with this test
+        self.nodes[1].overlay.settings.max_channel_query_back = 0
+
+        # Fill Node 0 DB with channels and torrents
         with db_session:
-            channel_uns = self.nodes[0].overlay.mds.ChannelMetadata.create_channel("ubuntu channel unsub", "ubuntu")
-            channel_uns.subscribed = False
             channel = self.nodes[0].overlay.mds.ChannelMetadata.create_channel("ubuntu channel", "ubuntu")
-            channel_id, channel_pk = channel.id_, channel.public_key
             for i in range(20):
                 add_random_torrent(self.nodes[0].overlay.mds.TorrentMetadata, name="ubuntu %s" % i, channel=channel)
-            channel.commit_channel_torrent()
-
-        await self.introduce_nodes()
-        await self.deliver_messages(timeout=0.5)
-
-        # On introduction, the subscribed channel should be sent, so Node 1's DB should immediately get a channel
-        # Node 1 DB is empty. It searches for 'ubuntu'
-        with db_session:
-            torrents = self.nodes[1].overlay.mds.TorrentMetadata.select()[:]
-            self.assertEqual(len(torrents), 1)
-
-        # Node 1 DB is empty. It searches for 'ubuntu'
-        with db_session:
-            # Clean the db from the previous test
-            self.nodes[1].overlay.mds.TorrentMetadata.select().delete()
-            torrents = self.nodes[1].overlay.mds.TorrentMetadata.select()[:]
-            self.assertEqual(len(torrents), 0)
 
         kwargs_dict = {"txt_filter": "ubuntu*", "metadata_type": [REGULAR_TORRENT]}
-        self.nodes[1].overlay.send_remote_select_to_many(**kwargs_dict)
+        callback = Mock()
+        self.nodes[1].overlay.send_remote_select(self.nodes[0].my_peer, **kwargs_dict, processing_callback=callback)
 
         await self.deliver_messages(timeout=0.5)
+        # Test optional response processing callback
+        callback.assert_called()
 
+        # All the matching torrent entries should have been sent to Node 1
         with db_session:
             torrents0 = self.nodes[0].overlay.mds.MetadataNode.get_entries(**kwargs_dict)
             torrents1 = self.nodes[1].overlay.mds.MetadataNode.get_entries(**kwargs_dict)
             self.assertEqual(len(torrents0), len(torrents1))
+            self.assertEqual(len(torrents0), 20)
 
-        # Now try querying for subscribed "ubuntu" channels
-        channels1 = self.nodes[1].overlay.mds.MetadataNode.get_entries(channel_pk=channel_pk, id_=channel_id)
-        self.assertEqual(0, len(channels1))
-        kwargs_dict = {"txt_filter": "ubuntu*", "metadata_type": [CHANNEL_TORRENT], "subscribed": True}
-        self.nodes[1].overlay.send_remote_select_to_many(**kwargs_dict)
-
-        await self.deliver_messages(timeout=0.5)
-
-        with db_session:
-            channels1 = self.nodes[1].overlay.mds.MetadataNode.get_entries(channel_pk=channel_pk, id_=channel_id)
-            self.assertEqual(1, len(channels1))
-
-    async def test_remote_select_subscribed_channels(self):
+    async def test_remote_select_query_back(self):
         """
-        Test querying remote peers for subscribed channels and updating local votes accordingly
+        Test querying back preview contents for previously unknown channels.
         """
 
-        def mock_notify(overlay, args):
-            overlay.notified_results = True
-            self.assertTrue("results" in args)
-
-        self.nodes[1].overlay.notifier = Notifier()
-        self.nodes[1].overlay.notifier.notify = lambda sub, args: mock_notify(self.nodes[1].overlay, args)
+        num_channels = 5
+        max_received_torrents_per_channel_query_back = 4
 
         with db_session:
-            # Create one channel with zero contents, to check that only non-empty channels are served
-            self.nodes[0].overlay.mds.ChannelMetadata.create_channel("channel sub", "")
-            for _ in range(0, 5):
-                chan = self.nodes[0].overlay.mds.ChannelMetadata.create_channel("channel sub", "")
-                chan.num_entries = 5
-                chan.sign()
-            for _ in range(0, 5):
-                channel_uns = self.nodes[0].overlay.mds.ChannelMetadata.create_channel("channel unsub", "")
-                channel_uns.subscribed = False
+            # Generate channels on Node 0
+            for _ in range(0, num_channels):
+                chan = self.nodes[0].overlay.mds.ChannelMetadata.create_channel("channel", "")
+                # Generate torrents in each channel
+                for _ in range(0, max_received_torrents_per_channel_query_back):
+                    self.nodes[0].overlay.mds.TorrentMetadata(origin_id=chan.id_, infohash=random_infohash())
 
         peer = self.nodes[0].my_peer
-        self.nodes[1].overlay.send_remote_select_subscribed_channels(peer)
+        kwargs_dict = {"metadata_type": [CHANNEL_TORRENT]}
+        self.nodes[1].overlay.send_remote_select(peer, **kwargs_dict)
 
         await self.deliver_messages(timeout=0.5)
 
         with db_session:
-            received_channels = self.nodes[1].overlay.mds.ChannelMetadata.select(lambda g: g.title == "channel sub")
-            self.assertEqual(received_channels.count(), 5)
-            # Only subscribed channels should have been transported
-            received_channels_all = self.nodes[1].overlay.mds.ChannelMetadata.select()
-            self.assertEqual(received_channels_all.count(), 5)
+            received_channels = self.nodes[1].overlay.mds.ChannelMetadata.select(lambda g: g.title == "channel")
+            self.assertEqual(received_channels.count(), num_channels)
 
-            # Make sure the subscribed channels transport counted as voting
-            self.assertEqual(
-                self.nodes[1].overlay.mds.ChannelPeer.select().first().public_key, peer.public_key.key_to_bin()[10:]
+            # For each unknown channel that we received, we should have queried the sender for 4 preview torrents.
+            received_torrents = self.nodes[1].overlay.mds.TorrentMetadata.select(
+                lambda g: g.metadata_type == REGULAR_TORRENT
             )
-            for chan in self.nodes[1].overlay.mds.ChannelMetadata.select():
-                self.assertTrue(chan.votes > 0.0)
+            self.assertEqual(num_channels * max_received_torrents_per_channel_query_back, received_torrents.count())
 
-        # Check that the notifier callback is called on new channel entries
-        self.assertTrue(self.nodes[1].overlay.notified_results)
+    async def test_push_back_entry_update(self):
+        """
+        Test pushing back update for an entry.
+        Scenario: both hosts 0 and 1 have metadata entries for the same channel,
+        but host 1's version was created later (its timestamp is higher).
+        When host 1 queries -> host 0 for channel info, host 0 sends it back.
+        Upon receiving the response, host 1 sees that it has a newer version of the channel entry,
+        so it pushes it back to host 0.
+        """
+
+        # Create the old and new versions of the test channel
+        # We sign it with a different private key to prevent the special treatment
+        # of personal channels during processing interfering with the test.
+        fake_key = default_eccrypto.generate_key(u"curve25519")
+        with db_session:
+            chan = self.nodes[0].overlay.mds.ChannelMetadata(
+                infohash=random_infohash(), title="foo", sign_with=fake_key
+            )
+            chan_payload_old = chan._payload_class.from_signed_blob(chan.serialized())
+            chan.timestamp = chan.timestamp + 1
+            chan.sign(key=fake_key)
+            chan_payload_updated = chan._payload_class.from_signed_blob(chan.serialized())
+            chan.delete()
+
+            # Add the older channel version to node 0
+            self.nodes[0].overlay.mds.ChannelMetadata.from_payload(chan_payload_old)
+
+            # Add the updated channel version to node 1
+            self.nodes[1].overlay.mds.ChannelMetadata.from_payload(chan_payload_updated)
+
+            # Just in case, assert the first node only got the older version for now
+            assert self.nodes[0].overlay.mds.ChannelMetadata.get(timestamp=chan_payload_old.timestamp)
+
+        # Node 0 requests channel peers from node 0
+        peer = self.nodes[0].my_peer
+        kwargs_dict = {"metadata_type": [CHANNEL_TORRENT]}
+        self.nodes[1].overlay.send_remote_select(peer, **kwargs_dict)
+        await self.deliver_messages(timeout=0.5)
+
+        with db_session:
+            # Check that node0 now got the updated version
+            assert self.nodes[0].overlay.mds.ChannelMetadata.get(timestamp=chan_payload_updated.timestamp)
+
+    async def test_push_entry_update(self):
+        """
+        Test if sending back information on updated version of a metadata entry works
+        """
 
     async def test_remote_select_packets_limit(self):
         """
         Test dropping packets that go over the response limit for a remote select.
 
         """
+        # We do not want the query back mechanism to interfere with this test
+        self.nodes[1].overlay.settings.max_channel_query_back = 0
+
         with db_session:
             for _ in range(0, 100):
                 self.nodes[0].overlay.mds.ChannelMetadata.create_channel(random_string(100), "")
@@ -180,142 +196,36 @@ class TestRemoteQueryCommunity(TestBase):
             # The list of outstanding requests should be empty
             self.assertFalse(self.nodes[1].overlay.request_cache._identifiers)
 
-    def test_query_on_introduction(self):
-        """
-        Test querying a peer that was just introduced to us.
-        """
-
-        send_ok = []
-
-        def mock_send(_):
-            send_ok.append(1)
-
-        self.nodes[1].overlay.send_remote_select_subscribed_channels = mock_send
-        peer = self.nodes[0].my_peer
-        self.nodes[1].overlay.introduction_response_callback(peer, None, None)
-        self.assertIn(peer.mid, self.nodes[1].overlay.queried_subscribed_channels_peers)
-        self.assertTrue(send_ok)
-
-        # Make sure the same peer will not be queried twice in case the walker returns to it
-        self.nodes[1].overlay.introduction_response_callback(peer, None, None)
-        self.assertEqual(len(send_ok), 1)
-
-        # Test clearing queried peers set when it outgrows its capacity
-        self.nodes[1].overlay.queried_peers_limit = 2
-        self.nodes[1].overlay.introduction_response_callback(Peer(default_eccrypto.generate_key("low")), None, None)
-        self.assertEqual(len(self.nodes[1].overlay.queried_subscribed_channels_peers), 2)
-
-        self.nodes[1].overlay.introduction_response_callback(Peer(default_eccrypto.generate_key("low")), None, None)
-        self.assertEqual(len(self.nodes[1].overlay.queried_subscribed_channels_peers), 1)
-
     def test_sanitize_query(self):
         req_response_list = [
             ({"first": None, "last": None}, {"first": 0, "last": 100}),
             ({"first": 123, "last": None}, {"first": 123, "last": 223}),
             ({"first": None, "last": 1000}, {"first": 0, "last": 100}),
             ({"first": 100, "last": None}, {"first": 100, "last": 200}),
+            ({"first": 123}, {"first": 123, "last": 223}),
+            ({"last": 123}, {"first": 0, "last": 100}),
             ({}, {"first": 0, "last": 100}),
         ]
         for req, resp in req_response_list:
-            self.assertDictEqual(sanitize_query(req), resp)
+            assert sanitize_query(req) == resp
 
-    def test_sanitize_query_infohash(self):
-        infohash_in_b = b'0' * 20
-        infohash_in_hex = hexlify(infohash_in_b)
-
-        query = {'infohash': infohash_in_hex}
-        sanitize_query(query)
-        assert query['infohash'] == infohash_in_b
-
-        # assert no exception raises when 'infohash' is missed
-        sanitize_query({})
-
-    async def test_infohash_select(self):
-        db1 = self.nodes[0].overlay.mds.TorrentMetadata
-        db2 = self.nodes[1].overlay.mds.TorrentMetadata
-
-        torrent_infohash = b'0' * 20
-        torrent_title = 'title'
-
-        def has_testing_infohash(t):
-            return t.infohash == torrent_infohash
-
-        with db_session:
-            db1.from_dict({"infohash": torrent_infohash, "title": torrent_title}).sign()
-
-            torrent_has_been_added_to_db1 = db1.select(has_testing_infohash).count() == 1
-            torrent_not_presented_on_db2 = db2.select(has_testing_infohash).count() == 0
-
-        assert torrent_has_been_added_to_db1
-        assert torrent_not_presented_on_db2
-
-        await self.introduce_nodes()
-        remote_query = {"infohash": hexlify(torrent_infohash)}
-        self.nodes[1].overlay.send_remote_select_to_many(**remote_query)
-
-        await self.deliver_messages(timeout=0.5)
-        with db_session:
-            torrents = list(db2.select(has_testing_infohash))
-
-        torrent_is_presented_on_db2 = len(torrents) == 1
-        torrent_has_valid_title = torrents[0].title == torrent_title
-
-        assert torrent_is_presented_on_db2
-        assert torrent_has_valid_title
-
-    async def add_unknown_torrent(self, enabled):
-        rqc1 = self.nodes[0].overlay
-        rqc2 = self.nodes[1].overlay
-
-        rqc1.enable_resolve_unknown_torrents_feature = enabled
-        rqc2.enable_resolve_unknown_torrents_feature = enabled
-
-        db1 = rqc1.mds.TorrentMetadata
-        db2 = rqc2.mds.TorrentMetadata
-
-        torrent_infohash = random_infohash()
-
-        def has_testing_infohash(t):
-            return t.infohash == torrent_infohash
-
-        with db_session:
-            db1.from_dict({"infohash": torrent_infohash, "title": 'title'}).sign()
-
-            torrent_has_been_added_to_db1 = db1.select(has_testing_infohash).count() == 1
-            torrent_not_presented_on_db2 = db2.select(has_testing_infohash).count() == 0
-
-        assert torrent_has_been_added_to_db1
-        assert torrent_not_presented_on_db2
-
-        # notify second node that new torrent hash has been received from the first node
-        rqc2.notifier.notify(NTFY.POPULARITY_COMMUNITY_ADD_UNKNOWN_TORRENT, self.nodes[0].my_peer, torrent_infohash)
-
-        await self.deliver_messages(timeout=0.5)
-        with db_session:
-            torrent_is_presented_on_db2 = db2.select(has_testing_infohash).count() == 1
-
-        if rqc2.enable_resolve_unknown_torrents_feature:
-            assert torrent_is_presented_on_db2
-        else:
-            assert not torrent_is_presented_on_db2
-
-    async def test_add_unknown_torrent(self):
-        await self.add_unknown_torrent(True)
-        await self.add_unknown_torrent(False)
+    def test_sanitize_query_binary_fields(self):
+        for field in ("infohash", "channel_pk"):
+            field_in_b = b'0' * 20
+            field_in_hex = hexlify(field_in_b)
+            assert sanitize_query({field: field_in_hex})[field] == field_in_b
 
     async def test_unknown_query_attribute(self):
+        rqc_node1 = self.nodes[0].overlay
         rqc_node2 = self.nodes[1].overlay
 
         # only the new attribute
-        rqc_node2.send_remote_select_to_many(**{'new_attribute': 'some_value'})
+        rqc_node2.send_remote_select(rqc_node1.my_peer, **{'new_attribute': 'some_value'})
         await self.deliver_messages(timeout=0.1)
 
         # mixed: the old and a new attribute
-        rqc_node2.send_remote_select_to_many(**{'infohash': hexlify(b'0' * 20), 'new_attribute': 'some_value'})
+        rqc_node2.send_remote_select(rqc_node1.my_peer, **{'infohash': hexlify(b'0' * 20), 'foo': 'bar'})
         await self.deliver_messages(timeout=0.1)
-
-        # no exception have been raised
-        assert True
 
     async def test_process_rpc_query_match_many(self):
         """

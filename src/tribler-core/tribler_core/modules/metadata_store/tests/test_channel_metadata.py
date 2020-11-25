@@ -272,6 +272,17 @@ def test_vsids(metadata_store):
     assert metadata_store.Vsids[0].bump_amount == 1.0
     assert channel.votes == 1.0
 
+    # Ensure that vote by another person counts
+    peer_key = default_eccrypto.generate_key(u"curve25519")
+    metadata_store.vote_bump(channel.public_key, channel.id_, peer_key.pub().key_to_bin()[10:])
+    assert channel.votes == 2.0
+
+    sleep(0.1)  # Necessary mostly on Windows, because of the lower timer resolution
+    # Ensure that a repeated vote supersedes the first vote but does not count as a new one
+    metadata_store.vote_bump(channel.public_key, channel.id_, peer_key.pub().key_to_bin()[10:])
+    assert channel.votes > 2.0
+    assert channel.votes < 2.1
+
 
 @db_session
 def test_commit_channel_torrent(metadata_store):

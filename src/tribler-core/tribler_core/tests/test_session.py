@@ -10,7 +10,6 @@ import pytest
 from tribler_core.session import IGNORED_ERRORS
 from tribler_core.tests.tools.base_test import MockObject
 
-
 # Pylint does not agree with the way pytest handles fixtures.
 # pylint: disable=W0613,W0621
 
@@ -123,8 +122,6 @@ async def test_load_ipv8_overlays(mocked_endpoints, enable_ipv8, session):
     assert "PopularityCommunity" in loaded_launchers
     assert "GigaChannelCommunity" in loaded_launchers
     assert "GigaChannelTestnetCommunity" not in loaded_launchers
-    assert "RemoteQueryCommunity" in loaded_launchers
-    assert "RemoteQueryTestnetCommunity" not in loaded_launchers
 
 
 @pytest.mark.asyncio
@@ -152,5 +149,3 @@ async def test_load_ipv8_overlays_testnet(mocked_endpoints, enable_ipv8, session
     assert "PopularityCommunity" in loaded_launchers
     assert "GigaChannelCommunity" not in loaded_launchers
     assert "GigaChannelTestnetCommunity" in loaded_launchers
-    assert "RemoteQueryCommunity" not in loaded_launchers
-    assert "RemoteQueryTestnetCommunity" in loaded_launchers

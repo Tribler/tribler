@@ -4,7 +4,7 @@ import string
 from binascii import unhexlify
 from datetime import datetime
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 from ipv8.database import database_blob
 from ipv8.keyvault.crypto import default_eccrypto
@@ -276,30 +276,6 @@ def test_process_payload(metadata_store):
 
         # Check that payload processing returns the local node in case we already now about it
         assert processed_node, NO_ACTION == metadata_store.process_payload(node_payload)[0]
-
-
-@db_session
-def test_process_squashed_mdblob_update_vsids(metadata_store):
-    """
-    Test if VSIDS channels votes stats are updated after processing a channel metadata entry
-    """
-    channel = metadata_store.ChannelMetadata(
-        infohash=database_blob(random_infohash()), sign_with=default_eccrypto.generate_key(u"curve25519")
-    )
-    serialized = channel.serialized()
-    channel.delete()
-    mock_peer = Mock()
-    mock_peer.public_key = default_eccrypto.generate_key(u"curve25519").pub()
-    metadata_store.process_squashed_mdblob(serialized, peer_vote_for_channels=mock_peer)
-    assert metadata_store.ChannelVote.get()
-    channel = metadata_store.ChannelMetadata.get()
-    channel_votes1 = channel.votes
-
-    # Now test that the bump happens if another host votes for the same channel
-    mock_peer.public_key = default_eccrypto.generate_key(u"curve25519").pub()
-    metadata_store.process_squashed_mdblob(serialized, peer_vote_for_channels=mock_peer)
-    channel = metadata_store.ChannelMetadata.get()
-    assert channel.votes > channel_votes1
 
 
 @db_session

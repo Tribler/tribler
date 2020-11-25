@@ -6,7 +6,7 @@ from pony.orm import db_session, desc, raw_sql, select
 
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import LEGACY_ENTRY, TODELETE
 from tribler_core.modules.metadata_store.orm_bindings.torrent_metadata import NULL_KEY_SUBST
-from tribler_core.modules.metadata_store.serialization import METADATA_NODE, MetadataNodePayload
+from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, METADATA_NODE, MetadataNodePayload
 from tribler_core.utilities.unicode import hexlify
 
 
@@ -72,6 +72,7 @@ def define_binding(db):
             attribute_ranges=None,
             infohash=None,
             id_=None,
+            complete_channel=None,
         ):
             """
             This method implements REST-friendly way to get entries from the database. It is overloaded by the higher
@@ -111,6 +112,12 @@ def define_binding(db):
             pony_query = pony_query.where(lambda g: g.xxx == 0) if hide_xxx else pony_query
             pony_query = pony_query.where(lambda g: g.status != LEGACY_ENTRY) if exclude_legacy else pony_query
             pony_query = pony_query.where(lambda g: g.infohash == infohash) if infohash else pony_query
+            # ACHTUNG! Setting complete_channel to True forces the metadata type to Channels only!
+            pony_query = (
+                pony_query.where(lambda g: g.metadata_type == CHANNEL_TORRENT and g.timestamp == g.local_version)
+                if complete_channel
+                else pony_query
+            )
 
             # Sort the query
             if sort_by == "HEALTH":

@@ -3,18 +3,16 @@ import heapq
 import random
 from binascii import unhexlify
 
-from ipv8.community import Community
 from ipv8.lazy_community import lazy_wrapper
 
 from pony.orm import db_session
 
-from tribler_common.simpledefs import NTFY
-
+from tribler_core.modules.metadata_store.community.remote_query_community import RemoteQueryCommunity
 from tribler_core.modules.popularity.payload import TorrentsHealthPayload
 from tribler_core.utilities.unicode import hexlify
 
 
-class PopularityCommunity(Community):
+class PopularityCommunity(RemoteQueryCommunity):
     """
     Community for disseminating the content across the network.
 
@@ -30,9 +28,10 @@ class PopularityCommunity(Community):
     community_id = unhexlify('9aca62f878969c437da9844cba29a134917e1648')
 
     def __init__(self, *args, **kwargs):
-        self.metadata_store = kwargs.pop('metadata_store')
+        # this flag enables or disables https://github.com/Tribler/tribler/pull/5657
+        self.enable_resolve_unknown_torrents_feature = True
+
         self.torrent_checker = kwargs.pop('torrent_checker', None)
-        self.notifier = kwargs.pop('notifier', None)
 
         super(PopularityCommunity, self).__init__(*args, **kwargs)
 
@@ -111,7 +110,7 @@ class PopularityCommunity(Community):
         infohashes_to_resolve = []
         with db_session:
             for infohash, seeders, leechers, last_check in torrent_healths:
-                torrent_state = self.metadata_store.TorrentState.get(infohash=infohash)
+                torrent_state = self.mds.TorrentState.get(infohash=infohash)
                 if torrent_state and last_check > torrent_state.last_check:
                     # Replace current information
                     torrent_state.seeders = seeders
@@ -119,16 +118,12 @@ class PopularityCommunity(Community):
                     torrent_state.last_check = last_check
                     self.logger.info(f"{hexlify(infohash)} updated ({seeders},{leechers})")
                 elif not torrent_state:
-                    self.metadata_store.TorrentState(infohash=infohash, seeders=seeders,
+                    self.mds.TorrentState(infohash=infohash, seeders=seeders,
                                                      leechers=leechers, last_check=last_check)
                     self.logger.info(f"{hexlify(infohash)} added ({seeders},{leechers})")
                     infohashes_to_resolve.append(infohash)
 
-        if not self.notifier:
-            return
-
-        # `self.notifier.notify` has been extracted from `with db_session:` to
-        # prevent issues related to nested db_sessions inside notifier callbacks
-        for infohash in infohashes_to_resolve:
-            self.notifier.notify(NTFY.POPULARITY_COMMUNITY_ADD_UNKNOWN_TORRENT,
-                                 peer, infohash)
+        if self.enable_resolve_unknown_torrents_feature:
+            for infohash in infohashes_to_resolve:
+                # Get a single result per infohash to avoid duplicates
+                self.send_remote_select(peer=peer, infohash=hexlify(infohash), last=1)

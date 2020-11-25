@@ -42,7 +42,7 @@ from tribler_core.utilities.path_util import str_path
 from tribler_core.utilities.unicode import hexlify
 
 BETA_DB_VERSIONS = [0, 1, 2, 3, 4, 5]
-CURRENT_DB_VERSION = 9
+CURRENT_DB_VERSION = 10
 
 NO_ACTION = 0
 UNKNOWN_CHANNEL = 1
@@ -344,7 +344,7 @@ class MetadataStore(object):
             return []
         return self.process_squashed_mdblob(decompressed_data, **kwargs)
 
-    def process_squashed_mdblob(self, chunk_data, external_thread=False, peer_vote_for_channels=None, **kwargs):
+    def process_squashed_mdblob(self, chunk_data, external_thread=False, **kwargs):
         """
         Process raw concatenated payloads blob. This routine breaks the database access into smaller batches.
         It uses a congestion-control like algorithm to determine the optimal batch size, targeting the
@@ -354,7 +354,6 @@ class MetadataStore(object):
         :param external_thread: if this is set to True, we add some sleep between batches to allow other threads
             to get the database lock. This is an ugly workaround for Python and asynchronous programming (locking)
             imperfections. It only makes sense to use it when this routine runs on a non-reactor thread.
-        :peer_vote_for_channels: Channel entries found in the blob will be vote bumped for the corresponding peer
         :return: a list of tuples of (<metadata or payload>, <action type>)
         """
 
@@ -402,12 +401,6 @@ class MetadataStore(object):
             if external_thread:
                 sleep(self.sleep_on_external_thread)
 
-        # TODO: this is not the best place to bump votes. It is more correct to do it directly in process_payload.
-        if peer_vote_for_channels is not None:
-            with db_session:
-                peer = peer_vote_for_channels
-                for c in [md for md, _ in result if md and (md.metadata_type == CHANNEL_TORRENT)]:
-                    self.vote_bump(c.public_key, c.id_, peer.public_key.key_to_bin()[10:])
         return result
 
     @db_session

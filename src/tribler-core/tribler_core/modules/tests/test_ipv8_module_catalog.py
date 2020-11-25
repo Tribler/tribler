@@ -14,7 +14,6 @@ def test_hiddenimports():
     assert 'ipv8.peerdiscovery.discovery' in hiddenimports
     assert 'tribler_core.modules.popularity.popularity_community' in hiddenimports
     assert 'tribler_core.modules.metadata_store.community.gigachannel_community' in hiddenimports
-    assert 'tribler_core.modules.metadata_store.community.remote_query_community' in hiddenimports
     assert 'tribler_core.modules.metadata_store.community.sync_strategy' in hiddenimports
     assert 'tribler_core.modules.tunnel.community.discovery' in hiddenimports
     assert 'tribler_core.modules.tunnel.community.triblertunnel_community' in hiddenimports

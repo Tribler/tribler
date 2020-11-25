@@ -1,4 +1,3 @@
-import uuid
 from base64 import b64encode
 
 from PyQt5 import uic
@@ -286,9 +285,7 @@ class ChannelContentsWidget(widget_form, widget_class):
     #    self.tray_show_message("Copied channel ID", self.channel_info["public_key"])
 
     def preview_clicked(self):
-        request_uuid = uuid.uuid4()
-        self.model.remote_queries.add(request_uuid)
-        params = {'uuid': request_uuid}
+        params = dict()
 
         if "public_key" in self.model.channel_info:
             # This is a channel contents query, limit the search by channel_pk and torrent md type
@@ -306,7 +303,12 @@ class ChannelContentsWidget(widget_form, widget_class):
         if self.model.category_filter is not None:
             params.update({'category_filter': self.model.category_filter})
 
-        TriblerNetworkRequest('remote_query', None, method="PUT", url_params=params)
+        def add_request_uuid(response):
+            request_uuid = response["request_uuid"]
+            if self.model:
+                self.model.remote_queries.add(request_uuid)
+
+        TriblerNetworkRequest('remote_query', add_request_uuid, method="PUT", url_params=params)
 
     def create_new_channel(self):
         NewChannelDialog(self, self.model.create_new_channel)

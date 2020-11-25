@@ -1,17 +1,14 @@
-from binascii import unhexlify
-
 from aiohttp import web
 
 from aiohttp_apispec import docs, querystring_schema
 
 from ipv8.REST.schema import schema
 
-from marshmallow.fields import Boolean
+from marshmallow.fields import String
 
 from tribler_core.modules.metadata_store.restapi.metadata_endpoint import MetadataEndpointBase
 from tribler_core.modules.metadata_store.restapi.metadata_schema import RemoteQueryParameters
 from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, RESTResponse
-from tribler_core.utilities.unicode import hexlify
 
 
 class RemoteQueryEndpoint(MetadataEndpointBase):
@@ -25,19 +22,19 @@ class RemoteQueryEndpoint(MetadataEndpointBase):
 
     def sanitize_parameters(self, parameters):
         sanitized = super(RemoteQueryEndpoint, self).sanitize_parameters(parameters)
-        sanitized.update({'uuid': parameters['uuid'], 'channel_pk': unhexlify(parameters.get('channel_pk', ""))})
+
+        # Convert frozenset to string
+        if "metadata_type" in sanitized:
+            sanitized["metadata_type"] = [str(mt) for mt in sanitized["metadata_type"] if mt]
+        if "channel_pk" in parameters:
+            sanitized["channel_pk"] = parameters["channel_pk"]
+
         return sanitized
 
     @docs(
         tags=['Metadata'],
         summary="Perform a search for a given query.",
-        responses={
-            200: {
-                'schema': schema(RemoteSearchResponse={
-                    'success': Boolean
-                })
-            }
-        }
+        responses={200: {'schema': schema(RemoteSearchResponse={'request_uuid': String()})}},
     )
     @querystring_schema(RemoteQueryParameters)
     async def create_remote_search_request(self, request):
@@ -48,18 +45,8 @@ class RemoteQueryEndpoint(MetadataEndpointBase):
         # Results are returned over the Events endpoint.
         try:
             sanitized = self.sanitize_parameters(request.query)
-            if sanitized["txt_filter"] and sanitized["channel_pk"]:
-                return RESTResponse({"error": "Remote search by text and pk is not supported"}, status=HTTP_BAD_REQUEST)
         except (ValueError, KeyError) as e:
             return RESTResponse({"error": "Error processing request parameters: %s" % e}, status=HTTP_BAD_REQUEST)
 
-        self.session.gigachannel_community.send_search_request(
-            sanitized['txt_filter'] or ('"%s"*' % hexlify(sanitized['channel_pk'])),
-            metadata_type=sanitized.get('metadata_type'),
-            sort_by=sanitized['sort_by'],
-            sort_asc=sanitized['sort_desc'],
-            hide_xxx=sanitized['hide_xxx'],
-            uuid=sanitized['uuid'],
-        )
-
-        return RESTResponse({"success": True})
+        request_uuid = self.session.gigachannel_community.send_search_request(**sanitized)
+        return RESTResponse({"request_uuid": str(request_uuid)})

@@ -4,7 +4,6 @@ import sys
 from ipv8.loader import CommunityLauncher, after, kwargs, overlay, precondition, set_in_session, walk_strategy
 from ipv8.peer import Peer
 
-
 INFINITE = -1
 """
 The amount of target_peers for a walk_strategy definition to never stop.
@@ -96,8 +95,7 @@ class TriblerTunnelTestnetCommunityLauncher(TestnetMixIn, TriblerTunnelCommunity
 @precondition('session.config.get_popularity_community_enabled()')
 @set_in_session('popularity_community')
 @overlay('tribler_core.modules.popularity.popularity_community', 'PopularityCommunity')
-@kwargs(metadata_store='session.mds', torrent_checker='session.torrent_checker',
-        notifier='session.notifier')
+@kwargs(metadata_store='session.mds', torrent_checker='session.torrent_checker')
 @walk_strategy('ipv8.peerdiscovery.discovery', 'RandomWalk')
 class PopularityCommunityLauncher(IPv8CommunityLauncher):
     pass
@@ -109,8 +107,9 @@ class PopularityCommunityLauncher(IPv8CommunityLauncher):
 @set_in_session('gigachannel_community')
 @overlay('tribler_core.modules.metadata_store.community.gigachannel_community', 'GigaChannelCommunity')
 @kwargs(metadata_store='session.mds', notifier='session.notifier')
-@walk_strategy('ipv8.peerdiscovery.discovery', 'RandomWalk')
-@walk_strategy('tribler_core.modules.metadata_store.community.sync_strategy', 'SyncChannels', target_peers=INFINITE)
+# GigaChannelCommunity remote search feature works better with higher amount of connected peers
+@walk_strategy('ipv8.peerdiscovery.discovery', 'RandomWalk', target_peers=30)
+@walk_strategy('tribler_core.modules.metadata_store.community.sync_strategy', 'RemovePeers', target_peers=INFINITE)
 class GigaChannelCommunityLauncher(IPv8CommunityLauncher):
     pass
 
@@ -119,25 +118,6 @@ class GigaChannelCommunityLauncher(IPv8CommunityLauncher):
 @precondition('session.config.get_chant_testnet()')
 @overlay('tribler_core.modules.metadata_store.community.gigachannel_community', 'GigaChannelTestnetCommunity')
 class GigaChannelTestnetCommunityLauncher(TestnetMixIn, GigaChannelCommunityLauncher):
-    pass
-
-
-@after('GigaChannelCommunity', 'GigaChannelTestnetCommunity')
-@precondition('session.config.get_chant_enabled()')
-@precondition('not session.config.get_chant_testnet()')
-@set_in_session('remote_query_community')
-@overlay('tribler_core.modules.metadata_store.community.remote_query_community', 'RemoteQueryCommunity')
-@kwargs(metadata_store='session.mds', notifier='session.notifier')
-@walk_strategy('ipv8.peerdiscovery.discovery', 'RandomWalk', target_peers=30)
-@walk_strategy('tribler_core.modules.metadata_store.community.sync_strategy', 'RemovePeers', target_peers=INFINITE)
-class RemoteQueryCommunityLauncher(IPv8CommunityLauncher):
-    pass
-
-
-@precondition('session.config.get_chant_enabled()')
-@precondition('session.config.get_chant_testnet()')
-@overlay('tribler_core.modules.metadata_store.community.remote_query_community', 'RemoteQueryTestnetCommunity')
-class RemoteQueryTestnetCommunityLauncher(TestnetMixIn, RemoteQueryCommunityLauncher):
     pass
 
 
@@ -171,5 +151,3 @@ def register_default_launchers(loader):
     loader.set_launcher(PopularityCommunityLauncher())
     loader.set_launcher(GigaChannelCommunityLauncher())
     loader.set_launcher(GigaChannelTestnetCommunityLauncher())
-    loader.set_launcher(RemoteQueryCommunityLauncher())
-    loader.set_launcher(RemoteQueryTestnetCommunityLauncher())
