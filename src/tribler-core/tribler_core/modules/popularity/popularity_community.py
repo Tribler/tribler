@@ -28,9 +28,6 @@ class PopularityCommunity(RemoteQueryCommunity):
     community_id = unhexlify('9aca62f878969c437da9844cba29a134917e1648')
 
     def __init__(self, *args, **kwargs):
-        # this flag enables or disables https://github.com/Tribler/tribler/pull/5657
-        self.enable_resolve_unknown_torrents_feature = True
-
         self.torrent_checker = kwargs.pop('torrent_checker', None)
 
         super(PopularityCommunity, self).__init__(*args, **kwargs)
@@ -119,11 +116,10 @@ class PopularityCommunity(RemoteQueryCommunity):
                     self.logger.info(f"{hexlify(infohash)} updated ({seeders},{leechers})")
                 elif not torrent_state:
                     self.mds.TorrentState(infohash=infohash, seeders=seeders,
-                                                     leechers=leechers, last_check=last_check)
+                                          leechers=leechers, last_check=last_check)
                     self.logger.info(f"{hexlify(infohash)} added ({seeders},{leechers})")
                     infohashes_to_resolve.append(infohash)
 
-        if self.enable_resolve_unknown_torrents_feature:
-            for infohash in infohashes_to_resolve:
-                # Get a single result per infohash to avoid duplicates
-                self.send_remote_select(peer=peer, infohash=hexlify(infohash), last=1)
+        for infohash in infohashes_to_resolve:
+            # Get a single result per infohash to avoid duplicates
+            self.send_remote_select(peer=peer, infohash=hexlify(infohash), last=1)
