@@ -8,6 +8,7 @@ INFINITE = -1
 """
 The amount of target_peers for a walk_strategy definition to never stop.
 """
+print("If this makes it into the code, there is a problem.")
 
 
 class IPv8CommunityLauncher(CommunityLauncher):
