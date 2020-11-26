@@ -51,11 +51,12 @@ class GigaChannelCommunitySettings(RemoteQueryCommunitySettings):
 class NonLegacyGigaChannelCommunity(RemoteQueryCommunity):
     community_id = unhexlify('dc43e3465cbd83948f30d3d3e8336d71cce33aa7')
 
-    def create_introduction_response(self, *args, introduction=None, extra_bytes=b'', prefix=None):
+    def create_introduction_response(self, *args, introduction=None, extra_bytes=b'', prefix=None, new_style=False):
         # ACHTUNG! We add extra_bytes here to identify the newer, 7.6+ version RemoteQuery/GigaChannel community
         # dialect, so that other 7.6+ are able to distinguish between the older and newer versions.
         return super().create_introduction_response(
-            *args, introduction=introduction, extra_bytes=MAGIC_GIGACHAN_VERSION_MARK, prefix=prefix
+            *args, introduction=introduction, extra_bytes=MAGIC_GIGACHAN_VERSION_MARK, prefix=prefix,
+            new_style=new_style
         )
 
     def __init__(self, my_peer, endpoint, network, metadata_store, **kwargs):
