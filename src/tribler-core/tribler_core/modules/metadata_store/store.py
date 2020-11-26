@@ -112,8 +112,9 @@ class MetadataStore(object):
         def sqlite_disable_sync(_, connection):
             cursor = connection.cursor()
             cursor.execute("PRAGMA journal_mode = WAL")
-            cursor.execute("PRAGMA synchronous = 1")
-            cursor.execute("PRAGMA temp_store = 2")
+            cursor.execute("PRAGMA synchronous = NORMAL")
+            cursor.execute("PRAGMA temp_store = MEMORY")
+            cursor.execute("PRAGMA foreign_keys = ON")
 
             # Disable disk sync for special cases
             if disable_sync:

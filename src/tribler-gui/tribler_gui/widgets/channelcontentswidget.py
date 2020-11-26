@@ -106,7 +106,7 @@ class ChannelContentsWidget(widget_form, widget_class):
     def commit_channels(self):
         TriblerNetworkRequest("channels/mychannel/0/commit", self.on_channel_committed, method='POST')
 
-    def initialize_content_page(self, autocommit_enabled=True, hide_xxx=None):
+    def initialize_content_page(self, autocommit_enabled=False, hide_xxx=None):
         if self.initialized:
             return
 
