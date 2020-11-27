@@ -1,6 +1,9 @@
 import logging
+import sys
 from contextvars import ContextVar
 from hashlib import md5
+
+from PyQt5.QtWidgets import QApplication, QMessageBox
 
 from faker import Faker
 
@@ -83,8 +86,7 @@ class SentryReporter:
         Returns:
             Sentry Guard.
         """
-        SentryReporter._logger.info(f"Init: {sentry_url}")
-
+        SentryReporter._logger.debug(f"Init: {sentry_url}")
         SentryReporter._scrubber = scrubber
         return sentry_sdk.init(
             sentry_url,
@@ -101,7 +103,7 @@ class SentryReporter:
         )
 
     @staticmethod
-    def send(event, post_data, sys_info):
+    def send_event(event, post_data=None, sys_info=None):
         """Send the event to the Sentry server
 
         This method
@@ -166,6 +168,40 @@ class SentryReporter:
             return event
 
     @staticmethod
+    def send_exception_with_confirmation(exception):
+        """Send exception with a confirmation dialog.
+        This method should be used in case standard GUI "sending reports mechanism"
+        is no available.
+
+        There are two message boxes, that will be triggered:
+        1. Message box with the error_text
+        2. Message box with confirmation about sending this report to the Tribler
+            team.
+
+        Args:
+            exception: exception to be sent.
+        """
+        SentryReporter._logger.debug(f"Send exception with confirmation: {exception}")
+
+        _ = QApplication(sys.argv)
+        messagebox = QMessageBox(icon=QMessageBox.Critical, text=f'{exception}.')
+        messagebox.setWindowTitle("Error")
+        messagebox.exec()
+
+        messagebox = QMessageBox(
+            icon=QMessageBox.Question,
+            text='Do you want to send this crash report to the Tribler team? '
+            'We anonymize all your data, who you are and what you downloaded.',
+        )
+        messagebox.setWindowTitle("Error")
+        messagebox.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+        if messagebox.exec() == QMessageBox.Yes:
+            with AllowSentryReports(True):
+                sentry_sdk.capture_exception(exception)
+
+        return exception
+
+    @staticmethod
     def set_user(user_id):
         """ Set the user to identify the event on a Sentry server
 
@@ -184,7 +220,7 @@ class SentryReporter:
         # calculate hash to keep real `user_id` in secret
         user_id_hash = md5(user_id).hexdigest()
 
-        SentryReporter._logger.info(f"Set user: {user_id_hash}")
+        SentryReporter._logger.debug(f"Set user: {user_id_hash}")
 
         Faker.seed(user_id_hash)
         user_name = Faker().name()
@@ -223,7 +259,7 @@ class SentryReporter:
         Returns:
             None
         """
-        SentryReporter._logger.info(f"Allow sending globally: {value}. Info: {info}")
+        SentryReporter._logger.debug(f"Allow sending globally: {value}. Info: {info}")
         SentryReporter._allow_sending_global = value
 
     @staticmethod
@@ -243,7 +279,7 @@ class SentryReporter:
         Returns:
             None
         """
-        SentryReporter._logger.info(f"Allow sending in thread: {value}. Info: {info}")
+        SentryReporter._logger.debug(f"Allow sending in thread: {value}. Info: {info}")
         SentryReporter._allow_sending_in_thread.set(value)
 
     @staticmethod
@@ -266,17 +302,17 @@ class SentryReporter:
         if not event:
             return event
 
-        SentryReporter._logger.info(f"Before send event: {event}")
-        SentryReporter._logger.info(f"Is allow sending: {SentryReporter._allow_sending_global}")
+        SentryReporter._logger.debug(f"Before send event: {event}")
+        SentryReporter._logger.debug(f"Is allow sending: {SentryReporter._allow_sending_global}")
         # to synchronise error reporter and sentry, we should suppress all events
         # until user clicked on "send crash report"
         if not SentryReporter.get_allow_sending():
-            SentryReporter._logger.info("Suppress sending. Storing the event.")
+            SentryReporter._logger.debug("Suppress sending. Storing the event.")
             SentryReporter.last_event = event
             return None
 
         # clean up the event
-        SentryReporter._logger.info(f"Clean up the event with scrubber: {SentryReporter._scrubber}")
+        SentryReporter._logger.debug(f"Clean up the event with scrubber: {SentryReporter._scrubber}")
         if SentryReporter._scrubber:
             event = SentryReporter._scrubber.scrub_event(event)
 
@@ -308,7 +344,7 @@ class AllowSentryReports:
                 testing purposes.
         """
         self._logger = logging.getLogger(self.__class__.__name__)
-        self._logger.info(f'Value: {value}, description: {description}')
+        self._logger.debug(f'Value: {value}, description: {description}')
 
         self._value = value
         self._saved_state = None
@@ -317,7 +353,7 @@ class AllowSentryReports:
     def __enter__(self):
         """Set SentryReporter.allow_sending(value)
         """
-        self._logger.info('Enter')
+        self._logger.debug('Enter')
         self._saved_state = self._reporter.get_allow_sending()
 
         self._reporter.allow_sending_in_thread(self._value, 'AllowSentryReports.__enter__()')
@@ -326,5 +362,5 @@ class AllowSentryReports:
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Restore SentryReporter.allow_sending(old_value)
         """
-        self._logger.info('Exit')
+        self._logger.debug('Exit')
         self._reporter.allow_sending_in_thread(self._saved_state, 'AllowSentryReports.__exit__()')

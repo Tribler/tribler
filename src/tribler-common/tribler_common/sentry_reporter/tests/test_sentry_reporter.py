@@ -110,10 +110,10 @@ def test_allow_sentry_reports(reporter):
 
 
 def test_send(reporter):
-    assert reporter.send(None, None, None) is None
+    assert reporter.send_event(None, None, None) is None
 
     # test return defaults
-    assert reporter.send({}, None, None) == {
+    assert reporter.send_event({}, None, None) == {
         'contexts': {
             'browser': {'name': 'Tribler', 'version': None},
             'reporter': {'_stacktrace': [], 'comments': None, OS_ENVIRON: {}, 'sysinfo': None},
@@ -132,7 +132,7 @@ def test_send(reporter):
         "stack": 'some\nstack',
     }
 
-    assert reporter.send({'a': 'b'}, post_data, None) == {
+    assert reporter.send_event({'a': 'b'}, post_data, None) == {
         'a': 'b',
         'contexts': {
             'browser': {'name': 'Tribler', 'version': '0.0.0'},
@@ -144,7 +144,7 @@ def test_send(reporter):
     # test sys_info
     post_data = {"sysinfo": 'key\tvalue\nkey1\tvalue1\n'}
 
-    assert reporter.send({}, post_data, None) == {
+    assert reporter.send_event({}, post_data, None) == {
         'contexts': {
             'browser': {'name': 'Tribler', 'version': None},
             'reporter': {'_stacktrace': [], 'comments': None, 'os.environ': {}, 'sysinfo': None},
@@ -153,7 +153,7 @@ def test_send(reporter):
     }
 
     sys_info = {'platform': ['darwin'], 'platform.details': ['details'], OS_ENVIRON: ['KEY:VALUE', 'KEY1:VALUE1']}
-    assert reporter.send({}, None, sys_info) == {
+    assert reporter.send_event({}, None, sys_info) == {
         'contexts': {
             'browser': {'name': 'Tribler', 'version': None},
             'reporter': {
