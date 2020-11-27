@@ -394,6 +394,11 @@ class Session(TaskManager):
         if self.config.get_ipv8_enabled():
             self.payout_manager = PayoutManager(self.bandwidth_community, self.dht_community)
 
+            if self.core_test_mode:
+                from ipv8.messaging.interfaces.udp.endpoint import UDPv4Address
+                from ipv8.dht.routing import RoutingTable
+                self.dht_community.routing_tables[UDPv4Address] = RoutingTable('\x00' * 20)
+
         # GigaChannel Manager should be started *after* resuming the downloads,
         # because it depends on the states of torrent downloads
         if self.config.get_chant_enabled() and self.config.get_chant_manager_enabled() \
