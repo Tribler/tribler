@@ -1,3 +1,4 @@
+# pylint: disable=import-outside-toplevel
 import inspect
 import sys
 
@@ -11,40 +12,114 @@ The amount of target_peers for a walk_strategy definition to never stop.
 
 
 class IPv8CommunityLauncher(CommunityLauncher):
-
     def get_my_peer(self, ipv8, session):
         return (Peer(session.trustchain_testnet_keypair) if session.config.get_trustchain_testnet()
                 else Peer(session.trustchain_keypair))
 
 
 class TestnetMixIn:
-
     def should_launch(self, session):
         return True
 
 
-@precondition('session.config.get_discovery_community_enabled()')
-@overlay('ipv8.peerdiscovery.community', 'DiscoveryCommunity')
-@walk_strategy('ipv8.peerdiscovery.churn', 'RandomChurn', target_peers=INFINITE)
-@walk_strategy('ipv8.peerdiscovery.discovery', 'RandomWalk')
-@walk_strategy('ipv8.peerdiscovery.community', 'PeriodicSimilarity', target_peers=INFINITE)
-class IPv8DiscoveryCommunityLauncher(IPv8CommunityLauncher):
+# communities
+def discovery_community():
+    from ipv8.peerdiscovery.community import DiscoveryCommunity
+    return DiscoveryCommunity
 
+
+def dht_discovery_community():
+    from ipv8.dht.discovery import DHTDiscoveryCommunity
+    return DHTDiscoveryCommunity
+
+
+def tribler_tunnel_community():
+    from tribler_core.modules.tunnel.community.triblertunnel_community import TriblerTunnelCommunity
+    return TriblerTunnelCommunity
+
+
+def bandwidth_accounting_community():
+    from tribler_core.modules.bandwidth_accounting.community import BandwidthAccountingCommunity
+    return BandwidthAccountingCommunity
+
+
+def bandwidth_accounting_testnet_community():
+    from tribler_core.modules.bandwidth_accounting.community import BandwidthAccountingTestnetCommunity
+    return BandwidthAccountingTestnetCommunity
+
+
+def popularity_community():
+    from tribler_core.modules.popularity.popularity_community import PopularityCommunity
+    return PopularityCommunity
+
+
+def giga_channel_community():
+    from tribler_core.modules.metadata_store.community.gigachannel_community import GigaChannelCommunity
+    return GigaChannelCommunity
+
+
+def giga_channel_testnet_community():
+    from tribler_core.modules.metadata_store.community.gigachannel_community import GigaChannelTestnetCommunity
+    return GigaChannelTestnetCommunity
+
+
+def tribler_tunnel_testnet_community():
+    from tribler_core.modules.tunnel.community.triblertunnel_community import TriblerTunnelTestnetCommunity
+    return TriblerTunnelTestnetCommunity
+
+
+# strategies
+def random_churn():
+    from ipv8.peerdiscovery.churn import RandomChurn
+    return RandomChurn
+
+
+def ping_churn():
+    from ipv8.dht.churn import PingChurn
+    return PingChurn
+
+
+def random_walk():
+    from ipv8.peerdiscovery.discovery import RandomWalk
+    return RandomWalk
+
+
+def periodic_similarity():
+    from ipv8.peerdiscovery.community import PeriodicSimilarity
+    return PeriodicSimilarity
+
+
+def golden_ratio_strategy():
+    from tribler_core.modules.tunnel.community.discovery import GoldenRatioStrategy
+    return GoldenRatioStrategy
+
+
+def remove_peers():
+    from tribler_core.modules.metadata_store.community.sync_strategy import RemovePeers
+    return RemovePeers
+
+
+@precondition('session.config.get_discovery_community_enabled()')
+@overlay(discovery_community)
+@walk_strategy(random_churn, target_peers=INFINITE)
+@walk_strategy(random_walk)
+@walk_strategy(periodic_similarity, target_peers=INFINITE)
+class IPv8DiscoveryCommunityLauncher(IPv8CommunityLauncher):
     def finalize(self, ipv8, session, community):
         community.resolve_dns_bootstrap_addresses()
         return super()
 
 
-@overlay('tribler_core.modules.bandwidth_accounting.community', 'BandwidthAccountingCommunity')
+@overlay(bandwidth_accounting_community)
 @precondition('not session.config.get_bandwidth_testnet()')
 @kwargs(database_path='session.config.get_state_dir() / "sqlite" / "bandwidth.db"')
-@walk_strategy('ipv8.peerdiscovery.discovery', 'RandomWalk')
+@walk_strategy(random_walk)
 @set_in_session('bandwidth_community')
 class BandwidthCommunityLauncher(IPv8CommunityLauncher):
     pass
 
 
-@overlay('tribler_core.modules.bandwidth_accounting.community', 'BandwidthAccountingTestnetCommunity')
+@overlay(bandwidth_accounting_testnet_community)
 @precondition('session.config.get_bandwidth_testnet()')
 class BandwidthTestnetCommunityLauncher(TestnetMixIn, BandwidthCommunityLauncher):
     pass
@@ -52,9 +127,9 @@ class BandwidthTestnetCommunityLauncher(TestnetMixIn, BandwidthCommunityLauncher
 
 @precondition('session.config.get_dht_enabled()')
 @set_in_session('dht_community')
-@overlay('ipv8.dht.discovery', 'DHTDiscoveryCommunity')
-@walk_strategy('ipv8.dht.churn', 'PingChurn', target_peers=INFINITE)
-@walk_strategy('ipv8.peerdiscovery.discovery', 'RandomWalk')
+@overlay(dht_discovery_community)
+@walk_strategy(ping_churn, target_peers=INFINITE)
+@walk_strategy(random_walk)
 class DHTCommunityLauncher(IPv8CommunityLauncher):
     pass
 
@@ -63,16 +138,15 @@ class DHTCommunityLauncher(IPv8CommunityLauncher):
 @precondition('session.config.get_tunnel_community_enabled()')
 @precondition('not session.config.get_tunnel_testnet()')
 @set_in_session('tunnel_community')
-@overlay('tribler_core.modules.tunnel.community.triblertunnel_community', 'TriblerTunnelCommunity')
+@overlay(tribler_tunnel_community)
 @kwargs(bandwidth_community='session.bandwidth_community',
         competing_slots='session.config.get_tunnel_community_competing_slots()',
         ipv8='session.ipv8',
         random_slots='session.config.get_tunnel_community_random_slots()',
         tribler_session='session')
-@walk_strategy('ipv8.peerdiscovery.discovery', 'RandomWalk')
-@walk_strategy('tribler_core.modules.tunnel.community.discovery', 'GoldenRatioStrategy', target_peers=INFINITE)
+@walk_strategy(random_walk)
+@walk_strategy(golden_ratio_strategy, target_peers=INFINITE)
 class TriblerTunnelCommunityLauncher(IPv8CommunityLauncher):
-
     def get_kwargs(self, session):
         from ipv8.dht.provider import DHTCommunityProvider
         from ipv8.messaging.anonymization.community import TunnelSettings
@@ -87,36 +161,36 @@ class TriblerTunnelCommunityLauncher(IPv8CommunityLauncher):
 
 @precondition('session.config.get_tunnel_community_enabled()')
 @precondition('session.config.get_tunnel_testnet()')
-@overlay('tribler_core.modules.tunnel.community.triblertunnel_community', 'TriblerTunnelTestnetCommunity')
+@overlay(tribler_tunnel_testnet_community)
 class TriblerTunnelTestnetCommunityLauncher(TestnetMixIn, TriblerTunnelCommunityLauncher):
     pass
 
 
 @precondition('session.config.get_popularity_community_enabled()')
 @set_in_session('popularity_community')
-@overlay('tribler_core.modules.popularity.popularity_community', 'PopularityCommunity')
+@overlay(popularity_community)
 @kwargs(metadata_store='session.mds', torrent_checker='session.torrent_checker')
-@walk_strategy('ipv8.peerdiscovery.discovery', 'RandomWalk')
+@walk_strategy(random_walk)
 class PopularityCommunityLauncher(IPv8CommunityLauncher):
     pass
 
 
-@overlay('tribler_core.modules.metadata_store.community.gigachannel_community', 'GigaChannelCommunity')
+@overlay(giga_channel_community)
 @precondition('session.config.get_chant_enabled()')
 @precondition('not session.config.get_chant_testnet()')
 @set_in_session('gigachannel_community')
-@overlay('tribler_core.modules.metadata_store.community.gigachannel_community', 'GigaChannelCommunity')
+@overlay(giga_channel_community)
 @kwargs(metadata_store='session.mds', notifier='session.notifier')
 # GigaChannelCommunity remote search feature works better with higher amount of connected peers
-@walk_strategy('ipv8.peerdiscovery.discovery', 'RandomWalk', target_peers=30)
-@walk_strategy('tribler_core.modules.metadata_store.community.sync_strategy', 'RemovePeers', target_peers=INFINITE)
+@walk_strategy(random_walk, target_peers=30)
+@walk_strategy(remove_peers, target_peers=INFINITE)
 class GigaChannelCommunityLauncher(IPv8CommunityLauncher):
     pass
 
 
 @precondition('session.config.get_chant_enabled()')
 @precondition('session.config.get_chant_testnet()')
-@overlay('tribler_core.modules.metadata_store.community.gigachannel_community', 'GigaChannelTestnetCommunity')
+@overlay(giga_channel_testnet_community)
 class GigaChannelTestnetCommunityLauncher(TestnetMixIn, GigaChannelCommunityLauncher):
     pass
 
