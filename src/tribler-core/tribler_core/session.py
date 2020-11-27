@@ -336,10 +336,17 @@ class Session(TaskManager):
                 community_file._DEFAULT_ADDRESSES = [self.config.get_ipv8_bootstrap_override()]
                 community_file._DNS_ADDRESSES = []
 
+            if self.core_test_mode:
+                endpoint = DispatcherEndpoint([])
+            else:
+                # IPv8 includes IPv6 support by default.
+                # We only load IPv4 to not kill all Tribler overlays (currently, it would instantly crash all users).
+                # If you want to test IPv6 in Tribler you can set ``endpoint = None`` here.
+                endpoint = DispatcherEndpoint(["UDPIPv4"], UDPIPv4={'port': self.config.get_ipv8_port(),
+                                                                    'ip': self.config.get_ipv8_address()})
             self.ipv8 = IPv8(ipv8_config_builder.finalize(),
-                             enable_statistics=self.config.get_ipv8_statistics()) \
-                if not self.core_test_mode else IPv8(ipv8_config_builder.finalize(),
-                                                     endpoint_override=DispatcherEndpoint([]))
+                             enable_statistics=self.config.get_ipv8_statistics() and not self.core_test_mode,
+                             endpoint_override=endpoint)
             await self.ipv8.start()
 
             self.config.set_anon_proxy_settings(2, ("127.0.0.1",
@@ -386,6 +393,11 @@ class Session(TaskManager):
 
         if self.config.get_ipv8_enabled():
             self.payout_manager = PayoutManager(self.bandwidth_community, self.dht_community)
+
+            if self.core_test_mode:
+                from ipv8.messaging.interfaces.udp.endpoint import UDPv4Address
+                from ipv8.dht.routing import RoutingTable
+                self.dht_community.routing_tables[UDPv4Address] = RoutingTable('\x00' * 20)
 
         # GigaChannel Manager should be started *after* resuming the downloads,
         # because it depends on the states of torrent downloads
