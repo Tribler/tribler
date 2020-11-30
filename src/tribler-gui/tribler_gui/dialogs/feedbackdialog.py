@@ -152,7 +152,7 @@ class FeedbackDialog(QDialog):
 
         # if no backend_sentry_event, then try to restore GUI exception
         sentry_event = self.backend_sentry_event or SentryReporter.last_event
-        SentryReporter.send(sentry_event, post_data, sys_info_dict)
+        SentryReporter.send_event(sentry_event, post_data, sys_info_dict)
 
         TriblerNetworkRequest(endpoint, self.on_report_sent, raw_data=tribler_urlencode(post_data), method='POST')
 
