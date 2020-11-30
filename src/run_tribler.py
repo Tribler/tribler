@@ -11,7 +11,6 @@ from tribler_common.sentry_reporter.sentry_scrubber import SentryScrubber
 import tribler_core
 from tribler_core.config.tribler_config import CONFIG_FILENAME
 from tribler_core.dependencies import check_for_missing_dependencies
-from tribler_core.session import IGNORED_ERRORS
 from tribler_core.upgrade.version_manager import fork_state_directory_if_necessary, get_versioned_state_directory
 from tribler_core.utilities.osutils import get_root_state_directory
 from tribler_core.version import sentry_url, version_id
@@ -89,24 +88,9 @@ def start_tribler_core(base_path, api_port, api_key, root_state_dir, core_test_m
     get_event_loop().run_forever()
 
 
-def excepthook(exctype, value, traceback):  # pylint: disable=unused-argument
-    ignored_message = None
-    try:
-        ignored_message = IGNORED_ERRORS.get((value.__class__, value.errno),
-                                             IGNORED_ERRORS.get(value.__class__))
-    except (ValueError, AttributeError):
-        pass
-    if ignored_message is not None:
-        return
-
-    SentryReporter.send_exception_with_confirmation(value)
-
-
 if __name__ == "__main__":
     SentryReporter.init(sentry_url=sentry_url, scrubber=SentryScrubber())
     SentryReporter.allow_sending_globally(False, 'run_tribler.__main__()')
-
-    sys.excepthook = excepthook
 
     # Get root state directory (e.g. from environment variable or from system default)
     root_state_dir = get_root_state_directory()
