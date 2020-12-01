@@ -1,6 +1,7 @@
 import logging
 import os
 import shutil
+from asyncio import sleep
 from configparser import MissingSectionHeaderError, ParsingError
 
 from pony.orm import db_session
@@ -15,8 +16,8 @@ from tribler_core.upgrade.config_converter import (
     convert_config_to_tribler75,
     convert_config_to_tribler76,
 )
-from tribler_core.upgrade.db72_to_pony import DispersyToPonyMigration, cleanup_pony_experimental_db, should_upgrade
 from tribler_core.upgrade.db8_to_db10 import PonyToPonyMigration, get_db_version
+from tribler_core.upgrade.db72_to_pony import DispersyToPonyMigration, cleanup_pony_experimental_db, should_upgrade
 from tribler_core.utilities.configparser import CallbackConfigParser
 
 
@@ -114,13 +115,33 @@ class TriblerUpgrader(object):
         # Clean the previous temp database
         if tmp_database_path.exists():
             tmp_database_path.unlink()
+
         # Create the new database
         mds = MetadataStore(tmp_database_path, None, self.session.trustchain_keypair, disable_sync=True)
+        with db_session(ddl=True):
+            mds.drop_indexes()
+            mds.drop_fts_triggers()
         mds.shutdown()
 
         self._pony2pony = PonyToPonyMigration(database_path, tmp_database_path, self.update_status, logger=self._logger)
 
         await self._pony2pony.do_migration()
+
+        try:
+            if not self._pony2pony.shutting_down:
+                # Connect again to recreate indexes and FTS
+                self.update_status("recreating indexes...")
+                await sleep(0.001)
+                with db_session(ddl=True):
+                  mds.recreate_indexes()
+                self.update_status("adding full text search index...")
+                await sleep(0.001)
+                with db_session(ddl=True):
+                    mds.create_fts_triggers()
+                    mds.fill_fts_index()
+                mds.shutdown()
+        except Exception as e:
+            self._pony2pony.shutting_down = True
 
         # Remove the old DB
         database_path.unlink()
@@ -131,6 +152,7 @@ class TriblerUpgrader(object):
             # The upgrade process was either skipped or interrupted. Delete the temp upgrade DB.
             if tmp_database_path.exists():
                 tmp_database_path.unlink()
+
         self.notify_done()
 
     def upgrade_pony_db_7to8(self):

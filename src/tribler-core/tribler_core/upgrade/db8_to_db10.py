@@ -3,6 +3,8 @@ import datetime
 import logging
 import sqlite3
 from asyncio import sleep
+from collections import deque
+from time import time as now
 
 TABLE_NAMES = (
     "ChannelNode", "TorrentState", "TorrentState_TrackerState", "ChannelPeer", "ChannelVote", "TrackerState", "Vsids")
@@ -17,49 +19,61 @@ class PonyToPonyMigration(object):
         self.new_db_path = new_db_path
         self.shutting_down = False
 
-    async def update_convert_progress(self, amount, total, elapsed, message=""):
+    async def update_convert_progress(self, amount, total, eta, message=""):
         if self.notifier_callback:
-            elapsed = 0.0001 if elapsed == 0.0 else elapsed
-            amount = amount or 1
-            est_speed = amount / elapsed
-            eta = str(datetime.timedelta(seconds=int((total - amount) / est_speed)))
             self.notifier_callback(
                 f"{message}\nConverted: {amount}/{total} ({(amount * 100) // total}%).\nTime remaining: {eta}"
             )
             await sleep(0.001)
 
-    async def convert_async(self, convert_command, total_to_convert, offset=0, message=""):
+    async def convert_async(self, cursor, convert_command, total_to_convert, offset=0, message=""):
         """
         This method copies entries from one Pony db into another one splitting the process into chunks dynamically.
         Chunks splitting uses congestion-control-like algorithm. Awaits are necessary so the
         reactor can get an opportunity at serving other tasks, such as sending progress notifications to
         the GUI through the REST API.
         """
-        start_time = datetime.datetime.utcnow()
+        last_commit_time = now()
         batch_size = 100
 
-        reference_timedelta = datetime.timedelta(milliseconds=1000)
+        speed_list = deque(maxlen=20)
+
+        reference_timedelta = 1.0
         while offset < total_to_convert:
             if self.shutting_down:
                 break
             end = offset + batch_size
 
-            batch_start_time = datetime.datetime.now()
+            batch_start_time = now()
             convert_command(offset, batch_size)
-            batch_end_time = datetime.datetime.now() - batch_start_time
+            batch_end_time = now()
+            batch_duration = batch_end_time - batch_start_time
 
-            elapsed = (datetime.datetime.utcnow() - start_time).total_seconds()
-            await self.update_convert_progress(offset, total_to_convert, elapsed, message)
-            target_coeff = (batch_end_time.total_seconds() / reference_timedelta.total_seconds())
+            remaining = total_to_convert - offset
+            est_speed = batch_size / max(batch_duration, 0.001)
+            speed_list.append(est_speed)
+            avg_est_speed = sum(speed_list) / len(speed_list)
+            eta = str(datetime.timedelta(seconds=int(remaining / avg_est_speed)))
+
+            await self.update_convert_progress(offset, total_to_convert, eta, message)
+
+            target_coeff = batch_duration / reference_timedelta
             if target_coeff < 0.8:
                 batch_size += batch_size
             elif target_coeff > 1.1:
-                batch_size = int(float(batch_size) / target_coeff)
+                batch_size = int(batch_size / target_coeff)
             # we want to guarantee that at least some entries will go through
-            batch_size = batch_size if batch_size > 10 else 10
+            batch_size = max(10, batch_size)
+
             self._logger.info("Converted: %i/%i %f ",
-                              offset + batch_size, total_to_convert, float(batch_end_time.total_seconds()))
+                              offset + batch_size, total_to_convert, batch_duration)
             offset = end
+
+            if offset >= total_to_convert or now() - last_commit_time > 10:
+                cursor.execute("commit")
+                cursor.execute("begin transaction")
+                self._logger.info('batch size: %d' % batch_size)
+                last_commit_time = now()
 
     def get_table_entries_count(self, cursor, table_name):
         return cursor.execute(f"SELECT COUNT(*) FROM {table_name};").fetchone()[0]
@@ -84,7 +98,7 @@ class PonyToPonyMigration(object):
                 self._logger.error("Error while executing conversion command: %s, SQL %s ", str(e), sql_command)
 
         old_entries_count = self.get_table_entries_count(cursor, f"old_db.{table_name}")
-        await self.convert_async(convert_command, old_entries_count, message=f"Converting DB table {table_name}")
+        await self.convert_async(cursor, convert_command, old_entries_count, message=f"Converting DB table {table_name}")
 
     async def do_migration(self):
 
@@ -106,6 +120,7 @@ class PonyToPonyMigration(object):
                     await self.convert_table(cursor, table_name, old_table_columns[table_name])
                 cursor.execute("COMMIT;")
         self.notifier_callback("Synchronizing the upgraded DB to disk, please wait.")
+        await sleep(0.001)
 
 
 def get_table_columns(db_path, table_name):
