@@ -142,15 +142,11 @@ class MetadataStore(object):
         self.ChannelMetadata._channels_dir = channels_dir
 
         self._db.bind(provider='sqlite', filename=str(db_filename), create_db=create_db, timeout=120.0)
-        if create_db:
-            with db_session:
-                self._db.execute(sql_create_fts_table)
         self._db.generate_mapping(create_tables=create_db)  # Must be run out of session scope
         if create_db:
-            with db_session:
-                self._db.execute(sql_add_fts_trigger_insert)
-                self._db.execute(sql_add_fts_trigger_delete)
-                self._db.execute(sql_add_fts_trigger_update)
+            with db_session(ddl=True):
+                self._db.execute(sql_create_fts_table)
+                self.create_fts_triggers()
 
         if create_db:
             with db_session:
@@ -161,6 +157,32 @@ class MetadataStore(object):
             if not default_vsids:
                 default_vsids = self.Vsids.create_default_vsids()
             self.ChannelMetadata.votes_scaling = default_vsids.max_val
+
+    def drop_indexes(self):
+        cursor = self._db.get_connection().cursor()
+        cursor.execute("select name from sqlite_master where type='index' and name like 'idx_%'")
+        for [index_name] in cursor.fetchall():
+            cursor.execute("drop index %s" % index_name)
+
+    def recreate_indexes(self):
+        connection = self._db.get_connection()
+        self._db.schema.create_tables(self._db.provider, connection)
+
+    def drop_fts_triggers(self):
+        cursor = self._db.get_connection().cursor()
+        cursor.execute("select name from sqlite_master where type='trigger' and name like 'fts_%'")
+        for [trigger_name] in cursor.fetchall():
+            cursor.execute("drop trigger %s" % trigger_name)
+
+    def create_fts_triggers(self):
+        cursor = self._db.get_connection().cursor()
+        cursor.execute(sql_add_fts_trigger_insert)
+        cursor.execute(sql_add_fts_trigger_delete)
+        cursor.execute(sql_add_fts_trigger_update)
+
+    def fill_fts_index(self):
+        cursor = self._db.get_connection().cursor()
+        cursor.execute("insert into FtsIndex(rowid, title) select rowid, title from ChannelNode")
 
     @db_session
     def upsert_vote(self, channel, peer_pk):
