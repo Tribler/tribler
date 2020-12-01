@@ -1,6 +1,7 @@
 import logging
 import sys
 from contextvars import ContextVar
+from enum import Enum, auto
 from hashlib import md5
 
 from PyQt5.QtWidgets import QApplication, QMessageBox
@@ -8,7 +9,7 @@ from PyQt5.QtWidgets import QApplication, QMessageBox
 from faker import Faker
 
 import sentry_sdk
-from sentry_sdk.integrations.logging import LoggingIntegration
+from sentry_sdk.integrations.logging import LoggingIntegration, ignore_logger
 from sentry_sdk.integrations.threading import ThreadingIntegration
 
 from tribler_common.sentry_reporter.sentry_tools import (
@@ -36,39 +37,35 @@ class SentryReporter:
     """SentryReporter designed for sending reports to the Sentry server from
     a Tribler Client.
 
-    # Main concept
+    It can work with 3 strategies:
+    1. Send reports are allowed
+    2. Send reports are allowed with a confirmation dialog
+    3. Send reports are suppressed (disallowed, but the last event will be stored)
 
-    It aims to work in a Tribler Client with the following specifics:
-
-    1. An exception can be raised in two separate processes: GUI and Core.
-    2. A report will be sent after a user presses the "send report" button.
-
-    The main concept behind this class is the following: let's add controls that
-    can allow or disallow sending Sentry reports by-default.
-
-    If we have these controls, then it is easy to use Sentry with a Tribler
-    Client.
-
-    Algorithm:
-    1. Initialise Sentry.
-    2. Disallow sending messages (but storing the last event).
-    3. Waiting for user action: the "sent report" button is pressed.
-    4. Allow Sentry sending messages
-    5. Send the last event.
-
+    Example of how to change a strategy:
+    ```
+        SentryReporter.strategy.set(SentryReporter.Strategy.SEND_SUPPRESSED)
+    ```
     SentryReporter is thread-safe.
    """
 
+    class Strategy(Enum):
+        SEND_ALLOWED = auto()
+        SEND_ALLOWED_WITH_CONFIRMATION = auto()
+        SEND_SUPPRESSED = auto()  # the last event will be stored in `SentryReporter.last_event`
+
     last_event = None
 
-    _allow_sending_global = False
-    _allow_sending_in_thread = ContextVar('Sentry')
+    ignored_exceptions = [KeyboardInterrupt, SystemExit]
+
+    strategy = ContextVar('Sentry', default=Strategy.SEND_ALLOWED_WITH_CONFIRMATION)
 
     _scrubber = None
-    _logger = logging.getLogger('SentryReporter')
+    _sentry_logger_name = 'SentryReporter'
+    _logger = logging.getLogger(_sentry_logger_name)
 
     @staticmethod
-    def init(sentry_url='', scrubber=None):
+    def init(sentry_url='', scrubber=None, strategy=Strategy.SEND_ALLOWED_WITH_CONFIRMATION):
         """ Initialization.
 
         This method should be called in each process that uses SentryReporter.
@@ -88,7 +85,9 @@ class SentryReporter:
         """
         SentryReporter._logger.debug(f"Init: {sentry_url}")
         SentryReporter._scrubber = scrubber
-        return sentry_sdk.init(
+        SentryReporter.strategy.set(strategy)
+
+        rv = sentry_sdk.init(
             sentry_url,
             release=None,
             # https://docs.sentry.io/platforms/python/configuration/integrations/
@@ -101,6 +100,15 @@ class SentryReporter:
             ],
             before_send=SentryReporter._before_send,
         )
+
+        ignore_logger(SentryReporter._sentry_logger_name)
+
+        return rv
+
+    @staticmethod
+    def ignore_logger(logger_name):
+        SentryReporter._logger.debug(f"Ignore logger: {logger_name}")
+        ignore_logger(logger_name)
 
     @staticmethod
     def send_event(event, post_data=None, sys_info=None):
@@ -131,8 +139,9 @@ class SentryReporter:
         if event is None:
             return event
 
-        with AllowSentryReports(value=True, description='SentryReporter.send()'):
-            # prepare event
+        saved_strategy = SentryReporter.strategy.get()
+        try:
+            SentryReporter.strategy.set(SentryReporter.Strategy.SEND_ALLOWED)
             if CONTEXTS not in event:
                 event[CONTEXTS] = {}
 
@@ -166,12 +175,12 @@ class SentryReporter:
             sentry_sdk.capture_event(event)
 
             return event
+        finally:
+            SentryReporter.strategy.set(saved_strategy)
 
     @staticmethod
-    def send_exception_with_confirmation(exception):
-        """Send exception with a confirmation dialog.
-        This method should be used in case standard GUI "sending reports mechanism"
-        is no available.
+    def get_confirmation(exception):
+        """Get confirmation on sending exception to the Team.
 
         There are two message boxes, that will be triggered:
         1. Message box with the error_text
@@ -181,7 +190,7 @@ class SentryReporter:
         Args:
             exception: exception to be sent.
         """
-        SentryReporter._logger.debug(f"Send exception with confirmation: {exception}")
+        SentryReporter._logger.debug(f"Get confirmation: {exception}")
 
         _ = QApplication(sys.argv)
         messagebox = QMessageBox(icon=QMessageBox.Critical, text=f'{exception}.')
@@ -195,11 +204,13 @@ class SentryReporter:
         )
         messagebox.setWindowTitle("Error")
         messagebox.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
-        if messagebox.exec() == QMessageBox.Yes:
-            with AllowSentryReports(True):
-                sentry_sdk.capture_exception(exception)
 
-        return exception
+        return messagebox.exec() == QMessageBox.Yes
+
+    @staticmethod
+    def capture_exception(exception):
+        SentryReporter._logger.info(f"Capture exception: {exception}")
+        sentry_sdk.capture_exception(exception)
 
     @staticmethod
     def set_user(user_id):
@@ -230,60 +241,7 @@ class SentryReporter:
         return user
 
     @staticmethod
-    def get_allow_sending():
-        """ Indicate whether Sentry allowed or disallowed to sent events.
-
-        Returns:
-            Bool
-        """
-        allow_sending_in_thread = SentryReporter._allow_sending_in_thread.get(None)
-        if allow_sending_in_thread is not None:
-            return allow_sending_in_thread
-
-        return SentryReporter._allow_sending_global
-
-    @staticmethod
-    def allow_sending_globally(value, info=None):
-        """ Setter for `_allow_sending_global` variable.
-
-        It globally allows or disallows Sentry to send events.
-        If `_allow_sending_in_thread` is not set, then `_allow_sending_global`
-        will be used.
-
-        Args:
-            value: Bool
-            info: String that will be used as an indicator of allowing or
-            disallowing reason (or the place from which this method has been
-            invoked).
-
-        Returns:
-            None
-        """
-        SentryReporter._logger.debug(f"Allow sending globally: {value}. Info: {info}")
-        SentryReporter._allow_sending_global = value
-
-    @staticmethod
-    def allow_sending_in_thread(value, info=None):
-        """ Setter for `_allow_sending` variable.
-
-        It allows or disallows Sentry to send events in the current thread.
-        If `_allow_sending_in_thread` is not set, then `_allow_sending_global`
-        will be used.
-
-        Args:
-            value: Bool
-            info: String that will be used as an indicator of allowing or
-            disallowing reason (or the place from which this method has been
-            invoked).
-
-        Returns:
-            None
-        """
-        SentryReporter._logger.debug(f"Allow sending in thread: {value}. Info: {info}")
-        SentryReporter._allow_sending_in_thread.set(value)
-
-    @staticmethod
-    def _before_send(event, _):
+    def _before_send(event, hint):
         """The method that is called before each send. Both allowed and
         disallowed.
 
@@ -302,14 +260,26 @@ class SentryReporter:
         if not event:
             return event
 
-        SentryReporter._logger.debug(f"Before send event: {event}")
-        SentryReporter._logger.debug(f"Is allow sending: {SentryReporter._allow_sending_global}")
-        # to synchronise error reporter and sentry, we should suppress all events
-        # until user clicked on "send crash report"
-        if not SentryReporter.get_allow_sending():
+        strategy = SentryReporter.strategy.get()
+        SentryReporter._logger.info(f"Before send event: {event}")
+        SentryReporter._logger.info(f"Strategy: {strategy}")
+
+        exc_info = get_value(hint, 'exc_info')
+        error_type = get_first_item(exc_info)
+
+        if error_type in SentryReporter.ignored_exceptions:
+            SentryReporter._logger.debug(f"Exception is in ignored: {hint}. Skipped.")
+            return None
+
+        if strategy == SentryReporter.Strategy.SEND_SUPPRESSED:
             SentryReporter._logger.debug("Suppress sending. Storing the event.")
             SentryReporter.last_event = event
             return None
+
+        if strategy == SentryReporter.Strategy.SEND_ALLOWED_WITH_CONFIRMATION:
+            SentryReporter._logger.debug("Request confirmation.")
+            if not SentryReporter.get_confirmation(hint):
+                return None
 
         # clean up the event
         SentryReporter._logger.debug(f"Clean up the event with scrubber: {SentryReporter._scrubber}")
@@ -317,50 +287,3 @@ class SentryReporter:
             event = SentryReporter._scrubber.scrub_event(event)
 
         return event
-
-
-class AllowSentryReports:
-    """ This class designed for simplifying allowing and disallowing
-    Sentry's sending mechanism for particular blocks of code.
-
-    It is thread-safe, and use `SentryReporter.allow_sending_in_thread` method
-    for setting corresponding variable.
-
-    Example of use:
-    ```
-        with AllowSentryReports(value=True):
-            do_some_work()
-    ```
-    """
-
-    def __init__(self, value=True, description='', reporter=None):
-        """ Initialising a value and a reporter
-
-        Args:
-            value: Value that will be used for passing in
-                `SentryReporter.allow_sending`.
-            description: Will be used while logging.
-            reporter: Instance of a reporter. This argument mostly use for
-                testing purposes.
-        """
-        self._logger = logging.getLogger(self.__class__.__name__)
-        self._logger.debug(f'Value: {value}, description: {description}')
-
-        self._value = value
-        self._saved_state = None
-        self._reporter = reporter or SentryReporter()
-
-    def __enter__(self):
-        """Set SentryReporter.allow_sending(value)
-        """
-        self._logger.debug('Enter')
-        self._saved_state = self._reporter.get_allow_sending()
-
-        self._reporter.allow_sending_in_thread(self._value, 'AllowSentryReports.__enter__()')
-        return self._reporter
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """Restore SentryReporter.allow_sending(old_value)
-        """
-        self._logger.debug('Exit')
-        self._reporter.allow_sending_in_thread(self._saved_state, 'AllowSentryReports.__exit__()')

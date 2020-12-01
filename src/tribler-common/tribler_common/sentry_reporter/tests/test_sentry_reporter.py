@@ -1,11 +1,6 @@
 import pytest
 
-from tribler_common.sentry_reporter.sentry_reporter import (
-    AllowSentryReports,
-    OS_ENVIRON,
-    PLATFORM_DETAILS,
-    SentryReporter,
-)
+from tribler_common.sentry_reporter.sentry_reporter import OS_ENVIRON, PLATFORM_DETAILS, SentryReporter
 from tribler_common.sentry_reporter.sentry_scrubber import SentryScrubber
 
 
@@ -33,16 +28,6 @@ def test_init(reporter):
     assert reporter.init('')
 
 
-def test_states():
-    instance1 = SentryReporter()
-    instance2 = SentryReporter()
-    assert instance1 != instance2
-    assert instance1.get_allow_sending() == instance2.get_allow_sending()
-
-    instance1.allow_sending_globally(not instance2.get_allow_sending())
-    assert instance1.get_allow_sending() == instance2.get_allow_sending()
-
-
 def test_set_user(reporter):
     assert reporter.set_user('some_id'.encode('utf-8')) == {
         'id': 'db69fe66ec6b6b013c2f7d271ce17cae',
@@ -53,60 +38,6 @@ def test_set_user(reporter):
         'id': '91f900f528d5580581197c2c6a4adbbc',
         'username': 'Jennifer Herrera',
     }
-
-
-def test_allow_sentry(reporter):
-    reporter.allow_sending_in_thread(None)
-
-    reporter.allow_sending_globally(True)
-    assert reporter.get_allow_sending()
-
-    reporter.allow_sending_globally(False)
-    assert not reporter.get_allow_sending()
-
-    reporter.allow_sending_globally(True)
-    reporter.allow_sending_in_thread(True)
-    assert reporter.get_allow_sending()
-
-    reporter.allow_sending_globally(True)
-    reporter.allow_sending_in_thread(False)
-    assert not reporter.get_allow_sending()
-
-    reporter.allow_sending_globally(False)
-    reporter.allow_sending_in_thread(True)
-    assert reporter.get_allow_sending()
-
-    reporter.allow_sending_globally(False)
-    reporter.allow_sending_in_thread(False)
-    assert not reporter.get_allow_sending()
-
-
-def test_allow_sentry_reports(reporter):
-    # test base logic
-
-    # test allow_sending_globally=True
-    reporter.allow_sending_in_thread(None)
-    reporter.allow_sending_globally(True)
-    assert reporter.get_allow_sending()
-
-    with AllowSentryReports(reporter=reporter):
-        assert reporter.get_allow_sending() is True
-
-    with AllowSentryReports(value=False, reporter=reporter):
-        assert reporter.get_allow_sending() is False
-    assert reporter.get_allow_sending() is True
-
-    # test allow_sending_globally=False
-    reporter.allow_sending_in_thread(None)
-    reporter.allow_sending_globally(False)
-    assert reporter.get_allow_sending() is False
-
-    with AllowSentryReports(reporter=reporter):
-        assert reporter.get_allow_sending() is True
-
-    with AllowSentryReports(value=False, reporter=reporter):
-        assert reporter.get_allow_sending() is False
-    assert reporter.get_allow_sending() is False
 
 
 def test_send(reporter):
@@ -177,22 +108,30 @@ def test_before_send(reporter):
     assert reporter._before_send(None, {}) is None
     assert reporter._before_send(None, None) is None
 
-    reporter.allow_sending_in_thread(None)
-    reporter.allow_sending_globally(False)
+    reporter.strategy.set(SentryReporter.Strategy.SEND_SUPPRESSED)
     assert reporter.last_event is None
-    assert not reporter.get_allow_sending()
 
     # check that an event is stored
     assert reporter._before_send({'a': 'b'}, None) is None
     assert reporter.last_event == {'a': 'b'}
 
     # check an event has been processed
-    reporter.allow_sending_globally(True)
-    assert reporter.get_allow_sending()
+    reporter.strategy.set(SentryReporter.Strategy.SEND_ALLOWED)
     assert reporter._before_send({'c': 'd'}, None) == {'c': 'd'}
     assert reporter.last_event == {'a': 'b'}
+
+    # check that event can be ignored
+    assert reporter._before_send({'a': 'b'}, {'exc_info': [KeyboardInterrupt]}) is None
 
     # check information has been scrubbed
     assert reporter._before_send({'contexts': {'reporter': {'_stacktrace': ['/Users/username/']}}}, None) == {
         'contexts': {'reporter': {'_stacktrace': [f'/Users/{scrubber.placeholder_user}/']}}
     }
+
+    # check confirmation
+    reporter.strategy.set(SentryReporter.Strategy.SEND_ALLOWED_WITH_CONFIRMATION)
+    SentryReporter.get_confirmation = lambda e: False
+    assert reporter._before_send({'a': 'b'}, None) is None
+
+    SentryReporter.get_confirmation = lambda e: True
+    assert reporter._before_send({'a': 'b'}, None) == {'a': 'b'}
