@@ -428,7 +428,7 @@ class DownloadsPage(QWidget):
             filename = self.dialog.dialog_widget.dialog_input.text()
             TriblerFileDownloadRequest(
                 "downloads/%s/torrent" % selected_item[0].download_info['infohash'],
-                lambda data, _: self.on_export_download_request_done(filename, data),
+                lambda data: self.on_export_download_request_done(filename, data),
             )
 
         self.dialog.close_dialog()
