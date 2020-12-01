@@ -38,7 +38,7 @@ from PyQt5.QtWidgets import (
     QTreeWidget,
 )
 
-from tribler_common.sentry_reporter.sentry_reporter import AllowSentryReports
+from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
 
 from tribler_core.modules.process_checker import ProcessChecker
 from tribler_core.utilities.unicode import hexlify
@@ -100,6 +100,8 @@ class TriblerWindow(QMainWindow):
     received_search_completions = pyqtSignal(object)
 
     def on_exception(self, *exc_info):
+        SentryReporter.strategy.set(SentryReporter.Strategy.SEND_SUPPRESSED)
+
         if self.exception_handler_called:
             # We only show one feedback dialog, even when there are two consecutive exceptions.
             return
@@ -115,8 +117,7 @@ class TriblerWindow(QMainWindow):
                 backend_sentry_event = arg[key]
                 break
 
-        with AllowSentryReports(value=False, description='TriblerWindow.on_exception()'):
-            logging.error(exception_text)
+        logging.error(exception_text)
 
         self.tribler_crashed.emit(exception_text)
         self.delete_tray_icon()
@@ -181,6 +182,7 @@ class TriblerWindow(QMainWindow):
         self.add_torrent_url_dialog_active = False
 
         sys.excepthook = self.on_exception
+
         uic.loadUi(get_ui_file_path('mainwindow.ui'), self)
         TriblerRequestManager.window = self
         self.tribler_status_bar.hide()
