@@ -1,6 +1,6 @@
 repos:
 -   repo: https://github.com/Tribler/mirrors-autoflake
-    rev: v1.1
+    rev: v1.4
     hooks:
       - id: autoflake
         args: ['--in-place', '--remove-all-unused-imports', '--remove-unused-variable']
@@ -13,7 +13,7 @@ repos:
       types: [file, python]
 
 -   repo: https://github.com/ambv/black
-    rev: 19.3b0
+    rev: 20.8b1
     hooks:
     - id: black
       files: |
@@ -24,8 +24,11 @@ repos:
           )
       types: [file, python]
 
--   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v2.2.3
+-   repo: https://gitlab.com/pycqa/flake8
+    rev: 3.7.3
     hooks:
-    -  id: flake8
-       types: [file, python]
+    - id: flake8
+      types: [file, python]
+      additional_dependencies: [
+              'flake8-import-order==0.18',
+          ]

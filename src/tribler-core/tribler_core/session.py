@@ -293,10 +293,7 @@ class Session(TaskManager):
         if self.upgrader_enabled and not self.core_test_mode:
             self.upgrader = TriblerUpgrader(self)
             self.readable_status = STATE_UPGRADING_READABLE
-            try:
-                await self.upgrader.run()
-            except Exception as e:
-                self._logger.error("Error in Upgrader callback chain: %s", e)
+            await self.upgrader.run()
 
         self.tracker_manager = TrackerManager(self)
 

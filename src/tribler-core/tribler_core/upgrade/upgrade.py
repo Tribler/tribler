@@ -9,10 +9,14 @@ from tribler_common.simpledefs import NTFY
 
 from tribler_core.modules.category_filter.l2_filter import is_forbidden
 from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH
-from tribler_core.modules.metadata_store.store import MetadataStore
-from tribler_core.upgrade.config_converter import convert_config_to_tribler74, convert_config_to_tribler75, \
-                                                  convert_config_to_tribler76
+from tribler_core.modules.metadata_store.store import CURRENT_DB_VERSION, MetadataStore
+from tribler_core.upgrade.config_converter import (
+    convert_config_to_tribler74,
+    convert_config_to_tribler75,
+    convert_config_to_tribler76,
+)
 from tribler_core.upgrade.db72_to_pony import DispersyToPonyMigration, cleanup_pony_experimental_db, should_upgrade
+from tribler_core.upgrade.db8_to_db10 import PonyToPonyMigration, get_db_version
 from tribler_core.utilities.configparser import CallbackConfigParser
 
 
@@ -66,12 +70,15 @@ class TriblerUpgrader(object):
         self.failed = True
 
         self._dtp72 = None
+        self._pony2pony = None
         self.skip_upgrade_called = False
 
     def skip(self):
         self.skip_upgrade_called = True
         if self._dtp72:
             self._dtp72.shutting_down = True
+        if self._pony2pony:
+            self._pony2pony.shutting_down = True
 
     async def run(self):
         """
@@ -84,9 +91,47 @@ class TriblerUpgrader(object):
         await self.upgrade_72_to_pony()
         self.upgrade_pony_db_6to7()
         self.upgrade_pony_db_7to8()
+        await self.upgrade_pony_db_8to10()
         convert_config_to_tribler74(self.session.config.get_state_dir())
         convert_config_to_tribler75(self.session.config.get_state_dir())
         convert_config_to_tribler76(self.session.config.get_state_dir())
+
+    async def upgrade_pony_db_8to10(self):
+        """
+        Upgrade GigaChannel DB from version 8 (7.5.x) to version 10 (7.6.x).
+        This will recreate the database anew, which can take quite some time.
+        The code is based on the copy-pasted upgrade_72_to_pony routine which is asynchronous and
+        reports progress to the user.
+        """
+        database_path = self.session.config.get_state_dir() / 'sqlite' / 'metadata.db'
+        if not database_path.exists() or get_db_version(database_path) >= CURRENT_DB_VERSION:
+            # Either no old db exists, or the old db version is up to date  - nothing to do
+            return
+
+        # Otherwise, start upgrading
+        self.notify_starting()
+        tmp_database_path = database_path.parent / 'metadata_upgraded.db'
+        # Clean the previous temp database
+        if tmp_database_path.exists():
+            tmp_database_path.unlink()
+        # Create the new database
+        mds = MetadataStore(tmp_database_path, None, self.session.trustchain_keypair, disable_sync=True)
+        mds.shutdown()
+
+        self._pony2pony = PonyToPonyMigration(database_path, tmp_database_path, self.update_status, logger=self._logger)
+
+        await self._pony2pony.do_migration()
+
+        # Remove the old DB
+        database_path.unlink()
+        if not self._pony2pony.shutting_down:
+            # Move the upgraded db in its place
+            tmp_database_path.rename(database_path)
+        else:
+            # The upgrade process was either skipped or interrupted. Delete the temp upgrade DB.
+            if tmp_database_path.exists():
+                tmp_database_path.unlink()
+        self.notify_done()
 
     def upgrade_pony_db_7to8(self):
         """

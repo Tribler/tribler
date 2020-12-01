@@ -72,12 +72,7 @@ from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest, TriblerRequestManager, request_manager
 from tribler_gui.utilities import get_gui_setting, get_image_path, get_ui_file_path, is_dir_writable
 from tribler_gui.widgets.channelsmenulistwidget import ChannelsMenuListWidget
-from tribler_gui.widgets.tablecontentmodel import (
-    DiscoveredChannelsModel,
-    PersonalChannelsModel,
-    SearchResultsModel,
-    SimplifiedPersonalChannelsModel,
-)
+from tribler_gui.widgets.tablecontentmodel import DiscoveredChannelsModel, SearchResultsModel
 from tribler_gui.widgets.triblertablecontrollers import sanitize_for_fts, to_fts_query
 
 fc_loading_list_item, _ = uic.loadUiType(get_ui_file_path('loading_list_item.ui'))
@@ -335,12 +330,8 @@ class TriblerWindow(QMainWindow):
 
         self.channels_menu_list.itemClicked.connect(self.open_channel_contents_page)
 
-        autocommit_enabled = (
-            get_gui_setting(self.gui_settings, "autocommit_enabled", True, is_bool=True) if self.gui_settings else True
-        )
         # The channels content page is only used to show subscribed channels, so we always show xxx
         # contents in it.
-        self.channel_contents_page.initialize_content_page(autocommit_enabled=autocommit_enabled, hide_xxx=False)
         self.core_manager.events_manager.node_info_updated.connect(
             lambda data: self.channels_menu_list.reload_if_necessary([data])
         )
@@ -465,6 +456,10 @@ class TriblerWindow(QMainWindow):
         self.setAcceptDrops(True)
         self.setWindowTitle("Tribler %s" % self.tribler_version)
 
+        autocommit_enabled = (
+            get_gui_setting(self.gui_settings, "autocommit_enabled", True, is_bool=True) if self.gui_settings else True
+        )
+        self.channel_contents_page.initialize_content_page(autocommit_enabled=autocommit_enabled, hide_xxx=False)
         self.add_to_channel_dialog.load_channel(0)
         self.discovered_page.reset_view()
 
@@ -487,29 +482,6 @@ class TriblerWindow(QMainWindow):
         if self.stackedWidget.currentIndex() == PAGE_DISCOVERING:
             self.clicked_menu_button_discovered()
             self.left_menu_button_discovered.setChecked(True)
-
-    def initialize_personal_channels_page(self):
-        autocommit_enabled = (
-            get_gui_setting(self.gui_settings, "autocommit_enabled", True, is_bool=True) if self.gui_settings else True
-        )
-        self.personal_channel_page.initialize_content_page(autocommit_enabled=autocommit_enabled)
-        self.personal_channel_page.default_channel_model = (
-            SimplifiedPersonalChannelsModel if autocommit_enabled else PersonalChannelsModel
-        )
-        self.personal_channel_page.initialize_root_model(
-            self.personal_channel_page.default_channel_model(
-                hide_xxx=False,
-                channel_info={"name": "My channels", "state": "Personal"},
-                endpoint_url="channels/mychannel/0",
-                exclude_deleted=autocommit_enabled,
-            )
-        )
-
-        def on_dirty_response(response):
-            if response and "dirty" in response:
-                self.personal_channel_page.update_labels(dirty=response.get("dirty", False))
-
-        TriblerNetworkRequest("channels/mychannel/0/commit", on_dirty_response, method='GET')
 
     def on_events_started(self, json_dict):
         self.setWindowTitle("Tribler %s" % json_dict["version"])
@@ -1093,10 +1065,12 @@ class TriblerWindow(QMainWindow):
     def clicked_skip_conversion(self):
         self.dialog = ConfirmationDialog(
             self,
-            "Abort the conversion of old channels",
-            "The upgrade procedure is now converting torrents in channels "
-            "collected by the previous installation of Tribler.\n\n"
-            "Are you sure you want to abort the conversion process?\n",
+            "Abort the conversion of Channels database",
+            "The upgrade procedure is now <b>converting your personal channel</b> and channels "
+            "collected by the previous installation of Tribler.<br>"
+            "Are you sure you want to abort the conversion process?<br><br>"
+            "<p style='color:red'><b> !!! WARNING !!! <br>"
+            "You will lose your personal channel and subscribed channels if you ABORT now! </b> </p> <br>",
             [('ABORT', BUTTON_TYPE_CONFIRM), ('CONTINUE', BUTTON_TYPE_NORMAL)],
         )
         self.dialog.button_clicked.connect(self.on_skip_conversion_dialog)

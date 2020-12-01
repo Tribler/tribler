@@ -5,11 +5,7 @@ from datetime import datetime
 from distutils.version import LooseVersion
 from pathlib import Path
 
-from tribler_common.simpledefs import (
-    STATEDIR_CHANNELS_DIR,
-    STATEDIR_CHECKPOINT_DIR,
-    STATEDIR_DB_DIR,
-)
+from tribler_common.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_CHECKPOINT_DIR, STATEDIR_DB_DIR
 
 from tribler_core.utilities import json_util as json
 from tribler_core.utilities.osutils import dir_copy
@@ -137,7 +133,7 @@ def copy_state_directory(src_dir, tgt_dir):
             shutil.copy(src_dir / filename, tgt_dir / filename)
 
 
-def fork_state_directory_if_necessary(root_state_dir, code_version):
+def should_fork_state_directory(root_state_dir, code_version):
     version_history = VersionHistory(root_state_dir / VERSION_HISTORY_FILE)
     # The previous version has the same major/minor number as the code version, and there exists
     # a corresponding versioned state directory. Nothing to do here (except possibly updating version history).
@@ -146,8 +142,8 @@ def fork_state_directory_if_necessary(root_state_dir, code_version):
             and LooseVersion(version_history.last_version).version[:2] == LooseVersion(code_version).version[:2]
             and code_version_dir.exists()):
         if str(version_history.last_version) != str(code_version):
-            version_history.update(code_version)
-        return
+            return version_history, code_version, None, None
+        return None, None, None, None
 
     src_dir = None
     tgt_dir = code_version_dir
@@ -161,12 +157,18 @@ def fork_state_directory_if_necessary(root_state_dir, code_version):
         # Legacy version
         src_dir = root_state_dir
 
+    return version_history, code_version, src_dir, tgt_dir
+
+
+def fork_state_directory_if_necessary(root_state_dir, code_version):
+    version_history, code_version, src_dir, tgt_dir = should_fork_state_directory(root_state_dir, code_version)
     if src_dir is not None:
         # Borderline case where user got an unused code version directory: rename it out of the way
-        if tgt_dir.exists():
+        if tgt_dir is not None and tgt_dir.exists():
             moved_out_of_way_dirname = "unused_v" + str(tgt_dir.name) + "_" + datetime.now().strftime(
                 "%Y-%m-%d_%Hh%Mm%Ss")
             tgt_dir.rename(tgt_dir.with_name(moved_out_of_way_dirname))
         copy_state_directory(src_dir, tgt_dir)
 
-    version_history.update(code_version)
+    if version_history:
+        version_history.update(code_version)

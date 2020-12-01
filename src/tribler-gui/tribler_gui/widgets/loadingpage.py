@@ -26,6 +26,7 @@ class LoadingPage(QWidget):
         self.window().loading_svg_view.setScene(svg_container)
         self.window().core_manager.events_manager.upgrader_tick.connect(self.on_upgrader_tick)
         self.window().core_manager.events_manager.upgrader_finished.connect(self.upgrader_finished)
+        self.window().core_manager.events_manager.change_loading_text.connect(self.change_loading_text)
         self.window().skip_conversion_btn.hide()
 
         # Hide the force shutdown button initially. Should be triggered by shutdown timer from main window.
@@ -38,4 +39,7 @@ class LoadingPage(QWidget):
         if not self.upgrading:
             self.upgrading = True
             self.window().skip_conversion_btn.show()
+        self.window().loading_text_label.setText(text)
+
+    def change_loading_text(self, text):
         self.window().loading_text_label.setText(text)

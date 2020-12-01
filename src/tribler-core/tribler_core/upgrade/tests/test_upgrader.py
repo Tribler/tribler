@@ -10,7 +10,7 @@ import pytest
 from tribler_common.simpledefs import NTFY
 
 from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH
-from tribler_core.modules.metadata_store.store import MetadataStore
+from tribler_core.modules.metadata_store.store import CURRENT_DB_VERSION, MetadataStore
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
 from tribler_core.upgrade.upgrade import cleanup_noncompliant_channel_torrents
 from tribler_core.utilities.configparser import CallbackConfigParser
@@ -66,7 +66,7 @@ def test_upgrade_pony_db_6to7(upgrader, session):
 
 def test_upgrade_pony_db_7to8(upgrader, session):
     """
-    Test that proper additionald index is created.
+    Test that proper additional index is created.
     Also, check that the DB version is upgraded.
     """
     old_db_sample = TESTS_DATA_DIR / 'upgrade_databases' / 'pony_v7.db'
@@ -98,7 +98,7 @@ async def test_upgrade_pony_db_complete(upgrader, session):
     with db_session:
         assert mds.TorrentMetadata.select().count() == 23
         assert mds.ChannelMetadata.select().count() == 2
-        assert int(mds.MiscData.get(name="db_version").value) == 8
+        assert int(mds.MiscData.get(name="db_version").value) == CURRENT_DB_VERSION
         assert list(mds._db.execute('PRAGMA index_info("idx_channelnode__metadata_type")'))
     mds.shutdown()
 
@@ -140,3 +140,17 @@ def test_delete_noncompliant_state(tmpdir):
     pstate = CallbackConfigParser()
     pstate.read_file(file_path)
     assert CHANNEL_DIR_NAME_LENGTH == len(pstate.get('state', 'metainfo')['info']['name'])
+
+@pytest.mark.asyncio
+async def test_upgrade_pony_8to10(upgrader, session):
+    old_db_sample = TESTS_DATA_DIR / 'upgrade_databases' / 'pony_v6.db'
+    database_path = session.config.get_state_dir() / 'sqlite' / 'metadata.db'
+    shutil.copyfile(old_db_sample, database_path)
+
+    await upgrader.run()
+    channels_dir = session.config.get_chant_channels_dir()
+    mds = MetadataStore(database_path, channels_dir, session.trustchain_keypair)
+    with db_session:
+        assert int(mds.MiscData.get(name="db_version").value) == CURRENT_DB_VERSION
+        assert mds.ChannelNode.select().count() == 23
+    mds.shutdown()
