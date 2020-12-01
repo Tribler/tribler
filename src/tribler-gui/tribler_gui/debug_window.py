@@ -739,7 +739,7 @@ class DebugWindow(QMainWindow):
             )
             if dump_core:
                 self.rest_request = TriblerNetworkRequest(
-                    "debug/memory/dump", lambda data, _: self.on_memory_dump_data_available(filename, data)
+                    "debug/memory/dump", lambda data: self.on_memory_dump_data_available(filename, data)
                 )
             elif scanner:
                 scanner.dump_all_objects(os.path.join(self.export_dir, filename))
