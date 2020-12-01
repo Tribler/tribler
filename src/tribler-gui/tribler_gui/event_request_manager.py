@@ -11,6 +11,9 @@ import tribler_core.utilities.json_util as json
 received_events = []
 
 
+CORE_CONNECTION_ATTEMPTS_LIMIT = 120
+
+
 class CoreConnectTimeoutError(RuntimeError):
     pass
 
@@ -30,13 +33,14 @@ class EventRequestManager(QNetworkAccessManager):
     torrent_finished = pyqtSignal(object)
     low_storage_signal = pyqtSignal(object)
     tribler_shutdown_signal = pyqtSignal(str)
+    change_loading_text = pyqtSignal(str)
 
     def __init__(self, api_port, api_key):
         QNetworkAccessManager.__init__(self)
         url = QUrl("http://localhost:%d/events" % api_port)
         self.request = QNetworkRequest(url)
         self.request.setRawHeader(b'X-Api-Key', api_key)
-        self.failed_attempts = 0
+        self.remaining_connection_attempts = CORE_CONNECTION_ATTEMPTS_LIMIT
         self.connect_timer = QTimer()
         self.current_event_string = ""
         self.reply = None
@@ -62,10 +66,10 @@ class EventRequestManager(QNetworkAccessManager):
 
     def on_error(self, error, reschedule_on_err):
         self._logger.info("Got Tribler core error: %s" % error)
-        if self.failed_attempts == 120:
+        if self.remaining_connection_attempts <= 0:
             raise CoreConnectTimeoutError("Could not connect with the Tribler Core within 60 seconds")
 
-        self.failed_attempts += 1
+        self.remaining_connection_attempts -= 1
 
         if reschedule_on_err:
             # Reschedule an attempt
@@ -111,7 +115,7 @@ class EventRequestManager(QNetworkAccessManager):
         if self.shutting_down:
             return
         self._logger.warning("Events connection dropped, attempting to reconnect")
-        self.failed_attempts = 0
+        self.remaining_connection_attempts = CORE_CONNECTION_ATTEMPTS_LIMIT
 
         self.connect_timer = QTimer()
         self.connect_timer.setSingleShot(True)

@@ -8,6 +8,10 @@ from PyQt5.QtWidgets import QApplication
 
 from tribler_common.utilities import is_frozen
 
+from tribler_core.upgrade.version_manager import should_fork_state_directory
+from tribler_core.utilities.osutils import get_root_state_directory
+from tribler_core.version import version_id
+
 from tribler_gui.event_request_manager import EventRequestManager
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import get_base_path
@@ -86,6 +90,12 @@ class CoreManager(QObject):
 
         self.events_manager.connect()
         self.events_manager.reply.error.connect(on_request_error)
+        # This is a hack to determine if we have notify the user to wait for the directory fork to finish
+        _, _, src_dir, tgt_dir = should_fork_state_directory(get_root_state_directory(), version_id)
+        if src_dir is not None:
+            # There is going to be a directory fork, so we extend the core connection timeout and notify the user
+            self.events_manager.remaining_connection_attempts = 1200
+            self.events_manager.change_loading_text.emit("Copying data from previous Tribler version, please wait")
 
     def start_tribler_core(self, core_args=None, core_env=None):
         if not START_FAKE_API:
