@@ -94,7 +94,7 @@ class SentryReporter:
             integrations=[
                 LoggingIntegration(
                     level=logging.INFO,  # Capture info and above as breadcrumbs
-                    event_level=logging.ERROR,  # Send errors as events
+                    event_level=None,  # Send no errors as events
                 ),
                 ThreadingIntegration(propagate_hub=True),
             ],
