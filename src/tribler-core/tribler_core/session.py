@@ -219,9 +219,7 @@ class Session(TaskManager):
         This method is called when an unhandled error in Tribler is observed.
         It broadcasts the tribler_exception event.
         """
-        sentry_saved_strategy = SentryReporter.strategy.get()
         try:
-            SentryReporter.strategy.set(SentryReporter.Strategy.SEND_SUPPRESSED)
             SentryReporter.ignore_logger(self._logger.name)
 
             exception = context.get('exception')
@@ -249,19 +247,19 @@ class Session(TaskManager):
                     text_long = text_long + "\n--LONG TEXT--\n" + buffer.getvalue()
             text_long = text_long + "\n--CONTEXT--\n" + str(context)
             self._logger.error("Unhandled exception occurred! %s", text_long, exc_info=None)
-            SentryReporter.capture_exception(exception)
-            sentry_event = SentryReporter.last_event
+
+            sentry_event = SentryReporter.event_from_exception(exception)
 
             if not self.api_manager:
                 return
-
             events = self.api_manager.get_endpoint('events')
             events.on_tribler_exception(text_long, sentry_event)
 
             state = self.api_manager.get_endpoint('state')
             state.on_tribler_exception(text_long, sentry_event)
-        finally:
-            SentryReporter.strategy.set(sentry_saved_strategy)
+        except Exception as ex:
+            SentryReporter.capture_exception(ex)
+            raise ex
 
     def get_tribler_statistics(self):
         """Return a dictionary with general Tribler statistics."""

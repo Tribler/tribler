@@ -95,8 +95,6 @@ class TriblerWindow(QMainWindow):
     received_search_completions = pyqtSignal(object)
 
     def on_exception(self, *exc_info):
-        SentryReporter.strategy.set(SentryReporter.Strategy.SEND_SUPPRESSED)
-
         if self.exception_handler_called:
             # We only show one feedback dialog, even when there are two consecutive exceptions.
             return
@@ -105,12 +103,16 @@ class TriblerWindow(QMainWindow):
         info_type, info_error, _ = exc_info
         exception_text = "".join(traceback.format_exception(*exc_info))
 
-        backend_sentry_event = None
+        sentry_event = None
         for arg in info_error.args:
             key = 'sentry_event'
             if isinstance(arg, dict) and key in arg:
-                backend_sentry_event = arg[key]
+                sentry_event = arg[key]
                 break
+
+        if not sentry_event:
+            # then the exception occured in GUI
+            sentry_event = SentryReporter.event_from_exception(info_error)
 
         logging.error(exception_text)
 
@@ -134,7 +136,7 @@ class TriblerWindow(QMainWindow):
         if info_type is CoreConnectTimeoutError:
             exception_text = exception_text + self.core_manager.core_traceback
 
-        dialog = FeedbackDialog(self, exception_text, self.tribler_version, self.start_time, backend_sentry_event)
+        dialog = FeedbackDialog(self, exception_text, self.tribler_version, self.start_time, sentry_event)
         dialog.show()
 
     def __init__(self, core_args=None, core_env=None, api_port=None, api_key=None):
@@ -522,22 +524,22 @@ class TriblerWindow(QMainWindow):
         self.gui_settings.setValue("recent_download_locations", ','.join(recent_locations))
 
     def perform_start_download_request(
-        self,
-        uri,
-        anon_download,
-        safe_seeding,
-        destination,
-        selected_files,
-        total_files=0,
-        add_to_channel=False,
-        callback=None,
+            self,
+            uri,
+            anon_download,
+            safe_seeding,
+            destination,
+            selected_files,
+            total_files=0,
+            add_to_channel=False,
+            callback=None,
     ):
         # Check if destination directory is writable
         is_writable, error = is_dir_writable(destination)
         if not is_writable:
             gui_error_message = (
-                "Insufficient write permissions to <i>%s</i> directory. Please add proper "
-                "write permissions on the directory and add the torrent again. %s" % (destination, error)
+                    "Insufficient write permissions to <i>%s</i> directory. Please add proper "
+                    "write permissions on the directory and add the torrent again. %s" % (destination, error)
             )
             ConfirmationDialog.show_message(self.window(), "Download error <i>%s</i>" % uri, gui_error_message, "OK")
             return
@@ -662,10 +664,10 @@ class TriblerWindow(QMainWindow):
         query = self.top_search_bar.text()
 
         if (
-            self.last_search_query
-            and self.last_search_time
-            and self.last_search_query == self.top_search_bar.text()
-            and current_ts - self.last_search_time < 1
+                self.last_search_query
+                and self.last_search_time
+                and self.last_search_query == self.top_search_bar.text()
+                and current_ts - self.last_search_time < 1
         ):
             logging.info("Same search query already sent within 500ms so dropping this one")
             return

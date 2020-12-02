@@ -103,6 +103,7 @@ def test_before_send(reporter):
     reporter.init('', scrubber)
 
     # pylint: disable=protected-access
+    SentryReporter.last_event = None
 
     assert reporter._before_send({}, {}) == {}
     assert reporter._before_send(None, {}) is None
@@ -135,3 +136,11 @@ def test_before_send(reporter):
 
     SentryReporter.get_confirmation = lambda e: True
     assert reporter._before_send({'a': 'b'}, None) == {'a': 'b'}
+
+
+def test_event_from_exception(reporter):
+    assert not reporter.event_from_exception(None)
+
+    # sentry sdk is not initialised, so None will be returned
+    SentryReporter.last_event = None
+    assert not reporter.event_from_exception(Exception('test'))
