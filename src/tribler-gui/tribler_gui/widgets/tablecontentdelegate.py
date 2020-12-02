@@ -34,6 +34,7 @@ TRIBLER_PALETTE = QPalette()
 TRIBLER_PALETTE.setColor(QPalette.Highlight, TRIBLER_ORANGE)
 
 DARWIN = sys.platform == 'darwin'
+WINDOWS = sys.platform == 'win32'
 
 
 def draw_text(
@@ -696,7 +697,7 @@ class RatingControl(QObject, CheckClickedMixin):
         self.font = None
         # For some reason, on MacOS default inter-character spacing for some symbols
         # is too wide. We have to adjust it manually.
-        if DARWIN:
+        if DARWIN or WINDOWS:
             self.font = QFont()
             self.font.setLetterSpacing(QFont.PercentageSpacing, 60.0)
 
