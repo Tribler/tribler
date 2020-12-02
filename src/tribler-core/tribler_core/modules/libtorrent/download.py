@@ -182,6 +182,11 @@ class Download(TaskManager):
 
         self.handle = alert.handle
         self._logger.debug("Added torrent %s", str(self.handle.info_hash()))
+        # In LibTorrent auto_managed flag is now on by default, and as a result
+        # any torrent's state can change from Stopped to Downloading at any time.
+        # Here we unset this flag to prevent auto-resuming of stopped torrents.
+        if hasattr(self.handle, 'unset_flags'):
+            self.handle.unset_flags(lt.add_torrent_params_flags_t.flag_auto_managed)
 
         self.set_selected_files()
 
