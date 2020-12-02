@@ -31,9 +31,11 @@ if __name__ == '__main__':
 
     sentry_url = os.environ.get('SENTRY_URL', None)
     logger.info(f'Sentry url: {sentry_url}')
-    if not sentry_url:
+    if sentry_url is None:
         logger.critical('Sentry url is not defined. To define sentry url use:'
-                        'EXPORT SENTRY_URL=<sentry_url>')
+                        'EXPORT SENTRY_URL=<sentry_url>\n'
+                        'If you want to disable sentry, then define the following:'
+                        'EXPORT SENTRY_URL=')
         sys.exit(1)
 
     build_date = ctime()
