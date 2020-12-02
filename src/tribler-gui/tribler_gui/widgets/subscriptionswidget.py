@@ -3,7 +3,7 @@ from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QLabel, QWidget
 
 from tribler_gui.utilities import format_votes_rich_text, get_votes_rating_description
-from tribler_gui.widgets.tablecontentdelegate import DARWIN
+from tribler_gui.widgets.tablecontentdelegate import DARWIN, WINDOWS
 
 
 class SubscriptionsWidget(QWidget):
@@ -64,7 +64,7 @@ class SubscriptionsWidget(QWidget):
         # Update rating display
         votes = remote_response['votes']
         self.channel_rating_label.setText(format_votes_rich_text(votes))
-        if DARWIN:
+        if DARWIN or WINDOWS:
             font = QFont()
             font.setLetterSpacing(QFont.PercentageSpacing, 60.0)
             self.channel_rating_label.setFont(font)
