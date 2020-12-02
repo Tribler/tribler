@@ -225,7 +225,6 @@ class Session(TaskManager):
             SentryReporter.ignore_logger(self._logger.name)
 
             exception = context.get('exception')
-            SentryReporter.capture_exception(exception)
             ignored_message = None
             try:
                 ignored_message = IGNORED_ERRORS.get(
@@ -250,6 +249,7 @@ class Session(TaskManager):
                     text_long = text_long + "\n--LONG TEXT--\n" + buffer.getvalue()
             text_long = text_long + "\n--CONTEXT--\n" + str(context)
             self._logger.error("Unhandled exception occurred! %s", text_long, exc_info=None)
+            SentryReporter.capture_exception(exception)
             sentry_event = SentryReporter.last_event
 
             if not self.api_manager:
