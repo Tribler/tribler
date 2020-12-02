@@ -2,11 +2,12 @@
 block_cipher = None
 import imp
 import os
+import pkgutil
 import sys
 import shutil
 
 import aiohttp_apispec
-
+import sentry_sdk
 
 root_dir = os.path.abspath(os.path.dirname(__name__))
 src_dir = os.path.join(root_dir, "src")
@@ -75,6 +76,17 @@ excluded_libs = ['wx', 'bitcoinlib', 'PyQt4', 'FixTk', 'tcl', 'tk', '_tkinter', 
 
 # Pony dependencies; each packages need to be added separatedly; added as hidden import
 pony_deps = ['pony', 'pony.orm', 'pony.orm.dbproviders', 'pony.orm.dbproviders.sqlite']
+
+# Sentry hidden imports
+def get_sentry_hooks():
+    package = sentry_sdk.integrations
+    sentry_hooks = ['sentry_sdk', 'sentry_sdk.integrations']
+    for _, modname, _ in pkgutil.walk_packages(path=package.__path__,
+                                               prefix=package.__name__ + '.',
+                                               onerror=lambda x: None):
+        sentry_hooks.append(modname)
+    return sentry_hooks
+
 # Hidden imports
 hiddenimports = [
     'csv',
@@ -85,7 +97,7 @@ hiddenimports = [
     'pkg_resources', 'pkg_resources.py2_warn', # Workaround PyInstaller & SetupTools, https://github.com/pypa/setuptools/issues/1963
     'requests',
     'PyQt5.QtTest',
-    'pyqtgraph'] + widget_files + pony_deps + list(ipv8_module_imports())
+    'pyqtgraph'] + widget_files + pony_deps + list(ipv8_module_imports()) + get_sentry_hooks()
 
 
 sys.modules['FixTk'] = None
