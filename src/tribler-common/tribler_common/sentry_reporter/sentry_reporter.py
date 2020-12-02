@@ -47,7 +47,7 @@ class SentryReporter:
         SentryReporter.strategy.set(SentryReporter.Strategy.SEND_SUPPRESSED)
     ```
     SentryReporter is thread-safe.
-   """
+    """
 
     class Strategy(Enum):
         SEND_ALLOWED = auto()
@@ -66,7 +66,7 @@ class SentryReporter:
 
     @staticmethod
     def init(sentry_url='', scrubber=None, strategy=Strategy.SEND_ALLOWED_WITH_CONFIRMATION):
-        """ Initialization.
+        """Initialization.
 
         This method should be called in each process that uses SentryReporter.
 
@@ -213,8 +213,30 @@ class SentryReporter:
         sentry_sdk.capture_exception(exception)
 
     @staticmethod
+    def event_from_exception(exception):
+        """This function format the exception by passing it through sentry
+        Args:
+            exception: an exception that will be passed to `sentry_sdk.capture_exception(exception)`
+
+        Returns:
+            the event that has been saved in `_before_send` method
+        """
+        SentryReporter._logger.info(f"Event from exception: {exception}")
+
+        if not exception:
+            return exception
+
+        saved_strategy = SentryReporter.strategy.get()
+        try:
+            SentryReporter.strategy.set(SentryReporter.Strategy.SEND_SUPPRESSED)
+            sentry_sdk.capture_exception(exception)
+            return SentryReporter.last_event
+        finally:
+            SentryReporter.strategy.set(saved_strategy)
+
+    @staticmethod
     def set_user(user_id):
-        """ Set the user to identify the event on a Sentry server
+        """Set the user to identify the event on a Sentry server
 
         The algorithm is the following:
         1. Calculate hash from `user_id`.
@@ -261,8 +283,7 @@ class SentryReporter:
             return event
 
         strategy = SentryReporter.strategy.get()
-        SentryReporter._logger.info(f"Before send event: {event}")
-        SentryReporter._logger.info(f"Strategy: {strategy}")
+        SentryReporter._logger.info(f"Before send strategy: {strategy}")
 
         exc_info = get_value(hint, 'exc_info')
         error_type = get_first_item(exc_info)

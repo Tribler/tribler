@@ -13,13 +13,15 @@ from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
 from tribler_gui.event_request_manager import received_events
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import (
-    TriblerNetworkRequest, performed_requests as tribler_performed_requests, tribler_urlencode, )
+    TriblerNetworkRequest,
+    performed_requests as tribler_performed_requests,
+    tribler_urlencode,
+)
 from tribler_gui.utilities import get_ui_file_path
 
 
 class FeedbackDialog(QDialog):
-    def __init__(self, parent, exception_text, tribler_version, start_time,  # pylint: disable=R0914
-                 backend_sentry_event=None):
+    def __init__(self, parent, exception_text, tribler_version, start_time, sentry_event=None):  # pylint: disable=R0914
         QDialog.__init__(self, parent)
 
         uic.loadUi(get_ui_file_path('feedback_dialog.ui'), self)
@@ -27,7 +29,7 @@ class FeedbackDialog(QDialog):
         self.setWindowTitle("Unexpected error")
         self.selected_item_index = 0
         self.tribler_version = tribler_version
-        self.backend_sentry_event = backend_sentry_event
+        self.sentry_event = sentry_event
 
         # Qt 5.2 does not have the setPlaceholderText property
         if hasattr(self.comments_text_edit, "setPlaceholderText"):
@@ -69,8 +71,8 @@ class FeedbackDialog(QDialog):
         for request, status_code in sorted(tribler_performed_requests, key=lambda rq: rq[0].time)[-30:]:
             add_item_to_info_widget(
                 'request_%d' % request_ind,
-                '%s %s %s (time: %s, code: %s)' % (request.url, request.method,
-                                                   request.raw_data, request.time, status_code),
+                '%s %s %s (time: %s, code: %s)'
+                % (request.url, request.method, request.raw_data, request.time, status_code),
             )
             request_ind += 1
 
@@ -150,9 +152,7 @@ class FeedbackDialog(QDialog):
             "stack": stack,
         }
 
-        # if no backend_sentry_event, then try to restore GUI exception
-        sentry_event = self.backend_sentry_event or SentryReporter.last_event
-        SentryReporter.send_event(sentry_event, post_data, sys_info_dict)
+        SentryReporter.send_event(self.sentry_event, post_data, sys_info_dict)
 
         TriblerNetworkRequest(endpoint, self.on_report_sent, raw_data=tribler_urlencode(post_data), method='POST')
 
