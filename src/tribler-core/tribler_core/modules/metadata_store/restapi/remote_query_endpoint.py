@@ -13,8 +13,7 @@ from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, RESTResponse
 
 class RemoteQueryEndpoint(MetadataEndpointBase):
     """
-    This endpoint is responsible for searching in channels and torrents present in the local Tribler database.
-    It also fires a remote search in the IPv8 channel community.
+    This endpoint fires a remote search in the IPv8 GigaChannel Community.
     """
 
     def setup_routes(self):
@@ -38,10 +37,7 @@ class RemoteQueryEndpoint(MetadataEndpointBase):
     )
     @querystring_schema(RemoteQueryParameters)
     async def create_remote_search_request(self, request):
-        # Query remote results from the GigaChannel Community v1.0.
-        # v1.0 does not support searching for text limited by public key.
-        # GigaChannel v1.0 search community sends requests for channel contents by putting channel's public key
-        # into the text filter field. To communicate with older clients we have to shape the request accordingly.
+        # Query remote results from the GigaChannel Community.
         # Results are returned over the Events endpoint.
         try:
             sanitized = self.sanitize_parameters(request.query)
