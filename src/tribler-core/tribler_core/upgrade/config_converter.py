@@ -5,7 +5,7 @@ import os
 from configparser import MissingSectionHeaderError
 from lib2to3.pgen2.parse import ParseError
 
-from configobj import ConfigObj
+from configobj import ConfigObj, ParseError as ConfigObjParseError
 
 import libtorrent as lt
 
@@ -17,6 +17,10 @@ from tribler_core.utilities.configparser import CallbackConfigParser
 from tribler_core.utilities.unicode import recursive_ungarble_metainfo
 
 logger = logging.getLogger(__name__)
+
+
+def load_config(filename: str):
+    return ConfigObj(infile=filename, encoding='utf8')
 
 
 def convert_config_to_tribler74(state_dir):
@@ -69,15 +73,20 @@ def convert_state_file_to_conf_74(filename, refactoring_tool=None):
     if old_config.has_option('state', 'dlstate'):
         old_config.remove_option('state', 'dlstate')
 
-        new_config = ConfigObj(infile=str(filename)[:-6] + '.conf', encoding='utf8')
-        for section in old_config.sections():
-            for key, _ in old_config.items(section):
-                val = old_config.get(section, key)
-                if section not in new_config:
-                    new_config[section] = {}
-                new_config[section][key] = val
-        new_config.write()
-        os.remove(filename)
+        try:
+            conf_filename = str(filename)[:-6] + '.conf'
+            new_config = load_config(conf_filename)
+            for section in old_config.sections():
+                for key, _ in old_config.items(section):
+                    val = old_config.get(section, key)
+                    if section not in new_config:
+                        new_config[section] = {}
+                    new_config[section][key] = val
+            new_config.write()
+            os.remove(filename)
+        except ConfigObjParseError:
+            logger.error("Could not parse %s file on upgrade so removing it", filename)
+            os.remove(filename)
 
 
 def convert_config_to_tribler75(state_dir):
@@ -85,23 +94,27 @@ def convert_config_to_tribler75(state_dir):
     Convert the download config files from Tribler 7.4 to 7.5 format.
     """
     for filename in (state_dir / STATEDIR_CHECKPOINT_DIR).glob('*.conf'):
-        config = DownloadConfig.load(filename)
+        try:
+            config = DownloadConfig.load(filename)
 
-        # Convert resume data
-        resumedata = config.get_engineresumedata()
-        if b'mapped_files' in resumedata:
-            resumedata.pop(b'mapped_files')
-            config.set_engineresumedata(resumedata)
+            # Convert resume data
+            resumedata = config.get_engineresumedata()
+            if b'mapped_files' in resumedata:
+                resumedata.pop(b'mapped_files')
+                config.set_engineresumedata(resumedata)
+                config.write(str(filename))
+
+            # Convert metainfo
+            metainfo = config.get_metainfo()
+            if not config.config['download_defaults'].get('selected_files') or not metainfo:
+                continue  # no conversion needed/possible, selected files will be reset to their default (i.e., all files)
+            tdef = TorrentDef.load_from_dict(metainfo)
+            config.set_selected_files([tdef.get_index_of_file_in_files(fn)
+                                       for fn in config.config['download_defaults'].pop('selected_files')])
             config.write(str(filename))
-
-        # Convert metainfo
-        metainfo = config.get_metainfo()
-        if not config.config['download_defaults'].get('selected_files') or not metainfo:
-            continue  # no conversion needed/possible, selected files will be reset to their default (i.e., all files)
-        tdef = TorrentDef.load_from_dict(metainfo)
-        config.set_selected_files([tdef.get_index_of_file_in_files(fn)
-                                   for fn in config.config['download_defaults'].pop('selected_files')])
-        config.write(str(filename))
+        except ConfigObjParseError:
+            logger.error("Could not parse %s file so removing it", filename)
+            os.remove(filename)
 
 
 def convert_config_to_tribler76(state_dir):
