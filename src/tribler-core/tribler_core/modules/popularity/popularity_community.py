@@ -25,7 +25,7 @@ class PopularityCommunity(RemoteQueryCommunity):
     GOSSIP_POPULAR_TORRENT_COUNT = 5
     GOSSIP_RANDOM_TORRENT_COUNT = 5
 
-    community_id = unhexlify('9aca62f878969c437da9844cba29a134917e1648')
+    community_id = unhexlify('d13198e3f52d6837dfa08b5bc95fc7cc9e470b32')
 
     def __init__(self, *args, **kwargs):
         self.torrent_checker = kwargs.pop('torrent_checker', None)
