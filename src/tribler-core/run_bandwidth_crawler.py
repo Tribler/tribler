@@ -12,13 +12,13 @@ from asyncio import ensure_future, get_event_loop
 from binascii import hexlify, unhexlify
 from pathlib import Path
 
-from ipv8.loader import IPv8CommunityLoader, overlay
+from ipv8.loader import IPv8CommunityLoader, overlay, walk_strategy
 
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.modules.bandwidth_accounting.community import BandwidthAccountingCommunity
 from tribler_core.modules.bandwidth_accounting.database import BandwidthDatabase
 from tribler_core.modules.bandwidth_accounting.settings import BandwidthAccountingSettings
-from tribler_core.modules.ipv8_module_catalog import BandwidthCommunityLauncher
+from tribler_core.modules.ipv8_module_catalog import BandwidthCommunityLauncher, INFINITE, random_walk
 from tribler_core.session import Session
 
 
@@ -74,6 +74,7 @@ def bandwidth_accounting_community():
 
 
 @overlay(bandwidth_accounting_community)
+@walk_strategy(random_walk, target_peers=INFINITE)
 class BandwidthCommunityCrawlerLauncher(BandwidthCommunityLauncher):
 
     def __init__(self, payouts_info):
