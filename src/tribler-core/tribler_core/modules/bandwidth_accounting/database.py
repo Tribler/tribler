@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import List, Optional
 
-from pony.orm import Database, count, db_session, select, sum
+from pony.orm import Database, count, db_session, desc, select, sum
 
 from tribler_core.modules.bandwidth_accounting import history, misc, transaction as db_transaction
 from tribler_core.modules.bandwidth_accounting.transaction import BandwidthTransactionData
@@ -84,7 +84,9 @@ class BandwidthDatabase:
         :param public_key_b: The public key of the party receiving the bandwidth.
         :return The latest transaction between the two specified parties, or None if no such transaction exists.
         """
-        db_obj = self.BandwidthTransaction.get(public_key_a=public_key_a, public_key_b=public_key_b)
+        db_obj = self.BandwidthTransaction.select(
+            lambda tx: tx.public_key_a == public_key_a and tx.public_key_b == public_key_b).\
+            order_by(lambda tx: desc(tx.sequence_number)).first()
         return BandwidthTransactionData.from_db(db_obj) if db_obj else None
 
     @db_session
