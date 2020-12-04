@@ -164,9 +164,17 @@ class MetadataStore(object):
         for [index_name] in cursor.fetchall():
             cursor.execute("drop index %s" % index_name)
 
-    def recreate_indexes(self):
+    def get_objects_to_create(self):
         connection = self._db.get_connection()
-        self._db.schema.create_tables(self._db.provider, connection)
+        schema = self._db.schema
+        provider = schema.provider
+        created_tables = set()
+        result = []
+        for table in schema.order_tables_to_create():
+            for db_object in table.get_objects_to_create(created_tables):
+                if not db_object.exists(provider, connection):
+                    result.append(db_object)
+        return result
 
     def drop_fts_triggers(self):
         cursor = self._db.get_connection().cursor()

@@ -1,7 +1,6 @@
 import logging
 import os
 import shutil
-from asyncio import sleep
 from configparser import MissingSectionHeaderError, ParsingError
 
 from pony.orm import db_session
@@ -125,23 +124,8 @@ class TriblerUpgrader(object):
 
         self._pony2pony = PonyToPonyMigration(database_path, tmp_database_path, self.update_status, logger=self._logger)
 
-        await self._pony2pony.do_migration()
-
-        try:
-            if not self._pony2pony.shutting_down:
-                # Connect again to recreate indexes and FTS
-                self.update_status("recreating indexes...")
-                await sleep(0.001)
-                with db_session(ddl=True):
-                  mds.recreate_indexes()
-                self.update_status("adding full text search index...")
-                await sleep(0.001)
-                with db_session(ddl=True):
-                    mds.create_fts_triggers()
-                    mds.fill_fts_index()
-                mds.shutdown()
-        except Exception as e:
-            self._pony2pony.shutting_down = True
+        duration_base = await self._pony2pony.do_migration()
+        await self._pony2pony.recreate_indexes(mds, duration_base)
 
         # Remove the old DB
         database_path.unlink()
