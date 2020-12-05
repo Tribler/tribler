@@ -196,7 +196,7 @@ class StartDownloadDialog(DialogContainer):
                 self.dialog_widget.loading_files_label.setText("Error: %s" % response['error'])
             return
 
-        metainfo = json.loads(unhexlify(response['metainfo']), encoding='latin-1')
+        metainfo = json.loads(unhexlify(response['metainfo']))
         if 'files' in metainfo['info']:  # Multi-file torrent
             files = metainfo['info']['files']
         else:
