@@ -229,7 +229,7 @@ class PonyToPonyMigration(object):
 
 
 def calc_progress(duration_now, duration_half=60.0):
-    result = 100 * ( 1 - 1 / (1 + duration_now / duration_half) ** 2)
+    result = 100 * ( 1 - 1 / (1 + duration_now / (duration_half + 1)) ** 2)
     return result
 
 
