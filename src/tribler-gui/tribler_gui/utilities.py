@@ -325,7 +325,7 @@ def votes_count(votes=0.0):
     votes = float(votes)
     # FIXME: this is a temp fix to cap the normalized value to 1.
     #  The votes should already be normalized before formatting it.
-    votes = 1.0 if votes > 1 else votes
+    votes = max(0.0, min(votes, 1.0))
     # We add sqrt to flatten the votes curve a bit
     votes = math.sqrt(votes)
     votes = int(math.ceil(votes * NUM_VOTES_BARS))

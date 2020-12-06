@@ -12,6 +12,7 @@ from tribler_common.simpledefs import NTFY
 from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH
 from tribler_core.modules.metadata_store.store import CURRENT_DB_VERSION, MetadataStore
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
+from tribler_core.upgrade.db8_to_db10 import calc_progress
 from tribler_core.upgrade.upgrade import cleanup_noncompliant_channel_torrents
 from tribler_core.utilities.configparser import CallbackConfigParser
 
@@ -154,3 +155,19 @@ async def test_upgrade_pony_8to10(upgrader, session):
         assert int(mds.MiscData.get(name="db_version").value) == CURRENT_DB_VERSION
         assert mds.ChannelNode.select().count() == 23
     mds.shutdown()
+
+def test_calc_progress():
+    EPSILON = 0.001
+    assert calc_progress(0) == pytest.approx(0.0, abs=EPSILON)
+    assert calc_progress(0, 1) == pytest.approx(0.0, abs=EPSILON)
+
+    assert calc_progress(1, 0) == pytest.approx(75.0, abs=EPSILON)
+    assert calc_progress(10, 0) == pytest.approx(99.173553, abs=EPSILON)
+
+    assert calc_progress(0, 100) == pytest.approx(0.0, abs=EPSILON)
+    assert calc_progress(10, 100) == pytest.approx(17.206395, abs=EPSILON)
+    assert calc_progress(50, 100) == pytest.approx(55.260734, abs=EPSILON)
+    assert calc_progress(80, 100) == pytest.approx(68.862366, abs=EPSILON)
+    assert calc_progress(100, 100) == pytest.approx(74.750624, abs=EPSILON)
+    assert calc_progress(200, 100) == pytest.approx(88.740742, abs=EPSILON)
+    assert calc_progress(1000, 100) == pytest.approx(99.158472, abs=EPSILON)

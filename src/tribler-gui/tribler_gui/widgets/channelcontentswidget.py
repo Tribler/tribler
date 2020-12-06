@@ -1,3 +1,4 @@
+import uuid
 from base64 import b64encode
 
 from PyQt5 import uic
@@ -306,7 +307,7 @@ class ChannelContentsWidget(widget_form, widget_class):
         def add_request_uuid(response):
             request_uuid = response["request_uuid"]
             if self.model:
-                self.model.remote_queries.add(request_uuid)
+                self.model.remote_queries.add(uuid.UUID(request_uuid))
 
         TriblerNetworkRequest('remote_query', add_request_uuid, method="PUT", url_params=params)
 

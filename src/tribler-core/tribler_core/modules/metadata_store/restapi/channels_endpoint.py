@@ -149,7 +149,7 @@ class ChannelsEndpoint(ChannelsEndpointBase):
         for torrent in contents_list:
             if torrent['type'] == REGULAR_TORRENT:
                 dl = self.session.dlmgr.get_download(unhexlify(torrent['infohash']))
-                if dl is not None:
+                if dl is not None and dl.tdef.infohash not in self.session.dlmgr.metainfo_requests:
                     torrent['progress'] = dl.get_state().get_progress()
         response_dict = {
             "results": contents_list,
