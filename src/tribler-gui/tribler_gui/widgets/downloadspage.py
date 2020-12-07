@@ -391,7 +391,7 @@ class DownloadsPage(QWidget):
 
         TriblerNetworkRequest(
             "downloads/%s" % _infohash,
-            lambda res, _, name=_name, target=dest_dir: self.on_files_moved(res, name, target),
+            lambda res: self.on_files_moved(res, _name, dest_dir),
             data=data,
             method='PATCH',
         )
