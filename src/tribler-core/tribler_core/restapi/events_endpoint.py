@@ -45,7 +45,7 @@ reactions_dict = {
     # Remote GigaChannel search results were received by Tribler. Contains received entries.
     NTFY.REMOTE_QUERY_RESULTS: passthrough,
     # An indicator that Tribler has completed the startup procedure and is ready to use.
-    NTFY.TRIBLER_STARTED: lambda *_: {"version": version_id},
+    NTFY.TRIBLER_STARTED: lambda public_key: {"version": version_id, "public_key": hexlify(public_key)},
     # Tribler is low on disk space for storing torrents
     NTFY.LOW_SPACE: passthrough,
 }
@@ -67,7 +67,7 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
 
         # We need to know that Tribler completed its startup sequence
         self.tribler_started = False
-        self.session.notifier.add_observer(NTFY.TRIBLER_STARTED, self._tribler_started)
+        self.session.notifier.add_observer(NTFY.TRIBLER_STARTED, self.on_tribler_started)
 
         for event_type, event_lambda in reactions_dict.items():
             self.session.notifier.add_observer(event_type,
@@ -90,7 +90,7 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
     async def on_shutdown(self, _):
         await self.shutdown_task_manager()
 
-    def _tribler_started(self):
+    def on_tribler_started(self, _):
         self.tribler_started = True
 
     def setup_routes(self):

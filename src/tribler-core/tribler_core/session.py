@@ -53,6 +53,7 @@ from tribler_core.statistics import TriblerStatistics
 from tribler_core.upgrade.upgrade import TriblerUpgrader
 from tribler_core.utilities.crypto_patcher import patch_crypto_be_discovery
 from tribler_core.utilities.install_dir import get_lib_path
+from tribler_core.utilities.unicode import hexlify
 
 if sys.platform == 'win32':
     SOCKET_BLOCK_ERRORCODE = 10035  # WSAEWOULDBLOCK
@@ -280,7 +281,9 @@ class Session(TaskManager):
         self.get_ports_in_config()
         self.create_state_directory_structure()
         self.init_keypair()
-        SentryReporter.set_user(self.trustchain_keypair.key.pk)
+
+        user_id_str = hexlify(self.trustchain_keypair.key.pk).encode('utf-8')
+        SentryReporter.set_user(user_id_str)
 
         # Start the REST API before the upgrader since we want to send interesting upgrader events over the socket
         if self.config.get_api_http_enabled() or self.config.get_api_https_enabled():
@@ -406,7 +409,7 @@ class Session(TaskManager):
         if self.config.get_bootstrap_enabled() and not self.core_test_mode:
             self.register_task('bootstrap_download', self.start_bootstrap_download)
 
-        self.notifier.notify(NTFY.TRIBLER_STARTED)
+        self.notifier.notify(NTFY.TRIBLER_STARTED, self.trustchain_keypair.key.pk)
 
     async def shutdown(self):
         """
