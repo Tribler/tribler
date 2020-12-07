@@ -1,8 +1,7 @@
 import logging
 
-from ipv8.messaging.deprecated.encoding import add_url_params
-
 from tribler_core import load_logger_config
+from tribler_core.utilities.tracker_utils import add_url_params
 from tribler_core.utilities.utilities import parse_magnetlink
 
 
