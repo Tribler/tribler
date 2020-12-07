@@ -4,6 +4,7 @@ import time
 from PyQt5.QtCore import QTimer, QUrl, pyqtSignal
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 
+from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
 from tribler_common.simpledefs import NTFY
 
 import tribler_core.utilities.json_util as json
@@ -68,6 +69,8 @@ class EventRequestManager(QNetworkAccessManager):
 
     def on_error(self, error, reschedule_on_err):
         self._logger.info("Got Tribler core error: %s" % error)
+
+        SentryReporter.ignore_logger(self._logger.name)
         if self.remaining_connection_attempts <= 0:
             raise CoreConnectTimeoutError("Could not connect with the Tribler Core within 60 seconds")
 
