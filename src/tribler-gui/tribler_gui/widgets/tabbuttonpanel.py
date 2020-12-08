@@ -1,6 +1,8 @@
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import QWidget
 
+from tribler_gui.utilities import connect
+
 
 class TabButtonPanel(QWidget):
     """
@@ -16,7 +18,7 @@ class TabButtonPanel(QWidget):
     def initialize(self):
         for button in self.findChildren(QWidget):
             self.buttons.append(button)
-            button.clicked_tab_button.connect(self.on_tab_button_click)
+            connect(button.clicked_tab_button, self.on_tab_button_click)
 
     def on_tab_button_click(self, clicked_button):
         self.deselect_all_buttons(except_select=clicked_button)

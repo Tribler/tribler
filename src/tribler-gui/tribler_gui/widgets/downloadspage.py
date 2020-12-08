@@ -27,7 +27,7 @@ from tribler_gui.defs import (
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import TriblerFileDownloadRequest, TriblerNetworkRequest
-from tribler_gui.utilities import compose_magnetlink, format_speed
+from tribler_gui.utilities import compose_magnetlink, connect, format_speed
 from tribler_gui.widgets.downloadwidgetitem import DownloadWidgetItem
 from tribler_gui.widgets.loading_list_item import LoadingListItem
 
@@ -76,20 +76,20 @@ class DownloadsPage(QWidget):
 
     def initialize_downloads_page(self):
         self.window().downloads_tab.initialize()
-        self.window().downloads_tab.clicked_tab_button.connect(self.on_downloads_tab_button_clicked)
+        connect(self.window().downloads_tab.clicked_tab_button, self.on_downloads_tab_button_clicked)
 
-        self.window().start_download_button.clicked.connect(self.on_start_download_clicked)
-        self.window().stop_download_button.clicked.connect(self.on_stop_download_clicked)
-        self.window().remove_download_button.clicked.connect(self.on_remove_download_clicked)
+        connect(self.window().start_download_button.clicked, self.on_start_download_clicked)
+        connect(self.window().stop_download_button.clicked, self.on_stop_download_clicked)
+        connect(self.window().remove_download_button.clicked, self.on_remove_download_clicked)
 
-        self.window().downloads_list.itemSelectionChanged.connect(self.on_download_item_clicked)
+        connect(self.window().downloads_list.itemSelectionChanged, self.on_download_item_clicked)
 
-        self.window().downloads_list.customContextMenuRequested.connect(self.on_right_click_item)
+        connect(self.window().downloads_list.customContextMenuRequested, self.on_right_click_item)
 
         self.window().download_details_widget.initialize_details_widget()
         self.window().download_details_widget.hide()
 
-        self.window().downloads_filter_input.textChanged.connect(self.on_filter_text_changed)
+        connect(self.window().downloads_filter_input.textChanged, self.on_filter_text_changed)
 
         self.window().downloads_list.header().setSortIndicator(12, Qt.AscendingOrder)
         self.window().downloads_list.header().resizeSection(12, 146)
@@ -111,12 +111,12 @@ class DownloadsPage(QWidget):
     def schedule_downloads_timer(self, now=False):
         self.downloads_timer = QTimer()
         self.downloads_timer.setSingleShot(True)
-        self.downloads_timer.timeout.connect(self.load_downloads)
+        connect(self.downloads_timer.timeout, self.load_downloads)
         self.downloads_timer.start(0 if now else 1000)
 
         self.downloads_timeout_timer = QTimer()
         self.downloads_timeout_timer.setSingleShot(True)
-        self.downloads_timeout_timer.timeout.connect(self.on_downloads_request_timeout)
+        connect(self.downloads_timeout_timer.timeout, self.on_downloads_request_timeout)
         self.downloads_timeout_timer.start(16000)
 
     def on_downloads_request_timeout(self):
@@ -318,7 +318,7 @@ class DownloadsPage(QWidget):
                 ('cancel', BUTTON_TYPE_CONFIRM),
             ],
         )
-        self.dialog.button_clicked.connect(self.on_remove_download_dialog)
+        connect(self.dialog.button_clicked, self.on_remove_download_dialog)
         self.dialog.show()
 
     def on_remove_download_dialog(self, action):
@@ -419,7 +419,7 @@ class DownloadsPage(QWidget):
             self.dialog.dialog_widget.dialog_input.setPlaceholderText('Torrent file name')
             self.dialog.dialog_widget.dialog_input.setText("%s.torrent" % torrent_name)
             self.dialog.dialog_widget.dialog_input.setFocus()
-            self.dialog.button_clicked.connect(self.on_export_download_dialog_done)
+            connect(self.dialog.button_clicked, self.on_export_download_dialog_done)
             self.dialog.show()
 
     def on_export_download_dialog_done(self, action):
@@ -487,22 +487,22 @@ class DownloadsPage(QWidget):
         two_hop_anon_action = QAction('Two hops', self)
         three_hop_anon_action = QAction('Three hops', self)
 
-        start_action.triggered.connect(self.on_start_download_clicked)
+        connect(start_action.triggered, self.on_start_download_clicked)
         start_action.setEnabled(DownloadsPage.start_download_enabled(self.selected_items))
-        stop_action.triggered.connect(self.on_stop_download_clicked)
+        connect(stop_action.triggered, self.on_stop_download_clicked)
         stop_action.setEnabled(DownloadsPage.stop_download_enabled(self.selected_items))
-        add_to_channel_action.triggered.connect(self.on_add_to_channel)
-        remove_download_action.triggered.connect(self.on_remove_download_clicked)
-        force_recheck_action.triggered.connect(self.on_force_recheck_download)
+        connect(add_to_channel_action.triggered, self.on_add_to_channel)
+        connect(remove_download_action.triggered, self.on_remove_download_clicked)
+        connect(force_recheck_action.triggered, self.on_force_recheck_download)
         force_recheck_action.setEnabled(DownloadsPage.force_recheck_download_enabled(self.selected_items))
-        export_download_action.triggered.connect(self.on_export_download)
-        explore_files_action.triggered.connect(self.on_explore_files)
-        move_files_action.triggered.connect(self.on_move_files)
+        connect(export_download_action.triggered, self.on_export_download)
+        connect(explore_files_action.triggered, self.on_explore_files)
+        connect(move_files_action.triggered, self.on_move_files)
 
-        no_anon_action.triggered.connect(lambda: self.change_anonymity(0))
-        one_hop_anon_action.triggered.connect(lambda: self.change_anonymity(1))
-        two_hop_anon_action.triggered.connect(lambda: self.change_anonymity(2))
-        three_hop_anon_action.triggered.connect(lambda: self.change_anonymity(3))
+        connect(no_anon_action.triggered, lambda: self.change_anonymity(0))
+        connect(one_hop_anon_action.triggered, lambda: self.change_anonymity(1))
+        connect(two_hop_anon_action.triggered, lambda: self.change_anonymity(2))
+        connect(three_hop_anon_action.triggered, lambda: self.change_anonymity(3))
 
         menu.addAction(start_action)
         menu.addAction(stop_action)

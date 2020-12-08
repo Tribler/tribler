@@ -1,7 +1,7 @@
 from PyQt5.QtSvg import QGraphicsSvgItem, QSvgRenderer
 from PyQt5.QtWidgets import QGraphicsScene, QWidget
 
-from tribler_gui.utilities import get_image_path
+from tribler_gui.utilities import connect, get_image_path
 
 
 class DiscoveringPage(QWidget):
@@ -20,13 +20,13 @@ class DiscoveringPage(QWidget):
         svg_item = QGraphicsSvgItem()
 
         svg = QSvgRenderer(get_image_path("loading_animation.svg"))
-        svg.repaintNeeded.connect(svg_item.update)
+        connect(svg.repaintNeeded, svg_item.update)
         svg_item.setSharedRenderer(svg)
         svg_container.addItem(svg_item)
 
         self.window().discovering_svg_view.setScene(svg_container)
 
-        self.window().core_manager.events_manager.discovered_channel.connect(self.on_discovered_channel)
+        connect(self.window().core_manager.events_manager.discovered_channel, self.on_discovered_channel)
 
     def on_discovered_channel(self, _):
         self.found_channels += 1

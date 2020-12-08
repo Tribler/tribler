@@ -7,6 +7,8 @@ from PyQt5.QtCore import QTextStream, Qt, pyqtSignal
 from PyQt5.QtNetwork import QLocalServer, QLocalSocket
 from PyQt5.QtWidgets import QApplication
 
+from tribler_gui.utilities import connect, disconnect
+
 LOGVARSTR = "%25s = '%s'"
 
 
@@ -55,7 +57,7 @@ class QtSingleApplication(QApplication):
             self._outSocket = None
             self._server = QLocalServer()
             self._server.listen(self._id)
-            self._server.newConnection.connect(self._on_new_connection)
+            connect(self._server.newConnection, self._on_new_connection)
 
         logfunc(sys._getframe().f_code.co_name + '(): returning')
 
@@ -98,13 +100,13 @@ class QtSingleApplication(QApplication):
 
     def _on_new_connection(self):
         if self._inSocket:
-            self._inSocket.readyRead.disconnect(self._on_ready_read)
+            disconnect(self._inSocket.readyRead, self._on_ready_read)
         self._inSocket = self._server.nextPendingConnection()
         if not self._inSocket:
             return
         self._inStream = QTextStream(self._inSocket)
         self._inStream.setCodec('UTF-8')
-        self._inSocket.readyRead.connect(self._on_ready_read)
+        connect(self._inSocket.readyRead, self._on_ready_read)
         if self._activate_on_message:
             self.activate_window()
 

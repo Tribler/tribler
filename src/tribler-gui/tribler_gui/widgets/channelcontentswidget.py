@@ -16,7 +16,7 @@ from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler_gui.dialogs.new_channel_dialog import NewChannelDialog
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.utilities import get_image_path, get_ui_file_path
+from tribler_gui.utilities import connect, disconnect, get_image_path, get_ui_file_path
 from tribler_gui.widgets.tablecontentmodel import (
     ChannelContentModel,
     DiscoveredChannelsModel,
@@ -114,10 +114,10 @@ class ChannelContentsWidget(widget_form, widget_class):
         self.hide_xxx = hide_xxx
         self.initialized = True
         self.category_selector.addItems(CATEGORY_SELECTOR_ITEMS)
-        self.category_selector.currentIndexChanged.connect(self.on_category_selector_changed)
+        connect(self.category_selector.currentIndexChanged, self.on_category_selector_changed)
         self.channel_back_button.setIcon(QIcon(get_image_path('page_back.png')))
-        self.channel_back_button.clicked.connect(self.go_back)
-        self.channel_name_label.linkActivated.connect(self.on_breadcrumb_clicked)
+        connect(self.channel_back_button.clicked, self.go_back)
+        connect(self.channel_name_label.linkActivated, self.on_breadcrumb_clicked)
         self.commit_control_bar.setHidden(True)
 
         self.controller = ContentTableViewController(
@@ -125,16 +125,16 @@ class ChannelContentsWidget(widget_form, widget_class):
         )
 
         # To reload the preview
-        self.channel_preview_button.clicked.connect(self.preview_clicked)
+        connect(self.channel_preview_button.clicked, self.preview_clicked)
 
         self.autocommit_enabled = autocommit_enabled
         if self.autocommit_enabled:
             self._enable_autocommit_timer()
 
         # New channel button
-        self.new_channel_button.clicked.connect(self.create_new_channel)
-        self.content_table.channel_clicked.connect(self.on_channel_clicked)
-        self.edit_channel_commit_button.clicked.connect(self.commit_channels)
+        connect(self.new_channel_button.clicked, self.create_new_channel)
+        connect(self.content_table.channel_clicked, self.on_channel_clicked)
+        connect(self.edit_channel_commit_button.clicked, self.commit_channels)
 
         self.subscription_widget.initialize(self)
 
@@ -145,7 +145,7 @@ class ChannelContentsWidget(widget_form, widget_class):
 
         self.commit_timer = QTimer()
         self.commit_timer.setSingleShot(True)
-        self.commit_timer.timeout.connect(self.commit_channels)
+        connect(self.commit_timer.timeout, self.commit_channels)
 
         # Commit the channel just in case there are uncommitted changes left since the last time (e.g. Tribler crashed)
         # The timer thing here is a workaround for race condition with the core startup
@@ -173,12 +173,11 @@ class ChannelContentsWidget(widget_form, widget_class):
             self.model.saved_scroll_state = self.controller.table_view.verticalScrollBar().value()
             self.controller.unset_model()  # Disconnect the selectionChanged signal
         self.channels_stack.append(model)
-        self.model.info_changed.connect(self.on_model_info_changed)
+        connect(self.model.info_changed, self.on_model_info_changed)
 
-        self.window().core_manager.events_manager.received_remote_query_results.connect(
-            self.model.on_new_entry_received
-        )
-        self.window().core_manager.events_manager.node_info_updated.connect(self.model.update_node_info)
+        connect(self.window().core_manager.events_manager.received_remote_query_results,
+                self.model.on_new_entry_received)
+        connect(self.window().core_manager.events_manager.node_info_updated, self.model.update_node_info)
 
         with self.freeze_controls():
             self.category_selector.setCurrentIndex(0)
@@ -238,10 +237,9 @@ class ChannelContentsWidget(widget_form, widget_class):
 
     def disconnect_current_model(self):
         self.model.info_changed.disconnect()
-        self.window().core_manager.events_manager.node_info_updated.disconnect(self.model.update_node_info)
-        self.window().core_manager.events_manager.received_remote_query_results.disconnect(
-            self.model.on_new_entry_received
-        )
+        disconnect(self.window().core_manager.events_manager.node_info_updated, self.model.update_node_info)
+        disconnect(self.window().core_manager.events_manager.received_remote_query_results,
+                   self.model.on_new_entry_received)
         self.controller.unset_model()  # Disconnect the selectionChanged signal
 
     def go_back(self):
@@ -263,7 +261,7 @@ class ChannelContentsWidget(widget_form, widget_class):
                     self.channel_torrents_filter_input.setText(self.model.text_filter)
                 self.controller.set_model(self.model)
 
-            self.model.info_changed.connect(self.on_model_info_changed)
+            connect(self.model.info_changed, self.on_model_info_changed)
             self.update_labels()
 
     def on_breadcrumb_clicked(self, tgt_level):
@@ -407,9 +405,9 @@ class ChannelContentsWidget(widget_form, widget_class):
         browse_dir_action = QAction('Add torrent(s) directory', self)
         add_url_action = QAction('Add URL/magnet links', self)
 
-        browse_files_action.triggered.connect(self.on_add_torrent_browse_file)
-        browse_dir_action.triggered.connect(self.on_add_torrents_browse_dir)
-        add_url_action.triggered.connect(self.on_add_torrent_from_url)
+        connect(browse_files_action.triggered, self.on_add_torrent_browse_file)
+        connect(browse_dir_action.triggered, self.on_add_torrents_browse_dir)
+        connect(add_url_action.triggered, self.on_add_torrent_from_url)
 
         channel_options_menu = TriblerActionMenu(self)
         channel_options_menu.addAction(browse_files_action)
@@ -433,7 +431,7 @@ class ChannelContentsWidget(widget_form, widget_class):
             [('ADD', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
             checkbox_text="Include subdirectories (recursive mode)",
         )
-        self.dialog.button_clicked.connect(self.on_confirm_add_directory_dialog)
+        connect(self.dialog.button_clicked, self.on_confirm_add_directory_dialog)
         self.dialog.show()
 
     def on_confirm_add_directory_dialog(self, action):
@@ -464,7 +462,7 @@ class ChannelContentsWidget(widget_form, widget_class):
             show_input=True,
         )
         self.dialog.dialog_widget.dialog_input.setPlaceholderText('URL/magnet link')
-        self.dialog.button_clicked.connect(self.on_torrent_from_url_dialog_done)
+        connect(self.dialog.button_clicked, self.on_torrent_from_url_dialog_done)
         self.dialog.show()
 
     def on_torrent_from_url_dialog_done(self, action):

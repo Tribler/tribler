@@ -6,7 +6,7 @@ from tribler_common.simpledefs import dlstatus_strings
 from tribler_gui.defs import *
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.utilities import compose_magnetlink, copy_to_clipboard, format_size, format_speed
+from tribler_gui.utilities import compose_magnetlink, connect, copy_to_clipboard, format_size, format_speed
 from tribler_gui.widgets.downloadfilewidgetitem import DownloadFileWidgetItem
 
 
@@ -22,14 +22,14 @@ class DownloadsDetailsTabWidget(QTabWidget):
         self.files_widgets = {}  # dict of file name -> widget
 
     def initialize_details_widget(self):
-        self.window().download_files_list.customContextMenuRequested.connect(self.on_right_click_file_item)
+        connect(self.window().download_files_list.customContextMenuRequested, self.on_right_click_file_item)
         self.window().download_files_list.header().resizeSection(0, 220)
         self.setCurrentIndex(0)
         # make name, infohash and download destination selectable to copy
         self.window().download_detail_infohash_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
         self.window().download_detail_name_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
         self.window().download_detail_destination_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
-        self.window().download_detail_copy_magnet_button.clicked.connect(self.on_copy_magnet_clicked)
+        connect(self.window().download_detail_copy_magnet_button.clicked, self.on_copy_magnet_clicked)
 
     def update_with_download(self, download):
         did_change = self.current_download != download
@@ -180,9 +180,9 @@ class DownloadsDetailsTabWidget(QTabWidget):
         include_action = QAction('Include file' + ('(s)' if num_selected > 1 else ''), self)
         exclude_action = QAction('Exclude file' + ('(s)' if num_selected > 1 else ''), self)
 
-        include_action.triggered.connect(lambda: self.on_files_included(selected_files_info))
+        connect(include_action.triggered, lambda: self.on_files_included(selected_files_info))
         include_action.setEnabled(True)
-        exclude_action.triggered.connect(lambda: self.on_files_excluded(selected_files_info))
+        connect(exclude_action.triggered, lambda: self.on_files_excluded(selected_files_info))
         exclude_action.setEnabled(not (num_excludes + num_includes_selected == len(item_infos)))
 
         menu.addAction(include_action)

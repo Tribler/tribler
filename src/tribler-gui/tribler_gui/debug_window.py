@@ -22,7 +22,7 @@ from tribler_gui.defs import DEBUG_PANE_REFRESH_TIMEOUT, GB, MB
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler_gui.event_request_manager import received_events as tribler_received_events
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest, performed_requests as tribler_performed_requests
-from tribler_gui.utilities import format_size, get_ui_file_path
+from tribler_gui.utilities import connect, format_size, get_ui_file_path
 from tribler_gui.widgets.graphs.timeseriesplot import TimeSeriesPlot
 from tribler_gui.widgets.ipv8health import MonitorWidget
 
@@ -75,21 +75,21 @@ class DebugWindow(QMainWindow):
         uic.loadUi(get_ui_file_path('debugwindow.ui'), self)
         self.setWindowTitle("Tribler debug pane")
 
-        self.window().dump_memory_core_button.clicked.connect(lambda: self.on_memory_dump_button_clicked(True))
-        self.window().dump_memory_gui_button.clicked.connect(lambda: self.on_memory_dump_button_clicked(False))
-        self.window().toggle_profiler_button.clicked.connect(self.on_toggle_profiler_button_clicked)
+        connect(self.window().dump_memory_core_button.clicked, lambda: self.on_memory_dump_button_clicked(True))
+        connect(self.window().dump_memory_gui_button.clicked, lambda: self.on_memory_dump_button_clicked(False))
+        connect(self.window().toggle_profiler_button.clicked, self.on_toggle_profiler_button_clicked)
 
         self.window().debug_tab_widget.setCurrentIndex(0)
         self.window().ipv8_tab_widget.setCurrentIndex(0)
         self.window().tunnel_tab_widget.setCurrentIndex(0)
         self.window().dht_tab_widget.setCurrentIndex(0)
         self.window().system_tab_widget.setCurrentIndex(0)
-        self.window().debug_tab_widget.currentChanged.connect(self.tab_changed)
-        self.window().ipv8_tab_widget.currentChanged.connect(self.ipv8_tab_changed)
-        self.window().tunnel_tab_widget.currentChanged.connect(self.tunnel_tab_changed)
-        self.window().dht_tab_widget.currentChanged.connect(self.dht_tab_changed)
-        self.window().events_tree_widget.itemClicked.connect(self.on_event_clicked)
-        self.window().system_tab_widget.currentChanged.connect(self.system_tab_changed)
+        connect(self.window().debug_tab_widget.currentChanged, self.tab_changed)
+        connect(self.window().ipv8_tab_widget.currentChanged, self.ipv8_tab_changed)
+        connect(self.window().tunnel_tab_widget.currentChanged, self.tunnel_tab_changed)
+        connect(self.window().dht_tab_widget.currentChanged, self.dht_tab_changed)
+        connect(self.window().events_tree_widget.itemClicked, self.on_event_clicked)
+        connect(self.window().system_tab_widget.currentChanged, self.system_tab_changed)
         self.load_general_tab()
 
         self.window().open_files_tree_widget.header().setSectionResizeMode(0, QHeaderView.Stretch)
@@ -101,8 +101,8 @@ class DebugWindow(QMainWindow):
         self.window().system_tab_widget.setTabEnabled(4, settings and settings['resource_monitor']['enabled'])
 
         # Refresh logs
-        self.window().log_refresh_button.clicked.connect(lambda: self.load_logs_tab())
-        self.window().log_tab_widget.currentChanged.connect(lambda index: self.load_logs_tab())
+        connect(self.window().log_refresh_button.clicked, lambda: self.load_logs_tab())
+        connect(self.window().log_tab_widget.currentChanged, lambda index: self.load_logs_tab())
 
         # IPv8 statistics enabled?
         self.ipv8_statistics_enabled = settings['ipv8']['statistics']
@@ -137,7 +137,7 @@ class DebugWindow(QMainWindow):
         self.stop_timer()
         self.refresh_timer = QTimer()
         self.refresh_timer.setSingleShot(True)
-        self.refresh_timer.timeout.connect(
+        connect(self.refresh_timer.timeout,
             lambda _call_fn=call_fn, _timeout=timeout: self.run_with_timer(_call_fn, timeout=_timeout)
         )
         self.refresh_timer.start(timeout)
@@ -152,13 +152,13 @@ class DebugWindow(QMainWindow):
 
     def init_libtorrent_tab(self):
         self.window().libtorrent_tab_widget.setCurrentIndex(0)
-        self.window().libtorrent_tab_widget.currentChanged.connect(lambda _: self.load_libtorrent_data(export=False))
+        connect(self.window().libtorrent_tab_widget.currentChanged, lambda _: self.load_libtorrent_data(export=False))
 
-        self.window().lt_zero_hop_btn.clicked.connect(lambda _: self.load_libtorrent_data(export=False))
-        self.window().lt_one_hop_btn.clicked.connect(lambda _: self.load_libtorrent_data(export=False))
-        self.window().lt_two_hop_btn.clicked.connect(lambda _: self.load_libtorrent_data(export=False))
-        self.window().lt_three_hop_btn.clicked.connect(lambda _: self.load_libtorrent_data(export=False))
-        self.window().lt_export_btn.clicked.connect(lambda _: self.load_libtorrent_data(export=True))
+        connect(self.window().lt_zero_hop_btn.clicked, lambda _: self.load_libtorrent_data(export=False))
+        connect(self.window().lt_one_hop_btn.clicked, lambda _: self.load_libtorrent_data(export=False))
+        connect(self.window().lt_two_hop_btn.clicked, lambda _: self.load_libtorrent_data(export=False))
+        connect(self.window().lt_three_hop_btn.clicked, lambda _: self.load_libtorrent_data(export=False))
+        connect(self.window().lt_export_btn.clicked, lambda _: self.load_libtorrent_data(export=True))
 
         self.window().lt_zero_hop_btn.setChecked(True)
 
@@ -655,7 +655,7 @@ class DebugWindow(QMainWindow):
 
         # Start timer
         self.cpu_plot_timer = QTimer()
-        self.cpu_plot_timer.timeout.connect(self.load_cpu_tab)
+        connect(self.cpu_plot_timer.timeout, self.load_cpu_tab)
         self.cpu_plot_timer.start(5000)
 
     def refresh_cpu_plot(self):
@@ -681,7 +681,7 @@ class DebugWindow(QMainWindow):
 
         # Start timer
         self.memory_plot_timer = QTimer()
-        self.memory_plot_timer.timeout.connect(self.load_memory_tab)
+        connect(self.memory_plot_timer.timeout, self.load_memory_tab)
         self.memory_plot_timer.start(5000)
 
     def load_profiler_tab(self):

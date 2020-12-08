@@ -11,7 +11,7 @@ from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler_gui.dialogs.dialogcontainer import DialogContainer
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.utilities import get_ui_file_path, is_dir_writable
+from tribler_gui.utilities import connect, get_ui_file_path, is_dir_writable
 
 
 class DownloadFileTreeWidgetItem(QTreeWidgetItem):
@@ -29,13 +29,13 @@ class CreateTorrentDialog(DialogContainer):
         uic.loadUi(get_ui_file_path('createtorrentdialog.ui'), self.dialog_widget)
 
         self.dialog_widget.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
-        self.dialog_widget.btn_cancel.clicked.connect(self.close_dialog)
-        self.dialog_widget.create_torrent_choose_files_button.clicked.connect(self.on_choose_files_clicked)
-        self.dialog_widget.create_torrent_choose_dir_button.clicked.connect(self.on_choose_dir_clicked)
-        self.dialog_widget.btn_create.clicked.connect(self.on_create_clicked)
-        self.dialog_widget.create_torrent_files_list.customContextMenuRequested.connect(self.on_right_click_file_item)
+        connect(self.dialog_widget.btn_cancel.clicked, self.close_dialog)
+        connect(self.dialog_widget.create_torrent_choose_files_button.clicked, self.on_choose_files_clicked)
+        connect(self.dialog_widget.create_torrent_choose_dir_button.clicked, self.on_choose_dir_clicked)
+        connect(self.dialog_widget.btn_create.clicked, self.on_create_clicked)
+        connect(self.dialog_widget.create_torrent_files_list.customContextMenuRequested, self.on_right_click_file_item)
         self.dialog_widget.create_torrent_files_list.clear()
-        self.dialog_widget.save_directory_chooser.clicked.connect(self.on_select_save_directory)
+        connect(self.dialog_widget.save_directory_chooser.clicked, self.on_select_save_directory)
         self.dialog_widget.edit_channel_create_torrent_progress_label.setText("")
         self.dialog_widget.file_export_dir.setText(os.path.expanduser("~"))
         self.dialog_widget.adjustSize()
@@ -86,7 +86,7 @@ class CreateTorrentDialog(DialogContainer):
                 [('CLOSE', BUTTON_TYPE_NORMAL)],
             )
 
-            dialog.button_clicked.connect(dialog.close_dialog)
+            connect(dialog.button_clicked, dialog.close_dialog)
             dialog.show()
             return
 
@@ -165,7 +165,7 @@ class CreateTorrentDialog(DialogContainer):
         selected_item_index = self.dialog_widget.create_torrent_files_list.row(item_clicked)
 
         remove_action = QAction('Remove file', self)
-        remove_action.triggered.connect(lambda index=selected_item_index: self.on_remove_entry(index))
+        connect(remove_action.triggered, lambda index=selected_item_index: self.on_remove_entry(index))
 
         menu = TriblerActionMenu(self)
         menu.addAction(remove_action)

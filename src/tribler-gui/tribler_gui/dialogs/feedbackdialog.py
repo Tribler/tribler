@@ -17,7 +17,7 @@ from tribler_gui.tribler_request_manager import (
     performed_requests as tribler_performed_requests,
     tribler_urlencode,
 )
-from tribler_gui.utilities import get_ui_file_path
+from tribler_gui.utilities import connect, get_ui_file_path
 
 
 class FeedbackDialog(QDialog):
@@ -42,8 +42,8 @@ class FeedbackDialog(QDialog):
 
         self.error_text_edit.setPlainText(exception_text.rstrip())
 
-        self.cancel_button.clicked.connect(self.on_cancel_clicked)
-        self.send_report_button.clicked.connect(self.on_send_clicked)
+        connect(self.cancel_button.clicked, self.on_cancel_clicked)
+        connect(self.send_report_button.clicked, self.on_send_clicked)
 
         # Add machine information to the tree widget
         add_item_to_info_widget('os.getcwd', '%s' % os.getcwd())
@@ -83,7 +83,7 @@ class FeedbackDialog(QDialog):
             events_ind += 1
 
         # Users can remove specific lines in the report
-        self.env_variables_list.customContextMenuRequested.connect(self.on_right_click_item)
+        connect(self.env_variables_list.customContextMenuRequested, self.on_right_click_item)
 
     def on_remove_entry(self):
         self.env_variables_list.takeTopLevelItem(self.selected_item_index)
@@ -98,7 +98,7 @@ class FeedbackDialog(QDialog):
         menu = TriblerActionMenu(self)
 
         remove_action = QAction('Remove entry', self)
-        remove_action.triggered.connect(self.on_remove_entry)
+        connect(remove_action.triggered, self.on_remove_entry)
         menu.addAction(remove_action)
         menu.exec_(self.env_variables_list.mapToGlobal(pos))
 
