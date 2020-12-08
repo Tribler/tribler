@@ -11,6 +11,7 @@ import tribler_core.utilities.json_util as json
 
 from tribler_gui.defs import BUTTON_TYPE_NORMAL, DEFAULT_API_HOST, DEFAULT_API_PORT, DEFAULT_API_PROTOCOL
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
+from tribler_gui.utilities import connect
 
 
 def tribler_urlencode(data):
@@ -82,7 +83,7 @@ class TriblerRequestManager(QNetworkAccessManager):
         def on_close():
             error_dialog.close_dialog()
 
-        error_dialog.button_clicked.connect(on_close)
+        connect(error_dialog.button_clicked, on_close)
         error_dialog.show()
 
     def clear(self):
@@ -117,7 +118,7 @@ class TriblerRequestManager(QNetworkAccessManager):
         request.reply = self.sendCustomRequest(qt_request, request.method.encode("utf8"), buf)
         buf.setParent(request.reply)
 
-        request.reply.finished.connect(lambda: request.on_finished(request))
+        connect(request.reply.finished, lambda: request.on_finished(request))
 
 
 # Request manager singleton.
@@ -172,11 +173,11 @@ class TriblerNetworkRequest(QObject):
         self.raw_data = raw_data if (issubclass(type(raw_data), bytes) or raw_data is None) else raw_data.encode('utf8')
         self.reply_callback = reply_callback
         if self.reply_callback:
-            self.received_json.connect(self.reply_callback)
+            connect(self.received_json, self.reply_callback)
 
         self.on_error_callback = on_error_callback
         if on_error_callback is not None:
-            self.received_error.connect(on_error_callback)
+            connect(self.received_error, on_error_callback)
         self.reply = None  # to hold the associated QNetworkReply object
 
         # Pass the newly created object to the manager singleton, so the object can be dispatched immediately

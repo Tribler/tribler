@@ -2,7 +2,7 @@ from PyQt5 import uic
 from PyQt5.QtWidgets import QSizePolicy
 
 from tribler_gui.dialogs.dialogcontainer import DialogContainer
-from tribler_gui.utilities import get_ui_file_path
+from tribler_gui.utilities import connect, get_ui_file_path
 
 
 class TrustExplanationDialog(DialogContainer):
@@ -12,7 +12,7 @@ class TrustExplanationDialog(DialogContainer):
         uic.loadUi(get_ui_file_path('trustexplanation.ui'), self.dialog_widget)
 
         self.dialog_widget.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
-        self.dialog_widget.close_button.clicked.connect(self.close_dialog)
+        connect(self.dialog_widget.close_button.clicked, self.close_dialog)
 
         self.update_window()
 

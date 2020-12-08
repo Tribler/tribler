@@ -6,6 +6,8 @@ from PyQt5.QtCore import QTimer, Qt
 from PyQt5.QtGui import QPainter
 from PyQt5.QtWidgets import QWidget
 
+from tribler_gui.utilities import connect
+
 
 class MonitorWidget(QWidget):
     """
@@ -34,7 +36,7 @@ class MonitorWidget(QWidget):
         self.walk_interval_target = "?"
 
         self.timer = QTimer()
-        self.timer.timeout.connect(self.repaint)
+        connect(self.timer.timeout, self.repaint)
         self.timer.start(33)
 
         self.backup_size = None

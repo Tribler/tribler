@@ -2,7 +2,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QLabel, QWidget
 
-from tribler_gui.utilities import format_votes_rich_text, get_votes_rating_description
+from tribler_gui.utilities import connect, format_votes_rich_text, get_votes_rating_description
 from tribler_gui.widgets.tablecontentdelegate import DARWIN, WINDOWS
 
 
@@ -28,9 +28,9 @@ class SubscriptionsWidget(QWidget):
             self.channel_rating_label = self.findChild(QLabel, "channel_rating_label")
             self.channel_rating_label.setTextFormat(Qt.RichText)
 
-            self.subscribe_button.clicked.connect(self.on_subscribe_button_click)
+            connect(self.subscribe_button.clicked, self.on_subscribe_button_click)
             self.subscribe_button.setToolTip('Click to subscribe/unsubscribe')
-            self.subscribe_button.toggled.connect(self._adjust_tooltip)
+            connect(self.subscribe_button.toggled, self._adjust_tooltip)
             self.initialized = True
 
     def _adjust_tooltip(self, toggled):

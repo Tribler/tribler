@@ -8,6 +8,7 @@ from tribler_core.utilities.unicode import ensure_unicode
 from tribler_gui.code_executor import CodeExecutor
 from tribler_gui.i18n import get_default_system_translator
 from tribler_gui.single_application import QtSingleApplication
+from tribler_gui.utilities import connect
 
 # Set the QT application parameters before creating any instances of the application.
 QCoreApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
@@ -23,7 +24,7 @@ class TriblerApplication(QtSingleApplication):
     def __init__(self, app_name, args):
         QtSingleApplication.__init__(self, app_name, args)
         self.code_executor = None
-        self.messageReceived.connect(self.on_app_message)
+        connect(self.messageReceived, self.on_app_message)
         self.translator = get_default_system_translator()
 
     def on_app_message(self, msg):
@@ -47,7 +48,7 @@ class TriblerApplication(QtSingleApplication):
             variables.update(locals())
             variables['window'] = self.activation_window()
             self.code_executor = CodeExecutor(5500, shell_variables=variables)
-            self.activation_window().tribler_crashed.connect(self.code_executor.on_crash)
+            connect(self.activation_window().tribler_crashed, self.code_executor.on_crash)
 
         if '--testnet' in sys.argv[1:]:
             os.environ['TESTNET'] = "YES"

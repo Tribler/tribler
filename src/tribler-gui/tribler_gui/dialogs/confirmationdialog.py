@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import QSizePolicy, QSpacerItem
 
 from tribler_gui.defs import BUTTON_TYPE_NORMAL
 from tribler_gui.dialogs.dialogcontainer import DialogContainer
-from tribler_gui.utilities import get_ui_file_path
+from tribler_gui.utilities import connect, get_ui_file_path
 from tribler_gui.widgets.ellipsebutton import EllipseButton
 
 
@@ -28,7 +28,7 @@ class ConfirmationDialog(DialogContainer):
         if not show_input:
             self.dialog_widget.dialog_input.setHidden(True)
         else:
-            self.dialog_widget.dialog_input.returnPressed.connect(lambda: self.button_clicked.emit(0))
+            connect(self.dialog_widget.dialog_input.returnPressed, lambda: self.button_clicked.emit(0))
 
         if not checkbox_text:
             self.dialog_widget.checkbox.setHidden(True)
@@ -45,7 +45,7 @@ class ConfirmationDialog(DialogContainer):
         hspacer_right = QSpacerItem(1, 1, QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.dialog_widget.dialog_button_container.layout().addSpacerItem(hspacer_right)
 
-        self.window().escape_pressed.connect(self.close_dialog)
+        connect(self.window().escape_pressed, self.close_dialog)
         self.on_main_window_resize()
 
     @classmethod
@@ -55,7 +55,7 @@ class ConfirmationDialog(DialogContainer):
         def on_close():
             error_dialog.close_dialog()
 
-        error_dialog.button_clicked.connect(on_close)
+        connect(error_dialog.button_clicked, on_close)
         error_dialog.show()
         return error_dialog
 
@@ -66,7 +66,7 @@ class ConfirmationDialog(DialogContainer):
         def on_close():
             error_dialog.close_dialog()
 
-        error_dialog.button_clicked.connect(on_close)
+        connect(error_dialog.button_clicked, on_close)
         error_dialog.show()
         return error_dialog
 
@@ -95,4 +95,4 @@ class ConfirmationDialog(DialogContainer):
         )
 
         self.dialog_widget.dialog_button_container.layout().addWidget(button)
-        button.clicked.connect(lambda: self.button_clicked.emit(index))
+        connect(button.clicked, lambda: self.button_clicked.emit(index))

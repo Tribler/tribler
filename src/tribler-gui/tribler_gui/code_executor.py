@@ -7,6 +7,8 @@ from base64 import b64decode, b64encode
 
 from PyQt5.QtNetwork import QTcpServer
 
+from tribler_gui.utilities import connect
+
 
 class CodeExecutor(object):
     """
@@ -29,15 +31,15 @@ class CodeExecutor(object):
         if not self.tcp_server.listen(port=port):
             self.logger.error("Unable to start code execution socket! Error: %s", self.tcp_server.errorString())
         else:
-            self.tcp_server.newConnection.connect(self._on_new_connection)
+            connect(self.tcp_server.newConnection, self._on_new_connection)
 
         self.shell = Console(locals=shell_variables)
 
     def _on_new_connection(self):
         while self.tcp_server.hasPendingConnections():
             socket = self.tcp_server.nextPendingConnection()
-            socket.readyRead.connect(self._on_socket_read_ready)
-            socket.disconnected.connect(lambda dc_socket=socket: self._on_socket_disconnect(dc_socket))
+            connect(socket.readyRead, self._on_socket_read_ready)
+            connect(socket.disconnected, lambda dc_socket=socket: self._on_socket_disconnect(dc_socket))
             self.sockets.append(socket)
 
             # If Tribler has crashed, notify the other side immediately

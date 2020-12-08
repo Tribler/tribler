@@ -13,6 +13,7 @@ from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler_gui.dialogs.dialogcontainer import DialogContainer
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import (
+    connect,
     format_size,
     get_checkbox_style,
     get_gui_setting,
@@ -51,13 +52,13 @@ class StartDownloadDialog(DialogContainer):
 
         self.dialog_widget.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
 
-        self.dialog_widget.browse_dir_button.clicked.connect(self.on_browse_dir_clicked)
-        self.dialog_widget.cancel_button.clicked.connect(lambda: self.button_clicked.emit(0))
-        self.dialog_widget.download_button.clicked.connect(self.on_download_clicked)
-        self.dialog_widget.select_all_files_button.clicked.connect(self.on_all_files_selected_clicked)
-        self.dialog_widget.deselect_all_files_button.clicked.connect(self.on_all_files_deselected_clicked)
-        self.dialog_widget.loading_files_label.clicked.connect(self.on_reload_torrent_info)
-        self.dialog_widget.anon_download_checkbox.clicked.connect(self.on_reload_torrent_info)
+        connect(self.dialog_widget.browse_dir_button.clicked, self.on_browse_dir_clicked)
+        connect(self.dialog_widget.cancel_button.clicked, lambda: self.button_clicked.emit(0))
+        connect(self.dialog_widget.download_button.clicked, self.on_download_clicked)
+        connect(self.dialog_widget.select_all_files_button.clicked, self.on_all_files_selected_clicked)
+        connect(self.dialog_widget.deselect_all_files_button.clicked, self.on_all_files_deselected_clicked)
+        connect(self.dialog_widget.loading_files_label.clicked, self.on_reload_torrent_info)
+        connect(self.dialog_widget.anon_download_checkbox.clicked, self.on_reload_torrent_info)
 
         self.dialog_widget.destination_input.setStyleSheet(
             """
@@ -107,7 +108,7 @@ class StartDownloadDialog(DialogContainer):
 
         self.dialog_widget.torrent_name_label.setText(torrent_name)
 
-        self.dialog_widget.anon_download_checkbox.stateChanged.connect(self.on_anon_download_state_changed)
+        connect(self.dialog_widget.anon_download_checkbox.stateChanged, self.on_anon_download_state_changed)
         self.dialog_widget.anon_download_checkbox.setChecked(
             self.window().tribler_settings['download_defaults']['anonymity_enabled']
         )
@@ -171,7 +172,7 @@ class StartDownloadDialog(DialogContainer):
                 loading_message if not self.metainfo_retries else timeout_message
             )
             self.metainfo_fetch_timer = QTimer()
-            self.metainfo_fetch_timer.timeout.connect(self.perform_files_request)
+            connect(self.metainfo_fetch_timer.timeout, self.perform_files_request)
             self.metainfo_fetch_timer.setSingleShot(True)
             self.metainfo_fetch_timer.start(METAINFO_TIMEOUT)
 

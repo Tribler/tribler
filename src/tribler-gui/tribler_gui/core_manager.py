@@ -14,7 +14,7 @@ from tribler_core.version import version_id
 
 from tribler_gui.event_request_manager import EventRequestManager
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.utilities import get_base_path
+from tribler_gui.utilities import connect, get_base_path
 
 START_FAKE_API = False
 
@@ -89,7 +89,7 @@ class CoreManager(QObject):
             self.start_tribler_core(core_args=core_args, core_env=core_env)
 
         self.events_manager.connect()
-        self.events_manager.reply.error.connect(on_request_error)
+        connect(self.events_manager.reply.error, on_request_error)
         # This is a hack to determine if we have notify the user to wait for the directory fork to finish
         _, _, src_dir, tgt_dir = should_fork_state_directory(get_root_state_directory(), version_id)
         if src_dir is not None:
@@ -112,8 +112,8 @@ class CoreManager(QObject):
             self.core_process.setProcessEnvironment(core_env)
             self.core_process.setReadChannel(QProcess.StandardOutput)
             self.core_process.setProcessChannelMode(QProcess.MergedChannels)
-            self.core_process.readyRead.connect(self.on_core_read_ready)
-            self.core_process.finished.connect(self.on_core_finished)
+            connect(self.core_process.readyRead, self.on_core_read_ready)
+            connect(self.core_process.finished, self.on_core_finished)
             self.core_process.start(sys.executable, core_args)
 
         self.check_core_ready()
@@ -127,7 +127,7 @@ class CoreManager(QObject):
         if not state or 'state' not in state or state['state'] not in ['STARTED', 'EXCEPTION']:
             self.check_state_timer = QTimer()
             self.check_state_timer.setSingleShot(True)
-            self.check_state_timer.timeout.connect(self.check_core_ready)
+            connect(self.check_state_timer.timeout, self.check_core_ready)
             self.check_state_timer.start(50)
             return
 

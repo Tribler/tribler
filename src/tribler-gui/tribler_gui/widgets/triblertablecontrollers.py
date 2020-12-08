@@ -17,7 +17,7 @@ from tribler_core.utilities.json_util import dumps
 from tribler_gui.defs import HEALTH_CHECKING, HEALTH_UNCHECKED
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.utilities import get_health
+from tribler_gui.utilities import connect, get_health
 
 HEALTHCHECK_DELAY_MS = 500
 
@@ -45,16 +45,15 @@ class TriblerTableViewController(QObject):
 
         self.model = None
         self.table_view = table_view
-        self.table_view.verticalScrollBar().valueChanged.connect(self._on_list_scroll)
+        connect(self.table_view.verticalScrollBar().valueChanged, self._on_list_scroll)
 
         # FIXME: The M-V-C stuff is a complete mess. It should be refactored in a more structured way.
-        self.table_view.delegate.subscribe_control.clicked.connect(self.table_view.on_subscribe_control_clicked)
-        self.table_view.delegate.download_button.clicked.connect(self.table_view.start_download_from_index)
-        self.table_view.delegate.health_status_widget.clicked.connect(
-            lambda index: self.check_torrent_health(index.model().data_items[index.row()], forced=True)
-        )
-        self.table_view.torrent_clicked.connect(self.check_torrent_health)
-        self.table_view.torrent_doubleclicked.connect(self.table_view.start_download_from_dataitem)
+        connect(self.table_view.delegate.subscribe_control.clicked, self.table_view.on_subscribe_control_clicked)
+        connect(self.table_view.delegate.download_button.clicked, self.table_view.start_download_from_index)
+        connect(self.table_view.delegate.health_status_widget.clicked,
+                lambda index: self.check_torrent_health(index.model().data_items[index.row()], forced=True))
+        connect(self.table_view.torrent_clicked, self.check_torrent_health)
+        connect(self.table_view.torrent_doubleclicked, self.table_view.start_download_from_dataitem)
 
     def set_model(self, model):
         self.model = model
@@ -98,11 +97,11 @@ class TableSelectionMixin(object):
 
         # When the user stops scrolling and selection settles on a row,
         # trigger the health check.
-        self.healthcheck_cooldown.timeout.connect(lambda: self._on_selection_changed(None))
+        connect(self.healthcheck_cooldown.timeout, lambda: self._on_selection_changed(None))
 
     def set_model(self, model):
         super(TableSelectionMixin, self).set_model(model)
-        self.table_view.selectionModel().selectionChanged.connect(self._on_selection_changed)
+        connect(self.table_view.selectionModel().selectionChanged, self._on_selection_changed)
 
     def unset_model(self):
         if self.table_view.model:
@@ -199,7 +198,7 @@ class ContextMenuMixin:
     def enable_context_menu(self, widget):
         self.table_view = widget
         self.table_view.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.table_view.customContextMenuRequested.connect(self._show_context_menu)
+        connect(self.table_view.customContextMenuRequested, self._show_context_menu)
 
     def _trigger_name_editor(self, index):
         model = index.model()
@@ -282,7 +281,7 @@ class ContextMenuMixin:
 
     def add_menu_item(self, menu, name, item_index, callback):
         action = QAction(name, self.table_view)
-        action.triggered.connect(lambda _: callback(item_index))
+        connect(action.triggered, lambda _: callback(item_index))
         menu.addAction(action)
 
     def selection_can_be_added_to_channel(self):
@@ -298,7 +297,7 @@ class ContentTableViewController(TableSelectionMixin, ContextMenuMixin, HealthCh
         super().__init__(*args, **kwargs)
         self.filter_input = filter_input
         if self.filter_input:
-            self.filter_input.textChanged.connect(self._on_filter_input_change)
+            connect(self.filter_input.textChanged, self._on_filter_input_change)
 
     def unset_model(self):
         self.model = None

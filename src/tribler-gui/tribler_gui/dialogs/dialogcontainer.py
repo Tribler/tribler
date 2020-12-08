@@ -2,6 +2,8 @@ from PyQt5.QtCore import QPoint
 from PyQt5.QtGui import QPainter
 from PyQt5.QtWidgets import QStyle, QStyleOption, QWidget
 
+from tribler_gui.utilities import connect
+
 
 class DialogContainer(QWidget):
     def __init__(self, parent):
@@ -11,7 +13,7 @@ class DialogContainer(QWidget):
 
         self.dialog_widget = QWidget(self)
 
-        self.window().resize_event.connect(self.on_main_window_resize)
+        connect(self.window().resize_event, self.on_main_window_resize)
 
     def paintEvent(self, _):
         opt = QStyleOption()

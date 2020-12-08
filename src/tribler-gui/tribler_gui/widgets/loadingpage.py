@@ -1,7 +1,7 @@
 from PyQt5.QtSvg import QGraphicsSvgItem, QSvgRenderer
 from PyQt5.QtWidgets import QGraphicsScene, QWidget
 
-from tribler_gui.utilities import get_image_path
+from tribler_gui.utilities import connect, get_image_path
 
 
 class LoadingPage(QWidget):
@@ -19,14 +19,14 @@ class LoadingPage(QWidget):
         svg_item = QGraphicsSvgItem()
 
         svg = QSvgRenderer(get_image_path("loading_animation.svg"))
-        svg.repaintNeeded.connect(svg_item.update)
+        connect(svg.repaintNeeded, svg_item.update)
         svg_item.setSharedRenderer(svg)
         svg_container.addItem(svg_item)
 
         self.window().loading_svg_view.setScene(svg_container)
-        self.window().core_manager.events_manager.upgrader_tick.connect(self.on_upgrader_tick)
-        self.window().core_manager.events_manager.upgrader_finished.connect(self.upgrader_finished)
-        self.window().core_manager.events_manager.change_loading_text.connect(self.change_loading_text)
+        connect(self.window().core_manager.events_manager.upgrader_tick, self.on_upgrader_tick)
+        connect(self.window().core_manager.events_manager.upgrader_finished, self.upgrader_finished)
+        connect(self.window().core_manager.events_manager.change_loading_text, self.change_loading_text)
         self.window().skip_conversion_btn.hide()
 
         # Hide the force shutdown button initially. Should be triggered by shutdown timer from main window.

@@ -5,6 +5,7 @@ from PyQt5.QtWidgets import QWidget
 from tribler_gui.defs import GB, TB
 from tribler_gui.dialogs.trustexplanationdialog import TrustExplanationDialog
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
+from tribler_gui.utilities import connect
 from tribler_gui.widgets.graphs.timeseriesplot import TimeSeriesPlot
 
 
@@ -36,7 +37,7 @@ class TrustPage(QWidget):
             self.trust_plot = TrustSeriesPlot(self.window().plot_widget)
             vlayout.addWidget(self.trust_plot)
 
-        self.window().trust_explain_button.clicked.connect(self.on_info_button_clicked)
+        connect(self.window().trust_explain_button.clicked, self.on_info_button_clicked)
 
     def on_info_button_clicked(self):
         self.dialog = TrustExplanationDialog(self.window())

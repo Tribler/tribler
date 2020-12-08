@@ -17,6 +17,7 @@ import tribler_gui.core_manager as core_manager
 from tribler_gui.dialogs.feedbackdialog import FeedbackDialog
 from tribler_gui.tribler_app import TriblerApplication
 from tribler_gui.tribler_window import TriblerWindow
+from tribler_gui.utilities import connect
 from tribler_gui.widgets.loading_list_item import LoadingListItem
 
 RUN_TRIBLER_PY = Path(tribler_gui.__file__).parent.parent.parent / "run_tribler.py"
@@ -67,7 +68,7 @@ def tribler_api(api_port, tmpdir_factory):
     core_process.setProcessEnvironment(core_env)
     core_process.setReadChannel(QProcess.StandardOutput)
     core_process.setProcessChannelMode(QProcess.MergedChannels)
-    core_process.readyRead.connect(on_core_read_ready)
+    connect(core_process.readyRead, on_core_read_ready)
     core_process.start("python3", [str(RUN_TRIBLER_PY.absolute())])
     yield core_process
     core_process.kill()
@@ -93,9 +94,9 @@ def wait_for_signal(signal, timeout=10, no_args=False):
         signal_received = True
 
     if no_args:
-        signal.connect(lambda: on_signal(None))
+        connect(signal, lambda: on_signal(None))
     else:
-        signal.connect(on_signal)
+        connect(signal, on_signal)
 
     for _ in range(0, timeout * 1000, 100):
         QTest.qWait(100)

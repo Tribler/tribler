@@ -1,12 +1,17 @@
 import hashlib
+import inspect
+import logging
 import math
 import os
 import re
 import sys
+import types
 from datetime import datetime, timedelta
+from typing import Callable
 from urllib.parse import quote_plus
 from uuid import uuid4
 
+from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import QApplication
 
 import tribler_gui
@@ -348,3 +353,72 @@ def format_votes_rich_text(votes=0.0):
 
 def get_votes_rating_description(votes=0.0):
     return VOTES_RATING_DESCRIPTIONS[math.ceil(float(votes_count(votes)) / 2)]
+
+
+def connect(signal: pyqtSignal, callback: Callable):
+    """
+    By default calling ``signal.connect(callback)`` will dispose of context information.
+
+    Practically, this leads to single line tracebacks when ``signal.emit()`` is invoked.
+    This is very hard to debug.
+
+    This function wraps the ``connect()`` call to give you additional traceback information, if the callback does crash.
+
+    :param signal: the signal to ``connect()`` to.
+    :param callback: the callback to connect (will be called after ``signal.emit(...)``.
+    """
+
+    # Step 1: At time of calling this function: get the stack frames.
+    #         We reconstruct the stack as a ``traceback`` object.
+    source = None
+    for frame in list(inspect.stack())[1:]:
+        source = types.TracebackType(source, frame.frame, frame.index or 0, frame.lineno)
+
+    # Step 2: Wrap the ``callback`` and inject our creation stack if an error occurs.
+    #         The BaseException instead of Exception is intentional: this makes sure interrupts of infinite loops show
+    #         the source callback stack for debugging.
+    def trackback_wrapper(*args, **kwargs):
+        try:
+            callback(*args, **kwargs)
+        except BaseException as exc:
+            source_exc = CreationTraceback().with_traceback(source)
+            raise exc from source_exc
+    try:
+        setattr(callback, "tb_wrapper", trackback_wrapper)
+    except AttributeError:
+        # This is not a free function, but either an external library or a method bound to an instance.
+        if not hasattr(callback, "tb_wrapper") and hasattr(callback, "__self__") and hasattr(callback, "__func__"):
+            # methods are finicky: you can't set attributes on them.
+            # Instead, we inject the handlers for each method in a dictionary on the instance.
+            bound_obj = callback.__self__
+            if not hasattr(bound_obj, "tb_mapping"):
+                setattr(bound_obj, "tb_mapping", {})
+            bound_obj.tb_mapping[callback.__func__.__name__] = trackback_wrapper
+        else:
+            logging.warning("Unable to hook up connect() info to %s. Probably a 'builtin_function_or_method'.",
+                            repr(callback))
+
+    # Step 3: Connect our wrapper to the signal.
+    signal.connect(trackback_wrapper)
+
+
+def disconnect(signal: pyqtSignal, callback: Callable):
+    """
+    After using ``connect()`` to link a signal, use this function to disconnect from the given signal.
+
+    This function will also work if the ``callback`` was connected directly with ``signal.connect()``.
+
+    :param signal: the signal to ``disconnect()`` from.
+    :param callback: the callback to connect (will be called after ``signal.emit(...)``.
+    """
+    if hasattr(callback, 'tb_wrapper'):
+        disconnectable = callback.tb_wrapper
+    elif hasattr(callback, "__self__") and hasattr(callback, "__func__"):
+        disconnectable = callback.__self__.tb_mapping[callback.__func__.__name__]
+    else:
+        disconnectable = callback
+    signal.disconnect(disconnectable)
+
+
+class CreationTraceback(Exception):
+    pass
