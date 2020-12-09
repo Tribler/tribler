@@ -25,7 +25,7 @@ repos:
       types: [file, python]
 
 -   repo: https://gitlab.com/pycqa/flake8
-    rev: 3.7.3
+    rev: 3.8.4
     hooks:
     - id: flake8
       types: [file, python]
