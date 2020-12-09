@@ -53,7 +53,7 @@ class StartDownloadDialog(DialogContainer):
         self.dialog_widget.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
 
         connect(self.dialog_widget.browse_dir_button.clicked, self.on_browse_dir_clicked)
-        connect(self.dialog_widget.cancel_button.clicked, lambda: self.button_clicked.emit(0))
+        connect(self.dialog_widget.cancel_button.clicked, lambda _: self.button_clicked.emit(0))
         connect(self.dialog_widget.download_button.clicked, self.on_download_clicked)
         connect(self.dialog_widget.select_all_files_button.clicked, self.on_all_files_selected_clicked)
         connect(self.dialog_widget.deselect_all_files_button.clicked, self.on_all_files_deselected_clicked)
@@ -131,7 +131,7 @@ class StartDownloadDialog(DialogContainer):
 
         self.rest_request = None
 
-    def close_dialog(self):
+    def close_dialog(self, checked=False):
         if self.rest_request:
             self.rest_request.cancel_request()
 
@@ -229,7 +229,7 @@ class StartDownloadDialog(DialogContainer):
 
         self.received_metainfo.emit(metainfo)
 
-    def on_reload_torrent_info(self):
+    def on_reload_torrent_info(self, checked):
         """
         This method is called when user clicks the QLabel text showing loading or error message. Here, we reset
         the number of retries to fetch the metainfo. Note color of QLabel is also reset to white.
@@ -238,7 +238,7 @@ class StartDownloadDialog(DialogContainer):
         self.metainfo_retries = 0
         self.perform_files_request()
 
-    def on_browse_dir_clicked(self):
+    def on_browse_dir_clicked(self, checked):
         chosen_dir = QFileDialog.getExistingDirectory(
             self.window(), "Please select the destination directory of your download", "", QFileDialog.ShowDirsOnly
         )
@@ -259,7 +259,7 @@ class StartDownloadDialog(DialogContainer):
             self.dialog_widget.safe_seed_checkbox.setChecked(True)
         self.dialog_widget.safe_seed_checkbox.setEnabled(not self.dialog_widget.anon_download_checkbox.isChecked())
 
-    def on_download_clicked(self):
+    def on_download_clicked(self, checked):
         if self.has_metainfo and len(self.get_selected_files()) == 0:  # User deselected all torrents
             ConfirmationDialog.show_error(
                 self.window(), "No files selected", "Please select at least one file to download."
@@ -277,12 +277,12 @@ class StartDownloadDialog(DialogContainer):
             else:
                 self.button_clicked.emit(1)
 
-    def on_all_files_selected_clicked(self):
+    def on_all_files_selected_clicked(self, checked):
         for ind in range(self.dialog_widget.files_list_view.topLevelItemCount()):
             item = self.dialog_widget.files_list_view.topLevelItem(ind)
             item.setCheckState(2, Qt.Checked)
 
-    def on_all_files_deselected_clicked(self):
+    def on_all_files_deselected_clicked(self, checked):
         for ind in range(self.dialog_widget.files_list_view.topLevelItemCount()):
             item = self.dialog_widget.files_list_view.topLevelItem(ind)
             item.setCheckState(2, Qt.Unchecked)

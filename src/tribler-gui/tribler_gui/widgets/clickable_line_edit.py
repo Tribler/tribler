@@ -9,5 +9,5 @@ class ClickableLineEdit(QLineEdit):
     clicked = pyqtSignal()
 
     def mousePressEvent(self, event):
-        self.clicked.emit()
+        self.clicked.emit(False)
         QLineEdit.mousePressEvent(self, event)

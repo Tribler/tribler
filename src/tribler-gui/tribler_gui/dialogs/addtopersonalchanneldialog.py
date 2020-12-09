@@ -51,7 +51,7 @@ class AddToChannelDialog(DialogContainer):
         self.window().channels_menu_list.reload_if_necessary(response["results"])
         self.load_channel(response["results"][0]["origin_id"])
 
-    def on_create_new_channel_clicked(self):
+    def on_create_new_channel_clicked(self, checked):
         def create_channel_callback(channel_name=None):
             TriblerNetworkRequest(
                 "channels/mychannel/0/channels",
@@ -62,7 +62,7 @@ class AddToChannelDialog(DialogContainer):
 
         NewChannelDialog(self, create_channel_callback)
 
-    def on_create_new_folder_clicked(self):
+    def on_create_new_folder_clicked(self, checked):
         selected = self.dialog_widget.channels_tree_wt.selectedItems()
         if not selected:
             return
@@ -122,7 +122,7 @@ class AddToChannelDialog(DialogContainer):
         selected = self.dialog_widget.channels_tree_wt.selectedItems()
         return None if not selected else selected[0].id_
 
-    def on_confirm_clicked(self):
+    def on_confirm_clicked(self, checked):
         channel_id = self.get_selected_channel_id()
         if channel_id is None:
             return
@@ -148,7 +148,7 @@ class AddToChannelDialog(DialogContainer):
             if channel_id == 0:
                 self.load_channel(subchannel_id)
 
-    def close_dialog(self):
+    def close_dialog(self, checked=False):
         # Instead of deleting the dialog, hide it. We do this for two reasons:
         #  a. we do not want to lose the channels tree structure loaded from the core.
         #  b. we want the tree state (open subtrees, selection) to stay the same, as the user is

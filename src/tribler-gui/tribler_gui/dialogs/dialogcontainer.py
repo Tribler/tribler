@@ -21,7 +21,7 @@ class DialogContainer(QWidget):
         painter = QPainter(self)
         self.style().drawPrimitive(QStyle.PE_Widget, opt, painter, self)
 
-    def close_dialog(self):
+    def close_dialog(self, checked=False):
         try:
             self.setParent(None)
             self.deleteLater()

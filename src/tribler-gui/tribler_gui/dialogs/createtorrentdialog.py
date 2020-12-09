@@ -46,7 +46,7 @@ class CreateTorrentDialog(DialogContainer):
         self.rest_request1 = None
         self.rest_request2 = None
 
-    def close_dialog(self):
+    def close_dialog(self, checked=False):
         if self.rest_request1:
             self.rest_request1.cancel_request()
         if self.rest_request2:
@@ -54,13 +54,13 @@ class CreateTorrentDialog(DialogContainer):
 
         super(CreateTorrentDialog, self).close_dialog()
 
-    def on_choose_files_clicked(self):
+    def on_choose_files_clicked(self, checked):
         filenames, _ = QFileDialog.getOpenFileNames(self.window(), "Please select the files", QDir.homePath())
 
         for filename in filenames:
             self.dialog_widget.create_torrent_files_list.addItem(filename)
 
-    def on_choose_dir_clicked(self):
+    def on_choose_dir_clicked(self, checked):
         chosen_dir = QFileDialog.getExistingDirectory(
             self.window(), "Please select the directory containing the files", "", QFileDialog.ShowDirsOnly
         )
@@ -77,7 +77,7 @@ class CreateTorrentDialog(DialogContainer):
         for filename in files:
             self.dialog_widget.create_torrent_files_list.addItem(filename)
 
-    def on_create_clicked(self):
+    def on_create_clicked(self, checked):
         if self.dialog_widget.create_torrent_files_list.count() == 0:
             dialog = ConfirmationDialog(
                 self.dialog_widget,
@@ -145,7 +145,7 @@ class CreateTorrentDialog(DialogContainer):
         if 'added' in result:
             self.create_torrent_notification.emit({"msg": "Torrent successfully added to the channel"})
 
-    def on_select_save_directory(self):
+    def on_select_save_directory(self, checked):
         chosen_dir = QFileDialog.getExistingDirectory(
             self.window(), "Please select the directory containing the files", "", QFileDialog.ShowDirsOnly
         )

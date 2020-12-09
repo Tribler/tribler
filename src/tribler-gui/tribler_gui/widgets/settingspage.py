@@ -98,7 +98,7 @@ class SettingsPage(QWidget):
             not self.window().download_settings_anon_checkbox.isChecked()
         )
 
-    def on_choose_download_dir_clicked(self):
+    def on_choose_download_dir_clicked(self, checked):
         previous_download_path = self.window().download_location_input.text() or ""
         download_dir = QFileDialog.getExistingDirectory(
             self.window(), "Please select the download location", previous_download_path, QFileDialog.ShowDirsOnly
@@ -109,7 +109,7 @@ class SettingsPage(QWidget):
 
         self.window().download_location_input.setText(download_dir)
 
-    def on_choose_watch_dir_clicked(self):
+    def on_choose_watch_dir_clicked(self, checked):
         if self.window().watchfolder_enabled_checkbox.isChecked():
             previous_watch_dir = self.window().watchfolder_location_input.text() or ""
             watch_dir = QFileDialog.getExistingDirectory(
@@ -121,7 +121,7 @@ class SettingsPage(QWidget):
 
             self.window().watchfolder_location_input.setText(watch_dir)
 
-    def on_choose_log_dir_clicked(self):
+    def on_choose_log_dir_clicked(self, checked):
         previous_log_dir = self.window().log_location_input.text() or ""
         log_dir = QFileDialog.getExistingDirectory(
             self.window(), "Please select the log directory", previous_log_dir, QFileDialog.ShowDirsOnly
@@ -275,7 +275,7 @@ class SettingsPage(QWidget):
 
         self.window().settings_stacked_widget.adjustSize()
 
-    def save_settings(self):
+    def save_settings(self, checked):
         # Create a dictionary with all available settings
         settings_data = {
             'general': {},

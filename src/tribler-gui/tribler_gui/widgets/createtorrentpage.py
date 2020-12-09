@@ -43,16 +43,16 @@ class CreateTorrentPage(QWidget):
 
             self.initialized = True
 
-    def on_create_torrent_manage_back_clicked(self):
+    def on_create_torrent_manage_back_clicked(self, checked):
         self.window().edit_channel_details_stacked_widget.setCurrentIndex(PAGE_EDIT_CHANNEL_TORRENTS)
 
-    def on_choose_files_clicked(self):
+    def on_choose_files_clicked(self, checked):
         filenames, _ = QFileDialog.getOpenFileNames(self.window(), "Please select the files", QDir.homePath())
 
         for filename in filenames:
             self.window().create_torrent_files_list.addItem(filename)
 
-    def on_choose_dir_clicked(self):
+    def on_choose_dir_clicked(self, checked):
         chosen_dir = QFileDialog.getExistingDirectory(
             self.window(), "Please select the directory containing the files", "", QFileDialog.ShowDirsOnly
         )
@@ -69,7 +69,7 @@ class CreateTorrentPage(QWidget):
         for filename in files:
             self.window().create_torrent_files_list.addItem(filename)
 
-    def on_create_clicked(self):
+    def on_create_clicked(self, checked):
         if self.window().create_torrent_files_list.count() == 0:
             self.dialog = ConfirmationDialog(
                 self, "Notice", "You should add at least one file to your torrent.", [('CLOSE', BUTTON_TYPE_NORMAL)]

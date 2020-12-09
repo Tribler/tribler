@@ -174,7 +174,7 @@ class TrustGraphPage(QWidget):
         self.graph_view.setXRange(-1, 1)
         self.graph_view.setYRange(-1, 1)
 
-    def fetch_graph_data(self):
+    def fetch_graph_data(self, checked=False):
         if self.rest_request:
             self.rest_request.cancel_request()
         self.rest_request = TriblerNetworkRequest("trustview", self.on_received_data,

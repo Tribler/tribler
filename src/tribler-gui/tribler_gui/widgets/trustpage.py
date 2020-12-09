@@ -39,7 +39,7 @@ class TrustPage(QWidget):
 
         connect(self.window().trust_explain_button.clicked, self.on_info_button_clicked)
 
-    def on_info_button_clicked(self):
+    def on_info_button_clicked(self, checked):
         self.dialog = TrustExplanationDialog(self.window())
         self.dialog.show()
 
