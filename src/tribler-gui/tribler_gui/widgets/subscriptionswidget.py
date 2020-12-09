@@ -71,7 +71,7 @@ class SubscriptionsWidget(QWidget):
 
         self.channel_rating_label.setToolTip(get_votes_rating_description(votes))
 
-    def on_subscribe_button_click(self):
+    def on_subscribe_button_click(self, checked):
         self.subscribe_button.setCheckedInstant(bool(self.contents_widget.model.channel_info["subscribed"]))
         channel_info = self.contents_widget.model.channel_info
         if channel_info["subscribed"]:

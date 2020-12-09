@@ -277,7 +277,7 @@ class DownloadsPage(QWidget):
             self.window().stop_download_button.setEnabled(DownloadsPage.stop_download_enabled(self.selected_items))
             self.window().download_details_widget.hide()
 
-    def on_start_download_clicked(self):
+    def on_start_download_clicked(self, checked):
         for selected_item in self.selected_items:
             infohash = selected_item.download_info["infohash"]
             TriblerNetworkRequest(
@@ -292,7 +292,7 @@ class DownloadsPage(QWidget):
                     selected_item.update_item()
                     self.on_download_item_clicked()
 
-    def on_stop_download_clicked(self):
+    def on_stop_download_clicked(self, checked):
         for selected_item in self.selected_items:
             infohash = selected_item.download_info["infohash"]
             TriblerNetworkRequest(
@@ -307,7 +307,7 @@ class DownloadsPage(QWidget):
                     selected_item.update_item()
                     self.on_download_item_clicked()
 
-    def on_remove_download_clicked(self):
+    def on_remove_download_clicked(self, checked):
         self.dialog = ConfirmationDialog(
             self,
             "Remove download",
@@ -341,7 +341,7 @@ class DownloadsPage(QWidget):
             self.load_downloads()
             self.window().download_details_widget.hide()
 
-    def on_force_recheck_download(self):
+    def on_force_recheck_download(self, checked):
         for selected_item in self.selected_items:
             infohash = selected_item.download_info["infohash"]
             TriblerNetworkRequest(
@@ -366,12 +366,12 @@ class DownloadsPage(QWidget):
                 "downloads/%s" % infohash, self.on_change_anonymity, method='PATCH', data={"anon_hops": hops}
             )
 
-    def on_explore_files(self):
+    def on_explore_files(self, checked):
         for selected_item in self.selected_items:
             path = os.path.normpath(selected_item.download_info["destination"])
             QDesktopServices.openUrl(QUrl.fromLocalFile(path))
 
-    def on_move_files(self):
+    def on_move_files(self, checked):
         if len(self.selected_items) != 1:
             return
 
@@ -400,7 +400,7 @@ class DownloadsPage(QWidget):
         if "modified" in response and response["modified"]:
             self.window().tray_show_message(name, "Moved to %s" % dest_dir)
 
-    def on_export_download(self):
+    def on_export_download(self, checked):
         self.export_dir = QFileDialog.getExistingDirectory(
             self, "Please select the destination directory", "", QFileDialog.ShowDirsOnly
         )
@@ -449,7 +449,7 @@ class DownloadsPage(QWidget):
         else:
             self.window().tray_show_message("Torrent file exported", "Torrent file exported to %s" % dest_path)
 
-    def on_add_to_channel(self):
+    def on_add_to_channel(self, checked):
         def on_add_button_pressed(channel_id):
             for selected_item in self.selected_items:
                 infohash = selected_item.download_info["infohash"]
@@ -499,10 +499,10 @@ class DownloadsPage(QWidget):
         connect(explore_files_action.triggered, self.on_explore_files)
         connect(move_files_action.triggered, self.on_move_files)
 
-        connect(no_anon_action.triggered, lambda: self.change_anonymity(0))
-        connect(one_hop_anon_action.triggered, lambda: self.change_anonymity(1))
-        connect(two_hop_anon_action.triggered, lambda: self.change_anonymity(2))
-        connect(three_hop_anon_action.triggered, lambda: self.change_anonymity(3))
+        connect(no_anon_action.triggered, lambda _: self.change_anonymity(0))
+        connect(one_hop_anon_action.triggered, lambda _: self.change_anonymity(1))
+        connect(two_hop_anon_action.triggered, lambda _: self.change_anonymity(2))
+        connect(three_hop_anon_action.triggered, lambda _: self.change_anonymity(3))
 
         menu.addAction(start_action)
         menu.addAction(stop_action)

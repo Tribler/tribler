@@ -252,7 +252,7 @@ class TriblerWindow(QMainWindow):
             show_downloads_action = QAction('Show downloads', self)
             connect(show_downloads_action.triggered, self.clicked_menu_button_downloads)
             token_balance_action = QAction('Show token balance', self)
-            connect(token_balance_action.triggered, lambda: self.on_token_balance_click(None))
+            connect(token_balance_action.triggered, lambda _: self.on_token_balance_click(None))
             quit_action = QAction('Quit Tribler', self)
             connect(quit_action.triggered, self.close_tribler)
             menu.addSeparator()
@@ -345,7 +345,7 @@ class TriblerWindow(QMainWindow):
                 lambda data: self.channels_menu_list.reload_if_necessary([data]))
         connect(self.left_menu_button_new_channel.clicked, self.create_new_channel)
 
-    def create_new_channel(self):
+    def create_new_channel(self, checked):
         # TODO: DRY this with tablecontentmodel, possibly using QActions
 
         def create_channel_callback(channel_name):
@@ -769,7 +769,7 @@ class TriblerWindow(QMainWindow):
 
         return menu
 
-    def on_create_torrent(self):
+    def on_create_torrent(self, checked):
         if self.create_dialog:
             self.create_dialog.close_dialog()
 
@@ -780,7 +780,7 @@ class TriblerWindow(QMainWindow):
     def on_create_torrent_updates(self, update_dict):
         self.tray_show_message("Torrent updates", update_dict['msg'])
 
-    def on_add_torrent_browse_file(self):
+    def on_add_torrent_browse_file(self, index):
         filenames = QFileDialog.getOpenFileNames(
             self, "Please select the .torrent file", QDir.homePath(), "Torrent files (*.torrent)"
         )
@@ -860,7 +860,7 @@ class TriblerWindow(QMainWindow):
         if action == 0:  # We do this after removing the dialog since process_uri_request is blocking
             self.process_uri_request()
 
-    def on_add_torrent_browse_dir(self):
+    def on_add_torrent_browse_dir(self, checked):
         chosen_dir = QFileDialog.getExistingDirectory(
             self, "Please select the directory containing the .torrent files", QDir.homePath(), QFileDialog.ShowDirsOnly
         )
@@ -907,7 +907,7 @@ class TriblerWindow(QMainWindow):
             self.dialog.close_dialog()
             self.dialog = None
 
-    def on_add_torrent_from_url(self):
+    def on_add_torrent_from_url(self, checked=False):
         # Make sure that the window is visible (this action might be triggered from the tray icon)
         self.raise_window()
 
@@ -970,7 +970,7 @@ class TriblerWindow(QMainWindow):
             button.setEnabled(True)
             button.setChecked(False)
 
-    def clicked_search_bar(self):
+    def clicked_search_bar(self, checked=False):
         query = self.top_search_bar.text()
         if query and self.has_search_results:
             self.deselect_all_menu_buttons()
@@ -991,13 +991,13 @@ class TriblerWindow(QMainWindow):
         self.deselect_all_menu_buttons(self.left_menu_button_trust_graph)
         self.stackedWidget.setCurrentIndex(PAGE_TRUST_GRAPH_PAGE)
 
-    def clicked_menu_button_downloads(self):
+    def clicked_menu_button_downloads(self, checked):
         self.deselect_all_menu_buttons(self.left_menu_button_downloads)
         self.raise_window()
         self.left_menu_button_downloads.setChecked(True)
         self.stackedWidget.setCurrentIndex(PAGE_DOWNLOADS)
 
-    def clicked_menu_button_debug(self):
+    def clicked_menu_button_debug(self, index):
         if not self.debug_window:
             self.debug_window = DebugWindow(self.tribler_settings, self.tribler_version)
         self.debug_window.show()
@@ -1006,7 +1006,7 @@ class TriblerWindow(QMainWindow):
         # This thing here is necessary to send the resize event to dialogs, etc.
         self.resize_event.emit()
 
-    def close_tribler(self):
+    def close_tribler(self, checked=False):
         if self.core_manager.shutting_down:
             return
 

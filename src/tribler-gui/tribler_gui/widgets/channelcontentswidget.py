@@ -104,7 +104,7 @@ class ChannelContentsWidget(widget_form, widget_class):
                 self.model.reset()
                 self.update_labels()
 
-    def commit_channels(self):
+    def commit_channels(self, checked=False):
         TriblerNetworkRequest("channels/mychannel/0/commit", self.on_channel_committed, method='POST')
 
     def initialize_content_page(self, autocommit_enabled=False, hide_xxx=None):
@@ -242,7 +242,7 @@ class ChannelContentsWidget(widget_form, widget_class):
                    self.model.on_new_entry_received)
         self.controller.unset_model()  # Disconnect the selectionChanged signal
 
-    def go_back(self):
+    def go_back(self, checked=False):
         if len(self.channels_stack) > 1:
             self.disconnect_current_model()
             self.channels_stack.pop().deleteLater()
@@ -283,7 +283,7 @@ class ChannelContentsWidget(widget_form, widget_class):
     #    copy_to_clipboard(self.channel_info["public_key"])
     #    self.tray_show_message("Copied channel ID", self.channel_info["public_key"])
 
-    def preview_clicked(self):
+    def preview_clicked(self, checked):
         params = dict()
 
         if "public_key" in self.model.channel_info:
@@ -309,7 +309,7 @@ class ChannelContentsWidget(widget_form, widget_class):
 
         TriblerNetworkRequest('remote_query', add_request_uuid, method="PUT", url_params=params)
 
-    def create_new_channel(self):
+    def create_new_channel(self, checked):
         NewChannelDialog(self, self.model.create_new_channel)
 
     def initialize_with_channel(self, channel_info):
@@ -416,7 +416,7 @@ class ChannelContentsWidget(widget_form, widget_class):
         return channel_options_menu
 
     # Torrent addition-related methods
-    def on_add_torrents_browse_dir(self):
+    def on_add_torrents_browse_dir(self, checked):
         chosen_dir = QFileDialog.getExistingDirectory(
             self, "Please select the directory containing the .torrent files", QDir.homePath(), QFileDialog.ShowDirsOnly
         )
@@ -443,7 +443,7 @@ class ChannelContentsWidget(widget_form, widget_class):
             self.dialog = None
             self.chosen_dir = None
 
-    def on_add_torrent_browse_file(self):
+    def on_add_torrent_browse_file(self, checked):
         filenames = QFileDialog.getOpenFileNames(
             self, "Please select the .torrent file", "", "Torrent files (*.torrent)"
         )
@@ -453,7 +453,7 @@ class ChannelContentsWidget(widget_form, widget_class):
         for filename in filenames[0]:
             self.add_torrent_to_channel(filename)
 
-    def on_add_torrent_from_url(self):
+    def on_add_torrent_from_url(self, checked):
         self.dialog = ConfirmationDialog(
             self,
             "Add torrent from URL/magnet link",

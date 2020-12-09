@@ -97,7 +97,7 @@ class TableSelectionMixin(object):
 
         # When the user stops scrolling and selection settles on a row,
         # trigger the health check.
-        connect(self.healthcheck_cooldown.timeout, lambda: self._on_selection_changed(None))
+        connect(self.healthcheck_cooldown.timeout, lambda: self._on_selection_changed(None, None))
 
     def set_model(self, model):
         super(TableSelectionMixin, self).set_model(model)
@@ -108,7 +108,7 @@ class TableSelectionMixin(object):
             self.table_view.selectionModel().selectionChanged.disconnect()
         super(TableSelectionMixin, self).unset_model()
 
-    def _on_selection_changed(self, _):
+    def _on_selection_changed(self, selected, deselected):
         selected_indices = self.table_view.selectedIndexes()
         if not selected_indices:
             self.table_view.clearSelection()

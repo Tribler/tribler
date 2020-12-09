@@ -215,7 +215,7 @@ class DownloadsDetailsTabWidget(QTabWidget):
             "downloads/%s" % self.current_download['infohash'], lambda _: None, method='PATCH', data=post_data
         )
 
-    def on_copy_magnet_clicked(self):
+    def on_copy_magnet_clicked(self, checked):
         trackers = [
             tr['url'] for tr in self.current_download['trackers'] if 'url' in tr and tr['url'] not in ['[DHT]', '[PeX]']
         ]

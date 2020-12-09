@@ -39,7 +39,7 @@ def window(api_port):
     QTest.qWaitForWindowExposed(window)
 
     screenshot(window, name="tribler_loading")
-    wait_for_signal(window.core_manager.events_manager.tribler_started, no_args=True)
+    wait_for_signal(window.core_manager.events_manager.tribler_started)
     window.downloads_page.can_update_items = True
     yield window
     QApplication.quit()
@@ -88,15 +88,12 @@ class TimeoutException(Exception):
     pass
 
 
-def wait_for_signal(signal, timeout=10, no_args=False):
-    def on_signal(_):
+def wait_for_signal(signal, timeout=10):
+    def on_signal(*args, **kwargs):
         global signal_received
         signal_received = True
 
-    if no_args:
-        connect(signal, lambda: on_signal(None))
-    else:
-        connect(signal, on_signal)
+    connect(signal, on_signal)
 
     for _ in range(0, timeout * 1000, 100):
         QTest.qWait(100)
@@ -252,7 +249,7 @@ def test_discovered_page(tribler_api, window):
     tst_channels_widget(window, window.discovered_page, "discovered_page", sort_column=2)
 
 
-@pytest.mark.guitest
+#@pytest.mark.guitest
 def test_edit_channel_torrents(tribler_api, window):
     wait_for_list_populated(window.channels_menu_list)
     idx = window.channels_menu_list.model().index(0, 0)

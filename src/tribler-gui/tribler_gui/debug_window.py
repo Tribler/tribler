@@ -75,8 +75,8 @@ class DebugWindow(QMainWindow):
         uic.loadUi(get_ui_file_path('debugwindow.ui'), self)
         self.setWindowTitle("Tribler debug pane")
 
-        connect(self.window().dump_memory_core_button.clicked, lambda: self.on_memory_dump_button_clicked(True))
-        connect(self.window().dump_memory_gui_button.clicked, lambda: self.on_memory_dump_button_clicked(False))
+        connect(self.window().dump_memory_core_button.clicked, lambda _: self.on_memory_dump_button_clicked(True))
+        connect(self.window().dump_memory_gui_button.clicked, lambda _: self.on_memory_dump_button_clicked(False))
         connect(self.window().toggle_profiler_button.clicked, self.on_toggle_profiler_button_clicked)
 
         self.window().debug_tab_widget.setCurrentIndex(0)
@@ -101,7 +101,7 @@ class DebugWindow(QMainWindow):
         self.window().system_tab_widget.setTabEnabled(4, settings and settings['resource_monitor']['enabled'])
 
         # Refresh logs
-        connect(self.window().log_refresh_button.clicked, lambda: self.load_logs_tab())
+        connect(self.window().log_refresh_button.clicked, lambda _: self.load_logs_tab())
         connect(self.window().log_tab_widget.currentChanged, lambda index: self.load_logs_tab())
 
         # IPv8 statistics enabled?
@@ -695,7 +695,7 @@ class DebugWindow(QMainWindow):
         self.window().toggle_profiler_button.setEnabled(True)
         self.window().toggle_profiler_button.setText("%s profiler" % ("Stop" if self.profiler_enabled else "Start"))
 
-    def on_toggle_profiler_button_clicked(self):
+    def on_toggle_profiler_button_clicked(self, checked):
         if self.toggling_profiler:
             return
 

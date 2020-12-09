@@ -95,4 +95,4 @@ class ConfirmationDialog(DialogContainer):
         )
 
         self.dialog_widget.dialog_button_container.layout().addWidget(button)
-        connect(button.clicked, lambda: self.button_clicked.emit(index))
+        connect(button.clicked, lambda _: self.button_clicked.emit(index))

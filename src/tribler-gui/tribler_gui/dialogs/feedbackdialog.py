@@ -102,7 +102,7 @@ class FeedbackDialog(QDialog):
         menu.addAction(remove_action)
         menu.exec_(self.env_variables_list.mapToGlobal(pos))
 
-    def on_cancel_clicked(self):
+    def on_cancel_clicked(self, checked):
         QApplication.quit()
 
     def on_report_sent(self, response):
@@ -121,7 +121,7 @@ class FeedbackDialog(QDialog):
 
         QApplication.quit()
 
-    def on_send_clicked(self):
+    def on_send_clicked(self, checked):
         self.send_report_button.setEnabled(False)
         self.send_report_button.setText("SENDING...")
 
