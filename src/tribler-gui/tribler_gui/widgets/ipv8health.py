@@ -6,8 +6,9 @@ from PyQt5.QtCore import QTimer, Qt
 from PyQt5.QtGui import QPainter
 from PyQt5.QtWidgets import QWidget
 
-from tribler_gui.utilities import connect
 from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
+
+from tribler_gui.utilities import connect
 
 
 class MonitorWidget(AddBreadcrumbOnShowMixin, QWidget):
@@ -57,17 +58,17 @@ class MonitorWidget(AddBreadcrumbOnShowMixin, QWidget):
         # This is so the boops don't visually pop out of existence on the left side.
         # Instead, they smoothly run off screen.
         with self.update_lock:
-            self.draw_times = [(entry["timestamp"], entry["drift"])
-                               for entry in history
-                               if entry["timestamp"] > time.time() - 11.0]
+            self.draw_times = [
+                (entry["timestamp"], entry["drift"]) for entry in history if entry["timestamp"] > time.time() - 11.0
+            ]
             if self.draw_times:
                 drifts = [entry[1] for entry in self.draw_times]
                 self.median_drift = round(statistics.median(drifts), 5)
                 self.mean_drift = round(statistics.mean(drifts), 5)
                 if len(drifts) > 1:
-                    self.walk_interval_target = round(self.draw_times[-1][0]
-                                                      - self.draw_times[-2][0]
-                                                      - self.draw_times[-1][1], 4)
+                    self.walk_interval_target = round(
+                        self.draw_times[-1][0] - self.draw_times[-2][0] - self.draw_times[-1][1], 4
+                    )
                 else:
                     self.walk_interval_target = "?"
             else:
@@ -115,13 +116,13 @@ class MonitorWidget(AddBreadcrumbOnShowMixin, QWidget):
         x_time_start = current_time - time_window
         boop_px = 60
         boop_secs = 0.25
-        boop_xscale = size.width()/boop_px/time_window*boop_secs
+        boop_xscale = size.width() / boop_px / time_window * boop_secs
 
         # Go through all core measurements and draw boops.
         with self.update_lock:
             for draw_time, drift in self.draw_times:
-                x = int((draw_time - x_time_start)/time_window * size.width())
-                self.draw_boop(painter, size, x, boop_xscale, 1+drift*10, str(round(draw_time, 3)))
+                x = int((draw_time - x_time_start) / time_window * size.width())
+                self.draw_boop(painter, size, x, boop_xscale, 1 + drift * 10, str(round(draw_time, 3)))
 
     def draw_boop(self, painter, size, x, xscale=1.0, yscale=1.0, label=""):
         midy = (size.height() - 1) // 2
