@@ -2,6 +2,8 @@ from typing import Dict
 
 from PyQt5.QtWidgets import QWidget
 
+from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
+
 from tribler_gui.defs import GB, TB
 from tribler_gui.dialogs.trustexplanationdialog import TrustExplanationDialog
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
@@ -19,7 +21,7 @@ class TrustSeriesPlot(TimeSeriesPlot):
         self.setLimits(yMin=-GB, yMax=TB)
 
 
-class TrustPage(QWidget):
+class TrustPage(AddBreadcrumbOnShowMixin, QWidget):
     """
     This page shows various trust statistics.
     """

@@ -28,7 +28,7 @@ class EventRequestManager(QNetworkAccessManager):
 
     node_info_updated = pyqtSignal(object)
     received_remote_query_results = pyqtSignal(object)
-    tribler_started = pyqtSignal(object, str)
+    tribler_started = pyqtSignal(object, str)  # arguments are version and public_key
     upgrader_tick = pyqtSignal(str)
     upgrader_finished = pyqtSignal()
     new_version_available = pyqtSignal(str)

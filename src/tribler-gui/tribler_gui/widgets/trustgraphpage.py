@@ -8,6 +8,8 @@ import numpy as np
 
 import pyqtgraph as pg
 
+from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
+
 from tribler_gui.defs import (
     COLOR_DEFAULT,
     COLOR_GREEN,
@@ -78,8 +80,7 @@ class TrustGraph(pg.GraphItem):
         event.accept()
 
 
-class TrustGraphPage(QWidget):
-
+class TrustGraphPage(AddBreadcrumbOnShowMixin, QWidget):
     def __init__(self):
         QWidget.__init__(self)
 
@@ -177,8 +178,9 @@ class TrustGraphPage(QWidget):
     def fetch_graph_data(self, checked=False):
         if self.rest_request:
             self.rest_request.cancel_request()
-        self.rest_request = TriblerNetworkRequest("trustview", self.on_received_data,
-                                                  priority=QNetworkRequest.LowPriority)
+        self.rest_request = TriblerNetworkRequest(
+            "trustview", self.on_received_data, priority=QNetworkRequest.LowPriority
+        )
 
     def on_received_data(self, data):
         if data is None or not isinstance(data, dict) or 'graph' not in data:

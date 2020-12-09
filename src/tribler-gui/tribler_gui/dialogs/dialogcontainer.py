@@ -2,13 +2,13 @@ from PyQt5.QtCore import QPoint
 from PyQt5.QtGui import QPainter
 from PyQt5.QtWidgets import QStyle, QStyleOption, QWidget
 
+from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler_gui.utilities import connect
 
 
-class DialogContainer(QWidget):
+class DialogContainer(AddBreadcrumbOnShowMixin, QWidget):
     def __init__(self, parent):
         QWidget.__init__(self, parent)
-
         self.setStyleSheet("background-color: rgba(30, 30, 30, 0.75);")
 
         self.dialog_widget = QWidget(self)

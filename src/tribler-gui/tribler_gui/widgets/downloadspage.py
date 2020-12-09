@@ -6,6 +6,8 @@ from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtNetwork import QNetworkRequest
 from PyQt5.QtWidgets import QAbstractItemView, QAction, QFileDialog, QTreeWidgetItem, QWidget
 
+from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
+
 from tribler_gui.defs import (
     BUTTON_TYPE_CONFIRM,
     BUTTON_TYPE_NORMAL,
@@ -40,8 +42,8 @@ button_name2filter = {
     "downloads_channels_button": DOWNLOADS_FILTER_CHANNELS,
 }
 
-
-class DownloadsPage(QWidget):
+# pylint: disable=too-many-instance-attributes, too-many-public-methods
+class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
     """
     This class is responsible for managing all items on the downloads page.
     The downloads page shows all downloads and specific details about a download.

@@ -9,12 +9,13 @@ from tribler_common.sentry_reporter.sentry_reporter import (
     REPORTER,
     STACKTRACE,
     SYSINFO,
+    VALUES,
 )
-from tribler_common.sentry_reporter.sentry_tools import delete_item, modify_value
+from tribler_common.sentry_reporter.sentry_tools import delete_item, distinct_by, modify_value
 
 
 class SentryScrubber:
-    """ This class has been created to be responsible for scrubbing all sensitive
+    """This class has been created to be responsible for scrubbing all sensitive
     and unnecessary information from Sentry event.
     """
 
@@ -48,8 +49,7 @@ class SentryScrubber:
         self._compile_re()
 
     def _compile_re(self):
-        """ Compile all regular expressions.
-        """
+        """Compile all regular expressions."""
         for folder in self.home_folders:
             folder_pattern = r'(?<=' + folder + r'[/\\])\w+(?=[/\\])'
             self.re_folders.append(re.compile(folder_pattern, re.I))
@@ -58,7 +58,7 @@ class SentryScrubber:
         self.re_hash = re.compile(r'\b[0-9a-f]{40}\b', re.I)
 
     def scrub_event(self, event):
-        """ Main method. Removes all sensitive and unnecessary information.
+        """Main method. Removes all sensitive and unnecessary information.
 
         Args:
             event: a Sentry event.
@@ -69,9 +69,18 @@ class SentryScrubber:
         if not event:
             return event
 
+        # remove unnecessary fields
         for field_name in self.event_fields_to_cut:
             delete_item(event, field_name)
 
+        # remove duplicates from breadcrumbs
+        # duplicates will be identifiers by the `timestamp` field
+        def _remove_duplicates_from_breadcrumbs(breadcrumbs):
+            return modify_value(breadcrumbs, VALUES, lambda values: distinct_by(values, 'timestamp'))
+
+        modify_value(event, BREADCRUMBS, _remove_duplicates_from_breadcrumbs)
+
+        # remove sensitive information
         modify_value(event, EXTRA, self.scrub_entity_recursively)
         modify_value(event, LOGENTRY, self.scrub_entity_recursively)
         modify_value(event, BREADCRUMBS, self.scrub_entity_recursively)
@@ -87,7 +96,7 @@ class SentryScrubber:
         return event
 
     def scrub_text(self, text):
-        """ Replace all sensitive information from `text` by corresponding
+        """Replace all sensitive information from `text` by corresponding
         placeholders.
 
         Sensitive information:

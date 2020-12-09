@@ -282,6 +282,8 @@ class Session(TaskManager):
         self.create_state_directory_structure()
         self.init_keypair()
 
+        # we have to represent `user_id` as a string to make it equal to the
+        # `user_id` on the GUI side
         user_id_str = hexlify(self.trustchain_keypair.key.pk).encode('utf-8')
         SentryReporter.set_user(user_id_str)
 

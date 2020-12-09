@@ -1,6 +1,7 @@
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import QWidget
 
+from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
 from tribler_gui.utilities import connect
 
 
@@ -21,6 +22,10 @@ class TabButtonPanel(QWidget):
             connect(button.clicked_tab_button, self.on_tab_button_click)
 
     def on_tab_button_click(self, clicked_button):
+        SentryReporter.add_breadcrumb(message=f'{clicked_button.objectName()}.Click',
+                                      category='UI',
+                                      level='info')
+
         self.deselect_all_buttons(except_select=clicked_button)
         self.clicked_tab_button.emit(clicked_button.objectName())
 

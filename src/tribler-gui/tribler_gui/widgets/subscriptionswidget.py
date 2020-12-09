@@ -3,10 +3,11 @@ from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QLabel, QWidget
 
 from tribler_gui.utilities import connect, format_votes_rich_text, get_votes_rating_description
+from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler_gui.widgets.tablecontentdelegate import DARWIN, WINDOWS
 
 
-class SubscriptionsWidget(QWidget):
+class SubscriptionsWidget(AddBreadcrumbOnShowMixin, QWidget):
     """
     This widget shows a favorite button and the number of subscriptions that a specific channel has.
     """

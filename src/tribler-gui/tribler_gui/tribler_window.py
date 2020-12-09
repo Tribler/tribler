@@ -449,6 +449,8 @@ class TriblerWindow(QMainWindow):
             return
 
         if public_key:
+            # if public key format will be changed, don't forget to change it
+            # at the core side as well
             SentryReporter.set_user(public_key.encode('utf-8'))
 
         self.tribler_started = True

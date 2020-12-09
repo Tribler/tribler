@@ -144,3 +144,10 @@ def test_event_from_exception(reporter):
     # sentry sdk is not initialised, so None will be returned
     SentryReporter.last_event = None
     assert not reporter.event_from_exception(Exception('test'))
+
+
+def test_add_breadcrumb(reporter):
+    # test: None does not produce error
+    assert reporter.add_breadcrumb(None, None, None) is None
+    assert reporter.add_breadcrumb('message', 'category', 'level') is None
+    assert reporter.add_breadcrumb('message', 'category', 'level', named_arg='some') is None

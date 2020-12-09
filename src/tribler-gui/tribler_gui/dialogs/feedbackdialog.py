@@ -8,6 +8,7 @@ from collections import defaultdict
 from PyQt5 import uic
 from PyQt5.QtWidgets import QAction, QApplication, QDialog, QMessageBox, QTreeWidgetItem
 
+from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
 
 from tribler_gui.event_request_manager import received_events
@@ -20,7 +21,7 @@ from tribler_gui.tribler_request_manager import (
 from tribler_gui.utilities import connect, get_ui_file_path
 
 
-class FeedbackDialog(QDialog):
+class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
     def __init__(self, parent, exception_text, tribler_version, start_time, sentry_event=None):  # pylint: disable=R0914
         QDialog.__init__(self, parent)
 

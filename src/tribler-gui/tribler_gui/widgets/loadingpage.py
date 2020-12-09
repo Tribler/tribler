@@ -2,9 +2,10 @@ from PyQt5.QtSvg import QGraphicsSvgItem, QSvgRenderer
 from PyQt5.QtWidgets import QGraphicsScene, QWidget
 
 from tribler_gui.utilities import connect, get_image_path
+from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
 
 
-class LoadingPage(QWidget):
+class LoadingPage(AddBreadcrumbOnShowMixin, QWidget):
     """
     This page is presented when Tribler is starting.
     """
