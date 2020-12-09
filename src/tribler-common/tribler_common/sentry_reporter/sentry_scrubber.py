@@ -32,7 +32,7 @@ class SentryScrubber:
             'Documents and Settings',
         ]
 
-        self.event_fields_to_cut = ['modules']
+        self.event_fields_to_cut = []
 
         self.placeholder_user = '<user>'
         self.placeholder_ip = '<IP>'

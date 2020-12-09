@@ -211,7 +211,6 @@ def test_entities_recursively(scrubber):
 def test_scrub_unnecessary_fields(scrubber):
     # default
     assert scrubber.scrub_event({'default': 'field'}) == {'default': 'field'}
-    assert scrubber.scrub_event({'modules': {}}) == {}
 
     # custom
     custom_scrubber = SentryScrubber()
