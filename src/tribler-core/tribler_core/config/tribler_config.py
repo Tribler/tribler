@@ -88,9 +88,10 @@ class TriblerConfig(object):
         """
         Write the configuration to the config file in the state dir as specified in the config.
         """
-        if not self.get_state_dir().exists():
-            os.makedirs(self.get_state_dir())
-        self.config.filename = self.get_state_dir() / CONFIG_FILENAME
+        state_dir = self.get_state_dir()
+        if not state_dir.exists():
+            os.makedirs(state_dir, exist_ok=True)
+        self.config.filename = state_dir / CONFIG_FILENAME
         self.config.write()
 
     def _obtain_port(self, section, option):
