@@ -41,20 +41,28 @@ def _show_system_popup(title, text):
     :param text: the pop-up body
     """
     sep = "*" * 80
-    print('\n'.join([sep, title, sep, text, sep]), file=sys.stderr)
+
+    # pylint: disable=import-outside-toplevel, import-error, broad-except
+    print('\n'.join([sep, title, sep, text, sep]), file=sys.stderr)  # noqa: T001
 
     system = platform.system()
-    if system == 'Windows':
-        import win32api
-        win32api.MessageBox(0, text, title)
-    elif system == 'Linux':
-        import subprocess
-        subprocess.Popen(['xmessage', '-center', text])
-    elif system == 'Darwin':
-        import subprocess
-        subprocess.Popen(['/usr/bin/osascript', '-e', text])
-    else:
-        print(f'cannot create native pop-up for system {system}')
+    try:
+        if system == 'Windows':
+            import win32api
+            win32api.MessageBox(0, text, title)
+        elif system == 'Linux':
+            import subprocess
+            subprocess.Popen(['xmessage', '-center', text])
+        elif system == 'Darwin':
+            import subprocess
+            subprocess.Popen(['/usr/bin/osascript', '-e', text])
+        else:
+            print(f'cannot create native pop-up for system {system}')  # noqa: T001
+    except Exception as exception:
+        # Use base Exception, because code above can raise many
+        # non-obvious types of exceptions:
+        # (SubprocessError, ImportError, win32api.error, FileNotFoundError)
+        print(f'Error while showing a message box: {exception}')  # noqa: T001
 
 
 def check_for_missing_dependencies(scope='both'):
