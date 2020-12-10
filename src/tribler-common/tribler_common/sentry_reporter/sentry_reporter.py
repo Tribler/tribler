@@ -31,6 +31,7 @@ EXTRA = 'extra'
 BREADCRUMBS = 'breadcrumbs'
 LOGENTRY = 'logentry'
 REPORTER = 'reporter'
+VALUES = 'values'
 
 
 class SentryReporter:
@@ -109,6 +110,22 @@ class SentryReporter:
     def ignore_logger(logger_name):
         SentryReporter._logger.debug(f"Ignore logger: {logger_name}")
         ignore_logger(logger_name)
+
+    @staticmethod
+    def add_breadcrumb(message='', category='', level='info', **kwargs):
+        """ Adds a breadcrumb for current Sentry client.
+
+        It is necessary to specify a message, a category and a level to make this
+        breadcrumb visible in Sentry server.
+
+        Args:
+            **kwargs: named arguments that will be added to Sentry event as well
+        """
+        crumb = {'message': message, 'category': category, 'level': level}
+
+        SentryReporter._logger.debug(f"Add the breadcrumb: {crumb}")
+
+        return sentry_sdk.add_breadcrumb(crumb, **kwargs)
 
     @staticmethod
     def send_event(event, post_data=None, sys_info=None):

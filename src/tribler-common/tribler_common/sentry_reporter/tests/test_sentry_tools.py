@@ -1,5 +1,6 @@
 from tribler_common.sentry_reporter.sentry_tools import (
     delete_item,
+    distinct_by,
     get_first_item,
     get_last_item,
     get_value,
@@ -86,3 +87,13 @@ def test_safe_get():
 
     assert get_value({'key': 'value'}, 'key', {}) == 'value'
     assert get_value({'key': 'value'}, 'key1', {}) == {}
+
+
+def test_distinct():
+    assert distinct_by(None, None) is None
+    assert distinct_by([], None) == []
+    assert distinct_by([{'key': 'b'}, {'key': 'b'}, {'key': 'c'}, {'': ''}], 'key') == \
+           [{'key': 'b'}, {'key': 'c'}, {'': ''}]
+
+    # test nested
+    assert distinct_by([{'a': {}}], 'b') == [{'a': {}}]

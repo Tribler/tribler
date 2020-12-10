@@ -3,6 +3,7 @@ from PIL.ImageQt import ImageQt
 from PyQt5 import QtCore, QtGui
 from PyQt5.QtWidgets import QFileDialog, QLabel, QSizePolicy, QWidget
 
+from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler_common.simpledefs import MAX_LIBTORRENT_RATE_LIMIT
 
 import tribler_core.utilities.json_util as json
@@ -30,7 +31,7 @@ from tribler_gui.utilities import (
 )
 
 
-class SettingsPage(QWidget):
+class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
     """
     This class is responsible for displaying and adjusting the settings present in Tribler.
     """

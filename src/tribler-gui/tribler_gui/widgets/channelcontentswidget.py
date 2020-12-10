@@ -6,6 +6,7 @@ from PyQt5.QtCore import QDir, QTimer, Qt
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QAction, QFileDialog
 
+from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler_common.simpledefs import CHANNEL_STATE
 
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import DIRTY_STATUSES, NEW
@@ -31,8 +32,8 @@ CATEGORY_SELECTOR_ITEMS = ("All", "Channels") + ContentCategories.long_names
 
 widget_form, widget_class = uic.loadUiType(get_ui_file_path('torrents_list.ui'))
 
-
-class ChannelContentsWidget(widget_form, widget_class):
+# pylint: disable=too-many-instance-attributes, too-many-public-methods
+class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class):
     def __init__(self, parent=None):
         super(widget_class, self).__init__(parent=parent)
         # FIXME!!! This is a dumb workaround for a bug(?) in PyQT bindings in Python 3.7

@@ -150,8 +150,9 @@ def test_scrub_event(scrubber):
         },
         BREADCRUMBS: {
             'values': [
-                {'type': 'log', 'message': 'Traceback File: /Users/username/Tribler/'},
-                {'type': 'log', 'message': 'IP: 192.168.1.1'}
+                {'type': 'log', 'message': 'Traceback File: /Users/username/Tribler/', 'timestamp': '1'},
+                {'type': 'log', 'message': 'Traceback File: /Users/username/Tribler/', 'timestamp': '1'},
+                {'type': 'log', 'message': 'IP: 192.168.1.1', 'timestamp': '2'}
             ]
         },
 
@@ -180,9 +181,11 @@ def test_scrub_event(scrubber):
         BREADCRUMBS: {
             'values': [
                 {'type': 'log',
-                 'message': f'Traceback File: /Users/{scrubber.placeholder_user}/Tribler/'},
+                 'message': f'Traceback File: /Users/{scrubber.placeholder_user}/Tribler/',
+                 'timestamp': '1'},
                 {'type': 'log',
-                 'message': f'IP: {scrubber.placeholder_ip}'}
+                 'message': f'IP: {scrubber.placeholder_ip}',
+                 'timestamp': '2'}
             ]
         },
     }
@@ -208,7 +211,6 @@ def test_entities_recursively(scrubber):
 def test_scrub_unnecessary_fields(scrubber):
     # default
     assert scrubber.scrub_event({'default': 'field'}) == {'default': 'field'}
-    assert scrubber.scrub_event({'modules': {}}) == {}
 
     # custom
     custom_scrubber = SentryScrubber()

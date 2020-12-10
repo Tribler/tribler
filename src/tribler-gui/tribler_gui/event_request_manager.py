@@ -4,6 +4,7 @@ import time
 from PyQt5.QtCore import QTimer, QUrl, pyqtSignal
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 
+from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
 from tribler_common.simpledefs import NTFY
 
 import tribler_core.utilities.json_util as json
@@ -27,7 +28,7 @@ class EventRequestManager(QNetworkAccessManager):
 
     node_info_updated = pyqtSignal(object)
     received_remote_query_results = pyqtSignal(object)
-    tribler_started = pyqtSignal(object)
+    tribler_started = pyqtSignal(object, str)  # arguments are version and public_key
     upgrader_tick = pyqtSignal(str)
     upgrader_finished = pyqtSignal()
     new_version_available = pyqtSignal(str)
@@ -58,16 +59,17 @@ class EventRequestManager(QNetworkAccessManager):
             NTFY.LOW_SPACE.value: self.low_storage_signal.emit,
             NTFY.REMOTE_QUERY_RESULTS.value: self.received_remote_query_results.emit,
             NTFY.TRIBLER_SHUTDOWN_STATE.value: self.tribler_shutdown_signal.emit,
-            NTFY.EVENTS_START.value: self.events_start_received,
-            NTFY.TRIBLER_STARTED.value: lambda data: self.tribler_started.emit(data["version"]),
+            NTFY.EVENTS_START.value: lambda _: None,
+            NTFY.TRIBLER_STARTED.value: self.tribler_started_event,
         }
 
-    def events_start_received(self, event_dict):
-        if event_dict["tribler_started"]:
-            self.tribler_started.emit(event_dict["version"])
+    def tribler_started_event(self, event_dict):
+        self.tribler_started.emit(event_dict["version"], event_dict["public_key"])
 
     def on_error(self, error, reschedule_on_err):
         self._logger.info("Got Tribler core error: %s" % error)
+
+        SentryReporter.ignore_logger(self._logger.name)
         if self.remaining_connection_attempts <= 0:
             raise CoreConnectTimeoutError("Could not connect with the Tribler Core within 60 seconds")
 

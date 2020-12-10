@@ -1,10 +1,12 @@
 from PyQt5.QtSvg import QGraphicsSvgItem, QSvgRenderer
 from PyQt5.QtWidgets import QGraphicsScene, QWidget
 
+from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
+
 from tribler_gui.utilities import connect, get_image_path
 
 
-class DiscoveringPage(QWidget):
+class DiscoveringPage(AddBreadcrumbOnShowMixin, QWidget):
     """
     The DiscoveringPage is shown when users are starting Tribler for the first time. It hides when there are at least
     five discovered channels.

@@ -75,3 +75,38 @@ def modify_value(d, key, function):
         d[key] = function(d[key])
 
     return d
+
+
+def distinct_by(list_of_dict, key):
+    """ This function removes all duplicates from a list of dictionaries. A duplicate
+    here is a dictionary that have the same value of the given key.
+
+    If no key field is presented in the item, then the item will not be considered
+    as a duplicate.
+
+    Args:
+        list_of_dict: list of dictionaries
+        key: a field key that will be used for items comparison
+
+    Returns:
+        Array of distinct items
+    """
+
+    if not list_of_dict or not key:
+        return list_of_dict
+
+    values_viewed = set()
+    result = []
+
+    for item in list_of_dict:
+        value = get_value(item, key, None)
+        if value is None:
+            result.append(item)
+            continue
+
+        if value not in values_viewed:
+            result.append(item)
+
+        values_viewed.add(value)
+
+    return result
