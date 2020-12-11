@@ -39,11 +39,14 @@ def convert_state_file_to_conf_74(filename, refactoring_tool=None):
     Converts .pstate file (pre-7.4.0) to .conf file.
     :param filename: .pstate file
     :param refactoring_tool: RefactoringTool instance if using Python3
-    :return: None
+    :return: fixed config
     """
     def _fix_state_config(config):
         for section, option in [('state', 'metainfo'), ('state', 'engineresumedata')]:
             value = config.get(section, option, literal_eval=False)
+            if not value or not refactoring_tool:
+                continue
+
             try:
                 value = str(refactoring_tool.refactor_string(value + '\n', option + '_2to3'))
                 ungarbled_dict = recursive_ungarble_metainfo(ast.literal_eval(value))
@@ -87,6 +90,8 @@ def convert_state_file_to_conf_74(filename, refactoring_tool=None):
         except ConfigObjParseError:
             logger.error("Could not parse %s file on upgrade so removing it", filename)
             os.remove(filename)
+
+    return fixed_config
 
 
 def convert_config_to_tribler75(state_dir):
