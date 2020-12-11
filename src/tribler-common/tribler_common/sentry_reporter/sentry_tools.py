@@ -4,7 +4,7 @@ simplify work with several data structures.
 
 
 def parse_os_environ(array):
-    """ Parse os.environ field.
+    """Parse os.environ field.
 
     Args:
         array: strings that represents tuples delimited by `:`
@@ -30,7 +30,7 @@ def parse_os_environ(array):
 
 
 def parse_stacktrace(stacktrace):
-    """ Parse stacktrace field.
+    """Parse stacktrace field.
 
     Args:
         stacktrace: a string with '\n' delimiter.
@@ -78,7 +78,7 @@ def modify_value(d, key, function):
 
 
 def distinct_by(list_of_dict, key):
-    """ This function removes all duplicates from a list of dictionaries. A duplicate
+    """This function removes all duplicates from a list of dictionaries. A duplicate
     here is a dictionary that have the same value of the given key.
 
     If no key field is presented in the item, then the item will not be considered
@@ -110,3 +110,23 @@ def distinct_by(list_of_dict, key):
         values_viewed.add(value)
 
     return result
+
+
+def skip_dev_version(version):
+    """
+    For the release version let's ignore all "developers" versions
+    to keep the meaning of the `latest` keyword:
+    See Also:https://docs.sentry.io/product/sentry-basics/search/
+    Args:
+        version: version string
+
+    Returns: version if it is not a dev version, and Null otherwise
+
+    """
+    if not version:
+        return version
+
+    if 'GIT' in version:
+        return None
+
+    return version

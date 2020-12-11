@@ -6,12 +6,13 @@ from tribler_common.sentry_reporter.sentry_reporter import (
     EXTRA,
     LOGENTRY,
     OS_ENVIRON,
+    RELEASE,
     REPORTER,
     STACKTRACE,
     SYSINFO,
     VALUES,
 )
-from tribler_common.sentry_reporter.sentry_tools import delete_item, distinct_by, modify_value
+from tribler_common.sentry_reporter.sentry_tools import delete_item, distinct_by, modify_value, skip_dev_version
 
 
 class SentryScrubber:
@@ -79,6 +80,9 @@ class SentryScrubber:
             return modify_value(breadcrumbs, VALUES, lambda values: distinct_by(values, 'timestamp'))
 
         modify_value(event, BREADCRUMBS, _remove_duplicates_from_breadcrumbs)
+
+        # skip dev version
+        modify_value(event, RELEASE, skip_dev_version)
 
         # remove sensitive information
         modify_value(event, EXTRA, self.scrub_entity_recursively)

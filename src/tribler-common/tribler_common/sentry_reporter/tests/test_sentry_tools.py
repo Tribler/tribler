@@ -7,6 +7,7 @@ from tribler_common.sentry_reporter.sentry_tools import (
     modify_value,
     parse_os_environ,
     parse_stacktrace,
+    skip_dev_version,
 )
 
 
@@ -92,8 +93,18 @@ def test_safe_get():
 def test_distinct():
     assert distinct_by(None, None) is None
     assert distinct_by([], None) == []
-    assert distinct_by([{'key': 'b'}, {'key': 'b'}, {'key': 'c'}, {'': ''}], 'key') == \
-           [{'key': 'b'}, {'key': 'c'}, {'': ''}]
+    assert distinct_by([{'key': 'b'}, {'key': 'b'}, {'key': 'c'}, {'': ''}], 'key') == [
+        {'key': 'b'},
+        {'key': 'c'},
+        {'': ''},
+    ]
 
     # test nested
     assert distinct_by([{'a': {}}], 'b') == [{'a': {}}]
+
+
+def test_skip_dev_version():
+    assert skip_dev_version(None) is None
+    assert skip_dev_version('') == ''
+    assert skip_dev_version('7.6.0') == '7.6.0'
+    assert skip_dev_version('7.6.0-GIT') is None
