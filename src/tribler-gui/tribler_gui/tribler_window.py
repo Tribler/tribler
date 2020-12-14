@@ -443,15 +443,10 @@ class TriblerWindow(QMainWindow):
             except RuntimeError as e:
                 logging.error("Failed to set tray message: %s", str(e))
 
-    def on_tribler_started(self, version, public_key):
+    def on_tribler_started(self, version):
         if self.tribler_started:
             logging.warning("Received duplicate Tribler Core started event")
             return
-
-        if public_key:
-            # if public key format will be changed, don't forget to change it
-            # at the core side as well
-            SentryReporter.set_user(public_key.encode('utf-8'))
 
         self.tribler_started = True
         self.tribler_version = version
