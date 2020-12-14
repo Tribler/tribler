@@ -4,8 +4,6 @@ from contextvars import ContextVar
 from enum import Enum, auto
 from hashlib import md5
 
-from PyQt5.QtWidgets import QApplication, QMessageBox
-
 from faker import Faker
 
 import sentry_sdk
@@ -212,6 +210,10 @@ class SentryReporter:
         Args:
             exception: exception to be sent.
         """
+        # Prevent importing PyQt globally in tribler-common module.
+        # pylint: disable=import-outside-toplevel
+        from PyQt5.QtWidgets import QApplication, QMessageBox
+
         SentryReporter._logger.debug(f"Get confirmation: {exception}")
 
         _ = QApplication(sys.argv)
