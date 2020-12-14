@@ -1,3 +1,4 @@
+# flake8: noqa
 import argparse
 import asyncio
 import csv
@@ -54,8 +55,8 @@ class ObservablePopularityCommunity(PopularityCommunity):
 
     @db_session
     def get_torrents_info_tuple(self):
-        return count(ts for ts in self.metadata_store.TorrentState), \
-               count(ts for ts in self.metadata_store.TorrentState if ts.seeders > 0)
+        return count(ts for ts in self.mds.TorrentState), \
+               count(ts for ts in self.mds.TorrentState if ts.seeders > 0)
 
     def check(self):
         time_since_start = time.time() - self._start_time
