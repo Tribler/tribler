@@ -8,7 +8,7 @@ from asyncio import CancelledError, gather
 from ipv8.database import database_blob
 from ipv8.taskmanager import TaskManager, task
 
-from pony.orm import db_session, select
+from pony.orm import db_session, select, desc
 
 from tribler_common.simpledefs import NTFY
 
@@ -29,6 +29,9 @@ MIN_TORRENT_CHECK_INTERVAL = 900   # How much time we should wait before checkin
 TORRENT_CHECK_RETRY_INTERVAL = 30  # Interval when the torrent was successfully checked for the last time
 MAX_TORRENTS_CHECKED_PER_SESSION = 50
 
+TORRENT_SELECTION_POOL_SIZE = 2      # How many torrents to check (popular or random) during periodic check
+HEALTH_FRESHNESS_SECONDS = 4 * 3600  # Number of seconds before a torrent health is considered stale. Default: 4 hours
+
 
 class TorrentChecker(TaskManager):
 
@@ -48,7 +51,7 @@ class TorrentChecker(TaskManager):
 
     async def initialize(self):
         self.register_task("tracker_check", self.check_random_tracker, interval=TRACKER_SELECTION_INTERVAL)
-        self.register_task("torrent_check", self.check_random_torrent, interval=TORRENT_SELECTION_INTERVAL)
+        self.register_task("torrent_check", self.check_local_torrents, interval=TORRENT_SELECTION_INTERVAL)
         self.socket_mgr = UdpSocketManager()
         await self.create_socket_or_schedule()
 
@@ -152,30 +155,42 @@ class TorrentChecker(TaskManager):
             raise e
 
     @db_session
-    def check_random_torrent(self):
+    def torrents_to_check(self):
         """
-        Perform a full health check on a random torrent in the database.
-        We prioritize torrents that have no health info attached.
+        Two categories of torrents are selected (popular & old). From the pool of selected torrents, a certain
+        number of them are submitted for health check. The torrents that are within the freshness window are
+        excluded from the selection considering the health information is still fresh.
+
+        1. Popular torrents (50%)
+        The indicator for popularity here is considered as the seeder count with direct proportionality
+        assuming more seeders -> more popular. There could be other indicators to be introduced later.
+
+        2. Old torrents (50%)
+        By old torrents, we refer to those checked quite farther in the past, sorted by the last_check value.
         """
-        random_torrents = list(self.tribler_session.mds.TorrentState.select().
-                               order_by(lambda g: g.last_check).limit(10))
+        four_hours_ago = time.time() - HEALTH_FRESHNESS_SECONDS
+        popular_torrents = list(self.tribler_session.mds.TorrentState.select(lambda g: g.last_check < four_hours_ago).
+                                order_by(lambda g: (desc(g.seeders), g.last_check)).limit(TORRENT_SELECTION_POOL_SIZE))
 
-        if not random_torrents:
-            self._logger.info("Could not find any eligible torrent for random torrent check")
-            return None
+        old_torrents = list(self.tribler_session.mds.TorrentState.select(lambda g: g.last_check < four_hours_ago).
+                            order_by(lambda g: (g.last_check, desc(g.seeders))).limit(TORRENT_SELECTION_POOL_SIZE))
 
-        if not self.torrents_checked:
-            # We have not checked any torrent yet - pick three torrents to health check
-            random_torrents = random.sample(random_torrents, min(3, len(random_torrents)))
-            infohashes = []
-            for random_torrent in random_torrents:
-                self.check_torrent_health(bytes(random_torrent.infohash))
-                infohashes.append(random_torrent.infohash)
-            return infohashes
+        selected_torrents = popular_torrents + old_torrents
+        selected_torrents = random.sample(selected_torrents, min(TORRENT_SELECTION_POOL_SIZE, len(selected_torrents)))
+        return selected_torrents
 
-        random_torrent = random.choice(random_torrents)
-        self.check_torrent_health(bytes(random_torrent.infohash))
-        return [bytes(random_torrent.infohash)]
+    @db_session
+    def check_local_torrents(self):
+        """
+        Perform a full health check on a few popular and old torrents in the database.
+        """
+        selected_torrents = self.torrents_to_check()
+
+        infohashes = []
+        for random_torrent in selected_torrents:
+            self.check_torrent_health(bytes(random_torrent.infohash))
+            infohashes.append(random_torrent.infohash)
+        return infohashes
 
     def get_valid_next_tracker_for_auto_check(self):
         tracker = self.get_next_tracker_for_auto_check()

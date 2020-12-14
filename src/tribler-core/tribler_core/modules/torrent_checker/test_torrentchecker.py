@@ -8,6 +8,7 @@ from pony.orm import db_session
 
 import pytest
 
+import tribler_core.modules.torrent_checker.torrent_checker as torrent_checker_module
 from tribler_core.modules.torrent_checker.torrent_checker import TorrentChecker
 from tribler_core.modules.torrent_checker.torrentchecker_session import HttpTrackerSession, UdpSocketManager
 from tribler_core.tests.tools.base_test import MockObject
@@ -235,20 +236,52 @@ def test_on_health_check_failed(enable_chant, torrent_checker):
 
 
 @db_session
-def test_check_random_torrent(enable_chant, torrent_checker, session):
+def test_check_local_torrents(enable_chant, torrent_checker, session):
     """
     Test that the random torrent health checking mechanism picks the right torrents
     """
-    for ind in range(1, 20):
-        torrent = session.mds.TorrentMetadata(title='torrent1', infohash=os.urandom(20))
-        torrent.health.last_check = ind
 
+    def random_infohash():
+        return os.urandom(20)
+
+    num_torrents = 20
     torrent_checker.check_torrent_health = lambda _: succeed(None)
 
-    random_infohashes = torrent_checker.check_random_torrent()
-    assert random_infohashes
+    # No torrents yet, the selected torrents should be empty
+    selected_torrents = torrent_checker.check_local_torrents()
+    assert len(selected_torrents) == 0
 
-    # Now we should only check a single torrent
-    torrent_checker.torrents_checked.add((b'a' * 20, 5, 5, int(time.time())))
-    random_infohashes = torrent_checker.check_random_torrent()
-    assert len(random_infohashes) == 1
+    # Add some freshly checked torrents
+    time_fresh = time.time()
+    fresh_infohashes = []
+    for index in range(0, num_torrents):
+        infohash = random_infohash()
+        torrent = session.mds.TorrentMetadata(title=f'torrent{index}', infohash=infohash)
+        torrent.health.seeders = index
+        torrent.health.last_check = int(time_fresh) + index
+        fresh_infohashes.append(infohash)
+
+    # Add some stale (old) checked torrents
+    time_stale = time_fresh - torrent_checker_module.HEALTH_FRESHNESS_SECONDS
+    stale_infohashes = []
+    max_seeder = 10000  # some random value
+    for index in range(0, num_torrents):
+        infohash = random_infohash()
+        torrent = session.mds.TorrentMetadata(title=f'torrent{index}', infohash=infohash)
+        torrent.health.seeders = max_seeder - index     # Note: decreasing trend
+        torrent.health.last_check = int(time_stale) - index  # Note: decreasing trend
+        stale_infohashes.append(infohash)
+
+    # Now check that all torrents selected for check are stale torrents.
+    selected_torrents = torrent_checker.check_local_torrents()
+    assert len(selected_torrents) <= torrent_checker_module.TORRENT_SELECTION_POOL_SIZE
+
+    # In the above setup, both seeder (popularity) count and last_check are decreasing so,
+    # 1. Popular torrents are in the front, and
+    # 2. Older torrents are towards the back
+    # Therefore the selection range becomes:
+    selection_range = stale_infohashes[0: torrent_checker_module.TORRENT_SELECTION_POOL_SIZE] \
+                      + stale_infohashes[- torrent_checker_module.TORRENT_SELECTION_POOL_SIZE:]
+
+    for infohash in selected_torrents:
+        assert infohash in selection_range
