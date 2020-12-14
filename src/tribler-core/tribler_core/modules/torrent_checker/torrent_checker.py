@@ -8,7 +8,7 @@ from asyncio import CancelledError, gather
 from ipv8.database import database_blob
 from ipv8.taskmanager import TaskManager, task
 
-from pony.orm import db_session, select, desc
+from pony.orm import db_session, desc, select
 
 from tribler_common.simpledefs import NTFY
 
