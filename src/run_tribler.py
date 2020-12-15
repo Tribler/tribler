@@ -89,7 +89,7 @@ def start_tribler_core(base_path, api_port, api_key, root_state_dir, core_test_m
 
 
 if __name__ == "__main__":
-    SentryReporter.init(sentry_url=sentry_url, scrubber=SentryScrubber(),
+    SentryReporter.init(sentry_url=sentry_url, release_version=version_id, scrubber=SentryScrubber(),
                         strategy=SentryReporter.Strategy.SEND_ALLOWED_WITH_CONFIRMATION)
     # Get root state directory (e.g. from environment variable or from system default)
     root_state_dir = get_root_state_directory()

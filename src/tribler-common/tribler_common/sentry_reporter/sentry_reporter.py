@@ -32,6 +32,7 @@ BREADCRUMBS = 'breadcrumbs'
 LOGENTRY = 'logentry'
 REPORTER = 'reporter'
 VALUES = 'values'
+RELEASE = 'release'
 
 
 class SentryReporter:
@@ -66,7 +67,7 @@ class SentryReporter:
     _logger = logging.getLogger(_sentry_logger_name)
 
     @staticmethod
-    def init(sentry_url='', scrubber=None, strategy=Strategy.SEND_ALLOWED_WITH_CONFIRMATION):
+    def init(sentry_url='', release_version='', scrubber=None, strategy=Strategy.SEND_ALLOWED_WITH_CONFIRMATION):
         """Initialization.
 
         This method should be called in each process that uses SentryReporter.
@@ -81,6 +82,10 @@ class SentryReporter:
                     def scrub_event(self, event):
                         pass
                 ```
+            release_version: string that represents a release version.
+                See Also: https://docs.sentry.io/platforms/python/configuration/releases/
+            strategy: a Sentry strategy for sending events (see class Strategy
+                for more information)
         Returns:
             Sentry Guard.
         """
@@ -90,7 +95,7 @@ class SentryReporter:
 
         rv = sentry_sdk.init(
             sentry_url,
-            release=None,
+            release=release_version,
             # https://docs.sentry.io/platforms/python/configuration/integrations/
             integrations=[
                 LoggingIntegration(
@@ -113,7 +118,7 @@ class SentryReporter:
 
     @staticmethod
     def add_breadcrumb(message='', category='', level='info', **kwargs):
-        """ Adds a breadcrumb for current Sentry client.
+        """Adds a breadcrumb for current Sentry client.
 
         It is necessary to specify a message, a category and a level to make this
         breadcrumb visible in Sentry server.

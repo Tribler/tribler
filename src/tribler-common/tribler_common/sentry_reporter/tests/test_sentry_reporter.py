@@ -100,7 +100,7 @@ def test_send(reporter):
 
 def test_before_send(reporter):
     scrubber = SentryScrubber()
-    reporter.init('', scrubber)
+    reporter.init('', scrubber=scrubber)
 
     # pylint: disable=protected-access
     SentryReporter.last_event = None
@@ -128,6 +128,10 @@ def test_before_send(reporter):
     assert reporter._before_send({'contexts': {'reporter': {'_stacktrace': ['/Users/username/']}}}, None) == {
         'contexts': {'reporter': {'_stacktrace': [f'/Users/{scrubber.placeholder_user}/']}}
     }
+
+    # check release
+    assert reporter._before_send({'release': '7.6.0'}, None) == {'release': '7.6.0'}
+    assert reporter._before_send({'release': '7.6.0-GIT'}, None) == {'release': None}
 
     # check confirmation
     reporter.strategy.set(SentryReporter.Strategy.SEND_ALLOWED_WITH_CONFIRMATION)
