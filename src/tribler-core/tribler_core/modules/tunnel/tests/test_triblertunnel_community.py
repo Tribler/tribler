@@ -282,6 +282,15 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
         self.add_node_to_experiment(self.create_node())
         self.add_node_to_experiment(self.create_node())
 
+        # Make sure that every node has some initial transactions. This will help us to detect bugs in the
+        # relay payout logic, e.g. https://github.com/Tribler/tribler/issues/5789.
+        for node in self.nodes:
+            for other_node in self.nodes:
+                if node == other_node:
+                    continue
+
+                await node.overlay.bandwidth_community.do_payout(other_node.my_peer, 100 * 1024 * 1024)
+
         # Build a tunnel
         self.nodes[2].overlay.settings.peer_flags.add(PEER_FLAG_EXIT_BT)
         await self.introduce_nodes()
@@ -301,6 +310,15 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
         self.assertTrue(self.nodes[0].overlay.bandwidth_community.database.get_my_balance() < 0)
         self.assertTrue(self.nodes[1].overlay.bandwidth_community.database.get_my_balance() > 0)
         self.assertTrue(self.nodes[2].overlay.bandwidth_community.database.get_my_balance() > 0)
+
+        balances = []
+        for node_nr in [0, 1, 2]:
+            balances.append(self.nodes[node_nr].overlay.bandwidth_community.database.get_my_balance())
+
+        balances.sort()
+        self.assertEqual(balances[0], -750 * 1024 * 1024)
+        self.assertEqual(balances[1], 250 * 1024 * 1024)
+        self.assertEqual(balances[2], 500 * 1024 * 1024)
 
     async def test_invalid_payout(self):
         """

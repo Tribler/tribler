@@ -354,7 +354,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         if payload.circuit_id in self.relay_from_to and tx.amount > payload.base_amount:
             relay = self.relay_from_to[payload.circuit_id]
             self._logger.info("Sending next payout to peer %s", relay.peer)
-            self.do_payout(relay.peer, relay.circuit_id, tx.amount - payload.base_amount * 2, payload.base_amount)
+            self.do_payout(relay.peer, relay.circuit_id, payload.base_amount * 2, payload.base_amount)
 
     def clean_from_slots(self, circuit_id):
         """
