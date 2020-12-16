@@ -37,9 +37,11 @@ class TrustGraph(nx.DiGraph):
 
         self.get_or_create_node(root_key)
 
-    def set_limits(self, max_peers, max_transactions):
-        self.max_nodes = max_peers
-        self.max_transactions = max_transactions
+    def set_limits(self, max_nodes=None, max_transactions=None):
+        if max_nodes:
+            self.max_nodes = max_nodes
+        if max_transactions:
+            self.max_transactions = max_transactions
 
     def get_or_create_node(self, peer_key, add_if_not_exist=True):
         if peer_key in self.node_public_keys:
