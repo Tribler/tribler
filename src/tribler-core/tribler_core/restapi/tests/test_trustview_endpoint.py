@@ -105,7 +105,7 @@ def test_maximum_nodes_in_graph(trust_graph):
         trust_graph.get_or_create_node(test_node_key)
     except TrustGraphException as tge:
         exception_msg = getattr(tge, 'message', repr(tge))
-        assert 'Max node peers reached in graph' in exception_msg
+        assert f'Max node peers ({trust_graph.max_nodes}) reached in the graph' in exception_msg
     else:
         assert False, "Expected to fail but did not."
 
@@ -130,7 +130,7 @@ def test_add_bandwidth_transactions(trust_graph):
         trust_graph.add_bandwidth_transaction(tx2)
     except TrustGraphException as tge:
         exception_msg = getattr(tge, 'message', repr(tge))
-        assert 'Max node peers reached in graph' in exception_msg
+        assert f'Max node peers ({trust_graph.max_nodes}) reached in the graph' in exception_msg
     else:
         assert False, "Expected to fail but did not."
 
@@ -199,29 +199,55 @@ async def test_trustview_response(enable_api, mock_ipv8, session, mock_bootstrap
     verify_response(response)
 
 
+def insert_node_transactions(root_key, session, node_public_key=None, count=1):
+    for idx in range(count):
+        counterparty = unhexlify(node_public_key if node_public_key else get_random_node_public_key())
+        amount = random.randint(10, 100)
+        tx1 = BandwidthTransactionData(idx, root_key, counterparty, EMPTY_SIGNATURE, EMPTY_SIGNATURE, amount)
+        session.bandwidth_community.database.BandwidthTransaction.insert(tx1)
+
+
 @pytest.mark.asyncio
-async def test_trustview_max_response(enable_api, mock_ipv8, session, mock_bootstrap):
+async def test_trustview_max_transactions(enable_api, mock_ipv8, session, mock_bootstrap):
     """
-    Test whether the trust graph response is limited.
-    Here we redefine the max peers and max transactions limit for trust graph and add more peers and transactions,
-    then test if the endpoint response is limited.
+    Test whether the max transactions returned is limited.
     """
-    max_peers = 10
-    max_tx = 10
     root_key = session.bandwidth_community.my_pk
     endpoint = session.api_manager.root_endpoint.endpoints['/trustview']
     endpoint.initialize_graph()
-    endpoint.trust_graph.set_limits(max_peers, max_tx)
 
-    for _ in range(max_peers * 2):
-        random_node = unhexlify(get_random_node_public_key())
-        tx1 = BandwidthTransactionData(1, root_key, random_node, EMPTY_SIGNATURE, EMPTY_SIGNATURE, 3000)
-        session.bandwidth_community.database.BandwidthTransaction.insert(tx1)
+    max_txn = 10
+    endpoint.trust_graph.set_limits(max_transactions=max_txn)
 
-    response_json = await do_request(session, 'trustview', expected_code=200)
+    # Try adding more transactions than max transactions
+    insert_node_transactions(root_key, session, count=max_txn + 1)
+
+    # The number of transactions should not be returned more than max transactions
+    response_json = await do_request(session, 'trustview?refresh=1', expected_code=200)
     assert response_json['graph']
-    assert response_json['num_tx'] <= max_tx
-    assert len(response_json['graph']['node']) <= max_peers
+    assert response_json['num_tx'] == max_txn
+
+
+@pytest.mark.asyncio
+async def test_trustview_max_nodes(enable_api, mock_ipv8, session, mock_bootstrap):
+    """
+    Test whether the number of nodes returned is limited.
+    """
+    root_key = session.bandwidth_community.my_pk
+    endpoint = session.api_manager.root_endpoint.endpoints['/trustview']
+    endpoint.initialize_graph()
+
+    max_nodes = 10
+    endpoint.trust_graph.set_limits(max_nodes=max_nodes)
+
+    # Try transactions from more than max nodes
+    for _ in range(max_nodes):
+        insert_node_transactions(root_key, session)
+
+    # The number of nodes should not be returned more than max nodes
+    response_json = await do_request(session, 'trustview?refresh=1', expected_code=200)
+    assert response_json['graph']
+    assert len(response_json['graph']['node']) == max_nodes
 
 
 @pytest.mark.asyncio
@@ -231,33 +257,32 @@ async def test_trustview_with_refresh(enable_api, mock_ipv8, session, mock_boots
     If refresh parameter is not set, the cached graph is returned otherwise
     a new graph is computed and returned.
     """
-
-    def insert_x_node_transactions(root_key, count):
-        for _ in range(count):
-            random_node = unhexlify(get_random_node_public_key())
-            seq_num = random.randint(1, 100)
-            amount = random.randint(10, 100)
-            tx1 = BandwidthTransactionData(seq_num, root_key, random_node, EMPTY_SIGNATURE, EMPTY_SIGNATURE, amount)
-            session.bandwidth_community.database.BandwidthTransaction.insert(tx1)
-
     root_key = session.bandwidth_community.my_pk
 
+    # Insert a set of transactions
     num_tx_set1 = 10
-    insert_x_node_transactions(root_key, num_tx_set1)
+    insert_node_transactions(root_key, session, count=num_tx_set1)
 
+    # Since graph is not computed yet, freshly computed result is displayed
+    # so the number of transactions returned should be equal to above number
+    # of transactions added.
     response_json = await do_request(session, 'trustview', expected_code=200)
     assert response_json['graph']
-    assert response_json['num_tx'] <= num_tx_set1
+    assert response_json['num_tx'] == num_tx_set1
 
+    # Now insert a second set of transactions
     num_tx_set2 = 10
-    insert_x_node_transactions(root_key, num_tx_set2)
+    insert_node_transactions(root_key, session, count=num_tx_set2)
 
-    # If there is no refresh parameter set in the query, the cached result is sent.
+    # At this point, the trust graph should already be computed from the previous API call,
+    # since the refresh parameter is not set, the cached result should be returned
+    # which is same as the previous result.
     response_json = await do_request(session, 'trustview', expected_code=200)
     assert response_json['graph']
-    assert response_json['num_tx'] <= num_tx_set1
+    assert response_json['num_tx'] == num_tx_set1
 
-    # Else, the graph should be recomputed and the results should be refreshed
+    # Now if the refresh parameter is set, the graph should be freshly computed and all the
+    # transactions should be included. Therefore, showing the correct number of transactions.
     response_json = await do_request(session, 'trustview?refresh=1', expected_code=200)
     assert response_json['graph']
-    assert num_tx_set1 <= response_json['num_tx'] <= num_tx_set1 + num_tx_set2
+    assert num_tx_set1 <= response_json['num_tx'] == num_tx_set1 + num_tx_set2
