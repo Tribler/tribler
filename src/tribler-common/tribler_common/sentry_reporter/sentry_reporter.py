@@ -212,7 +212,11 @@ class SentryReporter:
         """
         # Prevent importing PyQt globally in tribler-common module.
         # pylint: disable=import-outside-toplevel
-        from PyQt5.QtWidgets import QApplication, QMessageBox
+        try:
+            from PyQt5.QtWidgets import QApplication, QMessageBox
+        except ImportError:
+            SentryReporter._logger.debug("PyQt5 is not available. User confirmation is not possible.")
+            return False
 
         SentryReporter._logger.debug(f"Get confirmation: {exception}")
 
