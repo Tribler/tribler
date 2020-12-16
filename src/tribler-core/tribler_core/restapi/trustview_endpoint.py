@@ -71,6 +71,10 @@ class TrustViewEndpoint(RESTEndpoint):
             self.initialize_graph()
             self.trust_graph.compose_graph_data()
 
+        refresh_graph = int(request.query.get('refresh', '0'))
+        if refresh_graph:
+            self.trust_graph.compose_graph_data()
+
         graph_data = self.trust_graph.compute_node_graph()
 
         return RESTResponse(
