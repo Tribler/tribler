@@ -168,11 +168,11 @@ class TorrentChecker(TaskManager):
         2. Old torrents (50%)
         By old torrents, we refer to those checked quite farther in the past, sorted by the last_check value.
         """
-        four_hours_ago = time.time() - HEALTH_FRESHNESS_SECONDS
-        popular_torrents = list(self.tribler_session.mds.TorrentState.select(lambda g: g.last_check < four_hours_ago).
+        last_fresh_time = time.time() - HEALTH_FRESHNESS_SECONDS
+        popular_torrents = list(self.tribler_session.mds.TorrentState.select(lambda g: g.last_check < last_fresh_time).
                                 order_by(lambda g: (desc(g.seeders), g.last_check)).limit(TORRENT_SELECTION_POOL_SIZE))
 
-        old_torrents = list(self.tribler_session.mds.TorrentState.select(lambda g: g.last_check < four_hours_ago).
+        old_torrents = list(self.tribler_session.mds.TorrentState.select(lambda g: g.last_check < last_fresh_time).
                             order_by(lambda g: (g.last_check, desc(g.seeders))).limit(TORRENT_SELECTION_POOL_SIZE))
 
         selected_torrents = popular_torrents + old_torrents
