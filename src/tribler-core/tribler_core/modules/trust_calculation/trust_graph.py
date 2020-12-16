@@ -50,7 +50,7 @@ class TrustGraph(nx.DiGraph):
             return None
 
         if self.number_of_nodes() >= self.max_nodes:
-            raise TrustGraphException("Max node peers reached in graph")
+            raise TrustGraphException(f"Max node peers ({self.max_nodes}) reached in the graph")
 
         # Node does not exist in the graph so a new node at this point.
         # The numeric node id is used here so the id for the new node becomes
@@ -79,8 +79,8 @@ class TrustGraph(nx.DiGraph):
                 for tx2 in layer_2:
                     self.add_bandwidth_transaction(tx2)
 
-        except TrustGraphException as ex:
-            self._logger.info(ex)
+        except TrustGraphException as tge:
+            self._logger.warning("Error composing Trust graph: %s", tge)
 
     def compute_edge_id(self, transaction):
         sha2 = hashlib.sha3_224()  # any safe hashing should do
@@ -93,7 +93,7 @@ class TrustGraph(nx.DiGraph):
         edge_id = self.compute_edge_id(tx)
 
         if len(self.edge_set) >= self.max_transactions:
-            raise TrustGraphException("Max transactions reached in the graph")
+            raise TrustGraphException(f"Max transactions ({self.max_transactions}) reached in the graph")
 
         if edge_id not in self.edge_set:
             peer1 = self.get_or_create_node(tx.public_key_a, add_if_not_exist=True)
