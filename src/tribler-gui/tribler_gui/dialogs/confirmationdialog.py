@@ -52,7 +52,7 @@ class ConfirmationDialog(DialogContainer):
     def show_error(cls, window, title, error_text):
         error_dialog = ConfirmationDialog(window, title, error_text, [('CLOSE', BUTTON_TYPE_NORMAL)])
 
-        def on_close():
+        def on_close(checked):
             error_dialog.close_dialog()
 
         connect(error_dialog.button_clicked, on_close)
@@ -63,7 +63,7 @@ class ConfirmationDialog(DialogContainer):
     def show_message(cls, window, title, message_text, button_text):
         error_dialog = ConfirmationDialog(window, title, message_text, [(button_text, BUTTON_TYPE_NORMAL)])
 
-        def on_close():
+        def on_close(checked):
             error_dialog.close_dialog()
 
         connect(error_dialog.button_clicked, on_close)

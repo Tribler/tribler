@@ -484,7 +484,7 @@ class TriblerWindow(QMainWindow):
 
         self.channels_menu_list.load_channels()
 
-    def stop_discovering(self):
+    def stop_discovering(self, response):
         if not self.discovering_page.is_discovering:
             return
         disconnect(self.core_manager.events_manager.discovered_channel, self.stop_discovering)
