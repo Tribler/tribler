@@ -80,7 +80,7 @@ class TriblerRequestManager(QNetworkAccessManager):
             TriblerRequestManager.window, "Request error", main_text, [('CLOSE', BUTTON_TYPE_NORMAL)]
         )
 
-        def on_close():
+        def on_close(checked):
             error_dialog.close_dialog()
 
         connect(error_dialog.button_clicked, on_close)
@@ -211,7 +211,7 @@ class TriblerNetworkRequest(QObject):
             else:
                 self.received_json.emit(json_result)
         except ValueError:
-            self.received_json.emit(None, self.reply.error())
+            self.received_error.emit(self.reply.error())
             logging.error("No json object could be decoded from data: %s" % data)
         finally:
             self.destruct()  # the request object should be properly destroyed no matter what
