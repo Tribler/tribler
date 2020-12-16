@@ -222,3 +222,42 @@ async def test_trustview_max_response(enable_api, mock_ipv8, session, mock_boots
     assert response_json['graph']
     assert response_json['num_tx'] <= max_tx
     assert len(response_json['graph']['node']) <= max_peers
+
+
+@pytest.mark.asyncio
+async def test_trustview_with_refresh(enable_api, mock_ipv8, session, mock_bootstrap):
+    """
+    Test whether refresh query parameters works as expected.
+    If refresh parameter is not set, the cached graph is returned otherwise
+    a new graph is computed and returned.
+    """
+
+    def insert_x_node_transactions(root_key, count):
+        for _ in range(count):
+            random_node = unhexlify(get_random_node_public_key())
+            seq_num = random.randint(1, 100)
+            amount = random.randint(10, 100)
+            tx1 = BandwidthTransactionData(seq_num, root_key, random_node, EMPTY_SIGNATURE, EMPTY_SIGNATURE, amount)
+            session.bandwidth_community.database.BandwidthTransaction.insert(tx1)
+
+    root_key = session.bandwidth_community.my_pk
+
+    num_tx_set1 = 10
+    insert_x_node_transactions(root_key, num_tx_set1)
+
+    response_json = await do_request(session, 'trustview', expected_code=200)
+    assert response_json['graph']
+    assert response_json['num_tx'] <= num_tx_set1
+
+    num_tx_set2 = 10
+    insert_x_node_transactions(root_key, num_tx_set2)
+
+    # If there is no refresh parameter set in the query, the cached result is sent.
+    response_json = await do_request(session, 'trustview', expected_code=200)
+    assert response_json['graph']
+    assert response_json['num_tx'] <= num_tx_set1
+
+    # Else, the graph should be recomputed and the results should be refreshed
+    response_json = await do_request(session, 'trustview?refresh=1', expected_code=200)
+    assert response_json['graph']
+    assert num_tx_set1 <= response_json['num_tx'] <= num_tx_set1 + num_tx_set2
