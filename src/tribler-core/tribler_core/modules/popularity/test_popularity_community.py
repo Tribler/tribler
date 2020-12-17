@@ -34,6 +34,7 @@ class TestPopularityCommunity(TestBase):
 
         torrent_checker = MockObject()
         torrent_checker.torrents_checked = set()
+        torrent_checker.get_torrents_checked = lambda: set()
 
         return MockIPv8(u"curve25519", PopularityCommunity, metadata_store=mds,
                         torrent_checker=torrent_checker)
