@@ -93,9 +93,49 @@ class TriblerUpgrader(object):
         self.upgrade_pony_db_6to7()
         self.upgrade_pony_db_7to8()
         await self.upgrade_pony_db_8to10()
+        self.upgrade_pony_db_10to11()
         convert_config_to_tribler74(self.session.config.get_state_dir())
         convert_config_to_tribler75(self.session.config.get_state_dir())
         convert_config_to_tribler76(self.session.config.get_state_dir())
+
+    def upgrade_pony_db_10to11(self):
+        """
+        Upgrade GigaChannel DB from version 10 (7.6.x) to version 11 (7.7.x).
+        Version 11 adds a `self_checked` field to TorrentState table if it
+        already does not exist.
+        """
+        # We have to create the Metadata Store object because Session-managed Store has not been started yet
+        database_path = self.session.config.get_state_dir() / 'sqlite' / 'metadata.db'
+        channels_dir = self.session.config.get_chant_channels_dir()
+        if not database_path.exists():
+            return
+        mds = MetadataStore(database_path, channels_dir, self.session.trustchain_keypair, disable_sync=True)
+        self.do_upgrade_pony_db_10to11(mds)
+        mds.shutdown()
+
+    def do_upgrade_pony_db_10to11(self, mds):
+        from_version = 10
+        to_version = 11
+
+        with db_session:
+            db_version = mds.MiscData.get(name="db_version")
+            if int(db_version.value) != from_version:
+                return
+
+            # Just in case, we skip index creation if it is somehow already there
+            table_name = "TorrentState"
+            column_name = "self_checked"
+
+            pragma = f'SELECT COUNT(*) FROM pragma_table_info("{table_name}") WHERE name="{column_name}"'
+            result = list(mds._db.execute(pragma))
+
+            if not result[0][0]:
+                sql = f'ALTER TABLE {table_name} ADD {column_name} BOOLEAN default "FALSE";'
+                mds._db.execute(sql)
+
+            db_version = mds.MiscData.get(name="db_version")
+            db_version.value = str(to_version)
+        return
 
     async def upgrade_pony_db_8to10(self):
         """
