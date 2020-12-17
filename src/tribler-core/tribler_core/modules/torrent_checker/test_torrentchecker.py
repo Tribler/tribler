@@ -23,7 +23,7 @@ async def torrent_checker(session):
 
 
 @pytest.mark.asyncio
-async def test_initialize(torrent_checker):
+async def test_initialize(enable_chant, torrent_checker):
     """
     Test the initialization of the torrent checker
     """
