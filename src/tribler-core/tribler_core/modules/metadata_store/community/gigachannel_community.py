@@ -12,6 +12,7 @@ from pony.orm import db_session
 
 from tribler_common.simpledefs import CHANNELS_VIEW_UUID, NTFY
 
+from tribler_core.modules.metadata_store.community.discovery_booster import DiscoveryBooster
 from tribler_core.modules.metadata_store.community.remote_query_community import (
     RemoteQueryCommunity,
     RemoteQueryCommunitySettings,
@@ -72,6 +73,10 @@ class NonLegacyGigaChannelCommunity(RemoteQueryCommunity):
         # peer twice. If we do, this should happen really rarely
         # TODO: use Bloom filter here instead. We actually *want* it to be all-false-positives eventually.
         self.queried_peers = set()
+
+        self.discovery_booster = DiscoveryBooster()
+        self.discovery_booster.apply(self)
+
 
     def get_random_peers(self, sample_size=None):
         # Randomly sample sample_size peers from the complete list of our peers
@@ -135,7 +140,6 @@ class GigaChannelCommunity(NonLegacyGigaChannelCommunity):
 
         # Register legacy payload
         self.add_message_handler(LegacySelectResponsePayload, self.legacy_on_remote_select_response)
-
         self.new_style_peers = set()
 
     def legacy_send_remote_select_subscribed_channels(self, peer):

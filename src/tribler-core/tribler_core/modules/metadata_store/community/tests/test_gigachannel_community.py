@@ -1,4 +1,5 @@
 from datetime import datetime
+from unittest import mock
 from unittest.mock import Mock
 
 from ipv8.database import database_blob
@@ -35,7 +36,8 @@ class TestGigaChannelUnits(TestBase):
             disable_sync=True,
         )
         kwargs['metadata_store'] = metadata_store
-        node = super().create_node(*args, **kwargs)
+        with mock.patch('tribler_core.modules.metadata_store.community.gigachannel_community.DiscoveryBooster'):
+            node = super().create_node(*args, **kwargs)
         self.count += 1
         return node
 
