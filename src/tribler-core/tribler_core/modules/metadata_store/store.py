@@ -85,7 +85,9 @@ sql_add_fts_trigger_update = """
 
 
 class MetadataStore(object):
-    def __init__(self, db_filename, channels_dir, my_key, disable_sync=False, notifier=None):
+    def __init__(
+        self, db_filename, channels_dir, my_key, disable_sync=False, notifier=None, check_tables=True, db_version=None
+    ):
         self.notifier = notifier  # Reference to app-level notification service
         self.db_filename = db_filename
         self.channels_dir = channels_dir
@@ -142,15 +144,19 @@ class MetadataStore(object):
         self.ChannelMetadata._channels_dir = channels_dir
 
         self._db.bind(provider='sqlite', filename=str(db_filename), create_db=create_db, timeout=120.0)
-        self._db.generate_mapping(create_tables=create_db)  # Must be run out of session scope
+        self._db.generate_mapping(
+            create_tables=create_db, check_tables=check_tables
+        )  # Must be run out of session scope
         if create_db:
             with db_session(ddl=True):
                 self._db.execute(sql_create_fts_table)
                 self.create_fts_triggers()
 
         if create_db:
+            if db_version is None:
+                db_version = CURRENT_DB_VERSION
             with db_session:
-                self.MiscData(name="db_version", value=str(CURRENT_DB_VERSION))
+                self.MiscData(name="db_version", value=str(db_version))
 
         with db_session:
             default_vsids = self.Vsids.get(rowid=0)

@@ -9,14 +9,15 @@ from tribler_common.simpledefs import NTFY
 
 from tribler_core.modules.category_filter.l2_filter import is_forbidden
 from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH
-from tribler_core.modules.metadata_store.store import CURRENT_DB_VERSION, MetadataStore
+from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT
+from tribler_core.modules.metadata_store.store import MetadataStore
 from tribler_core.upgrade.config_converter import (
     convert_config_to_tribler74,
     convert_config_to_tribler75,
     convert_config_to_tribler76,
 )
-from tribler_core.upgrade.db8_to_db10 import PonyToPonyMigration, get_db_version
 from tribler_core.upgrade.db72_to_pony import DispersyToPonyMigration, cleanup_pony_experimental_db, should_upgrade
+from tribler_core.upgrade.db8_to_db10 import PonyToPonyMigration, get_db_version
 from tribler_core.utilities.configparser import CallbackConfigParser
 
 
@@ -104,7 +105,7 @@ class TriblerUpgrader(object):
         reports progress to the user.
         """
         database_path = self.session.config.get_state_dir() / 'sqlite' / 'metadata.db'
-        if not database_path.exists() or get_db_version(database_path) >= CURRENT_DB_VERSION:
+        if not database_path.exists() or get_db_version(database_path) >= 10:
             # Either no old db exists, or the old db version is up to date  - nothing to do
             return
 
@@ -116,7 +117,8 @@ class TriblerUpgrader(object):
             tmp_database_path.unlink()
 
         # Create the new database
-        mds = MetadataStore(tmp_database_path, None, self.session.trustchain_keypair, disable_sync=True)
+        mds = MetadataStore(tmp_database_path, None, self.session.trustchain_keypair,
+                            disable_sync=True, db_version=10)
         with db_session(ddl=True):
             mds.drop_indexes()
             mds.drop_fts_triggers()
@@ -149,7 +151,8 @@ class TriblerUpgrader(object):
         channels_dir = self.session.config.get_chant_channels_dir()
         if not database_path.exists():
             return
-        mds = MetadataStore(database_path, channels_dir, self.session.trustchain_keypair, disable_sync=True)
+        mds = MetadataStore(database_path, channels_dir, self.session.trustchain_keypair,
+                            disable_sync=True, check_tables=False)
         self.do_upgrade_pony_db_7to8(mds)
         mds.shutdown()
 
@@ -178,7 +181,8 @@ class TriblerUpgrader(object):
         channels_dir = self.session.config.get_chant_channels_dir()
         if not database_path.exists():
             return
-        mds = MetadataStore(database_path, channels_dir, self.session.trustchain_keypair, disable_sync=True)
+        mds = MetadataStore(database_path, channels_dir, self.session.trustchain_keypair,
+                            disable_sync=True, check_tables=False)
         self.do_upgrade_pony_db_6to7(mds)
         mds.shutdown()
 
@@ -187,7 +191,10 @@ class TriblerUpgrader(object):
             db_version = mds.MiscData.get(name="db_version")
             if int(db_version.value) != 6:
                 return
-            for c in mds.ChannelMetadata.select():
+            for c in mds.ChannelMetadata.select_by_sql(f"""
+                select rowid, title, tags, metadata_type from ChannelNode
+                where metadata_type = {CHANNEL_TORRENT}
+            """):
                 if is_forbidden(c.title+c.tags):
                     c.contents.delete()
                     c.delete()
@@ -229,7 +236,8 @@ class TriblerUpgrader(object):
         self._dtp72.shutting_down = self.skip_upgrade_called
         self.notify_starting()
         # We have to create the Metadata Store object because Session-managed Store has not been started yet
-        mds = MetadataStore(new_database_path, channels_dir, self.session.trustchain_keypair, disable_sync=True)
+        mds = MetadataStore(new_database_path, channels_dir, self.session.trustchain_keypair,
+                            disable_sync=True, db_version=6)
         self._dtp72.initialize(mds)
 
         try:
