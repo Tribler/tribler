@@ -57,7 +57,8 @@ def test_upgrade_pony_db_6to7(upgrader, session):
 
     upgrader.upgrade_pony_db_6to7()
     channels_dir = session.config.get_chant_channels_dir()
-    mds = MetadataStore(old_database_path, channels_dir, session.trustchain_keypair)
+    mds = MetadataStore(old_database_path, channels_dir,
+                        session.trustchain_keypair, check_tables=False)
     with db_session:
         assert mds.TorrentMetadata.select().count() == 23
         assert mds.ChannelMetadata.select().count() == 2
@@ -76,7 +77,8 @@ def test_upgrade_pony_db_7to8(upgrader, session):
 
     upgrader.upgrade_pony_db_7to8()
     channels_dir = session.config.get_chant_channels_dir()
-    mds = MetadataStore(old_database_path, channels_dir, session.trustchain_keypair)
+    mds = MetadataStore(old_database_path, channels_dir,
+                        session.trustchain_keypair, check_tables=False)
     with db_session:
         assert int(mds.MiscData.get(name="db_version").value) == 8
         assert mds.Vsids[0].exp_period == 24.0 * 60 * 60 * 3
@@ -148,11 +150,13 @@ async def test_upgrade_pony_8to10(upgrader, session):
     database_path = session.config.get_state_dir() / 'sqlite' / 'metadata.db'
     shutil.copyfile(old_db_sample, database_path)
 
-    await upgrader.run()
+    upgrader.upgrade_pony_db_6to7()
+    upgrader.upgrade_pony_db_7to8()
+    await upgrader.upgrade_pony_db_8to10()
     channels_dir = session.config.get_chant_channels_dir()
     mds = MetadataStore(database_path, channels_dir, session.trustchain_keypair)
     with db_session:
-        assert int(mds.MiscData.get(name="db_version").value) == CURRENT_DB_VERSION
+        assert int(mds.MiscData.get(name="db_version").value) == 10
         assert mds.ChannelNode.select().count() == 23
     mds.shutdown()
 
