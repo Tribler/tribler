@@ -23,15 +23,15 @@ from tribler_core.utilities.tracker_utils import MalformedTrackerURLException
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import has_bep33_support, is_valid_url
 
-TRACKER_SELECTION_INTERVAL = 20  # The interval for querying a random tracker
-TORRENT_SELECTION_INTERVAL = 120  # The interval for checking the health of a random torrent
-MIN_TORRENT_CHECK_INTERVAL = 900  # How much time we should wait before checking a torrent again
+TRACKER_SELECTION_INTERVAL = 20    # The interval for querying a random tracker
+TORRENT_SELECTION_INTERVAL = 120   # The interval for checking the health of a random torrent
+MIN_TORRENT_CHECK_INTERVAL = 900   # How much time we should wait before checking a torrent again
 TORRENT_CHECK_RETRY_INTERVAL = 30  # Interval when the torrent was successfully checked for the last time
 MAX_TORRENTS_CHECKED_PER_SESSION = 50
 
-TORRENT_SELECTION_POOL_SIZE = 2  # How many torrents to check (popular or random) during periodic check
+TORRENT_SELECTION_POOL_SIZE = 2      # How many torrents to check (popular or random) during periodic check
 HEALTH_FRESHNESS_SECONDS = 4 * 3600  # Number of seconds before a torrent health is considered stale. Default: 4 hours
-TORRENTS_CHECKED_RETURN_SIZE = 240  # Estimated torrents checked on default 4 hours idle run
+TORRENTS_CHECKED_RETURN_SIZE = 240   # Estimated torrents checked on default 4 hours idle run
 
 
 class TorrentChecker(TaskManager):
@@ -48,14 +48,13 @@ class TorrentChecker(TaskManager):
 
         # We keep track of the results of popular torrents checked by you.
         # The popularity community gossips this information around.
-        self.torrents_checked = set()
+        self._torrents_checked = set()
 
     async def initialize(self):
         self.register_task("tracker_check", self.check_random_tracker, interval=TRACKER_SELECTION_INTERVAL)
         self.register_task("torrent_check", self.check_local_torrents, interval=TORRENT_SELECTION_INTERVAL)
         self.socket_mgr = UdpSocketManager()
         await self.create_socket_or_schedule()
-        # self.load_torrents_checked_from_db()
 
     async def listen_on_udp(self):
         loop = asyncio.get_event_loop()
@@ -156,13 +155,17 @@ class TorrentChecker(TaskManager):
             e.tracker_url = session.tracker_url
             raise e
 
-    def get_torrents_checked(self):
-        if not self.torrents_checked:
+    @property
+    def torrents_checked(self):
+        if not self._torrents_checked:
             self.load_torrents_checked_from_db()
-        return self.torrents_checked
+        return self._torrents_checked
 
     @db_session
     def load_torrents_checked_from_db(self):
+        if not self.tribler_session.mds:
+            return
+
         last_fresh_time = time.time() - HEALTH_FRESHNESS_SECONDS
         checked_torrents = list(self.tribler_session.mds.TorrentState
                                 .select(lambda g: g.last_check > last_fresh_time and g.self_checked)
@@ -170,7 +173,7 @@ class TorrentChecker(TaskManager):
                                 .limit(TORRENTS_CHECKED_RETURN_SIZE))
 
         for torrent in checked_torrents:
-            self.torrents_checked.add((torrent.infohash, torrent.seeders, torrent.leechers, torrent.last_check))
+            self._torrents_checked.add((torrent.infohash, torrent.seeders, torrent.leechers, torrent.last_check))
 
     @db_session
     def torrents_to_check(self):
@@ -243,7 +246,7 @@ class TorrentChecker(TaskManager):
         new_result_tuple = (new_result['infohash'], new_result['seeders'],
                             new_result['leechers'], new_result['last_check'])
         if new_result['seeders'] > 0:
-            self.torrents_checked.add(new_result_tuple)
+            self._torrents_checked.add(new_result_tuple)
 
     def on_torrent_health_check_completed(self, infohash, result):
         final_response = {}

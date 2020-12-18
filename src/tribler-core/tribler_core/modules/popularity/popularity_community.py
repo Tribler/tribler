@@ -76,7 +76,7 @@ class PopularityCommunity(RemoteQueryCommunity):
         if not self.get_peers() or not self.torrent_checker:
             return
 
-        checked = self.torrent_checker.get_torrents_checked()
+        checked = self.torrent_checker.torrents_checked
         if not checked:
             return
 
