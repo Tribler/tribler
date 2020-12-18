@@ -284,7 +284,7 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
     #    copy_to_clipboard(self.channel_info["public_key"])
     #    self.tray_show_message("Copied channel ID", self.channel_info["public_key"])
 
-    def preview_clicked(self, checked):
+    def preview_clicked(self, checked=False):
         params = dict()
 
         if "public_key" in self.model.channel_info:
