@@ -1,4 +1,6 @@
 import os
+import random
+import secrets
 import socket
 import time
 
@@ -79,6 +81,55 @@ async def test_health_check_cached(enable_chant, torrent_checker, session):
     assert 'db' in result
     assert result['db']['seeders'] == 5
     assert result['db']['leechers'] == 10
+
+
+@pytest.mark.asyncio
+async def test_load_torrents_check_from_db(enable_chant, torrent_checker, session):
+    """
+    Test if the torrents_checked set is properly initialized based on the last_check
+    and self_checked values from the database.
+    """
+    @db_session
+    def save_random_torrent_state(last_checked=0, self_checked=False, count=1):
+        for idx in range(count):
+            session.mds.TorrentState(infohash=secrets.token_bytes(20),
+                                     seeders=random.randint(1, 100),
+                                     leechers=random.randint(1, 100),
+                                     last_check=last_checked,
+                                     self_checked=self_checked)
+
+    now = int(time.time())
+    freshness_threshold = now - torrent_checker_module.HEALTH_FRESHNESS_SECONDS
+    before_threshold = freshness_threshold - 100  # considered not-fresh
+    after_threshold = freshness_threshold + 100  # considered fresh
+
+    # Case 1: Save random 10 non-self checked torrents
+    # Expected: empty set, since only self checked torrents are considered.
+    save_random_torrent_state(last_checked=now, self_checked=False, count=10)
+    assert not len(torrent_checker.torrents_checked)
+
+    # Case 2: Save 10 self checked torrent but not within the freshness period
+    # Expected: empty set, since only self checked fresh torrents are considered.
+    save_random_torrent_state(last_checked=before_threshold, self_checked=True, count=10)
+    assert not len(torrent_checker.torrents_checked)
+
+    # Case 3: Save 10 self checked fresh torrents
+    # Expected: 10 torrents, since there are 10 self checked and fresh torrents
+    save_random_torrent_state(last_checked=after_threshold, self_checked=True, count=10)
+    assert len(torrent_checker.torrents_checked) == 10
+
+    # Case 4: Save some more self checked fresh torrents
+    # Expected: 10 torrents, since torrent_checked set should already be initialized above.
+    save_random_torrent_state(last_checked=after_threshold, self_checked=True, count=10)
+    assert len(torrent_checker.torrents_checked) == 10
+
+    # Case 5: Clear the torrent_checked set (private variable),
+    # and save freshly self checked torrents more than max return size (10 more).
+    # Expected: max (return size) torrents, since limit is placed on how many to load.
+    torrent_checker._torrents_checked = set()
+    return_size = torrent_checker_module.TORRENTS_CHECKED_RETURN_SIZE
+    save_random_torrent_state(last_checked=after_threshold, self_checked=True, count=return_size + 10)
+    assert len(torrent_checker.torrents_checked) == return_size
 
 
 @pytest.mark.asyncio
