@@ -140,7 +140,6 @@ class TriblerUpgrader(object):
 
             db_version = mds.MiscData.get(name="db_version")
             db_version.value = str(to_version)
-        return
 
     async def upgrade_pony_db_8to10(self):
         """
