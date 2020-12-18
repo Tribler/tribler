@@ -109,7 +109,8 @@ class TriblerUpgrader(object):
         channels_dir = self.session.config.get_chant_channels_dir()
         if not database_path.exists():
             return
-        mds = MetadataStore(database_path, channels_dir, self.session.trustchain_keypair, disable_sync=True)
+        mds = MetadataStore(database_path, channels_dir, self.session.trustchain_keypair,
+                            disable_sync=True, check_tables=False)
         self.do_upgrade_pony_db_10to11(mds)
         mds.shutdown()
 
@@ -122,7 +123,7 @@ class TriblerUpgrader(object):
             if int(db_version.value) != from_version:
                 return
 
-            # Just in case, we skip index creation if it is somehow already there
+            # Just in case, we skip altering table if the column is somehow already there
             table_name = "TorrentState"
             column_name = "self_checked"
 
@@ -130,7 +131,7 @@ class TriblerUpgrader(object):
             result = list(mds._db.execute(pragma))
 
             if not result[0][0]:
-                sql = f'ALTER TABLE {table_name} ADD {column_name} BOOLEAN default "FALSE";'
+                sql = f'ALTER TABLE {table_name} ADD {column_name} BOOLEAN default 0;'
                 mds._db.execute(sql)
 
             db_version = mds.MiscData.get(name="db_version")
