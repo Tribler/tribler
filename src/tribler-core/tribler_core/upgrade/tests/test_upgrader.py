@@ -160,6 +160,23 @@ async def test_upgrade_pony_8to10(upgrader, session):
         assert mds.ChannelNode.select().count() == 23
     mds.shutdown()
 
+@pytest.mark.asyncio
+async def test_upgrade_pony_10to11(upgrader, session):
+    old_db_sample = TESTS_DATA_DIR / 'upgrade_databases' / 'pony_v6.db'
+    database_path = session.config.get_state_dir() / 'sqlite' / 'metadata.db'
+    shutil.copyfile(old_db_sample, database_path)
+
+    upgrader.upgrade_pony_db_6to7()
+    upgrader.upgrade_pony_db_7to8()
+    await upgrader.upgrade_pony_db_8to10()
+    upgrader.upgrade_pony_db_10to11()
+    channels_dir = session.config.get_chant_channels_dir()
+    mds = MetadataStore(database_path, channels_dir, session.trustchain_keypair)
+    with db_session:
+        assert upgrader.column_exists_in_table(mds._db, 'TorrentState', 'self_checked')
+        assert int(mds.MiscData.get(name="db_version").value) == 11
+    mds.shutdown()
+
 def test_calc_progress():
     EPSILON = 0.001
     assert calc_progress(0) == pytest.approx(0.0, abs=EPSILON)

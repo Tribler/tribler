@@ -114,6 +114,13 @@ class TriblerUpgrader(object):
         self.do_upgrade_pony_db_10to11(mds)
         mds.shutdown()
 
+    def column_exists_in_table(self, db, table, column):
+        with db_session:
+            pragma = f'SELECT COUNT(*) FROM pragma_table_info("{table}") WHERE name="{column}"'
+            result = list(db.execute(pragma))
+            # If the column exists, result = [(1, )] else [(0, )]
+            return result[0][0] == 1
+
     def do_upgrade_pony_db_10to11(self, mds):
         from_version = 10
         to_version = 11
@@ -127,10 +134,7 @@ class TriblerUpgrader(object):
             table_name = "TorrentState"
             column_name = "self_checked"
 
-            pragma = f'SELECT COUNT(*) FROM pragma_table_info("{table_name}") WHERE name="{column_name}"'
-            result = list(mds._db.execute(pragma))
-
-            if not result[0][0]:
+            if not self.column_exists_in_table(mds._db, table_name, column_name):
                 sql = f'ALTER TABLE {table_name} ADD {column_name} BOOLEAN default 0;'
                 mds._db.execute(sql)
 
