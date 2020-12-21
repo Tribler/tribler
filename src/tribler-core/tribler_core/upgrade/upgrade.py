@@ -115,11 +115,10 @@ class TriblerUpgrader(object):
         mds.shutdown()
 
     def column_exists_in_table(self, db, table, column):
-        with db_session:
-            pragma = f'SELECT COUNT(*) FROM pragma_table_info("{table}") WHERE name="{column}"'
-            result = list(db.execute(pragma))
-            # If the column exists, result = [(1, )] else [(0, )]
-            return result[0][0] == 1
+        pragma = f'SELECT COUNT(*) FROM pragma_table_info("{table}") WHERE name="{column}"'
+        result = list(db.execute(pragma))
+        # If the column exists, result = [(1, )] else [(0, )]
+        return result[0][0] == 1
 
     def do_upgrade_pony_db_10to11(self, mds):
         from_version = 10
