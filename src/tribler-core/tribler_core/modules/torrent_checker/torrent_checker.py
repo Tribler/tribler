@@ -241,10 +241,12 @@ class TorrentChecker(TaskManager):
         """
         Update the set with torrents that we have checked ourselves.
         """
-        new_result_tuple = (new_result['infohash'], new_result['seeders'],
-                            new_result['leechers'], new_result['last_check'])
-        if new_result['seeders'] > 0:
-            self._torrents_checked[new_result['infohash']] = (new_result_tuple)
+        infohash = new_result['infohash']
+        seeders = new_result['seeders']
+        new_result_tuple = (infohash, seeders, new_result['leechers'], new_result['last_check'])
+
+        if seeders > 0:
+            self._torrents_checked[infohash] = new_result_tuple
 
     def on_torrent_health_check_completed(self, infohash, result):
         final_response = {}
