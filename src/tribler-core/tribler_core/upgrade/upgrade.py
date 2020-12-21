@@ -134,6 +134,7 @@ class TriblerUpgrader(object):
             table_name = "TorrentState"
             column_name = "self_checked"
 
+            # pylint: disable=protected-access
             if not self.column_exists_in_table(mds._db, table_name, column_name):
                 sql = f'ALTER TABLE {table_name} ADD {column_name} BOOLEAN default 0;'
                 mds._db.execute(sql)

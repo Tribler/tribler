@@ -148,7 +148,6 @@ def test_delete_noncompliant_state(tmpdir):
 async def test_upgrade_pony_8to10(upgrader, session):
     old_db_sample = TESTS_DATA_DIR / 'upgrade_databases' / 'pony_v6.db'
     database_path = session.config.get_state_dir() / 'sqlite' / 'metadata.db'
-    print(database_path)
     shutil.copyfile(old_db_sample, database_path)
 
     upgrader.upgrade_pony_db_6to7()
@@ -171,6 +170,7 @@ async def test_upgrade_pony_10to11(upgrader, session):
     channels_dir = session.config.get_chant_channels_dir()
     mds = MetadataStore(database_path, channels_dir, session.trustchain_keypair)
     with db_session:
+        # pylint: disable=protected-access
         assert upgrader.column_exists_in_table(mds._db, 'TorrentState', 'self_checked')
         assert int(mds.MiscData.get(name="db_version").value) == 11
     mds.shutdown()
