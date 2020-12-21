@@ -1,12 +1,12 @@
 import pytest
 
-from tribler_common.sentry_reporter.sentry_reporter import OS_ENVIRON, PLATFORM_DETAILS, SentryReporter
+from tribler_common.sentry_reporter.sentry_reporter import (
+    OS_ENVIRON,
+    PLATFORM_DETAILS,
+    SentryReporter,
+    SentryStrategy, this_sentry_strategy,
+)
 from tribler_common.sentry_reporter.sentry_scrubber import SentryScrubber
-
-
-@pytest.fixture(name="reporter")  # this workaround implemented only for pylint
-def fixture_reporter():
-    return SentryReporter()
 
 
 @pytest.fixture(name="mock_reporter")  # this workaround implemented only for pylint
@@ -24,27 +24,27 @@ def fixture_mock_reporter():
     return MockReporter()
 
 
-def test_init(reporter):
-    assert reporter.init('')
+def test_init():
+    assert SentryReporter.init('')
 
 
-def test_set_user(reporter):
-    assert reporter.set_user('some_id'.encode('utf-8')) == {
+def test_set_user():
+    assert SentryReporter.set_user('some_id'.encode('utf-8')) == {
         'id': 'db69fe66ec6b6b013c2f7d271ce17cae',
         'username': 'Wanda Brown',
     }
 
-    assert reporter.set_user(b'11111100100') == {
+    assert SentryReporter.set_user(b'11111100100') == {
         'id': '91f900f528d5580581197c2c6a4adbbc',
         'username': 'Jennifer Herrera',
     }
 
 
-def test_send(reporter):
-    assert reporter.send_event(None, None, None) is None
+def test_send():
+    assert SentryReporter.send_event(None, None, None) is None
 
     # test return defaults
-    assert reporter.send_event({}, None, None) == {
+    assert SentryReporter.send_event({}, None, None) == {
         'contexts': {
             'browser': {'name': 'Tribler', 'version': None},
             'reporter': {'_stacktrace': [], 'comments': None, OS_ENVIRON: {}, 'sysinfo': None},
@@ -63,7 +63,7 @@ def test_send(reporter):
         "stack": 'some\nstack',
     }
 
-    assert reporter.send_event({'a': 'b'}, post_data, None) == {
+    assert SentryReporter.send_event({'a': 'b'}, post_data, None) == {
         'a': 'b',
         'contexts': {
             'browser': {'name': 'Tribler', 'version': '0.0.0'},
@@ -75,7 +75,7 @@ def test_send(reporter):
     # test sys_info
     post_data = {"sysinfo": 'key\tvalue\nkey1\tvalue1\n'}
 
-    assert reporter.send_event({}, post_data, None) == {
+    assert SentryReporter.send_event({}, post_data, None) == {
         'contexts': {
             'browser': {'name': 'Tribler', 'version': None},
             'reporter': {'_stacktrace': [], 'comments': None, 'os.environ': {}, 'sysinfo': None},
@@ -84,7 +84,7 @@ def test_send(reporter):
     }
 
     sys_info = {'platform': ['darwin'], 'platform.details': ['details'], OS_ENVIRON: ['KEY:VALUE', 'KEY1:VALUE1']}
-    assert reporter.send_event({}, None, sys_info) == {
+    assert SentryReporter.send_event({}, None, sys_info) == {
         'contexts': {
             'browser': {'name': 'Tribler', 'version': None},
             'reporter': {
@@ -98,60 +98,84 @@ def test_send(reporter):
     }
 
 
-def test_before_send(reporter):
+def test_before_send():
+    SentryReporter.thread_strategy.set(None)  # default
+
     scrubber = SentryScrubber()
-    reporter.init('', scrubber=scrubber)
+    SentryReporter.init('', scrubber=scrubber)
 
     # pylint: disable=protected-access
     SentryReporter.last_event = None
 
-    assert reporter._before_send({}, {}) == {}
-    assert reporter._before_send(None, {}) is None
-    assert reporter._before_send(None, None) is None
+    assert SentryReporter._before_send({}, {}) == {}
+    assert SentryReporter._before_send(None, {}) is None
+    assert SentryReporter._before_send(None, None) is None
 
-    reporter.strategy.set(SentryReporter.Strategy.SEND_SUPPRESSED)
-    assert reporter.last_event is None
+    SentryReporter.global_strategy = SentryStrategy.SEND_SUPPRESSED
+    assert SentryReporter.last_event is None
 
     # check that an event is stored
-    assert reporter._before_send({'a': 'b'}, None) is None
-    assert reporter.last_event == {'a': 'b'}
+    assert SentryReporter._before_send({'a': 'b'}, None) is None
+    assert SentryReporter.last_event == {'a': 'b'}
 
     # check an event has been processed
-    reporter.strategy.set(SentryReporter.Strategy.SEND_ALLOWED)
-    assert reporter._before_send({'c': 'd'}, None) == {'c': 'd'}
-    assert reporter.last_event == {'a': 'b'}
+    SentryReporter.global_strategy = SentryStrategy.SEND_ALLOWED
+    assert SentryReporter._before_send({'c': 'd'}, None) == {'c': 'd'}
+    assert SentryReporter.last_event == {'a': 'b'}
 
     # check that event can be ignored
-    assert reporter._before_send({'a': 'b'}, {'exc_info': [KeyboardInterrupt]}) is None
+    assert SentryReporter._before_send({'a': 'b'}, {'exc_info': [KeyboardInterrupt]}) is None
 
     # check information has been scrubbed
-    assert reporter._before_send({'contexts': {'reporter': {'_stacktrace': ['/Users/username/']}}}, None) == {
+    assert SentryReporter._before_send({'contexts': {'reporter': {'_stacktrace': ['/Users/username/']}}}, None) == {
         'contexts': {'reporter': {'_stacktrace': [f'/Users/{scrubber.placeholder_user}/']}}
     }
 
     # check release
-    assert reporter._before_send({'release': '7.6.0'}, None) == {'release': '7.6.0'}
-    assert reporter._before_send({'release': '7.6.0-GIT'}, None) == {'release': None}
+    assert SentryReporter._before_send({'release': '7.6.0'}, None) == {'release': '7.6.0'}
+    assert SentryReporter._before_send({'release': '7.6.0-GIT'}, None) == {'release': None}
 
     # check confirmation
-    reporter.strategy.set(SentryReporter.Strategy.SEND_ALLOWED_WITH_CONFIRMATION)
+    SentryReporter.global_strategy = SentryStrategy.SEND_ALLOWED_WITH_CONFIRMATION
     SentryReporter.get_confirmation = lambda e: False
-    assert reporter._before_send({'a': 'b'}, None) is None
+    assert SentryReporter._before_send({'a': 'b'}, None) is None
 
     SentryReporter.get_confirmation = lambda e: True
-    assert reporter._before_send({'a': 'b'}, None) == {'a': 'b'}
+    assert SentryReporter._before_send({'a': 'b'}, None) == {'a': 'b'}
 
 
-def test_event_from_exception(reporter):
-    assert not reporter.event_from_exception(None)
+def test_event_from_exception():
+    assert not SentryReporter.event_from_exception(None)
 
     # sentry sdk is not initialised, so None will be returned
     SentryReporter.last_event = None
-    assert not reporter.event_from_exception(Exception('test'))
+    assert not SentryReporter.event_from_exception(Exception('test'))
 
 
-def test_add_breadcrumb(reporter):
+def test_add_breadcrumb():
     # test: None does not produce error
-    assert reporter.add_breadcrumb(None, None, None) is None
-    assert reporter.add_breadcrumb('message', 'category', 'level') is None
-    assert reporter.add_breadcrumb('message', 'category', 'level', named_arg='some') is None
+    assert SentryReporter.add_breadcrumb(None, None, None) is None
+    assert SentryReporter.add_breadcrumb('message', 'category', 'level') is None
+    assert SentryReporter.add_breadcrumb('message', 'category', 'level', named_arg='some') is None
+
+
+def test_sentry_strategy():
+    SentryReporter.thread_strategy.set(None)  # default
+    SentryReporter.global_strategy = SentryStrategy.SEND_ALLOWED_WITH_CONFIRMATION
+
+    with this_sentry_strategy(SentryStrategy.SEND_ALLOWED):
+        assert SentryReporter.global_strategy == SentryStrategy.SEND_ALLOWED_WITH_CONFIRMATION
+        assert SentryReporter.thread_strategy.get() == SentryStrategy.SEND_ALLOWED
+
+    assert SentryReporter.thread_strategy.get() is None
+    assert SentryReporter.global_strategy == SentryStrategy.SEND_ALLOWED_WITH_CONFIRMATION
+
+
+def test_get_actual_strategy():
+    SentryReporter.thread_strategy.set(None)  # default
+    SentryReporter.global_strategy = SentryStrategy.SEND_ALLOWED_WITH_CONFIRMATION
+
+    assert SentryReporter.get_actual_strategy() == SentryStrategy.SEND_ALLOWED_WITH_CONFIRMATION
+
+    SentryReporter.thread_strategy.set(SentryStrategy.SEND_ALLOWED)
+    assert SentryReporter.get_actual_strategy() == SentryStrategy.SEND_ALLOWED
