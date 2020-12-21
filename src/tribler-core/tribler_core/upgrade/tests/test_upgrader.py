@@ -148,6 +148,7 @@ def test_delete_noncompliant_state(tmpdir):
 async def test_upgrade_pony_8to10(upgrader, session):
     old_db_sample = TESTS_DATA_DIR / 'upgrade_databases' / 'pony_v6.db'
     database_path = session.config.get_state_dir() / 'sqlite' / 'metadata.db'
+    print(database_path)
     shutil.copyfile(old_db_sample, database_path)
 
     upgrader.upgrade_pony_db_6to7()
@@ -162,13 +163,10 @@ async def test_upgrade_pony_8to10(upgrader, session):
 
 @pytest.mark.asyncio
 async def test_upgrade_pony_10to11(upgrader, session):
-    old_db_sample = TESTS_DATA_DIR / 'upgrade_databases' / 'pony_v6.db'
+    old_db_sample = TESTS_DATA_DIR / 'upgrade_databases' / 'pony_v10.db'
     database_path = session.config.get_state_dir() / 'sqlite' / 'metadata.db'
     shutil.copyfile(old_db_sample, database_path)
 
-    upgrader.upgrade_pony_db_6to7()
-    upgrader.upgrade_pony_db_7to8()
-    await upgrader.upgrade_pony_db_8to10()
     upgrader.upgrade_pony_db_10to11()
     channels_dir = session.config.get_chant_channels_dir()
     mds = MetadataStore(database_path, channels_dir, session.trustchain_keypair)
