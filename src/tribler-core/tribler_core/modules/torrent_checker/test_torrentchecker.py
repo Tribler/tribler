@@ -126,7 +126,7 @@ async def test_load_torrents_check_from_db(enable_chant, torrent_checker, sessio
     # Case 5: Clear the torrent_checked set (private variable),
     # and save freshly self checked torrents more than max return size (10 more).
     # Expected: max (return size) torrents, since limit is placed on how many to load.
-    torrent_checker._torrents_checked = set()
+    torrent_checker._torrents_checked = dict()
     return_size = torrent_checker_module.TORRENTS_CHECKED_RETURN_SIZE
     save_random_torrent_state(last_checked=after_threshold, self_checked=True, count=return_size + 10)
     assert len(torrent_checker.torrents_checked) == return_size

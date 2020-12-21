@@ -48,7 +48,7 @@ class TorrentChecker(TaskManager):
 
         # We keep track of the results of popular torrents checked by you.
         # The popularity community gossips this information around.
-        self._torrents_checked = set()
+        self._torrents_checked = dict()
 
     async def initialize(self):
         self.register_task("tracker_check", self.check_random_tracker, interval=TRACKER_SELECTION_INTERVAL)
@@ -159,13 +159,10 @@ class TorrentChecker(TaskManager):
     def torrents_checked(self):
         if not self._torrents_checked:
             self.load_torrents_checked_from_db()
-        return self._torrents_checked
+        return self._torrents_checked.values()
 
     @db_session
     def load_torrents_checked_from_db(self):
-        if not self.tribler_session.mds:
-            return
-
         last_fresh_time = time.time() - HEALTH_FRESHNESS_SECONDS
         checked_torrents = list(self.tribler_session.mds.TorrentState
                                 .select(lambda g: g.last_check > last_fresh_time and g.self_checked)
@@ -173,7 +170,8 @@ class TorrentChecker(TaskManager):
                                 .limit(TORRENTS_CHECKED_RETURN_SIZE))
 
         for torrent in checked_torrents:
-            self._torrents_checked.add((torrent.infohash, torrent.seeders, torrent.leechers, torrent.last_check))
+            self._torrents_checked[torrent.infohash] = (torrent.infohash, torrent.seeders, torrent.leechers,
+                                                        torrent.last_check)
 
     @db_session
     def torrents_to_check(self):
@@ -246,7 +244,7 @@ class TorrentChecker(TaskManager):
         new_result_tuple = (new_result['infohash'], new_result['seeders'],
                             new_result['leechers'], new_result['last_check'])
         if new_result['seeders'] > 0:
-            self._torrents_checked.add(new_result_tuple)
+            self._torrents_checked[new_result['infohash']] = (new_result_tuple)
 
     def on_torrent_health_check_completed(self, infohash, result):
         final_response = {}
