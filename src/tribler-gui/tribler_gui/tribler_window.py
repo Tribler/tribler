@@ -111,11 +111,14 @@ class TriblerWindow(QMainWindow):
         exception_text = "".join(traceback.format_exception(*exc_info))
 
         sentry_event = None
+        error_reporting_requires_user_consent = True
         for arg in info_error.args:
-            key = 'sentry_event'
-            if isinstance(arg, dict) and key in arg:
-                sentry_event = arg[key]
-                break
+            if not isinstance(arg, dict) or 'backend_event' not in arg:
+                continue
+
+            backend_event = arg['backend_event']
+            sentry_event = backend_event['sentry_event']
+            error_reporting_requires_user_consent = backend_event['error_reporting_requires_user_consent']
 
         if not sentry_event:
             # then the exception occured in GUI
@@ -143,7 +146,14 @@ class TriblerWindow(QMainWindow):
         if info_type is CoreConnectTimeoutError:
             exception_text = exception_text + self.core_manager.core_traceback
 
-        dialog = FeedbackDialog(self, exception_text, self.tribler_version, self.start_time, sentry_event)
+        dialog = FeedbackDialog(
+            self,
+            exception_text,
+            self.tribler_version,
+            self.start_time,
+            sentry_event,
+            error_reporting_requires_user_consent,
+        )
         dialog.show()
 
     def __init__(self, core_args=None, core_env=None, api_port=None, api_key=None):

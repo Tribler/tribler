@@ -22,7 +22,15 @@ from tribler_gui.utilities import connect, get_ui_file_path
 
 
 class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
-    def __init__(self, parent, exception_text, tribler_version, start_time, sentry_event=None):  # pylint: disable=R0914
+    def __init__(  # pylint: disable=too-many-arguments, too-many-locals
+        self,
+        parent,
+        exception_text,
+        tribler_version,
+        start_time,
+        sentry_event=None,
+        error_reporting_requires_user_consent=True,
+    ):
         QDialog.__init__(self, parent)
 
         uic.loadUi(get_ui_file_path('feedback_dialog.ui'), self)
@@ -86,6 +94,10 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
         # Users can remove specific lines in the report
         connect(self.env_variables_list.customContextMenuRequested, self.on_right_click_item)
 
+        self.error_reporting_requires_user_consent = error_reporting_requires_user_consent
+        if not error_reporting_requires_user_consent:
+            self.on_send_clicked(True)
+
     def on_remove_entry(self):
         self.env_variables_list.takeTopLevelItem(self.selected_item_index)
 
@@ -109,6 +121,9 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
     def on_report_sent(self, response):
         if not response:
             return
+        if not self.error_reporting_requires_user_consent:
+            QApplication.quit()
+
         sent = response[u'sent']
 
         success_text = "Successfully sent the report! Thanks for your contribution."

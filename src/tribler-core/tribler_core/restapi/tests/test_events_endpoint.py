@@ -66,7 +66,7 @@ async def test_events(enable_api, session):
             session.notifier.notify(subject, *data)
         else:
             session.notifier.notify(subject)
-    session.api_manager.root_endpoint.endpoints['/events'].on_tribler_exception("hi", None)
+    session.api_manager.root_endpoint.endpoints['/events'].on_tribler_exception("hi", None, False)
     await events_future
 
     event_socket_task.cancel()
