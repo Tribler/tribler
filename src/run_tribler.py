@@ -5,7 +5,7 @@ import signal
 import sys
 from asyncio import ensure_future, get_event_loop
 
-from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
+from tribler_common.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
 from tribler_common.sentry_reporter.sentry_scrubber import SentryScrubber
 
 import tribler_core
@@ -64,6 +64,10 @@ def start_tribler_core(base_path, api_port, api_key, root_state_dir, core_test_m
         state_dir = get_versioned_state_directory(root_state_dir)
 
         config = TriblerConfig(state_dir, config_file=state_dir / CONFIG_FILENAME)
+
+        if not config.get_error_reporting_requires_user_consent():
+            SentryReporter.global_strategy = SentryStrategy.SEND_ALLOWED
+
         config.set_api_http_port(int(api_port))
         # If the API key is set to an empty string, it will remain disabled
         if config.get_api_key() not in ('', api_key):
@@ -90,7 +94,7 @@ def start_tribler_core(base_path, api_port, api_key, root_state_dir, core_test_m
 
 if __name__ == "__main__":
     SentryReporter.init(sentry_url=sentry_url, release_version=version_id, scrubber=SentryScrubber(),
-                        strategy=SentryReporter.Strategy.SEND_ALLOWED_WITH_CONFIRMATION)
+                        strategy=SentryStrategy.SEND_ALLOWED_WITH_CONFIRMATION)
     # Get root state directory (e.g. from environment variable or from system default)
     root_state_dir = get_root_state_directory()
     # Check whether we need to start the core or the user interface

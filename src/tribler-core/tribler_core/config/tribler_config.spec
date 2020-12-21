@@ -106,3 +106,6 @@ history_size = integer(min=1, default=20)
 [popularity_community]
 enabled = boolean(default=True)
 cache_dir = string(default=health_cache)
+
+[error_handling]
+error_reporting_requires_user_consent=boolean(default=True)

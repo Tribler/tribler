@@ -305,3 +305,7 @@ def test_get_set_discovery_community_enabled(tribler_config):
     assert not tribler_config.get_discovery_community_enabled()
     tribler_config.set_discovery_community_enabled(True)
     assert tribler_config.get_discovery_community_enabled()
+
+
+def test_get_error_handling(tribler_config):
+    assert tribler_config.get_error_reporting_requires_user_consent()
