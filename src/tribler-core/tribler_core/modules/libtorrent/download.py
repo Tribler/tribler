@@ -298,7 +298,15 @@ class Download(TaskManager):
         self.tracker_status[alert.url] = [alert.num_peers, 'Working']
 
     def on_tracker_error_alert(self, alert):
-        peers = self.tracker_status[alert.url][0] if alert.url in self.tracker_status else 0
+        # try-except block here is a workaround and has been added to solve
+        # https://github.com/Tribler/tribler/issues/5740
+        try:
+            url = alert.url
+        except UnicodeDecodeError as e:
+            self._logger.exception(e)
+            return
+
+        peers = self.tracker_status[url][0] if url in self.tracker_status else 0
         if alert.msg:
             status = 'Error: ' + alert.msg
         elif alert.status_code > 0:
@@ -308,7 +316,7 @@ class Download(TaskManager):
         else:
             status = 'Not working'
 
-        self.tracker_status[alert.url] = [peers, status]
+        self.tracker_status[url] = [peers, status]
 
     def on_tracker_warning_alert(self, alert):
         peers = self.tracker_status[alert.url][0] if alert.url in self.tracker_status else 0
