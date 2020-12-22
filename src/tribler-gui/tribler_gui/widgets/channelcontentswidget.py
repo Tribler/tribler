@@ -268,8 +268,6 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
     def on_breadcrumb_clicked(self, tgt_level):
         if int(tgt_level) + 1 != len(self.channels_stack):
             self.go_back_to_level(tgt_level)
-        else:
-            self.reset_view()
 
     def go_back_to_level(self, level):
         level = int(level)
