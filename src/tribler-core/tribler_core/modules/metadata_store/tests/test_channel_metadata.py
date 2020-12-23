@@ -452,50 +452,53 @@ def test_get_channels(metadata_store):
 
 @db_session
 def test_sort_by_health(metadata_store):
+    def save():
+        metadata_store._db.flush()  # pylint: disable=W0212
+
     channel = metadata_store.ChannelMetadata.create_channel('channel1')
-    metadata_store._db.flush()
+    save()
 
     torrent1 = metadata_store.TorrentMetadata(
         origin_id=channel.id_, status=NEW, infohash=random_infohash(), title='torrent1 aaa bbb'
     )
     torrent1.health.set(seeders=10, leechers=20)
-    metadata_store._db.flush()
+    save()
 
     folder1 = metadata_store.CollectionNode(origin_id=channel.id_, title='folder1 aaa ccc')
-    metadata_store._db.flush()
+    save()
 
     torrent2 = metadata_store.TorrentMetadata(
         origin_id=channel.id_, status=NEW, infohash=random_infohash(), title='torrent2 bbb ccc'
     )
     torrent2.health.set(seeders=5, leechers=10)
-    metadata_store._db.flush()
+    save()
 
     folder2 = metadata_store.CollectionNode(origin_id=channel.id_, title='folder2 aaa bbb')
-    metadata_store._db.flush()
+    save()
 
     torrent3 = metadata_store.TorrentMetadata(
         origin_id=channel.id_, status=NEW, infohash=random_infohash(), title='torrent3 ccc ddd'
     )
     torrent3.health.set(seeders=30, leechers=40)
-    metadata_store._db.flush()
+    save()
 
     folder2_1 = metadata_store.CollectionNode(
         origin_id=folder2.id_,
         title='folder2_1 aaa bbb',
     )
-    metadata_store._db.flush()
+    save()
 
     folder2_2 = metadata_store.CollectionNode(
         origin_id=folder2.id_,
         title='folder2_2 bbb ccc',
     )
-    metadata_store._db.flush()
+    save()
 
     torrent2_1 = metadata_store.TorrentMetadata(
         origin_id=folder2.id_, status=NEW, infohash=random_infohash(), title='torrent2_1 aaa ccc'
     )
     torrent2_1.health.set(seeders=20, leechers=10)
-    metadata_store._db.flush()
+    save()
 
     # Without FTS search
 

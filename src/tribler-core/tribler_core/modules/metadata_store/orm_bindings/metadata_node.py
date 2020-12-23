@@ -52,7 +52,7 @@ def define_binding(db):
                 """SELECT rowid FROM ChannelNode WHERE rowid IN (SELECT rowid FROM FtsIndex WHERE FtsIndex MATCH $query
                 ORDER BY bm25(FtsIndex) LIMIT $lim) GROUP BY infohash"""
             )
-            return left_join(g for g in cls if g.rowid in fts_ids)
+            return left_join(g for g in cls if g.rowid in fts_ids)  # pylint: disable=E1135
 
         @classmethod
         @db_session
