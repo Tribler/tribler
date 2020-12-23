@@ -225,8 +225,8 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         self.update_labels()
         self.channel_torrents_filter_input.setText("")
 
-    def reset_view(self):
-        self.model.text_filter = ''
+    def reset_view(self, text_filter=None):
+        self.model.text_filter = text_filter or ''
         self.model.category_filter = None
 
         with self.freeze_controls():
@@ -270,7 +270,13 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
     def on_breadcrumb_clicked(self, tgt_level):
         if int(tgt_level) + 1 != len(self.channels_stack):
             self.go_back_to_level(tgt_level)
+        elif isinstance(self.model, SearchResultsModel) and len(self.channels_stack) == 1:
+            # In case of remote search, when only the search results are on the stack,
+            # we must keep the txt_filter (which contains the search term) before resetting the view
+            text_filter = self.model.text_filter
+            self.reset_view(text_filter=text_filter)
         else:
+            # Reset the view if the user clicks on the last part of the breadcrumb
             self.reset_view()
 
     def go_back_to_level(self, level):
