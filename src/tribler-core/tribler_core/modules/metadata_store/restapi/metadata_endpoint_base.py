@@ -1,9 +1,10 @@
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 from tribler_core.restapi.rest_endpoint import RESTEndpoint
 
+# This dict is used to translate JSON fields into the columns used in Pony for _sorting_.
+# id_ is not in the list because there is not index on it, so we never really want to sort on it.
 json2pony_columns = {
     'category': "tags",
-    'id': "rowid",
     'name': "title",
     'size': "size",
     'infohash': "infohash",
@@ -16,7 +17,7 @@ json2pony_columns = {
     'health': 'HEALTH',
 }
 
-# TODO: use the same representation for metatada nodes as in the database
+# TODO: use the same representation for metadata nodes as in the database
 metadata_type_to_search_scope = {
     '': frozenset((REGULAR_TORRENT, CHANNEL_TORRENT, COLLECTION_NODE)),
     "channel": frozenset((CHANNEL_TORRENT, COLLECTION_NODE)),
