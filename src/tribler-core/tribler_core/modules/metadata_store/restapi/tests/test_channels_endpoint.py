@@ -122,7 +122,6 @@ async def test_get_channel_contents(enable_chant, enable_api, add_fake_torrents_
     with db_session:
         chan = session.mds.ChannelMetadata.select().first()
     json_dict = await do_request(session, 'channels/%s/123' % hexlify(chan.public_key), expected_code=200)
-    print(json_dict)
     assert len(json_dict['results']) == 5
     assert 'status' in json_dict['results'][0]
     assert json_dict['results'][0]['progress'] == 0.5
