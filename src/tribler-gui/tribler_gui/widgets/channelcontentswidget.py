@@ -176,8 +176,9 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         self.channels_stack.append(model)
         connect(self.model.info_changed, self.on_model_info_changed)
 
-        connect(self.window().core_manager.events_manager.received_remote_query_results,
-                self.model.on_new_entry_received)
+        connect(
+            self.window().core_manager.events_manager.received_remote_query_results, self.model.on_new_entry_received
+        )
         connect(self.window().core_manager.events_manager.node_info_updated, self.model.update_node_info)
 
         with self.freeze_controls():
@@ -224,8 +225,8 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         self.update_labels()
         self.channel_torrents_filter_input.setText("")
 
-    def reset_view(self):
-        self.model.text_filter = ''
+    def reset_view(self, text_filter=None):
+        self.model.text_filter = text_filter or ''
         self.model.category_filter = None
 
         with self.freeze_controls():
@@ -239,8 +240,9 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
     def disconnect_current_model(self):
         self.model.info_changed.disconnect()
         disconnect(self.window().core_manager.events_manager.node_info_updated, self.model.update_node_info)
-        disconnect(self.window().core_manager.events_manager.received_remote_query_results,
-                   self.model.on_new_entry_received)
+        disconnect(
+            self.window().core_manager.events_manager.received_remote_query_results, self.model.on_new_entry_received
+        )
         self.controller.unset_model()  # Disconnect the selectionChanged signal
 
     def go_back(self, checked=False):
@@ -268,7 +270,13 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
     def on_breadcrumb_clicked(self, tgt_level):
         if int(tgt_level) + 1 != len(self.channels_stack):
             self.go_back_to_level(tgt_level)
+        elif isinstance(self.model, SearchResultsModel) and len(self.channels_stack) == 1:
+            # In case of remote search, when only the search results are on the stack,
+            # we must keep the txt_filter (which contains the search term) before resetting the view
+            text_filter = self.model.text_filter
+            self.reset_view(text_filter=text_filter)
         else:
+            # Reset the view if the user clicks on the last part of the breadcrumb
             self.reset_view()
 
     def go_back_to_level(self, level):
@@ -288,12 +296,12 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         params = dict()
 
         if "public_key" in self.model.channel_info:
-            # This is a channel contents query, limit the search by channel_pk and torrent md type
-            params.update({'metadata_type': 'torrent', 'channel_pk': self.model.channel_info["public_key"]})
-        elif self.model.text_filter:
-            # GigaChannel Community v1.0 does not support searching for text in a specific channel
+            # This is a channel contents query, limit the search by channel_pk and origin_id
+            params.update(
+                {'channel_pk': self.model.channel_info["public_key"], 'origin_id': self.model.channel_info["id"]}
+            )
+        if self.model.text_filter:
             params.update({'txt_filter': self.model.text_filter})
-
         if self.model.hide_xxx is not None:
             params.update({'hide_xxx': self.model.hide_xxx})
         if self.model.sort_by is not None:
