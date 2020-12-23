@@ -225,7 +225,7 @@ def test_get_entries(metadata_store):
 
     args = dict(channel_pk=channel_pk, hide_xxx=True, exclude_deleted=True, metadata_type=REGULAR_TORRENT)
     torrents = metadata_store.TorrentMetadata.get_entries_query(**args)[:]
-    assert tlist[-5:-2] == list(torrents)
+    assert tlist[-5:-2] == list(torrents)[::-1]
 
     count = metadata_store.TorrentMetadata.get_entries_count(**args)
     assert count == 3

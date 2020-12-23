@@ -451,6 +451,129 @@ def test_get_channels(metadata_store):
 
 
 @db_session
+def test_sort_by_health(metadata_store):
+    channel = metadata_store.ChannelMetadata.create_channel('channel1')
+    metadata_store._db.flush()
+
+    torrent1 = metadata_store.TorrentMetadata(
+        origin_id=channel.id_, status=NEW, infohash=random_infohash(), title='torrent1 aaa bbb'
+    )
+    torrent1.health.set(seeders=10, leechers=20)
+    metadata_store._db.flush()
+
+    folder1 = metadata_store.CollectionNode(origin_id=channel.id_, title='folder1 aaa ccc')
+    metadata_store._db.flush()
+
+    torrent2 = metadata_store.TorrentMetadata(
+        origin_id=channel.id_, status=NEW, infohash=random_infohash(), title='torrent2 bbb ccc'
+    )
+    torrent2.health.set(seeders=5, leechers=10)
+    metadata_store._db.flush()
+
+    folder2 = metadata_store.CollectionNode(origin_id=channel.id_, title='folder2 aaa bbb')
+    metadata_store._db.flush()
+
+    torrent3 = metadata_store.TorrentMetadata(
+        origin_id=channel.id_, status=NEW, infohash=random_infohash(), title='torrent3 ccc ddd'
+    )
+    torrent3.health.set(seeders=30, leechers=40)
+    metadata_store._db.flush()
+
+    folder2_1 = metadata_store.CollectionNode(
+        origin_id=folder2.id_,
+        title='folder2_1 aaa bbb',
+    )
+    metadata_store._db.flush()
+
+    folder2_2 = metadata_store.CollectionNode(
+        origin_id=folder2.id_,
+        title='folder2_2 bbb ccc',
+    )
+    metadata_store._db.flush()
+
+    torrent2_1 = metadata_store.TorrentMetadata(
+        origin_id=folder2.id_, status=NEW, infohash=random_infohash(), title='torrent2_1 aaa ccc'
+    )
+    torrent2_1.health.set(seeders=20, leechers=10)
+    metadata_store._db.flush()
+
+    # Without FTS search
+
+    objects = metadata_store.MetadataNode.get_entries(channel_pk=channel.public_key, sort_by='HEALTH', sort_desc=True)
+    titles = [obj.title.partition(' ')[0] for obj in objects]
+    assert titles == [
+        'torrent3',
+        'torrent2_1',
+        'torrent1',
+        'torrent2',
+        'channel1',
+        'folder2_2',
+        'folder2_1',
+        'folder2',
+        'folder1',
+    ]
+
+    objects = metadata_store.MetadataNode.get_entries(channel_pk=channel.public_key, sort_by='HEALTH', sort_desc=False)
+    titles = [obj.title.partition(' ')[0] for obj in objects]
+    assert titles == [
+        'folder1',
+        'folder2',
+        'folder2_1',
+        'folder2_2',
+        'channel1',
+        'torrent2',
+        'torrent1',
+        'torrent2_1',
+        'torrent3',
+    ]
+
+    objects = metadata_store.MetadataNode.get_entries(
+        origin_id=channel.id_,
+        sort_by='HEALTH',
+        sort_desc=True,
+    )
+    titles = [obj.title.partition(' ')[0] for obj in objects]
+    assert titles == ['torrent3', 'torrent1', 'torrent2', 'folder2', 'folder1']
+
+    objects = metadata_store.MetadataNode.get_entries(origin_id=channel.id_, sort_by='HEALTH', sort_desc=False)
+    titles = [obj.title.partition(' ')[0] for obj in objects]
+    assert titles == ['folder1', 'folder2', 'torrent2', 'torrent1', 'torrent3']
+
+    # With FTS search
+
+    objects = metadata_store.MetadataNode.get_entries(
+        channel_pk=channel.public_key, txt_filter='aaa', sort_by='HEALTH', sort_desc=True
+    )
+    titles = [obj.title.partition(' ')[0] for obj in objects]
+    # FIXME: does not return folder2 and folder2_1 due to a bug in a full text search query
+    assert titles == ['torrent2_1', 'torrent1', 'folder1']
+
+    objects = metadata_store.MetadataNode.get_entries(
+        channel_pk=channel.public_key, txt_filter='aaa', sort_by='HEALTH', sort_desc=False
+    )
+    titles = [obj.title.partition(' ')[0] for obj in objects]
+    # FIXME: does not return folder2 and folder2_1 due to a bug in a full text search query
+    assert titles == ['folder1', 'torrent1', 'torrent2_1']
+
+    objects = metadata_store.MetadataNode.get_entries(
+        origin_id=channel.id_,
+        txt_filter='aaa',
+        sort_by='HEALTH',
+        sort_desc=True,
+    )
+    titles = [obj.title.partition(' ')[0] for obj in objects]
+    # FIXME: does not return folder2 due to a bug in a full text search query
+    assert titles == ['torrent1', 'folder1']
+
+    objects = metadata_store.MetadataNode.get_entries(
+        origin_id=channel.id_, txt_filter='aaa', sort_by='HEALTH', sort_desc=False
+    )
+    titles = [obj.title.partition(' ')[0] for obj in objects]
+    # FIXME: does not return folder2 due to a bug in a full text search query
+    assert titles == ['folder1', 'torrent1']
+
+
+@db_session
 def test_get_channel_name(metadata_store):
     """
     Test getting torrent name for a channel to be displayed in the downloads list

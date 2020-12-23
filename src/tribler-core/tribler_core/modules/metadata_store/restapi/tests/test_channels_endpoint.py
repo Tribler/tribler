@@ -27,7 +27,7 @@ async def test_get_channels(enable_chant, enable_api, add_fake_torrents_channels
     json_dict = await do_request(session, 'channels')
     assert len(json_dict['results']) == 10
     # Default channel state should be METAINFO_LOOKUP
-    assert json_dict['results'][0]['state'] == CHANNEL_STATE.METAINFO_LOOKUP.value
+    assert json_dict['results'][-1]['state'] == CHANNEL_STATE.METAINFO_LOOKUP.value
 
     # We test out different combinations of channels' states and download progress
     # State UPDATING:
@@ -38,7 +38,7 @@ async def test_get_channels(enable_chant, enable_api, add_fake_torrents_channels
         channel.local_version = 123
 
     json_dict = await do_request(session, 'channels')
-    assert json_dict['results'][0]['progress'] == 0.5
+    assert json_dict['results'][-1]['progress'] == 0.5
 
     # State DOWNLOADING
     with db_session:
@@ -49,7 +49,7 @@ async def test_get_channels(enable_chant, enable_api, add_fake_torrents_channels
     session.dlmgr.metainfo_requests.get = lambda _: False
     session.dlmgr.download_exists = lambda _: True
     json_dict = await do_request(session, 'channels')
-    assert json_dict['results'][0]['state'] == CHANNEL_STATE.DOWNLOADING.value
+    assert json_dict['results'][-1]['state'] == CHANNEL_STATE.DOWNLOADING.value
 
 
 @pytest.mark.asyncio
