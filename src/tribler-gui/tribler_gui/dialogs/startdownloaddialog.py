@@ -155,6 +155,9 @@ class StartDownloadDialog(DialogContainer):
         return included_files
 
     def perform_files_request(self):
+        if self.closed:
+            return
+
         direct = not self.dialog_widget.anon_download_checkbox.isChecked()
         request = f"torrentinfo?uri={quote_plus_unicode(self.download_uri)}"
         if direct is True:
