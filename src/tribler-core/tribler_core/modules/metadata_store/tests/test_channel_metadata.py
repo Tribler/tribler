@@ -548,15 +548,13 @@ def test_sort_by_health(metadata_store):
         channel_pk=channel.public_key, txt_filter='aaa', sort_by='HEALTH', sort_desc=True
     )
     titles = [obj.title.partition(' ')[0] for obj in objects]
-    # FIXME: does not return folder2 and folder2_1 due to a bug in a full text search query
-    assert titles == ['torrent2_1', 'torrent1', 'folder1']
+    assert titles == ['torrent2_1', 'torrent1', 'folder2_1', 'folder2', 'folder1']
 
     objects = metadata_store.MetadataNode.get_entries(
         channel_pk=channel.public_key, txt_filter='aaa', sort_by='HEALTH', sort_desc=False
     )
     titles = [obj.title.partition(' ')[0] for obj in objects]
-    # FIXME: does not return folder2 and folder2_1 due to a bug in a full text search query
-    assert titles == ['folder1', 'torrent1', 'torrent2_1']
+    assert titles == ['folder1', 'folder2', 'folder2_1', 'torrent1', 'torrent2_1']
 
     objects = metadata_store.MetadataNode.get_entries(
         origin_id=channel.id_,
@@ -565,15 +563,13 @@ def test_sort_by_health(metadata_store):
         sort_desc=True,
     )
     titles = [obj.title.partition(' ')[0] for obj in objects]
-    # FIXME: does not return folder2 due to a bug in a full text search query
-    assert titles == ['torrent1', 'folder1']
+    assert titles == ['torrent1', 'folder2', 'folder1']
 
     objects = metadata_store.MetadataNode.get_entries(
         origin_id=channel.id_, txt_filter='aaa', sort_by='HEALTH', sort_desc=False
     )
     titles = [obj.title.partition(' ')[0] for obj in objects]
-    # FIXME: does not return folder2 due to a bug in a full text search query
-    assert titles == ['folder1', 'torrent1']
+    assert titles == ['folder1', 'folder2', 'torrent1']
 
 
 @db_session

@@ -46,11 +46,10 @@ def define_binding(db):
             if not query or query == "*":
                 return []
 
-            # !!! FIXME !!! Fix GROUP BY for entries without infohash !!!
             # TODO: optimize this query by removing unnecessary select nests (including Pony-manages selects)
             fts_ids = raw_sql(
                 """SELECT rowid FROM ChannelNode WHERE rowid IN (SELECT rowid FROM FtsIndex WHERE FtsIndex MATCH $query
-                ORDER BY bm25(FtsIndex) LIMIT $lim) GROUP BY infohash"""
+                ORDER BY bm25(FtsIndex) LIMIT $lim) GROUP BY coalesce(infohash, rowid)"""
             )
             return left_join(g for g in cls if g.rowid in fts_ids)  # pylint: disable=E1135
 
