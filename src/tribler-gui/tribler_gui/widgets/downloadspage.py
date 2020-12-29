@@ -164,6 +164,11 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
 
         items = []
         for download in downloads["downloads"]:
+            # Update download progress information for torrents in the Channels GUI
+            self.window().core_manager.events_manager.node_info_updated.emit(
+                {"infohash": download["infohash"], "progress": download["progress"]}
+            )
+
             if download["infohash"] in self.download_widgets:
                 item = self.download_widgets[download["infohash"]]
             else:
