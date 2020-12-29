@@ -1,7 +1,4 @@
-from PIL.ImageQt import ImageQt
-
-from PyQt5 import QtCore, QtGui
-from PyQt5.QtWidgets import QFileDialog, QLabel, QSizePolicy, QWidget
+from PyQt5.QtWidgets import QFileDialog, QSizePolicy, QWidget
 
 from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler_common.simpledefs import MAX_LIBTORRENT_RATE_LIMIT
@@ -9,7 +6,6 @@ from tribler_common.simpledefs import MAX_LIBTORRENT_RATE_LIMIT
 import tribler_core.utilities.json_util as json
 
 from tribler_gui.defs import (
-    BUTTON_TYPE_CONFIRM,
     BUTTON_TYPE_NORMAL,
     DEFAULT_API_PORT,
     PAGE_SETTINGS_ANONYMITY,
@@ -133,7 +129,7 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
 
         is_writable, error = is_dir_writable(log_dir)
         if not is_writable:
-            gui_error_message = "<i>%s</i> is not writable. [%s]" % (log_dir, error)
+            gui_error_message = f"<i>{log_dir}</i> is not writable. [{error}]"
             ConfirmationDialog.show_message(self.window(), "Insufficient Permissions", gui_error_message, "OK")
         else:
             self.window().log_location_input.setText(log_dir)
@@ -305,7 +301,7 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
             and len(self.window().lt_proxy_port_input.text()) > 0
         ):
             try:
-                settings_data['libtorrent']['proxy_server'] = "%s:%s" % (
+                settings_data['libtorrent']['proxy_server'] = "{}:{}".format(
                     self.window().lt_proxy_server_input.text(),
                     int(self.window().lt_proxy_port_input.text()),
                 )
@@ -320,7 +316,7 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
             settings_data['libtorrent']['proxy_server'] = ":"
 
         if self.window().lt_proxy_username_input.text() and self.window().lt_proxy_password_input.text():
-            settings_data['libtorrent']['proxy_auth'] = "%s:%s" % (
+            settings_data['libtorrent']['proxy_auth'] = "{}:{}".format(
                 self.window().lt_proxy_username_input.text(),
                 self.window().lt_proxy_password_input.text(),
             )

@@ -25,7 +25,7 @@ class GigaChannelManager(TaskManager):
     """
 
     def __init__(self, session):
-        super(GigaChannelManager, self).__init__()
+        super().__init__()
         self.session = session
 
         # We queue up processing of the channels because we do it in a separate thread, and we don't want

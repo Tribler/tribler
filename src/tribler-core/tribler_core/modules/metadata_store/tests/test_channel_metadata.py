@@ -24,7 +24,7 @@ from tribler_core.utilities.random_utils import random_infohash
 
 @pytest.fixture
 def my_key():
-    return default_eccrypto.generate_key(u"curve25519")
+    return default_eccrypto.generate_key("curve25519")
 
 
 @pytest.fixture
@@ -102,7 +102,7 @@ def mds_with_some_torrents_fixture(metadata_store):
     new_torrent(title='torrent2_1 aaa ccc', origin_id=folder2.id_).health.set(seeders=20, leechers=10)
     save()
 
-    key = default_eccrypto.generate_key(u"curve25519")
+    key = default_eccrypto.generate_key("curve25519")
     channel2 = new_channel(title='channel2 aaa bbb', sign_with=key)
     save()  # to obtain channel2.id_
     new_torrent(title='torrent5 aaa zzz', origin_id=channel2.id_, sign_with=key).health.set(seeders=1, leechers=2)
@@ -246,7 +246,7 @@ def test_restore_torrent_in_channel(metadata_store):
 
     # Check update of torrent properties from a new tdef
     md.status = TODELETE
-    new_tracker_address = u'http://tribler.org/announce'
+    new_tracker_address = 'http://tribler.org/announce'
     tdef.torrent_parameters[b'announce'] = new_tracker_address.encode('utf-8')
     md_updated = channel_metadata.add_torrent_to_channel(tdef, None)
     assert md_updated == md
@@ -315,7 +315,7 @@ def test_vsids(metadata_store):
     """
     Test VSIDS-based channel popularity system.
     """
-    peer_key = default_eccrypto.generate_key(u"curve25519")
+    peer_key = default_eccrypto.generate_key("curve25519")
     assert metadata_store.Vsids[0].bump_amount == 1.0
 
     channel = metadata_store.ChannelMetadata.create_channel('test', 'test')
@@ -334,7 +334,7 @@ def test_vsids(metadata_store):
     assert channel.votes == 1.0
 
     # Ensure that vote by another person counts
-    peer_key = default_eccrypto.generate_key(u"curve25519")
+    peer_key = default_eccrypto.generate_key("curve25519")
     metadata_store.vote_bump(channel.public_key, channel.id_, peer_key.pub().key_to_bin()[10:])
     assert channel.votes == 2.0
 
@@ -829,7 +829,7 @@ def test_make_copy(metadata_store):
     """
     Test copying if recursive copying an external channel to a personal channel works as expected
     """
-    src_chan = create_ext_chan(metadata_store, default_eccrypto.generate_key(u"curve25519"))
+    src_chan = create_ext_chan(metadata_store, default_eccrypto.generate_key("curve25519"))
 
     tgt_chan = metadata_store.ChannelMetadata(title='our chan', infohash=random_infohash(), status=NEW)
     src_chan.make_copy(tgt_chan.id_)
@@ -868,11 +868,11 @@ def test_delete_recursive(metadata_store):
     """
     Test deleting channel and its contents recursively
     """
-    src_chan = create_ext_chan(metadata_store, default_eccrypto.generate_key(u"curve25519"))
+    src_chan = create_ext_chan(metadata_store, default_eccrypto.generate_key("curve25519"))
     src_chan.delete()
     assert not metadata_store.ChannelNode.select().count()
 
-    src_chan = create_ext_chan(metadata_store, default_eccrypto.generate_key(u"curve25519"))
+    src_chan = create_ext_chan(metadata_store, default_eccrypto.generate_key("curve25519"))
     src_chan_rowid = src_chan.rowid
     src_chan.delete(recursive=False)
     assert metadata_store.ChannelNode.select().count() == 7
@@ -885,7 +885,7 @@ def test_get_parent_ids(metadata_store):
     """
     Test the routine that gets the full set (path) of a node's predecessors in the channels tree
     """
-    src_chan = create_ext_chan(metadata_store, default_eccrypto.generate_key(u"curve25519"))
+    src_chan = create_ext_chan(metadata_store, default_eccrypto.generate_key("curve25519"))
     coll1 = metadata_store.CollectionNode.select(lambda g: g.origin_id == src_chan.id_).first()
     assert (0, src_chan.id_, coll1.id_) == coll1.contents.first().get_parents_ids()
 

@@ -83,7 +83,7 @@ def test_ffa_serialization(metadata_store):
 
 @db_session
 def test_key_mismatch_exception(metadata_store):
-    mismatched_key = default_eccrypto.generate_key(u"curve25519")
+    mismatched_key = default_eccrypto.generate_key("curve25519")
     metadata = metadata_store.ChannelNode.from_dict({})
     with pytest.raises(KeysMismatchException):
         metadata.serialized(key=mismatched_key)
@@ -122,7 +122,7 @@ def test_has_valid_signature(metadata_store):
     metadata = metadata_store.ChannelNode(skip_key_check=True, **md_dict)
     assert not metadata.has_valid_signature()
 
-    key = default_eccrypto.generate_key(u"curve25519")
+    key = default_eccrypto.generate_key("curve25519")
     metadata2 = metadata_store.ChannelNode(sign_with=key, **md_dict)
     assert database_blob(key.pub().key_to_bin()[10:]), metadata2.public_key
     md_dict2 = metadata2.to_dict()

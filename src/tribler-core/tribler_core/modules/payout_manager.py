@@ -11,7 +11,7 @@ class PayoutManager(TaskManager):
     """
 
     def __init__(self, bandwidth_community, dht):
-        super(PayoutManager, self).__init__()
+        super().__init__()
         self.logger = logging.getLogger(self.__class__.__name__)
         self.bandwidth_community = bandwidth_community
         self.dht = dht

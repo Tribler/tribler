@@ -9,7 +9,7 @@ from asyncio import get_event_loop
 from tribler_common.simpledefs import NTFY
 
 
-class Notifier(object):
+class Notifier:
 
     def __init__(self):
         self._logger = logging.getLogger(self.__class__.__name__)

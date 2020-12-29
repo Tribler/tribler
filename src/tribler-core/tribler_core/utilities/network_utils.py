@@ -22,7 +22,7 @@ def get_random_port(socket_type="all", min_port=5000, max_port=60000):
     assert socket_type in ("all", "tcp", "udp"), "Invalid socket type %s" % type(socket_type)
     assert isinstance(min_port, int), "Invalid min_port type %s" % type(min_port)
     assert isinstance(max_port, int), "Invalid max_port type %s" % type(max_port)
-    assert 0 < min_port <= max_port <= 65535, "Invalid min_port and mac_port values %s, %s" % (min_port, max_port)
+    assert 0 < min_port <= max_port <= 65535, f"Invalid min_port and mac_port values {min_port}, {max_port}"
 
     working_port = None
     try_port = random.randint(min_port, max_port)
@@ -88,7 +88,7 @@ def _test_port(family, sock_type, port):
                 s.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER, struct.pack('ii', 1, 0))
             s.bind(('', port))
         is_port_working = True
-    except socket.error as e:
+    except OSError as e:
         logger.debug("Port test failed (port=%s, family=%s, type=%s): %s",
                      port, family, sock_type, e)
         is_port_working = False
@@ -100,10 +100,10 @@ def autodetect_socket_style():
         return 1
     else:
         try:
-            with open('/proc/sys/net/ipv6/bindv6only', 'r') as f:
+            with open('/proc/sys/net/ipv6/bindv6only') as f:
                 dual_socket_style = int(f.read())
             return int(not dual_socket_style)
-        except (IOError, ValueError):
+        except (OSError, ValueError):
             return 0
 
 
@@ -136,7 +136,7 @@ def is_valid_address(address):
 
     try:
         socket.inet_aton(address[0])
-    except socket.error:
+    except OSError:
         return False
 
     # ending with .0

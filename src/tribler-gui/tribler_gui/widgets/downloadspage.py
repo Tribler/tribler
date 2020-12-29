@@ -72,7 +72,7 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         """
         When the downloads tab is clicked, we want to update the downloads list immediately.
         """
-        super(DownloadsPage, self).showEvent(QShowEvent)
+        super().showEvent(QShowEvent)
         self.stop_loading_downloads()
         self.schedule_downloads_timer(True)
 
@@ -202,7 +202,7 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
                 del self.download_widgets[infohash]
 
         self.window().tray_set_tooltip(
-            "Down: %s, Up: %s" % (format_speed(self.total_download), format_speed(self.total_upload))
+            "Down: {}, Up: {}".format(format_speed(self.total_download), format_speed(self.total_upload))
         )
         self.update_download_visibility()
         self.schedule_downloads_timer()
@@ -447,7 +447,7 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
             torrent_file = open(dest_path, "wb")
             torrent_file.write(data)
             torrent_file.close()
-        except IOError as exc:
+        except OSError as exc:
             ConfirmationDialog.show_error(
                 self.window(),
                 "Error when exporting file",

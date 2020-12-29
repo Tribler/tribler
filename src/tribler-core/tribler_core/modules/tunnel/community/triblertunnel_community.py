@@ -74,7 +74,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         socks_listen_ports = kwargs.pop('socks_listen_ports', None)
         state_path = self.tribler_session.config.get_state_dir() if self.tribler_session else path_util.Path()
         self.exitnode_cache = kwargs.pop('exitnode_cache', state_path / 'exitnode_cache.dat')
-        super(TriblerTunnelCommunity, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self._use_main_thread = True
 
         if self.tribler_session:
@@ -125,7 +125,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             await sleep(.05)
 
     def get_available_strategies(self):
-        return super(TriblerTunnelCommunity, self).get_available_strategies().update({'GoldenRatioStrategy':
+        return super().get_available_strategies().update({'GoldenRatioStrategy':
                                                                                           GoldenRatioStrategy})
 
     def cache_exitnodes_to_disk(self):
@@ -405,13 +405,13 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                 self.update_torrent(affected_peers, download)
 
         # Now we actually remove the circuit
-        return super(TriblerTunnelCommunity, self).remove_circuit(circuit_id, additional_info=additional_info,
+        return super().remove_circuit(circuit_id, additional_info=additional_info,
                                                                   remove_now=remove_now, destroy=destroy)
 
     @task
     async def remove_relay(self, circuit_id, additional_info='', remove_now=False, destroy=False,
                            got_destroy_from=None, both_sides=True):
-        removed_relays = await super(TriblerTunnelCommunity, self).remove_relay(circuit_id,
+        removed_relays = await super().remove_relay(circuit_id,
                                                                                 additional_info=additional_info,
                                                                                 remove_now=remove_now,
                                                                                 destroy=destroy,
@@ -431,11 +431,11 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         self.clean_from_slots(circuit_id)
 
-        return super(TriblerTunnelCommunity, self).remove_exit_socket(circuit_id, additional_info=additional_info,
+        return super().remove_exit_socket(circuit_id, additional_info=additional_info,
                                                                       remove_now=remove_now, destroy=destroy)
 
     def _ours_on_created_extended(self, circuit, payload):
-        super(TriblerTunnelCommunity, self)._ours_on_created_extended(circuit, payload)
+        super()._ours_on_created_extended(circuit, payload)
 
         if circuit.state == CIRCUIT_STATE_READY:
             # Re-add BitTorrent peers, if needed.
@@ -508,13 +508,13 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
     def on_establish_intro(self, source_address, data, circuit_id):
         payload = self._ez_unpack_noauth(EstablishIntroPayload, data, global_time=False)
         exists_before = payload.public_key in self.intro_point_for
-        super(TriblerTunnelCommunity, self).on_establish_intro(source_address, data, circuit_id)
+        super().on_establish_intro(source_address, data, circuit_id)
         # Check if an introduction point was just added
         if not exists_before and payload.public_key in self.intro_point_for:
             self.clean_from_slots(circuit_id)
 
     def on_rendezvous_established(self, source_address, data, circuit_id):
-        super(TriblerTunnelCommunity, self).on_rendezvous_established(source_address, data, circuit_id)
+        super().on_rendezvous_established(source_address, data, circuit_id)
 
         circuit = self.circuits.get(circuit_id)
         if circuit and self.tribler_session:
@@ -556,7 +556,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                 for session in self.socks_servers[hops - 1].sessions:
                     if session.udp_connection and lt_listen_port:
                         session.udp_connection.remote_udp_address = ("127.0.0.1", lt_listen_port)
-        await super(TriblerTunnelCommunity, self).create_introduction_point(info_hash, required_ip=required_ip)
+        await super().create_introduction_point(info_hash, required_ip=required_ip)
 
     async def unload(self):
         await self.dispatcher.shutdown_task_manager()
@@ -566,7 +566,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         if self.exitnode_cache:
             self.cache_exitnodes_to_disk()
 
-        await super(TriblerTunnelCommunity, self).unload()
+        await super().unload()
 
     def get_lookup_info_hash(self, info_hash):
         return hashlib.sha1(b'tribler anonymous download' + hexlify(info_hash).encode('utf-8')).digest()

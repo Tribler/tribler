@@ -37,7 +37,7 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
         test_community.global_dht_services = defaultdict(list)  # Reset the global_dht_services variable
         for node in self.nodes:
             await node.overlay.bandwidth_community.unload()
-        await super(TestTriblerTunnelCommunity, self).tearDown()
+        await super().tearDown()
 
     def create_node(self):
         mock_ipv8 = MockIPv8("curve25519", TriblerTunnelCommunity,

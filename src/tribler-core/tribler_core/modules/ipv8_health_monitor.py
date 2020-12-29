@@ -27,7 +27,7 @@ class IPv8Monitor:
         :param max_update_rate: the maximum time between steps (in seconds).
         :param choke_limit: the noise limit for choke detection (in seconds).
         """
-        super(IPv8Monitor, self).__init__()
+        super().__init__()
 
         self.ipv8_instance = ipv8_instance
         self.min_update_rate = min_update_rate

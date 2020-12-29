@@ -66,9 +66,9 @@ def makeYStepper(stepSize):
     return stepper
 
 
-class TickSpec(object):
-    """ Specifies the properties for a set of date ticks and computes ticks
-    within a given utc timestamp range """
+class TickSpec:
+    """Specifies the properties for a set of date ticks and computes ticks
+    within a given utc timestamp range"""
 
     def __init__(self, spacing, stepper, timeFormat, autoSkip=None):
         """
@@ -114,7 +114,7 @@ class TickSpec(object):
             factors *= 10
 
 
-class ZoomLevel(object):
+class ZoomLevel:
     """ Generates the ticks which appear in a specific zoom level """
 
     def __init__(self, tickSpecs):
@@ -191,7 +191,7 @@ MS_ZOOM_LEVEL = ZoomLevel(
 
 
 class DateAxisItem(AxisItem):
-    """ An AxisItem that displays dates from unix timestamps
+    """An AxisItem that displays dates from unix timestamps
 
     The display format is adjusted automatically depending on the current time
     density (seconds/point) on the axis.
@@ -203,7 +203,7 @@ class DateAxisItem(AxisItem):
     """
 
     def __init__(self, orientation, **kvargs):
-        super(DateAxisItem, self).__init__(orientation, **kvargs)
+        super().__init__(orientation, **kvargs)
         # Set the zoom level to use depending on the time density on the axis
         self.utcOffset = time.timezone - 3600 * time.localtime().tm_isdst
         self.zoomLevel = YEAR_MONTH_ZOOM_LEVEL

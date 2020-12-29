@@ -33,9 +33,9 @@ dlstatus_strings = [
 UPLOAD = 'up'
 DOWNLOAD = 'down'
 
-STATEDIR_CHECKPOINT_DIR = u'dlcheckpoints'
-STATEDIR_CHANNELS_DIR = u'channels'
-STATEDIR_DB_DIR = u"sqlite"
+STATEDIR_CHECKPOINT_DIR = 'dlcheckpoints'
+STATEDIR_CHANNELS_DIR = 'channels'
+STATEDIR_DB_DIR = "sqlite"
 
 # Infohashes are always 20 byte binary strings
 INFOHASH_LENGTH = 20

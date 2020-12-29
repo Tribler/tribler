@@ -59,7 +59,7 @@ class IPPortAction(argparse.Action):
 class TunnelHelperService(TaskManager):
 
     def __init__(self):
-        super(TunnelHelperService, self).__init__()
+        super().__init__()
         self._stopping = False
         self.log_circuits = False
         self.session = None

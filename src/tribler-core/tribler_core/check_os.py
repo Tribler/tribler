@@ -7,8 +7,6 @@ import traceback
 
 import psutil
 
-from six import text_type
-
 from tribler_core.dependencies import _show_system_popup
 from tribler_core.modules.process_checker import ProcessChecker
 from tribler_core.utilities import path_util
@@ -36,7 +34,7 @@ def check_read_write():
     """
     try:
         tempfile.gettempdir()
-    except IOError:
+    except OSError:
         error_and_exit("No write access!",
                        "Tribler does not seem to be able to have access to your filesystem. " +
                        "Please grant Tribler the proper permissions and try again.")
@@ -57,7 +55,7 @@ def check_free_space():
                            "You have less than 100MB of usable disk space. " +
                            "Please free up some space and run Tribler again.")
     except ImportError as ie:
-        error_and_exit("Import Error", "Import error: {0}".format(ie))
+        error_and_exit("Import Error", f"Import error: {ie}")
 
 
 def get_existing_tribler_pid():
@@ -194,7 +192,7 @@ def enable_fault_handler(log_dir):
         if not log_dir.exists():
             path_util.makedirs(log_dir)
         crash_file = log_dir / "crash-report.log"
-        faulthandler.enable(file=open(text_type(crash_file), "w"), all_threads=True)
+        faulthandler.enable(file=open(str(crash_file), "w"), all_threads=True)
     except ImportError:
         logging.error("Fault Handler module not found.")
 
@@ -246,7 +244,7 @@ def trace_calls(file_handler, frame, event, args, filter_exceptions_only=False):
 
         # Only write if callee or caller is Tribler code
         if "tribler" in caller_filename.lower() or "tribler" in func_filename.lower():
-            trace_line = "[%s] %s:%s, line %s called from %s, line %s\n" % (
+            trace_line = "[{}] {}:{}, line {} called from {}, line {}\n".format(
                 time.time(), func_filename, func_name, func_line_no,
                 caller_filename, caller_line_no)
             file_handler.write(trace_line)
@@ -275,7 +273,7 @@ def trace_exceptions(file_handler, frame, event, args):
     # Only write if exception is originated from Tribler code
     if "tribler" in func_filename.lower():
         exc_type, exc_value, exc_traceback = args
-        trace_line = "[%s] Exception: %s, line %s \n%s %s \n%s" % (
+        trace_line = "[{}] Exception: {}, line {} \n{} {} \n{}".format(
             time.time(), func_filename, func_line_no,
             exc_type.__name__, exc_value, "".join(traceback.format_tb(exc_traceback)))
         file_handler.write(trace_line)

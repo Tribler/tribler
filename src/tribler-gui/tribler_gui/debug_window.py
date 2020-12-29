@@ -35,7 +35,7 @@ except ImportError:
 class MemoryPlot(TimeSeriesPlot):
     def __init__(self, parent, **kargs):
         series = [{'name': 'Memory', 'pen': (0, 153, 255), 'symbolBrush': (0, 153, 255), 'symbolPen': 'w'}]
-        super(MemoryPlot, self).__init__(parent, 'Memory Usage', series, **kargs)
+        super().__init__(parent, 'Memory Usage', series, **kargs)
         self.setBackground('#FCF9F6')
         self.setLabel('left', 'Memory', units='bytes')
         self.setLimits(yMin=-MB, yMax=10 * GB)
@@ -44,7 +44,7 @@ class MemoryPlot(TimeSeriesPlot):
 class CPUPlot(TimeSeriesPlot):
     def __init__(self, parent, **kargs):
         series = [{'name': 'CPU', 'pen': (0, 153, 255), 'symbolBrush': (0, 153, 255), 'symbolPen': 'w'}]
-        super(CPUPlot, self).__init__(parent, 'CPU Usage', series, **kargs)
+        super().__init__(parent, 'CPU Usage', series, **kargs)
         self.setBackground('#FCF9F6')
         self.setLabel('left', 'CPU', units='%')
         self.setLimits(yMin=-10, yMax=200)
@@ -129,16 +129,18 @@ class DebugWindow(QMainWindow):
     def showEvent(self, show_event):
         if self.ipv8_health_widget and self.ipv8_health_widget.isVisible():
             self.ipv8_health_widget.resume()
-            TriblerNetworkRequest("ipv8/asyncio/drift", self.on_ipv8_health_enabled, data={"enable": True},
-                                  method='PUT')
+            TriblerNetworkRequest(
+                "ipv8/asyncio/drift", self.on_ipv8_health_enabled, data={"enable": True}, method='PUT'
+            )
 
     def run_with_timer(self, call_fn, timeout=DEBUG_PANE_REFRESH_TIMEOUT):
         call_fn()
         self.stop_timer()
         self.refresh_timer = QTimer()
         self.refresh_timer.setSingleShot(True)
-        connect(self.refresh_timer.timeout,
-            lambda _call_fn=call_fn, _timeout=timeout: self.run_with_timer(_call_fn, timeout=_timeout)
+        connect(
+            self.refresh_timer.timeout,
+            lambda _call_fn=call_fn, _timeout=timeout: self.run_with_timer(_call_fn, timeout=_timeout),
         )
         self.refresh_timer.start(timeout)
 
@@ -277,7 +279,7 @@ class DebugWindow(QMainWindow):
             timestamp = request.time
 
             item = QTreeWidgetItem(self.window().requests_tree_widget)
-            item.setText(0, "%s %s %s" % (method, repr(endpoint), repr(data)))
+            item.setText(0, "{} {} {}".format(method, repr(endpoint), repr(data)))
             item.setText(1, ("%d" % status_code) if status_code else "unknown")
             item.setText(2, "%s" % strftime("%H:%M:%S", localtime(timestamp)))
             self.window().requests_tree_widget.addTopLevelItem(item)
@@ -398,6 +400,7 @@ class DebugWindow(QMainWindow):
         if self.ipv8_health_widget is None:
             # Add the core monitor widget to the tab widget.
             from PyQt5.QtWidgets import QVBoxLayout
+
             widget = MonitorWidget()
             layout = QVBoxLayout()
             layout.setContentsMargins(0, 0, 0, 0)
@@ -546,11 +549,7 @@ class DebugWindow(QMainWindow):
             self.add_items_to_tree(
                 self.window().buckets_tree_widget,
                 data.get("buckets"),
-                [
-                    "prefix",
-                    "last_changed",
-                    "num_peers"
-                ],
+                ["prefix", "last_changed", "num_peers"],
             )
 
     def on_event_clicked(self, item):
@@ -733,7 +732,7 @@ class DebugWindow(QMainWindow):
         )
 
         if len(self.export_dir) > 0:
-            filename = "tribler_mem_dump_%s_%s.json" % (
+            filename = "tribler_mem_dump_{}_{}.json".format(
                 'core' if dump_core else 'gui',
                 datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S"),
             )
@@ -757,7 +756,7 @@ class DebugWindow(QMainWindow):
         try:
             with open(dest_path, "wb") as memory_dump_file:
                 memory_dump_file.write(data)
-        except IOError as exc:
+        except OSError as exc:
             ConfirmationDialog.show_error(
                 self.window(),
                 "Error when exporting file",
@@ -780,7 +779,7 @@ class DebugWindow(QMainWindow):
         tab_index = self.window().log_tab_widget.currentIndex()
         tab_name = "core" if tab_index == 0 else "gui"
 
-        request_query = "process=%s&max_lines=%s" % (tab_name, max_log_lines)
+        request_query = f"process={tab_name}&max_lines={max_log_lines}"
         TriblerNetworkRequest("debug/log?%s" % request_query, self.display_logs)
 
     def display_logs(self, data):
@@ -793,8 +792,8 @@ class DebugWindow(QMainWindow):
 
         log_display_widget.moveCursor(QTextCursor.End)
 
-        key_content = u'content'
-        key_max_lines = u'max_lines'
+        key_content = 'content'
+        key_max_lines = 'max_lines'
 
         if not key_content in data or not data[key_content]:
             log_display_widget.setPlainText('No logs found')
@@ -810,7 +809,7 @@ class DebugWindow(QMainWindow):
         sb.setValue(sb.maximum())
 
     def show(self):
-        super(DebugWindow, self).show()
+        super().show()
 
         # this will remove minimized status
         # and restore window with keeping maximized/normal state
@@ -874,5 +873,5 @@ class DebugWindow(QMainWindow):
             try:
                 with open(dest_path, "w") as torrent_file:
                     torrent_file.write(json.dumps(data))
-            except IOError as exc:
+            except OSError as exc:
                 ConfirmationDialog.show_error(self.window(), "Error exporting file", str(exc))

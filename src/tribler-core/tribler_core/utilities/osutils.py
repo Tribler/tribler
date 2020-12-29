@@ -60,7 +60,7 @@ if sys.platform == "win32":
     except ImportError:
         def get_home_dir():
             # This will always succeed on python 3.x
-            return path_util.expanduser(u"~")
+            return path_util.expanduser("~")
 
         def get_appstate_dir():
             homedir = get_home_dir()
@@ -80,7 +80,7 @@ if sys.platform == "win32":
 
         def get_desktop_dir():
             home = get_home_dir()
-            return home / u"Desktop"
+            return home / "Desktop"
 
 elif is_android():
 
@@ -88,10 +88,10 @@ elif is_android():
         return path_util.realpath(str(os.environ['EXTERNAL_STORAGE']))
 
     def get_appstate_dir():
-        return path_util.realpath(os.environ['ANDROID_PRIVATE'] / u'../.Tribler')
+        return path_util.realpath(os.environ['ANDROID_PRIVATE'] / '../.Tribler')
 
     def get_picture_dir():
-        return get_home_dir() / u'DCIM'
+        return get_home_dir() / 'DCIM'
 
     def get_desktop_dir():
         return get_home_dir()
@@ -99,7 +99,7 @@ elif is_android():
 else:
     # linux or darwin (mac)
     def get_home_dir():
-        return path_util.expanduser(u"~")
+        return path_util.expanduser("~")
 
     def get_appstate_dir():
         return get_home_dir()
@@ -229,7 +229,7 @@ def merge_dir(src_dir, dest_dir):
             shutil.copy(src_file, dest_sub_dir)
 
 
-def get_root_state_directory(home_dir_postfix=u'.Tribler'):
+def get_root_state_directory(home_dir_postfix='.Tribler'):
     """Get the default application state directory."""
     if 'TSTATEDIR' in os.environ:
         path = os.environ['TSTATEDIR']

@@ -49,7 +49,7 @@ class DownloadsDetailsTabWidget(QTabWidget):
 
     @staticmethod
     def update_peer_row(item, peer):
-        peer_name = "%s:%s" % (peer["ip"], peer["port"])
+        peer_name = "{}:{}".format(peer["ip"], peer["port"])
         if peer['connection_type'] == 1:
             peer_name += ' [WebSeed]'
         elif peer['connection_type'] == 2:

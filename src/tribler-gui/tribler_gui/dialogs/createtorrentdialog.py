@@ -52,7 +52,7 @@ class CreateTorrentDialog(DialogContainer):
         if self.rest_request2:
             self.rest_request2.cancel_request()
 
-        super(CreateTorrentDialog, self).close_dialog()
+        super().close_dialog()
 
     def on_choose_files_clicked(self, checked):
         filenames, _ = QFileDialog.getOpenFileNames(self.window(), "Please select the files", QDir.homePath())

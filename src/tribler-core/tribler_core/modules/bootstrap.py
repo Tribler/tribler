@@ -17,7 +17,7 @@ class Bootstrap(TaskManager):
     """
 
     def __init__(self, config_dir, dht=None):
-        super(Bootstrap, self).__init__()
+        super().__init__()
 
         self._logger = logging.getLogger(self.__class__.__name__)
         self.dcfg = DownloadConfig(state_dir=config_dir)

@@ -1,7 +1,6 @@
 import os
 import random
 import secrets
-import socket
 import time
 
 from ipv8.util import succeed
@@ -40,7 +39,7 @@ async def test_create_socket_fail(torrent_checker):
     Test creation of the UDP socket of the torrent checker when it fails
     """
     def mocked_listen_on_udp():
-        raise socket.error("Something went wrong")
+        raise OSError("Something went wrong")
 
     torrent_checker.socket_mgr = UdpSocketManager()
     torrent_checker.listen_on_udp = mocked_listen_on_udp

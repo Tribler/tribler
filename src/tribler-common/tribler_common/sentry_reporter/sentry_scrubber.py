@@ -173,6 +173,6 @@ class SentryScrubber:
             return [self.scrub_entity_recursively(item, depth) for item in entity]
 
         if isinstance(entity, dict):
-            return dict((key, self.scrub_entity_recursively(entity[key], depth)) for key in entity)
+            return {key: self.scrub_entity_recursively(entity[key], depth) for key in entity}
 
         return entity

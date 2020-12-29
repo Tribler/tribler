@@ -65,7 +65,7 @@ class CoreManager(QObject):
             if self.events_manager.connect_timer and self.events_manager.connect_timer.isActive():
                 self.events_manager.connect_timer.stop()
 
-            exception_msg = "The Tribler core has unexpectedly finished with exit code %s and status: %s!" % (
+            exception_msg = "The Tribler core has unexpectedly finished with exit code {} and status: {}!".format(
                 exit_code,
                 exit_status,
             )

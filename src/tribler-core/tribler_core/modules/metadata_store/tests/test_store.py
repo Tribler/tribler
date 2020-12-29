@@ -29,7 +29,6 @@ from tribler_core.modules.metadata_store.store import (
     UNKNOWN_CHANNEL,
     UNKNOWN_COLLECTION,
     UNKNOWN_TORRENT,
-    UPDATED_OUR_VERSION,
 )
 from tribler_core.modules.metadata_store.tests.test_channel_download import CHANNEL_METADATA_UPDATED
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
@@ -45,7 +44,7 @@ def get_payloads(entity_class):
 
 
 def make_wrong_payload(filename):
-    key = default_eccrypto.generate_key(u"curve25519")
+    key = default_eccrypto.generate_key("curve25519")
     metadata_payload = SignedPayload(
         666, 0, database_blob(key.pub().key_to_bin()[10:]), signature=b'\x00' * 64, skip_key_check=True
     )
@@ -204,8 +203,8 @@ def test_skip_processing_mdblob_with_forbidden_terms(metadata_store):
     """
     Test that an mdblob with forbidden terms cannot ever get into the local database
     """
-    key = default_eccrypto.generate_key(u"curve25519")
-    chan_entry = metadata_store.ChannelMetadata(title=u"12yo", infohash=database_blob(random_infohash()), sign_with=key)
+    key = default_eccrypto.generate_key("curve25519")
+    chan_entry = metadata_store.ChannelMetadata(title="12yo", infohash=database_blob(random_infohash()), sign_with=key)
     chan_payload = chan_entry._payload_class(**chan_entry.to_dict())
     chan_entry.delete()
     assert metadata_store.process_payload(chan_payload) == [(None, NO_ACTION)]
@@ -249,7 +248,7 @@ def test_compute_channel_update_progress(metadata_store, tmpdir):
 @db_session
 def test_process_payload(metadata_store):
 
-    metadata_store.ChannelNode._my_key = default_eccrypto.generate_key(u"curve25519")
+    metadata_store.ChannelNode._my_key = default_eccrypto.generate_key("curve25519")
     _, node_payload, node_deleted_payload = get_payloads(metadata_store.ChannelNode)
 
     assert not metadata_store.process_payload(node_payload)
@@ -313,8 +312,8 @@ def test_process_payload_with_known_channel_public_key(metadata_store):
     """
     Test processing a payload when the channel public key is known, e.g. from disk.
     """
-    key1 = default_eccrypto.generate_key(u"curve25519")
-    key2 = default_eccrypto.generate_key(u"curve25519")
+    key1 = default_eccrypto.generate_key("curve25519")
+    key2 = default_eccrypto.generate_key("curve25519")
     torrent = metadata_store.TorrentMetadata(infohash=database_blob(random_infohash()), sign_with=key1)
     payload = torrent._payload_class(**torrent.to_dict())
     torrent.delete()

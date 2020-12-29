@@ -12,7 +12,6 @@ from tribler_common.simpledefs import NTFY
 
 from tribler_core.version import version_id
 
-
 messages_to_wait_for = set()
 
 
@@ -59,7 +58,7 @@ async def test_events(enable_api, session):
         NTFY.TUNNEL_REMOVE: (Circuit(1234, None), 'test'),
         NTFY.REMOTE_QUERY_RESULTS: {"query": "test"},
     }
-    messages_to_wait_for = set(k.value for k in testdata)
+    messages_to_wait_for = {k.value for k in testdata}
     messages_to_wait_for.add(NTFY.TRIBLER_EXCEPTION.value)
     for subject, data in testdata.items():
         if data:

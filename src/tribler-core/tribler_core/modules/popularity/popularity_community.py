@@ -30,7 +30,7 @@ class PopularityCommunity(RemoteQueryCommunity):
     def __init__(self, *args, **kwargs):
         self.torrent_checker = kwargs.pop('torrent_checker', None)
 
-        super(PopularityCommunity, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.add_message_handler(TorrentsHealthPayload, self.on_torrents_health)
 
@@ -53,8 +53,8 @@ class PopularityCommunity(RemoteQueryCommunity):
 
         """
         # select the torrents that have seeders
-        alive = set((_, seeders, *rest) for (_, seeders, *rest) in torrents
-                    if seeders > 0)
+        alive = {(_, seeders, *rest) for (_, seeders, *rest) in torrents
+                    if seeders > 0}
         if not alive:
             return {}, {}
 

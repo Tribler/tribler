@@ -1,7 +1,6 @@
 import asyncio
 import logging
 import random
-import socket
 import time
 from asyncio import CancelledError, gather
 
@@ -37,7 +36,7 @@ TORRENTS_CHECKED_RETURN_SIZE = 240   # Estimated torrents checked on default 4 h
 class TorrentChecker(TaskManager):
 
     def __init__(self, session):
-        super(TorrentChecker, self).__init__()
+        super().__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
         self.tribler_session = session
 
@@ -68,7 +67,7 @@ class TorrentChecker(TaskManager):
         """
         try:
             self.udp_transport = await self.listen_on_udp()
-        except socket.error as e:
+        except OSError as e:
             self._logger.error("Error when creating UDP socket in torrent checker: %s", e)
             self.register_task("listen_udp_port", self.create_socket_or_schedule, delay=10)
 
@@ -99,10 +98,10 @@ class TorrentChecker(TaskManager):
 
         tracker = self.get_valid_next_tracker_for_auto_check()
         if tracker is None:
-            self._logger.warning(u"No tracker to select from, skip")
+            self._logger.warning("No tracker to select from, skip")
             return False
 
-        self._logger.debug(u"Start selecting torrents on tracker %s.", tracker.url)
+        self._logger.debug("Start selecting torrents on tracker %s.", tracker.url)
 
         # get the torrents that should be checked
         with db_session:
@@ -134,7 +133,7 @@ class TorrentChecker(TaskManager):
         for infohash in infohashes:
             session.add_infohash(infohash)
 
-        self._logger.info(u"Selected %d new torrents to check on tracker: %s", len(infohashes), tracker.url)
+        self._logger.info("Selected %d new torrents to check on tracker: %s", len(infohashes), tracker.url)
         try:
             await self.connect_to_tracker(session)
             return True
@@ -149,7 +148,7 @@ class TorrentChecker(TaskManager):
             self._logger.info("Tracker session is being cancelled (url %s)", session.tracker_url)
             self.clean_session(session)
         except Exception as e:
-            self._logger.warning("Got session error for URL %s: %s", session.tracker_url, str(e).replace(u'\n]', u']'))
+            self._logger.warning("Got session error for URL %s: %s", session.tracker_url, str(e).replace('\n]', ']'))
             self.clean_session(session)
             self.tribler_session.tracker_manager.update_tracker_info(session.tracker_url, False)
             e.tracker_url = session.tracker_url
@@ -234,8 +233,8 @@ class TorrentChecker(TaskManager):
     def get_valid_trackers_of_torrent(self, torrent_id):
         """ Get a set of valid trackers for torrent. Also remove any invalid torrent."""
         db_tracker_list = self.tribler_session.mds.TorrentState.get(infohash=database_blob(torrent_id)).trackers
-        return set([tracker.url for tracker in db_tracker_list
-                    if is_valid_url(tracker.url) and not self.is_blacklisted_tracker(tracker.url)])
+        return {tracker.url for tracker in db_tracker_list
+                    if is_valid_url(tracker.url) and not self.is_blacklisted_tracker(tracker.url)}
 
     def update_torrents_checked(self, new_result):
         """
@@ -354,7 +353,7 @@ class TorrentChecker(TaskManager):
             self._session_list[tracker_url] = []
         self._session_list[tracker_url].append(session)
 
-        self._logger.debug(u"Session created for tracker %s", tracker_url)
+        self._logger.debug("Session created for tracker %s", tracker_url)
         return session
 
     def clean_session(self, session):
@@ -363,7 +362,7 @@ class TorrentChecker(TaskManager):
 
         # Remove the session from our session list dictionary
         self._session_list[session.tracker_url].remove(session)
-        if len(self._session_list[session.tracker_url]) == 0 and session.tracker_url != u"DHT":
+        if len(self._session_list[session.tracker_url]) == 0 and session.tracker_url != "DHT":
             del self._session_list[session.tracker_url]
 
     def _on_result_from_session(self, session, result_list):
@@ -380,7 +379,7 @@ class TorrentChecker(TaskManager):
         leechers = response['leechers']
         last_check = response['last_check']
 
-        self._logger.debug(u"Update result %s/%s for %s", seeders, leechers, hexlify(infohash))
+        self._logger.debug("Update result %s/%s for %s", seeders, leechers, hexlify(infohash))
 
         with db_session:
             # Update torrent state

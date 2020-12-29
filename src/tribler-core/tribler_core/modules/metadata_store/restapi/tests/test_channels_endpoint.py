@@ -186,7 +186,7 @@ async def test_copy_torrents_to_collection(enable_chant, enable_api, session):
     Test if we can copy torrents from an external channel(s) to a personal channel/collection
     """
     channel = session.mds.ChannelMetadata.create_channel('my chan')
-    ext_key = default_eccrypto.generate_key(u"curve25519")
+    ext_key = default_eccrypto.generate_key("curve25519")
     with db_session:
         external_metadata1 = session.mds.TorrentMetadata(
             sign_with=ext_key, id_=111, title="bla1", infohash=random_infohash()
@@ -263,7 +263,7 @@ async def test_add_torrents_no_channel(enable_chant, enable_api, my_channel, ses
         my_chan.delete()
         await do_request(
             session,
-            'channels/%s/%s/torrents' % (hexlify(my_channel.public_key), my_channel.id_),
+            'channels/{}/{}/torrents'.format(hexlify(my_channel.public_key), my_channel.id_),
             request_type='PUT',
             expected_code=404,
         )
@@ -277,7 +277,7 @@ async def test_add_torrents_no_dir(enable_chant, enable_api, my_channel, session
     post_params = {'torrents_dir': 'nonexisting'}
     await do_request(
         session,
-        'channels/%s/%s/torrents' % (hexlify(my_channel.public_key), my_channel.id_),
+        'channels/{}/{}/torrents'.format(hexlify(my_channel.public_key), my_channel.id_),
         request_type='PUT',
         post_data=post_params,
         expected_code=400,
@@ -292,7 +292,7 @@ async def test_add_torrents_recursive_no_dir(enable_chant, enable_api, my_channe
     post_params = {'recursive': True}
     await do_request(
         session,
-        'channels/%s/%s/torrents' % (hexlify(my_channel.public_key), my_channel.id_),
+        'channels/{}/{}/torrents'.format(hexlify(my_channel.public_key), my_channel.id_),
         request_type='PUT',
         post_data=post_params,
         expected_code=400,
@@ -307,7 +307,7 @@ async def test_add_torrents_from_dir(enable_chant, enable_api, my_channel, state
     post_params = {'torrents_dir': state_dir, 'recursive': True}
     await do_request(
         session,
-        'channels/%s/%s/torrents' % (hexlify(my_channel.public_key), my_channel.id_),
+        'channels/{}/{}/torrents'.format(hexlify(my_channel.public_key), my_channel.id_),
         request_type='PUT',
         post_data=post_params,
     )
@@ -321,7 +321,7 @@ async def test_add_torrent_missing_torrent(enable_chant, enable_api, my_channel,
     post_params = {}
     await do_request(
         session,
-        'channels/%s/%s/torrents' % (hexlify(my_channel.public_key), my_channel.id_),
+        'channels/{}/{}/torrents'.format(hexlify(my_channel.public_key), my_channel.id_),
         request_type='PUT',
         post_data=post_params,
         expected_code=400,
@@ -336,7 +336,7 @@ async def test_add_invalid_torrent(enable_chant, enable_api, my_channel, session
     post_params = {'torrent': 'bla'}
     await do_request(
         session,
-        'channels/%s/%s/torrents' % (hexlify(my_channel.public_key), my_channel.id_),
+        'channels/{}/{}/torrents'.format(hexlify(my_channel.public_key), my_channel.id_),
         request_type='PUT',
         post_data=post_params,
         expected_code=500,
@@ -358,7 +358,7 @@ async def test_add_torrent_duplicate(enable_chant, enable_api, my_channel, sessi
             post_params = {'torrent': base64_content}
             await do_request(
                 session,
-                'channels/%s/%s/torrents' % (hexlify(my_channel.public_key), my_channel.id_),
+                'channels/{}/{}/torrents'.format(hexlify(my_channel.public_key), my_channel.id_),
                 request_type='PUT',
                 post_data=post_params,
                 expected_code=500,
@@ -376,7 +376,7 @@ async def test_add_torrent(enable_chant, enable_api, my_channel, session):
         post_params = {'torrent': base64_content.decode('utf-8')}
         await do_request(
             session,
-            'channels/%s/%s/torrents' % (hexlify(my_channel.public_key), my_channel.id_),
+            'channels/{}/{}/torrents'.format(hexlify(my_channel.public_key), my_channel.id_),
             request_type='PUT',
             post_data=post_params,
         )
@@ -390,7 +390,7 @@ async def test_add_torrent_invalid_uri(enable_chant, enable_api, my_channel, ses
     post_params = {'uri': 'thisisinvalid'}
     await do_request(
         session,
-        'channels/%s/%s/torrents' % (hexlify(my_channel.public_key), my_channel.id_),
+        'channels/{}/{}/torrents'.format(hexlify(my_channel.public_key), my_channel.id_),
         request_type='PUT',
         post_data=post_params,
         expected_code=400,
@@ -406,7 +406,7 @@ async def test_add_torrent_from_url(enable_chant, enable_api, my_channel, tmpdir
     post_params = {'uri': 'http://localhost:%d/ubuntu.torrent' % file_server}
     await do_request(
         session,
-        'channels/%s/%s/torrents' % (hexlify(my_channel.public_key), my_channel.id_),
+        'channels/{}/{}/torrents'.format(hexlify(my_channel.public_key), my_channel.id_),
         request_type='PUT',
         post_data=post_params,
     )
@@ -428,7 +428,7 @@ async def test_add_torrent_from_magnet(enable_chant, enable_api, my_channel, moc
     post_params = {'uri': 'magnet:?xt=urn:btih:111111111111111111111111111111111111111111'}
     await do_request(
         session,
-        'channels/%s/%s/torrents' % (hexlify(my_channel.public_key), my_channel.id_),
+        'channels/{}/{}/torrents'.format(hexlify(my_channel.public_key), my_channel.id_),
         request_type='PUT',
         post_data=post_params,
     )
@@ -449,7 +449,7 @@ async def test_add_torrent_from_magnet_error(enable_chant, enable_api, my_channe
     post_params = {'uri': 'magnet:?fake'}
     await do_request(
         session,
-        'channels/%s/%s/torrents' % (hexlify(my_channel.public_key), my_channel.id_),
+        'channels/{}/{}/torrents'.format(hexlify(my_channel.public_key), my_channel.id_),
         request_type='PUT',
         post_data=post_params,
         expected_code=500,

@@ -41,7 +41,7 @@ async def test_create_torrent_io_error(enable_api, mock_dlmgr, session):
     Testing whether the API returns a formatted 500 error if IOError is raised
     """
     def fake_create_torrent_file(*_, **__):
-        raise IOError("test")
+        raise OSError("test")
 
     session.dlmgr.create_torrent_file = fake_create_torrent_file
 

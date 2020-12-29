@@ -4,7 +4,8 @@ from tribler_common.sentry_reporter.sentry_reporter import (
     OS_ENVIRON,
     PLATFORM_DETAILS,
     SentryReporter,
-    SentryStrategy, this_sentry_strategy,
+    SentryStrategy,
+    this_sentry_strategy,
 )
 from tribler_common.sentry_reporter.sentry_scrubber import SentryScrubber
 
@@ -29,7 +30,7 @@ def test_init():
 
 
 def test_set_user():
-    assert SentryReporter.set_user('some_id'.encode('utf-8')) == {
+    assert SentryReporter.set_user(b'some_id') == {
         'id': 'db69fe66ec6b6b013c2f7d271ce17cae',
         'username': 'Wanda Brown',
     }

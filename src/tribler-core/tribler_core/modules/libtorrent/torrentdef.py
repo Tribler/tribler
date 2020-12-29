@@ -40,7 +40,7 @@ def escape_as_utf8(string, encoding='utf8'):
             return string.encode('utf8', 'ignore').decode('utf8')
 
 
-class TorrentDef(object):
+class TorrentDef:
     """
     This object acts as a wrapper around some libtorrent metadata.
     It can be used to create new torrents, or analyze existing ones.
@@ -310,7 +310,7 @@ class TorrentDef(object):
                 pass
 
         # We failed.  Returning an empty string
-        return u""
+        return ""
 
     def save(self, torrent_filepath=None):
         """
@@ -462,7 +462,7 @@ class TorrentDef(object):
             raise ValueError("File not found in single-file torrent")
 
 
-class TorrentDefNoMetainfo(object):
+class TorrentDefNoMetainfo:
     """
     Instances of this class are used when working with a torrent def that contains no metainfo (yet), for instance,
     when starting a download with only an infohash. Other methods that are using this class do not distinguish between

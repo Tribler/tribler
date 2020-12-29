@@ -47,7 +47,7 @@ class WatchDog(Thread):
     """
 
     def __init__(self):
-        super(WatchDog, self).__init__()
+        super().__init__()
         self.setDaemon(True)
         self.setName(self.__class__.__name__)
         self.debug = False
@@ -75,13 +75,13 @@ class WatchDog(Thread):
 
     def start(self, *argv, **kwargs):
         self._reset_state()
-        return super(WatchDog, self).start(*argv, **kwargs)
+        return super().start(*argv, **kwargs)
 
     def join(self, *argv, **kwargs):
         if self.debug:
             self.printe("Stopping watchdog")
         self.should_stop = True
-        super(WatchDog, self).join(*argv, **kwargs)
+        super().join(*argv, **kwargs)
         if self.debug:
             self.printe("Watchdog stopped")
 
@@ -114,7 +114,7 @@ class WatchDog(Thread):
                         if self.debug:
                             self.printe("watchog %s is OK" % name)
                     elif (self.event_timestamps[name] + self.event_timeouts[name]) < time():
-                        self.printe("watchog %s *******TRIPPED!******, hasn't been set for %.4f secs." % (
+                        self.printe("watchog {} *******TRIPPED!******, hasn't been set for {:.4f} secs.".format(
                             name, time() - self.event_timestamps[name]))
                         self.printe("disabling it and printing traces for all threads.:")
                         events_to_unregister.append(name)
@@ -145,17 +145,17 @@ class WatchDog(Thread):
         self.printe("\n*** STACKTRACE - START ***\n")
 
         for thread_id, frame in sys._current_frames().items():
-            self.printe("\n### ThreadID: %s Thread name: %s" % (thread_id, self.get_thread_name(thread_id)))
+            self.printe("\n### ThreadID: {} Thread name: {}".format(thread_id, self.get_thread_name(thread_id)))
 
             self.printe("Locals by frame, innermost last:")
             while frame:
-                self.printe("%s:%s %s:" % (frame.f_code.co_filename,
+                self.printe("{}:{} {}:".format(frame.f_code.co_filename,
                                            frame.f_lineno, frame.f_code.co_name))
                 for key, value in frame.f_locals.items():
                     value = WatchDog.repr_(value)
                     if len(value) > 500:
                         value = value[:500] + "..."
-                        self.printe("| %12s = %s" % (key, value))
+                        self.printe(f"| {key:>12} = {value}")
                 frame = frame.f_back
 
         self.printe("\n*** STACKTRACE - END ***\n")
@@ -169,12 +169,12 @@ class WatchDog(Thread):
 
             frame_list = []
             while frame:
-                frame_str = "%s:%s %s:\n" % (frame.f_code.co_filename, frame.f_lineno, frame.f_code.co_name)
+                frame_str = f"{frame.f_code.co_filename}:{frame.f_lineno} {frame.f_code.co_name}:\n"
                 for key, value in frame.f_locals.items():
                     value = WatchDog.repr_(value)
                     if len(value) > 500:
                         value = value[:500] + "..."
-                        frame_str += "| %12s = %s" % (key, value)
+                        frame_str += f"| {key:>12} = {value}"
                 frame = frame.f_back
                 frame_list.append(frame_str.rstrip())
 

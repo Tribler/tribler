@@ -20,7 +20,7 @@ from tribler_core.utilities.unicode import hexlify
 TORRENT_CHECK_TIMEOUT = 20
 
 
-class UpdateEntryMixin(object):
+class UpdateEntryMixin:
     @db_session
     def update_entry(self, public_key, id_, update_dict):
         entry = self.session.mds.ChannelNode.get(public_key=public_key, id_=id_)

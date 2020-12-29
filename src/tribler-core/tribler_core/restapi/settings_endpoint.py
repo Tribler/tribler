@@ -59,7 +59,7 @@ class SettingsEndpoint(RESTEndpoint):
         if section in self.session.config.config and option in self.session.config.config[section]:
             self.session.config.config[section][option] = value
         else:
-            raise ValueError("Section %s with option %s does not exist" % (section, option))
+            raise ValueError(f"Section {section} with option {option} does not exist")
 
         # Perform some actions when specific keys are set
         if section == "libtorrent" and (option == "max_download_rate" or option == "max_upload_rate"):

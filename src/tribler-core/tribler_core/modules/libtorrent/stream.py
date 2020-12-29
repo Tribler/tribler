@@ -328,10 +328,10 @@ class Stream: # pylint: disable=too-many-instance-attributes
                 if deadline is not None:
                     # it is cool to step deadlines with 10ms interval but in realty there is no need.
                     self.__setdeadline(piece, deadline * 10)
-                    diffmap[piece] = "%s:%s:%s->%s" % (piece, deadline * 10, curr_prio, prio)
+                    diffmap[piece] = "{}:{}:{}->{}".format(piece, deadline * 10, curr_prio, prio)
                 else:
                     self.__resetdeadline(piece)
-                    diffmap[piece] = "%s:-:%s->%s" % (piece, curr_prio, prio)
+                    diffmap[piece] = f"{piece}:-:{curr_prio}->{prio}"
 
         def _find_deadline(piece):
             """

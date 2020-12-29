@@ -146,7 +146,7 @@ class StartDownloadDialog(DialogContainer):
             except RuntimeError:
                 logging.debug("Deleting loading files widget in the dialog widget failed.")
 
-        super(StartDownloadDialog, self).close_dialog()
+        super().close_dialog()
 
     def get_selected_files(self):
         included_files = []

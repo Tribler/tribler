@@ -56,7 +56,7 @@ def encode_atp(atp):
 class DownloadManager(TaskManager):
 
     def __init__(self, tribler_session, dummy_mode=False):
-        super(DownloadManager, self).__init__()
+        super().__init__()
         self.dummy_mode = dummy_mode
         self._logger = logging.getLogger(self.__class__.__name__)
 
@@ -111,7 +111,7 @@ class DownloadManager(TaskManager):
             self.dht_health_manager = DHTHealthManager(dht_health_session)
 
         # Make temporary directory for metadata collecting through DHT
-        self.metadata_tmpdir = mkdtemp(suffix=u'tribler_metainfo_tmpdir')
+        self.metadata_tmpdir = mkdtemp(suffix='tribler_metainfo_tmpdir')
 
         # Register tasks
         self.register_task("process_alerts", self._task_process_alerts, interval=1)
