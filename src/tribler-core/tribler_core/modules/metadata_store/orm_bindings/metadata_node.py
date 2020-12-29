@@ -6,7 +6,12 @@ from pony.orm import db_session, desc, left_join, raw_sql
 
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import LEGACY_ENTRY, TODELETE
 from tribler_core.modules.metadata_store.orm_bindings.torrent_metadata import NULL_KEY_SUBST
-from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, METADATA_NODE, MetadataNodePayload
+from tribler_core.modules.metadata_store.serialization import (
+    CHANNEL_TORRENT,
+    COLLECTION_NODE,
+    METADATA_NODE,
+    MetadataNodePayload,
+)
 from tribler_core.utilities.unicode import hexlify
 
 
@@ -136,6 +141,16 @@ def define_binding(db):
                 sort_expression = "g." + sort_by
                 sort_expression = desc(sort_expression) if sort_desc else sort_expression
                 pony_query = pony_query.sort_by(sort_expression)
+
+            if txt_filter:
+                if sort_by is None:
+                    pony_query = pony_query.sort_by(
+                        f"""
+                        1 if g.metadata_type == {CHANNEL_TORRENT} else
+                        2 if g.metadata_type == {COLLECTION_NODE} else
+                        3 if g.health.seeders > 0 else 4
+                    """
+                    )
 
             return pony_query
 
