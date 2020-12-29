@@ -73,7 +73,7 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
             add_item_to_info_widget('sys.path', '%s' % path)
 
         for key in os.environ.keys():
-            add_item_to_info_widget('os.environ', '%s: %s' % (key, os.environ[key]))
+            add_item_to_info_widget('os.environ', '{}: {}'.format(key, os.environ[key]))
 
         # Add recent requests to feedback dialog
         request_ind = 1
@@ -88,7 +88,7 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
         # Add recent events to feedback dialog
         events_ind = 1
         for event, event_time in received_events[:30][::-1]:
-            add_item_to_info_widget('event_%d' % events_ind, '%s (time: %s)' % (json.dumps(event), event_time))
+            add_item_to_info_widget('event_%d' % events_ind, '{} (time: {})'.format(json.dumps(event), event_time))
             events_ind += 1
 
         # Users can remove specific lines in the report
@@ -124,7 +124,7 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
         if not self.error_reporting_requires_user_consent:
             QApplication.quit()
 
-        sent = response[u'sent']
+        sent = response['sent']
 
         success_text = "Successfully sent the report! Thanks for your contribution."
         error_text = "Could not send the report! Please post this issue on GitHub."
@@ -150,7 +150,7 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
             key = item.text(0)
             value = item.text(1)
 
-            sys_info += "%s\t%s\n" % (key, value)
+            sys_info += f"{key}\t{value}\n"
             sys_info_dict[key].append(value)
 
         comments = self.comments_text_edit.toPlainText()

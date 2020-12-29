@@ -33,7 +33,7 @@ def tribler_urlencode_single(key, value):
     if isinstance(value, bool):
         value = int(value)
     utf8_value = quote_plus(str(value).encode('utf-8'))
-    return "%s=%s" % (utf8_key, utf8_value)
+    return f"{utf8_key}={utf8_value}"
 
 
 performed_requests = deque(maxlen=200)

@@ -47,7 +47,7 @@ def _safe_extended_peer_info(ext_peer_info):
         return ensure_unicode(ext_peer_info, "utf8")
     except UnicodeDecodeError:
         # We might have some special unicode characters in here
-        return u''.join([chr(c) for c in ext_peer_info])
+        return ''.join([chr(c) for c in ext_peer_info])
 
 
 class DownloadsEndpoint(RESTEndpoint):
@@ -57,7 +57,7 @@ class DownloadsEndpoint(RESTEndpoint):
     """
 
     def __init__(self, *args, **kwargs):
-        super(DownloadsEndpoint, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.app.on_shutdown.append(self.on_shutdown)
 
@@ -116,7 +116,7 @@ class DownloadsEndpoint(RESTEndpoint):
         Return file information as JSON from a specified download.
         """
         files_json = []
-        files_completion = dict((name, progress) for name, progress in download.get_state().get_files_completion())
+        files_completion = {name: progress for name, progress in download.get_state().get_files_completion()}
         selected_files = download.config.get_selected_files()
         file_index = 0
         for fn, size in download.get_def().get_files_with_length():
@@ -342,7 +342,7 @@ class DownloadsEndpoint(RESTEndpoint):
         uri = parameters['uri']
         if uri.startswith("file:"):
             filename = url2pathname(uri[5:])
-            download_uri = u"file:%s" % filename
+            download_uri = "file:%s" % filename
         else:
             download_uri = unquote_plus(uri)
 

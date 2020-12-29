@@ -39,7 +39,7 @@ class TriblerApplication(QtSingleApplication):
     def parse_sys_args(self, args):
         for arg in args[1:]:
             if os.path.exists(arg):
-                self.handle_uri(u'file:%s' % ensure_unicode(arg, 'utf8'))
+                self.handle_uri('file:%s' % ensure_unicode(arg, 'utf8'))
             elif arg.startswith('magnet'):
                 self.handle_uri(arg)
 

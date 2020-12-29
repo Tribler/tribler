@@ -22,7 +22,7 @@ SPEC_FILENAME = 'tribler_config.spec'
 CONFIG_SPEC_PATH = get_lib_path() / 'config' / SPEC_FILENAME
 
 
-class TriblerConfig(object):
+class TriblerConfig:
     """
     Holds all Tribler Core configurable variables.
 
@@ -111,7 +111,7 @@ class TriblerConfig(object):
         """Get a random port which is not already selected."""
         if path not in self.selected_ports:
             self.selected_ports[path] = get_random_port()
-            self._logger.debug(u"Get random port %d for [%s]", self.selected_ports[path], path)
+            self._logger.debug("Get random port %d for [%s]", self.selected_ports[path], path)
         return self.selected_ports[path]
 
     # Version and backup
@@ -483,7 +483,7 @@ class TriblerConfig(object):
 
     def get_tunnel_community_socks5_listen_ports(self):
         ports = self.config['tunnel_community']['socks5_listen_ports']
-        path = u'tunnel_community~socks5_listen_ports~'
+        path = 'tunnel_community~socks5_listen_ports~'
         return [self._get_random_port(path + str(index))
                 if int(port) < 0 else int(port) for index, port in enumerate(ports)]
 

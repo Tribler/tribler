@@ -89,7 +89,7 @@ class Session(TaskManager):
         Only a single session instance can exist at a time in a process.
         :config TriblerConfig object parametrizing the Session
         """
-        super(Session, self).__init__()
+        super().__init__()
 
         get_event_loop().set_exception_handler(self.unhandled_error_observer)
 
@@ -150,7 +150,7 @@ class Session(TaskManager):
                 self.ipv8.endpoint.enable_community_statistics(overlay.get_prefix(), True)
 
     def import_bootstrap_file(self):
-        with open(self.bootstrap.bootstrap_file, 'r') as f:
+        with open(self.bootstrap.bootstrap_file) as f:
             f.read()
         self._logger.info("Executing bootstrap script")
         # TODO we should do something here...
@@ -311,7 +311,7 @@ class Session(TaskManager):
         # On Mac, we bundle the root certificate for the SSL validation since Twisted is not using the root
         # certificates provided by the system trust store.
         if sys.platform == 'darwin':
-            os.environ['SSL_CERT_FILE'] = str((get_lib_path() / 'root_certs_mac.pem'))
+            os.environ['SSL_CERT_FILE'] = str(get_lib_path() / 'root_certs_mac.pem')
 
         if self.config.get_chant_enabled():
             channels_dir = self.config.get_chant_channels_dir()

@@ -40,7 +40,7 @@ if __name__ == '__main__':
         f.write(version_id)
 
     if sys.platform == 'linux2':
-        run_command('dch -v {} New upstream release.'.format(version_id).split())
+        run_command(f'dch -v {version_id} New upstream release.'.split())
     elif sys.platform == 'win32':
         logger.info('Replacing NSI string.')
         with open(path.join('Tribler', 'Main', 'Build', 'Win', 'tribler.nsi'), 'r+') as f:

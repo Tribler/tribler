@@ -3,7 +3,7 @@ import random
 import networkx as nx
 
 
-class GraphPositioning(object):
+class GraphPositioning:
     """
     This class is for the calculation of the positions of the nodes of
     a given tree and from the perspective of a given central node

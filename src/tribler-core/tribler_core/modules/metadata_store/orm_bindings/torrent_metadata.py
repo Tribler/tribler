@@ -84,7 +84,7 @@ def define_binding(db):
             if 'xxx' not in kwargs:
                 kwargs["xxx"] = default_xxx_filter.isXXXTorrentMetadataDict(kwargs)
 
-            super(TorrentMetadata, self).__init__(*args, **kwargs)
+            super().__init__(*args, **kwargs)
 
             if 'tracker_info' in kwargs:
                 self.add_tracker(kwargs["tracker_info"])
@@ -99,7 +99,7 @@ def define_binding(db):
             self.add_tracker(self.tracker_info)
 
         def get_magnet(self):
-            return ("magnet:?xt=urn:btih:%s&dn=%s" % (hexlify(self.infohash), self.title)) + (
+            return ("magnet:?xt=urn:btih:{}&dn={}".format(hexlify(self.infohash), self.title)) + (
                 "&tr=%s" % self.tracker_info if self.tracker_info else ""
             )
 
@@ -123,7 +123,7 @@ def define_binding(db):
             """
             Return a basic dictionary with information about the channel.
             """
-            simple_dict = super(TorrentMetadata, self).to_simple_dict()
+            simple_dict = super().to_simple_dict()
             epoch = datetime.utcfromtimestamp(0)
             simple_dict.update(
                 {

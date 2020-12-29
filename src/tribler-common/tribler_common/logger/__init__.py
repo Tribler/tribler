@@ -22,7 +22,7 @@ def setup_logging(config_path='config.yaml', module='core', log_dir='LOG_DIR'):
     Setup logging configuration with the given YAML file.
     """
     if os.path.exists(config_path):
-        with open(config_path, 'rt') as f:
+        with open(config_path) as f:
             try:
                 # Update the log file paths in the config
                 config_text = f.read()

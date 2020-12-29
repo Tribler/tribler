@@ -17,7 +17,7 @@ from tribler_core.utilities.unicode import hexlify
 
 class TrustViewEndpoint(RESTEndpoint):
     def __init__(self, session):
-        super(TrustViewEndpoint, self).__init__(session)
+        super().__init__(session)
         self.logger = logging.getLogger(self.__class__.__name__)
 
         self.bandwidth_db = None

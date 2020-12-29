@@ -7,7 +7,7 @@ def test_quoter_char():
     """
     Test if an ASCII character is quoted correctly
     """
-    char = u'A'
+    char = 'A'
 
     encoded = unicode_quoter(char)
 
@@ -18,7 +18,7 @@ def test_quoter_unichar():
     """
     Test if a unicode character is quoted correctly
     """
-    char = u'\u9b54'
+    char = '\u9b54'
 
     encoded = unicode_quoter(char)
 
@@ -29,7 +29,7 @@ def test_quoter_reserved():
     """
     Test if a URI reserved character is quoted correctly
     """
-    char = u'+'
+    char = '+'
 
     encoded = unicode_quoter(char)
 
@@ -41,7 +41,7 @@ def test_quote_plus_unicode_char():
     """
     Test if a ASCII characters are quoted correctly
     """
-    s = u'Ab09'
+    s = 'Ab09'
 
     encoded = quote_plus_unicode(s)
 
@@ -52,7 +52,7 @@ def test_quote_plus_unicode_unichar():
     """
     Test if unicode characters are quoted correctly
     """
-    s = u'\u9b54\u11b3\uaf92\u1111'
+    s = '\u9b54\u11b3\uaf92\u1111'
 
     encoded = quote_plus_unicode(s)
 
@@ -63,7 +63,7 @@ def test_quote_plus_unicode_reserved():
     """
     Test if a URI reserved characters are quoted correctly
     """
-    s = u'+ &'
+    s = '+ &'
 
     encoded = quote_plus_unicode(s)
 
@@ -75,7 +75,7 @@ def test_quote_plus_unicode_compound():
     """
     Test if a jumble of unicode, reserved and normal chars are quoted correctly
     """
-    s = u'\u9b54\u11b3+ A5&\uaf92\u1111'
+    s = '\u9b54\u11b3+ A5&\uaf92\u1111'
 
     encoded = quote_plus_unicode(s)
 

@@ -20,7 +20,7 @@ class RemoteQueryEndpoint(MetadataEndpointBase):
         self.app.add_routes([web.put('', self.create_remote_search_request)])
 
     def sanitize_parameters(self, parameters):
-        sanitized = super(RemoteQueryEndpoint, self).sanitize_parameters(parameters)
+        sanitized = super().sanitize_parameters(parameters)
 
         # Convert frozenset to string
         if "metadata_type" in sanitized:

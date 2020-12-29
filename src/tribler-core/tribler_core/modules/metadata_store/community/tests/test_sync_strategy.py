@@ -6,7 +6,7 @@ from ipv8.test.base import TestBase
 from tribler_core.modules.metadata_store.community.sync_strategy import RemovePeers
 
 
-class MockCommunity(object):
+class MockCommunity:
     def __init__(self):
         self.fetch_next_called = False
         self.send_random_to_called = []
@@ -41,7 +41,7 @@ class TestRemovePeers(TestBase):
         """
         If we have one peer, it should not be removed.
         """
-        test_peer = Peer(default_eccrypto.generate_key(u"very-low"))
+        test_peer = Peer(default_eccrypto.generate_key("very-low"))
         self.community.network.add_verified_peer(test_peer)
         self.community.get_peers_return.append(test_peer)
 
@@ -54,7 +54,7 @@ class TestRemovePeers(TestBase):
         If we have over 20 peers, one should be removed.
         """
         for _ in range(21):
-            test_peer = Peer(default_eccrypto.generate_key(u"very-low"))
+            test_peer = Peer(default_eccrypto.generate_key("very-low"))
             self.community.network.add_verified_peer(test_peer)
             self.community.get_peers_return.append(test_peer)
 

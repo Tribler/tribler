@@ -19,7 +19,7 @@ class ShutdownEndpoint(RESTEndpoint):
     """
 
     def __init__(self, session):
-        super(ShutdownEndpoint, self).__init__(session)
+        super().__init__(session)
         self.process_checker = ProcessChecker()
 
     def setup_routes(self):

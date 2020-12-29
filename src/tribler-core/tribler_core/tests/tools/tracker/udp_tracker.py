@@ -81,10 +81,10 @@ class UDPTrackerProtocol(DatagramProtocol):
         self.transport.sendto(response_msg, (host, port))
 
 
-class UDPTracker(object):
+class UDPTracker:
 
     def __init__(self, port):
-        super(UDPTracker, self).__init__()
+        super().__init__()
         self.port = port
         self.transport = None
         self.tracker_info = TrackerInfo()

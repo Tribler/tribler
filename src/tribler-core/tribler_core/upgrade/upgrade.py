@@ -61,7 +61,7 @@ def cleanup_noncompliant_channel_torrents(state_dir):
                                  file_path)
 
 
-class TriblerUpgrader(object):
+class TriblerUpgrader:
 
     def __init__(self, session):
         self._logger = logging.getLogger(self.__class__.__name__)

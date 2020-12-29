@@ -16,7 +16,7 @@ async def bootstrap(tmpdir):
     await bootstrap.shutdown()
 
 
-class FakeDHT(object):
+class FakeDHT:
 
     def connect_peer(self, mid):
         matched_node = MockObject()

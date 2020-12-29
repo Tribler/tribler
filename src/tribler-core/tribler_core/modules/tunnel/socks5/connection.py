@@ -19,7 +19,7 @@ from tribler_core.modules.tunnel.socks5.conversion import (
 from tribler_core.modules.tunnel.socks5.udp_connection import SocksUDPConnection
 
 
-class ConnectionState(object):
+class ConnectionState:
     """
     Enumeration of possible SOCKS5 connection states
     """
@@ -39,7 +39,7 @@ class Socks5Connection(Protocol):
     """
 
     def __init__(self, socksserver):
-        super(Socks5Connection, self).__init__()
+        super().__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
         self.socksserver = socksserver
         self.transport = None
@@ -188,8 +188,8 @@ class Socks5Connection(Protocol):
         @param Circuit broken_circuit: the circuit that has been broken
         @return Set with destinations using this circuit
         """
-        affected_destinations = set(destination for destination, tunnel_circuit
-                                    in self.destinations.items() if tunnel_circuit == broken_circuit)
+        affected_destinations = {destination for destination, tunnel_circuit
+                                    in self.destinations.items() if tunnel_circuit == broken_circuit}
         counter = 0
         for destination in affected_destinations:
             if destination in self.destinations:

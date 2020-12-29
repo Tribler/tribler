@@ -18,7 +18,7 @@ def initTerms(filename):
     searchterms = set()
 
     try:
-        with open(filename, 'r') as f:
+        with open(filename) as f:
             lines = f.read().lower().splitlines()
 
             for line in lines:
@@ -26,13 +26,13 @@ def initTerms(filename):
                     searchterms.add(line[1:])
                 else:
                     terms.add(line)
-    except IOError:
-        raise IOError(u"Could not open %s, initTerms failed.", filename)
+    except OSError:
+        raise OSError("Could not open %s, initTerms failed.", filename)
 
     return terms, searchterms
 
 
-class XXXFilter(object):
+class XXXFilter:
     _logger = logging.getLogger("XXXFilter")
 
     xxx_terms, xxx_searchterms = initTerms(termfilename)
@@ -52,15 +52,15 @@ class XXXFilter(object):
                   (comment and self.isXXX(comment, False)))
         tracker = repr(tracker)
         if is_xxx:
-            self._logger.debug(u"Torrent is XXX: %s %s", torrent_name, tracker)
+            self._logger.debug("Torrent is XXX: %s %s", torrent_name, tracker)
         else:
-            self._logger.debug(u"Torrent is NOT XXX: %s %s", torrent_name, tracker)
+            self._logger.debug("Torrent is NOT XXX: %s %s", torrent_name, tracker)
         return is_xxx
 
     def isXXXTorrentMetadataDict(self, md_dict):
         terms_combined = " ".join([md_dict[f] for f in ["title", "tags", "tracker"] if f in md_dict])
         non_xxx = "tags" in md_dict and \
-                  (md_dict["tags"].startswith(u"audio") or md_dict["tags"].startswith(u"CD/DVD/BD"))
+                  (md_dict["tags"].startswith("audio") or md_dict["tags"].startswith("CD/DVD/BD"))
         return self.isXXX(terms_combined, nonXXXFormat=non_xxx)
 
     def isXXX(self, s, isFilename=True, nonXXXFormat=False):

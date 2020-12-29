@@ -129,7 +129,7 @@ VIDEO_EXTS = [
 # Tribler shutdown grace period in milliseconds
 SHUTDOWN_WAITING_PERIOD = 120000
 
-ACTION_BUTTONS = u'action_buttons'
+ACTION_BUTTONS = 'action_buttons'
 
 # Torrent commit status constants
 COMMIT_STATUS_NEW = 0
@@ -137,12 +137,12 @@ COMMIT_STATUS_TODELETE = 1
 COMMIT_STATUS_COMMITTED = 2
 COMMIT_STATUS_UPDATED = 6
 
-HEALTH_CHECKING = u'Checking..'
-HEALTH_DEAD = u'No peers'
-HEALTH_ERROR = u'Error'
-HEALTH_MOOT = u'Peers found'
-HEALTH_GOOD = u'Seeds found'
-HEALTH_UNCHECKED = u'Unknown'
+HEALTH_CHECKING = 'Checking..'
+HEALTH_DEAD = 'No peers'
+HEALTH_ERROR = 'Error'
+HEALTH_MOOT = 'Peers found'
+HEALTH_GOOD = 'Seeds found'
+HEALTH_UNCHECKED = 'Unknown'
 
 # Interval for refreshing the results in the debug pane
 DEBUG_PANE_REFRESH_TIMEOUT = 5000  # 5 seconds
@@ -157,20 +157,20 @@ class ContentCategories:
     # It should never be instanced, but instead used as a collection of classmethods.
 
     _category_emojis = (
-        (u'Video', u'🎦'),
-        (u'VideoClips', u'📹'),
-        (u'Audio', u'🎧'),
-        (u'Documents', u'📝'),
-        (u'CD/DVD/BD', u'📀'),
-        (u'Compressed', u'🗜'),
-        (u'Games', u'👾'),
-        (u'Pictures', u'📷'),
-        (u'Books', u'📚'),
-        (u'Comics', u'💢'),
-        (u'Software', u'💾'),
-        (u'Science', u'🔬'),
-        (u'XXX', u'💋'),
-        (u'Other', u'🤔'),
+        ('Video', '🎦'),
+        ('VideoClips', '📹'),
+        ('Audio', '🎧'),
+        ('Documents', '📝'),
+        ('CD/DVD/BD', '📀'),
+        ('Compressed', '🗜'),
+        ('Games', '👾'),
+        ('Pictures', '📷'),
+        ('Books', '📚'),
+        ('Comics', '💢'),
+        ('Software', '💾'),
+        ('Science', '🔬'),
+        ('XXX', '💋'),
+        ('Other', '🤔'),
     )
     _category_tuples = tuple(
         ContentCategoryTuple(code, emoji, emoji + " " + code, code) for code, emoji in _category_emojis
@@ -201,10 +201,10 @@ COLOR_SELECTED = "#5c58ee"
 COLOR_BACKGROUND = "#202020"
 HTML_SPACE = '&nbsp;'
 TRUST_GRAPH_PEER_LEGENDS = (
-    u"<span style='color:%s'>\u25CF Helpful user </span> &nbsp;&nbsp;&nbsp;"
-    u"<span style='color:%s'>\u25CF Selfish user </span> &nbsp;&nbsp;&nbsp;"
-    u"<span style='color:%s'>\u25CF Unknown </span> &nbsp;&nbsp;&nbsp;"
-    u"<span style='color:%s'>\u25CF Selected</span>" % (COLOR_GREEN, COLOR_RED, COLOR_NEUTRAL, COLOR_SELECTED)
+    "<span style='color:%s'>\u25CF Helpful user </span> &nbsp;&nbsp;&nbsp;"
+    "<span style='color:%s'>\u25CF Selfish user </span> &nbsp;&nbsp;&nbsp;"
+    "<span style='color:%s'>\u25CF Unknown </span> &nbsp;&nbsp;&nbsp;"
+    "<span style='color:%s'>\u25CF Selected</span>" % (COLOR_GREEN, COLOR_RED, COLOR_NEUTRAL, COLOR_SELECTED)
 )
 
 CONTEXT_MENU_WIDTH = 200

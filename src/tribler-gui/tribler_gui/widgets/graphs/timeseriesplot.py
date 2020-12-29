@@ -9,7 +9,7 @@ from tribler_gui.widgets.graphs.DateAxisItem import DateAxisItem, YEAR_SPACING
 class TimeSeriesPlot(pg.PlotWidget):
     def __init__(self, parent, name, series, **kargs):
         axisItems = {'bottom': DateAxisItem('bottom')}
-        super(TimeSeriesPlot, self).__init__(parent=parent, title=name, axisItems=axisItems, **kargs)
+        super().__init__(parent=parent, title=name, axisItems=axisItems, **kargs)
         self.getPlotItem().showGrid(x=True, y=True)
         self.setBackground('#202020')
         self.setAntialiasing(True)

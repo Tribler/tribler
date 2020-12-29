@@ -1,4 +1,3 @@
-# -*- coding:utf-8 -*-
 from unittest.mock import Mock
 
 from tribler_core.restapi.util import fix_unicode_array, fix_unicode_dict, get_parameter

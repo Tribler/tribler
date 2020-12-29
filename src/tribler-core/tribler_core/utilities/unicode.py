@@ -49,7 +49,7 @@ def recursive_unicode(obj, ignore_errors=False):
             return obj.decode('utf8')
         except UnicodeDecodeError:
             if ignore_errors:
-                return "".join((chr(c) for c in obj))
+                return "".join(chr(c) for c in obj)
             raise
     return obj
 

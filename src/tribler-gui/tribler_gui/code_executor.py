@@ -10,7 +10,7 @@ from PyQt5.QtNetwork import QTcpServer
 from tribler_gui.utilities import connect
 
 
-class CodeExecutor(object):
+class CodeExecutor:
     """
     This class is responsible for executing code (when starting Tribler in debug mode).
     The protocol to execute code is as follows.
@@ -87,7 +87,7 @@ class CodeExecutor(object):
         self.sockets.remove(socket)
 
 
-class Stream(object):
+class Stream:
     def __init__(self):
         self.stream = io.StringIO()
 
@@ -106,7 +106,7 @@ class Stream(object):
         return result
 
 
-class Console(object):
+class Console:
     def __init__(self, locals=None):
         self.console = code.InteractiveConsole(locals=locals)
 

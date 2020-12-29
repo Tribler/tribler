@@ -2,10 +2,10 @@ import time
 
 from tribler_core.utilities import path_util
 
-DATA_NONE = u"None"
+DATA_NONE = "None"
 
 
-class TriblerStatistics(object):
+class TriblerStatistics:
 
     def __init__(self, session):
         """

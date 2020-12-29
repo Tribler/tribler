@@ -21,7 +21,7 @@ from tribler_core.modules.torrent_checker.torrentchecker_session import (
 from tribler_core.utilities.unicode import hexlify
 
 
-class FakeUdpSocketManager(object):
+class FakeUdpSocketManager:
     transport = 1
 
     def __init__(self):
@@ -339,7 +339,7 @@ async def test_http_unprocessed_infohashes():
 
 @pytest.mark.asyncio
 async def test_failed_unicode():
-    session = HttpTrackerSession(u"localhost", ("localhost", 8475), "/announce", 5, None)
+    session = HttpTrackerSession("localhost", ("localhost", 8475), "/announce", 5, None)
     with pytest.raises(ValueError):
         session._process_scrape_response(bencode({'failure reason': '\xe9'}))
     await session.cleanup()

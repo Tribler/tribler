@@ -176,7 +176,7 @@ async def test_check_torrent_health(enable_chant, enable_api, session, mock_dlmg
         session.mds.TorrentMetadata(
             infohash=infohash, title='ubuntu-torrent.iso', size=42, tracker_info=tracker_url, health=torrent_state
         )
-    url = 'metadata/torrents/%s/health?timeout=%s&refresh=1' % (hexlify(infohash), TORRENT_CHECK_TIMEOUT)
+    url = 'metadata/torrents/{}/health?timeout={}&refresh=1'.format(hexlify(infohash), TORRENT_CHECK_TIMEOUT)
 
     # Initialize the torrent checker
     session.torrent_checker = TorrentChecker(session)
@@ -205,5 +205,4 @@ async def test_check_torrent_query(enable_chant, enable_api, session, udp_tracke
     Test that the endpoint responds with an error message if the timeout parameter has a wrong value
     """
     infohash = b'a' * 20
-    await do_request(session, "metadata/torrents/%s/health?timeout=wrong_value&refresh=1" % infohash,
-                     expected_code=400)
+    await do_request(session, "metadata/torrents/%s/health?timeout=wrong_value&refresh=1" % infohash, expected_code=400)

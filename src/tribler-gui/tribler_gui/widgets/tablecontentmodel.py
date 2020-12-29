@@ -33,7 +33,7 @@ class RemoteTableModel(QAbstractTableModel):
     unsortable_columns = []
 
     def __init__(self, parent=None):
-        super(RemoteTableModel, self).__init__(parent)
+        super().__init__(parent)
         # Unique identifier mapping for items. For torrents, it is infohash and for channels, it is concatenated value
         # of public key and channel id
         self.item_uid_map = {}
@@ -215,44 +215,42 @@ class RemoteTableModel(QAbstractTableModel):
 
 class ChannelContentModel(RemoteTableModel):
 
-    columns = [ACTION_BUTTONS, u'category', u'name', u'size', u'health', u'updated']
+    columns = [ACTION_BUTTONS, 'category', 'name', 'size', 'health', 'updated']
     column_headers = ['', '', tr('Name'), tr('Size'), tr('Health'), tr('Updated')]
-    unsortable_columns = [u'status', u'state', ACTION_BUTTONS]
+    unsortable_columns = ['status', 'state', ACTION_BUTTONS]
     column_flags = {
-        u'subscribed': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
-        u'category': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
-        u'name': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
-        u'torrents': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
-        u'size': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
-        u'updated': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
-        u'health': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
-        u'votes': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
-        u'state': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
-        u'status': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
+        'subscribed': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
+        'category': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
+        'name': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
+        'torrents': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
+        'size': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
+        'updated': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
+        'health': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
+        'votes': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
+        'state': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
+        'status': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         ACTION_BUTTONS: Qt.ItemIsEnabled | Qt.ItemIsSelectable,
     }
 
     column_width = {
-        u'state': lambda _: 100,
-        u'subscribed': lambda _: 100,
-        u'name': lambda table_width: table_width - 450,
-        u'action_buttons': lambda _: 50,
-        u'category': lambda _: 30,
+        'state': lambda _: 100,
+        'subscribed': lambda _: 100,
+        'name': lambda table_width: table_width - 450,
+        'action_buttons': lambda _: 50,
+        'category': lambda _: 30,
     }
 
     column_tooltip_filters = {
-        u'state': lambda data: data,
-        u'votes': lambda data: get_votes_rating_description(data) if data is not None else None,
-        u'category': lambda data: data,
-        u'health': lambda data: f"{data}" + ('' if data == HEALTH_CHECKING else '\n(Click to recheck)'),
+        'state': lambda data: data,
+        'votes': lambda data: get_votes_rating_description(data) if data is not None else None,
+        'category': lambda data: data,
+        'health': lambda data: f"{data}" + ('' if data == HEALTH_CHECKING else '\n(Click to recheck)'),
     }
 
     column_display_filters = {
-        u'size': lambda data: (format_size(float(data)) if data != '' else ''),
-        u'votes': format_votes,
-        u'updated': lambda timestamp: pretty_date(timestamp)
-        if timestamp and timestamp > BITTORRENT_BIRTHDAY
-        else 'N/A',
+        'size': lambda data: (format_size(float(data)) if data != '' else ''),
+        'votes': format_votes,
+        'updated': lambda timestamp: pretty_date(timestamp) if timestamp and timestamp > BITTORRENT_BIRTHDAY else 'N/A',
     }
 
     def __init__(
@@ -326,7 +324,7 @@ class ChannelContentModel(RemoteTableModel):
             return ""
 
         column = self.columns[index.column()]
-        data = item.get(column, u'')
+        data = item.get(column, '')
 
         # Print number of torrents in the channel for channel rows in the "size" column
         if (
@@ -368,15 +366,15 @@ class ChannelContentModel(RemoteTableModel):
         elif role == Qt.ToolTipRole:
             return self.filter_item_txt(self.column_tooltip_filters, index, show_default=False)
         elif role == Qt.TextAlignmentRole:
-            if index.column() == self.column_position.get(u'votes', -1):
+            if index.column() == self.column_position.get('votes', -1):
                 return Qt.AlignLeft | Qt.AlignVCenter
-            if index.column() == self.column_position.get(u'torrents', -1):
+            if index.column() == self.column_position.get('torrents', -1):
                 return Qt.AlignHCenter | Qt.AlignVCenter
         return None
 
     def reset(self):
         self.item_uid_map.clear()
-        super(ChannelContentModel, self).reset()
+        super().reset()
 
     def update_node_info(self, update_dict):
         """
@@ -421,15 +419,15 @@ class ChannelContentModel(RemoteTableModel):
             # Only include total for the first query to the endpoint
             kwargs.update({"include_total": 1})
 
-        super(ChannelContentModel, self).perform_query(**kwargs)
+        super().perform_query(**kwargs)
 
     def setData(self, index, new_value, role=None):
         if role != Qt.EditRole:
             return True
         item = self.data_items[index.row()]
         attribute_name = self.columns[index.column()]
-        attribute_name = u'tags' if attribute_name == u'category' else attribute_name
-        attribute_name = u'title' if attribute_name == u'name' else attribute_name
+        attribute_name = 'tags' if attribute_name == 'category' else attribute_name
+        attribute_name = 'title' if attribute_name == 'name' else attribute_name
 
         if attribute_name == 'subscribed':
             return True
@@ -464,33 +462,33 @@ class SearchResultsModel(ChannelContentModel):
 
 
 class DiscoveredChannelsModel(ChannelContentModel):
-    columns = [u'subscribed', u'name', u'state', u'torrents', u'votes', u'updated']
-    column_headers = [tr('Subscribed'), tr('Name'), u'', tr('Torrents'), tr('Popularity'), tr('Updated')]
+    columns = ['subscribed', 'name', 'state', 'torrents', 'votes', 'updated']
+    column_headers = [tr('Subscribed'), tr('Name'), '', tr('Torrents'), tr('Popularity'), tr('Updated')]
 
-    column_width = dict(ChannelContentModel.column_width, **{u'name': lambda table_width: table_width - 540})
-    default_sort_column = columns.index(u'votes')
+    column_width = dict(ChannelContentModel.column_width, **{'name': lambda table_width: table_width - 540})
+    default_sort_column = columns.index('votes')
 
     def __init__(self, *args, **kwargs):
-        super(DiscoveredChannelsModel, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         # Subscribe to new channels updates notified over the Events endpoint
         self.remote_queries.add(CHANNELS_VIEW_UUID)
 
 
 class PersonalChannelsModel(ChannelContentModel):
-    columns = [ACTION_BUTTONS, u'category', u'name', u'size', u'health', u'updated', u'status']
-    column_headers = ['', '', tr('Name'), tr('Size'), tr('Health'), tr('Updated'), u'']
+    columns = [ACTION_BUTTONS, 'category', 'name', 'size', 'health', 'updated', 'status']
+    column_headers = ['', '', tr('Name'), tr('Size'), tr('Health'), tr('Updated'), '']
 
     column_flags = dict(ChannelContentModel.column_flags)
     column_flags.update(
         {
-            u'category': Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable,
-            u'name': Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable,
+            'category': Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable,
+            'name': Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable,
         }
     )
 
     def __init__(self, *args, **kwargs):
         kwargs["hide_xxx"] = kwargs.get("hide_xxx", False)
-        super(PersonalChannelsModel, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def delete_rows(self, rows):
 
@@ -498,10 +496,10 @@ class PersonalChannelsModel(ChannelContentModel):
         delete_data = []
         for entry in [row.model().data_items[row.row()] for row in rows]:
             if entry["status"] == NEW:
-                delete_data.append({"public_key": entry[u'public_key'], "id": entry[u'id']})
+                delete_data.append({"public_key": entry['public_key'], "id": entry['id']})
             else:
                 patch_data.append(
-                    {"public_key": entry[u'public_key'], "id": entry[u'id'], "status": COMMIT_STATUS_TODELETE}
+                    {"public_key": entry['public_key'], "id": entry['id'], "status": COMMIT_STATUS_TODELETE}
                 )
 
         if patch_data:
@@ -521,7 +519,7 @@ class PersonalChannelsModel(ChannelContentModel):
         )
 
     def on_query_results(self, response, **kwargs):
-        if super(PersonalChannelsModel, self).on_query_results(response, **kwargs):
+        if super().on_query_results(response, **kwargs):
             if response.get("results"):
                 self.info_changed.emit(response["results"])
 
@@ -536,11 +534,11 @@ class PersonalChannelsModel(ChannelContentModel):
 
 
 class SimplifiedPersonalChannelsModel(PersonalChannelsModel):
-    columns = [ACTION_BUTTONS, u'category', u'name', u'size', u'health', u'updated']
+    columns = [ACTION_BUTTONS, 'category', 'name', 'size', 'health', 'updated']
     column_headers = ['', '', tr('Name'), tr('Size'), tr('Health'), tr('Updated')]
 
-    column_width = dict(ChannelContentModel.column_width, **{u'name': lambda table_width: table_width - 440})
+    column_width = dict(ChannelContentModel.column_width, **{'name': lambda table_width: table_width - 440})
 
     def __init__(self, *args, **kwargs):
         kwargs["exclude_deleted"] = kwargs.get("exclude_deleted", True)
-        super(SimplifiedPersonalChannelsModel, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)

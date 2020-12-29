@@ -25,6 +25,6 @@ def define_binding(db):
             else:
                 raise MalformedTrackerURLException("Could not canonicalize tracker URL (%s)" % kwargs['url'])
 
-            super(TrackerState, self).__init__(*args, **kwargs)
+            super().__init__(*args, **kwargs)
 
     return TrackerState

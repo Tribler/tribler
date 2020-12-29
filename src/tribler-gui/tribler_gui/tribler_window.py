@@ -76,7 +76,7 @@ from tribler_gui.utilities import (
     get_gui_setting,
     get_image_path,
     get_ui_file_path,
-    is_dir_writable
+    is_dir_writable,
 )
 from tribler_gui.widgets.channelsmenulistwidget import ChannelsMenuListWidget
 from tribler_gui.widgets.tablecontentmodel import DiscoveredChannelsModel, SearchResultsModel
@@ -351,8 +351,10 @@ class TriblerWindow(QMainWindow):
 
         # The channels content page is only used to show subscribed channels, so we always show xxx
         # contents in it.
-        connect(self.core_manager.events_manager.node_info_updated,
-                lambda data: self.channels_menu_list.reload_if_necessary([data]))
+        connect(
+            self.core_manager.events_manager.node_info_updated,
+            lambda data: self.channels_menu_list.reload_if_necessary([data]),
+        )
         connect(self.left_menu_button_new_channel.clicked, self.create_new_channel)
 
     def create_new_channel(self, checked):
@@ -464,7 +466,7 @@ class TriblerWindow(QMainWindow):
         self.top_menu_button.setHidden(False)
         self.left_menu.setHidden(False)
         # FIXME hiding the token balance until the feature is stable
-        #self.token_balance_widget.setHidden(False)
+        # self.token_balance_widget.setHidden(False)
         self.settings_button.setHidden(False)
         self.add_torrent_button.setHidden(False)
         self.top_search_bar.setHidden(False)
@@ -542,22 +544,22 @@ class TriblerWindow(QMainWindow):
         self.gui_settings.setValue("recent_download_locations", ','.join(recent_locations))
 
     def perform_start_download_request(
-            self,
-            uri,
-            anon_download,
-            safe_seeding,
-            destination,
-            selected_files,
-            total_files=0,
-            add_to_channel=False,
-            callback=None,
+        self,
+        uri,
+        anon_download,
+        safe_seeding,
+        destination,
+        selected_files,
+        total_files=0,
+        add_to_channel=False,
+        callback=None,
     ):
         # Check if destination directory is writable
         is_writable, error = is_dir_writable(destination)
         if not is_writable:
             gui_error_message = (
-                    "Insufficient write permissions to <i>%s</i> directory. Please add proper "
-                    "write permissions on the directory and add the torrent again. %s" % (destination, error)
+                "Insufficient write permissions to <i>%s</i> directory. Please add proper "
+                "write permissions on the directory and add the torrent again. %s" % (destination, error)
             )
             ConfirmationDialog.show_message(self.window(), "Download error <i>%s</i>" % uri, gui_error_message, "OK")
             return
@@ -682,10 +684,10 @@ class TriblerWindow(QMainWindow):
         query = self.top_search_bar.text()
 
         if (
-                self.last_search_query
-                and self.last_search_time
-                and self.last_search_query == self.top_search_bar.text()
-                and current_ts - self.last_search_time < 1
+            self.last_search_query
+            and self.last_search_time
+            and self.last_search_query == self.top_search_bar.text()
+            and current_ts - self.last_search_time < 1
         ):
             logging.info("Same search query already sent within 500ms so dropping this one")
             return
@@ -797,7 +799,7 @@ class TriblerWindow(QMainWindow):
         )
         if len(filenames[0]) > 0:
             for filename in filenames[0]:
-                self.pending_uri_requests.append(u"file:%s" % filename)
+                self.pending_uri_requests.append("file:%s" % filename)
             self.process_uri_request()
 
     def start_download_from_uri(self, uri):
@@ -907,7 +909,7 @@ class TriblerWindow(QMainWindow):
 
             for torrent_file in self.selected_torrent_files:
                 self.perform_start_download_request(
-                    u"file:%s" % torrent_file,
+                    "file:%s" % torrent_file,
                     self.window().tribler_settings['download_defaults']['anonymity_enabled'],
                     self.window().tribler_settings['download_defaults']['safeseeding_enabled'],
                     self.tribler_settings['download_defaults']['saveas'],
@@ -1135,7 +1137,7 @@ class TriblerWindow(QMainWindow):
     def on_channel_delete(self, channel_info):
         def _on_delete_action(action):
             if action == 0:
-                delete_data = [{"public_key": channel_info[u'public_key'], "id": channel_info[u'id']}]
+                delete_data = [{"public_key": channel_info['public_key'], "id": channel_info['id']}]
                 TriblerNetworkRequest(
                     "metadata",
                     lambda data: self.core_manager.events_manager.node_info_updated.emit(data[0]),

@@ -8,7 +8,7 @@ from tribler_core.utilities.osutils import get_root_state_directory
 LOCK_FILE_NAME = 'triblerd.lock'
 
 
-class ProcessChecker(object):
+class ProcessChecker:
     """
     This class contains code to check whether a Tribler process is already running.
     """

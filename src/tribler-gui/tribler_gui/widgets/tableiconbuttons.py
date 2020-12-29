@@ -16,7 +16,7 @@ class IconButton(QObject):
     size = QSize(w, h)
 
     def __init__(self, parent=None):
-        super(IconButton, self).__init__(parent=parent)
+        super().__init__(parent=parent)
         # rect property contains the active zone for the button
         self.rect = QRect()
         self.icon_rect = QRect()

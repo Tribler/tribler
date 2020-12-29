@@ -27,7 +27,7 @@ class GoldenRatioStrategy(DiscoveryStrategy):
         :type target_peers: int
         :returns: None
         """
-        super(GoldenRatioStrategy, self).__init__(overlay)
+        super().__init__(overlay)
         self.golden_ratio = golden_ratio
         self.target_peers = target_peers
         self.intro_sent = {}

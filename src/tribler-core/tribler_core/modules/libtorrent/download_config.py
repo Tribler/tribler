@@ -168,7 +168,7 @@ def get_default_dest_dir():
     if download_dir.is_dir():
         return path_util.abspath(download_dir)
 
-    downloads_dir = get_home_dir() / u"Downloads"
+    downloads_dir = get_home_dir() / "Downloads"
     if downloads_dir.is_dir():
         return downloads_dir / download_dir
     return get_home_dir() / download_dir

@@ -75,7 +75,7 @@ async def test_get_torrentinfo(enable_chant, enable_api, mock_dlmgr, tmpdir, fil
     path = 'magnet:?xt=urn:ed2k:354B15E68FB8F36D7CD88FF94116CDC1'  # No infohash
     await do_request(session, 'torrentinfo?uri=%s' % path, expected_code=400)
 
-    path = quote_plus('magnet:?xt=urn:btih:%s&dn=%s' % ('a' * 40, 'test torrent'))
+    path = quote_plus('magnet:?xt=urn:btih:{}&dn={}'.format('a' * 40, 'test torrent'))
     session.dlmgr.get_metainfo = lambda *_, **__: succeed(None)
     await do_request(session, 'torrentinfo?uri=%s' % path, expected_code=500)
 
@@ -125,7 +125,7 @@ async def test_on_got_invalid_metainfo(enable_api, mock_dlmgr, session):
     session.dlmgr.shutdown = lambda: succeed(None)
     session.dlmgr.shutdown_downloads = lambda: succeed(None)
     session.dlmgr.checkpoint_downloads = lambda: succeed(None)
-    path = 'magnet:?xt=urn:btih:%s&dn=%s' % (hexlify(UBUNTU_1504_INFOHASH), quote_plus('test torrent'))
+    path = 'magnet:?xt=urn:btih:{}&dn={}'.format(hexlify(UBUNTU_1504_INFOHASH), quote_plus('test torrent'))
 
     res = await do_request(session, 'torrentinfo?uri=%s' % path, expected_code=500)
     assert "error" in res

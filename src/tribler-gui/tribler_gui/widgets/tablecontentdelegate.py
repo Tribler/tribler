@@ -134,7 +134,7 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
         self.button_box_extended_border_ratio = float(0.3)
 
     def paint_empty_background(self, painter, option):
-        super(TriblerButtonsDelegate, self).paint(painter, option, self.no_index)
+        super().paint(painter, option, self.no_index)
 
     def on_mouse_moved(self, pos, index):
         # This method controls for which rows the buttons/box should be drawn
@@ -177,7 +177,7 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
             option.state |= QStyle.State_MouseOver
         if not self.paint_exact(painter, option, index):
             # Draw the rest of the columns
-            super(TriblerButtonsDelegate, self).paint(painter, option, index)
+            super().paint(painter, option, index)
 
     def paint_exact(self, painter, option, index):
         data_item = index.model().data_items[index.row()]
@@ -201,10 +201,10 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
             cbox.addItems(ContentCategories.codes)
             return cbox
 
-        return super(TriblerButtonsDelegate, self).createEditor(parent, option, index)
+        return super().createEditor(parent, option, index)
 
 
-class ChannelStateMixin(object):
+class ChannelStateMixin:
     wait_png = QIcon(get_image_path("wait.png"))
     share_icon = QIcon(get_image_path("share.png"))
     downloading_icon = QIcon(get_image_path("downloads.png"))
@@ -227,25 +227,25 @@ class ChannelStateMixin(object):
         self.paint_empty_background(painter, option)
         text_rect = option.rect
 
-        if data_item[u'status'] == CHANNEL_STATE.LEGACY.value:
+        if data_item['status'] == CHANNEL_STATE.LEGACY.value:
             painter.drawText(text_rect, Qt.AlignCenter, "Legacy")
             return True
 
-        if u'type' in data_item and data_item[u'type'] != CHANNEL_TORRENT:
+        if 'type' in data_item and data_item['type'] != CHANNEL_TORRENT:
             return True
-        if data_item[u'state'] == CHANNEL_STATE.COMPLETE.value:
+        if data_item['state'] == CHANNEL_STATE.COMPLETE.value:
             painter.drawText(text_rect, Qt.AlignCenter, "✔")
             return True
-        if data_item[u'state'] == CHANNEL_STATE.PERSONAL.value:
+        if data_item['state'] == CHANNEL_STATE.PERSONAL.value:
             self.share_icon.paint(painter, self.get_indicator_rect(option.rect))
             return True
-        if data_item[u'state'] == CHANNEL_STATE.DOWNLOADING.value:
+        if data_item['state'] == CHANNEL_STATE.DOWNLOADING.value:
             painter.drawText(text_rect, Qt.AlignCenter, "⏳")
             return True
-        if data_item[u'state'] == CHANNEL_STATE.METAINFO_LOOKUP.value:
+        if data_item['state'] == CHANNEL_STATE.METAINFO_LOOKUP.value:
             painter.drawText(text_rect, Qt.AlignCenter, "❓")
             return True
-        if data_item[u'state'] == CHANNEL_STATE.UPDATING.value:
+        if data_item['state'] == CHANNEL_STATE.UPDATING.value:
             progress = data_item.get('progress')
             if progress is not None:
                 draw_progress_bar(painter, option.rect, float(progress))
@@ -253,16 +253,16 @@ class ChannelStateMixin(object):
         return True
 
 
-class SubscribedControlMixin(object):
+class SubscribedControlMixin:
     def draw_subscribed_control(self, painter, option, index, data_item):
         # Draw empty cell as the background
         self.paint_empty_background(painter, option)
 
-        if u'type' in data_item and data_item[u'type'] != CHANNEL_TORRENT:
+        if 'type' in data_item and data_item['type'] != CHANNEL_TORRENT:
             return True
-        if data_item[u'status'] == 1000:  # LEGACY ENTRIES!
+        if data_item['status'] == 1000:  # LEGACY ENTRIES!
             return True
-        if data_item[u'state'] == u'Personal':
+        if data_item['state'] == 'Personal':
             return True
 
         self.subscribe_control.paint(
@@ -272,14 +272,14 @@ class SubscribedControlMixin(object):
         return True
 
 
-class RatingControlMixin(object):
+class RatingControlMixin:
     def draw_rating_control(self, painter, option, index, data_item):
         # Draw empty cell as the background
         self.paint_empty_background(painter, option)
 
-        if u'type' in data_item and data_item[u'type'] != CHANNEL_TORRENT:
+        if 'type' in data_item and data_item['type'] != CHANNEL_TORRENT:
             return True
-        if data_item[u'status'] == 1000:  # LEGACY ENTRIES!
+        if data_item['status'] == 1000:  # LEGACY ENTRIES!
             return True
 
         self.rating_control.paint(painter, option.rect, index, votes=data_item['votes'])
@@ -287,13 +287,13 @@ class RatingControlMixin(object):
         return True
 
 
-class CategoryLabelMixin(object):
+class CategoryLabelMixin:
     def draw_category_label(self, painter, option, index, data_item):
         # Draw empty cell as the background
         self.paint_empty_background(painter, option)
 
         if 'type' in data_item and data_item['type'] == CHANNEL_TORRENT:
-            if data_item['state'] == u'Personal':
+            if data_item['state'] == 'Personal':
                 category_txt = "\U0001F3E0"  # 'home' emoji
             else:
                 category_txt = "🌐"
@@ -301,14 +301,14 @@ class CategoryLabelMixin(object):
             category_txt = "\U0001F4C1"  # 'folder' emoji
         else:
             # Precautions to safely draw wrong category descriptions
-            category = ContentCategories.get(data_item[u'category'])
+            category = ContentCategories.get(data_item['category'])
             category_txt = category.emoji if category else '?'
 
         CategoryLabel(category_txt).paint(painter, option, index, draw_border=False)
         return True
 
 
-class DownloadControlsMixin(object):
+class DownloadControlsMixin:
     def draw_download_controls(self, painter, option, index, data_item):
         # Draw empty cell as the background
         self.paint_empty_background(painter, option)
@@ -346,7 +346,7 @@ class DownloadControlsMixin(object):
         return True
 
 
-class HealthLabelMixin(object):
+class HealthLabelMixin:
     def draw_health_column(self, painter, option, index, data_item):
         # Draw empty cell as the background
         self.paint_empty_background(painter, option)
@@ -370,14 +370,14 @@ class TriblerContentDelegate(
     def __init__(self, parent=None):
         # TODO: refactor this not to rely on inheritance order, but instead use interface method pattern
         TriblerButtonsDelegate.__init__(self, parent)
-        self.subscribe_control = SubscribeToggleControl(u'subscribed')
-        self.rating_control = RatingControl(u'votes')
+        self.subscribe_control = SubscribeToggleControl('subscribed')
+        self.rating_control = RatingControl('votes')
 
         self.download_button = DownloadIconButton()
         self.ondemand_container = [self.download_button]
 
-        self.commit_control = CommitStatusControl(u'status')
-        self.health_status_widget = HealthStatusControl(u'health')
+        self.commit_control = CommitStatusControl('status')
+        self.health_status_widget = HealthStatusControl('health')
         self.controls = [
             self.subscribe_control,
             self.download_button,
@@ -386,13 +386,13 @@ class TriblerContentDelegate(
             self.health_status_widget,
         ]
         self.column_drawing_actions = [
-            (u'subscribed', self.draw_subscribed_control),
-            (u'votes', self.draw_rating_control),
+            ('subscribed', self.draw_subscribed_control),
+            ('votes', self.draw_rating_control),
             (ACTION_BUTTONS, self.draw_action_column),
-            (u'category', self.draw_category_label),
-            (u'health', self.draw_health_column),
-            (u'status', self.draw_commit_status_column),
-            (u'state', self.draw_channel_state),
+            ('category', self.draw_category_label),
+            ('health', self.draw_health_column),
+            ('status', self.draw_commit_status_column),
+            ('state', self.draw_channel_state),
         ]
 
     def draw_action_column(self, painter, option, index, data_item):
@@ -619,11 +619,11 @@ class HealthStatusDisplay(QObject):
     def paint(self, painter, rect, index, hover=False):
         data_item = index.model().data_items[index.row()]
 
-        if u'health' not in data_item or data_item[u'health'] == "updated":
-            data_item[u'health'] = get_health(
+        if 'health' not in data_item or data_item['health'] == "updated":
+            data_item['health'] = get_health(
                 data_item['num_seeders'], data_item['num_leechers'], data_item['last_tracker_check']
             )
-        health = data_item[u'health']
+        health = data_item['health']
 
         # ----------------
         # |b---b|        |
@@ -657,10 +657,10 @@ class HealthStatusDisplay(QObject):
         if health in (HEALTH_CHECKING, HEALTH_UNCHECKED, HEALTH_ERROR):
             txt = health
         else:
-            seeders = int(data_item[u'num_seeders'])
-            leechers = int(data_item[u'num_leechers'])
+            seeders = int(data_item['num_seeders'])
+            leechers = int(data_item['num_leechers'])
 
-            txt = u'S' + str(seeders) + u' L' + str(leechers)
+            txt = 'S' + str(seeders) + ' L' + str(leechers)
 
         color = TRIBLER_PALETTE.light().color() if hover else TRIBLER_NEUTRAL
         draw_text(painter, text_box, txt, color=color)

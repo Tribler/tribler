@@ -84,7 +84,7 @@ sql_add_fts_trigger_update = """
     END;"""
 
 
-class MetadataStore(object):
+class MetadataStore:
     def __init__(
         self, db_filename, channels_dir, my_key, disable_sync=False, notifier=None, check_tables=True, db_version=None
     ):

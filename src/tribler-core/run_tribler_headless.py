@@ -35,7 +35,7 @@ class IPPortAction(argparse.Action):
         setattr(namespace, self.dest, values)
 
 
-class TriblerService(object):
+class TriblerService:
 
     def __init__(self):
         """
@@ -49,7 +49,7 @@ class TriblerService(object):
         d = date.today()
         with open(os.path.join(self.session.config.get_state_dir(), 'incoming-searches-%s' % d.isoformat()),
                   'a') as log_file:
-            log_file.write("%s %s %s %s" % (time.time(), sock_addr[0], sock_addr[1], ";".join(keywords)))
+            log_file.write("{} {} {} {}".format(time.time(), sock_addr[0], sock_addr[1], ";".join(keywords)))
 
     async def start_tribler(self, options):
         """

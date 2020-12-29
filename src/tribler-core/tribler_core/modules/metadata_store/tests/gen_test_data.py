@@ -21,7 +21,7 @@ from tribler_core.utilities.path_util import Path
 DATA_DIR = Path(__file__).parent / '..' / '..' / 'data'
 SAMPLE_DIR = DATA_DIR / 'sample_channel'
 
-my_key = default_eccrypto.generate_key(u"curve25519")
+my_key = default_eccrypto.generate_key("curve25519")
 
 
 ALL_PRINTABLE_CHARS = ''.join(tuple(chr(i) for i in range(32, 0x110000) if chr(i).isprintable()))

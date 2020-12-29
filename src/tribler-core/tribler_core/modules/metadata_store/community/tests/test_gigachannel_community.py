@@ -32,7 +32,7 @@ class TestGigaChannelUnits(TestBase):
         metadata_store = MetadataStore(
             Path(self.temporary_directory()) / f"{self.count}.db",
             Path(self.temporary_directory()),
-            default_eccrypto.generate_key(u"curve25519"),
+            default_eccrypto.generate_key("curve25519"),
             disable_sync=True,
         )
         kwargs['metadata_store'] = metadata_store

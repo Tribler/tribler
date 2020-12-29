@@ -93,11 +93,11 @@ class TrustGraphPage(AddBreadcrumbOnShowMixin, QWidget):
         self.rest_request = None
 
     def showEvent(self, QShowEvent):
-        super(TrustGraphPage, self).showEvent(QShowEvent)
+        super().showEvent(QShowEvent)
         self.fetch_graph_data()
 
     def hideEvent(self, QHideEvent):
-        super(TrustGraphPage, self).hideEvent(QHideEvent)
+        super().hideEvent(QHideEvent)
 
     def initialize_trust_graph(self):
         pg.setConfigOption('background', '222222')
@@ -149,7 +149,7 @@ class TrustGraphPage(AddBreadcrumbOnShowMixin, QWidget):
         if not selected_node:
             return
 
-        peer_message = "<b>User</b> %s%s..." % (HTML_SPACE * 16, selected_node.get('public_key', '')[:74])
+        peer_message = "<b>User</b> {}{}...".format(HTML_SPACE * 16, selected_node.get('public_key', '')[:74])
         self.window().tr_selected_node_pub_key.setHidden(False)
         self.window().tr_selected_node_pub_key.setText(peer_message)
 
@@ -194,7 +194,7 @@ class TrustGraphPage(AddBreadcrumbOnShowMixin, QWidget):
         plot_data['pxMode'] = False
         plot_data['pen'] = (100, 100, 100, 150)
         plot_data['brush'] = (255, 0, 0, 255)
-        plot_data['pos'] = np.array([node[u'pos'] for node in data['graph']['node']])
+        plot_data['pos'] = np.array([node['pos'] for node in data['graph']['node']])
         plot_data['size'] = np.array([self.get_node_size(node) for node in data['graph']['node']])
         plot_data['symbolBrush'] = np.array([self.get_node_color(node) for node in data['graph']['node']])
 
@@ -214,7 +214,7 @@ class TrustGraphPage(AddBreadcrumbOnShowMixin, QWidget):
 
     def get_node_size(self, node):
         # User root node is bigger than normal nodes
-        min_size = 0.01 if node[u'key'] != self.root_public_key else 0.1
+        min_size = 0.01 if node['key'] != self.root_public_key else 0.1
 
         diff = abs(node.get('total_up', 0) - node.get('total_down', 0))
         if diff == 0:
