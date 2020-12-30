@@ -7,5 +7,5 @@ class ClickableLabel(QLabel):
     clicked = pyqtSignal()
 
     def mousePressEvent(self, event):
-        self.clicked.emit(False)
+        self.clicked.emit()
         QLabel.mousePressEvent(self, event)
