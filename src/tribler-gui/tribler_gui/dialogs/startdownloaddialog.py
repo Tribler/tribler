@@ -185,7 +185,7 @@ class StartDownloadDialog(DialogContainer):
             self.metainfo_retries += 1
 
     def on_received_metainfo(self, response):
-        if not response or not self:
+        if not response or not self or self.closed:
             return
 
         if 'error' in response:
