@@ -114,8 +114,8 @@ class WatchDog(Thread):
                         if self.debug:
                             self.printe(f"watchog {name} is OK")
                     elif (self.event_timestamps[name] + self.event_timeouts[name]) < time():
-                        self.printe("watchog {} *******TRIPPED!******, hasn't been set for {:.4f} secs.".format(
-                            name, time() - self.event_timestamps[name]))
+                        self.printe(f"watchog {name} *******TRIPPED!******, "
+                                    f"hasn't been set for {(time() - self.event_timestamps[name]):.4f} secs.")
                         self.printe("disabling it and printing traces for all threads.:")
                         events_to_unregister.append(name)
                         self.print_all_stacks()
@@ -149,8 +149,7 @@ class WatchDog(Thread):
 
             self.printe("Locals by frame, innermost last:")
             while frame:
-                self.printe("{}:{} {}:".format(frame.f_code.co_filename,
-                                           frame.f_lineno, frame.f_code.co_name))
+                self.printe(f"{frame.f_code.co_filename}:{frame.f_lineno} {frame.f_code.co_name}:")
                 for key, value in frame.f_locals.items():
                     value = WatchDog.repr_(value)
                     if len(value) > 500:

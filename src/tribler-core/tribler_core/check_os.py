@@ -244,9 +244,8 @@ def trace_calls(file_handler, frame, event, args, filter_exceptions_only=False):
 
         # Only write if callee or caller is Tribler code
         if "tribler" in caller_filename.lower() or "tribler" in func_filename.lower():
-            trace_line = "[{}] {}:{}, line {} called from {}, line {}\n".format(
-                time.time(), func_filename, func_name, func_line_no,
-                caller_filename, caller_line_no)
+            trace_line = f"[{time.time()}] {func_filename}:{func_name}, " \
+                         f"line {func_line_no} called from {caller_filename}, line {caller_line_no}\n"
             file_handler.write(trace_line)
             file_handler.flush()
 
@@ -273,8 +272,8 @@ def trace_exceptions(file_handler, frame, event, args):
     # Only write if exception is originated from Tribler code
     if "tribler" in func_filename.lower():
         exc_type, exc_value, exc_traceback = args
-        trace_line = "[{}] Exception: {}, line {} \n{} {} \n{}".format(
-            time.time(), func_filename, func_line_no,
-            exc_type.__name__, exc_value, "".join(traceback.format_tb(exc_traceback)))
+        trace_line = f"[{time.time()}] Exception: {func_filename}, line {func_line_no} " \
+                     f"\n{exc_type.__name__} {exc_value} " \
+                     f"\n{''.join(traceback.format_tb(exc_traceback))}"
         file_handler.write(trace_line)
         file_handler.flush()

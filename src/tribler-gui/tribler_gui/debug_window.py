@@ -732,10 +732,8 @@ class DebugWindow(QMainWindow):
         )
 
         if len(self.export_dir) > 0:
-            filename = "tribler_mem_dump_{}_{}.json".format(
-                'core' if dump_core else 'gui',
-                datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S"),
-            )
+            timestamp_str = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
+            filename = f"tribler_mem_dump_{'core' if dump_core else 'gui'}_{timestamp_str}.json"
             if dump_core:
                 self.rest_request = TriblerNetworkRequest(
                     "debug/memory/dump", lambda data: self.on_memory_dump_data_available(filename, data)
