@@ -48,7 +48,7 @@ class UDPTrackerProtocol(DatagramProtocol):
                 tup = struct.unpack_from('!' + str(LENGTH_INFOHASH) + 'c', response, 16 + ind * LENGTH_INFOHASH)
                 infohash = b''.join(tup)
                 if not self.tracker_session.tracker_info.has_info_about_infohash(infohash):
-                    self.send_error(host, port, "no info about hash %s" % infohash)
+                    self.send_error(host, port, f"no info about hash {infohash}")
                     return
                 infohashes.append(infohash)
 

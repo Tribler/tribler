@@ -112,7 +112,7 @@ class WatchDog(Thread):
                         event.clear()
                         self.event_timestamps[name] = time()
                         if self.debug:
-                            self.printe("watchog %s is OK" % name)
+                            self.printe(f"watchog {name} is OK")
                     elif (self.event_timestamps[name] + self.event_timeouts[name]) < time():
                         self.printe("watchog {} *******TRIPPED!******, hasn't been set for {:.4f} secs.".format(
                             name, time() - self.event_timestamps[name]))
@@ -122,7 +122,7 @@ class WatchDog(Thread):
                 while events_to_unregister:
                     name = events_to_unregister.pop()
                     if self.debug:
-                        self.printe(">>>>>>>>> UNREGISTERING %r" % name)
+                        self.printe(f">>>>>>>>> UNREGISTERING {name!r}")
                     self.tripped_canaries.append(name)
                     self.unregister_event(name)
         if self.debug:
@@ -145,7 +145,7 @@ class WatchDog(Thread):
         self.printe("\n*** STACKTRACE - START ***\n")
 
         for thread_id, frame in sys._current_frames().items():
-            self.printe("\n### ThreadID: {} Thread name: {}".format(thread_id, self.get_thread_name(thread_id)))
+            self.printe(f"\n### ThreadID: {thread_id} Thread name: {self.get_thread_name(thread_id)}")
 
             self.printe("Locals by frame, innermost last:")
             while frame:

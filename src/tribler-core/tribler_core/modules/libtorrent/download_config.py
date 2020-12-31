@@ -37,7 +37,7 @@ class DownloadConfig:
         validator = Validator()
         validation_result = self.config.validate(validator)
         if validation_result is not True:
-            raise InvalidConfigException(msg="DownloadConfig is invalid: %s" % str(validation_result))
+            raise InvalidConfigException(msg=f"DownloadConfig is invalid: {str(validation_result)}")
 
     @staticmethod
     def load(config_path=None):

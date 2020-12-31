@@ -99,8 +99,8 @@ def define_binding(db):
             self.add_tracker(self.tracker_info)
 
         def get_magnet(self):
-            return ("magnet:?xt=urn:btih:{}&dn={}".format(hexlify(self.infohash), self.title)) + (
-                "&tr=%s" % self.tracker_info if self.tracker_info else ""
+            return (f"magnet:?xt=urn:btih:{hexlify(self.infohash)}&dn={self.title}") + (
+                f"&tr={self.tracker_info}" if self.tracker_info else ""
             )
 
         @classmethod

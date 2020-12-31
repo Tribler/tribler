@@ -100,14 +100,14 @@ class CreateTorrentDialog(DialogContainer):
         export_dir = self.dialog_widget.file_export_dir.text()
         if not os.path.exists(export_dir):
             ConfirmationDialog.show_error(
-                self.dialog_widget, "Cannot save torrent file to %s" % export_dir, "Path does not exist"
+                self.dialog_widget, f"Cannot save torrent file to {export_dir}", "Path does not exist"
             )
             return
 
         is_writable, error = is_dir_writable(export_dir)
         if not is_writable:
             ConfirmationDialog.show_error(
-                self.dialog_widget, "Cannot save torrent file to %s" % export_dir, "Error: %s" % error
+                self.dialog_widget, f"Cannot save torrent file to {export_dir}", f"Error: {error}"
             )
             return
 

@@ -27,7 +27,7 @@ def create_torrent_file(file_path_list, params, torrent_filepath=None):
     for path in file_path_list:
         path = path_util.Path(path)
         if not path.exists():
-            raise OSError('Path does not exist: %s' % path)
+            raise OSError(f'Path does not exist: {path}')
         elif path.is_file():
             file_path_list_filtered.append(path)
 

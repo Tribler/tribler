@@ -239,7 +239,7 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
         elif timeout.isdigit():
             timeout = int(timeout)
         else:
-            return RESTResponse({"error": "Error processing timeout parameter '%s'" % timeout}, status=HTTP_BAD_REQUEST)
+            return RESTResponse({"error": f"Error processing timeout parameter '{timeout}'"}, status=HTTP_BAD_REQUEST)
         refresh = request.query.get('refresh', '0') == '1'
         nowait = request.query.get('nowait', '0') == '1'
 

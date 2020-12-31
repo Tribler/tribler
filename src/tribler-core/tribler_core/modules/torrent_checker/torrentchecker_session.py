@@ -101,7 +101,7 @@ class TrackerSession(TaskManager):
             self.is_failed = True
             result_msg = f"{self.tracker_type} tracker failed for url {self.tracker_url}"
             if msg:
-                result_msg += " (error: %s)" % msg
+                result_msg += f" (error: {msg})"
             raise ValueError(result_msg)
 
     @abstractmethod
@@ -141,7 +141,7 @@ class HttpTrackerSession(TrackerSession):
             raise e
         except ClientResponseError as e:
             self._logger.warning("%s HTTP SCRAPE error response code %s", self, e.status)
-            self.failed(msg="error code %s" % e.status)
+            self.failed(msg=f"error code {e.status}")
         except Exception as e:
             self.failed(msg=str(e))
 

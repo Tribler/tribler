@@ -419,7 +419,7 @@ class TriblerWindow(QMainWindow):
 
     def on_torrent_finished(self, torrent_info):
         if "hidden" not in torrent_info or not torrent_info["hidden"]:
-            self.tray_show_message("Download finished", "Download of %s has finished." % torrent_info["name"])
+            self.tray_show_message("Download finished", f"Download of {torrent_info['name']} has finished.")
 
     def show_loading_screen(self):
         self.top_menu_button.setHidden(True)
@@ -476,7 +476,7 @@ class TriblerWindow(QMainWindow):
         self.downloads_page.start_loading_downloads()
 
         self.setAcceptDrops(True)
-        self.setWindowTitle("Tribler %s" % self.tribler_version)
+        self.setWindowTitle(f"Tribler {self.tribler_version}")
 
         autocommit_enabled = (
             get_gui_setting(self.gui_settings, "autocommit_enabled", True, is_bool=True) if self.gui_settings else True
@@ -506,7 +506,7 @@ class TriblerWindow(QMainWindow):
             self.left_menu_button_discovered.setChecked(True)
 
     def on_events_started(self, json_dict):
-        self.setWindowTitle("Tribler %s" % json_dict["version"])
+        self.setWindowTitle(f"Tribler {json_dict['version']}")
 
     def show_status_bar(self, message):
         self.tribler_status_bar_label.setText(message)
@@ -561,7 +561,7 @@ class TriblerWindow(QMainWindow):
                 "Insufficient write permissions to <i>%s</i> directory. Please add proper "
                 "write permissions on the directory and add the torrent again. %s" % (destination, error)
             )
-            ConfirmationDialog.show_message(self.window(), "Download error <i>%s</i>" % uri, gui_error_message, "OK")
+            ConfirmationDialog.show_message(self.window(), f"Download error <i>{uri}</i>", gui_error_message, "OK")
             return
 
         selected_files_list = []
@@ -698,7 +698,7 @@ class TriblerWindow(QMainWindow):
         self.has_search_results = True
         self.search_results_page.initialize_root_model(
             SearchResultsModel(
-                channel_info={"name": "Search results for %s" % query if len(query) < 50 else "%s..." % query[:50]},
+                channel_info={"name": f"Search results for {query}" if len(query) < 50 else f"{query[:50]}..."},
                 endpoint_url="search",
                 hide_xxx=get_gui_setting(self.gui_settings, "family_filter", True, is_bool=True),
                 text_filter=to_fts_query(query),
@@ -745,10 +745,10 @@ class TriblerWindow(QMainWindow):
     def set_token_balance(self, balance):
         if abs(balance) > 1024 ** 4:  # Balance is over a TB
             balance /= 1024.0 ** 4
-            self.token_balance_label.setText("%.1f TB" % balance)
+            self.token_balance_label.setText(f"{balance:.1f} TB")
         elif abs(balance) > 1024 ** 3:  # Balance is over a GB
             balance /= 1024.0 ** 3
-            self.token_balance_label.setText("%.1f GB" % balance)
+            self.token_balance_label.setText(f"{balance:.1f} GB")
         else:
             balance /= 1024.0 ** 2
             self.token_balance_label.setText("%d MB" % balance)
@@ -799,7 +799,7 @@ class TriblerWindow(QMainWindow):
         )
         if len(filenames[0]) > 0:
             for filename in filenames[0]:
-                self.pending_uri_requests.append("file:%s" % filename)
+                self.pending_uri_requests.append(f"file:{filename}")
             self.process_uri_request()
 
     def start_download_from_uri(self, uri):
@@ -909,7 +909,7 @@ class TriblerWindow(QMainWindow):
 
             for torrent_file in self.selected_torrent_files:
                 self.perform_start_download_request(
-                    "file:%s" % torrent_file,
+                    f"file:{torrent_file}",
                     self.window().tribler_settings['download_defaults']['anonymity_enabled'],
                     self.window().tribler_settings['download_defaults']['safeseeding_enabled'],
                     self.tribler_settings['download_defaults']['saveas'],

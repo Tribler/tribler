@@ -150,7 +150,7 @@ class HealthCheckerMixin:
         self.model.dataChanged.emit(health_cell_index, health_cell_index, [])
 
         TriblerNetworkRequest(
-            "metadata/torrents/%s/health" % infohash,
+            f"metadata/torrents/{infohash}/health",
             self.on_health_response,
             url_params={"nowait": True, "refresh": True},
             capture_core_errors=False,

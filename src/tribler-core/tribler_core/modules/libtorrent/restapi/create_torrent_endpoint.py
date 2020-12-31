@@ -84,7 +84,7 @@ class CreateTorrentEndpoint(RESTEndpoint):
             export_dir = Path(parameters['export_dir'])
 
         from tribler_core.version import version_id
-        params['created by'] = '{} version: {}'.format('Tribler', version_id)
+        params['created by'] = f"Tribler version: {version_id}"
 
         params['nodes'] = False
         params['httpseeds'] = False
@@ -100,7 +100,7 @@ class CreateTorrentEndpoint(RESTEndpoint):
         metainfo_dict = bdecode_compat(result['metainfo'])
 
         if export_dir and export_dir.exists():
-            save_path = export_dir / ("%s.torrent" % name)
+            save_path = export_dir / (f"{name}.torrent")
             with open(save_path, "wb") as fd:
                 fd.write(result['metainfo'])
 

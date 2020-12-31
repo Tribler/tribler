@@ -82,7 +82,7 @@ class TriblerConfig:
         validator = Validator()
         validation_result = self.config.validate(validator)
         if validation_result is not True:
-            raise InvalidConfigException(msg="TriblerConfig is invalid: %s" % str(validation_result))
+            raise InvalidConfigException(msg=f"TriblerConfig is invalid: {str(validation_result)}")
 
     def write(self):
         """

@@ -200,7 +200,7 @@ class StartDownloadDialog(DialogContainer):
             elif 'code' in response['error'] and response['error']['code'] == 'IOError':
                 self.dialog_widget.loading_files_label.setText("Unable to read torrent file data")
             else:
-                self.dialog_widget.loading_files_label.setText("Error: %s" % response['error'])
+                self.dialog_widget.loading_files_label.setText(f"Error: {response['error']}")
             return
 
         metainfo = json.loads(unhexlify(response['metainfo']))

@@ -150,7 +150,7 @@ def define_binding(db, logger=None, key=None):
                         self._payload_class(**kwargs)
                     except InvalidSignatureException:
                         raise InvalidSignatureException(
-                            ("Attempted to create %s object with invalid signature/PK: " % str(self.__class__.__name__))
+                            f"Attempted to create {str(self.__class__.__name__)} object with invalid signature/PK: "
                             + (hexlify(kwargs["signature"]) if "signature" in kwargs else "empty signature ")
                             + " / "
                             + (hexlify(kwargs["public_key"]) if "public_key" in kwargs else " empty PK")

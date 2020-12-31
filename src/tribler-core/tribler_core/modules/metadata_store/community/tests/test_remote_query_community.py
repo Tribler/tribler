@@ -71,7 +71,7 @@ class TestRemoteQueryCommunity(TestBase):
         with db_session:
             channel = self.nodes[0].overlay.mds.ChannelMetadata.create_channel("ubuntu channel", "ubuntu")
             for i in range(20):
-                add_random_torrent(self.nodes[0].overlay.mds.TorrentMetadata, name="ubuntu %s" % i, channel=channel)
+                add_random_torrent(self.nodes[0].overlay.mds.TorrentMetadata, name=f"ubuntu {i}", channel=channel)
 
         kwargs_dict = {"txt_filter": "ubuntu*", "metadata_type": [REGULAR_TORRENT]}
         callback = Mock()

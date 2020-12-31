@@ -47,9 +47,9 @@ class TriblerService:
 
     def log_incoming_remote_search(self, sock_addr, keywords):
         d = date.today()
-        with open(os.path.join(self.session.config.get_state_dir(), 'incoming-searches-%s' % d.isoformat()),
+        with open(os.path.join(self.session.config.get_state_dir(), f'incoming-searches-{d.isoformat()}'),
                   'a') as log_file:
-            log_file.write("{} {} {} {}".format(time.time(), sock_addr[0], sock_addr[1], ";".join(keywords)))
+            log_file.write(f"{time.time()} {sock_addr[0]} {sock_addr[1]} {';'.join(keywords)}")
 
     async def start_tribler(self, options):
         """
@@ -57,7 +57,7 @@ class TriblerService:
         """
 
         async def signal_handler(sig):
-            print("Received shut down signal %s" % sig)
+            print(f"Received shut down signal {sig}")
             if not self._stopping:
                 self._stopping = True
                 await self.session.shutdown()
@@ -74,7 +74,7 @@ class TriblerService:
         # Check if we are already running a Tribler instance
         self.process_checker = ProcessChecker()
         if self.process_checker.already_running:
-            print("Another Tribler instance is already using statedir %s" % config.get_state_dir())
+            print(f"Another Tribler instance is already using statedir {config.get_state_dir()}")
             get_event_loop().stop()
             return
 

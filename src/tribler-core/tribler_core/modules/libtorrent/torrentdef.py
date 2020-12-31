@@ -471,7 +471,7 @@ class TorrentDefNoMetainfo:
     """
 
     def __init__(self, infohash, name, url=None):
-        assert isinstance(infohash, bytes), "INFOHASH has invalid type: %s" % type(infohash)
+        assert isinstance(infohash, bytes), f"INFOHASH has invalid type: {type(infohash)}"
         assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
         self.infohash = infohash
         self.name = name

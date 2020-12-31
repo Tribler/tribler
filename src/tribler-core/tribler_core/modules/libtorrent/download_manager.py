@@ -246,7 +246,7 @@ class DownloadManager(TaskManager):
                 else:
                     self._logger.warning("the lt.state appears to be corrupt, writing new data on shutdown")
             except Exception as exc:
-                self._logger.info("could not load libtorrent state, got exception: %r. starting from scratch" % exc)
+                self._logger.info(f"could not load libtorrent state, got exception: {exc!r}. starting from scratch")
         else:
             ltsession.listen_on(self.tribler_session.config.get_anon_listen_port(),
                                 self.tribler_session.config.get_anon_listen_port() + 20)
@@ -604,7 +604,7 @@ class DownloadManager(TaskManager):
             else:
                 lt_session.set_settings(new_settings)
         except OverflowError:
-            raise OverflowError("Overflow error when setting libtorrent sessions with settings: %s" % new_settings)
+            raise OverflowError(f"Overflow error when setting libtorrent sessions with settings: {new_settings}")
 
     def get_session_settings(self, lt_session):
         return deepcopy(self.ltsettings.get(lt_session, {}))

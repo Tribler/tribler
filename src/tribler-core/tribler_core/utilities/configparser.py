@@ -66,12 +66,12 @@ class CallbackConfigParser(RawConfigParser):
     def write(self, fp):
         with self.lock:
             if self._defaults:
-                fp.write("[%s]\n" % DEFAULTSECT)
+                fp.write(f"[{DEFAULTSECT}]\n")
                 for (key, value) in self._defaults.items():
                     fp.write("{} = {}\n".format(key, str(value).replace('\n', '\n\t')))
                 fp.write("\n")
             for section in self._sections:
-                fp.write("[%s]\n" % section)
+                fp.write(f"[{section}]\n")
                 for (key, value) in self._sections[section].items():
                     if key != "__name__":
                         fp.write("{} = {}\n".format(key, str(value).replace('\n', '\n\t')))

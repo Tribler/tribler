@@ -49,7 +49,7 @@ class DownloadsDetailsTabWidget(QTabWidget):
 
     @staticmethod
     def update_peer_row(item, peer):
-        peer_name = "{}:{}".format(peer["ip"], peer["port"])
+        peer_name = f"{peer['ip']}:{peer['port']}"
         if peer['connection_type'] == 1:
             peer_name += ' [WebSeed]'
         elif peer['connection_type'] == 2:
@@ -98,7 +98,7 @@ class DownloadsDetailsTabWidget(QTabWidget):
         else:
             status_string = DLSTATUS_STRINGS[dlstatus_strings.index(self.current_download["status"])]
             if dlstatus_strings.index(self.current_download["status"]) == DLSTATUS_STOPPED_ON_ERROR:
-                status_string += " (error: %s)" % self.current_download["error"]
+                status_string += f" (error: {self.current_download['error']})"
             self.window().download_detail_status_label.setText(status_string)
 
         self.window().download_detail_filesize_label.setText(
@@ -117,7 +117,7 @@ class DownloadsDetailsTabWidget(QTabWidget):
                 format_size(self.current_download["total_down"]),
             )
         )
-        self.window().download_detail_availability_label.setText("%.2f" % self.current_download['availability'])
+        self.window().download_detail_availability_label.setText(f"{self.current_download['availability']:.2f}")
 
         if new_download or len(self.current_download["files"]) != len(self.files_widgets.keys()):
 
@@ -212,7 +212,7 @@ class DownloadsDetailsTabWidget(QTabWidget):
     def set_included_files(self, files):
         post_data = {"selected_files": [ind for ind in files]}
         TriblerNetworkRequest(
-            "downloads/%s" % self.current_download['infohash'], lambda _: None, method='PATCH', data=post_data
+            f"downloads/{self.current_download['infohash']}", lambda _: None, method='PATCH', data=post_data
         )
 
     def on_copy_magnet_clicked(self, checked):

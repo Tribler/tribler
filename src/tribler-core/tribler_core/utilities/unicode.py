@@ -16,7 +16,7 @@ def ensure_unicode(s, encoding, errors='strict'):
     elif isinstance(s, str):
         return s
     else:
-        raise TypeError("not expecting type '%s'" % type(s))
+        raise TypeError(f"not expecting type '{type(s)}'")
 
 
 def ensure_unicode_detect_encoding(s):
@@ -31,7 +31,7 @@ def ensure_unicode_detect_encoding(s):
     elif isinstance(s, str):
         return s
     else:
-        raise TypeError("not expecting type '%s'" % type(s))
+        raise TypeError(f"not expecting type '{type(s)}'")
 
 
 def recursive_unicode(obj, ignore_errors=False):

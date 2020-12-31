@@ -202,7 +202,7 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
                 del self.download_widgets[infohash]
 
         self.window().tray_set_tooltip(
-            "Down: {}, Up: {}".format(format_speed(self.total_download), format_speed(self.total_upload))
+            f"Down: {format_speed(self.total_download)}, Up: {format_speed(self.total_upload)}"
         )
         self.update_download_visibility()
         self.schedule_downloads_timer()
@@ -288,7 +288,7 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         for selected_item in self.selected_items:
             infohash = selected_item.download_info["infohash"]
             TriblerNetworkRequest(
-                "downloads/%s" % infohash, self.on_download_resumed, method='PATCH', data={"state": "resume"}
+                f"downloads/{infohash}", self.on_download_resumed, method='PATCH', data={"state": "resume"}
             )
 
     def on_download_resumed(self, json_result):
@@ -303,7 +303,7 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         for selected_item in self.selected_items:
             infohash = selected_item.download_info["infohash"]
             TriblerNetworkRequest(
-                "downloads/%s" % infohash, self.on_download_stopped, method='PATCH', data={"state": "stop"}
+                f"downloads/{infohash}", self.on_download_stopped, method='PATCH', data={"state": "stop"}
             )
 
     def on_download_stopped(self, json_result):
@@ -334,7 +334,7 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
                 infohash = selected_item.download_info["infohash"]
 
                 TriblerNetworkRequest(
-                    "downloads/%s" % infohash,
+                    f"downloads/{infohash}",
                     self.on_download_removed,
                     method='DELETE',
                     data={"remove_data": bool(action)},
@@ -352,7 +352,7 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         for selected_item in self.selected_items:
             infohash = selected_item.download_info["infohash"]
             TriblerNetworkRequest(
-                "downloads/%s" % infohash, self.on_forced_recheck, method='PATCH', data={"state": "recheck"}
+                f"downloads/{infohash}", self.on_forced_recheck, method='PATCH', data={"state": "recheck"}
             )
 
     def on_forced_recheck(self, result):
@@ -370,7 +370,7 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         for selected_item in self.selected_items:
             infohash = selected_item.download_info["infohash"]
             TriblerNetworkRequest(
-                "downloads/%s" % infohash, self.on_change_anonymity, method='PATCH', data={"anon_hops": hops}
+                f"downloads/{infohash}", self.on_change_anonymity, method='PATCH', data={"anon_hops": hops}
             )
 
     def on_explore_files(self, checked):
@@ -397,7 +397,7 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         data = {"state": "move_storage", "dest_dir": dest_dir}
 
         TriblerNetworkRequest(
-            "downloads/%s" % _infohash,
+            f"downloads/{_infohash}",
             lambda res: self.on_files_moved(res, _name, dest_dir),
             data=data,
             method='PATCH',
@@ -405,7 +405,7 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
 
     def on_files_moved(self, response, name, dest_dir):
         if "modified" in response and response["modified"]:
-            self.window().tray_show_message(name, "Moved to %s" % dest_dir)
+            self.window().tray_show_message(name, f"Moved to {dest_dir}")
 
     def on_export_download(self, checked):
         self.export_dir = QFileDialog.getExistingDirectory(
@@ -424,7 +424,7 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
                 show_input=True,
             )
             self.dialog.dialog_widget.dialog_input.setPlaceholderText('Torrent file name')
-            self.dialog.dialog_widget.dialog_input.setText("%s.torrent" % torrent_name)
+            self.dialog.dialog_widget.dialog_input.setText(f"{torrent_name}.torrent")
             self.dialog.dialog_widget.dialog_input.setFocus()
             connect(self.dialog.button_clicked, self.on_export_download_dialog_done)
             self.dialog.show()
@@ -434,7 +434,7 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         if action == 0 and selected_item:
             filename = self.dialog.dialog_widget.dialog_input.text()
             TriblerFileDownloadRequest(
-                "downloads/%s/torrent" % selected_item[0].download_info['infohash'],
+                f"downloads/{selected_item[0].download_info['infohash']}/torrent",
                 lambda data: self.on_export_download_request_done(filename, data),
             )
 
@@ -451,10 +451,10 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
             ConfirmationDialog.show_error(
                 self.window(),
                 "Error when exporting file",
-                "An error occurred when exporting the torrent file: %s" % str(exc),
+                f"An error occurred when exporting the torrent file: {str(exc)}",
             )
         else:
-            self.window().tray_show_message("Torrent file exported", "Torrent file exported to %s" % dest_path)
+            self.window().tray_show_message("Torrent file exported", f"Torrent file exported to {dest_path}")
 
     def on_add_to_channel(self, checked):
         def on_add_button_pressed(channel_id):

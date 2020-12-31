@@ -23,7 +23,7 @@ def define_binding(db):
             if sanitized:
                 kwargs['url'] = sanitized
             else:
-                raise MalformedTrackerURLException("Could not canonicalize tracker URL (%s)" % kwargs['url'])
+                raise MalformedTrackerURLException(f"Could not canonicalize tracker URL ({kwargs['url']})")
 
             super().__init__(*args, **kwargs)
 

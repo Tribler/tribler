@@ -399,10 +399,10 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         if "total" in self.model.channel_info:
             if "torrents" in self.model.channel_info:
                 self.channel_num_torrents_label.setText(
-                    "{}/{} items".format(self.model.channel_info["total"], self.model.channel_info["torrents"])
+                    f"{self.model.channel_info['total']}/{self.model.channel_info['torrents']} items"
                 )
             else:
-                self.channel_num_torrents_label.setText("{} items".format(self.model.channel_info["total"]))
+                self.channel_num_torrents_label.setText(f"{self.model.channel_info['total']} items")
 
     # ==============================
     # Channel menu related methods.
@@ -436,7 +436,7 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         self.dialog = ConfirmationDialog(
             self,
             "Add torrents from directory",
-            "Add all torrent files from the following directory " "to your Tribler channel:\n\n%s" % chosen_dir,
+            f"Add all torrent files from the following directory to your Tribler channel:\n\n{chosen_dir}",
             [('ADD', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
             checkbox_text="Include subdirectories (recursive mode)",
         )
