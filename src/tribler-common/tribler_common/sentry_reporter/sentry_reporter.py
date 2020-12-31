@@ -183,7 +183,7 @@ class SentryReporter:
         tags['machine'] = get_value(post_data, 'machine')
         tags['os'] = get_value(post_data, 'os')
         tags['platform'] = get_first_item(get_value(sys_info, 'platform'))
-        tags[('%s' % PLATFORM_DETAILS)] = get_first_item(get_value(sys_info, PLATFORM_DETAILS))
+        tags[f'{PLATFORM_DETAILS}'] = get_first_item(get_value(sys_info, PLATFORM_DETAILS))
 
         # context
         context = event[CONTEXTS]

@@ -14,10 +14,10 @@ class Path(type(pathlib.Path())):
         rmtree(str(self), ignore_errors, onerror)
 
     def startswith(self, text):
-        return self.match("%s*" % text)
+        return self.match(f"{text}*")
 
     def endswith(self, text):
-        return self.match("*%s" % text)
+        return self.match(f"*{text}")
 
     def to_text(self):
         return str(self)

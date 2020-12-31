@@ -205,11 +205,11 @@ def check_and_enable_code_tracing(process_name, log_dir):
     """
     trace_logger = None
     if '--trace-exception' in sys.argv[1:]:
-        trace_logger = open(log_dir / ('%s-exceptions.log' % process_name), 'w')
+        trace_logger = open(log_dir / (f'{process_name}-exceptions.log'), 'w')
         sys.settrace(lambda frame, event, args: trace_calls(trace_logger, frame, event, args,
                                                             filter_exceptions_only=True))
     elif '--trace-debug' in sys.argv[1:]:
-        trace_logger = open(log_dir / ('%s-debug.log' % process_name), 'w')
+        trace_logger = open(log_dir / (f'{process_name}-debug.log'), 'w')
         sys.settrace(lambda frame, event, args: trace_calls(trace_logger, frame, event, args))
     return trace_logger
 

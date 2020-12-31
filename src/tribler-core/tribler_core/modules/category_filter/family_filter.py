@@ -90,15 +90,15 @@ class XXXFilter:
         # check if term-(e)s is in xxx-terms
         s = s.lower()
         if s in self.xxx_terms:
-            self._logger.debug('XXXFilter: "%s" is dirty%s', s, title and ' in %s' % title or '')
+            self._logger.debug('XXXFilter: "%s" is dirty%s', s, title and f' in {title}' or '')
             return True
         if s.endswith('es'):
             if s[:-2] in self.xxx_terms:
-                self._logger.debug('XXXFilter: "%s" is dirty%s', s[:-2], title and ' in %s' % title or '')
+                self._logger.debug('XXXFilter: "%s" is dirty%s', s[:-2], title and f' in {title}' or '')
                 return True
         elif s.endswith('s') or s.endswith('n'):
             if s[:-1] in self.xxx_terms:
-                self._logger.debug('XXXFilter: "%s" is dirty%s', s[:-1], title and ' in %s' % title or '')
+                self._logger.debug('XXXFilter: "%s" is dirty%s', s[:-1], title and f' in {title}' or '')
                 return True
 
         return False

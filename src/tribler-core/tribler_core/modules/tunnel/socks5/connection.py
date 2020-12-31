@@ -165,7 +165,7 @@ class Socks5Connection(Protocol):
         payload = CommandResponse(SOCKS_VERSION, REP_COMMAND_NOT_SUPPORTED, 0, ("0.0.0.0", 0))
         response = socks5_serializer.pack_serializable(payload)
         self.transport.write(response)
-        self._logger.error("DENYING SOCKS5 request, reason: %s" % reason)
+        self._logger.error(f"DENYING SOCKS5 request, reason: {reason}")
 
     async def on_udp_associate_request(self, request):
         # The DST.ADDR and DST.PORT fields contain the address and port that the client expects

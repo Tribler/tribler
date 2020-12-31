@@ -59,7 +59,7 @@ async def test_start_download_from_file(enable_api, test_download, mock_dlmgr, s
     """
     session.dlmgr.start_download_from_uri = lambda *_, **__: succeed(test_download)
 
-    post_data = {'uri': 'file:%s' % (TESTS_DATA_DIR / 'video.avi.torrent')}
+    post_data = {'uri': f"file:{TESTS_DATA_DIR / 'video.avi.torrent'}"}
     expected_json = {'started': True, 'infohash': 'c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5'}
     await do_request(session, 'downloads', expected_code=200, request_type='PUT',
                      post_data=post_data, expected_json=expected_json)
@@ -76,7 +76,7 @@ async def test_start_download_with_selected_files(enable_api, test_download, moc
 
     session.dlmgr.start_download_from_uri = mocked_start_download
 
-    post_data = {'uri': 'file:%s' % (TESTS_DATA_DIR / 'video.avi.torrent'), 'selected_files': [0]}
+    post_data = {'uri': f"file:{TESTS_DATA_DIR / 'video.avi.torrent'}", 'selected_files': [0]}
     expected_json = {'started': True, 'infohash': 'c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5'}
     await do_request(session, 'downloads', expected_code=200, request_type='PUT',
                      post_data=post_data, expected_json=expected_json)
@@ -160,7 +160,7 @@ async def test_remove(enable_api, mock_dlmgr, test_download, session):
     session.dlmgr.get_download = lambda _: test_download
     session.dlmgr.remove_download = lambda *_, **__: succeed(None)
 
-    await do_request(session, 'downloads/%s' % test_download.infohash, post_data={"remove_data": False},
+    await do_request(session, f'downloads/{test_download.infohash}', post_data={"remove_data": False},
                      expected_code=200, request_type='DELETE',
                      expected_json={"removed": True, "infohash": test_download.infohash})
 
@@ -251,7 +251,7 @@ async def test_recheck_download(enable_api, mock_dlmgr, test_download, session):
     session.dlmgr.get_download = lambda _: test_download
     test_download.force_recheck = Mock()
 
-    await do_request(session, 'downloads/%s' % test_download.infohash, post_data={"state": "recheck"},
+    await do_request(session, f'downloads/{test_download.infohash}', post_data={"state": "recheck"},
                      expected_code=200, request_type='PATCH',
                      expected_json={"modified": True, "infohash": test_download.infohash})
     test_download.force_recheck.assert_called_once()
@@ -264,7 +264,7 @@ async def test_download_unknown_state(enable_api, mock_dlmgr, test_download, ses
     """
     session.dlmgr.get_download = lambda _: test_download
 
-    await do_request(session, 'downloads/%s' % test_download.infohash, expected_code=400,
+    await do_request(session, f'downloads/{test_download.infohash}', expected_code=400,
                      post_data={"state": "abc"}, request_type='PATCH',
                      expected_json={"error": "unknown state parameter"})
 
@@ -275,7 +275,7 @@ async def test_change_hops_error(enable_api, mock_dlmgr, test_download, session)
     Testing whether the API returns 400 if we supply both anon_hops and another parameter
     """
     session.dlmgr.get_download = lambda _: True
-    await do_request(session, 'downloads/%s' % test_download.infohash, post_data={"state": "resume", 'anon_hops': 1},
+    await do_request(session, f'downloads/{test_download.infohash}', post_data={"state": "resume", 'anon_hops': 1},
                      expected_code=400, request_type='PATCH')
 
 
@@ -290,10 +290,10 @@ async def test_move_to_non_existing_dir(enable_api, mock_dlmgr, test_download, s
     assert not dest_dir.exists()
     data = {"state": "move_storage", "dest_dir": str(dest_dir)}
 
-    response_dict = await do_request(session, 'downloads/%s' % test_download.infohash,
+    response_dict = await do_request(session, f'downloads/{test_download.infohash}',
                                      expected_code=200, post_data=data, request_type='PATCH')
     assert "error" in response_dict
-    assert "Target directory (%s) does not exist" % dest_dir == response_dict["error"]
+    assert f"Target directory ({dest_dir}) does not exist" == response_dict["error"]
 
 
 @pytest.mark.asyncio
@@ -307,7 +307,7 @@ async def test_move_to_existing_dir(enable_api, mock_dlmgr, test_download, sessi
     os.mkdir(dest_dir)
     data = {"state": "move_storage", "dest_dir": str(dest_dir)}
 
-    response_dict = await do_request(session, 'downloads/%s' % test_download.infohash,
+    response_dict = await do_request(session, f'downloads/{test_download.infohash}',
                                      expected_code=200, post_data=data, request_type='PATCH')
     assert response_dict.get("modified", False)
     assert test_download.infohash == response_dict["infohash"]
@@ -329,7 +329,7 @@ async def test_export_download(enable_api, mock_dlmgr, mock_handle, test_downloa
     """
     test_download.get_torrent_data = lambda: 'a' * 20
     session.dlmgr.get_download = lambda _: test_download
-    await do_request(session, 'downloads/%s/torrent' % test_download.infohash,
+    await do_request(session, f'downloads/{test_download.infohash}/torrent',
                      expected_code=200, request_type='GET', json_response=False)
 
 
@@ -349,7 +349,7 @@ async def test_get_download_files(enable_api, mock_dlmgr, test_download, session
     """
     session.dlmgr.get_download = lambda _: test_download
 
-    response_dict = await do_request(session, 'downloads/%s/files' % test_download.infohash,
+    response_dict = await do_request(session, f'downloads/{test_download.infohash}/files',
                                      expected_code=200, request_type='GET')
     assert 'files' in response_dict
     assert response_dict['files']
@@ -417,7 +417,7 @@ async def test_change_hops(enable_api, mock_dlmgr, test_download, session):
     session.dlmgr.get_download = lambda _: test_download
     session.dlmgr.update_hops = lambda *_: succeed(None)
 
-    await do_request(session, 'downloads/%s' % test_download.infohash, post_data={'anon_hops': 1},
+    await do_request(session, f'downloads/{test_download.infohash}', post_data={'anon_hops': 1},
                      expected_code=200, request_type='PATCH',
                      expected_json={'modified': True, "infohash": test_download.infohash})
 
@@ -430,6 +430,6 @@ async def test_change_hops_fail(enable_api, mock_dlmgr, test_download, session):
     session.dlmgr.get_download = lambda _: test_download
     session.dlmgr.update_hops = lambda *_: fail(RuntimeError)
 
-    await do_request(session, 'downloads/%s' % test_download.infohash, post_data={'anon_hops': 1},
+    await do_request(session, f'downloads/{test_download.infohash}', post_data={'anon_hops': 1},
                      expected_code=500, request_type='PATCH',
                      expected_json={'error': {'message': '', 'code': 'RuntimeError', 'handled': True}})

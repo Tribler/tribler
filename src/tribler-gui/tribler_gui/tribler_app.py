@@ -39,7 +39,7 @@ class TriblerApplication(QtSingleApplication):
     def parse_sys_args(self, args):
         for arg in args[1:]:
             if os.path.exists(arg):
-                self.handle_uri('file:%s' % ensure_unicode(arg, 'utf8'))
+                self.handle_uri(f"file:{ensure_unicode(arg, 'utf8')}")
             elif arg.startswith('magnet'):
                 self.handle_uri(arg)
 
@@ -61,5 +61,5 @@ class TriblerApplication(QtSingleApplication):
 
     def event(self, event):
         if event.type() == QEvent.FileOpen and event.file().endswith(".torrent"):
-            self.handle_uri('file:%s' % event.file())
+            self.handle_uri(f'file:{event.file()}')
         return QtSingleApplication.event(self, event)

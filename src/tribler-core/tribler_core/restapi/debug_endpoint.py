@@ -249,11 +249,11 @@ class DebugEndpoint(RESTEndpoint):
 
         # Get the location of log file
         param_process = request.query.get('process', 'core')
-        log_file_name = self.session.config.get_log_dir() / ('tribler-%s-info.log' % param_process)
+        log_file_name = self.session.config.get_log_dir() / (f'tribler-{param_process}-info.log')
 
         # If the log file is not present in the versioned state directory, try root state directory location
         if not log_file_name.exists():
-            log_file_name = get_root_state_directory() / ('tribler-%s-info.log' % param_process)
+            log_file_name = get_root_state_directory() / (f'tribler-{param_process}-info.log')
 
         # If the log file is still not found, maybe it is not created yet, then return the default response
         if not log_file_name.exists():

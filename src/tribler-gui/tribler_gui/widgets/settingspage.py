@@ -190,7 +190,7 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
             max_conn_download = 0
         self.window().max_connections_download_input.setText(str(max_conn_download))
 
-        self.window().api_port_input.setText("%s" % get_gui_setting(gui_settings, "api_port", DEFAULT_API_PORT))
+        self.window().api_port_input.setText(f"{get_gui_setting(gui_settings, 'api_port', DEFAULT_API_PORT)}")
 
         # Bandwidth settings
         self.window().upload_rate_limit_input.setText(str(settings['libtorrent']['max_upload_rate'] // 1024))
@@ -219,7 +219,7 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         if 'cpu_priority' in settings['resource_monitor']:
             cpu_priority = int(settings['resource_monitor']['cpu_priority'])
         self.window().slider_cpu_level.setValue(cpu_priority)
-        self.window().cpu_priority_value.setText("Current Priority = %s" % cpu_priority)
+        self.window().cpu_priority_value.setText(f"Current Priority = {cpu_priority}")
         connect(self.window().slider_cpu_level.valueChanged, self.show_updated_cpu_priority)
         self.window().checkbox_enable_network_statistics.setChecked(settings['ipv8']['statistics'])
 
@@ -234,7 +234,7 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         self.window().anonymity_costs_label.setText(html_text)
 
     def show_updated_cpu_priority(self, value):
-        self.window().cpu_priority_value.setText("Current Priority = %s" % value)
+        self.window().cpu_priority_value.setText(f"Current Priority = {value}")
 
     def load_settings(self):
         self.window().settings_stacked_widget.hide()

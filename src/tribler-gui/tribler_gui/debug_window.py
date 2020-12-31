@@ -231,7 +231,7 @@ class DebugWindow(QMainWindow):
     def create_and_add_widget_item(self, key, value, widget):
         item = QTreeWidgetItem(widget)
         item.setText(0, key)
-        item.setText(1, "%s" % value)
+        item.setText(1, f"{value}")
         widget.addTopLevelItem(item)
 
     def load_general_tab(self):
@@ -279,9 +279,9 @@ class DebugWindow(QMainWindow):
             timestamp = request.time
 
             item = QTreeWidgetItem(self.window().requests_tree_widget)
-            item.setText(0, "{} {} {}".format(method, repr(endpoint), repr(data)))
+            item.setText(0, f"{method} {repr(endpoint)} {repr(data)}")
             item.setText(1, ("%d" % status_code) if status_code else "unknown")
-            item.setText(2, "%s" % strftime("%H:%M:%S", localtime(timestamp)))
+            item.setText(2, f"{strftime('%H:%M:%S', localtime(timestamp))}")
             self.window().requests_tree_widget.addTopLevelItem(item)
 
     def load_bandwidth_accounting_tab(self) -> None:
@@ -310,9 +310,9 @@ class DebugWindow(QMainWindow):
         self.window().ipv8_general_tree_widget.clear()
         for key, value in data["ipv8_statistics"].items():
             if key in ('total_up', 'total_down'):
-                value = "%.2f MB" % (value / (1024.0 * 1024.0))
+                value = f"{value / (1024.0 * 1024.0):.2f} MB"
             elif key == 'session_uptime':
-                value = "%s" % str(datetime.timedelta(seconds=int(value)))
+                value = f"{str(datetime.timedelta(seconds=int(value)))}"
             self.create_and_add_widget_item(key, value, self.window().ipv8_general_tree_widget)
 
     def load_ipv8_communities_tab(self):
@@ -340,16 +340,16 @@ class DebugWindow(QMainWindow):
             item.setText(1, overlay["id"][:10])
             item.setText(2, overlay["my_peer"][-12:])
             peer_count = len(overlay["peers"])
-            item.setText(3, "%s" % peer_count)
+            item.setText(3, f"{peer_count}")
             item.setForeground(3, self._colored_peer_count(peer_count, len(data["overlays"]), overlay["overlay_name"]))
 
             if "statistics" in overlay and overlay["statistics"]:
                 statistics = overlay["statistics"]
-                item.setText(4, "%.3f" % (statistics["bytes_up"] / (1024.0 * 1024.0)))
-                item.setText(5, "%.3f" % (statistics["bytes_down"] / (1024.0 * 1024.0)))
-                item.setText(6, "%s" % statistics["num_up"])
-                item.setText(7, "%s" % statistics["num_down"])
-                item.setText(8, "%.3f" % statistics["diff_time"])
+                item.setText(4, f"{statistics['bytes_up'] / (1024.0 * 1024.0):.3f}")
+                item.setText(5, f"{statistics['bytes_down'] / (1024.0 * 1024.0):.3f}")
+                item.setText(6, f"{statistics['num_up']}")
+                item.setText(7, f"{statistics['num_down']}")
+                item.setText(8, f"{statistics['diff_time']:.3f}")
             else:
                 item.setText(4, "N/A")
                 item.setText(5, "N/A")
@@ -387,10 +387,10 @@ class DebugWindow(QMainWindow):
                 for request_id, stat in stats.items():
                     stat_item = QTreeWidgetItem(self.window().ipv8_communities_details_widget)
                     stat_item.setText(0, request_id)
-                    stat_item.setText(1, "%.3f" % (stat["bytes_up"] / (1024.0 * 1024.0)))
-                    stat_item.setText(2, "%.3f" % (stat["bytes_down"] / (1024.0 * 1024.0)))
-                    stat_item.setText(3, "%s" % stat["num_up"])
-                    stat_item.setText(4, "%s" % stat["num_down"])
+                    stat_item.setText(1, f"{stat['bytes_up'] / (1024.0 * 1024.0):.3f}")
+                    stat_item.setText(2, f"{stat['bytes_down'] / (1024.0 * 1024.0):.3f}")
+                    stat_item.setText(3, f"{stat['num_up']}")
+                    stat_item.setText(4, f"{stat['num_down']}")
                     self.window().ipv8_communities_details_widget.addTopLevelItem(stat_item)
 
     def load_ipv8_health_monitor(self):
@@ -561,8 +561,8 @@ class DebugWindow(QMainWindow):
         for event_dict, timestamp in tribler_received_events:
             item = QTreeWidgetItem(self.window().events_tree_widget)
             item.setData(0, Qt.UserRole, event_dict)
-            item.setText(0, "%s" % event_dict['type'])
-            item.setText(1, "%s" % strftime("%H:%M:%S", localtime(timestamp)))
+            item.setText(0, f"{event_dict['type']}")
+            item.setText(1, f"{strftime('%H:%M:%S', localtime(timestamp))}")
             self.window().events_tree_widget.addTopLevelItem(item)
 
     def load_open_files_tab(self):
@@ -582,7 +582,7 @@ class DebugWindow(QMainWindow):
                 item.setText(1, "%d" % open_file.fd)
                 gui_item.addChild(item)
         except psutil.AccessDenied as exc:
-            gui_item.setText(0, "Unable to get open files for GUI (%s)" % exc)
+            gui_item.setText(0, f"Unable to get open files for GUI ({exc})")
 
         TriblerNetworkRequest("debug/open_files", self.on_core_open_files)
 
@@ -692,7 +692,7 @@ class DebugWindow(QMainWindow):
             return
         self.profiler_enabled = data["state"] == "STARTED"
         self.window().toggle_profiler_button.setEnabled(True)
-        self.window().toggle_profiler_button.setText("%s profiler" % ("Stop" if self.profiler_enabled else "Start"))
+        self.window().toggle_profiler_button.setText(f"{'Stop' if self.profiler_enabled else 'Start'} profiler")
 
     def on_toggle_profiler_button_clicked(self, checked):
         if self.toggling_profiler:
@@ -712,7 +712,7 @@ class DebugWindow(QMainWindow):
 
         if 'profiler_file' in data:
             QMessageBox.about(
-                self, "Profiler statistics saved", "The profiler data has been saved to %s." % data['profiler_file']
+                self, "Profiler statistics saved", f"The profiler data has been saved to {data['profiler_file']}."
             )
 
     def refresh_memory_plot(self):
@@ -760,7 +760,7 @@ class DebugWindow(QMainWindow):
             ConfirmationDialog.show_error(
                 self.window(),
                 "Error when exporting file",
-                "An error occurred when exporting the torrent file: %s" % str(exc),
+                f"An error occurred when exporting the torrent file: {str(exc)}",
             )
 
     def closeEvent(self, close_event):
@@ -780,7 +780,7 @@ class DebugWindow(QMainWindow):
         tab_name = "core" if tab_index == 0 else "gui"
 
         request_query = f"process={tab_name}&max_lines={max_log_lines}"
-        TriblerNetworkRequest("debug/log?%s" % request_query, self.display_logs)
+        TriblerNetworkRequest(f"debug/log?{request_query}", self.display_logs)
 
     def display_logs(self, data):
         if not data:

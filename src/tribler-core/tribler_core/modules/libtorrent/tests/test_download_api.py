@@ -13,7 +13,7 @@ from tribler_core.tests.tools.common import TORRENT_UBUNTU_FILE
 async def test_download_torrent_from_url(enable_libtorrent, session, tmpdir, file_server, free_port):
     # Setup file server to serve torrent file
     shutil.copyfile(TORRENT_UBUNTU_FILE, tmpdir / "ubuntu.torrent")
-    download = await session.dlmgr.start_download_from_uri('http://localhost:%s/ubuntu.torrent' % file_server)
+    download = await session.dlmgr.start_download_from_uri(f'http://localhost:{file_server}/ubuntu.torrent')
     await download.wait_for_status(DLSTATUS_DOWNLOADING)
 
 

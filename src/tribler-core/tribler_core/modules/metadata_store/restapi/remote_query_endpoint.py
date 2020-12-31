@@ -44,7 +44,7 @@ class RemoteQueryEndpoint(MetadataEndpointBase):
         try:
             sanitized = self.sanitize_parameters(request.query)
         except (ValueError, KeyError) as e:
-            return RESTResponse({"error": "Error processing request parameters: %s" % e}, status=HTTP_BAD_REQUEST)
+            return RESTResponse({"error": f"Error processing request parameters: {e}"}, status=HTTP_BAD_REQUEST)
 
         request_uuid = self.session.gigachannel_community.send_search_request(**sanitized)
         return RESTResponse({"request_uuid": str(request_uuid)})

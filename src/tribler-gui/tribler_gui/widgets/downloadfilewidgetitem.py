@@ -16,7 +16,7 @@ class DownloadFileWidgetItem(QTreeWidgetItem):
     def update_item(self):
         self.setText(0, self.file_info["name"])
         self.setText(1, format_size(float(self.file_info["size"])))
-        self.setText(2, '{percent:.1%}'.format(percent=self.file_info["progress"]))
+        self.setText(2, f"{self.file_info['progress']:.1%}")
         self.setText(3, "yes" if self.file_info["included"] else "no")
         self.setData(0, Qt.UserRole, self.file_info)
 

@@ -51,7 +51,7 @@ def tribler_api(api_port, tmpdir_factory):
     core_env = QProcessEnvironment.systemEnvironment()
     core_env.insert("CORE_BASE_PATH", str(RUN_TRIBLER_PY.parent / "tribler-core"))
     core_env.insert("CORE_PROCESS", "1")
-    core_env.insert("CORE_API_PORT", "%s" % api_port)
+    core_env.insert("CORE_API_PORT", f"{api_port}")
     core_env.insert("CORE_API_KEY", "")
     core_env.insert("TRIBLER_CORE_TEST_MODE", "1")
 

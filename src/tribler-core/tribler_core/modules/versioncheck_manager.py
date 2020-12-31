@@ -70,4 +70,4 @@ class VersionCheckManager(TaskManager):
             self._logger.warning("Checking for new version failed for %s", version_check_url)
             return False
         except ValueError as ve:
-            raise ValueError("Failed to parse Tribler version response.\nError:%s" % ve)
+            raise ValueError(f"Failed to parse Tribler version response.\nError:{ve}")

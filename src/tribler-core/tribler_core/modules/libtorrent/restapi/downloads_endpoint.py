@@ -342,7 +342,7 @@ class DownloadsEndpoint(RESTEndpoint):
         uri = parameters['uri']
         if uri.startswith("file:"):
             filename = url2pathname(uri[5:])
-            download_uri = "file:%s" % filename
+            download_uri = f"file:{filename}"
         else:
             download_uri = unquote_plus(uri)
 
@@ -479,7 +479,7 @@ class DownloadsEndpoint(RESTEndpoint):
             elif state == "move_storage":
                 dest_dir = Path(parameters['dest_dir'])
                 if not dest_dir.exists():
-                    return RESTResponse({"error": "Target directory (%s) does not exist" % dest_dir})
+                    return RESTResponse({"error": f"Target directory ({dest_dir}) does not exist"})
                 download.move_storage(dest_dir)
                 download.checkpoint()
             else:

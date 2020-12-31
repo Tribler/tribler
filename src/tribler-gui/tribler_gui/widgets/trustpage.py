@@ -58,8 +58,8 @@ class TrustPage(AddBreadcrumbOnShowMixin, QWidget):
         total_up = statistics.get("total_given", 0)
         total_down = statistics.get("total_taken", 0)
 
-        self.window().trust_contribution_amount_label.setText("%s MBytes" % (total_up // self.byte_scale))
-        self.window().trust_consumption_amount_label.setText("%s MBytes" % (total_down // self.byte_scale))
+        self.window().trust_contribution_amount_label.setText(f"{total_up // self.byte_scale} MBytes")
+        self.window().trust_consumption_amount_label.setText(f"{total_down // self.byte_scale} MBytes")
 
         self.window().trust_people_helped_label.setText("%d" % statistics["num_peers_helped"])
         self.window().trust_people_helped_you_label.setText("%d" % statistics["num_peers_helped_by"])

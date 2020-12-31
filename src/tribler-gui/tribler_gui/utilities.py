@@ -42,11 +42,11 @@ def format_size(num, suffix='B'):
         if abs(num) < 1024.0:
             return f"{num:3.1f} {unit}{suffix}"
         num /= 1024.0
-    return "{:.1f} {}{}".format(num, 'Yi', suffix)
+    return f"{num:.1f} Yi{suffix}"
 
 
 def format_speed(num):
-    return "%s/s" % format_size(num)
+    return f"{format_size(num)}/s"
 
 
 def seconds_to_string(seconds):
@@ -293,9 +293,9 @@ def compose_magnetlink(infohash, name=None, trackers=None):
     """
     if not infohash:
         return ''
-    magnet = "magnet:?xt=urn:btih:%s" % infohash
+    magnet = f"magnet:?xt=urn:btih:{infohash}"
     if name:
-        magnet = "{}&dn={}".format(magnet, quote_plus_unicode(name))
+        magnet = f"{magnet}&dn={quote_plus_unicode(name)}"
     if trackers and isinstance(trackers, list):
         for tracker in trackers:
             magnet = f"{magnet}&tr={tracker}"
@@ -336,7 +336,7 @@ def votes_count(votes=0.0):
 
 
 def format_votes(votes=0.0):
-    return "  %s " % ("┃" * votes_count(votes))
+    return f"  {'┃' * votes_count(votes)} "
 
 
 def format_votes_rich_text(votes=0.0):

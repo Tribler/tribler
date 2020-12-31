@@ -75,7 +75,7 @@ class TriblerRequestManager(QNetworkAccessManager):
         return return_error
 
     def show_error(self, error_text):
-        main_text = "An error occurred during the request:\n\n%s" % error_text
+        main_text = f"An error occurred during the request:\n\n{error_text}"
         error_dialog = ConfirmationDialog(
             TriblerRequestManager.window, "Request error", main_text, [('CLOSE', BUTTON_TYPE_NORMAL)]
         )
@@ -212,7 +212,7 @@ class TriblerNetworkRequest(QObject):
                 self.received_json.emit(json_result)
         except ValueError:
             self.received_error.emit(self.reply.error())
-            logging.error("No json object could be decoded from data: %s" % data)
+            logging.error(f"No json object could be decoded from data: {data}")
         finally:
             self.destruct()  # the request object should be properly destroyed no matter what
 

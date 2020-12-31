@@ -149,7 +149,7 @@ class TrustGraphPage(AddBreadcrumbOnShowMixin, QWidget):
         if not selected_node:
             return
 
-        peer_message = "<b>User</b> {}{}...".format(HTML_SPACE * 16, selected_node.get('public_key', '')[:74])
+        peer_message = f"<b>User</b> {HTML_SPACE * 16}{selected_node.get('public_key', '')[:74]}..."
         self.window().tr_selected_node_pub_key.setHidden(False)
         self.window().tr_selected_node_pub_key.setText(peer_message)
 

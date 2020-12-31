@@ -359,8 +359,8 @@ class TorrentMetadataPayload(ChannelNodePayload):
 
     # TODO:  DRY!(copypasted from TorrentMetadata)
     def get_magnet(self):
-        return ("magnet:?xt=urn:btih:{}&dn={}".format(hexlify(self.infohash), self.title.encode('utf8'))) + (
-            "&tr=%s" % (self.tracker_info).encode('utf8') if self.tracker_info else ""
+        return (f"magnet:?xt=urn:btih:{hexlify(self.infohash)}&dn={self.title.encode('utf8')}") + (
+            f"&tr={self.tracker_info.encode('utf8')}" if self.tracker_info else ""
         )
 
 

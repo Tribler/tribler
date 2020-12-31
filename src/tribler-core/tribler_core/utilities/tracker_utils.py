@@ -42,7 +42,7 @@ def get_uniformed_tracker_url(tracker_url):
     :param tracker_url: a str url for either a UDP or HTTP tracker
     :return: the tracker in a uniform format <type>://<host>:<port>/<page>
     """
-    assert isinstance(tracker_url, str), "tracker_url is not a str: %s" % type(tracker_url)
+    assert isinstance(tracker_url, str), f"tracker_url is not a str: {type(tracker_url)}"
 
     # Search the string for delimiters and try to get the first correct URL
     for tracker_url in re.split(delimiters_regex, tracker_url):
@@ -117,20 +117,20 @@ def parse_tracker_url(tracker_url):
         tracker_url = tracker_url.replace(':80/', '/', 1)
 
     if tracker_url != get_uniformed_tracker_url(tracker_url):
-        raise MalformedTrackerURLException('Could not sanitize url (%s).' % tracker_url)
+        raise MalformedTrackerURLException(f'Could not sanitize url ({tracker_url}).')
 
     url = urlparse(tracker_url)
     if not (url.scheme == 'udp' or url.scheme == 'http'):
-        raise MalformedTrackerURLException('Unexpected tracker type (%s).' % url.scheme)
+        raise MalformedTrackerURLException(f'Unexpected tracker type ({url.scheme}).')
 
     if url.scheme == 'udp' and not url.port:
-        raise MalformedTrackerURLException('No port number for UDP tracker URL (%s).' % tracker_url)
+        raise MalformedTrackerURLException(f'No port number for UDP tracker URL ({tracker_url}).')
 
     if url.scheme == 'http' and not url.port:
         return url.scheme, (url.hostname, 80), url.path
 
     if url.scheme == 'http' and not url.path:
-        raise MalformedTrackerURLException('Missing announce path for HTTP tracker url (%s).' % tracker_url)
+        raise MalformedTrackerURLException(f'Missing announce path for HTTP tracker url ({tracker_url}).')
 
     return url.scheme, (url.hostname, url.port), url.path
 

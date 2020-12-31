@@ -55,8 +55,8 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
         connect(self.send_report_button.clicked, self.on_send_clicked)
 
         # Add machine information to the tree widget
-        add_item_to_info_widget('os.getcwd', '%s' % os.getcwd())
-        add_item_to_info_widget('sys.executable', '%s' % sys.executable)
+        add_item_to_info_widget('os.getcwd', f'{os.getcwd()}')
+        add_item_to_info_widget('sys.executable', f'{sys.executable}')
 
         add_item_to_info_widget('os', os.name)
         add_item_to_info_widget('platform', sys.platform)
@@ -64,16 +64,16 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
         add_item_to_info_widget('platform.machine', platform.machine())
         add_item_to_info_widget('python.version', sys.version)
         add_item_to_info_widget('indebug', str(__debug__))
-        add_item_to_info_widget('tribler_uptime', "%s" % (time.time() - start_time))
+        add_item_to_info_widget('tribler_uptime', f"{time.time() - start_time}")
 
         for argv in sys.argv:
-            add_item_to_info_widget('sys.argv', '%s' % argv)
+            add_item_to_info_widget('sys.argv', f'{argv}')
 
         for path in sys.path:
-            add_item_to_info_widget('sys.path', '%s' % path)
+            add_item_to_info_widget('sys.path', f'{path}')
 
         for key in os.environ.keys():
-            add_item_to_info_widget('os.environ', '{}: {}'.format(key, os.environ[key]))
+            add_item_to_info_widget('os.environ', f'{key}: {os.environ[key]}')
 
         # Add recent requests to feedback dialog
         request_ind = 1
@@ -88,7 +88,7 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
         # Add recent events to feedback dialog
         events_ind = 1
         for event, event_time in received_events[:30][::-1]:
-            add_item_to_info_widget('event_%d' % events_ind, '{} (time: {})'.format(json.dumps(event), event_time))
+            add_item_to_info_widget('event_%d' % events_ind, f'{json.dumps(event)} (time: {event_time})')
             events_ind += 1
 
         # Users can remove specific lines in the report

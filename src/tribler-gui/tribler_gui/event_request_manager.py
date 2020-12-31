@@ -77,7 +77,7 @@ class EventRequestManager(QNetworkAccessManager):
         self.tribler_started.emit(event_dict["version"])
 
     def on_error(self, error, reschedule_on_err):
-        self._logger.info("Got Tribler core error: %s" % error)
+        self._logger.info(f"Got Tribler core error: {error}")
 
         SentryReporter.ignore_logger(self._logger.name)
         if self.remaining_connection_attempts <= 0:

@@ -341,7 +341,7 @@ def define_binding(db):
                 return txt + "0" * (PUBLIC_KEY_LEN * 2 - CHANNEL_DIR_NAME_LENGTH)
 
             pk_binmask_start = "x'" + extend_to_bitmask(pk_part) + "'"
-            pk_plus_one = ("%X" % (int(pk_part, 16) + 1)).zfill(len(pk_part))
+            pk_plus_one = f"{int(pk_part, 16) + 1:X}".zfill(len(pk_part))
             pk_binmask_end = "x'" + extend_to_bitmask(pk_plus_one) + "'"
             # It is impossible to use LIKE queries on BLOBs, so we have to use comparisons
             sql = "g.public_key >= " + pk_binmask_start + " AND g.public_key < " + pk_binmask_end
