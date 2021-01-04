@@ -396,14 +396,20 @@ class TriblerWindow(QMainWindow):
                 logging.debug("Tray icon already removed, no further deletion necessary.")
             self.tray_icon = None
 
-    def on_low_storage(self):
+    def on_low_storage(self, _):
         """
         Dealing with low storage space available. First stop the downloads and the core manager and ask user to user to
         make free space.
         :return:
         """
+        def close_tribler_gui():
+            self.close_tribler()
+            # Since the core has already stopped at this point, it will not terminate the GUI.
+            # So, we quit the GUI separately here.
+            if not QApplication.closingDown():
+                QApplication.quit()
+
         self.downloads_page.stop_loading_downloads()
-        self.core_manager.shutting_down = True
         self.core_manager.stop(False)
         close_dialog = ConfirmationDialog(
             self.window(),
@@ -412,7 +418,7 @@ class TriblerWindow(QMainWindow):
             "sufficient free space available and restart Tribler again.",
             [("Close Tribler", BUTTON_TYPE_NORMAL)],
         )
-        connect(close_dialog.button_clicked, lambda _: self.close_tribler())
+        connect(close_dialog.button_clicked, lambda _: close_tribler_gui())
         close_dialog.show()
 
     def on_torrent_finished(self, torrent_info):
