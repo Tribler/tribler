@@ -627,5 +627,5 @@ class TriblerConfig(object):
     def get_resource_monitor_history_size(self):
         return self.config['resource_monitor']['history_size']
 
-    def get_error_reporting_requires_user_consent(self):
-        return self.config['error_handling']['error_reporting_requires_user_consent']
+    def get_core_error_reporting_requires_user_consent(self):
+        return self.config['error_handling']['core_error_reporting_requires_user_consent']
