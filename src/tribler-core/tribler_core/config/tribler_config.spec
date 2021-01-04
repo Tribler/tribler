@@ -108,4 +108,4 @@ enabled = boolean(default=True)
 cache_dir = string(default=health_cache)
 
 [error_handling]
-error_reporting_requires_user_consent=boolean(default=True)
+core_error_reporting_requires_user_consent=boolean(default=True)
