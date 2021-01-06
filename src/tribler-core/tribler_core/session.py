@@ -256,7 +256,7 @@ class Session(TaskManager):
             events = self.api_manager.get_endpoint('events')
             events.on_tribler_exception(text_long,
                                         sentry_event,
-                                        self.config.get_error_reporting_requires_user_consent())
+                                        self.config.get_core_error_reporting_requires_user_consent())
 
             state = self.api_manager.get_endpoint('state')
             state.on_tribler_exception(text_long, sentry_event)

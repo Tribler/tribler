@@ -308,4 +308,4 @@ def test_get_set_discovery_community_enabled(tribler_config):
 
 
 def test_get_error_handling(tribler_config):
-    assert tribler_config.get_error_reporting_requires_user_consent()
+    assert tribler_config.get_core_error_reporting_requires_user_consent()
