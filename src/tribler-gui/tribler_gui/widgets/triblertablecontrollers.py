@@ -132,6 +132,9 @@ class TableSelectionMixin(object):
 class HealthCheckerMixin:
     def check_torrent_health(self, data_item, forced=False):
         # TODO: stop triggering multiple checks over a single infohash by e.g. selection and click signals
+        if 'infohash' not in data_item:
+            return
+
         infohash = data_item[u'infohash']
 
         if u'health' not in self.model.column_position:
