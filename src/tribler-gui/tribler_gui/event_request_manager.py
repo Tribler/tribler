@@ -37,6 +37,7 @@ class EventRequestManager(QNetworkAccessManager):
     low_storage_signal = pyqtSignal(object)
     tribler_shutdown_signal = pyqtSignal(str)
     change_loading_text = pyqtSignal(str)
+    config_error_signal = pyqtSignal(str)
 
     def __init__(self, api_port, api_key):
         QNetworkAccessManager.__init__(self)
@@ -61,6 +62,7 @@ class EventRequestManager(QNetworkAccessManager):
             NTFY.TRIBLER_SHUTDOWN_STATE.value: self.tribler_shutdown_signal.emit,
             NTFY.EVENTS_START.value: self.events_start_received,
             NTFY.TRIBLER_STARTED.value: self.tribler_started_event,
+            NTFY.REPORT_CONFIG_ERROR.value: self.config_error_signal.emit,
         }
 
     def events_start_received(self, event_dict):
