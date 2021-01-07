@@ -158,6 +158,7 @@ class TriblerWindow(QMainWindow):
 
     def __init__(self, core_args=None, core_env=None, api_port=None, api_key=None):
         QMainWindow.__init__(self)
+        self._logger = logging.getLogger(self.__class__.__name__)
 
         QCoreApplication.setOrganizationDomain("nl")
         QCoreApplication.setOrganizationName("TUDelft")
@@ -323,6 +324,7 @@ class TriblerWindow(QMainWindow):
         connect(self.core_manager.events_manager.tribler_started, self.on_tribler_started)
         connect(self.core_manager.events_manager.low_storage_signal, self.on_low_storage)
         connect(self.core_manager.events_manager.tribler_shutdown_signal, self.on_tribler_shutdown_state_update)
+        connect(self.core_manager.events_manager.config_error_signal, self.on_config_error_signal)
 
         # Install signal handler for ctrl+c events
         def sigint_handler(*_):
@@ -1176,6 +1178,10 @@ class TriblerWindow(QMainWindow):
     def on_tribler_shutdown_state_update(self, state):
         self.loading_text_label.setText(state)
 
+    def on_config_error_signal(self, stacktrace):
+        self._logger.error(f"Config error: {stacktrace}")
+        user_message = 'Tribler recovered from a corrupted config. Please check your settings and update if necessary.'
+        ConfirmationDialog.show_error(self, "Tribler config error", user_message)
 
 def _qurl_to_path(qurl):
     parsed = urlparse(qurl.toString())

@@ -100,6 +100,7 @@ class NTFY(Enum):
     EVENTS_START = "events_start"
     TRIBLER_EXCEPTION = "tribler_exception"
     POPULARITY_COMMUNITY_ADD_UNKNOWN_TORRENT = "PopularityCommunity:added_unknown_torrent"
+    REPORT_CONFIG_ERROR = "report_config_error"
 
 
 class CHANNEL_STATE(Enum):

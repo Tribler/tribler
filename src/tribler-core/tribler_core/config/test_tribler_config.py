@@ -1,9 +1,17 @@
+import shutil
 from pathlib import Path
+
+from configobj import ParseError
+
+import pytest
 
 from tribler_common.simpledefs import MAX_LIBTORRENT_RATE_LIMIT
 
 from tribler_core.config.tribler_config import CONFIG_FILENAME, TriblerConfig
+from tribler_core.tests.tools.common import TESTS_DATA_DIR
 from tribler_core.utilities.osutils import get_home_dir
+
+CONFIG_PATH = TESTS_DATA_DIR / "config_files"
 
 
 def test_init_without_config(tribler_config):
@@ -11,6 +19,20 @@ def test_init_without_config(tribler_config):
     A newly created TriblerConfig is valid.
     """
     tribler_config.validate()
+
+
+def test_invalid_config_recovers(tmpdir):
+    shutil.copy2(CONFIG_PATH / 'corrupt-triblerd.conf', tmpdir / 'triblerd.conf')
+
+    # By default, recover_error set to False when loading the config file so
+    # if the config file is corrupted, it should raise a ParseError.
+    with pytest.raises(ParseError):
+        tribler_conf = TriblerConfig(tmpdir, config_file=tmpdir / 'triblerd.conf')
+
+    # If recover_error is set to True, the config should successfully load using
+    # the default config in case of corrupted config file.
+    tribler_conf = TriblerConfig(tmpdir, config_file=tmpdir / 'triblerd.conf', recover_error=True)
+    assert tribler_conf is not None
 
 
 def test_write_load(tribler_config):
