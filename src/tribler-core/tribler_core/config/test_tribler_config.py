@@ -22,18 +22,24 @@ def test_init_without_config(tribler_config):
 
 
 def test_invalid_config_recovers(tmpdir):
-    shutil.copy2(CONFIG_PATH / 'corrupt-triblerd.conf', tmpdir / 'triblerd.conf')
+    default_config_file = tmpdir / 'triblerd.conf'
+    shutil.copy2(CONFIG_PATH / 'corrupt-triblerd.conf', default_config_file)
 
     # By default, recover_error set to False when loading the config file so
     # if the config file is corrupted, it should raise a ParseError.
     with pytest.raises(ParseError):
-        tribler_conf = TriblerConfig(tmpdir, config_file=tmpdir / 'triblerd.conf')
+        _ = TriblerConfig(tmpdir, config_file=default_config_file)
 
     # If recover_error is set to True, the config should successfully load using
-    # the default config in case of corrupted config file.
-    tribler_conf = TriblerConfig(tmpdir, config_file=tmpdir / 'triblerd.conf', recover_error=True)
-    assert tribler_conf is not None
+    # the default config in case of corrupted config file and the error is saved.
+    tribler_conf = TriblerConfig(tmpdir, config_file=default_config_file, reset_config_on_error=True)
+    assert "configobj.ParseError: Invalid line" in tribler_conf.config_error
+    assert tribler_conf.get_state_dir() is not None
 
+    # Since the config should be saved on previous recovery, subsequent instantiation of TriblerConfig
+    # should work without the reset flag.
+    tribler_conf2 = TriblerConfig(tmpdir, config_file=default_config_file, reset_config_on_error=False)
+    assert tribler_conf2
 
 def test_write_load(tribler_config):
     """

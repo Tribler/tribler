@@ -4,6 +4,7 @@ Configuration object for the Tribler Core.
 import logging
 import os
 import traceback
+from typing import Optional
 
 from configobj import ConfigObj, ParseError
 
@@ -31,11 +32,12 @@ class TriblerConfig(object):
     their allowed values and default value in `config.spec`.
     """
 
-    def __init__(self, state_dir, config_file=None, recover_error=False):
+    def __init__(self, state_dir, config_file=None, reset_config_on_error=False):
         """
         Create a new TriblerConfig instance.
 
         :param config_file: path to existing config file
+        :param reset_config_on_error: Flag indicating whether to recover from corrupt config using default config.
         :raises an InvalidConfigException if ConfigObj is invalid
         """
         self._logger = logging.getLogger(self.__class__.__name__)
@@ -44,7 +46,7 @@ class TriblerConfig(object):
 
         self.config = None
         self.config_error = None
-        self.load_config_file(config_file, recover_error)
+        self.load_config_file(config_file, reset_config_on_error)
 
         # Set the default destination dir. The value should be in the config dict
         # because of the REST endpoint sending the whole dict to the GUI.
@@ -72,7 +74,7 @@ class TriblerConfig(object):
 
         self.validate()
 
-    def _load_config_file(self, config_file_path: str) -> ConfigObj:
+    def _load_config_file(self, config_file_path: Optional[str]) -> ConfigObj:
         return ConfigObj(infile=config_file_path, configspec=str(CONFIG_SPEC_PATH), default_encoding='utf-8')
 
     def abspath(self, path):
