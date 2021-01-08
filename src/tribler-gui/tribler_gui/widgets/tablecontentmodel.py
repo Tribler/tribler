@@ -197,7 +197,7 @@ class RemoteTableModel(QAbstractTableModel):
         :return: True, if response, False otherwise
         """
         # TODO: count remote results
-        if not response:
+        if not response or self.qt_object_destroyed:
             return False
 
         # Trigger labels update on the initial table load
