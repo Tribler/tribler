@@ -415,6 +415,10 @@ class Session(TaskManager):
 
         self.notifier.notify(NTFY.TRIBLER_STARTED, self.trustchain_keypair.key.pk)
 
+        # If there is a config error, report to the user via GUI notifier
+        if self.config.config_error:
+            self.notifier.notify(NTFY.REPORT_CONFIG_ERROR, self.config.config_error)
+
     async def shutdown(self):
         """
         Checkpoints the session and closes it, stopping the download engine.

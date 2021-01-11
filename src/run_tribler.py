@@ -63,7 +63,7 @@ def start_tribler_core(base_path, api_port, api_key, root_state_dir, core_test_m
 
         state_dir = get_versioned_state_directory(root_state_dir)
 
-        config = TriblerConfig(state_dir, config_file=state_dir / CONFIG_FILENAME)
+        config = TriblerConfig(state_dir, config_file=state_dir / CONFIG_FILENAME, reset_config_on_error=True)
 
         if not config.get_core_error_reporting_requires_user_consent():
             SentryReporter.global_strategy = SentryStrategy.SEND_ALLOWED

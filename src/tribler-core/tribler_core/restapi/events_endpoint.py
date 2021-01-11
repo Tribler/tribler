@@ -48,6 +48,8 @@ reactions_dict = {
     NTFY.TRIBLER_STARTED: lambda public_key: {"version": version_id, "public_key": hexlify(public_key)},
     # Tribler is low on disk space for storing torrents
     NTFY.LOW_SPACE: passthrough,
+    # Report config error on startup
+    NTFY.REPORT_CONFIG_ERROR: passthrough,
 }
 # pylint: enable=line-too-long
 

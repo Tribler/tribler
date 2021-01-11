@@ -1,6 +1,6 @@
 from urllib.parse import unquote_plus
 
-from tribler_gui.utilities import compose_magnetlink, quote_plus_unicode, unicode_quoter
+from tribler_gui.utilities import compose_magnetlink, dict_item_is_any_of, quote_plus_unicode, unicode_quoter
 
 
 def test_quoter_char():
@@ -105,3 +105,22 @@ def test_compose_magnetlink():
     assert composed_link1 == expected_link1
     assert composed_link2 == expected_link2
     assert composed_link3 == expected_link3
+
+
+def test_is_dict_has():
+    assert not dict_item_is_any_of(None, None, None)
+    assert not dict_item_is_any_of({}, None, None)
+
+    d = {
+        'k': 'v',
+        'k1': 'v1'
+    }
+
+    assert not dict_item_is_any_of(d, 'missed_key', None)
+    assert not dict_item_is_any_of(d, 'missed_key', ['any_value'])
+    assert not dict_item_is_any_of(d, 'k', ['missed_value'])
+    assert not dict_item_is_any_of(d, 'k', ['missed_value', 'missed_value1'])
+
+    assert dict_item_is_any_of(d, 'k', ['v'])
+    assert dict_item_is_any_of(d, 'k', ['v', 'a'])
+    assert dict_item_is_any_of(d, 'k', ['a', 'v'])

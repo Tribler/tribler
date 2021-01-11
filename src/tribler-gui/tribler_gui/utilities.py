@@ -422,3 +422,9 @@ def disconnect(signal: pyqtSignal, callback: Callable):
 
 class CreationTraceback(Exception):
     pass
+
+
+def dict_item_is_any_of(d, key, values):
+    if not d or not key or not values:
+        return False
+    return key in d and d[key] in values

@@ -3,8 +3,10 @@ Configuration object for the Tribler Core.
 """
 import logging
 import os
+import traceback
+from typing import Optional
 
-from configobj import ConfigObj
+from configobj import ConfigObj, ParseError
 
 from validate import Validator
 
@@ -30,25 +32,50 @@ class TriblerConfig:
     their allowed values and default value in `config.spec`.
     """
 
-    def __init__(self, state_dir, config_file=None):
+    def __init__(self, state_dir, config_file=None, reset_config_on_error=False):
         """
         Create a new TriblerConfig instance.
 
         :param config_file: path to existing config file
+        :param reset_config_on_error: Flag indicating whether to recover from corrupt config using default config.
         :raises an InvalidConfigException if ConfigObj is invalid
         """
         self._logger = logging.getLogger(self.__class__.__name__)
         self._state_dir = Path(state_dir)
-        self.config = ConfigObj(infile=(str(config_file) if config_file else None),
-                                configspec=str(CONFIG_SPEC_PATH), default_encoding='utf-8')
-        self.validate()
         self.selected_ports = {}
+
+        self.config = None
+        self.config_error = None
+        self.load_config_file(config_file, reset_config_on_error)
 
         # Set the default destination dir. The value should be in the config dict
         # because of the REST endpoint sending the whole dict to the GUI.
         # TODO: do not write the value into the config file if the user did not change it
         if self.config['download_defaults']['saveas'] is None:
             self.config['download_defaults']['saveas'] = str(self.abspath(get_default_dest_dir()))
+
+    def load_config_file(self, config_file: Path, recover_error: bool):
+        """
+        Loads ConfigObj from the config file. If the file is corrupted, tries to create
+        ConfigObj using the spec file if `recover_error` is set.
+
+        """
+        config_file_path = str(config_file) if config_file else None
+        try:
+            self.config = self._load_config_file(config_file_path)
+        except ParseError:
+            if not config_file or not recover_error:
+                raise
+
+            self.config_error = traceback.format_exc()
+            self.config = self._load_config_file(None)
+            # Since this is a new config, save it immediately
+            self.write()
+
+        self.validate()
+
+    def _load_config_file(self, config_file_path: Optional[str]) -> ConfigObj:
+        return ConfigObj(infile=config_file_path, configspec=str(CONFIG_SPEC_PATH), default_encoding='utf-8')
 
     def abspath(self, path):
         return path_util.abspath(path, optional_prefix=self.get_state_dir())
