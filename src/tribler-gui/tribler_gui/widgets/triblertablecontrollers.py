@@ -143,9 +143,11 @@ class HealthCheckerMixin:
             return
         # Check if the entry still exists in the table
         row = self.model.item_uid_map.get(infohash)
-        if row is None:
+        items = self.model.data_items
+        if row is None or row >= len(items):
             return
-        data_item = self.model.data_items[row]
+
+        data_item = items[row]
         if not forced and data_item.get('health', HEALTH_UNCHECKED) != HEALTH_UNCHECKED:
             return
         data_item['health'] = HEALTH_CHECKING
