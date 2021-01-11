@@ -54,6 +54,23 @@ and "stashes" the state dirs with conflicting names by renaming them.
 Note that due to failures in design pre-7.4 series and 7.4.x series get special treatment.
 """
 
+def must_upgrade(old_ver:LooseVersion, new_ver:LooseVersion):
+    """
+    This function compares two LooseVersions by combination of major/minor components only, omitting the patch version.
+    By convention, in Tribler we only fork version directories on major/minor version changes, and never touch
+    the directory format in patch versions.
+    e.g 1.2.3 -> 1.3.0 must upgrade (return True)
+    but 1.2.3 -> 1.2.4 must not upgrade (return False)
+
+    :param old_ver: the version to upgrade from
+    :param new_ver:  the version to upgrade to
+    :return: True, if new_ver's major/minor version is higher than old_ver's major/minor version, otherwise False
+    """
+    major_version_is_greater = new_ver.version[0] > old_ver.version[0]
+    major_version_is_equal = new_ver.version[0] == old_ver.version[0]
+    minor_version_is_greater = new_ver.version[1] > old_ver.version[1]
+
+    return major_version_is_greater or (major_version_is_equal and minor_version_is_greater)
 
 class VersionHistory:
     """
@@ -83,14 +100,14 @@ class VersionHistory:
     def get_last_upgradable_version(self, root_state_dir, code_version):
         """
         This function gets the list of previously used Tribler versions from the usage history file
-        and returns the most recently used version that has lower number than the code version.
+        and returns the most recently used version that has lower major/minor number than the code version.
         :param root_state_dir: root state directory, where the version history file and old version dirs
         :param code_version: current code version
         :return: None if no upgradable version found, version number otherwise
         """
 
         for version in [version for _, version in sorted(self.version_history["history"].items(), reverse=True)]:
-            if (LooseVersion(code_version) > LooseVersion(version)
+            if (must_upgrade(LooseVersion(version), LooseVersion(code_version))
                     and get_versioned_state_directory(root_state_dir, version).exists()):
                 return version
         return None
