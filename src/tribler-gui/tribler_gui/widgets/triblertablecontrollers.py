@@ -17,7 +17,7 @@ from tribler_core.utilities.json_util import dumps
 from tribler_gui.defs import HEALTH_CHECKING, HEALTH_UNCHECKED
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.utilities import connect, get_health
+from tribler_gui.utilities import connect, dict_item_is_any_of, get_health
 
 HEALTHCHECK_DELAY_MS = 500
 
@@ -115,7 +115,7 @@ class TableSelectionMixin(object):
             return
 
         data_item = selected_indices[-1].model().data_items[selected_indices[-1].row()]
-        if 'type' in data_item and data_item['type'] != REGULAR_TORRENT:
+        if not dict_item_is_any_of(data_item, 'type', [REGULAR_TORRENT]):
             return
 
         # Trigger health check if necessary
@@ -132,7 +132,7 @@ class TableSelectionMixin(object):
 class HealthCheckerMixin:
     def check_torrent_health(self, data_item, forced=False):
         # TODO: stop triggering multiple checks over a single infohash by e.g. selection and click signals
-        if 'infohash' not in data_item:
+        if not dict_item_is_any_of(data_item, 'type', [REGULAR_TORRENT]):
             return
 
         infohash = data_item[u'infohash']
@@ -290,7 +290,7 @@ class ContextMenuMixin:
     def selection_can_be_added_to_channel(self):
         for row in self.table_view.selectionModel().selectedRows():
             data_item = row.model().data_items[row.row()]
-            if 'type' in data_item and data_item['type'] in (REGULAR_TORRENT, CHANNEL_TORRENT, COLLECTION_NODE):
+            if dict_item_is_any_of(data_item, 'type', [REGULAR_TORRENT, CHANNEL_TORRENT, COLLECTION_NODE]):
                 return True
         return False
 
