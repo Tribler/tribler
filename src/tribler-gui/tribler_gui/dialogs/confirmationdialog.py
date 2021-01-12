@@ -44,8 +44,8 @@ class ConfirmationDialog(DialogContainer):
 
         hspacer_right = QSpacerItem(1, 1, QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.dialog_widget.dialog_button_container.layout().addSpacerItem(hspacer_right)
-
-        connect(self.window().escape_pressed, self.close_dialog)
+        if hasattr(self.window(), 'escape_pressed'):
+            connect(self.window().escape_pressed, self.close_dialog)
         self.on_main_window_resize()
 
     @classmethod
