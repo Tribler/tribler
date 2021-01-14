@@ -5,6 +5,7 @@ import math
 import os
 import re
 import sys
+import traceback
 import types
 from datetime import datetime, timedelta
 from typing import Callable
@@ -372,15 +373,22 @@ def connect(signal: pyqtSignal, callback: Callable):
     for frame in list(inspect.stack())[1:]:
         source = types.TracebackType(source, frame.frame, frame.index or 0, frame.lineno)
 
-    # Step 2: Wrap the ``callback`` and inject our creation stack if an error occurs.
+    # Step 2: construct a lightweight StackSummary object which does not contain
+    # actual frames or locals, to avoid memory leak
+    try:
+        summary = traceback.StackSummary.extract(traceback.walk_tb(source), capture_locals=False)
+    finally:
+        del source
+
+    # Step 3: Wrap the ``callback`` and inject our creation stack if an error occurs.
     #         The BaseException instead of Exception is intentional: this makes sure interrupts of infinite loops show
     #         the source callback stack for debugging.
     def trackback_wrapper(*args, **kwargs):
         try:
             callback(*args, **kwargs)
         except BaseException as exc:
-            source_exc = CreationTraceback().with_traceback(source)
-            raise exc from source_exc
+            traceback_str = '\n' + ''.join(summary.format())
+            raise exc from CreationTraceback(traceback_str)
 
     try:
         setattr(callback, "tb_wrapper", trackback_wrapper)
