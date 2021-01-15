@@ -42,7 +42,9 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
 
         # Qt 5.2 does not have the setPlaceholderText property
         if hasattr(self.comments_text_edit, "setPlaceholderText"):
-            self.comments_text_edit.setPlaceholderText("Comments (optional)")
+            placeholder = "What were you doing before this crash happened? " \
+                          "This information will help Tribler developers to figure out and fix the issue quickly."
+            self.comments_text_edit.setPlaceholderText(placeholder)
 
         def add_item_to_info_widget(key, value):
             item = QTreeWidgetItem(self.env_variables_list)
