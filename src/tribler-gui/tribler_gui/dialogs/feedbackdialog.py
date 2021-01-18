@@ -30,6 +30,7 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
         start_time,
         sentry_event=None,
         error_reporting_requires_user_consent=True,
+        stop_application_on_close=True,
     ):
         QDialog.__init__(self, parent)
 
@@ -39,6 +40,7 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
         self.selected_item_index = 0
         self.tribler_version = tribler_version
         self.sentry_event = sentry_event
+        self.stop_application_on_close = stop_application_on_close
 
         # Qt 5.2 does not have the setPlaceholderText property
         if hasattr(self.comments_text_edit, "setPlaceholderText"):
@@ -98,6 +100,7 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
 
         self.send_automatically = FeedbackDialog.can_send_automatically(error_reporting_requires_user_consent)
         if self.send_automatically:
+            self.stop_application_on_close = True
             self.on_send_clicked(True)
 
     @staticmethod
@@ -123,13 +126,13 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
         menu.exec_(self.env_variables_list.mapToGlobal(pos))
 
     def on_cancel_clicked(self, checked):
-        QApplication.quit()
+        self.close()
 
     def on_report_sent(self, response):
         if not response:
             return
         if self.send_automatically:
-            QApplication.quit()
+            self.close()
 
         sent = response['sent']
 
@@ -142,7 +145,7 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
         box.setStyleSheet("QPushButton { color: white; }")
         box.exec_()
 
-        QApplication.quit()
+        self.close()
 
     def on_send_clicked(self, checked):
         self.send_report_button.setEnabled(False)
@@ -180,5 +183,6 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
         TriblerNetworkRequest(endpoint, self.on_report_sent, raw_data=tribler_urlencode(post_data), method='POST')
 
     def closeEvent(self, close_event):
-        QApplication.quit()
-        close_event.ignore()
+        if self.stop_application_on_close:
+            QApplication.quit()
+            close_event.ignore()
