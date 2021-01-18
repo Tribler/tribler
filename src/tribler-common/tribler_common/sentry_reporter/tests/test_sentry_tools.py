@@ -1,13 +1,13 @@
 from tribler_common.sentry_reporter.sentry_tools import (
     delete_item,
     distinct_by,
+    format_version,
     get_first_item,
     get_last_item,
     get_value,
     modify_value,
     parse_os_environ,
     parse_stacktrace,
-    skip_dev_version,
 )
 
 
@@ -104,7 +104,17 @@ def test_distinct():
 
 
 def test_skip_dev_version():
-    assert skip_dev_version(None) is None
-    assert skip_dev_version('') == ''
-    assert skip_dev_version('7.6.0') == '7.6.0'
-    assert skip_dev_version('7.6.0-GIT') is None
+    assert format_version(None) is None
+    assert format_version('') == ''
+    assert format_version('7.6.0') == '7.6.0'
+    assert format_version('7.6.0-GIT') is None
+
+    # version from deployment tester
+    assert format_version('7.7.1-17-gcb73f7baa') == '7.7.1'
+
+    # release candidate
+    assert format_version('7.7.1-RC1-10-abcd') == '7.7.1-RC1'
+
+    # experimental versions
+    assert format_version('7.7.1-exp1-1-abcd ') == '7.7.1-exp1'
+    assert format_version('7.7.1-someresearchtopic-7-abcd ') == '7.7.1-someresearchtopic'
