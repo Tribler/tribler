@@ -112,21 +112,23 @@ def distinct_by(list_of_dict, key):
     return result
 
 
-def skip_dev_version(version):
-    """
-    For the release version let's ignore all "developers" versions
-    to keep the meaning of the `latest` keyword:
-    See Also:https://docs.sentry.io/product/sentry-basics/search/
-    Args:
-        version: version string
-
-    Returns: version if it is not a dev version, and Null otherwise
-
-    """
+def format_version(version):
     if not version:
         return version
 
+    # For the release version let's ignore all "developers" versions
+    # to keep the meaning of the `latest` keyword:
+    # See Also:https://docs.sentry.io/product/sentry-basics/search/
     if 'GIT' in version:
         return None
 
-    return version
+    parts = version.split('-', maxsplit=2)
+    if len(parts) < 2:
+        return version
+
+    # if version has been produced by deployment tester, then
+    if parts[1].isdigit():
+        return parts[0]
+
+    # for all other cases keep <version>-<first_part>
+    return f"{parts[0]}-{parts[1]}"
