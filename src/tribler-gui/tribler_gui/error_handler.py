@@ -37,13 +37,13 @@ class ErrorHandler:
         self._logger.error(text)
 
         FeedbackDialog(
-            self.tribler_windows,
-            text,
-            self.tribler_windows.tribler_version,
-            self.tribler_windows.start_time,
-            SentryReporter.event_from_exception(info_error),
-            True,
-            self._tribler_stopped
+            parent=self.tribler_windows,
+            exception_text=text,
+            tribler_version=self.tribler_windows.tribler_version,
+            start_time=self.tribler_windows.start_time,
+            sentry_event=SentryReporter.event_from_exception(info_error),
+            error_reporting_requires_user_consent=True,
+            stop_application_on_close=self._tribler_stopped
         ).show()
 
     def core_error(self, text, core_event):
@@ -55,13 +55,13 @@ class ErrorHandler:
         self._stop_tribler(text)
 
         FeedbackDialog(
-            self.tribler_windows,
-            text,
-            self.tribler_windows.tribler_version,
-            self.tribler_windows.start_time,
-            core_event['sentry_event'],
-            core_event['error_reporting_requires_user_consent'],
-            self._tribler_stopped
+            parent=self.tribler_windows,
+            exception_text=text,
+            tribler_version=self.tribler_windows.tribler_version,
+            start_time=self.tribler_windows.start_time,
+            sentry_event=core_event['sentry_event'],
+            error_reporting_requires_user_consent=core_event['error_reporting_requires_user_consent'],
+            stop_application_on_close=self._tribler_stopped
         ).show()
 
     def _stop_tribler(self, text):
