@@ -96,6 +96,11 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         self.window().downloads_list.header().setSortIndicator(12, Qt.AscendingOrder)
         self.window().downloads_list.header().resizeSection(12, 146)
 
+        self.downloads_timeout_timer.setSingleShot(True)
+        self.downloads_timer.setSingleShot(True)
+        connect(self.downloads_timer.timeout, self.load_downloads)
+        connect(self.downloads_timeout_timer.timeout, self.on_downloads_request_timeout)
+
     def on_filter_text_changed(self, text):
         self.window().downloads_list.clearSelection()
         self.window().download_details_widget.hide()
@@ -111,14 +116,7 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         self.schedule_downloads_timer(now=True)
 
     def schedule_downloads_timer(self, now=False):
-        self.downloads_timer = QTimer()
-        self.downloads_timer.setSingleShot(True)
-        connect(self.downloads_timer.timeout, self.load_downloads)
         self.downloads_timer.start(0 if now else 1000)
-
-        self.downloads_timeout_timer = QTimer()
-        self.downloads_timeout_timer.setSingleShot(True)
-        connect(self.downloads_timeout_timer.timeout, self.on_downloads_request_timeout)
         self.downloads_timeout_timer.start(16000)
 
     def on_downloads_request_timeout(self):
