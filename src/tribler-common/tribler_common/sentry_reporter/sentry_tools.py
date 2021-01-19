@@ -56,7 +56,7 @@ def parse_stacktrace(stacktrace, delimiters=None):
         delimiters = ['--LONG TEXT--', '--CONTEXT--']
 
     if not stacktrace:
-        return None
+        return
 
     for part in re.split('|'.join(delimiters), stacktrace):
         yield [line for line in re.split(r'\\n|\n', part) if line]

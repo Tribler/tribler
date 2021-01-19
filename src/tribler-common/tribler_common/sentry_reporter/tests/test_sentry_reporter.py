@@ -51,7 +51,7 @@ def test_send():
             'reporter': {
                 '_stacktrace': [],
                 '_stacktrace_context': [],
-                '_stacktrace_long': [],
+                '_stacktrace_extra': [],
                 'comments': None,
                 OS_ENVIRON: {},
                 'sysinfo': {},
@@ -79,7 +79,7 @@ def test_send():
             'reporter': {
                 '_stacktrace': ['l1', 'l2'],
                 '_stacktrace_context': [],
-                '_stacktrace_long': ['l3', 'l4'],
+                '_stacktrace_extra': ['l3', 'l4'],
                 'comments': 'comment',
                 'os.environ': {},
                 'sysinfo': {},
@@ -104,7 +104,7 @@ def test_send():
             'reporter': {
                 '_stacktrace': [],
                 '_stacktrace_context': [],
-                '_stacktrace_long': [],
+                '_stacktrace_extra': [],
                 'comments': None,
                 OS_ENVIRON: {'KEY': 'VALUE', 'KEY1': 'VALUE1'},
                 'sysinfo': {'platform': ['darwin'], 'platform.details': ['details']},

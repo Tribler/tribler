@@ -198,7 +198,7 @@ class SentryReporter:
 
         stacktrace_parts = parse_stacktrace(get_value(post_data, 'stack'))
         reporter[STACKTRACE] = next(stacktrace_parts, [])
-        reporter[f'{STACKTRACE}_long'] = next(stacktrace_parts, [])
+        reporter[f'{STACKTRACE}_extra'] = next(stacktrace_parts, [])
         reporter[f'{STACKTRACE}_context'] = next(stacktrace_parts, [])
 
         reporter['comments'] = get_value(post_data, 'comments')
