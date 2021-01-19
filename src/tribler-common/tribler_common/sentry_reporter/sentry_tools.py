@@ -1,6 +1,7 @@
 """ This a collection of tools for SentryReporter and SentryScrubber aimed to
 simplify work with several data structures.
 """
+import re
 
 
 def parse_os_environ(array):
@@ -43,7 +44,7 @@ def parse_stacktrace(stacktrace):
     if not stacktrace:
         return []
 
-    return [line for line in stacktrace.split('\n') if line]
+    return [line for line in re.split(r'\\n|\n', stacktrace) if line]
 
 
 def get_first_item(items, default=None):

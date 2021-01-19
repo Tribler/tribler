@@ -67,7 +67,7 @@ def test_parse_stacktrace():
     assert parse_stacktrace('') == []
     assert parse_stacktrace('\n') == []
     assert parse_stacktrace('\n\n') == []
-    assert parse_stacktrace('some\n\nvalue') == ['some', 'value']
+    assert parse_stacktrace('line1\n\nline2\\nline3') == ['line1', 'line2', 'line3']
 
 
 def test_modify():
