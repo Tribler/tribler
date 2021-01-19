@@ -1,6 +1,7 @@
 from tribler_common.sentry_reporter.sentry_tools import (
     delete_item,
     distinct_by,
+    extract_dict,
     format_version,
     get_first_item,
     get_last_item,
@@ -131,3 +132,10 @@ def test_skip_dev_version():
     # experimental versions
     assert format_version('7.7.1-exp1-1-abcd ') == '7.7.1-exp1'
     assert format_version('7.7.1-someresearchtopic-7-abcd ') == '7.7.1-someresearchtopic'
+
+
+def test_extract_dict():
+    assert not extract_dict(None, None)
+
+    assert extract_dict({}, '') == {}
+    assert extract_dict({'k': 'v', 'k1': 'v1'}, r'\w$') == {'k': 'v'}

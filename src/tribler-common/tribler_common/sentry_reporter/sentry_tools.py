@@ -83,6 +83,14 @@ def get_value(d, key, default=None):
     return d.get(key, default) if d else default
 
 
+def extract_dict(d, regex_key_pattern):
+    if not d or not regex_key_pattern:
+        return dict()
+
+    matched_keys = [key for key in d if re.match(regex_key_pattern, key)]
+    return {key: d[key] for key in matched_keys}
+
+
 def modify_value(d, key, function):
     if not d or not key or not function:
         return d

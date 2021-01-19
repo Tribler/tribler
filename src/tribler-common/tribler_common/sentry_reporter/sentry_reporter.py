@@ -13,6 +13,7 @@ from sentry_sdk.integrations.threading import ThreadingIntegration
 
 from tribler_common.sentry_reporter.sentry_tools import (
     delete_item,
+    extract_dict,
     get_first_item,
     get_value,
     parse_os_environ,
@@ -169,6 +170,9 @@ class SentryReporter:
         if event is None:
             return event
 
+        post_data = post_data or dict()
+        sys_info = sys_info or dict()
+
         if CONTEXTS not in event:
             event[CONTEXTS] = {}
 
@@ -201,7 +205,9 @@ class SentryReporter:
 
         reporter[OS_ENVIRON] = parse_os_environ(get_value(sys_info, OS_ENVIRON))
         delete_item(sys_info, OS_ENVIRON)
-        reporter[SYSINFO] = sys_info
+
+        reporter['events'] = extract_dict(sys_info, r'^(event|request)')
+        reporter[SYSINFO] = {key: sys_info[key] for key in sys_info if key not in reporter['events']}
 
         with this_sentry_strategy(SentryStrategy.SEND_ALLOWED):
             sentry_sdk.capture_event(event)

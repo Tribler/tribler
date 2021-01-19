@@ -54,7 +54,8 @@ def test_send():
                 '_stacktrace_long': [],
                 'comments': None,
                 OS_ENVIRON: {},
-                'sysinfo': None,
+                'sysinfo': {},
+                'events': {},
             },
         },
         'tags': {'machine': None, 'os': None, 'platform': None, PLATFORM_DETAILS: None, 'version': None},
@@ -81,31 +82,22 @@ def test_send():
                 '_stacktrace_long': ['l3', 'l4'],
                 'comments': 'comment',
                 'os.environ': {},
-                'sysinfo': None,
+                'sysinfo': {},
+                'events': {},
             },
         },
         'tags': {'machine': 'x86_64', 'os': 'posix', 'platform': None, 'platform.details': None, 'version': '0.0.0'},
     }
 
-    # test sys_info
-    post_data = {"sysinfo": 'key\tvalue\nkey1\tvalue1\n'}
-
-    assert SentryReporter.send_event({}, post_data, None) == {
-        'contexts': {
-            'browser': {'name': 'Tribler', 'version': None},
-            'reporter': {
-                '_stacktrace': [],
-                '_stacktrace_context': [],
-                '_stacktrace_long': [],
-                'comments': None,
-                'os.environ': {},
-                'sysinfo': None,
-            },
-        },
-        'tags': {'machine': None, 'os': None, 'platform': None, 'platform.details': None, 'version': None},
+    sys_info = {
+        'platform': ['darwin'],
+        'platform.details': ['details'],
+        OS_ENVIRON: ['KEY:VALUE', 'KEY1:VALUE1'],
+        'event_1': [{'type': ''}],
+        'request_1': [{}],
+        'event_2': [],
+        'request_2': [],
     }
-
-    sys_info = {'platform': ['darwin'], 'platform.details': ['details'], OS_ENVIRON: ['KEY:VALUE', 'KEY1:VALUE1']}
     assert SentryReporter.send_event({}, None, sys_info) == {
         'contexts': {
             'browser': {'name': 'Tribler', 'version': None},
@@ -114,8 +106,9 @@ def test_send():
                 '_stacktrace_context': [],
                 '_stacktrace_long': [],
                 'comments': None,
-                'os.environ': {'KEY': 'VALUE', 'KEY1': 'VALUE1'},
-                'sysinfo': sys_info,
+                OS_ENVIRON: {'KEY': 'VALUE', 'KEY1': 'VALUE1'},
+                'sysinfo': {'platform': ['darwin'], 'platform.details': ['details']},
+                'events': {'event_1': [{'type': ''}], 'request_1': [{}], 'event_2': [], 'request_2': []},
             },
         },
         'tags': {'machine': None, 'os': None, 'platform': 'darwin', 'platform.details': 'details', 'version': None},
