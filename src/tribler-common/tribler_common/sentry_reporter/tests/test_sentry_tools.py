@@ -63,11 +63,24 @@ def test_parse_os_environ():
 
 
 def test_parse_stacktrace():
-    assert parse_stacktrace(None) == []
-    assert parse_stacktrace('') == []
-    assert parse_stacktrace('\n') == []
-    assert parse_stacktrace('\n\n') == []
-    assert parse_stacktrace('line1\n\nline2\\nline3') == ['line1', 'line2', 'line3']
+    assert list(parse_stacktrace(None)) == []
+    assert list(parse_stacktrace('')) == []
+    assert list(parse_stacktrace('\n')) == [[]]
+    assert list(parse_stacktrace('\n\n')) == [[]]
+    assert list(parse_stacktrace('line1\n\nline2\\nline3')) == [['line1', 'line2', 'line3']]
+
+    # split --LONG TEXT-- and --CONTEXT-- parts
+    assert list(parse_stacktrace('l1\nl2--LONG TEXT--l3\nl4--CONTEXT--l5\nl6')) == [
+        ['l1', 'l2'],
+        ['l3', 'l4'],
+        ['l5', 'l6'],
+    ]
+
+    # split custom parts
+    assert list(parse_stacktrace('l1\nl2customl3\nl4', delimiters=['custom'])) == [
+        ['l1', 'l2'],
+        ['l3', 'l4'],
+    ]
 
 
 def test_modify():

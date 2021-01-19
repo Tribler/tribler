@@ -48,7 +48,14 @@ def test_send():
     assert SentryReporter.send_event({}, None, None) == {
         'contexts': {
             'browser': {'name': 'Tribler', 'version': None},
-            'reporter': {'_stacktrace': [], 'comments': None, OS_ENVIRON: {}, 'sysinfo': None},
+            'reporter': {
+                '_stacktrace': [],
+                '_stacktrace_context': [],
+                '_stacktrace_long': [],
+                'comments': None,
+                OS_ENVIRON: {},
+                'sysinfo': None,
+            },
         },
         'tags': {'machine': None, 'os': None, 'platform': None, PLATFORM_DETAILS: None, 'version': None},
     }
@@ -61,14 +68,21 @@ def test_send():
         "timestamp": 42,
         "sysinfo": '',
         "comments": 'comment',
-        "stack": 'some\nstack',
+        "stack": 'l1\nl2--LONG TEXT--l3\nl4',
     }
 
     assert SentryReporter.send_event({'a': 'b'}, post_data, None) == {
         'a': 'b',
         'contexts': {
             'browser': {'name': 'Tribler', 'version': '0.0.0'},
-            'reporter': {'_stacktrace': ['some', 'stack'], 'comments': 'comment', 'os.environ': {}, 'sysinfo': None},
+            'reporter': {
+                '_stacktrace': ['l1', 'l2'],
+                '_stacktrace_context': [],
+                '_stacktrace_long': ['l3', 'l4'],
+                'comments': 'comment',
+                'os.environ': {},
+                'sysinfo': None,
+            },
         },
         'tags': {'machine': 'x86_64', 'os': 'posix', 'platform': None, 'platform.details': None, 'version': '0.0.0'},
     }
@@ -79,7 +93,14 @@ def test_send():
     assert SentryReporter.send_event({}, post_data, None) == {
         'contexts': {
             'browser': {'name': 'Tribler', 'version': None},
-            'reporter': {'_stacktrace': [], 'comments': None, 'os.environ': {}, 'sysinfo': None},
+            'reporter': {
+                '_stacktrace': [],
+                '_stacktrace_context': [],
+                '_stacktrace_long': [],
+                'comments': None,
+                'os.environ': {},
+                'sysinfo': None,
+            },
         },
         'tags': {'machine': None, 'os': None, 'platform': None, 'platform.details': None, 'version': None},
     }
@@ -90,6 +111,8 @@ def test_send():
             'browser': {'name': 'Tribler', 'version': None},
             'reporter': {
                 '_stacktrace': [],
+                '_stacktrace_context': [],
+                '_stacktrace_long': [],
                 'comments': None,
                 'os.environ': {'KEY': 'VALUE', 'KEY1': 'VALUE1'},
                 'sysinfo': sys_info,

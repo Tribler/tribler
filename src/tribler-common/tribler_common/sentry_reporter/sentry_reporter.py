@@ -192,7 +192,11 @@ class SentryReporter:
 
         context['browser'] = {'version': version, 'name': 'Tribler'}
 
-        reporter[STACKTRACE] = parse_stacktrace(get_value(post_data, 'stack'))
+        stacktrace_parts = parse_stacktrace(get_value(post_data, 'stack'))
+        reporter[STACKTRACE] = next(stacktrace_parts, [])
+        reporter[f'{STACKTRACE}_long'] = next(stacktrace_parts, [])
+        reporter[f'{STACKTRACE}_context'] = next(stacktrace_parts, [])
+
         reporter['comments'] = get_value(post_data, 'comments')
 
         reporter[OS_ENVIRON] = parse_os_environ(get_value(sys_info, OS_ENVIRON))
