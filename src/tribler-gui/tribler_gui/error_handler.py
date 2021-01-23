@@ -9,12 +9,12 @@ from tribler_gui.event_request_manager import CoreConnectTimeoutError
 
 
 class ErrorHandler:
-    def __init__(self, tribler_windows):
+    def __init__(self, tribler_window):
         logger_name = self.__class__.__name__
         self._logger = logging.getLogger(logger_name)
         SentryReporter.ignore_logger(logger_name)
 
-        self.tribler_windows = tribler_windows
+        self.tribler_window = tribler_window
 
         self._handled_exceptions = set()
         self._tribler_stopped = False
@@ -31,16 +31,16 @@ class ErrorHandler:
         text = "".join(traceback.format_exception(info_type, info_error, tb))
 
         if info_type is CoreConnectTimeoutError:
-            text = text + self.tribler_windows.core_manager.core_traceback
+            text = text + self.tribler_window.core_manager.core_traceback
             self._stop_tribler(text)
 
         self._logger.error(text)
 
         FeedbackDialog(
-            parent=self.tribler_windows,
+            parent=self.tribler_window,
             exception_text=text,
-            tribler_version=self.tribler_windows.tribler_version,
-            start_time=self.tribler_windows.start_time,
+            tribler_version=self.tribler_window.tribler_version,
+            start_time=self.tribler_window.start_time,
             sentry_event=SentryReporter.event_from_exception(info_error),
             error_reporting_requires_user_consent=True,
             stop_application_on_close=self._tribler_stopped
@@ -55,10 +55,10 @@ class ErrorHandler:
         self._stop_tribler(text)
 
         FeedbackDialog(
-            parent=self.tribler_windows,
+            parent=self.tribler_window,
             exception_text=text,
-            tribler_version=self.tribler_windows.tribler_version,
-            start_time=self.tribler_windows.start_time,
+            tribler_version=self.tribler_window.tribler_version,
+            start_time=self.tribler_window.start_time,
             sentry_event=core_event['sentry_event'],
             error_reporting_requires_user_consent=core_event['error_reporting_requires_user_consent'],
             stop_application_on_close=self._tribler_stopped
@@ -70,18 +70,18 @@ class ErrorHandler:
 
         self._tribler_stopped = True
 
-        self.tribler_windows.tribler_crashed.emit(text)
-        self.tribler_windows.delete_tray_icon()
+        self.tribler_window.tribler_crashed.emit(text)
+        self.tribler_window.delete_tray_icon()
 
         # Stop the download loop
-        self.tribler_windows.downloads_page.stop_loading_downloads()
+        self.tribler_window.downloads_page.stop_loading_downloads()
 
         # Add info about whether we are stopping Tribler or not
-        os.environ['TRIBLER_SHUTTING_DOWN'] = str(self.tribler_windows.core_manager.shutting_down)
-        if not self.tribler_windows.core_manager.shutting_down:
-            self.tribler_windows.core_manager.stop(stop_app_on_shutdown=False)
+        os.environ['TRIBLER_SHUTTING_DOWN'] = str(self.tribler_window.core_manager.shutting_down).upper()
+        if not self.tribler_window.core_manager.shutting_down:
+            self.tribler_window.core_manager.stop(stop_app_on_shutdown=False)
 
-        self.tribler_windows.setHidden(True)
+        self.tribler_window.setHidden(True)
 
-        if self.tribler_windows.debug_window:
-            self.tribler_windows.debug_window.setHidden(True)
+        if self.tribler_window.debug_window:
+            self.tribler_window.debug_window.setHidden(True)

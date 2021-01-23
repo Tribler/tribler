@@ -58,7 +58,7 @@ class CoreManager(QObject):
         if b'Traceback' in raw_output:
             self.core_traceback = decoded_output
             self.core_traceback_timestamp = int(round(time.time() * 1000))
-        self._logger.debug(decoded_output.strip())
+        print(decoded_output.strip())
 
     def on_core_finished(self, exit_code, exit_status):
         if self.shutting_down and self.should_stop_on_shutdown:
