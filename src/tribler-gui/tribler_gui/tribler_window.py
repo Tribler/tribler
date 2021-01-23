@@ -5,7 +5,6 @@ import os
 import signal
 import sys
 import time
-import traceback
 from base64 import b64encode
 from urllib.parse import unquote, urlparse
 
@@ -38,8 +37,6 @@ from PyQt5.QtWidgets import (
     QTreeWidget,
 )
 
-from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
-
 from tribler_core.modules.process_checker import ProcessChecker
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.version import version_id
@@ -64,10 +61,9 @@ from tribler_gui.defs import (
 from tribler_gui.dialogs.addtopersonalchanneldialog import AddToChannelDialog
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler_gui.dialogs.createtorrentdialog import CreateTorrentDialog
-from tribler_gui.dialogs.feedbackdialog import FeedbackDialog
 from tribler_gui.dialogs.new_channel_dialog import NewChannelDialog
 from tribler_gui.dialogs.startdownloaddialog import StartDownloadDialog
-from tribler_gui.event_request_manager import CoreConnectTimeoutError
+from tribler_gui.error_handler import ErrorHandler
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest, TriblerRequestManager, request_manager
 from tribler_gui.utilities import (
@@ -101,61 +97,6 @@ class TriblerWindow(QMainWindow):
     tribler_crashed = pyqtSignal(str)
     received_search_completions = pyqtSignal(object)
 
-    def on_exception(self, *exc_info):
-        if self.exception_handler_called:
-            # We only show one feedback dialog, even when there are two consecutive exceptions.
-            return
-
-        self.exception_handler_called = True
-        info_type, info_error, _ = exc_info
-        exception_text = "".join(traceback.format_exception(*exc_info))
-
-        sentry_event = None
-        error_reporting_requires_user_consent = True
-        for arg in info_error.args:
-            if not isinstance(arg, dict) or 'backend_event' not in arg:
-                continue
-
-            backend_event = arg['backend_event']
-            sentry_event = backend_event['sentry_event']
-            error_reporting_requires_user_consent = backend_event['error_reporting_requires_user_consent']
-
-        if not sentry_event:
-            # then the exception occured in GUI
-            sentry_event = SentryReporter.event_from_exception(info_error)
-
-        logging.error(exception_text)
-
-        self.tribler_crashed.emit(exception_text)
-        self.delete_tray_icon()
-
-        # Stop the download loop
-        self.downloads_page.stop_loading_downloads()
-
-        # Add info about whether we are stopping Tribler or not
-        os.environ['TRIBLER_SHUTTING_DOWN'] = str(self.core_manager.shutting_down)
-
-        if not self.core_manager.shutting_down:
-            self.core_manager.stop(stop_app_on_shutdown=False)
-
-        self.setHidden(True)
-
-        if self.debug_window:
-            self.debug_window.setHidden(True)
-
-        if info_type is CoreConnectTimeoutError:
-            exception_text = exception_text + self.core_manager.core_traceback
-
-        dialog = FeedbackDialog(
-            self,
-            exception_text,
-            self.tribler_version,
-            self.start_time,
-            sentry_event,
-            error_reporting_requires_user_consent,
-        )
-        dialog.show()
-
     def __init__(self, core_args=None, core_env=None, api_port=None, api_key=None):
         QMainWindow.__init__(self)
         self._logger = logging.getLogger(self.__class__.__name__)
@@ -177,7 +118,9 @@ class TriblerWindow(QMainWindow):
         # TODO: move version_id to tribler_common and get core version in the core crash message
         self.tribler_version = version_id
         self.debug_window = None
-        self.core_manager = CoreManager(api_port, api_key)
+
+        self.error_handler = ErrorHandler(self)
+        self.core_manager = CoreManager(api_port, api_key, self.error_handler)
         self.pending_requests = {}
         self.pending_uri_requests = []
         self.download_uri = None
@@ -191,12 +134,11 @@ class TriblerWindow(QMainWindow):
         self.last_search_query = None
         self.last_search_time = None
         self.start_time = time.time()
-        self.exception_handler_called = False
         self.token_refresh_timer = None
         self.shutdown_timer = None
         self.add_torrent_url_dialog_active = False
 
-        sys.excepthook = self.on_exception
+        sys.excepthook = self.error_handler.gui_error
 
         uic.loadUi(get_ui_file_path('mainwindow.ui'), self)
         TriblerRequestManager.window = self

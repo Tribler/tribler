@@ -1,3 +1,4 @@
+import logging
 import os
 import sys
 import time
@@ -28,8 +29,10 @@ class CoreManager(QObject):
     tribler_stopped = pyqtSignal()
     core_state_update = pyqtSignal(str)
 
-    def __init__(self, api_port, api_key):
+    def __init__(self, api_port, api_key, error_handler):
         QObject.__init__(self, None)
+
+        self._logger = logging.getLogger(self.__class__.__name__)
 
         self.base_path = get_base_path()
         if not is_frozen():
@@ -38,7 +41,7 @@ class CoreManager(QObject):
         self.core_process = None
         self.api_port = api_port
         self.api_key = api_key
-        self.events_manager = EventRequestManager(self.api_port, self.api_key)
+        self.events_manager = EventRequestManager(self.api_port, self.api_key, error_handler)
 
         self.shutting_down = False
         self.should_stop_on_shutdown = False

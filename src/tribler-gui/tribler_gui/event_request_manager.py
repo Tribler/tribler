@@ -39,7 +39,7 @@ class EventRequestManager(QNetworkAccessManager):
     change_loading_text = pyqtSignal(str)
     config_error_signal = pyqtSignal(str)
 
-    def __init__(self, api_port, api_key):
+    def __init__(self, api_port, api_key, error_handler):
         QNetworkAccessManager.__init__(self)
         url = QUrl("http://localhost:%d/events" % api_port)
         self.request = QNetworkRequest(url)
@@ -49,6 +49,7 @@ class EventRequestManager(QNetworkAccessManager):
         self.current_event_string = ""
         self.reply = None
         self.shutting_down = False
+        self.error_handler = error_handler
         self._logger = logging.getLogger('TriblerGUI')
         self.reactions_dict = {
             NTFY.CHANNEL_ENTITY_UPDATED.value: self.node_info_updated.emit,
@@ -121,13 +122,11 @@ class EventRequestManager(QNetworkAccessManager):
                 elif event_type == NTFY.TRIBLER_EXCEPTION.value:
                     text = json_dict["event"]["text"]
                     backend_event = {
-                        'backend_event': {
-                            'sentry_event': json_dict['sentry_event'],
-                            'error_reporting_requires_user_consent': json_dict['error_reporting_requires_user_consent'],
-                        }
+                        'sentry_event': json_dict['sentry_event'],
+                        'error_reporting_requires_user_consent': json_dict['error_reporting_requires_user_consent'],
                     }
 
-                    raise RuntimeError(text, backend_event)
+                    self.error_handler.core_error(text, backend_event)
             self.current_event_string = ""
 
     def on_finished(self):
