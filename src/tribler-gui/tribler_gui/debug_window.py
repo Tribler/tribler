@@ -44,10 +44,13 @@ class MemoryPlot(TimeSeriesPlot):
 
 
 class CPUPlot(TimeSeriesPlot):
-    def __init__(self, parent, **kargs):
-        series = [{'name': 'CPU', 'pen': (0, 153, 255), 'symbolBrush': (0, 153, 255), 'symbolPen': 'w'}]
-        super().__init__(parent, 'CPU Usage', series, **kargs)
-        self.setBackground('#FCF9F6')
+    def __init__(self, parent, process='Core', **kargs):
+        series = [{'name': f'CPU ({process})',
+                   'pen': COLOR_RGB_BLUE,
+                   'symbolBrush': COLOR_RGB_BLUE,
+                   'symbolPen': 'w'}]
+        super().__init__(parent, f'CPU Usage ({process})', series, **kargs)
+        self.setBackground(COLOR_WHITE_HEX)
         self.setLabel('left', 'CPU', units='%')
         self.setLimits(yMin=-10, yMax=200)
 
@@ -64,7 +67,8 @@ class DebugWindow(QMainWindow):
         self._logger = logging.getLogger(self.__class__.__name__)
         QMainWindow.__init__(self)
 
-        self.cpu_plot = None
+        self.core_cpu_plot = None
+        self.gui_cpu_plot = None
         self.initialized_cpu_plot = False
         self.cpu_plot_timer = None
 
@@ -652,9 +656,13 @@ class DebugWindow(QMainWindow):
 
     def load_cpu_tab(self):
         if not self.initialized_cpu_plot:
-            vlayout = self.window().cpu_plot_widget.layout()
-            self.cpu_plot = CPUPlot(self.window().cpu_plot_widget)
-            vlayout.addWidget(self.cpu_plot)
+            self.core_cpu_plot = CPUPlot(self.window().tab_system_cpu, process='Core')
+            self.gui_cpu_plot = CPUPlot(self.window().tab_system_cpu, process='GUI')
+
+            vlayout = self.window().system_cpu_layout.layout()
+            vlayout.addWidget(self.core_cpu_plot)
+            vlayout.addWidget(self.gui_cpu_plot)
+
             self.initialized_cpu_plot = True
 
         self.refresh_cpu_plot()
@@ -665,16 +673,25 @@ class DebugWindow(QMainWindow):
         self.cpu_plot_timer.start(5000)
 
     def refresh_cpu_plot(self):
+        # To update the core CPU graph, call Debug REST API to get the history
+        # and update the CPU graph after receiving the response.
         TriblerNetworkRequest("debug/cpu/history", self.on_core_cpu_history)
 
+        # GUI CPU graph can be simply updated using the data from GuiResourceMonitor object.
+        self._update_cpu_graph(self.gui_cpu_plot, self.resource_monitor.get_cpu_history_dict())
+
     def on_core_cpu_history(self, data):
-        if not data:
+        if not data or "cpu_history" not in data:
             return
 
-        self.cpu_plot.reset_plot()
-        for cpu_info in data["cpu_history"]:
-            self.cpu_plot.add_data(cpu_info["time"], [round(cpu_info["cpu"], 2)])
-        self.cpu_plot.render_plot()
+        self._update_cpu_graph(self.core_cpu_plot, data['cpu_history'])
+
+    def _update_cpu_graph(self, cpu_graph, history_data):
+        cpu_graph.reset_plot()
+        for cpu_info in history_data:
+            process_cpu = [round(cpu_info["cpu"], 2)]
+            cpu_graph.add_data(cpu_info["time"], process_cpu)
+        cpu_graph.render_plot()
 
     def load_memory_tab(self):
         if not self.initialized_memory_plot:
