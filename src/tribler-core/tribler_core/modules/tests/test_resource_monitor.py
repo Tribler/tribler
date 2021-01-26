@@ -1,8 +1,7 @@
 import os
 import random
-import sys
 import time
-from collections import namedtuple, deque
+from collections import deque, namedtuple
 from unittest.mock import Mock
 
 import pytest
@@ -33,7 +32,7 @@ def test_check_resources(resource_monitor):
     assert len(resource_monitor.disk_usage_data) == 1
 
     # Check resources multiple times, it should keep the history size constant
-    for x in range(resource_monitor.history_size * 2):
+    for _ in range(resource_monitor.history_size * 2):
         resource_monitor.check_resources()
 
     assert len(resource_monitor.cpu_data) == resource_monitor.history_size
