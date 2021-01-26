@@ -7,12 +7,13 @@ from PyQt5.QtCore import QTextStream, Qt, pyqtSignal
 from PyQt5.QtNetwork import QLocalServer, QLocalSocket
 from PyQt5.QtWidgets import QApplication
 
+from tribler_gui.dialogs.auto_disconnecting_mixin import QAutoDisconnectingMixin
 from tribler_gui.utilities import connect, disconnect
 
 LOGVARSTR = "%25s = '%s'"
 
 
-class QtSingleApplication(QApplication):
+class QtSingleApplication(QAutoDisconnectingMixin, QApplication):
     """
     This class makes sure that we can only start one Tribler application.
     When a user tries to open a second Tribler instance, the current active one will be brought to front.
@@ -57,7 +58,7 @@ class QtSingleApplication(QApplication):
             self._outSocket = None
             self._server = QLocalServer()
             self._server.listen(self._id)
-            connect(self._server.newConnection, self._on_new_connection)
+            self.connect_signal(self._server.newConnection, self._on_new_connection)
 
         logfunc(sys._getframe().f_code.co_name + '(): returning')
 
@@ -106,7 +107,7 @@ class QtSingleApplication(QApplication):
             return
         self._inStream = QTextStream(self._inSocket)
         self._inStream.setCodec('UTF-8')
-        connect(self._inSocket.readyRead, self._on_ready_read)
+        self.connect_signal(self._inSocket.readyRead, self._on_ready_read)
         if self._activate_on_message:
             self.activate_window()
 

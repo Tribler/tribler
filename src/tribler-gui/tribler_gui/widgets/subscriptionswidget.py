@@ -4,11 +4,12 @@ from PyQt5.QtWidgets import QLabel, QWidget
 
 from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
 
-from tribler_gui.utilities import connect, format_votes_rich_text, get_votes_rating_description
+from tribler_gui.dialogs.auto_disconnecting_mixin import QAutoDisconnectingMixin
+from tribler_gui.utilities import format_votes_rich_text, get_votes_rating_description
 from tribler_gui.widgets.tablecontentdelegate import DARWIN, WINDOWS
 
 
-class SubscriptionsWidget(AddBreadcrumbOnShowMixin, QWidget):
+class SubscriptionsWidget(AddBreadcrumbOnShowMixin, QAutoDisconnectingMixin, QWidget):
     """
     This widget shows a favorite button and the number of subscriptions that a specific channel has.
     """
@@ -30,9 +31,9 @@ class SubscriptionsWidget(AddBreadcrumbOnShowMixin, QWidget):
             self.channel_rating_label = self.findChild(QLabel, "channel_rating_label")
             self.channel_rating_label.setTextFormat(Qt.RichText)
 
-            connect(self.subscribe_button.clicked, self.on_subscribe_button_click)
+            self.connect_signal(self.subscribe_button.clicked, self.on_subscribe_button_click)
             self.subscribe_button.setToolTip('Click to subscribe/unsubscribe')
-            connect(self.subscribe_button.toggled, self._adjust_tooltip)
+            self.connect_signal(self.subscribe_button.toggled, self._adjust_tooltip)
             self.initialized = True
 
     def _adjust_tooltip(self, toggled):

@@ -3,18 +3,19 @@ from PyQt5.QtGui import QPainter
 from PyQt5.QtWidgets import QStyle, QStyleOption, QWidget
 
 from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
+from tribler_gui.dialogs.auto_disconnecting_mixin import QAutoDisconnectingMixin
 
 from tribler_gui.utilities import connect
 
 
-class DialogContainer(AddBreadcrumbOnShowMixin, QWidget):
+class DialogContainer(AddBreadcrumbOnShowMixin, QAutoDisconnectingMixin, QWidget):
     def __init__(self, parent):
         QWidget.__init__(self, parent)
         self.setStyleSheet("background-color: rgba(30, 30, 30, 0.75);")
 
         self.dialog_widget = QWidget(self)
         self.closed = False
-        connect(self.window().resize_event, self.on_main_window_resize)
+        self.connect_signal(self.window().resize_event, self.on_main_window_resize)
 
     def paintEvent(self, _):
         opt = QStyleOption()

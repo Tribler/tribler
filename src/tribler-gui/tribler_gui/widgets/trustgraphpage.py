@@ -21,11 +21,12 @@ from tribler_gui.defs import (
     TB,
     TRUST_GRAPH_PEER_LEGENDS,
 )
+from tribler_gui.dialogs.auto_disconnecting_mixin import QAutoDisconnectingMixin
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import connect, format_size, html_label
 
 
-class TrustGraph(pg.GraphItem):
+class TrustGraph(QAutoDisconnectingMixin, pg.GraphItem):
     def __init__(self):
         pg.GraphItem.__init__(self)
         self.data = None
@@ -35,7 +36,7 @@ class TrustGraph(pg.GraphItem):
         self.dragOffset = None
 
     def set_node_selection_listener(self, listener):
-        connect(self.scatter.sigClicked, listener)
+        self.connect_signal(self.scatter.sigClicked, listener)
 
     def setData(self, **data):
         self.data = data
@@ -80,7 +81,7 @@ class TrustGraph(pg.GraphItem):
         event.accept()
 
 
-class TrustGraphPage(AddBreadcrumbOnShowMixin, QWidget):
+class TrustGraphPage(AddBreadcrumbOnShowMixin, QAutoDisconnectingMixin, QWidget):
     def __init__(self):
         QWidget.__init__(self)
 
@@ -119,7 +120,7 @@ class TrustGraphPage(AddBreadcrumbOnShowMixin, QWidget):
         self.graph_view.addItem(pg.TextItem(text='YOU'))
         self.window().trust_graph_plot_widget.layout().addWidget(graph_layout)
 
-        connect(self.window().tr_control_refresh_btn.clicked, self.fetch_graph_data)
+        self.connect_signal(self.window().tr_control_refresh_btn.clicked, self.fetch_graph_data)
 
         self.window().tr_selected_node_pub_key.setHidden(True)
         self.window().tr_selected_node_stats.setHidden(True)

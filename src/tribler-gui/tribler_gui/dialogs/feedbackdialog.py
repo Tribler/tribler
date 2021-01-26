@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import QAction, QApplication, QDialog, QMessageBox, QTreeWi
 
 from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
+from tribler_gui.dialogs.auto_disconnecting_mixin import QAutoDisconnectingMixin
 
 from tribler_gui.event_request_manager import received_events
 from tribler_gui.tribler_action_menu import TriblerActionMenu
@@ -18,10 +19,10 @@ from tribler_gui.tribler_request_manager import (
     performed_requests as tribler_performed_requests,
     tribler_urlencode,
 )
-from tribler_gui.utilities import connect, get_ui_file_path
+from tribler_gui.utilities import get_ui_file_path
 
 
-class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
+class FeedbackDialog(AddBreadcrumbOnShowMixin, QAutoDisconnectingMixin, QDialog):
     def __init__(  # pylint: disable=too-many-arguments, too-many-locals
         self,
         parent,
@@ -53,8 +54,8 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
 
         self.error_text_edit.setPlainText(exception_text.rstrip())
 
-        connect(self.cancel_button.clicked, self.on_cancel_clicked)
-        connect(self.send_report_button.clicked, self.on_send_clicked)
+        self.connect_signal(self.cancel_button.clicked, self.on_cancel_clicked)
+        self.connect_signal(self.send_report_button.clicked, self.on_send_clicked)
 
         # Add machine information to the tree widget
         add_item_to_info_widget('os.getcwd', f'{os.getcwd()}')
@@ -94,7 +95,7 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
             events_ind += 1
 
         # Users can remove specific lines in the report
-        connect(self.env_variables_list.customContextMenuRequested, self.on_right_click_item)
+        self.connect_signal(self.env_variables_list.customContextMenuRequested, self.on_right_click_item)
 
         self.send_automatically = FeedbackDialog.can_send_automatically(error_reporting_requires_user_consent)
         if self.send_automatically:
@@ -118,7 +119,7 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
         menu = TriblerActionMenu(self)
 
         remove_action = QAction('Remove entry', self)
-        connect(remove_action.triggered, self.on_remove_entry)
+        self.connect_signal(remove_action.triggered, self.on_remove_entry)
         menu.addAction(remove_action)
         menu.exec_(self.env_variables_list.mapToGlobal(pos))
 

@@ -13,11 +13,12 @@ from tribler_core.modules.metadata_store.orm_bindings.channel_node import DIRTY_
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE
 
 from tribler_gui.defs import BUTTON_TYPE_CONFIRM, BUTTON_TYPE_NORMAL, ContentCategories
+from tribler_gui.dialogs.auto_disconnecting_mixin import QAutoDisconnectingMixin
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler_gui.dialogs.new_channel_dialog import NewChannelDialog
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.utilities import connect, disconnect, get_image_path, get_ui_file_path
+from tribler_gui.utilities import disconnect, get_image_path, get_ui_file_path
 from tribler_gui.widgets.tablecontentmodel import (
     ChannelContentModel,
     DiscoveredChannelsModel,
@@ -33,7 +34,7 @@ CATEGORY_SELECTOR_ITEMS = ("All", "Channels") + ContentCategories.long_names
 widget_form, widget_class = uic.loadUiType(get_ui_file_path('torrents_list.ui'))
 
 # pylint: disable=too-many-instance-attributes, too-many-public-methods
-class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class):
+class ChannelContentsWidget(AddBreadcrumbOnShowMixin, QAutoDisconnectingMixin, widget_form, widget_class):
     def __init__(self, parent=None):
         super(widget_class, self).__init__(parent=parent)
         # FIXME!!! This is a dumb workaround for a bug(?) in PyQT bindings in Python 3.7
@@ -115,10 +116,10 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         self.hide_xxx = hide_xxx
         self.initialized = True
         self.category_selector.addItems(CATEGORY_SELECTOR_ITEMS)
-        connect(self.category_selector.currentIndexChanged, self.on_category_selector_changed)
+        self.connect_signal(self.category_selector.currentIndexChanged, self.on_category_selector_changed)
         self.channel_back_button.setIcon(QIcon(get_image_path('page_back.png')))
-        connect(self.channel_back_button.clicked, self.go_back)
-        connect(self.channel_name_label.linkActivated, self.on_breadcrumb_clicked)
+        self.connect_signal(self.channel_back_button.clicked, self.go_back)
+        self.connect_signal(self.channel_name_label.linkActivated, self.on_breadcrumb_clicked)
         self.commit_control_bar.setHidden(True)
 
         self.controller = ContentTableViewController(
@@ -126,16 +127,16 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         )
 
         # To reload the preview
-        connect(self.channel_preview_button.clicked, self.preview_clicked)
+        self.connect_signal(self.channel_preview_button.clicked, self.preview_clicked)
 
         self.autocommit_enabled = autocommit_enabled
         if self.autocommit_enabled:
             self._enable_autocommit_timer()
 
         # New channel button
-        connect(self.new_channel_button.clicked, self.create_new_channel)
-        connect(self.content_table.channel_clicked, self.on_channel_clicked)
-        connect(self.edit_channel_commit_button.clicked, self.commit_channels)
+        self.connect_signal(self.new_channel_button.clicked, self.create_new_channel)
+        self.connect_signal(self.content_table.channel_clicked, self.on_channel_clicked)
+        self.connect_signal(self.edit_channel_commit_button.clicked, self.commit_channels)
 
         self.subscription_widget.initialize(self)
 
@@ -146,7 +147,7 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
 
         self.commit_timer = QTimer()
         self.commit_timer.setSingleShot(True)
-        connect(self.commit_timer.timeout, self.commit_channels)
+        self.connect_signal(self.commit_timer.timeout, self.commit_channels)
 
         # Commit the channel just in case there are uncommitted changes left since the last time (e.g. Tribler crashed)
         # The timer thing here is a workaround for race condition with the core startup
@@ -174,12 +175,12 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
             self.model.saved_scroll_state = self.controller.table_view.verticalScrollBar().value()
             self.controller.unset_model()  # Disconnect the selectionChanged signal
         self.channels_stack.append(model)
-        connect(self.model.info_changed, self.on_model_info_changed)
+        self.connect_signal(self.model.info_changed, self.on_model_info_changed)
 
-        connect(
+        self.connect_signal(
             self.window().core_manager.events_manager.received_remote_query_results, self.model.on_new_entry_received
         )
-        connect(self.window().core_manager.events_manager.node_info_updated, self.model.update_node_info)
+        self.connect_signal(self.window().core_manager.events_manager.node_info_updated, self.model.update_node_info)
 
         with self.freeze_controls():
             self.category_selector.setCurrentIndex(0)
@@ -264,7 +265,7 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
                     self.channel_torrents_filter_input.setText(self.model.text_filter)
                 self.controller.set_model(self.model)
 
-            connect(self.model.info_changed, self.on_model_info_changed)
+            self.connect_signal(self.model.info_changed, self.on_model_info_changed)
             self.update_labels()
 
     def on_breadcrumb_clicked(self, tgt_level):
@@ -414,9 +415,9 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         browse_dir_action = QAction('Add torrent(s) directory', self)
         add_url_action = QAction('Add URL/magnet links', self)
 
-        connect(browse_files_action.triggered, self.on_add_torrent_browse_file)
-        connect(browse_dir_action.triggered, self.on_add_torrents_browse_dir)
-        connect(add_url_action.triggered, self.on_add_torrent_from_url)
+        self.connect_signal(browse_files_action.triggered, self.on_add_torrent_browse_file)
+        self.connect_signal(browse_dir_action.triggered, self.on_add_torrents_browse_dir)
+        self.connect_signal(add_url_action.triggered, self.on_add_torrent_from_url)
 
         channel_options_menu = TriblerActionMenu(self)
         channel_options_menu.addAction(browse_files_action)
@@ -440,7 +441,7 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
             [('ADD', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
             checkbox_text="Include subdirectories (recursive mode)",
         )
-        connect(self.dialog.button_clicked, self.on_confirm_add_directory_dialog)
+        self.connect_signal(self.dialog.button_clicked, self.on_confirm_add_directory_dialog)
         self.dialog.show()
 
     def on_confirm_add_directory_dialog(self, action):
@@ -471,7 +472,7 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
             show_input=True,
         )
         self.dialog.dialog_widget.dialog_input.setPlaceholderText('URL/magnet link')
-        connect(self.dialog.button_clicked, self.on_torrent_from_url_dialog_done)
+        self.connect_signal(self.dialog.button_clicked, self.on_torrent_from_url_dialog_done)
         self.dialog.show()
 
     def on_torrent_from_url_dialog_done(self, action):

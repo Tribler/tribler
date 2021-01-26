@@ -2,11 +2,12 @@ from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import QWidget
 
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
+from tribler_gui.dialogs.auto_disconnecting_mixin import QAutoDisconnectingMixin
 
 from tribler_gui.utilities import connect
 
 
-class TabButtonPanel(QWidget):
+class TabButtonPanel(QWidget, QAutoDisconnectingMixin):
     """
     This class manages the tab button panels that can often be found above pages.
     """
@@ -20,7 +21,7 @@ class TabButtonPanel(QWidget):
     def initialize(self):
         for button in self.findChildren(QWidget):
             self.buttons.append(button)
-            connect(button.clicked_tab_button, self.on_tab_button_click)
+            self.connect_signal(button.clicked_tab_button, self.on_tab_button_click)
 
     def on_tab_button_click(self, clicked_button):
         SentryReporter.add_breadcrumb(message=f'{clicked_button.objectName()}.Click', category='UI', level='info')

@@ -62,6 +62,7 @@ from tribler_gui.defs import (
     SHUTDOWN_WAITING_PERIOD,
 )
 from tribler_gui.dialogs.addtopersonalchanneldialog import AddToChannelDialog
+from tribler_gui.dialogs.auto_disconnecting_mixin import QAutoDisconnectingMixin
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler_gui.dialogs.createtorrentdialog import CreateTorrentDialog
 from tribler_gui.dialogs.feedbackdialog import FeedbackDialog
@@ -71,7 +72,6 @@ from tribler_gui.event_request_manager import CoreConnectTimeoutError
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest, TriblerRequestManager, request_manager
 from tribler_gui.utilities import (
-    connect,
     disconnect,
     get_gui_setting,
     get_image_path,
@@ -95,7 +95,7 @@ class MagnetHandler(QObject):
         self.window.start_download_from_uri(url)
 
 
-class TriblerWindow(QMainWindow):
+class TriblerWindow(QAutoDisconnectingMixin, QMainWindow):
     resize_event = pyqtSignal()
     escape_pressed = pyqtSignal()
     tribler_crashed = pyqtSignal(str)
@@ -207,19 +207,19 @@ class TriblerWindow(QMainWindow):
         def on_state_update(new_state):
             self.loading_text_label.setText(new_state)
 
-        connect(self.core_manager.core_state_update, on_state_update)
+        self.connect_signal(self.core_manager.core_state_update, on_state_update)
 
         self.magnet_handler = MagnetHandler(self.window)
         QDesktopServices.setUrlHandler("magnet", self.magnet_handler, "on_open_magnet_link")
 
         self.debug_pane_shortcut = QShortcut(QKeySequence("Ctrl+d"), self)
-        connect(self.debug_pane_shortcut.activated, self.clicked_menu_button_debug)
+        self.connect_signal(self.debug_pane_shortcut.activated, self.clicked_menu_button_debug)
         self.import_torrent_shortcut = QShortcut(QKeySequence("Ctrl+o"), self)
-        connect(self.import_torrent_shortcut.activated, self.on_add_torrent_browse_file)
+        self.connect_signal(self.import_torrent_shortcut.activated, self.on_add_torrent_browse_file)
         self.add_torrent_url_shortcut = QShortcut(QKeySequence("Ctrl+i"), self)
-        connect(self.add_torrent_url_shortcut.activated, self.on_add_torrent_from_url)
+        self.connect_signal(self.add_torrent_url_shortcut.activated, self.on_add_torrent_from_url)
 
-        connect(self.top_search_bar.clicked, self.clicked_search_bar)
+        self.connect_signal(self.top_search_bar.clicked, self.clicked_search_bar)
 
         # Remove the focus rect on OS X
         for widget in self.findChildren(QLineEdit) + self.findChildren(QListWidget) + self.findChildren(QTreeWidget):
@@ -245,7 +245,7 @@ class TriblerWindow(QMainWindow):
                 channel_info={"name": "Discovered channels"}, endpoint_url="channels", hide_xxx=hide_xxx
             )
         )
-        connect(self.core_manager.events_manager.discovered_channel, self.discovered_page.model.on_new_entry_received)
+        self.connect_signal(self.core_manager.events_manager.discovered_channel, self.discovered_page.model.on_new_entry_received)
 
         self.trust_page.initialize_trust_page()
         self.trust_graph_page.initialize_trust_graph()
@@ -261,11 +261,11 @@ class TriblerWindow(QMainWindow):
             # Create the tray icon menu
             menu = self.create_add_torrent_menu()
             show_downloads_action = QAction('Show downloads', self)
-            connect(show_downloads_action.triggered, self.clicked_menu_button_downloads)
+            self.connect_signal(show_downloads_action.triggered, self.clicked_menu_button_downloads)
             token_balance_action = QAction('Show token balance', self)
-            connect(token_balance_action.triggered, lambda _: self.on_token_balance_click(None))
+            self.connect_signal(token_balance_action.triggered, lambda _: self.on_token_balance_click(None))
             quit_action = QAction('Quit Tribler', self)
-            connect(quit_action.triggered, self.close_tribler)
+            self.connect_signal(quit_action.triggered, self.close_tribler)
             menu.addSeparator()
             menu.addAction(show_downloads_action)
             menu.addAction(token_balance_action)
@@ -319,12 +319,12 @@ class TriblerWindow(QMainWindow):
         # Start Tribler
         self.core_manager.start(core_args=core_args, core_env=core_env)
 
-        connect(self.core_manager.events_manager.torrent_finished, self.on_torrent_finished)
-        connect(self.core_manager.events_manager.new_version_available, self.on_new_version_available)
-        connect(self.core_manager.events_manager.tribler_started, self.on_tribler_started)
-        connect(self.core_manager.events_manager.low_storage_signal, self.on_low_storage)
-        connect(self.core_manager.events_manager.tribler_shutdown_signal, self.on_tribler_shutdown_state_update)
-        connect(self.core_manager.events_manager.config_error_signal, self.on_config_error_signal)
+        self.connect_signal(self.core_manager.events_manager.torrent_finished, self.on_torrent_finished)
+        self.connect_signal(self.core_manager.events_manager.new_version_available, self.on_new_version_available)
+        self.connect_signal(self.core_manager.events_manager.tribler_started, self.on_tribler_started)
+        self.connect_signal(self.core_manager.events_manager.low_storage_signal, self.on_low_storage)
+        self.connect_signal(self.core_manager.events_manager.tribler_shutdown_signal, self.on_tribler_shutdown_state_update)
+        self.connect_signal(self.core_manager.events_manager.config_error_signal, self.on_config_error_signal)
 
         # Install signal handler for ctrl+c events
         def sigint_handler(*_):
@@ -349,15 +349,15 @@ class TriblerWindow(QMainWindow):
 
         self.channels_menu_list = self.findChild(ChannelsMenuListWidget, "channels_menu_list")
 
-        connect(self.channels_menu_list.itemClicked, self.open_channel_contents_page)
+        self.connect_signal(self.channels_menu_list.itemClicked, self.open_channel_contents_page)
 
         # The channels content page is only used to show subscribed channels, so we always show xxx
         # contents in it.
-        connect(
+        self.connect_signal(
             self.core_manager.events_manager.node_info_updated,
             lambda data: self.channels_menu_list.reload_if_necessary([data]),
         )
-        connect(self.left_menu_button_new_channel.clicked, self.create_new_channel)
+        self.connect_signal(self.left_menu_button_new_channel.clicked, self.create_new_channel)
 
     def create_new_channel(self, checked):
         # TODO: DRY this with tablecontentmodel, possibly using QActions
@@ -422,7 +422,7 @@ class TriblerWindow(QMainWindow):
             "sufficient free space available and restart Tribler again.",
             [("Close Tribler", BUTTON_TYPE_NORMAL)],
         )
-        connect(close_dialog.button_clicked, lambda _: close_tribler_gui())
+        self.connect_signal(close_dialog.button_clicked, lambda _: close_tribler_gui())
         close_dialog.show()
 
     def on_torrent_finished(self, torrent_info):
@@ -494,7 +494,7 @@ class TriblerWindow(QMainWindow):
         self.discovered_page.reset_view()
 
         if not self.gui_settings.value("first_discover", False) and not self.core_manager.use_existing_core:
-            connect(self.core_manager.events_manager.discovered_channel, self.stop_discovering)
+            self.connect_signal(self.core_manager.events_manager.discovered_channel, self.stop_discovering)
             self.window().gui_settings.setValue("first_discover", True)
             self.discovering_page.is_discovering = True
             self.stackedWidget.setCurrentIndex(PAGE_DISCOVERING)
@@ -628,7 +628,7 @@ class TriblerWindow(QMainWindow):
             "website to download the newest version?" % version,
             [('IGNORE', BUTTON_TYPE_NORMAL), ('LATER', BUTTON_TYPE_NORMAL), ('OK', BUTTON_TYPE_NORMAL)],
         )
-        connect(self.new_version_dialog.button_clicked, lambda action: self.on_new_version_dialog_done(version, action))
+        self.connect_signal(self.new_version_dialog.button_clicked, lambda action: self.on_new_version_dialog_done(version, action))
         self.new_version_dialog.show()
 
     def on_new_version_dialog_done(self, version, action):
@@ -682,7 +682,7 @@ class TriblerWindow(QMainWindow):
 
         # Set token balance refresh timer and load the token balance
         self.token_refresh_timer = QTimer()
-        connect(self.token_refresh_timer.timeout, self.load_token_balance)
+        self.connect_signal(self.token_refresh_timer.timeout, self.load_token_balance)
         self.token_refresh_timer.start(60000)
 
         self.load_token_balance()
@@ -777,10 +777,10 @@ class TriblerWindow(QMainWindow):
         add_url_action = QAction('Import torrent from magnet/URL', self)
         create_torrent_action = QAction('Create torrent from file(s)', self)
 
-        connect(browse_files_action.triggered, self.on_add_torrent_browse_file)
-        connect(browse_directory_action.triggered, self.on_add_torrent_browse_dir)
-        connect(add_url_action.triggered, self.on_add_torrent_from_url)
-        connect(create_torrent_action.triggered, self.on_create_torrent)
+        self.connect_signal(browse_files_action.triggered, self.on_add_torrent_browse_file)
+        self.connect_signal(browse_directory_action.triggered, self.on_add_torrent_browse_dir)
+        self.connect_signal(add_url_action.triggered, self.on_add_torrent_from_url)
+        self.connect_signal(create_torrent_action.triggered, self.on_create_torrent)
 
         menu.addAction(browse_files_action)
         menu.addAction(browse_directory_action)
@@ -795,7 +795,7 @@ class TriblerWindow(QMainWindow):
             self.create_dialog.close_dialog()
 
         self.create_dialog = CreateTorrentDialog(self)
-        connect(self.create_dialog.create_torrent_notification, self.on_create_torrent_updates)
+        self.connect_signal(self.create_dialog.create_torrent_notification, self.on_create_torrent_updates)
         self.create_dialog.show()
 
     def on_create_torrent_updates(self, update_dict):
@@ -835,7 +835,7 @@ class TriblerWindow(QMainWindow):
                 self.dialog = None
 
             self.dialog = StartDownloadDialog(self, self.download_uri)
-            connect(self.dialog.button_clicked, self.on_start_download_action)
+            self.connect_signal(self.dialog.button_clicked, self.on_start_download_action)
             self.dialog.show()
             self.start_download_dialog_active = True
         else:
@@ -896,7 +896,7 @@ class TriblerWindow(QMainWindow):
                 [('ADD', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
                 checkbox_text="Add torrents to My Channel",
             )
-            connect(self.dialog.button_clicked, self.on_confirm_add_directory_dialog)
+            self.connect_signal(self.dialog.button_clicked, self.on_confirm_add_directory_dialog)
             self.dialog.show()
 
     def on_confirm_add_directory_dialog(self, action):
@@ -942,7 +942,7 @@ class TriblerWindow(QMainWindow):
             )
             self.dialog.dialog_widget.dialog_input.setPlaceholderText('URL/magnet link')
             self.dialog.dialog_widget.dialog_input.setFocus()
-            connect(self.dialog.button_clicked, self.on_torrent_from_url_dialog_done)
+            self.connect_signal(self.dialog.button_clicked, self.on_torrent_from_url_dialog_done)
             self.dialog.show()
             self.add_torrent_url_dialog_active = True
 
@@ -1042,7 +1042,7 @@ class TriblerWindow(QMainWindow):
             self.debug_window.setHidden(True)
 
         self.shutdown_timer = QTimer()
-        connect(self.shutdown_timer.timeout, show_force_shutdown)
+        self.connect_signal(self.shutdown_timer.timeout, show_force_shutdown)
         self.shutdown_timer.start(SHUTDOWN_WAITING_PERIOD)
 
         self.gui_settings.setValue("pos", self.pos())
@@ -1103,7 +1103,7 @@ class TriblerWindow(QMainWindow):
             "You will lose your personal channel and subscribed channels if you ABORT now! </b> </p> <br>",
             [('ABORT', BUTTON_TYPE_CONFIRM), ('CONTINUE', BUTTON_TYPE_NORMAL)],
         )
-        connect(self.dialog.button_clicked, self.on_skip_conversion_dialog)
+        self.connect_signal(self.dialog.button_clicked, self.on_skip_conversion_dialog)
         self.dialog.show()
 
     def on_channel_subscribe(self, channel_info):
@@ -1139,7 +1139,7 @@ class TriblerWindow(QMainWindow):
             + "<br/>and remove its contents?",
             [('UNSUBSCRIBE', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
         )
-        connect(self.dialog.button_clicked, _on_unsubscribe_action)
+        self.connect_signal(self.dialog.button_clicked, _on_unsubscribe_action)
         self.dialog.show()
 
     def on_channel_delete(self, channel_info):
@@ -1166,7 +1166,7 @@ class TriblerWindow(QMainWindow):
             + "<br/>and all its contents?",
             [('DELETE', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
         )
-        connect(self.dialog.button_clicked, _on_delete_action)
+        self.connect_signal(self.dialog.button_clicked, _on_delete_action)
         self.dialog.show()
 
     def on_skip_conversion_dialog(self, action):

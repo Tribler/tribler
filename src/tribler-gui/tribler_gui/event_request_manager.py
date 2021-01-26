@@ -8,7 +8,7 @@ from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
 from tribler_common.simpledefs import NTFY
 
 import tribler_core.utilities.json_util as json
-
+from tribler_gui.dialogs.auto_disconnecting_mixin import QAutoDisconnectingMixin
 from tribler_gui.utilities import connect
 
 received_events = []
@@ -21,7 +21,7 @@ class CoreConnectTimeoutError(RuntimeError):
     pass
 
 
-class EventRequestManager(QNetworkAccessManager):
+class EventRequestManager(QAutoDisconnectingMixin, QNetworkAccessManager):
     """
     The EventRequestManager class handles the events connection over which important events in Tribler are pushed.
     """
@@ -91,12 +91,12 @@ class EventRequestManager(QNetworkAccessManager):
             # Reschedule an attempt
             self.connect_timer = QTimer()
             self.connect_timer.setSingleShot(True)
-            connect(self.connect_timer.timeout, self.connect)
+            self.connect_signal(self.connect_timer.timeout, self.connect)
             self.connect_timer.start(500)
 
     def on_read_data(self):
         if self.receivers(self.finished) == 0:
-            connect(self.finished, lambda reply: self.on_finished())
+            self.connect_signal(self.finished, lambda reply: self.on_finished())
         self.connect_timer.stop()
         data = self.reply.readAll()
         self.current_event_string += bytes(data).decode('utf8')
@@ -141,12 +141,12 @@ class EventRequestManager(QNetworkAccessManager):
 
         self.connect_timer = QTimer()
         self.connect_timer.setSingleShot(True)
-        self.connect_timer.timeout.connect(self.connect)
+        connect(self.connect_timer.timeout, self.connect)
         self.connect_timer.start(500)
 
     def connect(self, reschedule_on_err=True):
         self._logger.info("Will connect to events endpoint")
         self.reply = self.get(self.request)
 
-        connect(self.reply.readyRead, self.on_read_data)
-        connect(self.reply.error, lambda error: self.on_error(error, reschedule_on_err=reschedule_on_err))
+        self.connect_signal(self.reply.readyRead, self.on_read_data)
+        self.connect_signal(self.reply.error, lambda error: self.on_error(error, reschedule_on_err=reschedule_on_err))

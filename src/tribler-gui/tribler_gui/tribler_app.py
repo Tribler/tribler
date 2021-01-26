@@ -24,7 +24,7 @@ class TriblerApplication(QtSingleApplication):
     def __init__(self, app_name, args):
         QtSingleApplication.__init__(self, app_name, args)
         self.code_executor = None
-        connect(self.messageReceived, self.on_app_message)
+        self.connect_signal(self.messageReceived, self.on_app_message)
         self.translator = get_default_system_translator()
 
     def on_app_message(self, msg):
@@ -48,7 +48,7 @@ class TriblerApplication(QtSingleApplication):
             variables.update(locals())
             variables['window'] = self.activation_window()
             self.code_executor = CodeExecutor(5500, shell_variables=variables)
-            connect(self.activation_window().tribler_crashed, self.code_executor.on_crash)
+            self.connect_signal(self.activation_window().tribler_crashed, self.code_executor.on_crash)
 
         if '--testnet' in sys.argv[1:]:
             os.environ['TESTNET'] = "YES"

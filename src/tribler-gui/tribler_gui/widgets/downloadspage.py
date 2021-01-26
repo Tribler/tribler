@@ -26,6 +26,7 @@ from tribler_gui.defs import (
     DOWNLOADS_FILTER_DOWNLOADING,
     DOWNLOADS_FILTER_INACTIVE,
 )
+from tribler_gui.dialogs.auto_disconnecting_mixin import QAutoDisconnectingMixin
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import TriblerFileDownloadRequest, TriblerNetworkRequest
@@ -43,7 +44,7 @@ button_name2filter = {
 }
 
 # pylint: disable=too-many-instance-attributes, too-many-public-methods
-class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
+class DownloadsPage(AddBreadcrumbOnShowMixin, QAutoDisconnectingMixin, QWidget):
     """
     This class is responsible for managing all items on the downloads page.
     The downloads page shows all downloads and specific details about a download.
@@ -78,28 +79,28 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
 
     def initialize_downloads_page(self):
         self.window().downloads_tab.initialize()
-        connect(self.window().downloads_tab.clicked_tab_button, self.on_downloads_tab_button_clicked)
+        self.connect_signal(self.window().downloads_tab.clicked_tab_button, self.on_downloads_tab_button_clicked)
 
-        connect(self.window().start_download_button.clicked, self.on_start_download_clicked)
-        connect(self.window().stop_download_button.clicked, self.on_stop_download_clicked)
-        connect(self.window().remove_download_button.clicked, self.on_remove_download_clicked)
+        self.connect_signal(self.window().start_download_button.clicked, self.on_start_download_clicked)
+        self.connect_signal(self.window().stop_download_button.clicked, self.on_stop_download_clicked)
+        self.connect_signal(self.window().remove_download_button.clicked, self.on_remove_download_clicked)
 
-        connect(self.window().downloads_list.itemSelectionChanged, self.on_download_item_clicked)
+        self.connect_signal(self.window().downloads_list.itemSelectionChanged, self.on_download_item_clicked)
 
-        connect(self.window().downloads_list.customContextMenuRequested, self.on_right_click_item)
+        self.connect_signal(self.window().downloads_list.customContextMenuRequested, self.on_right_click_item)
 
         self.window().download_details_widget.initialize_details_widget()
         self.window().download_details_widget.hide()
 
-        connect(self.window().downloads_filter_input.textChanged, self.on_filter_text_changed)
+        self.connect_signal(self.window().downloads_filter_input.textChanged, self.on_filter_text_changed)
 
         self.window().downloads_list.header().setSortIndicator(12, Qt.AscendingOrder)
         self.window().downloads_list.header().resizeSection(12, 146)
 
         self.downloads_timeout_timer.setSingleShot(True)
         self.downloads_timer.setSingleShot(True)
-        connect(self.downloads_timer.timeout, self.load_downloads)
-        connect(self.downloads_timeout_timer.timeout, self.on_downloads_request_timeout)
+        self.connect_signal(self.downloads_timer.timeout, self.load_downloads)
+        self.connect_signal(self.downloads_timeout_timer.timeout, self.on_downloads_request_timeout)
 
     def on_filter_text_changed(self, text):
         self.window().downloads_list.clearSelection()
@@ -323,7 +324,7 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
                 ('cancel', BUTTON_TYPE_CONFIRM),
             ],
         )
-        connect(self.dialog.button_clicked, self.on_remove_download_dialog)
+        self.connect_signal(self.dialog.button_clicked, self.on_remove_download_dialog)
         self.dialog.show()
 
     def on_remove_download_dialog(self, action):
@@ -424,7 +425,7 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
             self.dialog.dialog_widget.dialog_input.setPlaceholderText('Torrent file name')
             self.dialog.dialog_widget.dialog_input.setText(f"{torrent_name}.torrent")
             self.dialog.dialog_widget.dialog_input.setFocus()
-            connect(self.dialog.button_clicked, self.on_export_download_dialog_done)
+            self.connect_signal(self.dialog.button_clicked, self.on_export_download_dialog_done)
             self.dialog.show()
 
     def on_export_download_dialog_done(self, action):
@@ -492,22 +493,22 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         two_hop_anon_action = QAction('Two hops', self)
         three_hop_anon_action = QAction('Three hops', self)
 
-        connect(start_action.triggered, self.on_start_download_clicked)
+        self.connect_signal(start_action.triggered, self.on_start_download_clicked)
         start_action.setEnabled(DownloadsPage.start_download_enabled(self.selected_items))
-        connect(stop_action.triggered, self.on_stop_download_clicked)
+        self.connect_signal(stop_action.triggered, self.on_stop_download_clicked)
         stop_action.setEnabled(DownloadsPage.stop_download_enabled(self.selected_items))
-        connect(add_to_channel_action.triggered, self.on_add_to_channel)
-        connect(remove_download_action.triggered, self.on_remove_download_clicked)
-        connect(force_recheck_action.triggered, self.on_force_recheck_download)
+        self.connect_signal(add_to_channel_action.triggered, self.on_add_to_channel)
+        self.connect_signal(remove_download_action.triggered, self.on_remove_download_clicked)
+        self.connect_signal(force_recheck_action.triggered, self.on_force_recheck_download)
         force_recheck_action.setEnabled(DownloadsPage.force_recheck_download_enabled(self.selected_items))
-        connect(export_download_action.triggered, self.on_export_download)
-        connect(explore_files_action.triggered, self.on_explore_files)
-        connect(move_files_action.triggered, self.on_move_files)
+        self.connect_signal(export_download_action.triggered, self.on_export_download)
+        self.connect_signal(explore_files_action.triggered, self.on_explore_files)
+        self.connect_signal(move_files_action.triggered, self.on_move_files)
 
-        connect(no_anon_action.triggered, lambda _: self.change_anonymity(0))
-        connect(one_hop_anon_action.triggered, lambda _: self.change_anonymity(1))
-        connect(two_hop_anon_action.triggered, lambda _: self.change_anonymity(2))
-        connect(three_hop_anon_action.triggered, lambda _: self.change_anonymity(3))
+        self.connect_signal(no_anon_action.triggered, lambda _: self.change_anonymity(0))
+        self.connect_signal(one_hop_anon_action.triggered, lambda _: self.change_anonymity(1))
+        self.connect_signal(two_hop_anon_action.triggered, lambda _: self.change_anonymity(2))
+        self.connect_signal(three_hop_anon_action.triggered, lambda _: self.change_anonymity(3))
 
         menu.addAction(start_action)
         menu.addAction(stop_action)

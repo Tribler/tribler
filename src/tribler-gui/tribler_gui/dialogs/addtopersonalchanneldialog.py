@@ -9,7 +9,7 @@ from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, C
 from tribler_gui.dialogs.dialogcontainer import DialogContainer
 from tribler_gui.dialogs.new_channel_dialog import NewChannelDialog
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.utilities import connect, get_ui_file_path
+from tribler_gui.utilities import get_ui_file_path
 
 
 class DownloadFileTreeWidgetItem(QTreeWidgetItem):
@@ -29,10 +29,10 @@ class AddToChannelDialog(DialogContainer):
     def __init__(self, parent):
         DialogContainer.__init__(self, parent)
         uic.loadUi(get_ui_file_path('addtochanneldialog.ui'), self.dialog_widget)
-        connect(self.dialog_widget.btn_cancel.clicked, self.close_dialog)
-        connect(self.dialog_widget.btn_confirm.clicked, self.on_confirm_clicked)
-        connect(self.dialog_widget.btn_new_channel.clicked, self.on_create_new_channel_clicked)
-        connect(self.dialog_widget.btn_new_folder.clicked, self.on_create_new_folder_clicked)
+        self.connect_signal(self.dialog_widget.btn_cancel.clicked, self.close_dialog)
+        self.connect_signal(self.dialog_widget.btn_confirm.clicked, self.on_confirm_clicked)
+        self.connect_signal(self.dialog_widget.btn_new_channel.clicked, self.on_create_new_channel_clicked)
+        self.connect_signal(self.dialog_widget.btn_new_folder.clicked, self.on_create_new_folder_clicked)
 
         self.confirm_clicked_callback = None
 
@@ -40,7 +40,7 @@ class AddToChannelDialog(DialogContainer):
 
         self.channels_tree = {}
         self.id2wt_mapping = {0: self.dialog_widget.channels_tree_wt}
-        connect(self.dialog_widget.channels_tree_wt.itemExpanded, self.on_item_expanded)
+        self.connect_signal(self.dialog_widget.channels_tree_wt.itemExpanded, self.on_item_expanded)
 
         self.dialog_widget.channels_tree_wt.setHeaderLabels(['Name'])
         self.on_main_window_resize()

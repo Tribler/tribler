@@ -5,6 +5,7 @@ from PyQt5.QtWidgets import QWidget
 from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
 
 from tribler_gui.defs import GB, TB
+from tribler_gui.dialogs.auto_disconnecting_mixin import QAutoDisconnectingMixin
 from tribler_gui.dialogs.trustexplanationdialog import TrustExplanationDialog
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import connect
@@ -21,7 +22,7 @@ class TrustSeriesPlot(TimeSeriesPlot):
         self.setLimits(yMin=-GB, yMax=TB)
 
 
-class TrustPage(AddBreadcrumbOnShowMixin, QWidget):
+class TrustPage(AddBreadcrumbOnShowMixin, QAutoDisconnectingMixin, QWidget):
     """
     This page shows various trust statistics.
     """
@@ -39,7 +40,7 @@ class TrustPage(AddBreadcrumbOnShowMixin, QWidget):
             self.trust_plot = TrustSeriesPlot(self.window().plot_widget)
             vlayout.addWidget(self.trust_plot)
 
-        connect(self.window().trust_explain_button.clicked, self.on_info_button_clicked)
+        self.connect_signal(self.window().trust_explain_button.clicked, self.on_info_button_clicked)
 
     def on_info_button_clicked(self, checked):
         self.dialog = TrustExplanationDialog(self.window())

@@ -1,6 +1,5 @@
 from tribler_gui.defs import BUTTON_TYPE_CONFIRM, BUTTON_TYPE_NORMAL
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
-from tribler_gui.utilities import connect
 
 
 class NewChannelDialog(ConfirmationDialog):
@@ -20,7 +19,7 @@ class NewChannelDialog(ConfirmationDialog):
         self.create_channel_callback = create_channel_callback
         self.dialog_widget.dialog_input.setPlaceholderText('Channel name')
         self.dialog_widget.dialog_input.setFocus()
-        connect(self.button_clicked, self.on_channel_name_dialog_done)
+        self.connect_signal(self.button_clicked, self.on_channel_name_dialog_done)
         self.show()
 
     def on_channel_name_dialog_done(self, action):

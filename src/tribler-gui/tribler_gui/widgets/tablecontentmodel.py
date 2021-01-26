@@ -9,6 +9,7 @@ from tribler_core.modules.metadata_store.orm_bindings.channel_node import NEW
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE
 
 from tribler_gui.defs import ACTION_BUTTONS, BITTORRENT_BIRTHDAY, COMMIT_STATUS_TODELETE, HEALTH_CHECKING
+from tribler_gui.dialogs.auto_disconnecting_mixin import QAutoDisconnectingMixin
 from tribler_gui.i18n import tr
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import connect, format_size, format_votes, get_votes_rating_description, pretty_date
@@ -20,7 +21,7 @@ def get_item_uid(item):
     return item['infohash']
 
 
-class RemoteTableModel(QAbstractTableModel):
+class RemoteTableModel(QAutoDisconnectingMixin, QAbstractTableModel):
     info_changed = pyqtSignal(list)
     """
     The base model for the tables in the Tribler GUI.
@@ -46,7 +47,7 @@ class RemoteTableModel(QAbstractTableModel):
         self.saved_scroll_state = None
         self.qt_object_destroyed = False
 
-        connect(self.destroyed, self.on_destroy)
+        self.connect_signal(self.destroyed, self.on_destroy)
         # Every remote query must be attributed to its specific model to avoid updating wrong models
         # on receiving a result. We achieve this by maintaining a set of in-flight remote queries.
         # Note that this only applies to results that are returned through the events notification

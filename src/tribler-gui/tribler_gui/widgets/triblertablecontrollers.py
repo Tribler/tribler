@@ -15,6 +15,7 @@ from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, C
 from tribler_core.utilities.json_util import dumps
 
 from tribler_gui.defs import HEALTH_CHECKING, HEALTH_UNCHECKED
+from tribler_gui.dialogs.auto_disconnecting_mixin import QAutoDisconnectingMixin
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import connect, dict_item_is_any_of, get_health
@@ -35,7 +36,7 @@ def to_fts_query(text):
     return " AND ".join(query_list)
 
 
-class TriblerTableViewController(QObject):
+class TriblerTableViewController(QAutoDisconnectingMixin, QObject):
     """
     Base controller for a table view that displays some data.
     """
@@ -45,17 +46,17 @@ class TriblerTableViewController(QObject):
 
         self.model = None
         self.table_view = table_view
-        connect(self.table_view.verticalScrollBar().valueChanged, self._on_list_scroll)
+        self.connect_signal(self.table_view.verticalScrollBar().valueChanged, self._on_list_scroll)
 
         # FIXME: The M-V-C stuff is a complete mess. It should be refactored in a more structured way.
-        connect(self.table_view.delegate.subscribe_control.clicked, self.table_view.on_subscribe_control_clicked)
-        connect(self.table_view.delegate.download_button.clicked, self.table_view.start_download_from_index)
-        connect(
+        self.connect_signal(self.table_view.delegate.subscribe_control.clicked, self.table_view.on_subscribe_control_clicked)
+        self.connect_signal(self.table_view.delegate.download_button.clicked, self.table_view.start_download_from_index)
+        self.connect_signal(
             self.table_view.delegate.health_status_widget.clicked,
             lambda index: self.check_torrent_health(index.model().data_items[index.row()], forced=True),
         )
-        connect(self.table_view.torrent_clicked, self.check_torrent_health)
-        connect(self.table_view.torrent_doubleclicked, self.table_view.start_download_from_dataitem)
+        self.connect_signal(self.table_view.torrent_clicked, self.check_torrent_health)
+        self.connect_signal(self.table_view.torrent_doubleclicked, self.table_view.start_download_from_dataitem)
 
     def set_model(self, model):
         self.model = model
@@ -99,11 +100,11 @@ class TableSelectionMixin:
 
         # When the user stops scrolling and selection settles on a row,
         # trigger the health check.
-        connect(self.healthcheck_cooldown.timeout, lambda: self._on_selection_changed(None, None))
+        self.connect_signal(self.healthcheck_cooldown.timeout, lambda: self._on_selection_changed(None, None))
 
     def set_model(self, model):
         super().set_model(model)
-        connect(self.table_view.selectionModel().selectionChanged, self._on_selection_changed)
+        self.connect_signal(self.table_view.selectionModel().selectionChanged, self._on_selection_changed)
 
     def unset_model(self):
         if self.table_view.model:
@@ -205,7 +206,7 @@ class ContextMenuMixin:
     def enable_context_menu(self, widget):
         self.table_view = widget
         self.table_view.setContextMenuPolicy(Qt.CustomContextMenu)
-        connect(self.table_view.customContextMenuRequested, self._show_context_menu)
+        self.connect_signal(self.table_view.customContextMenuRequested, self._show_context_menu)
 
     def _trigger_name_editor(self, index):
         model = index.model()
@@ -288,7 +289,7 @@ class ContextMenuMixin:
 
     def add_menu_item(self, menu, name, item_index, callback):
         action = QAction(name, self.table_view)
-        connect(action.triggered, lambda _: callback(item_index))
+        self.connect_signal(action.triggered, lambda _: callback(item_index))
         menu.addAction(action)
 
     def selection_can_be_added_to_channel(self):
@@ -304,7 +305,7 @@ class ContentTableViewController(TableSelectionMixin, ContextMenuMixin, HealthCh
         super().__init__(*args, **kwargs)
         self.filter_input = filter_input
         if self.filter_input:
-            connect(self.filter_input.textChanged, self._on_filter_input_change)
+            self.connect_signal(self.filter_input.textChanged, self._on_filter_input_change)
 
     def unset_model(self):
         self.model = None

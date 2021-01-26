@@ -15,6 +15,7 @@ from tribler_gui.defs import (
     PAGE_SETTINGS_GENERAL,
     PAGE_SETTINGS_SEEDING,
 )
+from tribler_gui.dialogs.auto_disconnecting_mixin import QAutoDisconnectingMixin
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest, TriblerRequestManager
 from tribler_gui.utilities import (
@@ -27,7 +28,7 @@ from tribler_gui.utilities import (
 )
 
 
-class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
+class SettingsPage(AddBreadcrumbOnShowMixin, QAutoDisconnectingMixin, QWidget):
     """
     This class is responsible for displaying and adjusting the settings present in Tribler.
     """
@@ -39,18 +40,18 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
 
     def initialize_settings_page(self):
         self.window().settings_tab.initialize()
-        connect(self.window().settings_tab.clicked_tab_button, self.clicked_tab_button)
-        connect(self.window().settings_save_button.clicked, self.save_settings)
+        self.connect_signal(self.window().settings_tab.clicked_tab_button, self.clicked_tab_button)
+        self.connect_signal(self.window().settings_save_button.clicked, self.save_settings)
 
-        connect(self.window().download_location_chooser_button.clicked, self.on_choose_download_dir_clicked)
-        connect(self.window().watch_folder_chooser_button.clicked, self.on_choose_watch_dir_clicked)
+        self.connect_signal(self.window().download_location_chooser_button.clicked, self.on_choose_download_dir_clicked)
+        self.connect_signal(self.window().watch_folder_chooser_button.clicked, self.on_choose_watch_dir_clicked)
 
-        connect(self.window().channel_autocommit_checkbox.stateChanged, self.on_channel_autocommit_checkbox_changed)
-        connect(self.window().family_filter_checkbox.stateChanged, self.on_family_filter_checkbox_changed)
-        connect(self.window().developer_mode_enabled_checkbox.stateChanged, self.on_developer_mode_checkbox_changed)
-        connect(self.window().use_monochrome_icon_checkbox.stateChanged, self.on_use_monochrome_icon_checkbox_changed)
-        connect(self.window().download_settings_anon_checkbox.stateChanged, self.on_anon_download_state_changed)
-        connect(self.window().log_location_chooser_button.clicked, self.on_choose_log_dir_clicked)
+        self.connect_signal(self.window().channel_autocommit_checkbox.stateChanged, self.on_channel_autocommit_checkbox_changed)
+        self.connect_signal(self.window().family_filter_checkbox.stateChanged, self.on_family_filter_checkbox_changed)
+        self.connect_signal(self.window().developer_mode_enabled_checkbox.stateChanged, self.on_developer_mode_checkbox_changed)
+        self.connect_signal(self.window().use_monochrome_icon_checkbox.stateChanged, self.on_use_monochrome_icon_checkbox_changed)
+        self.connect_signal(self.window().download_settings_anon_checkbox.stateChanged, self.on_anon_download_state_changed)
+        self.connect_signal(self.window().log_location_chooser_button.clicked, self.on_choose_log_dir_clicked)
 
         checkbox_style = get_checkbox_style()
         for checkbox in [
@@ -206,7 +207,7 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         # Anonymity settings
         self.window().allow_exit_node_checkbox.setChecked(settings['tunnel_community']['exitnode_enabled'])
         self.window().number_hops_slider.setValue(int(settings['download_defaults']['number_hops']))
-        connect(self.window().number_hops_slider.valueChanged, self.update_anonymity_cost_label)
+        self.connect_signal(self.window().number_hops_slider.valueChanged, self.update_anonymity_cost_label)
         self.update_anonymity_cost_label(int(settings['download_defaults']['number_hops']))
 
         # Debug
@@ -220,7 +221,7 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
             cpu_priority = int(settings['resource_monitor']['cpu_priority'])
         self.window().slider_cpu_level.setValue(cpu_priority)
         self.window().cpu_priority_value.setText(f"Current Priority = {cpu_priority}")
-        connect(self.window().slider_cpu_level.valueChanged, self.show_updated_cpu_priority)
+        self.connect_signal(self.window().slider_cpu_level.valueChanged, self.show_updated_cpu_priority)
         self.window().checkbox_enable_network_statistics.setChecked(settings['ipv8']['statistics'])
 
     def update_anonymity_cost_label(self, value):
@@ -446,7 +447,7 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
             "Your settings have been saved.",
             [('CLOSE', BUTTON_TYPE_NORMAL)],
         )
-        connect(self.saved_dialog.button_clicked, self.on_dialog_cancel_clicked)
+        self.connect_signal(self.saved_dialog.button_clicked, self.on_dialog_cancel_clicked)
         self.saved_dialog.show()
         self.window().fetch_settings()
 

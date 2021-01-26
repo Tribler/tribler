@@ -7,10 +7,11 @@ from PyQt5.QtWidgets import QAbstractItemView, QAction, QListWidget, QListWidget
 from tribler_common.simpledefs import CHANNEL_STATE
 
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT
+from tribler_gui.dialogs.auto_disconnecting_mixin import QAutoDisconnectingMixin
 
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.utilities import connect, get_image_path
+from tribler_gui.utilities import get_image_path
 
 
 def entry_to_tuple(entry):
@@ -43,7 +44,7 @@ class ChannelListItem(QListWidgetItem):
         return super().setData(role, new_value)
 
 
-class ChannelsMenuListWidget(QListWidget):
+class ChannelsMenuListWidget(QAutoDisconnectingMixin, QListWidget):
     def __init__(self, parent=None):
         QListWidget.__init__(self, parent=parent)
         self.base_url = "channels"
@@ -72,18 +73,18 @@ class ChannelsMenuListWidget(QListWidget):
     def create_foreign_menu(self):
         menu = TriblerActionMenu(self)
         unsubscribe_action = QAction('Unsubscribe', self)
-        connect(unsubscribe_action.triggered, self._on_unsubscribe_action)
+        self.connect_signal(unsubscribe_action.triggered, self._on_unsubscribe_action)
         menu.addAction(unsubscribe_action)
         return menu
 
     def create_personal_menu(self):
         menu = TriblerActionMenu(self)
         delete_action = QAction('Delete channel', self)
-        connect(delete_action.triggered, self._on_delete_action)
+        self.connect_signal(delete_action.triggered, self._on_delete_action)
         menu.addAction(delete_action)
 
         rename_action = QAction('Rename channel', self)
-        connect(rename_action.triggered, self._trigger_name_editor)
+        self.connect_signal(rename_action.triggered, self._trigger_name_editor)
         menu.addAction(rename_action)
         return menu
 

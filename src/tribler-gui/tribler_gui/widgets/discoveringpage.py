@@ -2,11 +2,12 @@ from PyQt5.QtSvg import QGraphicsSvgItem, QSvgRenderer
 from PyQt5.QtWidgets import QGraphicsScene, QWidget
 
 from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
+from tribler_gui.dialogs.auto_disconnecting_mixin import QAutoDisconnectingMixin
 
 from tribler_gui.utilities import connect, get_image_path
 
 
-class DiscoveringPage(AddBreadcrumbOnShowMixin, QWidget):
+class DiscoveringPage(AddBreadcrumbOnShowMixin, QAutoDisconnectingMixin, QWidget):
     """
     The DiscoveringPage is shown when users are starting Tribler for the first time. It hides when there are at least
     five discovered channels.
@@ -22,13 +23,13 @@ class DiscoveringPage(AddBreadcrumbOnShowMixin, QWidget):
         svg_item = QGraphicsSvgItem()
 
         svg = QSvgRenderer(get_image_path("loading_animation.svg"))
-        connect(svg.repaintNeeded, svg_item.update)
+        self.connect_signal(svg.repaintNeeded, svg_item.update)
         svg_item.setSharedRenderer(svg)
         svg_container.addItem(svg_item)
 
         self.window().discovering_svg_view.setScene(svg_container)
 
-        connect(self.window().core_manager.events_manager.discovered_channel, self.on_discovered_channel)
+        self.connect_signal(self.window().core_manager.events_manager.discovered_channel, self.on_discovered_channel)
 
     def on_discovered_channel(self, _):
         self.found_channels += 1

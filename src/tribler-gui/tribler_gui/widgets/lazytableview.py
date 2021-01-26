@@ -5,11 +5,12 @@ from PyQt5.QtWidgets import QAbstractItemView, QTableView
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 
 from tribler_gui.defs import ACTION_BUTTONS, COMMIT_STATUS_COMMITTED
+from tribler_gui.dialogs.auto_disconnecting_mixin import QAutoDisconnectingMixin
 from tribler_gui.utilities import connect, data_item2uri, index2uri
 from tribler_gui.widgets.tablecontentdelegate import TriblerContentDelegate
 
 
-class TriblerContentTableView(QTableView):
+class TriblerContentTableView(QAutoDisconnectingMixin, QTableView):
     """
     This table view is designed to support lazy loading.
     When the user reached the end of the table, it will ask the model for more items, and load them dynamically.
@@ -30,16 +31,16 @@ class TriblerContentTableView(QTableView):
         self.delegate = TriblerContentDelegate()
 
         self.setItemDelegate(self.delegate)
-        connect(self.mouse_moved, self.delegate.on_mouse_moved)
-        connect(self.delegate.redraw_required, self.redraw)
+        self.connect_signal(self.mouse_moved, self.delegate.on_mouse_moved)
+        self.connect_signal(self.delegate.redraw_required, self.redraw)
 
         # Stop triggering editor events on doubleclick, because we already use doubleclick to start downloads.
         # Editing should be started manually, from drop-down menu instead.
         self.setEditTriggers(QAbstractItemView.NoEditTriggers)
 
         # Mix-in connects
-        connect(self.clicked, self.on_table_item_clicked)
-        connect(self.doubleClicked, lambda item: self.on_table_item_clicked(item, doubleclick=True))
+        self.connect_signal(self.clicked, self.on_table_item_clicked)
+        self.connect_signal(self.doubleClicked, lambda item: self.on_table_item_clicked(item, doubleclick=True))
 
     def mouseMoveEvent(self, event):
         index = QModelIndex(self.indexAt(event.pos()))

@@ -7,11 +7,12 @@ from PyQt5.QtGui import QPainter
 from PyQt5.QtWidgets import QWidget
 
 from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
+from tribler_gui.dialogs.auto_disconnecting_mixin import QAutoDisconnectingMixin
 
 from tribler_gui.utilities import connect
 
 
-class MonitorWidget(AddBreadcrumbOnShowMixin, QWidget):
+class MonitorWidget(AddBreadcrumbOnShowMixin, QAutoDisconnectingMixin,  QWidget):
     """
     An "ECG" plot of the IPv8 core update frequency.
 
@@ -38,7 +39,7 @@ class MonitorWidget(AddBreadcrumbOnShowMixin, QWidget):
         self.walk_interval_target = "?"
 
         self.timer = QTimer()
-        connect(self.timer.timeout, self.repaint)
+        self.connect_signal(self.timer.timeout, self.repaint)
         self.timer.start(33)
 
         self.backup_size = None

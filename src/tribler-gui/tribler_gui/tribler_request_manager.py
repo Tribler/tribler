@@ -10,8 +10,8 @@ from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 import tribler_core.utilities.json_util as json
 
 from tribler_gui.defs import BUTTON_TYPE_NORMAL, DEFAULT_API_HOST, DEFAULT_API_PORT, DEFAULT_API_PROTOCOL
+from tribler_gui.dialogs.auto_disconnecting_mixin import QAutoDisconnectingMixin
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
-from tribler_gui.utilities import connect
 
 
 def tribler_urlencode(data):
@@ -39,7 +39,7 @@ def tribler_urlencode_single(key, value):
 performed_requests = deque(maxlen=200)
 
 
-class TriblerRequestManager(QNetworkAccessManager):
+class TriblerRequestManager(QAutoDisconnectingMixin, QNetworkAccessManager):
     """
     This class is responsible for all the requests made to the Tribler REST API.
     All requests are asynchronous so the caller object should keep track of response (QNetworkReply) object. A finished
@@ -83,7 +83,7 @@ class TriblerRequestManager(QNetworkAccessManager):
         def on_close(checked):
             error_dialog.close_dialog()
 
-        connect(error_dialog.button_clicked, on_close)
+        self.connect_signal(error_dialog.button_clicked, on_close)
         error_dialog.show()
 
     def clear(self):
@@ -118,14 +118,14 @@ class TriblerRequestManager(QNetworkAccessManager):
         request.reply = self.sendCustomRequest(qt_request, request.method.encode("utf8"), buf)
         buf.setParent(request.reply)
 
-        connect(request.reply.finished, lambda: request.on_finished(request))
+        self.connect_signal(request.reply.finished, lambda: request.on_finished(request))
 
 
 # Request manager singleton.
 request_manager = TriblerRequestManager()
 
 
-class TriblerNetworkRequest(QObject):
+class TriblerNetworkRequest(QAutoDisconnectingMixin, QObject):
     # This signal is called if we receive some real reply from the request
     # and if the user defined a callback to call on the received data.
     # We implement the callback as a signal call and not as a direct callback
@@ -173,11 +173,11 @@ class TriblerNetworkRequest(QObject):
         self.raw_data = raw_data if (issubclass(type(raw_data), bytes) or raw_data is None) else raw_data.encode('utf8')
         self.reply_callback = reply_callback
         if self.reply_callback:
-            connect(self.received_json, self.reply_callback)
+            self.connect_signal(self.received_json, self.reply_callback)
 
         self.on_error_callback = on_error_callback
         if on_error_callback is not None:
-            connect(self.received_error, on_error_callback)
+            self.connect_signal(self.received_error, on_error_callback)
         self.reply = None  # to hold the associated QNetworkReply object
 
         # Pass the newly created object to the manager singleton, so the object can be dispatched immediately
