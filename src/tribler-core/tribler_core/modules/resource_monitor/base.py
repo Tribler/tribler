@@ -1,5 +1,6 @@
 import logging
 import time
+from collections import deque
 
 import psutil
 
@@ -7,30 +8,26 @@ import psutil
 class ResourceMonitor:
     """
     This is a base resource monitor class that monitors the process's CPU and memory usage.
-    This class should be implemented by Core and GUI processes to provide implementation for
-    start() and stop() methods.
+    This is done by check_resources() method.
+
+    The periodic monitoring of the resources is left as the responsibility of the inheriting
+    class since the implementation could differ between the processes.
+    For eg. Tribler Core process could use TaskManager to scheduler the call while
+    the GUI process could use QTimer.
+
+    Similarly, the cleanup after the periodic check should also be implemented by
+    the inheriting class.
     """
 
     def __init__(self, history_size=1000):
         self._logger = logging.getLogger(self.__class__.__name__)
         self.history_size = history_size
 
-        self.cpu_data = []
-        self.memory_data = []
+        self.cpu_data = deque(maxlen=history_size)
+        self.memory_data = deque(maxlen=history_size)
 
         self.process = psutil.Process()
         self.last_error = None
-
-    def start(self):
-        """
-        Implement the logic to start the resource monitor.
-        Eg. using a LoopingCall in core or Timer in GUI.
-        """
-
-    def stop(self):
-        """
-        Implement the logic for stopping the resource monitor.
-        """
 
     def check_resources(self):
         """
@@ -43,10 +40,7 @@ class ResourceMonitor:
         self.record_memory_usage(current_time)
 
     def record_memory_usage(self, recorded_at=None):
-        if len(self.memory_data) == self.history_size:
-            self.memory_data.pop(0)
-
-        recorded_at = recorded_at if recorded_at else time.time()
+        recorded_at = recorded_at or time.time()
 
         # Get the memory usage of the process
         # psutil package 4.0.0 introduced memory_full_info() method which among other info also returns uss.
@@ -77,10 +71,7 @@ class ResourceMonitor:
             self.memory_data.append((recorded_at, self.process.memory_info().rss))
 
     def record_cpu_usage(self, recorded_at=None):
-        if len(self.cpu_data) == self.history_size:
-            self.cpu_data.pop(0)
-
-        recorded_at = recorded_at if recorded_at else time.time()
+        recorded_at = recorded_at or time.time()
         self.cpu_data.append((recorded_at, self.process.cpu_percent(interval=None)))
 
     def get_cpu_history_dict(self):

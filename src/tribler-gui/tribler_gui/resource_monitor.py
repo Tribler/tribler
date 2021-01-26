@@ -33,4 +33,3 @@ class GuiResourceMonitor(ResourceMonitor, QWidget):
                 self.resource_monitor_timer.deleteLater()
             except RuntimeError:
                 self._logger.error("Failed to stop GUI resource monitor timer in Debug pane")
-        super().stop()
