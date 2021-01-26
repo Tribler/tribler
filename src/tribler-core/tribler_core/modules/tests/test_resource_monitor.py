@@ -15,9 +15,9 @@ from tribler_core.modules.resource_monitor.core import CoreResourceMonitor
 @pytest.fixture
 async def resource_monitor(session):
     session.notifier = Mock()
-    resource_mon = CoreResourceMonitor(session)
-    yield resource_mon
-    await resource_mon.stop()
+    resource_monitor = CoreResourceMonitor(session)
+    yield resource_monitor
+    await resource_monitor.stop()
 
 
 def test_check_resources(resource_monitor):
