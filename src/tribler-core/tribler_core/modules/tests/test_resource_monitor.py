@@ -12,8 +12,8 @@ from tribler_common.simpledefs import NTFY
 from tribler_core.modules.resource_monitor.core import CoreResourceMonitor
 
 
-@pytest.fixture
-async def resource_monitor(session):
+@pytest.fixture(name="resource_monitor")
+async def fixture_resource_monitor(session):
     session.notifier = Mock()
     resource_monitor = CoreResourceMonitor(session)
     yield resource_monitor
