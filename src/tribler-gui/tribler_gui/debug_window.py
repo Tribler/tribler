@@ -21,24 +21,26 @@ from tribler_core.utilities.utilities import has_bep33_support
 from tribler_gui.defs import DEBUG_PANE_REFRESH_TIMEOUT, GB, MB
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler_gui.event_request_manager import received_events as tribler_received_events
+from tribler_gui.resource_monitor import GuiResourceMonitor
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest, performed_requests as tribler_performed_requests
 from tribler_gui.utilities import connect, format_size, get_ui_file_path
 from tribler_gui.widgets.graphs.timeseriesplot import TimeSeriesPlot
 from tribler_gui.widgets.ipv8health import MonitorWidget
 
-try:
-    from meliae import scanner
-except ImportError:
-    scanner = None
+COLOR_RGB_BLUE = (0, 153, 255)
+COLOR_WHITE_HEX = "#FFFFFF"
 
 
 class MemoryPlot(TimeSeriesPlot):
-    def __init__(self, parent, **kargs):
-        series = [{'name': 'Memory', 'pen': (0, 153, 255), 'symbolBrush': (0, 153, 255), 'symbolPen': 'w'}]
-        super().__init__(parent, 'Memory Usage', series, **kargs)
-        self.setBackground('#FCF9F6')
-        self.setLabel('left', 'Memory', units='bytes')
-        self.setLimits(yMin=-MB, yMax=10 * GB)
+    def __init__(self, parent, process='CPU', **kargs):
+        series = [{'name': f'Memory ({process})',
+                   'pen': COLOR_RGB_BLUE,
+                   'symbolBrush': COLOR_RGB_BLUE,
+                   'symbolPen': 'w'}]
+        super().__init__(parent, f'Memory Usage({process})', series, **kargs)
+        self.setBackground(COLOR_WHITE_HEX)
+        self.setLabel('left', 'Memory', units='MB')
+        self.setLimits(yMin=0, yMax=2 * GB)
 
 
 class CPUPlot(TimeSeriesPlot):
@@ -63,11 +65,14 @@ class DebugWindow(QMainWindow):
         QMainWindow.__init__(self)
 
         self.cpu_plot = None
-        self.memory_plot = None
         self.initialized_cpu_plot = False
-        self.initialized_memory_plot = False
         self.cpu_plot_timer = None
+
+        self.core_memory_plot = None
+        self.gui_memory_plot = None
+        self.initialized_memory_plot = False
         self.memory_plot_timer = None
+
         self.tribler_version = tribler_version
         self.profiler_enabled = False
         self.toggling_profiler = False
@@ -75,8 +80,6 @@ class DebugWindow(QMainWindow):
         uic.loadUi(get_ui_file_path('debugwindow.ui'), self)
         self.setWindowTitle("Tribler debug pane")
 
-        connect(self.window().dump_memory_core_button.clicked, lambda _: self.on_memory_dump_button_clicked(True))
-        connect(self.window().dump_memory_gui_button.clicked, lambda _: self.on_memory_dump_button_clicked(False))
         connect(self.window().toggle_profiler_button.clicked, self.on_toggle_profiler_button_clicked)
 
         self.window().debug_tab_widget.setCurrentIndex(0)
@@ -121,6 +124,10 @@ class DebugWindow(QMainWindow):
         self.refresh_timer = None
         self.rest_request = None
         self.ipv8_health_widget = None
+
+        # GUI resource monitor
+        self.resource_monitor = GuiResourceMonitor()
+        self.resource_monitor.start()
 
     def hideEvent(self, hide_event):
         self.stop_timer()
@@ -671,9 +678,13 @@ class DebugWindow(QMainWindow):
 
     def load_memory_tab(self):
         if not self.initialized_memory_plot:
-            vlayout = self.window().memory_plot_widget.layout()
-            self.memory_plot = MemoryPlot(self.window().memory_plot_widget)
-            vlayout.addWidget(self.memory_plot)
+            self.core_memory_plot = MemoryPlot(self.window().tab_system_memory, process='Core')
+            self.gui_memory_plot = MemoryPlot(self.window().tab_system_memory, process='GUI')
+
+            vlayout = self.window().system_memory_layout.layout()
+            vlayout.addWidget(self.core_memory_plot)
+            vlayout.addWidget(self.gui_memory_plot)
+
             self.initialized_memory_plot = True
 
         self.refresh_memory_plot()
@@ -716,36 +727,24 @@ class DebugWindow(QMainWindow):
             )
 
     def refresh_memory_plot(self):
+        # To update the core memory graph, call Debug REST API to get the history
+        # and update the memory graph after receiving the response.
         TriblerNetworkRequest("debug/memory/history", self.on_core_memory_history)
+
+        # GUI memory graph can be simply updated using the data from GuiResourceMonitor object.
+        self._update_memory_graph(self.gui_memory_plot, self.resource_monitor.get_memory_history_dict())
 
     def on_core_memory_history(self, data):
         if not data or data.get("memory_history") is None:
             return
-        self.memory_plot.reset_plot()
-        for mem_info in data["memory_history"]:
-            self.memory_plot.add_data(mem_info["time"], [round(mem_info["mem"], 2)])
-        self.memory_plot.render_plot()
+        self._update_memory_graph(self.core_memory_plot, data["memory_history"])
 
-    def on_memory_dump_button_clicked(self, dump_core):
-        self.export_dir = QFileDialog.getExistingDirectory(
-            self, "Please select the destination directory", "", QFileDialog.ShowDirsOnly
-        )
-
-        if len(self.export_dir) > 0:
-            timestamp_str = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
-            filename = f"tribler_mem_dump_{'core' if dump_core else 'gui'}_{timestamp_str}.json"
-            if dump_core:
-                self.rest_request = TriblerNetworkRequest(
-                    "debug/memory/dump", lambda data: self.on_memory_dump_data_available(filename, data)
-                )
-            elif scanner:
-                scanner.dump_all_objects(os.path.join(self.export_dir, filename))
-            else:
-                ConfirmationDialog.show_error(
-                    self.window(),
-                    "Error when performing a memory dump",
-                    "meliae memory dumper is not compatible with Python 3",
-                )
+    def _update_memory_graph(self, memory_graph, history_data):
+        memory_graph.reset_plot()
+        for mem_info in history_data:
+            process_memory = round(mem_info["mem"] / MB, 2)
+            memory_graph.add_data(mem_info["time"], [process_memory])
+        memory_graph.render_plot()
 
     def on_memory_dump_data_available(self, filename, data):
         if not data:
