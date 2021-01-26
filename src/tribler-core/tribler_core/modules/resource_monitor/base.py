@@ -4,7 +4,7 @@ import time
 import psutil
 
 
-class ResourceMonitor(object):
+class ResourceMonitor:
     """
     This is a base resource monitor class that monitors the process's CPU and memory usage.
     This class should be implemented by Core and GUI processes to provide implementation for
@@ -61,7 +61,7 @@ class ResourceMonitor(object):
                 success = True
             except psutil.AccessDenied:
                 pass  # Happens on Windows
-            except Exception as e:
+            except Exception as e:  # pylint: disable=broad-except
                 # Can be MemoryError or WindowsError, which isn't defined on Linux
                 # Catching a WindowsError would therefore error out the error handler itself on Linux
                 # We do not want to spam the log with errors in situation where e.g., memory info

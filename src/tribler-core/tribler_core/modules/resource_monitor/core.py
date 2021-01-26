@@ -1,10 +1,12 @@
 import os
 import time
 
+from ipv8.taskmanager import TaskManager
+
 import psutil
 
-from ipv8.taskmanager import TaskManager
 from tribler_common.simpledefs import NTFY
+
 from tribler_core.modules.resource_monitor.base import ResourceMonitor
 
 FREE_DISK_THRESHOLD = 100 * (1024 * 1024)  # 100MB
@@ -26,6 +28,7 @@ class CoreResourceMonitor(ResourceMonitor, TaskManager):
 
         self.state_dir = session.config.get_state_dir()
         self.resource_log_file = session.config.get_log_dir() / DEFAULT_RESOURCE_FILENAME
+        self.resource_log_enabled = session.config.get_resource_monitor_enabled()
 
     def start(self):
         """
@@ -36,7 +39,7 @@ class CoreResourceMonitor(ResourceMonitor, TaskManager):
 
     async def stop(self):
         await self.shutdown_task_manager()
-        super(CoreResourceMonitor, self).stop()
+        super().stop()
 
     def check_resources(self):
         ResourceMonitor.check_resources(self)
@@ -55,7 +58,6 @@ class CoreResourceMonitor(ResourceMonitor, TaskManager):
             resource_dir = self.resource_log_file.parent
             if not resource_dir.exists() and resource_dir:
                 os.makedirs(resource_dir)
-                print(f"creating resource dir: {resource_dir}")
 
         with self.resource_log_file.open(mode="a+") as output_file:
             latest_memory_data = self.memory_data[len(self.memory_data) - 1]
