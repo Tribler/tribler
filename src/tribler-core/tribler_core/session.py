@@ -42,7 +42,7 @@ from tribler_core.modules.metadata_store.gigachannel_manager import GigaChannelM
 from tribler_core.modules.metadata_store.store import MetadataStore
 from tribler_core.modules.metadata_store.utils import generate_test_channels
 from tribler_core.modules.payout_manager import PayoutManager
-from tribler_core.modules.resource_monitor import ResourceMonitor
+from tribler_core.modules.resource_monitor.core import CoreResourceMonitor
 from tribler_core.modules.torrent_checker.torrent_checker import TorrentChecker
 from tribler_core.modules.tracker_manager import TrackerManager
 from tribler_core.modules.versioncheck_manager import VersionCheckManager
@@ -387,7 +387,7 @@ class Session(TaskManager):
             self.watch_folder.start()
 
         if self.config.get_resource_monitor_enabled() and not self.core_test_mode:
-            self.resource_monitor = ResourceMonitor(self)
+            self.resource_monitor = CoreResourceMonitor(self)
             self.resource_monitor.start()
 
         if self.config.get_version_checker_enabled() and not self.core_test_mode:
