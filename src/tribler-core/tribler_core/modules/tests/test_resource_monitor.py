@@ -101,8 +101,6 @@ def test_write_resource_log(resource_monitor):
     Test no data is written to file and no exception raised when resource data (cpu & memory) is empty which
     happens at startup. When the data is available, it is saved well in the disk.
     """
-    resource_monitor.reset_resource_logs()
-
     # 1. Try writing the log when no data is available.
     resource_monitor.memory_data = []
     resource_monitor.cpu_data = []
@@ -122,6 +120,10 @@ def test_write_resource_log(resource_monitor):
     # The file should exist and should not be empty
     assert os.path.exists(resource_monitor.resource_log_file)
     assert os.stat(resource_monitor.resource_log_file).st_size > 0
+
+    # 3. Resetting the logs should remove the log file
+    resource_monitor.reset_resource_logs()
+    assert not os.path.exists(resource_monitor.resource_log_file)
 
 
 def test_enable_resource_log(resource_monitor):
