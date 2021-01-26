@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import QAction, QApplication, QDialog, QMessageBox, QTreeWi
 
 from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
+from tribler_common.sentry_reporter.sentry_scrubber import SentryScrubber
 
 from tribler_gui.event_request_manager import received_events
 from tribler_gui.tribler_action_menu import TriblerActionMenu
@@ -40,6 +41,7 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
         self.selected_item_index = 0
         self.tribler_version = tribler_version
         self.sentry_event = sentry_event
+        self.scrubber = SentryScrubber()
         self.stop_application_on_close = stop_application_on_close
 
         # Qt 5.2 does not have the setPlaceholderText property
@@ -51,9 +53,11 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
         def add_item_to_info_widget(key, value):
             item = QTreeWidgetItem(self.env_variables_list)
             item.setText(0, key)
-            item.setText(1, value)
+            scrubbed_value = self.scrubber.scrub_text(value)
+            item.setText(1, scrubbed_value)
 
-        self.error_text_edit.setPlainText(exception_text.rstrip())
+        stacktrace = self.scrubber.scrub_text(exception_text.rstrip())
+        self.error_text_edit.setPlainText(stacktrace)
 
         connect(self.cancel_button.clicked, self.on_cancel_clicked)
         connect(self.send_report_button.clicked, self.on_send_clicked)
