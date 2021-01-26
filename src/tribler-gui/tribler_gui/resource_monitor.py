@@ -3,6 +3,8 @@ from PyQt5.QtWidgets import QWidget
 
 from tribler_core.modules.resource_monitor.base import ResourceMonitor
 
+GUI_RESOURCE_CHECK_INTERVAL = 5000  # milliseconds
+
 
 class GuiResourceMonitor(ResourceMonitor, QWidget):
     """
@@ -21,7 +23,7 @@ class GuiResourceMonitor(ResourceMonitor, QWidget):
         self.resource_monitor_timer = QTimer()
         self.resource_monitor_timer.setSingleShot(False)
         self.resource_monitor_timer.timeout.connect(self.check_resources)
-        self.resource_monitor_timer.start(5000)
+        self.resource_monitor_timer.start(GUI_RESOURCE_CHECK_INTERVAL)
 
     def stop(self):
         if self.resource_monitor_timer:
