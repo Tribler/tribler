@@ -21,12 +21,12 @@ class CoreResourceMonitor(ResourceMonitor, TaskManager):
     TaskManager to implement start() and stop() methods.
     """
 
-    def __init__(self, session):
+    def __init__(self, session, history_size=CORE_RESOURCE_HISTORY_SIZE):
         TaskManager.__init__(self)
-        ResourceMonitor.__init__(self, history_size=CORE_RESOURCE_HISTORY_SIZE)
+        ResourceMonitor.__init__(self, history_size=history_size)
 
         self.session = session
-        self.disk_usage_data = deque(maxlen=CORE_RESOURCE_HISTORY_SIZE)
+        self.disk_usage_data = deque(maxlen=history_size)
 
         self.state_dir = session.config.get_state_dir()
         self.resource_log_file = session.config.get_log_dir() / DEFAULT_RESOURCE_FILENAME

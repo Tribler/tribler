@@ -2,7 +2,7 @@ import os
 import random
 import sys
 import time
-from collections import namedtuple
+from collections import namedtuple, deque
 from unittest.mock import Mock
 
 import pytest
@@ -15,7 +15,7 @@ from tribler_core.modules.resource_monitor.core import CoreResourceMonitor
 @pytest.fixture(name="resource_monitor")
 async def fixture_resource_monitor(session):
     session.notifier = Mock()
-    resource_monitor = CoreResourceMonitor(session)
+    resource_monitor = CoreResourceMonitor(session, history_size=10)
     yield resource_monitor
     await resource_monitor.stop()
 
@@ -25,20 +25,20 @@ def test_check_resources(resource_monitor):
     Test the resource monitor check
     """
     resource_monitor.write_resource_logs = lambda: None
+
+    # Checking resources for the first time
     resource_monitor.check_resources()
     assert len(resource_monitor.cpu_data) == 1
-    # Getting memory info produces an AccessDenied error using Python 3
-    if sys.version_info.major < 3:
-        assert len(resource_monitor.memory_data) == 1
+    assert len(resource_monitor.memory_data) == 1
     assert len(resource_monitor.disk_usage_data) == 1
 
-    # Check that we remove old history
-    resource_monitor.history_size = 1
-    resource_monitor.check_resources()
-    assert len(resource_monitor.cpu_data) == 1
-    if sys.version_info.major < 3:
-        assert len(resource_monitor.memory_data) == 1
-    assert len(resource_monitor.disk_usage_data) == 1
+    # Check resources multiple times, it should keep the history size constant
+    for x in range(resource_monitor.history_size * 2):
+        resource_monitor.check_resources()
+
+    assert len(resource_monitor.cpu_data) == resource_monitor.history_size
+    assert len(resource_monitor.memory_data) == resource_monitor.history_size
+    assert len(resource_monitor.disk_usage_data) == resource_monitor.history_size
 
 
 def test_get_history_dicts(resource_monitor):
@@ -53,7 +53,7 @@ def test_get_history_dicts(resource_monitor):
     assert isinstance(memory_dict, list)
 
     disk_usage_history = resource_monitor.get_disk_usage()
-    assert isinstance(disk_usage_history, list)
+    assert isinstance(disk_usage_history, deque)
 
 
 def test_memory_full_error(resource_monitor):
