@@ -87,6 +87,7 @@ def test_low_disk_notification(resource_monitor):
     resource_monitor.session.notifier.notify = on_notify
     resource_monitor.check_resources()
 
+
 def test_resource_log(resource_monitor):
     """
     Test resource log file is created when enabled.

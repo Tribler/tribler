@@ -23,7 +23,6 @@ class CoreResourceMonitor(ResourceMonitor, TaskManager):
         self.session = session
 
         self.disk_usage_data = []
-        self.notifier = None
 
         self.state_dir = session.config.get_state_dir()
         self.resource_log_file = session.config.get_log_dir() / DEFAULT_RESOURCE_FILENAME
@@ -91,8 +90,8 @@ class CoreResourceMonitor(ResourceMonitor, TaskManager):
         # Notify session if less than 100MB of disk space is available
         if disk_usage.free < FREE_DISK_THRESHOLD:
             self._logger.warning("Warning! Less than 100MB of disk space available")
-            if self.notifier:
-                self.notifier.notify(NTFY.LOW_SPACE, self.disk_usage_data[-1])
+            if self.session.notifier:
+                self.session.notifier.notify(NTFY.LOW_SPACE, self.disk_usage_data[-1])
 
     def get_free_disk_space(self):
         return psutil.disk_usage(str(self.session.config.get_state_dir()))
