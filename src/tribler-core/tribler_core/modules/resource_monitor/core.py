@@ -65,7 +65,7 @@ class CoreResourceMonitor(ResourceMonitor, TaskManager):
 
         with self.resource_log_file.open(mode="a+") as output_file:
             latest_memory_data = self.memory_data[len(self.memory_data) - 1]
-            latest_cpu_data = self.cpu_data[len(self.memory_data) - 1]
+            latest_cpu_data = self.cpu_data[len(self.cpu_data) - 1]
             time_in_seconds = latest_memory_data[0]
             output_file.write(f"{time_in_seconds}, {latest_memory_data[1]}, {latest_cpu_data[1]}\n")
 
