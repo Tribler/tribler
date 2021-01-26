@@ -1,4 +1,5 @@
 import os
+import random
 import sys
 import time
 from collections import namedtuple
@@ -8,22 +9,22 @@ import pytest
 
 from tribler_common.simpledefs import NTFY
 
-from tribler_core.modules.resource_monitor import HAS_YAPPI, ResourceMonitor
+from tribler_core.modules.resource_monitor.core import CoreResourceMonitor
 
 
 @pytest.fixture
 async def resource_monitor(session):
     session.notifier = Mock()
-    resource_monitor = ResourceMonitor(session)
-    yield resource_monitor
-    await resource_monitor.stop()
+    resource_mon = CoreResourceMonitor(session)
+    yield resource_mon
+    await resource_mon.stop()
 
 
 def test_check_resources(resource_monitor):
     """
     Test the resource monitor check
     """
-    resource_monitor.write_resource_logs = lambda _: None
+    resource_monitor.write_resource_logs = lambda: None
     resource_monitor.check_resources()
     assert len(resource_monitor.cpu_data) == 1
     # Getting memory info produces an AccessDenied error using Python 3
@@ -86,23 +87,6 @@ def test_low_disk_notification(resource_monitor):
     resource_monitor.session.notifier.notify = on_notify
     resource_monitor.check_resources()
 
-
-@pytest.mark.skipif(not HAS_YAPPI, reason="Yappi not installed")
-def test_profiler(resource_monitor):
-    """
-    Test the profiler functionality
-    """
-    resource_monitor.start_profiler()
-    assert resource_monitor.profiler_running
-    with pytest.raises(RuntimeError):
-        resource_monitor.start_profiler()
-
-    resource_monitor.stop_profiler()
-    assert not resource_monitor.profiler_running
-    with pytest.raises(RuntimeError):
-        resource_monitor.stop_profiler()
-
-
 def test_resource_log(resource_monitor):
     """
     Test resource log file is created when enabled.
@@ -115,19 +99,29 @@ def test_resource_log(resource_monitor):
 def test_write_resource_log(resource_monitor):
     """
     Test no data is written to file and no exception raised when resource data (cpu & memory) is empty which
-    happens at startup.
+    happens at startup. When the data is available, it is saved well in the disk.
     """
-    # Empty resource log to check later if something was written to the log or not.
-    with open(resource_monitor.resource_log_file, 'w'): pass
+    resource_monitor.reset_resource_logs()
 
+    # 1. Try writing the log when no data is available.
     resource_monitor.memory_data = []
     resource_monitor.cpu_data = []
+    resource_monitor.write_resource_logs()
 
-    # Try writing the log
-    resource_monitor.write_resource_logs(time.time())
+    # If no data is available, no file is created.
+    assert not os.path.exists(resource_monitor.resource_log_file)
 
-    # Nothing should be written since memory and cpu data was not available
-    assert os.stat(resource_monitor.resource_log_file).st_size == 0
+    # 2. Try adding some random data and write resource logs
+    time_now = time.time()
+    rand_memory = random.randint(1, 100)
+    rand_cpu = random.randint(1, 100)
+    resource_monitor.memory_data = [(time_now, rand_memory)]
+    resource_monitor.cpu_data = [(time_now, rand_cpu)]
+    resource_monitor.write_resource_logs()
+
+    # The file should exist and should not be empty
+    assert os.path.exists(resource_monitor.resource_log_file)
+    assert os.stat(resource_monitor.resource_log_file).st_size > 0
 
 
 def test_enable_resource_log(resource_monitor):

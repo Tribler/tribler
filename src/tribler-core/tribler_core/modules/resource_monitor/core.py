@@ -56,6 +56,7 @@ class CoreResourceMonitor(ResourceMonitor, TaskManager):
             resource_dir = self.resource_log_file.parent
             if not resource_dir.exists() and resource_dir:
                 os.makedirs(resource_dir)
+                print(f"creating resource dir: {resource_dir}")
 
         with self.resource_log_file.open(mode="a+") as output_file:
             latest_memory_data = self.memory_data[len(self.memory_data) - 1]
@@ -66,6 +67,12 @@ class CoreResourceMonitor(ResourceMonitor, TaskManager):
     def reset_resource_logs(self):
         if self.resource_log_file and self.resource_log_file.exists():
             self.resource_log_file.unlink()
+
+    def set_resource_log_enabled(self, enabled):
+        self.resource_log_enabled = enabled
+
+    def is_resource_log_enabled(self):
+        return self.resource_log_enabled
 
     def record_disk_usage(self, recorded_at=None):
         if len(self.disk_usage_data) == self.history_size:
@@ -89,3 +96,9 @@ class CoreResourceMonitor(ResourceMonitor, TaskManager):
 
     def get_free_disk_space(self):
         return psutil.disk_usage(str(self.session.config.get_state_dir()))
+
+    def get_disk_usage(self):
+        """
+        Return a list containing the history of free disk space
+        """
+        return self.disk_usage_data
