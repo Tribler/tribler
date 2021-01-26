@@ -1,5 +1,6 @@
 import os
 import time
+from collections import deque
 
 from ipv8.taskmanager import TaskManager
 
@@ -11,6 +12,7 @@ from tribler_core.modules.resource_monitor.base import ResourceMonitor
 
 FREE_DISK_THRESHOLD = 100 * (1024 * 1024)  # 100MB
 DEFAULT_RESOURCE_FILENAME = "resources.log"
+CORE_RESOURCE_HISTORY_SIZE = 1000
 
 
 class CoreResourceMonitor(ResourceMonitor, TaskManager):
@@ -21,10 +23,10 @@ class CoreResourceMonitor(ResourceMonitor, TaskManager):
 
     def __init__(self, session):
         TaskManager.__init__(self)
-        ResourceMonitor.__init__(self)
-        self.session = session
+        ResourceMonitor.__init__(self, history_size=CORE_RESOURCE_HISTORY_SIZE)
 
-        self.disk_usage_data = []
+        self.session = session
+        self.disk_usage_data = deque(maxlen=CORE_RESOURCE_HISTORY_SIZE)
 
         self.state_dir = session.config.get_state_dir()
         self.resource_log_file = session.config.get_log_dir() / DEFAULT_RESOURCE_FILENAME
@@ -32,17 +34,19 @@ class CoreResourceMonitor(ResourceMonitor, TaskManager):
 
     def start(self):
         """
-        Start the resource monitor by scheduling a LoopingCall.
+        Start the resource monitoring by scheduling a task in TaskManager.
         """
         self.register_task("check_resources", self.check_resources,
                            interval=self.session.config.get_resource_monitor_poll_interval())
 
     async def stop(self):
+        """
+        Called during shutdown, should clear all scheduled tasks.
+        """
         await self.shutdown_task_manager()
-        super().stop()
 
     def check_resources(self):
-        ResourceMonitor.check_resources(self)
+        super().check_resources()
         # Additionally, record the disk and notify on low disk space available.
         self.record_disk_usage()
 
@@ -56,7 +60,7 @@ class CoreResourceMonitor(ResourceMonitor, TaskManager):
 
         if not self.resource_log_file.exists():
             resource_dir = self.resource_log_file.parent
-            if not resource_dir.exists() and resource_dir:
+            if resource_dir and not resource_dir.exists():
                 os.makedirs(resource_dir)
 
         with self.resource_log_file.open(mode="a+") as output_file:
@@ -76,10 +80,7 @@ class CoreResourceMonitor(ResourceMonitor, TaskManager):
         return self.resource_log_enabled
 
     def record_disk_usage(self, recorded_at=None):
-        if len(self.disk_usage_data) == self.history_size:
-            self.disk_usage_data.pop(0)
-
-        recorded_at = recorded_at if recorded_at else time.time()
+        recorded_at = recorded_at or time.time()
 
         # Check for available disk space
         disk_usage = self.get_free_disk_space()
