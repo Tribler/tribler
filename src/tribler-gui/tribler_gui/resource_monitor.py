@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import QWidget
 from tribler_core.modules.resource_monitor.base import ResourceMonitor
 
 GUI_RESOURCE_CHECK_INTERVAL = 5000  # milliseconds
+GUI_RESOURCE_HISTORY_SIZE = 1000
 
 
 class GuiResourceMonitor(ResourceMonitor, QWidget):
@@ -11,9 +12,9 @@ class GuiResourceMonitor(ResourceMonitor, QWidget):
     Implementation class of ResourceMonitor by the GUI process. The GUI process uses
     QTimer to implement start() and stop() methods.
     """
-    def __init__(self, history_size=30):
+    def __init__(self):
         QWidget.__init__(self)
-        ResourceMonitor.__init__(self, history_size=history_size)
+        ResourceMonitor.__init__(self, history_size=GUI_RESOURCE_HISTORY_SIZE)
         self.resource_monitor_timer = None
 
     def start(self):
