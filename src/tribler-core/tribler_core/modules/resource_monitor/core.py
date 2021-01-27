@@ -9,6 +9,7 @@ import psutil
 from tribler_common.simpledefs import NTFY
 
 from tribler_core.modules.resource_monitor.base import ResourceMonitor
+from tribler_core.modules.resource_monitor.profiler import YappiProfiler
 
 FREE_DISK_THRESHOLD = 100 * (1024 * 1024)  # 100MB
 DEFAULT_RESOURCE_FILENAME = "resources.log"
@@ -31,6 +32,9 @@ class CoreResourceMonitor(ResourceMonitor, TaskManager):
         self.state_dir = session.config.get_state_dir()
         self.resource_log_file = session.config.get_log_dir() / DEFAULT_RESOURCE_FILENAME
         self.resource_log_enabled = session.config.get_resource_monitor_enabled()
+
+        # Setup yappi profiler
+        self.profiler = YappiProfiler(self.session)
 
     def start(self):
         """

@@ -134,3 +134,24 @@ def test_enable_resource_log(resource_monitor):
 def test_reset_resource_log(resource_monitor):
     resource_monitor.reset_resource_logs()
     assert not resource_monitor.resource_log_file.exists()
+
+
+def test_profiler(resource_monitor):
+    """
+    Test the profiler start(), stop() methods.
+    """
+    profiler = resource_monitor.profiler
+    assert not profiler.is_running()
+
+    profiler.start()
+    assert profiler.is_running()
+
+    with pytest.raises(RuntimeError):
+        profiler.start()
+
+    stats_file = profiler.stop()
+    assert os.path.exists(stats_file)
+    assert not profiler.is_running()
+
+    with pytest.raises(RuntimeError):
+        profiler.stop()

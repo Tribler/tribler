@@ -210,16 +210,16 @@ async def test_start_stop_profiler(enable_api, enable_resource_monitor, session)
     tests.
     """
     def mocked_start_profiler():
-        session.resource_monitor.profiler_running = True
+        session.resource_monitor.profiler._is_running = True
 
     def mocked_stop_profiler():
-        session.resource_monitor.profiler_running = False
-        return 'a'
+        session.resource_monitor.profiler._is_running = False
+        return 'yappi_1611750286.stats'
 
-    session.resource_monitor.start_profiler = mocked_start_profiler
-    session.resource_monitor.stop_profiler = mocked_stop_profiler
+    session.resource_monitor.profiler.start = mocked_start_profiler
+    session.resource_monitor.profiler.stop = mocked_stop_profiler
 
     await do_request(session, 'debug/profiler', expected_code=200, request_type='PUT')
-    assert session.resource_monitor.profiler_running
+    assert session.resource_monitor.profiler.is_running()
     await do_request(session, 'debug/profiler', expected_code=200, request_type='DELETE')
-    assert not session.resource_monitor.profiler_running
+    assert not session.resource_monitor.profiler.is_running()

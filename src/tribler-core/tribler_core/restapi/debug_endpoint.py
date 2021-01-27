@@ -314,9 +314,9 @@ class DebugEndpoint(RESTEndpoint):
             }
         }
     )
-    async def get_profiler_state(self, request):
+    async def get_profiler_state(self, _):
         monitor_enabled = self.session.config.get_resource_monitor_enabled()
-        state = "STARTED" if (monitor_enabled and self.session.resource_monitor.profiler_running) else "STOPPED"
+        state = "STARTED" if (monitor_enabled and self.session.resource_monitor.profiler.is_running()) else "STOPPED"
         return RESTResponse({"state": state})
 
     @docs(
@@ -330,8 +330,8 @@ class DebugEndpoint(RESTEndpoint):
             }
         }
     )
-    async def start_profiler(self, request):
-        self.session.resource_monitor.start_profiler()
+    async def start_profiler(self, _):
+        self.session.resource_monitor.profiler.start()
         return RESTResponse({"success": True})
 
     @docs(
@@ -345,6 +345,6 @@ class DebugEndpoint(RESTEndpoint):
             }
         }
     )
-    async def stop_profiler(self, request):
-        file_path = self.session.resource_monitor.stop_profiler()
+    async def stop_profiler(self, _):
+        file_path = self.session.resource_monitor.profiler.stop()
         return RESTResponse({"success": True, "profiler_file": str(file_path)})
