@@ -334,11 +334,6 @@ class Session(TaskManager):
                                    .set_working_directory(str(self.config.get_state_dir()))
                                    .set_walker_interval(self.config.get_ipv8_walk_interval()))
 
-            if self.config.get_ipv8_bootstrap_override():
-                import ipv8.community as community_file
-                community_file._DEFAULT_ADDRESSES = [self.config.get_ipv8_bootstrap_override()]
-                community_file._DNS_ADDRESSES = []
-
             if self.core_test_mode:
                 endpoint = DispatcherEndpoint([])
             else:
