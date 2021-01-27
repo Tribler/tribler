@@ -20,4 +20,5 @@ Faker
 Pillow
 netifaces
 pyqtgraph
+yappi
 
