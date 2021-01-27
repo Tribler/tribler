@@ -16,6 +16,14 @@ class IPv8CommunityLauncher(CommunityLauncher):
         return (Peer(session.trustchain_testnet_keypair) if session.config.get_trustchain_testnet()
                 else Peer(session.trustchain_keypair))
 
+    def get_bootstrappers(self, session):
+        from ipv8.bootstrapping.dispersy.bootstrapper import DispersyBootstrapper
+        from ipv8.configuration import DISPERSY_BOOTSTRAPPER
+        if session.config.get_ipv8_bootstrap_override():
+            return [(DispersyBootstrapper, {"ip_addresses": [session.config.get_ipv8_bootstrap_override()],
+                                            "dns_addresses": []})]
+        return [(DispersyBootstrapper, DISPERSY_BOOTSTRAPPER['init'])]
+
 
 class TestnetMixIn:
     def should_launch(self, session):
@@ -105,9 +113,7 @@ def remove_peers():
 @walk_strategy(random_walk)
 @walk_strategy(periodic_similarity, target_peers=INFINITE)
 class IPv8DiscoveryCommunityLauncher(IPv8CommunityLauncher):
-    def finalize(self, ipv8, session, community):
-        community.resolve_dns_bootstrap_addresses()
-        return super()
+    pass
 
 
 @overlay(bandwidth_accounting_community)
