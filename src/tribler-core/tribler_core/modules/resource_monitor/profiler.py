@@ -37,7 +37,7 @@ class YappiProfiler:
         yappi.stop()
 
         yappi_stats = yappi.get_func_stats()
-        yappi_stats.sort("tsub")
+        yappi_stats.sort('tsub', sort_order="desc")
 
         log_dir = self.session.config.get_state_dir() / 'logs'
         file_path = log_dir / f"yappi_{self._start_time}.stats"
