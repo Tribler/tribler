@@ -329,15 +329,8 @@ class DebugWindow(QMainWindow):
     def load_ipv8_communities_tab(self):
         TriblerNetworkRequest("ipv8/overlays", self.on_ipv8_community_stats)
 
-    def _colored_peer_count(self, peer_count, overlay_count, overlay_name):
-        if overlay_name == 'DiscoveryCommunity':
-            limits = [20, overlay_count * 30 + 1]
-        elif overlay_name == 'DHTDiscoveryCommunity':
-            limits = [20, 61]
-        elif overlay_name == 'RemoteQueryCommunity':
-            limits = [20, 51]
-        else:
-            limits = [20, 31]
+    def _colored_peer_count(self, peer_count, max_peers):
+        limits = [20, max_peers + 1]
         color = 0xF4D03F if peer_count < limits[0] else (0x56F129 if peer_count < limits[1] else 0xF12929)
         return QBrush(QColor(color))
 
@@ -352,7 +345,7 @@ class DebugWindow(QMainWindow):
             item.setText(2, overlay["my_peer"][-12:])
             peer_count = len(overlay["peers"])
             item.setText(3, f"{peer_count}")
-            item.setForeground(3, self._colored_peer_count(peer_count, len(data["overlays"]), overlay["overlay_name"]))
+            item.setForeground(3, self._colored_peer_count(peer_count, overlay["max_peers"]))
 
             if "statistics" in overlay and overlay["statistics"]:
                 statistics = overlay["statistics"]
