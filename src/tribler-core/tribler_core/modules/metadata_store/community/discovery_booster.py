@@ -8,25 +8,23 @@ class DiscoveryBooster:
 
     It can be applied to any community.
     """
-    def __init__(self, timeout_in_sec=10.0, max_peers=200, take_step_interval_in_sec=0.05, walker=None):
+
+    def __init__(self, timeout_in_sec=10.0, take_step_interval_in_sec=0.05, walker=None):
         """
 
         Args:
             timeout_in_sec: DiscoveryBooster work timeout. When this timeout will be reached,
                 `finish` function will be called.
-            max_peers: Temporary value of max peers that will be set to the community during DiscoveryBooster work.
             take_step_interval_in_sec: Сall frequency of walker's `take_step` function.
             walker: walker that will be used during boost period.
         """
         self.logger = logging.getLogger(self.__class__.__name__)
 
         self.timeout_in_sec = timeout_in_sec
-        self.max_peers = max_peers
         self.take_step_interval_in_sec = take_step_interval_in_sec
         self.walker = walker
 
         self.community = None
-        self.saved_max_peers = None
 
         self._take_step_task_name = 'take step'
 
@@ -42,15 +40,10 @@ class DiscoveryBooster:
             return
 
         self.logger.info(
-            f'Apply. Timeout: {self.timeout_in_sec}s, '
-            f'Max peers: {self.max_peers}, '
-            f'Take step interval: {self.take_step_interval_in_sec}s'
+            f'Apply. Timeout: {self.timeout_in_sec}s, ' f'Take step interval: {self.take_step_interval_in_sec}s'
         )
 
         self.community = community
-        self.saved_max_peers = community.max_peers
-
-        community.max_peers = self.max_peers
 
         if not self.walker:
             # values for neighborhood_size and edge_length were found empirically to
@@ -69,10 +62,7 @@ class DiscoveryBooster:
 
         Returns: None
         """
-        self.logger.info(
-            f'Finish. Set self.max_peers={self.saved_max_peers}. Cancel pending task: {self._take_step_task_name}'
-        )
-        self.community.max_peers = self.saved_max_peers
+        self.logger.info(f'Finish. Cancel pending task: {self._take_step_task_name}')
         self.community.cancel_pending_task(self._take_step_task_name)
 
     def take_step(self):

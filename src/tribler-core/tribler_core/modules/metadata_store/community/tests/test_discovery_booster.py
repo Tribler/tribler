@@ -2,11 +2,8 @@ import pytest
 
 from tribler_core.modules.metadata_store.community.discovery_booster import DiscoveryBooster
 
-TEST_BOOSTER_MAX_PEERS = 100
 TEST_BOOSTER_TIMEOUT_IN_SEC = 10
 TEST_BOOSTER_TAKE_STEP_INTERVAL_IN_SEC = 1
-
-TEST_COMMUNITY_MAX_PEERS = 30
 
 
 @pytest.fixture(name="booster")  # this workaround implemented only for pylint
@@ -20,7 +17,6 @@ def fixture_booster():
 
     return DiscoveryBooster(
         timeout_in_sec=TEST_BOOSTER_TIMEOUT_IN_SEC,
-        max_peers=TEST_BOOSTER_MAX_PEERS,
         take_step_interval_in_sec=TEST_BOOSTER_TAKE_STEP_INTERVAL_IN_SEC,
         walker=MockWalker(),
     )
@@ -30,7 +26,6 @@ def fixture_booster():
 def fixture_community():
     class MockCommunity:
         def __init__(self):
-            self.max_peers = TEST_COMMUNITY_MAX_PEERS
             self.tasks = []
 
         def register_task(
@@ -45,12 +40,10 @@ def fixture_community():
 
 
 def test_init(booster):
-    assert booster.max_peers == TEST_BOOSTER_MAX_PEERS
     assert booster.timeout_in_sec == TEST_BOOSTER_TIMEOUT_IN_SEC
     assert booster.take_step_interval_in_sec == TEST_BOOSTER_TAKE_STEP_INTERVAL_IN_SEC
 
     assert booster.community is None
-    assert booster.saved_max_peers is None
     assert booster.walker is not None
 
 
@@ -60,17 +53,14 @@ def test_apply(booster, community):
 
     booster.apply(community)
     assert booster.community == community
-    assert booster.saved_max_peers == TEST_COMMUNITY_MAX_PEERS
     assert booster.walker is not None
 
-    assert community.max_peers == booster.max_peers
     assert len(community.tasks) == 2
 
 
 def test_finish(booster, community):
     booster.apply(community)
     booster.finish()
-    assert community.max_peers == TEST_COMMUNITY_MAX_PEERS
     assert len(community.tasks) == 1
 
 
