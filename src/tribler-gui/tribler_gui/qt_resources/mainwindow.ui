@@ -2218,7 +2218,7 @@ color: white;</string>
                   <item row="13" column="0">
                    <widget class="QLabel" name="label_62">
                     <property name="text">
-                     <string>Port (defaults to 8085)</string>
+                     <string>Port (defaults to 52194)</string>
                     </property>
                    </widget>
                   </item>
