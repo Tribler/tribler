@@ -205,8 +205,12 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             self.logger.warning("too many relays (%d)", (len(self.relay_from_to) + len(self.exit_sockets)))
             return succeed(False)
 
-        # Check whether we have a random open slot, if so, allocate this to this request.
         circuit_id = create_payload.circuit_id
+        if self.request_cache.has('balance-request', circuit_id):
+            self.logger.warning("balance request already in progress for circuit %d", circuit_id)
+            return succeed(False)
+
+        # Check whether we have a random open slot, if so, allocate this to this request.
         for index, slot in enumerate(self.random_slots):
             if not slot:
                 self.random_slots[index] = circuit_id
