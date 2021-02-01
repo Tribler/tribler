@@ -51,6 +51,8 @@ class CoreManager(QObject):
         self.core_traceback_timestamp = 0
 
         self.check_state_timer = QTimer()
+        self.check_state_timer.setSingleShot(True)
+        connect(self.check_state_timer.timeout, self.check_core_ready)
 
     def on_core_read_ready(self):
         raw_output = bytes(self.core_process.readAll())
@@ -68,8 +70,9 @@ class CoreManager(QObject):
             if self.events_manager.connect_timer and self.events_manager.connect_timer.isActive():
                 self.events_manager.connect_timer.stop()
 
-            exception_msg = f"The Tribler core has unexpectedly finished " \
-                            f"with exit code {exit_code} and status: {exit_status}!"
+            exception_msg = (
+                f"The Tribler core has unexpectedly finished " f"with exit code {exit_code} and status: {exit_status}!"
+            )
             if self.core_traceback:
                 exception_msg += "\n\n%s\n(Timestamp: %d, traceback timestamp: %d)" % (
                     self.core_traceback,
@@ -126,9 +129,6 @@ class CoreManager(QObject):
 
     def on_received_state(self, state):
         if not state or 'state' not in state or state['state'] not in ['STARTED', 'EXCEPTION']:
-            self.check_state_timer = QTimer()
-            self.check_state_timer.setSingleShot(True)
-            connect(self.check_state_timer.timeout, self.check_core_ready)
             self.check_state_timer.start(50)
             return
 
