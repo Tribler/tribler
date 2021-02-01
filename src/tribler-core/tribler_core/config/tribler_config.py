@@ -3,8 +3,10 @@ Configuration object for the Tribler Core.
 """
 import logging
 import os
+import traceback
+from typing import Optional
 
-from configobj import ConfigObj
+from configobj import ConfigObj, ParseError
 
 from validate import Validator
 
@@ -22,7 +24,7 @@ SPEC_FILENAME = 'tribler_config.spec'
 CONFIG_SPEC_PATH = get_lib_path() / 'config' / SPEC_FILENAME
 
 
-class TriblerConfig(object):
+class TriblerConfig:
     """
     Holds all Tribler Core configurable variables.
 
@@ -30,25 +32,50 @@ class TriblerConfig(object):
     their allowed values and default value in `config.spec`.
     """
 
-    def __init__(self, state_dir, config_file=None):
+    def __init__(self, state_dir, config_file=None, reset_config_on_error=False):
         """
         Create a new TriblerConfig instance.
 
         :param config_file: path to existing config file
+        :param reset_config_on_error: Flag indicating whether to recover from corrupt config using default config.
         :raises an InvalidConfigException if ConfigObj is invalid
         """
         self._logger = logging.getLogger(self.__class__.__name__)
         self._state_dir = Path(state_dir)
-        self.config = ConfigObj(infile=(str(config_file) if config_file else None),
-                                configspec=str(CONFIG_SPEC_PATH), default_encoding='utf-8')
-        self.validate()
         self.selected_ports = {}
+
+        self.config = None
+        self.config_error = None
+        self.load_config_file(config_file, reset_config_on_error)
 
         # Set the default destination dir. The value should be in the config dict
         # because of the REST endpoint sending the whole dict to the GUI.
         # TODO: do not write the value into the config file if the user did not change it
         if self.config['download_defaults']['saveas'] is None:
             self.config['download_defaults']['saveas'] = str(self.abspath(get_default_dest_dir()))
+
+    def load_config_file(self, config_file: Path, recover_error: bool):
+        """
+        Loads ConfigObj from the config file. If the file is corrupted, tries to create
+        ConfigObj using the spec file if `recover_error` is set.
+
+        """
+        config_file_path = str(config_file) if config_file else None
+        try:
+            self.config = self._load_config_file(config_file_path)
+        except ParseError:
+            if not config_file or not recover_error:
+                raise
+
+            self.config_error = traceback.format_exc()
+            self.config = self._load_config_file(None)
+            # Since this is a new config, save it immediately
+            self.write()
+
+        self.validate()
+
+    def _load_config_file(self, config_file_path: Optional[str]) -> ConfigObj:
+        return ConfigObj(infile=config_file_path, configspec=str(CONFIG_SPEC_PATH), default_encoding='utf-8')
 
     def abspath(self, path):
         return path_util.abspath(path, optional_prefix=self.get_state_dir())
@@ -82,7 +109,7 @@ class TriblerConfig(object):
         validator = Validator()
         validation_result = self.config.validate(validator)
         if validation_result is not True:
-            raise InvalidConfigException(msg="TriblerConfig is invalid: %s" % str(validation_result))
+            raise InvalidConfigException(msg=f"TriblerConfig is invalid: {str(validation_result)}")
 
     def write(self):
         """
@@ -111,7 +138,7 @@ class TriblerConfig(object):
         """Get a random port which is not already selected."""
         if path not in self.selected_ports:
             self.selected_ports[path] = get_random_port()
-            self._logger.debug(u"Get random port %d for [%s]", self.selected_ports[path], path)
+            self._logger.debug("Get random port %d for [%s]", self.selected_ports[path], path)
         return self.selected_ports[path]
 
     # Version and backup
@@ -483,7 +510,7 @@ class TriblerConfig(object):
 
     def get_tunnel_community_socks5_listen_ports(self):
         ports = self.config['tunnel_community']['socks5_listen_ports']
-        path = u'tunnel_community~socks5_listen_ports~'
+        path = 'tunnel_community~socks5_listen_ports~'
         return [self._get_random_port(path + str(index))
                 if int(port) < 0 else int(port) for index, port in enumerate(ports)]
 
@@ -627,5 +654,5 @@ class TriblerConfig(object):
     def get_resource_monitor_history_size(self):
         return self.config['resource_monitor']['history_size']
 
-    def get_error_reporting_requires_user_consent(self):
-        return self.config['error_handling']['error_reporting_requires_user_consent']
+    def get_core_error_reporting_requires_user_consent(self):
+        return self.config['error_handling']['core_error_reporting_requires_user_consent']

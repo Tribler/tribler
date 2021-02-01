@@ -35,11 +35,11 @@ class RESTResponse(web.Response):
         if isinstance(body, (dict, list)):
             body = json.dumps(body)
             content_type = 'application/json'
-        super(RESTResponse, self).__init__(body=body, headers=headers,
+        super().__init__(body=body, headers=headers,
                                            content_type=content_type, status=status, **kwargs)
 
 
 class RESTStreamResponse(web.StreamResponse):
 
     def __init__(self, headers=None, **kwargs):
-        super(RESTStreamResponse, self).__init__(headers=headers, **kwargs)
+        super().__init__(headers=headers, **kwargs)

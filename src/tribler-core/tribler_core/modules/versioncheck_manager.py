@@ -26,7 +26,7 @@ VERSION_CHECK_TIMEOUT = 5  # Five seconds timeout
 class VersionCheckManager(TaskManager):
 
     def __init__(self, session):
-        super(VersionCheckManager, self).__init__()
+        super().__init__()
 
         self._logger = logging.getLogger(self.__class__.__name__)
         self.session = session
@@ -70,4 +70,4 @@ class VersionCheckManager(TaskManager):
             self._logger.warning("Checking for new version failed for %s", version_check_url)
             return False
         except ValueError as ve:
-            raise ValueError("Failed to parse Tribler version response.\nError:%s" % ve)
+            raise ValueError(f"Failed to parse Tribler version response.\nError:{ve}")

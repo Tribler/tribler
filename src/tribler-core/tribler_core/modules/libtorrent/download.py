@@ -34,7 +34,7 @@ class Download(TaskManager):
     """ Download subclass that represents a libtorrent download."""
 
     def __init__(self, session, tdef, dummy=False):
-        super(Download, self).__init__()
+        super().__init__()
 
         self._logger = logging.getLogger(self.__class__.__name__)
 

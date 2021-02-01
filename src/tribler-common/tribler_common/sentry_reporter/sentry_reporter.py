@@ -13,6 +13,7 @@ from sentry_sdk.integrations.threading import ThreadingIntegration
 
 from tribler_common.sentry_reporter.sentry_tools import (
     delete_item,
+    extract_dict,
     get_first_item,
     get_value,
     parse_os_environ,
@@ -169,6 +170,9 @@ class SentryReporter:
         if event is None:
             return event
 
+        post_data = post_data or dict()
+        sys_info = sys_info or dict()
+
         if CONTEXTS not in event:
             event[CONTEXTS] = {}
 
@@ -183,7 +187,7 @@ class SentryReporter:
         tags['machine'] = get_value(post_data, 'machine')
         tags['os'] = get_value(post_data, 'os')
         tags['platform'] = get_first_item(get_value(sys_info, 'platform'))
-        tags[('%s' % PLATFORM_DETAILS)] = get_first_item(get_value(sys_info, PLATFORM_DETAILS))
+        tags[f'{PLATFORM_DETAILS}'] = get_first_item(get_value(sys_info, PLATFORM_DETAILS))
 
         # context
         context = event[CONTEXTS]
@@ -192,12 +196,18 @@ class SentryReporter:
 
         context['browser'] = {'version': version, 'name': 'Tribler'}
 
-        reporter[STACKTRACE] = parse_stacktrace(get_value(post_data, 'stack'))
+        stacktrace_parts = parse_stacktrace(get_value(post_data, 'stack'))
+        reporter[STACKTRACE] = next(stacktrace_parts, [])
+        reporter[f'{STACKTRACE}_extra'] = next(stacktrace_parts, [])
+        reporter[f'{STACKTRACE}_context'] = next(stacktrace_parts, [])
+
         reporter['comments'] = get_value(post_data, 'comments')
 
         reporter[OS_ENVIRON] = parse_os_environ(get_value(sys_info, OS_ENVIRON))
         delete_item(sys_info, OS_ENVIRON)
-        reporter[SYSINFO] = sys_info
+
+        reporter['events'] = extract_dict(sys_info, r'^(event|request)')
+        reporter[SYSINFO] = {key: sys_info[key] for key in sys_info if key not in reporter['events']}
 
         with this_sentry_strategy(SentryStrategy.SEND_ALLOWED):
             sentry_sdk.capture_event(event)

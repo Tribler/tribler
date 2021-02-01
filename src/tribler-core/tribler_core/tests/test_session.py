@@ -1,3 +1,5 @@
+import asyncio
+import shutil
 from asyncio import get_event_loop, sleep
 from unittest.mock import Mock
 
@@ -7,7 +9,11 @@ from ipv8.util import succeed
 
 import pytest
 
-from tribler_core.session import IGNORED_ERRORS
+from tribler_common.simpledefs import NTFY
+
+from tribler_core.config.test_tribler_config import CONFIG_PATH
+from tribler_core.config.tribler_config import TriblerConfig
+from tribler_core.session import IGNORED_ERRORS, Session
 from tribler_core.tests.tools.base_test import MockObject
 
 # Pylint does not agree with the way pytest handles fixtures.
@@ -149,3 +155,32 @@ async def test_load_ipv8_overlays_testnet(mocked_endpoints, enable_ipv8, session
     assert "PopularityCommunity" in loaded_launchers
     assert "GigaChannelCommunity" not in loaded_launchers
     assert "GigaChannelTestnetCommunity" in loaded_launchers
+
+
+@pytest.mark.asyncio
+async def test_config_error_notification(tmpdir):
+    """
+    Test if config error is notified on session startup.
+    """
+
+    # 1. Setup corrupted config
+    shutil.copy2(CONFIG_PATH / 'corrupt-triblerd.conf', tmpdir / 'triblerd.conf')
+    tribler_config = TriblerConfig(tmpdir, config_file=tmpdir / 'triblerd.conf', reset_config_on_error=True)
+
+    # 2. Initialize session with corrupted config, disable upgrader for simplicity.
+    # By mocking the notifier, we can check if the notify was called with correct parameters
+    session = Session(tribler_config)
+    session.upgrader_enabled = False
+    session.notifier = Mock()
+
+    # 3. Start the session which should internally call the notifier.
+    await session.start()
+    # Notifier uses asyncio loop internally, so we must wait at least a single loop cycle
+    await asyncio.sleep(0)
+
+    # 4. There could be multiple notify calls but we are only interested in the config error
+    # so using 'assert_any_call' here to check if the notify was called.
+    session.notifier.notify.assert_any_call(NTFY.REPORT_CONFIG_ERROR, tribler_config.config_error)
+
+    # 5. Always shutdown the session at the end.
+    await session.shutdown()

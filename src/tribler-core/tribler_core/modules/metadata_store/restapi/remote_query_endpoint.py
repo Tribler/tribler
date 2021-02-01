@@ -20,7 +20,7 @@ class RemoteQueryEndpoint(MetadataEndpointBase):
         self.app.add_routes([web.put('', self.create_remote_search_request)])
 
     def sanitize_parameters(self, parameters):
-        sanitized = super(RemoteQueryEndpoint, self).sanitize_parameters(parameters)
+        sanitized = super().sanitize_parameters(parameters)
 
         # Convert frozenset to string
         if "metadata_type" in sanitized:
@@ -44,7 +44,7 @@ class RemoteQueryEndpoint(MetadataEndpointBase):
         try:
             sanitized = self.sanitize_parameters(request.query)
         except (ValueError, KeyError) as e:
-            return RESTResponse({"error": "Error processing request parameters: %s" % e}, status=HTTP_BAD_REQUEST)
+            return RESTResponse({"error": f"Error processing request parameters: {e}"}, status=HTTP_BAD_REQUEST)
 
         request_uuid = self.session.gigachannel_community.send_search_request(**sanitized)
         return RESTResponse({"request_uuid": str(request_uuid)})

@@ -127,7 +127,7 @@ def translate_peers_into_health(peer_info_dicts):
 
 def unichar_string(text):
     """ Unicode character interpretation of text for Python 2.7 """
-    return u''.join(chr(ord(t)) for t in text)
+    return ''.join(chr(ord(t)) for t in text)
 
 
 def is_simple_match_query(query):

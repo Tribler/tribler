@@ -87,7 +87,7 @@ async def hidden_seeder_session(seed_config, video_tdef):
         """
         seeder_session.tunnel_community.monitor_downloads([ds])
         d = ds.get_download()
-        print("seeder: %s %s %s" % (repr(d.get_def().get_name()), dlstatus_strings[ds.get_status()], ds.get_progress()))
+        print(f"seeder: {repr(d.get_def().get_name())} {dlstatus_strings[ds.get_status()]} {ds.get_progress()}")
         return 2
 
     upload.set_state_callback(seeder_state_callback)

@@ -2,11 +2,16 @@ import threading
 from asyncio import get_event_loop
 
 from pony import orm
-from pony.orm import db_session, desc, raw_sql, select
+from pony.orm import db_session, desc, left_join, raw_sql
 
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import LEGACY_ENTRY, TODELETE
 from tribler_core.modules.metadata_store.orm_bindings.torrent_metadata import NULL_KEY_SUBST
-from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, METADATA_NODE, MetadataNodePayload
+from tribler_core.modules.metadata_store.serialization import (
+    CHANNEL_TORRENT,
+    COLLECTION_NODE,
+    METADATA_NODE,
+    MetadataNodePayload,
+)
 from tribler_core.utilities.unicode import hexlify
 
 
@@ -46,13 +51,12 @@ def define_binding(db):
             if not query or query == "*":
                 return []
 
-            # !!! FIXME !!! Fix GROUP BY for entries without infohash !!!
             # TODO: optimize this query by removing unnecessary select nests (including Pony-manages selects)
             fts_ids = raw_sql(
                 """SELECT rowid FROM ChannelNode WHERE rowid IN (SELECT rowid FROM FtsIndex WHERE FtsIndex MATCH $query
-                ORDER BY bm25(FtsIndex) LIMIT $lim) GROUP BY infohash"""
+                ORDER BY bm25(FtsIndex) LIMIT $lim) GROUP BY coalesce(infohash, rowid)"""
             )
-            return cls.select(lambda g: g.rowid in fts_ids)
+            return left_join(g for g in cls if g.rowid in fts_ids)  # pylint: disable=E1135
 
         @classmethod
         @db_session
@@ -81,7 +85,7 @@ def define_binding(db):
             """
             # Warning! For Pony magic to work, iteration variable name (e.g. 'g') should be the same everywhere!
 
-            pony_query = cls.search_keyword(txt_filter, lim=1000) if txt_filter else select(g for g in cls)
+            pony_query = cls.search_keyword(txt_filter, lim=1000) if txt_filter else left_join(g for g in cls)
 
             if metadata_type is not None:
                 try:
@@ -120,11 +124,13 @@ def define_binding(db):
             )
 
             # Sort the query
+            pony_query = pony_query.sort_by("desc(g.rowid)" if sort_desc else "g.rowid")
+
             if sort_by == "HEALTH":
-                pony_query = (
-                    pony_query.sort_by("(desc(g.health.seeders), desc(g.health.leechers))")
+                pony_query = pony_query.sort_by(
+                    "(desc(g.health.seeders), desc(g.health.leechers))"
                     if sort_desc
-                    else pony_query.sort_by("(g.health.seeders, g.health.leechers)")
+                    else "(g.health.seeders, g.health.leechers)"
                 )
             elif sort_by == "size" and not issubclass(cls, db.ChannelMetadata):
                 # TODO: optimize this check to skip cases where size field does not matter
@@ -135,6 +141,16 @@ def define_binding(db):
                 sort_expression = "g." + sort_by
                 sort_expression = desc(sort_expression) if sort_desc else sort_expression
                 pony_query = pony_query.sort_by(sort_expression)
+
+            if txt_filter:
+                if sort_by is None:
+                    pony_query = pony_query.sort_by(
+                        f"""
+                        1 if g.metadata_type == {CHANNEL_TORRENT} else
+                        2 if g.metadata_type == {COLLECTION_NODE} else
+                        3 if g.health.seeders > 0 else 4
+                    """
+                    )
 
             return pony_query
 

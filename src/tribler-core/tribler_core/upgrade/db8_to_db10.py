@@ -14,7 +14,7 @@ TABLE_NAMES = (
     "ChannelNode", "TorrentState", "TorrentState_TrackerState", "ChannelPeer", "ChannelVote", "TrackerState", "Vsids")
 
 
-class PonyToPonyMigration(object):
+class PonyToPonyMigration:
 
     def __init__(self, old_db_path, new_db_path, notifier_callback=None, logger=None):
         self._logger = logger or logging.getLogger(self.__class__.__name__)

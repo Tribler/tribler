@@ -36,7 +36,7 @@ class TestRemoteQueryCommunity(TestBase):
     """
 
     def setUp(self):
-        super(TestRemoteQueryCommunity, self).setUp()
+        super().setUp()
         self.count = 0
         self.initialize(BasicRemoteQueryCommunity, 2)
         self.torrent_template = {"title": "", "infohash": b"", "torrent_date": datetime(1970, 1, 1), "tags": "video"}
@@ -45,11 +45,11 @@ class TestRemoteQueryCommunity(TestBase):
         metadata_store = MetadataStore(
             Path(self.temporary_directory()) / f"{self.count}.db",
             Path(self.temporary_directory()),
-            default_eccrypto.generate_key(u"curve25519"),
+            default_eccrypto.generate_key("curve25519"),
             disable_sync=True,
         )
         kwargs['metadata_store'] = metadata_store
-        node = super(TestRemoteQueryCommunity, self).create_node(*args, **kwargs)
+        node = super().create_node(*args, **kwargs)
         self.count += 1
         return node
 
@@ -71,7 +71,7 @@ class TestRemoteQueryCommunity(TestBase):
         with db_session:
             channel = self.nodes[0].overlay.mds.ChannelMetadata.create_channel("ubuntu channel", "ubuntu")
             for i in range(20):
-                add_random_torrent(self.nodes[0].overlay.mds.TorrentMetadata, name="ubuntu %s" % i, channel=channel)
+                add_random_torrent(self.nodes[0].overlay.mds.TorrentMetadata, name=f"ubuntu {i}", channel=channel)
 
         kwargs_dict = {"txt_filter": "ubuntu*", "metadata_type": [REGULAR_TORRENT]}
         callback = Mock()
@@ -133,7 +133,7 @@ class TestRemoteQueryCommunity(TestBase):
         # Create the old and new versions of the test channel
         # We sign it with a different private key to prevent the special treatment
         # of personal channels during processing interfering with the test.
-        fake_key = default_eccrypto.generate_key(u"curve25519")
+        fake_key = default_eccrypto.generate_key("curve25519")
         with db_session:
             chan = self.nodes[0].overlay.mds.ChannelMetadata(
                 infohash=random_infohash(), title="foo", sign_with=fake_key
@@ -252,7 +252,7 @@ class TestRemoteQueryCommunity(TestBase):
         results = await self.overlay(0).process_rpc_query(dumps({}))
         self.assertEqual(1, len(results))
 
-        channel_md, = results
+        (channel_md,) = results
         self.assertEqual("a channel", channel_md.title)
 
     async def test_process_rpc_query_match_none(self):

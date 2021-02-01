@@ -1,13 +1,13 @@
 from urllib.parse import unquote_plus
 
-from tribler_gui.utilities import compose_magnetlink, quote_plus_unicode, unicode_quoter
+from tribler_gui.utilities import compose_magnetlink, dict_item_is_any_of, quote_plus_unicode, unicode_quoter
 
 
 def test_quoter_char():
     """
     Test if an ASCII character is quoted correctly
     """
-    char = u'A'
+    char = 'A'
 
     encoded = unicode_quoter(char)
 
@@ -18,7 +18,7 @@ def test_quoter_unichar():
     """
     Test if a unicode character is quoted correctly
     """
-    char = u'\u9b54'
+    char = '\u9b54'
 
     encoded = unicode_quoter(char)
 
@@ -29,7 +29,7 @@ def test_quoter_reserved():
     """
     Test if a URI reserved character is quoted correctly
     """
-    char = u'+'
+    char = '+'
 
     encoded = unicode_quoter(char)
 
@@ -41,7 +41,7 @@ def test_quote_plus_unicode_char():
     """
     Test if a ASCII characters are quoted correctly
     """
-    s = u'Ab09'
+    s = 'Ab09'
 
     encoded = quote_plus_unicode(s)
 
@@ -52,7 +52,7 @@ def test_quote_plus_unicode_unichar():
     """
     Test if unicode characters are quoted correctly
     """
-    s = u'\u9b54\u11b3\uaf92\u1111'
+    s = '\u9b54\u11b3\uaf92\u1111'
 
     encoded = quote_plus_unicode(s)
 
@@ -63,7 +63,7 @@ def test_quote_plus_unicode_reserved():
     """
     Test if a URI reserved characters are quoted correctly
     """
-    s = u'+ &'
+    s = '+ &'
 
     encoded = quote_plus_unicode(s)
 
@@ -75,7 +75,7 @@ def test_quote_plus_unicode_compound():
     """
     Test if a jumble of unicode, reserved and normal chars are quoted correctly
     """
-    s = u'\u9b54\u11b3+ A5&\uaf92\u1111'
+    s = '\u9b54\u11b3+ A5&\uaf92\u1111'
 
     encoded = quote_plus_unicode(s)
 
@@ -105,3 +105,22 @@ def test_compose_magnetlink():
     assert composed_link1 == expected_link1
     assert composed_link2 == expected_link2
     assert composed_link3 == expected_link3
+
+
+def test_is_dict_has():
+    assert not dict_item_is_any_of(None, None, None)
+    assert not dict_item_is_any_of({}, None, None)
+
+    d = {
+        'k': 'v',
+        'k1': 'v1'
+    }
+
+    assert not dict_item_is_any_of(d, 'missed_key', None)
+    assert not dict_item_is_any_of(d, 'missed_key', ['any_value'])
+    assert not dict_item_is_any_of(d, 'k', ['missed_value'])
+    assert not dict_item_is_any_of(d, 'k', ['missed_value', 'missed_value1'])
+
+    assert dict_item_is_any_of(d, 'k', ['v'])
+    assert dict_item_is_any_of(d, 'k', ['v', 'a'])
+    assert dict_item_is_any_of(d, 'k', ['a', 'v'])

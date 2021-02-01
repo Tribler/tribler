@@ -16,7 +16,7 @@ WATCH_FOLDER_CHECK_INTERVAL = 10
 class WatchFolder(TaskManager):
 
     def __init__(self, session):
-        super(WatchFolder, self).__init__()
+        super().__init__()
 
         self._logger = logging.getLogger(self.__class__.__name__)
         self.session = session

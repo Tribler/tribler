@@ -3,7 +3,7 @@ Keeping track of information about a tracker.
 """
 
 
-class TrackerInfo(object):
+class TrackerInfo:
     """
     This class keeps track of info about a tracker. This info is used when a request to a tracker is performed.
     """

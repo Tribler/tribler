@@ -22,12 +22,12 @@ def setup_logging(config_path='config.yaml', module='core', log_dir='LOG_DIR'):
     Setup logging configuration with the given YAML file.
     """
     if os.path.exists(config_path):
-        with open(config_path, 'rt') as f:
+        with open(config_path) as f:
             try:
                 # Update the log file paths in the config
                 config_text = f.read()
-                module_info_log_file = Path(log_dir).joinpath("%s-info.log" % module)
-                module_error_log_file = Path(log_dir).joinpath("%s-error.log" % module)
+                module_info_log_file = Path(log_dir).joinpath(f"{module}-info.log")
+                module_error_log_file = Path(log_dir).joinpath(f"{module}-error.log")
                 config_text = config_text.replace('TRIBLER_INFO_LOG_FILE', str(module_info_log_file))
                 config_text = config_text.replace('TRIBLER_ERROR_LOG_FILE', str(module_error_log_file))
 

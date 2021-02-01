@@ -28,7 +28,6 @@ local.properties
 /debian/tribler.postrm.debhelper
 /debian/tribler.prerm.debhelper
 /debian/tribler.substvars
-/debian/tribler/
 /output
 \#*\#
 \.\#
@@ -77,7 +76,7 @@ twisted/plugins/dropin.cache
 twistd.pid
 
 # PyInstaller
-build/
+build/tribler
 dist/
 
 # Annotation files

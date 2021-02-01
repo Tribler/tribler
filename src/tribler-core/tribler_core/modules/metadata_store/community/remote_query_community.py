@@ -95,8 +95,8 @@ class RemoteQueryCommunity(Community):
     Community for general purpose SELECT-like queries into remote Channels database
     """
 
-    def __init__(self, my_peer, endpoint, network, metadata_store, settings=None):
-        super().__init__(my_peer, endpoint, network=network)
+    def __init__(self, my_peer, endpoint, network, metadata_store, settings=None, **kwargs):
+        super().__init__(my_peer, endpoint, network=network, **kwargs)
 
         self.settings = settings or RemoteQueryCommunitySettings()
         self.mds = metadata_store

@@ -9,7 +9,7 @@ class SearchRequestCache(RandomNumberCache):
     """
 
     def __init__(self, request_cache, uuid, peers):
-        super(SearchRequestCache, self).__init__(request_cache, u"remote-search-request")
+        super().__init__(request_cache, "remote-search-request")
         self.request_cache = request_cache
         self.requested_peers = {hexlify(peer.mid): False for peer in peers}
         self.uuid = uuid

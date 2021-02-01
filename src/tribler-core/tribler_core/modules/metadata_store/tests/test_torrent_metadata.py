@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from datetime import datetime
 
 from ipv8.database import database_blob
@@ -78,8 +77,8 @@ def test_search_keyword(metadata_store):
     torrent2 = metadata_store.TorrentMetadata.from_dict(dict(rnd_torrent(), title="eee 123"))
     metadata_store.TorrentMetadata.from_dict(dict(rnd_torrent(), title="xoxoxo bar"))
     metadata_store.TorrentMetadata.from_dict(dict(rnd_torrent(), title="xoxoxo bar"))
-    metadata_store.TorrentMetadata.from_dict(dict(rnd_torrent(), title=u"\""))
-    metadata_store.TorrentMetadata.from_dict(dict(rnd_torrent(), title=u"\'"))
+    metadata_store.TorrentMetadata.from_dict(dict(rnd_torrent(), title="\""))
+    metadata_store.TorrentMetadata.from_dict(dict(rnd_torrent(), title="\'"))
     orm.flush()
 
     # Search for torrents with the keyword 'foo', it should return one result
@@ -102,7 +101,7 @@ def test_search_deduplicated(metadata_store):
     """
     Test SQL-query base deduplication of search results with the same infohash
     """
-    key2 = default_eccrypto.generate_key(u"curve25519")
+    key2 = default_eccrypto.generate_key("curve25519")
     torrent = rnd_torrent()
     metadata_store.TorrentMetadata.from_dict(dict(torrent, title="foo bar 123"))
     metadata_store.TorrentMetadata.from_dict(dict(torrent, title="eee 123", sign_with=key2))
@@ -122,8 +121,8 @@ def test_unicode_search(metadata_store):
     """
     Test searching in the database with unicode characters
     """
-    metadata_store.TorrentMetadata.from_dict(dict(rnd_torrent(), title=u"я маленький апельсин"))
-    results = metadata_store.TorrentMetadata.search_keyword(u"маленький")[:]
+    metadata_store.TorrentMetadata.from_dict(dict(rnd_torrent(), title="я маленький апельсин"))
+    results = metadata_store.TorrentMetadata.search_keyword("маленький")[:]
     assert len(results) == 1
 
 
@@ -225,7 +224,7 @@ def test_get_entries(metadata_store):
 
     args = dict(channel_pk=channel_pk, hide_xxx=True, exclude_deleted=True, metadata_type=REGULAR_TORRENT)
     torrents = metadata_store.TorrentMetadata.get_entries_query(**args)[:]
-    assert tlist[-5:-2] == list(torrents)
+    assert tlist[-5:-2] == list(torrents)[::-1]
 
     count = metadata_store.TorrentMetadata.get_entries_count(**args)
     assert count == 3

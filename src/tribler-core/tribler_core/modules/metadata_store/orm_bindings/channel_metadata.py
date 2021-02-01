@@ -83,7 +83,7 @@ def entries_to_chunk(metadata_list, chunk_size, start_index=0):
         offset = len(header)
         out_list = [header]  # LZ4 header
         for index, metadata in enumerate(metadata_list[start_index:], start_index):
-            blob = c.compress((metadata.serialized_delete() if metadata.status == TODELETE else metadata.serialized()))
+            blob = c.compress(metadata.serialized_delete() if metadata.status == TODELETE else metadata.serialized())
             # Chunk size limit reached?
             if offset + len(blob) > (chunk_size - LZ4_END_MARK_SIZE):
                 break
@@ -279,7 +279,7 @@ def define_binding(db):
 
             try:
                 update_dict, torrent = self.update_channel_torrent(md_list)
-            except IOError:
+            except OSError:
                 self._logger.error(
                     "Error during channel torrent commit, not going to garbage collect the channel. Channel %s",
                     hexlify(self.public_key),
@@ -316,7 +316,7 @@ def define_binding(db):
         @property
         def dirname(self):
             # Have to limit this to support Windows file path length limit
-            return hexlify(self.public_key)[:CHANNEL_DIR_NAME_PK_LENGTH] + "{:0>16x}".format(self.id_)
+            return hexlify(self.public_key)[:CHANNEL_DIR_NAME_PK_LENGTH] + f"{self.id_:0>16x}"
 
         @classmethod
         @db_session
@@ -341,7 +341,7 @@ def define_binding(db):
                 return txt + "0" * (PUBLIC_KEY_LEN * 2 - CHANNEL_DIR_NAME_LENGTH)
 
             pk_binmask_start = "x'" + extend_to_bitmask(pk_part) + "'"
-            pk_plus_one = ("%X" % (int(pk_part, 16) + 1)).zfill(len(pk_part))
+            pk_plus_one = f"{int(pk_part, 16) + 1:X}".zfill(len(pk_part))
             pk_binmask_end = "x'" + extend_to_bitmask(pk_plus_one) + "'"
             # It is impossible to use LIKE queries on BLOBs, so we have to use comparisons
             sql = "g.public_key >= " + pk_binmask_start + " AND g.public_key < " + pk_binmask_end
@@ -388,7 +388,7 @@ def define_binding(db):
             """
             Return a basic dictionary with information about the channel.
             """
-            result = super(ChannelMetadata, self).to_simple_dict(**kwargs)
+            result = super().to_simple_dict(**kwargs)
             result.update(
                 {
                     "state": self.state,
@@ -434,7 +434,7 @@ def define_binding(db):
 
         @db_session
         def update_properties(self, update_dict):
-            updated_self = super(ChannelMetadata, self).update_properties(update_dict)
+            updated_self = super().update_properties(update_dict)
             if updated_self.origin_id != 0:
                 # Coerce to CollectionNode
                 # ACHTUNG! This is a little bit awkward way to re-create the entry as an instance of

@@ -55,10 +55,10 @@ class TriblerContentTableView(QTableView):
     def on_subscribe_control_clicked(self, index):
         item = index.model().data_items[index.row()]
         # skip LEGACY entries, regular torrents and personal channel
-        if u'subscribed' not in item or item[u'status'] == 1000 or item[u'state'] == u'Personal':
+        if 'subscribed' not in item or item['status'] == 1000 or item['state'] == 'Personal':
             return
 
-        status = int(item[u'subscribed'])
+        status = int(item['subscribed'])
         # index.model().setData(index, int(not status), role=Qt.EditRole)
 
         if status:
@@ -75,10 +75,10 @@ class TriblerContentTableView(QTableView):
         column_position = self.model().column_position
         if (
             (ACTION_BUTTONS in column_position and item.column() == column_position[ACTION_BUTTONS])
-            or (u'status' in column_position and item.column() == column_position[u'status'])
-            or (u'votes' in column_position and item.column() == column_position[u'votes'])
-            or (u'subscribed' in column_position and item.column() == column_position[u'subscribed'])
-            or (u'health' in column_position and item.column() == column_position[u'health'])
+            or ('status' in column_position and item.column() == column_position['status'])
+            or ('votes' in column_position and item.column() == column_position['votes'])
+            or ('subscribed' in column_position and item.column() == column_position['subscribed'])
+            or ('health' in column_position and item.column() == column_position['health'])
         ):
             return
 
@@ -98,7 +98,7 @@ class TriblerContentTableView(QTableView):
             return
 
         if 'success' in json_result and json_result['success']:
-            index.model().data_items[index.row()][u'status'] = json_result['new_status']
+            index.model().data_items[index.row()]['status'] = json_result['new_status']
 
             # FIXME: this should instead use signal and do not address the widget globally
             # FIXME: properly handle entry removal

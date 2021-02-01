@@ -76,7 +76,7 @@ async def test_update_entry_missing_json(enable_chant, enable_api, session):
     Test whether an error is returned if we try to change entry with the REST API and missing JSON data
     """
     channel_pk = hexlify(session.mds.ChannelNode._my_key.pub().key_to_bin()[10:])
-    await do_request(session, 'metadata/%s/123' % channel_pk, expected_code=400, request_type='PATCH', post_data='abc')
+    await do_request(session, f'metadata/{channel_pk}/123', expected_code=400, request_type='PATCH', post_data='abc')
 
 
 @pytest.mark.asyncio
@@ -167,7 +167,7 @@ async def test_check_torrent_health(enable_chant, enable_api, session, mock_dlmg
     Test the endpoint to fetch the health of a chant-managed, infohash-only torrent
     """
     infohash = b'a' * 20
-    tracker_url = 'udp://localhost:%s/announce' % udp_tracker.port
+    tracker_url = f'udp://localhost:{udp_tracker.port}/announce'
     udp_tracker.tracker_info.add_info_about_infohash(infohash, 12, 11, 1)
 
     with db_session:
@@ -176,7 +176,7 @@ async def test_check_torrent_health(enable_chant, enable_api, session, mock_dlmg
         session.mds.TorrentMetadata(
             infohash=infohash, title='ubuntu-torrent.iso', size=42, tracker_info=tracker_url, health=torrent_state
         )
-    url = 'metadata/torrents/%s/health?timeout=%s&refresh=1' % (hexlify(infohash), TORRENT_CHECK_TIMEOUT)
+    url = f'metadata/torrents/{hexlify(infohash)}/health?timeout={TORRENT_CHECK_TIMEOUT}&refresh=1'
 
     # Initialize the torrent checker
     session.torrent_checker = TorrentChecker(session)
@@ -191,7 +191,7 @@ async def test_check_torrent_health(enable_chant, enable_api, session, mock_dlmg
     await udp_tracker.start()
     json_response = await do_request(session, url)
     assert "health" in json_response
-    assert "udp://localhost:%s" % udp_tracker.port in json_response['health']
+    assert f"udp://localhost:{udp_tracker.port}" in json_response['health']
     if has_bep33_support():
         assert "DHT" in json_response['health']
 
@@ -205,5 +205,4 @@ async def test_check_torrent_query(enable_chant, enable_api, session, udp_tracke
     Test that the endpoint responds with an error message if the timeout parameter has a wrong value
     """
     infohash = b'a' * 20
-    await do_request(session, "metadata/torrents/%s/health?timeout=wrong_value&refresh=1" % infohash,
-                     expected_code=400)
+    await do_request(session, f"metadata/torrents/{infohash}/health?timeout=wrong_value&refresh=1", expected_code=400)

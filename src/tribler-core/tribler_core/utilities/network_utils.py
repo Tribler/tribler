@@ -19,10 +19,10 @@ def get_random_port(socket_type="all", min_port=5000, max_port=60000):
     @param max_port: The maximal port number to try with.
     @return: A working port number if exists, otherwise None.
     """
-    assert socket_type in ("all", "tcp", "udp"), "Invalid socket type %s" % type(socket_type)
-    assert isinstance(min_port, int), "Invalid min_port type %s" % type(min_port)
-    assert isinstance(max_port, int), "Invalid max_port type %s" % type(max_port)
-    assert 0 < min_port <= max_port <= 65535, "Invalid min_port and mac_port values %s, %s" % (min_port, max_port)
+    assert socket_type in ("all", "tcp", "udp"), f"Invalid socket type {type(socket_type)}"
+    assert isinstance(min_port, int), f"Invalid min_port type {type(min_port)}"
+    assert isinstance(max_port, int), f"Invalid max_port type {type(max_port)}"
+    assert 0 < min_port <= max_port <= 65535, f"Invalid min_port and mac_port values {min_port}, {max_port}"
 
     working_port = None
     try_port = random.randint(min_port, max_port)
@@ -45,9 +45,9 @@ def check_random_port(port, socket_type="all"):
     @param port: The port to try with.
     @return: True or False indicating if port is available.
     """
-    assert socket_type in ("all", "tcp", "udp"), "Invalid socket type %s" % type(socket_type)
-    assert isinstance(port, int), "Invalid port type %s" % type(port)
-    assert 0 < port <= 65535, "Invalid port value %s" % port
+    assert socket_type in ("all", "tcp", "udp"), f"Invalid socket type {type(socket_type)}"
+    assert isinstance(port, int), f"Invalid port type {type(port)}"
+    assert 0 < port <= 65535, f"Invalid port value {port}"
 
     # only support IPv4 for now
     _family = socket.AF_INET
@@ -78,9 +78,9 @@ def _test_port(family, sock_type, port):
     @param port: The port number to test with.
     @return: True if the port is available or there is no problem with the socket, otherwise False.
     """
-    assert family in (socket.AF_INET,), "Invalid family value %s" % family
-    assert sock_type in (socket.SOCK_DGRAM, socket.SOCK_STREAM), "Invalid sock_type value %s" % sock_type
-    assert 0 < port <= 65535, "Invalid port value %s" % port
+    assert family in (socket.AF_INET,), f"Invalid family value {family}"
+    assert sock_type in (socket.SOCK_DGRAM, socket.SOCK_STREAM), f"Invalid sock_type value {sock_type}"
+    assert 0 < port <= 65535, f"Invalid port value {port}"
 
     try:
         with socket.socket(family, sock_type) as s:
@@ -88,7 +88,7 @@ def _test_port(family, sock_type, port):
                 s.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER, struct.pack('ii', 1, 0))
             s.bind(('', port))
         is_port_working = True
-    except socket.error as e:
+    except OSError as e:
         logger.debug("Port test failed (port=%s, family=%s, type=%s): %s",
                      port, family, sock_type, e)
         is_port_working = False
@@ -100,10 +100,10 @@ def autodetect_socket_style():
         return 1
     else:
         try:
-            with open('/proc/sys/net/ipv6/bindv6only', 'r') as f:
+            with open('/proc/sys/net/ipv6/bindv6only') as f:
                 dual_socket_style = int(f.read())
             return int(not dual_socket_style)
-        except (IOError, ValueError):
+        except (OSError, ValueError):
             return 0
 
 
@@ -136,7 +136,7 @@ def is_valid_address(address):
 
     try:
         socket.inet_aton(address[0])
-    except socket.error:
+    except OSError:
         return False
 
     # ending with .0

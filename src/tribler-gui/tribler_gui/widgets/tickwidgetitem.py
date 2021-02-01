@@ -18,13 +18,13 @@ class TickWidgetItem(QTreeWidgetItem):
         self.price = float(self.total_volume) / float(prec_div(tick["assets"]["second"]["amount"], asset2_prec))
 
         if self.tick["type"] == "ask":
-            self.setText(0, "%g" % self.price)
-            self.setText(1, "%g" % self.cur_volume)
-            self.setText(2, "%g" % self.total_volume)
+            self.setText(0, f"{self.price:g}")
+            self.setText(1, f"{self.cur_volume:g}")
+            self.setText(2, f"{self.total_volume:g}")
         else:
-            self.setText(0, "%g" % self.total_volume)
-            self.setText(1, "%g" % self.cur_volume)
-            self.setText(2, "%g" % self.price)
+            self.setText(0, f"{self.total_volume:g}")
+            self.setText(1, f"{self.cur_volume:g}")
+            self.setText(2, f"{self.price:g}")
 
     @property
     def is_ask(self):

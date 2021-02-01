@@ -66,16 +66,16 @@ class CallbackConfigParser(RawConfigParser):
     def write(self, fp):
         with self.lock:
             if self._defaults:
-                fp.write(u"[%s]\n" % DEFAULTSECT)
+                fp.write(f"[{DEFAULTSECT}]\n")
                 for (key, value) in self._defaults.items():
-                    fp.write(u"%s = %s\n" % (key, str(value).replace(u'\n', u'\n\t')))
-                fp.write(u"\n")
+                    fp.write("{} = {}\n".format(key, str(value).replace('\n', '\n\t')))
+                fp.write("\n")
             for section in self._sections:
-                fp.write(u"[%s]\n" % section)
+                fp.write(f"[{section}]\n")
                 for (key, value) in self._sections[section].items():
-                    if key != u"__name__":
-                        fp.write(u"%s = %s\n" % (key, str(value).replace(u'\n', u'\n\t')))
-                fp.write(u"\n")
+                    if key != "__name__":
+                        fp.write("{} = {}\n".format(key, str(value).replace('\n', '\n\t')))
+                fp.write("\n")
 
     @staticmethod
     def get_literal_value(value):

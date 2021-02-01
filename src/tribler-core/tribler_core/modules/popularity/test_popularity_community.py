@@ -23,19 +23,19 @@ class TestPopularityCommunity(TestBase):
     NUM_NODES = 2
 
     def setUp(self):
-        super(TestPopularityCommunity, self).setUp()
+        super().setUp()
         self.count = 0
         self.initialize(PopularityCommunity, self.NUM_NODES)
 
     def create_node(self, *args, **kwargs):
         mds = MetadataStore(Path(self.temporary_directory()) / ("%d.db" % self.count),
                             Path(self.temporary_directory()),
-                            default_eccrypto.generate_key(u"curve25519"))
+                            default_eccrypto.generate_key("curve25519"))
 
         torrent_checker = MockObject()
         torrent_checker.torrents_checked = set()
 
-        return MockIPv8(u"curve25519", PopularityCommunity, metadata_store=mds,
+        return MockIPv8("curve25519", PopularityCommunity, metadata_store=mds,
                         torrent_checker=torrent_checker)
 
     @db_session

@@ -1,6 +1,7 @@
 import filecmp
 import json
 import os
+from distutils.version import LooseVersion
 
 from tribler_common.simpledefs import (
     STATEDIR_CHANNELS_DIR,
@@ -14,6 +15,7 @@ from tribler_core.upgrade.version_manager import (
     VersionHistory,
     copy_state_directory,
     fork_state_directory_if_necessary,
+    must_upgrade,
     version_to_dirname,
 )
 from tribler_core.utilities.path_util import Path
@@ -60,18 +62,36 @@ def test_get_last_upgradable_version_based_on_dir(tmpdir):
     json_dict = {"last_version": "100.1.1", "history": dict()}
     json_dict["history"]["1"] = "100.1.1"  # no dir - bad
     json_dict["history"]["2"] = "99.2.3"  # dir in place, earlier than 3 - bad
+    (root_state_dir / "102.1").mkdir()
+    json_dict["history"]["3"] = "102.1.0"  # version OK, got dir, same major/minor version as us - ignore
     (root_state_dir / "99.2").mkdir()
-    json_dict["history"]["3"] = "92.3.4"  # dir in place, more recent than 2, - good
+    json_dict["history"]["4"] = "92.3.4"  # dir in place, more recent than 2, - good
     (root_state_dir / "92.3").mkdir()
-    json_dict["history"]["4"] = "200.2.3"  # version higher than code version
+    json_dict["history"]["5"] = "200.2.3"  # version higher than code version
     (root_state_dir / "200.2").mkdir()
-    json_dict["history"]["5"] = "94.3.4"  # version OK, no dir - bad
+    json_dict["history"]["6"] = "94.3.4"  # version OK, no dir - bad
 
     (root_state_dir / VERSION_HISTORY_FILE).write_text(json.dumps(json_dict))
 
     version_history = VersionHistory(root_state_dir / VERSION_HISTORY_FILE)
     last_upgradable_version = version_history.get_last_upgradable_version(root_state_dir, "102.1.1")
     assert last_upgradable_version == "92.3.4"
+
+
+def test_must_upgrade():
+    """
+    By convention, we only upgrade if the previous version's major/minor is lower than the new version's.
+    This is another way to say that we ignore the patch version for upgrade purposes.
+    """
+    assert must_upgrade(LooseVersion("1.2.3"), LooseVersion("1.3.3"))
+    assert must_upgrade(LooseVersion("1.2.3"), LooseVersion("2.3.3"))
+    assert must_upgrade(LooseVersion("1.2.3"), LooseVersion("2.4.3"))
+    assert must_upgrade(LooseVersion("1.2.3"), LooseVersion("2.1.3"))
+    assert not must_upgrade(LooseVersion("1.2.3"), LooseVersion("1.2.3"))
+    assert not must_upgrade(LooseVersion("1.2.3"), LooseVersion("1.2.4"))
+    assert not must_upgrade(LooseVersion("1.3.3"), LooseVersion("1.2.4"))
+    assert not must_upgrade(LooseVersion("2.3.3"), LooseVersion("2.3.4"))
+    assert not must_upgrade(LooseVersion("2.3.3"), LooseVersion("1.4.4"))
 
 
 def test_fork_state_directory(tmpdir_factory):

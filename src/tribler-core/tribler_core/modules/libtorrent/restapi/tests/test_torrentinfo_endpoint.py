@@ -44,15 +44,15 @@ async def test_get_torrentinfo(enable_chant, enable_api, mock_dlmgr, tmpdir, fil
     await do_request(session, 'torrentinfo?uri=def', expected_code=400)
 
     path = "file:" + pathname2url(TESTS_DATA_DIR / "bak_single.torrent")
-    verify_valid_dict(await do_request(session, 'torrentinfo?uri=%s' % path, expected_code=200))
+    verify_valid_dict(await do_request(session, f'torrentinfo?uri={path}', expected_code=200))
 
     # Corrupt file
     path = "file:" + pathname2url(TESTS_DATA_DIR / "test_rss.xml")
-    await do_request(session, 'torrentinfo?uri=%s' % path, expected_code=500)
+    await do_request(session, f'torrentinfo?uri={path}', expected_code=500)
 
     # FIXME: !!! HTTP query for torrent produces dicts with unicode. TorrentDef creation can't handle unicode. !!!
     path = "http://localhost:%d/ubuntu.torrent" % file_server
-    verify_valid_dict(await do_request(session, 'torrentinfo?uri=%s' % quote_plus(path), expected_code=200))
+    verify_valid_dict(await do_request(session, f'torrentinfo?uri={quote_plus(path)}', expected_code=200))
 
     path = quote_plus(f'magnet:?xt=urn:btih:{hexlify(UBUNTU_1504_INFOHASH)}'
                       f'&dn=test torrent&tr=http://ubuntu.org/ann')
@@ -70,25 +70,25 @@ async def test_get_torrentinfo(enable_chant, enable_api, mock_dlmgr, tmpdir, fil
         return succeed(tdef.get_metainfo())
 
     session.dlmgr.get_metainfo = get_metainfo
-    verify_valid_dict(await do_request(session, 'torrentinfo?uri=%s' % path, expected_code=200))
+    verify_valid_dict(await do_request(session, f'torrentinfo?uri={path}', expected_code=200))
 
     path = 'magnet:?xt=urn:ed2k:354B15E68FB8F36D7CD88FF94116CDC1'  # No infohash
-    await do_request(session, 'torrentinfo?uri=%s' % path, expected_code=400)
+    await do_request(session, f'torrentinfo?uri={path}', expected_code=400)
 
-    path = quote_plus('magnet:?xt=urn:btih:%s&dn=%s' % ('a' * 40, 'test torrent'))
+    path = quote_plus(f"magnet:?xt=urn:btih:{'a' * 40}&dn=test torrent")
     session.dlmgr.get_metainfo = lambda *_, **__: succeed(None)
-    await do_request(session, 'torrentinfo?uri=%s' % path, expected_code=500)
+    await do_request(session, f'torrentinfo?uri={path}', expected_code=500)
 
     session.dlmgr.get_metainfo = get_metainfo
-    verify_valid_dict(await do_request(session, 'torrentinfo?uri=%s' % path, expected_code=200))
+    verify_valid_dict(await do_request(session, f'torrentinfo?uri={path}', expected_code=200))
 
-    await do_request(session, 'torrentinfo?uri=%s&hops=0' % path, expected_code=200)
+    await do_request(session, f'torrentinfo?uri={path}&hops=0', expected_code=200)
     assert [0] == hops_list
 
-    await do_request(session, 'torrentinfo?uri=%s&hops=foo' % path, expected_code=400)
+    await do_request(session, f'torrentinfo?uri={path}&hops=foo', expected_code=400)
 
     path = 'http://fdsafksdlafdslkdksdlfjs9fsafasdf7lkdzz32.n38/324.torrent'
-    await do_request(session, 'torrentinfo?uri=%s' % path, expected_code=500)
+    await do_request(session, f'torrentinfo?uri={path}', expected_code=500)
 
     with db_session:
         assert session.mds.TorrentMetadata.select().count() == 2
@@ -96,20 +96,20 @@ async def test_get_torrentinfo(enable_chant, enable_api, mock_dlmgr, tmpdir, fil
     mock_download = Mock()
     path = quote_plus(f'magnet:?xt=urn:btih:{hexlify(UBUNTU_1504_INFOHASH)}&dn=test torrent')
     session.dlmgr.downloads = {UBUNTU_1504_INFOHASH: mock_download}
-    result = await do_request(session, 'torrentinfo?uri=%s' % path, expected_code=200)
+    result = await do_request(session, f'torrentinfo?uri={path}', expected_code=200)
     assert result["download_exists"]
 
     # Check that we do not return "downloads_exists" if the download is metainfo only download
     session.dlmgr.downloads = {UBUNTU_1504_INFOHASH: mock_download}
     session.dlmgr.metainfo_requests = {UBUNTU_1504_INFOHASH: [mock_download]}
-    result = await do_request(session, 'torrentinfo?uri=%s' % path, expected_code=200)
+    result = await do_request(session, f'torrentinfo?uri={path}', expected_code=200)
     assert not result["download_exists"]
 
     # Check that we return "downloads_exists" if there is a metainfo download for the infohash,
     # but there is also a regular download for the same infohash
     session.dlmgr.downloads = {UBUNTU_1504_INFOHASH: mock_download}
     session.dlmgr.metainfo_requests = {UBUNTU_1504_INFOHASH: [Mock()]}
-    result = await do_request(session, 'torrentinfo?uri=%s' % path, expected_code=200)
+    result = await do_request(session, f'torrentinfo?uri={path}', expected_code=200)
     assert result["download_exists"]
 
 
@@ -125,7 +125,7 @@ async def test_on_got_invalid_metainfo(enable_api, mock_dlmgr, session):
     session.dlmgr.shutdown = lambda: succeed(None)
     session.dlmgr.shutdown_downloads = lambda: succeed(None)
     session.dlmgr.checkpoint_downloads = lambda: succeed(None)
-    path = 'magnet:?xt=urn:btih:%s&dn=%s' % (hexlify(UBUNTU_1504_INFOHASH), quote_plus('test torrent'))
+    path = f"magnet:?xt=urn:btih:{hexlify(UBUNTU_1504_INFOHASH)}&dn={quote_plus('test torrent')}"
 
-    res = await do_request(session, 'torrentinfo?uri=%s' % path, expected_code=500)
+    res = await do_request(session, f'torrentinfo?uri={path}', expected_code=500)
     assert "error" in res

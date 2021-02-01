@@ -135,6 +135,9 @@ class StartDownloadDialog(DialogContainer):
         if self.rest_request:
             self.rest_request.cancel_request()
 
+        if self.metainfo_fetch_timer:
+            self.metainfo_fetch_timer.stop()
+
         # Loading files label is a clickable label with pyqtsignal which could leak,
         # so delete the widget while closing the dialog.
         if self.dialog_widget and self.dialog_widget.loading_files_label:
@@ -143,7 +146,7 @@ class StartDownloadDialog(DialogContainer):
             except RuntimeError:
                 logging.debug("Deleting loading files widget in the dialog widget failed.")
 
-        super(StartDownloadDialog, self).close_dialog()
+        super().close_dialog()
 
     def get_selected_files(self):
         included_files = []
@@ -155,6 +158,9 @@ class StartDownloadDialog(DialogContainer):
         return included_files
 
     def perform_files_request(self):
+        if self.closed:
+            return
+
         direct = not self.dialog_widget.anon_download_checkbox.isChecked()
         request = f"torrentinfo?uri={quote_plus_unicode(self.download_uri)}"
         if direct is True:
@@ -179,7 +185,7 @@ class StartDownloadDialog(DialogContainer):
             self.metainfo_retries += 1
 
     def on_received_metainfo(self, response):
-        if not response or not self:
+        if not response or not self or self.closed:
             return
 
         if 'error' in response:
@@ -194,7 +200,7 @@ class StartDownloadDialog(DialogContainer):
             elif 'code' in response['error'] and response['error']['code'] == 'IOError':
                 self.dialog_widget.loading_files_label.setText("Unable to read torrent file data")
             else:
-                self.dialog_widget.loading_files_label.setText("Error: %s" % response['error'])
+                self.dialog_widget.loading_files_label.setText(f"Error: {response['error']}")
             return
 
         metainfo = json.loads(unhexlify(response['metainfo']))
@@ -229,7 +235,7 @@ class StartDownloadDialog(DialogContainer):
 
         self.received_metainfo.emit(metainfo)
 
-    def on_reload_torrent_info(self, checked):
+    def on_reload_torrent_info(self, *args):
         """
         This method is called when user clicks the QLabel text showing loading or error message. Here, we reset
         the number of retries to fetch the metainfo. Note color of QLabel is also reset to white.

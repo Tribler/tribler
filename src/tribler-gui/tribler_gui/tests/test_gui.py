@@ -51,7 +51,7 @@ def tribler_api(api_port, tmpdir_factory):
     core_env = QProcessEnvironment.systemEnvironment()
     core_env.insert("CORE_BASE_PATH", str(RUN_TRIBLER_PY.parent / "tribler-core"))
     core_env.insert("CORE_PROCESS", "1")
-    core_env.insert("CORE_API_PORT", "%s" % api_port)
+    core_env.insert("CORE_API_PORT", f"{api_port}")
     core_env.insert("CORE_API_KEY", "")
     core_env.insert("TRIBLER_CORE_TEST_MODE", "1")
 
@@ -221,7 +221,7 @@ def tst_channels_widget(window, widget, widget_name, sort_column=1, test_filter=
 
     if test_subscribe:
         # Unsubscribe and subscribe again
-        index = get_index_of_row_column(widget.content_table, 0, widget.model.column_position[u'votes'])
+        index = get_index_of_row_column(widget.content_table, 0, widget.model.column_position['votes'])
         widget.content_table.on_subscribe_control_clicked(index)
         QTest.qWait(200)
         window.dialog.button_clicked.emit(0)
@@ -231,13 +231,13 @@ def tst_channels_widget(window, widget, widget_name, sort_column=1, test_filter=
         window.dialog.button_clicked.emit(0)
 
     # Test channel view
-    index = get_index_of_row_column(widget.content_table, 0, widget.model.column_position[u'name'])
+    index = get_index_of_row_column(widget.content_table, 0, widget.model.column_position['name'])
     widget.content_table.on_table_item_clicked(index)
     wait_for_list_populated(widget.content_table)
     screenshot(window, name=f"{widget_name}-channel_loaded")
 
     # Click the first torrent
-    index = get_index_of_row_column(widget.content_table, 0, widget.model.column_position[u'name'])
+    index = get_index_of_row_column(widget.content_table, 0, widget.model.column_position['name'])
     widget.content_table.on_table_item_clicked(index)
     QTest.qWait(100)
     screenshot(window, name=f"{widget_name}-torrent_details")
@@ -249,7 +249,7 @@ def test_discovered_page(tribler_api, window):
     tst_channels_widget(window, window.discovered_page, "discovered_page", sort_column=2)
 
 
-#@pytest.mark.guitest
+# @pytest.mark.guitest
 def test_edit_channel_torrents(tribler_api, window):
     wait_for_list_populated(window.channels_menu_list)
     idx = window.channels_menu_list.model().index(0, 0)

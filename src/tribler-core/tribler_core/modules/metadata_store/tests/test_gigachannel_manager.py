@@ -298,7 +298,7 @@ async def test_remove_cruft_channels(
         MockDownload(database_blob(b'1231551'), chan3.dirname),
         MockDownload(database_blob(bytes(chan3.infohash)), chan3.dirname),
         # Orphaned download
-        MockDownload(database_blob(b'333'), u"blabla"),
+        MockDownload(database_blob(b'333'), "blabla"),
     ]
 
     def mock_get_channel_downloads(**_):

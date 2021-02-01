@@ -16,6 +16,14 @@ class IPv8CommunityLauncher(CommunityLauncher):
         return (Peer(session.trustchain_testnet_keypair) if session.config.get_trustchain_testnet()
                 else Peer(session.trustchain_keypair))
 
+    def get_bootstrappers(self, session):
+        from ipv8.bootstrapping.dispersy.bootstrapper import DispersyBootstrapper
+        from ipv8.configuration import DISPERSY_BOOTSTRAPPER
+        if session.config.get_ipv8_bootstrap_override():
+            return [(DispersyBootstrapper, {"ip_addresses": [session.config.get_ipv8_bootstrap_override()],
+                                            "dns_addresses": []})]
+        return [(DispersyBootstrapper, DISPERSY_BOOTSTRAPPER['init'])]
+
 
 class TestnetMixIn:
     def should_launch(self, session):
@@ -101,13 +109,12 @@ def remove_peers():
 
 @precondition('session.config.get_discovery_community_enabled()')
 @overlay(discovery_community)
+@kwargs(max_peers='100')
 @walk_strategy(random_churn, target_peers=INFINITE)
 @walk_strategy(random_walk)
 @walk_strategy(periodic_similarity, target_peers=INFINITE)
 class IPv8DiscoveryCommunityLauncher(IPv8CommunityLauncher):
-    def finalize(self, ipv8, session, community):
-        community.resolve_dns_bootstrap_addresses()
-        return super()
+    pass
 
 
 @overlay(bandwidth_accounting_community)
@@ -128,6 +135,7 @@ class BandwidthTestnetCommunityLauncher(TestnetMixIn, BandwidthCommunityLauncher
 @precondition('session.config.get_dht_enabled()')
 @set_in_session('dht_community')
 @overlay(dht_discovery_community)
+@kwargs(max_peers='60')
 @walk_strategy(ping_churn, target_peers=INFINITE)
 @walk_strategy(random_walk)
 class DHTCommunityLauncher(IPv8CommunityLauncher):
@@ -180,7 +188,7 @@ class PopularityCommunityLauncher(IPv8CommunityLauncher):
 @precondition('not session.config.get_chant_testnet()')
 @set_in_session('gigachannel_community')
 @overlay(giga_channel_community)
-@kwargs(metadata_store='session.mds', notifier='session.notifier')
+@kwargs(metadata_store='session.mds', notifier='session.notifier', max_peers='50')
 # GigaChannelCommunity remote search feature works better with higher amount of connected peers
 @walk_strategy(random_walk, target_peers=30)
 @walk_strategy(remove_peers, target_peers=INFINITE)

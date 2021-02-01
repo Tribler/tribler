@@ -1,13 +1,14 @@
 from tribler_common.sentry_reporter.sentry_tools import (
     delete_item,
     distinct_by,
+    extract_dict,
+    format_version,
     get_first_item,
     get_last_item,
     get_value,
     modify_value,
     parse_os_environ,
     parse_stacktrace,
-    skip_dev_version,
 )
 
 
@@ -63,11 +64,24 @@ def test_parse_os_environ():
 
 
 def test_parse_stacktrace():
-    assert parse_stacktrace(None) == []
-    assert parse_stacktrace('') == []
-    assert parse_stacktrace('\n') == []
-    assert parse_stacktrace('\n\n') == []
-    assert parse_stacktrace('some\n\nvalue') == ['some', 'value']
+    assert list(parse_stacktrace(None)) == []
+    assert list(parse_stacktrace('')) == []
+    assert list(parse_stacktrace('\n')) == [[]]
+    assert list(parse_stacktrace('\n\n')) == [[]]
+    assert list(parse_stacktrace('line1\n\nline2\\nline3')) == [['line1', 'line2', 'line3']]
+
+    # split --LONG TEXT-- and --CONTEXT-- parts
+    assert list(parse_stacktrace('l1\nl2--LONG TEXT--l3\nl4--CONTEXT--l5\nl6')) == [
+        ['l1', 'l2'],
+        ['l3', 'l4'],
+        ['l5', 'l6'],
+    ]
+
+    # split custom parts
+    assert list(parse_stacktrace('l1\nl2customl3\nl4', delimiters=['custom'])) == [
+        ['l1', 'l2'],
+        ['l3', 'l4'],
+    ]
 
 
 def test_modify():
@@ -104,7 +118,24 @@ def test_distinct():
 
 
 def test_skip_dev_version():
-    assert skip_dev_version(None) is None
-    assert skip_dev_version('') == ''
-    assert skip_dev_version('7.6.0') == '7.6.0'
-    assert skip_dev_version('7.6.0-GIT') is None
+    assert format_version(None) is None
+    assert format_version('') == ''
+    assert format_version('7.6.0') == '7.6.0'
+    assert format_version('7.6.0-GIT') is None
+
+    # version from deployment tester
+    assert format_version('7.7.1-17-gcb73f7baa') == '7.7.1'
+
+    # release candidate
+    assert format_version('7.7.1-RC1-10-abcd') == '7.7.1-RC1'
+
+    # experimental versions
+    assert format_version('7.7.1-exp1-1-abcd ') == '7.7.1-exp1'
+    assert format_version('7.7.1-someresearchtopic-7-abcd ') == '7.7.1-someresearchtopic'
+
+
+def test_extract_dict():
+    assert not extract_dict(None, None)
+
+    assert extract_dict({}, '') == {}
+    assert extract_dict({'k': 'v', 'k1': 'v1'}, r'\w$') == {'k': 'v'}

@@ -19,11 +19,41 @@ Our main repository contains 2 permanent branches:
 
 Release lifecycle
 -----------------
-A release is started by forking from the top of **devel**. The first commit added to the release branch bumps the release version. From that moment, all the bugfixes relevant to the current release must be merged only into the corresponding release branch. No new features could be added to it.
 
-When the release is ready, it is merged into **master** with the suitable release tag. Next it is merged into the current **devel** branch to integrate the bugfixes. If a bugfix from the current release branch is really, really necessary for the current **devel** branch, it could be cherry-picked onto **devel**. But be aware that each of these cherry-pickings eventually results in a merge conflict that should be resolved manually.
+We follow `SemVer <https://semver.org/>`_ notation for release naming:
 
-The release branch lives in the Tribler repository for as long as we support the corresponding Tribler version. Eventually, the branch is removed.
+* Stable release name: <MAJOR>.<MINOR>.<PATCH>
+* Release candidate name: <MAJOR>.<MINOR>.<PATCH>-RC<NUMBER>
+
+We have to create a new branch For every MAJOR or MINOR release.
+
+Therefore the following structure of the branch name is used: "release/<MAJOR>.<MINOR>".
+
+Example: "release/7.8"
+
+The release lifecycle:
+
+1. A release branch forks from `devel`.
+2. The release branch is checked by running the application-tester
+3. In case no errors, a release candidate (RC) is published as pre-release in Github and published to the forum as release post.
+4. After a while (1-2 weeks), if there are no critical bugs, the release candidate is considered stable and ready for stable release.
+5. A stable release tag is created and the release is published in Github. A forum post is created to inform the users in the forum.
+6. The release branch is merged to `devel`
+
+
+In case of an error that needs to be fixed asap in the published stable release:
+
+1. A fix is committed to the corresponding release branch
+2. The release branch is checked by running the application-tester
+3. The fixed release is delivered to users
+4. The release branch is merged to `devel`
+
+
+A release is started by forking from the top of **devel**.
+From that moment, all the bugfixes relevant to the current release must be merged into the corresponding release branch.
+No new features could be added to it.
+
+When the release is ready for publishing, it is merged back to **devel** to integrate the bugfixes.
 
 Tags
 ----

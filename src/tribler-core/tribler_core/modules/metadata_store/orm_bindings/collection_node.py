@@ -13,7 +13,6 @@ from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import ch
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import (
     COMMITTED,
     DIRTY_STATUSES,
-    LEGACY_ENTRY,
     NEW,
     TODELETE,
     UPDATED,
@@ -53,7 +52,7 @@ def define_binding(db):
             return "Preview"
 
         def to_simple_dict(self):
-            result = super(CollectionNode, self).to_simple_dict()
+            result = super().to_simple_dict()
             result.update(
                 {"torrents": self.num_entries, "state": self.state, "dirty": self.dirty if self.is_personal else False}
             )
@@ -349,7 +348,7 @@ def define_binding(db):
             if kwargs.pop('recursive', True):
                 for node in self.contents:
                     node.delete(*args, **kwargs)
-            super(CollectionNode, self).delete(*args, **kwargs)
+            super().delete(*args, **kwargs)
 
         @staticmethod
         @db_session
@@ -401,7 +400,7 @@ def define_binding(db):
                 if 0 not in root_path:
                     # TODO: add orphan-cleaning hook here
                     raise ValueError("Tried to move collection into an orphaned hierarchy!")
-            updated_self = super(CollectionNode, self).update_properties(update_dict)
+            updated_self = super().update_properties(update_dict)
             if updated_self.origin_id == 0 and self.metadata_type == COLLECTION_NODE:
                 # Coerce to ChannelMetadata
                 # ACHTUNG! This is a somewhat awkward way to re-create the entry as an instance of

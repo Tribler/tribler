@@ -1,4 +1,3 @@
-from binascii import hexlify
 
 from aiohttp import web
 
@@ -6,13 +5,12 @@ from libtorrent import bencode
 
 from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, RESTResponse
 from tribler_core.tests.tools.tracker.tracker_info import TrackerInfo
-from tribler_core.utilities.unicode import hexlify
 
 
-class HTTPTracker(object):
+class HTTPTracker:
 
     def __init__(self, port):
-        super(HTTPTracker, self).__init__()
+        super().__init__()
         self.listening_port = None
         self.site = None
         self.port = port
@@ -54,7 +52,7 @@ class HTTPTracker(object):
         response_dict = {'files': {}}
         for infohash in request.query['info_hash']:
             if not self.tracker_info.has_info_about_infohash(infohash):
-                return RESTResponse("no info about infohash %s" % infohash, status=HTTP_BAD_REQUEST)
+                return RESTResponse(f"no info about infohash {infohash}", status=HTTP_BAD_REQUEST)
 
             info_dict = self.tracker_info.get_info_about_infohash(infohash)
             response_dict['files'][infohash] = {'complete': info_dict['seeders'],

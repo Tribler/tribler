@@ -204,7 +204,7 @@ class DebugEndpoint(RESTEndpoint):
             # On other platforms, simply writing to file is much faster
             dump_file_path = self.session.config.get_state_dir() / 'memory_dump.json'
             scanner.dump_all_objects(dump_file_path)
-            with open(dump_file_path, 'r') as dump_file:
+            with open(dump_file_path) as dump_file:
                 content = dump_file.read()
         date_str = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
         return RESTResponse(content,
@@ -249,11 +249,11 @@ class DebugEndpoint(RESTEndpoint):
 
         # Get the location of log file
         param_process = request.query.get('process', 'core')
-        log_file_name = self.session.config.get_log_dir() / ('tribler-%s-info.log' % param_process)
+        log_file_name = self.session.config.get_log_dir() / (f'tribler-{param_process}-info.log')
 
         # If the log file is not present in the versioned state directory, try root state directory location
         if not log_file_name.exists():
-            log_file_name = get_root_state_directory() / ('tribler-%s-info.log' % param_process)
+            log_file_name = get_root_state_directory() / (f'tribler-{param_process}-info.log')
 
         # If the log file is still not found, maybe it is not created yet, then return the default response
         if not log_file_name.exists():
@@ -286,7 +286,7 @@ class DebugEndpoint(RESTEndpoint):
         while len(lines_found) < lines:
             try:
                 file_handler.seek(block_counter * byte_buffer, os.SEEK_END)
-            except IOError:  # either file is too small, or too many lines requested
+            except OSError:  # either file is too small, or too many lines requested
                 file_handler.seek(0)
                 lines_found = file_handler.readlines()
                 break

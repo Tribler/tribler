@@ -9,7 +9,7 @@ from tribler_core.restapi.settings_endpoint import SettingsEndpoint
 
 
 def RaiseException(*args, **kwargs):
-    raise TriblerException(u"Oops! Something went wrong. Please restart Tribler")
+    raise TriblerException("Oops! Something went wrong. Please restart Tribler")
 
 
 @pytest.mark.asyncio

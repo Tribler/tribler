@@ -19,7 +19,7 @@ from tribler_core.restapi.base_api_test import do_request
 
 @pytest.fixture
 def root_key():
-    return default_eccrypto.generate_key(u"very-low").pub().key_to_bin()
+    return default_eccrypto.generate_key("very-low").pub().key_to_bin()
 
 
 @pytest.fixture
@@ -70,7 +70,7 @@ def test_get_node_and_reset(root_key, trust_graph):
     Tests get node with and without adding to the graph.
     Also tests the reset of the graph.
     """
-    test_node1_key = default_eccrypto.generate_key(u"very-low").pub().key_to_bin()
+    test_node1_key = default_eccrypto.generate_key("very-low").pub().key_to_bin()
     test_node1 = trust_graph.get_or_create_node(test_node1_key)
     assert test_node1
 
@@ -78,7 +78,7 @@ def test_get_node_and_reset(root_key, trust_graph):
     assert len(trust_graph.node_public_keys) >= 2
 
     # Get node without adding to the graph
-    test_node2_key = default_eccrypto.generate_key(u"very-low").pub().key_to_bin()
+    test_node2_key = default_eccrypto.generate_key("very-low").pub().key_to_bin()
     test_node2 = trust_graph.get_or_create_node(test_node2_key, add_if_not_exist=False)
     assert test_node2 is None
 
@@ -93,7 +93,7 @@ def test_maximum_nodes_in_graph(trust_graph):
     """
     # Added the MAX_PEERS nodes in the graph (including the root node)
     for _ in range(trust_graph.max_nodes - 1):
-        test_node_key = default_eccrypto.generate_key(u"very-low").pub().key_to_bin()
+        test_node_key = default_eccrypto.generate_key("very-low").pub().key_to_bin()
         test_node = trust_graph.get_or_create_node(test_node_key)
         assert test_node
 
@@ -101,7 +101,7 @@ def test_maximum_nodes_in_graph(trust_graph):
 
     # If we try to add more than MAX_PEERS, we expect to get an exception
     try:
-        test_node_key = default_eccrypto.generate_key(u"very-low").pub().key_to_bin()
+        test_node_key = default_eccrypto.generate_key("very-low").pub().key_to_bin()
         trust_graph.get_or_create_node(test_node_key)
     except TrustGraphException as tge:
         exception_msg = getattr(tge, 'message', repr(tge))

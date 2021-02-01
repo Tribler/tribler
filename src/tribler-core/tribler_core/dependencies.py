@@ -94,4 +94,4 @@ def check_for_missing_dependencies(scope='both'):
                            "Please install the following dependencies to continue:"
                            f"\n {pip3_install}{apt_install} \n\n"
                            )
-        exit(1)
+        sys.exit(1)

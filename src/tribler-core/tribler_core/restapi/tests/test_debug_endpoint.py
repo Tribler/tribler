@@ -136,7 +136,7 @@ async def test_debug_pane_core_logs(enable_api, session):
     assert len(logs) == num_logs
 
     # Check if test log message is present in the logs, at least once
-    log_exists = any((True for log in logs if test_core_log_message in log))
+    log_exists = any(test_core_log_message in log for log in logs)
     assert log_exists, "Test log not found in the debug log response"
 
 

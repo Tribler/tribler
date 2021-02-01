@@ -59,7 +59,7 @@ class IPPortAction(argparse.Action):
 class TunnelHelperService(TaskManager):
 
     def __init__(self):
-        super(TunnelHelperService, self).__init__()
+        super().__init__()
         self._stopping = False
         self.log_circuits = False
         self.session = None
@@ -72,7 +72,7 @@ class TunnelHelperService(TaskManager):
 
     def tribler_started(self):
         async def signal_handler(sig):
-            print("Received shut down signal %s" % sig)
+            print(f"Received shut down signal {sig}")
             if not self._stopping:
                 self._stopping = True
                 await self.session.shutdown()

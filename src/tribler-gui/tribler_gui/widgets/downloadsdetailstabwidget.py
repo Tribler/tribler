@@ -20,6 +20,7 @@ class DownloadsDetailsTabWidget(QTabWidget):
         QTabWidget.__init__(self, parent)
         self.current_download = None
         self.files_widgets = {}  # dict of file name -> widget
+        self.selected_files_info = []
 
     def initialize_details_widget(self):
         connect(self.window().download_files_list.customContextMenuRequested, self.on_right_click_file_item)
@@ -49,7 +50,7 @@ class DownloadsDetailsTabWidget(QTabWidget):
 
     @staticmethod
     def update_peer_row(item, peer):
-        peer_name = "%s:%s" % (peer["ip"], peer["port"])
+        peer_name = f"{peer['ip']}:{peer['port']}"
         if peer['connection_type'] == 1:
             peer_name += ' [WebSeed]'
         elif peer['connection_type'] == 2:
@@ -98,7 +99,7 @@ class DownloadsDetailsTabWidget(QTabWidget):
         else:
             status_string = DLSTATUS_STRINGS[dlstatus_strings.index(self.current_download["status"])]
             if dlstatus_strings.index(self.current_download["status"]) == DLSTATUS_STOPPED_ON_ERROR:
-                status_string += " (error: %s)" % self.current_download["error"]
+                status_string += f" (error: {self.current_download['error']})"
             self.window().download_detail_status_label.setText(status_string)
 
         self.window().download_detail_filesize_label.setText(
@@ -117,7 +118,7 @@ class DownloadsDetailsTabWidget(QTabWidget):
                 format_size(self.current_download["total_down"]),
             )
         )
-        self.window().download_detail_availability_label.setText("%.2f" % self.current_download['availability'])
+        self.window().download_detail_availability_label.setText(f"{self.current_download['availability']:.2f}")
 
         if new_download or len(self.current_download["files"]) != len(self.files_widgets.keys()):
 
@@ -152,7 +153,7 @@ class DownloadsDetailsTabWidget(QTabWidget):
             return
 
         item_infos = []  # Array of (item, included, is_selected)
-        selected_files_info = []
+        self.selected_files_info = []
 
         for i in range(self.window().download_files_list.topLevelItemCount()):
             item = self.window().download_files_list.topLevelItem(i)
@@ -160,7 +161,7 @@ class DownloadsDetailsTabWidget(QTabWidget):
             item_infos.append((item, item.file_info["included"], is_selected))
 
             if is_selected:
-                selected_files_info.append(item.file_info)
+                self.selected_files_info.append(item.file_info)
 
         item_clicked = self.window().download_files_list.itemAt(pos)
         if not item_clicked or not item_clicked in self.window().download_files_list.selectedItems():
@@ -180,9 +181,9 @@ class DownloadsDetailsTabWidget(QTabWidget):
         include_action = QAction('Include file' + ('(s)' if num_selected > 1 else ''), self)
         exclude_action = QAction('Exclude file' + ('(s)' if num_selected > 1 else ''), self)
 
-        connect(include_action.triggered, lambda: self.on_files_included(selected_files_info))
+        connect(include_action.triggered, self.on_files_included)
         include_action.setEnabled(True)
-        connect(exclude_action.triggered, lambda: self.on_files_excluded(selected_files_info))
+        connect(exclude_action.triggered, self.on_files_excluded)
         exclude_action.setEnabled(not (num_excludes + num_includes_selected == len(item_infos)))
 
         menu.addAction(include_action)
@@ -193,17 +194,17 @@ class DownloadsDetailsTabWidget(QTabWidget):
     def get_included_file_list(self):
         return [file_info["index"] for file_info in self.current_download["files"] if file_info["included"]]
 
-    def on_files_included(self, files_data):
+    def on_files_included(self, *args):
         included_list = self.get_included_file_list()
-        for file_data in files_data:
+        for file_data in self.selected_files_info:
             if not file_data["index"] in included_list:
                 included_list.append(file_data["index"])
 
         self.set_included_files(included_list)
 
-    def on_files_excluded(self, files_data):
+    def on_files_excluded(self, *args):
         included_list = self.get_included_file_list()
-        for file_data in files_data:
+        for file_data in self.selected_files_info:
             if file_data["index"] in included_list:
                 included_list.remove(file_data["index"])
 
@@ -212,7 +213,7 @@ class DownloadsDetailsTabWidget(QTabWidget):
     def set_included_files(self, files):
         post_data = {"selected_files": [ind for ind in files]}
         TriblerNetworkRequest(
-            "downloads/%s" % self.current_download['infohash'], lambda _: None, method='PATCH', data=post_data
+            f"downloads/{self.current_download['infohash']}", lambda _: None, method='PATCH', data=post_data
         )
 
     def on_copy_magnet_clicked(self, checked):

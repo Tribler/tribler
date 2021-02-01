@@ -17,7 +17,7 @@ class StateEndpoint(RESTEndpoint):
     """
 
     def __init__(self, session):
-        super(StateEndpoint, self).__init__(session)
+        super().__init__(session)
         self.tribler_state = STATE_STARTING
         self.last_exception = None
         self.sentry_event = None

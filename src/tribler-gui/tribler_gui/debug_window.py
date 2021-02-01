@@ -21,31 +21,36 @@ from tribler_core.utilities.utilities import has_bep33_support
 from tribler_gui.defs import DEBUG_PANE_REFRESH_TIMEOUT, GB, MB
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler_gui.event_request_manager import received_events as tribler_received_events
+from tribler_gui.resource_monitor import GuiResourceMonitor
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest, performed_requests as tribler_performed_requests
 from tribler_gui.utilities import connect, format_size, get_ui_file_path
 from tribler_gui.widgets.graphs.timeseriesplot import TimeSeriesPlot
 from tribler_gui.widgets.ipv8health import MonitorWidget
 
-try:
-    from meliae import scanner
-except ImportError:
-    scanner = None
+COLOR_RGB_BLUE = (0, 153, 255)
+COLOR_WHITE_HEX = "#FFFFFF"
 
 
 class MemoryPlot(TimeSeriesPlot):
-    def __init__(self, parent, **kargs):
-        series = [{'name': 'Memory', 'pen': (0, 153, 255), 'symbolBrush': (0, 153, 255), 'symbolPen': 'w'}]
-        super(MemoryPlot, self).__init__(parent, 'Memory Usage', series, **kargs)
-        self.setBackground('#FCF9F6')
-        self.setLabel('left', 'Memory', units='bytes')
-        self.setLimits(yMin=-MB, yMax=10 * GB)
+    def __init__(self, parent, process='CPU', **kargs):
+        series = [{'name': f'Memory ({process})',
+                   'pen': COLOR_RGB_BLUE,
+                   'symbolBrush': COLOR_RGB_BLUE,
+                   'symbolPen': 'w'}]
+        super().__init__(parent, f'Memory Usage({process})', series, **kargs)
+        self.setBackground(COLOR_WHITE_HEX)
+        self.setLabel('left', 'Memory', units='MB')
+        self.setLimits(yMin=0, yMax=2 * GB)
 
 
 class CPUPlot(TimeSeriesPlot):
-    def __init__(self, parent, **kargs):
-        series = [{'name': 'CPU', 'pen': (0, 153, 255), 'symbolBrush': (0, 153, 255), 'symbolPen': 'w'}]
-        super(CPUPlot, self).__init__(parent, 'CPU Usage', series, **kargs)
-        self.setBackground('#FCF9F6')
+    def __init__(self, parent, process='Core', **kargs):
+        series = [{'name': f'CPU ({process})',
+                   'pen': COLOR_RGB_BLUE,
+                   'symbolBrush': COLOR_RGB_BLUE,
+                   'symbolPen': 'w'}]
+        super().__init__(parent, f'CPU Usage ({process})', series, **kargs)
+        self.setBackground(COLOR_WHITE_HEX)
         self.setLabel('left', 'CPU', units='%')
         self.setLimits(yMin=-10, yMax=200)
 
@@ -62,12 +67,16 @@ class DebugWindow(QMainWindow):
         self._logger = logging.getLogger(self.__class__.__name__)
         QMainWindow.__init__(self)
 
-        self.cpu_plot = None
-        self.memory_plot = None
+        self.core_cpu_plot = None
+        self.gui_cpu_plot = None
         self.initialized_cpu_plot = False
-        self.initialized_memory_plot = False
         self.cpu_plot_timer = None
+
+        self.core_memory_plot = None
+        self.gui_memory_plot = None
+        self.initialized_memory_plot = False
         self.memory_plot_timer = None
+
         self.tribler_version = tribler_version
         self.profiler_enabled = False
         self.toggling_profiler = False
@@ -75,8 +84,6 @@ class DebugWindow(QMainWindow):
         uic.loadUi(get_ui_file_path('debugwindow.ui'), self)
         self.setWindowTitle("Tribler debug pane")
 
-        connect(self.window().dump_memory_core_button.clicked, lambda _: self.on_memory_dump_button_clicked(True))
-        connect(self.window().dump_memory_gui_button.clicked, lambda _: self.on_memory_dump_button_clicked(False))
         connect(self.window().toggle_profiler_button.clicked, self.on_toggle_profiler_button_clicked)
 
         self.window().debug_tab_widget.setCurrentIndex(0)
@@ -122,6 +129,10 @@ class DebugWindow(QMainWindow):
         self.rest_request = None
         self.ipv8_health_widget = None
 
+        # GUI resource monitor
+        self.resource_monitor = GuiResourceMonitor()
+        self.resource_monitor.start()
+
     def hideEvent(self, hide_event):
         self.stop_timer()
         self.hide_ipv8_health_widget()
@@ -129,16 +140,18 @@ class DebugWindow(QMainWindow):
     def showEvent(self, show_event):
         if self.ipv8_health_widget and self.ipv8_health_widget.isVisible():
             self.ipv8_health_widget.resume()
-            TriblerNetworkRequest("ipv8/asyncio/drift", self.on_ipv8_health_enabled, data={"enable": True},
-                                  method='PUT')
+            TriblerNetworkRequest(
+                "ipv8/asyncio/drift", self.on_ipv8_health_enabled, data={"enable": True}, method='PUT'
+            )
 
     def run_with_timer(self, call_fn, timeout=DEBUG_PANE_REFRESH_TIMEOUT):
         call_fn()
         self.stop_timer()
         self.refresh_timer = QTimer()
         self.refresh_timer.setSingleShot(True)
-        connect(self.refresh_timer.timeout,
-            lambda _call_fn=call_fn, _timeout=timeout: self.run_with_timer(_call_fn, timeout=_timeout)
+        connect(
+            self.refresh_timer.timeout,
+            lambda _call_fn=call_fn, _timeout=timeout: self.run_with_timer(_call_fn, timeout=_timeout),
         )
         self.refresh_timer.start(timeout)
 
@@ -229,7 +242,7 @@ class DebugWindow(QMainWindow):
     def create_and_add_widget_item(self, key, value, widget):
         item = QTreeWidgetItem(widget)
         item.setText(0, key)
-        item.setText(1, "%s" % value)
+        item.setText(1, f"{value}")
         widget.addTopLevelItem(item)
 
     def load_general_tab(self):
@@ -277,9 +290,9 @@ class DebugWindow(QMainWindow):
             timestamp = request.time
 
             item = QTreeWidgetItem(self.window().requests_tree_widget)
-            item.setText(0, "%s %s %s" % (method, repr(endpoint), repr(data)))
+            item.setText(0, f"{method} {repr(endpoint)} {repr(data)}")
             item.setText(1, ("%d" % status_code) if status_code else "unknown")
-            item.setText(2, "%s" % strftime("%H:%M:%S", localtime(timestamp)))
+            item.setText(2, f"{strftime('%H:%M:%S', localtime(timestamp))}")
             self.window().requests_tree_widget.addTopLevelItem(item)
 
     def load_bandwidth_accounting_tab(self) -> None:
@@ -308,23 +321,16 @@ class DebugWindow(QMainWindow):
         self.window().ipv8_general_tree_widget.clear()
         for key, value in data["ipv8_statistics"].items():
             if key in ('total_up', 'total_down'):
-                value = "%.2f MB" % (value / (1024.0 * 1024.0))
+                value = f"{value / (1024.0 * 1024.0):.2f} MB"
             elif key == 'session_uptime':
-                value = "%s" % str(datetime.timedelta(seconds=int(value)))
+                value = f"{str(datetime.timedelta(seconds=int(value)))}"
             self.create_and_add_widget_item(key, value, self.window().ipv8_general_tree_widget)
 
     def load_ipv8_communities_tab(self):
         TriblerNetworkRequest("ipv8/overlays", self.on_ipv8_community_stats)
 
-    def _colored_peer_count(self, peer_count, overlay_count, overlay_name):
-        if overlay_name == 'DiscoveryCommunity':
-            limits = [20, overlay_count * 30 + 1]
-        elif overlay_name == 'DHTDiscoveryCommunity':
-            limits = [20, 61]
-        elif overlay_name == 'RemoteQueryCommunity':
-            limits = [20, 51]
-        else:
-            limits = [20, 31]
+    def _colored_peer_count(self, peer_count, max_peers):
+        limits = [20, max_peers + 1]
         color = 0xF4D03F if peer_count < limits[0] else (0x56F129 if peer_count < limits[1] else 0xF12929)
         return QBrush(QColor(color))
 
@@ -338,16 +344,16 @@ class DebugWindow(QMainWindow):
             item.setText(1, overlay["id"][:10])
             item.setText(2, overlay["my_peer"][-12:])
             peer_count = len(overlay["peers"])
-            item.setText(3, "%s" % peer_count)
-            item.setForeground(3, self._colored_peer_count(peer_count, len(data["overlays"]), overlay["overlay_name"]))
+            item.setText(3, f"{peer_count}")
+            item.setForeground(3, self._colored_peer_count(peer_count, overlay["max_peers"]))
 
             if "statistics" in overlay and overlay["statistics"]:
                 statistics = overlay["statistics"]
-                item.setText(4, "%.3f" % (statistics["bytes_up"] / (1024.0 * 1024.0)))
-                item.setText(5, "%.3f" % (statistics["bytes_down"] / (1024.0 * 1024.0)))
-                item.setText(6, "%s" % statistics["num_up"])
-                item.setText(7, "%s" % statistics["num_down"])
-                item.setText(8, "%.3f" % statistics["diff_time"])
+                item.setText(4, f"{statistics['bytes_up'] / (1024.0 * 1024.0):.3f}")
+                item.setText(5, f"{statistics['bytes_down'] / (1024.0 * 1024.0):.3f}")
+                item.setText(6, f"{statistics['num_up']}")
+                item.setText(7, f"{statistics['num_down']}")
+                item.setText(8, f"{statistics['diff_time']:.3f}")
             else:
                 item.setText(4, "N/A")
                 item.setText(5, "N/A")
@@ -385,10 +391,10 @@ class DebugWindow(QMainWindow):
                 for request_id, stat in stats.items():
                     stat_item = QTreeWidgetItem(self.window().ipv8_communities_details_widget)
                     stat_item.setText(0, request_id)
-                    stat_item.setText(1, "%.3f" % (stat["bytes_up"] / (1024.0 * 1024.0)))
-                    stat_item.setText(2, "%.3f" % (stat["bytes_down"] / (1024.0 * 1024.0)))
-                    stat_item.setText(3, "%s" % stat["num_up"])
-                    stat_item.setText(4, "%s" % stat["num_down"])
+                    stat_item.setText(1, f"{stat['bytes_up'] / (1024.0 * 1024.0):.3f}")
+                    stat_item.setText(2, f"{stat['bytes_down'] / (1024.0 * 1024.0):.3f}")
+                    stat_item.setText(3, f"{stat['num_up']}")
+                    stat_item.setText(4, f"{stat['num_down']}")
                     self.window().ipv8_communities_details_widget.addTopLevelItem(stat_item)
 
     def load_ipv8_health_monitor(self):
@@ -398,6 +404,7 @@ class DebugWindow(QMainWindow):
         if self.ipv8_health_widget is None:
             # Add the core monitor widget to the tab widget.
             from PyQt5.QtWidgets import QVBoxLayout
+
             widget = MonitorWidget()
             layout = QVBoxLayout()
             layout.setContentsMargins(0, 0, 0, 0)
@@ -546,11 +553,7 @@ class DebugWindow(QMainWindow):
             self.add_items_to_tree(
                 self.window().buckets_tree_widget,
                 data.get("buckets"),
-                [
-                    "prefix",
-                    "last_changed",
-                    "num_peers"
-                ],
+                ["prefix", "last_changed", "num_peers"],
             )
 
     def on_event_clicked(self, item):
@@ -562,8 +565,8 @@ class DebugWindow(QMainWindow):
         for event_dict, timestamp in tribler_received_events:
             item = QTreeWidgetItem(self.window().events_tree_widget)
             item.setData(0, Qt.UserRole, event_dict)
-            item.setText(0, "%s" % event_dict['type'])
-            item.setText(1, "%s" % strftime("%H:%M:%S", localtime(timestamp)))
+            item.setText(0, f"{event_dict['type']}")
+            item.setText(1, f"{strftime('%H:%M:%S', localtime(timestamp))}")
             self.window().events_tree_widget.addTopLevelItem(item)
 
     def load_open_files_tab(self):
@@ -583,7 +586,7 @@ class DebugWindow(QMainWindow):
                 item.setText(1, "%d" % open_file.fd)
                 gui_item.addChild(item)
         except psutil.AccessDenied as exc:
-            gui_item.setText(0, "Unable to get open files for GUI (%s)" % exc)
+            gui_item.setText(0, f"Unable to get open files for GUI ({exc})")
 
         TriblerNetworkRequest("debug/open_files", self.on_core_open_files)
 
@@ -646,9 +649,13 @@ class DebugWindow(QMainWindow):
 
     def load_cpu_tab(self):
         if not self.initialized_cpu_plot:
-            vlayout = self.window().cpu_plot_widget.layout()
-            self.cpu_plot = CPUPlot(self.window().cpu_plot_widget)
-            vlayout.addWidget(self.cpu_plot)
+            self.core_cpu_plot = CPUPlot(self.window().tab_system_cpu, process='Core')
+            self.gui_cpu_plot = CPUPlot(self.window().tab_system_cpu, process='GUI')
+
+            vlayout = self.window().system_cpu_layout.layout()
+            vlayout.addWidget(self.core_cpu_plot)
+            vlayout.addWidget(self.gui_cpu_plot)
+
             self.initialized_cpu_plot = True
 
         self.refresh_cpu_plot()
@@ -659,22 +666,35 @@ class DebugWindow(QMainWindow):
         self.cpu_plot_timer.start(5000)
 
     def refresh_cpu_plot(self):
+        # To update the core CPU graph, call Debug REST API to get the history
+        # and update the CPU graph after receiving the response.
         TriblerNetworkRequest("debug/cpu/history", self.on_core_cpu_history)
 
+        # GUI CPU graph can be simply updated using the data from GuiResourceMonitor object.
+        self._update_cpu_graph(self.gui_cpu_plot, self.resource_monitor.get_cpu_history_dict())
+
     def on_core_cpu_history(self, data):
-        if not data:
+        if not data or "cpu_history" not in data:
             return
 
-        self.cpu_plot.reset_plot()
-        for cpu_info in data["cpu_history"]:
-            self.cpu_plot.add_data(cpu_info["time"], [round(cpu_info["cpu"], 2)])
-        self.cpu_plot.render_plot()
+        self._update_cpu_graph(self.core_cpu_plot, data['cpu_history'])
+
+    def _update_cpu_graph(self, cpu_graph, history_data):
+        cpu_graph.reset_plot()
+        for cpu_info in history_data:
+            process_cpu = [round(cpu_info["cpu"], 2)]
+            cpu_graph.add_data(cpu_info["time"], process_cpu)
+        cpu_graph.render_plot()
 
     def load_memory_tab(self):
         if not self.initialized_memory_plot:
-            vlayout = self.window().memory_plot_widget.layout()
-            self.memory_plot = MemoryPlot(self.window().memory_plot_widget)
-            vlayout.addWidget(self.memory_plot)
+            self.core_memory_plot = MemoryPlot(self.window().tab_system_memory, process='Core')
+            self.gui_memory_plot = MemoryPlot(self.window().tab_system_memory, process='GUI')
+
+            vlayout = self.window().system_memory_layout.layout()
+            vlayout.addWidget(self.core_memory_plot)
+            vlayout.addWidget(self.gui_memory_plot)
+
             self.initialized_memory_plot = True
 
         self.refresh_memory_plot()
@@ -693,7 +713,7 @@ class DebugWindow(QMainWindow):
             return
         self.profiler_enabled = data["state"] == "STARTED"
         self.window().toggle_profiler_button.setEnabled(True)
-        self.window().toggle_profiler_button.setText("%s profiler" % ("Stop" if self.profiler_enabled else "Start"))
+        self.window().toggle_profiler_button.setText(f"{'Stop' if self.profiler_enabled else 'Start'} profiler")
 
     def on_toggle_profiler_button_clicked(self, checked):
         if self.toggling_profiler:
@@ -713,42 +733,28 @@ class DebugWindow(QMainWindow):
 
         if 'profiler_file' in data:
             QMessageBox.about(
-                self, "Profiler statistics saved", "The profiler data has been saved to %s." % data['profiler_file']
+                self, "Profiler statistics saved", f"The profiler data has been saved to {data['profiler_file']}."
             )
 
     def refresh_memory_plot(self):
+        # To update the core memory graph, call Debug REST API to get the history
+        # and update the memory graph after receiving the response.
         TriblerNetworkRequest("debug/memory/history", self.on_core_memory_history)
+
+        # GUI memory graph can be simply updated using the data from GuiResourceMonitor object.
+        self._update_memory_graph(self.gui_memory_plot, self.resource_monitor.get_memory_history_dict())
 
     def on_core_memory_history(self, data):
         if not data or data.get("memory_history") is None:
             return
-        self.memory_plot.reset_plot()
-        for mem_info in data["memory_history"]:
-            self.memory_plot.add_data(mem_info["time"], [round(mem_info["mem"], 2)])
-        self.memory_plot.render_plot()
+        self._update_memory_graph(self.core_memory_plot, data["memory_history"])
 
-    def on_memory_dump_button_clicked(self, dump_core):
-        self.export_dir = QFileDialog.getExistingDirectory(
-            self, "Please select the destination directory", "", QFileDialog.ShowDirsOnly
-        )
-
-        if len(self.export_dir) > 0:
-            filename = "tribler_mem_dump_%s_%s.json" % (
-                'core' if dump_core else 'gui',
-                datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S"),
-            )
-            if dump_core:
-                self.rest_request = TriblerNetworkRequest(
-                    "debug/memory/dump", lambda data: self.on_memory_dump_data_available(filename, data)
-                )
-            elif scanner:
-                scanner.dump_all_objects(os.path.join(self.export_dir, filename))
-            else:
-                ConfirmationDialog.show_error(
-                    self.window(),
-                    "Error when performing a memory dump",
-                    "meliae memory dumper is not compatible with Python 3",
-                )
+    def _update_memory_graph(self, memory_graph, history_data):
+        memory_graph.reset_plot()
+        for mem_info in history_data:
+            process_memory = round(mem_info["mem"] / MB, 2)
+            memory_graph.add_data(mem_info["time"], [process_memory])
+        memory_graph.render_plot()
 
     def on_memory_dump_data_available(self, filename, data):
         if not data:
@@ -757,11 +763,11 @@ class DebugWindow(QMainWindow):
         try:
             with open(dest_path, "wb") as memory_dump_file:
                 memory_dump_file.write(data)
-        except IOError as exc:
+        except OSError as exc:
             ConfirmationDialog.show_error(
                 self.window(),
                 "Error when exporting file",
-                "An error occurred when exporting the torrent file: %s" % str(exc),
+                f"An error occurred when exporting the torrent file: {str(exc)}",
             )
 
     def closeEvent(self, close_event):
@@ -780,8 +786,8 @@ class DebugWindow(QMainWindow):
         tab_index = self.window().log_tab_widget.currentIndex()
         tab_name = "core" if tab_index == 0 else "gui"
 
-        request_query = "process=%s&max_lines=%s" % (tab_name, max_log_lines)
-        TriblerNetworkRequest("debug/log?%s" % request_query, self.display_logs)
+        request_query = f"process={tab_name}&max_lines={max_log_lines}"
+        TriblerNetworkRequest(f"debug/log?{request_query}", self.display_logs)
 
     def display_logs(self, data):
         if not data:
@@ -793,8 +799,8 @@ class DebugWindow(QMainWindow):
 
         log_display_widget.moveCursor(QTextCursor.End)
 
-        key_content = u'content'
-        key_max_lines = u'max_lines'
+        key_content = 'content'
+        key_max_lines = 'max_lines'
 
         if not key_content in data or not data[key_content]:
             log_display_widget.setPlainText('No logs found')
@@ -810,7 +816,7 @@ class DebugWindow(QMainWindow):
         sb.setValue(sb.maximum())
 
     def show(self):
-        super(DebugWindow, self).show()
+        super().show()
 
         # this will remove minimized status
         # and restore window with keeping maximized/normal state
@@ -874,5 +880,5 @@ class DebugWindow(QMainWindow):
             try:
                 with open(dest_path, "w") as torrent_file:
                     torrent_file.write(json.dumps(data))
-            except IOError as exc:
+            except OSError as exc:
                 ConfirmationDialog.show_error(self.window(), "Error exporting file", str(exc))

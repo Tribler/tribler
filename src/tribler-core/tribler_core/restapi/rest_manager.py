@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 @web.middleware
-class ApiKeyMiddleware(object):
+class ApiKeyMiddleware:
     def __init__(self, config):
         self.config = config
 
@@ -57,7 +57,7 @@ class RESTManager():
     """
 
     def __init__(self, session):
-        super(RESTManager, self).__init__()
+        super().__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
         self.root_endpoint = None
         self.session = session

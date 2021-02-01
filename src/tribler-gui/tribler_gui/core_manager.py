@@ -1,3 +1,4 @@
+import logging
 import os
 import sys
 import time
@@ -28,8 +29,10 @@ class CoreManager(QObject):
     tribler_stopped = pyqtSignal()
     core_state_update = pyqtSignal(str)
 
-    def __init__(self, api_port, api_key):
+    def __init__(self, api_port, api_key, error_handler):
         QObject.__init__(self, None)
+
+        self._logger = logging.getLogger(self.__class__.__name__)
 
         self.base_path = get_base_path()
         if not is_frozen():
@@ -38,7 +41,7 @@ class CoreManager(QObject):
         self.core_process = None
         self.api_port = api_port
         self.api_key = api_key
-        self.events_manager = EventRequestManager(self.api_port, self.api_key)
+        self.events_manager = EventRequestManager(self.api_port, self.api_key, error_handler)
 
         self.shutting_down = False
         self.should_stop_on_shutdown = False
@@ -65,10 +68,8 @@ class CoreManager(QObject):
             if self.events_manager.connect_timer and self.events_manager.connect_timer.isActive():
                 self.events_manager.connect_timer.stop()
 
-            exception_msg = "The Tribler core has unexpectedly finished with exit code %s and status: %s!" % (
-                exit_code,
-                exit_status,
-            )
+            exception_msg = f"The Tribler core has unexpectedly finished " \
+                            f"with exit code {exit_code} and status: {exit_status}!"
             if self.core_traceback:
                 exception_msg += "\n\n%s\n(Timestamp: %d, traceback timestamp: %d)" % (
                     self.core_traceback,
@@ -103,7 +104,7 @@ class CoreManager(QObject):
                 core_env = QProcessEnvironment.systemEnvironment()
                 core_env.insert("CORE_PROCESS", "1")
                 core_env.insert("CORE_BASE_PATH", self.base_path)
-                core_env.insert("CORE_API_PORT", "%s" % self.api_port)
+                core_env.insert("CORE_API_PORT", f"{self.api_port}")
                 core_env.insert("CORE_API_KEY", self.api_key.decode('utf-8'))
             if not core_args:
                 core_args = sys.argv

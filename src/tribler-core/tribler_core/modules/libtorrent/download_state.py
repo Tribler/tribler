@@ -32,7 +32,7 @@ DLSTATUS_MAP = [DLSTATUS_WAITING4HASHCHECK,
                 DLSTATUS_HASHCHECKING]
 
 
-class DownloadState(object):
+class DownloadState:
     """
     Contains a snapshot of the state of the Download at a specific
     point in time. Using a snapshot instead of providing live data and

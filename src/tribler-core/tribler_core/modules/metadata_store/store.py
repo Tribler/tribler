@@ -84,7 +84,7 @@ sql_add_fts_trigger_update = """
     END;"""
 
 
-class MetadataStore(object):
+class MetadataStore:
     def __init__(
         self, db_filename, channels_dir, my_key, disable_sync=False, notifier=None, check_tables=True, db_version=None
     ):
@@ -168,7 +168,7 @@ class MetadataStore(object):
         cursor = self._db.get_connection().cursor()
         cursor.execute("select name from sqlite_master where type='index' and name like 'idx_%'")
         for [index_name] in cursor.fetchall():
-            cursor.execute("drop index %s" % index_name)
+            cursor.execute(f"drop index {index_name}")
 
     def get_objects_to_create(self):
         connection = self._db.get_connection()
@@ -186,7 +186,7 @@ class MetadataStore(object):
         cursor = self._db.get_connection().cursor()
         cursor.execute("select name from sqlite_master where type='trigger' and name like 'fts_%'")
         for [trigger_name] in cursor.fetchall():
-            cursor.execute("drop trigger %s" % trigger_name)
+            cursor.execute(f"drop trigger {trigger_name}")
 
     def create_fts_triggers(self):
         cursor = self._db.get_connection().cursor()

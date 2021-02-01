@@ -42,7 +42,7 @@ from tribler_core.modules.metadata_store.gigachannel_manager import GigaChannelM
 from tribler_core.modules.metadata_store.store import MetadataStore
 from tribler_core.modules.metadata_store.utils import generate_test_channels
 from tribler_core.modules.payout_manager import PayoutManager
-from tribler_core.modules.resource_monitor import ResourceMonitor
+from tribler_core.modules.resource_monitor.core import CoreResourceMonitor
 from tribler_core.modules.torrent_checker.torrent_checker import TorrentChecker
 from tribler_core.modules.tracker_manager import TrackerManager
 from tribler_core.modules.versioncheck_manager import VersionCheckManager
@@ -89,7 +89,7 @@ class Session(TaskManager):
         Only a single session instance can exist at a time in a process.
         :config TriblerConfig object parametrizing the Session
         """
-        super(Session, self).__init__()
+        super().__init__()
 
         get_event_loop().set_exception_handler(self.unhandled_error_observer)
 
@@ -150,7 +150,7 @@ class Session(TaskManager):
                 self.ipv8.endpoint.enable_community_statistics(overlay.get_prefix(), True)
 
     def import_bootstrap_file(self):
-        with open(self.bootstrap.bootstrap_file, 'r') as f:
+        with open(self.bootstrap.bootstrap_file) as f:
             f.read()
         self._logger.info("Executing bootstrap script")
         # TODO we should do something here...
@@ -256,7 +256,7 @@ class Session(TaskManager):
             events = self.api_manager.get_endpoint('events')
             events.on_tribler_exception(text_long,
                                         sentry_event,
-                                        self.config.get_error_reporting_requires_user_consent())
+                                        self.config.get_core_error_reporting_requires_user_consent())
 
             state = self.api_manager.get_endpoint('state')
             state.on_tribler_exception(text_long, sentry_event)
@@ -311,7 +311,7 @@ class Session(TaskManager):
         # On Mac, we bundle the root certificate for the SSL validation since Twisted is not using the root
         # certificates provided by the system trust store.
         if sys.platform == 'darwin':
-            os.environ['SSL_CERT_FILE'] = str((get_lib_path() / 'root_certs_mac.pem'))
+            os.environ['SSL_CERT_FILE'] = str(get_lib_path() / 'root_certs_mac.pem')
 
         if self.config.get_chant_enabled():
             channels_dir = self.config.get_chant_channels_dir()
@@ -333,11 +333,6 @@ class Session(TaskManager):
                                    .clear_keys()  # We load the keys ourselves
                                    .set_working_directory(str(self.config.get_state_dir()))
                                    .set_walker_interval(self.config.get_ipv8_walk_interval()))
-
-            if self.config.get_ipv8_bootstrap_override():
-                import ipv8.community as community_file
-                community_file._DEFAULT_ADDRESSES = [self.config.get_ipv8_bootstrap_override()]
-                community_file._DNS_ADDRESSES = []
 
             if self.core_test_mode:
                 endpoint = DispatcherEndpoint([])
@@ -387,7 +382,7 @@ class Session(TaskManager):
             self.watch_folder.start()
 
         if self.config.get_resource_monitor_enabled() and not self.core_test_mode:
-            self.resource_monitor = ResourceMonitor(self)
+            self.resource_monitor = CoreResourceMonitor(self)
             self.resource_monitor.start()
 
         if self.config.get_version_checker_enabled() and not self.core_test_mode:
@@ -414,6 +409,10 @@ class Session(TaskManager):
             self.register_task('bootstrap_download', self.start_bootstrap_download)
 
         self.notifier.notify(NTFY.TRIBLER_STARTED, self.trustchain_keypair.key.pk)
+
+        # If there is a config error, report to the user via GUI notifier
+        if self.config.config_error:
+            self.notifier.notify(NTFY.REPORT_CONFIG_ERROR, self.config.config_error)
 
     async def shutdown(self):
         """

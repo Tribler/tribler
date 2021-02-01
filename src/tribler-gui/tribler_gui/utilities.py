@@ -5,6 +5,7 @@ import math
 import os
 import re
 import sys
+import traceback
 import types
 from datetime import datetime, timedelta
 from typing import Callable
@@ -40,13 +41,13 @@ def index2uri(index):
 def format_size(num, suffix='B'):
     for unit in ['', 'k', 'M', 'G', 'T', 'P', 'E', 'Z']:
         if abs(num) < 1024.0:
-            return "%3.1f %s%s" % (num, unit, suffix)
+            return f"{num:3.1f} {unit}{suffix}"
         num /= 1024.0
-    return "%.1f %s%s" % (num, 'Yi', suffix)
+    return f"{num:.1f} Yi{suffix}"
 
 
 def format_speed(num):
-    return "%s/s" % format_size(num)
+    return f"{format_size(num)}/s"
 
 
 def seconds_to_string(seconds):
@@ -93,7 +94,7 @@ def get_color(name):
     green = int(md5_str_hash[10:20], 16) % 128 + 100
     blue = int(md5_str_hash[20:30], 16) % 128 + 100
 
-    return '#%02x%02x%02x' % (red, green, blue)
+    return f'#{red:02x}{green:02x}{blue:02x}'
 
 
 def is_video_file(filename):
@@ -172,16 +173,16 @@ def duration_to_string(seconds):
     if years >= 100:
         return "Forever"
     if years > 0:
-        return "{}y {}w".format(years, weeks)
+        return f"{years}y {weeks}w"
     if weeks > 0:
-        return "{}w {}d".format(weeks, days)
+        return f"{weeks}w {days}d"
     if days > 0:
-        return "{}d {}h".format(days, hours)
+        return f"{days}d {hours}h"
     if hours > 0:
-        return "{}h {}m".format(hours, minutes)
+        return f"{hours}h {minutes}m"
     if minutes > 0:
-        return "{}m {}s".format(minutes, seconds)
-    return "{}s".format(seconds)
+        return f"{minutes}m {seconds}s"
+    return f"{seconds}s"
 
 
 def split_into_keywords(query):
@@ -234,8 +235,6 @@ def is_dir_writable(path):
             os.makedirs(path)
         open(os.path.join(path, random_name), 'w')
         os.remove(os.path.join(path, random_name))
-    except IOError as io_error:
-        return False, io_error
     except OSError as os_error:
         return False, os_error
     else:
@@ -295,12 +294,12 @@ def compose_magnetlink(infohash, name=None, trackers=None):
     """
     if not infohash:
         return ''
-    magnet = "magnet:?xt=urn:btih:%s" % infohash
+    magnet = f"magnet:?xt=urn:btih:{infohash}"
     if name:
-        magnet = "%s&dn=%s" % (magnet, quote_plus_unicode(name))
+        magnet = f"{magnet}&dn={quote_plus_unicode(name)}"
     if trackers and isinstance(trackers, list):
         for tracker in trackers:
-            magnet = "%s&tr=%s" % (magnet, tracker)
+            magnet = f"{magnet}&tr={tracker}"
     return magnet
 
 
@@ -314,7 +313,7 @@ def html_label(text, background="#e4e4e4", color="#222222", bold=True):
     style = "background-color:" + background if background else ''
     style = style + ";color:" + color if color else style
     style = style + ";font-weight:bold" if bold else style
-    return "<label style='%s'>&nbsp;%s&nbsp;</label>" % (style, text)
+    return f"<label style='{style}'>&nbsp;{text}&nbsp;</label>"
 
 
 def get_checkbox_style(color="#B5B5B5"):
@@ -338,7 +337,7 @@ def votes_count(votes=0.0):
 
 
 def format_votes(votes=0.0):
-    return u"  %s " % (u"┃" * votes_count(votes))
+    return f"  {'┃' * votes_count(votes)} "
 
 
 def format_votes_rich_text(votes=0.0):
@@ -374,15 +373,23 @@ def connect(signal: pyqtSignal, callback: Callable):
     for frame in list(inspect.stack())[1:]:
         source = types.TracebackType(source, frame.frame, frame.index or 0, frame.lineno)
 
-    # Step 2: Wrap the ``callback`` and inject our creation stack if an error occurs.
+    # Step 2: construct a lightweight StackSummary object which does not contain
+    # actual frames or locals, to avoid memory leak
+    try:
+        summary = traceback.StackSummary.extract(traceback.walk_tb(source), capture_locals=False)
+    finally:
+        del source
+
+    # Step 3: Wrap the ``callback`` and inject our creation stack if an error occurs.
     #         The BaseException instead of Exception is intentional: this makes sure interrupts of infinite loops show
     #         the source callback stack for debugging.
     def trackback_wrapper(*args, **kwargs):
         try:
             callback(*args, **kwargs)
         except BaseException as exc:
-            source_exc = CreationTraceback().with_traceback(source)
-            raise exc from source_exc
+            traceback_str = '\n' + ''.join(summary.format())
+            raise exc from CreationTraceback(traceback_str)
+
     try:
         setattr(callback, "tb_wrapper", trackback_wrapper)
     except AttributeError:
@@ -395,8 +402,9 @@ def connect(signal: pyqtSignal, callback: Callable):
                 setattr(bound_obj, "tb_mapping", {})
             bound_obj.tb_mapping[callback.__func__.__name__] = trackback_wrapper
         else:
-            logging.warning("Unable to hook up connect() info to %s. Probably a 'builtin_function_or_method'.",
-                            repr(callback))
+            logging.warning(
+                "Unable to hook up connect() info to %s. Probably a 'builtin_function_or_method'.", repr(callback)
+            )
 
     # Step 3: Connect our wrapper to the signal.
     signal.connect(trackback_wrapper)
@@ -422,3 +430,9 @@ def disconnect(signal: pyqtSignal, callback: Callable):
 
 class CreationTraceback(Exception):
     pass
+
+
+def dict_item_is_any_of(d, key, values):
+    if not d or not key or not values:
+        return False
+    return key in d and d[key] in values

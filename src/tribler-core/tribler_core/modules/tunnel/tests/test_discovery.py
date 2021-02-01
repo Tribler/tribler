@@ -8,7 +8,7 @@ from ipv8.peerdiscovery.network import Network
 from tribler_core.modules.tunnel.community.discovery import GoldenRatioStrategy
 
 
-class FakeOverlay(object):
+class FakeOverlay:
 
     def __init__(self):
         self.exit_candidates = []
@@ -24,7 +24,7 @@ class FakeOverlay(object):
 
 
 def generate_peer():
-    return Peer(default_eccrypto.generate_key(u"very-low"))
+    return Peer(default_eccrypto.generate_key("very-low"))
 
 
 def generate_overlay_and_peers():

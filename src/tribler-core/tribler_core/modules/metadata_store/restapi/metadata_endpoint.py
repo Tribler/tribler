@@ -20,7 +20,7 @@ from tribler_core.utilities.unicode import hexlify
 TORRENT_CHECK_TIMEOUT = 20
 
 
-class UpdateEntryMixin(object):
+class UpdateEntryMixin:
     @db_session
     def update_entry(self, public_key, id_, update_dict):
         entry = self.session.mds.ChannelNode.get(public_key=public_key, id_=id_)
@@ -239,7 +239,7 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
         elif timeout.isdigit():
             timeout = int(timeout)
         else:
-            return RESTResponse({"error": "Error processing timeout parameter '%s'" % timeout}, status=HTTP_BAD_REQUEST)
+            return RESTResponse({"error": f"Error processing timeout parameter '{timeout}'"}, status=HTTP_BAD_REQUEST)
         refresh = request.query.get('refresh', '0') == '1'
         nowait = request.query.get('nowait', '0') == '1'
 

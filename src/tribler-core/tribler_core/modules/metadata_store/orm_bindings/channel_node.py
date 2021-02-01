@@ -123,10 +123,8 @@ def define_binding(db, logger=None, key=None):
                     # because assigning id_ automatically by clock breaks anonymity.
                     # FFA entries should be "timeless" and anonymous.
                     raise InvalidChannelNodeException(
-                        (
-                            "Attempted to create %s free-for-all (unsigned) object without specifying id_ : "
-                            % str(self.__class__.__name__)
-                        )
+                        "Attempted to create %s free-for-all (unsigned) object without specifying id_ : "
+                        % str(self.__class__.__name__)
                     )
 
             # For putting legacy/test stuff in
@@ -152,7 +150,7 @@ def define_binding(db, logger=None, key=None):
                         self._payload_class(**kwargs)
                     except InvalidSignatureException:
                         raise InvalidSignatureException(
-                            ("Attempted to create %s object with invalid signature/PK: " % str(self.__class__.__name__))
+                            f"Attempted to create {str(self.__class__.__name__)} object with invalid signature/PK: "
                             + (hexlify(kwargs["signature"]) if "signature" in kwargs else "empty signature ")
                             + " / "
                             + (hexlify(kwargs["public_key"]) if "public_key" in kwargs else " empty PK")
@@ -173,7 +171,7 @@ def define_binding(db, logger=None, key=None):
                 kwargs["public_key"] = payload.public_key
                 kwargs["signature"] = payload.signature
 
-            super(ChannelNode, self).__init__(*args, **kwargs)
+            super().__init__(*args, **kwargs)
 
         def _serialized(self, key=None):
             """

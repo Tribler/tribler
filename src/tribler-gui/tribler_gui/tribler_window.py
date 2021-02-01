@@ -5,7 +5,6 @@ import os
 import signal
 import sys
 import time
-import traceback
 from base64 import b64encode
 from urllib.parse import unquote, urlparse
 
@@ -38,8 +37,6 @@ from PyQt5.QtWidgets import (
     QTreeWidget,
 )
 
-from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
-
 from tribler_core.modules.process_checker import ProcessChecker
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.version import version_id
@@ -64,10 +61,9 @@ from tribler_gui.defs import (
 from tribler_gui.dialogs.addtopersonalchanneldialog import AddToChannelDialog
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler_gui.dialogs.createtorrentdialog import CreateTorrentDialog
-from tribler_gui.dialogs.feedbackdialog import FeedbackDialog
 from tribler_gui.dialogs.new_channel_dialog import NewChannelDialog
 from tribler_gui.dialogs.startdownloaddialog import StartDownloadDialog
-from tribler_gui.event_request_manager import CoreConnectTimeoutError
+from tribler_gui.error_handler import ErrorHandler
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest, TriblerRequestManager, request_manager
 from tribler_gui.utilities import (
@@ -76,7 +72,7 @@ from tribler_gui.utilities import (
     get_gui_setting,
     get_image_path,
     get_ui_file_path,
-    is_dir_writable
+    is_dir_writable,
 )
 from tribler_gui.widgets.channelsmenulistwidget import ChannelsMenuListWidget
 from tribler_gui.widgets.tablecontentmodel import DiscoveredChannelsModel, SearchResultsModel
@@ -101,63 +97,9 @@ class TriblerWindow(QMainWindow):
     tribler_crashed = pyqtSignal(str)
     received_search_completions = pyqtSignal(object)
 
-    def on_exception(self, *exc_info):
-        if self.exception_handler_called:
-            # We only show one feedback dialog, even when there are two consecutive exceptions.
-            return
-
-        self.exception_handler_called = True
-        info_type, info_error, _ = exc_info
-        exception_text = "".join(traceback.format_exception(*exc_info))
-
-        sentry_event = None
-        error_reporting_requires_user_consent = True
-        for arg in info_error.args:
-            if not isinstance(arg, dict) or 'backend_event' not in arg:
-                continue
-
-            backend_event = arg['backend_event']
-            sentry_event = backend_event['sentry_event']
-            error_reporting_requires_user_consent = backend_event['error_reporting_requires_user_consent']
-
-        if not sentry_event:
-            # then the exception occured in GUI
-            sentry_event = SentryReporter.event_from_exception(info_error)
-
-        logging.error(exception_text)
-
-        self.tribler_crashed.emit(exception_text)
-        self.delete_tray_icon()
-
-        # Stop the download loop
-        self.downloads_page.stop_loading_downloads()
-
-        # Add info about whether we are stopping Tribler or not
-        os.environ['TRIBLER_SHUTTING_DOWN'] = str(self.core_manager.shutting_down)
-
-        if not self.core_manager.shutting_down:
-            self.core_manager.stop(stop_app_on_shutdown=False)
-
-        self.setHidden(True)
-
-        if self.debug_window:
-            self.debug_window.setHidden(True)
-
-        if info_type is CoreConnectTimeoutError:
-            exception_text = exception_text + self.core_manager.core_traceback
-
-        dialog = FeedbackDialog(
-            self,
-            exception_text,
-            self.tribler_version,
-            self.start_time,
-            sentry_event,
-            error_reporting_requires_user_consent,
-        )
-        dialog.show()
-
     def __init__(self, core_args=None, core_env=None, api_port=None, api_key=None):
         QMainWindow.__init__(self)
+        self._logger = logging.getLogger(self.__class__.__name__)
 
         QCoreApplication.setOrganizationDomain("nl")
         QCoreApplication.setOrganizationName("TUDelft")
@@ -176,7 +118,9 @@ class TriblerWindow(QMainWindow):
         # TODO: move version_id to tribler_common and get core version in the core crash message
         self.tribler_version = version_id
         self.debug_window = None
-        self.core_manager = CoreManager(api_port, api_key)
+
+        self.error_handler = ErrorHandler(self)
+        self.core_manager = CoreManager(api_port, api_key, self.error_handler)
         self.pending_requests = {}
         self.pending_uri_requests = []
         self.download_uri = None
@@ -190,12 +134,11 @@ class TriblerWindow(QMainWindow):
         self.last_search_query = None
         self.last_search_time = None
         self.start_time = time.time()
-        self.exception_handler_called = False
         self.token_refresh_timer = None
         self.shutdown_timer = None
         self.add_torrent_url_dialog_active = False
 
-        sys.excepthook = self.on_exception
+        sys.excepthook = self.error_handler.gui_error
 
         uic.loadUi(get_ui_file_path('mainwindow.ui'), self)
         TriblerRequestManager.window = self
@@ -323,6 +266,7 @@ class TriblerWindow(QMainWindow):
         connect(self.core_manager.events_manager.tribler_started, self.on_tribler_started)
         connect(self.core_manager.events_manager.low_storage_signal, self.on_low_storage)
         connect(self.core_manager.events_manager.tribler_shutdown_signal, self.on_tribler_shutdown_state_update)
+        connect(self.core_manager.events_manager.config_error_signal, self.on_config_error_signal)
 
         # Install signal handler for ctrl+c events
         def sigint_handler(*_):
@@ -351,8 +295,10 @@ class TriblerWindow(QMainWindow):
 
         # The channels content page is only used to show subscribed channels, so we always show xxx
         # contents in it.
-        connect(self.core_manager.events_manager.node_info_updated,
-                lambda data: self.channels_menu_list.reload_if_necessary([data]))
+        connect(
+            self.core_manager.events_manager.node_info_updated,
+            lambda data: self.channels_menu_list.reload_if_necessary([data]),
+        )
         connect(self.left_menu_button_new_channel.clicked, self.create_new_channel)
 
     def create_new_channel(self, checked):
@@ -396,14 +342,20 @@ class TriblerWindow(QMainWindow):
                 logging.debug("Tray icon already removed, no further deletion necessary.")
             self.tray_icon = None
 
-    def on_low_storage(self):
+    def on_low_storage(self, _):
         """
         Dealing with low storage space available. First stop the downloads and the core manager and ask user to user to
         make free space.
         :return:
         """
+        def close_tribler_gui():
+            self.close_tribler()
+            # Since the core has already stopped at this point, it will not terminate the GUI.
+            # So, we quit the GUI separately here.
+            if not QApplication.closingDown():
+                QApplication.quit()
+
         self.downloads_page.stop_loading_downloads()
-        self.core_manager.shutting_down = True
         self.core_manager.stop(False)
         close_dialog = ConfirmationDialog(
             self.window(),
@@ -412,12 +364,12 @@ class TriblerWindow(QMainWindow):
             "sufficient free space available and restart Tribler again.",
             [("Close Tribler", BUTTON_TYPE_NORMAL)],
         )
-        connect(close_dialog.button_clicked, lambda _: self.close_tribler())
+        connect(close_dialog.button_clicked, lambda _: close_tribler_gui())
         close_dialog.show()
 
     def on_torrent_finished(self, torrent_info):
         if "hidden" not in torrent_info or not torrent_info["hidden"]:
-            self.tray_show_message("Download finished", "Download of %s has finished." % torrent_info["name"])
+            self.tray_show_message("Download finished", f"Download of {torrent_info['name']} has finished.")
 
     def show_loading_screen(self):
         self.top_menu_button.setHidden(True)
@@ -464,7 +416,7 @@ class TriblerWindow(QMainWindow):
         self.top_menu_button.setHidden(False)
         self.left_menu.setHidden(False)
         # FIXME hiding the token balance until the feature is stable
-        #self.token_balance_widget.setHidden(False)
+        # self.token_balance_widget.setHidden(False)
         self.settings_button.setHidden(False)
         self.add_torrent_button.setHidden(False)
         self.top_search_bar.setHidden(False)
@@ -474,7 +426,7 @@ class TriblerWindow(QMainWindow):
         self.downloads_page.start_loading_downloads()
 
         self.setAcceptDrops(True)
-        self.setWindowTitle("Tribler %s" % self.tribler_version)
+        self.setWindowTitle(f"Tribler {self.tribler_version}")
 
         autocommit_enabled = (
             get_gui_setting(self.gui_settings, "autocommit_enabled", True, is_bool=True) if self.gui_settings else True
@@ -504,7 +456,7 @@ class TriblerWindow(QMainWindow):
             self.left_menu_button_discovered.setChecked(True)
 
     def on_events_started(self, json_dict):
-        self.setWindowTitle("Tribler %s" % json_dict["version"])
+        self.setWindowTitle(f"Tribler {json_dict['version']}")
 
     def show_status_bar(self, message):
         self.tribler_status_bar_label.setText(message)
@@ -542,24 +494,24 @@ class TriblerWindow(QMainWindow):
         self.gui_settings.setValue("recent_download_locations", ','.join(recent_locations))
 
     def perform_start_download_request(
-            self,
-            uri,
-            anon_download,
-            safe_seeding,
-            destination,
-            selected_files,
-            total_files=0,
-            add_to_channel=False,
-            callback=None,
+        self,
+        uri,
+        anon_download,
+        safe_seeding,
+        destination,
+        selected_files,
+        total_files=0,
+        add_to_channel=False,
+        callback=None,
     ):
         # Check if destination directory is writable
         is_writable, error = is_dir_writable(destination)
         if not is_writable:
             gui_error_message = (
-                    "Insufficient write permissions to <i>%s</i> directory. Please add proper "
-                    "write permissions on the directory and add the torrent again. %s" % (destination, error)
+                "Insufficient write permissions to <i>%s</i> directory. Please add proper "
+                "write permissions on the directory and add the torrent again. %s" % (destination, error)
             )
-            ConfirmationDialog.show_message(self.window(), "Download error <i>%s</i>" % uri, gui_error_message, "OK")
+            ConfirmationDialog.show_message(self.window(), f"Download error <i>{uri}</i>", gui_error_message, "OK")
             return
 
         selected_files_list = []
@@ -682,10 +634,10 @@ class TriblerWindow(QMainWindow):
         query = self.top_search_bar.text()
 
         if (
-                self.last_search_query
-                and self.last_search_time
-                and self.last_search_query == self.top_search_bar.text()
-                and current_ts - self.last_search_time < 1
+            self.last_search_query
+            and self.last_search_time
+            and self.last_search_query == self.top_search_bar.text()
+            and current_ts - self.last_search_time < 1
         ):
             logging.info("Same search query already sent within 500ms so dropping this one")
             return
@@ -696,7 +648,7 @@ class TriblerWindow(QMainWindow):
         self.has_search_results = True
         self.search_results_page.initialize_root_model(
             SearchResultsModel(
-                channel_info={"name": "Search results for %s" % query if len(query) < 50 else "%s..." % query[:50]},
+                channel_info={"name": f"Search results for {query}" if len(query) < 50 else f"{query[:50]}..."},
                 endpoint_url="search",
                 hide_xxx=get_gui_setting(self.gui_settings, "family_filter", True, is_bool=True),
                 text_filter=to_fts_query(query),
@@ -743,10 +695,10 @@ class TriblerWindow(QMainWindow):
     def set_token_balance(self, balance):
         if abs(balance) > 1024 ** 4:  # Balance is over a TB
             balance /= 1024.0 ** 4
-            self.token_balance_label.setText("%.1f TB" % balance)
+            self.token_balance_label.setText(f"{balance:.1f} TB")
         elif abs(balance) > 1024 ** 3:  # Balance is over a GB
             balance /= 1024.0 ** 3
-            self.token_balance_label.setText("%.1f GB" % balance)
+            self.token_balance_label.setText(f"{balance:.1f} GB")
         else:
             balance /= 1024.0 ** 2
             self.token_balance_label.setText("%d MB" % balance)
@@ -797,7 +749,7 @@ class TriblerWindow(QMainWindow):
         )
         if len(filenames[0]) > 0:
             for filename in filenames[0]:
-                self.pending_uri_requests.append(u"file:%s" % filename)
+                self.pending_uri_requests.append(f"file:{filename}")
             self.process_uri_request()
 
     def start_download_from_uri(self, uri):
@@ -907,7 +859,7 @@ class TriblerWindow(QMainWindow):
 
             for torrent_file in self.selected_torrent_files:
                 self.perform_start_download_request(
-                    u"file:%s" % torrent_file,
+                    f"file:{torrent_file}",
                     self.window().tribler_settings['download_defaults']['anonymity_enabled'],
                     self.window().tribler_settings['download_defaults']['safeseeding_enabled'],
                     self.tribler_settings['download_defaults']['saveas'],
@@ -1135,7 +1087,7 @@ class TriblerWindow(QMainWindow):
     def on_channel_delete(self, channel_info):
         def _on_delete_action(action):
             if action == 0:
-                delete_data = [{"public_key": channel_info[u'public_key'], "id": channel_info[u'id']}]
+                delete_data = [{"public_key": channel_info['public_key'], "id": channel_info['id']}]
                 TriblerNetworkRequest(
                     "metadata",
                     lambda data: self.core_manager.events_manager.node_info_updated.emit(data[0]),
@@ -1170,6 +1122,10 @@ class TriblerWindow(QMainWindow):
     def on_tribler_shutdown_state_update(self, state):
         self.loading_text_label.setText(state)
 
+    def on_config_error_signal(self, stacktrace):
+        self._logger.error(f"Config error: {stacktrace}")
+        user_message = 'Tribler recovered from a corrupted config. Please check your settings and update if necessary.'
+        ConfirmationDialog.show_error(self, "Tribler config error", user_message)
 
 def _qurl_to_path(qurl):
     parsed = urlparse(qurl.toString())

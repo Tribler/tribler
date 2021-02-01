@@ -10,7 +10,7 @@ MAX_TRACKER_FAILURES = 5  # if a tracker fails this amount of times in a row, it
 TRACKER_RETRY_INTERVAL = 60    # A "dead" tracker will be retired every 60 seconds
 
 
-class TrackerManager(object):
+class TrackerManager:
 
     def __init__(self, session):
         self._logger = logging.getLogger(self.__class__.__name__)
@@ -31,7 +31,7 @@ class TrackerManager(object):
         """
         blacklist_file = path_util.abspath(self._session.config.get_state_dir() / "tracker_blacklist.txt")
         if blacklist_file.exists():
-            with open(blacklist_file, 'r') as blacklist_file_handle:
+            with open(blacklist_file) as blacklist_file_handle:
                 # Note that get_uniformed_tracker_url will strip the newline at the end of .readlines()
                 self.blacklist.extend([get_uniformed_tracker_url(url) for url in blacklist_file_handle.readlines()])
         else:
@@ -43,16 +43,16 @@ class TrackerManager(object):
         :param tracker_url: The given tracker URL.
         :return: The tracker info dict if exists, None otherwise.
         """
-        sanitized_tracker_url = get_uniformed_tracker_url(tracker_url) if tracker_url != u"DHT" else tracker_url
+        sanitized_tracker_url = get_uniformed_tracker_url(tracker_url) if tracker_url != "DHT" else tracker_url
 
         with db_session:
             tracker = list(self.tracker_store.select(lambda g: g.url == sanitized_tracker_url))
             if tracker:
                 return {
-                    u'id': tracker[0].url,
-                    u'last_check': tracker[0].last_check,
-                    u'failures': tracker[0].failures,
-                    u'is_alive': tracker[0].alive
+                    'id': tracker[0].url,
+                    'last_check': tracker[0].last_check,
+                    'failures': tracker[0].failures,
+                    'is_alive': tracker[0].alive
                 }
             return None
 
@@ -63,13 +63,13 @@ class TrackerManager(object):
         """
         sanitized_tracker_url = get_uniformed_tracker_url(tracker_url)
         if sanitized_tracker_url is None:
-            self._logger.warning(u"skip invalid tracker: %s", repr(tracker_url))
+            self._logger.warning("skip invalid tracker: %s", repr(tracker_url))
             return
 
         with db_session:
             num = count(g for g in self.tracker_store if g.url == sanitized_tracker_url)
             if num > 0:
-                self._logger.debug(u"skip existing tracker: %s", repr(tracker_url))
+                self._logger.debug("skip existing tracker: %s", repr(tracker_url))
                 return
 
             # insert into database
@@ -101,7 +101,7 @@ class TrackerManager(object):
         :param is_successful: If the check was successful.
         """
 
-        if tracker_url == u"DHT":
+        if tracker_url == "DHT":
             return
 
         sanitized_tracker_url = get_uniformed_tracker_url(tracker_url)

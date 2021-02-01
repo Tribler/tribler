@@ -27,7 +27,7 @@ class MonitorWidget(AddBreadcrumbOnShowMixin, QWidget):
     """
 
     def __init__(self):
-        super(MonitorWidget, self).__init__()
+        super().__init__()
 
         self.is_paused = False
 

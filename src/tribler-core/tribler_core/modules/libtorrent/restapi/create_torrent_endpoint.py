@@ -84,7 +84,7 @@ class CreateTorrentEndpoint(RESTEndpoint):
             export_dir = Path(parameters['export_dir'])
 
         from tribler_core.version import version_id
-        params['created by'] = '%s version: %s' % ('Tribler', version_id)
+        params['created by'] = f"Tribler version: {version_id}"
 
         params['nodes'] = False
         params['httpseeds'] = False
@@ -93,14 +93,14 @@ class CreateTorrentEndpoint(RESTEndpoint):
 
         try:
             result = await self.session.dlmgr.create_torrent_file(file_path_list, recursive_bytes(params))
-        except (IOError, UnicodeDecodeError, RuntimeError) as e:
+        except (OSError, UnicodeDecodeError, RuntimeError) as e:
             self._logger.exception(e)
             return return_handled_exception(request, e)
 
         metainfo_dict = bdecode_compat(result['metainfo'])
 
         if export_dir and export_dir.exists():
-            save_path = export_dir / ("%s.torrent" % name)
+            save_path = export_dir / (f"{name}.torrent")
             with open(save_path, "wb") as fd:
                 fd.write(result['metainfo'])
 

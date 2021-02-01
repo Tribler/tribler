@@ -17,13 +17,13 @@ from tribler_core.utilities.json_util import dumps
 from tribler_gui.defs import HEALTH_CHECKING, HEALTH_UNCHECKED
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.utilities import connect, get_health
+from tribler_gui.utilities import connect, dict_item_is_any_of, get_health
 
 HEALTHCHECK_DELAY_MS = 500
 
 
 def sanitize_for_fts(text):
-    return text.translate({ord(u"\""): u"\"\"", ord(u"\'"): u"\'\'"})
+    return text.translate({ord("\""): "\"\"", ord("\'"): "\'\'"})
 
 
 def to_fts_query(text):
@@ -31,7 +31,7 @@ def to_fts_query(text):
         return ""
     words = text.strip().split(" ")
     # TODO: add support for quoted exact searches
-    query_list = [u'\"' + sanitize_for_fts(word) + u'\"*' for word in words]
+    query_list = ['\"' + sanitize_for_fts(word) + '\"*' for word in words]
     return " AND ".join(query_list)
 
 
@@ -50,8 +50,10 @@ class TriblerTableViewController(QObject):
         # FIXME: The M-V-C stuff is a complete mess. It should be refactored in a more structured way.
         connect(self.table_view.delegate.subscribe_control.clicked, self.table_view.on_subscribe_control_clicked)
         connect(self.table_view.delegate.download_button.clicked, self.table_view.start_download_from_index)
-        connect(self.table_view.delegate.health_status_widget.clicked,
-                lambda index: self.check_torrent_health(index.model().data_items[index.row()], forced=True))
+        connect(
+            self.table_view.delegate.health_status_widget.clicked,
+            lambda index: self.check_torrent_health(index.model().data_items[index.row()], forced=True),
+        )
         connect(self.table_view.torrent_clicked, self.check_torrent_health)
         connect(self.table_view.torrent_doubleclicked, self.table_view.start_download_from_dataitem)
 
@@ -88,7 +90,7 @@ class TriblerTableViewController(QObject):
         self.model.reset()
 
 
-class TableSelectionMixin(object):
+class TableSelectionMixin:
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -100,13 +102,13 @@ class TableSelectionMixin(object):
         connect(self.healthcheck_cooldown.timeout, lambda: self._on_selection_changed(None, None))
 
     def set_model(self, model):
-        super(TableSelectionMixin, self).set_model(model)
+        super().set_model(model)
         connect(self.table_view.selectionModel().selectionChanged, self._on_selection_changed)
 
     def unset_model(self):
         if self.table_view.model:
             self.table_view.selectionModel().selectionChanged.disconnect()
-        super(TableSelectionMixin, self).unset_model()
+        super().unset_model()
 
     def _on_selection_changed(self, selected, deselected):
         selected_indices = self.table_view.selectedIndexes()
@@ -115,13 +117,13 @@ class TableSelectionMixin(object):
             return
 
         data_item = selected_indices[-1].model().data_items[selected_indices[-1].row()]
-        if 'type' in data_item and data_item['type'] != REGULAR_TORRENT:
+        if not dict_item_is_any_of(data_item, 'type', [REGULAR_TORRENT]):
             return
 
         # Trigger health check if necessary
         # When the user scrolls the list, we only want to trigger health checks on the line
         # that the user stopped on, so we do not generate excessive health checks.
-        if data_item['last_tracker_check'] == 0 and data_item.get(u'health') != HEALTH_CHECKING:
+        if data_item['last_tracker_check'] == 0 and data_item.get('health') != HEALTH_CHECKING:
             if self.healthcheck_cooldown.isActive():
                 self.healthcheck_cooldown.stop()
             else:
@@ -132,23 +134,28 @@ class TableSelectionMixin(object):
 class HealthCheckerMixin:
     def check_torrent_health(self, data_item, forced=False):
         # TODO: stop triggering multiple checks over a single infohash by e.g. selection and click signals
-        infohash = data_item[u'infohash']
+        if not dict_item_is_any_of(data_item, 'type', [REGULAR_TORRENT]):
+            return
 
-        if u'health' not in self.model.column_position:
+        infohash = data_item['infohash']
+
+        if 'health' not in self.model.column_position:
             return
         # Check if the entry still exists in the table
         row = self.model.item_uid_map.get(infohash)
-        if row is None:
+        items = self.model.data_items
+        if row is None or row >= len(items):
             return
-        data_item = self.model.data_items[row]
+
+        data_item = items[row]
         if not forced and data_item.get('health', HEALTH_UNCHECKED) != HEALTH_UNCHECKED:
             return
-        data_item[u'health'] = HEALTH_CHECKING
-        health_cell_index = self.model.index(row, self.model.column_position[u'health'])
+        data_item['health'] = HEALTH_CHECKING
+        health_cell_index = self.model.index(row, self.model.column_position['health'])
         self.model.dataChanged.emit(health_cell_index, health_cell_index, [])
 
         TriblerNetworkRequest(
-            "metadata/torrents/%s/health" % infohash,
+            f"metadata/torrents/{infohash}/health",
             self.on_health_response,
             url_params={"nowait": True, "refresh": True},
             capture_core_errors=False,
@@ -178,15 +185,15 @@ class HealthCheckerMixin:
             return
 
         data_item = self.model.data_items[row]
-        data_item[u'num_seeders'] = seeders
-        data_item[u'num_leechers'] = leechers
-        data_item[u'last_tracker_check'] = time.time()
-        data_item[u'health'] = get_health(
-            data_item[u'num_seeders'], data_item[u'num_leechers'], data_item[u'last_tracker_check']
+        data_item['num_seeders'] = seeders
+        data_item['num_leechers'] = leechers
+        data_item['last_tracker_check'] = time.time()
+        data_item['health'] = get_health(
+            data_item['num_seeders'], data_item['num_leechers'], data_item['last_tracker_check']
         )
 
-        if u'health' in self.model.column_position:
-            index = self.model.index(row, self.model.column_position[u'health'])
+        if 'health' in self.model.column_position:
+            index = self.model.index(row, self.model.column_position['health'])
             self.model.dataChanged.emit(index, index, [])
 
 
@@ -202,12 +209,12 @@ class ContextMenuMixin:
 
     def _trigger_name_editor(self, index):
         model = index.model()
-        title_index = model.index(index.row(), model.columns.index(u'name'))
+        title_index = model.index(index.row(), model.columns.index('name'))
         self.table_view.edit(title_index)
 
     def _trigger_category_editor(self, index):
         model = index.model()
-        title_index = model.index(index.row(), model.columns.index(u'category'))
+        title_index = model.index(index.row(), model.columns.index('category'))
         self.table_view.edit(title_index)
 
     def _show_context_menu(self, pos):
@@ -287,7 +294,7 @@ class ContextMenuMixin:
     def selection_can_be_added_to_channel(self):
         for row in self.table_view.selectionModel().selectedRows():
             data_item = row.model().data_items[row.row()]
-            if 'type' in data_item and data_item['type'] in (REGULAR_TORRENT, CHANNEL_TORRENT, COLLECTION_NODE):
+            if dict_item_is_any_of(data_item, 'type', [REGULAR_TORRENT, CHANNEL_TORRENT, COLLECTION_NODE]):
                 return True
         return False
 

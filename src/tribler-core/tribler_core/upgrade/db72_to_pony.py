@@ -37,7 +37,7 @@ def final_timestamp():
     return 1 << 62
 
 
-class DispersyToPonyMigration(object):
+class DispersyToPonyMigration:
     select_channels_sql = (
         "SELECT id, name, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam "
         "FROM Channels "
@@ -204,7 +204,7 @@ class DispersyToPonyMigration(object):
                         "title": name or '',
                         "tags": category or '',
                         "tracker_info": tracker_url or '',
-                        "xxx": int(category == u'xxx')}
+                        "xxx": int(category == 'xxx')}
                     if not sign:
                         torrent_dict.update({"origin_id": infohash_to_id(channel_id)})
                     seeders = int(num_seeders or 0)

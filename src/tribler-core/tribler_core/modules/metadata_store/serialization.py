@@ -84,7 +84,7 @@ class SignedPayload(Payload):
     format_list = ['H', 'H', '64s']
 
     def __init__(self, metadata_type, reserved_flags, public_key, **kwargs):
-        super(SignedPayload, self).__init__()
+        super().__init__()
         self.metadata_type = metadata_type
         self.reserved_flags = reserved_flags
         self.public_key = bytes(public_key)
@@ -177,11 +177,11 @@ class ChannelNodePayload(SignedPayload):
         self.id_ = id_
         self.origin_id = origin_id
         self.timestamp = timestamp
-        super(ChannelNodePayload, self).__init__(metadata_type, reserved_flags, public_key,
+        super().__init__(metadata_type, reserved_flags, public_key,
                                                  **kwargs)
 
     def to_pack_list(self):
-        data = super(ChannelNodePayload, self).to_pack_list()
+        data = super().to_pack_list()
         data.append(('Q', self.id_))
         data.append(('Q', self.origin_id))
         data.append(('Q', self.timestamp))
@@ -196,7 +196,7 @@ class ChannelNodePayload(SignedPayload):
                                   **kwargs)
 
     def to_dict(self):
-        dct = super(ChannelNodePayload, self).to_dict()
+        dct = super().to_dict()
         dct.update(
             {"id_": self.id_,
              "origin_id": self.origin_id,
@@ -215,14 +215,14 @@ class MetadataNodePayload(ChannelNodePayload):
                  **kwargs):
         self.title = title.decode('utf-8') if isinstance(title, bytes) else title
         self.tags = tags.decode('utf-8') if isinstance(tags, bytes) else tags
-        super(MetadataNodePayload, self).__init__(
+        super().__init__(
             metadata_type, reserved_flags, public_key,
             id_, origin_id, timestamp,
             **kwargs
         )
 
     def to_pack_list(self):
-        data = super(MetadataNodePayload, self).to_pack_list()
+        data = super().to_pack_list()
         data.append(('varlenI', self.title.encode('utf-8')))
         data.append(('varlenI', self.tags.encode('utf-8')))
         return data
@@ -242,7 +242,7 @@ class MetadataNodePayload(ChannelNodePayload):
         )
 
     def to_dict(self):
-        dct = super(MetadataNodePayload, self).to_dict()
+        dct = super().to_dict()
         dct.update(
             {"title": self.title,
              "tags": self.tags})
@@ -264,7 +264,7 @@ class CollectionNodePayload(MetadataNodePayload):
             **kwargs
     ):
         self.num_entries = num_entries
-        super(CollectionNodePayload, self).__init__(
+        super().__init__(
             metadata_type, reserved_flags, public_key,
             id_, origin_id, timestamp,
             title, tags,
@@ -272,7 +272,7 @@ class CollectionNodePayload(MetadataNodePayload):
         )
 
     def to_pack_list(self):
-        data = super(CollectionNodePayload, self).to_pack_list()
+        data = super().to_pack_list()
         data.append(('Q', self.num_entries))
         return data
 
@@ -293,7 +293,7 @@ class CollectionNodePayload(MetadataNodePayload):
         )
 
     def to_dict(self):
-        dct = super(CollectionNodePayload, self).to_dict()
+        dct = super().to_dict()
         dct.update({"num_entries": self.num_entries})
         return dct
 
@@ -315,14 +315,14 @@ class TorrentMetadataPayload(ChannelNodePayload):
         self.title = title.decode('utf-8') if isinstance(title, bytes) else title
         self.tags = tags.decode('utf-8') if isinstance(tags, bytes) else tags
         self.tracker_info = tracker_info.decode('utf-8') if isinstance(tracker_info, bytes) else tracker_info
-        super(TorrentMetadataPayload, self).__init__(
+        super().__init__(
             metadata_type, reserved_flags, public_key,
             id_, origin_id, timestamp,
             **kwargs
         )
 
     def to_pack_list(self):
-        data = super(TorrentMetadataPayload, self).to_pack_list()
+        data = super().to_pack_list()
         data.append(('20s', self.infohash))
         data.append(('Q', self.size))
         data.append(('I', self.torrent_date))
@@ -342,7 +342,7 @@ class TorrentMetadataPayload(ChannelNodePayload):
                                       **kwargs)
 
     def to_dict(self):
-        dct = super(TorrentMetadataPayload, self).to_dict()
+        dct = super().to_dict()
         dct.update(
             {
                 "infohash": self.infohash,
@@ -359,8 +359,8 @@ class TorrentMetadataPayload(ChannelNodePayload):
 
     # TODO:  DRY!(copypasted from TorrentMetadata)
     def get_magnet(self):
-        return ("magnet:?xt=urn:btih:%s&dn=%s" % (hexlify(self.infohash), self.title.encode('utf8'))) + (
-            "&tr=%s" % (self.tracker_info).encode('utf8') if self.tracker_info else ""
+        return (f"magnet:?xt=urn:btih:{hexlify(self.infohash)}&dn={self.title.encode('utf8')}") + (
+            f"&tr={self.tracker_info.encode('utf8')}" if self.tracker_info else ""
         )
 
 
@@ -378,13 +378,13 @@ class ChannelMetadataPayload(TorrentMetadataPayload):
                  **kwargs):
         self.num_entries = num_entries
         self.start_timestamp = start_timestamp
-        super(ChannelMetadataPayload, self).__init__(metadata_type, reserved_flags, public_key,
+        super().__init__(metadata_type, reserved_flags, public_key,
                                                      id_, origin_id, timestamp,
                                                      infohash, size, torrent_date, title, tags, tracker_info,
                                                      **kwargs)
 
     def to_pack_list(self):
-        data = super(ChannelMetadataPayload, self).to_pack_list()
+        data = super().to_pack_list()
         data.append(('Q', self.num_entries))
         data.append(('Q', self.start_timestamp))
         return data
@@ -402,7 +402,7 @@ class ChannelMetadataPayload(TorrentMetadataPayload):
                                       **kwargs)
 
     def to_dict(self):
-        dct = super(ChannelMetadataPayload, self).to_dict()
+        dct = super().to_dict()
         dct.update({"num_entries": self.num_entries, "start_timestamp": self.start_timestamp})
         return dct
 
@@ -418,11 +418,11 @@ class DeletedMetadataPayload(SignedPayload):
                  delete_signature,
                  **kwargs):
         self.delete_signature = bytes(delete_signature)
-        super(DeletedMetadataPayload, self).__init__(metadata_type, reserved_flags, public_key,
+        super().__init__(metadata_type, reserved_flags, public_key,
                                                      **kwargs)
 
     def to_pack_list(self):
-        data = super(DeletedMetadataPayload, self).to_pack_list()
+        data = super().to_pack_list()
         data.append(('64s', self.delete_signature))
         return data
 
@@ -435,7 +435,7 @@ class DeletedMetadataPayload(SignedPayload):
                                       **kwargs)
 
     def to_dict(self):
-        dct = super(DeletedMetadataPayload, self).to_dict()
+        dct = super().to_dict()
         dct.update({"delete_signature": self.delete_signature})
         return dct
 # fmt: on

@@ -196,7 +196,7 @@ async def test_start_download_while_getting_metainfo(fake_dlmgr):
     fake_dlmgr.metainfo_requests[infohash] = [metainfo_dl, 1]
     fake_dlmgr.remove_download = Mock(return_value=succeed(None))
 
-    tdef = TorrentDefNoMetainfo(infohash, 'name', 'magnet:?xt=urn:btih:%s&' % hexlify(infohash))
+    tdef = TorrentDefNoMetainfo(infohash, 'name', f'magnet:?xt=urn:btih:{hexlify(infohash)}&')
     download = fake_dlmgr.start_download(tdef=tdef, checkpoint_disabled=True)
     assert metainfo_dl != download
     await sleep(.1)

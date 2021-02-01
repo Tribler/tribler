@@ -50,7 +50,7 @@ class TrackerSession(TaskManager):
     __meta__ = ABCMeta
 
     def __init__(self, tracker_type, tracker_url, tracker_address, announce_page, timeout):
-        super(TrackerSession, self).__init__()
+        super().__init__()
 
         self._logger = logging.getLogger(self.__class__.__name__)
         # tracker type in lowercase
@@ -69,7 +69,7 @@ class TrackerSession(TaskManager):
         self.is_failed = False
 
     def __str__(self):
-        return "Tracker[%s, %s]" % (self.tracker_type, self.tracker_url)
+        return f"Tracker[{self.tracker_type}, {self.tracker_url}]"
 
     async def cleanup(self):
         """
@@ -99,9 +99,9 @@ class TrackerSession(TaskManager):
         """
         if not self.is_failed:
             self.is_failed = True
-            result_msg = "%s tracker failed for url %s" % (self.tracker_type, self.tracker_url)
+            result_msg = f"{self.tracker_type} tracker failed for url {self.tracker_url}"
             if msg:
-                result_msg += " (error: %s)" % msg
+                result_msg += f" (error: {msg})"
             raise ValueError(result_msg)
 
     @abstractmethod
@@ -141,7 +141,7 @@ class HttpTrackerSession(TrackerSession):
             raise e
         except ClientResponseError as e:
             self._logger.warning("%s HTTP SCRAPE error response code %s", self, e.status)
-            self.failed(msg="error code %s" % e.status)
+            self.failed(msg=f"error code {e.status}")
         except Exception as e:
             self.failed(msg=str(e))
 
@@ -200,7 +200,7 @@ class HttpTrackerSession(TrackerSession):
         :return: A deferred that fires once the cleanup is done.
         """
         await self._session.close()
-        await super(HttpTrackerSession, self).cleanup()
+        await super().cleanup()
 
 
 class UdpSocketManager(DatagramProtocol):
@@ -232,7 +232,7 @@ class UdpSocketManager(DatagramProtocol):
             transport.sendto(data, (tracker_session.ip_address, tracker_session.port))
             f = self.tracker_sessions[tracker_session.transaction_id] = Future()
             return await f
-        except socket.error as e:
+        except OSError as e:
             self._logger.warning("Unable to write data to %s:%d - %s",
                                  tracker_session.ip_address, tracker_session.port, e)
             return RuntimeError("Unable to write to socket - " + str(e))
@@ -304,7 +304,7 @@ class UdpTrackerSession(TrackerSession):
         Cleans the session by cancelling all deferreds and closing sockets.
         :return: A deferred that fires once the cleanup is done.
         """
-        await super(UdpTrackerSession, self).cleanup()
+        await super().cleanup()
         self.remove_transaction_id()
 
     async def connect_to_tracker(self):

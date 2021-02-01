@@ -37,7 +37,7 @@ class DownloadConfig:
         validator = Validator()
         validation_result = self.config.validate(validator)
         if validation_result is not True:
-            raise InvalidConfigException(msg="DownloadConfig is invalid: %s" % str(validation_result))
+            raise InvalidConfigException(msg=f"DownloadConfig is invalid: {str(validation_result)}")
 
     @staticmethod
     def load(config_path=None):
@@ -168,7 +168,7 @@ def get_default_dest_dir():
     if download_dir.is_dir():
         return path_util.abspath(download_dir)
 
-    downloads_dir = get_home_dir() / u"Downloads"
+    downloads_dir = get_home_dir() / "Downloads"
     if downloads_dir.is_dir():
         return downloads_dir / download_dir
     return get_home_dir() / download_dir

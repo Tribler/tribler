@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import QAction, QApplication, QDialog, QMessageBox, QTreeWi
 
 from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
+from tribler_common.sentry_reporter.sentry_scrubber import SentryScrubber
 
 from tribler_gui.event_request_manager import received_events
 from tribler_gui.tribler_action_menu import TriblerActionMenu
@@ -30,6 +31,7 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
         start_time,
         sentry_event=None,
         error_reporting_requires_user_consent=True,
+        stop_application_on_close=True,
     ):
         QDialog.__init__(self, parent)
 
@@ -39,24 +41,30 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
         self.selected_item_index = 0
         self.tribler_version = tribler_version
         self.sentry_event = sentry_event
+        self.scrubber = SentryScrubber()
+        self.stop_application_on_close = stop_application_on_close
 
         # Qt 5.2 does not have the setPlaceholderText property
         if hasattr(self.comments_text_edit, "setPlaceholderText"):
-            self.comments_text_edit.setPlaceholderText("Comments (optional)")
+            placeholder = "What were you doing before this crash happened? " \
+                          "This information will help Tribler developers to figure out and fix the issue quickly."
+            self.comments_text_edit.setPlaceholderText(placeholder)
 
         def add_item_to_info_widget(key, value):
             item = QTreeWidgetItem(self.env_variables_list)
             item.setText(0, key)
-            item.setText(1, value)
+            scrubbed_value = self.scrubber.scrub_text(value)
+            item.setText(1, scrubbed_value)
 
-        self.error_text_edit.setPlainText(exception_text.rstrip())
+        stacktrace = self.scrubber.scrub_text(exception_text.rstrip())
+        self.error_text_edit.setPlainText(stacktrace)
 
         connect(self.cancel_button.clicked, self.on_cancel_clicked)
         connect(self.send_report_button.clicked, self.on_send_clicked)
 
         # Add machine information to the tree widget
-        add_item_to_info_widget('os.getcwd', '%s' % os.getcwd())
-        add_item_to_info_widget('sys.executable', '%s' % sys.executable)
+        add_item_to_info_widget('os.getcwd', f'{os.getcwd()}')
+        add_item_to_info_widget('sys.executable', f'{sys.executable}')
 
         add_item_to_info_widget('os', os.name)
         add_item_to_info_widget('platform', sys.platform)
@@ -64,16 +72,16 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
         add_item_to_info_widget('platform.machine', platform.machine())
         add_item_to_info_widget('python.version', sys.version)
         add_item_to_info_widget('indebug', str(__debug__))
-        add_item_to_info_widget('tribler_uptime', "%s" % (time.time() - start_time))
+        add_item_to_info_widget('tribler_uptime', f"{time.time() - start_time}")
 
         for argv in sys.argv:
-            add_item_to_info_widget('sys.argv', '%s' % argv)
+            add_item_to_info_widget('sys.argv', f'{argv}')
 
         for path in sys.path:
-            add_item_to_info_widget('sys.path', '%s' % path)
+            add_item_to_info_widget('sys.path', f'{path}')
 
         for key in os.environ.keys():
-            add_item_to_info_widget('os.environ', '%s: %s' % (key, os.environ[key]))
+            add_item_to_info_widget('os.environ', f'{key}: {os.environ[key]}')
 
         # Add recent requests to feedback dialog
         request_ind = 1
@@ -88,15 +96,21 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
         # Add recent events to feedback dialog
         events_ind = 1
         for event, event_time in received_events[:30][::-1]:
-            add_item_to_info_widget('event_%d' % events_ind, '%s (time: %s)' % (json.dumps(event), event_time))
+            add_item_to_info_widget('event_%d' % events_ind, f'{json.dumps(event)} (time: {event_time})')
             events_ind += 1
 
         # Users can remove specific lines in the report
         connect(self.env_variables_list.customContextMenuRequested, self.on_right_click_item)
 
-        self.error_reporting_requires_user_consent = error_reporting_requires_user_consent
-        if not error_reporting_requires_user_consent:
+        self.send_automatically = FeedbackDialog.can_send_automatically(error_reporting_requires_user_consent)
+        if self.send_automatically:
+            self.stop_application_on_close = True
             self.on_send_clicked(True)
+
+    @staticmethod
+    def can_send_automatically(error_reporting_requires_user_consent):
+        test_sentry_url_is_defined = os.environ.get('TEST_SENTRY_URL', None) is not None
+        return test_sentry_url_is_defined and not error_reporting_requires_user_consent
 
     def on_remove_entry(self):
         self.env_variables_list.takeTopLevelItem(self.selected_item_index)
@@ -116,15 +130,15 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
         menu.exec_(self.env_variables_list.mapToGlobal(pos))
 
     def on_cancel_clicked(self, checked):
-        QApplication.quit()
+        self.close()
 
     def on_report_sent(self, response):
         if not response:
             return
-        if not self.error_reporting_requires_user_consent:
-            QApplication.quit()
+        if self.send_automatically:
+            self.close()
 
-        sent = response[u'sent']
+        sent = response['sent']
 
         success_text = "Successfully sent the report! Thanks for your contribution."
         error_text = "Could not send the report! Please post this issue on GitHub."
@@ -135,7 +149,7 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
         box.setStyleSheet("QPushButton { color: white; }")
         box.exec_()
 
-        QApplication.quit()
+        self.close()
 
     def on_send_clicked(self, checked):
         self.send_report_button.setEnabled(False)
@@ -150,7 +164,7 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
             key = item.text(0)
             value = item.text(1)
 
-            sys_info += "%s\t%s\n" % (key, value)
+            sys_info += f"{key}\t{value}\n"
             sys_info_dict[key].append(value)
 
         comments = self.comments_text_edit.toPlainText()
@@ -173,5 +187,6 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
         TriblerNetworkRequest(endpoint, self.on_report_sent, raw_data=tribler_urlencode(post_data), method='POST')
 
     def closeEvent(self, close_event):
-        QApplication.quit()
-        close_event.ignore()
+        if self.stop_application_on_close:
+            QApplication.quit()
+            close_event.ignore()

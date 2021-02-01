@@ -4,7 +4,8 @@ Architecture: all
 Maintainer: Tribler Team <info@tribler.org>
 Homepage: https://www.tribler.org/
 Depends: libsodium23 | libsodium18 | libsodium13,
-         libx11-6
+         libx11-6,
+         libxcb-xinerama0
 Description: Python based Bittorrent/Internet TV application
  It allows you to watch videos and download content. Tribler aims to combine
  the ease of Youtube.com with the performance of peer-to-peer.

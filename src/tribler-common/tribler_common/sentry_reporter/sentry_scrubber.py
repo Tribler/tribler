@@ -12,7 +12,7 @@ from tribler_common.sentry_reporter.sentry_reporter import (
     SYSINFO,
     VALUES,
 )
-from tribler_common.sentry_reporter.sentry_tools import delete_item, distinct_by, modify_value, skip_dev_version
+from tribler_common.sentry_reporter.sentry_tools import delete_item, distinct_by, format_version, modify_value
 
 
 class SentryScrubber:
@@ -31,18 +31,24 @@ class SentryScrubber:
             r'data\/media',
             r'WINNT\\Profiles',
             'Documents and Settings',
+            'Users',
         ]
 
+        self.dict_keys_for_scrub = ['USERNAME', 'USERDOMAIN']
         self.event_fields_to_cut = []
-
-        self.placeholder_user = '<user>'
-        self.placeholder_ip = '<IP>'
-        self.placeholder_hash = '<hash>'
-
         self.exclusions = ['local', '127.0.0.1']
 
-        self.user_name = None
+        # this is the dict (key: sensitive_info, value: placeholder)
+        self.sensitive_occurrences = {}
 
+        # placeholders
+        self.create_placeholder = lambda text: f'<{text}>'
+
+        self.placeholder_user = self.create_placeholder('user')
+        self.placeholder_ip = self.create_placeholder('IP')
+        self.placeholder_hash = self.create_placeholder('hash')
+
+        # compiled regular expressions
         self.re_folders = []
         self.re_ip = None
         self.re_hash = None
@@ -52,7 +58,7 @@ class SentryScrubber:
     def _compile_re(self):
         """Compile all regular expressions."""
         for folder in self.home_folders:
-            folder_pattern = r'(?<=' + folder + r'[/\\])\w+(?=[/\\])'
+            folder_pattern = r'(?<=' + folder + r'[/\\])[\w\s~]+(?=[/\\])'
             self.re_folders.append(re.compile(folder_pattern, re.I))
 
         self.re_ip = re.compile(r'(?<!\.)\b(\d{1,3}\.){3}\d{1,3}\b(?!\.)', re.I)
@@ -82,7 +88,7 @@ class SentryScrubber:
         modify_value(event, BREADCRUMBS, _remove_duplicates_from_breadcrumbs)
 
         # skip dev version
-        modify_value(event, RELEASE, skip_dev_version)
+        modify_value(event, RELEASE, format_version)
 
         # remove sensitive information
         modify_value(event, EXTRA, self.scrub_entity_recursively)
@@ -118,29 +124,37 @@ class SentryScrubber:
         if text is None:
             return text
 
-        def cut_username(m):
+        def scrub_username(m):
             group = m.group(0)
             if group in self.exclusions:
                 return group
-            self.user_name = group
+            self.add_sensitive_pair(group, self.placeholder_user)
             replacement = self.placeholder_user
             return replacement
 
         for regex in self.re_folders:
-            text = regex.sub(cut_username, text)
+            text = regex.sub(scrub_username, text)
 
         # cut an IP
-        def cut_ip(m):
+        def scrub_ip(m):
             return self.placeholder_ip if m.group(0) not in self.exclusions else m.group(0)
 
-        text = self.re_ip.sub(cut_ip, text)
+        text = self.re_ip.sub(scrub_ip, text)
 
         # cut hash
         text = self.re_hash.sub(self.placeholder_hash, text)
 
-        # replace all user name occurrences in the whole string
-        if self.user_name:
-            text = re.sub(r'\b' + re.escape(self.user_name) + r'\b', self.placeholder_user, text)
+        # replace all sensitive occurrences in the whole string
+        if self.sensitive_occurrences:
+            escaped_sensitive_occurrences = [re.escape(user_name) for user_name in self.sensitive_occurrences]
+            pattern = r'([^<]|^)\b(' + '|'.join(escaped_sensitive_occurrences) + r')\b'
+
+            def scrub_value(m):
+                if m.group(2) not in self.sensitive_occurrences:
+                    return m.group(0)
+                return m.group(1) + self.sensitive_occurrences[m.group(2)]
+
+            text = re.sub(pattern, scrub_value, text)
 
         return text
 
@@ -173,6 +187,18 @@ class SentryScrubber:
             return [self.scrub_entity_recursively(item, depth) for item in entity]
 
         if isinstance(entity, dict):
-            return dict((key, self.scrub_entity_recursively(entity[key], depth)) for key in entity)
+            result = {}
+            for key, value in entity.items():
+                if key in self.dict_keys_for_scrub:
+                    placeholder = self.create_placeholder(key)
+                    self.add_sensitive_pair(value, placeholder)
+                result[key] = self.scrub_entity_recursively(value, depth)
+            return result
 
         return entity
+
+    def add_sensitive_pair(self, text, placeholder):
+        if text in self.sensitive_occurrences:
+            return
+
+        self.sensitive_occurrences[text] = placeholder
