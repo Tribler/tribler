@@ -2,6 +2,7 @@ import os
 import sys
 from pathlib import Path
 
+from tribler_core.check_os import is_tribler_process
 from tribler_core.utilities.osutils import (
     dir_copy,
     fix_filebasename,
@@ -23,37 +24,37 @@ def test_fix_filebasename():
     default_name = '_'
     win_name_table = {
         'abcdef': 'abcdef',
-      '.': default_name,
-      '..': default_name,
-      '': default_name,
-      ' ': default_name,
-      '   ': default_name,
-      os.path.join('a', 'b'): 'a_b',
-      '\x5c\x61': '_a',    # \x5c = '\\'
-      '\x92\x97': '\x92\x97',
-      '\x5c\x5c': '__',
-      '\x5c\x61\x5c': '_a_',
-      '\x2f\x61': '_a',    # \x2f = '/'
-      '\x2f\x2f': '__',
-      '\x2f\x61\x2f': '_a_',
-      'a' * 300: 'a' * 255
+        '.': default_name,
+        '..': default_name,
+        '': default_name,
+        ' ': default_name,
+        '   ': default_name,
+        os.path.join('a', 'b'): 'a_b',
+        '\x5c\x61': '_a',  # \x5c = '\\'
+        '\x92\x97': '\x92\x97',
+        '\x5c\x5c': '__',
+        '\x5c\x61\x5c': '_a_',
+        '\x2f\x61': '_a',  # \x2f = '/'
+        '\x2f\x2f': '__',
+        '\x2f\x61\x2f': '_a_',
+        'a' * 300: 'a' * 255
     }
     for c in '"*/:<>?\\|':
         win_name_table[c] = default_name
 
     linux_name_table = {
         'abcdef': 'abcdef',
-      '.': default_name,
-      '..': default_name,
-      '': default_name,
-      ' ': default_name,
-      '   ': default_name,
-      os.path.join('a', 'b'): 'a_b',
-      '\x2f\x61': '_a',    # \x2f = '/'
-      '\x92\x97': '\x92\x97',
-      '\x2f\x2f': '__',
-      '\x2f\x61\x2f': '_a_',
-      'a' * 300: 'a' * 255
+        '.': default_name,
+        '..': default_name,
+        '': default_name,
+        ' ': default_name,
+        '   ': default_name,
+        os.path.join('a', 'b'): 'a_b',
+        '\x2f\x61': '_a',  # \x2f = '/'
+        '\x92\x97': '\x92\x97',
+        '\x2f\x2f': '__',
+        '\x2f\x61\x2f': '_a_',
+        'a' * 300: 'a' * 255
     }
 
     if sys.platform.startswith('win'):
@@ -130,3 +131,15 @@ def test_dir_copy(tmpdir):
     dir_copy(src_dir, dest_dir2, merge_if_exists=True)
     assert len(os.listdir(src_dir)) == len(os.listdir(dest_dir2))
     assert Path(dest_dir2, dummy_file).read_text() == "source: hello world"
+
+
+def test_is_tribler_process():
+    assert is_tribler_process('python.exe')
+    assert is_tribler_process('run_tribler.py')
+    assert is_tribler_process('usr/bin/python')
+    assert is_tribler_process('usr/bin/tribler')
+    assert is_tribler_process('Tribler.exe')
+    assert is_tribler_process('Tribler.sh')
+    assert is_tribler_process('Contents/MacOS/tribler')
+
+    assert not is_tribler_process('any other string')
