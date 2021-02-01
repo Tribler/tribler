@@ -184,17 +184,8 @@ class TriblerWindow(QMainWindow):
         self.discovering_page.initialize_discovering_page()
 
         self.discovered_page.initialize_content_page(hide_xxx=hide_xxx)
-        self.discovered_page.initialize_root_model(
-            DiscoveredChannelsModel(
-                channel_info={"name": "Discovered channels"}, endpoint_url="channels", hide_xxx=hide_xxx
-            )
-        )
-        connect(self.core_manager.events_manager.discovered_channel, self.discovered_page.model.on_new_entry_received)
 
         self.popular_page.initialize_content_page(hide_xxx=hide_xxx)
-        self.popular_page.initialize_root_model(
-            PopularTorrentsModel(channel_info={"name": "Popular torrents"}, hide_xxx=hide_xxx)
-        )
 
         self.trust_page.initialize_trust_page()
         self.trust_graph_page.initialize_trust_graph()
@@ -440,9 +431,20 @@ class TriblerWindow(QMainWindow):
             get_gui_setting(self.gui_settings, "autocommit_enabled", True, is_bool=True) if self.gui_settings else True
         )
         self.channel_contents_page.initialize_content_page(autocommit_enabled=autocommit_enabled, hide_xxx=False)
+
+        hide_xxx = get_gui_setting(self.gui_settings, "family_filter", True, is_bool=True)
+        self.discovered_page.initialize_root_model(
+            DiscoveredChannelsModel(
+                channel_info={"name": "Discovered channels"}, endpoint_url="channels", hide_xxx=hide_xxx
+            )
+        )
+        connect(self.core_manager.events_manager.discovered_channel, self.discovered_page.model.on_new_entry_received)
+
+        self.popular_page.initialize_root_model(
+            PopularTorrentsModel(channel_info={"name": "Popular torrents"}, hide_xxx=hide_xxx)
+        )
+
         self.add_to_channel_dialog.load_channel(0)
-        self.discovered_page.reset_view()
-        self.popular_page.reset_view()
 
         if not self.gui_settings.value("first_discover", False) and not self.core_manager.use_existing_core:
             connect(self.core_manager.events_manager.discovered_channel, self.stop_discovering)
