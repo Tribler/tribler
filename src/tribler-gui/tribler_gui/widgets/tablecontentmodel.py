@@ -266,6 +266,7 @@ class ChannelContentModel(RemoteTableModel):
         subscribed_only=None,
         endpoint_url=None,
         text_filter='',
+        type_filter=None,
     ):
         RemoteTableModel.__init__(self, parent=None)
         self.column_position = {name: i for i, name in enumerate(self.columns)}
@@ -277,7 +278,7 @@ class ChannelContentModel(RemoteTableModel):
         self.text_filter = text_filter
         self.subscribed_only = subscribed_only
         self.exclude_deleted = exclude_deleted
-        self.type_filter = None
+        self.type_filter = type_filter
         self.category_filter = None
 
         # Current channel attributes. This is intentionally NOT copied, so local changes
@@ -464,6 +465,18 @@ class ChannelContentModel(RemoteTableModel):
 
 class SearchResultsModel(ChannelContentModel):
     pass
+
+
+class PopularTorrentsModel(ChannelContentModel):
+    columns = ['category', 'name', 'size', 'health', 'updated']
+    column_headers = ['', tr('Name'), tr('Size'), tr('Health'), tr('Updated')]
+
+    column_width = dict(ChannelContentModel.column_width, **{'name': lambda table_width: table_width - 400})
+    default_sort_column = columns.index('health')
+
+    def __init__(self, *args, **kwargs):
+        kwargs["endpoint_url"] = 'channels/popular_torrents'
+        super().__init__(*args, **kwargs)
 
 
 class DiscoveredChannelsModel(ChannelContentModel):

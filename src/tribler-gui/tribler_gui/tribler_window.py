@@ -52,6 +52,7 @@ from tribler_gui.defs import (
     PAGE_DISCOVERING,
     PAGE_DOWNLOADS,
     PAGE_LOADING,
+    PAGE_POPULAR,
     PAGE_SEARCH_RESULTS,
     PAGE_SETTINGS,
     PAGE_TRUST,
@@ -75,7 +76,7 @@ from tribler_gui.utilities import (
     is_dir_writable,
 )
 from tribler_gui.widgets.channelsmenulistwidget import ChannelsMenuListWidget
-from tribler_gui.widgets.tablecontentmodel import DiscoveredChannelsModel, SearchResultsModel
+from tribler_gui.widgets.tablecontentmodel import DiscoveredChannelsModel, PopularTorrentsModel, SearchResultsModel
 from tribler_gui.widgets.triblertablecontrollers import sanitize_for_fts, to_fts_query
 
 fc_loading_list_item, _ = uic.loadUiType(get_ui_file_path('loading_list_item.ui'))
@@ -171,6 +172,7 @@ class TriblerWindow(QMainWindow):
             self.left_menu_button_downloads,
             self.left_menu_button_discovered,
             self.left_menu_button_trust_graph,
+            self.left_menu_button_popular,
         ]
         hide_xxx = get_gui_setting(self.gui_settings, "family_filter", True, is_bool=True)
         self.search_results_page.initialize_content_page(hide_xxx=hide_xxx)
@@ -188,6 +190,11 @@ class TriblerWindow(QMainWindow):
             )
         )
         connect(self.core_manager.events_manager.discovered_channel, self.discovered_page.model.on_new_entry_received)
+
+        self.popular_page.initialize_content_page(hide_xxx=hide_xxx)
+        self.popular_page.initialize_root_model(
+            PopularTorrentsModel(channel_info={"name": "Popular torrents"}, hide_xxx=hide_xxx)
+        )
 
         self.trust_page.initialize_trust_page()
         self.trust_graph_page.initialize_trust_graph()
@@ -348,6 +355,7 @@ class TriblerWindow(QMainWindow):
         make free space.
         :return:
         """
+
         def close_tribler_gui():
             self.close_tribler()
             # Since the core has already stopped at this point, it will not terminate the GUI.
@@ -434,6 +442,7 @@ class TriblerWindow(QMainWindow):
         self.channel_contents_page.initialize_content_page(autocommit_enabled=autocommit_enabled, hide_xxx=False)
         self.add_to_channel_dialog.load_channel(0)
         self.discovered_page.reset_view()
+        self.popular_page.reset_view()
 
         if not self.gui_settings.value("first_discover", False) and not self.core_manager.use_existing_core:
             connect(self.core_manager.events_manager.discovered_channel, self.stop_discovering)
@@ -950,6 +959,15 @@ class TriblerWindow(QMainWindow):
         self.stackedWidget.setCurrentIndex(PAGE_DISCOVERED)
         self.discovered_page.content_table.setFocus()
 
+    def clicked_menu_button_popular(self):
+        self.deselect_all_menu_buttons()
+        self.left_menu_button_popular.setChecked(True)
+        # We want to reset the view every time to show updates
+        self.popular_page.go_back_to_level(0)
+        self.popular_page.reset_view()
+        self.stackedWidget.setCurrentIndex(PAGE_POPULAR)
+        self.popular_page.content_table.setFocus()
+
     def clicked_menu_button_trust_graph(self):
         self.deselect_all_menu_buttons(self.left_menu_button_trust_graph)
         self.stackedWidget.setCurrentIndex(PAGE_TRUST_GRAPH_PAGE)
@@ -1126,6 +1144,7 @@ class TriblerWindow(QMainWindow):
         self._logger.error(f"Config error: {stacktrace}")
         user_message = 'Tribler recovered from a corrupted config. Please check your settings and update if necessary.'
         ConfirmationDialog.show_error(self, "Tribler config error", user_message)
+
 
 def _qurl_to_path(qurl):
     parsed = urlparse(qurl.toString())

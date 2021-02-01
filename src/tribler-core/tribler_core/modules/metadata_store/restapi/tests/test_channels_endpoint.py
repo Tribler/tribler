@@ -128,6 +128,21 @@ async def test_get_channel_contents(enable_chant, enable_api, add_fake_torrents_
 
 
 @pytest.mark.asyncio
+async def test_get_popular_torrents(enable_chant, enable_api, add_fake_torrents_channels, mock_dlmgr, session):
+    """
+    Test getting the list of popular torrents. The list is served as contents of a pseudo-channel
+    """
+    session.dlmgr.get_download().get_state().get_progress = lambda: 0.5
+    json_dict = await do_request(session, 'channels/popular_torrents', expected_code=200)
+
+    seeders_orig_order = [int(t['num_seeders']) for t in json_dict['results']]
+
+    assert seeders_orig_order[0] > 0
+    assert sorted(seeders_orig_order, reverse=True) == seeders_orig_order
+    assert len(json_dict['results']) == 20
+
+
+@pytest.mark.asyncio
 async def test_get_channel_contents_by_type(enable_chant, enable_api, my_channel, mock_dlmgr_get_download, session):
     """
     Test filtering channel contents by a list of data types

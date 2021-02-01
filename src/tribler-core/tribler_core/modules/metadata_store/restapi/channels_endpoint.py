@@ -43,8 +43,16 @@ class ChannelsEndpoint(ChannelsEndpointBase):
                 web.put(r'/{channel_pk:\w*}/{channel_id:\w*}/torrents', self.add_torrent_to_channel),
                 web.post(r'/{channel_pk:\w*}/{channel_id:\w*}/commit', self.post_commit),
                 web.get(r'/{channel_pk:\w*}/{channel_id:\w*}/commit', self.is_channel_dirty),
+                web.get('/popular_torrents', self.get_popular_torrents_channel),
             ]
         )
+
+    def add_download_progress_to_metadata_list(self, contents_list):
+        for torrent in contents_list:
+            if torrent['type'] == REGULAR_TORRENT:
+                dl = self.session.dlmgr.get_download(unhexlify(torrent['infohash']))
+                if dl is not None and dl.tdef.infohash not in self.session.dlmgr.metainfo_requests:
+                    torrent['progress'] = dl.get_state().get_progress()
 
     def get_channel_from_request(self, request):
         channel_pk = (
@@ -146,11 +154,7 @@ class ChannelsEndpoint(ChannelsEndpointBase):
             contents = self.session.mds.MetadataNode.get_entries(**sanitized)
             contents_list = [c.to_simple_dict() for c in contents]
             total = self.session.mds.MetadataNode.get_total_count(**sanitized) if include_total else None
-        for torrent in contents_list:
-            if torrent['type'] == REGULAR_TORRENT:
-                dl = self.session.dlmgr.get_download(unhexlify(torrent['infohash']))
-                if dl is not None and dl.tdef.infohash not in self.session.dlmgr.metainfo_requests:
-                    torrent['progress'] = dl.get_state().get_progress()
+        self.add_download_progress_to_metadata_list(contents_list)
         response_dict = {
             "results": contents_list,
             "first": sanitized['first'],
@@ -389,3 +393,36 @@ class ChannelsEndpoint(ChannelsEndpointBase):
                 lambda g: g.public_key == database_blob(channel_pk) and g.status in DIRTY_STATUSES
             )
             return RESTResponse({"dirty": dirty})
+
+    @docs(
+        tags=['Metadata'],
+        summary='Get the list of most popular torrents. Functions as a pseudo-channel.',
+        responses={
+            200: {
+                'schema': schema(
+                    GetChannelContentsResponse={
+                        'results': [Dict()],
+                        'first': Integer(),
+                        'last': Integer(),
+                    }
+                )
+            }
+        },
+    )
+    async def get_popular_torrents_channel(self, request):
+        sanitized = self.sanitize_parameters(request.query)
+        sanitized["metadata_type"] = REGULAR_TORRENT
+        sanitized["sort_by"] = "HEALTH"
+        sanitized["self_checked_torrent"] = True
+        with db_session:
+            contents = self.session.mds.TorrentMetadata.get_entries(**sanitized)
+            contents_list = [c.to_simple_dict() for c in contents]
+        self.add_download_progress_to_metadata_list(contents_list)
+
+        response_dict = {
+            "results": contents_list,
+            "first": sanitized['first'],
+            "last": sanitized['last'],
+        }
+
+        return RESTResponse(response_dict)

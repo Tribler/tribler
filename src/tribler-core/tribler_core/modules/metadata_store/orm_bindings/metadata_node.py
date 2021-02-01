@@ -77,6 +77,7 @@ def define_binding(db):
             infohash=None,
             id_=None,
             complete_channel=None,
+            self_checked_torrent=None,
         ):
             """
             This method implements REST-friendly way to get entries from the database. It is overloaded by the higher
@@ -116,6 +117,11 @@ def define_binding(db):
             pony_query = pony_query.where(lambda g: g.xxx == 0) if hide_xxx else pony_query
             pony_query = pony_query.where(lambda g: g.status != LEGACY_ENTRY) if exclude_legacy else pony_query
             pony_query = pony_query.where(lambda g: g.infohash == infohash) if infohash else pony_query
+            pony_query = (
+                pony_query.where(lambda g: g.health.self_checked == self_checked_torrent)
+                if self_checked_torrent is not None
+                else pony_query
+            )
             # ACHTUNG! Setting complete_channel to True forces the metadata type to Channels only!
             pony_query = (
                 pony_query.where(lambda g: g.metadata_type == CHANNEL_TORRENT and g.timestamp == g.local_version)

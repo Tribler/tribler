@@ -221,10 +221,6 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         self.push_channels_stack(root_model)
         self.controller.set_model(self.model)
 
-        # FIXME: this and some other calls to update_labels are redundant with the ones from the signal
-        self.update_labels()
-        self.channel_torrents_filter_input.setText("")
-
     def reset_view(self, text_filter=None):
         self.model.text_filter = text_filter or ''
         self.model.category_filter = None

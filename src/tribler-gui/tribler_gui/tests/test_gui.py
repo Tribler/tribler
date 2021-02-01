@@ -249,6 +249,16 @@ def test_discovered_page(tribler_api, window):
     tst_channels_widget(window, window.discovered_page, "discovered_page", sort_column=2)
 
 
+@pytest.mark.guitest
+def test_popular_page(tribler_api, window):
+    QTest.mouseClick(window.left_menu_button_popular, Qt.LeftButton)
+    # tst_channels_widget(window, window.discovered_page, "discovered_page", sort_column=2)
+    widget = window.discovered_page
+    widget_name = "popular_page"
+    wait_for_list_populated(widget.content_table)
+    screenshot(window, name=f"{widget_name}-page")
+
+
 # @pytest.mark.guitest
 def test_edit_channel_torrents(tribler_api, window):
     wait_for_list_populated(window.channels_menu_list)
