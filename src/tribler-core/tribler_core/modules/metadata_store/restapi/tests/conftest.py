@@ -30,9 +30,11 @@ def add_fake_torrents_channels(session):
             for torrent_ind in range(torrents_per_channel):
                 rand_infohash = random_infohash()
                 infohashes.append(rand_infohash)
-                session.mds.TorrentMetadata(
+                t = session.mds.TorrentMetadata(
                     origin_id=channel.id_, title='torrent%d' % torrent_ind, infohash=rand_infohash, sign_with=ext_key
                 )
+                t.health.seeders = int.from_bytes(t.infohash[:2], byteorder="big")
+                t.health.self_checked = bool(torrent_ind % 2 == 1)
 
 
 @pytest.fixture

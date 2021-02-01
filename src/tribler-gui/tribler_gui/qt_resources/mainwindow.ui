@@ -751,6 +751,58 @@ QPushButton::menu-indicator{width:0px;}</string>
           </widget>
          </item>
          <item>
+          <widget class="QPushButton" name="left_menu_button_popular">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>26</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>16777215</width>
+             <height>30</height>
+            </size>
+           </property>
+           <property name="cursor">
+            <cursorShape>PointingHandCursor</cursorShape>
+           </property>
+           <property name="focusPolicy">
+            <enum>Qt::NoFocus</enum>
+           </property>
+           <property name="styleSheet">
+            <string notr="true"/>
+           </property>
+           <property name="text">
+            <string> Popular</string>
+           </property>
+           <property name="icon">
+            <iconset>
+             <normaloff>../images/fire.png</normaloff>
+             <disabledoff>../images/fire.png</disabledoff>
+             <disabledon>../images/fire.png</disabledon>../images/fire.png</iconset>
+           </property>
+           <property name="iconSize">
+            <size>
+             <width>16</width>
+             <height>16</height>
+            </size>
+           </property>
+           <property name="checkable">
+            <bool>true</bool>
+           </property>
+           <property name="flat">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
           <widget class="QPushButton" name="left_menu_button_downloads">
            <property name="minimumSize">
             <size>
@@ -5476,6 +5528,7 @@ margin: 10px 4px 2px 10px;</string>
          </layout>
         </widget>
         <widget class="ChannelContentsWidget" name="channel_contents_page"/>
+        <widget class="ChannelContentsWidget" name="popular_page"/>
        </widget>
       </item>
      </layout>
@@ -5732,6 +5785,22 @@ margin: 10px 4px 2px 10px;</string>
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>left_menu_button_popular</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>clicked_menu_button_popular()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>20</x>
+     <y>20</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>20</x>
+     <y>20</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>on_top_search_button_click()</slot>
@@ -5753,5 +5822,6 @@ margin: 10px 4px 2px 10px;</string>
   <slot>clicked_force_shutdown()</slot>
   <slot>clicked_skip_conversion()</slot>
   <slot>clicked_menu_button_trust_graph()</slot>
+  <slot>clicked_menu_button_popular()</slot>
  </slots>
 </ui>
