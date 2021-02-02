@@ -49,7 +49,7 @@ def check_environment():
 
 def check_free_space():
     try:
-        free_space = psutil.disk_usage(".").free/(1024 * 1024.0)
+        free_space = psutil.disk_usage(".").free / (1024 * 1024.0)
         if free_space < 100:
             error_and_exit("Insufficient disk space",
                            "You have less than 100MB of usable disk space. " +
@@ -104,26 +104,25 @@ def should_kill_other_tribler_instances():
             sys.exit(0)
 
 
+def is_tribler_process(name):
+    """
+    Checks if the given name is of a Tribler processs. It checks a few potential keywords that
+    could be present in a Tribler process name across different platforms.
+    :param name: Process name
+    :return: True if pid is a Tribler process else False
+    """
+    name = name.lower()
+    keywords = ['tribler', 'python']
+
+    return any(keyword in name for keyword in keywords)
+
+
 def kill_tribler_process(process):
     """
     Kills the given process if it is a Tribler process.
     :param process: psutil.Process
     :return: None
     """
-    def is_tribler_process(name):
-        """
-        Checks if the given name is of a Tribler processs. It checks a few potential keywords that
-        could be present in a Tribler process name across different platforms.
-        :param name: Process name
-        :return: True if pid is a Tribler process else False
-        """
-        name = name.lower()
-        process_keywords = ['usr/bin/python', 'run_tribler.py', 'tribler.exe', 'tribler.sh',
-                            'Contents/MacOS/tribler', 'usr/bin/tribler']
-        for keyword in process_keywords:
-            if keyword.lower() in name:
-                return True
-        return False
 
     try:
         if not is_tribler_process(process.exe()):
