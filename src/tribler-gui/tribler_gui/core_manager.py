@@ -84,7 +84,7 @@ class CoreManager(QObject):
 
     def start(self, core_args=None, core_env=None):
         """
-        First test whether we already have a Tribler process listening on port 8085. If so, use that one and don't
+        First test whether we already have a Tribler process listening on port <CORE_API_PORT>. If so, use that one and don't
         start a new, fresh session.
         """
 

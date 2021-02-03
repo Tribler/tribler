@@ -177,7 +177,7 @@ def main(argv):
     parser.add_argument('--ipv8_port', '-d', default=-1, type=int, help='IPv8 port', action=PortAction, metavar='{0..65535}')
     parser.add_argument('--ipv8_address', '-i', default='0.0.0.0', type=str, help='IPv8 listening address', action=IPAction)
     parser.add_argument('--ipv8_bootstrap_override', '-b', default=None, type=str, help='Force the usage of specific IPv8 bootstrap server (ip:port)', action=IPPortAction)
-    parser.add_argument('--restapi', '-p', default=8085, type=str, help='Use an alternate port for the REST API', action=PortAction, metavar='{0..65535}')
+    parser.add_argument('--restapi', '-p', default=52194, type=str, help='Use an alternate port for the REST API', action=PortAction, metavar='{0..65535}')
     parser.add_argument('--cert-file', '-e', help='Path to combined certificate/key file. If not given HTTP is used.')
     parser.add_argument('--api-key', '-k', help='API key to use. If not given API key protection is disabled.')
     parser.add_argument('--random_slots', '-r', default=10, type=int, help='Specifies the number of random slots')
