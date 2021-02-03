@@ -19,12 +19,13 @@ from ipv8.test.mocking.exit_socket import MockTunnelExitSocket
 from ipv8.test.mocking.ipv8 import MockIPv8
 from ipv8.util import succeed
 
+from tribler_common.network_utils import get_random_port
+
 from tribler_core.modules.bandwidth_accounting.community import BandwidthAccountingCommunity
 from tribler_core.modules.tunnel.community.payload import BandwidthTransactionPayload
 from tribler_core.modules.tunnel.community.triblertunnel_community import PEER_FLAG_EXIT_HTTP, TriblerTunnelCommunity
 from tribler_core.tests.tools.base_test import MockObject
 from tribler_core.tests.tools.tracker.http_tracker import HTTPTracker
-from tribler_core.utilities.network_utils import get_random_port
 from tribler_core.utilities.path_util import mkdtemp
 
 

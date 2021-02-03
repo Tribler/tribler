@@ -10,13 +10,13 @@ from configobj import ConfigObj, ParseError
 
 from validate import Validator
 
+from tribler_common.network_utils import get_random_port
 from tribler_common.simpledefs import MAX_LIBTORRENT_RATE_LIMIT
 
 from tribler_core.exceptions import InvalidConfigException
 from tribler_core.modules.libtorrent.download_config import get_default_dest_dir
 from tribler_core.utilities import path_util
 from tribler_core.utilities.install_dir import get_lib_path
-from tribler_core.utilities.network_utils import get_random_port
 from tribler_core.utilities.path_util import Path
 
 CONFIG_FILENAME = 'triblerd.conf'

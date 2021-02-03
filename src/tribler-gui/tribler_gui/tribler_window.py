@@ -37,6 +37,8 @@ from PyQt5.QtWidgets import (
     QTreeWidget,
 )
 
+from tribler_common.network_utils import get_first_free_port
+
 from tribler_core.modules.process_checker import ProcessChecker
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.version import version_id
@@ -112,6 +114,8 @@ class TriblerWindow(QMainWindow):
         api_port = api_port or int(get_gui_setting(self.gui_settings, "api_port", DEFAULT_API_PORT))
         api_key = api_key or get_gui_setting(self.gui_settings, "api_key", hexlify(os.urandom(16)).encode('utf-8'))
         self.gui_settings.setValue("api_key", api_key)
+
+        api_port = get_first_free_port(start=api_port, limit=100)
         request_manager.port, request_manager.key = api_port, api_key
 
         self.tribler_started = False
