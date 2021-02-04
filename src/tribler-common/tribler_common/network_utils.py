@@ -7,9 +7,29 @@ import socket
 import struct
 import sys
 
-logger = logging.getLogger(__name__)
+MAX_PORT = 65535
+
+logger = logging.getLogger("NetworkUtils")
 
 CLAIMED_PORTS = []
+
+
+class FreePortNotFoundError(Exception):
+    pass
+
+
+def get_first_free_port(start=5000, limit=100, family=socket.AF_INET, socket_type=socket.SOCK_STREAM):
+    stop = min(MAX_PORT, start + limit)
+    logger.info(f'Looking for first free port in range [{start}..{stop}]')
+
+    for port in range(start, stop):
+        if _test_port(family, socket_type, port):
+            logger.info(f'{port} is free')
+            return port
+
+        logger.info(f'{port} in use')
+
+    raise FreePortNotFoundError(f'Free port not found in range [{start}..{stop}]')
 
 
 def get_random_port(socket_type="all", min_port=5000, max_port=60000):
@@ -22,11 +42,11 @@ def get_random_port(socket_type="all", min_port=5000, max_port=60000):
     assert socket_type in ("all", "tcp", "udp"), f"Invalid socket type {type(socket_type)}"
     assert isinstance(min_port, int), f"Invalid min_port type {type(min_port)}"
     assert isinstance(max_port, int), f"Invalid max_port type {type(max_port)}"
-    assert 0 < min_port <= max_port <= 65535, f"Invalid min_port and mac_port values {min_port}, {max_port}"
+    assert 0 < min_port <= max_port <= MAX_PORT, f"Invalid min_port and mac_port values {min_port}, {max_port}"
 
     working_port = None
     try_port = random.randint(min_port, max_port)
-    while try_port <= 65535:
+    while try_port <= MAX_PORT:
         if check_random_port(try_port, socket_type):
             working_port = try_port
             break
@@ -47,7 +67,7 @@ def check_random_port(port, socket_type="all"):
     """
     assert socket_type in ("all", "tcp", "udp"), f"Invalid socket type {type(socket_type)}"
     assert isinstance(port, int), f"Invalid port type {type(port)}"
-    assert 0 < port <= 65535, f"Invalid port value {port}"
+    assert 0 < port <= MAX_PORT, f"Invalid port value {port}"
 
     # only support IPv4 for now
     _family = socket.AF_INET
@@ -80,7 +100,7 @@ def _test_port(family, sock_type, port):
     """
     assert family in (socket.AF_INET,), f"Invalid family value {family}"
     assert sock_type in (socket.SOCK_DGRAM, socket.SOCK_STREAM), f"Invalid sock_type value {sock_type}"
-    assert 0 < port <= 65535, f"Invalid port value {port}"
+    assert 0 < port <= MAX_PORT, f"Invalid port value {port}"
 
     try:
         with socket.socket(family, sock_type) as s:
@@ -89,8 +109,7 @@ def _test_port(family, sock_type, port):
             s.bind(('', port))
         is_port_working = True
     except OSError as e:
-        logger.debug("Port test failed (port=%s, family=%s, type=%s): %s",
-                     port, family, sock_type, e)
+        logger.debug("Port test failed (port=%s, family=%s, type=%s): %s", port, family, sock_type, e)
         is_port_working = False
     return is_port_working
 

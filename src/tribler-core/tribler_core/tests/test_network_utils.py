@@ -3,7 +3,12 @@ import socket
 
 import pytest
 
-from tribler_core.utilities.network_utils import autodetect_socket_style, get_random_port
+from tribler_common.network_utils import (
+    FreePortNotFoundError,
+    autodetect_socket_style,
+    get_first_free_port,
+    get_random_port,
+)
 
 
 def test_get_random_port():
@@ -43,3 +48,17 @@ def test_get_random_port_invalid_type():
 def test_autodetect_socket_style():
     style = autodetect_socket_style()
     assert style == 0 or autodetect_socket_style() == 1
+
+
+def test_get_first_free_port():
+    # target port is free
+    assert get_first_free_port(start=50000) == 50000
+
+    # target port is locked
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.bind(('', 50000))
+        assert get_first_free_port(start=50000) == 50001
+
+    # no free ports found
+    with pytest.raises(FreePortNotFoundError):
+        get_first_free_port(start=50000, limit=0)

@@ -16,9 +16,11 @@ Some requests require one or more parameters. These parameters are passed using 
 
 .. code-block:: none
 
-    curl -X PUT -H "X-Api-Key: <YOUR API KEY>" http://localhost:8085/mychannel/rssfeeds/http%3A%2F%2Frssfeed.com%2Frss.xml
+    curl -X PUT -H "X-Api-Key: <YOUR API KEY>" http://localhost:52194/mychannel/rssfeeds/http%3A%2F%2Frssfeed.com%2Frss.xml
 
-Alternatively, requests can be made using Swagger UI by starting Tribler and opening `http://localhost:8085/docs` in a browser.
+Alternatively, requests can be made using Swagger UI by starting Tribler and opening `http://localhost:52194/docs` in a browser.
+
+Note: 52194 is a default port value. It can be changed by setting up "CORE_API_PORT" environment variable.
 
 Error handling
 ==============

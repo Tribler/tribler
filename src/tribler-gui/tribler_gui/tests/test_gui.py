@@ -9,8 +9,9 @@ from PyQt5.QtWidgets import QApplication, QListWidget, QTableView, QTextEdit, QT
 
 import pytest
 
+from tribler_common.network_utils import get_random_port
+
 from tribler_core.tests.tools.common import TORRENT_UBUNTU_FILE
-from tribler_core.utilities.network_utils import get_random_port
 
 import tribler_gui
 import tribler_gui.core_manager as core_manager
@@ -63,7 +64,7 @@ def tribler_api(api_port, tmpdir_factory):
     def on_core_read_ready():
         raw_output = bytes(core_process.readAll())
         decoded_output = raw_output.decode(errors="replace")
-        print(decoded_output.strip())
+        print(decoded_output.strip())  # noqa: T001
 
     core_process.setProcessEnvironment(core_env)
     core_process.setReadChannel(QProcess.StandardOutput)

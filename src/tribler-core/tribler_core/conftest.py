@@ -10,6 +10,7 @@ from ipv8.util import succeed
 
 import pytest
 
+from tribler_common.network_utils import get_random_port
 from tribler_common.simpledefs import DLSTATUS_SEEDING
 
 from tribler_core.config.tribler_config import TriblerConfig
@@ -21,7 +22,6 @@ from tribler_core.session import Session
 from tribler_core.tests.tools.common import TESTS_DATA_DIR, TESTS_DIR
 from tribler_core.tests.tools.tracker.udp_tracker import UDPTracker
 from tribler_core.upgrade.db72_to_pony import DispersyToPonyMigration
-from tribler_core.utilities.network_utils import get_random_port
 from tribler_core.utilities.unicode import hexlify
 
 

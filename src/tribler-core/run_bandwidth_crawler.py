@@ -51,7 +51,7 @@ async def start_crawler(tribler_config):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=('Start a crawler in the bandwidth accounting community'))
     parser.add_argument('--statedir', '-s', default='bw_crawler', type=str, help='Use an alternate statedir')
-    parser.add_argument('--restapi', '-p', default=8085, type=str, help='Use an alternate port for the REST API',
+    parser.add_argument('--restapi', '-p', default=52194, type=str, help='Use an alternate port for the REST API',
                         action=PortAction, metavar='{0..65535}')
     args = parser.parse_args(sys.argv[1:])
 

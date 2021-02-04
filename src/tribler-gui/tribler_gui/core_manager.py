@@ -60,7 +60,7 @@ class CoreManager(QObject):
         if b'Traceback' in raw_output:
             self.core_traceback = decoded_output
             self.core_traceback_timestamp = int(round(time.time() * 1000))
-        print(decoded_output.strip())
+        print(decoded_output.strip())  # noqa: T001
 
     def on_core_finished(self, exit_code, exit_status):
         if self.shutting_down and self.should_stop_on_shutdown:
@@ -84,8 +84,8 @@ class CoreManager(QObject):
 
     def start(self, core_args=None, core_env=None):
         """
-        First test whether we already have a Tribler process listening on port 8085. If so, use that one and don't
-        start a new, fresh session.
+        First test whether we already have a Tribler process listening on port <CORE_API_PORT>.
+        If so, use that one and don't start a new, fresh session.
         """
 
         def on_request_error(_):
