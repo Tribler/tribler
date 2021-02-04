@@ -4,8 +4,11 @@ This file lists the python dependencies for Tribler.
 Note that this file should not depend on any external modules itself other than builtin ones.
 """
 import importlib
+import logging
 import platform
 import sys
+
+logger = logging.getLogger(__name__)
 
 dependencies = [
     {'module': 'aiohttp', 'install_type': 'pip3', 'package': 'aiohttp', 'optional': False, 'scope': 'core'},
@@ -72,6 +75,7 @@ def check_for_missing_dependencies(scope='both'):
 
     :param scope: Defines the scope of the dependencies. Can have three values: core, gui, both. Default value is both.
     """
+    logger.info(f'Check for missing dependencies. Scope: {scope}')
     missing_deps = {'pip3': [], 'apt': []}
     is_scope_both = scope == 'both'
     for dep in dependencies:

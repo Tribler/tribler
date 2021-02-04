@@ -14,6 +14,8 @@ from tribler_core.utilities import path_util
 FORCE_RESTART_MESSAGE = "An existing Tribler core process (PID:%s) is already running. \n\n" \
                         "Do you want to stop the process and do a clean restart instead?"
 
+logger = logging.getLogger(__name__)
+
 
 def error_and_exit(title, main_text):
     """
@@ -44,10 +46,12 @@ def check_environment():
     """
     Perform all of the pre-Tribler checks to see if we can run on this platform.
     """
+    logger.info('Check environment')
     check_read_write()
 
 
 def check_free_space():
+    logger.info('Check free space')
     try:
         free_space = psutil.disk_usage(".").free / (1024 * 1024.0)
         if free_space < 100:
@@ -55,6 +59,7 @@ def check_free_space():
                            "You have less than 100MB of usable disk space. " +
                            "Please free up some space and run Tribler again.")
     except ImportError as ie:
+        logger.error(ie)
         error_and_exit("Import Error", f"Import error: {ie}")
 
 
@@ -72,16 +77,20 @@ def should_kill_other_tribler_instances():
         previous force kill command or some other unexpected exceptions and relaunch Tribler again.
         It ignores if Tribler is opened with some arguments, for eg. with a torrent.
      """
+    logger.info('Should kill other Tribler instances')
+
     # If there are cmd line args, let existing instance handle it
     if len(sys.argv) > 1:
         return
 
     old_pid = get_existing_tribler_pid()
     current_pid = os.getpid()
+    logger.info(f'Old PID: {old_pid}. Current PID: {current_pid}')
 
     if current_pid != old_pid and old_pid > 0:
         # If the old process is a zombie, simply kill it and restart Tribler
         old_process = psutil.Process(old_pid)
+        logger.info(f'Old process status: {old_process.status()}')
         if old_process.status() == psutil.STATUS_ZOMBIE:
             kill_tribler_process(old_process)
             restart_tribler_properly()
@@ -114,7 +123,9 @@ def is_tribler_process(name):
     name = name.lower()
     keywords = ['tribler', 'python']
 
-    return any(keyword in name for keyword in keywords)
+    result = any(keyword in name for keyword in keywords)
+    logger.info(f'Is Tribler process: {result}')
+    return result
 
 
 def kill_tribler_process(process):
@@ -123,35 +134,44 @@ def kill_tribler_process(process):
     :param process: psutil.Process
     :return: None
     """
+    logger.info(f'Kill Tribler process: {process}')
 
     try:
         if not is_tribler_process(process.exe()):
             return
 
         parent_process = process.parent()
+        logger.info(f'Parent process: {parent_process}')
+
         if parent_process.pid > 1 and is_tribler_process(parent_process.exe()):
+            logger.info(f'OS kill: {process.pid} and {parent_process.pid}')
             os.kill(process.pid, 9)
             os.kill(parent_process.pid, 9)
         else:
+            logger.info(f'OS kill: {process.pid} ')
             os.kill(process.pid, 9)
 
     except OSError:
-        logging.exception("Failed to kill the existing Tribler process")
+        logger.exception("Failed to kill the existing Tribler process")
 
 
 def restart_tribler_properly():
     """
     Restarting Tribler with proper cleanup of file objects and descriptors
     """
+    logger.info('Restart Tribler properly')
     try:
         process = psutil.Process(os.getpid())
         for handler in process.open_files() + process.connections():
+            logger.info(f'OS close: {handler}')
             os.close(handler.fd)
     except Exception as e:
         # If exception occurs on cleaning up the resources, simply log it and continue with the restart
-        logging.error(e)
+        logger.error(e)
 
     python = sys.executable
+
+    logger.info(f'OS execl: "{python}". Args: "{sys.argv}"')
     os.execl(python, python, *sys.argv)
 
 
@@ -185,6 +205,7 @@ def enable_fault_handler(log_dir):
     """
     Enables fault handler if the module is available.
     """
+    logger.info(f'Enable fault handler: "{log_dir}"')
     try:
         import faulthandler
 
@@ -193,7 +214,7 @@ def enable_fault_handler(log_dir):
         crash_file = log_dir / "crash-report.log"
         faulthandler.enable(file=open(str(crash_file), "w"), all_threads=True)
     except ImportError:
-        logging.error("Fault Handler module not found.")
+        logger.error("Fault Handler module not found.")
 
 
 def check_and_enable_code_tracing(process_name, log_dir):
@@ -202,6 +223,9 @@ def check_and_enable_code_tracing(process_name, log_dir):
     :param process_name: used as prefix for log file
     :return: Log file handler
     """
+    logger.info(f'Check and enable code tracing. Process name: "{process_name}". '
+                f'Log dir: "{log_dir}"')
+
     trace_logger = None
     if '--trace-exception' in sys.argv[1:]:
         trace_logger = open(log_dir / (f'{process_name}-exceptions.log'), 'w')
