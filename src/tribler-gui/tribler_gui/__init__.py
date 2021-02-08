@@ -1,17 +1,20 @@
 """
 This package contains the code for the GUI, written in pyQt.
 """
+import logging
 import os
 import sys
 
 from tribler_common.logger import setup_logging
 
+logger = logging.getLogger(__name__)
 
 def load_logger_config(log_dir):
     """
     Loads tribler-gui module logger configuration. Note that this function should be called explicitly to
     enable GUI logs dump to a file in the log directory (default: inside state directory).
     """
+    logger.info(f'Load logger config: {log_dir}')
     if hasattr(sys, '_MEIPASS'):
         logger_config_path = os.path.join(getattr(sys, '_MEIPASS'), "tribler_source", "tribler_gui", "logger.yaml")
     else:

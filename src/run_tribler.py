@@ -17,6 +17,8 @@ from tribler_core.version import sentry_url, version_id
 
 import tribler_gui
 
+logger = logging.getLogger(__name__)
+
 
 def start_tribler_core(base_path, api_port, api_key, root_state_dir, core_test_mode=False):
     """
@@ -24,6 +26,10 @@ def start_tribler_core(base_path, api_port, api_key, root_state_dir, core_test_m
     Note that there is no direct communication between the GUI process and the core: all communication is performed
     through the HTTP API.
     """
+    logger.info(f'Start tribler core. Base path: "{base_path}". API port: "{api_port}". '
+                 f'API key: "{api_key}". Root state dir: "{root_state_dir}". '
+                 f'Core test mode: "{core_test_mode}"')
+
     from tribler_core.check_os import check_and_enable_code_tracing, set_process_priority
     tribler_core.load_logger_config(root_state_dir)
 
@@ -106,20 +112,33 @@ def init_sentry_reporter():
                             release_version=version_id,
                             scrubber=SentryScrubber(),
                             strategy=SentryStrategy.SEND_ALLOWED_WITH_CONFIRMATION)
+        logger.info('Sentry has been initialised in normal mode')
     else:
         SentryReporter.init(sentry_url=test_sentry_url,
                             release_version=version_id,
                             scrubber=None,
                             strategy=SentryStrategy.SEND_ALLOWED)
+        logger.info('Sentry has been initialised in debug mode')
+
+
+def init_boot_logger():
+    # this logger config will be used before Core and GUI
+    #  set theirs configs explicitly
+    logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 
 
 if __name__ == "__main__":
+    init_boot_logger()
     init_sentry_reporter()
 
     # Get root state directory (e.g. from environment variable or from system default)
     root_state_dir = get_root_state_directory()
+    logger.info(f'Root state dir: {root_state_dir}')
+
     # Check whether we need to start the core or the user interface
     if 'CORE_PROCESS' in os.environ:
+        logger.info('Running in "core" mode')
+
         # Check for missing Core dependencies
         check_for_missing_dependencies(scope='core')
         base_path = os.environ['CORE_BASE_PATH']
@@ -129,8 +148,11 @@ if __name__ == "__main__":
 
         start_tribler_core(base_path, api_port, api_key, root_state_dir, core_test_mode=core_test_mode)
     else:
+        logger.info('Running in "normal" mode')
+
         # Workaround for macOS Big Sur, see https://github.com/Tribler/tribler/issues/5728
         if sys.platform == "darwin":
+            logger.info('Enabling a workaround for macOS Big Sur')
             os.environ["QT_MAC_WANTS_LAYER"] = "1"
 
         # Set up logging
@@ -165,13 +187,16 @@ if __name__ == "__main__":
             app.installTranslator(app.translator)
 
             if app.is_running():
+                logger.info('Application is running')
                 for arg in sys.argv[1:]:
                     if os.path.exists(arg) and arg.endswith(".torrent"):
                         app.send_message(f"file:{arg}")
                     elif arg.startswith('magnet'):
                         app.send_message(arg)
+
                 sys.exit(1)
 
+            logger.info('Start Tribler Window')
             window = TriblerWindow()
             window.setWindowTitle("Tribler")
             app.set_activation_window(window)
@@ -179,15 +204,15 @@ if __name__ == "__main__":
             sys.exit(app.exec_())
 
         except ImportError as ie:
-            logging.exception(ie)
+            logger.exception(ie)
             error_and_exit("Import Error", f"Import error: {ie}")
 
         except TriblerException as te:
-            logging.exception(te)
+            logger.exception(te)
             error_and_exit("Tribler Exception", f"{te}")
 
         except SystemExit:
-            logging.info("Shutting down Tribler")
+            logger.info("Shutting down Tribler")
             if trace_logger:
                 trace_logger.close()
             # Flush all the logs to make sure it is written to file before it exits

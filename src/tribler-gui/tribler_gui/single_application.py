@@ -21,6 +21,9 @@ class QtSingleApplication(QApplication):
     messageReceived = pyqtSignal(str)
 
     def __init__(self, win_id, *argv):
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.logger.info(f'Start Tribler application. Win id: "{win_id}". '
+                         f'Sys argv: "{sys.argv}"')
 
         logfunc = logging.info
         logfunc(sys._getframe().f_code.co_name + '()')
@@ -92,6 +95,7 @@ class QtSingleApplication(QApplication):
         self._activation_window.raise_()
 
     def send_message(self, msg):
+        self.logger.info(f'Send message: {msg}')
         if not self._outStream:
             return False
         self._outStream << msg << '\n'
