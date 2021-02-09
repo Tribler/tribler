@@ -15,7 +15,6 @@ from traceback import print_exception
 from _socket import gaierror
 
 from ipv8.loader import IPv8CommunityLoader
-from ipv8.messaging.interfaces.dispatcher.endpoint import DispatcherEndpoint
 from ipv8.taskmanager import TaskManager
 
 from ipv8_service import IPv8
@@ -36,21 +35,11 @@ from tribler_common.simpledefs import (
 )
 
 import tribler_core.utilities.permid as permid_module
-from tribler_core.modules.bootstrap import Bootstrap
 from tribler_core.modules.ipv8_module_catalog import register_default_launchers
-from tribler_core.modules.metadata_store.gigachannel_manager import GigaChannelManager
-from tribler_core.modules.metadata_store.store import MetadataStore
 from tribler_core.modules.metadata_store.utils import generate_test_channels
-from tribler_core.modules.payout_manager import PayoutManager
-from tribler_core.modules.resource_monitor.core import CoreResourceMonitor
-from tribler_core.modules.torrent_checker.torrent_checker import TorrentChecker
 from tribler_core.modules.tracker_manager import TrackerManager
-from tribler_core.modules.versioncheck_manager import VersionCheckManager
-from tribler_core.modules.watch_folder import WatchFolder
 from tribler_core.notifier import Notifier
-from tribler_core.restapi.rest_manager import RESTManager
 from tribler_core.statistics import TriblerStatistics
-from tribler_core.upgrade.upgrade import TriblerUpgrader
 from tribler_core.utilities.crypto_patcher import patch_crypto_be_discovery
 from tribler_core.utilities.install_dir import get_lib_path
 from tribler_core.utilities.unicode import hexlify
@@ -158,6 +147,7 @@ class Session(TaskManager):
     async def start_bootstrap_download(self):
         if not self.payout_manager:
             self._logger.warning("Running bootstrap without payout enabled")
+        from tribler_core.modules.bootstrap import Bootstrap
         self.bootstrap = Bootstrap(self.config.get_state_dir(), dht=self.dht_community)
         self.bootstrap.start_by_infohash(self.dlmgr.start_download, self.config.get_bootstrap_infohash())
         await self.bootstrap.download.future_finished
@@ -291,11 +281,13 @@ class Session(TaskManager):
 
         # Start the REST API before the upgrader since we want to send interesting upgrader events over the socket
         if self.config.get_api_http_enabled() or self.config.get_api_https_enabled():
+            from tribler_core.restapi.rest_manager import RESTManager
             self.api_manager = RESTManager(self)
             self.readable_status = STATE_START_API
             await self.api_manager.start()
 
         if self.upgrader_enabled and not self.core_test_mode:
+            from tribler_core.upgrade.upgrade import TriblerUpgrader
             self.upgrader = TriblerUpgrader(self)
             self.readable_status = STATE_UPGRADING_READABLE
             await self.upgrader.run()
@@ -304,6 +296,7 @@ class Session(TaskManager):
 
         # Start torrent checker before Popularity community is loaded
         if self.config.get_torrent_checking_enabled() and not self.core_test_mode:
+            from tribler_core.modules.torrent_checker.torrent_checker import TorrentChecker
             self.readable_status = STATE_START_TORRENT_CHECKER
             self.torrent_checker = TorrentChecker(self)
             await self.torrent_checker.initialize()
@@ -314,6 +307,7 @@ class Session(TaskManager):
             os.environ['SSL_CERT_FILE'] = str(get_lib_path() / 'root_certs_mac.pem')
 
         if self.config.get_chant_enabled():
+            from tribler_core.modules.metadata_store.store import MetadataStore
             channels_dir = self.config.get_chant_channels_dir()
             metadata_db_name = 'metadata.db' if not self.config.get_chant_testnet() else 'metadata_testnet.db'
             database_path = self.config.get_state_dir() / 'sqlite' / metadata_db_name
@@ -326,6 +320,7 @@ class Session(TaskManager):
         # IPv8
         if self.config.get_ipv8_enabled():
             from ipv8.configuration import ConfigBuilder
+            from ipv8.messaging.interfaces.dispatcher.endpoint import DispatcherEndpoint
             ipv8_config_builder = (ConfigBuilder()
                                    .set_port(self.config.get_ipv8_port())
                                    .set_address(self.config.get_ipv8_address())
@@ -377,19 +372,23 @@ class Session(TaskManager):
         self.readable_status = STATE_READABLE_STARTED
 
         if self.config.get_watch_folder_enabled():
+            from tribler_core.modules.watch_folder import WatchFolder
             self.readable_status = STATE_START_WATCH_FOLDER
             self.watch_folder = WatchFolder(self)
             self.watch_folder.start()
 
         if self.config.get_resource_monitor_enabled() and not self.core_test_mode:
+            from tribler_core.modules.resource_monitor.core import CoreResourceMonitor
             self.resource_monitor = CoreResourceMonitor(self)
             self.resource_monitor.start()
 
         if self.config.get_version_checker_enabled() and not self.core_test_mode:
+            from tribler_core.modules.versioncheck_manager import VersionCheckManager
             self.version_check_manager = VersionCheckManager(self)
             self.version_check_manager.start()
 
         if self.config.get_ipv8_enabled():
+            from tribler_core.modules.payout_manager import PayoutManager
             self.payout_manager = PayoutManager(self.bandwidth_community, self.dht_community)
 
             if self.core_test_mode:
@@ -401,6 +400,7 @@ class Session(TaskManager):
         # because it depends on the states of torrent downloads
         if self.config.get_chant_enabled() and self.config.get_chant_manager_enabled() \
                 and self.config.get_libtorrent_enabled:
+            from tribler_core.modules.metadata_store.gigachannel_manager import GigaChannelManager
             self.gigachannel_manager = GigaChannelManager(self)
             if not self.core_test_mode:
                 self.gigachannel_manager.start()
