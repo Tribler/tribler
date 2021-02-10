@@ -142,7 +142,7 @@ class DHTCommunityLauncher(IPv8CommunityLauncher):
     pass
 
 
-@after('DHTDiscoveryCommunity', 'BandwidthAccountingCommunity', 'BandwidthAccountingTestnetCommunity')
+@after('DHTCommunityLauncher', 'BandwidthCommunityLauncher', 'BandwidthTestnetCommunityLauncher')
 @precondition('session.config.get_tunnel_community_enabled()')
 @precondition('not session.config.get_tunnel_testnet()')
 @set_in_session('tunnel_community')
