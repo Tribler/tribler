@@ -32,6 +32,7 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
         sentry_event=None,
         error_reporting_requires_user_consent=True,
         stop_application_on_close=True,
+        additional_tags=None
     ):
         QDialog.__init__(self, parent)
 
@@ -43,6 +44,7 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
         self.sentry_event = sentry_event
         self.scrubber = SentryScrubber()
         self.stop_application_on_close = stop_application_on_close
+        self.additional_tags = additional_tags
 
         # Qt 5.2 does not have the setPlaceholderText property
         if hasattr(self.comments_text_edit, "setPlaceholderText"):
@@ -182,7 +184,7 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
             "stack": stack,
         }
 
-        SentryReporter.send_event(self.sentry_event, post_data, sys_info_dict)
+        SentryReporter.send_event(self.sentry_event, post_data, sys_info_dict, self.additional_tags)
 
         TriblerNetworkRequest(endpoint, self.on_report_sent, raw_data=tribler_urlencode(post_data), method='POST')
 

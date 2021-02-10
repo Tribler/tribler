@@ -142,7 +142,7 @@ class SentryReporter:
         return sentry_sdk.add_breadcrumb(crumb, **kwargs)
 
     @staticmethod
-    def send_event(event, post_data=None, sys_info=None):
+    def send_event(event=None, post_data=None, sys_info=None, additional_tags=None):
         """Send the event to the Sentry server
 
         This method
@@ -161,6 +161,7 @@ class SentryReporter:
             post_data: dictionary made by the feedbackdialog.py
                 previous stages of executing.
             sys_info: dictionary made by the feedbackdialog.py
+            additional_tags: tags that will be added to the event
 
         Returns:
             Event that was sent to Sentry server
@@ -172,6 +173,7 @@ class SentryReporter:
 
         post_data = post_data or dict()
         sys_info = sys_info or dict()
+        additional_tags = additional_tags or dict()
 
         if CONTEXTS not in event:
             event[CONTEXTS] = {}
@@ -188,6 +190,7 @@ class SentryReporter:
         tags['os'] = get_value(post_data, 'os')
         tags['platform'] = get_first_item(get_value(sys_info, 'platform'))
         tags[f'{PLATFORM_DETAILS}'] = get_first_item(get_value(sys_info, PLATFORM_DETAILS))
+        tags.update(additional_tags)
 
         # context
         context = event[CONTEXTS]

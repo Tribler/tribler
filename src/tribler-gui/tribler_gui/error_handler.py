@@ -43,7 +43,8 @@ class ErrorHandler:
             start_time=self.tribler_window.start_time,
             sentry_event=SentryReporter.event_from_exception(info_error),
             error_reporting_requires_user_consent=True,
-            stop_application_on_close=self._tribler_stopped
+            stop_application_on_close=self._tribler_stopped,
+            additional_tags={'source': 'gui'}
         ).show()
 
     def core_error(self, text, core_event):
@@ -61,7 +62,8 @@ class ErrorHandler:
             start_time=self.tribler_window.start_time,
             sentry_event=core_event['sentry_event'],
             error_reporting_requires_user_consent=core_event['error_reporting_requires_user_consent'],
-            stop_application_on_close=self._tribler_stopped
+            stop_application_on_close=self._tribler_stopped,
+            additional_tags={'source': 'core'}
         ).show()
 
     def _stop_tribler(self, text):
