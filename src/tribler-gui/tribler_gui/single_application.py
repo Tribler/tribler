@@ -9,8 +9,6 @@ from PyQt5.QtWidgets import QApplication
 
 from tribler_gui.utilities import connect, disconnect
 
-LOGVARSTR = "%25s = '%s'"
-
 
 class QtSingleApplication(QApplication):
     """
@@ -24,9 +22,6 @@ class QtSingleApplication(QApplication):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.info(f'Start Tribler application. Win id: "{win_id}". '
                          f'Sys argv: "{sys.argv}"')
-
-        logfunc = logging.info
-        logfunc(sys._getframe().f_code.co_name + '()')
 
         QApplication.__init__(self, *argv)
 
@@ -46,15 +41,16 @@ class QtSingleApplication(QApplication):
 
         if self._isRunning:
             # Yes, there is.
+            self.logger.info('Another instance is running')
             self._outStream = QTextStream(self._outSocket)
             self._outStream.setCodec('UTF-8')
         else:
             # No, there isn't, at least not properly.
             # Cleanup any past, crashed server.
             error = self._outSocket.error()
-            logfunc(LOGVARSTR % ('self._outSocket.error()', error))
+            self.logger.info(f'No running instances (socket error: {error})')
             if error == QLocalSocket.ConnectionRefusedError:
-                logfunc('received QLocalSocket.ConnectionRefusedError; removing server.')
+                self.logger.info('Received QLocalSocket.ConnectionRefusedError; removing server.')
                 self.close()
                 QLocalServer.removeServer(self._id)
             self._outSocket = None
@@ -62,18 +58,15 @@ class QtSingleApplication(QApplication):
             self._server.listen(self._id)
             connect(self._server.newConnection, self._on_new_connection)
 
-        logfunc(sys._getframe().f_code.co_name + '(): returning')
-
     def close(self):
-        logfunc = logging.info
-        logfunc(sys._getframe().f_code.co_name + '()')
+        self.logger.info('Closing...')
         if self._inSocket:
             self._inSocket.disconnectFromServer()
         if self._outSocket:
             self._outSocket.disconnectFromServer()
         if self._server:
             self._server.close()
-        logfunc(sys._getframe().f_code.co_name + '(): returning')
+        self.logger.info('Closed')
 
     def is_running(self):
         return self._isRunning
