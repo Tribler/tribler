@@ -48,7 +48,7 @@ from tribler_core.modules.tunnel.community.payload import (
 )
 from tribler_core.modules.tunnel.socks5.server import Socks5Server
 from tribler_core.utilities import path_util
-from tribler_core.utilities.libtorrent_helper import libtorrent as lt
+from tribler_core.utilities.bencodecheck import is_bencoded
 from tribler_core.utilities.unicode import hexlify
 
 DESTROY_REASON_BALANCE = 65535
@@ -612,14 +612,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         if not response.startswith(b'HTTP/1.1 307'):
             _, _, bencoded_data = response.partition(b'\r\n\r\n')
-            # Note that, depending on the libtorrent version, bdecode does not always raise
-            # an exception, sometimes it returns None instead.
-            try:
-                response_decoded = lt.bdecode(bencoded_data)
-            except RuntimeError:
-                response_decoded = None
 
-            if response_decoded is None:
+            if not is_bencoded(bencoded_data):
                 self.logger.warning('Tunnel HTTP request not allowed')
                 return
 
