@@ -27,10 +27,10 @@ class ApiKeyMiddleware:
             return RESTResponse({'error': 'Unauthorized access'}, status=HTTP_UNAUTHORIZED)
 
     def authenticate(self, request):
-        if request.path.startswith('/docs') or request.path.startswith('/static'):
+        if any([request.path.startswith(path) for path in ['/docs', '/static', '/debug-ui']]):
             return True
         # The api key can either be in the headers or as part of the url query
-        api_key = request.headers.get('X-Api-Key') or request.query.get('apikey')
+        api_key = request.headers.get('X-Api-Key') or request.query.get('apikey') or request.cookies.get('api_key')
         expected_api_key = self.config.get_api_key()
         return not expected_api_key or expected_api_key == api_key
 
@@ -79,6 +79,14 @@ class RESTManager():
 
         self.root_endpoint = RootEndpoint(self.session, middlewares=[ApiKeyMiddleware(config),
                                                                      error_middleware])
+
+        try:
+            from tribler_debug_ui.endpoint import DebugUIEndpoint
+        except ImportError:
+            pass
+        else:
+            self.root_endpoint.add_endpoint('/debug-ui', DebugUIEndpoint(self.session))
+            self._logger.info('Loaded tribler-debug-ui')
 
         # Not using setup_aiohttp_apispec here, as we need access to the APISpec to set the security scheme
         aiohttp_apispec = AiohttpApiSpec(
