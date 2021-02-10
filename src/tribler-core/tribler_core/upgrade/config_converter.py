@@ -7,13 +7,12 @@ from lib2to3.pgen2.parse import ParseError
 
 from configobj import ConfigObj, ParseError as ConfigObjParseError
 
-import libtorrent as lt
-
 from tribler_common.simpledefs import STATEDIR_CHECKPOINT_DIR
 
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.utilities.configparser import CallbackConfigParser
+from tribler_core.utilities.libtorrent_helper import libtorrent as lt
 from tribler_core.utilities.unicode import recursive_ungarble_metainfo
 
 logger = logging.getLogger(__name__)

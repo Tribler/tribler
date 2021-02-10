@@ -16,8 +16,6 @@ from urllib.request import url2pathname
 
 from ipv8.taskmanager import TaskManager, task
 
-import libtorrent as lt
-
 from tribler_common.simpledefs import DLSTATUS_SEEDING, STATEDIR_CHECKPOINT_DIR
 
 from tribler_core.modules.dht_health_manager import DHTHealthManager
@@ -25,6 +23,7 @@ from tribler_core.modules.libtorrent.download import Download
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
 from tribler_core.utilities import path_util, torrent_utils
+from tribler_core.utilities.libtorrent_helper import libtorrent as lt
 from tribler_core.utilities.path_util import mkdtemp
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import bdecode_compat, has_bep33_support, parse_magnetlink

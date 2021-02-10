@@ -12,9 +12,6 @@ from pathlib import Path
 from ipv8.taskmanager import TaskManager, task
 from ipv8.util import int2byte, succeed
 
-import libtorrent as lt
-from libtorrent import create_torrent
-
 from tribler_common.simpledefs import DLSTATUS_SEEDING, DLSTATUS_STOPPED, DOWNLOAD, NTFY
 
 from tribler_core.exceptions import SaveResumeDataError
@@ -24,6 +21,7 @@ from tribler_core.modules.libtorrent.download_state import DownloadState
 from tribler_core.modules.libtorrent.stream import Stream
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
 from tribler_core.utilities import path_util
+from tribler_core.utilities.libtorrent_helper import libtorrent as lt
 from tribler_core.utilities.osutils import fix_filebasename
 from tribler_core.utilities.torrent_utils import get_info_from_handle
 from tribler_core.utilities.unicode import ensure_unicode, hexlify
@@ -98,7 +96,7 @@ class Download(TaskManager):
             return None
 
         torrent_info = get_info_from_handle(self.handle)
-        t = create_torrent(torrent_info)
+        t = lt.create_torrent(torrent_info)
         return t.generate()
 
     def register_alert_handler(self, alert_type, handler):

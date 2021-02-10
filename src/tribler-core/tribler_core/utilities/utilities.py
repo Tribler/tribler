@@ -9,8 +9,7 @@ import re
 from base64 import b32decode
 from urllib.parse import parse_qsl, urlsplit
 
-import libtorrent
-from libtorrent import bdecode
+from tribler_core.utilities.libtorrent_helper import libtorrent as lt
 
 logger = logging.getLogger(__name__)
 
@@ -148,7 +147,7 @@ def has_bep33_support():
     Return whether our libtorrent version has support for BEP33 (DHT health lookups).
     Also see https://github.com/devos50/libtorrent/tree/bep33_support
     """
-    return 'dht_pkt_alert' in dir(libtorrent)
+    return 'dht_pkt_alert' in dir(lt)
 
 
 def is_infohash(infohash):
@@ -173,6 +172,6 @@ def bdecode_compat(packet_buffer):
     We should change this when Libtorrent wrapper is refactored.
     """
     try:
-        return bdecode(packet_buffer)
+        return lt.bdecode(packet_buffer)
     except RuntimeError:
         return None

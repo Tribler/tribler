@@ -4,8 +4,7 @@ from asyncio import Future
 from ipv8.dht.routing import distance
 from ipv8.taskmanager import TaskManager
 
-import libtorrent as lt
-
+from tribler_core.utilities.libtorrent_helper import libtorrent as lt
 from tribler_core.utilities.unicode import hexlify
 
 

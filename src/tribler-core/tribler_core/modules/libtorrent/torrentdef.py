@@ -6,12 +6,10 @@ from hashlib import sha1
 
 import aiohttp
 
-import libtorrent as lt
-from libtorrent import bencode
-
 from tribler_common.simpledefs import INFOHASH_LENGTH
 
 from tribler_core.utilities import maketorrent, path_util
+from tribler_core.utilities.libtorrent_helper import libtorrent as lt
 from tribler_core.utilities.torrent_utils import create_torrent_file
 from tribler_core.utilities.unicode import ensure_unicode
 from tribler_core.utilities.utilities import bdecode_compat, is_valid_url, parse_magnetlink
@@ -67,7 +65,7 @@ class TorrentDef:
                 except RuntimeError as exc:
                     raise ValueError(str(exc))
             self.metainfo = metainfo
-            self.infohash = sha1(bencode(self.metainfo[b'info'])).digest()
+            self.infohash = sha1(lt.bencode(self.metainfo[b'info'])).digest()
             self.copy_metainfo_to_torrent_parameters()
 
         elif torrent_parameters:

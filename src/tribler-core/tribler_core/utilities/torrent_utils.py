@@ -1,10 +1,8 @@
 import logging
 from hashlib import sha1
 
-import libtorrent
-from libtorrent import bencode
-
 from tribler_core.utilities import path_util
+from tribler_core.utilities.libtorrent_helper import libtorrent as lt
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +18,7 @@ def commonprefix(paths_list):
 
 
 def create_torrent_file(file_path_list, params, torrent_filepath=None):
-    fs = libtorrent.file_storage()
+    fs = lt.file_storage()
 
     # filter all non-files
     file_path_list_filtered = []
@@ -53,15 +51,15 @@ def create_torrent_file(file_path_list, params, torrent_filepath=None):
     else:
         piece_size = 0
 
-    flags = libtorrent.create_torrent_flags_t.optimize
+    flags = lt.create_torrent_flags_t.optimize
 
     # This flag doesn't exist anymore in libtorrent V1.1.0
-    if hasattr(libtorrent.create_torrent_flags_t, 'calculate_file_hashes'):
-        flags |= libtorrent.create_torrent_flags_t.calculate_file_hashes
+    if hasattr(lt.create_torrent_flags_t, 'calculate_file_hashes'):
+        flags |= lt.create_torrent_flags_t.calculate_file_hashes
 
     params = {k: (v.decode('utf-8') if isinstance(v, bytes) else v) for k, v in params.items()}
 
-    torrent = libtorrent.create_torrent(fs, piece_size=piece_size, flags=flags)
+    torrent = lt.create_torrent(fs, piece_size=piece_size, flags=flags)
     # Python2 wants binary, python3 want unicode
     if params.get(b'comment'):
         torrent.set_comment(params[b'comment'])
@@ -94,12 +92,12 @@ def create_torrent_file(file_path_list, params, torrent_filepath=None):
 
     # read the files and calculate the hashes
     if len(file_path_list) == 1:
-        libtorrent.set_piece_hashes(torrent, str(base_path))
+        lt.set_piece_hashes(torrent, str(base_path))
     else:
-        libtorrent.set_piece_hashes(torrent, str(base_path.parent))
+        lt.set_piece_hashes(torrent, str(base_path.parent))
 
     t1 = torrent.generate()
-    torrent = libtorrent.bencode(t1)
+    torrent = lt.bencode(t1)
 
     if torrent_filepath:
         with open(torrent_filepath, 'wb') as f:
@@ -111,7 +109,7 @@ def create_torrent_file(file_path_list, params, torrent_filepath=None):
         'base_dir': base_path.parent,
         'torrent_file_path': torrent_filepath,
         'metainfo': torrent,
-        'infohash': sha1(bencode(t1[b'info'])).digest()
+        'infohash': sha1(lt.bencode(t1[b'info'])).digest()
     }
 
 
