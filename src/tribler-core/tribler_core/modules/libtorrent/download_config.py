@@ -3,13 +3,12 @@ from pathlib import Path
 
 from configobj import ConfigObj
 
-import libtorrent as lt
-
 from validate import Validator
 
 from tribler_core.exceptions import InvalidConfigException
 from tribler_core.utilities import path_util
 from tribler_core.utilities.install_dir import get_lib_path
+from tribler_core.utilities.libtorrent_helper import libtorrent as lt
 from tribler_core.utilities.osutils import get_home_dir
 from tribler_core.utilities.path_util import str_path
 from tribler_core.utilities.utilities import bdecode_compat

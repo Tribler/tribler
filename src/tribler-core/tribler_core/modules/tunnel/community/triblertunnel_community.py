@@ -31,8 +31,6 @@ from ipv8.taskmanager import task
 from ipv8.types import Address
 from ipv8.util import succeed
 
-import libtorrent as lt
-
 from tribler_common.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_METADATA, DLSTATUS_SEEDING, DLSTATUS_STOPPED, NTFY
 
 from tribler_core.modules.bandwidth_accounting.transaction import BandwidthTransactionData
@@ -50,6 +48,7 @@ from tribler_core.modules.tunnel.community.payload import (
 )
 from tribler_core.modules.tunnel.socks5.server import Socks5Server
 from tribler_core.utilities import path_util
+from tribler_core.utilities.libtorrent_helper import libtorrent as lt
 from tribler_core.utilities.unicode import hexlify
 
 DESTROY_REASON_BALANCE = 65535
@@ -611,16 +610,18 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             if writer:
                 writer.close()
 
-        # Note that, depending on the libtorrent version, bdecode does not always raise
-        # an exception, sometimes it returns None instead.
-        try:
-            response_decoded = lt.bdecode(response.split(b'\r\n\r\n')[1])
-        except (IndexError, RuntimeError):
-            response_decoded = None
+        if not response.startswith(b'HTTP/1.1 307'):
+            _, _, bencoded_data = response.partition(b'\r\n\r\n')
+            # Note that, depending on the libtorrent version, bdecode does not always raise
+            # an exception, sometimes it returns None instead.
+            try:
+                response_decoded = lt.bdecode(bencoded_data)
+            except RuntimeError:
+                response_decoded = None
 
-        if response_decoded is None and not response.startswith(b'HTTP/1.1 307'):
-            self.logger.warning('Tunnel HTTP request not allowed')
-            return
+            if response_decoded is None:
+                self.logger.warning('Tunnel HTTP request not allowed')
+                return
 
         num_cells = math.ceil(len(response) / MAX_HTTP_PACKET_SIZE)
         for i in range(num_cells):

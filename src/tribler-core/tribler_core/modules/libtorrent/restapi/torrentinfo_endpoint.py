@@ -9,14 +9,13 @@ from aiohttp_apispec import docs
 
 from ipv8.REST.schema import schema
 
-from libtorrent import bencode
-
 from marshmallow.fields import String
 
 import tribler_core.utilities.json_util as json
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.modules.metadata_store.orm_bindings.torrent_metadata import tdef_to_metadata_dict
 from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_INTERNAL_SERVER_ERROR, RESTEndpoint, RESTResponse
+from tribler_core.utilities.libtorrent_helper import libtorrent as lt
 from tribler_core.utilities.unicode import hexlify, recursive_unicode
 from tribler_core.utilities.utilities import bdecode_compat, parse_magnetlink
 
@@ -104,7 +103,7 @@ class TorrentInfoEndpoint(RESTEndpoint):
 
         # TODO(Martijn): store the stuff in a database!!!
         # TODO(Vadim): this means cache the downloaded torrent in a binary storage, like LevelDB
-        infohash = hashlib.sha1(bencode(metainfo[b'info'])).digest()
+        infohash = hashlib.sha1(lt.bencode(metainfo[b'info'])).digest()
 
         download = self.session.dlmgr.downloads.get(infohash)
         metainfo_request = self.session.dlmgr.metainfo_requests.get(infohash, [None])[0]

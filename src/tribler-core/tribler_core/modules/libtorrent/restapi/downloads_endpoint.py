@@ -11,8 +11,6 @@ from aiohttp_apispec import docs, json_schema
 from ipv8.REST.schema import schema
 from ipv8.messaging.anonymization.tunnel import CIRCUIT_ID_PORT
 
-from libtorrent import bencode
-
 from marshmallow.fields import Boolean, Float, Integer, List, String
 
 from tribler_common.simpledefs import DOWNLOAD, UPLOAD, dlstatus_strings
@@ -28,6 +26,7 @@ from tribler_core.restapi.rest_endpoint import (
     RESTStreamResponse,
 )
 from tribler_core.restapi.util import return_handled_exception
+from tribler_core.utilities.libtorrent_helper import libtorrent as lt
 from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.unicode import ensure_unicode, hexlify
 
@@ -511,7 +510,7 @@ class DownloadsEndpoint(RESTEndpoint):
         if not torrent:
             return DownloadsEndpoint.return_404(request)
 
-        return RESTResponse(bencode(torrent), headers={'content-type': 'application/x-bittorrent',
+        return RESTResponse(lt.bencode(torrent), headers={'content-type': 'application/x-bittorrent',
                                                        'Content-Disposition': 'attachment; filename=%s.torrent'
                                                                               % hexlify(infohash).encode('utf-8')})
 

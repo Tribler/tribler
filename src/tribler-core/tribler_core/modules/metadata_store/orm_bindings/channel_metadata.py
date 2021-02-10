@@ -4,8 +4,6 @@ from pathlib import Path
 
 from ipv8.database import database_blob
 
-from libtorrent import add_files, bencode, create_torrent, file_storage, set_piece_hashes, torrent_info
-
 import lz4.frame
 
 from pony import orm
@@ -24,6 +22,7 @@ from tribler_core.modules.metadata_store.orm_bindings.channel_node import (
 )
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, ChannelMetadataPayload
 from tribler_core.utilities import path_util
+from tribler_core.utilities.libtorrent_helper import libtorrent as lt
 from tribler_core.utilities.path_util import str_path
 from tribler_core.utilities.random_utils import random_infohash
 from tribler_core.utilities.unicode import hexlify
@@ -42,17 +41,17 @@ def chunks(l, n):
 
 
 def create_torrent_from_dir(directory, torrent_filename):
-    fs = file_storage()
-    add_files(fs, str(directory))
-    t = create_torrent(fs)
+    fs = lt.file_storage()
+    lt.add_files(fs, str(directory))
+    t = lt.create_torrent(fs)
     # t = create_torrent(fs, flags=17) # piece alignment
     t.set_priv(False)
-    set_piece_hashes(t, str(directory.parent))
+    lt.set_piece_hashes(t, str(directory.parent))
     torrent = t.generate()
     with open(torrent_filename, 'wb') as f:
-        f.write(bencode(torrent))
+        f.write(lt.bencode(torrent))
 
-    infohash = torrent_info(torrent).info_hash().to_bytes()
+    infohash = lt.torrent_info(torrent).info_hash().to_bytes()
     return torrent, infohash
 
 
