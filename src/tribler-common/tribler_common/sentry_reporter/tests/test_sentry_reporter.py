@@ -41,11 +41,10 @@ def test_set_user():
     }
 
 
-def test_send():
+def test_send_defaults():
     assert SentryReporter.send_event(None, None, None) is None
 
-    # test return defaults
-    assert SentryReporter.send_event({}, None, None) == {
+    assert SentryReporter.send_event(event={}) == {
         'contexts': {
             'browser': {'name': 'Tribler', 'version': None},
             'reporter': {
@@ -61,18 +60,20 @@ def test_send():
         'tags': {'machine': None, 'os': None, 'platform': None, PLATFORM_DETAILS: None, 'version': None},
     }
 
-    # test post_data
-    post_data = {
-        "version": '0.0.0',
-        "machine": 'x86_64',
-        "os": 'posix',
-        "timestamp": 42,
-        "sysinfo": '',
-        "comments": 'comment',
-        "stack": 'l1\nl2--LONG TEXT--l3\nl4',
-    }
 
-    assert SentryReporter.send_event({'a': 'b'}, post_data, None) == {
+def test_send_post_data():
+    assert SentryReporter.send_event(
+        event={'a': 'b'},
+        post_data={
+            "version": '0.0.0',
+            "machine": 'x86_64',
+            "os": 'posix',
+            "timestamp": 42,
+            "sysinfo": '',
+            "comments": 'comment',
+            "stack": 'l1\nl2--LONG TEXT--l3\nl4',
+        },
+    ) == {
         'a': 'b',
         'contexts': {
             'browser': {'name': 'Tribler', 'version': '0.0.0'},
@@ -86,19 +87,23 @@ def test_send():
                 'events': {},
             },
         },
-        'tags': {'machine': 'x86_64', 'os': 'posix', 'platform': None, 'platform.details': None, 'version': '0.0.0'},
+        'tags': {'machine': 'x86_64', 'os': 'posix', 'platform': None, PLATFORM_DETAILS: None, 'version': '0.0.0'},
     }
 
-    sys_info = {
-        'platform': ['darwin'],
-        'platform.details': ['details'],
-        OS_ENVIRON: ['KEY:VALUE', 'KEY1:VALUE1'],
-        'event_1': [{'type': ''}],
-        'request_1': [{}],
-        'event_2': [],
-        'request_2': [],
-    }
-    assert SentryReporter.send_event({}, None, sys_info) == {
+
+def test_send_sys_info():
+    assert SentryReporter.send_event(
+        event={},
+        sys_info={
+            'platform': ['darwin'],
+            PLATFORM_DETAILS: ['details'],
+            OS_ENVIRON: ['KEY:VALUE', 'KEY1:VALUE1'],
+            'event_1': [{'type': ''}],
+            'request_1': [{}],
+            'event_2': [],
+            'request_2': [],
+        },
+    ) == {
         'contexts': {
             'browser': {'name': 'Tribler', 'version': None},
             'reporter': {
@@ -107,11 +112,36 @@ def test_send():
                 '_stacktrace_extra': [],
                 'comments': None,
                 OS_ENVIRON: {'KEY': 'VALUE', 'KEY1': 'VALUE1'},
-                'sysinfo': {'platform': ['darwin'], 'platform.details': ['details']},
+                'sysinfo': {'platform': ['darwin'], PLATFORM_DETAILS: ['details']},
                 'events': {'event_1': [{'type': ''}], 'request_1': [{}], 'event_2': [], 'request_2': []},
             },
         },
         'tags': {'machine': None, 'os': None, 'platform': 'darwin', 'platform.details': 'details', 'version': None},
+    }
+
+
+def test_send_additional_tags():
+    assert SentryReporter.send_event(event={}, additional_tags={'tag_key': 'tag_value'}) == {
+        'contexts': {
+            'browser': {'name': 'Tribler', 'version': None},
+            'reporter': {
+                '_stacktrace': [],
+                '_stacktrace_context': [],
+                '_stacktrace_extra': [],
+                'comments': None,
+                OS_ENVIRON: {},
+                'sysinfo': {},
+                'events': {},
+            },
+        },
+        'tags': {
+            'machine': None,
+            'os': None,
+            'platform': None,
+            'platform.details': None,
+            'version': None,
+            'tag_key': 'tag_value',
+        },
     }
 
 
