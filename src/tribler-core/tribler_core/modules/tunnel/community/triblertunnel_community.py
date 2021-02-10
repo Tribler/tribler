@@ -76,6 +76,9 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         self.exitnode_cache = kwargs.pop('exitnode_cache', state_path / 'exitnode_cache.dat')
 
         settings = kwargs.pop('settings', TunnelSettings())
+        if isinstance(settings, dict):
+            settings = TunnelSettings.from_dict(settings)
+
         if self.tribler_session:
             if self.tribler_session.config.get_tunnel_community_exitnode_enabled():
                 settings.peer_flags.add(PEER_FLAG_EXIT_BT)
