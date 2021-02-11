@@ -4,12 +4,14 @@ from collections import defaultdict
 from random import random
 from unittest.mock import Mock
 
+from ipv8.keyvault.crypto import LibNaCLPK
 from ipv8.messaging.anonymization.payload import EstablishIntroPayload
 from ipv8.messaging.anonymization.tunnel import (
     CIRCUIT_STATE_READY,
     CIRCUIT_TYPE_RP_DOWNLOADER,
     CIRCUIT_TYPE_RP_SEEDER,
     PEER_FLAG_EXIT_BT,
+    PEER_FLAG_EXIT_IPV8,
 )
 from ipv8.peer import Peer
 from ipv8.test.base import TestBase
@@ -26,7 +28,7 @@ from tribler_core.modules.tunnel.community.payload import BandwidthTransactionPa
 from tribler_core.modules.tunnel.community.triblertunnel_community import PEER_FLAG_EXIT_HTTP, TriblerTunnelCommunity
 from tribler_core.tests.tools.base_test import MockObject
 from tribler_core.tests.tools.tracker.http_tracker import HTTPTracker
-from tribler_core.utilities.path_util import mkdtemp
+from tribler_core.utilities.path_util import Path, mkdtemp
 
 
 class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-methods
@@ -627,3 +629,35 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
             await wait_for(self.nodes[0].overlay.perform_http_request(('127.0.0.1', 1234),
                                                                       b'GET /scrape?info_hash=0 HTTP/1.1\r\n\r\n'),
                            timeout=.3)
+
+    def test_exitnode_settings(self):
+        """
+        Test whether exit flags are set correctly when `config.get_tunnel_community_exitnode_enabled()` returns True
+
+        The test is added for better coverage of `TriblerTunnelCommunity.__init__`
+        """
+        session = Mock()
+        session.config.get_tunnel_community_exitnode_enabled = lambda: True
+        session.config.get_state_dir = lambda: Path('STATE_DIR')
+        session.config.get_tunnel_community_socks5_listen_ports = lambda: [1234]
+
+        settings = {'foo': 'bar'}
+
+        my_peer = Mock()
+        my_peer.key = LibNaCLPK(pk='a' * 32, hex_vk='b' * 32)
+
+        endpoint = Mock()
+        endpoint.is_open = lambda: False
+
+        network = Mock()
+
+        community = TriblerTunnelCommunity(my_peer, endpoint, network,
+                                           tribler_session=session, settings=settings)
+        try:
+            assert PEER_FLAG_EXIT_BT in community.settings.peer_flags
+            assert PEER_FLAG_EXIT_IPV8 in community.settings.peer_flags
+            assert PEER_FLAG_EXIT_HTTP in community.settings.peer_flags
+        finally:
+            community.cancel_all_pending_tasks()
+            community.request_cache.cancel_all_pending_tasks()
+            community.dispatcher.cancel_all_pending_tasks()
