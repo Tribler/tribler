@@ -11,7 +11,7 @@ class BandwidthDatabase:
     """
     Simple database that stores bandwidth transactions in Tribler as a work graph.
     """
-    CURRENT_DB_VERSION = 8
+    CURRENT_DB_VERSION = 9
     MAX_HISTORY_ITEMS = 100  # The maximum number of history items to store.
 
     def __init__(self, db_path: Path, my_pub_key: bytes, store_all_transactions: bool = False) -> None:
