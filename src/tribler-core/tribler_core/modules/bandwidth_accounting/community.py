@@ -27,7 +27,7 @@ class BandwidthAccountingCommunity(Community):
     """
     Community around bandwidth accounting and payouts.
     """
-    community_id = unhexlify('51780a6418d9f150ec0a97ee2b4b12886cf56370')
+    community_id = unhexlify('79b25f2867739261780faefede8f25038de9975d')
     DB_NAME = 'bandwidth'
     version = b'\x02'
 

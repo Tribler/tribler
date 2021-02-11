@@ -64,7 +64,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
     This community is built upon the anonymous messaging layer in IPv8.
     It adds support for libtorrent anonymous downloads and bandwidth token payout when closing circuits.
     """
-    community_id = unhexlify('ca7b837a40721cb12bfb27c31950ed001ff3053c')
+    community_id = unhexlify('a3591a6bd89bbaca0974062a1287afcfbc6fd6bb')
 
     def __init__(self, *args, **kwargs):
         self.tribler_session = kwargs.pop('tribler_session', None)
