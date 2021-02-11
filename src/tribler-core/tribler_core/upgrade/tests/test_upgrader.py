@@ -3,12 +3,13 @@ import shutil
 from asyncio import Future
 from pathlib import Path
 
-from pony.orm import db_session
+from pony.orm import db_session, select
 
 import pytest
 
 from tribler_common.simpledefs import NTFY
 
+from tribler_core.modules.bandwidth_accounting.database import BandwidthDatabase
 from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH
 from tribler_core.modules.metadata_store.store import CURRENT_DB_VERSION, MetadataStore
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
@@ -190,3 +191,18 @@ def test_calc_progress():
     assert calc_progress(100, 100) == pytest.approx(74.750624, abs=EPSILON)
     assert calc_progress(200, 100) == pytest.approx(88.740742, abs=EPSILON)
     assert calc_progress(1000, 100) == pytest.approx(99.158472, abs=EPSILON)
+
+
+@pytest.mark.asyncio
+async def test_upgrade_bw_accounting_db_8to9(upgrader, session):
+    old_db_sample = TESTS_DATA_DIR / 'upgrade_databases' / 'bandwidth_v8.db'
+    database_path = session.config.get_state_dir() / 'sqlite' / 'bandwidth.db'
+    shutil.copyfile(old_db_sample, database_path)
+
+    upgrader.upgrade_bw_accounting_db_8to9()
+    db = BandwidthDatabase(database_path, session.trustchain_keypair.key.pk)
+    with db_session:
+        assert not list(select(tx for tx in db.BandwidthTransaction))
+        assert not list(select(item for item in db.BandwidthHistory))
+        assert int(db.MiscData.get(name="db_version").value) == 9
+    db.shutdown()

@@ -3,10 +3,11 @@ import os
 import shutil
 from configparser import MissingSectionHeaderError, ParsingError
 
-from pony.orm import db_session
+from pony.orm import db_session, delete
 
 from tribler_common.simpledefs import NTFY
 
+from tribler_core.modules.bandwidth_accounting.database import BandwidthDatabase
 from tribler_core.modules.category_filter.l2_filter import is_forbidden
 from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT
@@ -97,6 +98,7 @@ class TriblerUpgrader:
         convert_config_to_tribler74(self.session.config.get_state_dir())
         convert_config_to_tribler75(self.session.config.get_state_dir())
         convert_config_to_tribler76(self.session.config.get_state_dir())
+        self.upgrade_bw_accounting_db_8to9()
 
     def upgrade_pony_db_10to11(self):
         """
@@ -113,6 +115,30 @@ class TriblerUpgrader:
                             disable_sync=True, check_tables=False)
         self.do_upgrade_pony_db_10to11(mds)
         mds.shutdown()
+
+    def upgrade_bw_accounting_db_8to9(self):
+        """
+        Upgrade the database with bandwidth accounting information from 8 to 9.
+        Specifically, this upgrade wipes all transactions and addresses an issue where payouts with the wrong amount
+        were made. Also see https://github.com/Tribler/tribler/issues/5789.
+        """
+        to_version = 9
+
+        database_path = self.session.config.get_state_dir() / 'sqlite' / 'bandwidth.db'
+        if not database_path.exists() or get_db_version(database_path) >= 9:
+            return  # No need to update if the database does not exist or is already updated
+        db = BandwidthDatabase(database_path, self.session.trustchain_keypair.key.pk)
+
+        # Wipe all transactions and bandwidth history
+        with db_session:
+            delete(tx for tx in db.BandwidthTransaction)
+            delete(item for item in db.BandwidthHistory)
+
+            # Update db version
+            db_version = db.MiscData.get(name="db_version")
+            db_version.value = str(to_version)
+
+        db.shutdown()
 
     def column_exists_in_table(self, db, table, column):
         pragma = f'SELECT COUNT(*) FROM pragma_table_info("{table}") WHERE name="{column}"'
