@@ -7,7 +7,7 @@ How to contribute to the Tribler project?
 Checking out the Stabilization Branch
 =====================================
 
-The stabilization branch ``release-X.Y.Z`` contains the most up to date bugfixes. If your issue cannot be reproduced there, it is most likely already fixed.
+The stabilization branch ``release-X.Y`` contains the most up to date bugfixes. If your issue cannot be reproduced there, it is most likely already fixed.
 
 To backup your Tribler installation and checkout the latest version of the stabilization branch, please perform the following steps.
 * Copy the ``.Tribler`` folder to a safe location on your system (for instance the desktop) Make sure to leave the original folder on its original location. This folder is located at ``~/.Tribler/`` (Linux/OS X) or ``%APPDATA\.Tribler`` (Windows).
@@ -35,9 +35,9 @@ Pull requests
 =============
 
 When creating a new Pull request, please take note of the following:
-  * New features always go to ``devel``.
-  * If there is an unreleased ``release-X.Y.Z`` branch, fixes go there.
-  * Otherwise, fixes go to ``devel``.
+  * New features always go to ``main``.
+  * If there is an unreleased ``release-X.Y`` branch, fixes go there.
+  * Otherwise, fixes go to ``main``.
   * Before starting to work on a feature or fix, check that nobody else is
     working on it by assigning yourself the corresponding issue. Create one if it
     doesn't exist. This is also useful to get feedback about if a given feature
