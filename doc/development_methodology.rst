@@ -14,8 +14,7 @@ Our branching model follows the GitFlow model described at length in `Vincent Dr
 
 Our main repository contains 2 permanent branches:
 
-- **devel**: The main development branch; all new features and fixes for them belong here. Every time a new release cycle is started, a new **release-X.Y.Z(-abc)** branch is forked from it. 
-- **master**: Contains the code of the latest stable release. It gets updated from **release-** after every release.
+- **main**: The main development branch; all new features and fixes for them belong here. Every time a new release cycle is started, a new **release/X.Y(-abc)** branch is forked from it.
 
 Release lifecycle
 -----------------
@@ -33,12 +32,12 @@ Example: "release/7.8"
 
 The release lifecycle:
 
-1. A release branch forks from `devel`.
+1. A release branch forks from `main`.
 2. The release branch is checked by running the application-tester
 3. In case no errors, a release candidate (RC) is published as pre-release in Github and published to the forum as release post.
 4. After a while (1-2 weeks), if there are no critical bugs, the release candidate is considered stable and ready for stable release.
 5. A stable release tag is created and the release is published in Github. A forum post is created to inform the users in the forum.
-6. The release branch is merged to `devel`
+6. The release branch is merged to `main`
 
 
 In case of an error that needs to be fixed asap in the published stable release:
@@ -46,14 +45,14 @@ In case of an error that needs to be fixed asap in the published stable release:
 1. A fix is committed to the corresponding release branch
 2. The release branch is checked by running the application-tester
 3. The fixed release is delivered to users
-4. The release branch is merged to `devel`
+4. The release branch is merged to `main`
 
 
-A release is started by forking from the top of **devel**.
+A release is started by forking from the top of **main**.
 From that moment, all the bugfixes relevant to the current release must be merged into the corresponding release branch.
 No new features could be added to it.
 
-When the release is ready for publishing, it is merged back to **devel** to integrate the bugfixes.
+When the release is ready for publishing, it is merged back to **main** to integrate the bugfixes.
 
 Tags
 ----
@@ -89,13 +88,13 @@ Working on new features or fixes
 
 .. code-block:: none
 
-   git fetch --all && git checkout upstream/devel -b fix_2344_my_new_feature
+   git fetch --all && git checkout upstream/main -b fix/2344_my_new_feature
 
 For bug fixes:
 
 .. code-block:: none
 
-   git fetch --all && git checkout upstream/release-X.Y.Z -b fix_2344_my_new_bugfix
+   git fetch --all && git checkout upstream/release/X.Y -b fix/2344_my_new_bugfix
 
 2344 would be the issue number this branch is dealing with. This makes it trivial to identify the purpose of a branch if one hasn't had been able to work on it for a while and can't remember right away.
 
@@ -107,18 +106,18 @@ When creating a PR, always prepend the PR title with **WIP** until it's ready fo
 
 **Notes:**
 
-- Always fork directly from upstream's remote branches as opposed to your own (remote or local) **devel** or **release-** branches. Those are useless as they will quickly get out of date, so kill them with fire:
+- Always fork directly from upstream's remote branches as opposed to your own (remote or local) **main** or **release/** branches. Those are useless as they will quickly get out of date, so kill them with fire:
 
 .. code-block:: none
 
-  git branch -d release-X.Y.Z 
-  git branch -d devel
+  git branch -d release/X.Y
+  git branch -d main
 
 - Once one of your branches has been merged upstream try to always delete them from your remote to avoid cluttering other people's remote listings (I've got around 15 remotes on my local Tribler repos and it can become annoying to look for a particular branch among dozens and dozens of other people's stale branches). This can be done either from github's PR web interface by clicking on the "delete branch" button after the merge has been done or with:
 
 .. code-block:: none
 
-  git push MrStudent :fix_2344_my_new_bugfix
+  git push MrStudent :fix/2344_my_new_bugfix
 
 Getting your changes merged upstream
 ------------------------------------
@@ -138,7 +137,7 @@ Misc guidelines
 
 - **Keep an eye on the PRs you've reviewed**
     You will probably learn something from other reviewers and find out what you missed out during yours.
-- **Don't send PR from your remote's ~devel~ branch**
+- **Don't send PR from your remote's ~main~ branch**
     Use proper names for your branches. It will be more informative and they become part of the merge commit message.
 - **Keep it small**
     The smaller the PRs are, the less review cycles will be needed and the quicker they will get merged.
@@ -157,7 +156,7 @@ Misc guidelines
 - **Don't rename a file and modify it on the same commit**
     If you need to rename and modify a file on the same PR, do so in two commits. This way git will always know what's going on and it will be easier to track changes across file renames.
 - **Don't send pull requests with merge commits on them**
-    Always rebase or cherry pick. If a commit on **devel** introduces merge conflicts in your branch, fix your commits by rebasing not by back merging and creating a conflict resolution commit.
+    Always rebase or cherry pick. If a commit on **main** introduces merge conflicts in your branch, fix your commits by rebasing not by back merging and creating a conflict resolution commit.
 - **If one of your commits fixes an issue, mention it**
     Add a "Closes #1234" line to the comment's body section (from line 3 onwards). This way a reference to this particular commit will be created on the issue itself and once the commit hits the target branch the issue will be closed automatically. If a whole PR is needed to close a particular issue, add the "Closes" comment on the PR body.
 - **Capitalize the commit's subject**

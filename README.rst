@@ -24,13 +24,13 @@ Just click `here <https://github.com/Tribler/tribler/releases/latest>`__ and dow
 Obtaining support
 =================
 
-If you found a bug or have a feature request, please make sure you read `our contributing page <http://tribler.readthedocs.io/en/devel/contributing.html>`_ and then `open an issue <https://github.com/Tribler/tribler/issues/new>`_. We will have a look at it ASAP.
+If you found a bug or have a feature request, please make sure you read `our contributing page <http://tribler.readthedocs.io/en/main/contributing.html>`_ and then `open an issue <https://github.com/Tribler/tribler/issues/new>`_. We will have a look at it ASAP.
 
 Contributing
 ============
 
 Contributions are very welcome!
-If you are interested in contributing code or otherwise, please have a look at `our contributing page <http://tribler.readthedocs.io/en/devel/contributing.html>`_.
+If you are interested in contributing code or otherwise, please have a look at `our contributing page <http://tribler.readthedocs.io/en/main/contributing.html>`_.
 Have a look at the `issue tracker <https://github.com/Tribler/tribler/issues>`_ if you are looking for inspiration :).
 
 
@@ -52,9 +52,9 @@ We support development on Linux, macOS and Windows. We have written
 documentation that guides you through installing the required packages when
 setting up a Tribler development environment.
 
-* `Linux <http://tribler.readthedocs.io/en/devel/development/development_on_linux.html>`_
-* `Windows <http://tribler.readthedocs.io/en/devel/development/development_on_windows.html>`_
-* `macOS <http://tribler.readthedocs.io/en/devel/development/development_on_osx.html>`_
+* `Linux <http://tribler.readthedocs.io/en/main/development/development_on_linux.html>`_
+* `Windows <http://tribler.readthedocs.io/en/main/development/development_on_windows.html>`_
+* `macOS <http://tribler.readthedocs.io/en/main/development/development_on_osx.html>`_
 
 
 Running
@@ -75,7 +75,7 @@ On Windows, you can use the following command to run Tribler:
 Packaging Tribler
 =================
 
-We have written guides on how to package Tribler for distribution on various systems. Please take a look `here <http://tribler.readthedocs.io/en/devel/building/building.html>`_.
+We have written guides on how to package Tribler for distribution on various systems. Please take a look `here <http://tribler.readthedocs.io/en/main/building/building.html>`_.
 
 Submodule notes
 ===============
@@ -85,8 +85,8 @@ Submodule notes
 - Take care of not accidentally committing a submodule revision change with ``git commit -a``.
 - Do not commit a submodule update without running all the tests first and making sure the new code is not breaking Tribler.
 
-.. |jenkins_build| image:: http://jenkins-ci.tribler.org/job/Test_tribler_devel/badge/icon
-    :target: http://jenkins-ci.tribler.org/job/Test_tribler_devel/
+.. |jenkins_build| image:: http://jenkins-ci.tribler.org/job/Test_tribler_main/badge/icon
+    :target: http://jenkins-ci.tribler.org/job/Test_tribler_main/
     :alt: Build status on Jenkins
 
 .. |pr_closed| image:: https://img.shields.io/github/issues-pr-closed/tribler/tribler.svg?style=flat
@@ -132,6 +132,6 @@ Submodule notes
     :target: https://zenodo.org/badge/latestdoi/8411137
     :alt: DOI number
 
-.. |docs| image:: https://readthedocs.org/projects/tribler/badge/?version=devel
-    :target: https://tribler.readthedocs.io/en/devel/?badge=devel
+.. |docs| image:: https://readthedocs.org/projects/tribler/badge/?version=main
+    :target: https://tribler.readthedocs.io/en/main/?badge=main
     :alt: Documentation Status

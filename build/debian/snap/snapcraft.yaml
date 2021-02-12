@@ -3,7 +3,7 @@ version: __VERSION__
 summary: Tribler
 description: >
   Peer-to-peer Bittorrent client with enhanced privacy. Search and download torrents with less worries or censorship.
-grade: devel
+grade: main
 confinement: devmode
 base: core20
 
