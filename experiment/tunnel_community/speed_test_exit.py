@@ -17,8 +17,8 @@ class Service(TinyTriblerService, TaskManager):
     def __init__(self, working_dir, config_path):
         super().__init__(Service.create_config(working_dir, config_path), None, working_dir, config_path)
         TaskManager.__init__(self)
-        self.start = time.time()
         self.results = []
+        self.output_file = 'speed_test_exit.txt'
 
     @staticmethod
     def create_config(working_dir, config_path):
@@ -48,7 +48,7 @@ class Service(TinyTriblerService, TaskManager):
                 index += max_time - curr[0]
             index += 1
 
-        with open('speed_test_exit.txt', 'w') as f:
+        with open(self.output_file, 'w') as f:
             f.write("Time Circuit Type Speed\n")
             for result in self.results:
                 f.write(' '.join(map(str, result)) + '\n')
