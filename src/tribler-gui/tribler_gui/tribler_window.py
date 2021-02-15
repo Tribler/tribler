@@ -418,8 +418,7 @@ class TriblerWindow(QMainWindow):
 
         self.top_menu_button.setHidden(False)
         self.left_menu.setHidden(False)
-        # FIXME hiding the token balance until the feature is stable
-        # self.token_balance_widget.setHidden(False)
+        self.token_balance_widget.setHidden(False)
         self.settings_button.setHidden(False)
         self.add_torrent_button.setHidden(False)
         self.top_search_bar.setHidden(False)
@@ -984,7 +983,7 @@ class TriblerWindow(QMainWindow):
         self.left_menu_button_downloads.setChecked(True)
         self.stackedWidget.setCurrentIndex(PAGE_DOWNLOADS)
 
-    def clicked_menu_button_debug(self, index):
+    def clicked_menu_button_debug(self, index=False):
         if not self.debug_window:
             self.debug_window = DebugWindow(self.tribler_settings, self.tribler_version)
         self.debug_window.show()

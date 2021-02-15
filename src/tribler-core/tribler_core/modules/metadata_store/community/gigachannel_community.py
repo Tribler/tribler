@@ -58,7 +58,7 @@ class GigaChannelCommunity(RemoteQueryCommunity):
         # TODO: use Bloom filter here instead. We actually *want* it to be all-false-positives eventually.
         self.queried_peers = set()
 
-        self.discovery_booster = DiscoveryBooster()
+        self.discovery_booster = DiscoveryBooster(timeout_in_sec=30)
         self.discovery_booster.apply(self)
 
     def get_random_peers(self, sample_size=None):

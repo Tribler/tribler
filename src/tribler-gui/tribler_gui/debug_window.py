@@ -715,7 +715,7 @@ class DebugWindow(QMainWindow):
         self.window().toggle_profiler_button.setEnabled(True)
         self.window().toggle_profiler_button.setText(f"{'Stop' if self.profiler_enabled else 'Start'} profiler")
 
-    def on_toggle_profiler_button_clicked(self, checked):
+    def on_toggle_profiler_button_clicked(self, checked=False):
         if self.toggling_profiler:
             return
 
