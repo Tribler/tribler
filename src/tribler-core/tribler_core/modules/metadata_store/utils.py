@@ -1,8 +1,14 @@
+import hashlib
+
 from ipv8.keyvault.crypto import default_eccrypto
 
 from pony.orm import db_session
 
 from tribler_core.utilities.random_utils import random_infohash, random_utf8_string
+
+
+def hash_str_to_int(s):
+    return int(hashlib.sha256(s.encode('utf-8')).hexdigest(), 16) % 2 ** 32
 
 
 @db_session
