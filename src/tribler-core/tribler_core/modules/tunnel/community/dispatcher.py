@@ -1,4 +1,5 @@
 import random
+import secrets
 from collections import defaultdict
 
 from ipv8.messaging.anonymization.tunnel import (
@@ -125,7 +126,7 @@ class TunnelDispatcher(TaskManager):
                                             self.on_socks5_udp_data(c, r) if f.result() else None)
             return None
 
-        circuit = random.choice(options)
+        circuit = secrets.choice(options)
         self.cid_to_con[circuit.circuit_id] = connection
         self.con_to_cir[connection][request.destination] = circuit
         self._logger.debug("Select circuit %d for %s", circuit.circuit_id, request.destination)

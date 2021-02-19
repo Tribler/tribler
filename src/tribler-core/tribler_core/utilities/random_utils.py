@@ -1,10 +1,11 @@
 import random
+import secrets
 import string
 
 
 def random_string(size=6, chars=string.ascii_uppercase + string.digits):
     """ Generates a random string """
-    return ''.join(random.choice(chars) for _ in range(size))
+    return ''.join(secrets.choice(chars) for _ in range(size))
 
 
 def random_infohash():
@@ -41,4 +42,4 @@ def random_utf8_string(length=6):
         for current_range in include_ranges
         for code_point in range(current_range[0], current_range[1] + 1)
     ]
-    return ''.join(random.choice(alphabet) for i in range(length))
+    return ''.join(secrets.choice(alphabet) for i in range(length))

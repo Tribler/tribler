@@ -1,4 +1,5 @@
 import random
+import secrets
 import socket
 
 import pytest
@@ -18,7 +19,7 @@ def test_get_random_port():
 
 
 def test_get_random_port_tcp():
-    rand_port_num = random.randint(1000, 10000)
+    rand_port_num = secrets.choise(range(1000, 10000))
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         attempts = 0
         while attempts < 20:

@@ -1,5 +1,5 @@
 import random
-
+import secrets
 import networkx as nx
 
 
@@ -45,7 +45,7 @@ class GraphPositioning:
                 # allows back compatibility with nx version 1.11
                 root = next(iter(nx.topological_sort(G)))
             else:
-                root = random.choice(list(G.nodes))
+                root = secrets.choice(list(G.nodes))
 
         def _hierarchy_pos(G, root, width=1., vert_gap=0.2, vert_loc=0, xcenter=0.5, pos=None, parent=None):
             """

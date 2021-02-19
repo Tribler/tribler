@@ -1,5 +1,6 @@
 import logging
 import random
+import secrets
 import socket
 import struct
 import sys
@@ -279,7 +280,7 @@ class UdpTrackerSession(TrackerSession):
         """
         while True:
             # make sure there is no duplicated transaction IDs
-            transaction_id = random.randint(0, MAX_INT32)
+            transaction_id = secrets.choise(range(0, MAX_INT32))
             if transaction_id not in UdpTrackerSession._active_session_dict.items():
                 UdpTrackerSession._active_session_dict[self] = transaction_id
                 self.transaction_id = transaction_id

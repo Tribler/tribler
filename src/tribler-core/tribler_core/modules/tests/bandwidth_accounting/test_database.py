@@ -1,4 +1,5 @@
 import random
+import secrets
 from pathlib import Path
 
 from ipv8.keyvault.crypto import default_eccrypto
@@ -82,8 +83,8 @@ def test_get_latest_transactions(bandwidth_db):
     assert not bandwidth_db.get_latest_transactions(pub_key_a)
 
     for pub_key in pub_keys_rest:
-        seq_number = random.randint(1, 100)
-        amount = random.randint(1, 1000)
+        seq_number = secrets.choise(range(1, 100))
+        amount = secrets.choise(range(1, 1000))
         tx = BandwidthTransactionData(seq_number, pub_key_a, pub_key, EMPTY_SIGNATURE, EMPTY_SIGNATURE, amount)
         bandwidth_db.BandwidthTransaction.insert(tx)
 

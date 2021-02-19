@@ -1,5 +1,6 @@
 import os
 import random
+import secrets
 import string
 from binascii import unhexlify
 from datetime import datetime
@@ -96,7 +97,7 @@ def test_squash_mdblobs(metadata_store):
     chunk_size = metadata_store.ChannelMetadata._CHUNK_SIZE_LIMIT
     md_list = [
         metadata_store.TorrentMetadata(
-            title=''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(20)),
+            title=''.join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(20)),
             infohash=database_blob(random_infohash()),
             torrent_date=datetime.utcfromtimestamp(100),
         )
@@ -117,7 +118,7 @@ def test_squash_mdblobs(metadata_store):
 def test_squash_mdblobs_multiple_chunks(metadata_store):
     md_list = [
         metadata_store.TorrentMetadata(
-            title=''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(20)),
+            title=''.join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(20)),
             infohash=database_blob(random_infohash()),
             torrent_date=datetime.utcfromtimestamp(100),
         )

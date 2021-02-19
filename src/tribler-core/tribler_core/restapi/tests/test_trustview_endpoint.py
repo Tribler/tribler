@@ -48,8 +48,8 @@ def mock_bootstrap(session):
     session.bootstrap.shutdown = lambda: succeed(None)
 
     bootstrap_download_state = Mock()
-    bootstrap_download_state.get_total_transferred = lambda _: random.randint(0, 10000)
-    bootstrap_download_state.get_progress = lambda: random.randint(10, 100)
+    bootstrap_download_state.get_total_transferred = lambda _: secrets.choise(range(0, 10000))
+    bootstrap_download_state.get_progress = lambda: secrets.choise(range(10, 100))
 
     session.bootstrap.download.get_state = lambda: bootstrap_download_state
 
@@ -202,7 +202,7 @@ async def test_trustview_response(enable_api, mock_ipv8, session, mock_bootstrap
 def insert_node_transactions(root_key, session, node_public_key=None, count=1):
     for idx in range(count):
         counterparty = unhexlify(node_public_key if node_public_key else get_random_node_public_key())
-        amount = random.randint(10, 100)
+        amount = secrets.choise(range(10, 100))
         tx1 = BandwidthTransactionData(idx, root_key, counterparty, EMPTY_SIGNATURE, EMPTY_SIGNATURE, amount)
         session.bandwidth_community.database.BandwidthTransaction.insert(tx1)
 

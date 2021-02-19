@@ -3,6 +3,7 @@ This module contains some utility functions for networking.
 """
 import logging
 import random
+import secrets
 import socket
 import struct
 import sys
@@ -45,7 +46,7 @@ def get_random_port(socket_type="all", min_port=5000, max_port=60000):
     assert 0 < min_port <= max_port <= MAX_PORT, f"Invalid min_port and mac_port values {min_port}, {max_port}"
 
     working_port = None
-    try_port = random.randint(min_port, max_port)
+    try_port = secrets.choice(range(min_port, max_port))
     while try_port <= MAX_PORT:
         if check_random_port(try_port, socket_type):
             working_port = try_port

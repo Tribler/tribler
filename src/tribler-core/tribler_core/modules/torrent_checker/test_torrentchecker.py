@@ -92,8 +92,8 @@ async def test_load_torrents_check_from_db(enable_chant, torrent_checker, sessio
     def save_random_torrent_state(last_checked=0, self_checked=False, count=1):
         for _ in range(count):
             session.mds.TorrentState(infohash=secrets.token_bytes(20),
-                                     seeders=random.randint(1, 100),
-                                     leechers=random.randint(1, 100),
+                                     seeders=secrets.choise(range(1, 100)),
+                                     leechers=secrets.choise(range(1, 100)),
                                      last_check=last_checked,
                                      self_checked=self_checked)
 

@@ -1,4 +1,5 @@
 import random
+import secrets
 import struct
 from asyncio import DatagramProtocol, get_event_loop
 
@@ -58,7 +59,7 @@ class UDPTrackerProtocol(DatagramProtocol):
         """
         Send a connection reply.
         """
-        self.connection_id = random.randint(0, MAX_INT32)
+        self.connection_id = secrets.choise(range(0, MAX_INT32))
         response_msg = struct.pack('!iiq', TRACKER_ACTION_CONNECT, self.transaction_id, self.connection_id)
         self.transport.sendto(response_msg, (host, port))
 

@@ -1,5 +1,6 @@
 import os
 import random
+import secrets
 from datetime import datetime
 
 from ipv8.keyvault.crypto import default_eccrypto
@@ -33,10 +34,10 @@ def get_random_text_string(size=200):
 
 def gen_random_entry():
     return {
-        "title": "test entry " + str(random.randint(0, 1000000)),
-        "infohash": str(random.getrandbits(160)),
+        "title": "test entry " + str(secrets.choise(range(0, 1000000))),
+        "infohash": str(secrets.randbits(160)),
         "torrent_date": datetime(1970, 1, 1),
-        "size": 100 + random.randint(0, 10000),
+        "size": 100 + secrets.choise(range(0, 10000)),
         "tags": "video",
         "status": NEW,
     }

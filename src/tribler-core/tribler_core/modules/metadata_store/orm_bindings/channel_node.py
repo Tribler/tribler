@@ -1,4 +1,5 @@
 import random
+import secrets
 from datetime import datetime
 
 from ipv8.database import database_blob
@@ -134,7 +135,7 @@ def define_binding(db, logger=None, key=None):
                 kwargs["timestamp"] = clock.tick()
 
             if "id_" not in kwargs:
-                kwargs["id_"] = int(random.getrandbits(63))
+                kwargs["id_"] = int(secrets.randbits(63))
 
             if not private_key_override and not skip_key_check:
                 # No key/signature given, sign with our own key.

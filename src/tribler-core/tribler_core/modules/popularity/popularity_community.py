@@ -1,6 +1,7 @@
 import asyncio
 import heapq
 import random
+import secrets
 from binascii import unhexlify
 
 from ipv8.lazy_community import lazy_wrapper
@@ -86,7 +87,7 @@ class PopularityCommunity(RemoteQueryCommunity):
                              f'{len(checked)}')
             return
 
-        random_peer = random.choice(self.get_peers())
+        random_peer = secrets.choice(self.get_peers())
 
         self.logger.info(
             f'Gossip torrent health information for {len(rand)}'
