@@ -112,8 +112,8 @@ def test_write_resource_log(resource_monitor):
 
     # 2. Try adding some random data and write resource logs
     time_now = time.time()
-    rand_memory = secrets.choise(range(1, 100))
-    rand_cpu = secrets.choise(range(1, 100))
+    rand_memory = secrets.choice(range(1, 100))
+    rand_cpu = secrets.choice(range(1, 100))
     resource_monitor.memory_data = [(time_now, rand_memory)]
     resource_monitor.cpu_data = [(time_now, rand_cpu)]
     resource_monitor.write_resource_logs()

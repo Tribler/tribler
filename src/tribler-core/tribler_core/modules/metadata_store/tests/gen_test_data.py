@@ -34,10 +34,10 @@ def get_random_text_string(size=200):
 
 def gen_random_entry():
     return {
-        "title": "test entry " + str(secrets.choise(range(0, 1000000))),
+        "title": "test entry " + str(secrets.choice(range(0, 1000000))),
         "infohash": str(secrets.randbits(160)),
         "torrent_date": datetime(1970, 1, 1),
-        "size": 100 + secrets.choise(range(0, 10000)),
+        "size": 100 + secrets.choice(range(0, 10000)),
         "tags": "video",
         "status": NEW,
     }
