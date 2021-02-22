@@ -15,6 +15,6 @@ Assuming that the transaction counterparty is online and the block is valid, the
 Using TrustChain in your project
 --------------------------------
 
-To use TrustChain in your own projects, one can create a subclass of ``TrustChainCommunity`` or use the ``TrustChainCommunity`` directly. This should be enough for basic usage. For more information about communities, we reference the reader to `a Dispersy tutorial <http://dispersy.readthedocs.io/en/main/usage.html#community>`_.
+To use TrustChain in your own projects, one can create a subclass of ``TrustChainCommunity`` or use the ``TrustChainCommunity`` directly. This should be enough for basic usage. For more information about communities, we reference the reader to `a Dispersy tutorial <http://dispersy.readthedocs.io/en/latest/usage.html#community>`_.
 
 In order to implement custom transaction validation rules, a subclass of ``TrustChainBlock`` should be made and the ``BLOCK_CLASS`` variable in the ``TrustChainCommunity`` should be updated accordingly. By overriding the ``validate_transaction`` method, you can add your own custom validation rules.
