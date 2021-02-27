@@ -12,7 +12,6 @@ from tribler_core.modules.metadata_store.serialization import (
     METADATA_NODE,
     MetadataNodePayload,
 )
-from tribler_core.utilities.unicode import hexlify
 
 
 def define_binding(db):
@@ -223,15 +222,13 @@ def define_binding(db):
             """
             Return a basic dictionary with information about the channel.
             """
-            simple_dict = {
-                "type": self._discriminator_,
-                "id": self.id_,
-                "origin_id": self.origin_id,
-                "public_key": hexlify(self.public_key),
-                "name": self.title,
-                "category": self.tags,
-                "status": self.status,
-            }
+            simple_dict = super().to_simple_dict()
+            simple_dict.update(
+                {
+                    "name": self.title,
+                    "category": self.tags,
+                }
+            )
 
             return simple_dict
 

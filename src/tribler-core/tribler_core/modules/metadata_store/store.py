@@ -21,6 +21,7 @@ from tribler_core.modules.metadata_store.orm_bindings import (
     channel_peer,
     channel_vote,
     collection_node,
+    description_node,
     metadata_node,
     misc,
     torrent_metadata,
@@ -34,6 +35,7 @@ from tribler_core.modules.metadata_store.serialization import (
     CHANNEL_TORRENT,
     COLLECTION_NODE,
     DELETED,
+    DESCRIPTION_NODE,
     NULL_KEY,
     REGULAR_TORRENT,
     read_payload_with_offset,
@@ -51,6 +53,7 @@ GOT_NEWER_VERSION = 4
 UNKNOWN_TORRENT = 5
 DELETED_METADATA = 6
 UNKNOWN_COLLECTION = 7
+UNKNOWN_DESCRIPTION = 8
 
 
 MIN_BATCH_SIZE = 10
@@ -137,6 +140,7 @@ class MetadataStore:
         self.CollectionNode = collection_node.define_binding(self._db)
         self.TorrentMetadata = torrent_metadata.define_binding(self._db)
         self.ChannelMetadata = channel_metadata.define_binding(self._db)
+        self.DescriptionNode = description_node.define_binding(self._db)
         self.ChannelVote = channel_vote.define_binding(self._db)
         self.ChannelPeer = channel_peer.define_binding(self._db)
         self.Vsids = vsids.define_binding(self._db)
@@ -476,11 +480,13 @@ class MetadataStore:
                 node.delete()
                 return [(None, DELETED_METADATA)]
 
-        if payload.metadata_type not in [CHANNEL_TORRENT, REGULAR_TORRENT, COLLECTION_NODE]:
+        if payload.metadata_type not in [CHANNEL_TORRENT, REGULAR_TORRENT, COLLECTION_NODE, DESCRIPTION_NODE]:
             return []
 
         # Check for offending words stop-list
-        if is_forbidden(payload.title + payload.tags):
+        if is_forbidden(
+            " ".join([getattr(payload, attr) for attr in ("title", "tags", "text") if hasattr(payload, attr)])
+        ):
             return [(None, NO_ACTION)]
 
         # FFA payloads get special treatment:
@@ -491,7 +497,7 @@ class MetadataStore:
                     return [(node, UNKNOWN_TORRENT)]
             return [(None, NO_ACTION)]
 
-        if channel_public_key is None and payload.metadata_type in [COLLECTION_NODE, REGULAR_TORRENT]:
+        if channel_public_key is None and payload.metadata_type in [COLLECTION_NODE, REGULAR_TORRENT, DESCRIPTION_NODE]:
             # Check if the received payload is from a channel that we already have and send update if necessary
 
             # Get the toplevel parent
@@ -518,6 +524,7 @@ class MetadataStore:
             (self.TorrentMetadata, UNKNOWN_TORRENT),
             (self.ChannelMetadata, UNKNOWN_CHANNEL),
             (self.CollectionNode, UNKNOWN_COLLECTION),
+            (self.DescriptionNode, UNKNOWN_DESCRIPTION),
         ):
             if orm_class._discriminator_ == payload.metadata_type:
                 return [(orm_class.from_payload(payload), response)]

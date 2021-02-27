@@ -20,6 +20,7 @@ TYPELESS = 100
 CHANNEL_NODE = 200
 METADATA_NODE = 210
 COLLECTION_NODE = 220
+DESCRIPTION_NODE = 230
 REGULAR_TORRENT = 300
 CHANNEL_TORRENT = 400
 DELETED = 500
@@ -202,6 +203,45 @@ class ChannelNodePayload(SignedPayload):
              "origin_id": self.origin_id,
              "timestamp": self.timestamp
              })
+        return dct
+
+
+class DescriptionNodePayload(ChannelNodePayload):
+    format_list = ChannelNodePayload.format_list + ['varlenI']
+
+    def __init__(self, metadata_type, reserved_flags, public_key,
+                 id_, origin_id, timestamp,
+                 text,
+                 **kwargs):
+        self.text = text.decode('utf-8') if isinstance(text, bytes) else text
+        super().__init__(
+            metadata_type, reserved_flags, public_key,
+            id_, origin_id, timestamp,
+            **kwargs
+        )
+
+    def to_pack_list(self):
+        data = super().to_pack_list()
+        data.append(('varlenI', self.text.encode('utf-8')))
+        return data
+
+    @classmethod
+    def from_unpack_list(
+            cls, metadata_type, reserved_flags, public_key,
+            id_, origin_id, timestamp,
+            text,
+            **kwargs
+    ):
+        return DescriptionNodePayload(
+            metadata_type, reserved_flags, public_key,
+            id_, origin_id, timestamp,
+            text,
+            **kwargs
+        )
+
+    def to_dict(self):
+        dct = super().to_dict()
+        dct.update({"text": self.text})
         return dct
 
 

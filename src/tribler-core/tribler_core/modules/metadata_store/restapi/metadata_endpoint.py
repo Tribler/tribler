@@ -163,7 +163,7 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
 
             if entry:
                 # TODO: handle costly attributes in a more graceful and generic way for all types of metadata
-                entry_dict = entry.to_simple_dict(include_trackers=isinstance(entry, self.session.mds.TorrentMetadata))
+                entry_dict = entry.to_simple_dict()
             else:
                 return RESTResponse({"error": "entry not found in database"}, status=HTTP_NOT_FOUND)
 

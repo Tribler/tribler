@@ -28,6 +28,7 @@ from tribler_core.modules.metadata_store.store import (
     NO_ACTION,
     UNKNOWN_CHANNEL,
     UNKNOWN_COLLECTION,
+    UNKNOWN_DESCRIPTION,
     UNKNOWN_TORRENT,
 )
 from tribler_core.modules.metadata_store.tests.test_channel_download import CHANNEL_METADATA_UPDATED
@@ -90,13 +91,13 @@ def test_process_channel_dir_file(tmpdir, metadata_store):
         metadata_store.process_mdblob_file(invalid_metadata, skip_personal_metadata_payload=False)
 
 
-@pytest.mark.skip(reason="This test is currently unstable")
 @db_session
 def test_squash_mdblobs(metadata_store):
+    r = random.Random(123)
     chunk_size = metadata_store.ChannelMetadata._CHUNK_SIZE_LIMIT
     md_list = [
         metadata_store.TorrentMetadata(
-            title=''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(20)),
+            title=''.join(r.choice(string.ascii_uppercase + string.digits) for _ in range(20)),
             infohash=database_blob(random_infohash()),
             torrent_date=datetime.utcfromtimestamp(100),
         )
@@ -112,12 +113,12 @@ def test_squash_mdblobs(metadata_store):
     ]
 
 
-@pytest.mark.skip(reason="This test is currently unstable")
 @db_session
 def test_squash_mdblobs_multiple_chunks(metadata_store):
+    r = random.Random(123)
     md_list = [
         metadata_store.TorrentMetadata(
-            title=''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(20)),
+            title=''.join(r.choice(string.ascii_uppercase + string.digits) for _ in range(20)),
             infohash=database_blob(random_infohash()),
             torrent_date=datetime.utcfromtimestamp(100),
         )
@@ -260,6 +261,7 @@ def test_process_payload(metadata_store):
         (metadata_store.ChannelMetadata, UNKNOWN_CHANNEL),
         (metadata_store.TorrentMetadata, UNKNOWN_TORRENT),
         (metadata_store.CollectionNode, UNKNOWN_COLLECTION),
+        (metadata_store.DescriptionNode, UNKNOWN_DESCRIPTION),
     ):
         node, node_payload, node_deleted_payload = get_payloads(md_class)
         node_dict = node.to_dict()

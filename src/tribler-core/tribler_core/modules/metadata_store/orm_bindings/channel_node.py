@@ -290,4 +290,18 @@ def define_binding(db, logger=None, key=None):
             dst_dict.update({"origin_id": tgt_parent_id, "status": NEW})
             return self.__class__(**dst_dict)
 
+        def to_simple_dict(self):
+            """
+            Return a basic dictionary with information about the node
+            """
+            simple_dict = {
+                "type": self._discriminator_,
+                "id": self.id_,
+                "origin_id": self.origin_id,
+                "public_key": hexlify(self.public_key),
+                "status": self.status,
+            }
+
+            return simple_dict
+
     return ChannelNode
