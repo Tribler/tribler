@@ -23,6 +23,7 @@ from tribler_core.modules.metadata_store.serialization import REGULAR_TORRENT
 from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_NOT_FOUND, RESTResponse
 from tribler_core.restapi.schema import HandledErrorSchema
 from tribler_core.utilities import path_util
+from tribler_core.utilities.json_util import loads
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import is_infohash, parse_magnetlink
 
@@ -37,6 +38,7 @@ class ChannelsEndpoint(ChannelsEndpointBase):
             [
                 web.get('', self.get_channels),
                 web.get(r'/{channel_pk:\w*}/{channel_id:\w*}', self.get_channel_contents),
+                web.get(r'/{channel_pk:\w*}/{channel_id:\w*}/description', self.get_channel_description),
                 web.post(r'/{channel_pk:\w*}/{channel_id:\w*}/copy', self.copy_channel),
                 web.post(r'/{channel_pk:\w*}/{channel_id:\w*}/channels', self.create_channel),
                 web.post(r'/{channel_pk:\w*}/{channel_id:\w*}/collections', self.create_collection),
@@ -165,6 +167,16 @@ class ChannelsEndpoint(ChannelsEndpointBase):
         if total is not None:
             response_dict.update({"total": total})
 
+        return RESTResponse(response_dict)
+
+    async def get_channel_description(self, request):
+        channel_pk, channel_id = self.get_channel_from_request(request)
+        with db_session:
+            description_node = self.session.mds.DescriptionNode.select(
+                lambda g: g.public_key == channel_pk and g.origin_id == channel_id
+            ).first()
+
+        response_dict = loads(description_node.text) if description_node is not None else {}
         return RESTResponse(response_dict)
 
     @docs(

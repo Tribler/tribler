@@ -15,6 +15,7 @@ from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.modules.metadata_store.serialization import COLLECTION_NODE, REGULAR_TORRENT
 from tribler_core.restapi.base_api_test import do_request
 from tribler_core.tests.tools.common import TORRENT_UBUNTU_FILE
+from tribler_core.utilities.json_util import dumps, loads
 from tribler_core.utilities.random_utils import random_infohash
 from tribler_core.utilities.unicode import hexlify
 
@@ -125,6 +126,20 @@ async def test_get_channel_contents(enable_chant, enable_api, add_fake_torrents_
     assert len(json_dict['results']) == 5
     assert 'status' in json_dict['results'][0]
     assert json_dict['results'][0]['progress'] == 0.5
+
+
+@pytest.mark.asyncio
+async def test_get_channel_description(enable_chant, enable_api, session):
+    """
+    Test getting description of the channel from the database
+    """
+    with db_session:
+        chan = session.mds.ChannelMetadata.create_channel(title="bla")
+        description_node = session.mds.DescriptionNode(origin_id=chan.id_, text=dumps({"description_text": "foobar"}))
+    json_dict = await do_request(
+        session, f'channels/{hexlify(chan.public_key)}/{chan.id_}/description', expected_code=200
+    )
+    assert json_dict == loads(description_node.text)
 
 
 @pytest.mark.asyncio

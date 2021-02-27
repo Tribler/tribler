@@ -388,6 +388,10 @@ def test_recursive_commit_channel_torrent(metadata_store):
             if recurse:
                 for status_combination in all_status_combinations():
                     generate_collection(toplevel_channel, s, status_combination, recurse=recurse)
+        metadata_store.DescriptionNode(
+            text="foobar",
+            origin_id=toplevel_channel.id_,
+        )
         return toplevel_channel
 
     # Make sure running commit on empty channels produces no error
@@ -433,7 +437,7 @@ def test_recursive_commit_channel_torrent(metadata_store):
         c.delete()
     my_dir = path_util.abspath(metadata_store.ChannelMetadata._channels_dir / chan.dirname)
     metadata_store.process_channel_dir(my_dir, chan.public_key, chan.id_, skip_personal_metadata_payload=False)
-    assert chan.num_entries == 363
+    assert chan.num_entries == 364
 
 
 @db_session
