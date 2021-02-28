@@ -83,8 +83,8 @@ class TestRemoteQueryCommunity(TestBase):
 
         # All the matching torrent entries should have been sent to Node 1
         with db_session:
-            torrents0 = self.nodes[0].overlay.mds.MetadataNode.get_entries(**kwargs_dict)
-            torrents1 = self.nodes[1].overlay.mds.MetadataNode.get_entries(**kwargs_dict)
+            torrents0 = self.nodes[0].overlay.mds.get_entries(**kwargs_dict)
+            torrents1 = self.nodes[1].overlay.mds.get_entries(**kwargs_dict)
             self.assertEqual(len(torrents0), len(torrents1))
             self.assertEqual(len(torrents0), 20)
 

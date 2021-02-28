@@ -498,20 +498,25 @@ def test_get_channels(metadata_store):
     for ind in range(10):
         metadata_store.ChannelNode._my_key = default_eccrypto.generate_key('low')
         metadata_store.ChannelMetadata(title='channel%d' % ind, subscribed=(ind % 2 == 0), infohash=random_infohash())
-    channels = metadata_store.ChannelMetadata.get_entries(first=1, last=5)
+        metadata_store.TorrentMetadata(title='tor%d' % ind, infohash=random_infohash())
+    channels = metadata_store.get_entries(first=1, last=5, metadata_type=CHANNEL_TORRENT)
     assert len(channels) == 5
 
     # Test filtering
-    channels = metadata_store.ChannelMetadata.get_entries(first=1, last=5, txt_filter='channel5')
+    channels = metadata_store.get_entries(first=1, last=5, metadata_type=CHANNEL_TORRENT, txt_filter='channel5')
     assert len(channels) == 1
 
     # Test sorting
-    channels = metadata_store.ChannelMetadata.get_entries(first=1, last=10, sort_by='title', sort_desc=True)
+    channels = metadata_store.get_entries(
+        first=1, last=10, metadata_type=CHANNEL_TORRENT, sort_by='title', sort_desc=True
+    )
     assert len(channels) == 10
     assert channels[0].title == 'channel9'
 
     # Test fetching subscribed channels
-    channels = metadata_store.ChannelMetadata.get_entries(first=1, last=10, sort_by='title', subscribed=True)
+    channels = metadata_store.get_entries(
+        first=1, last=10, metadata_type=CHANNEL_TORRENT, sort_by='title', subscribed=True
+    )
     assert len(channels) == 5
 
 
@@ -521,7 +526,7 @@ def test_default_sorting_no_fts(mds_with_some_torrents):
 
     # Search through the entire set of torrents & folders.
     # Currently objects are returned in order "newest at first"
-    objects = metadata_store.MetadataNode.get_entries()
+    objects = metadata_store.get_entries()
     titles = [obj.title.partition(' ')[0] for obj in objects]
     assert titles == [
         'torrent6',
@@ -539,7 +544,7 @@ def test_default_sorting_no_fts(mds_with_some_torrents):
         'channel1',
     ]
 
-    objects = metadata_store.MetadataNode.get_entries(channel_pk=channel.public_key)
+    objects = metadata_store.get_entries(channel_pk=channel.public_key)
     titles = [obj.title.partition(' ')[0] for obj in objects]
     assert titles == [
         'torrent2_1',
@@ -554,7 +559,7 @@ def test_default_sorting_no_fts(mds_with_some_torrents):
         'channel1',
     ]
 
-    objects = metadata_store.MetadataNode.get_entries(origin_id=channel.id_)
+    objects = metadata_store.get_entries(origin_id=channel.id_)
     titles = [obj.title.partition(' ')[0] for obj in objects]
     assert titles == ['torrent4', 'folder2', 'torrent3', 'torrent2', 'folder1', 'torrent1']
 
@@ -566,7 +571,7 @@ def test_default_sorting_with_fts(mds_with_some_torrents):
     # Search through the entire set of torrents & folders.
     # Returns channels at first, then folders (newest at first),
     # then torrents (with seeders at first)
-    objects = metadata_store.MetadataNode.get_entries(txt_filter='aaa')
+    objects = metadata_store.get_entries(txt_filter='aaa')
     titles = [obj.title.partition(' ')[0] for obj in objects]
     assert titles == [
         'channel2',
@@ -581,7 +586,7 @@ def test_default_sorting_with_fts(mds_with_some_torrents):
         'torrent2',  # no seeders
     ]
 
-    objects = metadata_store.MetadataNode.get_entries(channel_pk=channel.public_key, txt_filter='aaa')
+    objects = metadata_store.get_entries(channel_pk=channel.public_key, txt_filter='aaa')
     titles = [obj.title.partition(' ')[0] for obj in objects]
     assert titles == [
         'channel1',
@@ -593,7 +598,7 @@ def test_default_sorting_with_fts(mds_with_some_torrents):
         'torrent2',  # no seeders
     ]
 
-    objects = metadata_store.MetadataNode.get_entries(origin_id=channel.id_, txt_filter='aaa')
+    objects = metadata_store.get_entries(origin_id=channel.id_, txt_filter='aaa')
     titles = [obj.title.partition(' ')[0] for obj in objects]
     assert titles == ['folder2', 'folder1', 'torrent1', 'torrent2']
 
@@ -602,7 +607,7 @@ def test_default_sorting_with_fts(mds_with_some_torrents):
 def test_sort_by_health_no_fts(mds_with_some_torrents):
     metadata_store, channel = mds_with_some_torrents
 
-    objects = metadata_store.MetadataNode.get_entries(sort_by='HEALTH', sort_desc=True)
+    objects = metadata_store.get_entries(sort_by='HEALTH', sort_desc=True)
     titles = [obj.title.partition(' ')[0] for obj in objects]
     assert titles == [
         'torrent4',  # 30 seeders
@@ -620,7 +625,7 @@ def test_sort_by_health_no_fts(mds_with_some_torrents):
         'folder1',
     ]
 
-    objects = metadata_store.MetadataNode.get_entries(sort_by='HEALTH', sort_desc=False)
+    objects = metadata_store.get_entries(sort_by='HEALTH', sort_desc=False)
     titles = [obj.title.partition(' ')[0] for obj in objects]
     assert titles == [
         'folder1',
@@ -638,7 +643,7 @@ def test_sort_by_health_no_fts(mds_with_some_torrents):
         'torrent4',  # 30 seeders
     ]
 
-    objects = metadata_store.MetadataNode.get_entries(channel_pk=channel.public_key, sort_by='HEALTH', sort_desc=True)
+    objects = metadata_store.get_entries(channel_pk=channel.public_key, sort_by='HEALTH', sort_desc=True)
     titles = [obj.title.partition(' ')[0] for obj in objects]
     assert titles == [
         'torrent4',  # has seeders
@@ -653,7 +658,7 @@ def test_sort_by_health_no_fts(mds_with_some_torrents):
         'folder1',
     ]
 
-    objects = metadata_store.MetadataNode.get_entries(channel_pk=channel.public_key, sort_by='HEALTH', sort_desc=False)
+    objects = metadata_store.get_entries(channel_pk=channel.public_key, sort_by='HEALTH', sort_desc=False)
     titles = [obj.title.partition(' ')[0] for obj in objects]
     assert titles == [
         'folder1',
@@ -668,7 +673,7 @@ def test_sort_by_health_no_fts(mds_with_some_torrents):
         'torrent4',  # has seeders
     ]
 
-    objects = metadata_store.MetadataNode.get_entries(
+    objects = metadata_store.get_entries(
         origin_id=channel.id_,
         sort_by='HEALTH',
         sort_desc=True,
@@ -683,7 +688,7 @@ def test_sort_by_health_no_fts(mds_with_some_torrents):
         'folder1',
     ]
 
-    objects = metadata_store.MetadataNode.get_entries(origin_id=channel.id_, sort_by='HEALTH', sort_desc=False)
+    objects = metadata_store.get_entries(origin_id=channel.id_, sort_by='HEALTH', sort_desc=False)
     titles = [obj.title.partition(' ')[0] for obj in objects]
     assert titles == [
         'folder1',
@@ -699,7 +704,7 @@ def test_sort_by_health_no_fts(mds_with_some_torrents):
 def test_sort_by_health_with_fts(mds_with_some_torrents):
     metadata_store, channel = mds_with_some_torrents
 
-    objects = metadata_store.MetadataNode.get_entries(txt_filter='aaa', sort_by='HEALTH', sort_desc=True)
+    objects = metadata_store.get_entries(txt_filter='aaa', sort_by='HEALTH', sort_desc=True)
     titles = [obj.title.partition(' ')[0] for obj in objects]
     assert titles == [
         'torrent2_1',  # 20 seeders
@@ -714,7 +719,7 @@ def test_sort_by_health_with_fts(mds_with_some_torrents):
         'folder1',
     ]
 
-    objects = metadata_store.MetadataNode.get_entries(txt_filter='aaa', sort_by='HEALTH', sort_desc=False)
+    objects = metadata_store.get_entries(txt_filter='aaa', sort_by='HEALTH', sort_desc=False)
     titles = [obj.title.partition(' ')[0] for obj in objects]
     assert titles == [
         'folder1',
@@ -729,7 +734,7 @@ def test_sort_by_health_with_fts(mds_with_some_torrents):
         'torrent2_1',  # 20 seeders
     ]
 
-    objects = metadata_store.MetadataNode.get_entries(
+    objects = metadata_store.get_entries(
         channel_pk=channel.public_key, txt_filter='aaa', sort_by='HEALTH', sort_desc=True
     )
     titles = [obj.title.partition(' ')[0] for obj in objects]
@@ -743,7 +748,7 @@ def test_sort_by_health_with_fts(mds_with_some_torrents):
         'folder1',
     ]
 
-    objects = metadata_store.MetadataNode.get_entries(
+    objects = metadata_store.get_entries(
         channel_pk=channel.public_key, txt_filter='aaa', sort_by='HEALTH', sort_desc=False
     )
     titles = [obj.title.partition(' ')[0] for obj in objects]
@@ -757,7 +762,7 @@ def test_sort_by_health_with_fts(mds_with_some_torrents):
         'torrent2_1',  # 20 seeders
     ]
 
-    objects = metadata_store.MetadataNode.get_entries(
+    objects = metadata_store.get_entries(
         origin_id=channel.id_,
         txt_filter='aaa',
         sort_by='HEALTH',
@@ -766,9 +771,7 @@ def test_sort_by_health_with_fts(mds_with_some_torrents):
     titles = [obj.title.partition(' ')[0] for obj in objects]
     assert titles == ['torrent1', 'torrent2', 'folder2', 'folder1']
 
-    objects = metadata_store.MetadataNode.get_entries(
-        origin_id=channel.id_, txt_filter='aaa', sort_by='HEALTH', sort_desc=False
-    )
+    objects = metadata_store.get_entries(origin_id=channel.id_, txt_filter='aaa', sort_by='HEALTH', sort_desc=False)
     titles = [obj.title.partition(' ')[0] for obj in objects]
     assert titles == ['folder1', 'folder2', 'torrent2', 'torrent1']
 

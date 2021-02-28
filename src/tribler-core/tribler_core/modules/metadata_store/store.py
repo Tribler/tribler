@@ -9,7 +9,7 @@ from ipv8.database import database_blob
 import lz4.frame
 
 from pony import orm
-from pony.orm import CacheIndexError, TransactionIntegrityError, db_session
+from pony.orm import CacheIndexError, TransactionIntegrityError, db_session, desc, left_join, raw_sql
 
 from tribler_common.simpledefs import NTFY
 
@@ -30,7 +30,8 @@ from tribler_core.modules.metadata_store.orm_bindings import (
     vsids,
 )
 from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import get_mdblob_sequence_number
-from tribler_core.modules.metadata_store.orm_bindings.channel_node import LEGACY_ENTRY
+from tribler_core.modules.metadata_store.orm_bindings.channel_node import LEGACY_ENTRY, TODELETE
+from tribler_core.modules.metadata_store.orm_bindings.torrent_metadata import NULL_KEY_SUBST
 from tribler_core.modules.metadata_store.serialization import (
     CHANNEL_TORRENT,
     COLLECTION_NODE,
@@ -584,3 +585,177 @@ class MetadataStore:
             and g.infohash == database_blob(infohash)
             and g.status != LEGACY_ENTRY
         )
+
+    def search_keyword(self, query, lim=100):
+        # Requires FTS5 table "FtsIndex" to be generated and populated.
+        # FTS table is maintained automatically by SQL triggers.
+        # BM25 ranking is embedded in FTS5.
+
+        # Sanitize FTS query
+        if not query or query == "*":
+            return []
+
+        # TODO: optimize this query by removing unnecessary select nests (including Pony-manages selects)
+        fts_ids = raw_sql(
+            """SELECT rowid FROM ChannelNode WHERE rowid IN (SELECT rowid FROM FtsIndex WHERE FtsIndex MATCH $query
+            ORDER BY bm25(FtsIndex) LIMIT $lim) GROUP BY coalesce(infohash, rowid)"""
+        )
+        return left_join(g for g in self.MetadataNode if g.rowid in fts_ids)  # pylint: disable=E1135
+
+    @db_session
+    def get_entries_query(
+        self,
+        metadata_type=None,
+        channel_pk=None,
+        exclude_deleted=False,
+        hide_xxx=False,
+        exclude_legacy=False,
+        origin_id=None,
+        sort_by=None,
+        sort_desc=True,
+        txt_filter=None,
+        subscribed=None,
+        category=None,
+        attribute_ranges=None,
+        infohash=None,
+        id_=None,
+        complete_channel=None,
+        self_checked_torrent=None,
+    ):
+        """
+        This method implements REST-friendly way to get entries from the database.
+        :return: PonyORM query object corresponding to the given params.
+        """
+        # Warning! For Pony magic to work, iteration variable name (e.g. 'g') should be the same everywhere!
+
+        cls = self.ChannelNode
+        pony_query = self.search_keyword(txt_filter, lim=1000) if txt_filter else left_join(g for g in cls)
+
+        if metadata_type is not None:
+            try:
+                pony_query = pony_query.where(lambda g: g.metadata_type in metadata_type)
+            except TypeError:
+                pony_query = pony_query.where(lambda g: g.metadata_type == metadata_type)
+
+        pony_query = (
+            pony_query.where(public_key=(b"" if channel_pk == NULL_KEY_SUBST else channel_pk))
+            if channel_pk is not None
+            else pony_query
+        )
+
+        if attribute_ranges is not None:
+            for attr, left, right in attribute_ranges:
+                if (
+                    self.ChannelNode._adict_.get(attr) or self.ChannelNode._subclass_adict_.get(attr)
+                ) is None:  # Check against code injection
+                    raise AttributeError("Tried to query for non-existent attribute")
+                if left is not None:
+                    pony_query = pony_query.where(f"g.{attr} >= left")
+                if right is not None:
+                    pony_query = pony_query.where(f"g.{attr} < right")
+
+        # origin_id can be zero, for e.g. root channel
+        pony_query = pony_query.where(id_=id_) if id_ is not None else pony_query
+        pony_query = pony_query.where(origin_id=origin_id) if origin_id is not None else pony_query
+        pony_query = pony_query.where(lambda g: g.subscribed) if subscribed is not None else pony_query
+        pony_query = pony_query.where(lambda g: g.tags == category) if category else pony_query
+        pony_query = pony_query.where(lambda g: g.status != TODELETE) if exclude_deleted else pony_query
+        pony_query = pony_query.where(lambda g: g.xxx == 0) if hide_xxx else pony_query
+        pony_query = pony_query.where(lambda g: g.status != LEGACY_ENTRY) if exclude_legacy else pony_query
+        pony_query = pony_query.where(lambda g: g.infohash == infohash) if infohash else pony_query
+        pony_query = (
+            pony_query.where(lambda g: g.health.self_checked == self_checked_torrent)
+            if self_checked_torrent is not None
+            else pony_query
+        )
+        # ACHTUNG! Setting complete_channel to True forces the metadata type to Channels only!
+        pony_query = (
+            pony_query.where(lambda g: g.metadata_type == CHANNEL_TORRENT and g.timestamp == g.local_version)
+            if complete_channel
+            else pony_query
+        )
+
+        # Sort the query
+        pony_query = pony_query.sort_by("desc(g.rowid)" if sort_desc else "g.rowid")
+
+        if sort_by == "HEALTH":
+            pony_query = pony_query.sort_by(
+                "(desc(g.health.seeders), desc(g.health.leechers))"
+                if sort_desc
+                else "(g.health.seeders, g.health.leechers)"
+            )
+        elif sort_by == "size" and not issubclass(cls, self.ChannelMetadata):
+            # TODO: optimize this check to skip cases where size field does not matter
+            # When querying for mixed channels / torrents lists, channels should have priority over torrents
+            sort_expression = "desc(g.num_entries), desc(g.size)" if sort_desc else "g.num_entries, g.size"
+            pony_query = pony_query.sort_by(sort_expression)
+        elif sort_by:
+            sort_expression = "g." + sort_by
+            sort_expression = desc(sort_expression) if sort_desc else sort_expression
+            pony_query = pony_query.sort_by(sort_expression)
+
+        if txt_filter:
+            if sort_by is None:
+                pony_query = pony_query.sort_by(
+                    f"""
+                    1 if g.metadata_type == {CHANNEL_TORRENT} else
+                    2 if g.metadata_type == {COLLECTION_NODE} else
+                    3 if g.health.seeders > 0 else 4
+                """
+                )
+
+        return pony_query
+
+    async def get_entries_threaded(self, **kwargs):
+        def _get_results():
+            result = self.get_entries(**kwargs)
+            if not isinstance(threading.current_thread(), threading._MainThread):
+                self._db.disconnect()
+            return result
+
+        return await get_event_loop().run_in_executor(None, _get_results)
+
+    @db_session
+    def get_entries(self, first=1, last=None, **kwargs):
+        """
+        Get some torrents. Optionally sort the results by a specific field, or filter the channels based
+        on a keyword/whether you are subscribed to it.
+        :return: A list of class members
+        """
+        pony_query = self.get_entries_query(**kwargs)
+        return pony_query[(first or 1) - 1 : last]
+
+    @db_session
+    def get_total_count(self, **kwargs):
+        """
+        Get total count of torrents that would be returned if there would be no pagination/limits/sort
+        """
+        for p in ["first", "last", "sort_by", "sort_desc"]:
+            kwargs.pop(p, None)
+        return self.get_entries_query(**kwargs).count()
+
+    @db_session
+    def get_entries_count(self, **kwargs):
+        for p in ["first", "last"]:
+            kwargs.pop(p, None)
+        return self.get_entries_query(**kwargs).count()
+
+    def get_auto_complete_terms(self, keyword, max_terms, limit=10):
+        if not keyword:
+            return []
+
+        with db_session:
+            result = self.search_keyword("\"" + keyword + "\"*", lim=limit)[:]
+        titles = [g.title.lower() for g in result]
+
+        # Copy-pasted from the old DBHandler (almost) completely
+        all_terms = set()
+        for line in titles:
+            if len(all_terms) >= max_terms:
+                break
+            i1 = line.find(keyword)
+            i2 = line.find(' ', i1 + len(keyword))
+            term = line[i1:i2] if i2 >= 0 else line[i1:]
+            if term != keyword:
+                all_terms.add(term)
+        return list(all_terms)

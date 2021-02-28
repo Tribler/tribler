@@ -126,7 +126,7 @@ class RemoteQueryCommunity(Community):
         :raises pony.orm.dbapiprovider.OperationalError: if an illegal query was performed.
         """
         request_sanitized = sanitize_query(json.loads(json_bytes), self.settings.max_response_size)
-        return await self.mds.MetadataNode.get_entries_threaded(**request_sanitized)
+        return await self.mds.get_entries_threaded(**request_sanitized)
 
     def send_db_results(self, peer, request_payload_id, db_results):
         index = 0

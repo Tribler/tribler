@@ -19,7 +19,7 @@ from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import DIRTY_STATUSES, NEW
 from tribler_core.modules.metadata_store.restapi.metadata_endpoint_base import MetadataEndpointBase
 from tribler_core.modules.metadata_store.restapi.metadata_schema import ChannelSchema
-from tribler_core.modules.metadata_store.serialization import REGULAR_TORRENT
+from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, REGULAR_TORRENT
 from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_NOT_FOUND, RESTResponse
 from tribler_core.restapi.schema import HandledErrorSchema
 from tribler_core.utilities import path_util
@@ -89,10 +89,11 @@ class ChannelsEndpoint(ChannelsEndpointBase):
         sanitized['subscribed'] = None if 'subscribed' not in request.query else bool(int(request.query['subscribed']))
         include_total = request.query.get('include_total', '')
         sanitized.update({"origin_id": 0})
+        sanitized['metadata_type'] = CHANNEL_TORRENT
 
         with db_session:
-            channels = self.session.mds.ChannelMetadata.get_entries(**sanitized)
-            total = self.session.mds.ChannelMetadata.get_total_count(**sanitized) if include_total else None
+            channels = self.session.mds.get_entries(**sanitized)
+            total = self.session.mds.get_total_count(**sanitized) if include_total else None
             channels_list = []
             for channel in channels:
                 channel_dict = channel.to_simple_dict()
@@ -153,9 +154,9 @@ class ChannelsEndpoint(ChannelsEndpointBase):
         channel_pk, channel_id = self.get_channel_from_request(request)
         sanitized.update({"channel_pk": channel_pk, "origin_id": channel_id})
         with db_session:
-            contents = self.session.mds.MetadataNode.get_entries(**sanitized)
+            contents = self.session.mds.get_entries(**sanitized)
             contents_list = [c.to_simple_dict() for c in contents]
-            total = self.session.mds.MetadataNode.get_total_count(**sanitized) if include_total else None
+            total = self.session.mds.get_total_count(**sanitized) if include_total else None
         self.add_download_progress_to_metadata_list(contents_list)
         response_dict = {
             "results": contents_list,
@@ -427,7 +428,7 @@ class ChannelsEndpoint(ChannelsEndpointBase):
         sanitized["sort_by"] = "HEALTH"
         sanitized["self_checked_torrent"] = True
         with db_session:
-            contents = self.session.mds.TorrentMetadata.get_entries(**sanitized)
+            contents = self.session.mds.get_entries(**sanitized)
             contents_list = [c.to_simple_dict() for c in contents]
         self.add_download_progress_to_metadata_list(contents_list)
 

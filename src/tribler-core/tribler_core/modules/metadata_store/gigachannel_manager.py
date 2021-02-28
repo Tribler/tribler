@@ -11,6 +11,7 @@ from tribler_common.simpledefs import DLSTATUS_SEEDING, NTFY
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import COMMITTED
+from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT
 from tribler_core.utilities.unicode import hexlify
 
 PROCESS_CHANNEL_DIR = 1
@@ -115,7 +116,7 @@ class GigaChannelManager(TaskManager):
         """
         with db_session:
             # FIXME: if someone is subscribed to more than 1000 channels, they are in trouble...
-            channels = self.session.mds.ChannelMetadata.get_entries(last=1000, subscribed=True)
+            channels = self.session.mds.get_entries(last=1000, subscribed=True, metadata_type=CHANNEL_TORRENT)
             subscribed_infohashes = [bytes(c.infohash) for c in list(channels)]
             dirnames = [c.dirname for c in channels]
 
