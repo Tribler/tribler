@@ -8,8 +8,8 @@ from pathlib import Path
 from tribler_common.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_CHECKPOINT_DIR, STATEDIR_DB_DIR
 
 from tribler_core.utilities import json_util as json
-from tribler_core.utilities.osutils import dir_copy
-from tribler_core.version import version_id as code_version_id
+from tribler_core.utilities.osutils import dir_copy, get_root_state_directory
+from tribler_core.version import version_id as code_version_id, version_id
 
 VERSION_HISTORY_FILE = "version_history.json"
 
@@ -159,11 +159,12 @@ def should_fork_state_directory(root_state_dir, code_version):
             and LooseVersion(version_history.last_version).version[:2] == LooseVersion(code_version).version[:2]
             and code_version_dir.exists()):
         if str(version_history.last_version) != str(code_version):
-            return version_history, code_version, None, None
-        return None, None, None, None
+            return version_history, code_version, None, None, None
+        return None, None, None, None, None
 
     src_dir = None
     tgt_dir = code_version_dir
+    last_upgradable_version = None
     # Normally, last_version cannot be None in the version_history file.
     # It can only be None if there was no prior _versioned_ Tribler install.
     if version_history.last_version is not None:
@@ -174,11 +175,11 @@ def should_fork_state_directory(root_state_dir, code_version):
         # Legacy version
         src_dir = root_state_dir
 
-    return version_history, code_version, src_dir, tgt_dir
+    return version_history, code_version, src_dir, tgt_dir, last_upgradable_version
 
 
 def fork_state_directory_if_necessary(root_state_dir, code_version):
-    version_history, code_version, src_dir, tgt_dir = should_fork_state_directory(root_state_dir, code_version)
+    version_history, code_version, src_dir, tgt_dir, _ = should_fork_state_directory(root_state_dir, code_version)
     if src_dir is not None:
         # Borderline case where user got an unused code version directory: rename it out of the way
         if tgt_dir is not None and tgt_dir.exists():
@@ -189,3 +190,57 @@ def fork_state_directory_if_necessary(root_state_dir, code_version):
 
     if version_history:
         version_history.update(code_version)
+
+
+def get_disposable_state_directories(root_state_dir, code_version, skip_last_version=True):
+    version_history, _, src_dir, tgt_dir, last_version = should_fork_state_directory(root_state_dir, code_version)
+
+    disposable_dirs = []
+    if src_dir is not None:
+        # If versioned state directory exists
+        if src_dir != root_state_dir:
+            dirs_to_keep = [src_dir, tgt_dir]
+
+            # Get the second last version if available and add it to the dirs to save
+            second_last_version = version_history.get_last_upgradable_version(root_state_dir, last_version)
+            if second_last_version and skip_last_version:
+                second_src_dir = get_versioned_state_directory(root_state_dir, second_last_version + ".0")
+                dirs_to_keep.append(second_src_dir)
+
+            for state_dir in os.listdir(root_state_dir):
+                state_dir_full_path = Path(root_state_dir, state_dir)
+                if os.path.isdir(state_dir_full_path) and state_dir_full_path not in dirs_to_keep:
+                    disposable_dirs.append(state_dir_full_path)
+
+    return disposable_dirs
+
+
+def get_old_installed_versions(root_state_dir, skip_versions=None, skip_dirs=None, sort=True):
+    skipped_dirs = skip_dirs if skip_dirs else []
+    if skip_versions:
+        for skip_version in skip_versions:
+            skip_dir = get_versioned_state_directory(root_state_dir, skip_version)
+            skipped_dirs.append(skip_dir)
+
+    old_versions = []
+    for state_dir in os.listdir(root_state_dir):
+        state_dir_full_path = Path(root_state_dir, state_dir)
+        if os.path.isdir(state_dir_full_path) and state_dir_full_path not in skipped_dirs:
+            old_versions.append(state_dir_full_path)
+
+    if sort:
+        old_versions.sort(reverse=True)
+
+    return old_versions
+
+
+def get_default_versioned_state_directory(version):
+    return Path(get_root_state_directory(), version)
+
+
+def get_default_old_installed_versions():
+    return get_old_installed_versions(get_root_state_directory(), [version_id])
+
+
+def get_default_versioned_state_dir():
+    return get_versioned_state_directory(get_root_state_directory())

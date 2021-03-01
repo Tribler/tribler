@@ -1,21 +1,23 @@
 import logging
 import os
+import shutil
 import sys
 import time
+from os.path import relpath
 
 from PyQt5.QtCore import QObject, QProcess, QProcessEnvironment, QTimer, pyqtSignal
 from PyQt5.QtNetwork import QNetworkRequest
-from PyQt5.QtWidgets import QApplication
+from PyQt5.QtWidgets import QApplication, QMessageBox
 
 from tribler_common.utilities import is_frozen
 
-from tribler_core.upgrade.version_manager import should_fork_state_directory
+from tribler_core.upgrade.version_manager import should_fork_state_directory, get_disposable_state_directories
 from tribler_core.utilities.osutils import get_root_state_directory
 from tribler_core.version import version_id
 
 from tribler_gui.event_request_manager import EventRequestManager
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.utilities import connect, get_base_path
+from tribler_gui.utilities import connect, format_size, get_base_path, get_dir_size
 
 START_FAKE_API = False
 
@@ -87,6 +89,7 @@ class CoreManager(QObject):
         First test whether we already have a Tribler process listening on port <CORE_API_PORT>.
         If so, use that one and don't start a new, fresh session.
         """
+        root_state_dir = get_root_state_directory()
 
         def on_request_error(_):
             self.use_existing_core = False
@@ -94,12 +97,52 @@ class CoreManager(QObject):
 
         self.events_manager.connect()
         connect(self.events_manager.reply.error, on_request_error)
+
+        do_cleanup, old_version_dirs = self.should_cleanup_old_versions(root_state_dir, version_id)
+        if do_cleanup:
+            self.events_manager.remaining_connection_attempts = 1200
+            self.events_manager.change_loading_text.emit("Cleaning up old/unused data, please wait")
+            for version_dir in old_version_dirs:
+                shutil.rmtree(str(version_dir), ignore_errors=True)
+
         # This is a hack to determine if we have notify the user to wait for the directory fork to finish
-        _, _, src_dir, tgt_dir = should_fork_state_directory(get_root_state_directory(), version_id)
+        _, _, src_dir, tgt_dir, last_version = should_fork_state_directory(root_state_dir, version_id)
         if src_dir is not None:
             # There is going to be a directory fork, so we extend the core connection timeout and notify the user
             self.events_manager.remaining_connection_attempts = 1200
             self.events_manager.change_loading_text.emit("Copying data from previous Tribler version, please wait")
+
+    def should_cleanup_old_versions(self, root_state_dir, code_version):
+        disposable_dirs = get_disposable_state_directories(root_state_dir, code_version)
+        if not disposable_dirs:
+            return False, None
+
+        storage_info = ""
+        claimable_storage = 0
+        for old_state_dir in disposable_dirs:
+            dir_size = get_dir_size(old_state_dir)
+            claimable_storage += dir_size
+            storage_info += f"{format_size(dir_size)} \t {relpath(old_state_dir, root_state_dir)}\n"
+
+        # Show a question to the user asking if the user wants to remove the old data.
+        title = "Delete older version?"
+        message_body = f"Press 'Yes' to remove data of older versions " \
+                       f"and claim {format_size(claimable_storage)} of storage. " \
+                       f"This data is unused and unnecessary for the current version. \n\n" \
+                       f"If unsure, press 'No'. " \
+                       f"You can selectively remove from the Settings page later."
+
+        user_choice = self._show_question_box(title, message_body, storage_info)
+        return user_choice == QMessageBox.Yes, disposable_dirs
+
+    def _show_question_box(self, title, body, additional_text):
+        message_box = QMessageBox()
+        message_box.setIcon(QMessageBox.Question)
+        message_box.setWindowTitle(title)
+        message_box.setText(body)
+        message_box.setInformativeText(additional_text)
+        message_box.setStandardButtons(QMessageBox.No | QMessageBox.Yes)
+        return message_box.exec_()
 
     def start_tribler_core(self, core_args=None, core_env=None):
         if not START_FAKE_API:
