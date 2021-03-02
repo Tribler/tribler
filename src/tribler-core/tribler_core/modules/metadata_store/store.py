@@ -16,6 +16,7 @@ from tribler_common.simpledefs import NTFY
 from tribler_core.exceptions import InvalidSignatureException
 from tribler_core.modules.category_filter.l2_filter import is_forbidden
 from tribler_core.modules.metadata_store.orm_bindings import (
+    binary_data,
     channel_metadata,
     channel_node,
     channel_peer,
@@ -145,6 +146,7 @@ class MetadataStore:
         self.ChannelVote = channel_vote.define_binding(self._db)
         self.ChannelPeer = channel_peer.define_binding(self._db)
         self.Vsids = vsids.define_binding(self._db)
+        self.BinaryData = binary_data.define_binding(self._db)
 
         self.ChannelMetadata._channels_dir = channels_dir
 

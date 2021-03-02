@@ -7,6 +7,7 @@ from ipv8.lazy_community import lazy_wrapper
 from ipv8.messaging.lazy_payload import VariablePayload, vp_compile
 from ipv8.requestcache import NumberCache, RandomNumberCache, RequestCache
 
+from pony.orm import db_session
 from pony.orm.dbapiprovider import OperationalError
 
 from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import entries_to_chunk
@@ -14,6 +15,7 @@ from tribler_core.modules.metadata_store.store import GOT_NEWER_VERSION, UNKNOWN
 from tribler_core.utilities.unicode import hexlify
 
 BINARY_FIELDS = ("infohash", "channel_pk")
+NO_RESPONSE = unhexlify("7ca1e9e922895a477a52cc9d6031020355eb172735bf83c058cb03ddcc9c6408")
 
 
 def sanitize_query(query_dict, cap=100):
@@ -47,6 +49,29 @@ class SelectResponsePayload(VariablePayload):
     msg_id = 202
     format_list = ['I', 'raw']
     names = ['id', 'raw_blob']
+
+
+@vp_compile
+class BinQueryPayload(VariablePayload):
+    msg_id = 203
+    format_list = ['I', 'raw']
+    names = ['id', 'query']
+
+
+@vp_compile
+class BinResponsePayload(VariablePayload):
+    msg_id = 104
+    format_list = ['I', 'raw']
+    names = ['id', 'data']
+
+
+class BinRequest(RandomNumberCache):
+    def __init__(self, request_cache, prefix, hash_val):
+        super().__init__(request_cache, prefix)
+        self.hash_val = hash_val
+
+    def on_timeout(self):
+        pass
 
 
 class SelectRequest(RandomNumberCache):
@@ -110,6 +135,9 @@ class RemoteQueryCommunity(Community):
         self.add_message_handler(RemoteSelectPayload, self.on_remote_select)
         self.add_message_handler(SelectResponsePayload, self.on_remote_select_response)
 
+        self.add_message_handler(BinQueryPayload, self.on_bin_query)
+        self.add_message_handler(BinResponsePayload, self.on_bin_query_response)
+
     def send_remote_select(self, peer, processing_callback=None, **kwargs):
 
         request = SelectRequest(self.request_cache, hexlify(peer.mid), kwargs, processing_callback)
@@ -157,9 +185,9 @@ class RemoteQueryCommunity(Community):
         """
         self.logger.info(f"Response from {hexlify(peer.mid)}")
 
-        # ACHTUNG! the returned request cache can be either a SelectRequest or PushbackWindow
+        # ACHTUNG! the returned request cache can be any one of  SelectRequest, PushbackWindow
         request = self.request_cache.get(hexlify(peer.mid), response_payload.id)
-        if request is None:
+        if request is None or isinstance(request, BinRequest):  # defend against request type - id shenanigans
             return
 
         # Check for limit on the number of packets per request
@@ -191,6 +219,33 @@ class RemoteQueryCommunity(Community):
 
         if isinstance(request, SelectRequest) and request.processing_callback:
             request.processing_callback(request, processing_results)
+
+    def send_bin_query(self, peer, hash_val):
+        request = BinRequest(self.request_cache, hexlify(peer.mid), hash_val)
+        self.request_cache.add(request)
+
+        self.logger.info(f"Binary data request to {hexlify(peer.mid)} with hash {hexlify(hash_val)})")
+        self.ez_send(peer, BinQueryPayload(request.number, hash_val))
+
+    @lazy_wrapper(BinQueryPayload)
+    async def on_bin_query(self, peer, request_payload):
+        with db_session:
+            val = self.mds.BinaryData.get(hash=request_payload.query)
+            # Send empty response if we don't know about the key
+            response_data = val.data if val is not None else NO_RESPONSE
+        self.ez_send(peer, BinResponsePayload(request_payload.id, response_data))
+
+    @lazy_wrapper(BinResponsePayload)
+    async def on_bin_query_response(self, peer, response_payload):
+        self.logger.info(f"Bin response from {hexlify(peer.mid)}")
+        request = self.request_cache.get(hexlify(peer.mid), response_payload.id)
+        if request is None or (not isinstance(request, BinRequest)):
+            self.logger.warning(f"No request or wrong request type for response from {hexlify(peer.mid)}")
+            return
+
+        self.request_cache.pop(hexlify(peer.mid), response_payload.id)
+        with db_session:
+            self.mds.BinaryData(hash=request.hash_val, data=response_payload.data)
 
     async def unload(self):
         await self.request_cache.shutdown()

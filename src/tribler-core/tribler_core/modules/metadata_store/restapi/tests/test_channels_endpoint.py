@@ -143,6 +143,37 @@ async def test_get_channel_description(enable_chant, enable_api, session):
 
 
 @pytest.mark.asyncio
+async def test_put_new_channel_description(enable_chant, enable_api, session):
+    """
+    Test adding description to a channel
+    """
+    new_descr = "lalala"
+    with db_session:
+        chan = session.mds.ChannelMetadata.create_channel(title="bla")
+    json_dict = await do_request(
+        session,
+        f'channels/{hexlify(chan.public_key)}/{chan.id_}/description',
+        request_type="PUT",
+        post_data={"text": new_descr},
+        expected_code=200,
+    )
+
+    assert json_dict["text"] == new_descr
+
+    # Test updating description of a channel
+    updated_descr = "foobar"
+    json_dict = await do_request(
+        session,
+        f'channels/{hexlify(chan.public_key)}/{chan.id_}/description',
+        request_type="PUT",
+        post_data={"text": updated_descr},
+        expected_code=200,
+    )
+
+    assert json_dict["text"] == updated_descr
+
+
+@pytest.mark.asyncio
 async def test_get_popular_torrents(enable_chant, enable_api, add_fake_torrents_channels, mock_dlmgr, session):
     """
     Test getting the list of popular torrents. The list is served as contents of a pseudo-channel

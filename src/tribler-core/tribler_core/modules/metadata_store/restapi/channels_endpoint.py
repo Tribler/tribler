@@ -39,6 +39,7 @@ class ChannelsEndpoint(ChannelsEndpointBase):
                 web.get('', self.get_channels),
                 web.get(r'/{channel_pk:\w*}/{channel_id:\w*}', self.get_channel_contents),
                 web.get(r'/{channel_pk:\w*}/{channel_id:\w*}/description', self.get_channel_description),
+                web.put(r'/{channel_pk:\w*}/{channel_id:\w*}/description', self.put_channel_description),
                 web.post(r'/{channel_pk:\w*}/{channel_id:\w*}/copy', self.copy_channel),
                 web.post(r'/{channel_pk:\w*}/{channel_id:\w*}/channels', self.create_channel),
                 web.post(r'/{channel_pk:\w*}/{channel_id:\w*}/collections', self.create_collection),
@@ -173,12 +174,30 @@ class ChannelsEndpoint(ChannelsEndpointBase):
     async def get_channel_description(self, request):
         channel_pk, channel_id = self.get_channel_from_request(request)
         with db_session:
+            # TODO: fix the case when multiple descriptions nodes are present
             description_node = self.session.mds.DescriptionNode.select(
                 lambda g: g.public_key == channel_pk and g.origin_id == channel_id
             ).first()
 
         response_dict = loads(description_node.text) if description_node is not None else {}
         return RESTResponse(response_dict)
+
+    async def put_channel_description(self, request):
+        channel_pk, channel_id = self.get_channel_from_request(request)
+        request_parsed = await request.json()
+        updated_text = request_parsed["text"]
+        with db_session:
+            # TODO: fix the case when multiple descriptions nodes are present
+            description_node = self.session.mds.DescriptionNode.select(
+                lambda g: g.public_key == channel_pk and g.origin_id == channel_id
+            ).first()
+            if description_node is not None:
+                description_node.update_properties({"text": updated_text})
+            else:
+                description_node = self.session.mds.DescriptionNode(
+                    public_key=channel_pk, origin_id=channel_id, text=updated_text
+                )
+        return RESTResponse(description_node.to_simple_dict())
 
     @docs(
         tags=['Metadata'],

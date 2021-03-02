@@ -9,6 +9,8 @@ from ipv8.test.base import TestBase
 from pony.orm import db_session
 from pony.orm.dbapiprovider import OperationalError
 
+import pytest
+
 from tribler_core.modules.metadata_store.community.remote_query_community import RemoteQueryCommunity, sanitize_query
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import NEW
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, REGULAR_TORRENT
@@ -299,3 +301,19 @@ class TestRemoteQueryCommunity(TestBase):
         """
         with self.assertRaises(OperationalError):
             await self.overlay(0).process_rpc_query(b'{"txt_filter":{"key":"bla"}}')
+
+    @pytest.mark.timeout(0)
+    async def test_remote_query_binary(self):
+
+        value = b"ff00aabb"
+        with db_session:
+            kv = self.nodes[1].overlay.mds.BinaryData(data=value)
+            hash_value = kv.hash
+
+        peer1 = self.nodes[1].overlay.my_peer
+        self.nodes[0].overlay.send_bin_query(peer1, hash_value)
+
+        await self.deliver_messages(timeout=0.5)
+
+        with db_session:
+            assert self.nodes[0].overlay.mds.BinaryData.select().first().data == value
