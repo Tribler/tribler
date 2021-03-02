@@ -194,6 +194,8 @@ def fork_state_directory_if_necessary(root_state_dir, code_version):
 
 def get_disposable_state_directories(root_state_dir, code_version, skip_last_version=True):
     version_history, _, src_dir, tgt_dir, last_version = should_fork_state_directory(root_state_dir, code_version)
+    # print(version_history, _, src_dir, tgt_dir, last_version)
+    # print(f"src: {src_dir}\ntgt:{tgt_dir}\nlast version: {last_version}")
 
     disposable_dirs = []
     if src_dir is not None:
@@ -212,7 +214,7 @@ def get_disposable_state_directories(root_state_dir, code_version, skip_last_ver
                 if os.path.isdir(state_dir_full_path) and state_dir_full_path not in dirs_to_keep:
                     disposable_dirs.append(state_dir_full_path)
 
-    return disposable_dirs
+    return sorted(disposable_dirs, reverse=True)
 
 
 def get_old_installed_versions(root_state_dir, skip_versions=None, skip_dirs=None, sort=True):

@@ -1,6 +1,7 @@
 import filecmp
 import json
 import os
+import time
 from distutils.version import LooseVersion
 
 from tribler_common.simpledefs import (
@@ -16,7 +17,7 @@ from tribler_core.upgrade.version_manager import (
     copy_state_directory,
     fork_state_directory_if_necessary,
     must_upgrade,
-    version_to_dirname,
+    version_to_dirname, get_disposable_state_directories,
 )
 from tribler_core.utilities.path_util import Path
 
@@ -207,3 +208,52 @@ def test_copy_state_directory(tmpdir):
 
     # Make sure the contents in the before and after upgrade directories are the same
     assert filecmp.cmp(src_dir / 'ec_multichain.pem', tgt_dir / 'ec_multichain.pem')
+
+
+def test_get_disposable_state_directories(tmpdir_factory):
+    tmpdir = tmpdir_factory.mktemp("scenario")
+    root_state_dir = Path(tmpdir)
+
+    # Scenario: multiple versions of state directory exists, <major.minor.version>. Then on disposable directories
+    # based on the current version show all other directories except the last version.
+
+    major_versions = [8, 7]
+    minor_versions = list(range(10))
+    patch_versions = list(range(3))
+
+    last_version = f"{major_versions[0]}.{minor_versions[-1]}.{patch_versions[0]}"  # 8.9.2
+    last_version_dir = root_state_dir / f"{major_versions[0]}.{minor_versions[-1]}"
+    second_last_version_dir = root_state_dir / f"{major_versions[0]}.{minor_versions[-2]}"
+
+    version_history = {"last_version": last_version, "history": dict()}
+
+    # Create state directories for all older versions
+    base_install_ts = time.time() - major_versions[0] * 1000
+    for major in major_versions:
+        for minor in reversed(minor_versions):
+            for patch in patch_versions:
+                version = f"{major}.{minor}.{patch}"
+                version_dir = f"{major}.{minor}"
+
+                # Set install time in order of version. i.e. newer version are installed later
+                version_install_ts = base_install_ts + major * 100 + minor * 10 + patch
+                version_history["history"][version_install_ts] = version
+
+                # Create an empty version directory if does not exist
+                (root_state_dir / version_dir).mkdir(exist_ok=True)
+
+    # Write the version history file before checking disposable directories
+    (root_state_dir / VERSION_HISTORY_FILE).write_text(json.dumps(version_history))
+
+    # Assume the new code version is a newer major version
+    code_version = f"{major_versions[0] + 1}.{minor_versions[0]}.{patch_versions[0]}"  # 9.0.0
+
+    # Case 1: Skip last version is True, then those two last directories will not returned as disposable dirs.
+    disposable_dirs = get_disposable_state_directories(root_state_dir, code_version, skip_last_version=True)
+    assert last_version_dir not in disposable_dirs
+    assert second_last_version_dir not in disposable_dirs
+
+    # Case 2: Skip last version is False, then only the upgrade version is kept and not the one before that.
+    disposable_dirs = get_disposable_state_directories(root_state_dir, code_version, skip_last_version=False)
+    assert last_version_dir not in disposable_dirs
+    assert second_last_version_dir in disposable_dirs
