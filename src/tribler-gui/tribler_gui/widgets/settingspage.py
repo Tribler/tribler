@@ -1,13 +1,11 @@
-import shutil
-
 from PyQt5.QtWidgets import QCheckBox, QFileDialog, QMessageBox, QSizePolicy, QWidget
 
 from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler_common.simpledefs import MAX_LIBTORRENT_RATE_LIMIT
 
 import tribler_core.utilities.json_util as json
-from tribler_core.upgrade.version_manager import get_default_old_installed_versions, get_default_versioned_state_dir, \
-    get_default_versioned_state_directory
+from tribler_core.upgrade.version_manager import get_installed_versions, get_versioned_state_directory, \
+    remove_version_dirs
 from tribler_core.utilities.osutils import get_root_state_directory
 
 from tribler_gui.defs import (
@@ -59,6 +57,7 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         connect(self.window().use_monochrome_icon_checkbox.stateChanged, self.on_use_monochrome_icon_checkbox_changed)
         connect(self.window().download_settings_anon_checkbox.stateChanged, self.on_anon_download_state_changed)
         connect(self.window().log_location_chooser_button.clicked, self.on_choose_log_dir_clicked)
+        connect(self.window().btn_remove_old_state_dir.clicked, self.on_remove_version_dirs)
 
         checkbox_style = get_checkbox_style()
         for checkbox in [
@@ -241,25 +240,29 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         return checkbox
 
     def load_settings_data_tab(self):
-        current_version_dir = get_default_versioned_state_dir()
-        current_version_dir_checkbox = self._version_dir_checkbox(current_version_dir, enabled=False)
+        self.refresh_current_version_checkbox()
+        self.refresh_old_version_checkboxes()
 
-        current_state_dir_layout = self.window().state_dir_current_layout.layout()
-        current_state_dir_layout.addWidget(current_version_dir_checkbox)
+    def refresh_current_version_checkbox(self):
+        root_state_dir = get_root_state_directory()
+        current_version_dir = get_versioned_state_directory(root_state_dir)
+        self.refresh_version_checkboxes(self.window().state_dir_current, [current_version_dir], enabled=False)
 
-        self.list_old_version_dirs()
-        connect(self.window().btn_remove_old_state_dir.clicked, self.on_remove_version_dirs)
+    def refresh_old_version_checkboxes(self):
+        root_state_dir = get_root_state_directory()
+        old_version_dirs = get_installed_versions(root_state_dir, current_version=False)
+        self.refresh_version_checkboxes(self.window().state_dir_list, old_version_dirs, enabled=True)
 
-    def list_old_version_dirs(self):
-        old_version_dirs_layout = self.window().state_dir_list_layout.layout()
-        for checkbox in self.window().state_dir_list.findChildren(QCheckBox):
-            old_version_dirs_layout.removeWidget(checkbox)
+    def refresh_version_checkboxes(self, parent, versions, enabled=True):
+        version_dirs_layout = parent.layout()
+        for checkbox in parent.findChildren(QCheckBox):
+            version_dirs_layout.removeWidget(checkbox)
             checkbox.setParent(None)
             checkbox.deleteLater()
 
-        for old_version_dir in get_default_old_installed_versions():
-            version_dir_checkbox = self._version_dir_checkbox(old_version_dir)
-            old_version_dirs_layout.addWidget(version_dir_checkbox)
+        for old_version_dir in versions:
+            version_dir_checkbox = self._version_dir_checkbox(old_version_dir, enabled=enabled)
+            version_dirs_layout.addWidget(version_dir_checkbox)
 
     def on_remove_version_dirs(self, _):
         root_version_dir = str(get_root_state_directory())
@@ -274,8 +277,8 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
                 versions_selected_for_deletion.append(version_from_checkbox_text(checkbox))
 
         if self.on_confirm_remove_version_dirs(versions_selected_for_deletion):
-            self.remove_version_dirs(versions_selected_for_deletion)
-            self.list_old_version_dirs()
+            remove_version_dirs(root_version_dir, versions_selected_for_deletion)
+            self.refresh_old_version_checkboxes()
 
     def on_confirm_remove_version_dirs(self, selected_versions):
         message_box = QMessageBox()
@@ -301,11 +304,6 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
 
         user_choice = message_box.exec_()
         return user_choice == QMessageBox.Yes
-
-    def remove_version_dirs(self, versions_to_delete):
-        for version in versions_to_delete:
-            version_dir = get_default_versioned_state_directory(version)
-            shutil.rmtree(str(version_dir), ignore_errors=True)
 
     def update_anonymity_cost_label(self, value):
         html_text = """<html><head/><body><p>Download with <b>%d</b> hop(s) of anonymity. 

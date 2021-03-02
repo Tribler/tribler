@@ -2866,7 +2866,7 @@ High anonymity</string>
                   </item>
 
                   <item row="2" column="0" colspan="2">
-                    <widget class="QWidget" native="true">
+                    <widget class="QWidget" native="true" name="state_dir_current">
                         <layout class="QVBoxLayout" name="state_dir_current_layout">
                             <item>
                                 <widget class="QLabel" name="sd_current_version">

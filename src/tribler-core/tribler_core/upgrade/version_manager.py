@@ -8,7 +8,7 @@ from pathlib import Path
 from tribler_common.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_CHECKPOINT_DIR, STATEDIR_DB_DIR
 
 from tribler_core.utilities import json_util as json
-from tribler_core.utilities.osutils import dir_copy, get_root_state_directory
+from tribler_core.utilities.osutils import dir_copy
 from tribler_core.version import version_id as code_version_id
 
 VERSION_HISTORY_FILE = "version_history.json"
@@ -211,8 +211,13 @@ def get_disposable_state_directories(root_state_dir, code_version, skip_last_ver
     return None
 
 
-def get_installed_versions(root_state_dir, skip_versions=None, skip_dirs=None, reverse=True):
+def get_installed_versions(root_state_dir, current_version=True, skip_versions=None, skip_dirs=None, reverse=True):
     skipped_dirs = skip_dirs or []
+
+    if not current_version:
+        current_version_dir = get_versioned_state_directory(root_state_dir, code_version_id)
+        skipped_dirs.append(current_version_dir)
+
     if skip_versions:
         for skip_version in skip_versions:
             skip_dir = get_versioned_state_directory(root_state_dir, skip_version)
@@ -230,13 +235,7 @@ def get_installed_versions(root_state_dir, skip_versions=None, skip_dirs=None, r
     return old_versions
 
 
-def get_default_versioned_state_directory(version):
-    return Path(get_root_state_directory(), version)
-
-
-def get_default_old_installed_versions():
-    return get_installed_versions(get_root_state_directory(), [code_version_id])
-
-
-def get_default_versioned_state_dir():
-    return get_versioned_state_directory(get_root_state_directory())
+def remove_version_dirs(root_state_dir, versions):
+    for version in versions:
+        version_dir = root_state_dir / version
+        shutil.rmtree(str(version_dir), ignore_errors=True)
