@@ -16,8 +16,9 @@ from tribler_core.upgrade.version_manager import (
     VersionHistory,
     copy_state_directory,
     fork_state_directory_if_necessary,
+    get_disposable_state_directories,
     must_upgrade,
-    version_to_dirname, get_disposable_state_directories,
+    version_to_dirname,
 )
 from tribler_core.utilities.path_util import Path
 
