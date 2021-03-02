@@ -17,7 +17,10 @@ from tribler_core.upgrade.version_manager import (
     copy_state_directory,
     fork_state_directory_if_necessary,
     get_disposable_state_directories,
+    get_installed_versions,
+    get_versioned_state_directory,
     must_upgrade,
+    remove_version_dirs,
     version_to_dirname,
 )
 from tribler_core.utilities.path_util import Path
@@ -230,7 +233,7 @@ def test_get_disposable_state_directories(tmpdir_factory):
     version_history = {"last_version": last_version, "history": dict()}
 
     # Create state directories for all older versions
-    base_install_ts = time.time() - major_versions[0] * 1000
+    base_install_ts = time.time() - 1000  # some timestamp in the past
     for major in major_versions:
         for minor in reversed(minor_versions):
             for patch in patch_versions:
@@ -259,3 +262,43 @@ def test_get_disposable_state_directories(tmpdir_factory):
     disposable_dirs = get_disposable_state_directories(root_state_dir, code_version, skip_last_version=False)
     assert last_version_dir not in disposable_dirs
     assert second_last_version_dir in disposable_dirs
+
+
+def test_installed_versions_and_removal(tmpdir_factory):
+    tmpdir = tmpdir_factory.mktemp("install_version_test")
+    root_state_dir = Path(tmpdir)
+
+    # create current version directory
+    current_version_dir = get_versioned_state_directory(root_state_dir)
+    current_version_dir.mkdir()
+
+    major_versions = [7, 6]
+    minor_versions = [5, 6, 7, 8]
+
+    for major in major_versions:
+        for minor in reversed(minor_versions):
+            version_dir = f"{major}.{minor}"
+            (root_state_dir / version_dir).mkdir(exist_ok=True)
+
+    # 1. Default values
+    installed_versions = get_installed_versions(root_state_dir)
+    assert current_version_dir in installed_versions
+    assert len(installed_versions) == len(major_versions) * len(minor_versions) + 1  # including the current version
+
+    # 2. exclude current version
+    installed_versions = get_installed_versions(root_state_dir, current_version=False)
+    assert current_version_dir not in installed_versions
+    assert len(installed_versions) == len(major_versions) * len(minor_versions)  # the current version not included
+
+    # 3. Skip a few other versions
+    skip_versions = ['7.5', '7.6']
+    installed_versions = get_installed_versions(root_state_dir, current_version=False, skip_versions=skip_versions)
+    assert current_version_dir not in installed_versions
+    assert len(installed_versions) == len(major_versions) * len(minor_versions) - len(skip_versions)
+
+    # 4. Remove a few existing versions and check installed versions
+    versions_to_remove = ['7.5', '7.6']
+    remove_version_dirs(root_state_dir, versions_to_remove)
+
+    installed_versions = get_installed_versions(root_state_dir, current_version=False)
+    assert len(installed_versions) == len(major_versions) * len(minor_versions) - len(versions_to_remove)
