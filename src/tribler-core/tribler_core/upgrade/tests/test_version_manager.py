@@ -250,7 +250,12 @@ def test_get_disposable_state_directories(tmpdir_factory):
     # Write the version history file before checking disposable directories
     (root_state_dir / VERSION_HISTORY_FILE).write_text(json.dumps(version_history))
 
-    # Assume the new code version is a newer major version
+    # Case 0: If the code version and last version is the same, no disposable directories shown at startup
+    code_version = last_version  # 8.9.2
+    disposable_dirs = get_disposable_state_directories(root_state_dir, code_version, skip_last_version=True)
+    assert disposable_dirs is None
+
+    # Now, assuming the new code version is a newer major version
     code_version = f"{major_versions[0] + 1}.{minor_versions[0]}.{patch_versions[0]}"  # 9.0.0
 
     # Case 1: Skip last version is True, then those two last directories will not returned as disposable dirs.
