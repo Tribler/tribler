@@ -113,6 +113,10 @@ class CoreManager(QObject):
             self.events_manager.change_loading_text.emit("Copying data from previous Tribler version, please wait")
 
     def should_cleanup_old_versions(self, root_state_dir, code_version):
+        # Skip old version check popup when running fake core, eg. during GUI tests
+        if START_FAKE_API:
+            return False, None
+
         disposable_dirs = get_disposable_state_directories(root_state_dir, code_version)
         if not disposable_dirs:
             return False, None
