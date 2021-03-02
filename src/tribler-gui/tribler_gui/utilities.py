@@ -13,7 +13,7 @@ from urllib.parse import quote_plus
 from uuid import uuid4
 
 from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtWidgets import QApplication, QMessageBox, QCheckBox
+from PyQt5.QtWidgets import QApplication
 
 import tribler_gui
 from tribler_gui.defs import HEALTH_DEAD, HEALTH_GOOD, HEALTH_MOOT, HEALTH_UNCHECKED, VIDEO_EXTS
@@ -440,7 +440,7 @@ def dict_item_is_any_of(d, key, values):
 
 def get_dir_size(dir_path):
     size = 0
-    for path, dirs, files in os.walk(dir_path):
+    for path, _, files in os.walk(dir_path):
         for f in files:
             fp = os.path.join(path, f)
             size += os.path.getsize(fp)

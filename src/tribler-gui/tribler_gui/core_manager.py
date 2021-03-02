@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import QApplication, QMessageBox
 
 from tribler_common.utilities import is_frozen
 
-from tribler_core.upgrade.version_manager import should_fork_state_directory, get_disposable_state_directories
+from tribler_core.upgrade.version_manager import get_disposable_state_directories, should_fork_state_directory
 from tribler_core.utilities.osutils import get_root_state_directory
 from tribler_core.version import version_id
 
@@ -106,8 +106,8 @@ class CoreManager(QObject):
                 shutil.rmtree(str(version_dir), ignore_errors=True)
 
         # This is a hack to determine if we have notify the user to wait for the directory fork to finish
-        _, _, src_dir, tgt_dir, last_version = should_fork_state_directory(root_state_dir, version_id)
-        if src_dir is not None:
+        _, _, _src_dir, _tgt_dir, _last_version = should_fork_state_directory(root_state_dir, version_id)
+        if _src_dir is not None:
             # There is going to be a directory fork, so we extend the core connection timeout and notify the user
             self.events_manager.remaining_connection_attempts = 1200
             self.events_manager.change_loading_text.emit("Copying data from previous Tribler version, please wait")

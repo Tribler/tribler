@@ -1,6 +1,6 @@
 import shutil
 
-from PyQt5.QtWidgets import QFileDialog, QSizePolicy, QWidget, QCheckBox, QMessageBox
+from PyQt5.QtWidgets import QCheckBox, QFileDialog, QMessageBox, QSizePolicy, QWidget
 
 from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler_common.simpledefs import MAX_LIBTORRENT_RATE_LIMIT
@@ -16,20 +16,22 @@ from tribler_gui.defs import (
     PAGE_SETTINGS_ANONYMITY,
     PAGE_SETTINGS_BANDWIDTH,
     PAGE_SETTINGS_CONNECTION,
+    PAGE_SETTINGS_DATA,
     PAGE_SETTINGS_DEBUG,
     PAGE_SETTINGS_GENERAL,
     PAGE_SETTINGS_SEEDING,
-    PAGE_SETTINGS_DATA,
 )
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest, TriblerRequestManager
 from tribler_gui.utilities import (
     connect,
+    format_size,
     get_checkbox_style,
+    get_dir_size,
     get_gui_setting,
     is_dir_writable,
     seconds_to_hhmm_string,
-    string_to_seconds, format_size, get_dir_size,
+    string_to_seconds,
 )
 
 

@@ -9,7 +9,7 @@ from tribler_common.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_CHECKPOINT
 
 from tribler_core.utilities import json_util as json
 from tribler_core.utilities.osutils import dir_copy, get_root_state_directory
-from tribler_core.version import version_id as code_version_id, version_id
+from tribler_core.version import version_id as code_version_id
 
 VERSION_HISTORY_FILE = "version_history.json"
 
@@ -218,7 +218,7 @@ def get_disposable_state_directories(root_state_dir, code_version, skip_last_ver
 
 
 def get_old_installed_versions(root_state_dir, skip_versions=None, skip_dirs=None, sort=True):
-    skipped_dirs = skip_dirs if skip_dirs else []
+    skipped_dirs = skip_dirs or []
     if skip_versions:
         for skip_version in skip_versions:
             skip_dir = get_versioned_state_directory(root_state_dir, skip_version)
@@ -241,7 +241,7 @@ def get_default_versioned_state_directory(version):
 
 
 def get_default_old_installed_versions():
-    return get_old_installed_versions(get_root_state_directory(), [version_id])
+    return get_old_installed_versions(get_root_state_directory(), [code_version_id])
 
 
 def get_default_versioned_state_dir():
