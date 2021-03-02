@@ -194,30 +194,24 @@ def fork_state_directory_if_necessary(root_state_dir, code_version):
 
 def get_disposable_state_directories(root_state_dir, code_version, skip_last_version=True):
     version_history, _, src_dir, tgt_dir, last_version = should_fork_state_directory(root_state_dir, code_version)
-    # print(version_history, _, src_dir, tgt_dir, last_version)
-    # print(f"src: {src_dir}\ntgt:{tgt_dir}\nlast version: {last_version}")
 
-    disposable_dirs = []
     if src_dir is not None:
         # If versioned state directory exists
         if src_dir != root_state_dir:
-            dirs_to_keep = [src_dir, tgt_dir]
+            skip_dirs = [src_dir, tgt_dir]
+            skip_versions = [last_version]
 
             # Get the second last version if available and add it to the dirs to save
             second_last_version = version_history.get_last_upgradable_version(root_state_dir, last_version)
             if second_last_version and skip_last_version:
-                second_src_dir = get_versioned_state_directory(root_state_dir, second_last_version + ".0")
-                dirs_to_keep.append(second_src_dir)
+                skip_versions.append(second_last_version)
 
-            for state_dir in os.listdir(root_state_dir):
-                state_dir_full_path = Path(root_state_dir, state_dir)
-                if os.path.isdir(state_dir_full_path) and state_dir_full_path not in dirs_to_keep:
-                    disposable_dirs.append(state_dir_full_path)
-
-    return sorted(disposable_dirs, reverse=True)
+            return get_installed_versions(root_state_dir, skip_versions=skip_versions,
+                                          skip_dirs=skip_dirs, reverse=True)
+    return None
 
 
-def get_old_installed_versions(root_state_dir, skip_versions=None, skip_dirs=None, sort=True):
+def get_installed_versions(root_state_dir, skip_versions=None, skip_dirs=None, reverse=True):
     skipped_dirs = skip_dirs or []
     if skip_versions:
         for skip_version in skip_versions:
@@ -230,7 +224,7 @@ def get_old_installed_versions(root_state_dir, skip_versions=None, skip_dirs=Non
         if os.path.isdir(state_dir_full_path) and state_dir_full_path not in skipped_dirs:
             old_versions.append(state_dir_full_path)
 
-    if sort:
+    if reverse:
         old_versions.sort(reverse=True)
 
     return old_versions
@@ -241,7 +235,7 @@ def get_default_versioned_state_directory(version):
 
 
 def get_default_old_installed_versions():
-    return get_old_installed_versions(get_root_state_directory(), [code_version_id])
+    return get_installed_versions(get_root_state_directory(), [code_version_id])
 
 
 def get_default_versioned_state_dir():
