@@ -254,6 +254,8 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         old_version_dirs_layout = self.window().state_dir_list_layout.layout()
         for checkbox in self.window().state_dir_list.findChildren(QCheckBox):
             old_version_dirs_layout.removeWidget(checkbox)
+            checkbox.setParent(None)
+            checkbox.deleteLater()
 
         for old_version_dir in get_default_old_installed_versions():
             version_dir_checkbox = self._version_dir_checkbox(old_version_dir)
