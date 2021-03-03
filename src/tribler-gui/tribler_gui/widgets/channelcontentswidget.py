@@ -393,12 +393,15 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         self.commit_control_bar.setHidden(self.autocommit_enabled or not dirty or not personal)
 
         if "total" in self.model.channel_info:
+            self.channel_num_torrents_label.setHidden(False)
             if "torrents" in self.model.channel_info:
                 self.channel_num_torrents_label.setText(
                     f"{self.model.channel_info['total']}/{self.model.channel_info['torrents']} items"
                 )
             else:
                 self.channel_num_torrents_label.setText(f"{self.model.channel_info['total']} items")
+        else:
+            self.channel_num_torrents_label.setHidden(True)
 
     # ==============================
     # Channel menu related methods.
