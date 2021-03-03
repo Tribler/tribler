@@ -95,15 +95,14 @@ class CoreManager(QObject):
             self.use_existing_core = False
             self.start_tribler_core(core_args=core_args, core_env=core_env)
 
-        self.events_manager.connect()
-        connect(self.events_manager.reply.error, on_request_error)
-
         do_cleanup, old_version_dirs = self.should_cleanup_old_versions(root_state_dir, version_id)
         if do_cleanup:
-            self.events_manager.remaining_connection_attempts = 1200
-            self.events_manager.change_loading_text.emit("Cleaning up old/unused data, please wait")
             for version_dir in old_version_dirs:
                 shutil.rmtree(str(version_dir), ignore_errors=True)
+
+        # Connect to the events manager only after the cleanup is done
+        self.events_manager.connect()
+        connect(self.events_manager.reply.error, on_request_error)
 
         # This is a hack to determine if we have notify the user to wait for the directory fork to finish
         _, _, src_dir, _, _ = should_fork_state_directory(root_state_dir, version_id)
