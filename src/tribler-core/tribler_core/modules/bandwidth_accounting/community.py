@@ -125,7 +125,8 @@ class BandwidthAccountingCommunity(Community):
                         self.database.BandwidthTransaction.insert(tx)
                         self.send_transaction(tx, from_peer.address, payload.request_id)
                     else:
-                        self.logger.info("Received older bandwidth transaction - sending back the latest one")
+                        self.logger.info("Received older bandwidth transaction from peer %s:%d - "
+                                         "sending back the latest one", *from_peer.address)
                         self.send_transaction(latest_tx, from_peer.address, payload.request_id)
                 else:
                     # This transaction is the first one with party A. Sign it, store it, and send it back.
