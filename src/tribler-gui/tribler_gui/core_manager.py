@@ -128,12 +128,13 @@ class CoreManager(QObject):
             storage_info += f"{format_size(dir_size)} \t {relpath(old_state_dir, root_state_dir)}\n"
 
         # Show a question to the user asking if the user wants to remove the old data.
-        title = "Delete older version?"
-        message_body = f"Press 'Yes' to remove data of older versions " \
-                       f"and claim {format_size(claimable_storage)} of storage. " \
-                       f"This data is unused and unnecessary for the current version. \n\n" \
+        title = "Delete state directories for old versions?"
+        message_body = f"Press 'Yes' to remove state directories for older versions of Tribler " \
+                       f"and reclaim {format_size(claimable_storage)} of storage space. " \
+                       f"Tribler used those directories during upgrades from previous versions. " \
+                       f"Now those directories can be safely deleted. \n\n" \
                        f"If unsure, press 'No'. " \
-                       f"You can selectively remove from the Settings page later."
+                       f"You will be able to remove those directories from the Settings->Data page later."
 
         user_choice = self._show_question_box(title, message_body, storage_info)
         return user_choice == QMessageBox.Yes, disposable_dirs
