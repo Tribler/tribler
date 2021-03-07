@@ -542,6 +542,16 @@ QToolButton{border:none;margin-left:16px;}</string>
     </widget>
    </item>
    <item>
+    <widget class="QFrame" name="description_header">
+     <property name="frameShape">
+      <enum>QFrame::StyledPanel</enum>
+     </property>
+     <property name="frameShadow">
+      <enum>QFrame::Raised</enum>
+     </property>
+    </widget>
+   </item>
+   <item>
     <widget class="QFrame" name="filter_header">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
