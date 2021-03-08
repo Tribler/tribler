@@ -542,48 +542,7 @@ QToolButton{border:none;margin-left:16px;}</string>
     </widget>
    </item>
    <item>
-    <widget class="QFrame" name="description_header">
-     <property name="frameShape">
-      <enum>QFrame::StyledPanel</enum>
-     </property>
-     <property name="frameShadow">
-      <enum>QFrame::Raised</enum>
-     </property>
-     <layout class="QVBoxLayout" name="vertical_layout_descr">
-      <property name="spacing">
-       <number>0</number>
-      </property>
-      <property name="leftMargin">
-       <number>0</number>
-      </property>
-      <property name="topMargin">
-       <number>0</number>
-      </property>
-      <property name="rightMargin">
-       <number>0</number>
-      </property>
-      <property name="bottomMargin">
-       <number>0</number>
-      </property>
-      <item>
-       <widget class="QTabWidget" name="tabWidget">
-        <property name="currentIndex">
-         <number>0</number>
-        </property>
-        <widget class="QWidget" name="tab">
-         <attribute name="title">
-          <string>Tab 1</string>
-         </attribute>
-        </widget>
-        <widget class="QWidget" name="tab_2">
-         <attribute name="title">
-          <string>Tab 2</string>
-         </attribute>
-        </widget>
-       </widget>
-      </item>
-     </layout>
-    </widget>
+       <widget class="ChannelDescriptionWidget" name="channel_description_container"/>
    </item>
    <item>
     <widget class="QFrame" name="filter_header">
@@ -943,6 +902,11 @@ QTableView::item::hover {
    <class>ToggleButton</class>
    <extends>QWidget</extends>
    <header>tribler_gui.widgets.togglebutton.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ChannelDescriptionWidget</class>
+   <extends>QWidget</extends>
+   <header>tribler_gui.widgets.channeldescriptionwidget.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

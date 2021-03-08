@@ -2,7 +2,6 @@ from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import QWidget
 
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
-
 from tribler_gui.utilities import connect
 
 
