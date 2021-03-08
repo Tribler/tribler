@@ -15,3 +15,5 @@ class ChannelDescriptionWidget(AddBreadcrumbOnShowMixin, widget_form, widget_cla
             self.setupUi(self)
         except SystemError:
             pass
+
+        self.edit_mode_tab.initialize()
