@@ -4,14 +4,8 @@ import os
 import time
 from distutils.version import LooseVersion
 
-from tribler_common.simpledefs import (
-    STATEDIR_CHANNELS_DIR,
-    STATEDIR_CHECKPOINT_DIR,
-    STATEDIR_DB_DIR,
-)
-
-from tribler_core.tests.tools.common import TESTS_DATA_DIR
-from tribler_core.upgrade.version_manager import (
+from tribler_common.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_CHECKPOINT_DIR, STATEDIR_DB_DIR
+from tribler_common.version_manager import (
     VERSION_HISTORY_FILE,
     VersionHistory,
     copy_state_directory,
@@ -23,6 +17,8 @@ from tribler_core.upgrade.version_manager import (
     remove_version_dirs,
     version_to_dirname,
 )
+
+from tribler_core.tests.tools.common import TESTS_DATA_DIR
 from tribler_core.utilities.path_util import Path
 
 DUMMY_STATE_DIR = TESTS_DATA_DIR / "state_dir_dummy"
@@ -100,7 +96,7 @@ def test_must_upgrade():
 
 
 def test_fork_state_directory(tmpdir_factory):
-    from tribler_core.upgrade import version_manager
+    from tribler_common import version_manager
 
     result = []
 

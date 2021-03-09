@@ -14,11 +14,13 @@ from tribler_core.version import version_id as code_version_id
 VERSION_HISTORY_FILE = "version_history.json"
 
 # Copy other important files: keys and config
-STATE_FILES_TO_COPY = ('ec_multichain.pem',
-                       'ecpub_multichain.pem',
-                       'ec_trustchain_testnet.pem',
-                       'ecpub_trustchain_testnet.pem',
-                       'triblerd.conf')
+STATE_FILES_TO_COPY = (
+    'ec_multichain.pem',
+    'ecpub_multichain.pem',
+    'ec_trustchain_testnet.pem',
+    'ecpub_trustchain_testnet.pem',
+    'triblerd.conf',
+)
 
 STATE_DIRS_TO_COPY = (STATEDIR_DB_DIR, STATEDIR_CHECKPOINT_DIR, STATEDIR_CHANNELS_DIR)
 
@@ -54,7 +56,8 @@ and "stashes" the state dirs with conflicting names by renaming them.
 Note that due to failures in design pre-7.4 series and 7.4.x series get special treatment.
 """
 
-def must_upgrade(old_ver:LooseVersion, new_ver:LooseVersion):
+
+def must_upgrade(old_ver: LooseVersion, new_ver: LooseVersion):
     """
     This function compares two LooseVersions by combination of major/minor components only, omitting the patch version.
     By convention, in Tribler we only fork version directories on major/minor version changes, and never touch
@@ -72,6 +75,7 @@ def must_upgrade(old_ver:LooseVersion, new_ver:LooseVersion):
 
     return major_version_is_greater or (major_version_is_equal and minor_version_is_greater)
 
+
 class VersionHistory:
     """
     This class represents Tribler version usage history. The history is saved/loaded to/from the version_history.json
@@ -83,8 +87,9 @@ class VersionHistory:
         :param file_path: path to version_history.json file. Will be loaded if exists, or created anew if does not.
         """
         self.file_path = file_path
-        self.version_history = json.loads(file_path.read_text().strip()) if file_path.exists() else {
-            "last_version": None, "history": {}}
+        self.version_history = (
+            json.loads(file_path.read_text().strip()) if file_path.exists() else {"last_version": None, "history": {}}
+        )
 
     @property
     def last_version(self):
@@ -107,8 +112,10 @@ class VersionHistory:
         """
 
         for version in [version for _, version in sorted(self.version_history["history"].items(), reverse=True)]:
-            if (must_upgrade(LooseVersion(version), LooseVersion(code_version))
-                    and get_versioned_state_directory(root_state_dir, version).exists()):
+            if (
+                must_upgrade(LooseVersion(version), LooseVersion(code_version))
+                and get_versioned_state_directory(root_state_dir, version).exists()
+            ):
                 return version
         return None
 
@@ -155,9 +162,11 @@ def should_fork_state_directory(root_state_dir, code_version):
     # The previous version has the same major/minor number as the code version, and there exists
     # a corresponding versioned state directory. Nothing to do here (except possibly updating version history).
     code_version_dir = get_versioned_state_directory(root_state_dir, code_version)
-    if (version_history.last_version is not None
-            and LooseVersion(version_history.last_version).version[:2] == LooseVersion(code_version).version[:2]
-            and code_version_dir.exists()):
+    if (
+        version_history.last_version is not None
+        and LooseVersion(version_history.last_version).version[:2] == LooseVersion(code_version).version[:2]
+        and code_version_dir.exists()
+    ):
         if str(version_history.last_version) != str(code_version):
             return version_history, code_version, None, None, None
         return None, None, None, None, None
@@ -183,8 +192,9 @@ def fork_state_directory_if_necessary(root_state_dir, code_version):
     if src_dir is not None:
         # Borderline case where user got an unused code version directory: rename it out of the way
         if tgt_dir is not None and tgt_dir.exists():
-            moved_out_of_way_dirname = "unused_v" + str(tgt_dir.name) + "_" + datetime.now().strftime(
-                "%Y-%m-%d_%Hh%Mm%Ss")
+            moved_out_of_way_dirname = (
+                "unused_v" + str(tgt_dir.name) + "_" + datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
+            )
             tgt_dir.rename(tgt_dir.with_name(moved_out_of_way_dirname))
         copy_state_directory(src_dir, tgt_dir)
 
@@ -206,8 +216,9 @@ def get_disposable_state_directories(root_state_dir, code_version, skip_last_ver
             if second_last_version and skip_last_version:
                 skip_versions.append(second_last_version)
 
-            return get_installed_versions(root_state_dir, skip_versions=skip_versions,
-                                          skip_dirs=skip_dirs, reverse=True)
+            return get_installed_versions(
+                root_state_dir, skip_versions=skip_versions, skip_dirs=skip_dirs, reverse=True
+            )
     return None
 
 

@@ -2,10 +2,9 @@ from PyQt5.QtWidgets import QCheckBox, QFileDialog, QMessageBox, QSizePolicy, QW
 
 from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler_common.simpledefs import MAX_LIBTORRENT_RATE_LIMIT
+from tribler_common.version_manager import get_installed_versions, get_versioned_state_directory, remove_version_dirs
 
 import tribler_core.utilities.json_util as json
-from tribler_core.upgrade.version_manager import get_installed_versions, get_versioned_state_directory, \
-    remove_version_dirs
 from tribler_core.utilities.osutils import get_root_state_directory
 
 from tribler_gui.defs import (
@@ -289,9 +288,11 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
             versions_info = f"Versions: \n- {version_dirs_str}"
 
             title = "Confirm delete older versions?"
-            message_body = f"Are you sure to remove the selected versions? " \
-                           f"\nYou can not undo this action." \
-                           f"\n\n {versions_info}"
+            message_body = (
+                f"Are you sure to remove the selected versions? "
+                f"\nYou can not undo this action."
+                f"\n\n {versions_info}"
+            )
             message_buttons = QMessageBox.No | QMessageBox.Yes
         else:
             title = "No versions selected"

@@ -10,8 +10,8 @@ from PyQt5.QtNetwork import QNetworkRequest
 from PyQt5.QtWidgets import QApplication, QMessageBox
 
 from tribler_common.utilities import is_frozen
+from tribler_common.version_manager import get_disposable_state_directories, should_fork_state_directory
 
-from tribler_core.upgrade.version_manager import get_disposable_state_directories, should_fork_state_directory
 from tribler_core.utilities.osutils import get_root_state_directory
 from tribler_core.version import version_id
 
@@ -129,12 +129,14 @@ class CoreManager(QObject):
 
         # Show a question to the user asking if the user wants to remove the old data.
         title = "Delete state directories for old versions?"
-        message_body = f"Press 'Yes' to remove state directories for older versions of Tribler " \
-                       f"and reclaim {format_size(claimable_storage)} of storage space. " \
-                       f"Tribler used those directories during upgrades from previous versions. " \
-                       f"Now those directories can be safely deleted. \n\n" \
-                       f"If unsure, press 'No'. " \
-                       f"You will be able to remove those directories from the Settings->Data page later."
+        message_body = (
+            f"Press 'Yes' to remove state directories for older versions of Tribler "
+            f"and reclaim {format_size(claimable_storage)} of storage space. "
+            f"Tribler used those directories during upgrades from previous versions. "
+            f"Now those directories can be safely deleted. \n\n"
+            f"If unsure, press 'No'. "
+            f"You will be able to remove those directories from the Settings->Data page later."
+        )
 
         user_choice = self._show_question_box(title, message_body, storage_info)
         return user_choice == QMessageBox.Yes, disposable_dirs

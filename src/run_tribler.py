@@ -7,11 +7,11 @@ from asyncio import ensure_future, get_event_loop
 
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
 from tribler_common.sentry_reporter.sentry_scrubber import SentryScrubber
+from tribler_common.version_manager import fork_state_directory_if_necessary, get_versioned_state_directory
 
 import tribler_core
 from tribler_core.config.tribler_config import CONFIG_FILENAME
 from tribler_core.dependencies import check_for_missing_dependencies
-from tribler_core.upgrade.version_manager import fork_state_directory_if_necessary, get_versioned_state_directory
 from tribler_core.utilities.osutils import get_root_state_directory
 from tribler_core.version import sentry_url, version_id
 
