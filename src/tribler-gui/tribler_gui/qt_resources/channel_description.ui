@@ -29,9 +29,7 @@
    </size>
   </property>
   <property name="styleSheet">
-   <string notr="true">
-
-      </string>
+   <string notr="true"/>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <property name="spacing">
@@ -102,9 +100,6 @@
         </item>
         <item>
          <widget class="UnderlineTabButton" name="edit_mode_button">
-          <property name="enabled">
-           <bool>false</bool>
-          </property>
           <property name="sizePolicy">
            <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
             <horstretch>0</horstretch>
@@ -189,19 +184,29 @@
      </item>
      <item>
       <widget class="QPushButton" name="pushButton">
+       <property name="toolTip">
+        <string>Edit channel description and thumbnail</string>
+       </property>
        <property name="text">
-        <string>EDIT</string>
+        <string/>
+       </property>
+       <property name="icon">
+        <iconset>
+         <normaloff>../images/edit.png</normaloff>../images/edit.png</iconset>
+       </property>
+       <property name="flat">
+        <bool>true</bool>
        </property>
       </widget>
      </item>
     </layout>
    </item>
    <item>
-    <widget class="QStackedWidget" name="tabWidget_2">
+    <widget class="QStackedWidget" name="description_stacked_widget">
      <property name="currentIndex">
-      <number>1</number>
+      <number>0</number>
      </property>
-     <widget class="QWidget" name="tab_3">
+     <widget class="QWidget" name="edit_tab">
       <layout class="QHBoxLayout" name="edit_layout">
        <item>
         <layout class="QVBoxLayout" name="verticalLayout_3">
@@ -316,7 +321,7 @@
        </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="tab_4">
+     <widget class="QWidget" name="preview_tab">
       <layout class="QHBoxLayout" name="edit_layout">
        <item>
         <layout class="QVBoxLayout" name="verticalLayout_3">

@@ -7,6 +7,7 @@ DEFAULT_API_PROTOCOL = "http"
 DEFAULT_API_HOST = "localhost"
 DEFAULT_API_PORT = 52194
 
+
 # Define stacked widget page indices
 PAGE_SEARCH_RESULTS = 0
 PAGE_SETTINGS = 1
