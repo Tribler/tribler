@@ -338,8 +338,11 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         personal_model = isinstance(self.model, PersonalChannelsModel)
         is_a_channel = self.model.channel_info.get("type", None) == CHANNEL_TORRENT
 
-
-        self.channel_description_container.setHidden(not is_a_channel)
+        if is_a_channel:
+            self.channel_description_container.initialize_with_channel(self.model.channel_info["public_key"],
+                                                                       self.model.channel_info["id"])
+        else:
+            self.channel_description_container.setHidden(True)
 
         self.category_selector.setHidden(root and (discovered or personal_model))
         # initialize the channel page
