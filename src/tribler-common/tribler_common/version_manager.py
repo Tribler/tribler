@@ -1,17 +1,21 @@
-import os
+from __future__ import annotations
+
+import os.path
 import shutil
 import time
+from collections import OrderedDict
 from datetime import datetime
 from distutils.version import LooseVersion
+from operator import attrgetter
 from pathlib import Path
+from typing import Dict, List, Optional, Tuple
 
 from tribler_common.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_CHECKPOINT_DIR, STATEDIR_DB_DIR
 
+import tribler_core.version
 from tribler_core.utilities import json_util as json
-from tribler_core.utilities.osutils import dir_copy
-from tribler_core.version import version_id as code_version_id
 
-VERSION_HISTORY_FILE = "version_history.json"
+VERSION_HISTORY_FILENAME = "version_history.json"
 
 # Copy other important files: keys and config
 STATE_FILES_TO_COPY = (
@@ -39,7 +43,7 @@ and developers during upgrades of major/minor (non-patch) versions. The rules ar
 
  IMPORTANT: If there already exists a state directory for the code version (the same major/minor numbers),
   but the history file indicates that the most recent used Tribler version with the same major/minor version
-  has a lower patch version (x.y.<Z>),  we rename the existing dir to DIRNAME_bak_<timestamp>.
+  has a lower patch version (x.y.<Z>), we rename the existing dir to unused_v<version>_<timestamp>.
   This corresponds to a situation where the user tried some version of Tribler and then went back to the previous
   version, but now tries again the same series with a higher patch version. This is a most typical scenario
   in which the version management system comes into play.
@@ -48,7 +52,7 @@ and developers during upgrades of major/minor (non-patch) versions. The rules ar
    went back to 7.5.0. After 7.6.1 was released, the user tried upgrading again. When run, 7.6.1 looked at the
    version_history.json and detected that the last used version was 7.5.0. It tried to create the 7.6 directory
    but failed because 7.6 was already installed before. Then, version management procedure renamed the old 7.6
-   directory to 7.6_bak_<timestamp> and created 7.6 directory anew, and copied 7.5 contents into it.
+   directory to unused_v7.6_<timestamp> and created 7.6 directory anew, and copied 7.5 contents into it.
 
 In some sense, the system works exactly as GIT does: it "branches" from the last-non conflicting version dir
 and "stashes" the state dirs with conflicting names by renaming them.
@@ -57,23 +61,120 @@ Note that due to failures in design pre-7.4 series and 7.4.x series get special 
 """
 
 
-def must_upgrade(old_ver: LooseVersion, new_ver: LooseVersion):
-    """
-    This function compares two LooseVersions by combination of major/minor components only, omitting the patch version.
-    By convention, in Tribler we only fork version directories on major/minor version changes, and never touch
-    the directory format in patch versions.
-    e.g 1.2.3 -> 1.3.0 must upgrade (return True)
-    but 1.2.3 -> 1.2.4 must not upgrade (return False)
+class VersionError(Exception):
+    pass
 
-    :param old_ver: the version to upgrade from
-    :param new_ver:  the version to upgrade to
-    :return: True, if new_ver's major/minor version is higher than old_ver's major/minor version, otherwise False
-    """
-    major_version_is_greater = new_ver.version[0] > old_ver.version[0]
-    major_version_is_equal = new_ver.version[0] == old_ver.version[0]
-    minor_version_is_greater = new_ver.version[1] > old_ver.version[1]
 
-    return major_version_is_greater or (major_version_is_equal and minor_version_is_greater)
+class TriblerVersion:
+    version_str: str
+    version_tuple: Tuple
+    major_minor: Tuple[int, int]
+    last_launched_at: float
+    root_state_dir: Path
+    directory: Path
+    prev_version_by_time: Optional[TriblerVersion]
+    prev_version_by_number: Optional[TriblerVersion]
+    can_be_copied_from: Optional[TriblerVersion]
+    should_be_copied: bool
+    should_recreate_directory: bool
+    deleted: bool
+
+    def __init__(self, root_state_dir: Path, version_str: str, last_launched_at: Optional[float] = None):
+        if last_launched_at is None:
+            last_launched_at = time.time()
+        self.version_str = version_str
+        self.version_tuple = tuple(LooseVersion(version_str).version)
+        self.major_minor = self.version_tuple[:2]
+        self.last_launched_at = last_launched_at
+        self.root_state_dir = root_state_dir
+        self.directory = self.get_directory()
+        self.prev_version_by_time = None
+        self.prev_version_by_number = None
+        self.can_be_copied_from = None
+        self.should_be_copied = False
+        self.should_recreate_directory = False
+        self.deleted = False
+
+    def __repr__(self):
+        return f'{self.__class__.__name__}<{self.version_str}>'
+
+    def get_directory(self):
+        if self.major_minor < (7, 4):
+            # This should only happen for old "7.0.0-GIT" case
+            return self.root_state_dir
+        if self.major_minor == (7, 4):
+            # 7.4.x are treated specially
+            return self.root_state_dir / (".".join(str(part) for part in LooseVersion(self.version_str).version[:3]))
+        return self.root_state_dir / ('%d.%d' % self.major_minor)
+
+    def state_exists(self):
+        # For ancient versions that use root directory for state storage
+        # we additionally check the existence of the `triblerd.conf` file
+        if self.directory == self.root_state_dir:
+            return (self.root_state_dir / "triblerd.conf").exists()
+        return self.directory.exists()
+
+    def calc_state_size(self):
+        # Should work even for pre-7.4 versions, counting only files and folder related to that version
+        result = 0
+        for filename in STATE_FILES_TO_COPY:
+            path = self.directory / filename
+            if path.exists():
+                result += path.stat().st_size
+        for dirname in STATE_DIRS_TO_COPY:
+            path = self.directory / dirname
+            for f in path.glob('**/*'):
+                result += f.stat().st_size
+        return result
+
+    def delete_state(self) -> Optional[Path]:
+        # Try to delete the directory for the version.
+        # If directory contains unknown files or folders, then rename the directory instead.
+        # Return renamed path or None if the directory was deleted successfully.
+
+        if self.deleted:
+            return None
+
+        self.deleted = True
+        for filename in STATE_FILES_TO_COPY:
+            (self.directory / filename).unlink(missing_ok=True)
+        for dirname in STATE_DIRS_TO_COPY:
+            shutil.rmtree(str(self.directory / dirname), ignore_errors=True)
+        if self.directory != self.root_state_dir:
+            try:
+                # do not delete directory with unknown leftover files
+                self.directory.rmdir()
+            except OSError:  # is it the only exception type we should catch here?
+                # cannot delete, then rename
+                renamed = self.rename_directory("deleted_v")
+                return renamed
+        return None
+
+    def copy_state_from(self, other: TriblerVersion, overwrite=False):
+        if self.directory.exists():
+            if not overwrite:
+                raise VersionError(f'Directory for version f{self.version_str} already exists')
+            self.delete_state()
+
+        self.directory.mkdir()  # should specify permissions?
+        for dirname in STATE_DIRS_TO_COPY:
+            src = other.directory / dirname
+            if src.exists():
+                dst = self.directory / dirname
+                shutil.copytree(src, dst)  # should add exception handling or not?
+
+        for filename in STATE_FILES_TO_COPY:
+            src = other.directory / filename
+            if src.exists():
+                dst = self.directory / filename
+                shutil.copy(src, dst)
+
+    def rename_directory(self, prefix='unused_v'):
+        if self.directory == self.root_state_dir:
+            raise VersionError('Cannot rename root directory')
+        timestamp_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
+        dirname = prefix + '%d.%d' % self.major_minor + '_' + timestamp_str
+        return self.directory.rename(self.root_state_dir / dirname)
 
 
 class VersionHistory:
@@ -82,171 +183,160 @@ class VersionHistory:
     file typically stored at the top-level root state directory.
     """
 
-    def __init__(self, file_path):
-        """
-        :param file_path: path to version_history.json file. Will be loaded if exists, or created anew if does not.
-        """
-        self.file_path = file_path
-        self.version_history = (
-            json.loads(file_path.read_text().strip()) if file_path.exists() else {"last_version": None, "history": {}}
-        )
+    root_state_dir: Path
+    file_path: Path
+    file_data: Dict
+    versions: OrderedDict[Tuple[int, int], TriblerVersion]
+    versions_by_number: List[TriblerVersion]
+    versions_by_time: List[TriblerVersion]
+    last_run_version: Optional[TriblerVersion]
+    code_version: TriblerVersion
 
-    @property
-    def last_version(self):
-        return self.version_history["last_version"]
+    def __init__(self, root_state_dir: Path, code_version_id: Optional[str] = None):
+        if code_version_id is None:
+            code_version_id = tribler_core.version.version_id
 
-    def update(self, version_id):
-        if str(self.last_version) == str(version_id):
-            return
-        self.version_history["last_version"] = version_id
-        self.version_history["history"][str(time.time())] = version_id
-        self.file_path.write_text(json.dumps(self.version_history))
+        self.root_state_dir = root_state_dir
+        self.file_path = root_state_dir / VERSION_HISTORY_FILENAME
+        self.file_data = {"last_version": None, "history": {}}
+        self.versions = versions = OrderedDict()
+        if self.file_path.exists():
+            self.file_data = json.loads(self.file_path.read_text().strip())
+            if "history" not in self.file_data:
+                raise VersionError("Invalid history file structure")
 
-    def get_last_upgradable_version(self, root_state_dir, code_version):
-        """
-        This function gets the list of previously used Tribler versions from the usage history file
-        and returns the most recently used version that has lower major/minor number than the code version.
-        :param root_state_dir: root state directory, where the version history file and old version dirs
-        :param code_version: current code version
-        :return: None if no upgradable version found, version number otherwise
-        """
+            # timestamps needs to be converted to float before sorting
+            history_items = [
+                (float(time_str), version_str) for time_str, version_str in self.file_data["history"].items()
+            ]
+            for timestamp, version_str in sorted(history_items):
+                version = TriblerVersion(root_state_dir, version_str, timestamp)
+                # store only versions with directories:
+                if version.state_exists():
+                    # eventually store only the latest launched version with the same major_minor tuple
+                    self.add_version(version)
 
-        for version in [version for _, version in sorted(self.version_history["history"].items(), reverse=True)]:
-            if (
-                must_upgrade(LooseVersion(version), LooseVersion(code_version))
-                and get_versioned_state_directory(root_state_dir, version).exists()
-            ):
-                return version
+        elif (root_state_dir / "triblerd.conf").exists():
+            # Pre-7.4 versions of Tribler don't have history file
+            # and can by detected by presence of the triblerd.conf file in the root directory
+            version = TriblerVersion(root_state_dir, "7.3", 0.0)
+            self.add_version(version)
+
+        versions_by_time = []
+        last_run_version = None
+        if versions:
+            versions_by_time = list(reversed(versions.values()))
+            last_run_version = versions_by_time[0]
+            for i in range(len(versions_by_time) - 1):
+                versions_by_time[i].prev_version_by_time = versions_by_time[i + 1]
+
+        code_version = TriblerVersion(root_state_dir, code_version_id)
+
+        if not last_run_version:
+            # No previous versions found
+            pass
+        elif last_run_version.version_str == code_version.version_str:
+            # Previously we started the same version, nothing to upgrade
+            code_version = last_run_version
+        elif last_run_version.major_minor == code_version.major_minor:
+            # Previously we started version from the same directory and can continue use this directory
+            pass
+        else:
+            # Previously we started version from the different directory
+            for v in versions_by_time:
+                if v.major_minor < code_version.major_minor:
+                    code_version.can_be_copied_from = v
+                    break
+
+            if code_version.can_be_copied_from:
+                if not code_version.directory.exists():
+                    code_version.should_be_copied = True
+
+                elif code_version.major_minor in versions:
+                    # We already used version with this major.minor number, but not the last time.
+                    # We need to upgrade from the latest version if possible (see description at the top of the file).
+                    # Probably we should ask user, should we copy data again from the previous version or not
+                    code_version.should_be_copied = True
+                    code_version.should_recreate_directory = True
+
+        self.versions_by_number = sorted(versions.values(), key=attrgetter('major_minor'))
+        self.versions_by_time = versions_by_time
+        self.last_run_version = last_run_version
+        self.code_version = code_version
+
+    def __repr__(self):
+        s = ','.join(str(v.major_minor) for v in self.versions_by_time)
+        return f'<{self.__class__.__name__}[{s}]>'
+
+    def add_version(self, version):
+        self.versions[version.major_minor] = version
+        self.versions.move_to_end(version.major_minor)
+
+    def save_if_necessary(self) -> bool:
+        """Returns True if state was saved"""
+        should_save = self.code_version != self.last_run_version
+        if should_save:
+            self.save()
+        return should_save
+
+    def save(self):
+        self.file_data["last_version"] = self.code_version.version_str
+        self.file_data["history"][str(self.code_version.last_launched_at)] = self.code_version.version_str
+        self.file_path.write_text(json.dumps(self.file_data))
+
+    def fork_state_directory_if_necessary(self) -> Optional[TriblerVersion]:
+        """Returns version string from which the state directory was forked"""
+        code_version = self.code_version
+        if code_version.should_recreate_directory:
+            code_version.rename_directory()
+
+        if code_version.should_be_copied:
+            prev_version = code_version.can_be_copied_from
+            if prev_version:  # should always be True here
+                code_version.copy_state_from(prev_version)
+                return prev_version
         return None
 
+    def get_installed_versions(self, with_code_version=True) -> List[TriblerVersion]:
+        installed_versions = [
+            v for v in self.versions_by_number if not v.deleted and v.major_minor != self.code_version.major_minor
+        ]
+        if with_code_version:
+            installed_versions.insert(0, self.code_version)
+        return installed_versions
 
-def version_to_dirname(version_id):
-    # 7.4.x are treated specially
-    if LooseVersion(version_id).version[:2] == LooseVersion("7.4").version:
-        return ".".join(str(part) for part in LooseVersion(version_id).version[:3])
-    if LooseVersion(version_id) < LooseVersion("7.4"):
-        # This should only happen for old "7.0.0-GIT" case
-        return None
-    return ".".join(str(part) for part in LooseVersion(version_id).version[:2])
+    def get_disposable_versions(self, skip_versions: int = 0) -> List[TriblerVersion]:
+        # versions are sorted in the order of usage, we want to keep the current version and two previous versions
+        disposable_versions = [
+            v for v in self.versions_by_time if not v.deleted and v.major_minor != self.code_version.major_minor
+        ]
+        return disposable_versions[skip_versions:]
 
+    def get_disposable_state_directories(
+        self, skip_versions: int = 0, include_unused=True, include_deleted=True, include_old_dirs=True
+    ) -> List[Path]:
+        result = []
+        for v in self.get_disposable_versions(skip_versions):
+            if v.directory != self.root_state_dir and v.directory.exists():
+                result.append(v.directory)
 
-def get_versioned_state_directory(root_state_dir, version_id=code_version_id):
-    """
-    Returns versioned state directory for a given version
-    """
-    versioned_state_dir = version_to_dirname(version_id)
-    if versioned_state_dir is None:
-        # "7.0.0-GIT" case
-        return Path(root_state_dir)
-    return Path(root_state_dir) / versioned_state_dir
+        if include_unused:
+            result.extend(self.root_state_dir.glob('unused_v*'))
 
+        if include_deleted:
+            result.extend(self.root_state_dir.glob('deleted_v*'))
 
-def copy_state_directory(src_dir, tgt_dir):
-    """
-    Creates a new state directory for the given version based on the given base state directory and
-    copies important files and directories to the new state directory.
-    """
+        if include_old_dirs:
+            for dir_name in STATE_DIRS_TO_COPY:
+                dir_path = self.root_state_dir / dir_name
+                if dir_path.exists():
+                    result.append(dir_path)
 
-    # Copy directories from the current state directory to the new one.
-    src_sub_dirs = os.listdir(src_dir)
-    for dirname in STATE_DIRS_TO_COPY:
-        if dirname in src_sub_dirs:
-            dir_copy(src_dir / dirname, tgt_dir / dirname, merge_if_exists=True)
-    for filename in STATE_FILES_TO_COPY:
-        if os.path.exists(src_dir / filename):
-            shutil.copy(src_dir / filename, tgt_dir / filename)
-
-
-def should_fork_state_directory(root_state_dir, code_version):
-    version_history = VersionHistory(root_state_dir / VERSION_HISTORY_FILE)
-    # The previous version has the same major/minor number as the code version, and there exists
-    # a corresponding versioned state directory. Nothing to do here (except possibly updating version history).
-    code_version_dir = get_versioned_state_directory(root_state_dir, code_version)
-    if (
-        version_history.last_version is not None
-        and LooseVersion(version_history.last_version).version[:2] == LooseVersion(code_version).version[:2]
-        and code_version_dir.exists()
-    ):
-        if str(version_history.last_version) != str(code_version):
-            return version_history, code_version, None, None, None
-        return None, None, None, None, None
-
-    src_dir = None
-    tgt_dir = code_version_dir
-    last_upgradable_version = None
-    # Normally, last_version cannot be None in the version_history file.
-    # It can only be None if there was no prior _versioned_ Tribler install.
-    if version_history.last_version is not None:
-        last_upgradable_version = version_history.get_last_upgradable_version(root_state_dir, code_version)
-        if last_upgradable_version is not None:
-            src_dir = get_versioned_state_directory(root_state_dir, last_upgradable_version)
-    elif (root_state_dir / "triblerd.conf").exists():
-        # Legacy version
-        src_dir = root_state_dir
-
-    return version_history, code_version, src_dir, tgt_dir, last_upgradable_version
+        result.sort()
+        return result
 
 
-def fork_state_directory_if_necessary(root_state_dir, code_version):
-    version_history, code_version, src_dir, tgt_dir, _ = should_fork_state_directory(root_state_dir, code_version)
-    if src_dir is not None:
-        # Borderline case where user got an unused code version directory: rename it out of the way
-        if tgt_dir is not None and tgt_dir.exists():
-            moved_out_of_way_dirname = (
-                "unused_v" + str(tgt_dir.name) + "_" + datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
-            )
-            tgt_dir.rename(tgt_dir.with_name(moved_out_of_way_dirname))
-        copy_state_directory(src_dir, tgt_dir)
-
-    if version_history:
-        version_history.update(code_version)
-
-
-def get_disposable_state_directories(root_state_dir, code_version, skip_last_version=True):
-    version_history, _, src_dir, tgt_dir, last_version = should_fork_state_directory(root_state_dir, code_version)
-
-    if src_dir is not None:
-        # If versioned state directory exists
-        if src_dir != root_state_dir:
-            skip_dirs = [src_dir, tgt_dir]
-            skip_versions = [last_version]
-
-            # Get the second last version if available and add it to the dirs to save
-            second_last_version = version_history.get_last_upgradable_version(root_state_dir, last_version)
-            if second_last_version and skip_last_version:
-                skip_versions.append(second_last_version)
-
-            return get_installed_versions(
-                root_state_dir, skip_versions=skip_versions, skip_dirs=skip_dirs, reverse=True
-            )
-    return None
-
-
-def get_installed_versions(root_state_dir, current_version=True, skip_versions=None, skip_dirs=None, reverse=True):
-    skipped_dirs = skip_dirs or []
-
-    if not current_version:
-        current_version_dir = get_versioned_state_directory(root_state_dir, code_version_id)
-        skipped_dirs.append(current_version_dir)
-
-    if skip_versions:
-        for skip_version in skip_versions:
-            skip_dir = get_versioned_state_directory(root_state_dir, skip_version)
-            skipped_dirs.append(skip_dir)
-
-    old_versions = []
-    for state_dir in os.listdir(root_state_dir):
-        state_dir_full_path = Path(root_state_dir, state_dir)
-        if os.path.isdir(state_dir_full_path) and state_dir_full_path not in skipped_dirs:
-            old_versions.append(state_dir_full_path)
-
-    if reverse:
-        old_versions.sort(reverse=True)
-
-    return old_versions
-
-
-def remove_version_dirs(root_state_dir, versions):
-    for version in versions:
-        version_dir = root_state_dir / version
-        shutil.rmtree(str(version_dir), ignore_errors=True)
+def remove_state_dirs(root_state_dir: str, state_dirs: List[str]):
+    for state_dir in state_dirs:
+        state_dir = os.path.join(root_state_dir, state_dir)
+        shutil.rmtree(state_dir, ignore_errors=True)

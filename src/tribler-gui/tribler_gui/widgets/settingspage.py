@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import QCheckBox, QFileDialog, QMessageBox, QSizePolicy, QW
 
 from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler_common.simpledefs import MAX_LIBTORRENT_RATE_LIMIT
-from tribler_common.version_manager import get_installed_versions, get_versioned_state_directory, remove_version_dirs
+from tribler_common.version_manager import VersionHistory, remove_state_dirs
 
 import tribler_core.utilities.json_util as json
 from tribler_core.utilities.osutils import get_root_state_directory
@@ -24,7 +24,6 @@ from tribler_gui.utilities import (
     connect,
     format_size,
     get_checkbox_style,
-    get_dir_size,
     get_gui_setting,
     is_dir_writable,
     seconds_to_hhmm_string,
@@ -41,6 +40,7 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         QWidget.__init__(self)
         self.settings = None
         self.saved_dialog = None
+        self.version_history = VersionHistory(get_root_state_directory())
 
     def initialize_settings_page(self):
         self.window().settings_tab.initialize()
@@ -232,8 +232,9 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         connect(self.window().slider_cpu_level.valueChanged, self.show_updated_cpu_priority)
         self.window().checkbox_enable_network_statistics.setChecked(settings['ipv8']['statistics'])
 
-    def _version_dir_checkbox(self, version_dir, enabled=True):
-        text = f"{format_size(get_dir_size(version_dir))}   {version_dir}"
+    def _version_dir_checkbox(self, state_dir, enabled=True):
+        dir_size = sum(f.stat().st_size for f in state_dir.glob('**/*'))
+        text = f"{state_dir}   {format_size(dir_size)}"
         checkbox = QCheckBox(text)
         checkbox.setEnabled(enabled)
         return checkbox
@@ -243,40 +244,48 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         self.refresh_old_version_checkboxes()
 
     def refresh_current_version_checkbox(self):
-        root_state_dir = get_root_state_directory()
-        current_version_dir = get_versioned_state_directory(root_state_dir)
-        self.refresh_version_checkboxes(self.window().state_dir_current, [current_version_dir], enabled=False)
+        get_root_state_directory()
+        code_version_dir = self.version_history.code_version.directory
+        self.refresh_version_checkboxes(self.window().state_dir_current, [code_version_dir], enabled=False)
 
     def refresh_old_version_checkboxes(self):
-        root_state_dir = get_root_state_directory()
-        old_version_dirs = get_installed_versions(root_state_dir, current_version=False)
-        self.refresh_version_checkboxes(self.window().state_dir_list, old_version_dirs, enabled=True)
+        get_root_state_directory()
+        old_state_dirs = self.version_history.get_disposable_state_directories()
+        self.refresh_version_checkboxes(self.window().state_dir_list, old_state_dirs, enabled=True)
 
-    def refresh_version_checkboxes(self, parent, versions, enabled=True):
+    def refresh_version_checkboxes(self, parent, old_state_dirs, enabled=True):
         version_dirs_layout = parent.layout()
         for checkbox in parent.findChildren(QCheckBox):
             version_dirs_layout.removeWidget(checkbox)
             checkbox.setParent(None)
             checkbox.deleteLater()
 
-        for old_version_dir in versions:
-            version_dir_checkbox = self._version_dir_checkbox(old_version_dir, enabled=enabled)
+        for state_dir in old_state_dirs:
+            version_dir_checkbox = self._version_dir_checkbox(state_dir, enabled=enabled)
             version_dirs_layout.addWidget(version_dir_checkbox)
 
     def on_remove_version_dirs(self, _):
         root_version_dir = str(get_root_state_directory())
 
-        def version_from_checkbox_text(checkbox):
-            # eg text: 5 GB /home/<user>/.Tribler/v7.8
-            return checkbox.text().split("/")[-1].replace(root_version_dir, "")
+        def dir_from_checkbox_text(checkbox):
+            # eg text: "/home/<user>/.Tribler/v7.8   5 GB"
+            state_dir = checkbox.text().rpartition("   ")[0]
+            if not state_dir.startswith(root_version_dir):
+                return None  # safety check just for case
+            state_dir = state_dir[len(root_version_dir) :]
+            if state_dir.startswith('/'):
+                state_dir = state_dir[1:]
+            return state_dir
 
-        versions_selected_for_deletion = []
+        dirs_selected_for_deletion = []
         for checkbox in self.window().state_dir_list.findChildren(QCheckBox):
             if checkbox.isChecked():
-                versions_selected_for_deletion.append(version_from_checkbox_text(checkbox))
+                state_dir = dir_from_checkbox_text(checkbox)
+                if state_dir:
+                    dirs_selected_for_deletion.append(state_dir)
 
-        if self.on_confirm_remove_version_dirs(versions_selected_for_deletion):
-            remove_version_dirs(root_version_dir, versions_selected_for_deletion)
+        if self.on_confirm_remove_version_dirs(dirs_selected_for_deletion):
+            remove_state_dirs(root_version_dir, dirs_selected_for_deletion)
             self.refresh_old_version_checkboxes()
 
     def on_confirm_remove_version_dirs(self, selected_versions):

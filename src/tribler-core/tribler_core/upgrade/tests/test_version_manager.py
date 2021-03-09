@@ -2,62 +2,78 @@ import filecmp
 import json
 import os
 import time
-from distutils.version import LooseVersion
+from pathlib import Path
 
 from tribler_common.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_CHECKPOINT_DIR, STATEDIR_DB_DIR
-from tribler_common.version_manager import (
-    VERSION_HISTORY_FILE,
-    VersionHistory,
-    copy_state_directory,
-    fork_state_directory_if_necessary,
-    get_disposable_state_directories,
-    get_installed_versions,
-    get_versioned_state_directory,
-    must_upgrade,
-    remove_version_dirs,
-    version_to_dirname,
-)
+from tribler_common.version_manager import TriblerVersion, VERSION_HISTORY_FILENAME, VersionHistory
 
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
-from tribler_core.utilities.path_util import Path
 
 DUMMY_STATE_DIR = TESTS_DATA_DIR / "state_dir_dummy"
 
 
 def test_version_to_dirname():
-    assert version_to_dirname("7.5.4") == "7.5"
-    assert version_to_dirname("7.5.4-GIT") == "7.5"
-    assert version_to_dirname("7.5") == "7.5"
-    assert version_to_dirname("7.5.0") == "7.5"
+    root_path = Path('/ROOT')
+
+    def version_to_dirname(version_str):
+        return TriblerVersion(root_path, version_str).directory
+
+    assert version_to_dirname("7.5.4") == Path("/ROOT/7.5")
+    assert version_to_dirname("7.5.4-GIT") == Path("/ROOT/7.5")
+    assert version_to_dirname("7.5") == Path("/ROOT/7.5")
+    assert version_to_dirname("7.5.0") == Path("/ROOT/7.5")
 
     # These are special cases of 7.4.x series that used patch version naming
-    assert version_to_dirname("7.4.4") == "7.4.4"
+    assert version_to_dirname("7.4.4") == Path("/ROOT/7.4.4")
 
-    # Versions earlier then 7.4 should return no dirname
-    assert not version_to_dirname("7.3.0")
+    # Versions earlier then 7.4 should return root directory
+    assert version_to_dirname("7.3.0") == Path("/ROOT")
 
 
 def test_read_write_version_history(tmpdir):
-    version_history_path = Path(tmpdir) / "test_version_history.json"
-    version_history = VersionHistory(version_history_path)
+    root_path = Path(tmpdir)
+    history = VersionHistory(root_path, code_version_id='100.100.100')
+
+    assert history.root_state_dir == root_path
+    assert history.file_path == root_path / "version_history.json"
+    assert history.file_data == {"last_version": None, "history": {}}
 
     # If there is no version history file, no information about last version is available
-    assert not version_history.version_history['last_version']
-    assert version_history.version_history['history'] == {}
+    assert history.last_run_version is None
+    assert not history.versions
+
+    assert history.code_version.version_str == '100.100.100'
+    assert history.code_version.major_minor == (100, 100)
 
     # Saving and loading the version again
-    new_version = '100.100.100'
-    version_history.update(new_version)
-    assert version_history.last_version == new_version
-    version_history2 = VersionHistory(version_history_path)
-    assert version_history.version_history == version_history2.version_history
+    history.save()
+
+    history2 = VersionHistory(root_path, code_version_id='100.100.100')
+    # version was not added to history as the state directory does not exist
+    assert history2.last_run_version is None
+    assert not history2.versions
+    assert not history2.versions_by_number
+    assert not history2.versions_by_time
+
+    state_dir: Path = root_path / "100.100"
+    state_dir.mkdir()
+
+    history3 = VersionHistory(root_path, code_version_id='100.100.100')
+    assert history3.last_run_version is not None
+    assert history3.last_run_version.version_str == '100.100.100'
+    assert history3.last_run_version.directory == state_dir
+    assert len(history3.versions) == 1
+    assert (100, 100) in history3.versions
+    assert history3.versions[100, 100] == history3.last_run_version
+    assert history3.versions_by_number == [history3.last_run_version]
+    assert history3.versions_by_time == [history3.last_run_version]
 
 
 def test_get_last_upgradable_version_based_on_dir(tmpdir):
     """
     Scenario: 5 versions in the history file, but state directory only for one of those exists.
     The second version in the list has higher version than the current one, and has dir too.
-    Test that that only the most recent lower version will be selected as the upgrade source.
+    Test that only the most recent lower version will be selected as the upgrade source.
     """
     root_state_dir = Path(tmpdir)
     json_dict = {"last_version": "100.1.1", "history": dict()}
@@ -72,132 +88,194 @@ def test_get_last_upgradable_version_based_on_dir(tmpdir):
     (root_state_dir / "200.2").mkdir()
     json_dict["history"]["6"] = "94.3.4"  # version OK, no dir - bad
 
-    (root_state_dir / VERSION_HISTORY_FILE).write_text(json.dumps(json_dict))
+    (root_state_dir / VERSION_HISTORY_FILENAME).write_text(json.dumps(json_dict))
 
-    version_history = VersionHistory(root_state_dir / VERSION_HISTORY_FILE)
-    last_upgradable_version = version_history.get_last_upgradable_version(root_state_dir, "102.1.1")
-    assert last_upgradable_version == "92.3.4"
-
-
-def test_must_upgrade():
-    """
-    By convention, we only upgrade if the previous version's major/minor is lower than the new version's.
-    This is another way to say that we ignore the patch version for upgrade purposes.
-    """
-    assert must_upgrade(LooseVersion("1.2.3"), LooseVersion("1.3.3"))
-    assert must_upgrade(LooseVersion("1.2.3"), LooseVersion("2.3.3"))
-    assert must_upgrade(LooseVersion("1.2.3"), LooseVersion("2.4.3"))
-    assert must_upgrade(LooseVersion("1.2.3"), LooseVersion("2.1.3"))
-    assert not must_upgrade(LooseVersion("1.2.3"), LooseVersion("1.2.3"))
-    assert not must_upgrade(LooseVersion("1.2.3"), LooseVersion("1.2.4"))
-    assert not must_upgrade(LooseVersion("1.3.3"), LooseVersion("1.2.4"))
-    assert not must_upgrade(LooseVersion("2.3.3"), LooseVersion("2.3.4"))
-    assert not must_upgrade(LooseVersion("2.3.3"), LooseVersion("1.4.4"))
+    history = VersionHistory(root_state_dir, code_version_id="102.1.1")
+    assert history.code_version.can_be_copied_from is not None
+    assert history.code_version.can_be_copied_from.version_str == "92.3.4"
 
 
 def test_fork_state_directory(tmpdir_factory):
-    from tribler_common import version_manager
-
-    result = []
-
-    def mock_copy_state_directory(src, tgt):
-        result.clear()
-        result.extend([src, tgt])
-
-    version_manager.copy_state_directory = mock_copy_state_directory
-
     # Scenario 1: the last used version has the same major/minor number as the code version, dir in place
     # no forking should happen, but version_history should be updated nonetheless
     tmpdir = tmpdir_factory.mktemp("scenario1")
-    result.clear()
     root_state_dir = Path(tmpdir)
     json_dict = {"last_version": "120.1.1", "history": dict()}
     json_dict["history"]["2"] = "120.1.1"
-    (root_state_dir / "120.1").mkdir()
-    (root_state_dir / VERSION_HISTORY_FILE).write_text(json.dumps(json_dict))
+    state_dir = root_state_dir / "120.1"
+    state_dir.mkdir()
+    (root_state_dir / VERSION_HISTORY_FILENAME).write_text(json.dumps(json_dict))
+    code_version_id = "120.1.2"
 
-    code_version = "120.1.2"
+    history = VersionHistory(root_state_dir, code_version_id)
+    assert history.last_run_version is not None
+    assert history.last_run_version.directory == state_dir
+    assert history.last_run_version != history.code_version
+    assert history.code_version.directory == state_dir
+    assert history.code_version.version_str != history.last_run_version.version_str
+    assert not history.code_version.should_be_copied
+    assert not history.code_version.should_recreate_directory
 
-    fork_state_directory_if_necessary(root_state_dir, code_version)
-    assert result == []
-    assert VersionHistory(root_state_dir / VERSION_HISTORY_FILE).last_version == code_version
+    forked_from = history.fork_state_directory_if_necessary()
+    assert forked_from is None
+    history_saved = history.save_if_necessary()
+    assert history_saved
+
+    history2 = VersionHistory(root_state_dir, code_version_id)
+    assert history2.last_run_version == history2.code_version
+    assert history2.last_run_version.version_str == code_version_id
 
     # Scenario 2: the last used version minor is lower than the code version, directory exists
     # normal upgrade scenario, dir should be forked and version_history should be updated
     tmpdir = tmpdir_factory.mktemp("scenario2")
-    result.clear()
     root_state_dir = Path(tmpdir)
     json_dict = {"last_version": "120.1.1", "history": dict()}
-    json_dict["history"]["2"] = "120.1.1"
-    (root_state_dir / "120.1").mkdir()
-    (root_state_dir / VERSION_HISTORY_FILE).write_text(json.dumps(json_dict))
+    json_dict["history"]["1"] = "120.1.1"
+    state_dir = root_state_dir / "120.1"
+    state_dir.mkdir()
+    (root_state_dir / VERSION_HISTORY_FILENAME).write_text(json.dumps(json_dict))
+    code_version_id = "120.3.2"
 
-    code_version = "120.3.2"
+    history = VersionHistory(root_state_dir, code_version_id)
+    assert history.last_run_version is not None
+    assert history.last_run_version.directory == state_dir
+    assert history.code_version != history.last_run_version
+    assert history.code_version.directory != state_dir
+    assert history.code_version.version_str != history.last_run_version.version_str
+    assert history.code_version.should_be_copied
+    assert not history.code_version.should_recreate_directory
+    assert not history.code_version.directory.exists()
 
-    fork_state_directory_if_necessary(root_state_dir, code_version)
-    assert [d.name for d in result] == ["120.1", "120.3"]
-    assert VersionHistory(root_state_dir / VERSION_HISTORY_FILE).last_version == code_version
+    forked_from = history.fork_state_directory_if_necessary()
+    assert history.code_version.directory.exists()
+    assert forked_from is not None and forked_from.version_str == "120.1.1"
+    history_saved = history.save_if_necessary()
+    assert history_saved
+
+    history2 = VersionHistory(root_state_dir, code_version_id)
+    assert history2.last_run_version == history2.code_version
+    assert history2.last_run_version.version_str == code_version_id
 
     # Scenario 3: upgrade from 7.3 (unversioned dir)
     # dir should be forked and version_history should be created
     tmpdir = tmpdir_factory.mktemp("scenario3")
-    result.clear()
     root_state_dir = Path(tmpdir)
-    code_version = "120.3.2"
     (root_state_dir / "triblerd.conf").write_text("foo")  # 7.3 presence marker
-    fork_state_directory_if_necessary(root_state_dir, code_version)
-    assert [d.name for d in result] == [root_state_dir.name, "120.3"]
-    assert VersionHistory(root_state_dir / VERSION_HISTORY_FILE).last_version == code_version
+    code_version_id = "120.3.2"
+
+    history = VersionHistory(root_state_dir, code_version_id)
+    assert history.last_run_version is not None  ###
+    assert history.last_run_version.directory == root_state_dir
+    assert history.code_version != history.last_run_version
+    assert history.code_version.directory != root_state_dir
+    assert history.code_version.should_be_copied
+    assert history.code_version.can_be_copied_from is not None
+    assert history.code_version.can_be_copied_from.version_str == "7.3"
+    assert not history.code_version.should_recreate_directory
+    assert not history.code_version.directory.exists()
+
+    forked_from = history.fork_state_directory_if_necessary()
+    assert history.code_version.directory.exists()
+    assert forked_from is not None and forked_from.version_str == "7.3"
+    history_saved = history.save_if_necessary()
+    assert history_saved
+
+    history2 = VersionHistory(root_state_dir, code_version_id)
+    assert history2.last_run_version == history2.code_version
+    assert history2.last_run_version.version_str == code_version_id
 
     # Scenario 4: the user tried to upgrade to some tribler version, but failed. Now he tries again with
     # higher patch version of the same major/minor version.
     # The most recently used dir with major/minor version lower than the code version should be forked,
     # while the previous code version state directory should be renamed to a backup.
     tmpdir = tmpdir_factory.mktemp("scenario4")
-    result.clear()
     root_state_dir = Path(tmpdir)
     json_dict = {"last_version": "120.2.1", "history": dict()}
     # The user  was on 120.2
-    json_dict["history"]["2"] = "120.2.0"
-    (root_state_dir / "120.2").mkdir()
+    json_dict["history"]["1"] = "120.2.0"
+    state_dir_1 = root_state_dir / "120.2"
+    state_dir_1.mkdir()
 
     # The user tried 120.3, they did not like it
-    json_dict["history"]["3"] = "120.3.0"
-    (root_state_dir / "120.3").mkdir()
+    json_dict["history"]["2"] = "120.3.0"
+    state_dir_2 = root_state_dir / "120.3"
+    state_dir_2.mkdir()
 
     # The user returned to 120.2 and continued to use it
-    json_dict["history"]["4"] = "120.2.1"
-    (root_state_dir / VERSION_HISTORY_FILE).write_text(json.dumps(json_dict))
+    json_dict["history"]["3"] = "120.2.1"
+    (root_state_dir / VERSION_HISTORY_FILENAME).write_text(json.dumps(json_dict))
 
     # Now user tries 120.3.2 which has a higher patch version than his previous attempt at 120.3 series
-    code_version = "120.3.2"
+    code_version_id = "120.3.2"
 
-    fork_state_directory_if_necessary(root_state_dir, code_version)
-    assert [d.name for d in result] == ["120.2", "120.3"]
+    history = VersionHistory(root_state_dir, code_version_id)
+    assert history.last_run_version is not None
+    assert history.last_run_version.directory == state_dir_1
+    assert history.code_version != history.last_run_version
+    assert history.code_version.directory != root_state_dir
+    assert history.code_version.should_be_copied
+    assert history.code_version.can_be_copied_from is not None
+    assert history.code_version.can_be_copied_from.version_str == "120.2.1"
+    assert history.code_version.directory.exists()
+    assert history.code_version.should_recreate_directory
+
+    forked_from = history.fork_state_directory_if_necessary()
+    assert history.code_version.directory.exists()
+    assert forked_from is not None and forked_from.version_str == "120.2.1"
+    history_saved = history.save_if_necessary()
+    assert history_saved
     # Check that the older 120.3 directory is not deleted, but instead renamed as a backup
-    assert "unused_v120.3" in [d[:13] for d in os.listdir(root_state_dir)]
-    assert VersionHistory(root_state_dir / VERSION_HISTORY_FILE).last_version == code_version
+    assert list(root_state_dir.glob("unused_v120.3_*"))
+
+    history2 = VersionHistory(root_state_dir, code_version_id)
+    assert history2.last_run_version == history2.code_version
+    assert history2.last_run_version.version_str == code_version_id
 
     # Scenario 5: normal upgrade scenario, but from 7.4.x version (dir includes patch number)
     tmpdir = tmpdir_factory.mktemp("scenario5")
-    result.clear()
     root_state_dir = Path(tmpdir)
     json_dict = {"last_version": "7.4.4", "history": dict()}
     json_dict["history"]["2"] = "7.4.4"
-    (root_state_dir / "7.4.4").mkdir()
-    (root_state_dir / VERSION_HISTORY_FILE).write_text(json.dumps(json_dict))
+    state_dir = root_state_dir / "7.4.4"
+    state_dir.mkdir()
+    (root_state_dir / VERSION_HISTORY_FILENAME).write_text(json.dumps(json_dict))
 
-    code_version = "7.5.1"
+    code_version_id = "7.5.1"
 
-    fork_state_directory_if_necessary(root_state_dir, code_version)
-    assert [d.name for d in result] == ["7.4.4", "7.5"]
-    assert VersionHistory(root_state_dir / VERSION_HISTORY_FILE).last_version == code_version
+    history = VersionHistory(root_state_dir, code_version_id)
+    assert history.last_run_version is not None
+    assert history.last_run_version.directory == state_dir
+    assert history.code_version != history.last_run_version
+    assert history.code_version.directory != root_state_dir
+    assert history.code_version.should_be_copied
+    assert history.code_version.can_be_copied_from is not None
+    assert history.code_version.can_be_copied_from.version_str == "7.4.4"
+    assert not history.code_version.directory.exists()
+    assert not history.code_version.should_recreate_directory
+
+    forked_from = history.fork_state_directory_if_necessary()
+    assert history.code_version.directory.exists()
+    assert forked_from is not None and forked_from.version_str == "7.4.4"
+    history_saved = history.save_if_necessary()
+    assert history_saved
+
+    history2 = VersionHistory(root_state_dir, code_version_id)
+    assert history2.last_run_version == history2.code_version
+    assert history2.last_run_version.version_str == code_version_id
 
 
 def test_copy_state_directory(tmpdir):
     src_dir = DUMMY_STATE_DIR
-    tgt_dir = Path(tmpdir) / "100.100.100"
-    copy_state_directory(src_dir, tgt_dir)
+    tgt_dir = Path(tmpdir) / "100.100"
+
+    root_state_dir = Path(tmpdir)
+    v1 = TriblerVersion(root_state_dir, "7.8.9")
+    v1.directory = src_dir
+
+    v2 = TriblerVersion(root_state_dir, "100.100.100")
+    assert v2.directory == tgt_dir
+
+    v2.copy_state_from(v1)
 
     # Make sure only the neccessary stuff is copied, and junk is omitted
     backup_list = {STATEDIR_DB_DIR, STATEDIR_CHECKPOINT_DIR, STATEDIR_CHANNELS_DIR,
@@ -210,7 +288,6 @@ def test_copy_state_directory(tmpdir):
     assert filecmp.cmp(src_dir / 'ec_multichain.pem', tgt_dir / 'ec_multichain.pem')
 
 
-# pylint: disable=too-many-locals
 def test_get_disposable_state_directories(tmpdir_factory):
     tmpdir = tmpdir_factory.mktemp("scenario")
     root_state_dir = Path(tmpdir)
@@ -222,14 +299,14 @@ def test_get_disposable_state_directories(tmpdir_factory):
     minor_versions = list(range(10))
     patch_versions = list(range(3))
 
-    last_version = f"{major_versions[0]}.{minor_versions[-1]}.{patch_versions[0]}"  # 8.9.2
-    last_version_dir = root_state_dir / f"{major_versions[0]}.{minor_versions[-1]}"
-    second_last_version_dir = root_state_dir / f"{major_versions[0]}.{minor_versions[-2]}"
+    last_version = "8.9.2"
+    last_version_dir = root_state_dir / "8.9"
+    second_last_version_dir = root_state_dir / "8.8"
 
     version_history = {"last_version": last_version, "history": dict()}
+    base_install_ts = time.time() - 1000  # some timestamp in the past
 
     # Create state directories for all older versions
-    base_install_ts = time.time() - 1000  # some timestamp in the past
     for major in major_versions:
         for minor in reversed(minor_versions):
             for patch in patch_versions:
@@ -243,26 +320,30 @@ def test_get_disposable_state_directories(tmpdir_factory):
                 # Create an empty version directory if does not exist
                 (root_state_dir / version_dir).mkdir(exist_ok=True)
 
+    unused1 = root_state_dir / "unused_v8.9_1234567"
+    unused2 = root_state_dir / "unused_v9.0_7654321"
+    unused1.mkdir()
+    unused2.mkdir()
+
     # Write the version history file before checking disposable directories
-    (root_state_dir / VERSION_HISTORY_FILE).write_text(json.dumps(version_history))
+    (root_state_dir / VERSION_HISTORY_FILENAME).write_text(json.dumps(version_history))
 
-    # Case 0: If the code version and last version is the same, no disposable directories shown at startup
-    code_version = last_version  # 8.9.2
-    disposable_dirs = get_disposable_state_directories(root_state_dir, code_version, skip_last_version=True)
-    assert disposable_dirs is None
+    code_version_id = "9.0.0"
+    history = VersionHistory(root_state_dir, code_version_id)
 
-    # Now, assuming the new code version is a newer major version
-    code_version = f"{major_versions[0] + 1}.{minor_versions[0]}.{patch_versions[0]}"  # 9.0.0
+    # Case 1: Skip last two versions, then those two last directories will not returned as disposable dirs.
+    disposable_dirs = history.get_disposable_state_directories()
+    assert last_version_dir in disposable_dirs
+    assert second_last_version_dir in disposable_dirs
+    assert unused1 in disposable_dirs
+    assert unused2 in disposable_dirs
 
-    # Case 1: Skip last version is True, then those two last directories will not returned as disposable dirs.
-    disposable_dirs = get_disposable_state_directories(root_state_dir, code_version, skip_last_version=True)
-    assert last_version_dir not in disposable_dirs
-    assert second_last_version_dir not in disposable_dirs
-
-    # Case 2: Skip last version is False, then only the upgrade version is kept and not the one before that.
-    disposable_dirs = get_disposable_state_directories(root_state_dir, code_version, skip_last_version=False)
+    # Case 2: Skip only one version
+    disposable_dirs = history.get_disposable_state_directories(skip_versions=1, include_unused=False)
     assert last_version_dir not in disposable_dirs
     assert second_last_version_dir in disposable_dirs
+    assert unused1 not in disposable_dirs
+    assert unused2 not in disposable_dirs
 
 
 def test_installed_versions_and_removal(tmpdir_factory):
@@ -270,36 +351,42 @@ def test_installed_versions_and_removal(tmpdir_factory):
     root_state_dir = Path(tmpdir)
 
     # create current version directory
-    current_version_dir = get_versioned_state_directory(root_state_dir)
+    code_version_id = "8.9.10"
+    current_version_dir = root_state_dir / "8.9"
     current_version_dir.mkdir()
 
-    major_versions = [7, 6]
+    major_versions = [7, 8]
     minor_versions = [5, 6, 7, 8]
 
+    version_history = {"last_version": "7.8", "history": dict()}
+    base_install_ts = time.time() - 1000  # some timestamp in the past
+
     for major in major_versions:
-        for minor in reversed(minor_versions):
-            version_dir = f"{major}.{minor}"
-            (root_state_dir / version_dir).mkdir(exist_ok=True)
+        for minor in minor_versions:
+            version_str = f"{major}.{minor}"
+            (root_state_dir / version_str).mkdir(exist_ok=True)
+            # Set install time in order of version. i.e. newer version are installed later
+            version_install_ts = base_install_ts + major * 100 + minor * 10
+            version_history["history"][version_install_ts] = version_str
+
+    (root_state_dir / VERSION_HISTORY_FILENAME).write_text(json.dumps(version_history))
+
+    history = VersionHistory(root_state_dir, code_version_id)
 
     # 1. Default values
-    installed_versions = get_installed_versions(root_state_dir)
-    assert current_version_dir in installed_versions
+    installed_versions = history.get_installed_versions()
+    assert history.code_version in installed_versions
     assert len(installed_versions) == len(major_versions) * len(minor_versions) + 1  # including the current version
 
     # 2. exclude current version
-    installed_versions = get_installed_versions(root_state_dir, current_version=False)
-    assert current_version_dir not in installed_versions
+    installed_versions = history.get_installed_versions(with_code_version=False)
+    assert history.code_version not in installed_versions
     assert len(installed_versions) == len(major_versions) * len(minor_versions)  # the current version not included
 
-    # 3. Skip a few other versions
-    skip_versions = ['7.5', '7.6']
-    installed_versions = get_installed_versions(root_state_dir, current_version=False, skip_versions=skip_versions)
+    # 3. Delete a few versions
+    history.versions[7, 5].delete_state()
+    history.versions[7, 6].delete_state()
+
+    installed_versions = history.get_installed_versions(with_code_version=False)
     assert current_version_dir not in installed_versions
-    assert len(installed_versions) == len(major_versions) * len(minor_versions) - len(skip_versions)
-
-    # 4. Remove a few existing versions and check installed versions
-    versions_to_remove = ['7.5', '7.6']
-    remove_version_dirs(root_state_dir, versions_to_remove)
-
-    installed_versions = get_installed_versions(root_state_dir, current_version=False)
-    assert len(installed_versions) == len(major_versions) * len(minor_versions) - len(versions_to_remove)
+    assert len(installed_versions) == len(major_versions) * len(minor_versions) - 2

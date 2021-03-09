@@ -1,23 +1,21 @@
 import logging
 import os
-import shutil
 import sys
 import time
-from os.path import relpath
+from typing import List
 
 from PyQt5.QtCore import QObject, QProcess, QProcessEnvironment, QTimer, pyqtSignal
 from PyQt5.QtNetwork import QNetworkRequest
 from PyQt5.QtWidgets import QApplication, QMessageBox
 
 from tribler_common.utilities import is_frozen
-from tribler_common.version_manager import get_disposable_state_directories, should_fork_state_directory
+from tribler_common.version_manager import TriblerVersion, VersionHistory
 
 from tribler_core.utilities.osutils import get_root_state_directory
-from tribler_core.version import version_id
 
 from tribler_gui.event_request_manager import EventRequestManager
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.utilities import connect, format_size, get_base_path, get_dir_size
+from tribler_gui.utilities import connect, format_size, get_base_path
 
 START_FAKE_API = False
 
@@ -39,6 +37,9 @@ class CoreManager(QObject):
         self.base_path = get_base_path()
         if not is_frozen():
             self.base_path = os.path.join(get_base_path(), "..")
+
+        root_state_dir = get_root_state_directory()
+        self.version_history = VersionHistory(root_state_dir)
 
         self.core_process = None
         self.api_port = api_port
@@ -89,43 +90,44 @@ class CoreManager(QObject):
         First test whether we already have a Tribler process listening on port <CORE_API_PORT>.
         If so, use that one and don't start a new, fresh session.
         """
-        root_state_dir = get_root_state_directory()
 
         def on_request_error(_):
             self.use_existing_core = False
             self.start_tribler_core(core_args=core_args, core_env=core_env)
 
-        do_cleanup, old_version_dirs = self.should_cleanup_old_versions(root_state_dir, version_id)
-        if do_cleanup:
-            for version_dir in old_version_dirs:
-                shutil.rmtree(str(version_dir), ignore_errors=True)
+        versions_to_delete = self.should_cleanup_old_versions()
+        if versions_to_delete:
+            for version in versions_to_delete:
+                version.delete_state()
 
         # Connect to the events manager only after the cleanup is done
         self.events_manager.connect()
         connect(self.events_manager.reply.error, on_request_error)
 
-        # This is a hack to determine if we have notify the user to wait for the directory fork to finish
-        _, _, src_dir, _, _ = should_fork_state_directory(root_state_dir, version_id)
-        if src_dir is not None:
+        # Determine if we have notify the user to wait for the directory fork to finish
+        if self.version_history.code_version.should_be_copied:
             # There is going to be a directory fork, so we extend the core connection timeout and notify the user
             self.events_manager.remaining_connection_attempts = 1200
             self.events_manager.change_loading_text.emit("Copying data from previous Tribler version, please wait")
 
-    def should_cleanup_old_versions(self, root_state_dir, code_version):
+    def should_cleanup_old_versions(self) -> List[TriblerVersion]:
         # Skip old version check popup when running fake core, eg. during GUI tests
         if START_FAKE_API:
-            return False, None
+            return []
 
-        disposable_dirs = get_disposable_state_directories(root_state_dir, code_version)
-        if not disposable_dirs:
-            return False, None
+        if self.version_history.last_run_version == self.version_history.code_version:
+            return []
+
+        disposable_versions = self.version_history.get_disposable_versions(skip_versions=2)
+        if not disposable_versions:
+            return []
 
         storage_info = ""
         claimable_storage = 0
-        for old_state_dir in disposable_dirs:
-            dir_size = get_dir_size(old_state_dir)
-            claimable_storage += dir_size
-            storage_info += f"{format_size(dir_size)} \t {relpath(old_state_dir, root_state_dir)}\n"
+        for version in disposable_versions:
+            state_size = version.calc_state_size()
+            claimable_storage += state_size
+            storage_info += f"{version.version_str} \t {format_size(state_size)}\n"
 
         # Show a question to the user asking if the user wants to remove the old data.
         title = "Delete state directories for old versions?"
@@ -138,16 +140,20 @@ class CoreManager(QObject):
             f"You will be able to remove those directories from the Settings->Data page later."
         )
 
-        user_choice = self._show_question_box(title, message_body, storage_info)
-        return user_choice == QMessageBox.Yes, disposable_dirs
+        user_choice = self._show_question_box(title, message_body, storage_info, default_button=QMessageBox.Yes)
+        if user_choice == QMessageBox.Yes:
+            return disposable_versions
+        return []
 
-    def _show_question_box(self, title, body, additional_text):
+    def _show_question_box(self, title, body, additional_text, default_button=None):
         message_box = QMessageBox()
         message_box.setIcon(QMessageBox.Question)
         message_box.setWindowTitle(title)
         message_box.setText(body)
         message_box.setInformativeText(additional_text)
         message_box.setStandardButtons(QMessageBox.No | QMessageBox.Yes)
+        if default_button:
+            message_box.setDefaultButton(default_button)
         return message_box.exec_()
 
     def start_tribler_core(self, core_args=None, core_env=None):

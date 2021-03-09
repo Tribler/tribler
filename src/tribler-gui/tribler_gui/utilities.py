@@ -436,12 +436,3 @@ def dict_item_is_any_of(d, key, values):
     if not d or not key or not values:
         return False
     return key in d and d[key] in values
-
-
-def get_dir_size(dir_path):
-    size = 0
-    for path, _, files in os.walk(dir_path):
-        for f in files:
-            fp = os.path.join(path, f)
-            size += os.path.getsize(fp)
-    return size

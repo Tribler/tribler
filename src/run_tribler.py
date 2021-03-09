@@ -7,7 +7,7 @@ from asyncio import ensure_future, get_event_loop
 
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
 from tribler_common.sentry_reporter.sentry_scrubber import SentryScrubber
-from tribler_common.version_manager import fork_state_directory_if_necessary, get_versioned_state_directory
+from tribler_common.version_manager import VersionHistory
 
 import tribler_core
 from tribler_core.config.tribler_config import CONFIG_FILENAME
@@ -65,9 +65,10 @@ def start_tribler_core(base_path, api_port, api_key, root_state_dir, core_test_m
 
         # Before any upgrade, prepare a separate state directory for the update version so it does not
         # affect the older version state directory. This allows for safe rollback.
-        fork_state_directory_if_necessary(root_state_dir, version_id)
-
-        state_dir = get_versioned_state_directory(root_state_dir)
+        version_history = VersionHistory(root_state_dir)
+        version_history.fork_state_directory_if_necessary()
+        version_history.save_if_necessary()
+        state_dir = version_history.code_version.directory
 
         config = TriblerConfig(state_dir, config_file=state_dir / CONFIG_FILENAME, reset_config_on_error=True)
 
