@@ -1,5 +1,5 @@
 from PyQt5 import uic
-from PyQt5.QtWidgets import QPushButton, QTextEdit
+from PyQt5.QtWidgets import QTextEdit
 
 from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
@@ -35,7 +35,7 @@ class ChannelDescriptionWidget(AddBreadcrumbOnShowMixin, widget_form, widget_cla
 
         connect(self.edit_mode_tab.clicked_tab_button, self.tab_button_clicked)
 
-        connect(self.save_button.clicked, self.save_desciption)
+        connect(self.save_button.clicked, self.save_clicked)
         connect(self.cancel_button.clicked, self.cancel_clicked)
         connect(self.start_editing.clicked, self.clicked_start_editing)
 
@@ -49,6 +49,8 @@ class ChannelDescriptionWidget(AddBreadcrumbOnShowMixin, widget_form, widget_cla
         self.edit_text_widget = self.findChild(QTextEdit, name="edit_text_widget")
         self.preview_text_widget = self.findChild(QTextEdit, name="preview_text_widget")
 
+        self.bottom_buttons_container.setHidden(True)
+
     def tab_button_clicked(self, button_name):
         print(button_name)
         if button_name == EDIT_BUTTON:
@@ -61,10 +63,23 @@ class ChannelDescriptionWidget(AddBreadcrumbOnShowMixin, widget_form, widget_cla
         self.edit_mode_tab.setHidden(False)
         self.start_editing.setHidden(True)
         self.switch_to_edit(update_buttons=True)
+        self.bottom_buttons_container.setHidden(False)
+
+    def save_clicked(self, *args):
+        self.bottom_buttons_container.setHidden(True)
+        self.description_text = self.edit_text_widget.toPlainText()
+        TriblerNetworkRequest(
+            f'channels/{self.channel_pk}/{self.channel_id}/description',
+            self._on_description_received,
+            method='PUT',
+            data={"description_text": self.description_text}
+        )
 
     def cancel_clicked(self, *args):
-
-
+        self.edit_mode_tab.setHidden(True)
+        self.start_editing.setHidden(False)
+        self.switch_to_preview()
+        self.bottom_buttons_container.setHidden(True)
 
     def switch_to_preview(self, update_buttons=False):
         self.description_stacked_widget.setCurrentIndex(TAB_PREVIEW)
@@ -81,20 +96,24 @@ class ChannelDescriptionWidget(AddBreadcrumbOnShowMixin, widget_form, widget_cla
     def update_desciption_text_preview(self, text: str):
         self.preview_text_widget.setMarkdown(text)
 
-    def save_desciption(self, *args):
-        self.description_text = self.edit_text_widget.toPlainText()
-        TriblerNetworkRequest(
-            f'channels/{self.channel_pk}/{self.channel_id}/description',
-            self._on_description_received,
-            method='PUT',
-            data={"description_text": self.description_text}
-        )
+    def show_create_page(self):
+        self.create_page.setHidden(False)
+        self.description_page.setHidden(True)
+
+    def show_description_page(self):
+        self.create_page.setHidden(True)
+        self.description_page.setHidden(False)
 
     def _on_description_received(self, result):
         print(result)
         if not result:
-            self.setHidden(True)
+            # No data + edit enabled = invite to create a description
+            if self.edit_enabled:
+                self.show_create_page()
+            else:
+                self.setHidden(True)
             return
+        self.show_description_page()
         self.setHidden(False)
         self.description_text = result["description_text"]
         self.edit_text_widget.setPlainText(self.description_text)
@@ -107,7 +126,7 @@ class ChannelDescriptionWidget(AddBreadcrumbOnShowMixin, widget_form, widget_cla
             self.disable_edit()
 
     def initialize_with_channel(self, channel_pk, channel_id, edit=True):
-        print ("INITI")
+        print("INITI")
         self.edit_enabled = edit
         self.channel_pk, self.channel_id = channel_pk, channel_id
         TriblerNetworkRequest(
