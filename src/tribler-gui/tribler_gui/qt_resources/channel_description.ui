@@ -2,17 +2,13 @@
 <ui version="4.0">
  <class>channel_description_widget</class>
  <widget class="QWidget" name="channel_description_widget">
-  <property name="sizePolicy">
-   <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
-    <horstretch>0</horstretch>
-    <verstretch>0</verstretch>
-   </sizepolicy>
-  </property>
-  <property name="maximumSize">
-   <size>
-    <width>16777215</width>
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>840</width>
     <height>538</height>
-   </size>
+   </rect>
   </property>
   <property name="styleSheet">
    <string notr="true"/>
@@ -195,7 +191,7 @@
       <item>
        <widget class="QStackedWidget" name="description_stacked_widget">
         <property name="currentIndex">
-         <number>1</number>
+         <number>0</number>
         </property>
         <widget class="QWidget" name="edit_tab">
          <layout class="QHBoxLayout" name="edit_layout">
