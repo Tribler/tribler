@@ -88,7 +88,7 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
 
         self.freeze_controls = freeze_controls_class
         self.setStyleSheet("QToolTip { color: #222222; background-color: #eeeeee; border: 0px; }")
-        self.channel_description_container.setHidden(True)
+        #self.channel_description_container.setHidden(True)
 
     @property
     def personal_channel_model(self):
@@ -102,7 +102,9 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         if response and response.get("success", False):
             if not self.autocommit_enabled:
                 self.commit_control_bar.setHidden(True)
-            if self.model:
+            if (self.model
+                    and self.model.channel_info.get("state", None) == "Personal"
+                    and self.model.channel_info.get("dirty", False)):
                 self.model.reset()
                 self.update_labels()
 
@@ -235,7 +237,6 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         self.model.reset()
 
     def disconnect_current_model(self):
-        self.model.info_changed.disconnect()
         disconnect(self.window().core_manager.events_manager.node_info_updated, self.model.update_node_info)
         disconnect(
             self.window().core_manager.events_manager.received_remote_query_results, self.model.on_new_entry_received
@@ -340,9 +341,11 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
 
         if is_a_channel:
             self.channel_description_container.initialize_with_channel(self.model.channel_info["public_key"],
-                                                                       self.model.channel_info["id"])
+                                                                       self.model.channel_info["id"],
+                                                                       edit=personal)
         else:
-            self.channel_description_container.setHidden(True)
+            pass
+            #self.channel_description_container.setHidden(True)
 
         self.category_selector.setHidden(root and (discovered or personal_model))
         # initialize the channel page

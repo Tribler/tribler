@@ -23,7 +23,7 @@ from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, R
 from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_NOT_FOUND, RESTResponse
 from tribler_core.restapi.schema import HandledErrorSchema
 from tribler_core.utilities import path_util
-from tribler_core.utilities.json_util import loads
+from tribler_core.utilities.json_util import loads, dumps
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import is_infohash, parse_magnetlink
 
@@ -179,25 +179,25 @@ class ChannelsEndpoint(ChannelsEndpointBase):
                 lambda g: g.public_key == channel_pk and g.origin_id == channel_id
             ).first()
 
-        response_dict = loads(description_node.text) if description_node is not None else {}
+        response_dict = loads(description_node.json_text) if (description_node is not None) else {}
         return RESTResponse(response_dict)
 
     async def put_channel_description(self, request):
         channel_pk, channel_id = self.get_channel_from_request(request)
         request_parsed = await request.json()
-        updated_text = request_parsed["text"]
+        updated_json_text = dumps({"description_text": request_parsed["description_text"]})
         with db_session:
             # TODO: fix the case when multiple descriptions nodes are present
             description_node = self.session.mds.DescriptionNode.select(
                 lambda g: g.public_key == channel_pk and g.origin_id == channel_id
             ).first()
             if description_node is not None:
-                description_node.update_properties({"text": updated_text})
+                description_node.update_properties({"json_text": updated_json_text})
             else:
                 description_node = self.session.mds.DescriptionNode(
-                    public_key=channel_pk, origin_id=channel_id, text=updated_text
+                    public_key=channel_pk, origin_id=channel_id, json_text=updated_json_text
                 )
-        return RESTResponse(description_node.to_simple_dict())
+        return RESTResponse(loads(description_node.json_text))
 
     @docs(
         tags=['Metadata'],

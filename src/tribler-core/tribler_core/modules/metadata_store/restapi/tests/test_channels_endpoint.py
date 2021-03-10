@@ -133,13 +133,15 @@ async def test_get_channel_description(enable_chant, enable_api, session):
     """
     Test getting description of the channel from the database
     """
+    descr_txt = "foobar"
     with db_session:
         chan = session.mds.ChannelMetadata.create_channel(title="bla")
-        description_node = session.mds.DescriptionNode(origin_id=chan.id_, text=dumps({"description_text": "foobar"}))
-    json_dict = await do_request(
+        description_node = session.mds.DescriptionNode(origin_id=chan.id_,
+                                                       json_text=dumps({"description_text": descr_txt}))
+    response_dict = await do_request(
         session, f'channels/{hexlify(chan.public_key)}/{chan.id_}/description', expected_code=200
     )
-    assert json_dict == loads(description_node.text)
+    assert response_dict == loads(description_node.json_text)
 
 
 @pytest.mark.asyncio
@@ -150,27 +152,27 @@ async def test_put_new_channel_description(enable_chant, enable_api, session):
     new_descr = "lalala"
     with db_session:
         chan = session.mds.ChannelMetadata.create_channel(title="bla")
-    json_dict = await do_request(
+    response_dict = await do_request(
         session,
         f'channels/{hexlify(chan.public_key)}/{chan.id_}/description',
         request_type="PUT",
-        post_data={"text": new_descr},
+        post_data={"description_text": new_descr},
         expected_code=200,
     )
 
-    assert json_dict["text"] == new_descr
+    assert response_dict == {"description_text": new_descr}
 
     # Test updating description of a channel
     updated_descr = "foobar"
-    json_dict = await do_request(
+    response_dict = await do_request(
         session,
         f'channels/{hexlify(chan.public_key)}/{chan.id_}/description',
         request_type="PUT",
-        post_data={"text": updated_descr},
+        post_data={"description_text": updated_descr},
         expected_code=200,
     )
 
-    assert json_dict["text"] == updated_descr
+    assert response_dict == {"description_text": updated_descr}
 
 
 @pytest.mark.asyncio

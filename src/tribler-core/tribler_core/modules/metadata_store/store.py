@@ -28,7 +28,7 @@ from tribler_core.modules.metadata_store.orm_bindings import (
     torrent_metadata,
     torrent_state,
     tracker_state,
-    vsids,
+    vsids, json_node,
 )
 from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import get_mdblob_sequence_number
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import LEGACY_ENTRY, TODELETE
@@ -142,6 +142,7 @@ class MetadataStore:
         self.CollectionNode = collection_node.define_binding(self._db)
         self.TorrentMetadata = torrent_metadata.define_binding(self._db)
         self.ChannelMetadata = channel_metadata.define_binding(self._db)
+        self.JsonNode = json_node.define_binding(self._db)
         self.DescriptionNode = description_node.define_binding(self._db)
         self.ChannelVote = channel_vote.define_binding(self._db)
         self.ChannelPeer = channel_peer.define_binding(self._db)

@@ -6,7 +6,7 @@ from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt, pyqtSignal
 from tribler_common.simpledefs import CHANNELS_VIEW_UUID, CHANNEL_STATE
 
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import NEW
-from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE
+from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 
 from tribler_gui.defs import ACTION_BUTTONS, BITTORRENT_BIRTHDAY, COMMIT_STATUS_TODELETE, HEALTH_CHECKING
 from tribler_gui.i18n import tr
@@ -411,6 +411,8 @@ class ChannelContentModel(RemoteTableModel):
 
         if self.type_filter is not None:
             kwargs.update({"metadata_type": self.type_filter})
+        else:
+            kwargs.update({"metadata_type": [REGULAR_TORRENT, COLLECTION_NODE]})
         if self.subscribed_only is not None:
             kwargs.update({"subscribed": self.subscribed_only})
         if self.exclude_deleted is not None:
@@ -535,11 +537,6 @@ class PersonalChannelsModel(ChannelContentModel):
             method='POST',
             raw_data=json.dumps({"name": channel_name}) if channel_name else None,
         )
-
-    def on_query_results(self, response, **kwargs):
-        if super().on_query_results(response, **kwargs):
-            if response.get("results"):
-                self.info_changed.emit(response["results"])
 
     def on_create_query_results(self, response, **kwargs):
         # This is a hack to put the newly created object at the top of the table

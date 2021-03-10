@@ -20,7 +20,8 @@ TYPELESS = 100
 CHANNEL_NODE = 200
 METADATA_NODE = 210
 COLLECTION_NODE = 220
-DESCRIPTION_NODE = 230
+JSONNODE = 230
+DESCRIPTION_NODE = 231
 REGULAR_TORRENT = 300
 CHANNEL_TORRENT = 400
 DELETED = 500
@@ -206,14 +207,14 @@ class ChannelNodePayload(SignedPayload):
         return dct
 
 
-class DescriptionNodePayload(ChannelNodePayload):
+class JsonNodePayload(ChannelNodePayload):
     format_list = ChannelNodePayload.format_list + ['varlenI']
 
     def __init__(self, metadata_type, reserved_flags, public_key,
                  id_, origin_id, timestamp,
-                 text,
+                 json_text,
                  **kwargs):
-        self.text = text.decode('utf-8') if isinstance(text, bytes) else text
+        self.json_text = json_text.decode('utf-8') if isinstance(json_text, bytes) else json_text
         super().__init__(
             metadata_type, reserved_flags, public_key,
             id_, origin_id, timestamp,
@@ -222,27 +223,31 @@ class DescriptionNodePayload(ChannelNodePayload):
 
     def to_pack_list(self):
         data = super().to_pack_list()
-        data.append(('varlenI', self.text.encode('utf-8')))
+        data.append(('varlenI', self.json_text.encode('utf-8')))
         return data
 
     @classmethod
     def from_unpack_list(
             cls, metadata_type, reserved_flags, public_key,
             id_, origin_id, timestamp,
-            text,
+            json_text,
             **kwargs
     ):
         return DescriptionNodePayload(
             metadata_type, reserved_flags, public_key,
             id_, origin_id, timestamp,
-            text,
+            json_text,
             **kwargs
         )
 
     def to_dict(self):
         dct = super().to_dict()
-        dct.update({"text": self.text})
+        dct.update({"json_text": self.json_text})
         return dct
+
+
+class DescriptionNodePayload(JsonNodePayload):
+    pass
 
 
 class MetadataNodePayload(ChannelNodePayload):
