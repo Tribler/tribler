@@ -191,7 +191,7 @@
       <item>
        <layout class="QHBoxLayout" name="horizontalLayout">
         <item>
-         <widget class="QLabel" name="channel_picture">
+         <widget class="ClickableLabel" name="channel_picture">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
             <horstretch>0</horstretch>
@@ -306,6 +306,11 @@
   </layout>
  </widget>
  <customwidgets>
+  <customwidget>
+   <class>ClickableLabel</class>
+   <extends>QLabel</extends>
+   <header>tribler_gui.widgets.clickablewidgets.h</header>
+  </customwidget>
   <customwidget>
    <class>UnderlineTabButton</class>
    <extends>QToolButton</extends>

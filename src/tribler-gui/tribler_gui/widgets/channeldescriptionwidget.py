@@ -1,5 +1,6 @@
 from PyQt5 import uic
-from PyQt5.QtWidgets import QTextEdit
+from PyQt5.QtCore import QDir
+from PyQt5.QtWidgets import QTextEdit, QFileDialog
 
 from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
@@ -28,15 +29,11 @@ class ChannelDescriptionWidget(AddBreadcrumbOnShowMixin, widget_form, widget_cla
         self.edit_mode_tab.buttons[PREVIEW_BUTTON_NUM].setEnabled(True)
         self.edit_mode_tab.buttons[PREVIEW_BUTTON_NUM].setChecked(True)
 
+        # Note that button signals are connected
+        # automatically by connectSlotsByName when loading the .ui file
         connect(self.edit_mode_tab.clicked_tab_button, self.tab_button_clicked)
 
-        connect(self.save_button.clicked, self.save_clicked)
-        connect(self.cancel_button.clicked, self.cancel_clicked)
-        connect(self.start_editing.clicked, self.clicked_start_editing)
-        connect(self.create_description_button.clicked, self.create_description_clicked)
-
         self.description_text = None
-        self.has_description = False
 
         self.channel_pk = None
         self.channel_id = None
@@ -55,18 +52,18 @@ class ChannelDescriptionWidget(AddBreadcrumbOnShowMixin, widget_form, widget_cla
             self.description_text = self.description_text_widget.toPlainText()
             self.switch_to_preview()
 
-    def clicked_start_editing(self, *args):
+    def on_start_editing_clicked(self, *args):
         self.edit_mode_tab.setHidden(False)
         self.start_editing.setHidden(True)
         self.switch_to_edit(update_buttons=True)
         self.bottom_buttons_container.setHidden(False)
 
-    def create_description_clicked(self, *args):
+    def on_create_description_button_clicked(self, *args):
         self.description_text = ""
         self.show_description_page()
-        self.clicked_start_editing()
+        self.on_start_editing_clicked()
 
-    def save_clicked(self, *args):
+    def on_save_button_clicked(self, *args):
         self.bottom_buttons_container.setHidden(True)
         self.description_text = self.description_text_widget.toPlainText()
         self.switch_to_preview(update_buttons=True)
@@ -77,7 +74,15 @@ class ChannelDescriptionWidget(AddBreadcrumbOnShowMixin, widget_form, widget_cla
             data={"description_text": self.description_text}
         )
 
-    def cancel_clicked(self, *args):
+    def on_channel_picture_clicked(self):
+        if not (self.edit_enabled and self.edit_mode_tab.get_selected_index() == EDIT_BUTTON_NUM):
+            return
+        filename = QFileDialog.getOpenFileName(
+            self, "Please select a picture file", QDir.homePath(), "Images (*.png *.xpm *.jpg)"
+        )
+        print (filename)
+
+    def on_cancel_button_clicked(self, *args):
         self.initialize_with_channel(self.channel_pk, self.channel_id, edit=self.edit_enabled)
 
     def switch_to_preview(self, update_buttons=False):
@@ -114,7 +119,6 @@ class ChannelDescriptionWidget(AddBreadcrumbOnShowMixin, widget_form, widget_cla
         self.show_description_page()
         self.setHidden(False)
         self.description_text = result["description_text"]
-        self.has_description = True
         self.description_text_widget.setMarkdown(self.description_text)
         self.switch_to_preview(update_buttons=True)
         self.edit_mode_tab.setHidden(True)
