@@ -33,8 +33,10 @@ class ChannelDescriptionWidget(AddBreadcrumbOnShowMixin, widget_form, widget_cla
         connect(self.save_button.clicked, self.save_clicked)
         connect(self.cancel_button.clicked, self.cancel_clicked)
         connect(self.start_editing.clicked, self.clicked_start_editing)
+        connect(self.create_description_button.clicked, self.create_description_clicked)
 
         self.description_text = None
+        self.has_description = False
 
         self.channel_pk = None
         self.channel_id = None
@@ -59,6 +61,11 @@ class ChannelDescriptionWidget(AddBreadcrumbOnShowMixin, widget_form, widget_cla
         self.switch_to_edit(update_buttons=True)
         self.bottom_buttons_container.setHidden(False)
 
+    def create_description_clicked(self, *args):
+        self.description_text = ""
+        self.show_description_page()
+        self.clicked_start_editing()
+
     def save_clicked(self, *args):
         self.bottom_buttons_container.setHidden(True)
         self.description_text = self.description_text_widget.toPlainText()
@@ -71,10 +78,7 @@ class ChannelDescriptionWidget(AddBreadcrumbOnShowMixin, widget_form, widget_cla
         )
 
     def cancel_clicked(self, *args):
-        self.edit_mode_tab.setHidden(True)
-        self.start_editing.setHidden(False)
-        self.switch_to_preview()
-        self.bottom_buttons_container.setHidden(True)
+        self.initialize_with_channel(self.channel_pk, self.channel_id, edit=self.edit_enabled)
 
     def switch_to_preview(self, update_buttons=False):
         self.description_text_widget.setMarkdown(self.description_text)
@@ -100,16 +104,17 @@ class ChannelDescriptionWidget(AddBreadcrumbOnShowMixin, widget_form, widget_cla
 
     def _on_description_received(self, result):
         print(result)
+        self.bottom_buttons_container.setHidden(True)
+        self.setHidden(not self.edit_enabled)
         if not result:
             # No data + edit enabled = invite to create a description
             if self.edit_enabled:
                 self.show_create_page()
-            else:
-                self.setHidden(True)
             return
         self.show_description_page()
         self.setHidden(False)
         self.description_text = result["description_text"]
+        self.has_description = True
         self.description_text_widget.setMarkdown(self.description_text)
         self.switch_to_preview(update_buttons=True)
         self.edit_mode_tab.setHidden(True)

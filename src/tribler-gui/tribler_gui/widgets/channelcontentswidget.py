@@ -344,8 +344,7 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
                                                                        self.model.channel_info["id"],
                                                                        edit=personal)
         else:
-            pass
-            #self.channel_description_container.setHidden(True)
+            self.channel_description_container.setHidden(True)
 
         self.category_selector.setHidden(root and (discovered or personal_model))
         # initialize the channel page
