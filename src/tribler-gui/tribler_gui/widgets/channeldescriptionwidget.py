@@ -7,9 +7,6 @@ from tribler_gui.utilities import get_ui_file_path, connect
 
 widget_form, widget_class = uic.loadUiType(get_ui_file_path('channel_description.ui'))
 
-TAB_EDIT = 0
-TAB_PREVIEW = 1
-
 EDIT_BUTTON = "edit_mode_button"
 PREVIEW_BUTTON = "preview_mode_button"
 EDIT_BUTTON_NUM = 0
@@ -25,11 +22,9 @@ class ChannelDescriptionWidget(AddBreadcrumbOnShowMixin, widget_form, widget_cla
             self.setupUi(self)
         except SystemError:
             pass
-
         self.edit_mode_tab.initialize()
 
         # Set the preview tab and button as default
-        self.description_stacked_widget.setCurrentIndex(TAB_PREVIEW)
         self.edit_mode_tab.buttons[PREVIEW_BUTTON_NUM].setEnabled(True)
         self.edit_mode_tab.buttons[PREVIEW_BUTTON_NUM].setChecked(True)
 
@@ -52,12 +47,11 @@ class ChannelDescriptionWidget(AddBreadcrumbOnShowMixin, widget_form, widget_cla
         self.bottom_buttons_container.setHidden(True)
 
     def tab_button_clicked(self, button_name):
-        print(button_name)
         if button_name == EDIT_BUTTON:
             self.switch_to_edit()
         elif button_name == PREVIEW_BUTTON:
+            self.description_text = self.description_text_widget.toPlainText()
             self.switch_to_preview()
-            self.update_desciption_text_preview(self.edit_text_widget.toPlainText())
 
     def clicked_start_editing(self, *args):
         self.edit_mode_tab.setHidden(False)
@@ -67,7 +61,8 @@ class ChannelDescriptionWidget(AddBreadcrumbOnShowMixin, widget_form, widget_cla
 
     def save_clicked(self, *args):
         self.bottom_buttons_container.setHidden(True)
-        self.description_text = self.edit_text_widget.toPlainText()
+        self.description_text = self.description_text_widget.toPlainText()
+        self.switch_to_preview(update_buttons=True)
         TriblerNetworkRequest(
             f'channels/{self.channel_pk}/{self.channel_id}/description',
             self._on_description_received,
@@ -82,19 +77,18 @@ class ChannelDescriptionWidget(AddBreadcrumbOnShowMixin, widget_form, widget_cla
         self.bottom_buttons_container.setHidden(True)
 
     def switch_to_preview(self, update_buttons=False):
-        self.description_stacked_widget.setCurrentIndex(TAB_PREVIEW)
+        self.description_text_widget.setMarkdown(self.description_text)
+        self.description_text_widget.setReadOnly(True)
         if update_buttons:
             self.edit_mode_tab.deselect_all_buttons(
                 except_select=self.edit_mode_tab.buttons[PREVIEW_BUTTON_NUM])
 
     def switch_to_edit(self, update_buttons=False):
-        self.description_stacked_widget.setCurrentIndex(TAB_EDIT)
+        self.description_text_widget.setPlainText(self.description_text)
+        self.description_text_widget.setReadOnly(False)
         if update_buttons:
             self.edit_mode_tab.deselect_all_buttons(
                 except_select=self.edit_mode_tab.buttons[EDIT_BUTTON_NUM])
-
-    def update_desciption_text_preview(self, text: str):
-        self.preview_text_widget.setMarkdown(text)
 
     def show_create_page(self):
         self.create_page.setHidden(False)
@@ -116,8 +110,7 @@ class ChannelDescriptionWidget(AddBreadcrumbOnShowMixin, widget_form, widget_cla
         self.show_description_page()
         self.setHidden(False)
         self.description_text = result["description_text"]
-        self.edit_text_widget.setPlainText(self.description_text)
-        self.update_desciption_text_preview(self.description_text)
+        self.description_text_widget.setMarkdown(self.description_text)
         self.switch_to_preview(update_buttons=True)
         self.edit_mode_tab.setHidden(True)
         if self.edit_enabled:

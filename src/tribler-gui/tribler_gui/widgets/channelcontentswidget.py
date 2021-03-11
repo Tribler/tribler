@@ -88,7 +88,7 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
 
         self.freeze_controls = freeze_controls_class
         self.setStyleSheet("QToolTip { color: #222222; background-color: #eeeeee; border: 0px; }")
-        #self.channel_description_container.setHidden(True)
+        self.channel_description_container.setHidden(True)
 
     @property
     def personal_channel_model(self):

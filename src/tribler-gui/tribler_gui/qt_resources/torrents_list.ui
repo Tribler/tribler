@@ -549,6 +549,12 @@ QToolButton{border:none;margin-left:16px;}</string>
        <verstretch>0</verstretch>
       </sizepolicy>
      </property>
+     <property name="maximumSize">
+      <size>
+       <width>16777215</width>
+       <height>400</height>
+      </size>
+     </property>
     </widget>
    </item>
    <item>
