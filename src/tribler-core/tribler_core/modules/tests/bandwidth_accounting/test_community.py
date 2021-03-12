@@ -1,3 +1,5 @@
+from asyncio import sleep
+
 from ipv8.test.base import TestBase
 from ipv8.test.mocking.ipv8 import MockIPv8
 
@@ -50,6 +52,15 @@ class TestBandwidthAccountingCommunity(TestBase):
         assert self.nodes[1].overlay.database.get_total_taken(pk1) == 500
         assert self.nodes[0].overlay.database.get_total_taken(pk2) == 1500
         assert self.nodes[1].overlay.database.get_total_taken(pk2) == 1500
+
+    async def test_bilateral_transaction_timestamps(self):
+        """
+        Test creating subsequent transactions and check whether the timestamps are different.
+        """
+        tx1 = await self.nodes[0].overlay.do_payout(self.nodes[1].overlay.my_peer, 500)
+        await sleep(0.1)
+        tx2 = await self.nodes[0].overlay.do_payout(self.nodes[1].overlay.my_peer, 500)
+        assert tx1.timestamp != tx2.timestamp
 
     async def test_invalid_transaction(self):
         """

@@ -8,7 +8,7 @@ context.
 from __future__ import annotations
 
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Dict
 
 from ipv8.keyvault.crypto import default_eccrypto
@@ -32,7 +32,7 @@ class BandwidthTransactionData:
     signature_a: bytes
     signature_b: bytes
     amount: int
-    timestamp: int = int(round(time.time() * 1000))
+    timestamp: int = field(default_factory=lambda: int(round(time.time() * 1000)))
 
     def pack(self, signature_a=True, signature_b=True) -> bytes:
         """
