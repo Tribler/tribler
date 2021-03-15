@@ -138,7 +138,10 @@ class TriblerVersion:
 
         self.deleted = True
         for filename in STATE_FILES_TO_COPY:
-            (self.directory / filename).unlink(missing_ok=True)
+            try:
+                (self.directory / filename).unlink()
+            except FileNotFoundError:
+                pass
         for dirname in STATE_DIRS_TO_COPY:
             shutil.rmtree(str(self.directory / dirname), ignore_errors=True)
         if self.directory != self.root_state_dir:
