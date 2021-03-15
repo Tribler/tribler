@@ -29,6 +29,9 @@ DIRTY_STATUSES = (NEW, TODELETE, UPDATED)
 
 PUBLIC_KEY_LEN = 64
 
+CHANNEL_DESCRIPTION_FLAG = 1
+CHANNEL_THUMBNAIL_FLAG = 2
+
 
 def generate_dict_from_pony_args(cls, skip_list=None, **kwargs):
     """
@@ -45,7 +48,7 @@ def generate_dict_from_pony_args(cls, skip_list=None, **kwargs):
     return d
 
 
-def define_binding(db, logger=None, key=None):
+def define_binding(db, db_version: int, logger=None, key=None):
     class ChannelNode(db.Entity):
         """
         This is the base class of our ORM bindings. It implements methods for signing and serialization of ORM objects.
@@ -266,6 +269,7 @@ def define_binding(db, logger=None, key=None):
             if signed_attribute_changed:
                 if self.status != NEW:
                     self.status = UPDATED
+                # ACHTUNG! When using the key argument, the thing will still use _local_ timestamp counter!
                 self.timestamp = clock.tick()
                 self.sign()
 
@@ -289,5 +293,19 @@ def define_binding(db, logger=None, key=None):
                 dst_dict[k] = getattr(self, k)
             dst_dict.update({"origin_id": tgt_parent_id, "status": NEW})
             return self.__class__(**dst_dict)
+
+        def to_simple_dict(self):
+            """
+            Return a basic dictionary with information about the node
+            """
+            simple_dict = {
+                "type": self._discriminator_,
+                "id": self.id_,
+                "origin_id": self.origin_id,
+                "public_key": hexlify(self.public_key),
+                "status": self.status,
+            }
+
+            return simple_dict
 
     return ChannelNode

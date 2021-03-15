@@ -5,7 +5,7 @@ from ipv8.database import database_blob
 from pony import orm
 
 
-def define_binding(db):
+def define_binding(db, db_version: int):
     class ChannelPeer(db.Entity):
         """
         This binding stores public keys of IPv8 peers that sent us some GigaChannel data. It is used by the

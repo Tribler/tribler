@@ -564,6 +564,16 @@ QToolButton{border:none;margin-left:16px;}</string>
     </widget>
    </item>
    <item>
+    <widget class="ChannelDescriptionWidget" name="channel_description_container" native="true">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+    </widget>
+   </item>
+   <item>
     <widget class="QFrame" name="filter_header">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
@@ -921,6 +931,11 @@ QTableView::item::hover {
    <class>ToggleButton</class>
    <extends>QWidget</extends>
    <header>tribler_gui.widgets.togglebutton.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ChannelDescriptionWidget</class>
+   <extends>QWidget</extends>
+   <header>tribler_gui.widgets.channeldescriptionwidget.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

@@ -21,7 +21,7 @@ from tribler_core.modules.metadata_store.store import MetadataStore
 from tribler_core.session import Session
 from tribler_core.tests.tools.common import TESTS_DATA_DIR, TESTS_DIR
 from tribler_core.tests.tools.tracker.udp_tracker import UDPTracker
-from tribler_core.upgrade.db72_to_pony import DispersyToPonyMigration
+from tribler_core.upgrade.legacy_to_pony import DispersyToPonyMigration
 from tribler_core.utilities.unicode import hexlify
 
 

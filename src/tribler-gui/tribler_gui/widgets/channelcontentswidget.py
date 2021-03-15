@@ -88,6 +88,7 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
 
         self.freeze_controls = freeze_controls_class
         self.setStyleSheet("QToolTip { color: #222222; background-color: #eeeeee; border: 0px; }")
+        self.channel_description_container.setHidden(True)
 
         self.explanation_container.setHidden(True)
 
@@ -103,7 +104,11 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         if response and response.get("success", False):
             if not self.autocommit_enabled:
                 self.commit_control_bar.setHidden(True)
-            if self.model:
+            if (
+                self.model
+                and self.model.channel_info.get("state", None) == "Personal"
+                and self.model.channel_info.get("dirty", False)
+            ):
                 self.model.reset()
                 self.update_labels()
 
@@ -130,6 +135,9 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         # To reload the preview
         connect(self.channel_preview_button.clicked, self.preview_clicked)
 
+        # Hide channel description on scroll
+        connect(self.controller.table_view.verticalScrollBar().valueChanged, self._on_table_scroll)
+
         self.autocommit_enabled = autocommit_enabled
         if self.autocommit_enabled:
             self._enable_autocommit_timer()
@@ -143,9 +151,34 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
 
         self.channel_options_menu = self.create_channel_options_menu()
         self.channel_options_button.setMenu(self.channel_options_menu)
+        connect(self.channel_description_container.became_hidden, self._run_brain_dead_refresh)
+        connect(self.channel_description_container.description_changed, self._description_changed)
+
+    def _description_changed(self):
+        # Initialize commit timer on channel description change
+        if self.autocommit_enabled:
+            self.commit_timer.stop()
+            self.commit_timer.start(CHANNEL_COMMIT_DELAY)
+        self.update_labels(True)
+
+    def _run_brain_dead_refresh(self):
+        if self.model:
+            self.controller.brain_dead_refresh()
+
+    def _on_table_scroll(self, event):
+        # Hide the description widget when the channel is scrolled down
+        if not self.model.data_items:
+            return
+        scrollbar = self.controller.table_view.verticalScrollBar()
+        if scrollbar.minimum() < scrollbar.value() - 10 and scrollbar.maximum() > 40:
+            if not self.channel_description_container.isHidden():
+                self.channel_description_container.setHidden(True)
+        elif scrollbar.value() == scrollbar.minimum():
+            if self.channel_description_container.isHidden():
+                if self.channel_description_container.initialized:
+                    self.channel_description_container.setHidden(False)
 
     def _enable_autocommit_timer(self):
-
         self.commit_timer = QTimer()
         self.commit_timer.setSingleShot(True)
         connect(self.commit_timer.timeout, self.commit_channels)
@@ -236,7 +269,6 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         self.model.reset()
 
     def disconnect_current_model(self):
-        self.model.info_changed.disconnect()
         disconnect(self.window().core_manager.events_manager.node_info_updated, self.model.update_node_info)
         disconnect(
             self.window().core_manager.events_manager.received_remote_query_results, self.model.on_new_entry_received
@@ -247,6 +279,7 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         if len(self.channels_stack) > 1:
             self.disconnect_current_model()
             self.channels_stack.pop().deleteLater()
+            self.channel_description_container.initialized = False
 
             # We block signals to prevent triggering redundant model reloading
             with self.freeze_controls():
@@ -338,6 +371,16 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         discovered = isinstance(self.model, DiscoveredChannelsModel)
         personal_model = isinstance(self.model, PersonalChannelsModel)
         is_a_channel = self.model.channel_info.get("type", None) == CHANNEL_TORRENT
+        description_flag = self.model.channel_info.get("description_flag")
+        thumbnail_flag = self.model.channel_info.get("thumbnail_flag")
+
+        if is_a_channel and (description_flag or thumbnail_flag or personal_model):
+            self.channel_description_container.initialize_with_channel(
+                self.model.channel_info["public_key"], self.model.channel_info["id"], edit=personal and personal_model
+            )
+        else:
+            self.channel_description_container.initialized = False
+            self.channel_description_container.setHidden(True)
 
         self.category_selector.setHidden(root and (discovered or personal_model))
         # initialize the channel page

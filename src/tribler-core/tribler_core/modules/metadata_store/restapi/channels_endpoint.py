@@ -20,10 +20,11 @@ from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import DIRTY_STATUSES, NEW
 from tribler_core.modules.metadata_store.restapi.metadata_endpoint_base import MetadataEndpointBase
 from tribler_core.modules.metadata_store.restapi.metadata_schema import ChannelSchema
-from tribler_core.modules.metadata_store.serialization import REGULAR_TORRENT
+from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, REGULAR_TORRENT
 from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_NOT_FOUND, RESTResponse
 from tribler_core.restapi.schema import HandledErrorSchema
 from tribler_core.utilities import path_util
+from tribler_core.utilities.json_util import dumps, loads
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import is_infohash, parse_magnetlink
 
@@ -40,6 +41,10 @@ class ChannelsEndpoint(ChannelsEndpointBase):
             [
                 web.get('', self.get_channels),
                 web.get(r'/{channel_pk:\w*}/{channel_id:\w*}', self.get_channel_contents),
+                web.get(r'/{channel_pk:\w*}/{channel_id:\w*}/description', self.get_channel_description),
+                web.put(r'/{channel_pk:\w*}/{channel_id:\w*}/description', self.put_channel_description),
+                web.get(r'/{channel_pk:\w*}/{channel_id:\w*}/thumbnail', self.get_channel_thumbnail),
+                web.put(r'/{channel_pk:\w*}/{channel_id:\w*}/thumbnail', self.put_channel_thumbnail),
                 web.post(r'/{channel_pk:\w*}/{channel_id:\w*}/copy', self.copy_channel),
                 web.post(r'/{channel_pk:\w*}/{channel_id:\w*}/channels', self.create_channel),
                 web.post(r'/{channel_pk:\w*}/{channel_id:\w*}/collections', self.create_collection),
@@ -90,10 +95,11 @@ class ChannelsEndpoint(ChannelsEndpointBase):
         sanitized['subscribed'] = None if 'subscribed' not in request.query else bool(int(request.query['subscribed']))
         include_total = request.query.get('include_total', '')
         sanitized.update({"origin_id": 0})
+        sanitized['metadata_type'] = CHANNEL_TORRENT
 
         with db_session:
-            channels = self.session.mds.ChannelMetadata.get_entries(**sanitized)
-            total = self.session.mds.ChannelMetadata.get_total_count(**sanitized) if include_total else None
+            channels = self.session.mds.get_entries(**sanitized)
+            total = self.session.mds.get_total_count(**sanitized) if include_total else None
             channels_list = []
             for channel in channels:
                 channel_dict = channel.to_simple_dict()
@@ -154,9 +160,9 @@ class ChannelsEndpoint(ChannelsEndpointBase):
         channel_pk, channel_id = self.get_channel_from_request(request)
         sanitized.update({"channel_pk": channel_pk, "origin_id": channel_id})
         with db_session:
-            contents = self.session.mds.MetadataNode.get_entries(**sanitized)
+            contents = self.session.mds.get_entries(**sanitized)
             contents_list = [c.to_simple_dict() for c in contents]
-            total = self.session.mds.MetadataNode.get_total_count(**sanitized) if include_total else None
+            total = self.session.mds.get_total_count(**sanitized) if include_total else None
         self.add_download_progress_to_metadata_list(contents_list)
         response_dict = {
             "results": contents_list,
@@ -169,6 +175,61 @@ class ChannelsEndpoint(ChannelsEndpointBase):
             response_dict.update({"total": total})
 
         return RESTResponse(response_dict)
+
+    async def get_channel_description(self, request):
+        channel_pk, channel_id = self.get_channel_from_request(request)
+        with db_session:
+            # TODO: fix the case when multiple descriptions nodes are present
+            channel_description = self.session.mds.ChannelDescription.select(
+                lambda g: g.public_key == channel_pk and g.origin_id == channel_id
+            ).first()
+
+        response_dict = loads(channel_description.json_text) if (channel_description is not None) else {}
+        return RESTResponse(response_dict)
+
+    async def put_channel_description(self, request):
+        channel_pk, channel_id = self.get_channel_from_request(request)
+        request_parsed = await request.json()
+        updated_json_text = dumps({"description_text": request_parsed["description_text"]})
+        with db_session:
+            # TODO: fix the case when multiple descriptions nodes are present
+            channel_description = self.session.mds.ChannelDescription.select(
+                lambda g: g.public_key == channel_pk and g.origin_id == channel_id
+            ).first()
+            if channel_description is not None:
+                channel_description.update_properties({"json_text": updated_json_text})
+            else:
+                channel_description = self.session.mds.ChannelDescription(
+                    public_key=channel_pk, origin_id=channel_id, json_text=updated_json_text, status=NEW
+                )
+        return RESTResponse(loads(channel_description.json_text))
+
+    async def get_channel_thumbnail(self, request):
+        channel_pk, channel_id = self.get_channel_from_request(request)
+        with db_session:
+            # TODO: fix the case when multiple thumbnail nodes are present
+            obj = self.session.mds.ChannelThumbnail.select(
+                lambda g: g.public_key == channel_pk and g.origin_id == channel_id
+            ).first()
+        return web.Response(body=obj.binary_data, content_type=obj.data_type) if obj else web.Response(status=400)
+
+    async def put_channel_thumbnail(self, request):
+        content_type = request.headers["Content-Type"]
+        post_body = await request.read()
+        channel_pk, channel_id = self.get_channel_from_request(request)
+        obj_properties = {"binary_data": post_body, "data_type": content_type}
+        with db_session:
+            # TODO: fix the case when multiple thumbnail nodes are present
+            obj = self.session.mds.ChannelThumbnail.select(
+                lambda g: g.public_key == channel_pk and g.origin_id == channel_id,
+            ).first()
+            if obj is not None:
+                obj.update_properties(obj_properties)
+            else:
+                self.session.mds.ChannelThumbnail(
+                    public_key=channel_pk, origin_id=channel_id, status=NEW, **obj_properties
+                )
+        return web.Response(status=201)
 
     @docs(
         tags=['Metadata'],
@@ -419,7 +480,7 @@ class ChannelsEndpoint(ChannelsEndpointBase):
         sanitized["self_checked_torrent"] = True
         sanitized["health_checked_after"] = int(time()) - POPULAR_TORRENTS_FRESHNESS_PERIOD
         with db_session:
-            contents = self.session.mds.TorrentMetadata.get_entries(**sanitized)
+            contents = self.session.mds.get_entries(**sanitized)
             contents_list = [c.to_simple_dict() for c in contents]
         self.add_download_progress_to_metadata_list(contents_list)
 

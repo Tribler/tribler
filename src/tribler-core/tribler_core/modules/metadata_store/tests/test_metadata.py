@@ -31,7 +31,13 @@ def test_serialization(metadata_store):
     """
     Test converting metadata to serialized data and back
     """
-    for md_type in [metadata_store.ChannelNode, metadata_store.MetadataNode, metadata_store.CollectionNode]:
+    for md_type in [
+        metadata_store.ChannelNode,
+        metadata_store.MetadataNode,
+        metadata_store.CollectionNode,
+        metadata_store.ChannelDescription,
+        metadata_store.ChannelThumbnail,
+    ]:
         metadata1 = md_type()
         serialized1 = metadata1.serialized()
         metadata1.delete()

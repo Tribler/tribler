@@ -15,7 +15,7 @@ from tribler_core.modules.metadata_store.community.remote_query_community import
     RemoteQueryCommunitySettings,
 )
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT
-from tribler_core.modules.metadata_store.store import UNKNOWN_CHANNEL, UNKNOWN_COLLECTION, UNKNOWN_TORRENT
+from tribler_core.modules.metadata_store.store import ObjState
 
 minimal_blob_size = 200
 maximum_payload_size = 1024
@@ -80,11 +80,19 @@ class GigaChannelCommunity(RemoteQueryCommunity):
         def on_packet_callback(_, processing_results):
             # We use responses for requests about subscribed channels to bump our local channels ratings
             with db_session:
-                for c in [md for md, _ in processing_results if md.metadata_type == CHANNEL_TORRENT]:
+                for c in [r.md_obj for r in processing_results if r.md_obj.metadata_type == CHANNEL_TORRENT]:
                     self.mds.vote_bump(c.public_key, c.id_, peer.public_key.key_to_bin()[10:])
 
             # Notify GUI about the new channels
-            new_channels = [md for md, result in processing_results if result == UNKNOWN_CHANNEL and md.origin_id == 0]
+            new_channels = [
+                r.md_obj
+                for r in processing_results
+                if (
+                    r.obj_state == ObjState.UNKNOWN_OBJECT
+                    and r.md_obj.metadata_type == CHANNEL_TORRENT
+                    and r.md_obj.origin_id == 0
+                )
+            ]
             if self.notifier and new_channels:
                 self.notifier.notify(
                     NTFY.CHANNEL_DISCOVERED,
@@ -105,9 +113,9 @@ class GigaChannelCommunity(RemoteQueryCommunity):
 
         def notify_gui(_, processing_results):
             search_results = [
-                md.to_simple_dict()
-                for md, result in processing_results
-                if result in (UNKNOWN_TORRENT, UNKNOWN_CHANNEL, UNKNOWN_COLLECTION)
+                r.md_obj.to_simple_dict()
+                for r in processing_results
+                if r.obj_state in (ObjState.UNKNOWN_OBJECT, ObjState.UPDATED_OUR_VERSION)
             ]
             self.notifier.notify(NTFY.REMOTE_QUERY_RESULTS, {"uuid": str(request_uuid), "results": search_results})
 

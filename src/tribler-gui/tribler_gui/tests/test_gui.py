@@ -260,14 +260,32 @@ def test_popular_page(tribler_api, window):
     screenshot(window, name=f"{widget_name}-page")
 
 
-# @pytest.mark.guitest
+def wait_for_thumbnail(chan_widget):
+    for _ in range(0, 1000 * 10, 100):
+        QTest.qWait(100)
+        if chan_widget.channel_description_container.channel_thumbnail_bytes is not None:
+            return
+
+    # thumbnail was not populated in time, fail the test
+    raise TimeoutException("The thumbnail was not shown within 10 seconds")
+
+
+@pytest.mark.guitest
 def test_edit_channel_torrents(tribler_api, window):
     wait_for_list_populated(window.channels_menu_list)
+
     idx = window.channels_menu_list.model().index(0, 0)
     item_pos = window.channels_menu_list.visualRect(idx).center()
     QTest.mouseClick(window.channels_menu_list.viewport(), Qt.LeftButton, pos=item_pos)
     wait_for_list_populated(window.channel_contents_page.content_table)
     screenshot(window, name="edit_channel_committed")
+
+    idx = window.channels_menu_list.model().index(1, 0)
+    item_pos = window.channels_menu_list.visualRect(idx).center()
+    QTest.mouseClick(window.channels_menu_list.viewport(), Qt.LeftButton, pos=item_pos)
+    wait_for_list_populated(window.channel_contents_page.content_table)
+    wait_for_thumbnail(window.channel_contents_page)
+    screenshot(window, name="edit_channel_thumbnail_description")
 
 
 @pytest.mark.guitest

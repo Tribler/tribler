@@ -7,7 +7,7 @@ from pony.orm import db_session
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import LEGACY_ENTRY
 
 
-def define_binding(db):
+def define_binding(db, db_version: int):
     # ACHTUNG! This thing should be used as a singleton, i.e. there should be only a single row there!
     # We store it as a DB object only to make the counters persistent.
 

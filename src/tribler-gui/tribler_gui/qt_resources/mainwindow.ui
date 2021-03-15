@@ -107,7 +107,7 @@ color:#B5B5B5;
 background-color: #202020;
 }
 
-TabButtonPanel QToolButton {
+TabButtonPanel UnderlineTabButton{
 color: #B5B5B5;
 border: none;
 border-bottom: 3px solid transparent;
@@ -115,11 +115,11 @@ background: none;
 font-size: 14px;
 }
 
-TabButtonPanel QToolButton::hover {
+TabButtonPanel UnderlineTabButton::hover {
 color: white;
 }
 
-TabButtonPanel QToolButton::checked {
+TabButtonPanel UnderlineTabButton::checked {
 border-bottom: 3px solid #e67300;
 color: white;
 }

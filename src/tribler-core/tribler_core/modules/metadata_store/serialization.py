@@ -20,6 +20,10 @@ TYPELESS = 100
 CHANNEL_NODE = 200
 METADATA_NODE = 210
 COLLECTION_NODE = 220
+JSON_NODE = 230
+CHANNEL_DESCRIPTION = 231
+BINARY_NODE = 240
+CHANNEL_THUMBNAIL = 241
 REGULAR_TORRENT = 300
 CHANNEL_TORRENT = 400
 DELETED = 500
@@ -59,14 +63,9 @@ class UnknownBlobTypeException(Exception):
 def read_payload_with_offset(data, offset=0):
     # First we have to determine the actual payload type
     metadata_type = struct.unpack_from('>H', database_blob(data), offset=offset)[0]
-    if metadata_type == DELETED:
-        return DeletedMetadataPayload.from_signed_blob_with_offset(data, offset=offset)
-    elif metadata_type == REGULAR_TORRENT:
-        return TorrentMetadataPayload.from_signed_blob_with_offset(data, offset=offset)
-    elif metadata_type == COLLECTION_NODE:
-        return CollectionNodePayload.from_signed_blob_with_offset(data, offset=offset)
-    elif metadata_type == CHANNEL_TORRENT:
-        return ChannelMetadataPayload.from_signed_blob_with_offset(data, offset=offset)
+    payload_class = DISCRIMINATOR_TO_PAYLOAD_CLASS.get(metadata_type)
+    if payload_class is not None:
+        return payload_class.from_signed_blob_with_offset(data, offset=offset)
 
     # Unknown metadata type, raise exception
     raise UnknownBlobTypeException
@@ -202,6 +201,87 @@ class ChannelNodePayload(SignedPayload):
              "origin_id": self.origin_id,
              "timestamp": self.timestamp
              })
+        return dct
+
+
+class JsonNodePayload(ChannelNodePayload):
+    format_list = ChannelNodePayload.format_list + ['varlenI']
+
+    def __init__(self, metadata_type, reserved_flags, public_key,
+                 id_, origin_id, timestamp,
+                 json_text,
+                 **kwargs):
+        self.json_text = json_text.decode('utf-8') if isinstance(json_text, bytes) else json_text
+        super().__init__(
+            metadata_type, reserved_flags, public_key,
+            id_, origin_id, timestamp,
+            **kwargs
+        )
+
+    def to_pack_list(self):
+        data = super().to_pack_list()
+        data.append(('varlenI', self.json_text.encode('utf-8')))
+        return data
+
+    @classmethod
+    def from_unpack_list(
+            cls, metadata_type, reserved_flags, public_key,
+            id_, origin_id, timestamp,
+            json_text,
+            **kwargs
+    ):
+        return cls(
+            metadata_type, reserved_flags, public_key,
+            id_, origin_id, timestamp,
+            json_text,
+            **kwargs
+        )
+
+    def to_dict(self):
+        dct = super().to_dict()
+        dct.update({"json_text": self.json_text})
+        return dct
+
+
+class BinaryNodePayload(ChannelNodePayload):
+    format_list = ChannelNodePayload.format_list + ['varlenI', 'varlenI']
+
+    def __init__(self, metadata_type, reserved_flags, public_key,
+                 id_, origin_id, timestamp,
+                 binary_data, data_type,
+                 **kwargs):
+        self.binary_data = binary_data
+        self.data_type = data_type.decode('utf-8') if isinstance(data_type, bytes) else data_type
+        super().__init__(
+            metadata_type, reserved_flags, public_key,
+            id_, origin_id, timestamp,
+            **kwargs
+        )
+
+    def to_pack_list(self):
+        data = super().to_pack_list()
+        data.append(('varlenI', self.binary_data))
+        data.append(('varlenI', self.data_type.encode('utf-8')))
+        return data
+
+    @classmethod
+    def from_unpack_list(
+            cls, metadata_type, reserved_flags, public_key,
+            id_, origin_id, timestamp,
+            binary_data, data_type,
+            **kwargs
+    ):
+        return cls(
+            metadata_type, reserved_flags, public_key,
+            id_, origin_id, timestamp,
+            binary_data, data_type,
+            **kwargs
+        )
+
+    def to_dict(self):
+        dct = super().to_dict()
+        dct.update({"binary_data": self.binary_data})
+        dct.update({"data_type": self.data_type})
         return dct
 
 
@@ -439,3 +519,12 @@ class DeletedMetadataPayload(SignedPayload):
         dct.update({"delete_signature": self.delete_signature})
         return dct
 # fmt: on
+
+DISCRIMINATOR_TO_PAYLOAD_CLASS = {
+    REGULAR_TORRENT: TorrentMetadataPayload,
+    CHANNEL_TORRENT: ChannelMetadataPayload,
+    COLLECTION_NODE: CollectionNodePayload,
+    CHANNEL_THUMBNAIL: BinaryNodePayload,
+    CHANNEL_DESCRIPTION: JsonNodePayload,
+    DELETED: DeletedMetadataPayload,
+}

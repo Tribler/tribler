@@ -11,6 +11,8 @@ from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.modules.metadata_store.discrete_clock import clock
 from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import chunks
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import (
+    CHANNEL_DESCRIPTION_FLAG,
+    CHANNEL_THUMBNAIL_FLAG,
     COMMITTED,
     DIRTY_STATUSES,
     NEW,
@@ -22,7 +24,7 @@ from tribler_core.modules.metadata_store.serialization import COLLECTION_NODE, C
 from tribler_core.utilities.random_utils import random_infohash
 
 
-def define_binding(db):
+def define_binding(db, db_version: int):
     class CollectionNode(db.MetadataNode):
         """
         This ORM class represents a generic named container, i.e. a folder. It is used as an intermediary node
@@ -54,7 +56,12 @@ def define_binding(db):
         def to_simple_dict(self):
             result = super().to_simple_dict()
             result.update(
-                {"torrents": self.num_entries, "state": self.state, "dirty": self.dirty if self.is_personal else False}
+                {
+                    "torrents": self.num_entries,
+                    "state": self.state,
+                    "description_flag": self.description_flag,
+                    "thumbnail_flag": self.thumbnail_flag,
+                }
             )
             return result
 
@@ -120,6 +127,14 @@ def define_binding(db):
         @property
         def contents_len(self):
             return orm.count(self.contents)
+
+        @property
+        def thumbnail_flag(self):
+            return bool(self.reserved_flags & CHANNEL_THUMBNAIL_FLAG)
+
+        @property
+        def description_flag(self):
+            return bool(self.reserved_flags & CHANNEL_DESCRIPTION_FLAG)
 
         @db_session
         def add_torrent_to_channel(self, tdef, extra_info=None):

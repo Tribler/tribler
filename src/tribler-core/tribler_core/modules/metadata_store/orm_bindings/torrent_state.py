@@ -3,7 +3,7 @@ from ipv8.database import database_blob
 from pony import orm
 
 
-def define_binding(db):
+def define_binding(db, db_version: int):
     class TorrentState(db.Entity):
         """
         This ORM class represents torrent swarms. It is used by HealthChecker.

@@ -1,6 +1,9 @@
 import base64
 import shutil
+from binascii import unhexlify
 from unittest.mock import Mock
+
+from aiohttp import ClientSession
 
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.util import succeed
@@ -15,8 +18,16 @@ from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.modules.metadata_store.serialization import COLLECTION_NODE, REGULAR_TORRENT
 from tribler_core.restapi.base_api_test import do_request
 from tribler_core.tests.tools.common import TORRENT_UBUNTU_FILE
+from tribler_core.utilities.json_util import dumps, loads
 from tribler_core.utilities.random_utils import random_infohash
 from tribler_core.utilities.unicode import hexlify
+
+PNG_DATA = unhexlify(
+    "89504e470d0a1a0a0000000d494844520"
+    "0000001000000010100000000376ef924"
+    "0000001049444154789c626001000000f"
+    "fff03000006000557bfabd40000000049454e44ae426082"
+)
 
 
 @pytest.mark.asyncio
@@ -125,6 +136,54 @@ async def test_get_channel_contents(enable_chant, enable_api, add_fake_torrents_
     assert len(json_dict['results']) == 5
     assert 'status' in json_dict['results'][0]
     assert json_dict['results'][0]['progress'] == 0.5
+
+
+@pytest.mark.asyncio
+async def test_get_channel_description(enable_chant, enable_api, session):
+    """
+    Test getting description of the channel from the database
+    """
+    descr_txt = "foobar"
+    with db_session:
+        chan = session.mds.ChannelMetadata.create_channel(title="bla")
+        channel_description = session.mds.ChannelDescription(
+            origin_id=chan.id_, json_text=dumps({"description_text": descr_txt})
+        )
+    response_dict = await do_request(
+        session, f'channels/{hexlify(chan.public_key)}/{chan.id_}/description', expected_code=200
+    )
+    assert response_dict == loads(channel_description.json_text)
+
+
+@pytest.mark.asyncio
+async def test_put_new_channel_description(enable_chant, enable_api, session):
+    """
+    Test adding description to a channel
+    """
+    new_descr = "lalala"
+    with db_session:
+        chan = session.mds.ChannelMetadata.create_channel(title="bla")
+    response_dict = await do_request(
+        session,
+        f'channels/{hexlify(chan.public_key)}/{chan.id_}/description',
+        request_type="PUT",
+        post_data={"description_text": new_descr},
+        expected_code=200,
+    )
+
+    assert response_dict == {"description_text": new_descr}
+
+    # Test updating description of a channel
+    updated_descr = "foobar"
+    response_dict = await do_request(
+        session,
+        f'channels/{hexlify(chan.public_key)}/{chan.id_}/description',
+        request_type="PUT",
+        post_data={"description_text": updated_descr},
+        expected_code=200,
+    )
+
+    assert response_dict == {"description_text": updated_descr}
 
 
 @pytest.mark.asyncio
@@ -499,3 +558,60 @@ async def test_get_torrents_ffa_channel(enable_chant, enable_api, my_channel, mo
     # We test for both forms of querying null-key channels
     on_response(await do_request(session, 'channels//123'))
     on_response(await do_request(session, 'channels/00/123'))
+
+
+@pytest.mark.asyncio
+async def test_put_channel_thumbnail(enable_chant, enable_api, session):
+    """
+    Test adding description to a channel
+    """
+    with db_session:
+        chan = session.mds.ChannelMetadata.create_channel(title="bla")
+    await do_request(
+        session,
+        f'channels/{hexlify(chan.public_key)}/{chan.id_}/thumbnail',
+        request_type="PUT",
+        headers={'Content-Type': 'image/png'},
+        json_response=False,
+        post_data=PNG_DATA,
+        expected_code=201,
+    )
+    with db_session:
+        obj = session.mds.ChannelThumbnail.get(public_key=chan.public_key, origin_id=chan.id_)
+    assert obj.binary_data == PNG_DATA
+    assert obj.data_type == 'image/png'
+
+    # Test updating channel thumbnail
+    await do_request(
+        session,
+        f'channels/{hexlify(chan.public_key)}/{chan.id_}/thumbnail',
+        request_type="PUT",
+        headers={'Content-Type': 'image/foo'},
+        json_response=False,
+        post_data=b"ffff",
+        expected_code=201,
+    )
+    with db_session:
+        obj = session.mds.ChannelThumbnail.get(public_key=chan.public_key, origin_id=chan.id_)
+    assert obj.binary_data == b"ffff"
+    assert obj.data_type == 'image/foo'
+
+
+@pytest.mark.asyncio
+async def test_get_channel_thumbnail(enable_chant, enable_api, session):
+    """
+    Test getting a channel thumbnail from MetadataStore
+    """
+
+    with db_session:
+        chan = session.mds.ChannelMetadata.create_channel(title="bla")
+        session.mds.ChannelThumbnail(
+            public_key=chan.public_key, origin_id=chan.id_, binary_data=PNG_DATA, data_type="image/png"
+        )
+    async with ClientSession() as cl_session:
+        endpoint = f'channels/{hexlify(chan.public_key)}/{chan.id_}/thumbnail'
+        url = f'http://localhost:{session.config.get_api_http_port()}/{endpoint}'
+        async with cl_session.request("GET", url, ssl=False) as response:
+            assert response.status == 200
+            assert await response.read() == PNG_DATA
+            assert response.headers["Content-Type"] == "image/png"

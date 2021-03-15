@@ -107,7 +107,7 @@ class TriblerRequestManager(QNetworkAccessManager):
         # qt_request is managed by QNetworkAccessManager, so we don't have to
         qt_request = QNetworkRequest(QUrl(request.url))
         qt_request.setPriority(request.priority)
-        qt_request.setHeader(QNetworkRequest.ContentTypeHeader, "application/x-www-form-urlencoded")
+        qt_request.setHeader(QNetworkRequest.ContentTypeHeader, request.content_type_header)
         qt_request.setRawHeader(b'X-Api-Key', self.key)
 
         buf = QBuffer()
@@ -148,6 +148,8 @@ class TriblerNetworkRequest(QObject):
         on_cancel=lambda: None,
         decode_json_response=True,
         on_error_callback=None,
+        include_header_in_response=None,
+        content_type_header="application/x-www-form-urlencoded",
     ):
         QObject.__init__(self)
 
@@ -168,6 +170,8 @@ class TriblerNetworkRequest(QObject):
         self.on_cancel = on_cancel
         self.method = method
         self.capture_core_errors = capture_core_errors
+        self.include_header_in_response = include_header_in_response
+        self.content_type_header = content_type_header
         if data:
             raw_data = json.dumps(data)
         self.raw_data = raw_data if (issubclass(type(raw_data), bytes) or raw_data is None) else raw_data.encode('utf8')
@@ -199,7 +203,11 @@ class TriblerNetworkRequest(QObject):
 
             data = self.reply.readAll()
             if not self.decode_json_response:
-                self.received_json.emit(data)
+                if self.include_header_in_response is not None:
+                    header = self.reply.header(self.include_header_in_response)
+                    self.received_json.emit((bytes(data), header))
+                else:
+                    self.received_json.emit(data)
                 return
             json_result = json.loads(bytes(data))
             if (

@@ -21,8 +21,7 @@ class SearchEndpoint(MetadataEndpointBase):
     """
 
     def setup_routes(self):
-        self.app.add_routes([web.get('', self.search),
-                             web.get('/completions', self.completions)])
+        self.app.add_routes([web.get('', self.search), web.get('/completions', self.completions)])
 
     @staticmethod
     def get_uuid(parameters):
@@ -33,28 +32,32 @@ class SearchEndpoint(MetadataEndpointBase):
         summary="Perform a search for a given query.",
         responses={
             200: {
-                'schema': schema(SearchResponse={
-                    'torrents': [
-                        schema(Torrent={
-                            'commit_status': Integer,
-                            'num_leechers': Integer,
-                            'date': Integer,
-                            'relevance_score': Integer,
-                            'id': Integer,
-                            'size': Integer,
-                            'category': String,
-                            'public_key': String,
-                            'name': String,
-                            'last_tracker_check': Integer,
-                            'infohash': String,
-                            'num_seeders': Integer,
-                            'type': String,
-                        })
-                    ],
-                    'chant_dirty': Boolean
-                })
+                'schema': schema(
+                    SearchResponse={
+                        'torrents': [
+                            schema(
+                                Torrent={
+                                    'commit_status': Integer,
+                                    'num_leechers': Integer,
+                                    'date': Integer,
+                                    'relevance_score': Integer,
+                                    'id': Integer,
+                                    'size': Integer,
+                                    'category': String,
+                                    'public_key': String,
+                                    'name': String,
+                                    'last_tracker_check': Integer,
+                                    'infohash': String,
+                                    'num_seeders': Integer,
+                                    'type': String,
+                                }
+                            )
+                        ],
+                        'chant_dirty': Boolean,
+                    }
+                )
             }
-        }
+        },
     )
     @querystring_schema(MetadataParameters)
     async def search(self, request):
@@ -70,8 +73,8 @@ class SearchEndpoint(MetadataEndpointBase):
 
         def search_db():
             with db_session:
-                pony_query = self.session.mds.MetadataNode.get_entries(**sanitized)
-                total = self.session.mds.MetadataNode.get_total_count(**sanitized) if include_total else None
+                pony_query = self.session.mds.get_entries(**sanitized)
+                total = self.session.mds.get_total_count(**sanitized) if include_total else None
                 search_results = [r.to_simple_dict() for r in pony_query]
             self.session.mds._db.disconnect()  # DB must be disconnected explicitly if run on a thread
             return search_results, total
@@ -97,21 +100,17 @@ class SearchEndpoint(MetadataEndpointBase):
     @docs(
         tags=['Metadata'],
         summary="Return auto-completion suggestions for a given query.",
-        parameters=[{
-            'in': 'query',
-            'name': 'q',
-            'description': 'Search query',
-            'type': 'string',
-            'required': True
-        }],
+        parameters=[{'in': 'query', 'name': 'q', 'description': 'Search query', 'type': 'string', 'required': True}],
         responses={
             200: {
-                'schema': schema(CompletionsResponse={
-                    'completions': [String],
-                }),
-                'examples': {'completions': ['pioneer one', 'pioneer movie']}
+                'schema': schema(
+                    CompletionsResponse={
+                        'completions': [String],
+                    }
+                ),
+                'examples': {'completions': ['pioneer one', 'pioneer movie']},
             }
-        }
+        },
     )
     async def completions(self, request):
         args = request.query
@@ -120,5 +119,5 @@ class SearchEndpoint(MetadataEndpointBase):
 
         keywords = args['q'].strip().lower()
         # TODO: add XXX filtering for completion terms
-        results = self.session.mds.TorrentMetadata.get_auto_complete_terms(keywords, max_terms=5)
+        results = self.session.mds.get_auto_complete_terms(keywords, max_terms=5)
         return RESTResponse({"completions": results})
