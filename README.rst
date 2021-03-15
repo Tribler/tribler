@@ -2,6 +2,7 @@
 Tribler
 *******
 
+
 |jenkins_build| |docs| |contributors| |pr_closed| |issues_closed| |downloads_7_0| |downloads_7_1| |downloads_7_2| |downloads_7_3| |downloads_7_4| |downloads_7_5| |doi| |openhub|
 
 *Towards making Bittorrent anonymous and impossible to shut down.*
