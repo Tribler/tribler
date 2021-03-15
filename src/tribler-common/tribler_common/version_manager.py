@@ -65,6 +65,7 @@ class VersionError(Exception):
     pass
 
 
+# pylint: disable=too-many-instance-attributes
 class TriblerVersion:
     version_str: str
     version_tuple: Tuple
@@ -186,12 +187,13 @@ class VersionHistory:
     root_state_dir: Path
     file_path: Path
     file_data: Dict
-    versions: OrderedDict[Tuple[int, int], TriblerVersion]
+    versions: OrderedDict[Tuple[int, int], TriblerVersion]  # pylint: disable=unsubscriptable-object
     versions_by_number: List[TriblerVersion]
     versions_by_time: List[TriblerVersion]
     last_run_version: Optional[TriblerVersion]
     code_version: TriblerVersion
 
+    # pylint: disable=too-many-branches
     def __init__(self, root_state_dir: Path, code_version_id: Optional[str] = None):
         if code_version_id is None:
             code_version_id = tribler_core.version.version_id
@@ -201,21 +203,7 @@ class VersionHistory:
         self.file_data = {"last_version": None, "history": {}}
         self.versions = versions = OrderedDict()
         if self.file_path.exists():
-            self.file_data = json.loads(self.file_path.read_text().strip())
-            if "history" not in self.file_data:
-                raise VersionError("Invalid history file structure")
-
-            # timestamps needs to be converted to float before sorting
-            history_items = [
-                (float(time_str), version_str) for time_str, version_str in self.file_data["history"].items()
-            ]
-            for timestamp, version_str in sorted(history_items):
-                version = TriblerVersion(root_state_dir, version_str, timestamp)
-                # store only versions with directories:
-                if version.state_exists():
-                    # eventually store only the latest launched version with the same major_minor tuple
-                    self.add_version(version)
-
+            self.load(self.file_path)
         elif (root_state_dir / "triblerd.conf").exists():
             # Pre-7.4 versions of Tribler don't have history file
             # and can by detected by presence of the triblerd.conf file in the root directory
@@ -267,6 +255,20 @@ class VersionHistory:
     def __repr__(self):
         s = ','.join(str(v.major_minor) for v in self.versions_by_time)
         return f'<{self.__class__.__name__}[{s}]>'
+
+    def load(self, file_path: Path):
+        self.file_data = json.loads(file_path.read_text().strip())
+        if "history" not in self.file_data:
+            raise VersionError("Invalid history file structure")
+
+        # timestamps needs to be converted to float before sorting
+        history_items = [(float(time_str), version_str) for time_str, version_str in self.file_data["history"].items()]
+        for timestamp, version_str in sorted(history_items):
+            version = TriblerVersion(self.root_state_dir, version_str, timestamp)
+            # store only versions with directories:
+            if version.state_exists():
+                # eventually store only the latest launched version with the same major_minor tuple
+                self.add_version(version)
 
     def add_version(self, version):
         self.versions[version.major_minor] = version

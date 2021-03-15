@@ -288,6 +288,7 @@ def test_copy_state_directory(tmpdir):
     assert filecmp.cmp(src_dir / 'ec_multichain.pem', tgt_dir / 'ec_multichain.pem')
 
 
+# pylint: disable=too-many-locals
 def test_get_disposable_state_directories(tmpdir_factory):
     tmpdir = tmpdir_factory.mktemp("scenario")
     root_state_dir = Path(tmpdir)
