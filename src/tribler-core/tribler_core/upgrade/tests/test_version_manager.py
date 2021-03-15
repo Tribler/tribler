@@ -4,9 +4,18 @@ import os
 import time
 from pathlib import Path
 
-from tribler_common.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_CHECKPOINT_DIR, STATEDIR_DB_DIR
-from tribler_common.version_manager import TriblerVersion, VERSION_HISTORY_FILENAME, VersionHistory
+import pytest
 
+from tribler_common.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_CHECKPOINT_DIR, STATEDIR_DB_DIR
+from tribler_common.version_manager import (
+    TriblerVersion,
+    VERSION_HISTORY_FILENAME,
+    VersionError,
+    VersionHistory,
+    remove_state_dirs,
+)
+
+import tribler_core.version
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
 
 DUMMY_STATE_DIR = TESTS_DATA_DIR / "state_dir_dummy"
@@ -164,7 +173,7 @@ def test_fork_state_directory(tmpdir_factory):
     code_version_id = "120.3.2"
 
     history = VersionHistory(root_state_dir, code_version_id)
-    assert history.last_run_version is not None  ###
+    assert history.last_run_version is not None
     assert history.last_run_version.directory == root_state_dir
     assert history.code_version != history.last_run_version
     assert history.code_version.directory != root_state_dir
@@ -391,3 +400,75 @@ def test_installed_versions_and_removal(tmpdir_factory):
     installed_versions = history.get_installed_versions(with_code_version=False)
     assert current_version_dir not in installed_versions
     assert len(installed_versions) == len(major_versions) * len(minor_versions) - 2
+
+
+# pylint: disable=too-many-statements
+def test_coverage(tmpdir):
+    root_state_dir = Path(tmpdir)
+    v1 = TriblerVersion(root_state_dir, "7.3.1a")
+    assert repr(v1) == '<TriblerVersion{7.3.1a}>'
+    with pytest.raises(VersionError, match='Cannot rename root directory'):
+        v1.rename_directory("foo")
+
+    v2 = TriblerVersion(root_state_dir, "7.8.1")
+    assert v2.directory == root_state_dir / "7.8"
+    v2.directory.mkdir()
+    v2.rename_directory("renamed")
+    assert list(root_state_dir.glob("renamed7.8_*"))
+    assert v2.directory == root_state_dir / "7.8"
+
+    v2.directory.mkdir()
+    (v2.directory / "foobar.txt").write_text("abc")
+    v2.delete_state()
+    assert list(root_state_dir.glob("deleted_v7.8_*"))
+
+    v2.directory = Path(DUMMY_STATE_DIR)
+    size = v2.calc_state_size()
+    assert size > 0
+
+    v3 = TriblerVersion(root_state_dir, "7.7")
+    v3.directory.mkdir()
+    v3.deleted = True
+    v3.delete_state()
+    assert v3.directory.exists()
+    v3.deleted = False
+    v3.delete_state()
+    assert not v3.directory.exists()
+
+    v4 = TriblerVersion(root_state_dir, "7.5.1a")
+    v4.directory.mkdir()
+    (v4.directory / 'triblerd.conf').write_text("abc")
+    v5 = TriblerVersion(root_state_dir, "7.6.1b")
+    v5.directory.mkdir()
+    with pytest.raises(VersionError, match='Directory for version 7.6.1b already exists'):
+        v5.copy_state_from(v4)
+    v5.copy_state_from(v4, overwrite=True)
+    assert (v5.directory / 'triblerd.conf').read_text() == "abc"
+
+    (root_state_dir / "version_history.json").write_text('{"last_version": "7.7"}')
+
+    with pytest.raises(VersionError, match="Invalid history file structure"):
+        VersionHistory(root_state_dir)
+
+    (root_state_dir / "version_history.json").write_text(
+        '{"last_version": "7.7", "history": {"1": "7.3.1a", "2": "7.7", "3": "7.5.1a", "4": "7.6.1b", "5": "7.8.1"}}')
+
+    (root_state_dir / "sqlite").mkdir()
+    (root_state_dir / "channels").mkdir()
+    (root_state_dir / 'triblerd.conf').write_text("abc")
+
+    history = VersionHistory(root_state_dir)
+    assert history.code_version.version_str == tribler_core.version.version_id
+    assert repr(history) == "<VersionHistory[(7, 6), (7, 5), (7, 3)]>"
+
+    dirs = history.get_disposable_state_directories()
+    names = [d.name for d in dirs]
+    assert len(names) == 5
+    for name in names:
+        assert name in ('7.5', '7.6', 'channels', 'sqlite') or name.startswith("deleted_v7.8_")
+
+    remove_state_dirs(root_state_dir, names)
+    assert not (root_state_dir / "7.5").exists()
+    assert not (root_state_dir / "7.6").exists()
+    assert not (root_state_dir / "channels").exists()
+    assert not (root_state_dir / "sqlite").exists()

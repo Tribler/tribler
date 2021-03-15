@@ -97,7 +97,7 @@ class TriblerVersion:
         self.deleted = False
 
     def __repr__(self):
-        return f'{self.__class__.__name__}<{self.version_str}>'
+        return f'<{self.__class__.__name__}{{{self.version_str}}}>'
 
     def get_directory(self):
         if self.major_minor < (7, 4):
@@ -148,7 +148,7 @@ class TriblerVersion:
             try:
                 # do not delete directory with unknown leftover files
                 self.directory.rmdir()
-            except OSError:  # is it the only exception type we should catch here?
+            except OSError:
                 # cannot delete, then rename
                 renamed = self.rename_directory("deleted_v")
                 return renamed
@@ -157,15 +157,15 @@ class TriblerVersion:
     def copy_state_from(self, other: TriblerVersion, overwrite=False):
         if self.directory.exists():
             if not overwrite:
-                raise VersionError(f'Directory for version f{self.version_str} already exists')
+                raise VersionError(f'Directory for version {self.version_str} already exists')
             self.delete_state()
 
-        self.directory.mkdir()  # should specify permissions?
+        self.directory.mkdir()
         for dirname in STATE_DIRS_TO_COPY:
             src = other.directory / dirname
             if src.exists():
                 dst = self.directory / dirname
-                shutil.copytree(src, dst)  # should add exception handling or not?
+                shutil.copytree(src, dst)
 
         for filename in STATE_FILES_TO_COPY:
             src = other.directory / filename
@@ -256,8 +256,8 @@ class VersionHistory:
         self.code_version = code_version
 
     def __repr__(self):
-        s = ','.join(str(v.major_minor) for v in self.versions_by_time)
-        return f'<{self.__class__.__name__}[{s}]>'
+        s = repr([v.major_minor for v in self.versions_by_time])
+        return f'<{self.__class__.__name__}{s}>'
 
     def load(self, file_path: Path):
         self.file_data = json.loads(file_path.read_text().strip())
