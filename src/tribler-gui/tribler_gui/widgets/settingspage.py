@@ -1,9 +1,11 @@
-from PyQt5.QtWidgets import QFileDialog, QSizePolicy, QWidget
+from PyQt5.QtWidgets import QCheckBox, QFileDialog, QMessageBox, QSizePolicy, QWidget
 
 from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler_common.simpledefs import MAX_LIBTORRENT_RATE_LIMIT
+from tribler_common.version_manager import VersionHistory, remove_state_dirs
 
 import tribler_core.utilities.json_util as json
+from tribler_core.utilities.osutils import get_root_state_directory
 
 from tribler_gui.defs import (
     BUTTON_TYPE_NORMAL,
@@ -11,6 +13,7 @@ from tribler_gui.defs import (
     PAGE_SETTINGS_ANONYMITY,
     PAGE_SETTINGS_BANDWIDTH,
     PAGE_SETTINGS_CONNECTION,
+    PAGE_SETTINGS_DATA,
     PAGE_SETTINGS_DEBUG,
     PAGE_SETTINGS_GENERAL,
     PAGE_SETTINGS_SEEDING,
@@ -19,6 +22,7 @@ from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest, TriblerRequestManager
 from tribler_gui.utilities import (
     connect,
+    format_size,
     get_checkbox_style,
     get_gui_setting,
     is_dir_writable,
@@ -36,6 +40,7 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         QWidget.__init__(self)
         self.settings = None
         self.saved_dialog = None
+        self.version_history = VersionHistory(get_root_state_directory())
 
     def initialize_settings_page(self):
         self.window().settings_tab.initialize()
@@ -51,6 +56,7 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         connect(self.window().use_monochrome_icon_checkbox.stateChanged, self.on_use_monochrome_icon_checkbox_changed)
         connect(self.window().download_settings_anon_checkbox.stateChanged, self.on_anon_download_state_changed)
         connect(self.window().log_location_chooser_button.clicked, self.on_choose_log_dir_clicked)
+        connect(self.window().btn_remove_old_state_dir.clicked, self.on_remove_version_dirs)
 
         checkbox_style = get_checkbox_style()
         for checkbox in [
@@ -209,6 +215,9 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         connect(self.window().number_hops_slider.valueChanged, self.update_anonymity_cost_label)
         self.update_anonymity_cost_label(int(settings['download_defaults']['number_hops']))
 
+        # Data settings
+        self.load_settings_data_tab()
+
         # Debug
         self.window().developer_mode_enabled_checkbox.setChecked(
             get_gui_setting(gui_settings, "debug", False, is_bool=True)
@@ -222,6 +231,89 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         self.window().cpu_priority_value.setText(f"Current Priority = {cpu_priority}")
         connect(self.window().slider_cpu_level.valueChanged, self.show_updated_cpu_priority)
         self.window().checkbox_enable_network_statistics.setChecked(settings['ipv8']['statistics'])
+
+    def _version_dir_checkbox(self, state_dir, enabled=True):
+        dir_size = sum(f.stat().st_size for f in state_dir.glob('**/*'))
+        text = f"{state_dir}   {format_size(dir_size)}"
+        checkbox = QCheckBox(text)
+        checkbox.setEnabled(enabled)
+        return checkbox
+
+    def load_settings_data_tab(self):
+        self.refresh_current_version_checkbox()
+        self.refresh_old_version_checkboxes()
+
+    def refresh_current_version_checkbox(self):
+        get_root_state_directory()
+        code_version_dir = self.version_history.code_version.directory
+        self.refresh_version_checkboxes(self.window().state_dir_current, [code_version_dir], enabled=False)
+
+    def refresh_old_version_checkboxes(self):
+        get_root_state_directory()
+        old_state_dirs = self.version_history.get_disposable_state_directories()
+        self.refresh_version_checkboxes(self.window().state_dir_list, old_state_dirs, enabled=True)
+
+    def refresh_version_checkboxes(self, parent, old_state_dirs, enabled=True):
+        version_dirs_layout = parent.layout()
+        for checkbox in parent.findChildren(QCheckBox):
+            version_dirs_layout.removeWidget(checkbox)
+            checkbox.setParent(None)
+            checkbox.deleteLater()
+
+        for state_dir in old_state_dirs:
+            version_dir_checkbox = self._version_dir_checkbox(state_dir, enabled=enabled)
+            version_dirs_layout.addWidget(version_dir_checkbox)
+
+    def on_remove_version_dirs(self, _):
+        root_version_dir = str(get_root_state_directory())
+
+        def dir_from_checkbox_text(checkbox):
+            # eg text: "/home/<user>/.Tribler/v7.8   5 GB"
+            state_dir = checkbox.text().rpartition("   ")[0]
+            if not state_dir.startswith(root_version_dir):
+                return None  # safety check just for case
+            state_dir = state_dir[len(root_version_dir) :]
+            if state_dir.startswith('/'):
+                state_dir = state_dir[1:]
+            return state_dir
+
+        dirs_selected_for_deletion = []
+        for checkbox in self.window().state_dir_list.findChildren(QCheckBox):
+            if checkbox.isChecked():
+                state_dir = dir_from_checkbox_text(checkbox)
+                if state_dir:
+                    dirs_selected_for_deletion.append(state_dir)
+
+        if self.on_confirm_remove_version_dirs(dirs_selected_for_deletion):
+            remove_state_dirs(root_version_dir, dirs_selected_for_deletion)
+            self.refresh_old_version_checkboxes()
+
+    def on_confirm_remove_version_dirs(self, selected_versions):
+        message_box = QMessageBox()
+        message_box.setIcon(QMessageBox.Question)
+
+        if selected_versions:
+            version_dirs_str = "\n- ".join(selected_versions)
+            versions_info = f"Versions: \n- {version_dirs_str}"
+
+            title = "Confirm delete older versions?"
+            message_body = (
+                f"Are you sure to remove the selected versions? "
+                f"\nYou can not undo this action."
+                f"\n\n {versions_info}"
+            )
+            message_buttons = QMessageBox.No | QMessageBox.Yes
+        else:
+            title = "No versions selected"
+            message_body = "Select a version to delete."
+            message_buttons = QMessageBox.Close
+
+        message_box.setWindowTitle(title)
+        message_box.setText(message_body)
+        message_box.setStandardButtons(message_buttons)
+
+        user_choice = message_box.exec_()
+        return user_choice == QMessageBox.Yes
 
     def update_anonymity_cost_label(self, value):
         html_text = """<html><head/><body><p>Download with <b>%d</b> hop(s) of anonymity. 
@@ -254,6 +346,8 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
             self.window().settings_stacked_widget.setCurrentIndex(PAGE_SETTINGS_SEEDING)
         elif tab_button_name == "settings_anonymity_button":
             self.window().settings_stacked_widget.setCurrentIndex(PAGE_SETTINGS_ANONYMITY)
+        elif tab_button_name == "settings_data_button":
+            self.window().settings_stacked_widget.setCurrentIndex(PAGE_SETTINGS_DATA)
         elif tab_button_name == "settings_debug_button":
             self.window().settings_stacked_widget.setCurrentIndex(PAGE_SETTINGS_DEBUG)
 
