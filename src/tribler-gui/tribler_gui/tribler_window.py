@@ -446,6 +446,10 @@ class TriblerWindow(QMainWindow):
         self.popular_page.initialize_root_model(
             PopularTorrentsModel(channel_info={"name": "Popular torrents"}, hide_xxx=hide_xxx)
         )
+        self.popular_page.explanation_text.setText(
+            "This page show the list of popular torrents collected by Tribler during the last 24 hours."
+        )
+        self.popular_page.explanation_container.setHidden(False)
 
         self.add_to_channel_dialog.load_channel(0)
 
