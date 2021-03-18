@@ -468,11 +468,10 @@ class SearchResultsModel(ChannelContentModel):
 
 
 class PopularTorrentsModel(ChannelContentModel):
-    columns = ['category', 'name', 'size', 'health', 'updated']
-    column_headers = ['', tr('Name'), tr('Size'), tr('Health'), tr('Updated')]
+    columns = ['category', 'name', 'size', 'updated']
+    column_headers = ['', tr('Name'), tr('Size'), tr('Updated')]
 
-    column_width = dict(ChannelContentModel.column_width, **{'name': lambda table_width: table_width - 400})
-    default_sort_column = columns.index('health')
+    column_width = dict(ChannelContentModel.column_width, **{'name': lambda table_width: table_width - 280})
 
     def __init__(self, *args, **kwargs):
         kwargs["endpoint_url"] = 'channels/popular_torrents'
