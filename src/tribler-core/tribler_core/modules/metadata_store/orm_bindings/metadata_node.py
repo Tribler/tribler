@@ -78,6 +78,7 @@ def define_binding(db):
             id_=None,
             complete_channel=None,
             self_checked_torrent=None,
+            health_checked_after=None,
         ):
             """
             This method implements REST-friendly way to get entries from the database. It is overloaded by the higher
@@ -147,6 +148,9 @@ def define_binding(db):
                 sort_expression = "g." + sort_by
                 sort_expression = desc(sort_expression) if sort_desc else sort_expression
                 pony_query = pony_query.sort_by(sort_expression)
+
+            if health_checked_after is not None:
+                pony_query = pony_query.where(lambda g: g.health.last_check >= health_checked_after)
 
             if txt_filter:
                 if sort_by is None:

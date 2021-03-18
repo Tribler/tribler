@@ -1,3 +1,5 @@
+from time import time
+
 from ipv8.keyvault.crypto import default_eccrypto
 
 from pony.orm import db_session
@@ -35,6 +37,7 @@ def add_fake_torrents_channels(session):
                 )
                 t.health.seeders = int.from_bytes(t.infohash[:2], byteorder="big")
                 t.health.self_checked = bool(torrent_ind % 2 == 1)
+                t.health.last_check = int(time())
 
 
 @pytest.fixture
