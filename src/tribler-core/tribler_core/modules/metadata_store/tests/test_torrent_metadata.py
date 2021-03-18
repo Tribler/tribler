@@ -1,4 +1,5 @@
 from datetime import datetime
+from time import time
 
 from ipv8.database import database_blob
 from ipv8.keyvault.crypto import default_eccrypto
@@ -272,6 +273,23 @@ def test_get_entries(metadata_store):
         )
         channels = metadata_store.ChannelMetadata.get_entries(complete_channel=True)
         assert [complete_chan] == channels
+
+
+@db_session
+def test_get_entries_health_checked_after(metadata_store):
+    # Test querying for torrents last checked after a certain moment in time
+
+    # Add a torrent checked just now
+    t1 = metadata_store.TorrentMetadata(infohash=random_infohash())
+    t1.health.last_check = int(time())
+
+    # Add a torrent checked awhile ago
+    t2 = metadata_store.TorrentMetadata(infohash=random_infohash())
+    t2.health.last_check = t1.health.last_check - 10000
+
+    # Check that only the more recently checked torrent is returned, because we limited the selection by time
+    torrents = metadata_store.TorrentMetadata.get_entries(health_checked_after=t2.health.last_check + 1)
+    assert torrents == [t1]
 
 
 @db_session

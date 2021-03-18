@@ -1,6 +1,7 @@
 import base64
 import codecs
 from binascii import unhexlify
+from time import time
 
 from aiohttp import ClientSession, ContentTypeError, web
 
@@ -25,6 +26,8 @@ from tribler_core.restapi.schema import HandledErrorSchema
 from tribler_core.utilities import path_util
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import is_infohash, parse_magnetlink
+
+POPULAR_TORRENTS_FRESHNESS_PERIOD = 60 * 60 * 24  # Last day
 
 
 class ChannelsEndpointBase(MetadataEndpointBase):
@@ -414,6 +417,7 @@ class ChannelsEndpoint(ChannelsEndpointBase):
         sanitized["metadata_type"] = REGULAR_TORRENT
         sanitized["sort_by"] = "HEALTH"
         sanitized["self_checked_torrent"] = True
+        sanitized["health_checked_after"] = int(time()) - POPULAR_TORRENTS_FRESHNESS_PERIOD
         with db_session:
             contents = self.session.mds.TorrentMetadata.get_entries(**sanitized)
             contents_list = [c.to_simple_dict() for c in contents]
