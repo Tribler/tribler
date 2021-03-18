@@ -1,11 +1,11 @@
-import asyncio
 import heapq
 import random
+from asyncio import get_event_loop
 from binascii import unhexlify
 
 from ipv8.lazy_community import lazy_wrapper
 
-from pony.orm import db_session
+from pony.orm import CacheIndexError, TransactionIntegrityError, db_session
 
 from tribler_core.modules.metadata_store.community.remote_query_community import RemoteQueryCommunity
 from tribler_core.modules.popularity.payload import TorrentsHealthPayload
@@ -101,9 +101,31 @@ class PopularityCommunity(RemoteQueryCommunity):
                          f" {len(payload.random_torrents)} random torrents")
 
         torrents = payload.random_torrents + payload.torrents_checked
-        asyncio.create_task(self.process_torrents_health(peer, torrents))
 
-    async def process_torrents_health(self, peer, torrent_healths):
+        for infohash in await self.process_health_threaded(peer, torrents):
+            # Get a single result per infohash to avoid duplicates
+            self.send_remote_select(peer=peer, infohash=hexlify(infohash), last=1)
+
+    async def process_health_threaded(self, peer, torrent_healths):
+        def _process_blob():
+            result = []
+            try:
+                with db_session:
+                    try:
+                        result = self.process_torrents_health(torrent_healths)
+                    except (TransactionIntegrityError, CacheIndexError) as err:
+                        self._logger.error("DB transaction error when tried to process compressed mdblob: %s", str(err))
+            # Unfortunately, we have to catch the exception twice, because Pony can raise them both on the exit from
+            # db_session, and on calling the line of code
+            except (TransactionIntegrityError, CacheIndexError) as err:
+                self._logger.error("DB transaction error when tried to process compressed mdblob: %s", str(err))
+            finally:
+                self.mds.disconnect_thread()
+            return result
+
+        return await get_event_loop().run_in_executor(None, _process_blob)
+
+    def process_torrents_health(self, torrent_healths):
         infohashes_to_resolve = []
         with db_session:
             for infohash, seeders, leechers, last_check in torrent_healths:
@@ -119,7 +141,4 @@ class PopularityCommunity(RemoteQueryCommunity):
                                           leechers=leechers, last_check=last_check)
                     self.logger.info(f"{hexlify(infohash)} added ({seeders},{leechers})")
                     infohashes_to_resolve.append(infohash)
-
-        for infohash in infohashes_to_resolve:
-            # Get a single result per infohash to avoid duplicates
-            self.send_remote_select(peer=peer, infohash=hexlify(infohash), last=1)
+        return infohashes_to_resolve
