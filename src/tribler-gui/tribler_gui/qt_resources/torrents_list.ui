@@ -542,6 +542,28 @@ QToolButton{border:none;margin-left:16px;}</string>
     </widget>
    </item>
    <item>
+    <widget class="QWidget" name="explanation_container" native="true">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <layout class="QHBoxLayout" name="horizontalLayout2324">
+      <item>
+       <widget class="QLabel" name="explanation_text">
+        <property name="styleSheet">
+         <string notr="true">color: #eee; font-size: 15px; font-style: italic;</string>
+        </property>
+        <property name="text">
+         <string>TextLabel</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
     <widget class="QFrame" name="filter_header">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
