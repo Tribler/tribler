@@ -99,6 +99,24 @@ qproperty-defaultAlignment: AlignLeft;
 }
 QListView {
 color:#B5B5B5;
+}
+QCheckBox::indicator{
+border-color: #F76E00;
+border-style:solid;
+border-width: 1px
+}
+
+QCheckBox::indicator::hover{
+border-color: #F73A00
+}
+
+QCheckBox::indicator::checked{
+border-width: 2px;
+background-color: #F76E00;
+}
+
+QCheckBox::indicator::disabled{
+border-color:#D8D7D7
 }</string>
   </property>
   <widget class="QWidget" name="central_widget">
@@ -1043,7 +1061,7 @@ QListWidget::item:disabled
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>0</number>
+         <number>1</number>
         </property>
         <widget class="ChannelContentsWidget" name="search_results_page"/>
         <widget class="SettingsPage" name="settings_page">
@@ -1444,8 +1462,8 @@ border-top: 1px solid #555;
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>300</width>
-               <height>498</height>
+               <width>854</width>
+               <height>710</height>
               </rect>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_22">
@@ -3826,8 +3844,8 @@ color: white</string>
                       <rect>
                        <x>0</x>
                        <y>0</y>
-                       <width>321</width>
-                       <height>259</height>
+                       <width>854</width>
+                       <height>374</height>
                       </rect>
                      </property>
                      <layout class="QFormLayout" name="formLayout_4">
