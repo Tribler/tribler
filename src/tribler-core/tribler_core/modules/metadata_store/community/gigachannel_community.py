@@ -84,8 +84,8 @@ class GigaChannelCommunity(RemoteQueryCommunity):
                     self.mds.vote_bump(c.public_key, c.id_, peer.public_key.key_to_bin()[10:])
 
             # Notify GUI about the new channels
-            new_channels = [
-                r.md_obj
+            results = [
+                r.md_obj.to_simple_dict()
                 for r in processing_results
                 if (
                     r.obj_state == ObjState.UNKNOWN_OBJECT
@@ -93,11 +93,8 @@ class GigaChannelCommunity(RemoteQueryCommunity):
                     and r.md_obj.origin_id == 0
                 )
             ]
-            if self.notifier and new_channels:
-                self.notifier.notify(
-                    NTFY.CHANNEL_DISCOVERED,
-                    {"results": [md.to_simple_dict() for md in new_channels], "uuid": str(CHANNELS_VIEW_UUID)},
-                )
+            if self.notifier and results:
+                self.notifier.notify(NTFY.CHANNEL_DISCOVERED, {"results": results, "uuid": str(CHANNELS_VIEW_UUID)})
 
         request_dict = {
             "metadata_type": [CHANNEL_TORRENT],
@@ -112,12 +109,13 @@ class GigaChannelCommunity(RemoteQueryCommunity):
         request_uuid = uuid.uuid4()
 
         def notify_gui(_, processing_results):
-            search_results = [
+            results = [
                 r.md_obj.to_simple_dict()
                 for r in processing_results
                 if r.obj_state in (ObjState.UNKNOWN_OBJECT, ObjState.UPDATED_OUR_VERSION)
             ]
-            self.notifier.notify(NTFY.REMOTE_QUERY_RESULTS, {"uuid": str(request_uuid), "results": search_results})
+            if self.notifier and results:
+                self.notifier.notify(NTFY.REMOTE_QUERY_RESULTS, {"results": results, "uuid": str(request_uuid)})
 
         for p in self.get_random_peers(self.settings.max_query_peers):
             self.send_remote_select(p, **kwargs, processing_callback=notify_gui)

@@ -101,16 +101,19 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         return self.channels_stack[-1] if self.channels_stack else None
 
     def on_channel_committed(self, response):
-        if response and response.get("success", False):
-            if not self.autocommit_enabled:
-                self.commit_control_bar.setHidden(True)
-            if (
-                self.model
-                and self.model.channel_info.get("state", None) == "Personal"
-                and self.model.channel_info.get("dirty", False)
-            ):
-                self.model.reset()
-                self.update_labels()
+        if not response or not response.get("success", False):
+            return
+
+        if not self.autocommit_enabled:
+            self.commit_control_bar.setHidden(True)
+
+        if not self.model:
+            return
+
+        info = self.model.channel_info
+        if info.get("state") == "Personal" and info.get("dirty"):
+            self.model.reset()
+            self.update_labels()
 
     def commit_channels(self, checked=False):
         TriblerNetworkRequest("channels/mychannel/0/commit", self.on_channel_committed, method='POST')
@@ -165,21 +168,21 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         if self.model:
             self.controller.brain_dead_refresh()
 
-def _on_table_scroll(self, event):
-    # Hide the description widget when the channel is scrolled down
-    if not self.model.data_items:
-        return
+    def _on_table_scroll(self, event):
+        # Hide the description widget when the channel is scrolled down
+        if not self.model.data_items:
+            return
 
-    scrollbar = self.controller.table_view.verticalScrollBar()
-    container = self.channel_description_container
+        scrollbar = self.controller.table_view.verticalScrollBar()
+        container = self.channel_description_container
 
-    is_time_to_hide = scrollbar.minimum() < scrollbar.value() - 10 and scrollbar.maximum() > 40
-    is_time_to_show = scrollbar.minimum() == scrollbar.value()
+        is_time_to_hide = scrollbar.minimum() < scrollbar.value() - 10 and scrollbar.maximum() > 40
+        is_time_to_show = scrollbar.minimum() == scrollbar.value()
 
-    if is_time_to_hide and not container.isHidden():
-        container.setHidden(True)
-    elif is_time_to_show and container.isHidden() and container.initialized:
-        container.setHidden(False)
+        if is_time_to_hide and not container.isHidden():
+            container.setHidden(True)
+        elif is_time_to_show and container.isHidden() and container.initialized:
+            container.setHidden(False)
 
     def _enable_autocommit_timer(self):
         self.commit_timer = QTimer()
@@ -377,13 +380,13 @@ def _on_table_scroll(self, event):
         description_flag = self.model.channel_info.get("description_flag")
         thumbnail_flag = self.model.channel_info.get("thumbnail_flag")
 
-    info = self.model.channel_info
-    container = self.channel_description_container
-    if is_a_channel and (description_flag or thumbnail_flag or personal_model):
-        container.initialize_with_channel(info["public_key"], info["id"], edit=personal and personal_model)
-    else:
-        container.initialized = False
-        container.setHidden(True)
+        info = self.model.channel_info
+        container = self.channel_description_container
+        if is_a_channel and (description_flag or thumbnail_flag or personal_model):
+            container.initialize_with_channel(info["public_key"], info["id"], edit=personal and personal_model)
+        else:
+            container.initialized = False
+            container.setHidden(True)
 
         self.category_selector.setHidden(root and (discovered or personal_model))
         # initialize the channel page
