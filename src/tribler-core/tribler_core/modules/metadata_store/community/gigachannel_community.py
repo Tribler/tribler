@@ -80,7 +80,7 @@ class GigaChannelCommunity(RemoteQueryCommunity):
         def on_packet_callback(_, processing_results):
             # We use responses for requests about subscribed channels to bump our local channels ratings
             with db_session:
-                for c in [r.md_obj for r in processing_results if r.md_obj.metadata_type == CHANNEL_TORRENT]:
+                for c in (r.md_obj for r in processing_results if r.md_obj.metadata_type == CHANNEL_TORRENT):
                     self.mds.vote_bump(c.public_key, c.id_, peer.public_key.key_to_bin()[10:])
 
             # Notify GUI about the new channels
