@@ -377,13 +377,13 @@ def _on_table_scroll(self, event):
         description_flag = self.model.channel_info.get("description_flag")
         thumbnail_flag = self.model.channel_info.get("thumbnail_flag")
 
-        if is_a_channel and (description_flag or thumbnail_flag or personal_model):
-            self.channel_description_container.initialize_with_channel(
-                self.model.channel_info["public_key"], self.model.channel_info["id"], edit=personal and personal_model
-            )
-        else:
-            self.channel_description_container.initialized = False
-            self.channel_description_container.setHidden(True)
+    info = self.model.channel_info
+    container = self.channel_description_container
+    if is_a_channel and (description_flag or thumbnail_flag or personal_model):
+        container.initialize_with_channel(info["public_key"], info["id"], edit=personal and personal_model)
+    else:
+        container.initialized = False
+        container.setHidden(True)
 
         self.category_selector.setHidden(root and (discovered or personal_model))
         # initialize the channel page
