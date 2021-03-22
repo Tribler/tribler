@@ -176,7 +176,7 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         scrollbar = self.controller.table_view.verticalScrollBar()
         container = self.channel_description_container
 
-        is_time_to_hide = scrollbar.minimum() < scrollbar.value() - 10 and scrollbar.maximum() > 40
+        is_time_to_hide = scrollbar.minimum() < scrollbar.value() - 10 and scrollbar.maximum() > 100
         is_time_to_show = scrollbar.minimum() == scrollbar.value()
 
         if is_time_to_hide and not container.isHidden():
