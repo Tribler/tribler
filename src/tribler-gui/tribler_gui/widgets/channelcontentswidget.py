@@ -165,18 +165,21 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         if self.model:
             self.controller.brain_dead_refresh()
 
-    def _on_table_scroll(self, event):
-        # Hide the description widget when the channel is scrolled down
-        if not self.model.data_items:
-            return
-        scrollbar = self.controller.table_view.verticalScrollBar()
-        if scrollbar.minimum() < scrollbar.value() - 10 and scrollbar.maximum() > 40:
-            if not self.channel_description_container.isHidden():
-                self.channel_description_container.setHidden(True)
-        elif scrollbar.value() == scrollbar.minimum():
-            if self.channel_description_container.isHidden():
-                if self.channel_description_container.initialized:
-                    self.channel_description_container.setHidden(False)
+def _on_table_scroll(self, event):
+    # Hide the description widget when the channel is scrolled down
+    if not self.model.data_items:
+        return
+
+    scrollbar = self.controller.table_view.verticalScrollBar()
+    container = self.channel_description_container
+
+    is_time_to_hide = scrollbar.minimum() < scrollbar.value() - 10 and scrollbar.maximum() > 40
+    is_time_to_show = scrollbar.minimum() == scrollbar.value()
+
+    if is_time_to_hide and not container.isHidden():
+        container.setHidden(True)
+    elif is_time_to_show and container.isHidden() and container.initialized:
+        container.setHidden(False)
 
     def _enable_autocommit_timer(self):
         self.commit_timer = QTimer()
