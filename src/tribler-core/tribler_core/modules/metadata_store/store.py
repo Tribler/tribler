@@ -86,14 +86,18 @@ sql_add_fts_trigger_update = """
 
 
 class ObjState(enum.Enum):
-    UPDATED_OUR_VERSION = enum.auto()
-    GOT_NEWER_VERSION = enum.auto()
-    GOT_SAME_VERSION = enum.auto()
-    UNKNOWN_OBJECT = enum.auto()
+    UPDATED_OUR_VERSION = enum.auto()  # We updated the local version of the ORM object with the received one
+    GOT_NEWER_VERSION = enum.auto()  # Our local version of the ORM object is newer than the received one
+    GOT_SAME_VERSION = enum.auto()  # Our local version of the ORM object is the same as the received one
+    UNKNOWN_OBJECT = enum.auto()  # The received object is unknown to us and thus added to ORM
 
 
 @dataclass
 class ProcessingResult:
+    # This class is used to return results of processing of a payload by process_payload.
+    # It includes the ORM object created as a result of processing, the state of the object
+    # as indicated by ObjState enum, and missing dependencies list that includes a list of query
+    # arguments for get_entries to query the sender back through Remote Query Community
     md_obj: object = None
     obj_state: object = None
     missing_deps: list = field(default_factory=list)
@@ -573,6 +577,17 @@ class MetadataStore:
 
     @db_session
     def check_for_missing_dependencies(self, node, include_newer=False):
+        """
+        This method checks the given ORM node (object) for missing dependencies, such as thumbnails and/or
+        descriptions. To do so, it checks for existence of special dependency flags in the object's
+        "reserved_flags" field and checks for existence of the corresponding dependencies in the local database.
+        For each missing dependency it will generate a query in the "get_entry" format that should be addressed to the
+        peer that sent the original payload/node/object.
+        If include_newer argument is true, it will generate a query even if the dependencies exist in the local
+        database. However, this query will limit the selection to dependencies with a higher timestamp than that
+        of the local versions. Effectively, this query asks the remote peer for updates on dependencies. Thus,
+        it should only be issued when it is known that the parent object was updated.
+        """
         if node.metadata_type not in (CHANNEL_TORRENT, COLLECTION_NODE):
             return []
 

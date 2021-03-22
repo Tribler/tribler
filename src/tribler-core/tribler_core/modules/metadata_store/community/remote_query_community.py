@@ -202,10 +202,12 @@ class RemoteQueryCommunity(Community, EVAProtocolMixin):
             newer_entities = [r.md_obj for r in processing_results if r.obj_state == ObjState.GOT_NEWER_VERSION]
             self.send_db_results(peer, response_payload.id, newer_entities)
 
-        # Query back the sender for preview contents for the new channels
         # TODO: maybe transform this into a processing_callback?
         if self.settings.channel_query_back_enabled:
             for result in processing_results:
+                # Query back the sender for preview contents for the new channels
+                # The fact that the object is previously unknown is indicated by process_payload in the
+                # .obj_state property of returned ProcessingResults objects.
                 if result.obj_state == ObjState.UNKNOWN_OBJECT and result.md_obj.metadata_type in (
                     CHANNEL_TORRENT,
                     COLLECTION_NODE,
@@ -218,8 +220,12 @@ class RemoteQueryCommunity(Community, EVAProtocolMixin):
                         "last": self.settings.max_channel_query_back,
                     }
                     self.send_remote_select(peer=peer, **request_dict)
+
+                # Query back for missing dependencies, e.g. thumbnail/description.
+                # The fact that some dependency is missing is checked by the lower layer during
+                # the query to process_payload and indicated through .missing_deps property of the
+                # ProcessingResults objects returned by process_payload.
                 for dep_query_dict in result.missing_deps:
-                    # Query back for missing dependencies, e.g. thumbnail/description
                     self.send_remote_select(peer=peer, **dep_query_dict)
 
         if isinstance(request, SelectRequest) and request.processing_callback:
