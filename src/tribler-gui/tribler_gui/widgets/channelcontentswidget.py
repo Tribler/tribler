@@ -35,8 +35,8 @@ widget_form, widget_class = uic.loadUiType(get_ui_file_path('torrents_list.ui'))
 # pylint: disable=too-many-instance-attributes, too-many-public-methods
 class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class):
     def __init__(self, parent=None):
-        super(widget_class, self).__init__(parent=parent)
-        # FIXME!!! This is a dumb workaround for a bug(?) in PyQT bindings in Python 3.7
+        widget_class.__init__(self, parent=parent)
+        # ACHTUNG! This is a dumb workaround for a bug(?) in PyQT bindings in Python 3.7
         # When more than a single instance of a class is created, every next setupUi
         # triggers connectSlotsByName error. There are some reports that it is specific to
         # 3.7 and there is a fix in the 10.08.2019 PyQt bindings snapshot.
@@ -115,7 +115,7 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
             self.model.reset()
             self.update_labels()
 
-    def commit_channels(self, checked=False):
+    def commit_channels(self, checked=False):  # pylint: disable=W0613
         TriblerNetworkRequest("channels/mychannel/0/commit", self.on_channel_committed, method='POST')
 
     def initialize_content_page(self, autocommit_enabled=False, hide_xxx=None):
@@ -246,7 +246,6 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
             self.commit_timer.stop()
             self.commit_timer.start(CHANNEL_COMMIT_DELAY)
 
-        # TODO: optimize me: maybe we don't need to update the labels each time?
         self.update_labels(dirty)
 
     def initialize_root_model_from_channel_info(self, channel_info):
@@ -281,7 +280,7 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         )
         self.controller.unset_model()  # Disconnect the selectionChanged signal
 
-    def go_back(self, checked=False):
+    def go_back(self, checked=False):  # pylint: disable=W0613
         if len(self.channels_stack) > 1:
             self.disconnect_current_model()
             self.channels_stack.pop().deleteLater()
@@ -324,12 +323,7 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
     def on_channel_clicked(self, channel_dict):
         self.initialize_with_channel(channel_dict)
 
-    # TODO: restore the method and button to copy channel_id to the clipboard
-    # def on_copy_channel_id(self):
-    #    copy_to_clipboard(self.channel_info["public_key"])
-    #    self.tray_show_message("Copied channel ID", self.channel_info["public_key"])
-
-    def preview_clicked(self, checked=False):
+    def preview_clicked(self, checked=False):  # pylint: disable=W0613
         params = dict()
 
         if "public_key" in self.model.channel_info:
@@ -355,7 +349,7 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
 
         TriblerNetworkRequest('remote_query', add_request_uuid, method="PUT", url_params=params)
 
-    def create_new_channel(self, checked):
+    def create_new_channel(self, checked):  # pylint: disable=W0613
         NewChannelDialog(self, self.model.create_new_channel)
 
     def initialize_with_channel(self, channel_info):
@@ -456,7 +450,6 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
 
     # ==============================
     # Channel menu related methods.
-    # TODO: make this into a separate object, stop reconnecting stuff each time
     # ==============================
 
     def create_channel_options_menu(self):
@@ -475,7 +468,7 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         return channel_options_menu
 
     # Torrent addition-related methods
-    def on_add_torrents_browse_dir(self, checked):
+    def on_add_torrents_browse_dir(self, checked):  # pylint: disable=W0613
         chosen_dir = QFileDialog.getExistingDirectory(
             self, "Please select the directory containing the .torrent files", QDir.homePath(), QFileDialog.ShowDirsOnly
         )
@@ -502,7 +495,7 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
             self.dialog = None
             self.chosen_dir = None
 
-    def on_add_torrent_browse_file(self, checked):
+    def on_add_torrent_browse_file(self, checked):  # pylint: disable=W0613
         filenames = QFileDialog.getOpenFileNames(
             self, "Please select the .torrent file", "", "Torrent files (*.torrent)"
         )
@@ -512,7 +505,7 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         for filename in filenames[0]:
             self.add_torrent_to_channel(filename)
 
-    def on_add_torrent_from_url(self, checked):
+    def on_add_torrent_from_url(self, checked):  # pylint: disable=W0613
         self.dialog = ConfirmationDialog(
             self,
             "Add torrent from URL/magnet link",
@@ -531,11 +524,10 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         self.dialog = None
 
     def _on_torrent_to_channel_added(self, result):
-        # TODO: just add it at the top of the list instead
         if not result:
             return
         if result.get('added'):
-            # FIXME: dumb hack to adapt torrents PUT endpoint output to the info_changed signal
+            # ACHTUNG: this is a dumb hack to adapt torrents PUT endpoint output to the info_changed signal.
             # If thousands of torrents were added, we don't want to post them all in a single
             # REST response. Instead, we always provide the total number of new torrents.
             # If we add a single torrent though, the endpoint will return it as a dict.
