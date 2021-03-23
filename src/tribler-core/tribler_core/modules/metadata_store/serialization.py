@@ -170,14 +170,17 @@ class SignedPayload(Payload):
 class ChannelNodePayload(SignedPayload):
     format_list = SignedPayload.format_list + ['Q', 'Q', 'Q']
 
-    def __init__(self, metadata_type, reserved_flags, public_key,
-                 id_, origin_id, timestamp,
-                 **kwargs):
+    def __init__(
+            self,
+            metadata_type, reserved_flags, public_key,  # SignedPayload
+            id_, origin_id, timestamp,                  # ChannelNodePayload
+            **kwargs):
         self.id_ = id_
         self.origin_id = origin_id
         self.timestamp = timestamp
-        super().__init__(metadata_type, reserved_flags, public_key,
-                                                 **kwargs)
+        super().__init__(
+            metadata_type, reserved_flags, public_key,  # SignedPayload
+            **kwargs)
 
     def to_pack_list(self):
         data = super().to_pack_list()
@@ -187,12 +190,15 @@ class ChannelNodePayload(SignedPayload):
         return data
 
     @classmethod
-    def from_unpack_list(cls, metadata_type, reserved_flags, public_key,
-                         id_, origin_id, timestamp,
-                         **kwargs):
-        return ChannelNodePayload(metadata_type, reserved_flags, public_key,
-                                  id_, origin_id, timestamp,
-                                  **kwargs)
+    def from_unpack_list(
+            cls,
+            metadata_type, reserved_flags, public_key,  # SignedPayload
+            id_, origin_id, timestamp,                  # ChannelNodePayload
+            **kwargs):
+        return ChannelNodePayload(
+            metadata_type, reserved_flags, public_key,  # SignedPayload
+            id_, origin_id, timestamp,                  # ChannelNodePayload
+            **kwargs)
 
     def to_dict(self):
         dct = super().to_dict()
@@ -207,14 +213,16 @@ class ChannelNodePayload(SignedPayload):
 class JsonNodePayload(ChannelNodePayload):
     format_list = ChannelNodePayload.format_list + ['varlenI']
 
-    def __init__(self, metadata_type, reserved_flags, public_key,
-                 id_, origin_id, timestamp,
-                 json_text,
-                 **kwargs):
+    def __init__(
+            self,
+            metadata_type, reserved_flags, public_key,  # SignedPayload
+            id_, origin_id, timestamp,                  # ChannelNodePayload
+            json_text,                                  # JsonNodePayload
+            **kwargs):
         self.json_text = json_text.decode('utf-8') if isinstance(json_text, bytes) else json_text
         super().__init__(
-            metadata_type, reserved_flags, public_key,
-            id_, origin_id, timestamp,
+            metadata_type, reserved_flags, public_key,  # SignedPayload
+            id_, origin_id, timestamp,                  # ChannelNodePayload
             **kwargs
         )
 
@@ -225,15 +233,16 @@ class JsonNodePayload(ChannelNodePayload):
 
     @classmethod
     def from_unpack_list(
-            cls, metadata_type, reserved_flags, public_key,
-            id_, origin_id, timestamp,
-            json_text,
+            cls,
+            metadata_type, reserved_flags, public_key,  # SignedPayload
+            id_, origin_id, timestamp,                  # ChannelNodePayload
+            json_text,                                  # JsonNodePayload
             **kwargs
     ):
         return cls(
-            metadata_type, reserved_flags, public_key,
-            id_, origin_id, timestamp,
-            json_text,
+            metadata_type, reserved_flags, public_key,  # SignedPayload
+            id_, origin_id, timestamp,                  # ChannelNodePayload
+            json_text,                                  # JsonNodePayload
             **kwargs
         )
 
@@ -246,15 +255,17 @@ class JsonNodePayload(ChannelNodePayload):
 class BinaryNodePayload(ChannelNodePayload):
     format_list = ChannelNodePayload.format_list + ['varlenI', 'varlenI']
 
-    def __init__(self, metadata_type, reserved_flags, public_key,
-                 id_, origin_id, timestamp,
-                 binary_data, data_type,
-                 **kwargs):
+    def __init__(
+            self,
+            metadata_type, reserved_flags, public_key,  # SignedPayload
+            id_, origin_id, timestamp,                  # ChannelNodePayload
+            binary_data, data_type,                     # BinaryNodePayload
+            **kwargs):
         self.binary_data = binary_data
         self.data_type = data_type.decode('utf-8') if isinstance(data_type, bytes) else data_type
         super().__init__(
-            metadata_type, reserved_flags, public_key,
-            id_, origin_id, timestamp,
+            metadata_type, reserved_flags, public_key,  # SignedPayload
+            id_, origin_id, timestamp,                  # ChannelNodePayload
             **kwargs
         )
 
@@ -266,15 +277,16 @@ class BinaryNodePayload(ChannelNodePayload):
 
     @classmethod
     def from_unpack_list(
-            cls, metadata_type, reserved_flags, public_key,
-            id_, origin_id, timestamp,
-            binary_data, data_type,
+            cls,
+            metadata_type, reserved_flags, public_key,  # SignedPayload
+            id_, origin_id, timestamp,                  # ChannelNodePayload
+            binary_data, data_type,                     # BinaryNodePayload
             **kwargs
     ):
         return cls(
-            metadata_type, reserved_flags, public_key,
-            id_, origin_id, timestamp,
-            binary_data, data_type,
+            metadata_type, reserved_flags, public_key,  # SignedPayload
+            id_, origin_id, timestamp,                  # ChannelNodePayload
+            binary_data, data_type,                     # BinaryNodePayload
             **kwargs
         )
 
@@ -289,15 +301,17 @@ class MetadataNodePayload(ChannelNodePayload):
 
     format_list = ChannelNodePayload.format_list + ['varlenI', 'varlenI']
 
-    def __init__(self, metadata_type, reserved_flags, public_key,
-                 id_, origin_id, timestamp,
-                 title, tags,
-                 **kwargs):
+    def __init__(
+            self,
+            metadata_type, reserved_flags, public_key,  # SignedPayload
+            id_, origin_id, timestamp,                  # ChannelNodePayload
+            title, tags,                                # MetadataNodePayload
+            **kwargs):
         self.title = title.decode('utf-8') if isinstance(title, bytes) else title
         self.tags = tags.decode('utf-8') if isinstance(tags, bytes) else tags
         super().__init__(
-            metadata_type, reserved_flags, public_key,
-            id_, origin_id, timestamp,
+            metadata_type, reserved_flags, public_key,  # SignedPayload
+            id_, origin_id, timestamp,                  # ChannelNodePayload
             **kwargs
         )
 
@@ -309,15 +323,16 @@ class MetadataNodePayload(ChannelNodePayload):
 
     @classmethod
     def from_unpack_list(
-        cls, metadata_type, reserved_flags, public_key,
-            id_, origin_id, timestamp,
-            title, tags,
-            **kwargs
+        cls,
+        metadata_type, reserved_flags, public_key,      # SignedPayload
+        id_, origin_id, timestamp,                      # ChannelNodePayload
+        title, tags,                                    # MetadataNodePayload
+        **kwargs
     ):
         return MetadataNodePayload(
-            metadata_type, reserved_flags, public_key,
-            id_, origin_id, timestamp,
-            title, tags,
+            metadata_type, reserved_flags, public_key,  # SignedPayload
+            id_, origin_id, timestamp,                  # ChannelNodePayload
+            title, tags,                                # MetadataNodePayload
             **kwargs
         )
 
@@ -337,17 +352,18 @@ class CollectionNodePayload(MetadataNodePayload):
     format_list = MetadataNodePayload.format_list + ['Q']
 
     def __init__(
-        self, metadata_type, reserved_flags, public_key,
-            id_, origin_id, timestamp,
-            title, tags,
-            num_entries,
+            self,
+            metadata_type, reserved_flags, public_key,  # SignedPayload
+            id_, origin_id, timestamp,                  # ChannelNodePayload
+            title, tags,                                # MetadataNodePayload
+            num_entries,                                # CollectionNodePayload
             **kwargs
     ):
         self.num_entries = num_entries
         super().__init__(
-            metadata_type, reserved_flags, public_key,
-            id_, origin_id, timestamp,
-            title, tags,
+            metadata_type, reserved_flags, public_key,  # SignedPayload
+            id_, origin_id, timestamp,                  # ChannelNodePayload
+            title, tags,                                # MetadataNodePayload
             **kwargs
         )
 
@@ -358,17 +374,18 @@ class CollectionNodePayload(MetadataNodePayload):
 
     @classmethod
     def from_unpack_list(
-        cls, metadata_type, reserved_flags, public_key,
-            id_, origin_id, timestamp,
-            title, tags,
-            num_entries,
+            cls,
+            metadata_type, reserved_flags, public_key,  # SignedPayload
+            id_, origin_id, timestamp,                  # ChannelNodePayload
+            title, tags,                                # MetadataNodePayload
+            num_entries,                                # CollectionNodePayload
             **kwargs
     ):
         return CollectionNodePayload(
-            metadata_type, reserved_flags, public_key,
-            id_, origin_id, timestamp,
-            title, tags,
-            num_entries,
+            metadata_type, reserved_flags, public_key,  # SignedPayload
+            id_, origin_id, timestamp,                  # ChannelNodePayload
+            title, tags,                                # MetadataNodePayload
+            num_entries,                                # CollectionNodePayload
             **kwargs
         )
 
@@ -385,10 +402,12 @@ class TorrentMetadataPayload(ChannelNodePayload):
 
     format_list = ChannelNodePayload.format_list + ['20s', 'Q', 'I', 'varlenI', 'varlenI', 'varlenI']
 
-    def __init__(self, metadata_type, reserved_flags, public_key,
-                 id_, origin_id, timestamp,
-                 infohash, size, torrent_date, title, tags, tracker_info,
-                 **kwargs):
+    def __init__(
+            self,
+            metadata_type, reserved_flags, public_key,                # SignedPayload
+            id_, origin_id, timestamp,                                # ChannelNodePayload
+            infohash, size, torrent_date, title, tags, tracker_info,  # TorrentMetadataPayload
+            **kwargs):
         self.infohash = bytes(infohash)
         self.size = size
         self.torrent_date = time2int(torrent_date) if isinstance(torrent_date, datetime) else torrent_date
@@ -396,8 +415,8 @@ class TorrentMetadataPayload(ChannelNodePayload):
         self.tags = tags.decode('utf-8') if isinstance(tags, bytes) else tags
         self.tracker_info = tracker_info.decode('utf-8') if isinstance(tracker_info, bytes) else tracker_info
         super().__init__(
-            metadata_type, reserved_flags, public_key,
-            id_, origin_id, timestamp,
+            metadata_type, reserved_flags, public_key,  # SignedPayload
+            id_, origin_id, timestamp,  # ChannelNodePayload
             **kwargs
         )
 
@@ -412,14 +431,17 @@ class TorrentMetadataPayload(ChannelNodePayload):
         return data
 
     @classmethod
-    def from_unpack_list(cls, metadata_type, reserved_flags, public_key,
-                         id_, origin_id, timestamp,
-                         infohash, size, torrent_date, title, tags, tracker_info,
-                         **kwargs):
-        return TorrentMetadataPayload(metadata_type, reserved_flags, public_key,
-                                      id_, origin_id, timestamp,
-                                      infohash, size, torrent_date, title, tags, tracker_info,
-                                      **kwargs)
+    def from_unpack_list(
+            cls,
+            metadata_type, reserved_flags, public_key,                # SignedPayload
+            id_, origin_id, timestamp,                                # ChannelNodePayload
+            infohash, size, torrent_date, title, tags, tracker_info,  # TorrentMetadataPayload
+            **kwargs):
+        return TorrentMetadataPayload(
+            metadata_type, reserved_flags, public_key,                # SignedPayload
+            id_, origin_id, timestamp,                                # ChannelNodePayload
+            infohash, size, torrent_date, title, tags, tracker_info,  # TorrentMetadataPayload
+            **kwargs)
 
     def to_dict(self):
         dct = super().to_dict()
@@ -435,8 +457,6 @@ class TorrentMetadataPayload(ChannelNodePayload):
         )
         return dct
 
-
-
     # TODO:  DRY!(copypasted from TorrentMetadata)
     def get_magnet(self):
         return (f"magnet:?xt=urn:btih:{hexlify(self.infohash)}&dn={self.title.encode('utf8')}") + (
@@ -451,17 +471,20 @@ class ChannelMetadataPayload(TorrentMetadataPayload):
 
     format_list = TorrentMetadataPayload.format_list + ['Q'] + ['Q']
 
-    def __init__(self, metadata_type, reserved_flags, public_key,
-                 id_, origin_id, timestamp,
-                 infohash, size, torrent_date, title, tags, tracker_info,
-                 num_entries, start_timestamp,
-                 **kwargs):
+    def __init__(
+            self,
+            metadata_type, reserved_flags, public_key,                # SignedPayload
+            id_, origin_id, timestamp,                                # ChannelNodePayload
+            infohash, size, torrent_date, title, tags, tracker_info,  # TorrentMetadataPayload
+            num_entries, start_timestamp,                             # ChannelMetadataPayload
+            **kwargs):
         self.num_entries = num_entries
         self.start_timestamp = start_timestamp
-        super().__init__(metadata_type, reserved_flags, public_key,
-                                                     id_, origin_id, timestamp,
-                                                     infohash, size, torrent_date, title, tags, tracker_info,
-                                                     **kwargs)
+        super().__init__(
+            metadata_type, reserved_flags, public_key,                 # SignedPayload
+            id_, origin_id, timestamp,                                 # ChannelNodePayload
+            infohash, size, torrent_date, title, tags, tracker_info,   # TorrentMetadataPayload
+            **kwargs)
 
     def to_pack_list(self):
         data = super().to_pack_list()
@@ -470,20 +493,26 @@ class ChannelMetadataPayload(TorrentMetadataPayload):
         return data
 
     @classmethod
-    def from_unpack_list(cls, metadata_type, reserved_flags, public_key,
-                         id_, origin_id, timestamp,
-                         infohash, size, torrent_date, title, tags, tracker_info,
-                         num_entries, start_timestamp,
-                         **kwargs):
-        return ChannelMetadataPayload(metadata_type, reserved_flags, public_key,
-                                      id_, origin_id, timestamp,
-                                      infohash, size, torrent_date, title, tags, tracker_info,
-                                      num_entries, start_timestamp,
-                                      **kwargs)
+    def from_unpack_list(
+            cls,
+            metadata_type, reserved_flags, public_key,                # SignedPayload
+            id_, origin_id, timestamp,                                # ChannelNodePayload
+            infohash, size, torrent_date, title, tags, tracker_info,  # TorrentMetadataPayload
+            num_entries, start_timestamp,                             # ChannelMetadataPayload
+            **kwargs):
+        return ChannelMetadataPayload(
+            metadata_type, reserved_flags, public_key,                # SignedPayload
+            id_, origin_id, timestamp,                                # ChannelNodePayload
+            infohash, size, torrent_date, title, tags, tracker_info,  # TorrentMetadataPayload
+            num_entries, start_timestamp,                             # ChannelMetadataPayload
+            **kwargs)
 
     def to_dict(self):
         dct = super().to_dict()
-        dct.update({"num_entries": self.num_entries, "start_timestamp": self.start_timestamp})
+        dct.update({
+            "num_entries": self.num_entries,
+            "start_timestamp": self.start_timestamp
+        })
         return dct
 
 
@@ -494,12 +523,15 @@ class DeletedMetadataPayload(SignedPayload):
 
     format_list = SignedPayload.format_list + ['64s']
 
-    def __init__(self, metadata_type, reserved_flags, public_key,
-                 delete_signature,
-                 **kwargs):
+    def __init__(
+            self,
+            metadata_type, reserved_flags, public_key,  # SignedPayload
+            delete_signature,                           # DeletedMetadataPayload
+            **kwargs):
         self.delete_signature = bytes(delete_signature)
-        super().__init__(metadata_type, reserved_flags, public_key,
-                                                     **kwargs)
+        super().__init__(
+            metadata_type, reserved_flags, public_key,  # SignedPayload
+            **kwargs)
 
     def to_pack_list(self):
         data = super().to_pack_list()
@@ -507,12 +539,15 @@ class DeletedMetadataPayload(SignedPayload):
         return data
 
     @classmethod
-    def from_unpack_list(cls, metadata_type, reserved_flags, public_key,
-                         delete_signature,
-                         **kwargs):
-        return DeletedMetadataPayload(metadata_type, reserved_flags, public_key,
-                                      delete_signature,
-                                      **kwargs)
+    def from_unpack_list(
+            cls,
+            metadata_type, reserved_flags, public_key,  # SignedPayload
+            delete_signature,                           # DeletedMetadataPayload
+            **kwargs):
+        return DeletedMetadataPayload(
+            metadata_type, reserved_flags, public_key,  # SignedPayload
+            delete_signature,                           # DeletedMetadataPayload
+            **kwargs)
 
     def to_dict(self):
         dct = super().to_dict()
