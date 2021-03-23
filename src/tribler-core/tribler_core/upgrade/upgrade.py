@@ -17,8 +17,8 @@ from tribler_core.upgrade.config_converter import (
     convert_config_to_tribler75,
     convert_config_to_tribler76,
 )
-from tribler_core.upgrade.db72_to_pony import DispersyToPonyMigration, cleanup_pony_experimental_db, should_upgrade
 from tribler_core.upgrade.db8_to_db10 import PonyToPonyMigration, get_db_version
+from tribler_core.upgrade.legacy_to_pony import DispersyToPonyMigration, cleanup_pony_experimental_db, should_upgrade
 from tribler_core.utilities.configparser import CallbackConfigParser
 
 
@@ -99,6 +99,23 @@ class TriblerUpgrader:
         convert_config_to_tribler75(self.session.config.get_state_dir())
         convert_config_to_tribler76(self.session.config.get_state_dir())
         self.upgrade_bw_accounting_db_8to9()
+        self.upgrade_pony_db_11to12()
+
+    def upgrade_pony_db_11to12(self):
+        """
+        Upgrade GigaChannel DB from version 11 (7.8.x) to version 12 (7.9.x).
+        Version 12 adds a `json_text`, `binary_data` and `data_type` fields
+        to TorrentState table if it already does not exist.
+        """
+        # We have to create the Metadata Store object because Session-managed Store has not been started yet
+        database_path = self.session.config.get_state_dir() / 'sqlite' / 'metadata.db'
+        channels_dir = self.session.config.get_chant_channels_dir()
+        if not database_path.exists():
+            return
+        mds = MetadataStore(database_path, channels_dir, self.session.trustchain_keypair,
+                            disable_sync=True, check_tables=False, db_version=11)
+        self.do_upgrade_pony_db_11to12(mds)
+        mds.shutdown()
 
     def upgrade_pony_db_10to11(self):
         """
@@ -112,7 +129,7 @@ class TriblerUpgrader:
         if not database_path.exists():
             return
         mds = MetadataStore(database_path, channels_dir, self.session.trustchain_keypair,
-                            disable_sync=True, check_tables=False)
+                            disable_sync=True, check_tables=False, db_version=10)
         self.do_upgrade_pony_db_10to11(mds)
         mds.shutdown()
 
@@ -145,6 +162,30 @@ class TriblerUpgrader:
         result = list(db.execute(pragma))
         # If the column exists, result = [(1, )] else [(0, )]
         return result[0][0] == 1
+
+    def do_upgrade_pony_db_11to12(self, mds):
+        from_version = 11
+        to_version = 12
+
+        with db_session:
+            db_version = mds.MiscData.get(name="db_version")
+            if int(db_version.value) != from_version:
+                return
+
+            # Just in case, we skip altering table if the column is somehow already there
+            table_name = "ChannelNode"
+            new_columns = [("json_text", "TEXT1"),
+                           ("binary_data", "BLOB1"),
+                           ("data_type", "TEXT1")]
+
+            for column_name, datatype in new_columns:
+                # pylint: disable=protected-access
+                if not self.column_exists_in_table(mds._db, table_name, column_name):
+                    sql = f'ALTER TABLE {table_name} ADD {column_name} {datatype};'
+                    mds._db.execute(sql)
+
+            db_version = mds.MiscData.get(name="db_version")
+            db_version.value = str(to_version)
 
     def do_upgrade_pony_db_10to11(self, mds):
         from_version = 10
@@ -222,7 +263,7 @@ class TriblerUpgrader:
         if not database_path.exists():
             return
         mds = MetadataStore(database_path, channels_dir, self.session.trustchain_keypair,
-                            disable_sync=True, check_tables=False)
+                            disable_sync=True, check_tables=False, db_version=7)
         self.do_upgrade_pony_db_7to8(mds)
         mds.shutdown()
 
@@ -252,7 +293,7 @@ class TriblerUpgrader:
         if not database_path.exists():
             return
         mds = MetadataStore(database_path, channels_dir, self.session.trustchain_keypair,
-                            disable_sync=True, check_tables=False)
+                            disable_sync=True, check_tables=False, db_version=6)
         self.do_upgrade_pony_db_6to7(mds)
         mds.shutdown()
 

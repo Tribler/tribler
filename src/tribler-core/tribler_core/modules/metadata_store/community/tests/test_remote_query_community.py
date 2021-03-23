@@ -1,6 +1,7 @@
 from binascii import unhexlify
 from datetime import datetime
 from json import dumps
+from os import urandom
 from unittest.mock import Mock
 
 from ipv8.keyvault.crypto import default_eccrypto
@@ -9,13 +10,17 @@ from ipv8.test.base import TestBase
 from pony.orm import db_session
 from pony.orm.dbapiprovider import OperationalError
 
+import pytest
+
 from tribler_core.modules.metadata_store.community.remote_query_community import RemoteQueryCommunity, sanitize_query
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import NEW
-from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, REGULAR_TORRENT
+from tribler_core.modules.metadata_store.serialization import CHANNEL_THUMBNAIL, CHANNEL_TORRENT, REGULAR_TORRENT
 from tribler_core.modules.metadata_store.store import MetadataStore
 from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.random_utils import random_infohash, random_string
 from tribler_core.utilities.unicode import hexlify
+
+# pylint: disable=too-many-statements
 
 
 def add_random_torrent(metadata_cls, name="test", channel=None):
@@ -83,8 +88,8 @@ class TestRemoteQueryCommunity(TestBase):
 
         # All the matching torrent entries should have been sent to Node 1
         with db_session:
-            torrents0 = self.nodes[0].overlay.mds.MetadataNode.get_entries(**kwargs_dict)
-            torrents1 = self.nodes[1].overlay.mds.MetadataNode.get_entries(**kwargs_dict)
+            torrents0 = self.nodes[0].overlay.mds.get_entries(**kwargs_dict)
+            torrents1 = self.nodes[1].overlay.mds.get_entries(**kwargs_dict)
             self.assertEqual(len(torrents0), len(torrents1))
             self.assertEqual(len(torrents0), 20)
 
@@ -191,7 +196,7 @@ class TestRemoteQueryCommunity(TestBase):
         with db_session:
             received_channels = self.nodes[1].overlay.mds.ChannelMetadata.select()
             # We should receive less that 6 packets, so all the channels should not fit there.
-            self.assertTrue(40 < received_channels.count() < 60)
+            assert 40 < received_channels.count() < 60
 
             # The list of outstanding requests should be empty
             self.assertFalse(self.nodes[1].overlay.request_cache._identifiers)
@@ -299,3 +304,113 @@ class TestRemoteQueryCommunity(TestBase):
         """
         with self.assertRaises(OperationalError):
             await self.overlay(0).process_rpc_query(b'{"txt_filter":{"key":"bla"}}')
+
+    async def test_remote_query_big_response(self):
+
+        value = urandom(20000)
+        with db_session:
+            self.nodes[1].overlay.mds.ChannelThumbnail(binary_data=value)
+
+        kwargs_dict = {"metadata_type": [CHANNEL_THUMBNAIL]}
+        callback = Mock()
+        self.nodes[0].overlay.send_remote_select(self.nodes[1].my_peer, **kwargs_dict, processing_callback=callback)
+
+        await self.deliver_messages(timeout=0.5)
+        # Test optional response processing callback
+        callback.assert_called()
+
+        # All the matching torrent entries should have been sent to Node 1
+        with db_session:
+            torrents0 = self.nodes[0].overlay.mds.get_entries(**kwargs_dict)
+            torrents1 = self.nodes[1].overlay.mds.get_entries(**kwargs_dict)
+            self.assertEqual(len(torrents0), len(torrents1))
+
+    @pytest.mark.timeout(15)
+    async def test_remote_select_query_back_thumbs_and_descriptions(self):
+        """
+        Test querying back preview thumbnail and description for previously unknown and updated channels.
+        """
+
+        with db_session:
+            # Generate channels on Node 0
+            chan = self.nodes[0].overlay.mds.ChannelMetadata.create_channel("channel", "")
+            self.nodes[0].overlay.mds.ChannelThumbnail(
+                public_key=chan.public_key,
+                origin_id=chan.id_,
+                binary_data=urandom(2000),
+                data_type="image/png",
+                status=NEW,
+            )
+
+            self.nodes[0].overlay.mds.ChannelDescription(
+                public_key=chan.public_key, origin_id=chan.id_, json_text='{"description_text": "foobar"}', status=NEW
+            )
+            chan.commit_all_channels()
+            chan_v = chan.timestamp
+
+        peer = self.nodes[0].my_peer
+        kwargs_dict = {"metadata_type": [CHANNEL_TORRENT]}
+        self.nodes[1].overlay.send_remote_select(peer, **kwargs_dict)
+
+        await self.deliver_messages(timeout=0.5)
+
+        with db_session:
+            assert self.nodes[1].overlay.mds.ChannelMetadata.get(lambda g: g.title == "channel")
+            assert self.nodes[1].overlay.mds.ChannelThumbnail.get()
+            assert self.nodes[1].overlay.mds.ChannelDescription.get()
+
+        # Now test querying for updated version of description/thumbnail
+        with db_session:
+            thumb = self.nodes[0].overlay.mds.ChannelThumbnail.get()
+            new_pic_bytes = urandom(2500)
+            thumb.update_properties({"binary_data": new_pic_bytes})
+            descr = self.nodes[0].overlay.mds.ChannelDescription.get()
+            descr.update_properties({"json_text": '{"description_text": "yummy"}'})
+
+            chan = self.nodes[0].overlay.mds.ChannelMetadata.get()
+            chan.commit_all_channels()
+            chan_v2 = chan.timestamp
+            assert chan_v2 > chan_v
+
+        self.nodes[1].overlay.send_remote_select(peer, **kwargs_dict)
+
+        await self.deliver_messages(timeout=1)
+
+        with db_session:
+            assert self.nodes[1].overlay.mds.ChannelMetadata.get(lambda g: g.title == "channel")
+            assert self.nodes[1].overlay.mds.ChannelThumbnail.get().binary_data == new_pic_bytes
+            assert self.nodes[1].overlay.mds.ChannelDescription.get().json_text == '{"description_text": "yummy"}'
+
+        # Test querying for missing dependencies (e.g. thumbnails and descriptions lost due to transfer errors)
+        with db_session:
+            self.nodes[1].overlay.mds.ChannelThumbnail.get().delete()
+            self.nodes[1].overlay.mds.ChannelDescription.get().delete()
+        self.nodes[1].overlay.send_remote_select(peer, **kwargs_dict)
+
+        await self.deliver_messages(timeout=1)
+
+        with db_session:
+            assert self.nodes[1].overlay.mds.ChannelThumbnail.get()
+            assert self.nodes[1].overlay.mds.ChannelDescription.get()
+
+        # Test that we're only going to query for updated objects and skip old ones
+        with db_session:
+            chan = self.nodes[0].overlay.mds.ChannelMetadata.get()
+            self.nodes[0].overlay.mds.TorrentMetadata(
+                public_key=chan.public_key, origin_id=chan.id_, infohash=random_infohash(), status=NEW
+            )
+
+            chan.commit_all_channels()
+            chan_v3 = chan.timestamp
+            assert chan_v3 > chan_v2
+
+        self.nodes[0].overlay.eva_send_binary = Mock()
+
+        self.nodes[1].overlay.send_remote_select(peer, **kwargs_dict)
+        await self.deliver_messages(timeout=1)
+
+        # Big transfer should not have been called, because we only queried for updated version of the thumbnail
+        self.nodes[0].overlay.eva_send_binary.assert_not_called()
+
+        with db_session:
+            assert self.nodes[1].overlay.mds.ChannelMetadata.get(lambda g: g.title == "channel").timestamp == chan_v3

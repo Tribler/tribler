@@ -38,8 +38,8 @@ def tdef_to_metadata_dict(tdef):
 
     return {
         "infohash": tdef.get_infohash(),
-        "title": tdef.get_name_as_unicode()[:300],  # TODO: do proper size checking based on bytes
-        "tags": tags[:200],  # TODO: do proper size checking based on bytes
+        "title": tdef.get_name_as_unicode()[:300],
+        "tags": tags[:200],
         "size": tdef.get_length(),
         "torrent_date": torrent_date if torrent_date >= EPOCH else EPOCH,
         "tracker_info": get_uniformed_tracker_url(ensure_unicode(tdef.get_tracker() or '', 'utf-8')) or '',
@@ -119,7 +119,7 @@ def define_binding(db):
             # Add the torrent as a free-for-all entry if it is unknown to GigaChannel
             return cls.from_dict(dict(ffa_dict, public_key=b'', status=COMMITTED, id_=id_))
 
-        def to_simple_dict(self, include_trackers=False):
+        def to_simple_dict(self):
             """
             Return a basic dictionary with information about the channel.
             """
@@ -135,10 +135,6 @@ def define_binding(db):
                     "updated": int((self.torrent_date - epoch).total_seconds()),
                 }
             )
-
-            with db_session:
-                if include_trackers:
-                    simple_dict['trackers'] = [tracker.url for tracker in self.health.trackers]
 
             return simple_dict
 

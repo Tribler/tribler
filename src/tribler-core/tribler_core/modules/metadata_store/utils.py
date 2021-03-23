@@ -2,6 +2,7 @@ from ipv8.keyvault.crypto import default_eccrypto
 
 from pony.orm import db_session
 
+from tribler_core.tests.tools.common import PNG_FILE
 from tribler_core.utilities.random_utils import random_infohash, random_utf8_string
 
 
@@ -48,6 +49,12 @@ def generate_test_channels(metadata_store):
 
     # Now generate a couple of personal channels
     chan1 = metadata_store.ChannelMetadata.create_channel(title="personal channel with non-random name")
+
+    with open(PNG_FILE, "rb") as f:
+        pic_bytes = f.read()
+    metadata_store.ChannelThumbnail(binary_data=pic_bytes, data_type="image/png", origin_id=chan1.id_)
+    metadata_store.ChannelDescription(json_text='{"description_text": "# Hi guys"}', origin_id=chan1.id_)
+
     for _ in range(0, 3):
         generate_collection(metadata_store, chan1)
     chan1.commit_channel_torrent()

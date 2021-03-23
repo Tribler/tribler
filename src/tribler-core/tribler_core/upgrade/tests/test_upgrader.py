@@ -40,7 +40,7 @@ async def test_upgrade_72_to_pony(upgrader, session):
 
     await upgrader.run()
     channels_dir = session.config.get_chant_channels_dir()
-    mds = MetadataStore(new_database_path, channels_dir, session.trustchain_keypair)
+    mds = MetadataStore(new_database_path, channels_dir, session.trustchain_keypair, db_version=6)
     with db_session:
         assert mds.TorrentMetadata.select().count() == 24
     mds.shutdown()
@@ -58,8 +58,7 @@ def test_upgrade_pony_db_6to7(upgrader, session):
 
     upgrader.upgrade_pony_db_6to7()
     channels_dir = session.config.get_chant_channels_dir()
-    mds = MetadataStore(old_database_path, channels_dir,
-                        session.trustchain_keypair, check_tables=False)
+    mds = MetadataStore(old_database_path, channels_dir, session.trustchain_keypair, check_tables=False, db_version=7)
     with db_session:
         assert mds.TorrentMetadata.select().count() == 23
         assert mds.ChannelMetadata.select().count() == 2
@@ -78,8 +77,7 @@ def test_upgrade_pony_db_7to8(upgrader, session):
 
     upgrader.upgrade_pony_db_7to8()
     channels_dir = session.config.get_chant_channels_dir()
-    mds = MetadataStore(old_database_path, channels_dir,
-                        session.trustchain_keypair, check_tables=False)
+    mds = MetadataStore(old_database_path, channels_dir, session.trustchain_keypair, check_tables=False, db_version=8)
     with db_session:
         assert int(mds.MiscData.get(name="db_version").value) == 8
         assert mds.Vsids[0].exp_period == 24.0 * 60 * 60 * 3
@@ -118,7 +116,7 @@ async def test_skip_upgrade_72_to_pony(upgrader, session):
 
     upgrader.skip()
     await upgrader.run()
-    mds = MetadataStore(new_database_path, channels_dir, session.trustchain_keypair)
+    mds = MetadataStore(new_database_path, channels_dir, session.trustchain_keypair, db_version=6)
     with db_session:
         assert mds.TorrentMetadata.select().count() == 0
         assert mds.ChannelMetadata.select().count() == 0
@@ -155,7 +153,7 @@ async def test_upgrade_pony_8to10(upgrader, session):
     upgrader.upgrade_pony_db_7to8()
     await upgrader.upgrade_pony_db_8to10()
     channels_dir = session.config.get_chant_channels_dir()
-    mds = MetadataStore(database_path, channels_dir, session.trustchain_keypair)
+    mds = MetadataStore(database_path, channels_dir, session.trustchain_keypair, check_tables=False, db_version=10)
     with db_session:
         assert int(mds.MiscData.get(name="db_version").value) == 10
         assert mds.ChannelNode.select().count() == 23
@@ -169,11 +167,27 @@ async def test_upgrade_pony_10to11(upgrader, session):
 
     upgrader.upgrade_pony_db_10to11()
     channels_dir = session.config.get_chant_channels_dir()
-    mds = MetadataStore(database_path, channels_dir, session.trustchain_keypair)
+    mds = MetadataStore(database_path, channels_dir, session.trustchain_keypair, check_tables=False, db_version=11)
     with db_session:
         # pylint: disable=protected-access
         assert upgrader.column_exists_in_table(mds._db, 'TorrentState', 'self_checked')
         assert int(mds.MiscData.get(name="db_version").value) == 11
+    mds.shutdown()
+
+def test_upgrade_pony11to12(upgrader, session):
+    old_db_sample = TESTS_DATA_DIR / 'upgrade_databases' / 'pony_v11.db'
+    database_path = session.config.get_state_dir() / 'sqlite' / 'metadata.db'
+    shutil.copyfile(old_db_sample, database_path)
+
+    upgrader.upgrade_pony_db_11to12()
+    channels_dir = session.config.get_chant_channels_dir()
+    mds = MetadataStore(database_path, channels_dir, session.trustchain_keypair, check_tables=False, db_version=11)
+    with db_session:
+        # pylint: disable=protected-access
+        assert upgrader.column_exists_in_table(mds._db, 'ChannelNode', 'json_text')
+        assert upgrader.column_exists_in_table(mds._db, 'ChannelNode', 'binary_data')
+        assert upgrader.column_exists_in_table(mds._db, 'ChannelNode', 'data_type')
+        assert int(mds.MiscData.get(name="db_version").value) == 12
     mds.shutdown()
 
 def test_calc_progress():

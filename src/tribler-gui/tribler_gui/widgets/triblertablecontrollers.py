@@ -89,6 +89,17 @@ class TriblerTableViewController(QObject):
         self.model.text_filter = to_fts_query(self.filter_input.text().lower())
         self.model.reset()
 
+    def brain_dead_refresh(self):
+        """
+        FIXME! Brain-dead refresh is back!
+        It shows the rows eaten by a closed channel description widget.
+        Note that none of the more civilized ways to fix it work:
+        various updateGeometry, viewport().update, adjustSize - nothing works!
+        """
+        window = self.table_view.window()
+        window.resize(window.geometry().width() + 1, window.geometry().height())
+        window.resize(window.geometry().width() - 1, window.geometry().height())
+
 
 class TableSelectionMixin:
     def __init__(self, *args, **kwargs):

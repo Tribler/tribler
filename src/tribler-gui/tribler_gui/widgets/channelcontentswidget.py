@@ -35,8 +35,8 @@ widget_form, widget_class = uic.loadUiType(get_ui_file_path('torrents_list.ui'))
 # pylint: disable=too-many-instance-attributes, too-many-public-methods
 class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class):
     def __init__(self, parent=None):
-        super(widget_class, self).__init__(parent=parent)
-        # FIXME!!! This is a dumb workaround for a bug(?) in PyQT bindings in Python 3.7
+        widget_class.__init__(self, parent=parent)
+        # ACHTUNG! This is a dumb workaround for a bug(?) in PyQT bindings in Python 3.7
         # When more than a single instance of a class is created, every next setupUi
         # triggers connectSlotsByName error. There are some reports that it is specific to
         # 3.7 and there is a fix in the 10.08.2019 PyQt bindings snapshot.
@@ -88,6 +88,7 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
 
         self.freeze_controls = freeze_controls_class
         self.setStyleSheet("QToolTip { color: #222222; background-color: #eeeeee; border: 0px; }")
+        self.channel_description_container.setHidden(True)
 
         self.explanation_container.setHidden(True)
 
@@ -100,14 +101,21 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         return self.channels_stack[-1] if self.channels_stack else None
 
     def on_channel_committed(self, response):
-        if response and response.get("success", False):
-            if not self.autocommit_enabled:
-                self.commit_control_bar.setHidden(True)
-            if self.model:
-                self.model.reset()
-                self.update_labels()
+        if not response or not response.get("success", False):
+            return
 
-    def commit_channels(self, checked=False):
+        if not self.autocommit_enabled:
+            self.commit_control_bar.setHidden(True)
+
+        if not self.model:
+            return
+
+        info = self.model.channel_info
+        if info.get("state") == "Personal" and info.get("dirty"):
+            self.model.reset()
+            self.update_labels()
+
+    def commit_channels(self, checked=False):  # pylint: disable=W0613
         TriblerNetworkRequest("channels/mychannel/0/commit", self.on_channel_committed, method='POST')
 
     def initialize_content_page(self, autocommit_enabled=False, hide_xxx=None):
@@ -130,6 +138,9 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         # To reload the preview
         connect(self.channel_preview_button.clicked, self.preview_clicked)
 
+        # Hide channel description on scroll
+        connect(self.controller.table_view.verticalScrollBar().valueChanged, self._on_table_scroll)
+
         self.autocommit_enabled = autocommit_enabled
         if self.autocommit_enabled:
             self._enable_autocommit_timer()
@@ -143,9 +154,37 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
 
         self.channel_options_menu = self.create_channel_options_menu()
         self.channel_options_button.setMenu(self.channel_options_menu)
+        connect(self.channel_description_container.became_hidden, self._run_brain_dead_refresh)
+        connect(self.channel_description_container.description_changed, self._description_changed)
+
+    def _description_changed(self):
+        # Initialize commit timer on channel description change
+        if self.autocommit_enabled:
+            self.commit_timer.stop()
+            self.commit_timer.start(CHANNEL_COMMIT_DELAY)
+        self.update_labels(True)
+
+    def _run_brain_dead_refresh(self):
+        if self.model:
+            self.controller.brain_dead_refresh()
+
+    def _on_table_scroll(self, event):  # pylint: disable=unused-argument
+        # Hide the description widget when the channel is scrolled down
+        if not self.model.data_items:
+            return
+
+        scrollbar = self.controller.table_view.verticalScrollBar()
+        container = self.channel_description_container
+
+        is_time_to_hide = scrollbar.minimum() < scrollbar.value() - 10 and scrollbar.maximum() > 100
+        is_time_to_show = scrollbar.minimum() == scrollbar.value()
+
+        if is_time_to_hide and not container.isHidden():
+            container.setHidden(True)
+        elif is_time_to_show and container.isHidden() and container.initialized:
+            container.setHidden(False)
 
     def _enable_autocommit_timer(self):
-
         self.commit_timer = QTimer()
         self.commit_timer.setSingleShot(True)
         connect(self.commit_timer.timeout, self.commit_channels)
@@ -207,7 +246,6 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
             self.commit_timer.stop()
             self.commit_timer.start(CHANNEL_COMMIT_DELAY)
 
-        # TODO: optimize me: maybe we don't need to update the labels each time?
         self.update_labels(dirty)
 
     def initialize_root_model_from_channel_info(self, channel_info):
@@ -236,17 +274,17 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         self.model.reset()
 
     def disconnect_current_model(self):
-        self.model.info_changed.disconnect()
         disconnect(self.window().core_manager.events_manager.node_info_updated, self.model.update_node_info)
         disconnect(
             self.window().core_manager.events_manager.received_remote_query_results, self.model.on_new_entry_received
         )
         self.controller.unset_model()  # Disconnect the selectionChanged signal
 
-    def go_back(self, checked=False):
+    def go_back(self, checked=False):  # pylint: disable=W0613
         if len(self.channels_stack) > 1:
             self.disconnect_current_model()
             self.channels_stack.pop().deleteLater()
+            self.channel_description_container.initialized = False
 
             # We block signals to prevent triggering redundant model reloading
             with self.freeze_controls():
@@ -285,12 +323,7 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
     def on_channel_clicked(self, channel_dict):
         self.initialize_with_channel(channel_dict)
 
-    # TODO: restore the method and button to copy channel_id to the clipboard
-    # def on_copy_channel_id(self):
-    #    copy_to_clipboard(self.channel_info["public_key"])
-    #    self.tray_show_message("Copied channel ID", self.channel_info["public_key"])
-
-    def preview_clicked(self, checked=False):
+    def preview_clicked(self, checked=False):  # pylint: disable=W0613
         params = dict()
 
         if "public_key" in self.model.channel_info:
@@ -316,7 +349,7 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
 
         TriblerNetworkRequest('remote_query', add_request_uuid, method="PUT", url_params=params)
 
-    def create_new_channel(self, checked):
+    def create_new_channel(self, checked):  # pylint: disable=W0613
         NewChannelDialog(self, self.model.create_new_channel)
 
     def initialize_with_channel(self, channel_info):
@@ -338,6 +371,16 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         discovered = isinstance(self.model, DiscoveredChannelsModel)
         personal_model = isinstance(self.model, PersonalChannelsModel)
         is_a_channel = self.model.channel_info.get("type", None) == CHANNEL_TORRENT
+        description_flag = self.model.channel_info.get("description_flag")
+        thumbnail_flag = self.model.channel_info.get("thumbnail_flag")
+
+        info = self.model.channel_info
+        container = self.channel_description_container
+        if is_a_channel and (description_flag or thumbnail_flag or personal_model):
+            container.initialize_with_channel(info["public_key"], info["id"], edit=personal and personal_model)
+        else:
+            container.initialized = False
+            container.setHidden(True)
 
         self.category_selector.setHidden(root and (discovered or personal_model))
         # initialize the channel page
@@ -407,7 +450,6 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
 
     # ==============================
     # Channel menu related methods.
-    # TODO: make this into a separate object, stop reconnecting stuff each time
     # ==============================
 
     def create_channel_options_menu(self):
@@ -426,7 +468,7 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         return channel_options_menu
 
     # Torrent addition-related methods
-    def on_add_torrents_browse_dir(self, checked):
+    def on_add_torrents_browse_dir(self, checked):  # pylint: disable=W0613
         chosen_dir = QFileDialog.getExistingDirectory(
             self, "Please select the directory containing the .torrent files", QDir.homePath(), QFileDialog.ShowDirsOnly
         )
@@ -453,7 +495,7 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
             self.dialog = None
             self.chosen_dir = None
 
-    def on_add_torrent_browse_file(self, checked):
+    def on_add_torrent_browse_file(self, checked):  # pylint: disable=W0613
         filenames = QFileDialog.getOpenFileNames(
             self, "Please select the .torrent file", "", "Torrent files (*.torrent)"
         )
@@ -463,7 +505,7 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         for filename in filenames[0]:
             self.add_torrent_to_channel(filename)
 
-    def on_add_torrent_from_url(self, checked):
+    def on_add_torrent_from_url(self, checked):  # pylint: disable=W0613
         self.dialog = ConfirmationDialog(
             self,
             "Add torrent from URL/magnet link",
@@ -482,11 +524,10 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         self.dialog = None
 
     def _on_torrent_to_channel_added(self, result):
-        # TODO: just add it at the top of the list instead
         if not result:
             return
         if result.get('added'):
-            # FIXME: dumb hack to adapt torrents PUT endpoint output to the info_changed signal
+            # ACHTUNG: this is a dumb hack to adapt torrents PUT endpoint output to the info_changed signal.
             # If thousands of torrents were added, we don't want to post them all in a single
             # REST response. Instead, we always provide the total number of new torrents.
             # If we add a single torrent though, the endpoint will return it as a dict.

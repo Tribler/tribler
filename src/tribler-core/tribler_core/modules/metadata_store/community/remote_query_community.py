@@ -1,4 +1,5 @@
 import json
+import struct
 from binascii import unhexlify
 from dataclasses import dataclass
 
@@ -9,11 +10,14 @@ from ipv8.requestcache import NumberCache, RandomNumberCache, RequestCache
 
 from pony.orm.dbapiprovider import OperationalError
 
+from tribler_core.modules.metadata_store.community.eva_protocol import EVAProtocolMixin
 from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import entries_to_chunk
-from tribler_core.modules.metadata_store.store import GOT_NEWER_VERSION, UNKNOWN_CHANNEL, UNKNOWN_COLLECTION
+from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
+from tribler_core.modules.metadata_store.store import ObjState
 from tribler_core.utilities.unicode import hexlify
 
 BINARY_FIELDS = ("infohash", "channel_pk")
+NO_RESPONSE = unhexlify("7ca1e9e922895a477a52cc9d6031020355eb172735bf83c058cb03ddcc9c6408")
 
 
 def sanitize_query(query_dict, cap=100):
@@ -90,7 +94,7 @@ class RemoteQueryCommunitySettings:
         return self.max_channel_query_back > 0
 
 
-class RemoteQueryCommunity(Community):
+class RemoteQueryCommunity(Community, EVAProtocolMixin):
     """
     Community for general purpose SELECT-like queries into remote Channels database
     """
@@ -110,6 +114,22 @@ class RemoteQueryCommunity(Community):
         self.add_message_handler(RemoteSelectPayload, self.on_remote_select)
         self.add_message_handler(SelectResponsePayload, self.on_remote_select_response)
 
+        self.eva_init()
+        self.eva_register_receive_callback(self.on_receive)
+        self.eva_register_send_complete_callback(self.on_send_complete)
+        self.eva_register_error_callback(self.on_error)
+
+    def on_receive(self, peer, binary_info, binary_data, nonce):
+        self.logger.info(f"EVA data received: peer {hexlify(peer.mid)}, info {binary_info}")
+        packet = (peer.address, binary_data)
+        self.on_packet(packet)
+
+    def on_send_complete(self, peer, binary_info, binary_data, nonce):
+        self.logger.info(f"EVA outgoing transfer complete: peer {hexlify(peer.mid)},  info {binary_info}")
+
+    def on_error(self, peer, exception):
+        self.logger.warning(f"EVA transfer error: peer {hexlify(peer.mid)}, exception: {exception}")
+
     def send_remote_select(self, peer, processing_callback=None, **kwargs):
 
         request = SelectRequest(self.request_cache, hexlify(peer.mid), kwargs, processing_callback)
@@ -126,13 +146,19 @@ class RemoteQueryCommunity(Community):
         :raises pony.orm.dbapiprovider.OperationalError: if an illegal query was performed.
         """
         request_sanitized = sanitize_query(json.loads(json_bytes), self.settings.max_response_size)
-        return await self.mds.MetadataNode.get_entries_threaded(**request_sanitized)
+        return await self.mds.get_entries_threaded(**request_sanitized)
 
     def send_db_results(self, peer, request_payload_id, db_results):
         index = 0
         while index < len(db_results):
             data, index = entries_to_chunk(db_results, self.settings.maximum_payload_size, start_index=index)
-            self.ez_send(peer, SelectResponsePayload(request_payload_id, data))
+            payload = SelectResponsePayload(request_payload_id, data)
+            if len(data) > self.settings.maximum_payload_size:
+                self.eva_send_binary(
+                    peer, struct.pack('>i', request_payload_id), self.ezr_pack(payload.msg_id, payload)
+                )
+            else:
+                self.ez_send(peer, payload)
 
     @lazy_wrapper(RemoteSelectPayload)
     async def on_remote_select(self, peer, request_payload):
@@ -157,7 +183,7 @@ class RemoteQueryCommunity(Community):
         """
         self.logger.info(f"Response from {hexlify(peer.mid)}")
 
-        # ACHTUNG! the returned request cache can be either a SelectRequest or PushbackWindow
+        # ACHTUNG! the returned request cache can be any one of SelectRequest, PushbackWindow
         request = self.request_cache.get(hexlify(peer.mid), response_payload.id)
         if request is None:
             return
@@ -171,23 +197,36 @@ class RemoteQueryCommunity(Community):
         processing_results = await self.mds.process_compressed_mdblob_threaded(response_payload.raw_blob)
         self.logger.info(f"Response result: {processing_results}")
 
-        # If we now about updated versions of the received stuff, push the updates back
+        # If we know about updated versions of the received stuff, push the updates back
         if isinstance(request, SelectRequest) and self.settings.push_updates_back_enabled:
-            newer_entities = [md for md, result in processing_results if result == GOT_NEWER_VERSION]
+            newer_entities = [r.md_obj for r in processing_results if r.obj_state == ObjState.GOT_NEWER_VERSION]
             self.send_db_results(peer, response_payload.id, newer_entities)
 
-        # Query back the sender for preview contents for the new channels
         # TODO: maybe transform this into a processing_callback?
         if self.settings.channel_query_back_enabled:
-            new_channels = [md for md, result in processing_results if result in (UNKNOWN_CHANNEL, UNKNOWN_COLLECTION)]
-            for channel in new_channels:
-                request_dict = {
-                    "channel_pk": hexlify(channel.public_key),
-                    "origin_id": channel.id_,
-                    "first": 0,
-                    "last": self.settings.max_channel_query_back,
-                }
-                self.send_remote_select(peer=peer, **request_dict)
+            for result in processing_results:
+                # Query back the sender for preview contents for the new channels
+                # The fact that the object is previously unknown is indicated by process_payload in the
+                # .obj_state property of returned ProcessingResults objects.
+                if result.obj_state == ObjState.UNKNOWN_OBJECT and result.md_obj.metadata_type in (
+                    CHANNEL_TORRENT,
+                    COLLECTION_NODE,
+                ):
+                    request_dict = {
+                        "metadata_type": [COLLECTION_NODE, REGULAR_TORRENT],
+                        "channel_pk": hexlify(result.md_obj.public_key),
+                        "origin_id": result.md_obj.id_,
+                        "first": 0,
+                        "last": self.settings.max_channel_query_back,
+                    }
+                    self.send_remote_select(peer=peer, **request_dict)
+
+                # Query back for missing dependencies, e.g. thumbnail/description.
+                # The fact that some dependency is missing is checked by the lower layer during
+                # the query to process_payload and indicated through .missing_deps property of the
+                # ProcessingResults objects returned by process_payload.
+                for dep_query_dict in result.missing_deps:
+                    self.send_remote_select(peer=peer, **dep_query_dict)
 
         if isinstance(request, SelectRequest) and request.processing_callback:
             request.processing_callback(request, processing_results)

@@ -32,3 +32,18 @@ repos:
       additional_dependencies: [
               'flake8-import-order==0.18',
           ]
+
+-   repo: local
+    hooks:
+    - id: pylint
+      name: pylint
+      entry: pylint
+      language: system
+      files: |
+          (?x)(
+          ^src/tribler-gui/|
+          ^src/tribler-core/|
+          ^src/tribler-common
+          )
+      types: [file, python]
+        

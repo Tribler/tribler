@@ -1,6 +1,8 @@
+import enum
 import logging
 import threading
 from asyncio import get_event_loop
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from time import sleep
 
@@ -9,18 +11,22 @@ from ipv8.database import database_blob
 import lz4.frame
 
 from pony import orm
-from pony.orm import CacheIndexError, TransactionIntegrityError, db_session
+from pony.orm import CacheIndexError, TransactionIntegrityError, db_session, desc, left_join, raw_sql
 
 from tribler_common.simpledefs import NTFY
 
 from tribler_core.exceptions import InvalidSignatureException
 from tribler_core.modules.category_filter.l2_filter import is_forbidden
 from tribler_core.modules.metadata_store.orm_bindings import (
+    binary_node,
+    channel_description,
     channel_metadata,
     channel_node,
     channel_peer,
+    channel_thumbnail,
     channel_vote,
     collection_node,
+    json_node,
     metadata_node,
     misc,
     torrent_metadata,
@@ -29,8 +35,11 @@ from tribler_core.modules.metadata_store.orm_bindings import (
     vsids,
 )
 from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import get_mdblob_sequence_number
-from tribler_core.modules.metadata_store.orm_bindings.channel_node import LEGACY_ENTRY
+from tribler_core.modules.metadata_store.orm_bindings.channel_node import LEGACY_ENTRY, TODELETE
+from tribler_core.modules.metadata_store.orm_bindings.torrent_metadata import NULL_KEY_SUBST
 from tribler_core.modules.metadata_store.serialization import (
+    CHANNEL_DESCRIPTION,
+    CHANNEL_THUMBNAIL,
     CHANNEL_TORRENT,
     COLLECTION_NODE,
     DELETED,
@@ -42,15 +51,7 @@ from tribler_core.utilities.path_util import str_path
 from tribler_core.utilities.unicode import hexlify
 
 BETA_DB_VERSIONS = [0, 1, 2, 3, 4, 5]
-CURRENT_DB_VERSION = 11
-
-NO_ACTION = 0
-UNKNOWN_CHANNEL = 1
-UPDATED_OUR_VERSION = 2
-GOT_NEWER_VERSION = 4
-UNKNOWN_TORRENT = 5
-DELETED_METADATA = 6
-UNKNOWN_COLLECTION = 7
+CURRENT_DB_VERSION = 12
 
 
 MIN_BATCH_SIZE = 10
@@ -84,9 +85,34 @@ sql_add_fts_trigger_update = """
     END;"""
 
 
+class ObjState(enum.Enum):
+    UPDATED_OUR_VERSION = enum.auto()  # We updated the local version of the ORM object with the received one
+    GOT_NEWER_VERSION = enum.auto()  # Our local version of the ORM object is newer than the received one
+    GOT_SAME_VERSION = enum.auto()  # Our local version of the ORM object is the same as the received one
+    UNKNOWN_OBJECT = enum.auto()  # The received object is unknown to us and thus added to ORM
+
+
+@dataclass
+class ProcessingResult:
+    # This class is used to return results of processing of a payload by process_payload.
+    # It includes the ORM object created as a result of processing, the state of the object
+    # as indicated by ObjState enum, and missing dependencies list that includes a list of query
+    # arguments for get_entries to query the sender back through Remote Query Community
+    md_obj: object = None
+    obj_state: object = None
+    missing_deps: list = field(default_factory=list)
+
+
 class MetadataStore:
     def __init__(
-        self, db_filename, channels_dir, my_key, disable_sync=False, notifier=None, check_tables=True, db_version=None
+        self,
+        db_filename,
+        channels_dir,
+        my_key,
+        disable_sync=False,
+        notifier=None,
+        check_tables=True,
+        db_version: int = CURRENT_DB_VERSION,
     ):
         self.notifier = notifier  # Reference to app-level notification service
         self.db_filename = db_filename
@@ -137,6 +163,13 @@ class MetadataStore:
         self.CollectionNode = collection_node.define_binding(self._db)
         self.TorrentMetadata = torrent_metadata.define_binding(self._db)
         self.ChannelMetadata = channel_metadata.define_binding(self._db)
+
+        self.JsonNode = json_node.define_binding(self._db, db_version)
+        self.ChannelDescription = channel_description.define_binding(self._db)
+
+        self.BinaryNode = binary_node.define_binding(self._db, db_version)
+        self.ChannelThumbnail = channel_thumbnail.define_binding(self._db)
+
         self.ChannelVote = channel_vote.define_binding(self._db)
         self.ChannelPeer = channel_peer.define_binding(self._db)
         self.Vsids = vsids.define_binding(self._db)
@@ -153,8 +186,6 @@ class MetadataStore:
                 self.create_fts_triggers()
 
         if create_db:
-            if db_version is None:
-                db_version = CURRENT_DB_VERSION
             with db_session:
                 self.MiscData(name="db_version", value=str(db_version))
 
@@ -225,8 +256,8 @@ class MetadataStore:
 
     def disconnect_thread(self):
         # Ugly workaround for closing threadpool connections
-        # TODO: subclass ThreadPoolExecutor to handle this automatically
-        if not isinstance(threading.current_thread(), threading._MainThread):
+        # Remark: maybe subclass ThreadPoolExecutor to handle this automatically?
+        if not isinstance(threading.current_thread(), threading._MainThread):  # pylint: disable=W0212
             self._db.disconnect()
 
     @staticmethod
@@ -249,7 +280,6 @@ class MetadataStore:
 
     @db_session
     def compute_channel_update_progress(self, channel):
-        # TODO: This procedure copy-pastes some stuff from process_channel_dir. Maybe DRY it somehow?
         blobs_to_process, total_blobs_size = self.get_list_of_channel_blobs_to_process(
             self.get_channel_dir_path(channel), channel.start_timestamp
         )
@@ -465,33 +495,46 @@ class MetadataStore:
                 payload.public_key,
                 payload.id_,
             )
-            return [(None, NO_ACTION)]
+            return []
 
         if payload.metadata_type == DELETED:
             if payload.public_key == self.my_public_key_bin and skip_personal_metadata_payload:
-                return [(None, NO_ACTION)]
+                return []
             # We only allow people to delete their own entries, thus PKs must match
             node = self.ChannelNode.get_for_update(signature=payload.delete_signature, public_key=payload.public_key)
             if node:
                 node.delete()
-                return [(None, DELETED_METADATA)]
+                return []
 
-        if payload.metadata_type not in [CHANNEL_TORRENT, REGULAR_TORRENT, COLLECTION_NODE]:
+        if payload.metadata_type not in [
+            CHANNEL_TORRENT,
+            REGULAR_TORRENT,
+            COLLECTION_NODE,
+            CHANNEL_DESCRIPTION,
+            CHANNEL_THUMBNAIL,
+        ]:
             return []
 
         # Check for offending words stop-list
-        if is_forbidden(payload.title + payload.tags):
-            return [(None, NO_ACTION)]
+        if is_forbidden(
+            " ".join([getattr(payload, attr) for attr in ("title", "tags", "text") if hasattr(payload, attr)])
+        ):
+            return []
 
         # FFA payloads get special treatment:
         if payload.public_key == NULL_KEY:
             if payload.metadata_type == REGULAR_TORRENT:
                 node = self.TorrentMetadata.add_ffa_from_dict(payload.to_dict())
                 if node:
-                    return [(node, UNKNOWN_TORRENT)]
-            return [(None, NO_ACTION)]
+                    return [ProcessingResult(md_obj=node, obj_state=ObjState.UNKNOWN_OBJECT)]
+            return []
 
-        if channel_public_key is None and payload.metadata_type in [COLLECTION_NODE, REGULAR_TORRENT]:
+        if channel_public_key is None and payload.metadata_type in [
+            COLLECTION_NODE,
+            REGULAR_TORRENT,
+            CHANNEL_DESCRIPTION,
+            CHANNEL_THUMBNAIL,
+        ]:
             # Check if the received payload is from a channel that we already have and send update if necessary
 
             # Get the toplevel parent
@@ -505,23 +548,70 @@ class MetadataStore:
                     if 0 in parents_ids:
                         parent_channel = self.ChannelNode.get(public_key=payload.public_key, id_=parents_ids[1])
                 if parent_channel and parent_channel.local_version > payload.timestamp:
-                    return [(None, NO_ACTION)]
+                    # Remark: add check_for_missing_dependencies here when collections are allowed descriptions
+                    return []
 
         # Check for the older version of the added node
         node = self.ChannelNode.get_for_update(public_key=database_blob(payload.public_key), id_=payload.id_)
         if node:
-            return self.update_channel_node(node, payload, skip_personal_metadata_payload)
+            update_results = self.update_channel_node(node, payload, skip_personal_metadata_payload)
+            for r in update_results:
+                r.missing_deps = self.check_for_missing_dependencies(r.md_obj, include_newer=True)
+            return update_results
 
         if payload.public_key == self.my_public_key_bin and skip_personal_metadata_payload:
-            return [(None, NO_ACTION)]
-        for orm_class, response in (
-            (self.TorrentMetadata, UNKNOWN_TORRENT),
-            (self.ChannelMetadata, UNKNOWN_CHANNEL),
-            (self.CollectionNode, UNKNOWN_COLLECTION),
+            return []
+        for orm_class in (
+            self.TorrentMetadata,
+            self.ChannelMetadata,
+            self.CollectionNode,
+            self.ChannelThumbnail,
+            self.ChannelDescription,
         ):
-            if orm_class._discriminator_ == payload.metadata_type:
-                return [(orm_class.from_payload(payload), response)]
+            if orm_class._discriminator_ == payload.metadata_type:  # pylint: disable=W0212
+                obj = orm_class.from_payload(payload)
+                missing_deps = self.check_for_missing_dependencies(obj)
+                return [ProcessingResult(md_obj=obj, obj_state=ObjState.UNKNOWN_OBJECT, missing_deps=missing_deps)]
         return []
+
+    @db_session
+    def check_for_missing_dependencies(self, node, include_newer=False):
+        """
+        This method checks the given ORM node (object) for missing dependencies, such as thumbnails and/or
+        descriptions. To do so, it checks for existence of special dependency flags in the object's
+        "reserved_flags" field and checks for existence of the corresponding dependencies in the local database.
+        For each missing dependency it will generate a query in the "get_entry" format that should be addressed to the
+        peer that sent the original payload/node/object.
+        If include_newer argument is true, it will generate a query even if the dependencies exist in the local
+        database. However, this query will limit the selection to dependencies with a higher timestamp than that
+        of the local versions. Effectively, this query asks the remote peer for updates on dependencies. Thus,
+        it should only be issued when it is known that the parent object was updated.
+        """
+        if node.metadata_type not in (CHANNEL_TORRENT, COLLECTION_NODE):
+            return []
+
+        result = []
+        for flag, dep_type in ((node.description_flag, CHANNEL_DESCRIPTION), (node.thumbnail_flag, CHANNEL_THUMBNAIL)):
+            if flag:
+                dep_node = self.ChannelNode.select(
+                    lambda g: g.origin_id == node.id_
+                    and g.public_key == node.public_key
+                    # pylint: disable=cell-var-from-loop
+                    and g.metadata_type == dep_type
+                ).first()
+                request_dict = {
+                    "metadata_type": [dep_type],
+                    "channel_pk": hexlify(node.public_key),
+                    "origin_id": node.id_,
+                    "first": 0,
+                    "last": 1,
+                }
+                if not dep_node:
+                    result.append(request_dict)
+                elif include_newer:
+                    request_dict["attribute_ranges"] = (("timestamp", dep_node.timestamp + 1, None),)
+                    result.append(request_dict)
+        return result
 
     @db_session
     def update_channel_node(self, node, payload, skip_personal_metadata_payload=True):
@@ -530,32 +620,33 @@ class MetadataStore:
             # If we received a metadata payload signed by ourselves we simply ignore it since we are the only
             # authoritative source of information about our own channel.
             if payload.public_key == self.my_public_key_bin and skip_personal_metadata_payload:
-                return [(None, NO_ACTION)]
+                return []
 
             # Update local metadata entry
             if node.metadata_type == payload.metadata_type:
                 node.set(**payload.to_dict())
-                return [(node, UPDATED_OUR_VERSION)]
+                return [ProcessingResult(md_obj=node, obj_state=ObjState.UPDATED_OUR_VERSION)]
             # Workaround for the corner case of remote change of md type.
             # We delete the original node and replace it with the updated one.
             for orm_class in (self.ChannelMetadata, self.CollectionNode):
-                if orm_class._discriminator_ == payload.metadata_type:
+                if orm_class._discriminator_ == payload.metadata_type:  # pylint: disable=W0212
                     node.delete()
-                    return [(orm_class.from_payload(payload), UPDATED_OUR_VERSION)]
+                    obj = orm_class.from_payload(payload)
+                    return [ProcessingResult(md_obj=obj, obj_state=ObjState.UPDATED_OUR_VERSION)]
             self._logger.warning(
                 f"Tried to update channel node to illegal type: "
                 f" original type: {node.metadata_type}"
                 f" updated type: {payload.metadata_type}"
                 f" {hexlify(payload.public_key)}, {payload.id_} "
             )
-            return [(None, NO_ACTION)]
+            return []
 
-        elif node.timestamp > payload.timestamp:
-            return [(node, GOT_NEWER_VERSION)]
+        if node.timestamp > payload.timestamp:
+            return [ProcessingResult(md_obj=node, obj_state=ObjState.GOT_NEWER_VERSION)]
         # Otherwise, we got the same version locally and do nothing.
         # Nevertheless, it is important to indicate to upper levels that we recognised
         # the entry, for e.g. channel votes bumping
-        return [(node, GOT_NEWER_VERSION)]
+        return [ProcessingResult(md_obj=node, obj_state=ObjState.GOT_SAME_VERSION)]
 
     @db_session
     def get_num_channels(self):
@@ -577,3 +668,184 @@ class MetadataStore:
             and g.infohash == database_blob(infohash)
             and g.status != LEGACY_ENTRY
         )
+
+    # pylint: disable=unused-argument
+    def search_keyword(self, query, lim=100):
+        # Requires FTS5 table "FtsIndex" to be generated and populated.
+        # FTS table is maintained automatically by SQL triggers.
+        # BM25 ranking is embedded in FTS5.
+
+        # Sanitize FTS query
+        if not query or query == "*":
+            return []
+
+        fts_ids = raw_sql(
+            """SELECT rowid FROM ChannelNode WHERE rowid IN (SELECT rowid FROM FtsIndex WHERE FtsIndex MATCH $query
+            ORDER BY bm25(FtsIndex) LIMIT $lim) GROUP BY coalesce(infohash, rowid)"""
+        )
+        return left_join(g for g in self.MetadataNode if g.rowid in fts_ids)  # pylint: disable=E1135
+
+    @db_session
+    def get_entries_query(
+        self,
+        metadata_type=None,
+        channel_pk=None,
+        exclude_deleted=False,
+        hide_xxx=False,
+        exclude_legacy=False,
+        origin_id=None,
+        sort_by=None,
+        sort_desc=True,
+        txt_filter=None,
+        subscribed=None,
+        category=None,
+        attribute_ranges=None,
+        infohash=None,
+        id_=None,
+        complete_channel=None,
+        self_checked_torrent=None,
+        cls=None,
+        health_checked_after=None,
+    ):
+        """
+        This method implements REST-friendly way to get entries from the database.
+        :return: PonyORM query object corresponding to the given params.
+        """
+        # Warning! For Pony magic to work, iteration variable name (e.g. 'g') should be the same everywhere!
+
+        if cls is None:
+            cls = self.ChannelNode
+        pony_query = self.search_keyword(txt_filter, lim=1000) if txt_filter else left_join(g for g in cls)
+
+        if metadata_type is not None:
+            try:
+                pony_query = pony_query.where(lambda g: g.metadata_type in metadata_type)
+            except TypeError:
+                pony_query = pony_query.where(lambda g: g.metadata_type == metadata_type)
+
+        pony_query = (
+            pony_query.where(public_key=(b"" if channel_pk == NULL_KEY_SUBST else channel_pk))
+            if channel_pk is not None
+            else pony_query
+        )
+
+        if attribute_ranges is not None:
+            for attr, left, right in attribute_ranges:
+                if (
+                    self.ChannelNode._adict_.get(attr)  # pylint: disable=W0212
+                    or self.ChannelNode._subclass_adict_.get(attr)  # pylint: disable=W0212
+                ) is None:  # Check against code injection
+                    raise AttributeError("Tried to query for non-existent attribute")
+                if left is not None:
+                    pony_query = pony_query.where(f"g.{attr} >= left")
+                if right is not None:
+                    pony_query = pony_query.where(f"g.{attr} < right")
+
+        # origin_id can be zero, for e.g. root channel
+        pony_query = pony_query.where(id_=id_) if id_ is not None else pony_query
+        pony_query = pony_query.where(origin_id=origin_id) if origin_id is not None else pony_query
+        pony_query = pony_query.where(lambda g: g.subscribed) if subscribed is not None else pony_query
+        pony_query = pony_query.where(lambda g: g.tags == category) if category else pony_query
+        pony_query = pony_query.where(lambda g: g.status != TODELETE) if exclude_deleted else pony_query
+        pony_query = pony_query.where(lambda g: g.xxx == 0) if hide_xxx else pony_query
+        pony_query = pony_query.where(lambda g: g.status != LEGACY_ENTRY) if exclude_legacy else pony_query
+        pony_query = pony_query.where(lambda g: g.infohash == infohash) if infohash else pony_query
+        pony_query = (
+            pony_query.where(lambda g: g.health.self_checked == self_checked_torrent)
+            if self_checked_torrent is not None
+            else pony_query
+        )
+        # ACHTUNG! Setting complete_channel to True forces the metadata type to Channels only!
+        pony_query = (
+            pony_query.where(lambda g: g.metadata_type == CHANNEL_TORRENT and g.timestamp == g.local_version)
+            if complete_channel
+            else pony_query
+        )
+
+        if health_checked_after is not None:
+            pony_query = pony_query.where(lambda g: g.health.last_check >= health_checked_after)
+
+        # Sort the query
+        pony_query = pony_query.sort_by("desc(g.rowid)" if sort_desc else "g.rowid")
+
+        if sort_by == "HEALTH":
+            pony_query = pony_query.sort_by(
+                "(desc(g.health.seeders), desc(g.health.leechers))"
+                if sort_desc
+                else "(g.health.seeders, g.health.leechers)"
+            )
+        elif sort_by == "size" and not issubclass(cls, self.ChannelMetadata):
+            # Remark: this can be optimized to skip cases where size field does not matter
+            # When querying for mixed channels / torrents lists, channels should have priority over torrents
+            sort_expression = "desc(g.num_entries), desc(g.size)" if sort_desc else "g.num_entries, g.size"
+            pony_query = pony_query.sort_by(sort_expression)
+        elif sort_by:
+            sort_expression = "g." + sort_by
+            sort_expression = desc(sort_expression) if sort_desc else sort_expression
+            pony_query = pony_query.sort_by(sort_expression)
+
+        if txt_filter:
+            if sort_by is None:
+                pony_query = pony_query.sort_by(
+                    f"""
+                    1 if g.metadata_type == {CHANNEL_TORRENT} else
+                    2 if g.metadata_type == {COLLECTION_NODE} else
+                    3 if g.health.seeders > 0 else 4
+                """
+                )
+
+        return pony_query
+
+    async def get_entries_threaded(self, **kwargs):
+        def _get_results():
+            result = self.get_entries(**kwargs)
+            if not isinstance(threading.current_thread(), threading._MainThread):  # pylint: disable=W0212
+                self._db.disconnect()
+            return result
+
+        return await get_event_loop().run_in_executor(None, _get_results)
+
+    @db_session
+    def get_entries(self, first=1, last=None, **kwargs):
+        """
+        Get some torrents. Optionally sort the results by a specific field, or filter the channels based
+        on a keyword/whether you are subscribed to it.
+        :return: A list of class members
+        """
+        pony_query = self.get_entries_query(**kwargs)
+        return pony_query[(first or 1) - 1 : last]
+
+    @db_session
+    def get_total_count(self, **kwargs):
+        """
+        Get total count of torrents that would be returned if there would be no pagination/limits/sort
+        """
+        for p in ["first", "last", "sort_by", "sort_desc"]:
+            kwargs.pop(p, None)
+        return self.get_entries_query(**kwargs).count()
+
+    @db_session
+    def get_entries_count(self, **kwargs):
+        for p in ["first", "last"]:
+            kwargs.pop(p, None)
+        return self.get_entries_query(**kwargs).count()
+
+    def get_auto_complete_terms(self, keyword, max_terms, limit=10):
+        if not keyword:
+            return []
+
+        with db_session:
+            result = self.search_keyword("\"" + keyword + "\"*", lim=limit)[:]
+        titles = [g.title.lower() for g in result]
+
+        # Copy-pasted from the old DBHandler (almost) completely
+        all_terms = set()
+        for line in titles:
+            if len(all_terms) >= max_terms:
+                break
+            i1 = line.find(keyword)
+            i2 = line.find(' ', i1 + len(keyword))
+            term = line[i1:i2] if i2 >= 0 else line[i1:]
+            if term != keyword:
+                all_terms.add(term)
+        return list(all_terms)

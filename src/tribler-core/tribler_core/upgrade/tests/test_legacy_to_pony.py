@@ -13,7 +13,8 @@ import pytest
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import COMMITTED, LEGACY_ENTRY
 from tribler_core.modules.metadata_store.store import MetadataStore
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
-from tribler_core.upgrade.db72_to_pony import (
+from tribler_core.upgrade import legacy_to_pony
+from tribler_core.upgrade.legacy_to_pony import (
     CONVERSION_FINISHED,
     CONVERSION_FROM_72,
     CONVERSION_FROM_72_CHANNELS,
@@ -26,7 +27,6 @@ from tribler_core.upgrade.db72_to_pony import (
     old_db_version_ok,
     should_upgrade,
 )
-
 
 OLD_DB_SAMPLE = TESTS_DATA_DIR / 'upgrade_databases/tribler_v29.sdb'
 
@@ -71,7 +71,7 @@ async def test_convert_legacy_channels(dispersy_to_pony_migrator, metadata_store
     async def check_conversion():
         await dispersy_to_pony_migrator.convert_discovered_torrents()
         dispersy_to_pony_migrator.convert_discovered_channels()
-        chans = metadata_store.ChannelMetadata.get_entries()
+        chans = metadata_store.get_entries(cls=metadata_store.ChannelMetadata)
 
         assert len(chans) == 2
         for c in chans:
@@ -92,7 +92,6 @@ async def test_convert_legacy_channels(dispersy_to_pony_migrator, metadata_store
     for d in metadata_store.TorrentMetadata.select()[:10][:10]:
         d.delete()
     await check_conversion()
-
 
 @db_session
 def test_update_trackers(dispersy_to_pony_migrator, metadata_store):
@@ -175,18 +174,17 @@ def test_already_upgraded(tmpdir, metadata_store):
 
 
 def test_should_upgrade(tmpdir):
-    from tribler_core.upgrade import db72_to_pony
     pony_db = tmpdir / 'pony.db'
 
     # Old DB does not exist
     assert not should_upgrade(Path(tmpdir) / 'nonexistent.db', None)
 
     # Old DB is not OK
-    db72_to_pony.old_db_version_ok = lambda _: False
+    legacy_to_pony.old_db_version_ok = lambda _: False
     assert not should_upgrade(OLD_DB_SAMPLE, None)
 
     # Pony DB does not exist
-    db72_to_pony.old_db_version_ok = lambda _: True
+    legacy_to_pony.old_db_version_ok = lambda _: True
     assert should_upgrade(OLD_DB_SAMPLE, pony_db)
 
     # Bad Pony DB

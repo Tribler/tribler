@@ -15,9 +15,9 @@
 #         self.eva_register_error_callback(self.on_error)
 #
 #     def my_function(self, peer):
-#         self.eva_send_message(peer, b'info1', b'data1')
-#         self.eva_send_message(peer, b'info2', b'data2')
-#         self.eva_send_message(peer, b'info3', b'data3')
+#         self.eva_send_binary(peer, b'info1', b'data1')
+#         self.eva_send_binary(peer, b'info2', b'data2')
+#         self.eva_send_binary(peer, b'info3', b'data3')
 #
 #     def on_receive(self, peer, binary_info, binary_data, nonce):
 #         logger.info(f'Data has been received: {binary_info}')
@@ -33,6 +33,7 @@ import math
 import time
 from collections import defaultdict, deque
 from enum import Enum, auto
+from random import randint
 from types import SimpleNamespace
 
 from ipv8.lazy_community import lazy_wrapper
@@ -40,6 +41,7 @@ from ipv8.messaging.lazy_payload import VariablePayload, vp_compile
 
 logger = logging.getLogger('EVA')
 
+MAX_U64 = 0xFFFFFFFF
 
 # fmt: off
 
@@ -168,8 +170,7 @@ class EVAProtocolMixin:
             data_binary: binary data that will be sent to the target.
                 It is limited by several GB, but the protocol is slow by design, so
                 try to send less rather than more.
-            nonce: a uniq number for identifying the session. If not specified,
-                then `self.nonce + 1` will be used
+            nonce: a unique number for identifying the session. If not specified, generated randomly
         """
         self.eva_protocol.send_binary(peer, info_binary, data_binary, nonce)
 
@@ -303,8 +304,6 @@ class EVAProtocol:  # pylint: disable=too-many-instance-attributes
         self.retransmit_enabled = True
         self.terminate_by_timeout_enabled = True
 
-        self.nonce = 0
-
         # register tasks
         community.register_task('scheduled send', self.send_scheduled, interval=scheduled_send_interval_in_sec)
 
@@ -324,9 +323,7 @@ class EVAProtocol:  # pylint: disable=too-many-instance-attributes
             return
 
         if nonce is None:
-            self.nonce += 1
-
-        nonce = nonce or self.nonce
+            nonce = randint(0, MAX_U64)
 
         if peer in self.outgoing:
             scheduled_transfer = SimpleNamespace(info_binary=info_binary, data_binary=data_binary, nonce=nonce)

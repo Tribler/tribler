@@ -13,6 +13,8 @@ from tribler_common.simpledefs import CHANNEL_STATE
 
 from tribler_core.modules.metadata_store.discrete_clock import clock
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import (
+    CHANNEL_DESCRIPTION_FLAG,
+    CHANNEL_THUMBNAIL_FLAG,
     COMMITTED,
     LEGACY_ENTRY,
     NEW,
@@ -76,7 +78,7 @@ def entries_to_chunk(metadata_list, chunk_size, start_index=0):
     # Try to fit as many blobs into this chunk as permitted by chunk_size and
     # calculate their ends' offsets in the blob
 
-    last_entry_index = None
+    last_entry_index = start_index - 1
     with lz4.frame.LZ4FrameCompressor(auto_flush=True) as c:
         header = c.begin()
         offset = len(header)
@@ -85,20 +87,25 @@ def entries_to_chunk(metadata_list, chunk_size, start_index=0):
             blob = c.compress(metadata.serialized_delete() if metadata.status == TODELETE else metadata.serialized())
             # Chunk size limit reached?
             if offset + len(blob) > (chunk_size - LZ4_END_MARK_SIZE):
+                # Special case: if the blob size is bigger than the chunk size, put the blob into a separate chunk.
+                # This lets higher levels to decide what to do in this case, e.g. send it through EVA protocol.
+                if last_entry_index == start_index - 1:
+                    last_entry_index = index
+                    out_list.append(blob)
                 break
-            # Now that we now it will fit in, we can safely append it
+            # Now that we know it will fit in, we can safely append it
             offset += len(blob)
             last_entry_index = index
             out_list.append(blob)
         out_list.append(c.flush())  # LZ4 end mark
 
     chunk = b''.join(out_list)
-    if last_entry_index is None:
-        raise Exception('Serialized entry size > blob size limit!', hexlify(metadata_list[start_index].signature))
+    if last_entry_index + 1 <= start_index:
+        raise Exception('Could not serialize chunk!', metadata_list, chunk_size, start_index)
     return chunk, last_entry_index + 1
 
 
-def define_binding(db):
+def define_binding(db):  # pylint: disable=R0915
     class ChannelMetadata(db.TorrentMetadata, db.CollectionNode):
         """
         This ORM binding represents Channel entries in the GigaChannel system. Each channel is a Collection that
@@ -174,11 +181,11 @@ def define_binding(db):
             :param key: The public/private key, used to sign the data
             """
 
-            # TODO: optimize this stuff with SQL and better tree traversal algorithms?
+            # Remark: there should be a way to optimize this stuff with SQL and better tree traversal algorithms
             # Cleanup entries marked for deletion
 
             db.CollectionNode.collapse_deleted_subtrees()
-            # TODO: optimize me: stop calling get_contents_to_commit here
+            # Note: It should be possible to stop alling get_contents_to_commit here
             commit_queue = self.get_contents_to_commit()
             for entry in commit_queue:
                 if entry.status == TODELETE:
@@ -255,13 +262,28 @@ def define_binding(db):
                 blob_filename.write_bytes(data)
                 last_existing_blob_number = blob_timestamp
 
-            # TODO: add error-handling routines to make sure the timestamp is not messed up in case of an error
+            with db_session:
+                thumb_exists = db.ChannelThumbnail.exists(
+                    lambda g: g.public_key == self.public_key and g.origin_id == self.id_ and g.status != TODELETE
+                )
+                descr_exists = db.ChannelDescription.exists(
+                    lambda g: g.public_key == self.public_key and g.origin_id == self.id_ and g.status != TODELETE
+                )
+
+                flags = CHANNEL_THUMBNAIL_FLAG * (int(thumb_exists)) + CHANNEL_DESCRIPTION_FLAG * (int(descr_exists))
+
+            # Note: the timestamp can end up messed in case of an error
 
             # Make torrent out of dir with metadata files
             torrent, infohash = create_torrent_from_dir(channel_dir, self._channels_dir / (self.dirname + ".torrent"))
             torrent_date = datetime.utcfromtimestamp(torrent[b'creation date'])
 
-            return {"infohash": infohash, "timestamp": last_existing_blob_number, "torrent_date": torrent_date}, torrent
+            return {
+                "infohash": infohash,
+                "timestamp": last_existing_blob_number,
+                "torrent_date": torrent_date,
+                "reserved_flags": flags,
+            }, torrent
 
         def commit_channel_torrent(self, new_start_timestamp=None, commit_list=None):
             """
@@ -301,7 +323,7 @@ def define_binding(db):
                     g.delete()
 
             # Write the channel mdblob to disk
-            self.status = COMMITTED
+            self.status = COMMITTED  # pylint: disable=W0201
             self.to_file(self._channels_dir / (self.dirname + BLOB_EXTENSION))
 
             self._logger.info(
@@ -370,7 +392,6 @@ def define_binding(db):
             This property describes the current state of the channel.
             :return: Text-based status
             """
-            # TODO: optimize this by stopping doing blob comparisons on each call, and instead remember rowid?
             if self.is_personal:
                 return CHANNEL_STATE.PERSONAL.value
             if self.status == LEGACY_ENTRY:
@@ -393,6 +414,7 @@ def define_binding(db):
                     "state": self.state,
                     "subscribed": self.subscribed,
                     "votes": self.votes / db.ChannelMetadata.votes_scaling,
+                    "dirty": self.dirty if self.is_personal else False,
                 }
             )
             return result
@@ -428,8 +450,7 @@ def define_binding(db):
                 return dl_name
             if channel.infohash == database_blob(infohash):
                 return channel.title
-            else:
-                return 'OLD:' + channel.title
+            return 'OLD:' + channel.title
 
         @db_session
         def update_properties(self, update_dict):

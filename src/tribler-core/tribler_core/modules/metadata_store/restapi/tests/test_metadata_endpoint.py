@@ -8,9 +8,12 @@ from tribler_core.modules.metadata_store.orm_bindings.channel_node import COMMIT
 from tribler_core.modules.metadata_store.restapi.metadata_endpoint import TORRENT_CHECK_TIMEOUT
 from tribler_core.modules.torrent_checker.torrent_checker import TorrentChecker
 from tribler_core.restapi.base_api_test import do_request
+from tribler_core.utilities.json_util import dumps
 from tribler_core.utilities.random_utils import random_infohash
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import has_bep33_support
+
+# pylint: disable=unused-argument
 
 
 @pytest.mark.asyncio
@@ -141,16 +144,24 @@ async def test_get_entry(enable_chant, enable_api, session):
     """
     Test getting an entry with REST API GET request
     """
-    with db_session:
-        chan = session.mds.TorrentMetadata(
-            title="bla", infohash=random_infohash(), tracker_info="http://sometracker.local/announce"
+    for md_type, kwargs in (
+        (
+            session.mds.TorrentMetadata,
+            {"title": "bla", "infohash": random_infohash(), "tracker_info": "http://sometracker.local/announce"},
+        ),
+        (
+            session.mds.ChannelDescription,
+            {"text": dumps({"description_text": "*{{}bla <\\> [)]// /ee2323㋛㋛㋛  ", "channel_thumbnail": "ffffff.jpg"})},
+        ),
+    ):
+        with db_session:
+            md = md_type(**kwargs)
+            md.status = COMMITTED
+        await do_request(
+            session,
+            'metadata/%s/%i' % (hexlify(md.public_key), md.id_),
+            expected_json=md.to_simple_dict(),
         )
-        chan.status = COMMITTED
-    await do_request(
-        session,
-        'metadata/%s/%i' % (hexlify(chan.public_key), chan.id_),
-        expected_json=chan.to_simple_dict(include_trackers=True),
-    )
 
 
 @pytest.mark.asyncio

@@ -428,6 +428,7 @@ class TestEVA(TestBase):
         assert isinstance(self.overlay(0).most_recent_received_exception, TransferException)
         assert isinstance(self.overlay(1).most_recent_received_exception, SizeLimitException)
 
+    @pytest.mark.timeout(10)
     async def test_wrong_message_order_and_wrong_nonce(self):
         self.overlay(0).eva_protocol.terminate_by_timeout_enabled = False
         self.overlay(1).eva_protocol.terminate_by_timeout_enabled = False

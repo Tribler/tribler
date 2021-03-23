@@ -39,6 +39,7 @@ from PyQt5.QtWidgets import (
 
 from tribler_common.network_utils import get_first_free_port
 
+from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 from tribler_core.modules.process_checker import ProcessChecker
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.version import version_id
@@ -670,6 +671,7 @@ class TriblerWindow(QMainWindow):
                 endpoint_url="search",
                 hide_xxx=get_gui_setting(self.gui_settings, "family_filter", True, is_bool=True),
                 text_filter=to_fts_query(query),
+                type_filter=[REGULAR_TORRENT, CHANNEL_TORRENT, COLLECTION_NODE],
             )
         )
 

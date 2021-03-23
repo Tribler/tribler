@@ -83,17 +83,17 @@ def test_search_keyword(metadata_store):
     orm.flush()
 
     # Search for torrents with the keyword 'foo', it should return one result
-    results = metadata_store.TorrentMetadata.search_keyword("foo")[:]
+    results = metadata_store.search_keyword("foo")[:]
     assert len(results) == 1
     assert results[0].rowid == torrent1.rowid
 
     # Search for torrents with the keyword 'eee', it should return one result
-    results = metadata_store.TorrentMetadata.search_keyword("eee")[:]
+    results = metadata_store.search_keyword("eee")[:]
     assert len(results) == 1
     assert results[0].rowid == torrent2.rowid
 
     # Search for torrents with the keyword '123', it should return two results
-    results = metadata_store.TorrentMetadata.search_keyword("123")[:]
+    results = metadata_store.search_keyword("123")[:]
     assert len(results) == 2
 
 
@@ -106,7 +106,7 @@ def test_search_deduplicated(metadata_store):
     torrent = rnd_torrent()
     metadata_store.TorrentMetadata.from_dict(dict(torrent, title="foo bar 123"))
     metadata_store.TorrentMetadata.from_dict(dict(torrent, title="eee 123", sign_with=key2))
-    results = metadata_store.TorrentMetadata.search_keyword("foo")[:]
+    results = metadata_store.search_keyword("foo")[:]
     assert len(results) == 1
 
 
@@ -114,7 +114,7 @@ def test_search_empty_query(metadata_store):
     """
     Test whether an empty query returns nothing
     """
-    assert not metadata_store.TorrentMetadata.search_keyword(None)[:]
+    assert not metadata_store.search_keyword(None)[:]
 
 
 @db_session
@@ -123,7 +123,7 @@ def test_unicode_search(metadata_store):
     Test searching in the database with unicode characters
     """
     metadata_store.TorrentMetadata.from_dict(dict(rnd_torrent(), title="я маленький апельсин"))
-    results = metadata_store.TorrentMetadata.search_keyword("маленький")[:]
+    results = metadata_store.search_keyword("маленький")[:]
     assert len(results) == 1
 
 
@@ -134,10 +134,10 @@ def test_wildcard_search(metadata_store):
     """
     metadata_store.TorrentMetadata.from_dict(dict(rnd_torrent(), title="foobar 123"))
     metadata_store.TorrentMetadata.from_dict(dict(rnd_torrent(), title="foobla 123"))
-    assert not metadata_store.TorrentMetadata.search_keyword("*")[:]
-    assert len(metadata_store.TorrentMetadata.search_keyword("foobl*")[:]) == 1
-    assert len(metadata_store.TorrentMetadata.search_keyword("foo*")[:]) == 2
-    assert len(metadata_store.TorrentMetadata.search_keyword("(\"12\"* AND \"foobl\"*)")[:]) == 1
+    assert not metadata_store.search_keyword("*")[:]
+    assert len(metadata_store.search_keyword("foobl*")[:]) == 1
+    assert len(metadata_store.search_keyword("foo*")[:]) == 2
+    assert len(metadata_store.search_keyword("(\"12\"* AND \"foobl\"*)")[:]) == 1
 
 
 @db_session
@@ -148,11 +148,11 @@ def test_stemming_search(metadata_store):
     torrent = metadata_store.TorrentMetadata.from_dict(dict(rnd_torrent(), title="mountains sheep", tags="video"))
 
     # Search with the word 'mountain' should return the torrent with 'mountains' in the title
-    results = metadata_store.TorrentMetadata.search_keyword("mountain")[:]
+    results = metadata_store.search_keyword("mountain")[:]
     assert torrent.rowid == results[0].rowid
 
     # Search with the word 'sheeps' should return the torrent with 'sheep' in the title
-    results = metadata_store.TorrentMetadata.search_keyword("sheeps")[:]
+    results = metadata_store.search_keyword("sheeps")[:]
     assert torrent.rowid == results[0].rowid
 
 
@@ -164,13 +164,13 @@ def test_get_autocomplete_terms(metadata_store):
     metadata_store.TorrentMetadata.from_dict(dict(rnd_torrent(), title="mountains sheep", tags="video"))
     metadata_store.TorrentMetadata.from_dict(dict(rnd_torrent(), title="regular sheepish guy", tags="video"))
 
-    autocomplete_terms = metadata_store.TorrentMetadata.get_auto_complete_terms("shee", 10)
+    autocomplete_terms = metadata_store.get_auto_complete_terms("shee", 10)
     assert 'sheep' in autocomplete_terms
 
-    autocomplete_terms = metadata_store.TorrentMetadata.get_auto_complete_terms("shee", 10)
+    autocomplete_terms = metadata_store.get_auto_complete_terms("shee", 10)
     assert 'sheepish' in autocomplete_terms
 
-    autocomplete_terms = metadata_store.TorrentMetadata.get_auto_complete_terms("", 10)
+    autocomplete_terms = metadata_store.get_auto_complete_terms("", 10)
     assert [] == autocomplete_terms
 
 
@@ -183,10 +183,10 @@ def test_get_autocomplete_terms_max(metadata_store):
     metadata_store.TorrentMetadata.from_dict(dict(rnd_torrent(), title="lakes sheep", tags="video"))
     metadata_store.TorrentMetadata.from_dict(dict(rnd_torrent(), title="regular sheepish guy", tags="video"))
 
-    autocomplete_terms = metadata_store.TorrentMetadata.get_auto_complete_terms("sheep", 2)
+    autocomplete_terms = metadata_store.get_auto_complete_terms("sheep", 2)
     assert len(autocomplete_terms) == 2
     # Check that we can chew the special character "."
-    autocomplete_terms = metadata_store.TorrentMetadata.get_auto_complete_terms(".", 2)
+    autocomplete_terms = metadata_store.get_auto_complete_terms(".", 2)
 
 
 @db_session
@@ -214,53 +214,53 @@ def test_get_entries(metadata_store):
     tlist[-1].xxx = 1
     tlist[-2].status = TODELETE
 
-    torrents = metadata_store.TorrentMetadata.get_entries(first=1, last=5)
+    torrents = metadata_store.get_entries(first=1, last=5)
     assert len(torrents) == 5
 
-    count = metadata_store.TorrentMetadata.get_entries_count(metadata_type=REGULAR_TORRENT)
+    count = metadata_store.get_entries_count(metadata_type=REGULAR_TORRENT)
     assert count == 25
 
     # Test fetching torrents in a channel
     channel_pk = metadata_store.ChannelNode._my_key.pub().key_to_bin()[10:]
 
     args = dict(channel_pk=channel_pk, hide_xxx=True, exclude_deleted=True, metadata_type=REGULAR_TORRENT)
-    torrents = metadata_store.TorrentMetadata.get_entries_query(**args)[:]
+    torrents = metadata_store.get_entries_query(**args)[:]
     assert tlist[-5:-2] == list(torrents)[::-1]
 
-    count = metadata_store.TorrentMetadata.get_entries_count(**args)
+    count = metadata_store.get_entries_count(**args)
     assert count == 3
 
     args = dict(sort_by='title', channel_pk=channel_pk, origin_id=0, metadata_type=REGULAR_TORRENT)
-    torrents = metadata_store.TorrentMetadata.get_entries(first=1, last=10, **args)
+    torrents = metadata_store.get_entries(first=1, last=10, **args)
     assert len(torrents) == 5
 
-    count = metadata_store.TorrentMetadata.get_entries_count(**args)
+    count = metadata_store.get_entries_count(**args)
     assert count == 5
 
     # Test that channels get priority over torrents when querying for mixed content
     args = dict(sort_by='size', sort_desc=True, channel_pk=channel_pk, origin_id=0)
-    torrents = metadata_store.TorrentMetadata.get_entries(first=1, last=10, **args)
+    torrents = metadata_store.get_entries(first=1, last=10, **args)
     assert torrents[0].metadata_type == CHANNEL_TORRENT
 
     args = dict(sort_by='size', sort_desc=False, channel_pk=channel_pk, origin_id=0)
-    torrents = metadata_store.TorrentMetadata.get_entries(first=1, last=10, **args)
+    torrents = metadata_store.get_entries(first=1, last=10, **args)
     assert torrents[-1].metadata_type == CHANNEL_TORRENT
 
     # Test getting entries by timestamp range
     args = dict(channel_pk=channel_pk, origin_id=0, attribute_ranges=(("timestamp", 3, 30),))
-    torrents = metadata_store.TorrentMetadata.get_entries(first=1, last=10, **args)
+    torrents = metadata_store.get_entries(first=1, last=10, **args)
     assert sorted([t.timestamp for t in torrents]) == list(range(25, 30))
 
     # Test catching SQL injection
     args = dict(channel_pk=channel_pk, origin_id=0, attribute_ranges=(("timestamp < 3 and g.timestamp", 3, 30),))
     with pytest.raises(AttributeError):
-        metadata_store.TorrentMetadata.get_entries(**args)
+        metadata_store.get_entries(**args)
 
     # Test getting entry by id_
     with db_session:
         entry = metadata_store.TorrentMetadata(id_=123, infohash=random_infohash())
     args = dict(channel_pk=channel_pk, id_=123)
-    torrents = metadata_store.TorrentMetadata.get_entries(first=1, last=10, **args)
+    torrents = metadata_store.get_entries(first=1, last=10, **args)
     assert list(torrents) == [entry]
 
     # Test getting complete channels
@@ -271,7 +271,7 @@ def test_get_entries(metadata_store):
         incomplete_chan = metadata_store.ChannelMetadata(
             infohash=random_infohash(), title='bla', local_version=222, timestamp=223
         )
-        channels = metadata_store.ChannelMetadata.get_entries(complete_channel=True)
+        channels = metadata_store.get_entries(complete_channel=True)
         assert [complete_chan] == channels
 
 
@@ -288,7 +288,7 @@ def test_get_entries_health_checked_after(metadata_store):
     t2.health.last_check = t1.health.last_check - 10000
 
     # Check that only the more recently checked torrent is returned, because we limited the selection by time
-    torrents = metadata_store.TorrentMetadata.get_entries(health_checked_after=t2.health.last_check + 1)
+    torrents = metadata_store.get_entries(health_checked_after=t2.health.last_check + 1)
     assert torrents == [t1]
 
 

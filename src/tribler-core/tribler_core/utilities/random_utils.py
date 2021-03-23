@@ -7,9 +7,10 @@ def random_string(size=6, chars=string.ascii_uppercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
 
 
-def random_infohash():
+def random_infohash(random_gen=None):
+    r = random_gen or random
     """ Generates a random torrent infohash binary string """
-    return random.getrandbits(20*8).to_bytes(20, byteorder='big')
+    return r.getrandbits(20*8).to_bytes(20, byteorder='big')
 
 
 def random_utf8_string(length=6):
