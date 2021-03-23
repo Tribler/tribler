@@ -1,7 +1,7 @@
 from pony import orm
 
 
-def define_binding(db, db_version: int):
+def define_binding(db):
     class MiscData(db.Entity):
         """
         This binding is used to store all kinds of values, like DB version, counters, etc.

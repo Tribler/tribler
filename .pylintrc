@@ -9,7 +9,7 @@ init-hook='import sys; import os; sys.path.append(os.path.join("src", "pyipv8"))
 
 # Add files or directories to the blacklist. They should be base names, not
 # paths.
-ignore=.git,libnacl,data
+ignore=.git,libnacl,data,.pylint.rc,pyproject.toml
 
 # Pickle collected data for later comparisons.
 persistent=yes
@@ -65,7 +65,7 @@ confidence=
 # --disable=W"
 #disable=import-star-module-level,old-octal-literal,oct-method,print-statement,unpacking-in-except,parameter-unpacking,backtick,old-raise-syntax,old-ne-operator,long-suffix,dict-view-method,dict-iter-method,metaclass-assignment,next-method-called,raising-string,indexing-exception,raw_input-builtin,long-builtin,file-builtin,execfile-builtin,coerce-builtin,cmp-builtin,buffer-builtin,basestring-builtin,apply-builtin,filter-builtin-not-iterating,using-cmp-argument,useless-suppression,range-builtin-not-iterating,suppressed-message,no-absolute-import,old-division,cmp-method,reload-builtin,zip-builtin-not-iterating,intern-builtin,unichr-builtin,reduce-builtin,standarderror-builtin,unicode-builtin,xrange-builtin,coerce-method,delslice-method,getslice-method,setslice-method,input-builtin,round-builtin,hex-method,nonzero-method,map-builtin-not-iterating
 disable=C0321,W0142,invalid-name,missing-docstring,no-member,no-name-in-module,
-    no-self-use,too-few-public-methods,C0330,W1203,too-many-ancestors,too-many-arguments
+    no-self-use,too-few-public-methods,C0330,W1203,too-many-ancestors,too-many-arguments,too-many-public-methods,too-many-statements,too-many-instance-attributes,too-many-locals,too-many-branches,too-many-return-statements
 
 #missing-type-doc
 

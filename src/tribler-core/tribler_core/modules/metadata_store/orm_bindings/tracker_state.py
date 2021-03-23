@@ -3,7 +3,7 @@ from pony import orm
 from tribler_core.utilities.tracker_utils import MalformedTrackerURLException, get_uniformed_tracker_url
 
 
-def define_binding(db, db_version: int):
+def define_binding(db):
     class TrackerState(db.Entity):
         """
         This ORM class holds information about torrent trackers that TorrentChecker got while checking

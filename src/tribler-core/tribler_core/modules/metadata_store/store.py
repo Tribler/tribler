@@ -152,27 +152,27 @@ class MetadataStore:
                 cursor.execute("PRAGMA synchronous = 0")
             # pylint: enable=unused-variable
 
-        self.MiscData = misc.define_binding(self._db, db_version)
+        self.MiscData = misc.define_binding(self._db)
 
-        self.TrackerState = tracker_state.define_binding(self._db, db_version)
-        self.TorrentState = torrent_state.define_binding(self._db, db_version)
+        self.TrackerState = tracker_state.define_binding(self._db)
+        self.TorrentState = torrent_state.define_binding(self._db)
 
-        self.ChannelNode = channel_node.define_binding(self._db, db_version, logger=self._logger, key=my_key)
+        self.ChannelNode = channel_node.define_binding(self._db, logger=self._logger, key=my_key)
 
-        self.MetadataNode = metadata_node.define_binding(self._db, db_version)
-        self.CollectionNode = collection_node.define_binding(self._db, db_version)
-        self.TorrentMetadata = torrent_metadata.define_binding(self._db, db_version)
-        self.ChannelMetadata = channel_metadata.define_binding(self._db, db_version)
+        self.MetadataNode = metadata_node.define_binding(self._db)
+        self.CollectionNode = collection_node.define_binding(self._db)
+        self.TorrentMetadata = torrent_metadata.define_binding(self._db)
+        self.ChannelMetadata = channel_metadata.define_binding(self._db)
 
         self.JsonNode = json_node.define_binding(self._db, db_version)
-        self.ChannelDescription = channel_description.define_binding(self._db, db_version)
+        self.ChannelDescription = channel_description.define_binding(self._db)
 
         self.BinaryNode = binary_node.define_binding(self._db, db_version)
-        self.ChannelThumbnail = channel_thumbnail.define_binding(self._db, db_version)
+        self.ChannelThumbnail = channel_thumbnail.define_binding(self._db)
 
-        self.ChannelVote = channel_vote.define_binding(self._db, db_version)
-        self.ChannelPeer = channel_peer.define_binding(self._db, db_version)
-        self.Vsids = vsids.define_binding(self._db, db_version)
+        self.ChannelVote = channel_vote.define_binding(self._db)
+        self.ChannelPeer = channel_peer.define_binding(self._db)
+        self.Vsids = vsids.define_binding(self._db)
 
         self.ChannelMetadata._channels_dir = channels_dir
 
@@ -256,8 +256,8 @@ class MetadataStore:
 
     def disconnect_thread(self):
         # Ugly workaround for closing threadpool connections
-        # TODO: subclass ThreadPoolExecutor to handle this automatically
-        if not isinstance(threading.current_thread(), threading._MainThread):
+        # Remark: maybe subclass ThreadPoolExecutor to handle this automatically?
+        if not isinstance(threading.current_thread(), threading._MainThread):  # pylint: disable=W0212
             self._db.disconnect()
 
     @staticmethod
@@ -280,7 +280,6 @@ class MetadataStore:
 
     @db_session
     def compute_channel_update_progress(self, channel):
-        # TODO: This procedure copy-pastes some stuff from process_channel_dir. Maybe DRY it somehow?
         blobs_to_process, total_blobs_size = self.get_list_of_channel_blobs_to_process(
             self.get_channel_dir_path(channel), channel.start_timestamp
         )
@@ -549,7 +548,7 @@ class MetadataStore:
                     if 0 in parents_ids:
                         parent_channel = self.ChannelNode.get(public_key=payload.public_key, id_=parents_ids[1])
                 if parent_channel and parent_channel.local_version > payload.timestamp:
-                    # TODO: add check_for_missing_dependencies here when collections are allowed descriptions
+                    # Remark: add check_for_missing_dependencies here when collections are allowed descriptions
                     return []
 
         # Check for the older version of the added node
@@ -569,7 +568,7 @@ class MetadataStore:
             self.ChannelThumbnail,
             self.ChannelDescription,
         ):
-            if orm_class._discriminator_ == payload.metadata_type:
+            if orm_class._discriminator_ == payload.metadata_type:  # pylint: disable=W0212
                 obj = orm_class.from_payload(payload)
                 missing_deps = self.check_for_missing_dependencies(obj)
                 return [ProcessingResult(md_obj=obj, obj_state=ObjState.UNKNOWN_OBJECT, missing_deps=missing_deps)]
@@ -630,7 +629,7 @@ class MetadataStore:
             # Workaround for the corner case of remote change of md type.
             # We delete the original node and replace it with the updated one.
             for orm_class in (self.ChannelMetadata, self.CollectionNode):
-                if orm_class._discriminator_ == payload.metadata_type:
+                if orm_class._discriminator_ == payload.metadata_type:  # pylint: disable=W0212
                     node.delete()
                     obj = orm_class.from_payload(payload)
                     return [ProcessingResult(md_obj=obj, obj_state=ObjState.UPDATED_OUR_VERSION)]
@@ -642,7 +641,7 @@ class MetadataStore:
             )
             return []
 
-        elif node.timestamp > payload.timestamp:
+        if node.timestamp > payload.timestamp:
             return [ProcessingResult(md_obj=node, obj_state=ObjState.GOT_NEWER_VERSION)]
         # Otherwise, we got the same version locally and do nothing.
         # Nevertheless, it is important to indicate to upper levels that we recognised
@@ -680,7 +679,6 @@ class MetadataStore:
         if not query or query == "*":
             return []
 
-        # TODO: optimize this query by removing unnecessary select nests (including Pony-manages selects)
         fts_ids = raw_sql(
             """SELECT rowid FROM ChannelNode WHERE rowid IN (SELECT rowid FROM FtsIndex WHERE FtsIndex MATCH $query
             ORDER BY bm25(FtsIndex) LIMIT $lim) GROUP BY coalesce(infohash, rowid)"""
@@ -734,7 +732,8 @@ class MetadataStore:
         if attribute_ranges is not None:
             for attr, left, right in attribute_ranges:
                 if (
-                    self.ChannelNode._adict_.get(attr) or self.ChannelNode._subclass_adict_.get(attr)
+                    self.ChannelNode._adict_.get(attr)  # pylint: disable=W0212
+                    or self.ChannelNode._subclass_adict_.get(attr)  # pylint: disable=W0212
                 ) is None:  # Check against code injection
                     raise AttributeError("Tried to query for non-existent attribute")
                 if left is not None:
@@ -776,7 +775,7 @@ class MetadataStore:
                 else "(g.health.seeders, g.health.leechers)"
             )
         elif sort_by == "size" and not issubclass(cls, self.ChannelMetadata):
-            # TODO: optimize this check to skip cases where size field does not matter
+            # Remark: this can be optimized to skip cases where size field does not matter
             # When querying for mixed channels / torrents lists, channels should have priority over torrents
             sort_expression = "desc(g.num_entries), desc(g.size)" if sort_desc else "g.num_entries, g.size"
             pony_query = pony_query.sort_by(sort_expression)
@@ -800,7 +799,7 @@ class MetadataStore:
     async def get_entries_threaded(self, **kwargs):
         def _get_results():
             result = self.get_entries(**kwargs)
-            if not isinstance(threading.current_thread(), threading._MainThread):
+            if not isinstance(threading.current_thread(), threading._MainThread):  # pylint: disable=W0212
                 self._db.disconnect()
             return result
 

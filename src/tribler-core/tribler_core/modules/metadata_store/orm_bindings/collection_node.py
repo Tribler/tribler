@@ -26,7 +26,7 @@ from tribler_core.utilities.random_utils import random_infohash
 # pylint: disable=too-many-statements
 
 
-def define_binding(db, db_version: int):
+def define_binding(db):
     class CollectionNode(db.MetadataNode):
         """
         This ORM class represents a generic named container, i.e. a folder. It is used as an intermediary node
@@ -36,7 +36,7 @@ def define_binding(db, db_version: int):
 
         _discriminator_ = COLLECTION_NODE
 
-        # FIXME: ACHTUNG! PONY BUG! attributes inherited from multiple inheritance are not cached!
+        # ACHTUNG! PONY BUG! attributes inherited from multiple inheritance are not cached!
         # Therefore, we are forced to move the attributes to common ancestor class of CollectionNode and ChannelTorrent,
         # that is MetadataNode. When Pony fixes it, we must move it here for clarity.
         # num_entries = orm.Optional(int, size=64, default=0)
@@ -210,7 +210,7 @@ def define_binding(db, db_version: int):
                         self.add_torrent_to_channel(TorrentDef.load(f))
                     except DuplicateTorrentFileError:
                         pass
-                    except Exception:
+                    except Exception:  # pylint: disable=W0703
                         # Have to use the broad exception clause because Py3 versions of libtorrent
                         # generate generic Exceptions
                         errors_list.append(f)
@@ -257,7 +257,7 @@ def define_binding(db, db_version: int):
             db.CollectionNode.collapse_deleted_subtrees()
             upd_dict = {}
             children = {}
-            # TODO: optimize me by rewriting in pure SQL with recursive CTEs
+            # Remark: it should be possible to optimize this by rewriting in pure SQL with recursive CTEs
 
             def update_node_info(n):
                 # Add the node to its parent's set of children
@@ -270,7 +270,8 @@ def define_binding(db, db_version: int):
             dead_parents = set()
             # First we traverse the tree upwards from changed leaves to find all nodes affected by changes
             for node in db.ChannelNode.select(
-                lambda g: g.public_key == db.ChannelNode._my_key.pub().key_to_bin()[10:] and g.status in DIRTY_STATUSES
+                lambda g: g.public_key == db.ChannelNode._my_key.pub().key_to_bin()[10:]  # pylint: disable=W0212
+                and g.status in DIRTY_STATUSES
             ):
                 update_node_info(node)
                 # This process resolves the parents completely.
@@ -289,7 +290,8 @@ def define_binding(db, db_version: int):
                 dead_parents.remove(0)
             # Delete orphans
             db.ChannelNode.select(
-                lambda g: database_blob(db.ChannelNode._my_key.pub().key_to_bin()[10:]) == g.public_key
+                lambda g: database_blob(db.ChannelNode._my_key.pub().key_to_bin()[10:])  # pylint: disable=W0212
+                == g.public_key
                 and g.origin_id in dead_parents
             ).delete()
             orm.flush()  # Just in case...
@@ -305,7 +307,7 @@ def define_binding(db, db_version: int):
                 return {}
             # We want a separate commit tree/queue for each toplevel channel
             forest = {}
-            toplevel_nodes = [node for node in children.pop(0)]
+            toplevel_nodes = children.pop(0)
             for root_node in toplevel_nodes:
                 # Tree -> stack -> queue
                 commit_queue = []
@@ -376,7 +378,7 @@ def define_binding(db, db_version: int):
             in the future.
             This procedure should be always run _before_ committing personal channels.
             """
-            # TODO: optimize with SQL recursive CTEs
+            # Remark: it should be possible to optimize this by rewriting in pure SQL with recursive CTEs
 
             def get_highest_deleted_parent(node, highest_deleted_parent=None):
                 if node.origin_id == 0:
@@ -391,7 +393,8 @@ def define_binding(db, db_version: int):
             deletion_set = {
                 get_highest_deleted_parent(node, highest_deleted_parent=node).rowid
                 for node in db.CollectionNode.select(
-                    lambda g: g.public_key == db.CollectionNode._my_key.pub().key_to_bin()[10:] and g.status == TODELETE
+                    lambda g: g.public_key == db.CollectionNode._my_key.pub().key_to_bin()[10:]  # pylint: disable=W0212
+                    and g.status == TODELETE
                 )
                 if node
             }
@@ -415,7 +418,7 @@ def define_binding(db, db_version: int):
                 if new_origin_id == self.id_ or self.id_ in root_path:
                     raise ValueError("Can't move collection into itself or its descendants!")
                 if 0 not in root_path:
-                    # TODO: add orphan-cleaning hook here
+                    # Remark: maybe add orphan-cleaning hook here?
                     raise ValueError("Tried to move collection into an orphaned hierarchy!")
             updated_self = super().update_properties(update_dict)
             if updated_self.origin_id == 0 and self.metadata_type == COLLECTION_NODE:

@@ -3,7 +3,7 @@ from datetime import datetime
 from pony import orm
 
 
-def define_binding(db, db_version: int):
+def define_binding(db):
     class ChannelVote(db.Entity):
         """
         This ORM class represents votes cast for a channel. A single instance (row), represents a vote from a single

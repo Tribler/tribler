@@ -33,7 +33,17 @@ repos:
               'flake8-import-order==0.18',
           ]
 
--   repo: https://github.com/pycqa/pylint
-    rev: pylint-2.7.2
+-   repo: local
     hooks:
-    -   id: pylint
+    - id: pylint
+      name: pylint
+      entry: pylint
+      language: system
+      files: |
+          (?x)(
+          ^src/tribler-gui/|
+          ^src/tribler-core/|
+          ^src/tribler-common
+          )
+      types: [file, python]
+        

@@ -3,7 +3,7 @@ from pony import orm
 from tribler_core.modules.metadata_store.serialization import METADATA_NODE, MetadataNodePayload
 
 
-def define_binding(db, db_version: int):
+def define_binding(db):
     class MetadataNode(db.ChannelNode):
         """
         This ORM class extends ChannelNode by adding metadata-storing attributes such as "title" and "tags".
@@ -17,7 +17,7 @@ def define_binding(db, db_version: int):
         title = orm.Optional(str, default='', index=True)
         tags = orm.Optional(str, default='', index=True)
 
-        # FIXME: ACHTUNG! PONY BUG! This is a workaround for Pony not caching attributes from multiple inheritance!
+        # ACHTUNG! PONY BUG! This is a workaround for Pony not caching attributes from multiple inheritance!
         # Its real home is CollectionNode, but we are forced to put it here so it is loaded by default on all queries.
         # When Pony fixes it, we must move it back to CollectionNode for clarity.
         num_entries = orm.Optional(int, size=64, default=0, index=True)

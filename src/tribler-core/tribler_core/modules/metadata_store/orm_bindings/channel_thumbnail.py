@@ -1,7 +1,7 @@
 from tribler_core.modules.metadata_store.serialization import CHANNEL_THUMBNAIL
 
 
-def define_binding(db, db_version: int):
+def define_binding(db):
     class ChannelThumbnail(db.BinaryNode):
         """
         This ORM class represents channel descriptions.

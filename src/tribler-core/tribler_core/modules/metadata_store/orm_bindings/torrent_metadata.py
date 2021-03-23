@@ -38,15 +38,15 @@ def tdef_to_metadata_dict(tdef):
 
     return {
         "infohash": tdef.get_infohash(),
-        "title": tdef.get_name_as_unicode()[:300],  # TODO: do proper size checking based on bytes
-        "tags": tags[:200],  # TODO: do proper size checking based on bytes
+        "title": tdef.get_name_as_unicode()[:300],
+        "tags": tags[:200],
         "size": tdef.get_length(),
         "torrent_date": torrent_date if torrent_date >= EPOCH else EPOCH,
         "tracker_info": get_uniformed_tracker_url(ensure_unicode(tdef.get_tracker() or '', 'utf-8')) or '',
     }
 
 
-def define_binding(db, db_version: int):
+def define_binding(db):
     class TorrentMetadata(db.MetadataNode):
         """
         This ORM binding class is intended to store Torrent objects, i.e. infohashes along with some related metadata.

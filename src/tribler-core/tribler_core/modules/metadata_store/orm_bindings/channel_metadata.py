@@ -105,7 +105,7 @@ def entries_to_chunk(metadata_list, chunk_size, start_index=0):
     return chunk, last_entry_index + 1
 
 
-def define_binding(db, db_version: int):
+def define_binding(db):  # pylint: disable=R0915
     class ChannelMetadata(db.TorrentMetadata, db.CollectionNode):
         """
         This ORM binding represents Channel entries in the GigaChannel system. Each channel is a Collection that
@@ -181,11 +181,11 @@ def define_binding(db, db_version: int):
             :param key: The public/private key, used to sign the data
             """
 
-            # TODO: optimize this stuff with SQL and better tree traversal algorithms?
+            # Remark: there should be a way to optimize this stuff with SQL and better tree traversal algorithms
             # Cleanup entries marked for deletion
 
             db.CollectionNode.collapse_deleted_subtrees()
-            # TODO: optimize me: stop calling get_contents_to_commit here
+            # Note: It should be possible to stop alling get_contents_to_commit here
             commit_queue = self.get_contents_to_commit()
             for entry in commit_queue:
                 if entry.status == TODELETE:
@@ -272,7 +272,7 @@ def define_binding(db, db_version: int):
 
                 flags = CHANNEL_THUMBNAIL_FLAG * (int(thumb_exists)) + CHANNEL_DESCRIPTION_FLAG * (int(descr_exists))
 
-            # TODO: add error-handling routines to make sure the timestamp is not messed up in case of an error
+            # Note: the timestamp can end up messed in case of an error
 
             # Make torrent out of dir with metadata files
             torrent, infohash = create_torrent_from_dir(channel_dir, self._channels_dir / (self.dirname + ".torrent"))
@@ -323,7 +323,7 @@ def define_binding(db, db_version: int):
                     g.delete()
 
             # Write the channel mdblob to disk
-            self.status = COMMITTED
+            self.status = COMMITTED  # pylint: disable=W0201
             self.to_file(self._channels_dir / (self.dirname + BLOB_EXTENSION))
 
             self._logger.info(
@@ -392,7 +392,6 @@ def define_binding(db, db_version: int):
             This property describes the current state of the channel.
             :return: Text-based status
             """
-            # TODO: optimize this by stopping doing blob comparisons on each call, and instead remember rowid?
             if self.is_personal:
                 return CHANNEL_STATE.PERSONAL.value
             if self.status == LEGACY_ENTRY:
@@ -451,8 +450,7 @@ def define_binding(db, db_version: int):
                 return dl_name
             if channel.infohash == database_blob(infohash):
                 return channel.title
-            else:
-                return 'OLD:' + channel.title
+            return 'OLD:' + channel.title
 
         @db_session
         def update_properties(self, update_dict):

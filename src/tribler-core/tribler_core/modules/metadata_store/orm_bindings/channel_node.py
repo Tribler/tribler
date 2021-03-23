@@ -40,7 +40,7 @@ def generate_dict_from_pony_args(cls, skip_list=None, **kwargs):
     """
     d = {}
     skip_list = skip_list or []
-    for attr in cls._attrs_:
+    for attr in cls._attrs_:  # pylint: disable=W0212
         val = kwargs.get(attr.name, DEFAULT)
         if attr.name in skip_list:
             continue
@@ -48,7 +48,7 @@ def generate_dict_from_pony_args(cls, skip_list=None, **kwargs):
     return d
 
 
-def define_binding(db, db_version: int, logger=None, key=None):
+def define_binding(db, logger=None, key=None):  # pylint: disable=R0915
     class ChannelNode(db.Entity):
         """
         This is the base class of our ORM bindings. It implements methods for signing and serialization of ORM objects.
@@ -104,8 +104,6 @@ def define_binding(db, db_version: int, logger=None, key=None):
             """
             skip_key_check = False
 
-            # FIXME: refactor this method by moving different ways to create an entry into separate methods
-
             # Process special keyworded arguments
             # "sign_with" argument given, sign with it
             private_key_override = None
@@ -151,13 +149,13 @@ def define_binding(db, db_version: int, logger=None, key=None):
                 elif ("public_key" in kwargs) and ("signature" in kwargs):
                     try:
                         self._payload_class(**kwargs)
-                    except InvalidSignatureException:
+                    except InvalidSignatureException as e:
                         raise InvalidSignatureException(
                             f"Attempted to create {str(self.__class__.__name__)} object with invalid signature/PK: "
                             + (hexlify(kwargs["signature"]) if "signature" in kwargs else "empty signature ")
                             + " / "
                             + (hexlify(kwargs["public_key"]) if "public_key" in kwargs else " empty PK")
-                        )
+                        ) from e
 
             if private_key_override:
                 # Get default values for Pony class attributes. We have to do it manually because we need
@@ -182,7 +180,9 @@ def define_binding(db, db_version: int, logger=None, key=None):
             :param key: private key to sign object with
             :return: (serialized_data, signature) tuple
             """
-            return self._payload_class(key=key, unsigned=(self.signature is None), **self.to_dict())._serialized()
+            return self._payload_class(  # pylint: disable=W0212
+                key=key, unsigned=(self.signature is None), **self.to_dict()
+            )._serialized()  # pylint: disable=W0212
 
         def serialized(self, key=None):
             """
@@ -199,7 +199,7 @@ def define_binding(db, db_version: int, logger=None, key=None):
             """
             my_dict = ChannelNode.to_dict(self)
             my_dict.update({"metadata_type": DELETED, "delete_signature": self.signature})
-            return DeletedMetadataPayload(key=self._my_key, **my_dict)._serialized()
+            return DeletedMetadataPayload(key=self._my_key, **my_dict)._serialized()  # pylint: disable=W0212
 
         def serialized_delete(self):
             """
@@ -248,7 +248,6 @@ def define_binding(db, db_version: int, logger=None, key=None):
         @property
         @db_session
         def is_personal(self):
-            # TODO: optimize this by stopping doing blob comparisons on each call, and instead remember rowid?
             return database_blob(self._my_key.pub().key_to_bin()[10:]) == database_blob(self.public_key)
 
         @db_session
@@ -283,8 +282,7 @@ def define_binding(db, db_version: int, logger=None, key=None):
             parent = db.CollectionNode.get(public_key=self.public_key, id_=self.origin_id)
             if parent:
                 return parent.get_parents_ids(max_recursion_depth=max_recursion_depth - 1) + (parent.id_,)
-            else:
-                return tuple()
+            return tuple()
 
         def make_copy(self, tgt_parent_id, attributes_override=None):
             dst_dict = attributes_override or {}
