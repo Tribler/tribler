@@ -28,7 +28,7 @@ from tribler_core.tests.tools.common import TESTS_DATA_DIR
 from tribler_core.utilities.path_util import str_path
 from tribler_core.utilities.random_utils import random_infohash
 
-# pylint: disable=protected-access
+# pylint: disable=protected-access,unused-argument
 
 
 def get_payloads(entity_class, key):
@@ -444,7 +444,7 @@ def test_process_payload_update_type(metadata_store):
     # First, create a node and get a payload from it, then update it to another type, then get payload
     # for the updated version, then delete the updated version, then bring back the original one by processing it,
     # then try processing the payload of updated version and see if it works. Phew!
-    node, node_payload, node_deleted_payload = get_payloads(metadata_store.CollectionNode, metadata_store.my_key)
+    node, node_payload, _ = get_payloads(metadata_store.CollectionNode, metadata_store.my_key)
     updated_node = node.update_properties({"origin_id": 0})  # This will implicitly change the node to ChannelTorrent
     assert updated_node.metadata_type == CHANNEL_TORRENT
     updated_node_payload = updated_node._payload_class.from_signed_blob(updated_node.serialized())
