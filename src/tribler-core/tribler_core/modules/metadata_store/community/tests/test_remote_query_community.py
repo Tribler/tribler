@@ -20,6 +20,8 @@ from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.random_utils import random_infohash, random_string
 from tribler_core.utilities.unicode import hexlify
 
+# pylint: disable=too-many-statements
+
 
 def add_random_torrent(metadata_cls, name="test", channel=None):
     d = {"infohash": random_infohash(), "title": name, "tags": "", "size": 1234, "status": NEW}

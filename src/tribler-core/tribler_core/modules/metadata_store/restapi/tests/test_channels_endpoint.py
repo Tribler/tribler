@@ -29,6 +29,8 @@ PNG_DATA = unhexlify(
     "fff03000006000557bfabd40000000049454e44ae426082"
 )
 
+# pylint: disable=unused-argument
+
 
 @pytest.mark.asyncio
 async def test_get_channels(enable_chant, enable_api, add_fake_torrents_channels, mock_dlmgr, session):

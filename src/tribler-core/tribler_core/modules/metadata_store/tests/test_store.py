@@ -28,6 +28,8 @@ from tribler_core.tests.tools.common import TESTS_DATA_DIR
 from tribler_core.utilities.path_util import str_path
 from tribler_core.utilities.random_utils import random_infohash
 
+# pylint: disable=protected-access
+
 
 def get_payloads(entity_class, key):
     orig_key = entity_class._my_key

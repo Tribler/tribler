@@ -23,6 +23,8 @@ from tribler_core.modules.metadata_store.orm_bindings.torrent_metadata import td
 from tribler_core.modules.metadata_store.serialization import COLLECTION_NODE, CollectionNodePayload
 from tribler_core.utilities.random_utils import random_infohash
 
+# pylint: disable=too-many-statements
+
 
 def define_binding(db, db_version: int):
     class CollectionNode(db.MetadataNode):
@@ -167,7 +169,7 @@ def define_binding(db, db_version: int):
 
         @db_session
         def pprint_tree(self, file=None, _prefix="", _last=True):
-            print(_prefix, "`- " if _last else "|- ", (self.num_entries, self.metadata_type), sep="", file=file)
+            print(_prefix, "`- " if _last else "|- ", (self.num_entries, self.metadata_type), sep="", file=file)  # noqa
             _prefix += "   " if _last else "|  "
             child_count = self.actual_contents.count()
             for i, child in enumerate(list(self.actual_contents)):
@@ -175,7 +177,7 @@ def define_binding(db, db_version: int):
                     _last = i == (child_count - 1)
                     child.pprint_tree(file, _prefix, _last)
                 else:
-                    print(_prefix, "`- " if _last else "|- ", child.metadata_type, sep="", file=file)
+                    print(_prefix, "`- " if _last else "|- ", child.metadata_type, sep="", file=file)  # noqa
 
         @db_session
         def get_contents_recursive(self):

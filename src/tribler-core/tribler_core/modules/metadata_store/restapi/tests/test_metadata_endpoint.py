@@ -13,6 +13,8 @@ from tribler_core.utilities.random_utils import random_infohash
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import has_bep33_support
 
+# pylint: disable=unused-argument
+
 
 @pytest.mark.asyncio
 async def test_update_multiple_metadata_entries(enable_chant, enable_api, add_fake_torrents_channels, session):

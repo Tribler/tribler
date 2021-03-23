@@ -13,6 +13,7 @@ import pytest
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import COMMITTED, LEGACY_ENTRY
 from tribler_core.modules.metadata_store.store import MetadataStore
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
+from tribler_core.upgrade import legacy_to_pony
 from tribler_core.upgrade.legacy_to_pony import (
     CONVERSION_FINISHED,
     CONVERSION_FROM_72,
@@ -173,7 +174,6 @@ def test_already_upgraded(tmpdir, metadata_store):
 
 
 def test_should_upgrade(tmpdir):
-    from tribler_core.upgrade import legacy_to_pony
     pony_db = tmpdir / 'pony.db'
 
     # Old DB does not exist
