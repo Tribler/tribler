@@ -498,17 +498,25 @@ def test_consolidate_channel_torrent(torrent_template, metadata_store):
     assert len(channel.contents[:]) == 1
 
 
+@pytest.mark.timeout(0)
 @db_session
 def test_data_dont_fit_in_mdblob(metadata_store):
     import random as rng  # pylint: disable=import-outside-toplevel
 
     rng.seed(123)
     md_list = [
-        metadata_store.TorrentMetadata(title='test' + str(x), infohash=random_infohash(rng)) for x in range(0, 1)
+        metadata_store.TorrentMetadata(
+            title='test' + str(x),
+            infohash=random_infohash(rng),
+            id_=rng.randint(0, 100000000),
+            timestamp=rng.randint(0, 100000000),
+        )
+        for x in range(0, 1)
     ]
+    print(md_list[0])
     chunk, index = entries_to_chunk(md_list, chunk_size=1)
     assert index == 1
-    assert len(chunk) == 209
+    assert len(chunk) == 206
 
     # Test corner case of empty list and/or too big index
     with pytest.raises(Exception):
