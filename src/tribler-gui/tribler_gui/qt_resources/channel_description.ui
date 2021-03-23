@@ -209,78 +209,101 @@
          </spacer>
         </item>
         <item>
-         <widget class="QStackedWidget" name="description_stack_widget">
-          <property name="currentIndex">
-           <number>1</number>
+         <layout class="QVBoxLayout" name="verticalLayout_2">
+          <property name="rightMargin">
+           <number>0</number>
           </property>
-          <widget class="QTextEdit" name="description_text_preview">
-           <property name="styleSheet">
-            <string notr="true">QTextEdit{border-radius: 4px; background-color: rgba(255,255,255,0); border: 0px;}</string>
-           </property>
-           <property name="placeholderText">
-            <string notr="true"># Welcome
+          <item>
+           <widget class="QStackedWidget" name="description_stack_widget">
+            <property name="currentIndex">
+             <number>0</number>
+            </property>
+            <widget class="QTextEdit" name="description_text_preview">
+             <property name="styleSheet">
+              <string notr="true">QTextEdit{border-radius: 4px; background-color: rgba(255,255,255,0); border: 0px;}</string>
+             </property>
+             <property name="placeholderText">
+              <string notr="true"># Welcome
 * You can use Markdown syntax here
 * https://guides.github.com/features/mastering-markdown/
           </string>
-           </property>
-          </widget>
-          <widget class="QPlainTextEdit" name="description_text_edit">
-           <property name="styleSheet">
-            <string notr="true">QPlainTextEdit{border-radius: 4px; background-color: #303030}</string>
-           </property>
-          </widget>
-         </widget>
+             </property>
+            </widget>
+            <widget class="QPlainTextEdit" name="description_text_edit">
+             <property name="styleSheet">
+              <string notr="true">QPlainTextEdit{border-radius: 4px; background-color: #303030}</string>
+             </property>
+            </widget>
+           </widget>
+          </item>
+          <item>
+           <widget class="QWidget" name="bottom_buttons_container" native="true">
+            <layout class="QHBoxLayout" name="horizontalLayout_3">
+             <item>
+              <spacer name="horizontalSpacer_3">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeType">
+                <enum>QSizePolicy::Fixed</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>10</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+             <item>
+              <widget class="QPushButton" name="save_button">
+               <property name="text">
+                <string>Save</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <spacer name="horizontalSpacer_2">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeType">
+                <enum>QSizePolicy::Fixed</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>5</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+             <item>
+              <widget class="QPushButton" name="cancel_button">
+               <property name="text">
+                <string>Cancel</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <spacer name="horizontalSpacer">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>40</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+            </layout>
+           </widget>
+          </item>
+         </layout>
         </item>
        </layout>
-      </item>
-      <item>
-       <widget class="QWidget" name="bottom_buttons_container" native="true">
-        <layout class="QHBoxLayout" name="horizontalLayout_3">
-         <item>
-          <widget class="QPushButton" name="save_button">
-           <property name="text">
-            <string>Save</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <spacer name="horizontalSpacer_2">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-           <property name="sizeType">
-            <enum>QSizePolicy::Fixed</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>5</width>
-             <height>20</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
-         <item>
-          <widget class="QPushButton" name="cancel_button">
-           <property name="text">
-            <string>Cancel</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <spacer name="horizontalSpacer">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>40</width>
-             <height>20</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
-        </layout>
-       </widget>
       </item>
      </layout>
     </widget>
