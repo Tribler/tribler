@@ -513,7 +513,6 @@ def test_data_dont_fit_in_mdblob(metadata_store):
         )
         for x in range(0, 1)
     ]
-    print(md_list[0])
     chunk, index = entries_to_chunk(md_list, chunk_size=1)
     assert index == 1
     assert len(chunk) == 206
