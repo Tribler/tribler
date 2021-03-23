@@ -102,8 +102,7 @@ class SignedPayload(Payload):
         if self.public_key == NULL_KEY:
             if self.signature == NULL_SIG:
                 return
-            else:
-                raise InvalidSignatureException("Tried to create FFA payload with non-null signature")
+            raise InvalidSignatureException("Tried to create FFA payload with non-null signature")
 
         serialized_data = default_serializer.pack_serializable(self)
         if "key" in kwargs and kwargs["key"]:
@@ -125,7 +124,7 @@ class SignedPayload(Payload):
         return data
 
     @classmethod
-    def from_unpack_list(cls, metadata_type, reserved_flags, public_key, **kwargs):
+    def from_unpack_list(cls, metadata_type, reserved_flags, public_key, **kwargs):  # pylint: disable=W0221
         return SignedPayload(metadata_type, reserved_flags, public_key, **kwargs)
 
     @classmethod
@@ -134,15 +133,14 @@ class SignedPayload(Payload):
 
     @classmethod
     def from_signed_blob_with_offset(cls, data, check_signature=True, offset=0):
-        # TODO: stop serializing/deserializing stuff twice
         unpack_list = []
         for format_str in cls.format_list:
             offset = default_serializer.get_packer_for(format_str).unpack(data, offset, unpack_list)
         if check_signature:
             signature = data[offset : offset + SIGNATURE_SIZE]
-            payload = cls.from_unpack_list(*unpack_list, signature=signature)
+            payload = cls.from_unpack_list(*unpack_list, signature=signature)  # pylint: disable=E1120
         else:
-            payload = cls.from_unpack_list(*unpack_list, skip_key_check=True)
+            payload = cls.from_unpack_list(*unpack_list, skip_key_check=True)  # pylint: disable=E1120
         return payload, offset + SIGNATURE_SIZE
 
     def to_dict(self):
@@ -190,7 +188,7 @@ class ChannelNodePayload(SignedPayload):
         return data
 
     @classmethod
-    def from_unpack_list(
+    def from_unpack_list( # pylint: disable=arguments-differ
             cls,
             metadata_type, reserved_flags, public_key,  # SignedPayload
             id_, origin_id, timestamp,                  # ChannelNodePayload
@@ -232,7 +230,7 @@ class JsonNodePayload(ChannelNodePayload):
         return data
 
     @classmethod
-    def from_unpack_list(
+    def from_unpack_list( # pylint: disable=arguments-differ
             cls,
             metadata_type, reserved_flags, public_key,  # SignedPayload
             id_, origin_id, timestamp,                  # ChannelNodePayload
@@ -276,7 +274,7 @@ class BinaryNodePayload(ChannelNodePayload):
         return data
 
     @classmethod
-    def from_unpack_list(
+    def from_unpack_list( # pylint: disable=arguments-differ
             cls,
             metadata_type, reserved_flags, public_key,  # SignedPayload
             id_, origin_id, timestamp,                  # ChannelNodePayload
@@ -322,7 +320,7 @@ class MetadataNodePayload(ChannelNodePayload):
         return data
 
     @classmethod
-    def from_unpack_list(
+    def from_unpack_list( # pylint: disable=arguments-differ
         cls,
         metadata_type, reserved_flags, public_key,      # SignedPayload
         id_, origin_id, timestamp,                      # ChannelNodePayload
@@ -373,7 +371,7 @@ class CollectionNodePayload(MetadataNodePayload):
         return data
 
     @classmethod
-    def from_unpack_list(
+    def from_unpack_list( # pylint: disable=arguments-differ
             cls,
             metadata_type, reserved_flags, public_key,  # SignedPayload
             id_, origin_id, timestamp,                  # ChannelNodePayload
@@ -431,7 +429,7 @@ class TorrentMetadataPayload(ChannelNodePayload):
         return data
 
     @classmethod
-    def from_unpack_list(
+    def from_unpack_list( # pylint: disable=arguments-differ
             cls,
             metadata_type, reserved_flags, public_key,                # SignedPayload
             id_, origin_id, timestamp,                                # ChannelNodePayload
@@ -457,7 +455,6 @@ class TorrentMetadataPayload(ChannelNodePayload):
         )
         return dct
 
-    # TODO:  DRY!(copypasted from TorrentMetadata)
     def get_magnet(self):
         return (f"magnet:?xt=urn:btih:{hexlify(self.infohash)}&dn={self.title.encode('utf8')}") + (
             f"&tr={self.tracker_info.encode('utf8')}" if self.tracker_info else ""
@@ -493,7 +490,7 @@ class ChannelMetadataPayload(TorrentMetadataPayload):
         return data
 
     @classmethod
-    def from_unpack_list(
+    def from_unpack_list( # pylint: disable=arguments-differ
             cls,
             metadata_type, reserved_flags, public_key,                # SignedPayload
             id_, origin_id, timestamp,                                # ChannelNodePayload
@@ -539,7 +536,7 @@ class DeletedMetadataPayload(SignedPayload):
         return data
 
     @classmethod
-    def from_unpack_list(
+    def from_unpack_list( # pylint: disable=arguments-differ
             cls,
             metadata_type, reserved_flags, public_key,  # SignedPayload
             delete_signature,                           # DeletedMetadataPayload

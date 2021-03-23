@@ -61,7 +61,7 @@ class ChannelDescriptionWidget(AddBreadcrumbOnShowMixin, widget_form, widget_cla
     description_changed = pyqtSignal()
 
     def __init__(self, parent=None):
-        super(widget_class, self).__init__(parent=parent)
+        widget_class.__init__(self, parent=parent)
 
         try:
             self.setupUi(self)
@@ -107,11 +107,11 @@ class ChannelDescriptionWidget(AddBreadcrumbOnShowMixin, widget_form, widget_cla
         self.became_hidden.emit()
         super().hideEvent(event)
 
-    def showEvent(self, event):
+    def showEvent(self, *args):
         # This one is unfortunately necessary to ensure thant brain_dead_refresh will
         # run every time this thing is shown
         self.became_hidden.emit()
-        super().showEvent(event)
+        super().showEvent(*args)
 
     def tab_button_clicked(self, button_name):
         if button_name == EDIT_BUTTON:

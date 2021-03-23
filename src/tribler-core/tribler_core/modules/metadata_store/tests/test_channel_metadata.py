@@ -500,7 +500,7 @@ def test_consolidate_channel_torrent(torrent_template, metadata_store):
 
 @db_session
 def test_data_dont_fit_in_mdblob(metadata_store):
-    import random as rng
+    import random as rng  # pylint: disable=import-outside-toplevel
 
     rng.seed(123)
     md_list = [

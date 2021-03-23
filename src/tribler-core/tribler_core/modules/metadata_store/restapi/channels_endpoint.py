@@ -179,7 +179,6 @@ class ChannelsEndpoint(ChannelsEndpointBase):
     async def get_channel_description(self, request):
         channel_pk, channel_id = self.get_channel_from_request(request)
         with db_session:
-            # TODO: fix the case when multiple descriptions nodes are present
             channel_description = self.session.mds.ChannelDescription.select(
                 lambda g: g.public_key == channel_pk and g.origin_id == channel_id
             ).first()
@@ -192,7 +191,6 @@ class ChannelsEndpoint(ChannelsEndpointBase):
         request_parsed = await request.json()
         updated_json_text = dumps({"description_text": request_parsed["description_text"]})
         with db_session:
-            # TODO: fix the case when multiple descriptions nodes are present
             channel_description = self.session.mds.ChannelDescription.select(
                 lambda g: g.public_key == channel_pk and g.origin_id == channel_id
             ).first()
@@ -207,7 +205,6 @@ class ChannelsEndpoint(ChannelsEndpointBase):
     async def get_channel_thumbnail(self, request):
         channel_pk, channel_id = self.get_channel_from_request(request)
         with db_session:
-            # TODO: fix the case when multiple thumbnail nodes are present
             obj = self.session.mds.ChannelThumbnail.select(
                 lambda g: g.public_key == channel_pk and g.origin_id == channel_id
             ).first()
@@ -219,7 +216,6 @@ class ChannelsEndpoint(ChannelsEndpointBase):
         channel_pk, channel_id = self.get_channel_from_request(request)
         obj_properties = {"binary_data": post_body, "data_type": content_type}
         with db_session:
-            # TODO: fix the case when multiple thumbnail nodes are present
             obj = self.session.mds.ChannelThumbnail.select(
                 lambda g: g.public_key == channel_pk and g.origin_id == channel_id,
             ).first()

@@ -168,7 +168,7 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         if self.model:
             self.controller.brain_dead_refresh()
 
-    def _on_table_scroll(self, event):
+    def _on_table_scroll(self, event):  # pylint: disable=unused-argument
         # Hide the description widget when the channel is scrolled down
         if not self.model.data_items:
             return
