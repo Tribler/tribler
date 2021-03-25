@@ -119,7 +119,9 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
     def commit_channels(self, checked=False):  # pylint: disable=W0613
         TriblerNetworkRequest("channels/mychannel/0/commit", self.on_channel_committed, method='POST')
 
-    def initialize_content_page(self, autocommit_enabled=False, hide_xxx=None):
+    def initialize_content_page(
+        self, autocommit_enabled=False, hide_xxx=None, controller_class=ContentTableViewController
+    ):
         if self.initialized:
             return
 
@@ -132,9 +134,7 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         connect(self.channel_name_label.linkActivated, self.on_breadcrumb_clicked)
         self.commit_control_bar.setHidden(True)
 
-        self.controller = ContentTableViewController(
-            self.content_table, filter_input=self.channel_torrents_filter_input
-        )
+        self.controller = controller_class(self.content_table, filter_input=self.channel_torrents_filter_input)
 
         # To reload the preview
         connect(self.channel_preview_button.clicked, self.preview_clicked)

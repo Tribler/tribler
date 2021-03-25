@@ -39,7 +39,7 @@ class TriblerTableViewController(QObject):
     Base controller for a table view that displays some data.
     """
 
-    def __init__(self, table_view, *args, **kwargs):
+    def __init__(self, table_view, *args, filter_input=None, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.model = None
@@ -48,12 +48,11 @@ class TriblerTableViewController(QObject):
 
         connect(self.table_view.delegate.subscribe_control.clicked, self.table_view.on_subscribe_control_clicked)
         connect(self.table_view.delegate.download_button.clicked, self.table_view.start_download_from_index)
-        connect(
-            self.table_view.delegate.health_status_widget.clicked,
-            lambda index: self.check_torrent_health(index.model().data_items[index.row()], forced=True),
-        )
-        connect(self.table_view.torrent_clicked, self.check_torrent_health)
         connect(self.table_view.torrent_doubleclicked, self.table_view.start_download_from_dataitem)
+
+        self.filter_input = filter_input
+        if self.filter_input:
+            connect(self.filter_input.textChanged, self._on_filter_input_change)
 
     def set_model(self, model):
         self.model = model
@@ -97,6 +96,9 @@ class TriblerTableViewController(QObject):
         window = self.table_view.window()
         window.resize(window.geometry().width() + 1, window.geometry().height())
         window.resize(window.geometry().width() - 1, window.geometry().height())
+
+    def unset_model(self):
+        self.model = None
 
 
 class TableLoadingAnimationMixin:
@@ -147,18 +149,28 @@ class TableSelectionMixin:
         if not dict_item_is_any_of(data_item, 'type', [REGULAR_TORRENT]):
             return
 
-        # Trigger health check if necessary
-        # When the user scrolls the list, we only want to trigger health checks on the line
-        # that the user stopped on, so we do not generate excessive health checks.
-        if data_item['last_tracker_check'] == 0 and data_item.get('health') != HEALTH_CHECKING:
-            if self.healthcheck_cooldown.isActive():
-                self.healthcheck_cooldown.stop()
-            else:
-                self.check_torrent_health(data_item)
-            self.healthcheck_cooldown.start(HEALTHCHECK_DELAY_MS)
+        if issubclass(type(self), HealthCheckerMixin):
+            # Trigger health check if necessary
+            # When the user scrolls the list, we only want to trigger health checks on the line
+            # that the user stopped on, so we do not generate excessive health checks.
+            if data_item['last_tracker_check'] == 0 and data_item.get('health') != HEALTH_CHECKING:
+                if self.healthcheck_cooldown.isActive():
+                    self.healthcheck_cooldown.stop()
+                else:
+                    self.check_torrent_health(data_item)
+                self.healthcheck_cooldown.start(HEALTHCHECK_DELAY_MS)
 
 
 class HealthCheckerMixin:
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        connect(
+            self.table_view.delegate.health_status_widget.clicked,
+            lambda index: self.check_torrent_health(index.model().data_items[index.row()], forced=True),
+        )
+        connect(self.table_view.torrent_clicked, self.check_torrent_health)
+
     def check_torrent_health(self, data_item, forced=False):
         # ACHTUNG: The health check can be triggered multiple times for a single infohash
         # by e.g. selection and click signals
@@ -259,12 +271,13 @@ class ContextMenuMixin:
         num_selected = len(self.table_view.selectionModel().selectedRows())
         if num_selected == 1 and item_index.model().data_items[item_index.row()]["type"] == REGULAR_TORRENT:
             self.add_menu_item(menu, ' Download ', item_index, self.table_view.start_download_from_index)
-            self.add_menu_item(
-                menu,
-                ' Recheck health',
-                item_index.model().data_items[item_index.row()],
-                lambda x: self.check_torrent_health(x, forced=True),
-            )
+            if issubclass(type(self), HealthCheckerMixin):
+                self.add_menu_item(
+                    menu,
+                    ' Recheck health',
+                    item_index.model().data_items[item_index.row()],
+                    lambda x: self.check_torrent_health(x, forced=True),
+                )
         if num_selected == 1 and item_index.model().column_position.get('subscribed') is not None:
             data_item = item_index.model().data_items[item_index.row()]
             if data_item["type"] == CHANNEL_TORRENT and data_item["state"] != CHANNEL_STATE.PERSONAL.value:
@@ -327,14 +340,13 @@ class ContextMenuMixin:
         return False
 
 
+class PopularContentTableViewController(
+    TableSelectionMixin, ContextMenuMixin, TableLoadingAnimationMixin, TriblerTableViewController
+):
+    pass
+
+
 class ContentTableViewController(
     TableSelectionMixin, ContextMenuMixin, HealthCheckerMixin, TableLoadingAnimationMixin, TriblerTableViewController
 ):
-    def __init__(self, *args, filter_input=None, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.filter_input = filter_input
-        if self.filter_input:
-            connect(self.filter_input.textChanged, self._on_filter_input_change)
-
-    def unset_model(self):
-        self.model = None
+    pass
