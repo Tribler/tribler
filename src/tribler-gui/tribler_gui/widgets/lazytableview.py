@@ -1,4 +1,4 @@
-from PyQt5.QtCore import QModelIndex, QPoint, QRect, Qt, pyqtSignal
+from PyQt5.QtCore import QModelIndex, QPoint, QRect, QTimer, Qt, pyqtSignal
 from PyQt5.QtGui import QGuiApplication, QMovie
 from PyQt5.QtWidgets import QAbstractItemView, QLabel, QTableView
 
@@ -69,13 +69,24 @@ class TriblerContentTableView(QTableView):
         connect(self.doubleClicked, lambda item: self.on_table_item_clicked(item, doubleclick=True))
 
         self.loading_animation_widget = FloatingAnimationWidget(self)
+
+        # We add a small delay to show the loading animation to avoid flickering on fast-loaded data
+        self.loading_animation_delay_timer = QTimer()
+        self.loading_animation_delay_timer.setSingleShot(True)
+        self.loading_animation_delay = 100  # Milliseconds
+        connect(self.loading_animation_delay_timer.timeout, self.show_loading_animation)
+
         self.hide_loading_animation()
+
+    def show_loading_animation_delayed(self):
+        self.loading_animation_delay_timer.start(self.loading_animation_delay)
 
     def show_loading_animation(self):
         self.loading_animation_widget.qm.start()
         self.loading_animation_widget.setHidden(False)
 
     def hide_loading_animation(self):
+        self.loading_animation_delay_timer.stop()
         self.loading_animation_widget.qm.stop()
         self.loading_animation_widget.setHidden(True)
 
