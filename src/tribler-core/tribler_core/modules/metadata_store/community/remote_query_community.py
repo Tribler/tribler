@@ -141,8 +141,11 @@ class RemoteQueryCommunity(Community, EVAProtocolMixin):
         self.request_cache.add(request)
 
         self.logger.info(f"Select to {hexlify(peer.mid)} with ({kwargs})")
-        payload_class = RemoteSelectPayloadEva if force_eva_response else RemoteSelectPayload
-        self.ez_send(peer, payload_class(request.number, json.dumps(kwargs).encode('utf8')))
+        args = (request.number, json.dumps(kwargs).encode('utf8'))
+        if force_eva_response:
+            self.ez_send(peer, RemoteSelectPayloadEva(*args))
+        else:
+            self.ez_send(peer, RemoteSelectPayload(*args))
 
     async def process_rpc_query(self, json_bytes: bytes):
         """
