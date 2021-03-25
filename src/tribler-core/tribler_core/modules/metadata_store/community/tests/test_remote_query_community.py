@@ -20,7 +20,7 @@ from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.random_utils import random_infohash, random_string
 from tribler_core.utilities.unicode import hexlify
 
-# pylint: disable=too-many-statements
+# pylint: disable=protected-access
 
 
 def add_random_torrent(metadata_cls, name="test", channel=None):
@@ -414,3 +414,18 @@ class TestRemoteQueryCommunity(TestBase):
 
         with db_session:
             assert self.nodes[1].overlay.mds.ChannelMetadata.get(lambda g: g.title == "channel").timestamp == chan_v3
+
+    async def test_remote_select_force_eva(self):
+        # Test requesting usage of EVA for sending multiple smaller entries
+        with db_session:
+            for _ in range(0, 10):
+                self.nodes[1].overlay.mds.ChannelThumbnail(binary_data=urandom(500))
+
+        kwargs_dict = {"metadata_type": [CHANNEL_THUMBNAIL]}
+
+        self.nodes[1].overlay.eva_send_binary = Mock()
+        self.nodes[0].overlay.send_remote_select(self.nodes[1].my_peer, **kwargs_dict, force_eva_response=True)
+
+        await self.deliver_messages(timeout=0.5)
+
+        self.nodes[1].overlay.eva_send_binary.assert_called_once()
