@@ -31,9 +31,6 @@
   <property name="autoFillBackground">
    <bool>false</bool>
   </property>
-  <property name="styleSheet">
-   <string notr="true">background-color: #202020;</string>
-  </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <property name="spacing">
     <number>0</number>
@@ -621,14 +618,6 @@ QToolButton{border:none;margin-left:16px;}</string>
           <height>28</height>
          </size>
         </property>
-        <property name="styleSheet">
-         <string notr="true">QLineEdit{ background-color:#303030;
-border-radius: 3px;}
-QLineEdit:focus, QLineEdit::hover {
-background-color: #404040;
-color: white;
-}</string>
-        </property>
         <property name="placeholderText">
          <string>🔍 Filter</string>
         </property>
@@ -657,31 +646,6 @@ color: white;
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
-        </property>
-        <property name="styleSheet">
-         <string notr="true">QComboBox {
-	border: 1px solid #333333;
-	border-radius: 3px;
-	background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #797979, stop:0.48 #696969, stop:0.52 #5e5e5e, stop:1 #4f4f4f);
-	padding: 1px 23px 1px 3px;
-	color: #ffffff;
-}
-QComboBox::drop-down {
-	subcontrol-origin: padding;
-	subcontrol-position: top right;
-	width: 20px;
-	
-	border-top-right-radius: 3px;
-	border-bottom-right-radius: 3px;
-}
-
-QComboBox QAbstractViewItem{
-	background-color: #4f4f4f;
-	color: #999999;
-	
-	selection-background-color: #999999;
-	selection-color: #4f4f4f;
-}</string>
         </property>
        </widget>
       </item>
