@@ -104,9 +104,9 @@ class TriblerTableViewController(QObject):
 class TableLoadingAnimationMixin:
     def set_model(self, model):
         if not model.loaded:
-            self.table_view.show_loading_animation()
+            self.table_view.show_loading_animation_delayed()
         connect(model.query_complete, self.table_view.hide_loading_animation)
-        connect(model.query_started, self.table_view.show_loading_animation)
+        connect(model.query_started, self.table_view.show_loading_animation_delayed)
         super().set_model(model)
 
     def unset_model(self):
