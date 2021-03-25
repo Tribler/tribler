@@ -30,7 +30,6 @@ def to_fts_query(text):
     if not text:
         return ""
     words = text.strip().split(" ")
-    # TODO: add support for quoted exact searches
     query_list = ['\"' + sanitize_for_fts(word) + '\"*' for word in words]
     return " AND ".join(query_list)
 
@@ -40,14 +39,13 @@ class TriblerTableViewController(QObject):
     Base controller for a table view that displays some data.
     """
 
-    def __init__(self, table_view, **kwargs):
-        super().__init__()
+    def __init__(self, table_view, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         self.model = None
         self.table_view = table_view
         connect(self.table_view.verticalScrollBar().valueChanged, self._on_list_scroll)
 
-        # FIXME: The M-V-C stuff is a complete mess. It should be refactored in a more structured way.
         connect(self.table_view.delegate.subscribe_control.clicked, self.table_view.on_subscribe_control_clicked)
         connect(self.table_view.delegate.download_button.clicked, self.table_view.start_download_from_index)
         connect(
@@ -67,7 +65,7 @@ class TriblerTableViewController(QObject):
             self.table_view.scrollTo(self.model.index(self.model.saved_scroll_state, 0), 1)
             self.table_view.scrollTo(self.model.index(self.model.saved_scroll_state, 0), 1)
 
-    def _on_list_scroll(self, event):
+    def _on_list_scroll(self, event):  # pylint: disable=W0613
         if (
             self.table_view.verticalScrollBar().value() == self.table_view.verticalScrollBar().maximum()
             and self.model.data_items
@@ -91,7 +89,7 @@ class TriblerTableViewController(QObject):
 
     def brain_dead_refresh(self):
         """
-        FIXME! Brain-dead refresh is back!
+        ACHTUNG! Brain-dead refresh is back!
         It shows the rows eaten by a closed channel description widget.
         Note that none of the more civilized ways to fix it work:
         various updateGeometry, viewport().update, adjustSize - nothing works!
@@ -99,6 +97,24 @@ class TriblerTableViewController(QObject):
         window = self.table_view.window()
         window.resize(window.geometry().width() + 1, window.geometry().height())
         window.resize(window.geometry().width() - 1, window.geometry().height())
+
+
+class TableLoadingAnimationMixin:
+    def set_model(self, model):
+        if not model.loaded:
+            self.table_view.show_loading_animation()
+        connect(model.query_complete, self.table_view.hide_loading_animation)
+        connect(model.query_started, self.table_view.show_loading_animation)
+        super().set_model(model)
+
+    def unset_model(self):
+        if self.table_view.model:
+            self.model.query_complete.disconnect()
+            self.model.query_started.disconnect()
+
+        if self.model.loaded:
+            self.table_view.hide_loading_animation()
+        super().unset_model()
 
 
 class TableSelectionMixin:
@@ -121,7 +137,7 @@ class TableSelectionMixin:
             self.table_view.selectionModel().selectionChanged.disconnect()
         super().unset_model()
 
-    def _on_selection_changed(self, selected, deselected):
+    def _on_selection_changed(self, selected, deselected):  # pylint: disable=W0613
         selected_indices = self.table_view.selectedIndexes()
         if not selected_indices:
             self.table_view.clearSelection()
@@ -144,7 +160,8 @@ class TableSelectionMixin:
 
 class HealthCheckerMixin:
     def check_torrent_health(self, data_item, forced=False):
-        # TODO: stop triggering multiple checks over a single infohash by e.g. selection and click signals
+        # ACHTUNG: The health check can be triggered multiple times for a single infohash
+        # by e.g. selection and click signals
         if not dict_item_is_any_of(data_item, 'type', [REGULAR_TORRENT]):
             return
 
@@ -310,7 +327,9 @@ class ContextMenuMixin:
         return False
 
 
-class ContentTableViewController(TableSelectionMixin, ContextMenuMixin, HealthCheckerMixin, TriblerTableViewController):
+class ContentTableViewController(
+    TableSelectionMixin, ContextMenuMixin, HealthCheckerMixin, TableLoadingAnimationMixin, TriblerTableViewController
+):
     def __init__(self, *args, filter_input=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.filter_input = filter_input

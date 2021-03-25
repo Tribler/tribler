@@ -1,12 +1,39 @@
 from PyQt5.QtCore import QModelIndex, QPoint, QRect, Qt, pyqtSignal
-from PyQt5.QtGui import QGuiApplication
-from PyQt5.QtWidgets import QAbstractItemView, QTableView
+from PyQt5.QtGui import QGuiApplication, QMovie
+from PyQt5.QtWidgets import QAbstractItemView, QLabel, QTableView
 
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 
 from tribler_gui.defs import ACTION_BUTTONS, COMMIT_STATUS_COMMITTED
-from tribler_gui.utilities import connect, data_item2uri, index2uri
+from tribler_gui.utilities import connect, data_item2uri, get_image_path, index2uri
 from tribler_gui.widgets.tablecontentdelegate import TriblerContentDelegate
+
+
+class FloatingAnimationWidget(QLabel):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.setGeometry(0, 0, 100, 100)
+        self.setAttribute(Qt.WA_TranslucentBackground)
+
+        self.qm = QMovie(get_image_path("spinner.gif"))
+        self.setMovie(self.qm)
+
+    def update_position(self):
+        if hasattr(self.parent(), 'viewport'):
+            parent_rect = self.parent().viewport().rect()
+        else:
+            parent_rect = self.parent().rect()
+
+        if not parent_rect:
+            return
+
+        x = parent_rect.width() / 2 - self.width() / 2
+        y = parent_rect.height() / 2 - self.height() / 2
+        self.setGeometry(x, y, self.width(), self.height())
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self.update_position()
 
 
 class TriblerContentTableView(QTableView):
@@ -15,8 +42,8 @@ class TriblerContentTableView(QTableView):
     When the user reached the end of the table, it will ask the model for more items, and load them dynamically.
     """
 
-    # TODO: add redraw when the mouse leaves the view through the header
-    # overloading leaveEvent method could be used for that
+    # Probably should add redraw when the mouse leaves the view through the header.
+    # Overloading leaveEvent method could be used for that
     mouse_moved = pyqtSignal(QPoint, QModelIndex)
 
     channel_clicked = pyqtSignal(dict)
@@ -40,6 +67,17 @@ class TriblerContentTableView(QTableView):
         # Mix-in connects
         connect(self.clicked, self.on_table_item_clicked)
         connect(self.doubleClicked, lambda item: self.on_table_item_clicked(item, doubleclick=True))
+
+        self.loading_animation_widget = FloatingAnimationWidget(self)
+        self.hide_loading_animation()
+
+    def show_loading_animation(self):
+        self.loading_animation_widget.qm.start()
+        self.loading_animation_widget.setHidden(False)
+
+    def hide_loading_animation(self):
+        self.loading_animation_widget.qm.stop()
+        self.loading_animation_widget.setHidden(True)
 
     def mouseMoveEvent(self, event):
         index = QModelIndex(self.indexAt(event.pos()))
@@ -65,7 +103,6 @@ class TriblerContentTableView(QTableView):
             self.window().on_channel_unsubscribe(item)
         else:
             self.window().on_channel_subscribe(item)
-        return True
 
     def on_table_item_clicked(self, item, doubleclick=False):
         # We don't want to trigger the click-based events on, say, Ctrl-click based selection
@@ -73,12 +110,8 @@ class TriblerContentTableView(QTableView):
             return
         # Skip emitting click event when the user clicked on some specific columns
         column_position = self.model().column_position
-        if (
-            (ACTION_BUTTONS in column_position and item.column() == column_position[ACTION_BUTTONS])
-            or ('status' in column_position and item.column() == column_position['status'])
-            or ('votes' in column_position and item.column() == column_position['votes'])
-            or ('subscribed' in column_position and item.column() == column_position['subscribed'])
-            or ('health' in column_position and item.column() == column_position['health'])
+        if item.column() in (
+            column_position.get(cname, False) for cname in (ACTION_BUTTONS, 'status', 'votes', 'subscribed', 'health')
         ):
             return
 
@@ -100,8 +133,8 @@ class TriblerContentTableView(QTableView):
         if 'success' in json_result and json_result['success']:
             index.model().data_items[index.row()]['status'] = json_result['new_status']
 
-            # FIXME: this should instead use signal and do not address the widget globally
-            # FIXME: properly handle entry removal
+            # Note: this should instead use signal and do not address the widget globally
+            # and properly handle entry removal
             self.window().personal_channel_page.channel_dirty = (
                 self.table_view.window().edit_channel_page.channel_dirty
                 or json_result['new_status'] != COMMIT_STATUS_COMMITTED
@@ -119,6 +152,7 @@ class TriblerContentTableView(QTableView):
             return
         for col_num, col in enumerate(self.model().columns):
             self.setColumnWidth(col_num, self.model().column_width.get(col, lambda _: 110)(self.width()))
+        self.loading_animation_widget.update_position()
 
     def start_download_from_index(self, index):
         self.window().start_download_from_uri(index2uri(index))

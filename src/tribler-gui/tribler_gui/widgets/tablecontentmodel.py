@@ -22,6 +22,8 @@ def get_item_uid(item):
 
 class RemoteTableModel(QAbstractTableModel):
     info_changed = pyqtSignal(list)
+    query_complete = pyqtSignal()
+    query_started = pyqtSignal()
     """
     The base model for the tables in the Tribler GUI.
     It is specifically designed to fetch data from a remote data source, i.e. over a RESTful API.
@@ -55,11 +57,14 @@ class RemoteTableModel(QAbstractTableModel):
         # last one. In a sense, the queries' UUIDs play the role of "subscription topics" for the model.
         self.remote_queries = set()
 
+        self.loaded = False
+
     def on_destroy(self, *args):
         self.qt_object_destroyed = True
 
     def reset(self):
         self.beginResetModel()
+        self.loaded = False
         self.data_items = []
         self.item_uid_map = {}
         self.endResetModel()
@@ -173,6 +178,7 @@ class RemoteTableModel(QAbstractTableModel):
         """
         Fetch results for a given query.
         """
+        self.query_started.emit()
         if 'first' not in kwargs or 'last' not in kwargs:
             kwargs["first"], kwargs['last'] = self.rowCount() + 1, self.rowCount() + self.item_load_batch
 
@@ -196,7 +202,6 @@ class RemoteTableModel(QAbstractTableModel):
         :param on_top: True if items should be added at the top of the list
         :return: True, if response, False otherwise
         """
-        # TODO: count remote results
         if not response or self.qt_object_destroyed:
             return False
 
@@ -215,6 +220,9 @@ class RemoteTableModel(QAbstractTableModel):
                 update_labels = True
             if update_labels:
                 self.info_changed.emit(response['results'])
+
+        self.query_complete.emit()
+        self.loaded = True
         return True
 
 
@@ -306,24 +314,25 @@ class ChannelContentModel(RemoteTableModel):
             return self.column_headers[num]
         if role == Qt.InitialSortOrderRole and num != self.column_position.get('name'):
             return Qt.DescendingOrder
-        elif role == Qt.TextAlignmentRole:
+        if role == Qt.TextAlignmentRole:
             return (
                 Qt.AlignHCenter
                 if num in [self.column_position.get('subscribed'), self.column_position.get('torrents')]
                 else Qt.AlignLeft
             )
+        return super().headerData(num, orientation, role)
 
-    def rowCount(self, parent=QModelIndex()):
+    def rowCount(self, *_, **__):
         return len(self.data_items)
 
-    def columnCount(self, parent=QModelIndex()):
+    def columnCount(self, *_, **__):
         return len(self.columns)
 
     def flags(self, index):
         return self.column_flags[self.columns[index.column()]]
 
     def filter_item_txt(self, txt_filter, index, show_default=True):
-        # FIXME: dumb workaround for some mysterious race condition
+        # ACHTUNG! Dumb workaround for some mysterious race condition
         try:
             item = self.data_items[index.row()]
         except IndexError:
@@ -343,7 +352,6 @@ class ChannelContentModel(RemoteTableModel):
 
         # 'subscribed' column gets special treatment in case of ToolTipRole, because
         # its tooltip uses information from both 'subscribed' and 'state' keys
-        # TODO: refactor data, roles and filters to be less hacky and more readable
         if (
             column == 'subscribed'
             and txt_filter == self.column_tooltip_filters
@@ -367,11 +375,11 @@ class ChannelContentModel(RemoteTableModel):
         return display_txt
 
     def data(self, index, role):
-        if role == Qt.DisplayRole or role == Qt.EditRole:
+        if role in (Qt.DisplayRole, Qt.EditRole):
             return self.filter_item_txt(self.column_display_filters, index)
-        elif role == Qt.ToolTipRole:
+        if role == Qt.ToolTipRole:
             return self.filter_item_txt(self.column_tooltip_filters, index, show_default=False)
-        elif role == Qt.TextAlignmentRole:
+        if role == Qt.TextAlignmentRole:
             if index.column() == self.column_position.get('votes', -1):
                 return Qt.AlignLeft | Qt.AlignVCenter
             if index.column() == self.column_position.get('torrents', -1):
@@ -389,7 +397,6 @@ class ChannelContentModel(RemoteTableModel):
         itself is updated. In that case, info_changed signal is emitted, so the controller/widget knows
         it is time to update the labels.
         """
-        # TODO: better mechanism for identifying channel entries for pushing updates
 
         if (
             self.channel_info.get("public_key") == update_dict.get("public_key") is not None
@@ -457,7 +464,7 @@ class ChannelContentModel(RemoteTableModel):
             raw_data=json.dumps({attribute_name: new_value}),
         )
 
-        # TODO: reload the whole row from DB instead of just changing the displayed value
+        # ACHTUNG: instead of reloading the whole row from DB, this line just changes the displayed value!
         self.data_items[index.row()][self.columns[index.column()]] = new_value
         return True
 
