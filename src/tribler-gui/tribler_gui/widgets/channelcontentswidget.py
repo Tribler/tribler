@@ -32,6 +32,7 @@ CATEGORY_SELECTOR_ITEMS = ("All", "Channels") + ContentCategories.long_names
 
 widget_form, widget_class = uic.loadUiType(get_ui_file_path('torrents_list.ui'))
 
+
 # pylint: disable=too-many-instance-attributes, too-many-public-methods
 class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class):
     def __init__(self, parent=None):
