@@ -119,6 +119,7 @@ def define_binding(db):
             # Add the torrent as a free-for-all entry if it is unknown to GigaChannel
             return cls.from_dict(dict(ffa_dict, public_key=b'', status=COMMITTED, id_=id_))
 
+        @db_session
         def to_simple_dict(self):
             """
             Return a basic dictionary with information about the channel.
