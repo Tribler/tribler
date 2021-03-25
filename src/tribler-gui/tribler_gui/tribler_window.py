@@ -80,7 +80,11 @@ from tribler_gui.utilities import (
 )
 from tribler_gui.widgets.channelsmenulistwidget import ChannelsMenuListWidget
 from tribler_gui.widgets.tablecontentmodel import DiscoveredChannelsModel, PopularTorrentsModel, SearchResultsModel
-from tribler_gui.widgets.triblertablecontrollers import sanitize_for_fts, to_fts_query
+from tribler_gui.widgets.triblertablecontrollers import (
+    PopularContentTableViewController,
+    sanitize_for_fts,
+    to_fts_query,
+)
 
 fc_loading_list_item, _ = uic.loadUiType(get_ui_file_path('loading_list_item.ui'))
 
@@ -190,7 +194,7 @@ class TriblerWindow(QMainWindow):
 
         self.discovered_page.initialize_content_page(hide_xxx=hide_xxx)
 
-        self.popular_page.initialize_content_page(hide_xxx=hide_xxx)
+        self.popular_page.initialize_content_page(hide_xxx=hide_xxx, controller_class=PopularContentTableViewController)
 
         self.trust_page.initialize_trust_page()
         self.trust_graph_page.initialize_trust_graph()
