@@ -1,3 +1,5 @@
+import time
+
 from aiohttp import web
 
 from aiohttp_apispec import docs, querystring_schema
@@ -6,9 +8,12 @@ from ipv8.REST.schema import schema
 
 from marshmallow.fields import String
 
+from pony.orm import db_session
+
 from tribler_core.modules.metadata_store.restapi.metadata_endpoint import MetadataEndpointBase
 from tribler_core.modules.metadata_store.restapi.metadata_schema import RemoteQueryParameters
 from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, RESTResponse
+from tribler_core.utilities.unicode import hexlify
 
 
 class RemoteQueryEndpoint(MetadataEndpointBase):
@@ -18,6 +23,7 @@ class RemoteQueryEndpoint(MetadataEndpointBase):
 
     def setup_routes(self):
         self.app.add_routes([web.put('', self.create_remote_search_request)])
+        self.app.add_routes([web.get('/channels_peers', self.get_channels_peers)])
 
     def sanitize_parameters(self, parameters):
         sanitized = super().sanitize_parameters(parameters)
@@ -48,3 +54,22 @@ class RemoteQueryEndpoint(MetadataEndpointBase):
 
         request_uuid = self.session.gigachannel_community.send_search_request(**sanitized)
         return RESTResponse({"request_uuid": str(request_uuid)})
+
+    async def get_channels_peers(self, _):
+        # Get debug stats for peers serving channels
+        current_time = time.time()
+        result = []
+        with db_session:
+            for k, v in self.session.gigachannel_community.channels_peers.channels_dict.items():
+                channel_pk, channel_id = k
+                chan = self.session.mds.ChannelMetadata.get(public_key=channel_pk, id_=channel_id)
+                peers_list = [(hexlify(p.peer.mid), int(current_time - p.timestamp)) for p in v]
+                chan_dict = {
+                    "channel_name": chan.title if chan else None,
+                    "channel_pk": hexlify(channel_pk),
+                    "channel_id": channel_id,
+                    "peers": peers_list,
+                }
+                result.append(chan_dict)
+
+        return RESTResponse({"channels_list": result})

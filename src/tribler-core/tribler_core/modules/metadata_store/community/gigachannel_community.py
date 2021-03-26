@@ -1,9 +1,12 @@
+import time as unixtime
 import uuid
 from binascii import unhexlify
+from collections import defaultdict, deque
 from dataclasses import dataclass
 from random import sample
 
 from ipv8.peerdiscovery.network import Network
+from ipv8.types import Peer
 
 from pony.orm import db_session
 
@@ -23,6 +26,26 @@ max_entries = maximum_payload_size // minimal_blob_size
 max_search_peers = 5
 
 MAGIC_GIGACHAN_VERSION_MARK = b'\x01'
+
+
+@dataclass
+class PeerEntry:
+    peer: Peer
+    timestamp: float
+    channel_version: int
+
+
+class ChannelsPeersMapping:
+    def __init__(self, max_peers_per_channel=10):
+        self.max_peers_per_channel = max_peers_per_channel
+        self.channels_dict = defaultdict(deque)
+
+    def add(self, peer, channel_pk, channel_id, channel_version):
+        id_tuple = (channel_pk, channel_id)
+        channel_entry = self.channels_dict[id_tuple]
+        channel_entry.append(PeerEntry(peer, unixtime.time(), channel_version))
+        if len(channel_entry) > self.max_peers_per_channel:
+            channel_entry.popleft()
 
 
 @dataclass
@@ -55,11 +78,12 @@ class GigaChannelCommunity(RemoteQueryCommunity):
         # This set contains all the peers that we queried for subscribed channels over time.
         # It is emptied regularly. The purpose of this set is to work as a filter so we never query the same
         # peer twice. If we do, this should happen really rarely
-        # TODO: use Bloom filter here instead. We actually *want* it to be all-false-positives eventually.
         self.queried_peers = set()
 
-        self.discovery_booster = DiscoveryBooster(timeout_in_sec=30)
+        self.discovery_booster = DiscoveryBooster(timeout_in_sec=60)
         self.discovery_booster.apply(self)
+
+        self.channels_peers = ChannelsPeersMapping()
 
     def get_random_peers(self, sample_size=None):
         # Randomly sample sample_size peers from the complete list of our peers
@@ -82,6 +106,7 @@ class GigaChannelCommunity(RemoteQueryCommunity):
             with db_session:
                 for c in (r.md_obj for r in processing_results if r.md_obj.metadata_type == CHANNEL_TORRENT):
                     self.mds.vote_bump(c.public_key, c.id_, peer.public_key.key_to_bin()[10:])
+                    self.channels_peers.add(peer, c.public_key, c.id_, c.timestamp)
 
             # Notify GUI about the new channels
             results = [

@@ -12,6 +12,7 @@ from pony.orm.dbapiprovider import OperationalError
 
 import pytest
 
+from tribler_core.modules.metadata_store.community.gigachannel_community import ChannelsPeersMapping
 from tribler_core.modules.metadata_store.community.remote_query_community import RemoteQueryCommunity, sanitize_query
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import NEW
 from tribler_core.modules.metadata_store.serialization import CHANNEL_THUMBNAIL, CHANNEL_TORRENT, REGULAR_TORRENT
@@ -489,3 +490,25 @@ class TestRemoteQueryCommunity(TestBase):
         await self.deliver_messages(timeout=0.5)
 
         self.nodes[1].overlay.eva_send_binary.assert_called_once()
+
+    def test_channels_peers_mapping_drop_excess_peers(self):
+        """
+        Test dropping old excess peers from a channel to peers mapping
+        """
+        mapping = ChannelsPeersMapping()
+        chan_pk = Mock()
+        chan_id = 123
+        chan_version = 321
+
+        num_excess_peers = 20
+        first_timestamp = None
+        for k in range(0, mapping.max_peers_per_channel + num_excess_peers):
+            peer = Mock()
+            mapping.add(peer, chan_pk, chan_id, chan_version)
+            if k == 0:
+                first_timestamp = mapping.channels_dict[(chan_pk, chan_id)][0].timestamp
+        chan_peers = mapping.channels_dict[(chan_pk, chan_id)]
+        assert len(chan_peers) == mapping.max_peers_per_channel
+        # Make sure only the older peers are dropped as excess
+        for p in chan_peers:
+            assert p.timestamp > first_timestamp
