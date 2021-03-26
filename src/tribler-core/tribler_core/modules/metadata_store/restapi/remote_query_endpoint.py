@@ -34,7 +34,7 @@ class RemoteQueryEndpoint(MetadataEndpointBase):
         if "channel_pk" in parameters:
             sanitized["channel_pk"] = parameters["channel_pk"]
         if "origin_id" in parameters:
-            sanitized["origin_id"] = parameters["origin_id"]
+            sanitized["origin_id"] = int(parameters["origin_id"])
 
         return sanitized
 
@@ -59,11 +59,16 @@ class RemoteQueryEndpoint(MetadataEndpointBase):
         # Get debug stats for peers serving channels
         current_time = time.time()
         result = []
+        mapping = self.session.gigachannel_community.channels_peers
         with db_session:
-            for k, v in self.session.gigachannel_community.channels_peers.channels_dict.items():
-                channel_pk, channel_id = k
+            for id_tuple, peers in mapping._channels_dict.items():  # pylint:disable=W0212
+                channel_pk, channel_id = id_tuple
                 chan = self.session.mds.ChannelMetadata.get(public_key=channel_pk, id_=channel_id)
-                peers_list = [(hexlify(p.peer.mid), int(current_time - p.timestamp)) for p in v]
+
+                peers_list = []
+                for p in peers:
+                    peers_list.append((hexlify(p.mid), int(current_time - p.last_response)))
+
                 chan_dict = {
                     "channel_name": chan.title if chan else None,
                     "channel_pk": hexlify(channel_pk),

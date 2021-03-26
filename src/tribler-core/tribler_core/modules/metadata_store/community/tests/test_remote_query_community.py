@@ -2,7 +2,7 @@ from binascii import unhexlify
 from datetime import datetime
 from json import dumps
 from os import urandom
-from unittest.mock import Mock
+from unittest.mock import Mock, PropertyMock, patch
 
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.test.base import TestBase
@@ -12,7 +12,6 @@ from pony.orm.dbapiprovider import OperationalError
 
 import pytest
 
-from tribler_core.modules.metadata_store.community.gigachannel_community import ChannelsPeersMapping
 from tribler_core.modules.metadata_store.community.remote_query_community import RemoteQueryCommunity, sanitize_query
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import NEW
 from tribler_core.modules.metadata_store.serialization import CHANNEL_THUMBNAIL, CHANNEL_TORRENT, REGULAR_TORRENT
@@ -95,6 +94,13 @@ class TestRemoteQueryCommunity(TestBase):
             torrents1 = mds1.get_entries(**kwargs_dict)
             self.assertEqual(len(torrents0), len(torrents1))
             self.assertEqual(len(torrents0), 20)
+
+        # Test getting empty response for a query
+        kwargs_dict = {"txt_filter": "ubuntu*", "origin_id": 352127}
+        callback = Mock()
+        self.nodes[1].overlay.send_remote_select(self.nodes[0].my_peer, **kwargs_dict, processing_callback=callback)
+        await self.deliver_messages(timeout=0.5)
+        callback.assert_called()
 
     async def test_remote_select_query_back(self):
         """
@@ -476,6 +482,34 @@ class TestRemoteQueryCommunity(TestBase):
         with db_session:
             assert mds1.ChannelMetadata.get(lambda g: g.title == "channel").timestamp == chan_v3
 
+    @pytest.mark.timeout(5)
+    async def test_drop_silent_peer(self):
+
+        # We do not want the query back mechanism to interfere with this test
+        self.nodes[1].overlay.settings.max_channel_query_back = 0
+
+        kwargs_dict = {"txt_filter": "ubuntu*"}
+
+        basic_path = 'tribler_core.modules.metadata_store.community.remote_query_community'
+
+        with patch(basic_path + '.SelectRequest.timeout_delay', new_callable=PropertyMock) as delay_mock:
+            # Change query timeout to a really low value
+            delay_mock.return_value = 0.3
+
+            # Stop peer 0 from responding
+            with patch(basic_path + '.RemoteQueryCommunity._on_remote_select_basic'):
+                self.nodes[1].overlay.network.remove_peer = Mock()
+                self.nodes[1].overlay.send_remote_select(self.nodes[0].my_peer, **kwargs_dict)
+                await self.deliver_messages(timeout=1)
+                # node 0 must have called remove_peer because of the timeout
+                self.nodes[1].overlay.network.remove_peer.assert_called()
+
+            # Now test that even in the case of an empty response packet, remove_peer is not called on timeout
+            self.nodes[1].overlay.network.remove_peer = Mock()
+            self.nodes[1].overlay.send_remote_select(self.nodes[0].my_peer, **kwargs_dict)
+            await self.deliver_messages(timeout=1)
+            self.nodes[1].overlay.network.remove_peer.assert_not_called()
+
     async def test_remote_select_force_eva(self):
         # Test requesting usage of EVA for sending multiple smaller entries
         with db_session:
@@ -490,25 +524,3 @@ class TestRemoteQueryCommunity(TestBase):
         await self.deliver_messages(timeout=0.5)
 
         self.nodes[1].overlay.eva_send_binary.assert_called_once()
-
-    def test_channels_peers_mapping_drop_excess_peers(self):
-        """
-        Test dropping old excess peers from a channel to peers mapping
-        """
-        mapping = ChannelsPeersMapping()
-        chan_pk = Mock()
-        chan_id = 123
-        chan_version = 321
-
-        num_excess_peers = 20
-        first_timestamp = None
-        for k in range(0, mapping.max_peers_per_channel + num_excess_peers):
-            peer = Mock()
-            mapping.add(peer, chan_pk, chan_id, chan_version)
-            if k == 0:
-                first_timestamp = mapping.channels_dict[(chan_pk, chan_id)][0].timestamp
-        chan_peers = mapping.channels_dict[(chan_pk, chan_id)]
-        assert len(chan_peers) == mapping.max_peers_per_channel
-        # Make sure only the older peers are dropped as excess
-        for p in chan_peers:
-            assert p.timestamp > first_timestamp

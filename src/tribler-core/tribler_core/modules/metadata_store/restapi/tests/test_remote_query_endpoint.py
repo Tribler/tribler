@@ -65,7 +65,7 @@ async def test_get_channels_peers(enable_chant, enable_api, session):
         chan = session.mds.ChannelMetadata(sign_with=chan_key, name="bla", infohash=random_infohash())
 
     peer = Peer(peer_key, ("1.2.3.4", 5))
-    mapping.add(peer, chan.public_key, chan.id_, chan.timestamp)
+    mapping.add(peer, chan.public_key, chan.id_)
 
     result = await do_request(
         session,
