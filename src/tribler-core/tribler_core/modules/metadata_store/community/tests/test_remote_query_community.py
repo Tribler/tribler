@@ -299,3 +299,18 @@ class TestRemoteQueryCommunity(TestBase):
         """
         with self.assertRaises(OperationalError):
             await self.overlay(0).process_rpc_query(b'{"txt_filter":{"key":"bla"}}')
+
+    async def test_remote_select_force_eva(self):
+        # Test requesting usage of EVA for sending multiple smaller entries
+        with db_session:
+            for _ in range(0, 10):
+                self.nodes[1].overlay.mds.TorrentMetadata(infohash=random_infohash())
+
+        kwargs_dict = {"metadata_type": [REGULAR_TORRENT]}
+
+        self.nodes[0].overlay.send_remote_select(self.nodes[1].my_peer, **kwargs_dict, force_eva_response=True)
+
+        await self.deliver_messages(timeout=0.5)
+
+        with db_session:
+            assert self.nodes[0].overlay.mds.TorrentMetadata.select().count() == 10

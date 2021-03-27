@@ -1,4 +1,5 @@
 import json
+import struct
 from binascii import unhexlify
 from dataclasses import dataclass
 
@@ -9,6 +10,7 @@ from ipv8.requestcache import NumberCache, RandomNumberCache, RequestCache
 
 from pony.orm.dbapiprovider import OperationalError
 
+from tribler_core.modules.metadata_store.community.eva_protocol import EVAProtocolMixin
 from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import entries_to_chunk
 from tribler_core.modules.metadata_store.store import GOT_NEWER_VERSION, UNKNOWN_CHANNEL, UNKNOWN_COLLECTION
 from tribler_core.utilities.unicode import hexlify
@@ -40,6 +42,11 @@ class RemoteSelectPayload(VariablePayload):
     msg_id = 201
     format_list = ['I', 'varlenH']
     names = ['id', 'json']
+
+
+@vp_compile
+class RemoteSelectPayloadEva(RemoteSelectPayload):
+    msg_id = 209
 
 
 @vp_compile
@@ -90,7 +97,7 @@ class RemoteQueryCommunitySettings:
         return self.max_channel_query_back > 0
 
 
-class RemoteQueryCommunity(Community):
+class RemoteQueryCommunity(Community, EVAProtocolMixin): # pylint: disable=too-many-ancestors
     """
     Community for general purpose SELECT-like queries into remote Channels database
     """
@@ -108,15 +115,35 @@ class RemoteQueryCommunity(Community):
         self.request_cache = RequestCache()
 
         self.add_message_handler(RemoteSelectPayload, self.on_remote_select)
+        self.add_message_handler(RemoteSelectPayloadEva, self.on_remote_select_eva)
         self.add_message_handler(SelectResponsePayload, self.on_remote_select_response)
 
-    def send_remote_select(self, peer, processing_callback=None, **kwargs):
+        self.eva_init()
+        self.eva_register_receive_callback(self.on_receive)
+        self.eva_register_send_complete_callback(self.on_send_complete)
+        self.eva_register_error_callback(self.on_error)
 
+    def on_receive(self, peer, binary_info, binary_data, nonce):
+        self.logger.info(f"EVA data received: peer {hexlify(peer.mid)}, info {binary_info}")
+        packet = (peer.address, binary_data)
+        self.on_packet(packet)
+
+    def on_send_complete(self, peer, binary_info, binary_data, nonce):
+        self.logger.info(f"EVA outgoing transfer complete: peer {hexlify(peer.mid)},  info {binary_info}")
+
+    def on_error(self, peer, exception):
+        self.logger.warning(f"EVA transfer error: peer {hexlify(peer.mid)}, exception: {exception}")
+
+    def send_remote_select(self, peer, processing_callback=None, force_eva_response=False, **kwargs):
         request = SelectRequest(self.request_cache, hexlify(peer.mid), kwargs, processing_callback)
         self.request_cache.add(request)
 
         self.logger.info(f"Select to {hexlify(peer.mid)} with ({kwargs})")
-        self.ez_send(peer, RemoteSelectPayload(request.number, json.dumps(kwargs).encode('utf8')))
+        args = (request.number, json.dumps(kwargs).encode('utf8'))
+        if force_eva_response:
+            self.ez_send(peer, RemoteSelectPayloadEva(*args))
+        else:
+            self.ez_send(peer, RemoteSelectPayload(*args))
 
     async def process_rpc_query(self, json_bytes: bytes):
         """
@@ -128,14 +155,30 @@ class RemoteQueryCommunity(Community):
         request_sanitized = sanitize_query(json.loads(json_bytes), self.settings.max_response_size)
         return await self.mds.MetadataNode.get_entries_threaded(**request_sanitized)
 
-    def send_db_results(self, peer, request_payload_id, db_results):
+    def send_db_results(self, peer, request_payload_id, db_results, force_eva_response=False):
         index = 0
         while index < len(db_results):
-            data, index = entries_to_chunk(db_results, self.settings.maximum_payload_size, start_index=index)
-            self.ez_send(peer, SelectResponsePayload(request_payload_id, data))
+            transfer_size = (
+                self.eva_protocol.binary_size_limit if force_eva_response else self.settings.maximum_payload_size
+            )
+            data, index = entries_to_chunk(db_results, transfer_size, start_index=index)
+            payload = SelectResponsePayload(request_payload_id, data)
+            if force_eva_response:
+                self.eva_send_binary(
+                    peer, struct.pack('>i', request_payload_id), self.ezr_pack(payload.msg_id, payload)
+                )
+            else:
+                self.ez_send(peer, payload)
+
+    @lazy_wrapper(RemoteSelectPayloadEva)
+    async def on_remote_select_eva(self, peer, request_payload):
+        await self._on_remote_select_basic(peer, request_payload, force_eva_response=True)
 
     @lazy_wrapper(RemoteSelectPayload)
     async def on_remote_select(self, peer, request_payload):
+        await self._on_remote_select_basic(peer, request_payload)
+
+    async def _on_remote_select_basic(self, peer, request_payload, force_eva_response=False):
         try:
             db_results = await self.process_rpc_query(request_payload.json)
 
@@ -144,7 +187,7 @@ class RemoteQueryCommunity(Community):
             if db_results and not self.request_cache.has(hexlify(peer.mid), request_payload.id):
                 self.request_cache.add(PushbackWindow(self.request_cache, hexlify(peer.mid), request_payload.id))
 
-            self.send_db_results(peer, request_payload.id, db_results)
+            self.send_db_results(peer, request_payload.id, db_results, force_eva_response)
         except (OperationalError, TypeError, ValueError) as error:
             self.logger.error(f"Remote select. The error occurred: {error}")
 
