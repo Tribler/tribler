@@ -123,6 +123,7 @@ border-color:#D8D7D7
    <property name="styleSheet">
     <string notr="true">QWidget {
 background-color: #202020;
+	font: 10pt &quot;MS Shell Dlg 2&quot;;
 }
 
 TabButtonPanel QToolButton {
@@ -3844,8 +3845,8 @@ color: white</string>
                       <rect>
                        <x>0</x>
                        <y>0</y>
-                       <width>854</width>
-                       <height>374</height>
+                       <width>347</width>
+                       <height>296</height>
                       </rect>
                      </property>
                      <layout class="QFormLayout" name="formLayout_4">
@@ -4755,7 +4756,11 @@ margin-top: 9px;</string>
                </property>
                <property name="font">
                 <font>
-                 <pointsize>14</pointsize>
+                 <family>MS Shell Dlg 2</family>
+                 <pointsize>10</pointsize>
+                 <weight>50</weight>
+                 <italic>false</italic>
+                 <bold>false</bold>
                 </font>
                </property>
                <property name="cursor">
@@ -5306,7 +5311,11 @@ margin: 10px 4px 2px 10px;</string>
            <widget class="QLabel" name="trust_graph_explanation_label">
             <property name="font">
              <font>
-              <italic>true</italic>
+              <family>MS Shell Dlg 2</family>
+              <pointsize>10</pointsize>
+              <weight>50</weight>
+              <italic>false</italic>
+              <bold>false</bold>
              </font>
             </property>
             <property name="styleSheet">
@@ -5413,8 +5422,10 @@ margin: 10px 4px 2px 10px;</string>
                </property>
                <property name="font">
                 <font>
+                 <family>MS Shell Dlg 2</family>
                  <pointsize>10</pointsize>
                  <weight>50</weight>
+                 <italic>false</italic>
                  <bold>false</bold>
                 </font>
                </property>
@@ -5499,7 +5510,11 @@ margin: 10px 4px 2px 10px;</string>
             </property>
             <property name="font">
              <font>
+              <family>MS Shell Dlg 2</family>
               <pointsize>10</pointsize>
+              <weight>50</weight>
+              <italic>false</italic>
+              <bold>false</bold>
              </font>
             </property>
             <property name="styleSheet">
@@ -5523,7 +5538,11 @@ margin: 10px 4px 2px 10px;</string>
            <widget class="QLabel" name="tr_selected_node_stats">
             <property name="font">
              <font>
+              <family>MS Shell Dlg 2</family>
               <pointsize>10</pointsize>
+              <weight>50</weight>
+              <italic>false</italic>
+              <bold>false</bold>
              </font>
             </property>
             <property name="styleSheet">
