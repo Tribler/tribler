@@ -11,7 +11,7 @@ from ipv8.requestcache import NumberCache, RandomNumberCache, RequestCache
 from pony.orm.dbapiprovider import OperationalError
 
 from tribler_core.modules.metadata_store.community.eva_protocol import EVAProtocolMixin
-from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import entries_to_chunk
+from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import LZ4_EMPTY_ARCHIVE, entries_to_chunk
 from tribler_core.modules.metadata_store.store import GOT_NEWER_VERSION, UNKNOWN_CHANNEL, UNKNOWN_COLLECTION
 from tribler_core.utilities.unicode import hexlify
 
@@ -97,7 +97,7 @@ class RemoteQueryCommunitySettings:
         return self.max_channel_query_back > 0
 
 
-class RemoteQueryCommunity(Community, EVAProtocolMixin): # pylint: disable=too-many-ancestors
+class RemoteQueryCommunity(Community, EVAProtocolMixin):  # pylint: disable=too-many-ancestors
     """
     Community for general purpose SELECT-like queries into remote Channels database
     """
@@ -156,6 +156,12 @@ class RemoteQueryCommunity(Community, EVAProtocolMixin): # pylint: disable=too-m
         return await self.mds.MetadataNode.get_entries_threaded(**request_sanitized)
 
     def send_db_results(self, peer, request_payload_id, db_results, force_eva_response=False):
+
+        # Special case of empty results list - sending empty lz4 archive
+        if len(db_results) == 0:
+            self.ez_send(peer, SelectResponsePayload(request_payload_id, LZ4_EMPTY_ARCHIVE))
+            return
+
         index = 0
         while index < len(db_results):
             transfer_size = (

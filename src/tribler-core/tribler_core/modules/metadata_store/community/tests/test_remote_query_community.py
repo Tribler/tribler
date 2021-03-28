@@ -88,6 +88,13 @@ class TestRemoteQueryCommunity(TestBase):
             self.assertEqual(len(torrents0), len(torrents1))
             self.assertEqual(len(torrents0), 20)
 
+        # Test getting empty response for a query
+        kwargs_dict = {"txt_filter": "ubuntu*", "origin_id": 352127}
+        callback = Mock()
+        self.nodes[1].overlay.send_remote_select(self.nodes[0].my_peer, **kwargs_dict, processing_callback=callback)
+        await self.deliver_messages(timeout=0.5)
+        callback.assert_called()
+
     async def test_remote_select_query_back(self):
         """
         Test querying back preview contents for previously unknown channels.

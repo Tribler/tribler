@@ -1,4 +1,5 @@
 import os
+from binascii import unhexlify
 from datetime import datetime
 from pathlib import Path
 
@@ -32,6 +33,8 @@ CHANNEL_DIR_NAME_ID_LENGTH = 16  # Zero-padded long int in hex form
 CHANNEL_DIR_NAME_LENGTH = CHANNEL_DIR_NAME_PK_LENGTH + CHANNEL_DIR_NAME_ID_LENGTH
 BLOB_EXTENSION = '.mdblob'
 LZ4_END_MARK_SIZE = 4  # in bytes, from original specification. We don't use CRC
+
+LZ4_EMPTY_ARCHIVE = unhexlify("04224d184040c000000000")
 
 
 def chunks(l, n):
