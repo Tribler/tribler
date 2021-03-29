@@ -179,6 +179,54 @@ class TestRemoteQueryCommunity(TestBase):
         Test if sending back information on updated version of a metadata entry works
         """
 
+    async def test_remote_select_torrents(self):
+        """
+        Test dropping packets that go over the response limit for a remote select.
+
+        """
+        peer = self.nodes[0].my_peer
+        mds0 = self.nodes[0].overlay.mds
+        mds1 = self.nodes[1].overlay.mds
+
+        with db_session:
+            chan = mds0.ChannelMetadata.create_channel(random_string(100), "")
+            torrent_infohash = random_infohash()
+            torrent = mds0.TorrentMetadata(origin_id=chan.id_, infohash=torrent_infohash, title='title1')
+            torrent.sign()
+
+        processing_results = []
+
+        def callback(request, results):  # pylint: disable=unused-argument
+            processing_results.extend(results)
+
+        self.nodes[1].overlay.send_remote_select(
+            peer, metadata_type=REGULAR_TORRENT, infohash=hexlify(torrent_infohash), processing_callback=callback
+        )
+        await self.deliver_messages()
+
+        assert len(processing_results) == 1
+        obj = processing_results[0].md_obj
+        assert isinstance(obj, mds1.TorrentMetadata)
+        assert obj.title == 'title1'
+        assert obj.health.seeders == 0
+
+        with db_session:
+            torrent = mds0.TorrentMetadata.get(infohash=torrent_infohash)
+            torrent.timestamp += 1
+            torrent.title = 'title2'
+            torrent.sign()
+
+        processing_results = []
+        self.nodes[1].overlay.send_remote_select(
+            peer, metadata_type=REGULAR_TORRENT, infohash=hexlify(torrent_infohash), processing_callback=callback
+        )
+        await self.deliver_messages()
+
+        assert len(processing_results) == 1
+        obj = processing_results[0].md_obj
+        assert isinstance(obj, mds1.TorrentMetadata)
+        assert obj.health.seeders == 0
+
     async def test_remote_select_packets_limit(self):
         """
         Test dropping packets that go over the response limit for a remote select.
