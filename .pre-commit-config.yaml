@@ -1,3 +1,5 @@
+default_language_version:
+  python: python3
 repos:
 -   repo: https://github.com/Tribler/mirrors-autoflake
     rev: v1.4
@@ -25,12 +27,12 @@ repos:
       types: [file, python]
 
 -   repo: https://gitlab.com/pycqa/flake8
-    rev: 3.8.4
+    rev: 3.9.0
     hooks:
     - id: flake8
       types: [file, python]
       additional_dependencies: [
-              'flake8-import-order==0.18',
+              'flake8-import-order==0.18.1',
           ]
 
 -   repo: local
