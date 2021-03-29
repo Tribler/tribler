@@ -68,15 +68,17 @@ class TestRemoteQueryCommunity(TestBase):
         """
         Test querying metadata entries from a remote machine
         """
+        mds0 = self.nodes[0].overlay.mds
+        mds1 = self.nodes[1].overlay.mds
 
         # We do not want the query back mechanism to interfere with this test
         self.nodes[1].overlay.settings.max_channel_query_back = 0
 
         # Fill Node 0 DB with channels and torrents
         with db_session:
-            channel = self.nodes[0].overlay.mds.ChannelMetadata.create_channel("ubuntu channel", "ubuntu")
+            channel = mds0.ChannelMetadata.create_channel("ubuntu channel", "ubuntu")
             for i in range(20):
-                add_random_torrent(self.nodes[0].overlay.mds.TorrentMetadata, name=f"ubuntu {i}", channel=channel)
+                add_random_torrent(mds0.TorrentMetadata, name=f"ubuntu {i}", channel=channel)
 
         kwargs_dict = {"txt_filter": "ubuntu*", "metadata_type": [REGULAR_TORRENT]}
         callback = Mock()
@@ -88,8 +90,8 @@ class TestRemoteQueryCommunity(TestBase):
 
         # All the matching torrent entries should have been sent to Node 1
         with db_session:
-            torrents0 = self.nodes[0].overlay.mds.get_entries(**kwargs_dict)
-            torrents1 = self.nodes[1].overlay.mds.get_entries(**kwargs_dict)
+            torrents0 = mds0.get_entries(**kwargs_dict)
+            torrents1 = mds1.get_entries(**kwargs_dict)
             self.assertEqual(len(torrents0), len(torrents1))
             self.assertEqual(len(torrents0), 20)
 
@@ -101,13 +103,16 @@ class TestRemoteQueryCommunity(TestBase):
         num_channels = 5
         max_received_torrents_per_channel_query_back = 4
 
+        mds0 = self.nodes[0].overlay.mds
+        mds1 = self.nodes[1].overlay.mds
+
         with db_session:
             # Generate channels on Node 0
             for _ in range(0, num_channels):
-                chan = self.nodes[0].overlay.mds.ChannelMetadata.create_channel("channel", "")
+                chan = mds0.ChannelMetadata.create_channel("channel", "")
                 # Generate torrents in each channel
                 for _ in range(0, max_received_torrents_per_channel_query_back):
-                    self.nodes[0].overlay.mds.TorrentMetadata(origin_id=chan.id_, infohash=random_infohash())
+                    mds0.TorrentMetadata(origin_id=chan.id_, infohash=random_infohash())
 
         peer = self.nodes[0].my_peer
         kwargs_dict = {"metadata_type": [CHANNEL_TORRENT]}
@@ -116,14 +121,12 @@ class TestRemoteQueryCommunity(TestBase):
         await self.deliver_messages(timeout=0.5)
 
         with db_session:
-            received_channels = self.nodes[1].overlay.mds.ChannelMetadata.select(lambda g: g.title == "channel")
-            self.assertEqual(received_channels.count(), num_channels)
+            received_channels = list(mds1.ChannelMetadata.select(lambda g: g.title == "channel"))
+            assert len(received_channels) == num_channels
 
             # For each unknown channel that we received, we should have queried the sender for 4 preview torrents.
-            received_torrents = self.nodes[1].overlay.mds.TorrentMetadata.select(
-                lambda g: g.metadata_type == REGULAR_TORRENT
-            )
-            self.assertEqual(num_channels * max_received_torrents_per_channel_query_back, received_torrents.count())
+            received_torrents = list(mds1.TorrentMetadata.select(lambda g: g.metadata_type == REGULAR_TORRENT))
+        assert num_channels * max_received_torrents_per_channel_query_back == len(received_torrents)
 
     async def test_push_back_entry_update(self):
         """
@@ -135,30 +138,33 @@ class TestRemoteQueryCommunity(TestBase):
         so it pushes it back to host 0.
         """
 
+        mds0 = self.nodes[0].overlay.mds
+        mds1 = self.nodes[1].overlay.mds
+
         # Create the old and new versions of the test channel
         # We sign it with a different private key to prevent the special treatment
         # of personal channels during processing interfering with the test.
         fake_key = default_eccrypto.generate_key("curve25519")
         with db_session:
-            chan = self.nodes[0].overlay.mds.ChannelMetadata(
-                infohash=random_infohash(), title="foo", sign_with=fake_key
-            )
+            chan = mds0.ChannelMetadata(infohash=random_infohash(), title="foo", sign_with=fake_key)
+            # pylint: disable=protected-access
             chan_payload_old = chan._payload_class.from_signed_blob(chan.serialized())
             chan.timestamp = chan.timestamp + 1
             chan.sign(key=fake_key)
+            # pylint: disable=protected-access
             chan_payload_updated = chan._payload_class.from_signed_blob(chan.serialized())
             chan.delete()
 
             # Add the older channel version to node 0
-            self.nodes[0].overlay.mds.ChannelMetadata.from_payload(chan_payload_old)
+            mds0.ChannelMetadata.from_payload(chan_payload_old)
 
             # Add the updated channel version to node 1
-            self.nodes[1].overlay.mds.ChannelMetadata.from_payload(chan_payload_updated)
+            mds1.ChannelMetadata.from_payload(chan_payload_updated)
 
             # Just in case, assert the first node only got the older version for now
-            assert self.nodes[0].overlay.mds.ChannelMetadata.get(timestamp=chan_payload_old.timestamp)
+            assert mds0.ChannelMetadata.get(timestamp=chan_payload_old.timestamp)
 
-        # Node 0 requests channel peers from node 0
+        # Node 1 requests channel peers from node 0
         peer = self.nodes[0].my_peer
         kwargs_dict = {"metadata_type": [CHANNEL_TORRENT]}
         self.nodes[1].overlay.send_remote_select(peer, **kwargs_dict)
@@ -166,40 +172,91 @@ class TestRemoteQueryCommunity(TestBase):
 
         with db_session:
             # Check that node0 now got the updated version
-            assert self.nodes[0].overlay.mds.ChannelMetadata.get(timestamp=chan_payload_updated.timestamp)
+            assert mds0.ChannelMetadata.get(timestamp=chan_payload_updated.timestamp)
 
     async def test_push_entry_update(self):
         """
         Test if sending back information on updated version of a metadata entry works
         """
 
+    async def test_remote_select_torrents(self):
+        """
+        Test dropping packets that go over the response limit for a remote select.
+
+        """
+        peer = self.nodes[0].my_peer
+        mds0 = self.nodes[0].overlay.mds
+        mds1 = self.nodes[1].overlay.mds
+
+        with db_session:
+            chan = mds0.ChannelMetadata.create_channel(random_string(100), "")
+            torrent_infohash = random_infohash()
+            torrent = mds0.TorrentMetadata(origin_id=chan.id_, infohash=torrent_infohash, title='title1')
+            torrent.sign()
+
+        processing_results = []
+
+        def callback(request, results):  # pylint: disable=unused-argument
+            processing_results.extend(results)
+
+        self.nodes[1].overlay.send_remote_select(
+            peer, metadata_type=REGULAR_TORRENT, infohash=hexlify(torrent_infohash), processing_callback=callback
+        )
+        await self.deliver_messages()
+
+        assert len(processing_results) == 1
+        obj = processing_results[0].md_obj
+        assert isinstance(obj, mds1.TorrentMetadata)
+        assert obj.title == 'title1'
+        assert obj.health.seeders == 0
+
+        with db_session:
+            torrent = mds0.TorrentMetadata.get(infohash=torrent_infohash)
+            torrent.timestamp += 1
+            torrent.title = 'title2'
+            torrent.sign()
+
+        processing_results = []
+        self.nodes[1].overlay.send_remote_select(
+            peer, metadata_type=REGULAR_TORRENT, infohash=hexlify(torrent_infohash), processing_callback=callback
+        )
+        await self.deliver_messages()
+
+        assert len(processing_results) == 1
+        obj = processing_results[0].md_obj
+        assert isinstance(obj, mds1.TorrentMetadata)
+        assert obj.health.seeders == 0
+
     async def test_remote_select_packets_limit(self):
         """
         Test dropping packets that go over the response limit for a remote select.
 
         """
+        mds0 = self.nodes[0].overlay.mds
+        mds1 = self.nodes[1].overlay.mds
+
         # We do not want the query back mechanism to interfere with this test
         self.nodes[1].overlay.settings.max_channel_query_back = 0
 
         with db_session:
             for _ in range(0, 100):
-                self.nodes[0].overlay.mds.ChannelMetadata.create_channel(random_string(100), "")
+                mds0.ChannelMetadata.create_channel(random_string(100), "")
 
         peer = self.nodes[0].my_peer
         kwargs_dict = {"metadata_type": [CHANNEL_TORRENT]}
         self.nodes[1].overlay.send_remote_select(peer, **kwargs_dict)
         # There should be an outstanding request in the list
-        self.assertTrue(self.nodes[1].overlay.request_cache._identifiers)
+        self.assertTrue(self.nodes[1].overlay.request_cache._identifiers)  # pylint: disable=protected-access
 
         await self.deliver_messages(timeout=0.5)
 
         with db_session:
-            received_channels = self.nodes[1].overlay.mds.ChannelMetadata.select()
+            received_channels = mds1.ChannelMetadata.select()
             # We should receive less that 6 packets, so all the channels should not fit there.
             assert 40 < received_channels.count() < 60
 
             # The list of outstanding requests should be empty
-            self.assertFalse(self.nodes[1].overlay.request_cache._identifiers)
+            self.assertFalse(self.nodes[1].overlay.request_cache._identifiers)  # pylint: disable=protected-access
 
     def test_sanitize_query(self):
         req_response_list = [
@@ -307,9 +364,12 @@ class TestRemoteQueryCommunity(TestBase):
 
     async def test_remote_query_big_response(self):
 
+        mds0 = self.nodes[0].overlay.mds
+        mds1 = self.nodes[1].overlay.mds
+
         value = urandom(20000)
         with db_session:
-            self.nodes[1].overlay.mds.ChannelThumbnail(binary_data=value)
+            mds1.ChannelThumbnail(binary_data=value)
 
         kwargs_dict = {"metadata_type": [CHANNEL_THUMBNAIL]}
         callback = Mock()
@@ -321,8 +381,8 @@ class TestRemoteQueryCommunity(TestBase):
 
         # All the matching torrent entries should have been sent to Node 1
         with db_session:
-            torrents0 = self.nodes[0].overlay.mds.get_entries(**kwargs_dict)
-            torrents1 = self.nodes[1].overlay.mds.get_entries(**kwargs_dict)
+            torrents0 = mds0.get_entries(**kwargs_dict)
+            torrents1 = mds1.get_entries(**kwargs_dict)
             self.assertEqual(len(torrents0), len(torrents1))
 
     @pytest.mark.timeout(15)
@@ -330,11 +390,13 @@ class TestRemoteQueryCommunity(TestBase):
         """
         Test querying back preview thumbnail and description for previously unknown and updated channels.
         """
+        mds0 = self.nodes[0].overlay.mds
+        mds1 = self.nodes[1].overlay.mds
 
         with db_session:
             # Generate channels on Node 0
-            chan = self.nodes[0].overlay.mds.ChannelMetadata.create_channel("channel", "")
-            self.nodes[0].overlay.mds.ChannelThumbnail(
+            chan = mds0.ChannelMetadata.create_channel("channel", "")
+            mds0.ChannelThumbnail(
                 public_key=chan.public_key,
                 origin_id=chan.id_,
                 binary_data=urandom(2000),
@@ -342,7 +404,7 @@ class TestRemoteQueryCommunity(TestBase):
                 status=NEW,
             )
 
-            self.nodes[0].overlay.mds.ChannelDescription(
+            mds0.ChannelDescription(
                 public_key=chan.public_key, origin_id=chan.id_, json_text='{"description_text": "foobar"}', status=NEW
             )
             chan.commit_all_channels()
@@ -355,19 +417,19 @@ class TestRemoteQueryCommunity(TestBase):
         await self.deliver_messages(timeout=0.5)
 
         with db_session:
-            assert self.nodes[1].overlay.mds.ChannelMetadata.get(lambda g: g.title == "channel")
-            assert self.nodes[1].overlay.mds.ChannelThumbnail.get()
-            assert self.nodes[1].overlay.mds.ChannelDescription.get()
+            assert mds1.ChannelMetadata.get(lambda g: g.title == "channel")
+            assert mds1.ChannelThumbnail.get()
+            assert mds1.ChannelDescription.get()
 
         # Now test querying for updated version of description/thumbnail
         with db_session:
-            thumb = self.nodes[0].overlay.mds.ChannelThumbnail.get()
+            thumb = mds0.ChannelThumbnail.get()
             new_pic_bytes = urandom(2500)
             thumb.update_properties({"binary_data": new_pic_bytes})
-            descr = self.nodes[0].overlay.mds.ChannelDescription.get()
+            descr = mds0.ChannelDescription.get()
             descr.update_properties({"json_text": '{"description_text": "yummy"}'})
 
-            chan = self.nodes[0].overlay.mds.ChannelMetadata.get()
+            chan = mds0.ChannelMetadata.get()
             chan.commit_all_channels()
             chan_v2 = chan.timestamp
             assert chan_v2 > chan_v
@@ -377,28 +439,26 @@ class TestRemoteQueryCommunity(TestBase):
         await self.deliver_messages(timeout=1)
 
         with db_session:
-            assert self.nodes[1].overlay.mds.ChannelMetadata.get(lambda g: g.title == "channel")
-            assert self.nodes[1].overlay.mds.ChannelThumbnail.get().binary_data == new_pic_bytes
-            assert self.nodes[1].overlay.mds.ChannelDescription.get().json_text == '{"description_text": "yummy"}'
+            assert mds1.ChannelMetadata.get(lambda g: g.title == "channel")
+            assert mds1.ChannelThumbnail.get().binary_data == new_pic_bytes
+            assert mds1.ChannelDescription.get().json_text == '{"description_text": "yummy"}'
 
         # Test querying for missing dependencies (e.g. thumbnails and descriptions lost due to transfer errors)
         with db_session:
-            self.nodes[1].overlay.mds.ChannelThumbnail.get().delete()
-            self.nodes[1].overlay.mds.ChannelDescription.get().delete()
+            mds1.ChannelThumbnail.get().delete()
+            mds1.ChannelDescription.get().delete()
         self.nodes[1].overlay.send_remote_select(peer, **kwargs_dict)
 
         await self.deliver_messages(timeout=1)
 
         with db_session:
-            assert self.nodes[1].overlay.mds.ChannelThumbnail.get()
-            assert self.nodes[1].overlay.mds.ChannelDescription.get()
+            mds1.ChannelThumbnail.get()
+            mds1.ChannelDescription.get()
 
         # Test that we're only going to query for updated objects and skip old ones
         with db_session:
-            chan = self.nodes[0].overlay.mds.ChannelMetadata.get()
-            self.nodes[0].overlay.mds.TorrentMetadata(
-                public_key=chan.public_key, origin_id=chan.id_, infohash=random_infohash(), status=NEW
-            )
+            chan = mds0.ChannelMetadata.get()
+            mds0.TorrentMetadata(public_key=chan.public_key, origin_id=chan.id_, infohash=random_infohash(), status=NEW)
 
             chan.commit_all_channels()
             chan_v3 = chan.timestamp
@@ -413,7 +473,7 @@ class TestRemoteQueryCommunity(TestBase):
         self.nodes[0].overlay.eva_send_binary.assert_not_called()
 
         with db_session:
-            assert self.nodes[1].overlay.mds.ChannelMetadata.get(lambda g: g.title == "channel").timestamp == chan_v3
+            assert mds1.ChannelMetadata.get(lambda g: g.title == "channel").timestamp == chan_v3
 
     async def test_remote_select_force_eva(self):
         # Test requesting usage of EVA for sending multiple smaller entries

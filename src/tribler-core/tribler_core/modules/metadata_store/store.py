@@ -174,7 +174,7 @@ class MetadataStore:
         self.ChannelPeer = channel_peer.define_binding(self._db)
         self.Vsids = vsids.define_binding(self._db)
 
-        self.ChannelMetadata._channels_dir = channels_dir
+        self.ChannelMetadata._channels_dir = channels_dir  # pylint: disable=protected-access
 
         self._db.bind(provider='sqlite', filename=str(db_filename), create_db=create_db, timeout=120.0)
         self._db.generate_mapping(
@@ -554,6 +554,7 @@ class MetadataStore:
         # Check for the older version of the added node
         node = self.ChannelNode.get_for_update(public_key=database_blob(payload.public_key), id_=payload.id_)
         if node:
+            node.to_simple_dict()  # Force loading of related objects (like TorrentMetadata.health) in db_session
             update_results = self.update_channel_node(node, payload, skip_personal_metadata_payload)
             for r in update_results:
                 r.missing_deps = self.check_for_missing_dependencies(r.md_obj, include_newer=True)
