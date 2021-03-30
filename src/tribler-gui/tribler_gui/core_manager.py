@@ -18,6 +18,7 @@ from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import connect, format_size, get_base_path
 
 START_FAKE_API = False
+SKIP_VERSION_CLEANUP = os.environ.get("SKIP_VERSION_CLEANUP", "FALSE").lower() == "true"
 
 
 class CoreManager(QObject):
@@ -112,7 +113,8 @@ class CoreManager(QObject):
 
     def should_cleanup_old_versions(self) -> List[TriblerVersion]:
         # Skip old version check popup when running fake core, eg. during GUI tests
-        if START_FAKE_API:
+        # or during deployment tests since it blocks the tests with a popup dialog
+        if START_FAKE_API or SKIP_VERSION_CLEANUP:
             return []
 
         if self.version_history.last_run_version == self.version_history.code_version:
