@@ -74,14 +74,16 @@ async def test_receive_bloomfilters(dht_health_manager):
     Test whether the right operations happen when receiving a bloom filter
     """
     infohash = b'a' * 20
-    dht_health_manager.received_bloomfilters(infohash)  # It should not do anything
+    transaction_id = '1'
+    dht_health_manager.received_bloomfilters(transaction_id)  # It should not do anything
     assert not dht_health_manager.bf_seeders
     assert not dht_health_manager.bf_peers
 
     dht_health_manager.lookup_futures[infohash] = Future()
     dht_health_manager.bf_seeders[infohash] = bytearray(256)
     dht_health_manager.bf_peers[infohash] = bytearray(256)
-    dht_health_manager.received_bloomfilters(b'b' * 20,
+    dht_health_manager.requesting_bloomfilters(transaction_id, infohash)
+    dht_health_manager.received_bloomfilters(transaction_id,
                                              bf_seeds=bytearray(b'\xee' * 256),
                                              bf_peers=bytearray(b'\xff' * 256))
     assert dht_health_manager.bf_seeders[infohash] == bytearray(b'\xee' * 256)

@@ -383,13 +383,24 @@ class DownloadManager(TaskManager):
                 self.session_stats_callback(alert)
 
         elif alert_type == "dht_pkt_alert":
-            # We received a raw DHT message - decode it and check whether it is a BEP33 message.
+            # Unfortunately, the Python bindings don't have a direction attribute.
+            # So, we'll have to resort to using the string representation of the alert instead.
+            incoming = str(alert).startswith('<==')
             decoded = bdecode_compat(alert.pkt_buf)
-            if decoded and b'r' in decoded:
-                if b'BFsd' in decoded[b'r'] and b'BFpe' in decoded[b'r']:
-                    self.dht_health_manager.received_bloomfilters(decoded[b'r'][b'id'],
-                                                                  bytearray(decoded[b'r'][b'BFsd']),
-                                                                  bytearray(decoded[b'r'][b'BFpe']))
+            if not decoded:
+                return
+
+            # We are sending a raw DHT message - notify the DHTHealthManager of the outstanding request.
+            if not incoming and decoded.get(b'y') == b'q' \
+               and decoded.get(b'q') == b'get_peers' and decoded[b'a'].get(b'scrape') == 1:
+                self.dht_health_manager.requesting_bloomfilters(decoded[b't'],
+                                                                decoded[b'a'][b'info_hash'])
+
+            # We received a raw DHT message - decode it and check whether it is a BEP33 message.
+            if incoming and b'r' in decoded and b'BFsd' in decoded[b'r'] and b'BFpe' in decoded[b'r']:
+                self.dht_health_manager.received_bloomfilters(decoded[b't'],
+                                                              bytearray(decoded[b'r'][b'BFsd']),
+                                                              bytearray(decoded[b'r'][b'BFpe']))
 
     def update_ip_filter(self, lt_session, ip_addresses):
         self._logger.debug('Updating IP filter %s', ip_addresses)
