@@ -22,6 +22,7 @@ class DHTHealthManager(TaskManager):
         self.lookup_futures = {}    # Map from binary infohash to future
         self.bf_seeders = {}        # Map from infohash to (final) seeders bloomfilter
         self.bf_peers = {}          # Map from infohash to (final) peers bloomfilter
+        self.outstanding = {}       # Map from transaction_id to infohash
         self.lt_session = lt_session
 
     def get_health(self, infohash, timeout=15):
@@ -51,6 +52,9 @@ class DHTHealthManager(TaskManager):
         Finalize the lookup of the provided infohash and invoke the appropriate deferred.
         :param infohash: The infohash of the lookup we finialize.
         """
+        for transaction_id in [key for key, value in self.outstanding.items() if value == infohash]:
+            self.outstanding.pop(transaction_id, None)
+
         if infohash not in self.lookup_futures:
             return
 
@@ -113,29 +117,30 @@ class DHTHealthManager(TaskManager):
         c = min(m - 1, total_zeros)
         return int(math.log(c / float(m)) / (2 * math.log(1 - 1 / float(m))))
 
-    def received_bloomfilters(self, node_id, bf_seeds=bytearray(256), bf_peers=bytearray(256)):
+    def requesting_bloomfilters(self, transaction_id, infohash):
+        """
+        Tne libtorrent DHT has sent a get_peers query for an infohash we may be interested in.
+        If so, keep track of the transaction and node IDs.
+        :param transaction_id: The ID of the query
+        :param infohash: The infohash for which the query was sent.
+        """
+        if infohash in self.lookup_futures:
+            self.outstanding[transaction_id] = infohash
+        elif transaction_id in self.outstanding:
+            # Libtorrent is reusing the transaction_id, and is now using it for a infohash that we're not interested in.
+            self.outstanding.pop(transaction_id, None)
+
+    def received_bloomfilters(self, transaction_id,  bf_seeds=bytearray(256), bf_peers=bytearray(256)):
         """
         We have received bloom filters from the libtorrent DHT. Register the bloom filters and process them.
-        :param node_id: The ID of the node that sent the bloom filter.
+        :param transaction_id: The ID of the query for which we are receiving the bloom filter.
         :param bf_seeds: The bloom filter indicating the IP addresses of the seeders.
         :param bf_peers: The bloom filter indicating the IP addresses of the peers (leechers).
         """
-        min_distance = -1
-        closest_infohash = None
-
-        # We do not know to which infohash the received get_peers response belongs so we have to manually go through
-        # the infohashes and find the infohash that is the closest to the node id that sent us the message.
-        for infohash in self.lookup_futures:
-            ih_distance = distance(infohash, node_id)
-            if ih_distance < min_distance or min_distance == -1:
-                min_distance = ih_distance
-                closest_infohash = infohash
-
-        if not closest_infohash:
+        infohash = self.outstanding.get(transaction_id)
+        if not infohash:
             self._logger.info("Could not find lookup infohash for incoming BEP33 bloomfilters")
             return
 
-        self.bf_seeders[closest_infohash] = DHTHealthManager.combine_bloomfilters(
-            self.bf_seeders[closest_infohash], bf_seeds)
-        self.bf_peers[closest_infohash] = DHTHealthManager.combine_bloomfilters(
-            self.bf_peers[closest_infohash], bf_peers)
+        self.bf_seeders[infohash] = DHTHealthManager.combine_bloomfilters(self.bf_seeders[infohash], bf_seeds)
+        self.bf_peers[infohash] = DHTHealthManager.combine_bloomfilters(self.bf_peers[infohash], bf_peers)
