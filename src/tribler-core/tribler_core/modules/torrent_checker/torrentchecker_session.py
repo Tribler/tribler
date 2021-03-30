@@ -479,7 +479,6 @@ class FakeBep33DHTSession(FakeDHTSession):
         :return: A deferred that fires with the health information.
         """
         try:
-            async with async_timeout.timeout(self.timeout):
-                return await self._session.dlmgr.dht_health_manager.get_health(self.infohash)
+            return await self._session.dlmgr.dht_health_manager.get_health(self.infohash, timeout=self.timeout)
         except TimeoutError:
             self.failed(msg='request timed out')
