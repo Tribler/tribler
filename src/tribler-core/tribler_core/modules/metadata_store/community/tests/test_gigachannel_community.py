@@ -1,6 +1,7 @@
+import time
 from datetime import datetime
 from unittest import mock
-from unittest.mock import Mock
+from unittest.mock import Mock, PropertyMock, patch
 
 from ipv8.database import database_blob
 from ipv8.keyvault.crypto import default_eccrypto
@@ -9,7 +10,10 @@ from ipv8.test.base import TestBase
 
 from pony.orm import db_session
 
+import pytest
+
 from tribler_core.modules.metadata_store.community.gigachannel_community import (
+    ChannelsPeersMapping,
     GigaChannelCommunity,
     MAGIC_GIGACHAN_VERSION_MARK,
 )
@@ -17,8 +21,11 @@ from tribler_core.modules.metadata_store.store import MetadataStore
 from tribler_core.notifier import Notifier
 from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.random_utils import random_infohash
+from tribler_core.utilities.unicode import hexlify
 
 EMPTY_BLOB = database_blob(b"")
+
+# pylint:disable=protected-access
 
 
 class TestGigaChannelUnits(TestBase):
@@ -178,3 +185,103 @@ class TestGigaChannelUnits(TestBase):
 
         # Check that the notifier callback is called on new channel entries
         self.assertTrue(self.nodes[1].overlay.notified_results)
+
+    def test_channels_peers_mapping_drop_excess_peers(self):
+        """
+        Test dropping old excess peers from a channel to peers mapping
+        """
+        mapping = ChannelsPeersMapping()
+        chan_pk = Mock()
+        chan_id = 123
+
+        num_excess_peers = 20
+        first_peer_timestamp = None
+        for k in range(0, mapping.max_peers_per_channel + num_excess_peers):
+            peer = Peer(default_eccrypto.generate_key("very-low"), ("1.2.3.4", 5))
+            peer.last_response = time.time()
+            mapping.add(peer, chan_pk, chan_id)
+            if k == 0:
+                first_peer_timestamp = peer.last_response
+
+        chan_peers_3 = mapping.get_last_seen_peers_for_channel(chan_pk, chan_id, 3)
+        assert len(chan_peers_3) == 3
+
+        chan_peers = mapping.get_last_seen_peers_for_channel(chan_pk, chan_id)
+        assert len(chan_peers) == mapping.max_peers_per_channel
+
+        assert chan_peers_3 == chan_peers[0:3]
+        assert chan_peers == sorted(chan_peers, key=lambda x: x.last_response, reverse=True)
+
+        # Make sure only the older peers are dropped as excess
+        for p in chan_peers:
+            assert p.last_response > first_peer_timestamp
+
+        # Test removing a peer directly, e.g. as a result of a query timeout
+        peer = Peer(default_eccrypto.generate_key("very-low"), ("1.2.3.4", 5))
+        mapping.add(peer, chan_pk, chan_id)
+        mapping.remove_peer(peer)
+        for p in chan_peers:
+            mapping.remove_peer(p)
+
+        assert mapping.get_last_seen_peers_for_channel(chan_pk, chan_id) == []
+
+        # Make sure the stuff is cleaned up
+        assert len(mapping._peers_channels) == 0
+        assert len(mapping._channels_dict) == 0
+
+    @pytest.mark.timeout(0)
+    async def test_remote_search_mapped_peers(self):
+        """
+        Test using mapped peers for channel queries.
+        """
+        key = default_eccrypto.generate_key("curve25519")
+        channel_pk = key.pub().key_to_bin()[10:]
+        channel_id = 123
+        kwargs = {"channel_pk": f"{hexlify(channel_pk)}", "origin_id": channel_id}
+
+        await self.introduce_nodes()
+
+        source_peer = self.nodes[2].overlay.get_peers()[0]
+        self.nodes[2].overlay.channels_peers.add(source_peer, channel_pk, channel_id)
+
+        self.nodes[2].overlay.notifier = None
+
+        # We disable getting random peers, so the only source for peers is channels peers map
+        self.nodes[2].overlay.get_random_peers = lambda _: []
+
+        self.nodes[2].overlay.send_remote_select = Mock()
+        self.nodes[2].overlay.send_search_request(**kwargs)
+
+        # The peer must have queried at least one peer
+        self.nodes[2].overlay.send_remote_select.assert_called()
+
+    @pytest.mark.timeout(5)
+    async def test_drop_silent_peer_from_channels_map(self):
+
+        # We do not want the query back mechanism to interfere with this test
+        self.nodes[1].overlay.settings.max_channel_query_back = 0
+
+        kwargs_dict = {"txt_filter": "ubuntu*"}
+
+        basic_path = 'tribler_core.modules.metadata_store.community'
+
+        with patch(
+            basic_path + '.remote_query_community.SelectRequest.timeout_delay', new_callable=PropertyMock
+        ) as delay_mock:
+            # Change query timeout to a really low value
+            delay_mock.return_value = 0.3
+
+            # Stop peer 0 from responding
+            with patch(basic_path + '.remote_query_community.RemoteQueryCommunity._on_remote_select_basic'):
+                self.nodes[1].overlay.channels_peers.remove_peer = Mock()
+                self.nodes[1].overlay.send_remote_select(self.nodes[0].my_peer, **kwargs_dict)
+
+                await self.deliver_messages(timeout=1)
+                # node 0 must have called remove_peer because of the timeout
+                self.nodes[1].overlay.channels_peers.remove_peer.assert_called()
+
+            # Now test that even in the case of an empty response packet, remove_peer is not called on timeout
+            self.nodes[1].overlay.channels_peers.remove_peer = Mock()
+            self.nodes[1].overlay.send_remote_select(self.nodes[0].my_peer, **kwargs_dict)
+            await self.deliver_messages(timeout=1)
+            self.nodes[1].overlay.channels_peers.remove_peer.assert_not_called()

@@ -11,7 +11,7 @@ from ipv8.requestcache import NumberCache, RandomNumberCache, RequestCache
 from pony.orm.dbapiprovider import OperationalError
 
 from tribler_core.modules.metadata_store.community.eva_protocol import EVAProtocolMixin
-from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import entries_to_chunk
+from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import LZ4_EMPTY_ARCHIVE, entries_to_chunk
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 from tribler_core.modules.metadata_store.store import ObjState
 from tribler_core.utilities.unicode import hexlify
@@ -59,7 +59,7 @@ class SelectResponsePayload(VariablePayload):
 
 
 class SelectRequest(RandomNumberCache):
-    def __init__(self, request_cache, prefix, request_kwargs, processing_callback=None):
+    def __init__(self, request_cache, prefix, request_kwargs, peer, processing_callback=None, timeout_callback=None):
         super().__init__(request_cache, prefix)
         self.request_kwargs = request_kwargs
         # The callback to call on results of processing of the response payload
@@ -68,8 +68,15 @@ class SelectRequest(RandomNumberCache):
         # This limit is imposed as a safety precaution to prevent spam/flooding
         self.packets_limit = 10
 
+        self.peer = peer
+        # Indicate if at least a single packet was returned by the queried peer.
+        self.peer_responded = False
+
+        self.timeout_callback = timeout_callback
+
     def on_timeout(self):
-        pass
+        if self.timeout_callback is not None:
+            self.timeout_callback(self)
 
 
 class PushbackWindow(NumberCache):
@@ -137,7 +144,14 @@ class RemoteQueryCommunity(Community, EVAProtocolMixin):
         self.logger.warning(f"EVA transfer error: peer {hexlify(peer.mid)}, exception: {exception}")
 
     def send_remote_select(self, peer, processing_callback=None, force_eva_response=False, **kwargs):
-        request = SelectRequest(self.request_cache, hexlify(peer.mid), kwargs, processing_callback)
+        request = SelectRequest(
+            self.request_cache,
+            hexlify(peer.mid),
+            kwargs,
+            peer,
+            processing_callback=processing_callback,
+            timeout_callback=self._on_query_timeout,
+        )
         self.request_cache.add(request)
 
         self.logger.info(f"Select to {hexlify(peer.mid)} with ({kwargs})")
@@ -158,6 +172,12 @@ class RemoteQueryCommunity(Community, EVAProtocolMixin):
         return await self.mds.get_entries_threaded(**request_sanitized)
 
     def send_db_results(self, peer, request_payload_id, db_results, force_eva_response=False):
+
+        # Special case of empty results list - sending empty lz4 archive
+        if len(db_results) == 0:
+            self.ez_send(peer, SelectResponsePayload(request_payload_id, LZ4_EMPTY_ARCHIVE))
+            return
+
         index = 0
         while index < len(db_results):
             transfer_size = (
@@ -207,6 +227,10 @@ class RemoteQueryCommunity(Community, EVAProtocolMixin):
         if request is None:
             return
 
+        # Remember that at least a single packet was received was received from the queried peer.
+        if isinstance(request, SelectRequest):
+            request.peer_responded = True
+
         # Check for limit on the number of packets per request
         if request.packets_limit > 1:
             request.packets_limit -= 1
@@ -248,6 +272,16 @@ class RemoteQueryCommunity(Community, EVAProtocolMixin):
 
         if isinstance(request, SelectRequest) and request.processing_callback:
             request.processing_callback(request, processing_results)
+
+    def _on_query_timeout(self, request_cache):
+        if not request_cache.peer_responded:
+            self.logger.info(
+                "Remote query timeout, deleting peer: %s %s %s",
+                str(request_cache.peer.address),
+                hexlify(request_cache.peer.mid),
+                str(request_cache.request_kwargs),
+            )
+            self.network.remove_peer(request_cache.peer)
 
     async def unload(self):
         await self.request_cache.shutdown()

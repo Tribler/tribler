@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>873</width>
+    <width>1012</width>
     <height>695</height>
    </rect>
   </property>
@@ -21,7 +21,7 @@
     <item>
      <widget class="QTabWidget" name="debug_tab_widget">
       <property name="currentIndex">
-       <number>7</number>
+       <number>10</number>
       </property>
       <widget class="QWidget" name="tab">
        <attribute name="title">
@@ -177,7 +177,7 @@
         <item>
          <widget class="QTabWidget" name="ipv8_tab_widget">
           <property name="currentIndex">
-           <number>1</number>
+           <number>3</number>
           </property>
           <widget class="QWidget" name="tab_6">
            <attribute name="title">
@@ -414,7 +414,7 @@
         <item>
          <widget class="QTabWidget" name="tunnel_tab_widget">
           <property name="currentIndex">
-           <number>1</number>
+           <number>4</number>
           </property>
           <widget class="QWidget" name="tab_6">
            <attribute name="title">
@@ -748,7 +748,7 @@
         <item>
          <widget class="QTabWidget" name="dht_tab_widget">
           <property name="currentIndex">
-           <number>0</number>
+           <number>1</number>
           </property>
           <widget class="QWidget" name="tab_3">
            <attribute name="title">
@@ -921,7 +921,7 @@
         <item>
          <widget class="QTabWidget" name="system_tab_widget">
           <property name="currentIndex">
-           <number>3</number>
+           <number>0</number>
           </property>
           <widget class="QWidget" name="tab_9">
            <attribute name="title">
@@ -1581,7 +1581,7 @@
         <item>
          <widget class="QTabWidget" name="log_tab_widget">
           <property name="currentIndex">
-           <number>0</number>
+           <number>1</number>
           </property>
           <widget class="QWidget" name="tab_6">
            <attribute name="title">
@@ -1692,6 +1692,117 @@
                <bool>true</bool>
               </property>
              </widget>
+            </item>
+           </layout>
+          </widget>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="tab_channels">
+       <attribute name="title">
+        <string>Channels</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout">
+        <property name="spacing">
+         <number>0</number>
+        </property>
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
+        <item>
+         <widget class="QTabWidget" name="channels_tab_widget">
+          <property name="currentIndex">
+           <number>0</number>
+          </property>
+          <widget class="QWidget" name="tab_3">
+           <attribute name="title">
+            <string>Channels peers</string>
+           </attribute>
+           <layout class="QVBoxLayout" name="verticalLayout_2">
+            <property name="spacing">
+             <number>0</number>
+            </property>
+            <property name="leftMargin">
+             <number>0</number>
+            </property>
+            <property name="topMargin">
+             <number>0</number>
+            </property>
+            <property name="rightMargin">
+             <number>0</number>
+            </property>
+            <property name="bottomMargin">
+             <number>0</number>
+            </property>
+            <item>
+             <widget class="QTreeWidget" name="channels_peers_tree_widget">
+              <property name="sortingEnabled">
+               <bool>true</bool>
+              </property>
+              <attribute name="headerDefaultSectionSize">
+               <number>200</number>
+              </attribute>
+              <column>
+               <property name="text">
+                <string>Channel name</string>
+               </property>
+              </column>
+              <column>
+               <property name="text">
+                <string>Public key</string>
+               </property>
+              </column>
+              <column>
+               <property name="text">
+                <string>Id</string>
+               </property>
+              </column>
+              <column>
+               <property name="text">
+                <string>Peer count</string>
+               </property>
+              </column>
+              <column>
+               <property name="text">
+                <string>Peer age (seconds)</string>
+               </property>
+              </column>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+          <widget class="QWidget" name="tab_10">
+           <attribute name="title">
+            <string>Stub</string>
+           </attribute>
+           <layout class="QVBoxLayout" name="verticalLayout">
+            <property name="spacing">
+             <number>0</number>
+            </property>
+            <property name="leftMargin">
+             <number>0</number>
+            </property>
+            <property name="topMargin">
+             <number>0</number>
+            </property>
+            <property name="rightMargin">
+             <number>0</number>
+            </property>
+            <property name="bottomMargin">
+             <number>0</number>
+            </property>
+            <item>
+             <widget class="QWidget" name="stub" native="true"/>
             </item>
            </layout>
           </widget>
