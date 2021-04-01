@@ -378,16 +378,7 @@ class TestEVA(TestBase):
 
         data = os.urandom(1), os.urandom(block_size * 1024), 42
 
-        real_on_acknowledgement0 = self.overlay(0).eva_protocol.on_acknowledgement
         real_on_send_acknowledgement1 = self.overlay(1).eva_protocol.send_acknowledgement
-
-        async def fake_on_acknowledgement0(peer, payload):
-            await real_on_acknowledgement0(peer, payload)
-
-            transfer = self.overlay(0).eva_protocol.outgoing.get(peer, None)
-            if transfer:
-                # check that windows size is updated
-                assert self.test_store.actual_window_size == transfer.window_size
 
         def fake_eva_send_acknowledgement1(peer, transfer):
             if transfer.window_size == 1:
@@ -399,7 +390,6 @@ class TestEVA(TestBase):
             self.test_store.actual_window_size = transfer.window_size
             real_on_send_acknowledgement1(peer, transfer)
 
-        self.overlay(0).eva_protocol.on_acknowledgement = fake_on_acknowledgement0
         self.overlay(1).eva_protocol.send_acknowledgement = fake_eva_send_acknowledgement1
 
         self.overlay(0).eva_send_binary(self.peer(1), *data)
