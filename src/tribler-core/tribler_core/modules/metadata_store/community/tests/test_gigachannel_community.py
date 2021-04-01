@@ -130,6 +130,10 @@ class TestGigaChannelUnits(TestBase):
         # The set has been cleared, so the number of queried peers must be dropped back to 1
         self.assertEqual(len(self.nodes[1].overlay.queried_peers), 1)
 
+        # Ensure that we're not going to query ourselves
+        self.nodes[1].overlay.introduction_response_callback(self.nodes[1].overlay.my_peer, None, payload)
+        self.assertEqual(len(send_ok), 3)
+
     async def test_remote_select_subscribed_channels(self):
         """
         Test querying remote peers for subscribed channels and updating local votes accordingly.
