@@ -115,7 +115,14 @@ class GigaChannelCommunity(RemoteQueryCommunity):
         return all_peers
 
     def introduction_response_callback(self, peer, dist, payload):
-        if peer.address in self.network.blacklist or peer.mid in self.queried_peers:
+        # ACHTUNG! Due to Dispersy legacy, it is possible for other peer to send us an introduction
+        # to ourselves (peer's public_key is not sent along with the introduction). To prevent querying
+        # ourselves, we add the check for blacklist_mids here, which by default contains our own peer.
+        if (
+            peer.address in self.network.blacklist
+            or peer.mid in self.queried_peers
+            or peer.mid in self.network.blacklist_mids
+        ):
             return
         if len(self.queried_peers) >= self.settings.queried_peers_limit:
             self.queried_peers.clear()
