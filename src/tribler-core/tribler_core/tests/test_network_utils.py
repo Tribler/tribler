@@ -52,13 +52,14 @@ def test_autodetect_socket_style():
 
 def test_get_first_free_port():
     # target port is free
-    assert get_first_free_port(start=50000) == 50000
+    port = random.randint(50000, 60000)
+    assert get_first_free_port(start=port) == port
 
     # target port is locked
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        sock.bind(('', 50000))
-        assert get_first_free_port(start=50000) == 50001
+        sock.bind(('', port))
+        assert get_first_free_port(start=port) == port + 1
 
     # no free ports found
     with pytest.raises(FreePortNotFoundError):
-        get_first_free_port(start=50000, limit=0)
+        get_first_free_port(start=port, limit=0)
