@@ -1043,7 +1043,7 @@ QListWidget::item:disabled
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>0</number>
+         <number>1</number>
         </property>
         <widget class="ChannelContentsWidget" name="search_results_page"/>
         <widget class="SettingsPage" name="settings_page">
@@ -1444,8 +1444,8 @@ border-top: 1px solid #555;
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>300</width>
-               <height>498</height>
+               <width>854</width>
+               <height>710</height>
               </rect>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_22">
@@ -1484,21 +1484,21 @@ border-top: 1px solid #555;
                   <height>16777215</height>
                  </size>
                 </property>
+                <property name="font">
+                 <font>
+                  <weight>50</weight>
+                  <bold>false</bold>
+                  <underline>true</underline>
+                 </font>
+                </property>
+                <property name="layoutDirection">
+                 <enum>Qt::LeftToRight</enum>
+                </property>
+                <property name="autoFillBackground">
+                 <bool>false</bool>
+                </property>
                 <property name="styleSheet">
-                 <string notr="true">QStackedWidget QLabel, QStackedWidget QRadioButton, QStackedWidget QCheckBox {
-color: #B5B5B5;
-}
-QComboBox {
-background-color: #333333;
-border-radius: 4px;
-color: white;
-}
-QComboBox::drop-down {
-border: 0px;
-}
-QStackedWidget {
-background-color: #202020;
-}</string>
+                 <string notr="true">margin-top: 10px;</string>
                 </property>
                 <widget class="QWidget" name="settings_general_tab">
                  <property name="sizePolicy">
@@ -1682,6 +1682,13 @@ color: white;</string>
                   </item>
                   <item row="6" column="0">
                    <widget class="QLabel" name="download_settings_anon_label">
+                    <property name="font">
+                     <font>
+                      <weight>50</weight>
+                      <bold>false</bold>
+                      <underline>true</underline>
+                     </font>
+                    </property>
                     <property name="text">
                      <string>Download anonymously
 using proxies</string>
@@ -1700,6 +1707,13 @@ using proxies</string>
                   </item>
                   <item row="7" column="0">
                    <widget class="QLabel" name="download_settings_anon_seeding_label">
+                    <property name="font">
+                     <font>
+                      <weight>50</weight>
+                      <bold>false</bold>
+                      <underline>true</underline>
+                     </font>
+                    </property>
                     <property name="text">
                      <string>Encrypted anonymous
 seeding using proxies</string>
@@ -1709,7 +1723,8 @@ seeding using proxies</string>
                   <item row="7" column="1">
                    <widget class="QCheckBox" name="download_settings_anon_seeding_checkbox">
                     <property name="styleSheet">
-                     <string notr="true">margin-top: 10px;</string>
+                     <string notr="true">margin-top: 10px; 
+ QCheckBox { background-color: red };</string>
                     </property>
                     <property name="text">
                      <string/>
@@ -1718,6 +1733,16 @@ seeding using proxies</string>
                   </item>
                   <item row="8" column="0">
                    <widget class="QLabel" name="download_settings_add_to_channel_label">
+                    <property name="enabled">
+                     <bool>true</bool>
+                    </property>
+                    <property name="font">
+                     <font>
+                      <weight>50</weight>
+                      <bold>false</bold>
+                      <underline>true</underline>
+                     </font>
+                    </property>
                     <property name="styleSheet">
                      <string notr="true"/>
                     </property>
@@ -1728,11 +1753,35 @@ seeding using proxies</string>
                   </item>
                   <item row="8" column="1">
                    <widget class="QCheckBox" name="download_settings_add_to_channel_checkbox">
+                    <property name="enabled">
+                     <bool>true</bool>
+                    </property>
+                    <property name="layoutDirection">
+                     <enum>Qt::LeftToRight</enum>
+                    </property>
+                    <property name="autoFillBackground">
+                     <bool>false</bool>
+                    </property>
                     <property name="styleSheet">
                      <string notr="true">margin-top: 10px;</string>
                     </property>
                     <property name="text">
                      <string/>
+                    </property>
+                    <property name="iconSize">
+                     <size>
+                      <width>16</width>
+                      <height>16</height>
+                     </size>
+                    </property>
+                    <property name="checked">
+                     <bool>false</bool>
+                    </property>
+                    <property name="autoRepeat">
+                     <bool>false</bool>
+                    </property>
+                    <property name="tristate">
+                     <bool>false</bool>
                     </property>
                    </widget>
                   </item>
@@ -3786,7 +3835,7 @@ QTabBar::tab:selected {
 }</string>
                 </property>
                 <property name="currentIndex">
-                 <number>0</number>
+                 <number>3</number>
                 </property>
                 <property name="movable">
                  <bool>false</bool>
@@ -3826,8 +3875,8 @@ color: white</string>
                       <rect>
                        <x>0</x>
                        <y>0</y>
-                       <width>321</width>
-                       <height>259</height>
+                       <width>856</width>
+                       <height>378</height>
                       </rect>
                      </property>
                      <layout class="QFormLayout" name="formLayout_4">
