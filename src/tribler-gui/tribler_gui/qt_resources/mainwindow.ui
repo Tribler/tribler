@@ -166,8 +166,11 @@ color: white;
 QLineEdit, QTextEdit {
 background-color: #303030;
 border: none;
-color: #C0C0C0;
+color: #f0f0f0;
 padding: 4px;
+}
+QLabel{
+color:  #f0f0f0;
 }</string>
    </property>
    <layout class="QGridLayout" name="gridLayout">
@@ -1525,6 +1528,12 @@ background-color: #202020;
                    <horstretch>0</horstretch>
                    <verstretch>0</verstretch>
                   </sizepolicy>
+                 </property>
+                 <property name="styleSheet">
+                  <string notr="true">QLabel{
+color: white;
+}
+</string>
                  </property>
                  <layout class="QFormLayout" name="formLayout">
                   <property name="fieldGrowthPolicy">
