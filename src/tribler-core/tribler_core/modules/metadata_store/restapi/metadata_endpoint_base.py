@@ -17,7 +17,7 @@ json2pony_columns = {
     'health': 'HEALTH',
 }
 
-# TODO: use the same representation for metadata nodes as in the database
+# TODO: use the same representation for metadata nodes as in the database  # pylint: disable=fixme
 metadata_type_to_search_scope = {
     '': frozenset((REGULAR_TORRENT, CHANNEL_TORRENT, COLLECTION_NODE)),
     "channel": frozenset((CHANNEL_TORRENT, COLLECTION_NODE)),
@@ -44,8 +44,6 @@ class MetadataEndpointBase(RESTEndpoint):
             "category": parameters.get('category'),
             "exclude_deleted": bool(int(parameters.get('exclude_deleted', 0)) > 0),
         }
-        if 'remote_query' in parameters:
-            sanitized["remote_query"] = (bool(int(parameters.get('remote_query', 0)) > 0),)
         if 'metadata_type' in parameters:
             mtypes = []
             for arg in parameters.getall('metadata_type'):

@@ -39,9 +39,20 @@ async def test_search(enable_chant, enable_api, session):
 
     parsed = await do_request(session, 'search?txt_filter=needle', expected_code=200)
     assert len(parsed["results"]) == 1
+    assert "max_rowid" not in parsed
+
+    parsed = await do_request(session, 'search?txt_filter=needle&include_total=1', expected_code=200)
+    assert len(parsed["results"]) == 1
+    assert parsed["max_rowid"] == 103
 
     parsed = await do_request(session, 'search?txt_filter=hay', expected_code=200)
     assert len(parsed["results"]) == 50
+
+    parsed = await do_request(session, 'search?txt_filter=hay&max_rowid=0', expected_code=200)
+    assert len(parsed["results"]) == 0
+
+    parsed = await do_request(session, 'search?txt_filter=hay&max_rowid=20', expected_code=200)
+    assert len(parsed["results"]) == 19
 
     parsed = await do_request(session, 'search?txt_filter=test&type=channel', expected_code=200)
     assert len(parsed["results"]) == 1
@@ -50,6 +61,12 @@ async def test_search(enable_chant, enable_api, session):
     assert parsed["results"][0]['name'] == 'needle'
 
     parsed = await do_request(session, 'search?txt_filter=needle&sort_by=name', expected_code=200)
+    assert len(parsed["results"]) == 1
+
+    parsed = await do_request(session, 'search?txt_filter=needle&sort_by=name&max_rowid=20',  expected_code=200)
+    assert len(parsed["results"]) == 0
+
+    parsed = await do_request(session, 'search?txt_filter=needle&sort_by=name&max_rowid=200', expected_code=200)
     assert len(parsed["results"]) == 1
 
     parsed = await do_request(session, 'search?txt_filter=needle%2A&sort_by=name&sort_desc=1', expected_code=200)

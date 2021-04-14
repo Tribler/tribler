@@ -41,6 +41,9 @@ class RemoteTableModel(QAbstractTableModel):
         self.item_uid_map = {}
 
         self.data_items = []
+        self.remote_items = []
+        self.max_rowid = None
+        self.local_total = None
         self.item_load_batch = 50
         self.sort_by = self.columns[self.default_sort_column] if self.default_sort_column >= 0 else None
         self.sort_desc = True
@@ -59,6 +62,10 @@ class RemoteTableModel(QAbstractTableModel):
 
         self.loaded = False
 
+    @property
+    def all_local_entries_loaded(self):
+        return self.local_total is not None and self.local_total <= len(self.data_items)
+
     def on_destroy(self, *args):
         self.qt_object_destroyed = True
 
@@ -66,6 +73,9 @@ class RemoteTableModel(QAbstractTableModel):
         self.beginResetModel()
         self.loaded = False
         self.data_items = []
+        self.remote_items = []
+        self.max_rowid = None
+        self.local_total = None
         self.item_uid_map = {}
         self.endResetModel()
         self.perform_query()
@@ -79,23 +89,27 @@ class RemoteTableModel(QAbstractTableModel):
         self.sort_desc = bool(order)
         self.reset()
 
-    def add_items(self, new_items, on_top=False):
+    def add_items(self, new_items, on_top=False, remote=False):
         """
         Adds new items to the table model. All items are mapped to their unique ids to avoid the duplicates.
-        If the new items are remote then the items are prepended to the top else appended to the end of the model.
+        New items are prepended to the end of the model.
         Note that item_uid_map tracks items twice: once by public_key+id and once by infohash. This is necessary to
         support status updates from TorrentChecker based on infohash only.
         :param new_items: list(item)
         :param on_top: True if new_items should be added on top of the table
+        :param remote: True if new_items are from a remote peer. Default: False
         :return: None
         """
         if not new_items:
             return
 
+        if remote and not self.all_local_entries_loaded:
+            self.remote_items.extend(new_items)
+            return
+
         # Note: If we want to block the signal like itemChanged, we must use QSignalBlocker object or blockSignals
 
         # Only add unique items to the table model and reverse mapping from unique ids to rows is built.
-        # If items are remote, prepend to the top else append to the end of the model.
         insert_index = 0 if on_top else len(self.data_items)
         unique_new_items = []
         for item in new_items:
@@ -131,6 +145,11 @@ class RemoteTableModel(QAbstractTableModel):
             self.beginInsertRows(QModelIndex(), len(self.data_items), len(self.data_items) + len(unique_new_items) - 1)
             self.data_items.extend(unique_new_items)
         self.endInsertRows()
+
+        if self.all_local_entries_loaded:
+            remote_items = self.remote_items
+            self.remote_items = []
+            self.add_items(remote_items, remote=True)  # to filter non-unique entries
 
     def remove_items(self, items):
         uids_to_remove = []
@@ -188,6 +207,9 @@ class RemoteTableModel(QAbstractTableModel):
         if self.text_filter:
             kwargs.update({"txt_filter": self.text_filter})
 
+        if self.max_rowid is not None:
+            kwargs["max_rowid"] = self.max_rowid
+
         if self.hide_xxx is not None:
             kwargs.update({"hide_xxx": self.hide_xxx})
         rest_endpoint_url = kwargs.pop("rest_endpoint_url") if "rest_endpoint_url" in kwargs else self.endpoint_url
@@ -209,15 +231,20 @@ class RemoteTableModel(QAbstractTableModel):
         update_labels = len(self.data_items) == 0
 
         if not remote or (uuid.UUID(response.get('uuid')) in self.remote_queries):
-            self.add_items(response['results'], on_top=remote or on_top)
-            if "total" in response:
-                self.channel_info["total"] = response["total"]
+
+            prev_total = self.channel_info.get("total")
+            if not remote:
+                if "total" in response:
+                    self.local_total = response["total"]
+                    self.channel_info["total"] = self.local_total + len(self.remote_items)
+            elif self.channel_info.get("total"):
+                self.channel_info["total"] += len(response["results"])
+
+            if prev_total != self.channel_info.get("total"):
                 update_labels = True
-            elif remote and uuid.UUID(response.get('uuid')) == CHANNELS_VIEW_UUID:
-                # This is a discovered channel (from a remote peer), update the total number of channels and the labels
-                if self.channel_info.get("total"):
-                    self.channel_info["total"] += len(response["results"])
-                update_labels = True
+
+            self.add_items(response['results'], on_top=on_top, remote=remote)
+
             if update_labels:
                 self.info_changed.emit(response['results'])
 
@@ -278,8 +305,6 @@ class ChannelContentModel(RemoteTableModel):
     ):
         RemoteTableModel.__init__(self, parent=None)
         self.column_position = {name: i for i, name in enumerate(self.columns)}
-
-        self.data_items = []
 
         # Remote query (model) parameters
         self.hide_xxx = hide_xxx
