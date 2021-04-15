@@ -11,7 +11,7 @@ from ipv8.database import database_blob
 import lz4.frame
 
 from pony import orm
-from pony.orm import CacheIndexError, TransactionIntegrityError, db_session, desc, left_join, raw_sql
+from pony.orm import CacheIndexError, TransactionIntegrityError, db_session, desc, left_join, raw_sql, select
 
 from tribler_common.simpledefs import NTFY
 
@@ -697,6 +697,7 @@ class MetadataStore:
         origin_id=None,
         sort_by=None,
         sort_desc=True,
+        max_rowid=None,
         txt_filter=None,
         subscribed=None,
         category=None,
@@ -717,6 +718,9 @@ class MetadataStore:
         if cls is None:
             cls = self.ChannelNode
         pony_query = self.search_keyword(txt_filter, lim=1000) if txt_filter else left_join(g for g in cls)
+
+        if max_rowid is not None:
+            pony_query = pony_query.where(lambda g: g.rowid <= max_rowid)
 
         if metadata_type is not None:
             try:
@@ -830,6 +834,10 @@ class MetadataStore:
         for p in ["first", "last"]:
             kwargs.pop(p, None)
         return self.get_entries_query(**kwargs).count()
+
+    @db_session
+    def get_max_rowid(self):
+        return select(max(obj.rowid) for obj in self.ChannelNode).get() or 0
 
     def get_auto_complete_terms(self, keyword, max_terms, limit=10):
         if not keyword:

@@ -68,6 +68,7 @@ class TriblerTableViewController(QObject):
         if (
             self.table_view.verticalScrollBar().value() == self.table_view.verticalScrollBar().maximum()
             and self.model.data_items
+            and not self.model.all_local_entries_loaded
         ):  # workaround for duplicate calls to _on_list_scroll on view creation
             self.model.perform_query()
 
