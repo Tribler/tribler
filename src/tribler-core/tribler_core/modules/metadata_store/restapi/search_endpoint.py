@@ -82,9 +82,12 @@ class SearchEndpoint(MetadataEndpointBase):
             try:
                 with db_session:
                     pony_query = self.session.mds.get_entries(**sanitized)
-                    total = self.session.mds.get_total_count(**sanitized) if include_total else None
-                    max_rowid = self.session.mds.get_max_rowid() if include_total else None
                     search_results = [r.to_simple_dict() for r in pony_query]
+                    if include_total:
+                        total = self.session.mds.get_total_count(**sanitized)
+                        max_rowid = self.session.mds.get_max_rowid()
+                    else:
+                        total = max_rowid = None
             finally:
                 # DB must be disconnected explicitly if run on a thread
                 self.session.mds._db.disconnect()  # pylint: disable=protected-access
@@ -103,10 +106,8 @@ class SearchEndpoint(MetadataEndpointBase):
             "sort_by": sanitized["sort_by"],
             "sort_desc": sanitized["sort_desc"],
         }
-        if total is not None:
-            response_dict.update({"total": total})
-            if max_rowid is not None:
-                response_dict["max_rowid"] = max_rowid
+        if include_total:
+            response_dict.update(total=total, max_rowid=max_rowid)
 
         return RESTResponse(response_dict)
 
