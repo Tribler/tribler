@@ -5,8 +5,11 @@ from unittest.mock import Mock
 
 from aiohttp import web
 
+from ipv8.database import database_blob
 from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 from ipv8.util import succeed
+
+from pony.orm import db_session
 
 import pytest
 
@@ -22,6 +25,7 @@ from tribler_core.session import Session
 from tribler_core.tests.tools.common import TESTS_DATA_DIR, TESTS_DIR
 from tribler_core.tests.tools.tracker.udp_tracker import UDPTracker
 from tribler_core.upgrade.legacy_to_pony import DispersyToPonyMigration
+from tribler_core.utilities.random_utils import random_infohash
 from tribler_core.utilities.unicode import hexlify
 
 
@@ -104,8 +108,8 @@ def mock_dlmgr_get_download(session, mocker, tmpdir, mock_dlmgr):
     session.dlmgr.get_download = lambda _: None
 
 
-@pytest.fixture
-async def session(tribler_config):
+@pytest.fixture(name='session')
+async def _session(tribler_config):
     session = Session(tribler_config)
     session.upgrader_enabled = False
     await session.start()
@@ -249,8 +253,8 @@ def dispersy_to_pony_migrator(metadata_store):
     return migrator
 
 
-@pytest.fixture
-def enable_api(tribler_config, free_port):
+@pytest.fixture(name='enable_api')
+def _enable_api(tribler_config, free_port):
     tribler_config.set_api_http_enabled(True)
     tribler_config.set_api_http_port(free_port)
     tribler_config.set_api_retry_port(True)
@@ -263,8 +267,8 @@ def enable_https(tribler_config, free_https_port):
     tribler_config.set_api_https_certfile(TESTS_DIR / 'data' / 'certfile.pem')
 
 
-@pytest.fixture
-def enable_chant(tribler_config):
+@pytest.fixture(name='enable_chant')
+def _enable_chant(tribler_config):
     tribler_config.set_chant_enabled(True)
 
 
@@ -329,3 +333,15 @@ def mock_lt_status():
 @pytest.fixture
 def mock_handle(mocker, test_download):
     return mocker.patch.object(test_download, 'handle')
+
+
+@pytest.fixture
+def needle_in_haystack(enable_chant, enable_api, session):  # pylint: disable=unused-argument
+    num_hay = 100
+    with db_session:
+        _ = session.mds.ChannelMetadata(title='test', tags='test', subscribed=True, infohash=random_infohash())
+        for x in range(0, num_hay):
+            session.mds.TorrentMetadata(title='hay ' + str(x), infohash=random_infohash())
+        session.mds.TorrentMetadata(title='needle', infohash=database_blob(bytearray(random_infohash())))
+        session.mds.TorrentMetadata(title='needle2', infohash=database_blob(bytearray(random_infohash())))
+    return session

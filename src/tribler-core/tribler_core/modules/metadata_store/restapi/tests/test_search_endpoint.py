@@ -1,15 +1,10 @@
-from ipv8.database import database_blob
-
-from pony.orm import db_session
-
 import pytest
 
 from tribler_core.restapi.base_api_test import do_request
-from tribler_core.utilities.random_utils import random_infohash
 
 
 @pytest.mark.asyncio
-async def test_search_no_query(enable_chant, enable_api, session):
+async def test_search_no_query(enable_chant, enable_api, session):  # pylint: disable=unused-argument
     """
     Testing whether the API returns an error 400 if no query is passed when doing a search
     """
@@ -17,7 +12,7 @@ async def test_search_no_query(enable_chant, enable_api, session):
 
 
 @pytest.mark.asyncio
-async def test_search_wrong_mdtype(enable_chant, enable_api, session):
+async def test_search_wrong_mdtype(enable_chant, enable_api, session):  # pylint: disable=unused-argument
     """
     Testing whether the API returns an error 400 if wrong metadata type is passed in the query
     """
@@ -25,24 +20,50 @@ async def test_search_wrong_mdtype(enable_chant, enable_api, session):
 
 
 @pytest.mark.asyncio
-async def test_search(enable_chant, enable_api, session):
+async def test_search(needle_in_haystack):
     """
     Test a search query that should return a few new type channels
     """
-    num_hay = 100
-    with db_session:
-        _ = session.mds.ChannelMetadata(title='test', tags='test', subscribed=True, infohash=random_infohash())
-        for x in range(0, num_hay):
-            session.mds.TorrentMetadata(title='hay ' + str(x), infohash=random_infohash())
-        session.mds.TorrentMetadata(title='needle', infohash=database_blob(bytearray(random_infohash())))
-        session.mds.TorrentMetadata(title='needle2', infohash=database_blob(bytearray(random_infohash())))
+    session = needle_in_haystack
 
     parsed = await do_request(session, 'search?txt_filter=needle', expected_code=200)
     assert len(parsed["results"]) == 1
+
+    parsed = await do_request(session, 'search?txt_filter=hay', expected_code=200)
+    assert len(parsed["results"]) == 50
+
+    parsed = await do_request(session, 'search?txt_filter=test&type=channel', expected_code=200)
+    assert len(parsed["results"]) == 1
+
+    parsed = await do_request(session, 'search?txt_filter=needle&type=torrent', expected_code=200)
+    assert parsed["results"][0]['name'] == 'needle'
+
+    parsed = await do_request(session, 'search?txt_filter=needle&sort_by=name', expected_code=200)
+    assert len(parsed["results"]) == 1
+
+    parsed = await do_request(session, 'search?txt_filter=needle%2A&sort_by=name&sort_desc=1', expected_code=200)
+    assert len(parsed["results"]) == 2
+    assert parsed["results"][0]['name'] == "needle2"
+
+
+@pytest.mark.asyncio
+async def test_search_with_include_total_and_max_rowid(needle_in_haystack):
+    """
+    Test search queries with include_total and max_rowid options
+    """
+    session = needle_in_haystack
+
+    parsed = await do_request(session, 'search?txt_filter=needle', expected_code=200)
+    assert len(parsed["results"]) == 1
+    assert "total" not in parsed
     assert "max_rowid" not in parsed
 
     parsed = await do_request(session, 'search?txt_filter=needle&include_total=1', expected_code=200)
-    assert len(parsed["results"]) == 1
+    assert parsed["total"] == 1
+    assert parsed["max_rowid"] == 103
+
+    parsed = await do_request(session, 'search?txt_filter=hay&include_total=1', expected_code=200)
+    assert parsed["total"] == 100
     assert parsed["max_rowid"] == 103
 
     parsed = await do_request(session, 'search?txt_filter=hay', expected_code=200)
@@ -54,36 +75,18 @@ async def test_search(enable_chant, enable_api, session):
     parsed = await do_request(session, 'search?txt_filter=hay&max_rowid=20', expected_code=200)
     assert len(parsed["results"]) == 19
 
-    parsed = await do_request(session, 'search?txt_filter=test&type=channel', expected_code=200)
-    assert len(parsed["results"]) == 1
-
-    parsed = await do_request(session, 'search?txt_filter=needle&type=torrent', expected_code=200)
-    assert parsed["results"][0]['name'] == 'needle'
-
     parsed = await do_request(session, 'search?txt_filter=needle&sort_by=name', expected_code=200)
     assert len(parsed["results"]) == 1
 
-    parsed = await do_request(session, 'search?txt_filter=needle&sort_by=name&max_rowid=20',  expected_code=200)
+    parsed = await do_request(session, 'search?txt_filter=needle&sort_by=name&max_rowid=20', expected_code=200)
     assert len(parsed["results"]) == 0
 
     parsed = await do_request(session, 'search?txt_filter=needle&sort_by=name&max_rowid=200', expected_code=200)
     assert len(parsed["results"]) == 1
 
-    parsed = await do_request(session, 'search?txt_filter=needle%2A&sort_by=name&sort_desc=1', expected_code=200)
-    assert len(parsed["results"]) == 2
-    assert parsed["results"][0]['name'] == "needle2"
-
-    # Test getting total count of results
-    parsed = await do_request(session, 'search?txt_filter=needle&include_total=1', expected_code=200)
-    assert parsed["total"] == 1
-
-    # Test getting total count of results
-    parsed = await do_request(session, 'search?txt_filter=hay&include_total=1', expected_code=200)
-    assert parsed["total"] == 100
-
 
 @pytest.mark.asyncio
-async def test_completions_no_query(enable_chant, enable_api, session):
+async def test_completions_no_query(enable_chant, enable_api, session):  # pylint: disable=unused-argument
     """
     Testing whether the API returns an error 400 if no query is passed when getting search completion terms
     """
@@ -91,7 +94,7 @@ async def test_completions_no_query(enable_chant, enable_api, session):
 
 
 @pytest.mark.asyncio
-async def test_completions(enable_chant, enable_api, session):
+async def test_completions(enable_chant, enable_api, session):  # pylint: disable=unused-argument
     """
     Testing whether the API returns the right terms when getting search completion terms
     """
