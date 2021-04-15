@@ -17,7 +17,7 @@ json2pony_columns = {
     'health': 'HEALTH',
 }
 
-# TODO: use the same representation for metadata nodes as in the database  # pylint: disable=fixme
+# TODO: use the same representation for metadata nodes as in the database
 metadata_type_to_search_scope = {
     '': frozenset((REGULAR_TORRENT, CHANNEL_TORRENT, COLLECTION_NODE)),
     "channel": frozenset((CHANNEL_TORRENT, COLLECTION_NODE)),
