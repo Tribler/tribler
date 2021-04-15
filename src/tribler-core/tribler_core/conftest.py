@@ -29,23 +29,23 @@ from tribler_core.utilities.random_utils import random_infohash
 from tribler_core.utilities.unicode import hexlify
 
 
-@pytest.fixture
-def tribler_root_dir(tmpdir):
+@pytest.fixture(name="tribler_root_dir")
+def _tribler_root_dir(tmpdir):
     return Path(tmpdir)
 
 
-@pytest.fixture
-def tribler_state_dir(tribler_root_dir):
+@pytest.fixture(name="tribler_state_dir")
+def _tribler_state_dir(tribler_root_dir):
     return tribler_root_dir / "dot.Tribler"
 
 
-@pytest.fixture
-def tribler_download_dir(tribler_root_dir):
+@pytest.fixture(name="tribler_download_dir")
+def _tribler_download_dir(tribler_root_dir):
     return tribler_root_dir / "TriblerDownloads"
 
 
-@pytest.fixture
-def tribler_config(tribler_state_dir, tribler_download_dir):
+@pytest.fixture(name="tribler_config")
+def _tribler_config(tribler_state_dir, tribler_download_dir):
     config = TriblerConfig(tribler_state_dir)
     config.set_default_destination_dir(tribler_download_dir)
     config.set_torrent_checking_enabled(False)
@@ -156,8 +156,8 @@ async def channel_seeder_session(seed_config, channel_tdef):
 selected_ports = set()
 
 
-@pytest.fixture
-def free_ports():
+@pytest.fixture(name="free_ports")
+def _free_ports():
     """
     Return random, free ports.
     This is here to make sure that tests in different buckets get assigned different listen ports.
@@ -181,8 +181,8 @@ def free_ports():
     return get_ports
 
 
-@pytest.fixture
-def free_port(free_ports):
+@pytest.fixture(name="free_port")
+def _free_port(free_ports):
     return free_ports(1)[0]
 
 
