@@ -53,8 +53,24 @@ if __name__ == '__main__':
     with open('.TriblerVersion', 'w') as f:
         f.write(version_id)
 
-    if sys.platform == 'linux2':
+    if sys.platform == 'linux2' or sys.platform == 'linux':
         run_command('dch -v {} New upstream release.'.format(version_id).split())
+        logger.info('Writing AppStream version info.')
+        import time
+        import xml.etree.ElementTree as xml
+        import defusedxml.ElementTree as defxml
+
+        releaseDate = time.strftime("%Y-%m-%d", time.localtime())
+        attrib = {'version': f'{version_id}', 'date':f'{releaseDate}'}
+
+        tree = defxml.parse(path.join('build', 'debian', 'tribler', 'usr', 'share', 'metainfo',
+                            'org.tribler.Tribler.metainfo.xml'))
+        xmlRoot = tree.getroot()
+        releases = xmlRoot.find('releases')
+        release = xml.SubElement(releases, 'release', attrib)
+        tree.write(path.join('build', 'debian', 'tribler', 'usr', 'share', 'metainfo',
+                            'org.tribler.Tribler.metainfo.xml'))
+
     elif sys.platform == 'win32':
         logger.info('Replacing NSI string.')
         with open(path.join('build', 'win', 'resources', 'tribler.nsi'), 'r+') as f:
