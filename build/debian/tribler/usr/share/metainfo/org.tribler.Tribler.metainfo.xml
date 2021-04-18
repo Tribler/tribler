@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>org.tribler.Tribler</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>LGPL-3.0-only</project_license>
+  <name>Tribler</name>
+  <developer_name>The Tribler Community</developer_name>
+  <url type="homepage">https://tribler.org/</url>
+  <url type="bugtracker">https://github.com/Tribler/tribler/issues</url>
+  <url type="help">https://github.com/Tribler/tribler/wiki</url>
+  <summary>Towards making Bittorrent anonymous and impossible to shut down.</summary>
+  <description>
+    <p>We use our own dedicated Tor-like network for anonymous torrent downloading.</p>
+    <p>We are trying to make privacy, strong cryptography and authentication the Internet norm.</p>
+  </description>
+  <screenshots>
+    <screenshot type="default">
+      <image>https://www.tribler.org/img/image0.png</image>
+      <caption>Screenshot of the Tribler UI</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://www.tribler.org/img/image3.png</image>
+      <caption>Screenshot of the Tribler UI</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://www.tribler.org/img/image1.png</image>
+      <caption>Screenshot of the Tribler UI</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://www.tribler.org/img/image4.png</image>
+      <caption>Screenshot of the Tribler UI</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://www.tribler.org/img/image9.png</image>
+      <caption>Screenshot of the Tribler UI</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://www.tribler.org/img/image10.png</image>
+      <caption>Screenshot of the Tribler UI</caption>
+    </screenshot>
+  </screenshots>
+  <launchable type="desktop-id">org.tribler.Tribler.desktop</launchable>
+  <content_rating type="oars-1.1">
+    <content_attribute id="social-info">mild</content_attribute>
+  </content_rating>
+  <releases>
+  </releases>
+</component>
