@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import struct
 from datetime import datetime, timedelta
+from typing import List, Tuple
 
 from ipv8.database import database_blob
 from ipv8.keyvault.crypto import default_eccrypto
@@ -560,3 +563,50 @@ DISCRIMINATOR_TO_PAYLOAD_CLASS = {
     CHANNEL_DESCRIPTION: JsonNodePayload,
     DELETED: DeletedMetadataPayload,
 }
+
+
+class HealthItemsPayload(Payload):
+    """
+    Payload for health item information. See the details of binary format in MetadataCompressor class description.
+    """
+
+    format_list = ['varlenI']
+    names = ['data']
+
+    def __init__(self, data):
+        super().__init__()
+        self.data = data
+
+    def to_pack_list(self):
+        return [('varlenI', self.data)]
+
+    @classmethod
+    def from_unpack_list(cls, *args) -> HealthItemsPayload:
+        return cls(*args)
+
+    def serialize(self):
+        return default_serializer.pack_serializable(self)
+
+    @classmethod
+    def unpack(cls, data) -> List[Tuple[int, int, int]]:
+        data = default_serializer.unpack_serializable(cls, data)[0].data
+        items = data.split(b';')[:-1]
+        return [cls.parse_health_data_item(item) for item in items]
+
+    @classmethod
+    def parse_health_data_item(cls, item: bytes) -> Tuple[int, int, int]:
+        if not item:
+            return 0, 0, 0
+
+        # The format is forward-compatible: currently only three first elements of data are used,
+        # and later it is possible to add more fields without breaking old clients
+        try:
+            seeders, leechers, last_check = map(int, item.split(b',')[:3])
+        except:  # pylint: disable=broad-except
+            return 0, 0, 0
+
+        # Safety check: seelders, leechers and last_check values cannot be negative
+        if seeders < 0 or leechers < 0 or last_check < 0:
+            return 0, 0, 0
+
+        return seeders, leechers, last_check
