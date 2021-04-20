@@ -11,7 +11,7 @@ from ipv8.database import database_blob
 import lz4.frame
 
 from pony import orm
-from pony.orm import CacheIndexError, TransactionIntegrityError, db_session, desc, left_join, raw_sql, select
+from pony.orm import db_session, desc, left_join, raw_sql, select
 
 from tribler_common.simpledefs import NTFY
 
@@ -248,6 +248,15 @@ class MetadataStore:
                 default_vsids = self.Vsids.create_default_vsids()
             self.ChannelMetadata.votes_scaling = default_vsids.max_val
 
+    async def run_threaded(self, func, *args, **kwargs):
+        def wrapper():
+            try:
+                return func(*args, **kwargs)
+            finally:
+                self.disconnect_thread()
+
+        return await get_event_loop().run_in_executor(None, wrapper)
+
     def drop_indexes(self):
         cursor = self._db.get_connection().cursor()
         cursor.execute("select name from sqlite_master where type='index' and name like 'idx_%'")
@@ -294,10 +303,10 @@ class MetadataStore:
 
     @db_session
     def upsert_vote(self, channel, peer_pk):
-        voter = self.ChannelPeer.get(public_key=peer_pk)
+        voter = self.ChannelPeer.get_for_update(public_key=peer_pk)
         if not voter:
             voter = self.ChannelPeer(public_key=peer_pk)
-        vote = self.ChannelVote.get(voter=voter, channel=channel)
+        vote = self.ChannelVote.get_for_update(voter=voter, channel=channel)
         if not vote:
             vote = self.ChannelVote(voter=voter, channel=channel)
         else:
@@ -448,23 +457,11 @@ class MetadataStore:
         return self.process_squashed_mdblob(serialized_data, **kwargs)
 
     async def process_compressed_mdblob_threaded(self, compressed_data, **kwargs):
-        def _process_blob():
-            result = None
-            try:
-                with db_session:
-                    try:
-                        result = self.process_compressed_mdblob(compressed_data, **kwargs)
-                    except (TransactionIntegrityError, CacheIndexError) as err:
-                        self._logger.error("DB transaction error when tried to process compressed mdblob: %s", str(err))
-            # Unfortunately, we have to catch the exception twice, because Pony can raise them both on the exit from
-            # db_session, and on calling the line of code
-            except (TransactionIntegrityError, CacheIndexError) as err:
-                self._logger.error("DB transaction error when tried to process compressed mdblob: %s", str(err))
-            finally:
-                self.disconnect_thread()
-            return result
-
-        return await get_event_loop().run_in_executor(None, _process_blob)
+        try:
+            return await self.run_threaded(self.process_compressed_mdblob, compressed_data, **kwargs)
+        except Exception as e:  # pylint: disable=broad-except  # pragma: no cover
+            self._logger.warning("DB transaction error when tried to process compressed mdblob: %s", str(e))
+            return None
 
     def process_compressed_mdblob(self, compressed_data, **kwargs):
         try:
@@ -502,7 +499,7 @@ class MetadataStore:
             batch_start_time = datetime.now()
 
             # We separate the sessions to minimize database locking.
-            with db_session:
+            with db_session(immediate=True):
                 for payload in batch:
                     result.extend(self.process_payload(payload, **kwargs))
 
@@ -882,13 +879,7 @@ class MetadataStore:
         return pony_query
 
     async def get_entries_threaded(self, **kwargs):
-        def _get_results():
-            result = self.get_entries(**kwargs)
-            if not isinstance(threading.current_thread(), threading._MainThread):  # pylint: disable=W0212
-                self._db.disconnect()
-            return result
-
-        return await get_event_loop().run_in_executor(None, _get_results)
+        return await self.run_threaded(self.get_entries, **kwargs)
 
     @db_session
     def get_entries(self, first=1, last=None, **kwargs):

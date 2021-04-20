@@ -1,6 +1,7 @@
 import os
 import random
 import string
+import threading
 from binascii import unhexlify
 from datetime import datetime
 from pathlib import Path
@@ -453,3 +454,23 @@ def test_process_payload_update_type(metadata_store):
     metadata_store.process_payload(node_payload, skip_personal_metadata_payload=False)
     updated_node2 = metadata_store.process_payload(updated_node_payload, skip_personal_metadata_payload=False)[0].md_obj
     assert updated_node2.metadata_type == CHANNEL_TORRENT
+
+
+class TestException(Exception):
+    pass
+
+
+@pytest.mark.asyncio
+async def test_run_threaded(metadata_store):
+    thread_id = threading.get_ident()
+
+    def f1(a, b, *, c, d):
+        if a == 1 and b == 2 and c == 3 and d == 4:
+            return threading.get_ident()
+        raise TestException('test exception')
+
+    result = await metadata_store.run_threaded(f1, 1, 2, c=3, d=4)
+    assert result != thread_id
+
+    with pytest.raises(TestException, match='^test exception$'):
+        await metadata_store.run_threaded(f1, 1, 2, c=5, d=6)

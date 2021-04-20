@@ -78,7 +78,7 @@ def define_binding(db):
 
         def __init__(self, *args, **kwargs):
             if "health" not in kwargs and "infohash" in kwargs:
-                kwargs["health"] = db.TorrentState.get(infohash=kwargs["infohash"]) or db.TorrentState(
+                kwargs["health"] = db.TorrentState.get_for_update(infohash=kwargs["infohash"]) or db.TorrentState(
                     infohash=kwargs["infohash"]
                 )
             if 'xxx' not in kwargs:
@@ -92,7 +92,7 @@ def define_binding(db):
         def add_tracker(self, tracker_url):
             sanitized_url = get_uniformed_tracker_url(tracker_url)
             if sanitized_url:
-                tracker = db.TrackerState.get(url=sanitized_url) or db.TrackerState(url=sanitized_url)
+                tracker = db.TrackerState.get_for_update(url=sanitized_url) or db.TrackerState(url=sanitized_url)
                 self.health.trackers.add(tracker)
 
         def before_update(self):
