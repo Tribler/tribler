@@ -97,11 +97,38 @@ async def test_upgrade_pony_db_complete(upgrader, session):
     await upgrader.run()
     channels_dir = session.config.get_chant_channels_dir()
     mds = MetadataStore(old_database_path, channels_dir, session.trustchain_keypair)
+    db = mds._db  # pylint: disable=protected-access
+
+    existing_indexes = [
+        'idx_channelnode__metadata_type__partial',
+        'idx_channelnode__metadata_subscribed__partial',
+        'idx_torrentstate__last_check__partial',
+    ]
+
+    removed_indexes = [
+        'idx_channelnode__public_key',
+        'idx_channelnode__status',
+        'idx_channelnode__size',
+        'idx_channelnode__share',
+        'idx_channelnode__subscribed',
+        'idx_channelnode__votes',
+        'idx_channelnode__tags',
+        'idx_channelnode__title',
+        'idx_channelnode__num_entries',
+        'idx_channelnode__metadata_type',
+    ]
+
     with db_session:
         assert mds.TorrentMetadata.select().count() == 23
         assert mds.ChannelMetadata.select().count() == 2
         assert int(mds.MiscData.get(name="db_version").value) == CURRENT_DB_VERSION
-        assert list(mds._db.execute('PRAGMA index_info("idx_channelnode__metadata_type")'))
+        for index_name in existing_indexes:
+            assert list(db.execute(f'PRAGMA index_info("{index_name}")'))
+        for index_name in removed_indexes:
+            assert not list(db.execute(f'PRAGMA index_info("{index_name}")'))
+
+        assert upgrader.trigger_exists(db, 'torrentstate_ai')
+        assert upgrader.trigger_exists(db, 'torrentstate_au')
     mds.shutdown()
 
 
@@ -188,6 +215,48 @@ def test_upgrade_pony11to12(upgrader, session):
         assert upgrader.column_exists_in_table(mds._db, 'ChannelNode', 'binary_data')
         assert upgrader.column_exists_in_table(mds._db, 'ChannelNode', 'data_type')
         assert int(mds.MiscData.get(name="db_version").value) == 12
+    mds.shutdown()
+
+def test_upgrade_pony12to13(upgrader, session):
+    old_db_sample = TESTS_DATA_DIR / 'upgrade_databases' / 'pony_v12.db'
+    database_path = session.config.get_state_dir() / 'sqlite' / 'metadata.db'
+    shutil.copyfile(old_db_sample, database_path)
+
+    upgrader.upgrade_pony_db_12to13()
+    channels_dir = session.config.get_chant_channels_dir()
+    mds = MetadataStore(database_path, channels_dir, session.trustchain_keypair, check_tables=False, db_version=12)
+    db = mds._db  # pylint: disable=protected-access
+
+    existing_indexes = [
+        'idx_channelnode__metadata_type__partial',
+        'idx_channelnode__metadata_subscribed__partial',
+        'idx_torrentstate__last_check__partial',
+    ]
+
+    removed_indexes = [
+        'idx_channelnode__public_key',
+        'idx_channelnode__status',
+        'idx_channelnode__size',
+        'idx_channelnode__share',
+        'idx_channelnode__subscribed',
+        'idx_channelnode__votes',
+        'idx_channelnode__tags',
+        'idx_channelnode__title',
+        'idx_channelnode__num_entries',
+        'idx_channelnode__metadata_type',
+    ]
+
+    with db_session:
+        assert mds.TorrentMetadata.select().count() == 23
+        assert mds.ChannelMetadata.select().count() == 2
+        assert int(mds.MiscData.get(name="db_version").value) == CURRENT_DB_VERSION
+        for index_name in existing_indexes:
+            assert list(db.execute(f'PRAGMA index_info("{index_name}")')), index_name
+        for index_name in removed_indexes:
+            assert not list(db.execute(f'PRAGMA index_info("{index_name}")')), index_name
+
+        assert upgrader.trigger_exists(db, 'torrentstate_ai')
+        assert upgrader.trigger_exists(db, 'torrentstate_au')
     mds.shutdown()
 
 def test_calc_progress():

@@ -323,8 +323,10 @@ class GigaChannelManager(TaskManager):
     def clean_unsubscribed_channels(self):
 
         unsubscribed_list = list(
-            self.session.mds.ChannelMetadata.select(lambda g: g.subscribed is False and g.local_version > 0)
-        )
+            self.session.mds.ChannelMetadata.select(
+                lambda g: not g.subscribed and g.local_version > 0 and g.metadata_type == CHANNEL_TORRENT
+            )
+        )  # do not delete `g.metadata_type == CHANNEL_TORRENT` condition, it is used by partial index!
 
         for channel in unsubscribed_list:
             self.channels_processing_queue[channel.infohash] = (

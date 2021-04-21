@@ -4,7 +4,7 @@ import threading
 from asyncio import get_event_loop
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from time import sleep
+from time import sleep, time
 
 from ipv8.database import database_blob
 
@@ -38,11 +38,15 @@ from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import ge
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import LEGACY_ENTRY, TODELETE
 from tribler_core.modules.metadata_store.orm_bindings.torrent_metadata import NULL_KEY_SUBST
 from tribler_core.modules.metadata_store.serialization import (
+    BINARY_NODE,
     CHANNEL_DESCRIPTION,
+    CHANNEL_NODE,
     CHANNEL_THUMBNAIL,
     CHANNEL_TORRENT,
     COLLECTION_NODE,
     DELETED,
+    JSON_NODE,
+    METADATA_NODE,
     NULL_KEY,
     REGULAR_TORRENT,
     read_payload_with_offset,
@@ -51,11 +55,13 @@ from tribler_core.utilities.path_util import str_path
 from tribler_core.utilities.unicode import hexlify
 
 BETA_DB_VERSIONS = [0, 1, 2, 3, 4, 5]
-CURRENT_DB_VERSION = 12
-
+CURRENT_DB_VERSION = 13
 
 MIN_BATCH_SIZE = 10
 MAX_BATCH_SIZE = 1000
+
+POPULAR_TORRENTS_FRESHNESS_PERIOD = 60 * 60 * 24  # Last day
+POPULAR_TORRENTS_COUNT = 100
 
 
 # This table should never be used from ORM directly.
@@ -83,6 +89,51 @@ sql_add_fts_trigger_update = """
         DELETE FROM FtsIndex WHERE rowid = old.rowid;
         INSERT INTO FtsIndex(rowid, title) VALUES (new.rowid, new.title);
     END;"""
+
+sql_add_torrentstate_trigger_after_insert = """
+    CREATE TRIGGER IF NOT EXISTS torrentstate_ai AFTER INSERT ON TorrentState
+    BEGIN
+        UPDATE "TorrentState" SET has_data = (last_check > 0) WHERE rowid = new.rowid;
+    END;
+"""
+
+sql_add_torrentstate_trigger_after_update = """
+    CREATE TRIGGER IF NOT EXISTS torrentstate_au AFTER UPDATE ON TorrentState
+    BEGIN
+        UPDATE "TorrentState" SET has_data = (last_check > 0) WHERE rowid = new.rowid;
+    END;
+"""
+
+sql_create_partial_index_channelnode_subscribed = """
+    CREATE INDEX IF NOT EXISTS idx_channelnode__metadata_subscribed__partial ON "ChannelNode" (subscribed)
+    WHERE subscribed = 1
+"""
+
+# ACHTUNG! When adding a new metadata_types which should be indexed you need to add
+# it to this list and write a database upgrade which recreates the partial index
+indexed_metadata_types = [
+    CHANNEL_NODE,
+    METADATA_NODE,
+    COLLECTION_NODE,
+    JSON_NODE,
+    CHANNEL_DESCRIPTION,
+    BINARY_NODE,
+    CHANNEL_THUMBNAIL,
+    CHANNEL_TORRENT,
+]  # Does not include REGULAR_TORRENT! We dont want for regular torrents to be added to the partial index.
+
+sql_create_partial_index_channelnode_metadata_type = """
+    CREATE INDEX IF NOT EXISTS idx_channelnode__metadata_type__partial ON "ChannelNode" (metadata_type)
+    WHERE %s;
+""" % ' OR '.join(
+    f'metadata_type = {discriminator_value}' for discriminator_value in indexed_metadata_types
+)
+
+sql_create_partial_index_torrentstate_last_check = """
+    CREATE INDEX IF NOT EXISTS idx_torrentstate__last_check__partial
+    ON TorrentState (last_check, seeders, leechers, self_checked)
+    WHERE has_data = 1;
+"""
 
 
 class ObjState(enum.Enum):
@@ -184,6 +235,8 @@ class MetadataStore:
             with db_session(ddl=True):
                 self._db.execute(sql_create_fts_table)
                 self.create_fts_triggers()
+                self.create_torrentstate_triggers()
+                self.create_partial_indexes()
 
         if create_db:
             with db_session:
@@ -228,6 +281,16 @@ class MetadataStore:
     def fill_fts_index(self):
         cursor = self._db.get_connection().cursor()
         cursor.execute("insert into FtsIndex(rowid, title) select rowid, title from ChannelNode")
+
+    def create_torrentstate_triggers(self):
+        cursor = self._db.get_connection().cursor()
+        cursor.execute(sql_add_torrentstate_trigger_after_insert)
+        cursor.execute(sql_add_torrentstate_trigger_after_update)
+
+    def create_partial_indexes(self):
+        cursor = self._db.get_connection().cursor()
+        cursor.execute(sql_create_partial_index_channelnode_subscribed)
+        cursor.execute(sql_create_partial_index_channelnode_metadata_type)
 
     @db_session
     def upsert_vote(self, channel, peer_pk):
@@ -708,6 +771,7 @@ class MetadataStore:
         self_checked_torrent=None,
         cls=None,
         health_checked_after=None,
+        popular=None,
     ):
         """
         This method implements REST-friendly way to get entries from the database.
@@ -718,6 +782,21 @@ class MetadataStore:
         if cls is None:
             cls = self.ChannelNode
         pony_query = self.search_keyword(txt_filter, lim=1000) if txt_filter else left_join(g for g in cls)
+
+        if popular:
+            if metadata_type:
+                raise TypeError('Specifying `metadata_type` with `popular` is not allowed')
+            metadata_type = REGULAR_TORRENT
+
+            t = time() - POPULAR_TORRENTS_FRESHNESS_PERIOD
+            health_list = list(
+                select(
+                    health
+                    for health in self.TorrentState
+                    if health.last_check >= t and (health.seeders > 0 or health.leechers > 0)
+                ).order_by(lambda health: (health.seeders, health.leechers, health.last_check))[:POPULAR_TORRENTS_COUNT]
+            )
+            pony_query = pony_query.where(lambda g: g.health in health_list)
 
         if max_rowid is not None:
             pony_query = pony_query.where(lambda g: g.rowid <= max_rowid)
@@ -789,15 +868,16 @@ class MetadataStore:
             sort_expression = desc(sort_expression) if sort_desc else sort_expression
             pony_query = pony_query.sort_by(sort_expression)
 
-        if txt_filter:
-            if sort_by is None:
+        if sort_by is None:
+            if txt_filter:
                 pony_query = pony_query.sort_by(
                     f"""
-                    1 if g.metadata_type == {CHANNEL_TORRENT} else
-                    2 if g.metadata_type == {COLLECTION_NODE} else
-                    3 if g.health.seeders > 0 else 4
+                    (1 if g.metadata_type == {CHANNEL_TORRENT} else 2 if g.metadata_type == {COLLECTION_NODE} else 3),
+                    desc(g.health.seeders), desc(g.health.leechers)
                 """
                 )
+            elif popular:
+                pony_query = pony_query.sort_by('(desc(g.health.seeders), desc(g.health.leechers))')
 
         return pony_query
 

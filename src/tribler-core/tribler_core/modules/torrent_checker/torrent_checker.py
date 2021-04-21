@@ -164,7 +164,7 @@ class TorrentChecker(TaskManager):
     def load_torrents_checked_from_db(self):
         last_fresh_time = time.time() - HEALTH_FRESHNESS_SECONDS
         checked_torrents = list(self.tribler_session.mds.TorrentState
-                                .select(lambda g: g.last_check > last_fresh_time and g.self_checked)
+                                .select(lambda g: g.has_data and g.last_check > last_fresh_time and g.self_checked)
                                 .order_by(lambda g: (desc(g.seeders), g.last_check))
                                 .limit(TORRENTS_CHECKED_RETURN_SIZE))
 

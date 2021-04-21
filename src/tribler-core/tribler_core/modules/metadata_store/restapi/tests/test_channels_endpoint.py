@@ -15,7 +15,7 @@ import pytest
 from tribler_common.simpledefs import CHANNEL_STATE
 
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
-from tribler_core.modules.metadata_store.serialization import COLLECTION_NODE, REGULAR_TORRENT
+from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 from tribler_core.restapi.base_api_test import do_request
 from tribler_core.tests.tools.common import TORRENT_UBUNTU_FILE
 from tribler_core.utilities.json_util import dumps, loads
@@ -196,11 +196,28 @@ async def test_get_popular_torrents(enable_chant, enable_api, add_fake_torrents_
     session.dlmgr.get_download().get_state().get_progress = lambda: 0.5
     json_dict = await do_request(session, 'channels/popular_torrents', expected_code=200)
 
-    seeders_orig_order = [int(t['num_seeders']) for t in json_dict['results']]
+    def fields(d, *args):
+        return {key: d[key] for key in args}
 
-    assert seeders_orig_order[0] > 0
-    assert sorted(seeders_orig_order, reverse=True) == seeders_orig_order
-    assert len(json_dict['results']) == 20
+    seeders_orig_order = [fields(d, 'type', 'num_seeders', 'num_leechers') for d in json_dict['results']]
+
+    def sort_key(d):
+        a = 1 if d["type"] == CHANNEL_TORRENT else 2 if d["type"] == COLLECTION_NODE else 3
+        b = -d["num_seeders"]
+        c = -d["num_leechers"]
+        return (a, b, c)
+
+    assert seeders_orig_order == sorted(seeders_orig_order, key=sort_key)
+    assert len(json_dict['results']) == 30  # torrents 1, 3, 5 in each of 10 channels
+
+
+@pytest.mark.asyncio
+async def test_get_popular_torrents_mdtype(enable_chant, enable_api, add_fake_torrents_channels, mock_dlmgr, session):
+    """
+    It should be not possible to specify metadata_type argument for popular torrents endpoint
+    """
+    session.dlmgr.get_download().get_state().get_progress = lambda: 0.5
+    await do_request(session, 'channels/popular_torrents?metadata_type=300', expected_code=400)
 
 
 @pytest.mark.asyncio

@@ -14,13 +14,13 @@ def define_binding(db):
         _discriminator_ = METADATA_NODE
 
         # Serializable
-        title = orm.Optional(str, default='', index=True)
-        tags = orm.Optional(str, default='', index=True)
+        title = orm.Optional(str, default='')
+        tags = orm.Optional(str, default='')
 
         # ACHTUNG! PONY BUG! This is a workaround for Pony not caching attributes from multiple inheritance!
         # Its real home is CollectionNode, but we are forced to put it here so it is loaded by default on all queries.
         # When Pony fixes it, we must move it back to CollectionNode for clarity.
-        num_entries = orm.Optional(int, size=64, default=0, index=True)
+        num_entries = orm.Optional(int, size=64, default=0)
 
         # Special class-level properties
         _payload_class = MetadataNodePayload
