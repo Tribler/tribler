@@ -22,11 +22,12 @@ async def test_create_remote_search_request(enable_chant, enable_api, session):
     Test that remote search call is sent on a REST API search request
     """
     sent = {}
+    peers = []
     request_uuid = uuid.uuid4()
 
     def mock_send(**kwargs):
         sent.update(kwargs)
-        return request_uuid
+        return request_uuid, peers
 
     # Test querying for keywords
     session.gigachannel_community = Mock()
@@ -37,7 +38,7 @@ async def test_create_remote_search_request(enable_chant, enable_api, session):
         f'remote_query?txt_filter={search_txt}',
         request_type="PUT",
         expected_code=200,
-        expected_json={"request_uuid": str(request_uuid)},
+        expected_json={"request_uuid": str(request_uuid), "peers": peers},
     )
     assert sent['txt_filter'] == search_txt
     sent.clear()

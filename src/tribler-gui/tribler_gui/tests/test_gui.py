@@ -358,8 +358,16 @@ def test_search_suggestions(tribler_api, window):
 def test_search(tribler_api, window):
     window.top_search_bar.setText("trib")
     QTest.keyClick(window.top_search_bar, Qt.Key_Enter)
+    wait_for_variable(window, "search_results_page.search_request")
+    screenshot(window, name="search_loading_page")
+    QTest.mouseClick(window.search_results_page.show_results_button, Qt.LeftButton)
     tst_channels_widget(
-        window, window.search_results_page, "search_results", sort_column=2, test_filter=False, test_subscribe=False
+        window,
+        window.search_results_page.results_page,
+        "search_results",
+        sort_column=2,
+        test_filter=False,
+        test_subscribe=False,
     )
 
 

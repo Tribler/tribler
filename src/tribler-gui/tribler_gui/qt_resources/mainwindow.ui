@@ -960,6 +960,19 @@ QPushButton::menu-indicator{width:0px;}</string>
           </spacer>
          </item>
          <item>
+          <spacer name="horizontalSpacer">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
           <layout class="QVBoxLayout" name="verticalLayout_5">
            <item>
             <widget class="ChannelsMenuListWidget" name="channels_menu_list">
@@ -1051,7 +1064,7 @@ QListWidget::item:disabled
         <property name="currentIndex">
          <number>1</number>
         </property>
-        <widget class="ChannelContentsWidget" name="search_results_page"/>
+        <widget class="SearchResultsWidget" name="search_results_page"/>
         <widget class="SettingsPage" name="settings_page">
          <layout class="QVBoxLayout" name="verticalLayout">
           <property name="spacing">
@@ -5742,6 +5755,11 @@ margin: 10px 4px 2px 10px;</string>
    <extends>QListWidget</extends>
    <header>tribler_gui.widgets.channelsmenulistwidget.h</header>
   </customwidget>
+  <customwidget>
+   <class>SearchResultsWidget</class>
+   <extends>QWidget</extends>
+   <header>tribler_gui.widgets.searchresultswidget.h</header>
+  </customwidget>
  </customwidgets>
  <resources/>
  <connections>
@@ -5750,22 +5768,6 @@ margin: 10px 4px 2px 10px;</string>
    <signal>textChanged(QString)</signal>
    <receiver>MainWindow</receiver>
    <slot>on_search_text_change()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>308</x>
-     <y>24</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>317</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>top_search_bar</sender>
-   <signal>returnPressed()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>on_top_search_button_click()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>308</x>
