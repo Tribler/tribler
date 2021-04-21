@@ -52,8 +52,10 @@ class RemoteQueryEndpoint(MetadataEndpointBase):
         except (ValueError, KeyError) as e:
             return RESTResponse({"error": f"Error processing request parameters: {e}"}, status=HTTP_BAD_REQUEST)
 
-        request_uuid = self.session.gigachannel_community.send_search_request(**sanitized)
-        return RESTResponse({"request_uuid": str(request_uuid)})
+        request_uuid, peers_list = self.session.gigachannel_community.send_search_request(**sanitized)
+        peers_mid_list = [hexlify(p.mid) for p in peers_list]
+
+        return RESTResponse({"request_uuid": str(request_uuid), "peers": peers_mid_list})
 
     async def get_channels_peers(self, _):
         # Get debug stats for peers serving channels
