@@ -1,5 +1,3 @@
-import asyncio
-
 from aiohttp import web
 
 from aiohttp_apispec import docs, querystring_schema
@@ -12,6 +10,7 @@ from pony.orm import db_session
 
 from tribler_core.modules.metadata_store.restapi.metadata_endpoint import MetadataEndpointBase
 from tribler_core.modules.metadata_store.restapi.metadata_schema import MetadataParameters
+from tribler_core.modules.metadata_store.store import MetadataStore
 from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, RESTResponse
 
 
@@ -78,23 +77,21 @@ class SearchEndpoint(MetadataEndpointBase):
 
         include_total = request.query.get('include_total', '')
 
+        mds: MetadataStore = self.session.mds
+
         def search_db():
-            try:
-                with db_session:
-                    pony_query = self.session.mds.get_entries(**sanitized)
-                    search_results = [r.to_simple_dict() for r in pony_query]
-                    if include_total:
-                        total = self.session.mds.get_total_count(**sanitized)
-                        max_rowid = self.session.mds.get_max_rowid()
-                    else:
-                        total = max_rowid = None
-            finally:
-                # DB must be disconnected explicitly if run on a thread
-                self.session.mds._db.disconnect()  # pylint: disable=protected-access
+            with db_session:
+                pony_query = mds.get_entries(**sanitized)
+                search_results = [r.to_simple_dict() for r in pony_query]
+                if include_total:
+                    total = mds.get_total_count(**sanitized)
+                    max_rowid = mds.get_max_rowid()
+                else:
+                    total = max_rowid = None
             return search_results, total, max_rowid
 
         try:
-            search_results, total, max_rowid = await asyncio.get_event_loop().run_in_executor(None, search_db)
+            search_results, total, max_rowid = await mds.run_threaded(search_db)
         except Exception as e:  # pylint: disable=broad-except;  # pragma: no cover
             self._logger.error("Error while performing DB search: %s: %s", type(e).__name__, e)
             return RESTResponse(status=HTTP_BAD_REQUEST)

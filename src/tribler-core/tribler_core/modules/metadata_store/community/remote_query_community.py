@@ -13,7 +13,7 @@ from pony.orm.dbapiprovider import OperationalError
 from tribler_core.modules.metadata_store.community.eva_protocol import EVAProtocolMixin
 from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import LZ4_EMPTY_ARCHIVE, entries_to_chunk
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
-from tribler_core.modules.metadata_store.store import ObjState
+from tribler_core.modules.metadata_store.store import MetadataStore, ObjState
 from tribler_core.utilities.unicode import hexlify
 
 BINARY_FIELDS = ("infohash", "channel_pk")
@@ -115,7 +115,7 @@ class RemoteQueryCommunity(Community, EVAProtocolMixin):
         super().__init__(my_peer, endpoint, network=network, **kwargs)
 
         self.settings = settings or RemoteQueryCommunitySettings()
-        self.mds = metadata_store
+        self.mds: MetadataStore = metadata_store
 
         # This object stores requests for "select" queries that we sent to other hosts.
         # We keep track of peers we actually requested for data so people can't randomly push spam at us.
