@@ -179,7 +179,7 @@ class TrustGraphPage(AddBreadcrumbOnShowMixin, QWidget):
         if self.rest_request:
             self.rest_request.cancel_request()
         self.rest_request = TriblerNetworkRequest(
-            "trustview", self.on_received_data, priority=QNetworkRequest.LowPriority
+            "trustview?refresh=1", self.on_received_data, priority=QNetworkRequest.LowPriority
         )
 
     def on_received_data(self, data):
