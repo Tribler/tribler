@@ -123,9 +123,9 @@ def define_binding(db):  # pylint: disable=R0915
         start_timestamp = orm.Optional(int, size=64, default=0)
 
         # Local
-        subscribed = orm.Optional(bool, default=False, index=True)
-        share = orm.Optional(bool, default=False, index=True)
-        votes = orm.Optional(float, default=0.0, index=True)
+        subscribed = orm.Optional(bool, default=False)
+        share = orm.Optional(bool, default=False)
+        votes = orm.Optional(float, default=0.0)
         individual_votes = orm.Set("ChannelVote", reverse="channel")
         local_version = orm.Optional(int, size=64, default=0)
 
@@ -382,11 +382,11 @@ def define_binding(db):  # pylint: disable=R0915
             return select(
                 g
                 for g in cls
-                if g.subscribed
+                if g.subscribed == 1
                 and g.status != LEGACY_ENTRY
                 and (g.local_version < g.timestamp)
                 and g.public_key != database_blob(cls._my_key.pub().key_to_bin()[10:])
-            )
+            )  # don't simplify `g.subscribed == 1` to bool form, it is used by partial index!
 
         @property
         @db_session

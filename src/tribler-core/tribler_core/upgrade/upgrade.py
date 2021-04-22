@@ -11,7 +11,12 @@ from tribler_core.modules.bandwidth_accounting.database import BandwidthDatabase
 from tribler_core.modules.category_filter.l2_filter import is_forbidden
 from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT
-from tribler_core.modules.metadata_store.store import MetadataStore
+from tribler_core.modules.metadata_store.store import (
+    MetadataStore,
+    sql_create_partial_index_channelnode_metadata_type,
+    sql_create_partial_index_channelnode_subscribed,
+    sql_create_partial_index_torrentstate_last_check,
+)
 from tribler_core.upgrade.config_converter import (
     convert_config_to_tribler74,
     convert_config_to_tribler75,
@@ -100,6 +105,21 @@ class TriblerUpgrader:
         convert_config_to_tribler76(self.session.config.get_state_dir())
         self.upgrade_bw_accounting_db_8to9()
         self.upgrade_pony_db_11to12()
+        self.upgrade_pony_db_12to13()
+
+    def upgrade_pony_db_12to13(self):
+        """
+        Upgrade GigaChannel DB from version 12 (7.9.x) to version 13 (7.11.x).
+        Version 12 adds index for TorrentState.last_check attribute.
+        """
+        # We have to create the Metadata Store object because Session-managed Store has not been started yet
+        database_path = self.session.config.get_state_dir() / 'sqlite' / 'metadata.db'
+        channels_dir = self.session.config.get_chant_channels_dir()
+        if database_path.exists():
+            mds = MetadataStore(database_path, channels_dir, self.session.trustchain_keypair,
+                                disable_sync=True, check_tables=False, db_version=12)
+            self.do_upgrade_pony_db_12to13(mds)
+            mds.shutdown()
 
     def upgrade_pony_db_11to12(self):
         """
@@ -162,6 +182,44 @@ class TriblerUpgrader:
         result = list(db.execute(pragma))
         # If the column exists, result = [(1, )] else [(0, )]
         return result[0][0] == 1
+
+    def trigger_exists(self, db, trigger_name):
+        sql = f"select 1 from sqlite_master where type = 'trigger' and name = '{trigger_name}'"
+        result = db.execute(sql).fetchone()
+        return result is not None
+
+    def do_upgrade_pony_db_12to13(self, mds):
+        from_version = 12
+        to_version = 13
+
+        db = mds._db  # pylint: disable=protected-access
+
+        with db_session:
+            db_version = mds.MiscData.get(name="db_version")
+            if int(db_version.value) != from_version:
+                return
+
+            db.execute('DROP INDEX IF EXISTS idx_channelnode__public_key')
+            db.execute('DROP INDEX IF EXISTS idx_channelnode__status')
+            db.execute('DROP INDEX IF EXISTS idx_channelnode__size')
+            db.execute('DROP INDEX IF EXISTS idx_channelnode__share')
+            db.execute('DROP INDEX IF EXISTS idx_channelnode__subscribed')
+            db.execute('DROP INDEX IF EXISTS idx_channelnode__votes')
+            db.execute('DROP INDEX IF EXISTS idx_channelnode__tags')
+            db.execute('DROP INDEX IF EXISTS idx_channelnode__title')
+            db.execute('DROP INDEX IF EXISTS idx_channelnode__num_entries')
+            db.execute('DROP INDEX IF EXISTS idx_channelnode__metadata_type')
+
+            if not self.column_exists_in_table(db, 'TorrentState', 'has_data'):
+                db.execute('ALTER TABLE "TorrentState" ADD "has_data" BOOLEAN DEFAULT 0')
+                db.execute('UPDATE "TorrentState" SET "has_data" = 1 WHERE last_check > 0')
+            db.execute(sql_create_partial_index_torrentstate_last_check)
+            mds.create_torrentstate_triggers()
+
+            db.execute(sql_create_partial_index_channelnode_metadata_type)
+            db.execute(sql_create_partial_index_channelnode_subscribed)
+
+            db_version.value = str(to_version)
 
     def do_upgrade_pony_db_11to12(self, mds):
         from_version = 11

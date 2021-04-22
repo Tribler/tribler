@@ -615,9 +615,9 @@ def test_default_sorting_with_fts(mds_with_some_torrents):
         'folder2_1',
         'folder2',
         'folder1',
-        'torrent5',  # has seeders
         'torrent2_1',  # has seeders
         'torrent1',  # has seeders
+        'torrent5',  # has seeders
         'torrent6',  # no seeders
         'torrent2',  # no seeders
     ]

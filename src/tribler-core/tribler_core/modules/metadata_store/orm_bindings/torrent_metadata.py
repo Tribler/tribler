@@ -56,7 +56,7 @@ def define_binding(db):
 
         # Serializable
         infohash = orm.Required(database_blob, index=True)
-        size = orm.Optional(int, size=64, default=0, index=True)
+        size = orm.Optional(int, size=64, default=0)
         torrent_date = orm.Optional(datetime, default=datetime.utcnow, index=True)
         tracker_info = orm.Optional(str, default='')
 
