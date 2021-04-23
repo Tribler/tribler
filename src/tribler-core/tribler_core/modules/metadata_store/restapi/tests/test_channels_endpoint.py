@@ -217,7 +217,12 @@ async def test_get_popular_torrents_mdtype(enable_chant, enable_api, add_fake_to
     It should be not possible to specify metadata_type argument for popular torrents endpoint
     """
     session.dlmgr.get_download().get_state().get_progress = lambda: 0.5
-    await do_request(session, 'channels/popular_torrents?metadata_type=300', expected_code=400)
+    json_dict1 = await do_request(session, 'channels/popular_torrents')
+    json_dict2 = await do_request(session, 'channels/popular_torrents?metadata_type=300')
+    json_dict3 = await do_request(session, 'channels/popular_torrents?metadata_type=400')
+
+    # Currently popularity page force-set metadata_type to 300 (REGULAR_TORRENT) for all requests
+    assert json_dict1 == json_dict2 == json_dict3
 
 
 @pytest.mark.asyncio

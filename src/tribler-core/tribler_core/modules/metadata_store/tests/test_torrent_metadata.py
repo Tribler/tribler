@@ -323,10 +323,13 @@ def test_popular_torrens_with_metadata_type(metadata_store):
     Test that `popular` argument cannot be combiner with `metadata_type` argument
     """
 
-    metadata_store.get_entries(popular=True)
-
     with pytest.raises(TypeError):
-        metadata_store.get_entries(popular=True, metadata_type=REGULAR_TORRENT)
+        metadata_store.get_entries(popular=True)
+
+    metadata_store.get_entries(popular=True, metadata_type=REGULAR_TORRENT)
 
     with pytest.raises(TypeError):
         metadata_store.get_entries(popular=True, metadata_type=CHANNEL_TORRENT)
+
+    with pytest.raises(TypeError):
+        metadata_store.get_entries(popular=True, metadata_type=[REGULAR_TORRENT, CHANNEL_TORRENT])
