@@ -8,7 +8,7 @@ class NewChannelDialog(ConfirmationDialog):
         super().__init__(
             parent,
             "Create new channel",
-            "Enter the name of the channel to create:",
+            "Enter the name of the channel/folder to create:",
             [('NEW', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
             show_input=True,
         )
