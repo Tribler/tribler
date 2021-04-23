@@ -781,9 +781,8 @@ class MetadataStore:
         pony_query = self.search_keyword(txt_filter, lim=1000) if txt_filter else left_join(g for g in cls)
 
         if popular:
-            if metadata_type:
-                raise TypeError('Specifying `metadata_type` with `popular` is not allowed')
-            metadata_type = REGULAR_TORRENT
+            if metadata_type != REGULAR_TORRENT:
+                raise TypeError('With `popular=True`, only `metadata_type=REGULAR_TORRENT` is allowed')
 
             t = time() - POPULAR_TORRENTS_FRESHNESS_PERIOD
             health_list = list(

@@ -468,10 +468,8 @@ class ChannelsEndpoint(ChannelsEndpointBase):
     )
     async def get_popular_torrents_channel(self, request):
         sanitized = self.sanitize_parameters(request.query)
+        sanitized["metadata_type"] = REGULAR_TORRENT
         sanitized["popular"] = True
-        if "metadata_type" in sanitized:
-            err_msg = "specifying `metadata_type` parameter for popular torrents endpoint is not allowed"
-            return RESTResponse({"error": err_msg}, status=HTTP_BAD_REQUEST)
 
         with db_session:
             contents = self.session.mds.get_entries(**sanitized)
