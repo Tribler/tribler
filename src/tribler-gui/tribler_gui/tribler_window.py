@@ -6,7 +6,7 @@ import signal
 import sys
 import time
 from base64 import b64encode
-from urllib.parse import unquote, urlparse
+from urllib.parse import quote, unquote, urlparse
 
 from PyQt5 import uic
 from PyQt5.QtCore import (
@@ -773,7 +773,7 @@ class TriblerWindow(QMainWindow):
         )
         if len(filenames[0]) > 0:
             for filename in filenames[0]:
-                self.pending_uri_requests.append(f"file:{filename}")
+                self.pending_uri_requests.append(f"file:{quote(filename)}")
             self.process_uri_request()
 
     def start_download_from_uri(self, uri):
