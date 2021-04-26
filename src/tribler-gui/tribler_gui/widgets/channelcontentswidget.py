@@ -93,6 +93,13 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
 
         self.explanation_container.setHidden(True)
 
+    def hide_all_labels(self):
+        self.edit_channel_contents_top_bar.setHidden(True)
+        self.subscription_widget.setHidden(True)
+        self.channel_preview_button.setHidden(True)
+        self.channel_num_torrents_label.setHidden(True)
+        self.channel_state_label.setHidden(True)
+
     @property
     def personal_channel_model(self):
         return SimplifiedPersonalChannelsModel if self.autocommit_enabled else PersonalChannelsModel
@@ -261,6 +268,8 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         self.empty_channels_stack()
         self.push_channels_stack(root_model)
         self.controller.set_model(self.model)
+        # Hide the edit controls by default, to prevent the user clicking the buttons prematurely
+        self.hide_all_labels()
 
     def reset_view(self, text_filter=None):
         self.model.text_filter = text_filter or ''
@@ -354,6 +363,8 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         NewChannelDialog(self, self.model.create_new_channel)
 
     def initialize_with_channel(self, channel_info):
+        # Hide the edit controls by default, to prevent the user clicking the buttons prematurely
+        self.hide_all_labels()
         # Turn off sorting by default to speed up SQL queries
         self.push_channels_stack(self.default_channel_model(channel_info=channel_info))
         self.controller.set_model(self.model)
