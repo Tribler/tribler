@@ -6,7 +6,7 @@ from ipv8.messaging.anonymization.tunnel import EXIT_NODE, ORIGINATOR
 from ipv8.messaging.anonymization.utils import run_speed_test
 from ipv8.taskmanager import TaskManager
 
-from experiment.tool.tiny_tribler_service import TinyTriblerService
+from tribler_core.utilities.tiny_tribler_service import TinyTriblerService
 
 EXPERIMENT_NUM_MB = int(os.environ.get('EXPERIMENT_NUM_MB', 25))
 EXPERIMENT_NUM_CIRCUITS = int(os.environ.get('EXPERIMENT_NUM_CIRCUITS', 10))

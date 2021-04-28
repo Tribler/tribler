@@ -6,7 +6,7 @@ from pathlib import Path
 
 from ipv8.taskmanager import TaskManager
 
-from experiment.tool.tiny_tribler_service import TinyTriblerService
+from tribler_core.utilities.tiny_tribler_service import TinyTriblerService
 
 EXPERIMENT_RUN_TIME = int(os.environ.get('EXPERIMENT_RUN_TIME', 3600 * 3))
 
