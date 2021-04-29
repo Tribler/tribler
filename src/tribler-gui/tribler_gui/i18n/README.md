@@ -17,3 +17,10 @@ Running `extract-messages` is going to update all the existing translatable stri
 QT expects a binary file to load new translations. So we need a tool to convert a .ts file to a .qm file. That tool is encapsulated in the `update_translations` script. Change the translations, run the scripts and Voilà, nueva traducción disponible!
 
 You need to remove the tag `type="unfinished"` once you consider the translation finished and then run the `update_translations` script. QT can handle partially translated TS files, so don't shy away if you cannot translate 100% of the app. 
+
+## Caveats
+* Don't use Python f-strings. They don't work correctly with `tr()` magic. Use classic `%`-syntax instead.
+* Class-level variables are correctly extracted, but not translated in the GUI. Every translatable thing must be initialized in instance properties (e.g. in `__init__`)
+* Be aware of `%i %s` - placeholders in translatable strings.
+* If something is not translated, look for `notr="true""` in the corresponding `.ui` file. However, it should be there for a reason.
+* Many strings defined in `*.ui`-files should not be translated at all, since these are just placeholders that should be later set dynamically in Python code. Mark those `notr` to prevent them from being extracted and distracting the translator.
