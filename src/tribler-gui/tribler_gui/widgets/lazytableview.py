@@ -4,9 +4,10 @@ from PyQt5.QtWidgets import QAbstractItemView, QLabel, QTableView
 
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 
-from tribler_gui.defs import ACTION_BUTTONS, COMMIT_STATUS_COMMITTED
+from tribler_gui.defs import COMMIT_STATUS_COMMITTED
 from tribler_gui.utilities import connect, data_item2uri, get_image_path, index2uri
 from tribler_gui.widgets.tablecontentdelegate import TriblerContentDelegate
+from tribler_gui.widgets.tablecontentmodel import Column, EXPANDING
 
 
 class FloatingAnimationWidget(QLabel):
@@ -108,7 +109,6 @@ class TriblerContentTableView(QTableView):
             return
 
         status = int(item['subscribed'])
-        # index.model().setData(index, int(not status), role=Qt.EditRole)
 
         if status:
             self.window().on_channel_unsubscribe(item)
@@ -122,7 +122,8 @@ class TriblerContentTableView(QTableView):
         # Skip emitting click event when the user clicked on some specific columns
         column_position = self.model().column_position
         if item.column() in (
-            column_position.get(cname, False) for cname in (ACTION_BUTTONS, 'status', 'votes', 'subscribed', 'health')
+            column_position.get(cname, False)
+            for cname in (Column.ACTIONS, Column.STATUS, Column.VOTES, Column.SUBSCRIBED, Column.HEALTH)
         ):
             return
 
@@ -161,8 +162,11 @@ class TriblerContentTableView(QTableView):
     def resizeEvent(self, _):
         if self.model() is None:
             return
+        viewport_width = self.width()
         for col_num, col in enumerate(self.model().columns):
-            self.setColumnWidth(col_num, self.model().column_width.get(col, lambda _: 110)(self.width()))
+            self.setColumnWidth(
+                col_num, col.width if col.width != EXPANDING else viewport_width - self.model().min_columns_width - 20
+            )
         self.loading_animation_widget.update_position()
 
     def start_download_from_index(self, index):
