@@ -68,6 +68,7 @@ from tribler_gui.dialogs.createtorrentdialog import CreateTorrentDialog
 from tribler_gui.dialogs.new_channel_dialog import NewChannelDialog
 from tribler_gui.dialogs.startdownloaddialog import StartDownloadDialog
 from tribler_gui.error_handler import ErrorHandler
+from tribler_gui.i18n import tr
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest, TriblerRequestManager, request_manager
 from tribler_gui.utilities import (
@@ -367,17 +368,19 @@ class TriblerWindow(QMainWindow):
         self.core_manager.stop(False)
         close_dialog = ConfirmationDialog(
             self.window(),
-            "<b>CRITICAL ERROR</b>",
-            "You are running low on disk space (<100MB). Please make sure to have "
-            "sufficient free space available and restart Tribler again.",
-            [("Close Tribler", BUTTON_TYPE_NORMAL)],
+            tr("<b>CRITICAL ERROR</b>"),
+            tr(
+                "You are running low on disk space (<100MB). Please make sure to have "
+                "sufficient free space available and restart Tribler again."
+            ),
+            [(tr("Close Tribler"), BUTTON_TYPE_NORMAL)],
         )
         connect(close_dialog.button_clicked, lambda _: close_tribler_gui())
         close_dialog.show()
 
     def on_torrent_finished(self, torrent_info):
         if "hidden" not in torrent_info or not torrent_info["hidden"]:
-            self.tray_show_message("Download finished", f"Download of {torrent_info['name']} has finished.")
+            self.tray_show_message(tr("Download finished"), tr("Download of %s has finished.") % {torrent_info['name']})
 
     def show_loading_screen(self):
         self.top_menu_button.setHidden(True)
@@ -443,7 +446,7 @@ class TriblerWindow(QMainWindow):
         hide_xxx = get_gui_setting(self.gui_settings, "family_filter", True, is_bool=True)
         self.discovered_page.initialize_root_model(
             DiscoveredChannelsModel(
-                channel_info={"name": "Discovered channels"}, endpoint_url="channels", hide_xxx=hide_xxx
+                channel_info={"name": tr("Discovered channels")}, endpoint_url="channels", hide_xxx=hide_xxx
             )
         )
         connect(self.core_manager.events_manager.discovered_channel, self.discovered_page.model.on_new_entry_received)
@@ -452,7 +455,7 @@ class TriblerWindow(QMainWindow):
             PopularTorrentsModel(channel_info={"name": "Popular torrents"}, hide_xxx=hide_xxx)
         )
         self.popular_page.explanation_text.setText(
-            "This page show the list of popular torrents collected by Tribler during the last 24 hours."
+            tr("This page show the list of popular torrents collected by Tribler during the last 24 hours.")
         )
         self.popular_page.explanation_container.setHidden(False)
 
@@ -530,11 +533,13 @@ class TriblerWindow(QMainWindow):
         # Check if destination directory is writable
         is_writable, error = is_dir_writable(destination)
         if not is_writable:
-            gui_error_message = (
+            gui_error_message = tr(
                 "Insufficient write permissions to <i>%s</i> directory. Please add proper "
-                "write permissions on the directory and add the torrent again. %s" % (destination, error)
+                "write permissions on the directory and add the torrent again. %s"
+            ) % (destination, error)
+            ConfirmationDialog.show_message(
+                self.window(), tr("Download error <i>%s</i>") % uri, gui_error_message, "OK"
             )
-            ConfirmationDialog.show_message(self.window(), f"Download error <i>{uri}</i>", gui_error_message, "OK")
             return
 
         selected_files_list = []
@@ -569,7 +574,7 @@ class TriblerWindow(QMainWindow):
                 if post_data:
                     TriblerNetworkRequest(
                         f"channels/mychannel/{channel_id}/torrents",
-                        lambda _: self.tray_show_message("Channel update", "Torrent(s) added to your channel"),
+                        lambda _: self.tray_show_message(tr("Channel update"), tr("Torrent(s) added to your channel")),
                         method='PUT',
                         data=post_data,
                     )
@@ -588,10 +593,10 @@ class TriblerWindow(QMainWindow):
 
         self.new_version_dialog = ConfirmationDialog(
             self,
-            "New version available",
-            "Version %s of Tribler is available.Do you want to visit the "
-            "website to download the newest version?" % version,
-            [('IGNORE', BUTTON_TYPE_NORMAL), ('LATER', BUTTON_TYPE_NORMAL), ('OK', BUTTON_TYPE_NORMAL)],
+            tr("New version available"),
+            tr("Version %s of Tribler is available.Do you want to visit the " "website to download the newest version?")
+            % version,
+            [(tr("IGNORE"), BUTTON_TYPE_NORMAL), (tr("LATER"), BUTTON_TYPE_NORMAL), (tr("OK"), BUTTON_TYPE_NORMAL)],
         )
         connect(self.new_version_dialog.button_clicked, lambda action: self.on_new_version_dialog_done(version, action))
         self.new_version_dialog.show()
@@ -671,7 +676,7 @@ class TriblerWindow(QMainWindow):
         self.has_search_results = True
         self.search_results_page.initialize_root_model(
             SearchResultsModel(
-                channel_info={"name": f"Search results for {query}" if len(query) < 50 else f"{query[:50]}..."},
+                channel_info={"name": (tr("Search results for %s") % query) if len(query) < 50 else f"{query[:50]}..."},
                 endpoint_url="search",
                 hide_xxx=get_gui_setting(self.gui_settings, "family_filter", True, is_bool=True),
                 text_filter=to_fts_query(query),
@@ -738,10 +743,10 @@ class TriblerWindow(QMainWindow):
         """
         menu = TriblerActionMenu(self)
 
-        browse_files_action = QAction('Import torrent from file', self)
-        browse_directory_action = QAction('Import torrent(s) from directory', self)
-        add_url_action = QAction('Import torrent from magnet/URL', self)
-        create_torrent_action = QAction('Create torrent from file(s)', self)
+        browse_files_action = QAction(tr("Import torrent from file"), self)
+        browse_directory_action = QAction(tr("Import torrent(s) from directory"), self)
+        add_url_action = QAction(tr("Import torrent from magnet/URL"), self)
+        create_torrent_action = QAction(tr("Create torrent from file(s)"), self)
 
         connect(browse_files_action.triggered, self.on_add_torrent_browse_file)
         connect(browse_directory_action.triggered, self.on_add_torrent_browse_dir)
@@ -765,11 +770,11 @@ class TriblerWindow(QMainWindow):
         self.create_dialog.show()
 
     def on_create_torrent_updates(self, update_dict):
-        self.tray_show_message("Torrent updates", update_dict['msg'])
+        self.tray_show_message(tr("Torrent updates"), update_dict['msg'])
 
     def on_add_torrent_browse_file(self, index):
         filenames = QFileDialog.getOpenFileNames(
-            self, "Please select the .torrent file", QDir.homePath(), "Torrent files (*.torrent)"
+            self, tr("Please select the .torrent file"), QDir.homePath(), tr("Torrent files%s") % " (*.torrent)"
         )
         if len(filenames[0]) > 0:
             for filename in filenames[0]:
@@ -787,9 +792,8 @@ class TriblerWindow(QMainWindow):
                 self.fetch_settings()
                 self.dialog = ConfirmationDialog.show_error(
                     self,
-                    "Download Error",
-                    "Tribler settings is not available\
-                                                                   yet. Fetching it now. Please try again later.",
+                    tr("Download Error"),
+                    tr("Tribler settings is not available yet. Fetching it now. Please try again later."),
                 )
                 # By re-adding the download uri to the pending list, the request is re-processed
                 # when the settings is received
@@ -836,7 +840,9 @@ class TriblerWindow(QMainWindow):
                     add_to_channel=self.dialog.dialog_widget.add_to_channel_checkbox.isChecked(),
                 )
             else:
-                ConfirmationDialog.show_error(self, "Tribler UI Error", "Something went wrong. Please try again.")
+                ConfirmationDialog.show_error(
+                    self, tr("Tribler UI Error"), tr("Something went wrong. Please try again.")
+                )
                 logging.exception("Error while trying to download. Either dialog or dialog.dialog_widget is None")
 
         if self.dialog:
@@ -849,18 +855,21 @@ class TriblerWindow(QMainWindow):
 
     def on_add_torrent_browse_dir(self, checked):
         chosen_dir = QFileDialog.getExistingDirectory(
-            self, "Please select the directory containing the .torrent files", QDir.homePath(), QFileDialog.ShowDirsOnly
+            self,
+            tr("Please select the directory containing the .torrent files"),
+            QDir.homePath(),
+            QFileDialog.ShowDirsOnly,
         )
         self.chosen_dir = chosen_dir
         if len(chosen_dir) != 0:
             self.selected_torrent_files = [torrent_file for torrent_file in glob.glob(chosen_dir + "/*.torrent")]
             self.dialog = ConfirmationDialog(
                 self,
-                "Add torrents from directory",
-                "Add %s torrent files from the following directory "
-                "to your Tribler channel:\n\n%s" % (len(self.selected_torrent_files), chosen_dir),
-                [('ADD', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
-                checkbox_text="Add torrents to My Channel",
+                tr("Add torrents from directory"),
+                tr("Add %s torrent files from the following directory to your Tribler channel: \n\n%s")
+                % (len(self.selected_torrent_files), chosen_dir),
+                [(tr("ADD"), BUTTON_TYPE_NORMAL), (tr("CANCEL"), BUTTON_TYPE_CONFIRM)],
+                checkbox_text=tr("Add torrents to My Channel"),
             )
             connect(self.dialog.button_clicked, self.on_confirm_add_directory_dialog)
             self.dialog.show()
@@ -872,13 +881,15 @@ class TriblerWindow(QMainWindow):
                 def on_add_button_pressed(channel_id):
                     TriblerNetworkRequest(
                         f"collections/mychannel/{channel_id}/torrents",
-                        lambda _: self.tray_show_message("Channels update", f"{self.chosen_dir} added to your channel"),
+                        lambda _: self.tray_show_message(
+                            tr("Channels update"), tr("%s added to your channel") % self.chosen_dir
+                        ),
                         method='PUT',
                         data={"torrents_dir": self.chosen_dir},
                     )
 
                 self.window().add_to_channel_dialog.show_dialog(
-                    on_add_button_pressed, confirm_button_text="Add torrent(s)"
+                    on_add_button_pressed, confirm_button_text=tr("Add torrent(s)")
                 )
 
             for torrent_file in self.selected_torrent_files:
@@ -901,12 +912,12 @@ class TriblerWindow(QMainWindow):
         if not self.add_torrent_url_dialog_active:
             self.dialog = ConfirmationDialog(
                 self,
-                "Add torrent from URL/magnet link",
-                "Please enter the URL/magnet link in the field below:",
-                [('ADD', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
+                tr("Add torrent from URL/magnet link"),
+                tr("Please enter the URL/magnet link in the field below:"),
+                [(tr("ADD"), BUTTON_TYPE_NORMAL), (tr("CANCEL"), BUTTON_TYPE_CONFIRM)],
                 show_input=True,
             )
-            self.dialog.dialog_widget.dialog_input.setPlaceholderText('URL/magnet link')
+            self.dialog.dialog_widget.dialog_input.setPlaceholderText(tr("URL/magnet link"))
             self.dialog.dialog_widget.dialog_input.setFocus()
             connect(self.dialog.button_clicked, self.on_torrent_from_url_dialog_done)
             self.dialog.show()
@@ -1012,7 +1023,7 @@ class TriblerWindow(QMainWindow):
         self.delete_tray_icon()
         self.show_loading_screen()
         self.hide_status_bar()
-        self.loading_text_label.setText("Shutting down...")
+        self.loading_text_label.setText(tr("Shutting down..."))
         if self.debug_window:
             self.debug_window.setHidden(True)
 
@@ -1070,13 +1081,15 @@ class TriblerWindow(QMainWindow):
     def clicked_skip_conversion(self):
         self.dialog = ConfirmationDialog(
             self,
-            "Abort the conversion of Channels database",
-            "The upgrade procedure is now <b>converting your personal channel</b> and channels "
-            "collected by the previous installation of Tribler.<br>"
-            "Are you sure you want to abort the conversion process?<br><br>"
-            "<p style='color:red'><b> !!! WARNING !!! <br>"
-            "You will lose your personal channel and subscribed channels if you ABORT now! </b> </p> <br>",
-            [('ABORT', BUTTON_TYPE_CONFIRM), ('CONTINUE', BUTTON_TYPE_NORMAL)],
+            tr("Abort the conversion of Channels database"),
+            tr(
+                "The upgrade procedure is now <b>converting your personal channel</b> and channels "
+                "collected by the previous installation of Tribler.<br>"
+                "Are you sure you want to abort the conversion process?<br><br>"
+                "<p style='color:red'><b> !!! WARNING !!! <br>"
+                "You will lose your personal channel and subscribed channels if you ABORT now! </b> </p> <br>"
+            ),
+            [(tr("ABORT"), BUTTON_TYPE_CONFIRM), (tr("CONTINUE"), BUTTON_TYPE_NORMAL)],
         )
         connect(self.dialog.button_clicked, self.on_skip_conversion_dialog)
         self.dialog.show()
@@ -1106,13 +1119,13 @@ class TriblerWindow(QMainWindow):
 
         self.dialog = ConfirmationDialog(
             self,
-            "Unsubscribe from channel",
-            "Are you sure you want to <b>unsubscribe</b> from channel<br/>"
+            tr("Unsubscribe from channel"),
+            tr("Are you sure you want to <b>unsubscribe</b> from channel<br/>")
             + '\"'
             + f"<b>{channel_info['name']}</b>"
             + '\"'
-            + "<br/>and remove its contents?",
-            [('UNSUBSCRIBE', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
+            + tr("<br/>and remove its contents?"),
+            [(tr("UNSUBSCRIBE"), BUTTON_TYPE_NORMAL), (tr("CANCEL"), BUTTON_TYPE_CONFIRM)],
         )
         connect(self.dialog.button_clicked, _on_unsubscribe_action)
         self.dialog.show()
@@ -1133,13 +1146,13 @@ class TriblerWindow(QMainWindow):
 
         self.dialog = ConfirmationDialog(
             self,
-            "Delete channel",
-            "Are you sure you want to <b>delete</b> your personal channel<br/>"
+            tr("Delete channel"),
+            tr("Are you sure you want to <b>delete</b> your personal channel<br/>")
             + '\"'
             + f"<b>{channel_info['name']}</b>"
             + '\"'
-            + "<br/>and all its contents?",
-            [('DELETE', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
+            + tr("<br/>and all its contents?"),
+            [(tr("DELETE"), BUTTON_TYPE_NORMAL), (tr("CANCEL"), BUTTON_TYPE_CONFIRM)],
         )
         connect(self.dialog.button_clicked, _on_delete_action)
         self.dialog.show()
@@ -1157,8 +1170,10 @@ class TriblerWindow(QMainWindow):
 
     def on_config_error_signal(self, stacktrace):
         self._logger.error(f"Config error: {stacktrace}")
-        user_message = 'Tribler recovered from a corrupted config. Please check your settings and update if necessary.'
-        ConfirmationDialog.show_error(self, "Tribler config error", user_message)
+        user_message = tr(
+            "Tribler recovered from a corrupted config. Please check your settings and update if necessary."
+        )
+        ConfirmationDialog.show_error(self, tr("Tribler config error"), user_message)
 
 
 def _qurl_to_path(qurl):

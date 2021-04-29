@@ -20,6 +20,7 @@ from tribler_gui.tribler_app import TriblerApplication
 from tribler_gui.tribler_window import TriblerWindow
 from tribler_gui.utilities import connect
 from tribler_gui.widgets.loading_list_item import LoadingListItem
+from tribler_gui.widgets.tablecontentmodel import Column
 
 RUN_TRIBLER_PY = Path(tribler_gui.__file__).parent.parent.parent / "run_tribler.py"
 
@@ -222,7 +223,7 @@ def tst_channels_widget(window, widget, widget_name, sort_column=1, test_filter=
 
     if test_subscribe:
         # Unsubscribe and subscribe again
-        index = get_index_of_row_column(widget.content_table, 0, widget.model.column_position['votes'])
+        index = get_index_of_row_column(widget.content_table, 0, widget.model.column_position[Column.VOTES])
         widget.content_table.on_subscribe_control_clicked(index)
         QTest.qWait(200)
         window.dialog.button_clicked.emit(0)
@@ -232,13 +233,13 @@ def tst_channels_widget(window, widget, widget_name, sort_column=1, test_filter=
         window.dialog.button_clicked.emit(0)
 
     # Test channel view
-    index = get_index_of_row_column(widget.content_table, 0, widget.model.column_position['name'])
+    index = get_index_of_row_column(widget.content_table, 0, widget.model.column_position[Column.NAME])
     widget.content_table.on_table_item_clicked(index)
     wait_for_list_populated(widget.content_table)
     screenshot(window, name=f"{widget_name}-channel_loaded")
 
     # Click the first torrent
-    index = get_index_of_row_column(widget.content_table, 0, widget.model.column_position['name'])
+    index = get_index_of_row_column(widget.content_table, 0, widget.model.column_position[Column.NAME])
     widget.content_table.on_table_item_clicked(index)
     QTest.qWait(100)
     screenshot(window, name=f"{widget_name}-torrent_details")
