@@ -137,6 +137,7 @@ def test_scrub_simple_event(scrubber):
 
 def test_scrub_event(scrubber):
     event = {
+        'the very first item': 'username',
         CONTEXTS: {
             REPORTER: {
                 OS_ENVIRON: {
@@ -164,6 +165,7 @@ def test_scrub_event(scrubber):
     }
 
     assert scrubber.scrub_event(event) == {
+        'the very first item': scrubber.placeholder_user,
         CONTEXTS: {
             REPORTER: {
                 OS_ENVIRON: {
